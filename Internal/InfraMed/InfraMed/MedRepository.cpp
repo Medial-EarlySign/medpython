@@ -873,7 +873,7 @@ int MedRepository::read_index_tables(const vector<int> &pids_to_take, const vect
 	index.index_table.resize(MAX_SID_NUMBER);
 	if (pids_to_take.size()==0 || pids_to_take[0]>=0) { // this allows for reading an empty repository by signing it with a negative value for the first pid
 		//#pragma omp parallel for num_threads(2)
-#pragma omp parallel for
+//#pragma omp parallel for
 		for (int i=0; i<sig_ids.size(); i++) {
 			int sid = sig_ids[i];
 			int fno = sigs.Sid2Info[sid].fno;

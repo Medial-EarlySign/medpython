@@ -213,7 +213,7 @@ int MedModel::quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids
 
 	vector<int> rc(rep_processors.size(), 0);
 
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<rep_processors.size(); i++)
 		rc[i] = rep_processors[i]->learn(rep,ids);
 
@@ -228,7 +228,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	learn_samples->get_ids(ids);
 
 	vector<int> rc(generators.size(), 0);
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i<generators.size(); i++)
 		rc[i] = generators[i]->learn(rep, ids,rep_processors); //??? why is this done for ALL time points in an id???
 
@@ -266,7 +266,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	// Loop on ids
 	int RC = 0;
 	int thrown = 0;
-#pragma omp parallel for schedule(dynamic)
+//#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<samples->idSamples.size(); j++) {
 		try {
 			MedIdSamples& pid_samples = samples->idSamples[j];
@@ -517,10 +517,16 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				all_attr_values.push_back(current_attr_values);
 			}			
 		}
+		for (auto &i : all_attr_values) {
+			for (auto ii : i)
+				printf(" ii   %s \n", ii.c_str());
+			printf("new ii\n");
+		}
+
 		vector<string> all_combinations;
 		concatAllCombinations(all_attr_values, 0, "", all_combinations);
 		for (string c : all_combinations) {
-			//MLOG("MedModel::init [%s]\n", c.c_str());
+			MLOG("MedModel::init [%s]\n", c.c_str());
 			add_process_to_set(process_set, duplicate, c);
 		}
 	}
