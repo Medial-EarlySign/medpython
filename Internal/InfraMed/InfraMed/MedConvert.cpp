@@ -59,7 +59,7 @@ int MedConvert::read_config(const string &fname)
 	ifstream inf(fname);
 
 	if (!inf) {
-		MERR("MedConvert: read_config: Can't open file %s\n",fname.c_str());
+		MERR("MedConvert: read_config: Can't open file [%s]\n",fname.c_str());
 		return -1;
 	}
 
