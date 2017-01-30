@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "data_handler", "data_handler\data_handler.vcxproj", "{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Pocket PC 2003 (ARMV4) = Debug|Pocket PC 2003 (ARMV4)
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Pocket PC 2003 (ARMV4) = Release|Pocket PC 2003 (ARMV4)
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Debug|Pocket PC 2003 (ARMV4).Build.0 = Debug|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Debug|Pocket PC 2003 (ARMV4).Deploy.0 = Debug|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Debug|Win32.Build.0 = Debug|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Debug|x64.ActiveCfg = Debug|x64
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Debug|x64.Build.0 = Debug|x64
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Release|Win32.ActiveCfg = Release|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Release|Win32.Build.0 = Release|Win32
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Release|x64.ActiveCfg = Release|x64
+		{E4D6C13B-47A5-44B0-A20F-D1C9870595B2}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
