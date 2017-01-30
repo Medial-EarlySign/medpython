@@ -1,0 +1,228 @@
+InfraMed Documentation and Design
+=================================
+
+The InfraMed Library allows for a standard way to keep patient records, and get an efficient standard
+way to get to every data type and signal that a patient has.
+The major sources of data in a patient file are of the following types:
+
+(1) Timeless - single value type such as : birth, death, sex, ethnicity, etc...
+(2) Timed Signal - most typical: a measurement with a time and value: such as CBC or Biochem values.
+(3) Interval Signal - a signal happening over a known period, such as hospitalization, specific treatment, etc...
+
+A major goal of the InfraMed library is to give efficient direct access to each data type and in particular to the time
+ordered list of each timed signal (and interval signal).
+
+The InfraMed library will also aim at allowing to add a new signal type to a patient in a relatievely easy manner,
+this will also allow adding and keeping new calculated or cleaned/edited signals.
+
+The Top most datastructure is the "Repository".
+Each Repository will have a config file that contains pointers to all needed files in order to load and use it fully.
+One will be able to use several repositories at the same instance (for example, a repository for the raw data, and a 
+repository for calculated/cleaned signals).
+
+Repository major elements:
+
+(1) Dictionary and Sets (typically global for all repositories)
+(2) Signal definitions (typically global for all repositories)
+(3) Data files
+(4) index file
+
+Repository config file:
+=======================
+
+format: text file
+lines starting with "#" are documentation lines and are ignored. Empty lines are ignored as well.
+DESCRIPTION "<string description>"
+DIR <files directory path>
+DICTIONARY <fname>
+SIGNAL <fname>
+DATA <serial num> <fname>
+INDEX <fname>
+
+tab separated.
+
+a Repository can have several dictionaries, Signal, Data and Index files.
+Minimal config should have a signal file and a data file.
+
+Note that same files can appear in different combinations in order to create different repositories.
+
+Data Files:
+===========
+Requirements:
+For each patient the data for a specific signal is in a single file, continous and sorted (by time). Indexing later 
+will aim at getting one to that position exactly.
+
+Format:
+first 32 bit in file - signing the format which can be full or stripped
+
+full format: binary
+Format is planned with a "built in" index, such that the file is "self contained" in the information it has.
+Each patient record is of the following format
+(1) 64 bits of magic number to sign start of a record. (also record start point)
+(2) 32 bits of pid
+(3) Ns = 32 bits of number of signals to follow
+(4) for each signal: 32 bits of signal id, followed by 32 bits of (byte position from record start point). (That's Ns x 64 bits)
+(5) for each signal a vector (sorted by time typically) of the values.
+
+Each data file can be accompanied by a specific file index (data file name).idx of the following simple format:
+for each record
+(1) 64 bits of record start byte position.
+This simple idx enables a faster build of a more complex index.
+
+stripped format: binary
+Format is minimal, containing just the data, and must be accompanied with an index in order to be useful
+
+for each patient and signal: a vector (sorted by time typically) of the values.
+
+Index file:
+===========
+Contains a faster to load indexing for data
+
+(0) General record:
+	64 bit magic number
+	32 bit mode (to enable later different formats)
+
+	if mode == 0 : //32 bits number of patients, 32 bits number of signals, 64 bit x n_signals: number of patients from each signal: 32 bit signals id, 32 bit number of patients
+	if mode == 0 : nothing special move directly to packets
+	
+binary file,
+for each packet:
+(1) 64 bit magic number
+(2) pid - 32 bits
+(3) number of signals - 32 bit
+(4) for each signal:
+	(a) signal id - 32 bit
+	(b) file no. - 16 bits
+	(c) position in file (64 bits)
+	(d) length (in bytes) (32 bits)
+
+int memory the index will contain an additional
+(e) ptr to memory (null in not in memory)
+
+An index can be:
+- Full: containing all pids and signal ids appearing in all repository data files.
+- Partial: containing only a subset of pids and signals in a certain time slot.
+
+
+Signals file:
+=============
+Contains the needed mapping from signal ids to names and signal types. The type number must be exact with the number it is given in the 
+Signals.h file. If a signal appears also in a dictionary file - it MUST have the same id in both.
+
+format: text
+lines starting with # are documentation lines and are ignored
+SIGNAL <name> <signal id> <signal type num> <description>
+
+tab or space separated.
+
+signal names can not contain tabs or spaces.
+
+Dictionary/SET:
+===============
+contains a mapping from names to codes. This can be very useful when one wants to access an item "by name" within the code. It also helps when building
+a non numerical signal such as the Registry for diseases. It also enables us to later group items together by sets.
+
+format: text
+lines starting with # are documentation lines and are ignored
+DEF <number> <name>
+SET <set name> <set member>
+
+This file is tab separated. (Thus names can contain spaces).
+
+a DEF line simply maps a name to its code number. Note that signals must have the same code they have in the signals file.
+a SET line must use names that were previously defined in the same file, or were preloaded from a different dictionary file.
+
+
+==============================================================================
+General simple usage example:
+
+#include InfraMed.h"
+...
+
+MedRepository r;
+r.read_all("maccabee.config");
+
+...
+
+pid = ...
+sid = r.signals.sid("RDW");
+SDateVal *stv = (SDateVal *)r.get(pid,sid,len);
+if (stv != NULL) {
+	date_min = ..
+	date_max = ..
+	int i = get_date_ind(stv, len, ">=", date_min); 
+	if (i >= 0) {
+		while(stv[i].date <= date_max) {
+			.....
+			i++;
+		}
+	}
+
+}
+
+...
+
+============================================================================================================
+design of data reads and handling:
+
+Auto read is of the following form.
+(1) reading config file
+(2) reading dictionaries
+(3) reading signals 
+(4) if there are any index files - read them (if flag for read indexes is on - which is the default). (read can be partial)
+(5) if there are any full format index files - read their index if their read index from data flag is on (which is default in case there are no index files) 
+    (read can be partial) (in this case we read the relevant data as well in the same pass (?))
+(6) read_data -
+	(a) all data requested (full or partial - as appears in the index)
+	(b) partial data
+	(c) on a need basis (into some paging mechanism, or a cyclic buffer).
+
+===========================================================================================================
+design issues for index:
+
+Assumptions:
+(1) For each <pid,sid> there is a single entry in any of a repository index files.
+(2) There can be several index files containing data as described above.
+(3) same sid can appear in several files (probably won't in practice).
+
+when reading an index we have to do the following:
+(1) go over all index files and collect all basic idx records (containing fno, pos, len, ptr).
+    if only a subgroup of pids and/or sids is requested ask only for these.
+	In parallel to idx records keep a matching list of pid,sid
+(2) go over idx records and build a fast index that gets the relevant record given the pid,sid.
+
+means - reading an index is done by giving a vector of index files and groups of pids, sids to read.
+
+===========================================================================================================
+conversion design:
+
+inputs:
+dict.signals
+dict.registry
+
+#signals (not really needed)
+
+codes_to_signal_names: <code> <sig name>
+
+data files: sorted by pid
+
+special ones:
+- demographics: <pid> <byear> <gender F/M> :: load into signals BYEAR , GENDER
+- deaths:	<pid> DEATH <date> :: load into signal DEATH
+- registry: tab separated: <pid> <stage> <date> <location> :: load into signals Cancer_Stage, Cancer_Location
+
+regular ones:
+<pid> <code name> <date> <value> :: loads into the signal defined by code name, and the given codes_to_signal_names table
+
+
+Loading into several files:
+needs:
+(1) file names table: <number> <file_name prefix for matching data and index files>
+(2) signals to files table: split of signals into file numbers (default is 0).
+
+
+work plan:
+(1) open all files and get from all the next data for the minimal current pid.
+(2) for each pid, go over data, go over signals, sort, pack and write to files.
+
+
