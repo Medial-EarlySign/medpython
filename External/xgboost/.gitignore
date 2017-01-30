@@ -1,0 +1,12 @@
+x64
+*.lib
+*.pdb
+*.so
+*.a
+lib
+build
+Release
+.vs
+*.opendb
+*.sdf
+

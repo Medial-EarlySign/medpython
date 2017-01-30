@@ -1,0 +1,27 @@
+project(windows)
+cmake_minimum_required(VERSION 2.8)
+
+set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
+
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++11 -Wno-write-strings -fopenmp -O4 -msse2 -msse3 -msse4")
+include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakeDropNDEBUG.txt")
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
+
+include_directories($ENV{MR_ROOT}/Libs/External)
+include_directories($ENV{MR_ROOT}/Libs/Internal)
+include_directories($ENV{MR_ROOT}/Libs/InternalOrig)
+include_directories($ENV{R_INCL_DIR})
+include_directories($ENV{LIBXL_INCL_DIR})
+include_directories(${PROJECT_SOURCE_DIR})
+include_directories($ENV{MR_ROOT}/Libs/External/xgboost/src)
+include_directories($ENV{MR_ROOT}/Libs/External/xgboost/include)
+include_directories($ENV{MR_ROOT}/Libs/External/xgboost/rabit/include)
+include_directories($ENV{MR_ROOT}/Libs/xgboost/dmlc-core/include)
+
+add_subdirectory(dmlc)
+add_subdirectory(rabit)
+add_subdirectory(xgboost)
+
+
+#include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakePrintProperties.txt")
