@@ -47,14 +47,6 @@ class SDateVal {
 		float val;
 };
 
-// Basic search operations in an SDateVal Array
-int get_lt_date_ind(SDateVal *sdv, int len, int date);
-int get_leq_date_ind(SDateVal *sdv, int len, int date);
-int get_eq_date_ind(SDateVal *sdv, int len, int date);
-int get_geq_date_ind(SDateVal *sdv, int len, int date);
-int get_gt_date_ind(SDateVal *sdv, int len, int date);
-int get_date_ind(SDateVal *sdv, int len, string &op, int date); // op can be one of "<" "<=" "==" ">=" ">"
-
 //===================================
 // STimeVal
 //===================================
