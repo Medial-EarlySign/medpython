@@ -30,6 +30,46 @@ enum SigType {T_Value = 0,		// 0 :: single float Value
 
 int get_type_size(SigType t);
 
+//====================================================================
+// UniversalSigVec :
+// -----------------
+// A unified wrapper for signals to allow getting times and values
+// from signals in a unified API.
+//====================================================================
+class UniversalSigVec {
+	public:
+		void *data;
+
+		float val(int idx);
+		int val_int(int idx);
+		long long val_long(int idx);
+		int time_days(int idx);
+		int time_minutes(int idx);
+
+		float val(int idx, int channel);
+
+		int time_days(int idx, int channel);
+		int time_minutes(int idx, int channel);
+
+		int init(SigType _type);
+		int init_by_sid(int sid);
+		int init_by_name(const string& sig_name);
+
+	private:
+		// these will init when init() is called.
+		SigType type; // type of the embedded signal
+		int n_time_channels;
+		int n_val_channels;
+		int size_of_element;
+		int val_cast_to_float_flag;
+		int val_cast_to_double_flag;
+		int val_cast_to__flag;
+		int val_cast_to_float_flag;
+
+
+
+};
+
 
 //===================================
 // SVal
