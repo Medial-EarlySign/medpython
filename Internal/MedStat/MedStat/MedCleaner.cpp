@@ -248,7 +248,7 @@ void MedCleaner::calculate(vector<float> &_values) {
 		sdv = sqrt(s/n) ;
 
 
-	MLOG("cleaner : avg %f std %f\n", mean, sdv);
+	// MLOG("cleaner : avg %f std %f\n", mean, sdv);
 	// Skew
 	s = 0 ;
 	for (auto it = counter.begin(); it != counter.end(); it++) {
