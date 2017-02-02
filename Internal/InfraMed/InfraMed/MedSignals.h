@@ -64,7 +64,6 @@ class UniversalSigVec {
 		int val_cast_to_float_flag;
 		int val_cast_to_double_flag;
 		int val_cast_to__flag;
-		int val_cast_to_float_flag;
 
 
 
