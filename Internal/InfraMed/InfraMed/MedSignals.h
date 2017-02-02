@@ -43,7 +43,7 @@ class UniversalSigVec {
 
 		inline float val(int idx);
 		int val_int(int idx);
-		inline float val_float(int idx) { return val(idx); }
+		//inline float val_float(int idx) { return val(idx); }
 		double val_double(int idx);
 		long long val_long(int idx);
 
