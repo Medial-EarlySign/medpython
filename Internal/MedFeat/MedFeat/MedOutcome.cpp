@@ -193,7 +193,7 @@ int MedSplit::read_from_file(const string &fname)
 		MERR("MedSplit: can't open file %s for read\n",fname.c_str());
 		return -1;
 	}
-
+	bool found_nsplits = false;
 	string curr_line;
 	while (getline(inf,curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -206,7 +206,10 @@ int MedSplit::read_from_file(const string &fname)
 
 			if (fields.size() >= 2) {
 
-				if (fields[0] == "NSPLITS") nsplits = stoi(fields[1]);
+				if (fields[0] == "NSPLITS") {
+					nsplits = stoi(fields[1]);
+					found_nsplits = true;
+				}
 				else {
 					int pid = stoi(fields[0]);
 					int isplit = stoi(fields[1]);
@@ -218,6 +221,10 @@ int MedSplit::read_from_file(const string &fname)
 
 			}
 		}
+	}
+	if (!found_nsplits) {
+		MERR("MedSplit: file [%s] does not contain a line with NSPLITS\n", fname.c_str());
+		return -1;
 	}
 
 	inf.close();
@@ -1580,9 +1587,9 @@ void PredictedRes::format(string &s)
 
 	bool is_int_outcome = (outcome == (float)((int)outcome));
 	if (is_int_outcome)
-		sprintf(fmts, "%8d\t%10lld\t%8.5f\t%10lld\t%3d\t%3d\t%3d\n", pid, date, pred, outcome_date, (int)outcome, split, nsplits);
+		sprintf(fmts, "%8d\t%10lld\t%8.5f\t%10lld\t%3d\t%3d\t%3d", pid, date, pred, outcome_date, (int)outcome, split, nsplits);
 	else
-		sprintf(fmts, "%8d\t%10lld\t%8.5f\t%10lld\t%8.5f\t%3d\t%3d\n", pid, date, pred, outcome_date, outcome, split, nsplits);
+		sprintf(fmts, "%8d\t%10lld\t%8.5f\t%10lld\t%8.5f\t%3d\t%3d", pid, date, pred, outcome_date, outcome, split, nsplits);
 
 	s = string(fmts);
 
@@ -1614,7 +1621,7 @@ int PredictionList::write_to_file(const string &fname)
 	for (auto &pr : preds) {
 		string s;
 		pr.format(s);
-		of << s;
+		of << s << '\n';
 	}
 
 	of.close();
