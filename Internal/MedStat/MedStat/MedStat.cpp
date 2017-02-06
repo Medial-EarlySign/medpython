@@ -129,23 +129,61 @@ void sort_and_get_median(vector<float>& vals, float &median) {
 //...............................................................................................................................
 void get_mean_and_std(vector<float> &vals, float &mean, float &std)
 {
-	double sx = 0, sxx = 0;
-
-	for (int i=0; i<vals.size(); i++) {
-		sx += vals[i];
-		sxx += vals[i]*vals[i];
-	}
-
-	if (vals.size() > 0) {
-		mean = (float)sx/(float)vals.size();
-		double v = sxx/(double)vals.size() - mean*mean;
-		std = (float)sqrt(v);
-	} else {
+	if (vals.size() == 0) {
 		mean = 0;
 		std = 1;
 	}
+	else {
+		double sum = 0;
+		int n = (int)vals.size();
+		for (int i = 0; i < vals.size(); i++)
+			sum += vals[i];
+		mean = (float) (sum / n);
+
+		if (n == 1)
+			std = 1.0;
+		else {
+			sum = 0;
+			for (int i = 0; i < vals.size(); i++)
+				sum += (vals[i] - mean)*(vals[i] - mean);
+			std = sqrt((float)(sum / n));
+		}
+	}
 
 }
+
+//...............................................................................................................................
+void get_mean_and_std(vector<float> &vals, float &mean, float &std, float missing_val)
+{
+	double sum = 0;
+	int n = 0;
+	for (int i = 0; i < vals.size(); i++) {
+		if (vals[i] != missing_val) {
+			n++;
+			sum += vals[i];
+		}
+	}
+
+	if (n == 0) {
+		mean = 0;
+		std = 1.0;
+	}
+	else {
+		mean = (float) (sum / n);
+
+		if (n == 1)
+			std = 1.0;
+		else {
+			sum = 0;
+			for (int i = 0; i < vals.size(); i++) {
+				if (vals[i] != missing_val)
+					sum += (vals[i] - mean)*(vals[i] - mean);
+			}
+			std = sqrt((float)(sum / n));
+		}
+	}
+}
+
 
 //...............................................................................................................................
 // MedHist
