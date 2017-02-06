@@ -269,3 +269,48 @@ int MedSignals::fno(int sid)
 		return -1;
 	return Sid2Info[sid].fno;
 }
+
+//================================================================================================
+// UniversalSigVec
+//================================================================================================
+
+//-----------------------------------------------------------------------------------------------
+float UniversalSigVec::val(int idx)
+{
+	// idx is assumed to be < len ! (saving the time for checking it)
+	return ((float *)&data[idx*size_of_element + value_channels_offsets[0]])[0];
+}
+
+//int val_int(int idx);
+//long long val_long(int idx);
+//int time_days(int idx);
+//int time_minutes(int idx);
+
+//float val(int idx, int channel);
+
+//int time_days(int idx, int channel);
+//int time_minutes(int idx, int channel);
+
+//-----------------------------------------------------------------------------------------------
+int UniversalSigVec::init(SigType _type)
+{
+	switch (_type) {
+	case T_DateVal:
+		type = T_DateVal;
+		n_time_channels = 1;
+		n_val_channels = 1;
+		size_of_element = (int)sizeof(SDateVal);
+		time_channels_offsets = { offsetof(SDateVal, date) };
+		value_channels_offsets = { offsetof(SDateVal, val) };
+		break;
+
+	case T_TimeVal:
+		type = T_TimeVal;
+		n_time_channels = 1;
+		n_val_channels = 1;
+		size_of_element = (int)sizeof(STimeVal);
+		time_channels_offsets ={ offsetof(STimeVal, time) };
+		value_channels_offsets ={ offsetof(SDateVal, val) };
+		break;
+	}
+}

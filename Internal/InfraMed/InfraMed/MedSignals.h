@@ -38,22 +38,29 @@ int get_type_size(SigType t);
 //====================================================================
 class UniversalSigVec {
 	public:
-		void *data;
+		char *data;
+		int len;		// type len (not bytes len)
 
-		float val(int idx);
+		inline float val(int idx);
 		int val_int(int idx);
+		//inline float val_float(int idx) { return val(idx); }
+		double val_double(int idx);
 		long long val_long(int idx);
+
+		int date(int idx);
+		int days(int idx);
+		int minutes(int idx);
+
 		int time_days(int idx);
 		int time_minutes(int idx);
 
 		float val(int idx, int channel);
 
-		int time_days(int idx, int channel);
-		int time_minutes(int idx, int channel);
+		int date(int idx, int channel);
+		int days(int idx, int channel);
+		int minutes(int idx, int channel);
 
 		int init(SigType _type);
-		int init_by_sid(int sid);
-		int init_by_name(const string& sig_name);
 
 	private:
 		// these will init when init() is called.
@@ -61,21 +68,33 @@ class UniversalSigVec {
 		int n_time_channels;
 		int n_val_channels;
 		int size_of_element;
+		vector<int> time_channels_offsets;
+		vector<int> value_channels_offsets;
+
 		int val_cast_to_float_flag;
 		int val_cast_to_double_flag;
 		int val_cast_to__flag;
 
-
+		// SDateVal funcs
+		//inline float SDateVal_val_float(int idx, int chan) { return ((SDateVal *)data)[idx].val; }
 
 };
 
+//===========================================
+// UnifiedSig - unifiying API's for signals
+// This has only virtual functions
+//===========================================
+class UnifiedSig {
+public:
+
+};
 
 //===================================
 // SVal
 //===================================
 class SVal {
 	public:
-		float val;	
+		float val;
 };
 
 //===================================
@@ -85,6 +104,12 @@ class SDateVal {
 	public:
 		int date;
 		float val;
+
+		inline int n_time_channels() { return 1; }
+		inline int n_val_channels() { return 1; }
+		inline float val_float(int chan) { return val; }
+//		inline int date(int chan) { return date; }
+//		inline int days(int chan) { return date_to_days_IM(date); }
 };
 
 //===================================
