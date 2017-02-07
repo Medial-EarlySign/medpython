@@ -142,7 +142,7 @@ int MedQRF::init(map<string, string>& mapper) {
 			if (vals.size() == 1 && params.samp_vec[0] <= 0) params.sampsize = NULL;
 			else params.sampsize = &params.samp_vec[0];
 		}
-		else MLOG("Unknonw parameter \'%s\' for QRF\n", field.c_str());
+		else MLOG("Unknown parameter \'%s\' for QRF\n", field.c_str());
 
 	}
 
