@@ -41,6 +41,20 @@ class UniversalSigVec {
 		char *data;
 		int len;		// type len (not bytes len)
 
+		// actual universal API's
+		float val() {}
+
+
+		// pointers to type implemented functions - will be initialized by init()
+		float (*val_p)();
+		int (*days_p)();
+		int (*hours_p)();
+		int (*minutes_p)();
+		int (*n_time_channels_p)();
+		int (*n_vals_channels_p)();
+		int (*size_p)();
+
+/*
 		inline float val(int idx);
 		int val_int(int idx);
 		//inline float val_float(int idx) { return val(idx); }
@@ -59,7 +73,7 @@ class UniversalSigVec {
 		int date(int idx, int channel);
 		int days(int idx, int channel);
 		int minutes(int idx, int channel);
-
+*/
 		int init(SigType _type);
 
 	private:
@@ -87,14 +101,38 @@ class UniversalSigVec {
 class UnifiedSig {
 public:
 
+	// channels numbers
+	inline int n_time_channels() { return 0; }
+	inline int n_val_channels() { return 0; }
+	
+
+	// time channels int
+	inline int date_(int chan) { return 0; }
+	inline int days(int chan) { return 0; }
+	inline int hours(int chan) { return 0; }
+	inline int minutes(int chan) { return 0; }
+
+	// value channels float
+	inline float value(int chan) { return 0; }
+
+	// channel 0 easy access
+	inline int date_() { return date_(0); }
+	inline int days() { return days(0); }
+	inline int hours() { return hours(0); }
+	inline int minutes() { return minutes(0); }
+	inline float value() { return value(0); }
 };
 
 //===================================
 // SVal
 //===================================
-class SVal {
+class SVal : UnifiedSig {
 	public:
 		float val;
+
+		inline int n_val_channels() { return 1; }
+		inline float value(int chan) { return val; }
+		
 };
 
 //===================================
@@ -107,7 +145,11 @@ class SDateVal {
 
 		inline int n_time_channels() { return 1; }
 		inline int n_val_channels() { return 1; }
-		inline float val_float(int chan) { return val; }
+		inline int date_(int chan) { return date; }
+		inline int days(int chan) { return 0; }
+
+		inline float value() { return val; }
+		inline int days();
 //		inline int date(int chan) { return date; }
 //		inline int days(int chan) { return date_to_days_IM(date); }
 };

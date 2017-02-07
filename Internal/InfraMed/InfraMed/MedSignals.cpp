@@ -275,11 +275,11 @@ int MedSignals::fno(int sid)
 //================================================================================================
 
 //-----------------------------------------------------------------------------------------------
-float UniversalSigVec::val(int idx)
-{
-	// idx is assumed to be < len ! (saving the time for checking it)
-	return ((float *)&data[idx*size_of_element + value_channels_offsets[0]])[0];
-}
+//float UniversalSigVec::val(int idx)
+//{
+//	// idx is assumed to be < len ! (saving the time for checking it)
+//	return ((float *)&data[idx*size_of_element + value_channels_offsets[0]])[0];
+//}
 
 //int val_int(int idx);
 //long long val_long(int idx);
@@ -313,4 +313,6 @@ int UniversalSigVec::init(SigType _type)
 		value_channels_offsets ={ offsetof(SDateVal, val) };
 		break;
 	}
+
+	return 0;
 }
