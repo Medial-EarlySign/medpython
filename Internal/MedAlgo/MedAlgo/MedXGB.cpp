@@ -211,7 +211,7 @@ int MedXGB::init(map<string, string>& mapper) {
 		else if (field == "max_depth") params.max_depth = stoi(entry.second);
 		else if (field == "num_round") params.num_round = stoi(entry.second);
 		else if (field == "silent") params.silent = stoi(entry.second);
-		else if (field == "silent") params.num_class = stoi(entry.second);
+		else if (field == "num_class") params.num_class = stoi(entry.second);
 		else if (field == "missing_value") params.missing_value = stof(entry.second);
 		else if (field == "colsample_bytree") params.colsample_bytree = stof(entry.second);
 		else if (field == "subsample") params.subsample = stof(entry.second);
