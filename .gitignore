@@ -1,3 +1,4 @@
 External/xgboost/windows/CMakeLists.txt
 x64/
 External/xgboost/xgboost
+*CMakeLists.txt
