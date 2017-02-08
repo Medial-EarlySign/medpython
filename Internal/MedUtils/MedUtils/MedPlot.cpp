@@ -93,9 +93,9 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 	}
 	for (auto it = d.begin(); it != d.end(); ++it)
 	{
-		data[0].push_back(it->first);
 		for (auto jt = it->second.begin(); jt != it->second.end(); ++jt)
 		{
+			data[0].push_back(it->first);
 			data[1].push_back(jt->first);
 			data[2].push_back(aggFunction(jt->second));
 		}
