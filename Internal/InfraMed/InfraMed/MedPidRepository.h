@@ -59,6 +59,15 @@ class PidRec {
 		void *get(string &sig_name, int &len);
 		void *get(int sid, int &len);
 
+		// universal API
+		UniversalSigVec usv;	// we keep a usv inside, to allow saving of the init() time
+		inline void *get(int sid, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.type(sid)); return (_usv.data = get(sid, _usv.len)); }
+		inline void *get(int sid) { return get(sid, usv); }
+		inline void *get(const string &sig_name, UniversalSigVec &_usv) { return get(my_base_rep->sigs.sid(sig_name), _usv); }
+		inline void *get(const string &sig_name) { return get(sig_name, usv); }
+
+
+
 		// memory alloc & free
 		void prealloc(unsigned int len);
 		int realloc(unsigned int len);
@@ -120,6 +129,12 @@ public:
 	void *get(string &sig_name, int version, int &len);
 	void *get(int sid, int version, int &len);
 	void *get(int sid, int &len) { return PidRec::get(sid, len); }
+
+	// universal API
+	inline void *get(int sid, int version, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.type(sid)); return (_usv.data = get(sid, version, _usv.len)); }
+	inline void *get(int sid, int version) { return get(sid, version, usv); }
+	inline void *get(const string &sig_name, int version, UniversalSigVec &_usv) { return get(my_base_rep->sigs.sid(sig_name), version, _usv); }
+	inline void *get(const string &sig_name, int version) { return get(sig_name, version, usv); }
 
 	// clearing
 	void clear_vers(); // deletes all versions and remains just with the original one.

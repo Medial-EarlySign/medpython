@@ -288,7 +288,9 @@ class MedIndex {
 
 		// getting the data for a pid,signal . Pointer to start returned, len elements inside. If not found NULL and 0 returned.
 		inline void *get(int pid, const string &sig_name, int &len);
-		inline void *get(int pid, int sid, int &len);	// use this variant inside big loops to avoid map from string to int.
+		inline void *get(int pid, const string &sig_name, UniversalSigVec &usv);
+		inline void *get(int pid, int sid, int &len);					// use this variant inside big loops to avoid map from string to int.
+		inline void *get(int pid, int sid, UniversalSigVec &usv);		// Universal vec API, use this inside loops to avoid string map
 
 		//-------------------------------------------------------------------
 		int   read_config(const string &fname);
@@ -521,6 +523,28 @@ inline void *MedRepository::get3(int pid, int sid, int &len)
 		return NULL;
 
 	return ((void *)&index.index_table[sid].work_area[pos]);
+}
+
+
+//======================================================================
+// Universal APIs
+//======================================================================
+inline void *MedRepository::get(int pid, const string &sig_name, UniversalSigVec &usv)
+{
+	usv.len = 0;
+	int sid = sigs.sid(sig_name);
+	if (sid < 0)
+		return NULL;
+	return(get(pid, sid, usv));
+}
+
+inline void *MedRepository::get(int pid, int sid, UniversalSigVec &usv)
+{
+	usv.init(sigs.Sid2Info[sid].type);
+
+	usv.data = get(pid, sid, usv.len);
+	return usv.data;
+
 }
 
 #endif

@@ -22,7 +22,7 @@ using namespace std;
 using namespace boost;
 
 //-----------------------------------------------------------------------------------------------
-int get_type_size(SigType t)
+int MedRep::get_type_size(SigType t)
 {
 	switch (t) {
 
@@ -135,7 +135,7 @@ int MedSignals::read(const string &fname)
 					info.sid = sid;
 					info.name = fields[1];
 					info.type = type;
-					info.bytes_len = get_type_size((SigType)type);
+					info.bytes_len = MedRep::get_type_size((SigType)type);
 					if (fields.size() == 4)
 						info.description = "";
 					else
@@ -273,11 +273,6 @@ int MedSignals::fno(int sid)
 //================================================================================================
 // UniversalSigVec
 //================================================================================================
-
-//inline int SDateVal_Time_ch(int idx, int chan, void *data) { return ((SDateVal *)data)[idx].Time(chan); }
-//inline float SDateVal_Val_ch(int idx, int chan, void *data) { return ((SDateVal *)data)[idx].Val(chan); }
-
-//-----------------------------------------------------------------------------------------------
 void UniversalSigVec::init(SigType _type)
 {
 	if (_type == type) return; // no need to init, same type as initiated
