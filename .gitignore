@@ -1,4 +1,5 @@
+External/xgboost/windows/CMakeLists.txt
 x64/
 External/xgboost/xgboost
-*CMakeLists*
-CMakeLists.txt
+*CMakeLists.txt
+*.suo
