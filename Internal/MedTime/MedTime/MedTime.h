@@ -21,12 +21,12 @@ class MedTime {
 public:
 
 	// names for timing options
-	int Date = 1;				// dates are in full regular format YYYYMMDD
-	int Years = 2;				// years since 1900 (not since 1900!)
-	int Months = 3;			// months since 1900/01/01
-	int Days = 4;				// days since 1900/01/01
-	int Hours = 5;				// hours since 1900/01/01
-	int Minutes = 6;			// minutes since 1900/01/01
+	const static int Date = 1;				// dates are in full regular format YYYYMMDD
+	const static int Years = 2;				// years since 1900 (not since 1900!)
+	const static int Months = 3;			// months since 1900/01/01
+	const static int Days = 4;				// days since 1900/01/01
+	const static int Hours = 5;				// hours since 1900/01/01
+	const static int Minutes = 6;			// minutes since 1900/01/01
 
 	vector<int> YearsMonths2Days;
 	vector<int> Years2Days;

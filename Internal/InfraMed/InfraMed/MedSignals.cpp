@@ -274,43 +274,30 @@ int MedSignals::fno(int sid)
 // UniversalSigVec
 //================================================================================================
 
-//-----------------------------------------------------------------------------------------------
-float UniversalSigVec::val(int idx)
-{
-	// idx is assumed to be < len ! (saving the time for checking it)
-	return ((float *)&data[idx*size_of_element + value_channels_offsets[0]])[0];
-}
-
-//int val_int(int idx);
-//long long val_long(int idx);
-//int time_days(int idx);
-//int time_minutes(int idx);
-
-//float val(int idx, int channel);
-
-//int time_days(int idx, int channel);
-//int time_minutes(int idx, int channel);
+//inline int SDateVal_Time_ch(int idx, int chan, void *data) { return ((SDateVal *)data)[idx].Time(chan); }
+//inline float SDateVal_Val_ch(int idx, int chan, void *data) { return ((SDateVal *)data)[idx].Val(chan); }
 
 //-----------------------------------------------------------------------------------------------
-int UniversalSigVec::init(SigType _type)
+void UniversalSigVec::init(SigType _type)
 {
+	if (_type == type) return; // no need to init, same type as initiated
+
+	type = _type;
 	switch (_type) {
-	case T_DateVal:
-		type = T_DateVal;
-		n_time_channels = 1;
-		n_val_channels = 1;
-		size_of_element = (int)sizeof(SDateVal);
-		time_channels_offsets = { offsetof(SDateVal, date) };
-		value_channels_offsets = { offsetof(SDateVal, val) };
-		break;
-
-	case T_TimeVal:
-		type = T_TimeVal;
-		n_time_channels = 1;
-		n_val_channels = 1;
-		size_of_element = (int)sizeof(STimeVal);
-		time_channels_offsets ={ offsetof(STimeVal, time) };
-		value_channels_offsets ={ offsetof(SDateVal, val) };
-		break;
+		case T_Value: set_funcs<SVal>(); return;
+		case T_DateVal: set_funcs<SDateVal>(); return;
+		case T_TimeVal: set_funcs<STimeVal>(); return;
+		case T_DateRangeVal: set_funcs<SDateRangeVal>(); return;
+		case T_TimeStamp: set_funcs<STimeStamp>(); return;
+		case T_TimeRangeVal: set_funcs<STimeRangeVal>(); return;
+		case T_DateVal2: set_funcs<SDateVal2>(); return;
+		//case T_TimeLongVal: set_funcs<STimeLongVal>(); return;
+		case T_DateShort2: set_funcs<SDateShort2>(); return;
+		case T_ValShort2: set_funcs<SValShort2>(); return;
+		case T_ValShort4: set_funcs<SValShort4>(); return;
+		//case T_CompactDateVal: set_funcs<SCompactDateVal>(); return;
 	}
+
+	type = T_Last;
+
 }

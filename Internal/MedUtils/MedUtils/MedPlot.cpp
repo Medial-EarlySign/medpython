@@ -24,7 +24,7 @@ inline char separator()
 string float2Str(float num) {
 	//return to_string((round(num * 1000) / 1000));
 	char res[50];
-	snprintf(res, sizeof(res) ,"%2.4f", num);
+	snprintf(res, sizeof(res), "%2.4f", num);
 	return string(res);
 }
 
@@ -78,6 +78,30 @@ map<float, float> BuildAggeration(const vector<vector<float>> &vec_x, const vect
 	return res;
 }
 
+void Build3Data(const vector<float> &x1, const vector<float> &x2,
+	const vector<float> &y,
+	float(*aggFunction)(const vector<float> &), vector<vector<float>> &data) {
+	//aggregate for each tuples of x1,x2 aggFucntion on y list results
+	if (x1.size() != x2.size() || x1.size() != y.size()) {
+		throw invalid_argument("arrays must have same size");
+	}
+	data = vector<vector<float>>(3);
+	map<float, map<float, vector<float>>> d;
+	for (size_t i = 0; i < x1.size(); ++i)
+	{
+		d[x1[i]][x2[i]].push_back(y[i]);
+	}
+	for (auto it = d.begin(); it != d.end(); ++it)
+	{
+		for (auto jt = it->second.begin(); jt != it->second.end(); ++jt)
+		{
+			data[0].push_back(it->first);
+			data[1].push_back(jt->first);
+			data[2].push_back(aggFunction(jt->second));
+		}
+	}
+}
+
 void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName, vector<string> seriesNames, int refreshTime)
 {
 
@@ -92,11 +116,11 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	ofstream jsOut;
 	size_t lastDirPos = outPath.find_last_of("/\\");
 	string outDir = outPath.substr(0, lastDirPos) + separator();
-	if (lastDirPos == string::npos) 
+	if (lastDirPos == string::npos)
 	{
 		outDir = "";
 	}
-	
+
 	jsOut.open(outDir + "plotly-latest.min.js");
 	jsOut << jsData;
 	jsOut.close();
@@ -121,7 +145,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 
 	for (size_t i = 0; i < data.size(); ++i)
 	{
-		map<float, float> dmap = data[i];	
+		map<float, float> dmap = data[i];
 
 		rep += "var series" + to_string(i) + " = {\n mode: 'lines+markers',\n x: [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
@@ -153,10 +177,10 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 
 	if (refreshTime > 0) {
 		char buf[100];
-		snprintf(buf, 100 ,"setTimeout(function() { window.location.reload(1); }, %d);", refreshTime);
+		snprintf(buf, 100, "setTimeout(function() { window.location.reload(1); }, %d);", refreshTime);
 		rep += buf;
 	}
-		
+
 
 	rep += "var data = [";
 	for (size_t i = 0; i < data.size(); ++i)
@@ -172,6 +196,91 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	rep += xName;
 	rep += "'}, \n yaxis: { title: '";
 	rep += yName;
+	rep += "' }, \n height: 800, \n    width: 1200 \n }; ";
+
+	content.replace(ind, 3, rep);
+
+	ofstream myfile;
+	myfile.open(outPath);
+	myfile << content;
+	myfile.close();
+}
+
+void createHtml3D(string outPath, const vector<vector<float>> &vec3d, string title, string xName, string yName, string zName) {
+	if (vec3d.size() != 3) {
+		throw invalid_argument("please pass 3 signal vectors as input");
+	}
+	vector<string> ind2axis = { "x", "y", "z" };
+
+	ifstream jsFile;
+	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
+	if (!jsFile.is_open()) {
+		throw logic_error("Unable to open js file");
+	}
+	string jsData((istreambuf_iterator<char>(jsFile)),
+		istreambuf_iterator<char>());
+	ofstream jsOut;
+	size_t lastDirPos = outPath.find_last_of("/\\");
+	string outDir = outPath.substr(0, lastDirPos) + separator();
+	if (lastDirPos == string::npos)
+	{
+		outDir = "";
+	}
+
+	jsOut.open(outDir + "plotly-latest.min.js");
+	jsOut << jsData;
+	jsOut.close();
+
+	ifstream file(BaseResourcePath + separator() + "Graph_HTML.txt");
+	if (!file.is_open()) {
+		throw logic_error("Unable to open file");
+	}
+	string ln;
+	string content = "";
+	while (getline(file, ln)) {
+		content += "\n" + ln;
+	}
+	file.close();
+
+	size_t ind = content.find("{0}");
+	if (ind == string::npos) {
+		throw invalid_argument("Not Found in template");
+	}
+
+	string rep = "";
+	rep += "var series" + to_string(0) + " = {\n type: 'scatter3d', \n mode: 'markers'";
+	for (size_t i = 0; i < vec3d.size(); ++i) {
+		rep += ",\n" + ind2axis[i] + ": [";
+		rep += float2Str(vec3d[i][0]);
+		for (size_t j = 1; j < vec3d[i].size(); ++j)
+		{
+			rep += ", " + float2Str(vec3d[i][j]);
+		}
+
+		rep += "]";
+	}
+	rep += "\n";
+	rep += ", name: '";
+	rep += "series0";
+	rep += "' \n";
+	rep += "};\n";
+
+	rep += "var data = [";
+	for (size_t i = 0; i < 1; ++i)
+	{
+		rep += " series" + to_string(i) + ", ";
+	}
+	rep = rep.substr(0, rep.size() - 2);
+	rep += " ]; \n";
+
+	rep += "var layout = { \n  title:'";
+	rep += title;
+	rep += "', \n xaxis: { title : '";
+	rep += xName;
+	rep += "'}, \n yaxis: { title: '";
+	rep += yName;
+	rep += "'}, \n zaxis: { title: '";
+	rep += zName;
 	rep += "' }, \n height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);

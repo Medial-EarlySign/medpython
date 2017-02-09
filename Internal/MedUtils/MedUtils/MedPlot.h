@@ -46,12 +46,18 @@ map<float, float> BuildAggeration(const vector<vector<float>> &vec_x, const vect
 	float(*aggFunction)(const vector<float> &),
 	float(*combineFeat)(const vector<float>&) = NULL);
 
+void Build3Data(const vector<float> &x1, const vector<float> &x2,
+	const vector<float> &y,
+	float(*aggFunction)(const vector<float> &), vector<vector<float>> &data);
+
 //Will create Html Graph string - you will decide where to save it to disk. outPath - the location to save the html file (recommend ending file ext with .html)
 // data - is vector of series to plot with coresponding names in vector seriesNames. each element in the vector is series to plot represented by map<float, float> object
 // the plot will print the iteration on the keys with their corresponding values. the map object is used to store vector of tuples (x,y) to plot in each series
 // title - graph title, xName-  xAxis name, yName - y axis name
 //refreshTime - time in milliseconds for the file to be refreshed by the browser (default 0, taken as do not refresh)
 void createHtmlGraph(string outPath, vector<map<float, float>> data, string title = "", string xName = "", string yName = "", vector<string> seriesNames = vector<string>(), int refreshTime = 0);
+
+void createHtml3D(string outPath, const vector<vector<float>> &vec3d, string title = "", string xName = "x", string yName = "y", string zName = "z");
 
 //returns a csv string content of the map data that represents X->Y function. will return Csv text with header X,Y and the map values
 string createCsvFile(map<float, float> data);
