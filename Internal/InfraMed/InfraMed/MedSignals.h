@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <MedTime/MedTime/MedTime.h>
 
 using namespace std;
 
@@ -30,69 +31,6 @@ enum SigType {T_Value = 0,		// 0 :: single float Value
 
 int get_type_size(SigType t);
 
-//====================================================================
-// UniversalSigVec :
-// -----------------
-// A unified wrapper for signals to allow getting times and values
-// from signals in a unified API.
-//====================================================================
-class UniversalSigVec {
-	public:
-		char *data;
-		int len;		// type len (not bytes len)
-
-		// actual universal API's
-		float val() {}
-
-
-		// pointers to type implemented functions - will be initialized by init()
-		float (*val_p)();
-		int (*days_p)();
-		int (*hours_p)();
-		int (*minutes_p)();
-		int (*n_time_channels_p)();
-		int (*n_vals_channels_p)();
-		int (*size_p)();
-
-/*
-		inline float val(int idx);
-		int val_int(int idx);
-		//inline float val_float(int idx) { return val(idx); }
-		double val_double(int idx);
-		long long val_long(int idx);
-
-		int date(int idx);
-		int days(int idx);
-		int minutes(int idx);
-
-		int time_days(int idx);
-		int time_minutes(int idx);
-
-		float val(int idx, int channel);
-
-		int date(int idx, int channel);
-		int days(int idx, int channel);
-		int minutes(int idx, int channel);
-*/
-		int init(SigType _type);
-
-	private:
-		// these will init when init() is called.
-		SigType type; // type of the embedded signal
-		int n_time_channels;
-		int n_val_channels;
-		int size_of_element;
-		vector<int> time_channels_offsets;
-		vector<int> value_channels_offsets;
-
-		int val_cast_to_float_flag;
-		int val_cast_to_double_flag;
-		int val_cast_to__flag;
-
-		// SDateVal funcs
-		//inline float SDateVal_val_float(int idx, int chan) { return ((SDateVal *)data)[idx].val; }
-
-};
 
 //===========================================
 // UnifiedSig - unifiying API's for signals
@@ -105,22 +43,32 @@ public:
 	inline int n_time_channels() { return 0; }
 	inline int n_val_channels() { return 0; }
 	
-
-	// time channels int
-	inline int date_(int chan) { return 0; }
-	inline int days(int chan) { return 0; }
-	inline int hours(int chan) { return 0; }
-	inline int minutes(int chan) { return 0; }
+	// time unit & unitless time
+	inline int time_unit() { return 0; }
+	inline int Time(int chan) { return 0; }
 
 	// value channels float
-	inline float value(int chan) { return 0; }
+	inline float Val(int chan) { return 0; }
+
+
+	// Following functions are implemented based on the functions above (and save lots of coding hence)
+	// time channels int
+	inline int Date(int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(chan)); }
+	inline int Years(int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(chan)); }
+	inline int Months(int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(chan)); }
+	inline int Days(int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(chan)); }
+	inline int Hours(int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(chan)); }
+	inline int Minutes(int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(chan)); }
+
 
 	// channel 0 easy access
-	inline int date_() { return date_(0); }
-	inline int days() { return days(0); }
-	inline int hours() { return hours(0); }
-	inline int minutes() { return minutes(0); }
-	inline float value() { return value(0); }
+	inline int Date() { return Date(0); }
+	inline int Years() { return Years(0); }
+	inline int Months() { return Months(0); }
+	inline int Days() { return Days(0); }
+	inline int Hours() { return Hours(0); }
+	inline int Minutes() { return Minutes(0); }
+	inline float Val() { return Val(0); }
 };
 
 //===================================
@@ -130,115 +78,185 @@ class SVal : UnifiedSig {
 	public:
 		float val;
 
-		inline int n_val_channels() { return 1; }
-		inline float value(int chan) { return val; }
+		// unified API extension
+		static inline int n_time_channels() { return 0; }
+		static inline int n_val_channels() { return 1; }
+		static inline int time_unit() { return 0; }
+		inline int Time(int chan) { return 0; }
+		inline float Val(int chan) { return val; }
 		
 };
 
 //===================================
 // SDateVal
 //===================================
-class SDateVal {
+class SDateVal : UnifiedSig {
 	public:
 		int date;
 		float val;
 
-		inline int n_time_channels() { return 1; }
-		inline int n_val_channels() { return 1; }
-		inline int date_(int chan) { return date; }
-		inline int days(int chan) { return 0; }
+		// unified API extention
+		static inline int n_time_channels() { return 1; }
+		static inline int n_val_channels() { return 1; }
+		static inline int time_unit() { return MedTime::Date; }
+		inline int Time(int chan) { return date; }
+		inline float Val(int chan) { return val; }
 
-		inline float value() { return val; }
-		inline int days();
-//		inline int date(int chan) { return date; }
-//		inline int days(int chan) { return date_to_days_IM(date); }
 };
 
 //===================================
 // STimeVal
 //===================================
-class STimeVal {
+class STimeVal : UnifiedSig {
 	public:
 		long long time;
 		float val;
+
+		// unified API extention
+		static inline int n_time_channels() { return 1; }
+		static inline int n_val_channels() { return 1; }
+		static inline int time_unit() { return MedTime::Minutes; }
+		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
+		inline float Val(int chan) { return val; }
 };
 
 //===================================
 // SDateRangeVal
 //===================================
-class SDateRangeVal {
+class SDateRangeVal : UnifiedSig {
 	public:
 		int date_start;
 		int date_end;
 		float val;
+
+		// unified API extention
+		static inline int n_time_channels() { return 2; }
+		static inline int n_val_channels() { return 1; }
+		static inline int time_unit() { return MedTime::Date; }
+		inline int Time(int chan) { return ((chan) ? (date_end) : (date_start)); } // assuming minutes span are within the size of an int
+		inline float Val(int chan) { return val; }
 };
 
 //===================================
 // STimeRangeVal
 //===================================
-class STimeRangeVal {
+class STimeRangeVal : UnifiedSig {
 	public:
 		long long time_start;
 		long long time_end;
 		float val;
+
+		// unified API extention
+		static inline int n_time_channels() { return 2; }
+		static inline int n_val_channels() { return 1; }
+		static inline int time_unit() { return MedTime::Minutes; }
+		inline int Time(int chan) { return ((chan) ? ((int)time_end) : ((int)time_start)); } // assuming minutes span are within the size of an int
+		inline float Val(int chan) { return val; }
 };
 
 //===================================
 // STimeStamp
 //===================================
-class STimeStamp {
+class STimeStamp : UnifiedSig {
 	public:
 		long long time;
+
+		// unified API extention
+		static inline int n_time_channels() { return 1; }
+		static inline int n_val_channels() { return 0; }
+		static inline int time_unit() { return MedTime::Minutes; }
+		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
+		inline float Val(int chan) { return 0; }
+
 };
 
 //===================================
 // SDateVal2
 //===================================
-class SDateVal2 {
+class SDateVal2 : UnifiedSig {
 	public:
 		int date;
 		float val;
 		unsigned short val2;
+
+		// unified API extention
+		static inline int n_time_channels() { return 1; }
+		static inline int n_val_channels() { return 2; }
+		static inline int time_unit() { return MedTime::Date; }
+		inline int Time(int chan) { return date; } // assuming minutes span are within the size of an int
+		inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val) ; }
+
 };
 
 //===================================
 // STimeLongVal
 //===================================
-class STimeLongVal {
+class STimeLongVal : UnifiedSig {
 	public:
 		long long time ;
 		long long val ;
+
+		// Waiting with unified here until we support long version of values.
 };
 
 //===================================
 // SDateShort2
 //===================================
-class SDateShort2 {
+class SDateShort2 : UnifiedSig {
 public:
 	int date;
 	short val1;
 	short val2;
+
+	// unified API extention
+	static inline int n_time_channels() { return 1; }
+	static inline int n_val_channels() { return 2; }
+	static inline int time_unit() { return MedTime::Date; }
+	inline int Time(int chan) { return date; } // assuming minutes span are within the size of an int
+	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
 };
 
 //===================================
 // SValShort2
 //===================================
-class SValShort2 {
+class SValShort2 : UnifiedSig {
 public:
 	short val1;
 	short val2;
+	// unified API extention
+	static inline int n_time_channels() { return 0; }
+	static inline int n_val_channels() { return 2; }
+	static inline int time_unit() { return 0; }
+	inline int Time(int chan) { return 0; }
+	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
 };
 
 
 //===================================
 // SValShort4
 //===================================
-class SValShort4 {
+class SValShort4 : UnifiedSig {
 public:
 	short val1;
 	short val2;
 	short val3;
 	short val4;
+
+	// unified API extention
+	static inline int n_time_channels() { return 0; }
+	static inline int n_val_channels() { return 4; }
+	static inline int time_unit() { return 0; }
+	inline int Time(int chan) { return 0; }
+
+	inline float Val(int chan) { 
+		switch (chan) {
+			case 0: return val1;
+			case 1: return val2;
+			case 2: return val3;
+			case 3: return val4;
+		}
+	}
+
 };
 
 //===================================
@@ -248,7 +266,98 @@ class SCompactDateVal {
 public:
 	unsigned short compact_date;		// kept as: top 7 bits cY, then 4 bits M, then 5 bits day. Year is cY+1923 (format lasts until 2050)
 	unsigned short val;
+
+	// No unified support until we support compact_date as a date in MedTime
 };
+
+
+//====================================================================
+// UniversalSigVec :
+// -----------------
+// A unified wrapper for signals to allow getting times and values
+// from signals in a unified API.
+//====================================================================
+
+//inline int universal_n_time_channels() { return 0; }
+//inline int universal_n_val_channels() { return 0; }
+//inline int universal_time_unit() { return 0; }
+//inline int universal_Time_ch() { return 0; }
+//inline int universal_Val_ch() { return 0; }
+
+template <class T> class UnifiedSignalsAPIs {
+public:
+
+	static inline int Time_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Time(chan); }
+	static inline float Val_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Val(chan); }
+};
+
+
+class UniversalSigVec {
+public:
+	void *data;
+	int len;		// type len (not bytes len)
+
+	//--------------------------------------------------------------------------------------
+	// function pointers - to be set before using the relevant type (use the init function)
+	//--------------------------------------------------------------------------------------
+	// channels numbers
+	int (*n_time_channels)();
+	int (*n_val_channels)();
+
+	// time unit & unitless time
+	int (*time_unit)();
+	int (*Time_ch_vec)(int, int, void *); // Time(idx,chan)
+
+	// value channels float
+	float (*Val_ch_vec)(int, int, void *);
+
+	// init function : call before using a certain type
+	void init(SigType _type);
+	void init(int _type) { return init((SigType)_type); }
+
+	//--------------------------------------------------------------------------------------
+	// Following are based on the pointed functions above
+	//--------------------------------------------------------------------------------------
+	// Following functions are implemented based on the functions above (and save lots of coding hence)
+	// time channels int
+	inline int Time(int idx, int chan) { return Time_ch_vec(idx, chan, data); }
+	float Val(int idx, int chan) { return Val_ch_vec(idx, chan, data); }
+
+	// channel 0 easy API
+	int Time(int idx) { return Time(idx, 0); }
+	inline float Val(int idx) { return Val(idx, 0); }
+
+	inline int Date(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
+	inline int Years(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
+	inline int Months(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
+	inline int Days(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx)); }
+	inline int Hours(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx)); }
+	inline int Minutes(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
+
+	// general channel API
+	inline int Date(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
+	inline int Years(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
+	inline int Months(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
+	inline int Days(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx, chan)); }
+	inline int Hours(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx, chan)); }
+	inline int Minutes(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx, chan)); }
+
+	template <class S> void set_funcs() {
+		n_time_channels = &S::n_time_channels;
+		n_val_channels = &S::n_val_channels;
+		time_unit = &S::time_unit;
+		Time_ch_vec = &UnifiedSignalsAPIs<S>::Time_ch_vec;
+		Val_ch_vec = &UnifiedSignalsAPIs<S>::Val_ch_vec;
+	}
+
+	SigType get_type() { return type; }
+
+private:
+	SigType type = T_Last; // type of the embedded signal
+
+};
+
+
 
 //==========================================
 // Compact date to normal date conversions.
