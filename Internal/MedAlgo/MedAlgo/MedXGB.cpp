@@ -71,7 +71,7 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 }
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
 	std::vector<std::pair<std::string, std::string> > cfg;
-	cfg.push_back(std::make_pair("seed", "0"));
+	cfg.push_back(std::make_pair("seed", boost::lexical_cast<std::string>(params.seed)));
 	cfg.push_back(std::make_pair("booster", params.booster));
 	cfg.push_back(std::make_pair("objective", params.objective));
 	cfg.push_back(std::make_pair("eta", boost::lexical_cast<std::string>(params.eta)));
@@ -81,6 +81,7 @@ int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
 	cfg.push_back(std::make_pair("silent", boost::lexical_cast<std::string>(params.silent)));
 	cfg.push_back(std::make_pair("eval_metric", params.eval_metric));
 	cfg.push_back(std::make_pair("colsample_bytree", boost::lexical_cast<std::string>(params.colsample_bytree))); 
+	cfg.push_back(std::make_pair("colsample_bylevel", boost::lexical_cast<std::string>(params.colsample_bylevel)));
 	cfg.push_back(std::make_pair("subsample", boost::lexical_cast<std::string>(params.subsample))); 
 	cfg.push_back(std::make_pair("scale_pos_weight", boost::lexical_cast<std::string>(params.scale_pos_weight)));
 	cfg.push_back(std::make_pair("lambda", boost::lexical_cast<std::string>(params.lambda)));
@@ -214,11 +215,13 @@ int MedXGB::init(map<string, string>& mapper) {
 		else if (field == "num_class") params.num_class = stoi(entry.second);
 		else if (field == "missing_value") params.missing_value = stof(entry.second);
 		else if (field == "colsample_bytree") params.colsample_bytree = stof(entry.second);
+		else if (field == "colsample_bylevel") params.colsample_bylevel = stof(entry.second);
 		else if (field == "subsample") params.subsample = stof(entry.second);
 		else if (field == "scale_pos_weight") params.scale_pos_weight = stof(entry.second);
 		else if (field == "tree_method") params.tree_method = entry.second;
 		else if (field == "lambda") params.lambda = stof(entry.second);
 		else if (field == "alpha") params.alpha = stof(entry.second);
+		else if (field == "seed") params.seed = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
 	}
 

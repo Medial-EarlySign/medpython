@@ -415,7 +415,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 					split(fields, curr_line, boost::is_any_of(" \t"));	
 				curr_fstat.n_relevant_lines++;
 				//if (fpid == 5025392)
-				//	MLOG("working on: (fpid %d) (curr.pid %d) (file_type %d) (f[0] %s) (nfields %d) ##>%s<##\n",fpid,curr.pid,file_type,fields[0].c_str(),fields.size(),curr_line.c_str());
+	//				MLOG("working on: (fpid %d) (curr.pid %d) (file_type %d) (f[0] %s) (nfields %d) ##>%s<##\n",fpid,curr.pid,file_type,fields[0].c_str(),fields.size(),curr_line.c_str());
 				if (fields.size() > 6) MLOG("WEIRD f[6]= ##>%s<##\n",fields[5].c_str());
 				if (((file_type == 1) && (fields.size() == 4)) || 
 					((file_type == 2) && (fields.size() >= 3 && fields.size() <= 6)) ||
