@@ -27,7 +27,7 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 //.......................................................................................
 void FeatureGenerator::init(MedFeatures &features) {
 
-	for (auto& name : names)
+	for (auto& name : names) 
 		features.attributes[name].normalized = false;
 }
 
@@ -229,6 +229,9 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 
 	names.clear();
 	set_names();
+
+	req_signals.assign(1,signalName);
+
 	return 0;
 }
 
@@ -287,7 +290,9 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 
 	memcpy(signalName_c, blob + ptr,nameLen+1); ptr += nameLen + 1;
 	signalName = signalName_c;
-
+	req_signals.assign(1,signalName);
+	
+	names.clear();
 	set_names();
 
 	return ptr;

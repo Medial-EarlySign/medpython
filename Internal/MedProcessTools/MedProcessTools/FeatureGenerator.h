@@ -135,15 +135,15 @@ public:
 	// Constructor/Destructor
 	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
 	~BasicFeatGenerator() {};
-	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.push_back(signalName);}
+	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1,signalName);}
 	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) { 
 		signalName = _signalName;type = _type; win_from = _time_win_from; win_to = _time_win_to;
-		set_names(); req_signals.push_back(signalName);
+		set_names(); req_signals.assign(1, signalName);
 	}
 
 	// Init
 	int init(map<string, string>& mapper);
-	void init_defaults() { generator_type = FTR_GEN_BASIC; signalId = -1; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); ; };
+	void init_defaults() { generator_type = FTR_GEN_BASIC; signalId = -1; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); };
 
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
@@ -170,8 +170,8 @@ public:
 	int byearId;
 
 	// Constructor/Destructor
-	AgeGenerator() : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = -1; req_signals.push_back("BYEAR");}
-	AgeGenerator(int _byearId) : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = _byearId; req_signals.push_back("BYEAR"); }
+	AgeGenerator() : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = -1; req_signals.assign(1,"BYEAR");}
+	AgeGenerator(int _byearId) : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = _byearId; req_signals.assign(1, "BYEAR"); }
 	~AgeGenerator() {};
 
 	// Name
@@ -201,8 +201,8 @@ public:
 	int genderId;
 
 	// Constructor/Destructor
-	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.push_back("GENDER");}
-	GenderGenerator(int _genderId) : FeatureGenerator() {generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.push_back("GENDER");}
+	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, "GENDER");}
+	GenderGenerator(int _genderId) : FeatureGenerator() {generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, "GENDER");}
 
 	~GenderGenerator() {};
 
@@ -253,8 +253,8 @@ public:
 
 	// Constructor/Destructor
 	BinnedLmEstimates() : FeatureGenerator() { signalName = ""; init_defaults(); };
-	BinnedLmEstimates(string _signalName) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); set_names(); };
-	BinnedLmEstimates(string _signalName, string init_string) : FeatureGenerator() {signalName = _signalName;init_defaults(); req_signals.push_back(signalName); init_from_string(init_string); set_names();};
+	BinnedLmEstimates(string _signalName) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); names.clear();  set_names(); };
+	BinnedLmEstimates(string _signalName, string init_string) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); init_from_string(init_string); };
 
 	~BinnedLmEstimates() {};
 

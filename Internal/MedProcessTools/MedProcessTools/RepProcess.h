@@ -154,6 +154,7 @@ public:
 		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
 		signalId = -1;
 		params.type = VAL_CLNR_ITERATIVE;
+		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
 	// Set Signal id
@@ -212,9 +213,9 @@ public:
 		params.trimming_sd_num = DEF_REP_NBRS_TRIM_SD_NUM; params.removing_sd_num = DEF_REP_NBRS_REMOVING_SD_NUM; params.nbrs_sd_num = DEF_REP_NBRS_NBRS_SD_NUM;
 		params.take_log = 0;
 		params.doTrim = params.doRemove = true;
-		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
 		signalId = -1;
 		params.type = VAL_CLNR_ITERATIVE;
+		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
 	// Set Signal id

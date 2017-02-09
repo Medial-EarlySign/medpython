@@ -82,6 +82,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 
 	// Set of signals
 	get_required_signals(rep.dict);
+
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
@@ -153,7 +154,7 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
-	MLOG("MedModel::learn() : feature generation with %d threads\n", N_tot_threads);
+	MLOG("MedModel::apply() : feature generation with %d threads\n", N_tot_threads);
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 	int samples_size = (int)features.samples.size();
@@ -225,11 +226,14 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
 void MedModel::get_required_signals(MedDictionarySections& dict) {
 
 	required_signals.clear();
+
 	for (RepProcessor *processor : rep_processors)
 		processor->get_required_signal_ids(required_signals,dict);
 
+	int ii = 0;
 	for (FeatureGenerator *generator : generators) 
 		generator->get_required_signal_ids(required_signals, dict);
+
 }
 
 // Add multi processors
@@ -332,7 +336,7 @@ size_t MedModel::get_size() {
 
 	// Features-level cleaners;
 	size += sizeof(size_t);
-	for (auto& processor : feature_processors)
+	for (auto& processor : feature_processors) 
 		size += processor->get_processor_size();
 
 	// Predictor
@@ -340,7 +344,7 @@ size_t MedModel::get_size() {
 
 	// Learning samples
 	size += LearningSet->get_size();
-
+	  
 	return size;
 }
 
@@ -363,11 +367,11 @@ size_t MedModel::serialize(unsigned char *blob) {
 	for (auto& generator : generators)
 		ptr += generator->generator_serialize(blob + ptr);
 
-	// Features-level cleaners;
+	// Features-level processors;
 	n = feature_processors.size();
 	memcpy(blob + ptr, &n, sizeof(size_t)); ptr += sizeof(size_t);
 
-	for (auto& processor : feature_processors)
+	for (auto& processor : feature_processors) 
 		ptr += processor->processor_serialize(blob + ptr);
 
 	// Predictor
@@ -384,9 +388,9 @@ size_t MedModel::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	// Rep-Cleaners
+	// Rep-Processors
 	size_t n; 
-	memcpy(&n, blob + ptr,sizeof(size_t)); ptr += sizeof(size_t);
+	memcpy(&n, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
 
 	rep_processors.resize(n);
 	for (size_t i = 0; i < n; i++) {
@@ -394,6 +398,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 		memcpy(&type, blob + ptr, sizeof(RepProcessorTypes)); ptr += sizeof(RepProcessorTypes);
 		rep_processors[i] = RepProcessor::make_processor(type);
 		ptr += rep_processors[i]->deserialize(blob + ptr);
+
 	}
 
 	// Feature Generators
@@ -405,10 +410,11 @@ size_t MedModel::deserialize(unsigned char *blob) {
 		memcpy(&type, blob + ptr, sizeof(FeatureGeneratorTypes)); ptr += sizeof(FeatureGeneratorTypes);
 		generators[i] = FeatureGenerator::make_generator(type);
 		ptr += generators[i]->deserialize(blob + ptr);
+
 	}
 
-	// Features-level cleaners;
-	memcpy(&n, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
+	// Features-level processors;
+	memcpy(&n, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t); 
 
 	feature_processors.resize(n);
 	for (size_t i = 0; i < n; i++) {
@@ -425,6 +431,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	ptr += predictor->deserialize(blob + ptr);
 
 	// Learning samples
+	LearningSet = new MedSamples;
 	ptr += LearningSet->deserialize(blob + ptr);
 
 	return ptr;

@@ -133,11 +133,61 @@ int main(int argc, char *argv[])
 
 	}
 	else {
-		MLOG( "Doing Nothing\n");
+		
+		// Learn on 50%; Predict on rest
+		BasicTrainFilter trainFilter;
+		BasicTestFilter testFilter;
+
+		// Learning and test set
+		MedSamples learningSamples, testSamples;
+		for (auto& sample : allSamples.idSamples) {
+			if (globalRNG::rand() % 2 == 0)
+				learningSamples.idSamples.push_back(sample);
+			else
+				testSamples.idSamples.push_back(sample);
+		}
+
+		// Filter
+		trainFilter.filter(rep, learningSamples);
+		testFilter.filter(rep, testSamples);
+
+		// Learn Model
+		if (my_model.learn(rep, &learningSamples) < 0) {
+			fprintf(stderr,"Learning model failed\n");
+			return -1;
+		}
+
+		// Write to temporary file
+		string tempFile = "/tmp/TempFile";
+		my_model.write_to_file(tempFile);
+		fprintf(stderr, "Done writing to file %s\n", tempFile.c_str());
+
+		// Read from temporary file
+		MedModel new_model;
+		new_model.read_from_file(tempFile);
+		fprintf(stderr, "Done reading from file %s\n", tempFile.c_str());
+
+		// Apply
+		if (new_model.apply(rep, testSamples) < 0) {
+			fprintf(stderr,"Applying model failed\n");
+			return -1;
+		}
+
+		// analyze
+		vector<float> y, preds;
+		for (auto& idSample : testSamples.idSamples) {
+			for (auto& sample : idSample.samples) {
+				for (int i = 0; i < sample.prediction.size(); i++) {
+					y.push_back(sample.outcome);
+					preds.push_back(sample.prediction[i]);
+				}
+			}
+		}
+
+		float AUC = get_preds_auc(preds, y);
+		MLOG("y size: %d , preds size: %d , cv AUC is : %f\n", y.size(), preds.size(), AUC);
 	}
 	
-
-
 	return 0;
 
 }

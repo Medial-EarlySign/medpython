@@ -2,6 +2,7 @@
 
 #include "SerializableObject.h"
 #include "MedProcessUtils.h"
+#include <assert.h>
 
 #define LOCAL_SECTION LOG_SRL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -16,7 +17,8 @@ int SerializableObject::read_from_file(const string &fname) {
 		return -1;
 	}
 
-	deserialize(blob);
+	size_t serSize = deserialize(blob);
+	assert(serSize == size);
 	if (size > 0) delete[] blob;
 	return 0;
 }
@@ -30,7 +32,7 @@ int SerializableObject::write_to_file(const string &fname)
 	size = get_size();
 	blob = new unsigned char[size];
 
-	serialize(blob);
+	size_t serSize = serialize(blob);
 
 	if (write_binary_data(fname, blob, size) < 0) {
 		MERR("Error writing model to file %s\n", fname.c_str());
