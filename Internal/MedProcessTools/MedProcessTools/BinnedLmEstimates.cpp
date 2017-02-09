@@ -47,10 +47,17 @@ void BinnedLmEstimates::set(string& _signalName) {
 	init_defaults();
 	names.clear();
 	set_names();
+
+	req_signals.resize(3);
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
+	req_signals[2] = signalName;
 }
 
 //.......................................................................................
 void BinnedLmEstimates::init_defaults() {
+
+	generator_type = FTR_GEN_BINNED_LM;
 
 	params.bin_bounds.resize(def_nbin_bounds);
 	for (int i = 0; i < def_nbin_bounds; i++)
@@ -64,8 +71,9 @@ void BinnedLmEstimates::init_defaults() {
 	for (int i = 0; i < def_nestimation_points; i++)
 		params.estimation_points[i] = def_estimation_points[i];
 
-	req_signals.push_back("GENDER");
-	req_signals.push_back("BYEAR");
+	req_signals.resize(2);
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
 
 	signalId = -1; 
 	byearId = -1;
@@ -84,6 +92,11 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 	params.estimation_points = _params->estimation_points;
 
 	set_names();
+
+	req_signals.resize(3);
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
+	req_signals[2] = signalName;
 
 }
 
@@ -115,6 +128,12 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 
 	names.clear();
 	set_names();
+
+	req_signals.resize(3);
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
+	req_signals[2] = signalName;
+
 	return 0;
 }
 
@@ -131,8 +150,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 	if (genderId == -1)
 		genderId = rep.dict.id("GENDER");
-
-	vector<int> req_signals(1, signalId);
 
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
@@ -325,6 +342,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	// Collect Data
 	int inrows = irow;
 
+	models[0].n_ftrs = 0;
 	for (int type = 1; type < nmodels; type++) {
 		vector<int> cols(nperiods, 0);
 
@@ -508,8 +526,9 @@ size_t BinnedLmEstimates::get_size() {
 	// Params
 	size += sizeof(size_t); size += params.bin_bounds.size() * sizeof(int);
 	size += 2 * sizeof(int);
-	size += sizeof(double);
-	size += sizeof(size_t); size += params.estimation_points.size() * sizeof(int);
+	size += sizeof(float);
+	size += sizeof(size_t); 
+	size += params.estimation_points.size() * sizeof(int);
 
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
@@ -517,7 +536,7 @@ size_t BinnedLmEstimates::get_size() {
 
 	// Means and Sdvs
 	size += (2 * nfeatures + nmodels) * sizeof(float);
-	size += sizeof(size_t); size += 2 * (BINNED_LM_MAX_AGE+1) * sizeof(float);
+	size += 2 * (BINNED_LM_MAX_AGE+1) * sizeof(float);
 
 	// Models
 	for (auto& model : models)
@@ -546,7 +565,7 @@ size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 	size_t npoints = params.estimation_points.size();
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nmodels * (INT64_C(1) << nmodels);
+	size_t nfeatures = nperiods * nmodels;
 
 	// Params
 	memcpy(blob + ptr, &nperiods, sizeof(size_t));  ptr += sizeof(size_t);
@@ -565,8 +584,8 @@ size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &(means[1][0]), (BINNED_LM_MAX_AGE + 1) * sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
 
 	// Models
-	for (auto& model : models)
-		ptr += model.serialize(blob+ptr);
+	for (auto& model : models) 
+		ptr += model.serialize(blob + ptr);
 
 	return ptr;
 }
@@ -598,7 +617,7 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 	memcpy(&(params.estimation_points[0]), blob + ptr, npoints * sizeof(int)); ptr += npoints * sizeof(int);
 
 	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
+	size_t nfeatures = nperiods *nmodels;
 
 	// Means and Sdvs
 	xmeans.resize(nfeatures*sizeof(float));
@@ -616,10 +635,15 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 
 	// Models
 	models.resize(nmodels);
-	for (auto& model : models)
+	for (auto& model : models) 
 		ptr += model.deserialize(blob + ptr);
 
 	set_names();
+
+	req_signals.resize(3);
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
+	req_signals[2] = signalName;
 
 	return ptr;
 }

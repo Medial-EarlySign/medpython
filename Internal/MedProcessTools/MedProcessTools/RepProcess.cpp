@@ -42,7 +42,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepMultiProcessor;
 	else if (processor_type == REP_PROCESS_BASIC_OUTLIER_CLEANER)
 		return new RepBasicOutlierCleaner;
-	else if (processor_type = REP_PROCESS_NBRS_OUTLIER_CLEANER)
+	else if (processor_type == REP_PROCESS_NBRS_OUTLIER_CLEANER)
 		return new RepNbrsOutlierCleaner;
 	else
 		return NULL;
@@ -142,7 +142,6 @@ int RepMultiProcessor::Apply(PidDynamicRec& rec, vector<int>& time_points) {
 	vector<int> rc(processors.size(),0);
 #pragma omp parallel for
 	for (int j=0; j<processors.size(); j++) {
-	//for (auto& cleaner : cleaners) {
 		rc[j] = processors[j]->Apply(rec, time_points);
 	}
 
@@ -155,7 +154,7 @@ int RepMultiProcessor::Apply(PidDynamicRec& rec, vector<int>& time_points) {
 void  RepMultiProcessor::add_processors_set(RepProcessorTypes type, vector<string>& signals) {
 
 	for (string& signal : signals) {
-		RepProcessor *processor = RepProcessor::make_processor(type);
+		RepProcessor *processor = RepProcessor::make_processor(type); 
 		processor->set_signal(signal);
 		processors.push_back(processor);
 	}
@@ -188,8 +187,8 @@ size_t RepMultiProcessor::get_size() {
 size_t RepMultiProcessor::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
-	int nCleaners = (int)processors.size();
-	memcpy(blob + ptr, &nCleaners, sizeof(int)); ptr += sizeof(int);
+	int nProcessors = (int)processors.size();
+	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
 
 	for (auto& processor : processors)
 		ptr += processor->processor_serialize(blob + ptr);
@@ -201,12 +200,12 @@ size_t RepMultiProcessor::serialize(unsigned char *blob) {
 size_t RepMultiProcessor::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
-	int nCleaners;
-	memcpy(&nCleaners, blob + ptr, sizeof(int)); ptr+= sizeof(int);
+	int nProcessors;
+	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
 
-	processors.resize(nCleaners);
-	for (int i = 0; i < nCleaners; i++) {
-		RepProcessorTypes type;
+	processors.resize(nProcessors);
+	for (int i = 0; i < nProcessors; i++) {
+		RepProcessorTypes type; 
 		memcpy(&type, blob + ptr, sizeof(RepProcessorTypes)); ptr += sizeof(RepProcessorTypes);
 		processors[i] = RepProcessor::make_processor(type);
 		ptr += processors[i]->deserialize(blob + ptr);
@@ -591,7 +590,7 @@ size_t RepNbrsOutlierCleaner::serialize(unsigned char *blob) {
 
 	strcpy(signalName_c, signalName.c_str());
 
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
+	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t); 
 	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
 
 	memcpy(blob + ptr, &params.take_log, sizeof(int)); ptr += sizeof(int);

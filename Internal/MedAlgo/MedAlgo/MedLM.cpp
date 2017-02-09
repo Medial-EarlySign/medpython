@@ -240,7 +240,8 @@ size_t MedLM::get_size() {
 size_t MedLM::serialize(unsigned char *blob) {
 
 	size_t ptr = 0 ;
- 	memcpy(blob+ptr,&n_ftrs,sizeof(int)) ; ptr += sizeof(int) ;
+
+	memcpy(blob+ptr,&n_ftrs,sizeof(int)) ; ptr += sizeof(int) ;
 	memcpy(blob+ptr,&b0,sizeof(float)); ptr += sizeof(float) ;
 	memcpy(blob+ptr,&(b[0]),n_ftrs*sizeof(float)) ; ptr += n_ftrs*sizeof(float) ;
 

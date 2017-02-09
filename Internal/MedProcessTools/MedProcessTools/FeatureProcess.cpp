@@ -155,7 +155,7 @@ size_t MultiFeatureProcessor::get_size() {
 	size_t size = sizeof(int);
 
 	for (auto& processor : processors)
-		size += processor->get_size();
+		size += processor->get_processor_size();
 
 	return size;
 }
@@ -169,7 +169,7 @@ size_t MultiFeatureProcessor::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
 
 	for (auto& processor : processors)
-		ptr += processor->serialize(blob + ptr);
+		ptr += processor->processor_serialize(blob + ptr);
 
 	return ptr;
 }
@@ -184,8 +184,13 @@ size_t MultiFeatureProcessor::deserialize(unsigned char *blob) {
 	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	processors.resize(nProcessors);
 
-	for (int i = 0; i < nProcessors; i++)
+	processors.resize(nProcessors);
+	for (int i = 0; i < nProcessors; i++) {
+		FeatureProcessorTypes type;
+		memcpy(&type, blob + ptr, sizeof(FeatureProcessorTypes)); ptr += sizeof(FeatureProcessorTypes);
+		processors[i] = FeatureProcessor::make_processor(type);
 		ptr += processors[i]->deserialize(blob + ptr);
+	}
 
 	return ptr;
 }
@@ -609,7 +614,7 @@ size_t FeatureImputer::get_size() {
 //.......................................................................................
 size_t featureSetStrata::get_size() {
 
-	size_t size = stratas.size();
+	size_t size = sizeof(size_t);
 
 	for (auto& strata : stratas)
 		size += strata.get_size();

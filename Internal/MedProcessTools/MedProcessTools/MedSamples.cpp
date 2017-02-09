@@ -9,6 +9,24 @@
 // MedSample
 //=======================================================================================
 // (De)Serialization
+
+//.......................................................................................
+size_t MedSample::get_size() {
+
+	size_t size = 0;
+	// id, date, outcome-date
+	size += 3 * sizeof(int);
+
+	// Outcome 
+	size += sizeof(float);
+
+	// Prediction
+	size += sizeof(size_t);
+	size += sizeof(float) * prediction.size();
+
+	return size;
+}
+
 //.......................................................................................
 size_t MedSample::serialize(unsigned char *blob) {
 
@@ -17,7 +35,11 @@ size_t MedSample::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &date, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &outcomeDate, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &outcome, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &prediction, sizeof(float)); ptr += sizeof(float);
+
+	size_t nPreds = prediction.size();
+	memcpy(blob + ptr, &nPreds, sizeof(size_t)); ptr += sizeof(size_t);
+
+	memcpy(blob + ptr, &(prediction[0]), nPreds*sizeof(float)); ptr += nPreds*sizeof(float);
 
 	return ptr;
 }
@@ -30,7 +52,12 @@ size_t MedSample::deserialize(unsigned char *blob) {
 	memcpy(&date, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&outcomeDate, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&outcome, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&prediction, blob + ptr, sizeof(float)); ptr += sizeof(float);
+
+	int nPreds; 
+	memcpy(&nPreds, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
+
+	prediction.resize(nPreds);
+	memcpy(&(prediction[0]), blob + ptr, nPreds*sizeof(float)); ptr += nPreds*sizeof(float);
 
 	return ptr;
 
@@ -82,6 +109,7 @@ size_t MedIdSamples::deserialize(unsigned char *blob) {
 	memcpy(&nSamples, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
 
 	samples.resize(nSamples);
+
 	for (auto& sample : samples)
 		ptr += sample.serialize(blob + ptr);
 
@@ -205,7 +233,7 @@ size_t MedSamples::serialize(unsigned char *blob) {
 	size_t nSamples = idSamples.size();
 	memcpy(blob + ptr, &nSamples, sizeof(size_t)); ptr += sizeof(size_t);
 
-	for (auto& sample : idSamples)
+	for (auto& sample : idSamples) 
 		ptr += sample.serialize(blob + ptr);
 
 	return ptr;
@@ -221,7 +249,7 @@ size_t MedSamples::deserialize(unsigned char *blob) {
 
 	idSamples.resize(nSamples);
 	for (auto& sample : idSamples)
-		ptr += sample.serialize(blob + ptr);
+		ptr += sample.deserialize(blob + ptr);
 
 	return ptr;
 }
