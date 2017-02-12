@@ -29,13 +29,15 @@ enum SigType {T_Value = 0,		// 0 :: single float Value
 			  T_CompactDateVal,	// 11 :: 2 unsigned shorts - first is a compact date (in 16 bits), second in an unsigned short value
 			  T_Last};			// 12 :: next free slot for type id
 
-int get_type_size(SigType t);
+namespace MedRep {
+	int get_type_size(SigType t);
+}
 
-
-//===========================================
+//======================================================================
 // UnifiedSig - unifiying API's for signals
-// This has only virtual functions
-//===========================================
+// This has only virtual functions and functions built with them
+// Never add a data member to UnifiedSig !
+//======================================================================
 class UnifiedSig {
 public:
 
@@ -255,6 +257,7 @@ public:
 			case 2: return val3;
 			case 3: return val4;
 		}
+		return 0;
 	}
 
 };
@@ -277,13 +280,6 @@ public:
 // A unified wrapper for signals to allow getting times and values
 // from signals in a unified API.
 //====================================================================
-
-//inline int universal_n_time_channels() { return 0; }
-//inline int universal_n_val_channels() { return 0; }
-//inline int universal_time_unit() { return 0; }
-//inline int universal_Time_ch() { return 0; }
-//inline int universal_Val_ch() { return 0; }
-
 template <class T> class UnifiedSignalsAPIs {
 public:
 
@@ -306,7 +302,7 @@ public:
 
 	// time unit & unitless time
 	int (*time_unit)();
-	int (*Time_ch_vec)(int, int, void *); // Time(idx,chan)
+	int(*Time_ch_vec)(int, int, void *); // Time(idx,chan)
 
 	// value channels float
 	float (*Val_ch_vec)(int, int, void *);
@@ -321,10 +317,10 @@ public:
 	// Following functions are implemented based on the functions above (and save lots of coding hence)
 	// time channels int
 	inline int Time(int idx, int chan) { return Time_ch_vec(idx, chan, data); }
-	float Val(int idx, int chan) { return Val_ch_vec(idx, chan, data); }
+	inline float Val(int idx, int chan) { return Val_ch_vec(idx, chan, data); }
 
 	// channel 0 easy API
-	int Time(int idx) { return Time(idx, 0); }
+	inline int Time(int idx) { return Time(idx, 0); }
 	inline float Val(int idx) { return Val(idx, 0); }
 
 	inline int Date(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
