@@ -31,6 +31,13 @@ enum SigType {T_Value = 0,		// 0 :: single float Value
 
 namespace MedRep {
 	int get_type_size(SigType t);
+	int get_type_channels(SigType t, int &time_unit, int &n_time_chans, int &n_val_chans);
+	template <class T> int get_type_channels_info(int &time_unit, int &n_time_chans, int &n_val_chans) {
+		time_unit = T::time_unit();
+		n_time_chans = T::n_time_channels();
+		n_val_chans = T::n_val_channels();		
+		return 0;
+	}
 }
 
 //======================================================================
@@ -198,6 +205,13 @@ class STimeLongVal : UnifiedSig {
 		long long time ;
 		long long val ;
 
+		// unified API extention
+		static inline int n_time_channels() { return 1; }
+		static inline int n_val_channels() { return 1; }
+		static inline int time_unit() { return MedTime::Minutes; }
+		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
+		inline float Val(int chan) { return (float)val; }
+
 		// Waiting with unified here until we support long version of values.
 };
 
@@ -271,6 +285,12 @@ public:
 	unsigned short val;
 
 	// No unified support until we support compact_date as a date in MedTime
+	// unified API extention
+	static inline int n_time_channels() { return 1; }
+	static inline int n_val_channels() { return 1; }
+	static inline int time_unit() { return MedTime::Date; }
+	inline int Time(int chan) { return (int)compact_date; } // assuming minutes span are within the size of an int
+	inline float Val(int chan) { return (float)val; }
 };
 
 
@@ -323,6 +343,7 @@ public:
 	inline int Time(int idx) { return Time(idx, 0); }
 	inline float Val(int idx) { return Val(idx, 0); }
 
+	inline int TimeU(int idx, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx)); }
 	inline int Date(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
 	inline int Years(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
 	inline int Months(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
@@ -331,6 +352,7 @@ public:
 	inline int Minutes(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
 
 	// general channel API
+	inline int TimeU(int idx, int chan, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx, chan)); }
 	inline int Date(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
 	inline int Years(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
 	inline int Months(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
@@ -377,6 +399,9 @@ class SignalInfo {
 		int fno; // currently each signal is in a single data and index file. This helps make things faster and is doable.
 		int shift;
 		float factor;
+		int time_unit;
+		int n_time_channels;
+		int n_val_channels;
 
 		SignalInfo() { fno = -1; };
 };
@@ -426,5 +451,17 @@ inline int MedSignals::sid(const string &name)
 		return -1; return 
 	Name2Sid[name];
 };
+
+//-----------------------------------------------------------------------------------------------
+//template <class T> int MedRep:get_type_channels_info(int &time_unit, int &n_time_chans, int &n_val_chans)
+//{
+//	T t;
+//
+//	time_unit = t.time_unit();
+//	n_time_chans = t.n_time_channels();
+//	n_val_chans = t.n_val_channels();
+//
+//	return 0;
+//}
 
 #endif
