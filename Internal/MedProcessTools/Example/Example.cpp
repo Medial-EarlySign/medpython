@@ -59,12 +59,12 @@ int main(int argc, char *argv[])
 	// Signal-based feature generators
 	MLOG( "Initializing Features\n");
 
-//	vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_LAST_DELTA_VALUE, FTR_LAST_DAYS };
-	vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE };
+	vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_STD_VALUE, FTR_LAST_DELTA_VALUE , FTR_LAST_DAYS, FTR_LAST2_DAYS };
+	//	vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE };
 
 	for (auto sig_type : sig_types) 
 		my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
-	my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800"));
+	my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
 
 	// Add feature cleaners
 	my_model.add_feature_processors_set(FTR_PROCESS_BASIC_OUTLIER_CLEANER, vm["feat_cleaner_params"].as<string>());

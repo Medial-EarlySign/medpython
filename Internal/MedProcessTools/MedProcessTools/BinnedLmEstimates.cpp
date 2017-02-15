@@ -33,8 +33,11 @@ void BinnedLmEstimates::set_names() {
 
 	if (names.empty()) {
 		string name = signalName + ".Estimate.";
-		for (int point : params.estimation_points)
-			names.push_back(name + std::to_string(point));
+		for (int point : params.estimation_points) {
+			name += std::to_string(point);
+			name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
+			names.push_back(name);
+		}
 	}
 
 }
@@ -71,9 +74,7 @@ void BinnedLmEstimates::init_defaults() {
 	for (int i = 0; i < def_nestimation_points; i++)
 		params.estimation_points[i] = def_estimation_points[i];
 
-	req_signals.resize(2);
-	req_signals[0] = "GENDER";
-	req_signals[1] = "BYEAR";
+	req_signals ={ "GENDER", "BYEAR" };
 
 	signalId = -1; 
 	byearId = -1;
@@ -93,10 +94,7 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 
 	set_names();
 
-	req_signals.resize(3);
-	req_signals[0] = "GENDER";
-	req_signals[1] = "BYEAR";
-	req_signals[2] = signalName;
+	req_signals ={ "GENDER", "BYEAR", signalName };
 
 }
 
@@ -129,10 +127,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 	names.clear();
 	set_names();
 
-	req_signals.resize(3);
-	req_signals[0] = "GENDER";
-	req_signals[1] = "BYEAR";
-	req_signals[2] = signalName;
+	req_signals = { "GENDER", "BYEAR", signalName };
 
 	return 0;
 }

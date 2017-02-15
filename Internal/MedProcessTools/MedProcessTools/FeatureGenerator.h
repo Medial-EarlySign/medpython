@@ -9,6 +9,7 @@
 #include "MedProcessTools/MedProcessTools/RepProcess.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <MedTime/MedTime/MedTime.h>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
@@ -99,6 +100,14 @@ public:
 
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
 
+//..............................................................................................
+// FeatureSingleChannel -
+// This class is a mediator between FeatureGenerator and classes that generate
+// Features on a single variable (not including age and gender) and in it in a single channel.
+//..............................................................................................
+
+
+
 //.......................................................................................
 //.......................................................................................
 // Single signal features that do not require learning(e.g. last hemoglobin)
@@ -124,10 +133,15 @@ class BasicFeatGenerator : public FeatureGenerator {
 public:
 	// Feature Descrption
 	string signalName;
-	BasicFeatureTypes type;
-	int win_from, win_to;		// time window for feature: date-win_to <= t < date-win_from
-
 	int signalId;
+
+	BasicFeatureTypes type = FTR_LAST;
+	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
+	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
+	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
+	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+
 
 	// Naming 
 	void set_names();
@@ -143,19 +157,36 @@ public:
 
 	// Init
 	int init(map<string, string>& mapper);
-	void init_defaults() { generator_type = FTR_GEN_BASIC; signalId = -1; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); };
+	void init_defaults() { 
+		generator_type = FTR_GEN_BASIC; signalId = -1; time_unit_sig = MedTime::Date; 
+		time_unit_win = MedTime::Days; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); 
+	};
 
 	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 	float get_value(PidDynamicRec& rec, int index, int date);
 
+	// actual generators
+	float uget_last(UniversalSigVec &usv, int time_point);
+	float uget_first(UniversalSigVec &usv, int time_point);
+	float uget_last2(UniversalSigVec &usv, int time_point);
+	float uget_avg(UniversalSigVec &usv, int time_point);
+	float uget_max(UniversalSigVec &usv, int time_point);
+	float uget_min(UniversalSigVec &usv, int time_point);
+	float uget_std(UniversalSigVec &usv, int time_point);
+	float uget_last_delta(UniversalSigVec &usv, int time_point);
+	float uget_last_time(UniversalSigVec &usv, int time_point);
+	float uget_last2_time(UniversalSigVec &usv, int time_point);
+
+
 	// Serialization
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
+
 };
 
 //.......................................................................................
@@ -186,7 +217,7 @@ public:
 	// Serialization
 	size_t get_size() { return 0; };
 	size_t serialize(unsigned char *blob) { return 0; };
-	size_t deserialize(unsigned char *blob) { set_names();  return 0; };
+	size_t deserialize(unsigned char *blob) { set_names(); return 0; };
 };
 
 //.......................................................................................
@@ -228,7 +259,7 @@ public:
 //.......................................................................................
 
 struct BinnedLmEstimatesParams {
-	vector<int> bin_bounds;
+	vector<int> bin_bounds ;
 	int min_period ;
 	int max_period ;
 	float rfactor;
@@ -247,7 +278,12 @@ public:
 	vector<MedLM> models;
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<float> means[2];
-	
+
+	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
+	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
+	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+
 	// Naming 
 	void set_names();
 
@@ -279,18 +315,5 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 };
-
-// Utilities
-float get_last_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_first_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last2_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_avg_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_max_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_min_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_std_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last_delta_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last_days_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last2_days_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-
 
 #endif
