@@ -58,7 +58,7 @@ public:
 
 	// value channels float
 	inline float Val(int chan) { return 0; }
-
+	inline float SetVal(int chan) { return 0; }
 
 	// Following functions are implemented based on the functions above (and save lots of coding hence)
 	// time channels int
@@ -325,6 +325,7 @@ public:
 	static inline int Time_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Time(chan); }
 	static inline float Val_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Val(chan); }
 	static inline void SetVal_ch_vec(int idx, int chan, float _val, void *data) { ((T *)data)[idx].SetVal(chan, _val); }
+	static inline size_t size() { return sizeof(T); }
 };
 
 
@@ -347,6 +348,8 @@ public:
 	// value channels float
 	float (*Val_ch_vec)(int, int, void *);
 	void (*SetVal_ch_vec)(int, int, float, void *);
+
+	size_t (*size)();
 
 	// init function : call before using a certain type
 	void init(SigType _type);
@@ -388,6 +391,7 @@ public:
 		Time_ch_vec = &UnifiedSignalsAPIs<S>::Time_ch_vec;
 		Val_ch_vec = &UnifiedSignalsAPIs<S>::Val_ch_vec;
 		SetVal_ch_vec = &UnifiedSignalsAPIs<S>::SetVal_ch_vec;
+		size = &UnifiedSignalsAPIs<S>::size;
 	}
 
 	SigType get_type() { return type; }
