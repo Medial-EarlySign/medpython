@@ -286,10 +286,10 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 
 		// Clean 
 		SDateVal *signal = (SDateVal *)rec.get(signalId, jver, len);
-		SDateVal sd;
+		vector<SDateVal> sd(len);
 
 		vector<int> remove(len);
-		vector<pair<int, SDateVal>> change(len);
+		vector<pair<int, void *>> change(len);
 		int nRemove = 0, nChange = 0;
 
 		// Collect
@@ -301,12 +301,12 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 				remove[nRemove++] = i;
 			else if (params.doTrim) {
 				if (signal[i].val < trimMin) {
-					sd.date = signal[i].date; sd.val = trimMin;
-					change[nChange] = pair<int, SDateVal>(i, sd);
+					sd[i].date = signal[i].date; sd[i].val = trimMin;
+					change[nChange] = pair<int, void *>(i, (void *)&sd[i]);
 				}
 				else if (signal[i].val > trimMax) {
-					sd.date = signal[i].date; sd.val = trimMax;
-					change[nChange++] = pair<int, SDateVal>(i, sd);
+					sd[i].date = signal[i].date; sd[i].val = trimMax;
+					change[nChange++] = pair<int, void *>(i, (void *)&sd[i]);
 				}
 			}
 		}
@@ -473,10 +473,10 @@ int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) 
 	for (int iver = 0; iver < time_points.size(); iver++) {
 
 		SDateVal *signal = (SDateVal *)rec.get(signalId, iver, len);
-		SDateVal sd;
+		vector<SDateVal> sd(len);
 
 		vector<int> remove(len);
-		vector<pair<int, SDateVal>> change(len);
+		vector<pair<int, void *>> change(len);
 		int nRemove = 0, nChange = 0;
 
 		// Clean 
@@ -557,9 +557,9 @@ int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) 
 
 					// Should we clip ?
 					if (!found_nbr) {
-						sd.date = signal[i].date;
-						sd.val = (dir == 1) ? trimMax : trimMin;
-						change[nChange++] = pair<int, SDateVal>(i, sd);
+						sd[i].date = signal[i].date;
+						sd[i].val = (dir == 1) ? trimMax : trimMin;
+						change[nChange++] = pair<int, void *>(i, (void *)&sd[i]);
 					}
 				}
 			}
