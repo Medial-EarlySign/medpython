@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
 	// Repository Cleaners
 	MLOG( "Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
 	my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+//	my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
 
 	// Signal-based feature generators
 	MLOG( "Initializing Features\n");
@@ -133,7 +134,12 @@ int main(int argc, char *argv[])
 
 	}
 	else {
-		
+		if (vm.count("temp_file") == 0) {
+			fprintf(stderr, "temp-file required if nfold not given\n");
+			return -1;
+		}
+		string tempFile = vm["temp_file"].as<string>();
+
 		// Learn on 50%; Predict on rest
 		BasicTrainFilter trainFilter;
 		BasicTestFilter testFilter;
@@ -158,7 +164,6 @@ int main(int argc, char *argv[])
 		}
 
 		// Write to temporary file
-		string tempFile = "/tmp/TempFile";
 		my_model.write_to_file(tempFile);
 		fprintf(stderr, "Done writing to file %s\n", tempFile.c_str());
 
@@ -210,6 +215,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("feat_cleaner_params", po::value<string>()->default_value(""), "features cleaner params")
 			("predictor", po::value<string>()->default_value("linear_model"), "predictor")
 			("predictor_params", po::value<string>()->default_value(""), "predictor params")
+			("temp_file",po::value<string>(), "temporary file for serialization")
 
 			("nfolds", po::value<int>(), "number of cross-validation folds")
 			;

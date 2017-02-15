@@ -243,7 +243,8 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 	vector<float> values;
 	get_values(rep, ids, signalId, values, prev_cleaners);
 
-	return get_iterative_min_max(values);
+	int rc =  get_iterative_min_max(values);
+	return rc;
 }
 
 //.......................................................................................
@@ -287,23 +288,34 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 		SDateVal *signal = (SDateVal *)rec.get(signalId, jver, len);
 		SDateVal sd;
 
+		vector<int> remove(len);
+		vector<pair<int, SDateVal>> change(len);
+		int nRemove = 0, nChange = 0;
+
+		// Collect
 		for (int i = 0; i < len; i++) {
 			if (signal[i].date > time_points[jver])
 				break;
 
 			if (params.doRemove && (signal[i].val < removeMin || signal[i].val > removeMax))
-				rec.remove(signalId, jver, i);
+				remove[nRemove++] = i;
 			else if (params.doTrim) {
 				if (signal[i].val < trimMin) {
 					sd.date = signal[i].date; sd.val = trimMin;
-					rec.change(signalId, jver, i, &sd);
+					change[nChange] = pair<int, SDateVal>(i, sd);
 				}
 				else if (signal[i].val > trimMax) {
 					sd.date = signal[i].date; sd.val = trimMax;
-					rec.change(signalId, jver, i, &sd);
+					change[nChange++] = pair<int, SDateVal>(i, sd);
 				}
 			}
 		}
+
+		// Apply removals + changes
+		change.resize(nChange);
+		remove.resize(nRemove);
+		if (rec.update(signalId, iver, change, remove) < 0)
+			return -1;
 
 		while (iver > jver) {
 			rec.point_version_to(signalId, jver, iver);
@@ -457,10 +469,15 @@ int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) 
 	}
 
 	int len;
+
 	for (int iver = 0; iver < time_points.size(); iver++) {
 
 		SDateVal *signal = (SDateVal *)rec.get(signalId, iver, len);
 		SDateVal sd;
+
+		vector<int> remove(len);
+		vector<pair<int, SDateVal>> change(len);
+		int nRemove = 0, nChange = 0;
 
 		// Clean 
 		int verLen = 0;
@@ -474,7 +491,7 @@ int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) 
 
 			// Remove ?
 			if (params.doRemove && (signal[i].val < removeMin || signal[i].val > removeMax)) {
-				rec.remove(signalId, iver, i);
+				remove[nRemove++] = i;
 				removed[i] = 1;
 			}
 			else if (params.doTrim) {
@@ -542,11 +559,17 @@ int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) 
 					if (!found_nbr) {
 						sd.date = signal[i].date;
 						sd.val = (dir == 1) ? trimMax : trimMin;
-						rec.change(signalId, iver, i, &sd);
+						change[nChange++] = pair<int, SDateVal>(i, sd);
 					}
 				}
 			}
 		}
+
+		// Apply removals + changes
+		change.resize(nChange);
+		remove.resize(nRemove);
+		if (rec.update(signalId, iver, change, remove) < 0)
+			return -1;
 	}
 
 	return 0;

@@ -640,6 +640,20 @@ int PidDynamicRec::change(int sid, int v_in, int idx, void *new_elem, int v_out)
 }
 
 //..................................................................................................................
+int PidDynamicRec::update(int sid, int v_in, vector<pair<int, SDateVal>>& changes, vector<int>& removes) {
+
+	for (unsigned int iChange = 0; iChange < changes.size(); iChange++) {
+		if (change(sid, v_in, changes[iChange].first, &(changes[iChange].second)) < 0)
+			return -1;
+	}
+
+	for (int iRemove = 0; iRemove < removes.size(); iRemove++) {
+		if (remove(sid, v_in, removes[iRemove] - iRemove) < 0)
+			return -1;
+	}
+}
+
+//..................................................................................................................
 int PidDynamicRec::print_ver(int sid, int ver)
 {
 
