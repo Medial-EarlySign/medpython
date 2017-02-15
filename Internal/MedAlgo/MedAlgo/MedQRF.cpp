@@ -140,7 +140,9 @@ int MedQRF::init(map<string, string>& mapper) {
 				params.samp_vec[j] = stoi(vals[j]);
 
 			if (vals.size() == 1 && params.samp_vec[0] <= 0) params.sampsize = NULL;
-			else params.sampsize = &params.samp_vec[0];
+			else {
+				params.sampsize = &params.samp_vec[0];
+			}
 		}
 		else MLOG("Unknown parameter \'%s\' for QRF\n", field.c_str());
 
@@ -157,9 +159,9 @@ QRF_TreeType MedQRF::get_tree_type(string name) {
 		return QRF_BINARY_TREE;
 	else if (name == "regression_tree" || name == "regression")
 		return QRF_REGRESSION_TREE;
-	else if (name == "categorial_chi2_tree" || name == "categorial_chi2")
+	else if (name == "categorial_chi2_tree" || name == "categorical_chi2_tree" || name == "categorial_chi2" || name == "categorical_chi2")
 		return QRF_CATEGORICAL_CHI2_TREE;
-	else if (name == "categorial_entropy_tree" || name == "categorial_entropy")
+	else if (name == "categorial_entropy_tree" || name == "categorical_entropy_tree" || name == "categorial_entropy" || name == "categorical_entropy")
 		return QRF_CATEGORICAL_ENTROPY_TREE;
 	else
 		return QRF_LAST;
@@ -239,6 +241,8 @@ int MedQRF::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 	int n_categ = 0 ;
 	qf.nthreads = params.learn_nthreads;
 	qf.collect_oob = params.collect_oob;
+	qf.get_only_this_categ = params.get_only_this_categ;
+	qf.get_counts_flag = params.get_count;
 
 	if (params.type != QRF_REGRESSION_TREE) {
 		for (int i = 0; i < nsamples; i++)
@@ -295,6 +299,8 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs, int _get_c
 	qf.nthreads = params.predict_nthreads;
 	qf.get_only_this_categ = params.get_only_this_categ;
 	qf.n_categ = params.n_categ;
+	qf.get_only_this_categ = params.get_only_this_categ;
+	qf.get_counts_flag = params.get_count;
 	return qf.score_samples(x,nftrs,nsamples,preds,_get_count) ;
 }
 
@@ -326,6 +332,9 @@ size_t MedQRF::deserialize(unsigned char *blob) {
 	params.ntrees = (int)qf.qtrees.size();
 	params.n_categ = qf.n_categ;
 	params.type = (QRF_TreeType) qf.mode;
+	params.get_only_this_categ = qf.get_only_this_categ;
+	params.get_count = qf.get_counts_flag;
+
 	return s;
 }
 

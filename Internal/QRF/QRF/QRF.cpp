@@ -333,6 +333,8 @@ int QuantizedRF::get_regression_Tree(int *sampsize, int ntry, QRF_Tree &tree)
 			take_group[dist(tree.rand_gen)] = 1;
 	}
 
+//	fprintf(stderr, "get_regression_Tree: tree_mode %d n_categ %d sampsize %d %d\n", tree_mode, n_categ, sampsize[0], sampsize[1]);
+
 #ifdef DEBUG_ALGO
 	fprintf(stderr,"get_regression_Tree() n_called %d\n",n_called);
 #endif
@@ -369,7 +371,7 @@ int QuantizedRF::get_regression_Tree(int *sampsize, int ntry, QRF_Tree &tree)
 		for (j=0; j<NSamples; j++)
 			categ_ids[(int)yr[j]].push_back(j);
 		for (i=0; i<n_categ; i++) {
-//			fprintf(stderr,"Categ %d: %d samples needed %d\n",i,categ_ids[i].size(),sampsize[i]); fflush(stderr);
+			//fprintf(stderr,"Categ %d: %d samples needed %d\n",i,categ_ids[i].size(),sampsize[i]); fflush(stderr);
 			uniform_int_distribution<> dist(0,(int)categ_ids[i].size()-1);
 			if (n_groups == 0) {
 				for (j=0; j<sampsize[i]; j++) {
@@ -484,7 +486,8 @@ int QuantizedRF::get_Tree(int *sampsize, int ntry, QRF_Tree &tree)
 	}
 
 	if (sampsize != NULL) {
-		// first we botostrap with sizes given to us in sampsize
+		//fprintf(stderr, "QRF: bagging with sampsize %d %d\n", sampsize[0], sampsize[1]);
+		// first we bootstrap with sizes given to us in sampsize
 		tree.sample_ids.resize(sampsize[0]+sampsize[1]);
 		tree.max_nodes = 2*(sampsize[0]+sampsize[1]);
 		tree.nodes.resize(tree.max_nodes);
@@ -1567,6 +1570,8 @@ size_t QRF_Forest::get_size() {
 	size = sizeof(int); // encoding mode
 	size += sizeof(int); // encoding n-categories
 	size += sizeof(int); // encoding ntrees
+	size += sizeof(int); // encoding get_only_this_categ
+	size += sizeof(int); // encoding get_count
 	for (int i=0; i<qtrees.size(); i++) {
 		size += sizeof(int); // encoding nnodes
 		for (int j=0; j<qtrees[i].qnodes.size(); j++)
@@ -1604,6 +1609,12 @@ size_t QRF_Forest::serialize(unsigned char *&model)
 	model += sizeof(int) ;
 
 	((int *)model)[0] = (int)qtrees.size();
+	model += sizeof(int);
+
+	((int *)model)[0] = get_only_this_categ;
+	model += sizeof(int);
+
+	((int *)model)[0] = get_counts_flag;
 	model += sizeof(int);
 
 	for (int i=0; i<qtrees.size(); i++) {
@@ -1717,6 +1728,12 @@ size_t QRF_Forest::deserialize(unsigned char *model)
 #endif
 	model += sizeof(int);
 	
+	get_only_this_categ = ((int *)model)[0];
+	model += sizeof(int);
+
+	get_counts_flag = ((int *)model)[0];
+	model += sizeof(int);
+
 	QRF_ResTree qt;
 	QRF_ResNode qn;
 	qtrees.clear();
@@ -1815,7 +1832,7 @@ int QRF_Forest::get_forest_categorical(float *x, float *y, int nfeat, int nsampl
 	if (ncateg < 0) return -1;
 	n_categ = ncateg;
 
-	
+	//fprintf(stderr, "QRF1: sampsize %d %d type is %d\n", sampsize[0], sampsize[1], splitting_method);
 	return(get_forest_trees_all_modes(x, (void *)y, nfeat, nsamples, sampsize, ntry, ntrees, maxq, splitting_method));
 }
 
