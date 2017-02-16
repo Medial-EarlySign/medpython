@@ -282,7 +282,8 @@ int read_signals_list(po::variables_map& vm, vector<string>& signals) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
 
-		signals.push_back(curr_line);
+		if (curr_line[0] != '#')
+			signals.push_back(curr_line);
 	}
 
 	return 0;

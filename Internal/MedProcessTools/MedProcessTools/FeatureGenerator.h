@@ -138,7 +138,7 @@ public:
 	BasicFeatureTypes type = FTR_LAST;
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
 	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
-	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
+	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
 

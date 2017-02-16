@@ -145,7 +145,9 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "nbrs_quantile_factor") params.nbrs_quantile_factor = stof(entry.second);
 		else if (field == "doTrim") params.doTrim = (stoi(entry.second) != 0);
 		else if (field == "doRemove") params.doRemove = (stoi(entry.second) != 0);
-		else MLOG("Unknonw parameter \'%s\' for QRF\n", field.c_str());
+		// next are in ignore ... used in level above
+		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width")
+			MLOG("Unknonw parameter \'%s\' for MedValueCleaner\n", field.c_str());
 
 	}
 

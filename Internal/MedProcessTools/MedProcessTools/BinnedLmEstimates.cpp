@@ -32,10 +32,11 @@ double def_rfactor = 0.99;
 void BinnedLmEstimates::set_names() {
 
 	if (names.empty()) {
-		string name = signalName + ".Estimate.";
+		string base_name = signalName + ".Estimate.";
 		for (int point : params.estimation_points) {
-			name += std::to_string(point);
-			name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
+			string name = base_name + std::to_string(point);
+			if (time_channel != 0 || val_channel != 0)
+				name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 			names.push_back(name);
 		}
 	}

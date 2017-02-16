@@ -197,8 +197,8 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
 	// signalId
-	if (signalId == -1)
-		signalId = rec.my_base_rep->dict.id(signalName);
+	if (signalId == -1)	signalId = rec.my_base_rep->dict.id(signalName);
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
 	rec.uget(signalId, idx);
 
@@ -255,6 +255,7 @@ size_t BasicFeatGenerator::get_size() {
 
 	size += sizeof(BasicFeatureTypes); //  BasicFeatureTypes type;
 	size += 2 * sizeof(int); // win from-to
+	size += 3 * sizeof(int); // time_unit_win, time_channel, val_channel
 
 	// signalName
 	size += sizeof(size_t); 
@@ -273,6 +274,9 @@ size_t BasicFeatGenerator::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &type, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
 	memcpy(blob + ptr, &win_from, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &win_to, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &time_unit_win, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
 
 	// SignalName
 	size_t nameLen = signalName.length();
@@ -294,6 +298,9 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 	memcpy(&type, blob + ptr, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
 	memcpy(&win_from, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&win_to, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&time_unit_win, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
 
 	// SignalName
 	size_t nameLen;
