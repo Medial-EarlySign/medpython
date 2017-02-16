@@ -142,12 +142,14 @@ public:
 
 	// creating and changing versions
 	int set_version_data(int sid, int version, void *datap, int len);
+	int set_version_off_orig(int sid, int version); // if the version is still pointing the original area, we will make a copy of it outside
 	int point_version_to(int sid, int v_src, int v_dst);	// will point version v_dst to the data of version v_src
 	int remove(int sid, int version, int idx);			// removing element idx from version
 	int remove(int sid, int v_in, int idx, int v_out);	// removing element idx from version v_in and putting it in v_out
 	int change(int sid, int version, int idx, void *new_elem);	// changing element idx in version to hold *new_elem
 	int change(int sid, int v_in, int idx, void *new_elem, int v_out);	// changing element idx in v_in to *new_elem, and putting it all in v_out
 	int update(int sid, int v_in, vector<pair<int, void *>>& changes, vector<int>& removes); // Apply changes and removals
+	int update(int sid, int v_in, int val_channel, vector<pair<int, float>>& changes, vector<int>& removes); // Apply val changes and removals, unified variant
 
 	// test if two versions point to the same place in memory
 	int versions_are_the_same(int sid, int v1, int v2) { return ((int)((*get_poslen(sid, v1)) == (*get_poslen(sid, v2)))); }

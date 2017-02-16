@@ -511,6 +511,40 @@ int PidDynamicRec::set_version_data(int sid, int version, void *datap, int len)
 	return 0;
 }
 
+
+//..................................................................................................................
+int PidDynamicRec::set_version_off_orig(int sid, int version)
+{
+
+	lock_guard<mutex> guard(dynamic_pid_rec_mutex_pool[pid & PID_REC_MUTEX_MASK]);
+	PosLen *pl = get_poslen(sid, version);
+
+
+	if (pl == NULL)
+		return -1;
+
+	if ((unsigned int)pl->pos < data_len && pl->len > 0) {
+		// This means our current version is in the original section (below data_len)
+		// Hence we will make a copy of it in the versions working area
+
+		void *datap = (void *)&data[pl->pos];
+		int len = pl->len;
+		int size = my_base_rep->sigs.Sid2Info[sid].bytes_len * len;
+
+		if (curr_len + size > data_size)
+			resize_data(2*(data_size + size));
+		PosLen new_pl;
+		new_pl.pos = curr_len;
+		new_pl.len = len;
+		curr_len += size;
+
+		memcpy((char *)&data[new_pl.pos], (char *)datap, size);
+		set_poslen(sid, version, new_pl);
+	}
+
+	return 0;
+}
+
 //..................................................................................................................
 // will point version v_dst to the data of version v_src
 int PidDynamicRec::point_version_to(int sid, int v_src, int v_dst)
@@ -652,6 +686,33 @@ int PidDynamicRec::update(int sid, int v_in, vector<pair<int, void *>>& changes,
 		if (remove(sid, v_in, removes[iRemove] - iRemove) < 0)
 			return -1;
 	}
+}
+
+//..................................................................................................................
+int PidDynamicRec::update(int sid, int v_in, int val_channel, vector<pair<int, float>>& changes, vector<int>& removes) {
+
+	// first we make sure we get our copy if we have changes
+	if (changes.size() > 0 || removes.size() > 0) {
+		if (set_version_off_orig(sid, v_in) < 0)
+			return -1;
+
+		if (changes.size() > 0) {
+			UniversalSigVec usv;
+			uget(sid, v_in, usv);
+
+			for (auto &change : changes)
+				usv.SetVal_ch_vec(change.first, val_channel, change.second, usv.data);
+
+		}
+
+		for (int iRemove = 0; iRemove < removes.size(); iRemove++) {
+			if (remove(sid, v_in, removes[iRemove] - iRemove) < 0)
+				return -1;
+		}
+
+	}
+	
+	return 0;
 }
 
 //..................................................................................................................
