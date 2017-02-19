@@ -262,7 +262,7 @@ int FeatureBasicOutlierCleaner::Apply(MedFeatures& features, unordered_set<int>&
 	vector<float>& data = features.data[feature_name];
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if ((empty || ids.find(features.samples[i].id) != ids.end()) && data[i] != params.missing_value) {
-			if (params.doRemove && (data[i] < removeMin || data[i] > removeMax))
+			if (params.doRemove && (data[i] < removeMin - NUMERICAL_CORRECTION_EPS || data[i] > removeMax + NUMERICAL_CORRECTION_EPS))
 				data[i] = params.missing_value;
 			else if (params.doTrim) {
 				if (data[i] < trimMin)

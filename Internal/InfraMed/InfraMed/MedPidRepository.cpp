@@ -651,6 +651,8 @@ int PidDynamicRec::update(int sid, int v_in, vector<pair<int, SDateVal>>& change
 		if (remove(sid, v_in, removes[iRemove] - iRemove) < 0)
 			return -1;
 	}
+
+	return 0;
 }
 
 //..................................................................................................................

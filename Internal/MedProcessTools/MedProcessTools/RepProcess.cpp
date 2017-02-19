@@ -59,14 +59,38 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 
 // Applying
 //.......................................................................................
-int RepProcessor::apply(PidDynamicRec& rep, MedIdSamples& samples) {
+int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 
 	vector<int> time_points(samples.samples.size());
 	for (unsigned int i = 0; i < time_points.size(); i++)
 		time_points[i] = samples.samples[i].date;
 
-	return Apply(rep, time_points);
+	return apply(rec, time_points);
 }
+
+//.......................................................................................
+int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
+
+	if (aff_signal_ids.empty())
+		get_affected_signal_ids(rec.my_base_rep->dict);
+
+	for (int signalId : neededSignalIds) {
+		if (is_signal_affected(signalId))
+			return apply(rec, time_points);
+	}
+
+}
+
+//.......................................................................................
+int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds) {
+
+	vector<int> time_points(samples.samples.size());
+	for (unsigned int i = 0; i < time_points.size(); i++)
+		time_points[i] = samples.samples[i].date;
+
+	return apply(rec, time_points, neededSignalIds);
+}
+
 
 // Required signals
 //.......................................................................................
@@ -86,6 +110,14 @@ void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, MedDic
 
 	for (int signalId : req_signal_ids)
 		signalIds.insert(signalId);
+}
+
+// Affected signals
+//.......................................................................................
+void RepProcessor::get_affected_signal_ids(MedDictionarySections& dict) {
+
+	for (string signalName : aff_signals)
+		aff_signal_ids.insert(dict.id(signalName));
 }
 
 // (De)Serialize
@@ -117,6 +149,20 @@ void RepMultiProcessor::get_required_signal_ids(MedDictionarySections& dict) {
 	}
 }
 
+// Affected Signals
+//.......................................................................................
+void RepMultiProcessor::get_affected_signal_ids(MedDictionarySections& dict) {
+
+	for (auto& processor : processors) {
+		if (processor->aff_signal_ids.empty())
+			processor->get_affected_signal_ids(dict);
+
+		for (int signalId : processor->aff_signal_ids)
+			aff_signal_ids.insert(signalId);
+	}
+}
+
+
 // Learning
 //.......................................................................................
 int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
@@ -135,19 +181,36 @@ int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<Rep
 	return 0;
 }
 
-// Cleaning
+// Apply
 //.......................................................................................
-int RepMultiProcessor::Apply(PidDynamicRec& rec, vector<int>& time_points) {
+int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	vector<int> rc(processors.size(),0);
 #pragma omp parallel for
 	for (int j=0; j<processors.size(); j++) {
-		rc[j] = processors[j]->Apply(rec, time_points);
+		rc[j] = processors[j]->apply(rec, time_points);
 	}
 
 	for (int r : rc) if (r<0) return -1;
 	return 0;
 }
+
+//.......................................................................................
+int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
+
+	if (aff_signal_ids.empty())
+		get_affected_signal_ids(rec.my_base_rep->dict);
+
+	vector<int> rc(processors.size(), 0);
+#pragma omp parallel for
+	for (int j = 0; j<processors.size(); j++) {
+		rc[j] = processors[j]->apply(rec, time_points, neededSignalIds);
+	}
+
+	for (int r : rc) if (r<0) return -1;
+	return 0;
+}
+
 
 // Add processors
 //.......................................................................................
@@ -264,7 +327,7 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 
 // Clean
 //.......................................................................................
-int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) {
+int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	if (signalId == -1)
 		signalId = rec.my_base_rep->dict.id(signalName);
@@ -283,7 +346,7 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 		while (jver >= 0 && rec.versions_are_the_same(signalId,iver, jver))
 			jver--;
 		jver++;
-
+		
 		// Clean 
 		SDateVal *signal = (SDateVal *)rec.get(signalId, jver, len);
 		SDateVal sd;
@@ -294,17 +357,17 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 
 		// Collect
 		for (int i = 0; i < len; i++) {
-			if (signal[i].date > time_points[jver])
+			if (signal[i].date > time_points[iver])
 				break;
 
-			if (params.doRemove && (signal[i].val < removeMin || signal[i].val > removeMax))
+			if (params.doRemove && (signal[i].val < removeMin - NUMERICAL_CORRECTION_EPS || signal[i].val > removeMax + NUMERICAL_CORRECTION_EPS))
 				remove[nRemove++] = i;
 			else if (params.doTrim) {
-				if (signal[i].val < trimMin) {
+				if (signal[i].val < trimMin - NUMERICAL_CORRECTION_EPS) {
 					sd.date = signal[i].date; sd.val = trimMin;
-					change[nChange] = pair<int, SDateVal>(i, sd);
+					change[nChange++] = pair<int, SDateVal>(i, sd);
 				}
-				else if (signal[i].val > trimMax) {
+				else if (signal[i].val > trimMax + NUMERICAL_CORRECTION_EPS) {
 					sd.date = signal[i].date; sd.val = trimMax;
 					change[nChange++] = pair<int, SDateVal>(i, sd);
 				}
@@ -312,11 +375,12 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 		}
 
 		// Apply removals + changes
+		
 		change.resize(nChange);
 		remove.resize(nRemove);
 		if (rec.update(signalId, iver, change, remove) < 0)
 			return -1;
-
+		
 		while (iver > jver) {
 			rec.point_version_to(signalId, jver, iver);
 			iver--;
@@ -438,7 +502,8 @@ int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& id
 	vector<float> values;
 	get_values(rep, ids, signalId, values, prev_cleaners);
 
-	return get_iterative_min_max(values);
+	int rc = get_iterative_min_max(values);
+	return rc;
 }
 
 //.......................................................................................
@@ -458,7 +523,7 @@ int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids
 
 // Clean
 //.......................................................................................
-int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) {
+int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	if (signalId == -1)
 		signalId = rec.my_base_rep->dict.id(signalName);
@@ -481,86 +546,86 @@ int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) 
 
 		// Clean 
 		int verLen = 0;
+		vector<int> candidates(len, 0);
+		vector<int> removed(len, 0);
+
 		for (int i = 0; i < len; i++) {
-			vector<int> candidates(len, 0);
-			vector<int> removed(len, 0);
 			if (signal[i].date > time_points[iver]) {
 				verLen = i - 1;
 				break;
 			}
 
 			// Remove ?
-			if (params.doRemove && (signal[i].val < removeMin || signal[i].val > removeMax)) {
+			if (params.doRemove && (signal[i].val < removeMin - NUMERICAL_CORRECTION_EPS || signal[i].val > removeMax + NUMERICAL_CORRECTION_EPS)) {
 				remove[nRemove++] = i;
 				removed[i] = 1;
 			}
 			else if (params.doTrim) {
-				if (signal[i].val < trimMin) {
-					candidates[i] = 1;
-				}
-				else if (signal[i].val > trimMax) {
+				if (signal[i].val < trimMin - NUMERICAL_CORRECTION_EPS) {
 					candidates[i] = -1;
 				}
+				else if (signal[i].val > trimMax + NUMERICAL_CORRECTION_EPS) {
+					candidates[i] = 1;
+				}
 			}
+		}
 
-			// Check candidates
-			for (int i = 0; i < verLen; i++) {
-				if (candidates[i] != 0) {
-					int dir = candidates[i];
+		// Check candidates
+		for (int i = 0; i < verLen; i++) {
+			if (candidates[i] != 0) {
+				int dir = candidates[i];
 
+				// Get weighted values from neighbours
+				double sum = 0, norm = 0;
+				double priorSum = 0, priorNorm = 0;
+				double postSum = 0, postNorm = 0;
 
-					// Get weighted values from neighbours
-					double sum = 0, norm = 0;
-					double priorSum = 0, priorNorm = 0;
-					double postSum = 0, postNorm = 0;
+				int days = get_day(signal[i].date);
+				for (int j = 0; j < verLen; j++) {
 
-					int days = get_day(signal[i].date);
-					for (int j = 0; j < verLen; j++) {
+					if (j != i && !removed[j]) {
+						int diff = abs(get_day(signal[j].date) - days) / 7;
+						double w = 1.0 / (diff + 1);
 
-						if (j != i && !removed[j]) {
-							int diff = abs(get_day(signal[j].date) - days) / 7;
-							double w = 1.0 / (diff + 1);
+						sum += w * signal[j].val;
+						norm += w;
 
-							sum += w * signal[j].val;
-							norm += w;
-
-							if (j > i) {
-								postSum += w * signal[j].val;
-								postNorm += w;
-							}
-							else {
-								priorSum += w * signal[j].val;
-								priorNorm += w;
-							}
+						if (j > i) {
+							postSum += w * signal[j].val;
+							postNorm += w;
+						}
+						else {
+							priorSum += w * signal[j].val;
+							priorNorm += w;
 						}
 					}
+				}
 
-					// Check it up
-					int found_nbr = 0;
-					if (norm > 0) {
-						double win_val = sum / norm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
+				// Check it up
+				int found_nbr = 0;
+				if (norm > 0) {
+					double win_val = sum / norm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
 
-					if (!found_nbr && priorNorm > 0) {
-						double win_val = priorSum / priorNorm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
+				if (!found_nbr && priorNorm > 0) {
+					double win_val = priorSum / priorNorm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
 
-					if (!found_nbr && postNorm > 0) {
-						double win_val = postSum / postNorm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
+				if (!found_nbr && postNorm > 0) {
+					double win_val = postSum / postNorm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
 
-					// Should we clip ?
-					if (!found_nbr) {
-						sd.date = signal[i].date;
-						sd.val = (dir == 1) ? trimMax : trimMin;
-						change[nChange++] = pair<int, SDateVal>(i, sd);
-					}
+				// Should we clip ?
+				if (!found_nbr) {
+					sd.date = signal[i].date;
+					sd.val = (dir == 1) ? trimMax : trimMin;
+					change[nChange++] = pair<int, SDateVal>(i, sd);
 				}
 			}
 		}
@@ -672,11 +737,10 @@ void RepNbrsOutlierCleaner::print()
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>& values, vector<RepProcessor *>& prev_processors) {
 
 	int len;
-//	PidRec in_rec;
-//	in_rec.prealloc(PID_REC_SIZE);
+
+	vector<int> neededSignalIds = { signalId };
 
 	PidDynamicRec rec;
-//	rec.prealloc(DYNAMIC_REC_SIZE);
 	vector<int> req_signal_ids(1, signalId);
 
 	assert(rep.sigs.type(signalId) == T_DateVal);
@@ -698,7 +762,7 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>
 			
 			// Clean at all time-points
 			for (auto& processor : prev_processors)
-				processor->Apply(rec, time_points);
+				processor->apply(rec, time_points, neededSignalIds);
 
 			// Collect 
 			for (int i = 0; i < len; i++) {

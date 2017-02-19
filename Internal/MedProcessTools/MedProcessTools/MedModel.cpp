@@ -134,7 +134,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 
 #pragma omp parallel for
 	for (int i = 0; i<generators.size(); i++)
-		rc[i] = generators[i]->learn(rep, ids);
+		rc[i] = generators[i]->learn(rep, ids,rep_processors);
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
