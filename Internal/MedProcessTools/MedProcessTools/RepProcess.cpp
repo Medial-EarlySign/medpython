@@ -11,16 +11,36 @@
 // Processors types
 RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 
-	if (processor_name == "multi_processor")
+	if (processor_name == "multi_processor" || processor_name == "multi")
 		return REP_PROCESS_MULTI;
-	else if (processor_name == "basic_outlier_cleaner")
+	else if (processor_name == "basic_outlier_cleaner" || processor_name == "basic_cln")
 		return REP_PROCESS_BASIC_OUTLIER_CLEANER;
-	else if (processor_name == "nbrs_outlier_cleaner")
+	else if (processor_name == "nbrs_outlier_cleaner" || processor_name == "nbrs_cln")
 		return REP_PROCESS_NBRS_OUTLIER_CLEANER;
 	else
 		return REP_PROCESS_LAST;
 }
 
+//.......................................................................................
+// create from params : must have type parameter
+RepProcessor *RepProcessor::create_processor(string &params)
+{
+	vector<string> fields;
+	string type = "NONE";
+	boost::split(fields, params, boost::is_any_of(";"));
+	for (int i=0; i<fields.size()-1; i++) {
+		if (fields[i] == "type") { type = fields[++i]; break; }
+	}
+	
+	//RepProcessorTypes ptype = rep_processor_name_to_type(type);
+
+	//if (ptype == REP_PROCESS_LAST) {
+	//	MERR("Unknown rep process type '%s' : from params: %s ... adding NULL processor\n", type.c_str(), params.c_str());
+	//	return NULL;
+	//}
+
+	return (make_processor(type, params));
+}
 
 // Initialization
 //.......................................................................................
@@ -301,6 +321,7 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 		// Clean 
 		rec.uget(signalId, jver, rec.usv); // get into the internal usv obeject - this statistically saves init time
 
+		len = rec.usv.len; 
 		vector<int> remove(len);
 		vector<pair<int, float>> change(len);
 		int nRemove = 0, nChange = 0;
