@@ -84,6 +84,10 @@ public:
 	static RepProcessor *make_processor(RepProcessorTypes type);
 	static RepProcessor *make_processor(RepProcessorTypes type, string params);
 
+	// Create processor with just params (type is a must)
+	static RepProcessor *create_processor(string &params);
+	
+
 	virtual int init(void *params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
