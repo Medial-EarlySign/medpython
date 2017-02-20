@@ -25,21 +25,9 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 // create from params : must have type parameter
 RepProcessor *RepProcessor::create_processor(string &params)
 {
-	vector<string> fields;
-	string type = "NONE";
-	boost::split(fields, params, boost::is_any_of(";"));
-	for (int i=0; i<fields.size()-1; i++) {
-		if (fields[i] == "type") { type = fields[++i]; break; }
-	}
-	
-	//RepProcessorTypes ptype = rep_processor_name_to_type(type);
-
-	//if (ptype == REP_PROCESS_LAST) {
-	//	MERR("Unknown rep process type '%s' : from params: %s ... adding NULL processor\n", type.c_str(), params.c_str());
-	//	return NULL;
-	//}
-
-	return (make_processor(type, params));
+	string rp_type;
+	get_single_val_from_init_string(params, "rp_type", rp_type);
+	return (make_processor(rp_type, params));
 }
 
 // Initialization
@@ -72,6 +60,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, string init_string) {
 
+	//MLOG("Processor type is %d\n", (int)processor_type);
 	RepProcessor *newRepProcessor = make_processor(processor_type);
 	newRepProcessor->init_from_string(init_string);
 	return newRepProcessor;

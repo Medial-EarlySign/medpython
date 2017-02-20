@@ -52,36 +52,80 @@ int main(int argc, char *argv[])
 
 	timer.start();
 
-	// Repository Cleaners
-	MLOG( "Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
-	my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
-//	my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+#define DIRECT_INIT 1
+	if (DIRECT_INIT) {
+		MLOG("Initializing RepCleaners and Features: nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
+		for (auto sig : signals) {
 
-	// Signal-based feature generators
-	MLOG( "Initializing Features\n");
+			// cleaner for sig
+			my_model.add_rep_processor_to_set(0, "rp_type=nbrs_cln;take_log=1;signal="+sig);
+			//my_model.add_rep_processor_to_set(0, "rp_type=basic_cln;signal="+sig);
 
-	vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_STD_VALUE, FTR_LAST_DELTA_VALUE , FTR_LAST_DAYS, FTR_LAST2_DAYS };
-	//	vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE };
+			// features for sig
 
-	for (auto sig_type : sig_types) 
-		my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
-	my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
+			// basics
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=0; win_to=360; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=360; win_to=720; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=first; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=avg; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=max; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=min; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=std; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last_time; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last_time2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 
-	// Add feature cleaners
-	my_model.add_feature_processors_set(FTR_PROCESS_BASIC_OUTLIER_CLEANER, vm["feat_cleaner_params"].as<string>());
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=720; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
 
-	// Add feature Imputers
-	MLOG("Adding imputers\n");
-	my_model.add_imputers("strata=Age,40,80,5");
+			// binnedLM
+			my_model.add_feature_generator_to_set(0, "fg_type=binnedLM; estimation_points=1440,720,360,180; signal=" + sig);
+		}
+		// Age/Gender features
+		my_model.add_feature_generator_to_set(0, "fg_type=age");
+		my_model.add_feature_generator_to_set(0, "fg_type=gender");
 
-	// Age + Gender
-	MLOG( "Initializing Extra Features\n");
-	my_model.add_age();
-	my_model.add_gender();
+		// Add feature processors
+		my_model.add_feature_processor_to_set(0, "fp_type=basic_cleaner");
+		my_model.add_feature_processor_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
+		my_model.add_feature_processor_to_set(2, "fp_type=normalizer");
 
-	// Normalizers
-	MLOG("Adding normalizers\n");
-	my_model.add_normalizers();
+	}
+	else {
+		// Repository Cleaners
+		MLOG("Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
+		my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+		//	my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+
+		// Signal-based feature generators
+		MLOG("Initializing Features\n");
+
+		vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_STD_VALUE, FTR_LAST_DELTA_VALUE , FTR_LAST_DAYS, FTR_LAST2_DAYS };
+		//	vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE };
+		for (auto sig_type : sig_types) 
+			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
+		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
+
+		// Age + Gender
+		MLOG( "Initializing Extra Features\n");
+		my_model.add_age();
+		my_model.add_gender();
+
+		// Add feature cleaners
+		my_model.add_feature_processors_set(FTR_PROCESS_BASIC_OUTLIER_CLEANER, vm["feat_cleaner_params"].as<string>());
+
+		// Add feature Imputers
+		MLOG("Adding imputers\n");
+		my_model.add_imputers("strata=Age,40,80,5");
+
+		// Normalizers
+		MLOG("Adding normalizers\n");
+		my_model.add_normalizers();
+	}
+
+
 
 	// Predictor
 	MLOG( "Initializing Predictor\n");

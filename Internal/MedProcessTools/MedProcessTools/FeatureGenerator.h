@@ -86,6 +86,8 @@ public:
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
 
+	static FeatureGenerator *create_generator(string &params); // must include fg_type
+
 	virtual int init(void *generator_params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
@@ -125,6 +127,7 @@ typedef enum {
 	FTR_LAST_DELTA_VALUE = 7,
 	FTR_LAST_DAYS = 8,
 	FTR_LAST2_DAYS = 9,
+	FTR_SLOPE_VALUE = 10,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -155,6 +158,8 @@ public:
 		set_names(); req_signals.assign(1, signalName);
 	}
 
+	BasicFeatureTypes name_to_type(const string &name);
+
 	// Init
 	int init(map<string, string>& mapper);
 	void init_defaults() { 
@@ -180,6 +185,7 @@ public:
 	float uget_last_delta(UniversalSigVec &usv, int time_point);
 	float uget_last_time(UniversalSigVec &usv, int time_point);
 	float uget_last2_time(UniversalSigVec &usv, int time_point);
+	float uget_slope(UniversalSigVec &usv, int time_point);
 
 
 	// Serialization

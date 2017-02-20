@@ -115,14 +115,15 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "max_period") params.max_period = stoi(entry.second);
 		else if (field == "min_period") params.min_period = stoi(entry.second);
 		else if (field == "rfactor") params.rfactor = stof(entry.second);
-		else if (field == "signalName") signalName = entry.second;
+		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "estimation_points") {
 			if (init_dvec(entry.second, params.estimation_points) == -1) {
 				fprintf(stderr, "Cannot initialize estimation_points for LM\n");
 				return -1;
 			}
 		}
-		else MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
+		else if (field != "fg_type")
+				MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
 
 	names.clear();
