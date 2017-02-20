@@ -152,6 +152,8 @@ public:
 	// Signal to clean
 	string signalName;
 	int signalId;
+	int time_channel = 0;
+	int val_channel = 0;
 
 	// Constructors
 	RepBasicOutlierCleaner() : RepProcessor() { init_defaults(); }
@@ -177,7 +179,7 @@ public:
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
+	int init(map<string, string>& mapper); // { init_defaults();  return MedValueCleaner::init(mapper); };
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
@@ -212,6 +214,11 @@ public:
 	// Signal to clean
 	string signalName;
 	int signalId;
+	int time_channel = 0;
+	int val_channel = 0;
+	int nbr_time_unit = MedTime::Days;
+	int nbr_time_width = 7;
+
 
 	// Constructors
 	RepNbrsOutlierCleaner() : RepProcessor() { init_defaults(); }
@@ -238,7 +245,7 @@ public:
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
+	int init(map<string, string>& mapper); // { init_defaults();  return MedValueCleaner::init(mapper); };
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
@@ -263,7 +270,7 @@ public:
 //.......................................................................................
 
 // Get values of a signal from a set of ids
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>& values) ;
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values) ;
 
 #endif

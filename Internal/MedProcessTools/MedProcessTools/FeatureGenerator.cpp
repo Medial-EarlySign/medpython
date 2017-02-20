@@ -27,6 +27,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 //.......................................................................................
 void FeatureGenerator::init(MedFeatures &features) {
 
+	if (names.size() == 0)
+		set_names();
 	for (auto& name : names) 
 		features.attributes[name].normalized = false;
 }
@@ -150,6 +152,8 @@ void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds, Me
 //.......................................................................................
 void BasicFeatGenerator::set_names() {
 	
+	names.clear();
+
 	if (names.empty()) {
 		string name = signalName + ".";
 		switch (type) {
@@ -161,14 +165,18 @@ void BasicFeatGenerator::set_names() {
 		case FTR_MIN_VALUE:		name += "min"; break;
 		case FTR_STD_VALUE:		name += "std"; break;
 		case FTR_LAST_DELTA_VALUE:		name += "last_delta"; break;
-		case FTR_LAST_DAYS:		name += "last_days"; break;
-		case FTR_LAST2_DAYS:		name += "last2_days"; break;
+		case FTR_LAST_DAYS:		name += "last_time"; break;
+		case FTR_LAST2_DAYS:		name += "last2_time"; break;
 		default: name += "ERROR";
 		}
 
 		name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
+		if (time_channel!=0 || val_channel != 0)
+			name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 		names.push_back(name);
 	}
+
+	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
 }
 
 // Generate
@@ -186,28 +194,27 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 }
 
 //.......................................................................................
-float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int date) {
+float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
 	// signalId
-	if (signalId == -1)
-		signalId = rec.my_base_rep->dict.id(signalName);
+	if (signalId == -1)	signalId = rec.my_base_rep->dict.id(signalName);
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
-	int len;
-	SDateVal *signal = (SDateVal *)rec.get(signalId, idx, len);
+	rec.uget(signalId, idx);
 
 	switch (type) {
-		case FTR_LAST_VALUE:	return get_last_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_FIRST_VALUE:	return get_first_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_LAST2_VALUE:	return get_last2_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_AVG_VALUE:		return get_avg_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_MAX_VALUE:		return get_max_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_MIN_VALUE:		return get_min_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_STD_VALUE:		return get_std_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_LAST_DELTA_VALUE:		return get_last_delta_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_LAST_DAYS:			return get_last_days_value(signal, len, date, win_from, win_to, missing_val);
-		case FTR_LAST2_DAYS:		return get_last2_days_value(signal, len, date, win_from, win_to, missing_val);
+	case FTR_LAST_VALUE:	return uget_last(rec.usv, time);
+	case FTR_FIRST_VALUE:	return uget_first(rec.usv, time);
+	case FTR_LAST2_VALUE:	return uget_last2(rec.usv, time);
+	case FTR_AVG_VALUE:		return uget_avg(rec.usv, time);
+	case FTR_MAX_VALUE:		return uget_max(rec.usv, time);
+	case FTR_MIN_VALUE:		return uget_min(rec.usv, time);
+	case FTR_STD_VALUE:		return uget_std(rec.usv, time);
+	case FTR_LAST_DELTA_VALUE:		return uget_last_delta(rec.usv, time);
+	case FTR_LAST_DAYS:			return uget_last_time(rec.usv, time);
+	case FTR_LAST2_DAYS:		return uget_last2_time(rec.usv, time);
 
-		default:	return missing_val;
+	default:	return missing_val;
 	}
 
 	return missing_val;
@@ -224,10 +231,15 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
 		else if (field == "signalName") signalName = entry.second;
+		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 	}
 
+	// names for BasicFeatGenerator are set as a first step in the Learn call as we must have access to the MedRepository
 	names.clear();
+
 	set_names();
 
 	req_signals.assign(1,signalName);
@@ -243,6 +255,7 @@ size_t BasicFeatGenerator::get_size() {
 
 	size += sizeof(BasicFeatureTypes); //  BasicFeatureTypes type;
 	size += 2 * sizeof(int); // win from-to
+	size += 3 * sizeof(int); // time_unit_win, time_channel, val_channel
 
 	// signalName
 	size += sizeof(size_t); 
@@ -261,6 +274,9 @@ size_t BasicFeatGenerator::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &type, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
 	memcpy(blob + ptr, &win_from, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &win_to, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &time_unit_win, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
 
 	// SignalName
 	size_t nameLen = signalName.length();
@@ -282,6 +298,9 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 	memcpy(&type, blob + ptr, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
 	memcpy(&win_from, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&win_to, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&time_unit_win, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
 
 	// SignalName
 	size_t nameLen;
@@ -340,64 +359,23 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 	return 0;
 }
 
-//=======================================================================================
-// Utilities
-//=======================================================================================
-// in all the following timing is: .... -> (date-win_to) -> .... -> (date-win_from) -> ... -> date -> ...
+
 
 //.......................................................................................
-// get the last value in the window [win_to, win_from) before date
-float get_last_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val) {
-
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
-
-	float val = missing_val;
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) {
-			if (i>0 && signal[i - 1].date >= min_date)
-			{
-				val = signal[i - 1].val; break;
-			}
-			else {
-				val = missing_val; break;
-			}
-		}
-	}
-//	MLOG("len %d date %d win_from %d win_to %d missing %f val %f min_date %d max_date %d\n", len, date, win_from, win_to, missing_val, val, min_date, max_date);
-//		return missing_val;
-	return val;
-}
-
+// in all following uget funcs the relevant time window is [min_time, max_time]
 //.......................................................................................
-// get the first value in the window [win_to, win_from) before date
-float get_first_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val) {
-
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
-
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= min_date) {
-			if (signal[i].date >= max_date)
-				return missing_val;
-			else
-				return signal[i].val;
-		}
-	}
-	return missing_val;
-}
-
-//.......................................................................................
-// get the last2 value (the one before the last) in the window [win_to, win_from) before date
-float get_last2_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
+// get the last value in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time) 
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) {
-			if (i>1 && signal[i - 2].date >= min_date)
-				return signal[i - 2].val;
+	for (int i=usv.len-1; i>=0; i--) {
+		int itime = usv.Time(i, time_channel);
+		if (itime <= max_time) {
+			if (itime >= min_time)
+				return usv.Val(i, val_channel);
 			else
 				return missing_val;
 		}
@@ -407,18 +385,60 @@ float get_last2_value(SDateVal *signal, int len, int date, int win_from, int win
 }
 
 //.......................................................................................
-// get the average value in the window [win_to, win_from) before date
-float get_avg_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
+// get the first value in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_first(UniversalSigVec &usv, int time) 
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				return missing_val;
+			else
+				return usv.Val(i, val_channel);
+		}
+	}
+	return missing_val;
+}
+
+//.......................................................................................
+// get the last2 value (the one before the last) in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_last2(UniversalSigVec &usv, int time)
+{
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+
+	for (int i=usv.len-1; i>=0; i--) {
+		if (usv.Time(i, time_channel) <= max_time) {
+			if (i>0 && usv.Time(i-1, time_channel) >= min_time)
+				return usv.Val(i-1, val_channel);
+			else
+				return missing_val;
+		}
+	}
+
+	return missing_val;
+}
+
+//.......................................................................................
+// get the average value in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_avg(UniversalSigVec &usv, int time)
+{
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
 	double sum = 0, nvals = 0;
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) break;
-		if (signal[i].date >= min_date) {
-			sum += signal[i].val;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime > max_time) break;
+		if (itime >= min_time) {
+			sum += usv.Val(i, val_channel);
 			nvals++;
 		}
 	}
@@ -430,17 +450,19 @@ float get_avg_value(SDateVal *signal, int len, int date, int win_from, int win_t
 }
 
 //.......................................................................................
-// get the max value in the window [win_to, win_from) before date
-float get_max_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
+// get the max value in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_max(UniversalSigVec &usv, int time)
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
 	float max_val = -1e10;
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) break;
-		if (signal[i].date >= min_date && signal[i].val > max_val)	max_val = signal[i].val;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime > max_time) break;
+		if (itime >= min_time && usv.Val(i, val_channel) > max_val)	max_val = usv.Val(i, val_channel);
 	}
 
 	if (max_val > -1e10)
@@ -450,39 +472,45 @@ float get_max_value(SDateVal *signal, int len, int date, int win_from, int win_t
 }
 
 //.......................................................................................
-float get_min_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
-// get the min value in the window [win_to, win_from) before date
+// get the min value in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time)
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
-	float min_val = 1e10;
+	float min_val = (float)1e20;
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) break;
-		if (signal[i].date >= min_date && signal[i].val < min_val) 	min_val = signal[i].val;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime > max_time) break;
+		if (itime >= min_time && usv.Val(i, val_channel) < min_val) 	min_val = usv.Val(i, val_channel);
 	}
 
-	if (min_val < 1e10)
+	if (min_val < (float)1e20)
 		return min_val;
 
 	return missing_val;
 }
 
 //.......................................................................................
-// get the std in the window [win_to, win_from) before date
-float get_std_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
+// get the std in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_std(UniversalSigVec &usv, int time)
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
 	double sum = 0, sum_sq = 0, nvals = 0;
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) break;
-		if (signal[i].date >= min_date) {
-			sum += signal[i].val;
-			sum_sq += signal[i].val * signal[i].val;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime > max_time) break;
+		if (itime >= min_time) {
+			float ival = usv.Val(i, val_channel);
+			sum += ival;
+			sum_sq += ival * ival;
 			nvals++;
 		}
 	}
@@ -490,6 +518,7 @@ float get_std_value(SDateVal *signal, int len, int date, int win_from, int win_t
 	if (nvals > 1) {
 		double avg = sum/nvals;
 		double var = sum_sq/nvals - avg*avg;
+		if (var < 0.0001) var = 0.0001;
 		return (float)sqrt(var);
 	}
 
@@ -497,15 +526,16 @@ float get_std_value(SDateVal *signal, int len, int date, int win_from, int win_t
 }
 
 //.......................................................................................
-float get_last_delta_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
+float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time)
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) {
-			if (i>0 && signal[i - 1].date >= min_date)
-				return (signal[i].val - signal[i - 1].val);
+	for (int i=usv.len-1; i>=0; i--) {
+		if (usv.Time(i, time_channel) <= max_time) {
+			if (i>0 && usv.Time(i-1, time_channel) >= min_time)
+				return (usv.Val(i, val_channel) - usv.Val(i-1, val_channel));
 			else
 				return missing_val;
 		}
@@ -514,32 +544,33 @@ float get_last_delta_value(SDateVal *signal, int len, int date, int win_from, in
 }
 
 //.......................................................................................
-float get_last_days_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
+float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) {
-			if (i>0 && signal[i - 1].date >= min_date)
-				return (float)(get_day(date) - get_day(signal[i-1].date));
+	for (int i=usv.len-1; i>=0; i--) {
+		if (usv.Time(i, time_channel) <= max_time)
+				return (float)(conv_time - usv.TimeU(i, time_channel, time_unit_win));
 			else
 				return missing_val;
-		}
 	}
+
 	return missing_val;
 }
 
 //.......................................................................................
-float get_last2_days_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val)
+float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time)
 {
-	int min_date = get_date(get_day(date) - win_to);
-	int max_date = get_date(get_day(date) - win_from);
+	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
 
-	for (int i = 0; i < len; i++) {
-		if (signal[i].date >= max_date) {
-			if (i>1 && signal[i - 2].date >= min_date)
-				return (float)(get_day(date) - get_day(signal[i-2].date));
+	for (int i=usv.len-1; i>=0; i--) {
+		if (usv.Time(i, time_channel) <= max_time) {
+			if (i>0 && usv.Time(i-1, time_channel) >= min_time)
+				return (float)(conv_time - usv.TimeU(i-1, time_channel, time_unit_win));
 			else
 				return missing_val;
 		}

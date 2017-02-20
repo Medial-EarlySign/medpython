@@ -58,7 +58,7 @@ public:
 
 	// value channels float
 	inline float Val(int chan) { return 0; }
-
+	inline float SetVal(int chan) { return 0; }
 
 	// Following functions are implemented based on the functions above (and save lots of coding hence)
 	// time channels int
@@ -93,6 +93,7 @@ class SVal : UnifiedSig {
 		static inline int time_unit() { return 0; }
 		inline int Time(int chan) { return 0; }
 		inline float Val(int chan) { return val; }
+		inline void SetVal(int chan, float val) { return; };
 		
 };
 
@@ -110,7 +111,7 @@ class SDateVal : UnifiedSig {
 		static inline int time_unit() { return MedTime::Date; }
 		inline int Time(int chan) { return date; }
 		inline float Val(int chan) { return val; }
-
+		inline void SetVal(int chan, float _val) { val = _val; };
 };
 
 //===================================
@@ -127,6 +128,7 @@ class STimeVal : UnifiedSig {
 		static inline int time_unit() { return MedTime::Minutes; }
 		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return val; }
+		inline void SetVal(int chan, float _val) { val = _val; };
 };
 
 //===================================
@@ -144,6 +146,7 @@ class SDateRangeVal : UnifiedSig {
 		static inline int time_unit() { return MedTime::Date; }
 		inline int Time(int chan) { return ((chan) ? (date_end) : (date_start)); } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return val; }
+		inline void SetVal(int chan, float _val) { val = _val; };
 };
 
 //===================================
@@ -161,6 +164,7 @@ class STimeRangeVal : UnifiedSig {
 		static inline int time_unit() { return MedTime::Minutes; }
 		inline int Time(int chan) { return ((chan) ? ((int)time_end) : ((int)time_start)); } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return val; }
+		inline void SetVal(int chan, float _val) { val = _val; };
 };
 
 //===================================
@@ -176,6 +180,7 @@ class STimeStamp : UnifiedSig {
 		static inline int time_unit() { return MedTime::Minutes; }
 		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return 0; }
+		inline void SetVal(int chan, float _val) { return; };
 
 };
 
@@ -194,6 +199,7 @@ class SDateVal2 : UnifiedSig {
 		static inline int time_unit() { return MedTime::Date; }
 		inline int Time(int chan) { return date; } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val) ; }
+		inline void SetVal(int chan, float _val) { (chan) ? val2 = (unsigned short)_val : val = _val; };
 
 };
 
@@ -211,6 +217,7 @@ class STimeLongVal : UnifiedSig {
 		static inline int time_unit() { return MedTime::Minutes; }
 		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return (float)val; }
+		inline void SetVal(int chan, float _val) { val = (long long)_val; };
 
 		// Waiting with unified here until we support long version of values.
 };
@@ -230,6 +237,8 @@ public:
 	static inline int time_unit() { return MedTime::Date; }
 	inline int Time(int chan) { return date; } // assuming minutes span are within the size of an int
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
+	inline void SetVal(int chan, float _val) { (chan) ? val2 = (short)_val : val1 = (short)_val; };
+
 };
 
 //===================================
@@ -245,6 +254,7 @@ public:
 	static inline int time_unit() { return 0; }
 	inline int Time(int chan) { return 0; }
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
+	inline void SetVal(int chan, float _val) { (chan) ? val2 = (short)_val : val1 = (short)_val; };
 };
 
 
@@ -273,6 +283,14 @@ public:
 		}
 		return 0;
 	}
+	inline void SetVal(int chan, float _val) { 
+		switch (chan) {
+			case 0: val1 = (short)_val; return;
+			case 1: val2 = (short)_val; return;
+			case 2: val3 = (short)_val; return;
+			case 3: val4 = (short)_val; return;
+		}
+	};
 
 };
 
@@ -291,6 +309,7 @@ public:
 	static inline int time_unit() { return MedTime::Date; }
 	inline int Time(int chan) { return (int)compact_date; } // assuming minutes span are within the size of an int
 	inline float Val(int chan) { return (float)val; }
+	inline void SetVal(int chan, float _val) { val = (unsigned short)_val; };
 };
 
 
@@ -305,6 +324,8 @@ public:
 
 	static inline int Time_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Time(chan); }
 	static inline float Val_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Val(chan); }
+	static inline void SetVal_ch_vec(int idx, int chan, float _val, void *data) { ((T *)data)[idx].SetVal(chan, _val); }
+	static inline size_t size() { return sizeof(T); }
 };
 
 
@@ -326,6 +347,9 @@ public:
 
 	// value channels float
 	float (*Val_ch_vec)(int, int, void *);
+	void (*SetVal_ch_vec)(int, int, float, void *);
+
+	size_t (*size)();
 
 	// init function : call before using a certain type
 	void init(SigType _type);
@@ -366,6 +390,8 @@ public:
 		time_unit = &S::time_unit;
 		Time_ch_vec = &UnifiedSignalsAPIs<S>::Time_ch_vec;
 		Val_ch_vec = &UnifiedSignalsAPIs<S>::Val_ch_vec;
+		SetVal_ch_vec = &UnifiedSignalsAPIs<S>::SetVal_ch_vec;
+		size = &UnifiedSignalsAPIs<S>::size;
 	}
 
 	SigType get_type() { return type; }

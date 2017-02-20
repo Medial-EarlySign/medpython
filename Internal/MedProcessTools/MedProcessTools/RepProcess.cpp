@@ -280,6 +280,21 @@ size_t RepMultiProcessor::deserialize(unsigned char *blob) {
 //=======================================================================================
 // BasicOutlierCleaner
 //=======================================================================================
+//.......................................................................................
+int RepBasicOutlierCleaner::init(map<string, string>& mapper) 
+{ 
+	init_defaults(); 
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
+		else if (field == "time_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") time_channel = stoi(entry.second);
+	}
+
+	return MedValueCleaner::init(mapper); 
+}
+
 // Learn bounds
 //.......................................................................................
 int RepBasicOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
@@ -298,13 +313,11 @@ int RepBasicOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vecto
 int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)
-		signalId = rep.dict.id(signalName);
-	assert(rep.sigs.type(signalId) == T_DateVal);
+	if (signalId == -1)	signalId = rep.dict.id(signalName);
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
 
 	int rc =  get_iterative_min_max(values);
 	return rc;
@@ -314,13 +327,11 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)
-		signalId = rep.dict.id(signalName);
-	assert(rep.sigs.type(signalId) == T_DateVal);
+	if (signalId == -1)	signalId = rep.dict.id(signalName);
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
 
 	return get_quantile_min_max(values);
 }
@@ -343,34 +354,34 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 	while (iver >= 0) {
 		// Check all versions that points to the same location
 		int jver = iver - 1;
-		while (jver >= 0 && rec.versions_are_the_same(signalId,iver, jver))
+		while (jver >= 0 && rec.versions_are_the_same(signalId, iver, jver))
 			jver--;
 		jver++;
-		
+
+		// we now know that versions [jver ... iver] are all pointing to the same version
+		// hence we need to clean version jver, and then make sure all these versions point to it
+
 		// Clean 
-		SDateVal *signal = (SDateVal *)rec.get(signalId, jver, len);
-		SDateVal sd;
+		rec.uget(signalId, jver, rec.usv); // get into the internal usv obeject - this statistically saves init time
 
 		vector<int> remove(len);
-		vector<pair<int, SDateVal>> change(len);
+		vector<pair<int, float>> change(len);
 		int nRemove = 0, nChange = 0;
 
 		// Collect
 		for (int i = 0; i < len; i++) {
-			if (signal[i].date > time_points[iver])
-				break;
+			int itime = rec.usv.Time(i, time_channel);
+			float ival = rec.usv.Val(i, val_channel);
 
-			if (params.doRemove && (signal[i].val < removeMin - NUMERICAL_CORRECTION_EPS || signal[i].val > removeMax + NUMERICAL_CORRECTION_EPS))
+			if (itime > time_points[jver])	break;
+
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
 				remove[nRemove++] = i;
 			else if (params.doTrim) {
-				if (signal[i].val < trimMin - NUMERICAL_CORRECTION_EPS) {
-					sd.date = signal[i].date; sd.val = trimMin;
-					change[nChange++] = pair<int, SDateVal>(i, sd);
-				}
-				else if (signal[i].val > trimMax + NUMERICAL_CORRECTION_EPS) {
-					sd.date = signal[i].date; sd.val = trimMax;
-					change[nChange++] = pair<int, SDateVal>(i, sd);
-				}
+				if (ival < trimMin)
+					change[nChange++] = pair<int, float>(i, trimMin);
+				else if (ival > trimMax)
+					change[nChange++] = pair<int, float>(i, trimMax);
 			}
 		}
 
@@ -378,9 +389,9 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 		
 		change.resize(nChange);
 		remove.resize(nRemove);
-		if (rec.update(signalId, iver, change, remove) < 0)
+		if (rec.update(signalId, jver, val_channel, change, remove) < 0)
 			return -1;
-		
+
 		while (iver > jver) {
 			rec.point_version_to(signalId, jver, iver);
 			iver--;
@@ -402,6 +413,8 @@ size_t RepBasicOutlierCleaner::get_size() {
 	size += sizeof(size_t);
 	size += signalName.length() + 1;
 	
+	size += 2*sizeof(int); // time_channel, val_channel
+
 	size += sizeof(int); // int take_log
 	size += sizeof(float); // float missing value
 
@@ -428,7 +441,8 @@ size_t RepBasicOutlierCleaner::serialize(unsigned char *blob) {
 
 	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
 	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
+	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &params.take_log, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &params.missing_value, sizeof(float)); ptr += sizeof(int);
 	memcpy(blob + ptr, &params.doTrim, sizeof(bool)); ptr += sizeof(bool);
@@ -453,7 +467,8 @@ size_t RepBasicOutlierCleaner::deserialize(unsigned char *blob) {
 
 	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
 	signalName = signalName_c;
-
+	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&params.take_log, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&params.missing_value, blob + ptr, sizeof(float)); ptr += sizeof(int);
 	memcpy(&params.doTrim, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
@@ -476,6 +491,23 @@ void RepBasicOutlierCleaner::print()
 //=======================================================================================
 // NbrsOutlierCleaner
 //=======================================================================================
+//.......................................................................................
+int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
+{
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
+		else if (field == "time_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") time_channel = stoi(entry.second);
+		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
+	}
+
+	return MedValueCleaner::init(mapper);
+}
+
 // Learn bounds
 //.......................................................................................
 int RepNbrsOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
@@ -494,29 +526,24 @@ int RepNbrsOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector
 int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)
-		signalId = rep.dict.id(signalName);
-	assert(rep.sigs.type(signalId) == T_DateVal);
+	if (signalId == -1)	signalId = rep.dict.id(signalName);
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
 
-	int rc = get_iterative_min_max(values);
-	return rc;
+	return get_iterative_min_max(values);
 }
 
 //.......................................................................................
 int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)
-		signalId = rep.dict.id(signalName);
-	assert(rep.sigs.type(signalId) == T_DateVal);
+	if (signalId == -1)	signalId = rep.dict.id(signalName);
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
 
 	return get_quantile_min_max(values);
 }
@@ -537,34 +564,37 @@ int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) 
 
 	for (int iver = 0; iver < time_points.size(); iver++) {
 
-		SDateVal *signal = (SDateVal *)rec.get(signalId, iver, len);
-		SDateVal sd;
+		rec.uget(signalId, iver, rec.usv);
 
+		len = rec.usv.len;
 		vector<int> remove(len);
-		vector<pair<int, SDateVal>> change(len);
+		vector<pair<int, float>> change(len);
 		int nRemove = 0, nChange = 0;
 
 		// Clean 
 		int verLen = 0;
-		vector<int> candidates(len, 0);
-		vector<int> removed(len, 0);
-
 		for (int i = 0; i < len; i++) {
-			if (signal[i].date > time_points[iver]) {
-				verLen = i - 1;
+			vector<int> candidates(len, 0);
+			vector<int> removed(len, 0);
+			int itime = rec.usv.Time(i, time_channel);
+
+			if (itime > time_points[iver]) {
+					verLen = i - 1;
 				break;
 			}
 
+			float ival = rec.usv.Val(i, val_channel);
+
 			// Remove ?
-			if (params.doRemove && (signal[i].val < removeMin - NUMERICAL_CORRECTION_EPS || signal[i].val > removeMax + NUMERICAL_CORRECTION_EPS)) {
-				remove[nRemove++] = i;
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
+					remove[nRemove++] = i;
 				removed[i] = 1;
 			}
 			else if (params.doTrim) {
-				if (signal[i].val < trimMin - NUMERICAL_CORRECTION_EPS) {
+				if (ival < trimMin - NUMERICAL_CORRECTION_EPS) {
 					candidates[i] = -1;
 				}
-				else if (signal[i].val > trimMax + NUMERICAL_CORRECTION_EPS) {
+				else if (ival > trimMax + NUMERICAL_CORRECTION_EPS) {
 					candidates[i] = 1;
 				}
 			}
@@ -575,57 +605,60 @@ int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) 
 			if (candidates[i] != 0) {
 				int dir = candidates[i];
 
-				// Get weighted values from neighbours
-				double sum = 0, norm = 0;
-				double priorSum = 0, priorNorm = 0;
-				double postSum = 0, postNorm = 0;
+					// Get weighted values from neighbours
+					double sum = 0, norm = 0;
+					double priorSum = 0, priorNorm = 0;
+					double postSum = 0, postNorm = 0;
 
-				int days = get_day(signal[i].date);
-				for (int j = 0; j < verLen; j++) {
+					int time_i = rec.usv.TimeU(i, nbr_time_unit);
 
-					if (j != i && !removed[j]) {
-						int diff = abs(get_day(signal[j].date) - days) / 7;
-						double w = 1.0 / (diff + 1);
+					for (int j = 0; j < verLen; j++) {
 
-						sum += w * signal[j].val;
-						norm += w;
+						if (j != i && !removed[j]) {
+							int diff = abs(rec.usv.TimeU(j, nbr_time_unit) - time_i) / nbr_time_width;
+							double w = 1.0 / (diff + 1);
 
-						if (j > i) {
-							postSum += w * signal[j].val;
-							postNorm += w;
-						}
-						else {
-							priorSum += w * signal[j].val;
-							priorNorm += w;
+							float jval = rec.usv.Val(j, val_channel);
+
+							sum += w * jval;
+							norm += w;
+
+							if (j > i) {
+								postSum += w * jval;
+								postNorm += w;
+							}
+							else {
+								priorSum += w * jval;
+								priorNorm += w;
+							}
 						}
 					}
-				}
 
-				// Check it up
-				int found_nbr = 0;
-				if (norm > 0) {
-					double win_val = sum / norm;
-					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-						found_nbr = 1;
-				}
+					// Check it up
+					int found_nbr = 0;
+					if (norm > 0) {
+						double win_val = sum / norm;
+						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+							found_nbr = 1;
+					}
 
-				if (!found_nbr && priorNorm > 0) {
-					double win_val = priorSum / priorNorm;
-					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-						found_nbr = 1;
-				}
+					if (!found_nbr && priorNorm > 0) {
+						double win_val = priorSum / priorNorm;
+						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+							found_nbr = 1;
+					}
 
-				if (!found_nbr && postNorm > 0) {
-					double win_val = postSum / postNorm;
-					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-						found_nbr = 1;
-				}
+					if (!found_nbr && postNorm > 0) {
+						double win_val = postSum / postNorm;
+						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+							found_nbr = 1;
+					}
 
-				// Should we clip ?
-				if (!found_nbr) {
-					sd.date = signal[i].date;
-					sd.val = (dir == 1) ? trimMax : trimMin;
-					change[nChange++] = pair<int, SDateVal>(i, sd);
+					// Should we clip ?
+					if (!found_nbr) {
+						float cval = (dir == 1) ? trimMax : trimMin;
+						change[nChange++] = pair<int, float>(i, cval);
+					}
 				}
 			}
 		}
@@ -633,7 +666,7 @@ int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) 
 		// Apply removals + changes
 		change.resize(nChange);
 		remove.resize(nRemove);
-		if (rec.update(signalId, iver, change, remove) < 0)
+		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
 			return -1;
 	}
 
@@ -651,6 +684,9 @@ size_t RepNbrsOutlierCleaner::get_size() {
 	// signalName
 	size += sizeof(size_t);
 	size += signalName.length() + 1;
+
+	size += 2*sizeof(int); // time_channel, val_channel
+	size += 2*sizeof(int); // nbr_time_unit, nbr_time_width
 
 	size += sizeof(int); // int take_log
 	size += sizeof(float); // float missing value
@@ -680,7 +716,10 @@ size_t RepNbrsOutlierCleaner::serialize(unsigned char *blob) {
 
 	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t); 
 	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
+	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &nbr_time_unit, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &nbr_time_width, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &params.take_log, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &params.missing_value, sizeof(float)); ptr += sizeof(int);
 	memcpy(blob + ptr, &params.doTrim, sizeof(bool)); ptr += sizeof(bool);
@@ -707,7 +746,10 @@ size_t RepNbrsOutlierCleaner::deserialize(unsigned char *blob) {
 
 	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
 	signalName = signalName_c;
-
+	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&nbr_time_unit, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&nbr_time_width, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&params.take_log, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&params.missing_value, blob + ptr, sizeof(float)); ptr += sizeof(int);
 	memcpy(&params.doTrim, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
@@ -734,29 +776,27 @@ void RepNbrsOutlierCleaner::print()
 //=======================================================================================
 //.......................................................................................
 // Get values of a signal from a set of ids
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>& values, vector<RepProcessor *>& prev_processors) {
-
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_processors) 
+{
 	int len;
-
 	vector<int> neededSignalIds = { signalId };
-
 	PidDynamicRec rec;
 	vector<int> req_signal_ids(1, signalId);
 
-	assert(rep.sigs.type(signalId) == T_DateVal);
+	UniversalSigVec usv;
 
 	for (int id : ids) {
 
 		// Get signal
-		SDateVal *signal = (SDateVal *)rep.get(id,signalId, len);
+		rep.uget(id, signalId, usv);
 
 		if (prev_processors.size()) {
 
 			// Get all time points
-			vector<int> time_points(len);
-			for (int i = 0; i < len; i++)
-				time_points[i] = signal[i].date;
-			
+			vector<int> time_points(usv.len);
+			for (int i = 0; i < usv.len; i++)
+				time_points[i] = usv.Time(i, time_channel);
+
 			// Init Dynamic Rec
 			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
 			
@@ -765,15 +805,15 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>
 				processor->apply(rec, time_points, neededSignalIds);
 
 			// Collect 
-			for (int i = 0; i < len; i++) {
-				SDateVal *clnSignal = (SDateVal *)rec.get(signalId, i, len);
-				values.push_back(clnSignal[i].val);
+			for (int i = 0; i < usv.len; i++) {
+				rec.uget(signalId, i, rec.usv);
+				values.push_back(rec.usv.Val(i, val_channel));
 			}
 		}
 		else {
 			// Collect 
-			for (int i = 0; i < len; i++)
-				values.push_back(signal[i].val);
+			for (int i = 0; i < usv.len; i++)
+				values.push_back(usv.Val(i, val_channel));
 		}
 	}
 	
@@ -781,7 +821,7 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>
 }
 
 //.......................................................................................
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>& values) {
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values) {
 	vector<RepProcessor *> temp;
-	return get_values(rep, ids, signalId, values, temp); 
+	return get_values(rep, ids, signalId, time_channel, val_channel, values, temp); 
 }

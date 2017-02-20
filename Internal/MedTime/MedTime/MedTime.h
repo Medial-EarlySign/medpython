@@ -21,6 +21,7 @@ class MedTime {
 public:
 
 	// names for timing options
+	const static int Undefined = 0;			// undefined time unit
 	const static int Date = 1;				// dates are in full regular format YYYYMMDD
 	const static int Years = 2;				// years since 1900 (not since 1900!)
 	const static int Months = 3;			// months since 1900/01/01
