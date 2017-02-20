@@ -137,8 +137,11 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 //.......................................................................................
 int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
 
-	if (signalId == -1)
-		signalId = rep.dict.id(signalName);
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 	assert(rep.sigs.type(signalId) == T_DateVal);
 
 	if (byearId == -1)
@@ -146,9 +149,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 	if (genderId == -1)
 		genderId = rep.dict.id("GENDER");
-
-	if (req_signal_ids.empty())
-		get_required_signal_ids(rep.dict);
 
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
@@ -198,14 +198,12 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			// Collect values and ages
 			SDateVal *clnSignal = (SDateVal *)rec.get(signalId, 0, len);
-			for (int i = 0; i < len; i++) {	
+			for (int i = 0; i < len; i++) {
 				values.push_back(clnSignal[i].val);
 				ages.push_back(clnSignal[i].date / 10000 - byear);
 				genders.push_back(gender);
 				days.push_back(get_day(clnSignal[i].date));
 			}
-
-			id_lasts[i] = id_firsts[i] + len - 1;
 		}
 		else {
 			for (int i = 0; i < len; i++) {
@@ -215,6 +213,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				days.push_back(get_day(signal[i].date));
 			}
 		}
+		id_lasts[i] = id_firsts[i] + len - 1;
 	}
 
 	// Allocate
@@ -406,8 +405,11 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 //.......................................................................................
 int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
-	if (signalId == -1)
-		signalId = rec.my_base_rep->dict.id(signalName);
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 	assert(rec.my_base_rep->sigs.type(signalId) == T_DateVal);
 
 	if (byearId == -1)

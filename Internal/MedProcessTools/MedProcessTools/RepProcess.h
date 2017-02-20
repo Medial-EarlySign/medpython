@@ -59,6 +59,9 @@ public:
 	virtual void get_affected_signal_ids(MedDictionarySections& dict);
 	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
 
+	// Other signal ids
+	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+
 	// Learn cleaning model
 	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
 
@@ -122,6 +125,9 @@ public:
 	// Affected Signals
 	void get_affected_signal_ids(MedDictionarySections& dict);
 
+	// Other signal ids
+	void get_signal_ids(MedDictionarySections& dict);
+
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
 
@@ -174,8 +180,11 @@ public:
 		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
-	// Set Signal id
+	// Set Signal
 	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
+
+	// Signal Id
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
@@ -240,8 +249,11 @@ public:
 		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
-	// Set Signal id
+	// Set Signal
 	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
+
+	// Signal Id
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };

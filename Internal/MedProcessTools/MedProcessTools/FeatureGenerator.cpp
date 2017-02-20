@@ -100,9 +100,6 @@ int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& featu
 
 	PidDynamicRec rec;
 	rec.prealloc(DYNAMIC_REC_SIZE);
-	
-	if (req_signal_ids.empty())
-		get_required_signal_ids(rec.my_base_rep->dict);
 
 	rec.init_from_rep(std::addressof(rep), id, req_signal_ids, num);
 
@@ -323,9 +320,11 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 //=======================================================================================
 int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
-	// signalId
-	if (byearId == -1)
-		byearId = rec.my_base_rep->dict.id("BYEAR");
+	// Sanity check
+	if (byearId == -1) {
+		MERR("Uninitialized byearId\n");
+		return -1;
+	}
 
 	int len;
 	SVal *bYearSignal = (SVal *)rec.get(byearId, len);
@@ -344,9 +343,11 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 //=======================================================================================
 int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
-	// signalId
-	if (genderId == -1)
-		genderId = rec.my_base_rep->dict.id("GENDER");
+	// Sanity check
+	if (genderId == -1) {
+		MERR("Uninitialized genderId\n");
+		return -1;
+	}
 
 	int len;
 	SVal *genderSignal = (SVal *)rec.get(genderId, len);

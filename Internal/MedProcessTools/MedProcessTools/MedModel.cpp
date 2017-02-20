@@ -20,6 +20,9 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 
 	MedTimer timer;
 
+	// Set of signals
+	init_signal_ids(rep.dict);
+
 	LearningSet = _samples;
 
 	// Set of ids
@@ -81,7 +84,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 
 	// Set of signals
-	get_required_signals(rep.dict);
+	init_signal_ids(rep.dict);
 
 	vector<int> req_signals;
 	for (int signalId : required_signals)
@@ -143,7 +146,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 //.......................................................................................
 int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features)
 {
-	get_required_signals(rep.dict);
+
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
@@ -221,8 +224,8 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
 	return 0;
 }
 
-//.......................................................................................
 // Required Signals
+//.......................................................................................
 void MedModel::get_required_signals(MedDictionarySections& dict) {
 
 	required_signals.clear();
@@ -236,6 +239,28 @@ void MedModel::get_required_signals(MedDictionarySections& dict) {
 
 }
 
+// Affected Signals
+//.......................................................................................
+void MedModel::get_affected_signals(MedDictionarySections& dict) {
+
+	for (RepProcessor *processor : rep_processors)
+		processor->get_affected_signal_ids(dict);
+
+}
+
+// All signal ids
+//.......................................................................................
+void MedModel::init_signal_ids(MedDictionarySections& dict) {
+
+	get_affected_signals(dict);
+	get_required_signals(dict);
+
+	for (RepProcessor *processor : rep_processors)
+		processor->get_signal_ids(dict);
+
+	for (FeatureGenerator *generator : generators)
+		generator->get_signal_ids(dict);
+}
 // Add multi processors
 //.......................................................................................
 void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals) {

@@ -92,8 +92,10 @@ public:
 	void set_predictor(MedPredictorTypes type, string init_string) { predictor = MedPredictor::make_predictor(type,init_string); }
 	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name,init_string); }
 
-	// Required Signals
+	// signal ids
 	void get_required_signals(MedDictionarySections& dict);
+	void get_affected_signals(MedDictionarySections& dict);
+	void init_signal_ids(MedDictionarySections& dict);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples);
