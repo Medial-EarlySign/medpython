@@ -60,6 +60,9 @@ public:
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
 	void get_required_signal_ids(MedDictionarySections& dict);
 
+	// Signal Ids
+	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+
 	// Learn a generator
 	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {return 0;}
 	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { set_names(); return _learn(rep, ids, processors); }
@@ -174,6 +177,9 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 	float get_value(PidDynamicRec& rec, int index, int date);
 
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point);
 	float uget_first(UniversalSigVec &usv, int time_point);
@@ -220,6 +226,9 @@ public:
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) {byearId = dict.id("BYEAR");}
+
 	// Serialization
 	size_t get_size() { return 0; };
 	size_t serialize(unsigned char *blob) { return 0; };
@@ -251,6 +260,9 @@ public:
 
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) { genderId = dict.id("GENDER"); }
 
 	// Serialization
 	size_t get_size() { return 0; };
@@ -312,6 +324,9 @@ public:
 
 	// generate new feature(s)
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); genderId = dict.id("GENDER"); byearId = dict.id("BYEAR"); }
 
 	// Number of features generated
 	virtual int nfeatures() { return (int) params.estimation_points.size(); }

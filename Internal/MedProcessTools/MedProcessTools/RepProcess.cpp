@@ -68,13 +68,33 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 
 // Applying
 //.......................................................................................
-int RepProcessor::apply(PidDynamicRec& rep, MedIdSamples& samples) {
+int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 
 	vector<int> time_points(samples.samples.size());
 	for (unsigned int i = 0; i < time_points.size(); i++)
 		time_points[i] = samples.samples[i].date;
 
-	return Apply(rep, time_points);
+	return apply(rec, time_points);
+}
+
+//.......................................................................................
+int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
+
+	for (int signalId : neededSignalIds) {
+		if (is_signal_affected(signalId))
+			return apply(rec, time_points);
+	}
+
+}
+
+//.......................................................................................
+int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds) {
+
+	vector<int> time_points(samples.samples.size());
+	for (unsigned int i = 0; i < time_points.size(); i++)
+		time_points[i] = samples.samples[i].date;
+
+	return apply(rec, time_points, neededSignalIds);
 }
 
 // Required signals
@@ -95,6 +115,14 @@ void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, MedDic
 
 	for (int signalId : req_signal_ids)
 		signalIds.insert(signalId);
+}
+
+// Affected signals
+//.......................................................................................
+void RepProcessor::get_affected_signal_ids(MedDictionarySections& dict) {
+
+	for (string signalName : aff_signals)
+		aff_signal_ids.insert(dict.id(signalName));
 }
 
 // (De)Serialize
@@ -120,18 +148,41 @@ size_t RepProcessor::processor_serialize(unsigned char *blob) {
 //.......................................................................................
 void RepMultiProcessor::get_required_signal_ids(MedDictionarySections& dict) {
 
+	req_signal_ids.clear();
 	for (auto& processor : processors) {
+		req_signal_ids.clear();
 		processor->get_required_signal_ids(dict);
 		req_signal_ids.insert(req_signal_ids.end(), processor->req_signal_ids.begin(), processor->req_signal_ids.end());
 	}
 }
 
+// Affected Signals
+//.......................................................................................
+void RepMultiProcessor::get_affected_signal_ids(MedDictionarySections& dict) {
+
+	aff_signal_ids.clear();
+	for (auto& processor : processors) {
+		processor->aff_signal_ids.clear();
+		processor->get_affected_signal_ids(dict);
+
+		processor->aff_signal_ids.clear();
+		for (int signalId : processor->aff_signal_ids)
+			aff_signal_ids.insert(signalId);
+	}
+}
+
+// Signal ids
+//.......................................................................................
+void RepMultiProcessor::get_signal_ids(MedDictionarySections& dict) {
+
+	for (auto& processor : processors)
+		processor->get_signal_ids(dict);
+
+}
+
 // Learning
 //.......................................................................................
 int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
-
-	if (req_signal_ids.empty())
-		get_required_signal_ids(rep.dict);
 
 	vector<int> rc(processors.size(), 0);
 #pragma omp parallel for
@@ -144,14 +195,28 @@ int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<Rep
 	return 0;
 }
 
-// Cleaning
+// Apply
 //.......................................................................................
-int RepMultiProcessor::Apply(PidDynamicRec& rec, vector<int>& time_points) {
+int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	vector<int> rc(processors.size(),0);
 #pragma omp parallel for
 	for (int j=0; j<processors.size(); j++) {
-		rc[j] = processors[j]->Apply(rec, time_points);
+		rc[j] = processors[j]->apply(rec, time_points);
+	}
+
+	for (int r : rc) if (r<0) return -1;
+	return 0;
+}
+
+//.......................................................................................
+int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
+
+	vector<int> rc(processors.size(), 0);
+
+#pragma omp parallel for
+	for (int j = 0; j<processors.size(); j++) {
+		rc[j] = processors[j]->apply(rec, time_points, neededSignalIds);
 	}
 
 	for (int r : rc) if (r<0) return -1;
@@ -259,7 +324,10 @@ int RepBasicOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vecto
 int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)	signalId = rep.dict.id(signalName);
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 
 	// Get all values
 	vector<float> values;
@@ -273,7 +341,10 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)	signalId = rep.dict.id(signalName);
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 
 	// Get all values
 	vector<float> values;
@@ -284,10 +355,13 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 
 // Clean
 //.......................................................................................
-int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) {
+int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
-	if (signalId == -1)
-		signalId = rec.my_base_rep->dict.id(signalName);
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 
 	if (time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
@@ -322,8 +396,8 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 
 			if (itime > time_points[jver])	break;
 
-			if (params.doRemove && (ival < removeMin || ival > removeMax))	remove[nRemove++] = i;
-
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
+				remove[nRemove++] = i;
 			else if (params.doTrim) {
 				if (ival < trimMin)
 					change[nChange++] = pair<int, float>(i, trimMin);
@@ -333,6 +407,7 @@ int  RepBasicOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points)
 		}
 
 		// Apply removals + changes
+		
 		change.resize(nChange);
 		remove.resize(nRemove);
 		if (rec.update(signalId, jver, val_channel, change, remove) < 0)
@@ -472,7 +547,10 @@ int RepNbrsOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector
 int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)	signalId = rep.dict.id(signalName);
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 
 	// Get all values
 	vector<float> values;
@@ -485,7 +563,10 @@ int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& id
 int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
-	if (signalId == -1)	signalId = rep.dict.id(signalName);
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 
 	// Get all values
 	vector<float> values;
@@ -496,10 +577,13 @@ int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids
 
 // Clean
 //.......................................................................................
-int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) {
-
-	if (signalId == -1)
-		signalId = rec.my_base_rep->dict.id(signalName);
+int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
+	
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 
 	if (time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
@@ -519,94 +603,95 @@ int  RepNbrsOutlierCleaner::Apply(PidDynamicRec& rec, vector<int>& time_points) 
 
 		// Clean 
 		int verLen = 0;
+		vector<int> candidates(len, 0);
+		vector<int> removed(len, 0);
 		for (int i = 0; i < len; i++) {
-			vector<int> candidates(len, 0);
-			vector<int> removed(len, 0);
 			int itime = rec.usv.Time(i, time_channel);
 
 			if (itime > time_points[iver]) {
-					verLen = i - 1;
+				verLen = i - 1;
 				break;
 			}
 
 			float ival = rec.usv.Val(i, val_channel);
 
 			// Remove ?
-			if (params.doRemove && (ival < removeMin || ival > removeMax)) {
-					remove[nRemove++] = i;
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
+				remove[nRemove++] = i;
 				removed[i] = 1;
 			}
 			else if (params.doTrim) {
-				if (ival < trimMin) {
-					candidates[i] = 1;
-				}
-				else if (ival > trimMax) {
+				if (ival < trimMin - NUMERICAL_CORRECTION_EPS) {
 					candidates[i] = -1;
 				}
-			}
-
-			// Check candidates
-			for (int i = 0; i < verLen; i++) {
-				if (candidates[i] != 0) {
-					int dir = candidates[i];
-
-					// Get weighted values from neighbours
-					double sum = 0, norm = 0;
-					double priorSum = 0, priorNorm = 0;
-					double postSum = 0, postNorm = 0;
-
-					int time_i = rec.usv.TimeU(i, nbr_time_unit);
-
-					for (int j = 0; j < verLen; j++) {
-
-						if (j != i && !removed[j]) {
-							int diff = abs(rec.usv.TimeU(j, nbr_time_unit) - time_i) / nbr_time_width;
-							double w = 1.0 / (diff + 1);
-
-							float jval = rec.usv.Val(j, val_channel);
-
-							sum += w * jval;
-							norm += w;
-
-							if (j > i) {
-								postSum += w * jval;
-								postNorm += w;
-							}
-							else {
-								priorSum += w * jval;
-								priorNorm += w;
-							}
-						}
-					}
-
-					// Check it up
-					int found_nbr = 0;
-					if (norm > 0) {
-						double win_val = sum / norm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
-
-					if (!found_nbr && priorNorm > 0) {
-						double win_val = priorSum / priorNorm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
-
-					if (!found_nbr && postNorm > 0) {
-						double win_val = postSum / postNorm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
-
-					// Should we clip ?
-					if (!found_nbr) {
-						float cval = (dir == 1) ? trimMax : trimMin;
-						change[nChange++] = pair<int, float>(i, cval);
-					}
+				else if (ival > trimMax + NUMERICAL_CORRECTION_EPS) {
+					candidates[i] = 1;
 				}
 			}
 		}
+
+		// Check candidates
+		for (int i = 0; i < verLen; i++) {
+			if (candidates[i] != 0) {
+				int dir = candidates[i];
+
+				// Get weighted values from neighbours
+				double sum = 0, norm = 0;
+				double priorSum = 0, priorNorm = 0;
+				double postSum = 0, postNorm = 0;
+
+				int time_i = rec.usv.TimeU(i, nbr_time_unit);
+
+				for (int j = 0; j < verLen; j++) {
+
+					if (j != i && !removed[j]) {
+						int diff = abs(rec.usv.TimeU(j, nbr_time_unit) - time_i) / nbr_time_width;
+						double w = 1.0 / (diff + 1);
+
+						float jval = rec.usv.Val(j, val_channel);
+
+						sum += w * jval;
+						norm += w;
+
+						if (j > i) {
+							postSum += w * jval;
+							postNorm += w;
+						}
+						else {
+							priorSum += w * jval;
+							priorNorm += w;
+						}
+					}
+				}
+
+				// Check it up
+				int found_nbr = 0;
+				if (norm > 0) {
+					double win_val = sum / norm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
+
+				if (!found_nbr && priorNorm > 0) {
+					double win_val = priorSum / priorNorm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
+
+				if (!found_nbr && postNorm > 0) {
+					double win_val = postSum / postNorm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
+
+				// Should we clip ?
+				if (!found_nbr) {
+					float cval = (dir == 1) ? trimMax : trimMin;
+					change[nChange++] = pair<int, float>(i, cval);
+				}
+			}
+		}
+
 
 		// Apply removals + changes
 		change.resize(nChange);
@@ -723,6 +808,8 @@ void RepNbrsOutlierCleaner::print()
 // Get values of a signal from a set of ids
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_processors) 
 {
+	int len;
+	vector<int> neededSignalIds = { signalId };
 	PidDynamicRec rec;
 	vector<int> req_signal_ids(1, signalId);
 
@@ -745,7 +832,7 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 			
 			// Clean at all time-points
 			for (auto& processor : prev_processors)
-				processor->Apply(rec, time_points);
+				processor->apply(rec, time_points, neededSignalIds);
 
 			// Collect 
 			for (int i = 0; i < usv.len; i++) {

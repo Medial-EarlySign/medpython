@@ -3,6 +3,8 @@
 #ifndef _MED_VALUE_CLEANER_H_
 #define _MED_VALUE_CLEANER_H_
 
+#define NUMERICAL_CORRECTION_EPS 1e-8
+
 typedef enum {
 	VAL_CLNR_ITERATIVE,
 	VAL_CLNR_QUANTILE,
@@ -53,7 +55,7 @@ public:
 	virtual void init_defaults() { return; }
 	int init(void *params);
 	int init(map<string, string>& mapper);
-
+	
 	// Get Type
 	ValueCleanerType get_cleaner_type(string name);
 };

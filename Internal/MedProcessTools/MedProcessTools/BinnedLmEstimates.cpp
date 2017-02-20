@@ -138,8 +138,11 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 //.......................................................................................
 int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
 
-	if (signalId == -1)
-		signalId = rep.dict.id(signalName);
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 	assert(rep.sigs.type(signalId) == T_DateVal);
 
 	if (byearId == -1)
@@ -176,27 +179,30 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		// Get signal
 		SDateVal *signal = (SDateVal *)rep.get(id, signalId, len);
 		id_firsts[i] = (int) ages.size();
-		id_lasts[i] = id_firsts[i] + len - 1;
+
+		if (len == 0) {
+			id_lasts[i] = id_firsts[i];
+			continue;
+		}
 
 		if (processors.size()) {
 
-			// Get all time points
-			vector<int> time_points(len);
-			for (int i = 0; i < len; i++)
-				time_points[i] = signal[i].date;
+			// Apply processing at last time point only
+			vector<int> time_points(1, signal[len-1].date + 1);
 
 			// Init Dynamic Rec
-			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
+			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, 1);
 
-			// Clean at all time-points
+			// Apply
 			for (auto& processor : processors)
-				processor->Apply(rec, time_points);
+				processor->apply(rec, time_points, req_signal_ids);
 
 			// Collect values and ages
+			SDateVal *clnSignal = (SDateVal *)rec.get(signalId, 0, len);
 			for (int i = 0; i < len; i++) {
-				SDateVal *clnSignal = (SDateVal *)rec.get(signalId, i, len);
 				values.push_back(clnSignal[i].val);
 				ages.push_back(clnSignal[i].date / 10000 - byear);
+				genders.push_back(gender);
 				days.push_back(get_day(clnSignal[i].date));
 			}
 		}
@@ -208,6 +214,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				days.push_back(get_day(signal[i].date));
 			}
 		}
+		id_lasts[i] = id_firsts[i] + len - 1;
 	}
 
 	// Allocate
@@ -355,6 +362,11 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				jnrows++;
 		}
 
+		if (jnrows < ncols) {
+			fprintf(stderr, "Not enough samples of type %d (%d, required - %d)\n", type, jnrows, ncols);
+			return -1;
+		}
+
 		MedMat<float> tx(ncols, jnrows);
 		MedMat<float> ty(jnrows, 1);
 		tx.transposed_flag = 1;
@@ -364,14 +376,9 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			if ((types[i] & type) == type) {
 				ty(jrow, 0) = y[i];
 				for (int j = 0; j < ncols; j++)
-					tx(j,jrow) = x(i, cols[j]);
+					tx(j, jrow) = x(i, cols[j]);
 				jrow++;
 			}
-		}
-
-		if (jnrows < ncols) {
-			fprintf(stderr, "Not enough samples of type %d (%d, required - %d)\n", type, jrow, ncols);
-			return -1;
 		}
 
 		// Normalize
@@ -390,6 +397,8 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 //		models[type].print(stderr, "model" + to_string(type));
 
 	}
+
+
 	return 0;
 }
 
@@ -397,8 +406,11 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 //.......................................................................................
 int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
-	if (signalId == -1)
-		signalId = rec.my_base_rep->dict.id(signalName);
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 	assert(rec.my_base_rep->sigs.type(signalId) == T_DateVal);
 
 	if (byearId == -1)
