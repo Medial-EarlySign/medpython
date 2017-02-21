@@ -67,18 +67,20 @@ int main(int argc, char *argv[])
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=0; win_to=360; time_unit=Days; signal=" + sig);
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=360; win_to=720; time_unit=Days; signal=" + sig);
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
-			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=first; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
-			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=win_delta; win_from=0; win_to=180; d_win_from=360; d_win_to=720; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=win_delta; win_from=0; win_to=180; d_win_from=720; d_win_to=1080; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=first; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=avg; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=max; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=min; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=std; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last_time; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
-			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last_time2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last_time2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 
-			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=720; time_unit=Days; signal=" + sig);
-			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
-			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=720; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
 
 			// binnedLM
 			my_model.add_feature_generator_to_set(0, "fg_type=binnedLM; estimation_points=1440,720,360,180; signal=" + sig);
@@ -90,7 +92,7 @@ int main(int argc, char *argv[])
 		// Add feature processors
 		my_model.add_feature_processor_to_set(0, "fp_type=basic_cleaner");
 		my_model.add_feature_processor_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
-		my_model.add_feature_processor_to_set(2, "fp_type=normalizer");
+		//my_model.add_feature_processor_to_set(2, "fp_type=normalizer");
 
 	}
 	else {

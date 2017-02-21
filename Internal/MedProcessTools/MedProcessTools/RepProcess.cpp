@@ -85,6 +85,7 @@ int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int
 			return apply(rec, time_points);
 	}
 
+	return 0;
 }
 
 //.......................................................................................
@@ -808,7 +809,6 @@ void RepNbrsOutlierCleaner::print()
 // Get values of a signal from a set of ids
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_processors) 
 {
-	int len;
 	vector<int> neededSignalIds = { signalId };
 	PidDynamicRec rec;
 	vector<int> req_signal_ids(1, signalId);
