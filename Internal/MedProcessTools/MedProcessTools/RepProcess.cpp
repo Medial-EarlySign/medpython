@@ -83,7 +83,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 
 	vector<int> time_points(samples.samples.size());
 	for (unsigned int i = 0; i < time_points.size(); i++)
-		time_points[i] = samples.samples[i].date;
+		time_points[i] = samples.samples[i].time;
 
 	return apply(rec, time_points);
 }
@@ -103,7 +103,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& 
 
 	vector<int> time_points(samples.samples.size());
 	for (unsigned int i = 0; i < time_points.size(); i++)
-		time_points[i] = samples.samples[i].date;
+		time_points[i] = samples.samples[i].time;
 
 	return apply(rec, time_points, neededSignalIds);
 }

@@ -650,6 +650,9 @@ int MedPredictor::write_to_file(const string &fname)  // serialize model and wri
 // Utility
 int initialization_text_to_map(const string& text, map<string, string>& init_map) {
 
+	if (text == "")
+		return 0;
+
 	// get "Name = value" fields
 	vector<string> fields;
 	boost::split(fields, text, boost::is_any_of(";"));

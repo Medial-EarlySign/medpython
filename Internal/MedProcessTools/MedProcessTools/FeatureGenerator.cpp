@@ -181,23 +181,21 @@ void BasicFeatGenerator::set_names() {
 int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	string& name = names[0];
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
 	float *p_feat = &(features.data[name][index]);
 	for (int i = 0; i < num; i++)
-//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
-		p_feat[i] = get_value(rec, i, features.samples[i].date);
-
+		//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
+		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index+i].time));
+	
 	return 0;
 }
 
 //.......................................................................................
 float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
-	// signalId
-	if (signalId == -1)	signalId = rec.my_base_rep->dict.id(signalName);
-	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
-
 	rec.uget(signalId, idx);
+
 
 	switch (type) {
 	case FTR_LAST_VALUE:	return uget_last(rec.usv, time);
@@ -333,7 +331,7 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 	int byear = (int)(bYearSignal[0].val);
 
 	for (int i = 0; i < num; i++)
-		features.data[names[0]][index + i] = (float) (features.samples[i].date / 10000 - byear); 
+		features.data[names[0]][index + i] = (float) (med_time_converter.convert_times(features.time_unit, MedTime::Years, features.samples[i].time) - byear);
 
 	return 0;
 }
@@ -368,9 +366,8 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 // get the last value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time) 
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		int itime = usv.Time(i, time_channel);
@@ -389,9 +386,8 @@ float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time)
 // get the first value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_first(UniversalSigVec &usv, int time) 
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -409,9 +405,8 @@ float BasicFeatGenerator::uget_first(UniversalSigVec &usv, int time)
 // get the last2 value (the one before the last) in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_last2(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -429,9 +424,8 @@ float BasicFeatGenerator::uget_last2(UniversalSigVec &usv, int time)
 // get the average value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_avg(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	double sum = 0, nvals = 0;
 
@@ -454,9 +448,8 @@ float BasicFeatGenerator::uget_avg(UniversalSigVec &usv, int time)
 // get the max value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_max(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	float max_val = -1e10;
 
@@ -476,9 +469,8 @@ float BasicFeatGenerator::uget_max(UniversalSigVec &usv, int time)
 // get the min value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	float min_val = (float)1e20;
 
@@ -499,9 +491,8 @@ float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time)
 float BasicFeatGenerator::uget_std(UniversalSigVec &usv, int time)
 {
 
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	double sum = 0, sum_sq = 0, nvals = 0;
 
@@ -529,9 +520,8 @@ float BasicFeatGenerator::uget_std(UniversalSigVec &usv, int time)
 //.......................................................................................
 float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -547,13 +537,12 @@ float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time)
 //.......................................................................................
 float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		if (usv.Time(i, time_channel) <= max_time)
-				return (float)(conv_time - usv.TimeU(i, time_channel, time_unit_win));
+				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
 			else
 				return missing_val;
 	}
@@ -564,14 +553,13 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 //.......................................................................................
 float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
 			if (i>0 && usv.Time(i-1, time_channel) >= min_time)
-				return (float)(conv_time - usv.TimeU(i-1, time_channel, time_unit_win));
+				return (float)(time - usv.TimeU(i-1, time_channel, time_unit_win));
 			else
 				return missing_val;
 		}

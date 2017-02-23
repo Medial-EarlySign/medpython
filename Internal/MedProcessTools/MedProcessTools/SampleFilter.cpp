@@ -95,7 +95,7 @@ void BasicTrainFilter::Filter(MedRepository& rep, MedSamples& inSamples,MedSampl
 
 		for (MedSample& sample : idSamples.samples) {
 			// Negative or pre-outcome
-			if (sample.outcome == 0 || sample.outcomeDate > sample.date)
+			if (sample.outcome == 0 || sample.outcomeTime > sample.time)
 				outIdSamples.samples.push_back(sample);
 		}
 		
