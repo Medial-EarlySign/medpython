@@ -1641,16 +1641,15 @@ int PredictionList::read_from_file(const string &fname)
 
 	preds.clear();
 	string curr_line;
+	int skipped = 0;
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
-
 			PredictedRes pr;
 			if (pr.parse(curr_line) < 0) {
 				MERR("PredictionList: read: wrong format in line : %s\n", curr_line.c_str());
-				return -1;
-			}
-
-			preds.push_back(pr);
+				if (skipped++ > 10)
+					return -1;
+			} else preds.push_back(pr);
 
 		}
 	}
