@@ -117,6 +117,7 @@ class MedPidRepository : public MedRepository {
 // This allows for example for complex scenarios in cleaning and feature generation in which 
 // a version of the signal per time point is needed.
 // A PidDynamicRec is a PidRec and hence can be read from a repository using the get_pid_rec() API.
+// Another option to initialize a PidDynamicRec is to use init_from_rep , which will load it from repository data that's already in memory.
 //
 class PidDynamicRec : public PidRec {
 
@@ -124,6 +125,8 @@ public:
 
 	int set_n_versions(int n_ver);				// a version is always a positive (>0) number. 0 is kept as the version number of the original data.
 												// this method should always be called AFTER the original version had been read.
+	int set_n_versions(vector<int> &time_points); // works with init_from_rep version that uses time_points , see below
+
 	int get_n_versions() { return n_versions; }
 
 	// calling get without version is defined in PidRec and will return the original version
@@ -161,7 +164,15 @@ public:
 	PidDynamicRec() { n_versions = 0; }
 
 	// next are options to init a PidDynamicRec from data that already resides in some part of a MedRepository that is already in memory.
+
+	// most general initialization - just stating how many versions
 	int init_from_rep(MedRepository *rep, int pid, vector<int> &sids_to_use, int n_versions);
+
+	// init with time points: given N time points (in the SAME time units of the signals), this will initialize N versions for each signal
+	// BUT will also set the len of each version such that all the data points for this signal are <= the matching time point.
+	// This is very useful, as now version(i) will be a virtual snapshot of how the data looks if looking only at times <= time_point(i).
+	int init_from_rep(MedRepository *rep, int pid, vector<int> &sids_to_use, vector<int> &time_points);
+
 
 private:
 	int n_versions;
