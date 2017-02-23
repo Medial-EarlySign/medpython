@@ -48,8 +48,12 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 
 	return 0;
 }
-int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
-	return Learn(x, y, nsamples, nftrs);
+int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
+	vector<float> w;	
+	for (int i = 0; i < nsamples; i++)
+		w.push_back(1.0);
+
+	return Learn(x, y, &w[0], nsamples, nftrs);
 }
 
 int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nftrs) {
@@ -69,7 +73,7 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 
 	return 0;
 }
-int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
+int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	std::vector<std::pair<std::string, std::string> > cfg;
 	cfg.push_back(std::make_pair("seed", "0"));
 	cfg.push_back(std::make_pair("booster", params.booster));
@@ -96,8 +100,10 @@ int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
 
 	std::unique_ptr<DMatrix> dtrain(out);
 
-	for (int i = 0; i < nsamples; i++)
+	for (int i = 0; i < nsamples; i++) {
 		dtrain.get()->info().labels.push_back(y[i]);
+		dtrain.get()->info().weights.push_back(w[i]);
+	}
 
 	std::vector<std::unique_ptr<DMatrix> > deval;
 	std::vector<DMatrix*> cache_mats, eval_datasets;
