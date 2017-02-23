@@ -46,6 +46,8 @@ void sort_and_get_median(vector<float> &vals, float &median);
 void get_common(vector<float> &vals, float &common);
 
 void get_mean_and_std(vector<float> &vals, float &mean, float &std);
+void get_mean_and_std(vector<float> &vals, float &mean, float &std, float missing_val);
+
 
 // rounding
 #define ROUNDING_EPSILON 0.00001

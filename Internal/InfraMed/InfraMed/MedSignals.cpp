@@ -22,7 +22,7 @@ using namespace std;
 using namespace boost;
 
 //-----------------------------------------------------------------------------------------------
-int get_type_size(SigType t)
+int MedRep::get_type_size(SigType t)
 {
 	switch (t) {
 
@@ -69,6 +69,56 @@ int get_type_size(SigType t)
 
 	return 0;
 }
+
+//-----------------------------------------------------------------------------------------------
+int MedRep::get_type_channels(SigType t, int &time_unit, int &n_time_chans, int &n_val_chans)
+{
+	switch (t) {
+
+	case T_Value:
+		return MedRep::get_type_channels_info<SVal>(time_unit, n_time_chans, n_val_chans);
+
+	case T_DateVal:
+		return MedRep::get_type_channels_info<SDateVal>(time_unit, n_time_chans, n_val_chans);
+
+	case T_TimeVal:
+		return MedRep::get_type_channels_info<STimeVal>(time_unit, n_time_chans, n_val_chans);
+
+	case T_DateRangeVal:
+		return MedRep::get_type_channels_info<SDateRangeVal>(time_unit, n_time_chans, n_val_chans);
+
+	case T_TimeRangeVal:
+		return MedRep::get_type_channels_info<STimeRangeVal>(time_unit, n_time_chans, n_val_chans);
+
+	case T_TimeStamp:
+		return MedRep::get_type_channels_info<STimeStamp>(time_unit, n_time_chans, n_val_chans);
+
+	case T_DateVal2:
+		return MedRep::get_type_channels_info<SDateVal2>(time_unit, n_time_chans, n_val_chans);
+
+	case T_TimeLongVal:
+		return MedRep::get_type_channels_info<STimeLongVal>(time_unit, n_time_chans, n_val_chans);
+
+	case T_DateShort2:
+		return MedRep::get_type_channels_info<SDateShort2>(time_unit, n_time_chans, n_val_chans);
+
+	case T_ValShort2:
+		return MedRep::get_type_channels_info<SValShort2>(time_unit, n_time_chans, n_val_chans);
+
+	case T_ValShort4:
+		return MedRep::get_type_channels_info<SValShort4>(time_unit, n_time_chans, n_val_chans);
+
+	case T_CompactDateVal:
+		return MedRep::get_type_channels_info<SCompactDateVal>(time_unit, n_time_chans, n_val_chans);
+
+	default:
+		MERR("Cannot get channels for signal type %d\n", t);
+		return 0;
+	}
+
+	return 0;
+}
+
 
 //-----------------------------------------------------------------------------------------------
 int MedSignals::read(vector<string> &sfnames)
@@ -135,11 +185,13 @@ int MedSignals::read(const string &fname)
 					info.sid = sid;
 					info.name = fields[1];
 					info.type = type;
-					info.bytes_len = get_type_size((SigType)type);
+					info.bytes_len = MedRep::get_type_size((SigType)type);
 					if (fields.size() == 4)
 						info.description = "";
 					else
 						info.description = fields[4];
+					// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
+					MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
 					Sid2Info[sid] = info;
 				}
 
@@ -268,4 +320,31 @@ int MedSignals::fno(int sid)
 	if (Sid2Info.find(sid) == Sid2Info.end())
 		return -1;
 	return Sid2Info[sid].fno;
+}
+
+//================================================================================================
+// UniversalSigVec
+//================================================================================================
+void UniversalSigVec::init(SigType _type)
+{
+	if (_type == type) return; // no need to init, same type as initiated
+
+	type = _type;
+	switch (_type) {
+		case T_Value: set_funcs<SVal>(); return;
+		case T_DateVal: set_funcs<SDateVal>(); return;
+		case T_TimeVal: set_funcs<STimeVal>(); return;
+		case T_DateRangeVal: set_funcs<SDateRangeVal>(); return;
+		case T_TimeStamp: set_funcs<STimeStamp>(); return;
+		case T_TimeRangeVal: set_funcs<STimeRangeVal>(); return;
+		case T_DateVal2: set_funcs<SDateVal2>(); return;
+		//case T_TimeLongVal: set_funcs<STimeLongVal>(); return;
+		case T_DateShort2: set_funcs<SDateShort2>(); return;
+		case T_ValShort2: set_funcs<SValShort2>(); return;
+		case T_ValShort4: set_funcs<SValShort4>(); return;
+		//case T_CompactDateVal: set_funcs<SCompactDateVal>(); return;
+	}
+
+	type = T_Last;
+
 }

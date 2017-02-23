@@ -69,6 +69,7 @@ int MedLM::init(map<string, string>& mapper) {
 		if (field == "eiter") params.eiter = stof(entry.second);
 		else if (field == "niter") params.niter = stoi(entry.second);
 		else if (field == "rfactor") params.rfactor = stof(entry.second);
+		else if (field == "get_col") params.get_col = stoi(entry.second);
 		else if (field == "rfactors") {
 			if (init_farray(entry.second, &(params.rfactors)) == -1) {
 				fprintf(stderr, "Cannot initialize rfactors for LM\n");
@@ -155,6 +156,9 @@ int MedLM::Learn (float *x, float *y, int nsamples, int nftrs) {
 //..............................................................................
 int MedLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 
+	if (params.get_col >= 0)
+		return 0;
+
 	if (w == NULL) 
 		return (Learn(x,y,nsamples,nftrs));
 
@@ -195,6 +199,23 @@ int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 
 //..............................................................................
 int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) {
+
+	if (preds == NULL)
+		preds = new float[nsamples];
+
+	if (params.get_col >= 0) {
+
+		//MLOG("nsamples %d get_col %d nftrs %d transposed %d\n", nsamples, params.get_col, nftrs, transposed_flag);
+		if (transposed_flag) {
+			for (int i=0; i<nsamples; i++)
+				preds[i] = x[XIDX(params.get_col, i, nsamples)];
+		}
+		else {
+			for (int i=0; i<nsamples; i++)
+				preds[i] = x[XIDX(i, params.get_col, nftrs)];
+		}
+		return 0;
+	}
 
 	if (preds == NULL)
 		preds = new float[nsamples];
@@ -240,7 +261,8 @@ size_t MedLM::get_size() {
 size_t MedLM::serialize(unsigned char *blob) {
 
 	size_t ptr = 0 ;
- 	memcpy(blob+ptr,&n_ftrs,sizeof(int)) ; ptr += sizeof(int) ;
+
+	memcpy(blob+ptr,&n_ftrs,sizeof(int)) ; ptr += sizeof(int) ;
 	memcpy(blob+ptr,&b0,sizeof(float)); ptr += sizeof(float) ;
 	memcpy(blob+ptr,&(b[0]),n_ftrs*sizeof(float)) ; ptr += n_ftrs*sizeof(float) ;
 

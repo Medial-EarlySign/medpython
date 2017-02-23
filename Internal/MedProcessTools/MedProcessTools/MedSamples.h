@@ -25,7 +25,7 @@ public:
 	int outcomeDate;
 
 	// (De)Serialization
-	size_t get_size() { return sizeof(MedSample); }
+	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 

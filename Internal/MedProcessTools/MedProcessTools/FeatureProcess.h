@@ -9,7 +9,7 @@
 #include "MedStat/MedStat/MedStat.h"
 #include <unordered_set>
 
-#define DEFAULT_FEAT_CLNR_NTHREADS 8
+#define DEFAULT_FEAT_CLNR_NTHREADS 24
 
 //.......................................................................................
 //.......................................................................................

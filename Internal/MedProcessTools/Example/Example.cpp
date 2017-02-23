@@ -52,35 +52,82 @@ int main(int argc, char *argv[])
 
 	timer.start();
 
-	// Repository Cleaners
-	MLOG( "Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
-	my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+#define DIRECT_INIT 1
+	if (DIRECT_INIT) {
+		MLOG("Initializing RepCleaners and Features: nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
+		for (auto sig : signals) {
 
-	// Signal-based feature generators
-	MLOG( "Initializing Features\n");
+			// cleaner for sig
+			my_model.add_rep_processor_to_set(0, "rp_type=nbrs_cln;take_log=1;signal="+sig);
+			//my_model.add_rep_processor_to_set(0, "rp_type=basic_cln;signal="+sig);
 
-//	vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_LAST_DELTA_VALUE, FTR_LAST_DAYS };
-	vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE };
+			// features for sig
 
-	for (auto sig_type : sig_types) 
-		my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
-	my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800"));
+			// basics
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=0; win_to=360; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=360; win_to=720; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=win_delta; win_from=0; win_to=180; d_win_from=360; d_win_to=720; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=win_delta; win_from=0; win_to=180; d_win_from=720; d_win_to=1080; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=first; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=avg; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=max; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=min; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=std; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last_time; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=last_time2; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 
-	// Add feature cleaners
-	my_model.add_feature_processors_set(FTR_PROCESS_BASIC_OUTLIER_CLEANER, vm["feat_cleaner_params"].as<string>());
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=720; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
+			//my_model.add_feature_generator_to_set(0, "fg_type=basic; type=slope; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
 
-	// Add feature Imputers
-	MLOG("Adding imputers\n");
-	my_model.add_imputers("strata=Age,40,80,5");
+			// binnedLM
+			my_model.add_feature_generator_to_set(0, "fg_type=binnedLM; estimation_points=1440,720,360,180; signal=" + sig);
+		}
+		// Age/Gender features
+		my_model.add_feature_generator_to_set(0, "fg_type=age");
+		my_model.add_feature_generator_to_set(0, "fg_type=gender");
 
-	// Age + Gender
-	MLOG( "Initializing Extra Features\n");
-	my_model.add_age();
-	my_model.add_gender();
+		// Add feature processors
+		my_model.add_feature_processor_to_set(0, "fp_type=basic_cleaner");
+		my_model.add_feature_processor_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
+		//my_model.add_feature_processor_to_set(2, "fp_type=normalizer");
 
-	// Normalizers
-	MLOG("Adding normalizers\n");
-	my_model.add_normalizers();
+	}
+	else {
+		// Repository Cleaners
+		MLOG("Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
+		my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+		//	my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+
+		// Signal-based feature generators
+		MLOG("Initializing Features\n");
+
+		vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_STD_VALUE, FTR_LAST_DELTA_VALUE , FTR_LAST_DAYS, FTR_LAST2_DAYS };
+		//	vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE };
+		for (auto sig_type : sig_types) 
+			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
+		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
+
+		// Age + Gender
+		MLOG( "Initializing Extra Features\n");
+		my_model.add_age();
+		my_model.add_gender();
+
+		// Add feature cleaners
+		my_model.add_feature_processors_set(FTR_PROCESS_BASIC_OUTLIER_CLEANER, vm["feat_cleaner_params"].as<string>());
+
+		// Add feature Imputers
+		MLOG("Adding imputers\n");
+		my_model.add_imputers("strata=Age,40,80,5");
+
+		// Normalizers
+		MLOG("Adding normalizers\n");
+		my_model.add_normalizers();
+	}
+
+
 
 	// Predictor
 	MLOG( "Initializing Predictor\n");
@@ -133,11 +180,65 @@ int main(int argc, char *argv[])
 
 	}
 	else {
-		MLOG( "Doing Nothing\n");
+		if (vm.count("temp_file") == 0) {
+			fprintf(stderr, "temp-file required if nfold not given\n");
+			return -1;
+		}
+		string tempFile = vm["temp_file"].as<string>();
+
+		// Learn on 50%; Predict on rest
+		BasicTrainFilter trainFilter;
+		BasicTestFilter testFilter;
+
+		// Learning and test set
+		MedSamples learningSamples, testSamples;
+		for (auto& sample : allSamples.idSamples) {
+			if (globalRNG::rand() % 2 == 0)
+				learningSamples.idSamples.push_back(sample);
+			else
+				testSamples.idSamples.push_back(sample);
+		}
+
+		// Filter
+		trainFilter.filter(rep, learningSamples);
+		testFilter.filter(rep, testSamples);
+
+		// Learn Model
+		if (my_model.learn(rep, &learningSamples) < 0) {
+			fprintf(stderr,"Learning model failed\n");
+			return -1;
+		}
+
+		// Write to temporary file
+		my_model.write_to_file(tempFile);
+		fprintf(stderr, "Done writing to file %s\n", tempFile.c_str());
+
+		// Read from temporary file
+		MedModel new_model;
+		new_model.read_from_file(tempFile);
+		fprintf(stderr, "Done reading from file %s\n", tempFile.c_str());
+
+		// Apply
+		if (new_model.apply(rep, testSamples) < 0) {
+			fprintf(stderr,"Applying model failed\n");
+			return -1;
+		}
+
+		// analyze
+		vector<float> y, preds;
+		for (auto& idSample : testSamples.idSamples) {
+			for (auto& sample : idSample.samples) {
+				for (int i = 0; i < sample.prediction.size(); i++) {
+					y.push_back(sample.outcome);
+					preds.push_back(sample.prediction[i]);
+				}
+			}
+		}
+
+		float AUC = get_preds_auc(preds, y);
+		MLOG("y size: %d , preds size: %d , cv AUC is : %f\n", y.size(), preds.size(), AUC);
 	}
 	
-
-
 	return 0;
 
 }
@@ -160,6 +261,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("feat_cleaner_params", po::value<string>()->default_value(""), "features cleaner params")
 			("predictor", po::value<string>()->default_value("linear_model"), "predictor")
 			("predictor_params", po::value<string>()->default_value(""), "predictor params")
+			("temp_file",po::value<string>(), "temporary file for serialization")
 
 			("nfolds", po::value<int>(), "number of cross-validation folds")
 			;
@@ -226,7 +328,8 @@ int read_signals_list(po::variables_map& vm, vector<string>& signals) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
 
-		signals.push_back(curr_line);
+		if (curr_line[0] != '#')
+			signals.push_back(curr_line);
 	}
 
 	return 0;

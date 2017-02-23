@@ -40,6 +40,10 @@ public:
 	vector<string> req_signals;
 	vector<int> req_signal_ids;
 
+	// Affected Signals
+	unordered_set<string> aff_signals;
+	unordered_set<int> aff_signal_ids;
+
 	// Constructor/Destructor
 	RepProcessor() { learn_nthreads = DEFAULT_REP_CLNR_NTHREADS; apply_nthreads = DEFAULT_REP_CLNR_NTHREADS; };
 	~RepProcessor() {};
@@ -51,6 +55,13 @@ public:
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
 	virtual void get_required_signal_ids(MedDictionarySections& dict);
 
+	// Affected Signals functions;
+	virtual void get_affected_signal_ids(MedDictionarySections& dict);
+	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
+
+	// Other signal ids
+	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+
 	// Learn cleaning model
 	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
 
@@ -61,14 +72,21 @@ public:
 	int learn(MedPidRepository& rep) { vector<RepProcessor *> temp; return learn(rep, temp); }
 
 	// Apply cleaning model - ASSUME OUT_REC is preallocated !
-	virtual int Apply(PidDynamicRec& rec, vector<int>& time_points) {return 0; }
+	virtual int apply(PidDynamicRec& rec, vector<int>& time_points) {return 0; }
+	virtual int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds);
+
 	int apply(PidDynamicRec& rec, MedIdSamples& samples);
+	int apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds);
 
 	// Init
 	static RepProcessor *make_processor(string name);
 	static RepProcessor *make_processor(string type, string params);
 	static RepProcessor *make_processor(RepProcessorTypes type);
 	static RepProcessor *make_processor(RepProcessorTypes type, string params);
+
+	// Create processor with just params (type is a must)
+	static RepProcessor *create_processor(string &params);
+	
 
 	virtual int init(void *params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
@@ -108,11 +126,18 @@ public:
 	// Required Signals
 	void get_required_signal_ids(MedDictionarySections& dict);
 
+	// Affected Signals
+	void get_affected_signal_ids(MedDictionarySections& dict);
+
+	// Other signal ids
+	void get_signal_ids(MedDictionarySections& dict);
+
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
 
 	// Apply cleaning model
-	int Apply(PidDynamicRec& rec, vector<int>& time_points);
+	int apply(PidDynamicRec& rec, vector<int>& time_points);
+	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignals);
 
 	// serialization
 	size_t get_size();
@@ -137,13 +162,15 @@ public:
 	// Signal to clean
 	string signalName;
 	int signalId;
+	int time_channel = 0;
+	int val_channel = 0;
 
 	// Constructors
 	RepBasicOutlierCleaner() : RepProcessor() { init_defaults(); }
-	RepBasicOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); }
+	RepBasicOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
 	RepBasicOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); init_from_string(init_string); }
 	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {
-		signalId = -1; signalName = _signalName; req_signals.push_back(signalName); MedValueCleaner::init(_params); 
+		signalId = -1; signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); MedValueCleaner::init(_params);
 	}
 
 	void init_defaults() {
@@ -154,14 +181,18 @@ public:
 		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
 		signalId = -1;
 		params.type = VAL_CLNR_ITERATIVE;
+		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
-	// Set Signal id
-	void set_signal(const string& _signalName) {signalName = _signalName; req_signals.push_back(signalName);}
+	// Set Signal
+	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
+
+	// Signal Id
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
+	int init(map<string, string>& mapper); // { init_defaults();  return MedValueCleaner::init(mapper); };
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
@@ -169,7 +200,7 @@ public:
 	int quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
 
 	// Apply cleaning model
-	int Apply(PidDynamicRec& rec, vector<int>& time_points);
+	int apply(PidDynamicRec& rec, vector<int>& time_points);
 
 	// Serialization
 	size_t get_size();
@@ -182,12 +213,12 @@ public:
 
 //.......................................................................................
 //.......................................................................................
-// A celaner that contains the whole neighbourhood of a certain signal value
+// A cleaner that looks at the neighbourhood of a certain signal value
 //.......................................................................................
 //.......................................................................................
 
-#define DEF_REP_NBRS_TRIM_SD_NUM 5
-#define DEF_REP_NBRS_NBRS_SD_NUM 7
+#define DEF_REP_NBRS_NBRS_SD_NUM 5
+#define DEF_REP_NBRS_TRIM_SD_NUM 7
 #define DEF_REP_NBRS_REMOVING_SD_NUM 14
 
 class RepNbrsOutlierCleaner : public RepProcessor, public MedValueCleaner {
@@ -196,15 +227,20 @@ public:
 	// Signal to clean
 	string signalName;
 	int signalId;
+	int time_channel = 0;
+	int val_channel = 0;
+	int nbr_time_unit = MedTime::Days;
+	int nbr_time_width = 7;
+
 
 	// Constructors
 	RepNbrsOutlierCleaner() : RepProcessor() { init_defaults(); }
-	RepNbrsOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); }
+	RepNbrsOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
 	RepNbrsOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() {
-		init_defaults(); signalName = _signalName; req_signals.push_back(signalName); init_from_string(init_string);
+		init_defaults(); signalName = _signalName; req_signals.push_back(signalName); ; aff_signals.insert(signalName); init_from_string(init_string);
 	}
 	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {
-		signalId = -1; signalName = _signalName; req_signals.push_back(signalName); MedValueCleaner::init(_params);
+		signalId = -1; signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); MedValueCleaner::init(_params);
 	}
 
 	void init_defaults() {
@@ -212,17 +248,20 @@ public:
 		params.trimming_sd_num = DEF_REP_NBRS_TRIM_SD_NUM; params.removing_sd_num = DEF_REP_NBRS_REMOVING_SD_NUM; params.nbrs_sd_num = DEF_REP_NBRS_NBRS_SD_NUM;
 		params.take_log = 0;
 		params.doTrim = params.doRemove = true;
-		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
 		signalId = -1;
 		params.type = VAL_CLNR_ITERATIVE;
+		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
-	// Set Signal id
-	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName);}
+	// Set Signal
+	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
+
+	// Signal Id
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
+	int init(map<string, string>& mapper); // { init_defaults();  return MedValueCleaner::init(mapper); };
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
@@ -230,7 +269,7 @@ public:
 	int quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
 
 	// Apply cleaning model
-	int Apply(PidDynamicRec& rec, vector<int>& time_points);
+	int apply(PidDynamicRec& rec, vector<int>& time_points);
 
 	// Serialization
 	size_t get_size();
@@ -247,7 +286,7 @@ public:
 //.......................................................................................
 
 // Get values of a signal from a set of ids
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, vector<float>& values) ;
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values) ;
 
 #endif

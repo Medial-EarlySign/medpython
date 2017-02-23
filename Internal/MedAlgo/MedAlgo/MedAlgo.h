@@ -185,13 +185,17 @@ struct MedLMParams {
 	float eiter;
 	int niter;
 
+
+	// A simple way to check a single column , default is -1, but if >=0 the algorithm will simply return this column as prediction
+	int get_col = -1;
+
 	// Optional params
 	float rfactor;
 	float *rfactors;
 	float *corrs;
 	float *sumxx;
 
-	MedLMParams() {eiter=(float)EITER; niter=NITER; rfactor=1.0; rfactors=NULL; corrs=NULL; sumxx=NULL;}
+	MedLMParams() { eiter=(float)EITER; niter=NITER; rfactor=1.0; rfactors=NULL; corrs=NULL; sumxx=NULL; get_col = -1; }
 
 };
 

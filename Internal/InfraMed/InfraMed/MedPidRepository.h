@@ -24,6 +24,7 @@ class PosLen {
 	int pos;
 	int len;
 	PosLen& operator =(const int a) { pos = (unsigned long long)a; len=a; return *this; }
+	bool operator==(const PosLen a) { return (pos == a.pos && len == a.len);}
 };
 
 class PidIdxRec {
@@ -58,6 +59,15 @@ class PidRec {
 		// get methods - no need for pid just by signal
 		void *get(string &sig_name, int &len);
 		void *get(int sid, int &len);
+
+		// universal API
+		UniversalSigVec usv;	// we keep a usv inside, to allow saving of the init() time
+		inline void *uget(int sid, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.type(sid)); return (_usv.data = get(sid, _usv.len)); }
+		inline void *uget(int sid) { return uget(sid, usv); }
+		inline void *uget(const string &sig_name, UniversalSigVec &_usv) { return uget(my_base_rep->sigs.sid(sig_name), _usv); }
+		inline void *uget(const string &sig_name) { return uget(sig_name, usv); }
+
+
 
 		// memory alloc & free
 		void prealloc(unsigned int len);
@@ -121,19 +131,28 @@ public:
 	void *get(int sid, int version, int &len);
 	void *get(int sid, int &len) { return PidRec::get(sid, len); }
 
+	// universal API
+	inline void *uget(int sid, int version, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.type(sid)); return (_usv.data = get(sid, version, _usv.len)); }
+	inline void *uget(int sid, int version) { return uget(sid, version, usv); }
+	inline void *uget(const string &sig_name, int version, UniversalSigVec &_usv) { return uget(my_base_rep->sigs.sid(sig_name), version, _usv); }
+	inline void *uget(const string &sig_name, int version) { return uget(sig_name, version, usv); }
+
 	// clearing
 	void clear_vers(); // deletes all versions and remains just with the original one.
 
 	// creating and changing versions
 	int set_version_data(int sid, int version, void *datap, int len);
+	int set_version_off_orig(int sid, int version); // if the version is still pointing the original area, we will make a copy of it outside
 	int point_version_to(int sid, int v_src, int v_dst);	// will point version v_dst to the data of version v_src
 	int remove(int sid, int version, int idx);			// removing element idx from version
 	int remove(int sid, int v_in, int idx, int v_out);	// removing element idx from version v_in and putting it in v_out
 	int change(int sid, int version, int idx, void *new_elem);	// changing element idx in version to hold *new_elem
 	int change(int sid, int v_in, int idx, void *new_elem, int v_out);	// changing element idx in v_in to *new_elem, and putting it all in v_out
+	int update(int sid, int v_in, vector<pair<int, void *>>& changes, vector<int>& removes); // Apply changes and removals
+	int update(int sid, int v_in, int val_channel, vector<pair<int, float>>& changes, vector<int>& removes); // Apply val changes and removals, unified variant
 
 	// test if two versions point to the same place in memory
-	int versions_are_the_same(int sid, int v1, int v2) { return ((int)(get_poslen(sid, v1) == get_poslen(sid, v2))); }
+	int versions_are_the_same(int sid, int v1, int v2) { return ((int)((*get_poslen(sid, v1)) == (*get_poslen(sid, v2)))); }
 
 	// a few debug helpers
 	int print_ver(int sid, int ver);

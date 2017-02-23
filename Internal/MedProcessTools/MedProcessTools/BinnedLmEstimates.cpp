@@ -32,9 +32,13 @@ double def_rfactor = 0.99;
 void BinnedLmEstimates::set_names() {
 
 	if (names.empty()) {
-		string name = signalName + ".Estimate.";
-		for (int point : params.estimation_points)
-			names.push_back(name + std::to_string(point));
+		string base_name = signalName + ".Estimate.";
+		for (int point : params.estimation_points) {
+			string name = base_name + std::to_string(point);
+			if (time_channel != 0 || val_channel != 0)
+				name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
+			names.push_back(name);
+		}
 	}
 
 }
@@ -47,10 +51,17 @@ void BinnedLmEstimates::set(string& _signalName) {
 	init_defaults();
 	names.clear();
 	set_names();
+
+	req_signals.resize(3);
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
+	req_signals[2] = signalName;
 }
 
 //.......................................................................................
 void BinnedLmEstimates::init_defaults() {
+
+	generator_type = FTR_GEN_BINNED_LM;
 
 	params.bin_bounds.resize(def_nbin_bounds);
 	for (int i = 0; i < def_nbin_bounds; i++)
@@ -64,8 +75,7 @@ void BinnedLmEstimates::init_defaults() {
 	for (int i = 0; i < def_nestimation_points; i++)
 		params.estimation_points[i] = def_estimation_points[i];
 
-	req_signals.push_back("GENDER");
-	req_signals.push_back("BYEAR");
+	req_signals ={ "GENDER", "BYEAR" };
 
 	signalId = -1; 
 	byearId = -1;
@@ -85,6 +95,8 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 
 	set_names();
 
+	req_signals ={ "GENDER", "BYEAR", signalName };
+
 }
 
 //..............................................................................
@@ -103,18 +115,22 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "max_period") params.max_period = stoi(entry.second);
 		else if (field == "min_period") params.min_period = stoi(entry.second);
 		else if (field == "rfactor") params.rfactor = stof(entry.second);
-		else if (field == "signalName") signalName = entry.second;
+		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "estimation_points") {
 			if (init_dvec(entry.second, params.estimation_points) == -1) {
 				fprintf(stderr, "Cannot initialize estimation_points for LM\n");
 				return -1;
 			}
 		}
-		else MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
+		else if (field != "fg_type")
+				MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
 
 	names.clear();
 	set_names();
+
+	req_signals = { "GENDER", "BYEAR", signalName };
+
 	return 0;
 }
 
@@ -122,8 +138,11 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 //.......................................................................................
 int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
 
-	if (signalId == -1)
-		signalId = rep.dict.id(signalName);
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 	assert(rep.sigs.type(signalId) == T_DateVal);
 
 	if (byearId == -1)
@@ -131,8 +150,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 	if (genderId == -1)
 		genderId = rep.dict.id("GENDER");
-
-	vector<int> req_signals(1, signalId);
 
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
@@ -162,27 +179,30 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		// Get signal
 		SDateVal *signal = (SDateVal *)rep.get(id, signalId, len);
 		id_firsts[i] = (int) ages.size();
-		id_lasts[i] = id_firsts[i] + len - 1;
+
+		if (len == 0) {
+			id_lasts[i] = id_firsts[i];
+			continue;
+		}
 
 		if (processors.size()) {
 
-			// Get all time points
-			vector<int> time_points(len);
-			for (int i = 0; i < len; i++)
-				time_points[i] = signal[i].date;
+			// Apply processing at last time point only
+			vector<int> time_points(1, signal[len-1].date + 1);
 
 			// Init Dynamic Rec
-			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
+			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, 1);
 
-			// Clean at all time-points
+			// Apply
 			for (auto& processor : processors)
-				processor->Apply(rec, time_points);
+				processor->apply(rec, time_points, req_signal_ids);
 
 			// Collect values and ages
+			SDateVal *clnSignal = (SDateVal *)rec.get(signalId, 0, len);
 			for (int i = 0; i < len; i++) {
-				SDateVal *clnSignal = (SDateVal *)rec.get(signalId, i, len);
 				values.push_back(clnSignal[i].val);
 				ages.push_back(clnSignal[i].date / 10000 - byear);
+				genders.push_back(gender);
 				days.push_back(get_day(clnSignal[i].date));
 			}
 		}
@@ -194,6 +214,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				days.push_back(get_day(signal[i].date));
 			}
 		}
+		id_lasts[i] = id_firsts[i] + len - 1;
 	}
 
 	// Allocate
@@ -325,6 +346,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	// Collect Data
 	int inrows = irow;
 
+	models[0].n_ftrs = 0;
 	for (int type = 1; type < nmodels; type++) {
 		vector<int> cols(nperiods, 0);
 
@@ -340,6 +362,11 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				jnrows++;
 		}
 
+		if (jnrows < ncols) {
+			fprintf(stderr, "Not enough samples of type %d (%d, required - %d)\n", type, jnrows, ncols);
+			return -1;
+		}
+
 		MedMat<float> tx(ncols, jnrows);
 		MedMat<float> ty(jnrows, 1);
 		tx.transposed_flag = 1;
@@ -349,14 +376,9 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			if ((types[i] & type) == type) {
 				ty(jrow, 0) = y[i];
 				for (int j = 0; j < ncols; j++)
-					tx(j,jrow) = x(i, cols[j]);
+					tx(j, jrow) = x(i, cols[j]);
 				jrow++;
 			}
-		}
-
-		if (jnrows < ncols) {
-			fprintf(stderr, "Not enough samples of type %d (%d, required - %d)\n", type, jrow, ncols);
-			return -1;
 		}
 
 		// Normalize
@@ -375,6 +397,8 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 //		models[type].print(stderr, "model" + to_string(type));
 
 	}
+
+
 	return 0;
 }
 
@@ -382,8 +406,11 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 //.......................................................................................
 int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
-	if (signalId == -1)
-		signalId = rec.my_base_rep->dict.id(signalName);
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
 	assert(rec.my_base_rep->sigs.type(signalId) == T_DateVal);
 
 	if (byearId == -1)
@@ -508,8 +535,9 @@ size_t BinnedLmEstimates::get_size() {
 	// Params
 	size += sizeof(size_t); size += params.bin_bounds.size() * sizeof(int);
 	size += 2 * sizeof(int);
-	size += sizeof(double);
-	size += sizeof(size_t); size += params.estimation_points.size() * sizeof(int);
+	size += sizeof(float);
+	size += sizeof(size_t); 
+	size += params.estimation_points.size() * sizeof(int);
 
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
@@ -517,7 +545,7 @@ size_t BinnedLmEstimates::get_size() {
 
 	// Means and Sdvs
 	size += (2 * nfeatures + nmodels) * sizeof(float);
-	size += sizeof(size_t); size += 2 * (BINNED_LM_MAX_AGE+1) * sizeof(float);
+	size += 2 * (BINNED_LM_MAX_AGE+1) * sizeof(float);
 
 	// Models
 	for (auto& model : models)
@@ -546,7 +574,7 @@ size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 	size_t npoints = params.estimation_points.size();
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nmodels * (INT64_C(1) << nmodels);
+	size_t nfeatures = nperiods * nmodels;
 
 	// Params
 	memcpy(blob + ptr, &nperiods, sizeof(size_t));  ptr += sizeof(size_t);
@@ -565,8 +593,8 @@ size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &(means[1][0]), (BINNED_LM_MAX_AGE + 1) * sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
 
 	// Models
-	for (auto& model : models)
-		ptr += model.serialize(blob+ptr);
+	for (auto& model : models) 
+		ptr += model.serialize(blob + ptr);
 
 	return ptr;
 }
@@ -598,7 +626,7 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 	memcpy(&(params.estimation_points[0]), blob + ptr, npoints * sizeof(int)); ptr += npoints * sizeof(int);
 
 	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
+	size_t nfeatures = nperiods *nmodels;
 
 	// Means and Sdvs
 	xmeans.resize(nfeatures*sizeof(float));
@@ -616,10 +644,15 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 
 	// Models
 	models.resize(nmodels);
-	for (auto& model : models)
+	for (auto& model : models) 
 		ptr += model.deserialize(blob + ptr);
 
 	set_names();
+
+	req_signals.resize(3);
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
+	req_signals[2] = signalName;
 
 	return ptr;
 }

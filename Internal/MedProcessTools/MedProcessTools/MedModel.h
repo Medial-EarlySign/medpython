@@ -46,6 +46,10 @@ public:
 	MedModel() { safe_mode = 0;  };
 	~MedModel() {};
 
+	// initialize from configuration files
+	//int init_rep_processors(const string &fname);
+	//int init_feature_generators(const string &fname);
+
 	// Add Rep Processors
 	void add_rep_processor(RepProcessor *processor) { rep_processors.push_back(processor); };
 	void add_rep_processors_set(RepProcessorTypes type, vector<string>& signals);
@@ -66,6 +70,7 @@ public:
 	void add_age() {generators.push_back(new AgeGenerator);}
 	void add_gender() { generators.push_back(new GenderGenerator); }
 
+	void get_all_features_names(vector<string> &feat_names);
 
 	// Add Feature Processors
 	void add_feature_processor(FeatureProcessor *processor) { feature_processors.push_back(processor); };
@@ -85,6 +90,16 @@ public:
 	void add_imputers(vector<string>& features) { add_feature_processors_set(FTR_PROCESS_IMPUTER, features); }
 	void add_imputers(vector<string>& features, string init_string) { add_feature_processors_set(FTR_PROCESS_IMPUTER, features, init_string); }
 
+
+	// general adders for easier handling of config files/lines
+	// the idea is to add to a specific set and let the adder create a multi if needed
+	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
+	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
+	void add_feature_processor_to_set(int i_set, const string &init_string);	// fp_type and feature name are must have parameters
+	void add_process_to_set(int i_set, const string &init_string);		// will auto detect type by which type param is used (rp_type, fg_type OR fp_type)
+																		// and will call the relavant function
+
+
 	// Add Predictor
 	void set_predcitor(MedPredictor *_predictor) { predictor = _predictor; };
 	void set_predictor(MedPredictorTypes type) { predictor = MedPredictor::make_predictor(type); }
@@ -92,8 +107,10 @@ public:
 	void set_predictor(MedPredictorTypes type, string init_string) { predictor = MedPredictor::make_predictor(type,init_string); }
 	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name,init_string); }
 
-	// Required Signals
+	// signal ids
 	void get_required_signals(MedDictionarySections& dict);
+	void get_affected_signals(MedDictionarySections& dict);
+	void init_signal_ids(MedDictionarySections& dict);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples);

@@ -9,6 +9,7 @@
 #include "MedProcessTools/MedProcessTools/RepProcess.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <MedTime/MedTime/MedTime.h>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
@@ -59,6 +60,9 @@ public:
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
 	void get_required_signal_ids(MedDictionarySections& dict);
 
+	// Signal Ids
+	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+
 	// Learn a generator
 	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {return 0;}
 	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { set_names(); return _learn(rep, ids, processors); }
@@ -85,6 +89,8 @@ public:
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
 
+	static FeatureGenerator *create_generator(string &params); // must include fg_type
+
 	virtual int init(void *generator_params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
@@ -98,6 +104,14 @@ public:
 };
 
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
+
+//..............................................................................................
+// FeatureSingleChannel -
+// This class is a mediator between FeatureGenerator and classes that generate
+// Features on a single variable (not including age and gender) and in it in a single channel.
+//..............................................................................................
+
+
 
 //.......................................................................................
 //.......................................................................................
@@ -116,6 +130,8 @@ typedef enum {
 	FTR_LAST_DELTA_VALUE = 7,
 	FTR_LAST_DAYS = 8,
 	FTR_LAST2_DAYS = 9,
+	FTR_SLOPE_VALUE = 10,
+	FTR_WIN_DELTA_VALUE = 11,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -124,10 +140,16 @@ class BasicFeatGenerator : public FeatureGenerator {
 public:
 	// Feature Descrption
 	string signalName;
-	BasicFeatureTypes type;
-	int win_from, win_to;		// time window for feature: date-win_to <= t < date-win_from
-
 	int signalId;
+
+	BasicFeatureTypes type = FTR_LAST;
+	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
+	int d_win_from = 360, d_win_to = 360000;		// delta time window for the FTR_WIN_DELTA_VALUE feature
+	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
+	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+
 
 	// Naming 
 	void set_names();
@@ -135,27 +157,51 @@ public:
 	// Constructor/Destructor
 	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
 	~BasicFeatGenerator() {};
-	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.push_back(signalName);}
+	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1,signalName);}
 	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) { 
 		signalName = _signalName;type = _type; win_from = _time_win_from; win_to = _time_win_to;
-		set_names(); req_signals.push_back(signalName);
+		set_names(); req_signals.assign(1, signalName);
 	}
+
+	BasicFeatureTypes name_to_type(const string &name);
 
 	// Init
 	int init(map<string, string>& mapper);
-	void init_defaults() { generator_type = FTR_GEN_BASIC; signalId = -1; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); ; };
+	void init_defaults() { 
+		generator_type = FTR_GEN_BASIC; signalId = -1; time_unit_sig = MedTime::Date; 
+		time_unit_win = MedTime::Days; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); 
+	};
 
 	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 	float get_value(PidDynamicRec& rec, int index, int date);
 
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+
+	// actual generators
+	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
+	float uget_first(UniversalSigVec &usv, int time_point);
+	float uget_last2(UniversalSigVec &usv, int time_point);
+	float uget_avg(UniversalSigVec &usv, int time_point);
+	float uget_max(UniversalSigVec &usv, int time_point);
+	float uget_min(UniversalSigVec &usv, int time_point);
+	float uget_std(UniversalSigVec &usv, int time_point);
+	float uget_last_delta(UniversalSigVec &usv, int time_point);
+	float uget_last_time(UniversalSigVec &usv, int time_point);
+	float uget_last2_time(UniversalSigVec &usv, int time_point);
+	float uget_slope(UniversalSigVec &usv, int time_point);
+	float uget_win_delta(UniversalSigVec &usv, int time_point);
+
+
 	// Serialization
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
+
 };
 
 //.......................................................................................
@@ -170,8 +216,8 @@ public:
 	int byearId;
 
 	// Constructor/Destructor
-	AgeGenerator() : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = -1; req_signals.push_back("BYEAR");}
-	AgeGenerator(int _byearId) : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = _byearId; req_signals.push_back("BYEAR"); }
+	AgeGenerator() : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = -1; req_signals.assign(1,"BYEAR");}
+	AgeGenerator(int _byearId) : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = _byearId; req_signals.assign(1, "BYEAR"); }
 	~AgeGenerator() {};
 
 	// Name
@@ -183,10 +229,13 @@ public:
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) {byearId = dict.id("BYEAR");}
+
 	// Serialization
 	size_t get_size() { return 0; };
 	size_t serialize(unsigned char *blob) { return 0; };
-	size_t deserialize(unsigned char *blob) { set_names();  return 0; };
+	size_t deserialize(unsigned char *blob) { set_names(); return 0; };
 };
 
 //.......................................................................................
@@ -201,8 +250,8 @@ public:
 	int genderId;
 
 	// Constructor/Destructor
-	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.push_back("GENDER");}
-	GenderGenerator(int _genderId) : FeatureGenerator() {generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.push_back("GENDER");}
+	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, "GENDER");}
+	GenderGenerator(int _genderId) : FeatureGenerator() {generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, "GENDER");}
 
 	~GenderGenerator() {};
 
@@ -214,6 +263,9 @@ public:
 
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) { genderId = dict.id("GENDER"); }
 
 	// Serialization
 	size_t get_size() { return 0; };
@@ -228,7 +280,7 @@ public:
 //.......................................................................................
 
 struct BinnedLmEstimatesParams {
-	vector<int> bin_bounds;
+	vector<int> bin_bounds ;
 	int min_period ;
 	int max_period ;
 	float rfactor;
@@ -247,14 +299,19 @@ public:
 	vector<MedLM> models;
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<float> means[2];
-	
+
+	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
+	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
+	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+
 	// Naming 
 	void set_names();
 
 	// Constructor/Destructor
 	BinnedLmEstimates() : FeatureGenerator() { signalName = ""; init_defaults(); };
-	BinnedLmEstimates(string _signalName) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); set_names(); };
-	BinnedLmEstimates(string _signalName, string init_string) : FeatureGenerator() {signalName = _signalName;init_defaults(); req_signals.push_back(signalName); init_from_string(init_string); set_names();};
+	BinnedLmEstimates(string _signalName) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); names.clear();  set_names(); };
+	BinnedLmEstimates(string _signalName, string init_string) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); init_from_string(init_string); };
 
 	~BinnedLmEstimates() {};
 
@@ -271,6 +328,9 @@ public:
 	// generate new feature(s)
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
+	// Signal Ids
+	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); genderId = dict.id("GENDER"); byearId = dict.id("BYEAR"); }
+
 	// Number of features generated
 	virtual int nfeatures() { return (int) params.estimation_points.size(); }
 
@@ -279,18 +339,5 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 };
-
-// Utilities
-float get_last_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_first_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last2_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_avg_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_max_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_min_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_std_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last_delta_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last_days_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-float get_last2_days_value(SDateVal *signal, int len, int date, int win_from, int win_to, float missing_val);
-
 
 #endif

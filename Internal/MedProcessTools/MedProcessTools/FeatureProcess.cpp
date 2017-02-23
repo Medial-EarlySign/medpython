@@ -10,11 +10,11 @@
 // Feature Processors
 //=======================================================================================
 // Processor types
-FeatureProcessorTypes feature_processor_name_to_type(const string& processor_name) {
-
-	if (processor_name == "multi_processor")
+FeatureProcessorTypes feature_processor_name_to_type(const string& processor_name) 
+{
+	if (processor_name == "multi_processor" || processor_name == "multi")
 		return FTR_PROCESS_MULTI;
-	else if (processor_name == "basic_outlier_cleaner")
+	else if (processor_name == "basic_outlier_cleaner" || processor_name == "basic_cleaner" || processor_name == "basic_cln")
 		return FTR_PROCESS_BASIC_OUTLIER_CLEANER;
 	else if (processor_name == "normalizer")
 		return FTR_PROCESS_NORMALIZER;
@@ -155,7 +155,7 @@ size_t MultiFeatureProcessor::get_size() {
 	size_t size = sizeof(int);
 
 	for (auto& processor : processors)
-		size += processor->get_size();
+		size += processor->get_processor_size();
 
 	return size;
 }
@@ -169,7 +169,7 @@ size_t MultiFeatureProcessor::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
 
 	for (auto& processor : processors)
-		ptr += processor->serialize(blob + ptr);
+		ptr += processor->processor_serialize(blob + ptr);
 
 	return ptr;
 }
@@ -184,8 +184,13 @@ size_t MultiFeatureProcessor::deserialize(unsigned char *blob) {
 	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	processors.resize(nProcessors);
 
-	for (int i = 0; i < nProcessors; i++)
+	processors.resize(nProcessors);
+	for (int i = 0; i < nProcessors; i++) {
+		FeatureProcessorTypes type;
+		memcpy(&type, blob + ptr, sizeof(FeatureProcessorTypes)); ptr += sizeof(FeatureProcessorTypes);
+		processors[i] = FeatureProcessor::make_processor(type);
 		ptr += processors[i]->deserialize(blob + ptr);
+	}
 
 	return ptr;
 }
@@ -257,7 +262,7 @@ int FeatureBasicOutlierCleaner::Apply(MedFeatures& features, unordered_set<int>&
 	vector<float>& data = features.data[feature_name];
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if ((empty || ids.find(features.samples[i].id) != ids.end()) && data[i] != params.missing_value) {
-			if (params.doRemove && (data[i] < removeMin || data[i] > removeMax))
+			if (params.doRemove && (data[i] < removeMin - NUMERICAL_CORRECTION_EPS || data[i] > removeMax + NUMERICAL_CORRECTION_EPS))
 				data[i] = params.missing_value;
 			else if (params.doTrim) {
 				if (data[i] < trimMin)
@@ -393,7 +398,8 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
-		else MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
+		else if (field != "names" && field != "fp_type")
+				MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 	}
 
 	return 0;
@@ -505,8 +511,12 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
 		if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
-		else if (moment_type == IMPUTE_MMNT_MEDIAN)
-			sort_and_get_median(stratifiedValues[i], moments[i]);
+		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
+			if (stratifiedValues[i].size() > 0)
+				sort_and_get_median(stratifiedValues[i], moments[i]);
+			else
+				moments[i] = missing_value;
+		}
 		else if (moment_type == IMPUTE_MMNT_COMMON)
 			get_common(stratifiedValues[i], moments[i]);
 		else {
@@ -568,7 +578,8 @@ int FeatureImputer::init(map<string, string>& mapper) {
 
 		if (field == "moment_type") moment_type = (imputeMomentTypes)stoi(entry.second);
 		else if (field == "strata") addStrata(entry.second);
-		else MLOG("Unknonw parameter \'%s\' for FeatureImputer\n", field.c_str());
+		else if (field != "names" && field != "fp_type")
+				MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
 	}
 
 	return 0;
@@ -609,7 +620,7 @@ size_t FeatureImputer::get_size() {
 //.......................................................................................
 size_t featureSetStrata::get_size() {
 
-	size_t size = stratas.size();
+	size_t size = sizeof(size_t);
 
 	for (auto& strata : stratas)
 		size += strata.get_size();
