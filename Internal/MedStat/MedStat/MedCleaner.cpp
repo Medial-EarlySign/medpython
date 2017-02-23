@@ -295,7 +295,7 @@ void MedCleaner::get_mean_and_sdv(vector<float>& values, bool take_missing_into_
 
 	if (sdv < MED_CLEANER_EPSILON) sdv = 1;
 
-	MLOG("cleaner : size %d mean %f std %f n %d adjust %d\n", size, mean, sdv, (int)n, (int)take_missing_into_account);
+	//MLOG("cleaner : size %d mean %f std %f n %d adjust %d\n", size, mean, sdv, (int)n, (int)take_missing_into_account);
 
 	return;
 }
