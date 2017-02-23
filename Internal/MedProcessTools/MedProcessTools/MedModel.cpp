@@ -32,7 +32,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 
 	// Learn RepCleaners
 	timer.start();
-	if (learn_rep_processors(rep, ids) < 0) {
+	if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
 		MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
 		return -1;
 	}
@@ -138,7 +138,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 
 #pragma omp parallel for
 	for (int i = 0; i<generators.size(); i++)
-		rc[i] = generators[i]->learn(rep, ids,rep_processors);
+		rc[i] = generators[i]->learn(rep, ids,rep_processors); //??? why is this done for ALL time points in an id???
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
@@ -158,7 +158,7 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
-	MLOG("MedModel::apply() : feature generation with %d threads\n", N_tot_threads);
+	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 	int samples_size = (int)features.samples.size();
@@ -349,6 +349,17 @@ void MedModel::add_feature_generator_to_set(int i_set, const string &init_string
 	// push it in
 	generators.push_back(feat_gen);
 }
+
+//.......................................................................................
+void MedModel::add_process_to_set(int i_set, const string &init_string)
+{
+	if (init_string.find("rp_type") != string::npos) return add_rep_processor_to_set(i_set, init_string);
+	if (init_string.find("fg_type") != string::npos) return add_feature_generator_to_set(i_set, init_string);
+	if (init_string.find("fp_type") != string::npos) return add_feature_processor_to_set(i_set, init_string);
+
+	MERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
+}
+
 
 // Add multi processors
 //.......................................................................................
