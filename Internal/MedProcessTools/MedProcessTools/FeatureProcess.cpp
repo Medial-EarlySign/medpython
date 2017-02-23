@@ -467,6 +467,14 @@ size_t FeatureNormalizer::deserialize(unsigned char *blob) {
 //=======================================================================================
 // FeatureImputer
 //=======================================================================================
+void FeatureImputer::print()
+{
+	MLOG("Imputer: Feat: %s nMoments: %d :: ", feature_name.c_str(), moments.size());
+	for (auto moment : moments)
+		MLOG("%f ", moment);
+	MLOG("\n");
+}
+
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
@@ -524,6 +532,9 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 
 	}
+
+//#pragma omp critical
+//	print();
 	return 0;
 }
 
