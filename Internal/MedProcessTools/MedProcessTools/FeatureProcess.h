@@ -331,6 +331,9 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
+	// debug and print
+	void print();
+
 };
 
 //.......................................................................................

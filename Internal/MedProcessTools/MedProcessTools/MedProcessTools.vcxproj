@@ -150,6 +150,7 @@
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SerializableObject.h" />
+    <ClInclude Include="SerializableObject_imp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

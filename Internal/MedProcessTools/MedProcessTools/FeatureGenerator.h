@@ -132,6 +132,9 @@ typedef enum {
 	FTR_LAST2_DAYS = 9,
 	FTR_SLOPE_VALUE = 10,
 	FTR_WIN_DELTA_VALUE = 11,
+	FTR_CATEGORY_SET = 12,
+	FTR_CATEGORY_SET_COUNT = 13,
+	FTR_CATEGORY_SET_SUM = 14,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -142,14 +145,19 @@ public:
 	string signalName;
 	int signalId;
 
+	// parameters (should be serialized)
 	BasicFeatureTypes type = FTR_LAST;
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
-	int d_win_from = 360, d_win_to = 360000;		// delta time window for the FTR_WIN_DELTA_VALUE feature
+	int d_win_from = 360, d_win_to = 360000;	// delta time window for the FTR_WIN_DELTA_VALUE feature
 	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
-	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
+	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
 
+	// helpers
+	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	vector<char> lut;							// to be used when generating FTR_CATEGORY_SET_*
 
 	// Naming 
 	void set_names();
@@ -195,6 +203,14 @@ public:
 	float uget_last2_time(UniversalSigVec &usv, int time_point);
 	float uget_slope(UniversalSigVec &usv, int time_point);
 	float uget_win_delta(UniversalSigVec &usv, int time_point);
+	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+
+	// helpers
+
+	// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _sig_time
+	void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _sig_time, int &_min_time, int &_max_time);
 
 
 	// Serialization
