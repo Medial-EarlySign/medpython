@@ -89,8 +89,7 @@ public:
 	void print(const string& prefix) ;
 	void print_short(const string& prefix) ;
 	void calculate(vector<float> &values) ; 
-	void get_mean_and_sdv(vector<float> &values) ;
-	void get_mean_and_sdv_for_split(vector<float> &values, vector<int> &splits, int i_split) ;
+	void get_mean_and_sdv(vector<float> &values, bool take_missing_into_account = false) ;
 	void get_cleaning_range (vector<float>& values, float& min_val, float& max_val, float std_mult = MED_CLEANER_MAX_Z) ;
 	void get_limits_iteratively(vector<float> values, float std_mult = MED_CLEANER_MAX_Z) ;
 	void get_cleaning_params(vector<float> values) ;

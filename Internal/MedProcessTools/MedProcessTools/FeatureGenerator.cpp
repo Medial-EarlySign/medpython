@@ -17,7 +17,7 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_AGE;
 	else if (generator_name == "gender")
 		return FTR_GEN_GENDER;
-	else if (generator_name == "binnedLmEstimates")
+	else if (generator_name == "binnedLmEstimates" || generator_name == "binnedLm"  || generator_name == "binnedLM")
 		return FTR_GEN_BINNED_LM;
 	else
 		return FTR_GEN_LAST;
@@ -33,6 +33,14 @@ void FeatureGenerator::init(MedFeatures &features) {
 		features.attributes[name].normalized = false;
 }
 
+//.......................................................................................
+FeatureGenerator *FeatureGenerator::create_generator(string &params)
+{
+	string fg_type;
+	get_single_val_from_init_string(params, "fg_type", fg_type);
+	return (make_generator(fg_type, params));
+}
+
 // Initialization
 //.......................................................................................
 FeatureGenerator *FeatureGenerator::make_generator(string generator_name) {
@@ -43,11 +51,13 @@ FeatureGenerator *FeatureGenerator::make_generator(string generator_name) {
 //.......................................................................................
 FeatureGenerator *FeatureGenerator::make_generator(string generator_name, string init_string) {
 
+	//MLOG("making generator %s , %s\n", generator_name.c_str(), init_string.c_str());
 	return make_generator(ftr_generator_name_to_type(generator_name), init_string);
 }
 
 //.......................................................................................
 FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type) {
+
 
 	if (generator_type == FTR_GEN_BASIC)
 		return new BasicFeatGenerator;
@@ -65,6 +75,7 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 //.......................................................................................
 FeatureGenerator * FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type, string init_string) {
 
+	//MLOG("making generator %d , %s\n", (int)generator_type, init_string.c_str());
 	FeatureGenerator *newFtrGenerator = make_generator(generator_type);
 	newFtrGenerator->init_from_string(init_string);
 	return newFtrGenerator;
@@ -146,6 +157,25 @@ void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds, Me
 // Single signal features that do not require learning(e.g. last hemoglobin)
 //=======================================================================================
 // 
+BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
+{
+
+	if (name == "last")				return FTR_LAST_VALUE;
+	if (name == "first")			return FTR_FIRST_VALUE;
+	if (name == "last2")			return FTR_LAST2_VALUE;
+	if (name == "avg")				return FTR_AVG_VALUE;
+	if (name == "max")				return FTR_MAX_VALUE;
+	if (name == "min")				return FTR_MIN_VALUE;
+	if (name == "std")				return FTR_STD_VALUE;
+	if (name == "last_delta")		return FTR_LAST_DELTA_VALUE;
+	if (name == "last_time")		return FTR_LAST_DAYS;
+	if (name == "last_time2")		return FTR_LAST2_DAYS;
+	if (name == "slope")			return FTR_SLOPE_VALUE;
+	if (name == "win_delta")			return FTR_WIN_DELTA_VALUE;
+
+	return (BasicFeatureTypes)stoi(name);
+}
+
 //.......................................................................................
 void BasicFeatGenerator::set_names() {
 	
@@ -164,6 +194,8 @@ void BasicFeatGenerator::set_names() {
 		case FTR_LAST_DELTA_VALUE:		name += "last_delta"; break;
 		case FTR_LAST_DAYS:		name += "last_time"; break;
 		case FTR_LAST2_DAYS:		name += "last2_time"; break;
+		case FTR_SLOPE_VALUE:		name += "slope"; break;
+		case FTR_WIN_DELTA_VALUE:		name += "win_delta"; break;
 		default: name += "ERROR";
 		}
 
@@ -198,7 +230,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
 
 	switch (type) {
-	case FTR_LAST_VALUE:	return uget_last(rec.usv, time);
+	case FTR_LAST_VALUE:	return uget_last(rec.usv, time, win_from, win_to);
 	case FTR_FIRST_VALUE:	return uget_first(rec.usv, time);
 	case FTR_LAST2_VALUE:	return uget_last2(rec.usv, time);
 	case FTR_AVG_VALUE:		return uget_avg(rec.usv, time);
@@ -208,6 +240,8 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_LAST_DELTA_VALUE:		return uget_last_delta(rec.usv, time);
 	case FTR_LAST_DAYS:			return uget_last_time(rec.usv, time);
 	case FTR_LAST2_DAYS:		return uget_last2_time(rec.usv, time);
+	case FTR_SLOPE_VALUE:		return uget_slope(rec.usv, time);
+	case FTR_WIN_DELTA_VALUE:		return uget_win_delta(rec.usv, time);
 
 	default:	return missing_val;
 	}
@@ -222,14 +256,17 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 
-		if (field == "type") type = (BasicFeatureTypes) stoi(entry.second);
+		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
-		else if (field == "signalName") signalName = entry.second;
+		else if (field == "d_win_from") d_win_from = stoi(entry.second);
+		else if (field == "d_win_to") d_win_to = stoi(entry.second);
+		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
+		else if (field != "fg_type")
+				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 	}
 
 	// names for BasicFeatGenerator are set as a first step in the Learn call as we must have access to the MedRepository
@@ -249,7 +286,7 @@ size_t BasicFeatGenerator::get_size() {
 	size_t size = 0;
 
 	size += sizeof(BasicFeatureTypes); //  BasicFeatureTypes type;
-	size += 2 * sizeof(int); // win from-to
+	size += 4 * sizeof(int); // win from-to d_win from-to
 	size += 3 * sizeof(int); // time_unit_win, time_channel, val_channel
 
 	// signalName
@@ -269,6 +306,8 @@ size_t BasicFeatGenerator::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &type, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
 	memcpy(blob + ptr, &win_from, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &win_to, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &d_win_from, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &d_win_to, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &time_unit_win, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
@@ -293,6 +332,8 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 	memcpy(&type, blob + ptr, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
 	memcpy(&win_from, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&win_to, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&d_win_from, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&d_win_to, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&time_unit_win, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
@@ -362,12 +403,13 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 
 //.......................................................................................
 // in all following uget funcs the relevant time window is [min_time, max_time]
+// time is assumed to be in the same units as the window
 //.......................................................................................
 // get the last value in the window [win_to, win_from] before time
-float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time) 
+float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_from, int _win_to) 
 {
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time-_win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time-_win_from);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		int itime = usv.Time(i, time_channel);
@@ -541,7 +583,9 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
 
 	for (int i=usv.len-1; i>=0; i--) {
-		if (usv.Time(i, time_channel) <= max_time)
+		int itime = usv.Time(i, time_channel);
+		if (itime <= max_time)
+			if (itime >= min_time)
 				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
 			else
 				return missing_val;
@@ -566,4 +610,54 @@ float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time)
 	}
 
 	return missing_val;
+}
+
+//.......................................................................................
+// get the slope in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_slope(UniversalSigVec &usv, int time)
+{
+
+	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_to);
+	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time -win_from);
+
+	double sx = 0, sy = 0, sxx = 0, sxy = 0, n = 0;
+	double t_start = -1;
+
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime > max_time) break;
+		if (itime >= min_time) {
+			if (t_start < 0) t_start = usv.TimeU(i, time_channel, time_unit_win);
+			double t_curr = usv.TimeU(i, time_channel, time_unit_win);
+			double x = (t_curr - t_start)/500.0;
+			double ival = usv.Val(i, val_channel);
+			sx += x;
+			sy += ival;
+			sxx += x*x;
+			sxy += x*ival;
+			n++;
+		}
+	}
+
+	if (n < 2) return missing_val;
+
+	double cov = sxy - sx*(sy/n);
+	double var = sxx - sx*(sx/n);
+
+	if (var < 0.1)		return 0;
+
+	return ((float)(cov/var));
+
+}
+
+//.......................................................................................
+float BasicFeatGenerator::uget_win_delta(UniversalSigVec &usv, int time)
+{
+	float val1 = uget_last(usv, time, win_from, win_to);
+	if (val1 == missing_val) return missing_val;
+
+	float val2 = uget_last(usv, time, d_win_from, d_win_to);
+	if (val2 == missing_val) return missing_val;
+
+	return (val1 - val2);
 }

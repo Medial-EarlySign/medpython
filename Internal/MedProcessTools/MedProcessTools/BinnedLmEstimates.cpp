@@ -122,7 +122,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "max_period") params.max_period = stoi(entry.second);
 		else if (field == "min_period") params.min_period = stoi(entry.second);
 		else if (field == "rfactor") params.rfactor = stof(entry.second);
-		else if (field == "signalName") signalName = entry.second;
+		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "estimation_points") {
 			if (init_dvec(entry.second, params.estimation_points) == -1) {
 				fprintf(stderr, "Cannot initialize estimation_points for LM\n");
@@ -133,7 +133,8 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second));
-		else MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
+		else if (field != "fg_type")
+			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
 
 	names.clear();
@@ -162,9 +163,6 @@ void BinnedLmEstimates::get_signal_ids(MedDictionarySections& dict) {
 // Learn a generator
 //.......................................................................................
 int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
-
-	// Determine Context
-	ageDirectlyGiven = (rep.dict.id("Age") != -1);
 	
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {
@@ -433,9 +431,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 // generate new feature(s)
 //.......................................................................................
 int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
-
-	// Determine Context
-	ageDirectlyGiven = (rec.my_base_rep->dict.id("Age") != -1);
 
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {

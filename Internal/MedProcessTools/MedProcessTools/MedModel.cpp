@@ -1,4 +1,5 @@
 #include "MedModel.h"
+#include "MedProcessUtils.h"
 #include <omp.h>
 
 #define LOCAL_SECTION LOG_MED_MODEL
@@ -240,6 +241,126 @@ void MedModel::get_required_signals(MedDictionarySections& dict) {
 
 }
 
+// generalized adder
+// type and signal are must have parameters in this case
+//.......................................................................................
+void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
+{
+	// check if i_set already initialized, and if not a multiprocessor change it into one
+	if (i_set < rep_processors.size()) {
+		// exists 
+		if (rep_processors[i_set] == NULL) {
+			// NULL ... in that case init an empty MultiProcessor in i_set
+			RepMultiProcessor *processor = new RepMultiProcessor;
+			rep_processors[i_set] = processor;
+		}
+		else if (rep_processors[i_set]->processor_type != REP_PROCESS_MULTI) {
+			// the processor was not multi, and hence we create one switch it , and push the current into it
+			RepProcessor *curr_p = rep_processors[i_set];
+			RepMultiProcessor *mprocessor = new RepMultiProcessor;
+			rep_processors[i_set] = mprocessor;
+			mprocessor->processors.push_back(curr_p);
+
+		} 
+	}
+	else {
+		// resize rep_processors
+		rep_processors.resize(i_set+1, NULL);
+
+		// put a new empty multi in i_set
+		RepMultiProcessor *processor = new RepMultiProcessor;
+		rep_processors[i_set] = processor;
+	}
+
+	// Now we are at a state in which we have a multi processor at i_set and need to create a new processor and push it in
+	string in = init_string;
+	RepProcessor *rep_proc = RepProcessor::create_processor(in);
+
+	// push it in
+	((RepMultiProcessor *)rep_processors[i_set])->processors.push_back(rep_proc);
+
+}
+
+//.......................................................................................
+// fp_type and feature name are must have parameters
+void MedModel::add_feature_processor_to_set(int i_set, const string &init_string)
+{
+	// if init_string does not have a names list (names parameter empty) it means a feature processor
+	// will be added to each of the currently initialized features.
+	// This means that this is order dependent.
+	// One has also to be careful not to enter the same feature twice.
+
+	// check if i_set already initialized, and if not a multiprocessor change it into one
+	if (i_set < feature_processors.size()) {
+		// exists 
+		if (feature_processors[i_set] == NULL) {
+			// NULL ... in that case init an empty MultiProcessor in i_set
+			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+			feature_processors[i_set] = mfprocessor;
+		}
+		else if (feature_processors[i_set]->processor_type != FTR_PROCESS_MULTI) {
+			// the processor was not multi, and hence we create one switch it , and push the current into it
+			FeatureProcessor *curr_fp = feature_processors[i_set];
+			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+			feature_processors[i_set] = mfprocessor;
+			mfprocessor->processors.push_back(curr_fp);
+
+		}
+	}
+	else {
+		// resize feature_processors
+		feature_processors.resize(i_set+1, NULL);
+
+		// put a new empty multi in i_set
+		MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+		feature_processors[i_set] = mfprocessor;
+	}
+
+	// Now we are at a state in which we have a multi feature processor at i_set and need to create a new processor or processors and push it in
+
+	// get all relevant features names
+	string feat_names;
+	get_single_val_from_init_string(init_string, "names", feat_names);
+
+	vector<string> features;
+	if (feat_names == "" || feat_names == "All")
+		get_all_features_names(features);
+	else
+		boost::split(features, feat_names, boost::is_any_of(","));
+
+	// get type of feature processor
+	string fp_type;
+	get_single_val_from_init_string(init_string, "fp_type", fp_type);
+	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
+	//MLOG("fp_type = %s %d\n", fp_type.c_str(), (int)type);
+
+	// actual adding to relevant MultiFeatureProcessor
+	((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
+}
+
+//.......................................................................................
+void MedModel::add_feature_generator_to_set(int i_set, const string &init_string)
+{
+	// currently there's NO multi feature generator .... (TBD)
+	// hence currently we simply ignore i_set, and pile up generators into generators
+
+	string in = init_string;
+	FeatureGenerator *feat_gen = FeatureGenerator::create_generator(in);
+
+	// push it in
+	generators.push_back(feat_gen);
+}
+
+// Add multi processors
+//.......................................................................................
+void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals) {
+	
+	RepMultiProcessor *processor = new RepMultiProcessor;
+	processor->add_processors_set(type, signals);
+	add_rep_processor(processor);
+
+}
+
 // Affected Signals
 //.......................................................................................
 void MedModel::get_affected_signals(MedDictionarySections& dict) {
@@ -262,15 +383,6 @@ void MedModel::init_signal_ids(MedDictionarySections& dict) {
 	for (FeatureGenerator *generator : generators)
 		generator->get_signal_ids(dict);
 }
-// Add multi processors
-//.......................................................................................
-void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals) {
-	
-	RepMultiProcessor *processor = new RepMultiProcessor;
-	processor->add_processors_set(type, signals);
-	add_rep_processor(processor);
-
-}
 
 //.......................................................................................
 void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string) {
@@ -285,12 +397,10 @@ void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& s
 void MedModel::add_feature_processors_set(FeatureProcessorTypes type) {
 
 	vector<string> features;
-	for (unsigned int i = 0; i < generators.size(); i++) {
-		for (string& name : generators[i]->names) {
-			fprintf(stderr, "Adding %s to processors of type %d\n", name.c_str(),type);
-			features.push_back(name);
-		}
-	}
+	get_all_features_names(features);
+
+//	for (auto &name : features) 
+//		MLOG("Adding %s to processors of type %d\n", name.c_str(),type);
 
 	add_feature_processors_set(type, features);
 
@@ -300,10 +410,7 @@ void MedModel::add_feature_processors_set(FeatureProcessorTypes type) {
 void MedModel::add_feature_processors_set(FeatureProcessorTypes type, string init_string) {
 
 	vector<string> features;
-	for (unsigned int i = 0; i < generators.size(); i++) {
-		for (string& name : generators[i]->names)
-			features.push_back(name);
-	}
+	get_all_features_names(features);
 
 	add_feature_processors_set(type, features,init_string);
 }
@@ -342,6 +449,17 @@ void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>
 		FeatureGenerator *generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
 		add_feature_generator(generator);
 	}
+}
+
+//.......................................................................................
+void MedModel::get_all_features_names(vector<string> &feat_names)
+{
+	feat_names.clear();
+	for (unsigned int i = 0; i < generators.size(); i++) {
+		for (string& name : generators[i]->names)
+			feat_names.push_back(name);
+	}
+
 }
 
 //.......................................................................................

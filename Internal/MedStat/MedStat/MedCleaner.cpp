@@ -105,8 +105,9 @@ void MedCleaner::normalize(vector<float>& values) {
 }
 
 
-// Calculate trimming min/max iteratively
-//std_mult - allow values within std_mult std's of mean. should be positive.
+// Calculate trimming min/max iteratively - first version
+// std_mult - allow values within std_mult std's of mean. should be positive.
+// iteratively trim and remove outliers
 void MedCleaner::get_limits_iteratively(vector<float> values, float std_mult) {
 	
 	int changed = 1 ;
@@ -115,36 +116,27 @@ void MedCleaner::get_limits_iteratively(vector<float> values, float std_mult) {
 	float min_val,max_val ;
 	
 	//MLOG("get_limits_iteratively iter %d\n", iter++);
-	mean = 0; // signing with something different from missing_value , to sign we don't adjust to missing values yet (will be done at the end)
 	get_cleaning_range(values,min_val,max_val,std_mult) ;
 	trim_min = min_val ; remove_min = trim_min - 1 ;
 	trim_max = max_val ; remove_max = trim_max + 1 ;
 
 	vector<float> orig_values = values;
 	while (changed) {
-		//values = orig_values;
 		changed = clear(values);
-
 		if (changed) {
 			//MLOG("get_limits_iteratively iter %d\n", iter++);
 			get_cleaning_range(values,min_val,max_val,std_mult) ;
 			trim_min = min_val ; remove_min = trim_min - 1 ;
 			trim_max = max_val ; remove_max = trim_max + 1 ;
-
 		}
 
 	}
-
-	// once we got our final mean,sdv , we do one more run of it on the original data to compensate accurately for the missing value places
-	clear(orig_values);
-	mean = missing_value; // signing taking missing into account
-	get_cleaning_range(orig_values, min_val, max_val, std_mult);
-	trim_min = min_val; remove_min = trim_min - 1;
-	trim_max = max_val; remove_max = trim_max + 1;
-
+	// once we got our final limits, recalc sdv and take into account missing values
+	get_mean_and_sdv(values, true);
 }
 
-// Cleaning parameters - Remove min/max are calculated iteratively . Trim min/max are minimal/maximal values within remove min/max range.
+// Calculate trimming min/max iteratively - second version
+// Trim min/max are minimal/maximal values within remove min/max range
 void MedCleaner::get_cleaning_params(vector<float> values) {
 
 	int changed = 1 ;
@@ -166,11 +158,13 @@ void MedCleaner::get_cleaning_params(vector<float> values) {
 			get_cleaning_range(values,min_val,max_val) ;
 			trim_min = remove_min = min_val ;
 			trim_max = remove_max = max_val ;
+			//fprintf(stderr, "min_val %f trim_min %f remove_min %f \n", min_val, trim_min, remove_min);
+			//fprintf(stderr, "max_val %f trim_max %f remove_max %f \n", max_val, trim_max, remove_max);
 
 		}
 	}
 
-	// Trim min/max
+	// after removing all outliers, we set trim to the min/max in the remaining values
 	int init = 1 ;
 	for (unsigned int i=0; i<values.size(); i++) {
 		if (values[i] != missing_value) {
@@ -195,7 +189,8 @@ float calc_quartile(map<float, int> counter, int q) {
 	}
 	throw exception();
 }
-// Calculate all moments
+
+// Calculate all moments, ignores missing values
 void MedCleaner::calculate(vector<float> &_values) {
 
 	vector<float> values ;
@@ -231,26 +226,12 @@ void MedCleaner::calculate(vector<float> &_values) {
 	max = calc_quartile(counter, n);
 	iqr = q3 - q1;
 
-	// Mean
-	float s = 0 ;
-	for (auto it = counter.begin(); it != counter.end(); it++)
-		s += it->first * it->second ;
-	mean = s/n ;
-	
-	// Standard deviation
-	s = 0 ;
-	for (auto it = counter.begin(); it != counter.end(); it++)
-		s += (it->first-mean)*(it->first-mean)*it->second ;
-	
-	if (s <= MED_CLEANER_EPSILON) 
-		sdv = 1 ;
-	else
-		sdv = sqrt(s/n) ;
 
+	get_mean_and_sdv(values);
 
 	// MLOG("cleaner : avg %f std %f\n", mean, sdv);
 	// Skew
-	s = 0 ;
+	int s = 0 ;
 	for (auto it = counter.begin(); it != counter.end(); it++) {
 		float v = (it->first-mean)/sdv ;
 		s += v*v*v ;
@@ -271,14 +252,14 @@ void MedCleaner::calculate(vector<float> &_values) {
 }
 
 // Calculate mean + sdv
-void MedCleaner::get_mean_and_sdv (vector<float>& values) {
+// take_missing_into_account: sdv should be adjusted if there are lots of missing values that are to be replaced with mean
+void MedCleaner::get_mean_and_sdv(vector<float>& values, bool take_missing_into_account) {
 
 	// Mean
 	double s = 0, s2 = 0  ;
 	double n = 0 ;
 
 	int size = (int)values.size();
-	bool take_missing_into_account = (mean == missing_value);
 
 	for (auto val : values)
 		if (val != missing_value) {
@@ -291,8 +272,8 @@ void MedCleaner::get_mean_and_sdv (vector<float>& values) {
 		mean_without_missing = s/n;
 	else
 		mean_without_missing = 0;
-
-	if (replace_missing_to_mean_flag && take_missing_into_account) {
+	
+	if (take_missing_into_account) {
 		s += (size-n)*mean_without_missing;
 		n = size;
 	}
@@ -312,59 +293,19 @@ void MedCleaner::get_mean_and_sdv (vector<float>& values) {
 	else
 		sdv = 1;
 
-	if (sdv < 1e-5) sdv = 1;
+	if (sdv < MED_CLEANER_EPSILON) sdv = 1;
 
-	//MLOG("cleaner : size %d avg %f std %f s %f s2 %f n %d adjust %d\n", size, mean, sdv, s, s2, (int)n, (int)take_missing_into_account);
+	//MLOG("cleaner : size %d mean %f std %f n %d adjust %d\n", size, mean, sdv, (int)n, (int)take_missing_into_account);
 
 	return;
-}
-
-void MedCleaner::get_mean_and_sdv_for_split(vector<float> &values, vector<int> &splits, int i_split) 
-{
-	// Mean
-	double s = 0, s2 = 0  ;
-	n = 0 ;
-
-	int size = (int)values.size();
-
-	double fact = 1e-5; // adding some numerical stability
-	for (int i=0; i<size; i++) {
-		if (values[i] != missing_value && splits[i] != i_split) {
-			n ++ ;
-			s += values[i]*fact ;
-			s2 += values[i] * values[i] * fact;
-		}
-	}
-
-	if (n>0)
-		mean = (float)(s/(fact*(double)n)) ;
-	else
-		mean = 0;
-	double var = 0 ;
-
-	if (n > 1)
-		var = (s2 - s*(double)mean)/(fact*(double)(n-1));
-		 
-	if (var > MED_CLEANER_EPSILON)
-		sdv = (float)sqrt(var) ;
-	else
-		sdv = 1 ;
 }
 
 // Calculate Min/Max
 // Note - std_mult must be positive
 void MedCleaner::get_cleaning_range (vector<float>& values, float& min_val, float& max_val, float std_mult) {
-
-	bool adjust_for_missing = (mean == missing_value);
-
 	get_mean_and_sdv(values) ;
-
-	if (!adjust_for_missing) {
-		// in the case of adjusting we DO NOT want to change the trimming values, but just the sdv and mean
-		min_val = mean - std_mult * sdv;
-		max_val = mean + std_mult * sdv;
-	}
-
+	min_val = mean - std_mult * sdv;
+	max_val = mean + std_mult * sdv;
 	return ;
 }
 

@@ -89,6 +89,8 @@ public:
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
 
+	static FeatureGenerator *create_generator(string &params); // must include fg_type
+
 	virtual int init(void *generator_params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
@@ -128,6 +130,8 @@ typedef enum {
 	FTR_LAST_DELTA_VALUE = 7,
 	FTR_LAST_DAYS = 8,
 	FTR_LAST2_DAYS = 9,
+	FTR_SLOPE_VALUE = 10,
+	FTR_WIN_DELTA_VALUE = 11,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -140,6 +144,7 @@ public:
 
 	BasicFeatureTypes type = FTR_LAST;
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
+	int d_win_from = 360, d_win_to = 360000;		// delta time window for the FTR_WIN_DELTA_VALUE feature
 	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
 	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
@@ -157,6 +162,8 @@ public:
 		signalName = _signalName;type = _type; win_from = _time_win_from; win_to = _time_win_to;
 		set_names(); req_signals.assign(1, signalName);
 	}
+
+	BasicFeatureTypes name_to_type(const string &name);
 
 	// Init
 	int init(map<string, string>& mapper);
@@ -176,7 +183,7 @@ public:
 	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// actual generators
-	float uget_last(UniversalSigVec &usv, int time_point);
+	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
 	float uget_first(UniversalSigVec &usv, int time_point);
 	float uget_last2(UniversalSigVec &usv, int time_point);
 	float uget_avg(UniversalSigVec &usv, int time_point);
@@ -186,6 +193,8 @@ public:
 	float uget_last_delta(UniversalSigVec &usv, int time_point);
 	float uget_last_time(UniversalSigVec &usv, int time_point);
 	float uget_last2_time(UniversalSigVec &usv, int time_point);
+	float uget_slope(UniversalSigVec &usv, int time_point);
+	float uget_win_delta(UniversalSigVec &usv, int time_point);
 
 
 	// Serialization
