@@ -335,6 +335,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
 
 	int rc =  get_iterative_min_max(values);
+	//print();
 	return rc;
 }
 

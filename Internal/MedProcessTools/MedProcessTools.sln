@@ -12,8 +12,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Example", "Example\Example.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{900A62A2-7011-4326-A3BF-82E0CCA40C17}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfraMed", "..\InfraMed\InfraMed\InfraMed.vcxproj", "{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -38,14 +36,6 @@ Global
 		{964B6A2E-5CC7-499B-93F0-97652AC3859A}.Release|x64.Build.0 = Release|x64
 		{964B6A2E-5CC7-499B-93F0-97652AC3859A}.Release|x86.ActiveCfg = Release|Win32
 		{964B6A2E-5CC7-499B-93F0-97652AC3859A}.Release|x86.Build.0 = Release|Win32
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Debug|x64.ActiveCfg = Debug|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Debug|x64.Build.0 = Debug|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Debug|x86.ActiveCfg = Debug|Win32
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Debug|x86.Build.0 = Debug|Win32
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Release|x64.ActiveCfg = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Release|x64.Build.0 = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Release|x86.ActiveCfg = Release|Win32
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

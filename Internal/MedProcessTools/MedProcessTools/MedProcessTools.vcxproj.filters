@@ -92,5 +92,8 @@
     <ClInclude Include="FeatureSelector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SerializableObject_imp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

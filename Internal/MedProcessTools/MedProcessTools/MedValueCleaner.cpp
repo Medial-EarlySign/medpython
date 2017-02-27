@@ -72,8 +72,15 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 
 		int n = get_moments(values, wgts, params.missing_value, mean, sd);
 		if (n == 0) {
-			MERR("Cannot learn cleaning parameters from an empty vector\n");
-			return -1;
+			MWARN("EMPTY_VECTOR:: learning cleaning parameters from an empty vector\n");
+			trimMax = 0; 
+			trimMin = 0; 
+			removeMax = 0;
+			removeMin = 0;
+			nbrsMax = 0;
+			nbrsMin = 0;
+
+			return 0;
 		}
 
 		max = mean + params.trimming_sd_num * sd;
