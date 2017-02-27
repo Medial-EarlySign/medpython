@@ -344,7 +344,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 	vector<float> values;
 	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
 
-	int rc =  get_iterative_min_max(values);
+	int rc = get_iterative_min_max(values);
 	return rc;
 }
 
@@ -567,7 +567,8 @@ int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& id
 	vector<float> values;
 	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
 
-	return get_iterative_min_max(values);
+	int rc = get_iterative_min_max(values);
+	return rc;
 }
 
 //.......................................................................................
@@ -819,7 +820,6 @@ void RepNbrsOutlierCleaner::print()
 // Get values of a signal from a set of ids
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_processors) 
 {
-	int len;
 	vector<int> neededSignalIds = { signalId };
 	PidDynamicRec rec;
 	vector<int> req_signal_ids(1, signalId);

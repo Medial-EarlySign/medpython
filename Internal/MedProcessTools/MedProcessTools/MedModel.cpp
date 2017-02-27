@@ -134,8 +134,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	learn_samples->get_ids(ids);
 
 	vector<int> rc(generators.size(), 0);
-
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i<generators.size(); i++)
 		rc[i] = generators[i]->learn(rep, ids,rep_processors);
 
@@ -146,7 +145,6 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 //.......................................................................................
 int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features)
 {
-
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
