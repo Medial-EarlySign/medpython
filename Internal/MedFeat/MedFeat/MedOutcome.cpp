@@ -1393,10 +1393,9 @@ void collect_features_for_outcome_thread(void *p)
 
 					// Before2Y
 					if (stype == "Before2Y" || stype == "Delta2Y") {
-
 						int pos = len-1;
 						while (pos >= 0) {
-							if (sdv[pos].date < (pdate-720)) {
+							if (get_day_approximate(sdv[pos].date) < get_day_approximate(pdate-720)) {
 								if (stype == "Before2Y") dsigs[i][k] = sdv[pos].val;
 								if (stype == "Delta2Y") dsigs[i][k] = sdv[len-1].val - sdv[pos].val;
 								pos = -1;
