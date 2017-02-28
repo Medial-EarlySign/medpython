@@ -332,7 +332,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	int rc =  get_iterative_min_max(values);
 	//print();
@@ -350,7 +350,7 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	return get_quantile_min_max(values);
 }
@@ -526,6 +526,7 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "val_channel") time_channel = stoi(entry.second);
 		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
+
 	}
 
 	return MedValueCleaner::init(mapper);
@@ -556,7 +557,7 @@ int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& id
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	return get_iterative_min_max(values);
 }
@@ -572,7 +573,7 @@ int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	return get_quantile_min_max(values);
 }
@@ -808,7 +809,7 @@ void RepNbrsOutlierCleaner::print()
 //=======================================================================================
 //.......................................................................................
 // Get values of a signal from a set of ids
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_processors) 
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors) 
 {
 	vector<int> neededSignalIds = { signalId };
 	PidDynamicRec rec;
@@ -838,13 +839,18 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 			// Collect 
 			for (int i = 0; i < usv.len; i++) {
 				rec.uget(signalId, i, rec.usv);
-				values.push_back(rec.usv.Val(i, val_channel));
+				float ival = rec.usv.Val(i, val_channel);
+				if (ival >= range_min && ival <= range_max)
+					values.push_back(ival);
 			}
 		}
 		else {
 			// Collect 
-			for (int i = 0; i < usv.len; i++)
-				values.push_back(usv.Val(i, val_channel));
+			for (int i = 0; i < usv.len; i++) {
+				float ival = usv.Val(i, val_channel);
+				if (ival >= range_min && ival <= range_max)
+					values.push_back(ival);
+			}
 		}
 	}
 	
@@ -852,7 +858,7 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 }
 
 //.......................................................................................
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values) {
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) {
 	vector<RepProcessor *> temp;
-	return get_values(rep, ids, signalId, time_channel, val_channel, values, temp); 
+	return get_values(rep, ids, signalId, time_channel, val_channel, range_min, range_max, values, temp); 
 }

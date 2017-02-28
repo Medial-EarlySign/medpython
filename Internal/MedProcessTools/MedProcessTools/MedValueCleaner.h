@@ -18,6 +18,8 @@ public:
 	// General
 	int take_log;
 	float missing_value;
+	float range_min = -1e20;
+	float range_max = 1e20;
 
 	// Iterative
 	float trimming_sd_num, removing_sd_num, nbrs_sd_num ;

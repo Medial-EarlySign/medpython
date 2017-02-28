@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
 			// cleaner for sig
 			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
-			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;signal="+sig);
+			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=0;range_min=0.00;range_max=1000;signal="+sig);
 
 			// features for sig
 
