@@ -375,6 +375,7 @@ class MedIndex {
 		void print_vec_dict(void *data, int len, int pid, int sid);
 		void print_data_vec(int pid, int sid);
 		void print_data_vec_dict(int pid, int sid);
+		void print_csv_vec(void * data, int len, int pid, int sid, bool dict_val);
 		void print_data_vec(int pid, const string &sig_name);
 
 

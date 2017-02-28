@@ -5,6 +5,7 @@
 
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "MedTime/MedTime/MedTime.h"
 #include <unordered_set>
 
 class MedFeatures;
@@ -19,10 +20,10 @@ class MedFeatures;
 class MedSample : public SerializableObject {
 public:
 	int id; // Optional
-	int date;
+	int time;
 	float outcome;
 	vector<float> prediction;
-	int outcomeDate;
+	int outcomeTime;
 
 	// (De)Serialization
 	size_t get_size();
@@ -47,6 +48,7 @@ public:
 // A collection of ids and relevant samples
 class MedSamples {
 public:
+	int time_unit = MedTime::Date; // the time unit in which the samples are given. Default: Days
 	vector<MedIdSamples> idSamples;
 
 	// Functions

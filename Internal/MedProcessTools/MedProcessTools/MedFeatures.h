@@ -38,7 +38,11 @@ public:
 	// Attributes
 	map<string, FeatureAttr> attributes;
 
+	// time Unit
+	int time_unit;
+
 	// Constructor/Destructor
+	MedFeatures(int _time_unit) { time_unit = _time_unit; }
 	MedFeatures() {};
 	~MedFeatures() {};
 

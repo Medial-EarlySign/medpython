@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
 	timer.start();
 
-#define DIRECT_INIT 1
+#define DIRECT_INIT 0
 	if (DIRECT_INIT) {
 		MLOG("Initializing RepCleaners and Features: nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
 		for (auto sig : signals) {
@@ -107,10 +107,11 @@ int main(int argc, char *argv[])
 		MLOG("Initializing Features\n");
 
 		vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_STD_VALUE, FTR_LAST_DELTA_VALUE , FTR_LAST_DAYS, FTR_LAST2_DAYS };
-		//	vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE };
+//		vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE , FTR_FIRST_VALUE };
+	
 		for (auto sig_type : sig_types) 
 			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
-		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
+//		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
 
 		// Age + Gender
 		MLOG( "Initializing Extra Features\n");
@@ -190,7 +191,7 @@ int main(int argc, char *argv[])
 
 		// Learn on 50%; Predict on rest
 		BasicTrainFilter trainFilter;
-		BasicTestFilter testFilter;
+		BasicTestFilter testFilter; 
 
 		// Learning and test set
 		MedSamples learningSamples, testSamples;

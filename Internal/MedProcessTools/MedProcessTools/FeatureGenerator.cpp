@@ -219,23 +219,21 @@ void BasicFeatGenerator::set_names() {
 int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	string& name = names[0];
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
 	float *p_feat = &(features.data[name][index]);
 	for (int i = 0; i < num; i++)
-//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
-		p_feat[i] = get_value(rec, i, features.samples[index+i].date);
-
+		//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
+		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index+i].time));
+	
 	return 0;
 }
 
 //.......................................................................................
 float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
-	// signalId
-	if (signalId == -1)	signalId = rec.my_base_rep->dict.id(signalName);
-	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
-
 	rec.uget(signalId, idx);
+
 
 	switch (type) {
 	case FTR_LAST_VALUE:	return uget_last(rec.usv, time, win_from, win_to);
@@ -385,7 +383,7 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 	int byear = (int)(bYearSignal[0].val);
 
 	for (int i = 0; i < num; i++)
-		features.data[names[0]][index + i] = (float) (features.samples[i].date / 10000 - byear); 
+		features.data[names[0]][index + i] = (float) (med_time_converter.convert_times(features.time_unit, MedTime::Years, features.samples[i].time) - byear);
 
 	return 0;
 }
@@ -414,21 +412,21 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 
 
 
-//.......................................................................................
-// in all following uget funcs the relevant time window is [min_time, max_time]
-//.......................................................................................
-void BasicFeatGenerator::get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _sig_time, int &_min_time, int &_max_time)
+//................................................................................................................
+// in all following uget funcs the relevant time window is [min_time, max_time] and time is given in time_unit_win
+//................................................................................................................
+
+void BasicFeatGenerator::get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time)
 {
-	int conv_time = med_time_converter.convert_times(_time_unit_sig, _time_unit_win, _sig_time);
-	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, conv_time-_win_to);
-	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, conv_time-_win_from);
+	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_to);
+	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_from);
 }
 
 // get the last value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_from, int _win_to) 
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		int itime = usv.Time(i, time_channel);
@@ -597,13 +595,14 @@ float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time)
 //.......................................................................................
 float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	for (int i=usv.len-1; i>=0; i--) {
-		if (usv.Time(i, time_channel) <= max_time)
-				return (float)(conv_time - usv.TimeU(i, time_channel, time_unit_win));
+		int itime = usv.Time(i, time_channel);
+		if (itime <= max_time)
+			if (itime >= min_time)
+				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
 			else
 				return missing_val;
 	}
@@ -614,14 +613,13 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 //.......................................................................................
 float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time)
 {
-	int conv_time = med_time_converter.convert_times(time_unit_sig, time_unit_win, time);
-	int min_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_to);
-	int max_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, conv_time-win_from);
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
 			if (i>0 && usv.Time(i-1, time_channel) >= min_time)
-				return (float)(conv_time - usv.TimeU(i-1, time_channel, time_unit_win));
+				return (float)(time - usv.TimeU(i-1, time_channel, time_unit_win));
 			else
 				return missing_val;
 		}
@@ -634,6 +632,7 @@ float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time)
 // get the slope in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_slope(UniversalSigVec &usv, int time)
 {
+
 	int min_time, max_time;
 	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
