@@ -103,7 +103,9 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	for (int i = 0; i < nsamples; i++) {
 		dtrain.get()->info().labels.push_back(y[i]);
-		dtrain.get()->info().weights.push_back(w[i]);
+		if (w != NULL) {
+			dtrain.get()->info().weights.push_back(w[i]);
+		}
 	}
 
 	std::vector<std::unique_ptr<DMatrix> > deval;
