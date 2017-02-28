@@ -1182,8 +1182,8 @@ int QuantizedRF::split_regression_node(QRF_Tree &tree, int node)
 	for (i=k+1; i<=nd->to_sample; i++) {
 		tree.sample_ids[i] = tree.inds[i];
 		sumR += yr[tree.inds[i]];
-		if (yr[tree.inds[i]] > maxL) maxL = yr[tree.inds[i]];
-		if (yr[tree.inds[i]] < minL) minL = yr[tree.inds[i]];
+		if (yr[tree.inds[i]] > maxR) maxR = yr[tree.inds[i]];
+		if (yr[tree.inds[i]] < minR) minR = yr[tree.inds[i]];
 	}
 
 
