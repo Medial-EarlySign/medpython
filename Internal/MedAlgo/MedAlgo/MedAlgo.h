@@ -443,6 +443,7 @@ public:
 	// Print
 	void print(FILE *fp, const string& prefix) ;
 
+	void printTrees(const vector<string> &modelSignalNames, const string &outputPath);
 	// Predictions per sample
 	int n_preds_per_sample() ;
 
