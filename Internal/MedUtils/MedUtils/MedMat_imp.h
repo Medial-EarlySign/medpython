@@ -200,7 +200,7 @@ template <class T> template <class S> void MedMat<T>::add_cols(vector<S> &m_add)
 		return;
 
 	int ncols_to_add = (int)(m_add.size()/nrows);
-	add_cols(&m[0], ncols_to_add);
+	add_cols(&m_add[0], ncols_to_add);
 }
 
 //...........................................................................................
