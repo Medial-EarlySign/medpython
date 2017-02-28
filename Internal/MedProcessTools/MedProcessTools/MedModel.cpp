@@ -48,7 +48,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	timer.take_curr_time();
 	MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
 
-	MedFeatures features;
+	MedFeatures features(LearningSet->time_unit);
 
 	// Generate features
 	timer.start();
@@ -92,7 +92,8 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 		req_signals.push_back(signalId);
 
 	// Generate features
-	MedFeatures features;
+	MedFeatures features(samples.time_unit);
+
 	if (generate_all_features(rep, &samples, features) < 0) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 		return -1;
@@ -120,7 +121,7 @@ int MedModel::quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids
 
 	vector<int> rc(rep_processors.size(), 0);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<rep_processors.size(); i++)
 		rc[i] = rep_processors[i]->learn(rep,ids);
 
@@ -136,7 +137,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 
 	vector<int> rc(generators.size(), 0);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i<generators.size(); i++)
 		rc[i] = generators[i]->learn(rep, ids,rep_processors); //??? why is this done for ALL time points in an id???
 
@@ -409,8 +410,8 @@ void MedModel::add_feature_processors_set(FeatureProcessorTypes type) {
 	vector<string> features;
 	get_all_features_names(features);
 
-	for (auto &name : features) 
-		MLOG("Adding %s to processors of type %d\n", name.c_str(),type);
+//	for (auto &name : features) 
+//		MLOG("Adding %s to processors of type %d\n", name.c_str(),type);
 
 	add_feature_processors_set(type, features);
 

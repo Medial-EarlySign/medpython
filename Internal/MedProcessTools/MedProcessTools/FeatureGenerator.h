@@ -209,8 +209,8 @@ public:
 
 	// helpers
 
-	// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _sig_time
-	void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _sig_time, int &_min_time, int &_max_time);
+	// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
+	void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
 
 
 	// Serialization
@@ -309,14 +309,17 @@ class BinnedLmEstimates : public FeatureGenerator {
 public:
 	// Feature Descrption
 	string signalName;
-	int signalId, byearId, genderId;
+	int signalId, byearId, genderId, ageId;
+
+	// Is age directly given (Hospital data) or through birth-year (Primary-care data)
+	bool ageDirectlyGiven = false;
 
 	BinnedLmEstimatesParams params;
 	vector<MedLM> models;
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<float> means[2];
 
-	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_periods = MedTime::Days;		// the time unit in which the periods are given. Default: Days
 	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
@@ -345,10 +348,15 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); genderId = dict.id("GENDER"); byearId = dict.id("BYEAR"); }
+	void get_signal_ids(MedDictionarySections& dict);
 
 	// Number of features generated
 	virtual int nfeatures() { return (int) params.estimation_points.size(); }
+
+	// Age Related functions
+	void prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear);
+	void prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear);
+	inline void get_age(int time, int& age, int byear);
 
 	// Serialization
 	size_t get_size();

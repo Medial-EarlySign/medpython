@@ -63,7 +63,7 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 	}
 
 	bool need_to_clean = true;
-	float mean, sd, min, max;
+	float mean, sd, vmin, vmax;
 
 	vector<float> wgts(values.size(), 1.0);
 
@@ -83,32 +83,41 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 			return 0;
 		}
 
-		max = mean + params.trimming_sd_num * sd;
-		min = mean - params.trimming_sd_num * sd;
+		vmax = min(mean + params.trimming_sd_num * sd, params.range_max);
+		vmin = max(mean - params.trimming_sd_num * sd, params.range_min);
 
 		// Clean
 		need_to_clean = false;
 		for (unsigned int i = 0; i < values.size(); i++) {
 			if (values[i] != params.missing_value) {
-				if (values[i] > max) {
+				if (values[i] > vmax) {
 					need_to_clean = true;
-					values[i] = max;
+					values[i] = vmax;
 				}
-				else if (values[i] < min) {
+				else if (values[i] < vmin) {
 					need_to_clean = true;
-					values[i] = min;
+					values[i] = vmin;
 				}
 			}
 		}
 	}
 
 
-	trimMax = max; if (params.take_log) trimMax = exp(trimMax);
-	trimMin = min; if (params.take_log) trimMin = exp(trimMin);
+	trimMax = vmax; if (params.take_log) trimMax = exp(trimMax);
+	trimMin = vmin; if (params.take_log) trimMin = exp(trimMin);
 	removeMax = mean + params.removing_sd_num * sd; if (params.take_log) removeMax = exp(removeMax);
 	removeMin = mean - params.removing_sd_num * sd; if (params.take_log) removeMin = exp(removeMin);
 	nbrsMax = mean + params.nbrs_sd_num * sd; if (params.take_log) nbrsMax = exp(nbrsMax);
 	nbrsMin = mean - params.nbrs_sd_num * sd; if (params.take_log) nbrsMin = exp(nbrsMin);
+
+	trimMax = min(trimMax, params.range_max);
+	trimMin = max(trimMin, params.range_min);
+	removeMax = min(removeMax, params.range_max);
+	removeMin = max(removeMin, params.range_min);
+	nbrsMax = min(nbrsMax, params.range_max);
+	nbrsMin = max(nbrsMin, params.range_min);
+
+
 
 	return 0;
 }
@@ -152,6 +161,9 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "nbrs_quantile_factor") params.nbrs_quantile_factor = stof(entry.second);
 		else if (field == "doTrim") params.doTrim = (stoi(entry.second) != 0);
 		else if (field == "doRemove") params.doRemove = (stoi(entry.second) != 0);
+		else if (field == "range_min") params.range_min = stof(entry.second);
+		else if (field == "range_max") params.range_max = stof(entry.second);
+
 		// next are in ignore ... used in level above
 		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&
 				 field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width" && field != "rp_type")
