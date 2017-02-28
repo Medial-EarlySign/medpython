@@ -186,9 +186,9 @@ void RepMultiProcessor::get_signal_ids(MedDictionarySections& dict) {
 int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
 
 	vector<int> rc(processors.size(), 0);
-#pragma omp parallel for
+
+#pragma omp parallel for schedule(dynamic)
 	for (int j=0; j<processors.size(); j++) {
-	//for (auto& cleaner : cleaners) {
 		rc[j] = processors[j]->Learn(rep, ids, prev_processors);
 	}
 
@@ -201,7 +201,9 @@ int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<Rep
 int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	vector<int> rc(processors.size(),0);
-#pragma omp parallel for
+
+// ??? chances are this next parallelization is not needed, as we parallel before on recs...
+//#pragma omp parallel for schedule(dynamic)
 	for (int j=0; j<processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points);
 	}
@@ -215,7 +217,8 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 
 	vector<int> rc(processors.size(), 0);
 
-#pragma omp parallel for
+// ??? chances are this next parallelization is not needed, as we parallel before on recs...
+//#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points, neededSignalIds);
 	}

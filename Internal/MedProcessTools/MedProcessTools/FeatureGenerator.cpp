@@ -420,6 +420,8 @@ void BasicFeatGenerator::get_window_in_sig_time(int _win_from, int _win_to, int 
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_from);
+
+	//MLOG("_win_from %d _win_to_ %d unit_win %d unit_sig %d _win_time %d min_time %d max_time %d\n", _win_from, _win_to, _time_unit_win, _time_unit_sig, _win_time, _min_time, _max_time);
 }
 
 // get the last value in the window [win_to, win_from] before time

@@ -121,7 +121,7 @@ int MedModel::quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids
 
 	vector<int> rc(rep_processors.size(), 0);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<rep_processors.size(); i++)
 		rc[i] = rep_processors[i]->learn(rep,ids);
 
@@ -137,7 +137,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 
 	vector<int> rc(generators.size(), 0);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i<generators.size(); i++)
 		rc[i] = generators[i]->learn(rep, ids,rep_processors); //??? why is this done for ALL time points in an id???
 
