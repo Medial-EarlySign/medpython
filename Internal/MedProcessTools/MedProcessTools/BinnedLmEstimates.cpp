@@ -132,7 +132,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "time_unit") time_unit_periods = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second));
+		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second)!=0);
 		else if (field != "fg_type")
 			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
