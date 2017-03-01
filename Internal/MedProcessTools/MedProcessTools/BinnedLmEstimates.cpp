@@ -221,7 +221,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			rec.uget(signalId, 0, usv);
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), age, byear);
+				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
@@ -233,7 +233,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), age, byear);
+				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
@@ -420,7 +420,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		
 		models[type].params.rfactor = params.rfactor;
 		models[type].learn(tx, ty);		
-//		models[type].print(stderr, "model" + to_string(type));
+//		models[type].print(stdout, "model." + signalName + "." + to_string(type));
 
 	}
 
@@ -501,7 +501,7 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				}
 
 				if (iperiod != nperiods) {
-					get_age(rec.usv.Time(j, time_channel), age, byear);
+					get_age(rec.usv.Time(j, time_channel), time_unit_sig, age, byear);
 					if (age > BINNED_LM_MAX_AGE)
 						age = BINNED_LM_MAX_AGE;
 					type_sum += rec.usv.Val(j,val_channel) - means[gender-1][age];
@@ -514,7 +514,8 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				x(0, jperiod) = type_sum / type_num;
 			}
 
-			get_age(last_time, age, byear);
+			get_age(last_time, time_unit_periods, age, byear);
+
 			if (age > BINNED_LM_MAX_AGE)
 				age = BINNED_LM_MAX_AGE;
 
@@ -707,9 +708,9 @@ void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, Universal
 	}
 }
 
-inline void BinnedLmEstimates::get_age(int time, int& age, int byear) {
+inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, int byear) {
 	
 	if (! ageDirectlyGiven)
-		age =  med_time_converter.convert_times(time_unit_sig, MedTime::Date, time)/10000 - byear;
+		age =  med_time_converter.convert_times(time_unit_from, MedTime::Date, time)/10000 - byear;
 
 }

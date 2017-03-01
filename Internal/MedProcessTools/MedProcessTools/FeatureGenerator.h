@@ -356,7 +356,7 @@ public:
 	// Age Related functions
 	void prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear);
 	void prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear);
-	inline void get_age(int time, int& age, int byear);
+	inline void get_age(int time, int time_unit_from, int& age, int byear);
 
 	// Serialization
 	size_t get_size();
