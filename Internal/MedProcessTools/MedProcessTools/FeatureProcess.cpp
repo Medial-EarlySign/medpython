@@ -10,11 +10,11 @@
 // Feature Processors
 //=======================================================================================
 // Processor types
-FeatureProcessorTypes feature_processor_name_to_type(const string& processor_name) {
-
-	if (processor_name == "multi_processor")
+FeatureProcessorTypes feature_processor_name_to_type(const string& processor_name) 
+{
+	if (processor_name == "multi_processor" || processor_name == "multi")
 		return FTR_PROCESS_MULTI;
-	else if (processor_name == "basic_outlier_cleaner")
+	else if (processor_name == "basic_outlier_cleaner" || processor_name == "basic_cleaner" || processor_name == "basic_cln")
 		return FTR_PROCESS_BASIC_OUTLIER_CLEANER;
 	else if (processor_name == "normalizer")
 		return FTR_PROCESS_NORMALIZER;
@@ -398,7 +398,8 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
-		else MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
+		else if (field != "names" && field != "fp_type")
+				MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 	}
 
 	return 0;
@@ -466,6 +467,14 @@ size_t FeatureNormalizer::deserialize(unsigned char *blob) {
 //=======================================================================================
 // FeatureImputer
 //=======================================================================================
+void FeatureImputer::print()
+{
+	MLOG("Imputer: Feat: %s nMoments: %d :: ", feature_name.c_str(), moments.size());
+	for (auto moment : moments)
+		MLOG("%f ", moment);
+	MLOG("\n");
+}
+
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
@@ -510,8 +519,12 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
 		if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
-		else if (moment_type == IMPUTE_MMNT_MEDIAN)
-			sort_and_get_median(stratifiedValues[i], moments[i]);
+		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
+			if (stratifiedValues[i].size() > 0)
+				sort_and_get_median(stratifiedValues[i], moments[i]);
+			else
+				moments[i] = missing_value;
+		}
 		else if (moment_type == IMPUTE_MMNT_COMMON)
 			get_common(stratifiedValues[i], moments[i]);
 		else {
@@ -519,6 +532,9 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 
 	}
+
+//#pragma omp critical
+//	print();
 	return 0;
 }
 
@@ -573,7 +589,8 @@ int FeatureImputer::init(map<string, string>& mapper) {
 
 		if (field == "moment_type") moment_type = (imputeMomentTypes)stoi(entry.second);
 		else if (field == "strata") addStrata(entry.second);
-		else MLOG("Unknonw parameter \'%s\' for FeatureImputer\n", field.c_str());
+		else if (field != "names" && field != "fp_type")
+				MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
 	}
 
 	return 0;

@@ -44,3 +44,20 @@ int init_dvec(string& in, vector<int>& out) {
 	return 0;
 }
 
+//..............................................................................
+void get_single_val_from_init_string(string init_s, string attr, string &val_s)
+{
+	val_s = "";
+	if (attr=="") return;
+
+	init_s.erase(remove_if(init_s.begin(), init_s.end(), ::isspace), init_s.end());
+	vector<string> fields;
+	split(fields, init_s, boost::is_any_of(";="));
+	for (int i=0; i<fields.size(); i++) {
+		if (fields[i] == attr) {
+			val_s = fields[++i];
+			return;
+		}
+	}
+
+}

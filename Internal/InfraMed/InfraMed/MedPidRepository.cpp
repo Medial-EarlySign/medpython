@@ -447,6 +447,59 @@ int PidDynamicRec::set_n_versions(int n_ver)
 	return 0;
 }
 
+
+//..................................................................................................................
+// This code assumes time_points are sorted in time !
+// It also assumes that the versions are to be set according to the 0 time channel, 
+// and that the time_points are given in a unit that is the same for all the needed sids.
+int PidDynamicRec::set_n_versions(vector<int> &time_points)
+{
+	int n_ver = (int)time_points.size();
+	//	lock_guard<mutex> guard(dynamic_pid_rec_mutex_pool[pid & PID_REC_MUTEX_MASK]);
+	if (n_versions > 0)
+		clear_vers();
+
+	if (n_ver < 1) {
+		MERR("PidDynamicRec::set_n_versions :: ERROR n_versions must be at least 1, remember that version 0 is the original version\n");
+		return -1;
+	}
+
+	n_versions = n_ver;
+
+	// keys to the new index will be (serial sid)*(n_ver)+ver, originally we want them all to point to the original
+	vector<unsigned int> orig_keys;
+	sv.get_all_keys(orig_keys);
+	sv_vers.init();
+
+	if (orig_keys.size() > 0) {
+
+		sv_vers.set_min(orig_keys[0]);
+
+		for (auto key : orig_keys) {
+			PosLen *pl = sv.get(key);
+			PosLen my_pl = *pl;
+			// key is serial_sid, we need the actual sid now
+			int sid = my_base_rep->sigs.signals_ids[key];
+
+			// universal get for sid, in order to be able to get times
+			PidRec::uget(sid);
+
+			int tlen = 0;
+			for (int j=0; j<n_versions; j++) {
+				while (tlen < usv.len && usv.Time(tlen) <= time_points[j]) tlen++;
+				int len = (tlen <= 0) ? 0 : tlen - 1;
+				my_pl.len = len;
+				sv_vers.insert(key*n_versions+j, my_pl); // at start all versions point to the original one
+			}
+		}
+	}
+
+	curr_len = data_len;
+
+	return 0;
+}
+
+
 //..................................................................................................................
 void *PidDynamicRec::get(string &sig_name, int version, int &len)
 {
@@ -785,7 +838,21 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 	//return 0;
 
 	// now setting the version number
-	return (set_n_versions(_n_versions));
+	if (_n_versions >= 0)
+		return (set_n_versions(_n_versions));
+
+	return 0;
+}
+
+//..................................................................................................................
+int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids_to_use, vector<int> &time_points)
+{
+	init_from_rep(rep, _pid, sids_to_use, -1);
+
+	// now setting the version number
+	return (set_n_versions(time_points));
+	
+	return 0;
 }
 
 #endif

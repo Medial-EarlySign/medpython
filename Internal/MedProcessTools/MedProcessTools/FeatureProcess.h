@@ -9,7 +9,7 @@
 #include "MedStat/MedStat/MedStat.h"
 #include <unordered_set>
 
-#define DEFAULT_FEAT_CLNR_NTHREADS 8
+#define DEFAULT_FEAT_CLNR_NTHREADS 24
 
 //.......................................................................................
 //.......................................................................................
@@ -330,6 +330,9 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
+
+	// debug and print
+	void print();
 
 };
 

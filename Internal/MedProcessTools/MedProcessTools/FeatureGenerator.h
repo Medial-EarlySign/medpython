@@ -89,6 +89,8 @@ public:
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
 	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
 
+	static FeatureGenerator *create_generator(string &params); // must include fg_type
+
 	virtual int init(void *generator_params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
@@ -128,6 +130,11 @@ typedef enum {
 	FTR_LAST_DELTA_VALUE = 7,
 	FTR_LAST_DAYS = 8,
 	FTR_LAST2_DAYS = 9,
+	FTR_SLOPE_VALUE = 10,
+	FTR_WIN_DELTA_VALUE = 11,
+	FTR_CATEGORY_SET = 12,
+	FTR_CATEGORY_SET_COUNT = 13,
+	FTR_CATEGORY_SET_SUM = 14,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -138,13 +145,19 @@ public:
 	string signalName;
 	int signalId;
 
+	// parameters (should be serialized)
 	BasicFeatureTypes type = FTR_LAST;
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
+	int d_win_from = 360, d_win_to = 360000;	// delta time window for the FTR_WIN_DELTA_VALUE feature
 	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
-	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
+	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
 
+	// helpers
+	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	vector<char> lut;							// to be used when generating FTR_CATEGORY_SET_*
 
 	// Naming 
 	void set_names();
@@ -157,6 +170,8 @@ public:
 		signalName = _signalName;type = _type; win_from = _time_win_from; win_to = _time_win_to;
 		set_names(); req_signals.assign(1, signalName);
 	}
+
+	BasicFeatureTypes name_to_type(const string &name);
 
 	// Init
 	int init(map<string, string>& mapper);
@@ -176,7 +191,7 @@ public:
 	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// actual generators
-	float uget_last(UniversalSigVec &usv, int time_point);
+	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
 	float uget_first(UniversalSigVec &usv, int time_point);
 	float uget_last2(UniversalSigVec &usv, int time_point);
 	float uget_avg(UniversalSigVec &usv, int time_point);
@@ -186,6 +201,16 @@ public:
 	float uget_last_delta(UniversalSigVec &usv, int time_point);
 	float uget_last_time(UniversalSigVec &usv, int time_point);
 	float uget_last2_time(UniversalSigVec &usv, int time_point);
+	float uget_slope(UniversalSigVec &usv, int time_point);
+	float uget_win_delta(UniversalSigVec &usv, int time_point);
+	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+
+	// helpers
+
+	// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
+	void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
 
 
 	// Serialization
@@ -284,14 +309,17 @@ class BinnedLmEstimates : public FeatureGenerator {
 public:
 	// Feature Descrption
 	string signalName;
-	int signalId, byearId, genderId;
+	int signalId, byearId, genderId, ageId;
+
+	// Is age directly given (Hospital data) or through birth-year (Primary-care data)
+	bool ageDirectlyGiven = false;
 
 	BinnedLmEstimatesParams params;
 	vector<MedLM> models;
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<float> means[2];
 
-	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_periods = MedTime::Days;		// the time unit in which the periods are given. Default: Days
 	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
@@ -320,10 +348,15 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); genderId = dict.id("GENDER"); byearId = dict.id("BYEAR"); }
+	void get_signal_ids(MedDictionarySections& dict);
 
 	// Number of features generated
 	virtual int nfeatures() { return (int) params.estimation_points.size(); }
+
+	// Age Related functions
+	void prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear);
+	void prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear);
+	inline void get_age(int time, int& age, int byear);
 
 	// Serialization
 	size_t get_size();

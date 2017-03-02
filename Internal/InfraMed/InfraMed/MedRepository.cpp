@@ -708,6 +708,96 @@ void MedRepository::print_data_vec_dict(int pid, int sid)
 	print_vec_dict(data, len, pid, sid);
 }
 
+//-----------------------------------------------------------
+void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool dict_val = false)
+{
+	int section_id;
+	int drug_sid;
+	if (dict_val) {
+		section_id = dict.section_id(sigs.name(sid));
+		if (sigs.name(sid) == "Drug") {
+			section_id = dict.section_id("Drugs_nice_names");
+		}
+	}
+	for (int i = 0; i<len; i++) {
+		int val;
+		MOUT("%d,%d,%s,%d,%d,", pid, sid, sigs.name(sid).c_str(), len, i);
+		if (sigs.type(sid) == T_Value) {
+			SVal *v = (SVal *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("0,0,0,0,0,");
+		}
+		else if (sigs.type(sid) == T_DateVal) {
+			SDateVal *v = (SDateVal *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("0,%d,0,0,0,", v[i].date);
+		}
+		else if (sigs.type(sid) == T_DateRangeVal) {
+			SDateRangeVal *v = (SDateRangeVal *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("0,%d,%d,0,0,", v[i].date_start, v[i].date_end);
+		}
+		else if (sigs.type(sid) == T_DateVal2) {
+			SDateVal2 *v = (SDateVal2 *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("%d,%d,0,0,0,", v[i].val2, v[i].date);
+		}
+		else if (sigs.type(sid) == T_DateShort2) {
+			SDateShort2 *v = (SDateShort2 *)data;
+			val = v[i].val1;
+			MOUT("%d,%d,%d,0,0,0,", v[i].val1, v[i].val2, v[i].date);
+		}
+		else if (sigs.type(sid) == T_ValShort2) {
+			SValShort2 *v = (SValShort2 *)data;
+			val = v[i].val1;
+			MOUT("%d,%d,0,0,0,0,", v[i].val1, v[i].val2);
+		}
+		else if (sigs.type(sid) == T_ValShort4) {
+			SValShort4 *v = (SValShort4 *)data;
+			val = v[i].val1;
+			MOUT("%d,%d,0,0,%d,%d,", v[i].val1, v[i].val2, v[i].val3, v[i].val4);
+		}
+		else if (sigs.type(sid) == T_CompactDateVal) {
+			SCompactDateVal *v = (SCompactDateVal *)data;
+			val = v[i].val;
+			MOUT("%d,0,%d,0,0,0,", v[i].val, compact_date_to_date(v[i].compact_date) );
+		}
+		else if (sigs.type(sid) == T_TimeVal) {
+			STimeVal *v = (STimeVal *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("0,%d,0,0,0,0,", v[i].time);
+		}
+		else if (sigs.type(sid) == T_TimeRangeVal) {
+			STimeRangeVal *v = (STimeRangeVal *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("0,%lld,%lld,0,0,", v[i].time_start, v[i].time_end, v[i].val);
+		}
+		if (dict_val && dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end())
+			for (int j = 0; j<dict.dict(section_id)->Id2Names[val].size(); j++) {
+				string st = dict.dict(section_id)->Id2Names[val][j];
+				MOUT("%s,", st.c_str());
+			}
+
+		MOUT("\n");
+	}
+	
+
+}
+
+
+
 //----------------------------------------------------------------------------------------------
 int MedRepository::get_dates_with_signal(int pid, vector<string> &sig_names, vector<int> &dates)
 {

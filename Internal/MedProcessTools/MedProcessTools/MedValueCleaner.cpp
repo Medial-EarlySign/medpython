@@ -72,8 +72,15 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 
 		int n = get_moments(values, wgts, params.missing_value, mean, sd);
 		if (n == 0) {
-			MERR("Cannot learn cleaning parameters from an empty vector\n");
-			return -1;
+			MWARN("EMPTY_VECTOR:: learning cleaning parameters from an empty vector\n");
+			trimMax = 0; 
+			trimMin = 0; 
+			removeMax = 0;
+			removeMin = 0;
+			nbrsMax = 0;
+			nbrsMin = 0;
+
+			return 0;
 		}
 
 		max = mean + params.trimming_sd_num * sd;
@@ -146,7 +153,8 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "doTrim") params.doTrim = (stoi(entry.second) != 0);
 		else if (field == "doRemove") params.doRemove = (stoi(entry.second) != 0);
 		// next are in ignore ... used in level above
-		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width")
+		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&
+				 field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width" && field != "rp_type")
 			MLOG("Unknonw parameter \'%s\' for MedValueCleaner\n", field.c_str());
 
 	}

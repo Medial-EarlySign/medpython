@@ -28,6 +28,7 @@ int def_max_period = 30 * 9999;
 
 double def_rfactor = 0.99;
 
+// Initialization
 //.......................................................................................
 void BinnedLmEstimates::set_names() {
 
@@ -54,7 +55,7 @@ void BinnedLmEstimates::set(string& _signalName) {
 
 	req_signals.resize(3);
 	req_signals[0] = "GENDER";
-	req_signals[1] = "BYEAR";
+	req_signals[1] = (ageDirectlyGiven) ?  "Age" : "BYEAR";
 	req_signals[2] = signalName;
 }
 
@@ -75,10 +76,14 @@ void BinnedLmEstimates::init_defaults() {
 	for (int i = 0; i < def_nestimation_points; i++)
 		params.estimation_points[i] = def_estimation_points[i];
 
-	req_signals ={ "GENDER", "BYEAR" };
+	if (ageDirectlyGiven)
+		req_signals = { "GENDER","Age" };
+	else
+		req_signals ={ "GENDER", "BYEAR" };
 
 	signalId = -1; 
 	byearId = -1;
+	ageId = -1;
 	genderId = -1;
 }
 
@@ -95,8 +100,10 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 
 	set_names();
 
-	req_signals ={ "GENDER", "BYEAR", signalName };
-
+	if (ageDirectlyGiven)
+		req_signals ={ "GENDER", "Age", signalName };
+	else
+		req_signals = { "GENDER", "BYEAR", signalName };
 }
 
 //..............................................................................
@@ -115,60 +122,71 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "max_period") params.max_period = stoi(entry.second);
 		else if (field == "min_period") params.min_period = stoi(entry.second);
 		else if (field == "rfactor") params.rfactor = stof(entry.second);
-		else if (field == "signalName") signalName = entry.second;
+		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "estimation_points") {
 			if (init_dvec(entry.second, params.estimation_points) == -1) {
 				fprintf(stderr, "Cannot initialize estimation_points for LM\n");
 				return -1;
 			}
 		}
-		else MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
+		else if (field == "time_unit") time_unit_periods = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second));
+		else if (field != "fg_type")
+			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
 
 	names.clear();
 	set_names();
 
-	req_signals = { "GENDER", "BYEAR", signalName };
+	if (ageDirectlyGiven)
+		req_signals = { "GENDER", "Age", signalName };
+	else
+		req_signals = { "GENDER", "BYEAR", signalName };
 
 	return 0;
+}
+
+//..............................................................................
+void BinnedLmEstimates::get_signal_ids(MedDictionarySections& dict) {
+	
+	signalId = dict.id(signalName); 
+	genderId = dict.id("GENDER");
+	
+	if (ageDirectlyGiven)
+		ageId = dict.id("Age");
+	else
+		byearId = dict.id("BYEAR"); 
 }
 
 // Learn a generator
 //.......................................................................................
 int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
-
+	
 	// Sanity check
-	if (signalId == -1) {
+	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {
 		MERR("Uninitialized signalId\n");
 		return -1;
 	}
-	assert(rep.sigs.type(signalId) == T_DateVal);
 
-	if (byearId == -1)
-		byearId = rep.dict.id("BYEAR");
-
-	if (genderId == -1)
-		genderId = rep.dict.id("GENDER");
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rep.sigs.Sid2Info[signalId].time_unit;
 
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
 	// Collect Data
-	int len, byear, gender;
+	int len, byear, gender, age;
 	PidDynamicRec rec;
 
 	vector<float> values;
-	vector<int> ages, days, genders;
+	vector<int> ages, times, genders;
 	vector<int> id_firsts(ids.size()), id_lasts(ids.size());
 
+	UniversalSigVec usv, ageUsv;
 	for (unsigned int i = 0; i < ids.size(); i++) {
 		int id = ids[i];
-
-		// BYear
-		SVal *bYearSignal = (SVal *)rep.get(id, byearId, len);
-		assert(len == 1);
-		byear = (int)(bYearSignal[0].val);
 
 		// Gender
 		SVal *genderSignal = (SVal *)rep.get(id, genderId, len);
@@ -176,44 +194,52 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		gender = (int)(genderSignal[0].val);
 
 		// Get signal
-		SDateVal *signal = (SDateVal *)rep.get(id, signalId, len);
+		rep.uget(id,signalId,usv);
 		id_firsts[i] = (int) ages.size();
 
-		if (len == 0) {
+		if (usv.len == 0) {
 			id_lasts[i] = id_firsts[i];
 			continue;
-		}
+		}		
 
 		if (processors.size()) {
 
 			// Apply processing at last time point only
-			vector<int> time_points(1, signal[len-1].date + 1);
+			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
 
 			// Init Dynamic Rec
 			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, 1);
+
+			// BYear/Age
+			prepare_for_age(rec, ageUsv, age, byear);
 
 			// Apply
 			for (auto& processor : processors)
 				processor->apply(rec, time_points, req_signal_ids);
 
 			// Collect values and ages
-			SDateVal *clnSignal = (SDateVal *)rec.get(signalId, 0, len);
-			for (int i = 0; i < len; i++) {
-				values.push_back(clnSignal[i].val);
-				ages.push_back(clnSignal[i].date / 10000 - byear);
+			rec.uget(signalId, 0, usv);
+			for (int i = 0; i < usv.len; i++) {
+				values.push_back(usv.Val(i, val_channel));
+				get_age(usv.Time(i, time_channel), age, byear);
+				ages.push_back(age);
 				genders.push_back(gender);
-				days.push_back(get_day(clnSignal[i].date));
+				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
 			}
 		}
 		else {
-			for (int i = 0; i < len; i++) {
-				values.push_back(signal[i].val);
-				ages.push_back(signal[i].date / 10000 - byear);
+			// BYear/Age
+			prepare_for_age(rep, id, ageUsv, age, byear);
+
+			for (int i = 0; i < usv.len; i++) {
+				values.push_back(usv.Val(i, val_channel));
+				get_age(usv.Time(i, time_channel), age, byear);
+				ages.push_back(age);
 				genders.push_back(gender);
-				days.push_back(get_day(signal[i].date));
+				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
 			}
 		}
-		id_lasts[i] = id_firsts[i] + len - 1;
+		id_lasts[i] = id_firsts[i] + usv.len - 1;
 	}
 
 	// Allocate
@@ -289,6 +315,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	int irow = 0;
 
 	for (unsigned int i = 0; i < ids.size(); i++) {
+
 		if (id_lasts[i] <= id_firsts[i])
 			continue;
 		int gender = genders[id_firsts[i]];
@@ -308,7 +335,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				if (idx1 == idx2)
 					continue;
 
-				int gap = days[idx1] - days[idx2];
+				int gap = times[idx1] - times[idx2];
 				if (gap < params.min_period || gap > params.max_period)
 					continue;
 
@@ -406,17 +433,12 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
-	if (signalId == -1) {
+	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {
 		MERR("Uninitialized signalId\n");
 		return -1;
 	}
-	assert(rec.my_base_rep->sigs.type(signalId) == T_DateVal);
 
-	if (byearId == -1)
-		byearId = rec.my_base_rep->dict.id("BYEAR");
-
-	if (genderId == -1)
-		genderId = rec.my_base_rep->dict.id("GENDER");
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
@@ -425,15 +447,11 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 	int iperiod = (int) nperiods;
 	int jperiod = (int) nperiods;
 	
-	int len, byear, gender;
+	int len, byear, gender, age;
 
-	vector<float> values;
-	vector<int> ages, days;
-
-	// BYear
-	SVal *bYearSignal = (SVal *)rec.get(byearId, len);
-	assert(len == 1);
-	byear = (int)(bYearSignal[0].val);
+	// BYear/Age
+	UniversalSigVec usv, ageUsv;
+	prepare_for_age(rec,ageUsv,age,byear);
 
 	// Gender
 	SVal *genderSignal = (SVal *)rec.get(genderId, len);
@@ -448,9 +466,9 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 	// Features
 	MedMat<float> x(1, (int) nfeatures);
 	for (int i = 0; i < num; i++) {
-		SDateVal *signal = (SDateVal *)rec.get(signalId, i, len);
-		int last_date = features.samples[index+i].date;
-		int last_day = get_day(last_date);
+		rec.uget(signalId, i);
+		int last_time = med_time_converter.convert_times(features.time_unit, time_unit_periods, features.samples[i].time);
+		int last_sig_time = med_time_converter.convert_times(features.time_unit,time_unit_sig, features.samples[i].time);
 
 		for (unsigned int ipoint = 0; ipoint < params.estimation_points.size(); ipoint++) {
 			int type = 0;
@@ -458,13 +476,14 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 			int type_num = 0;
 
 			float *p_feat = &(features.data[names[0]][index]);
-			int target_day = last_day - params.estimation_points[ipoint];
+			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, last_time - params.estimation_points[ipoint]);
 
-			for (int j = 0; j < len; j++) {
-				if (signal[j].date > last_date)
+			for (int j = 0; j < rec.usv.len; j++) {
+				int time = rec.usv.Time(j, time_channel);
+				if ( time > last_sig_time)
 					break;
 
-				int gap = target_day - get_day(signal[j].date);
+				int gap = target_time - time;
 				if (gap < params.min_period || gap > params.max_period)
 					continue;
 
@@ -482,10 +501,10 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				}
 
 				if (iperiod != nperiods) {
-					int age = (int)signal[j].date / 10000 - byear;
+					get_age(rec.usv.Time(j, time_channel), age, byear);
 					if (age > BINNED_LM_MAX_AGE)
 						age = BINNED_LM_MAX_AGE;
-					type_sum += signal[j].val - means[gender-1][age];
+					type_sum += rec.usv.Val(j,val_channel) - means[gender-1][age];
 					type_num++;
 				}
 			}
@@ -495,7 +514,7 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				x(0, jperiod) = type_sum / type_num;
 			}
 
-			int age = last_date / 10000 - byear - params.estimation_points[ipoint] / 365;
+			get_age(last_time, age, byear);
 			if (age > BINNED_LM_MAX_AGE)
 				age = BINNED_LM_MAX_AGE;
 
@@ -654,4 +673,43 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 	req_signals[2] = signalName;
 
 	return ptr;
+}
+
+// Age Related functions
+//.......................................................................................
+void BinnedLmEstimates::prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear) {
+
+	if (ageDirectlyGiven) {
+		rec.uget(ageId, 0, ageUsv);
+		assert(ageUsv.len == 1);
+		age = (int)ageUsv.Val(0, 0);
+	}
+	else {
+		int len;
+		SVal *bYearSignal = (SVal *)rec.get(byearId, len);
+		assert(len == 1);
+		byear = (int)(bYearSignal[0].val);
+	}
+}
+
+void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear) {
+
+	if (ageDirectlyGiven) {
+		rep.uget(id,ageId, ageUsv);
+		assert(ageUsv.len == 1);
+		age = (int)ageUsv.Val(0, 0);
+	}
+	else {
+		int len;
+		SVal *bYearSignal = (SVal *)rep.get(id,byearId, len);
+		assert(len == 1);
+		byear = (int)(bYearSignal[0].val);
+	}
+}
+
+inline void BinnedLmEstimates::get_age(int time, int& age, int byear) {
+	
+	if (! ageDirectlyGiven)
+		age =  med_time_converter.convert_times(time_unit_sig, MedTime::Date, time)/10000 - byear;
+
 }

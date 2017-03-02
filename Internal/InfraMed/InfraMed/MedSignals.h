@@ -93,7 +93,7 @@ class SVal : UnifiedSig {
 		static inline int time_unit() { return 0; }
 		inline int Time(int chan) { return 0; }
 		inline float Val(int chan) { return val; }
-		inline void SetVal(int chan, float val) { return; };
+		inline void SetVal(int chan, float _val) { val = _val; };
 		
 };
 

@@ -32,8 +32,8 @@ size_t MedSample::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 	memcpy(blob + ptr, &id, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &date, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &outcomeDate, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &time, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &outcomeTime, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &outcome, sizeof(float)); ptr += sizeof(float);
 
 	size_t nPreds = prediction.size();
@@ -49,8 +49,8 @@ size_t MedSample::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 	memcpy(&id, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&date, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&outcomeDate, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&time, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&outcomeTime, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&outcome, blob + ptr, sizeof(float)); ptr += sizeof(float);
 
 	int nPreds; 
@@ -104,6 +104,7 @@ size_t MedIdSamples::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 	memcpy(&id, blob + ptr, sizeof(int)); ptr += sizeof(int);
+
 
 	size_t nSamples;
 	memcpy(&nSamples, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
@@ -184,11 +185,11 @@ int MedSamples::read_from_file(const string &fname)
 					//MLOG("-->### %s %s (%d)\n",fields[0].c_str(),fields[1].c_str(),out.size());
 					MedSample sample;
 					int id = sample.id = stoi(fields[1]);
-					sample.date = stoi(fields[2]);
+					sample.time = stoi(fields[2]);
 					sample.outcome = stof(fields[3]);
 
 					if (fields.size() > 5) 
-						sample.outcomeDate = stoi(fields[5]);
+						sample.outcomeTime = stoi(fields[5]);
 
 					if (idSamples.empty() || (id != idSamples.back().id && allIds.find(id) == allIds.end())) {
 						MedIdSamples newIdSamples;
@@ -217,7 +218,7 @@ int MedSamples::read_from_file(const string &fname)
 //.......................................................................................
 size_t MedSamples::get_size() {
 
-	size_t size = 0;
+	size_t size = sizeof(int);
 	// Samples
 	size += sizeof(size_t);
 	for (auto& sample : idSamples)
@@ -230,6 +231,9 @@ size_t MedSamples::get_size() {
 size_t MedSamples::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
+
+	memcpy(blob + ptr, &time_unit, sizeof(size_t)); ptr += sizeof(int);
+
 	size_t nSamples = idSamples.size();
 	memcpy(blob + ptr, &nSamples, sizeof(size_t)); ptr += sizeof(size_t);
 
@@ -243,6 +247,9 @@ size_t MedSamples::serialize(unsigned char *blob) {
 size_t MedSamples::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
+
+	memcpy(&time_unit, blob + ptr, sizeof(size_t)); ptr += sizeof(int);
+
 
 	size_t nSamples;
 	memcpy(&nSamples, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
