@@ -98,13 +98,18 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 		MERR("failed to XGDMatrixCreateFromMat");
 		throw std::exception();
 	}
-
 	std::unique_ptr<DMatrix> dtrain(out);
 
-	for (int i = 0; i < nsamples; i++) {
-		dtrain.get()->info().labels.push_back(y[i]);
-		dtrain.get()->info().weights.push_back(w[i]);
-	}
+	if(w)
+		for (int i = 0; i < nsamples; i++) {
+			dtrain.get()->info().labels.push_back(y[i]);
+			dtrain.get()->info().weights.push_back(w[i]);
+		}
+	else
+		for (int i = 0; i < nsamples; i++) {
+			dtrain.get()->info().labels.push_back(y[i]);
+			dtrain.get()->info().weights.push_back(1);
+		}
 
 	std::vector<std::unique_ptr<DMatrix> > deval;
 	std::vector<DMatrix*> cache_mats, eval_datasets;
