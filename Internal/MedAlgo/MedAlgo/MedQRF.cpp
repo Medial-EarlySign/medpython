@@ -10,6 +10,7 @@ extern MedLogger global_logger;
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <unordered_set>
 
 // Quantized Random Forests
 
@@ -23,17 +24,17 @@ void MedQRF::init_defaults()
 	transpose_for_predict = false;
 	normalize_for_predict = false;
 
-	params.ntrees = MED_QRF_DEF_NTREES ;
+	params.ntrees = MED_QRF_DEF_NTREES;
 	params.maxq = MED_QRF_DEF_MAXQ;
-	params.min_node = MED_QRF_DEF_MIN_NODE ;
+	params.min_node = MED_QRF_DEF_MIN_NODE;
 	params.type = QRF_CATEGORICAL_ENTROPY_TREE;
 	params.n_categ = 2;
 
-	params.learn_nthreads = MED_QRF_DEF_LEARN_NTHREADS ;
-	params.predict_nthreads = MED_QRF_DEF_PREDICT_NTHREADS ;
-	params.sampsize = NULL ;
-	params.ntry = 0 ;
-	params.spread = (float)MED_QRF_DEF_SPREAD ;
+	params.learn_nthreads = MED_QRF_DEF_LEARN_NTHREADS;
+	params.predict_nthreads = MED_QRF_DEF_PREDICT_NTHREADS;
+	params.sampsize = NULL;
+	params.ntry = 0;
+	params.spread = (float)MED_QRF_DEF_SPREAD;
 	params.get_count = PROBS_CATEG_AVG_PROBS;
 
 	params.get_only_this_categ = 1;
@@ -44,23 +45,23 @@ void MedQRF::init_defaults()
 }
 
 //..............................................................................
-int MedQRF::init(void *_in_params) 
+int MedQRF::init(void *_in_params)
 {
 	init_defaults();
 
-	MedQRFParams *in_params = (MedQRFParams *) _in_params ;
-	 
-	params.ntrees = in_params->ntrees ;
-	params.maxq = in_params->maxq ;
-	params.min_node = in_params->min_node ;
+	MedQRFParams *in_params = (MedQRFParams *)_in_params;
 
-	params.type = in_params->type ;
-	params.learn_nthreads = in_params->learn_nthreads ;
-	params.predict_nthreads = in_params->predict_nthreads ;
+	params.ntrees = in_params->ntrees;
+	params.maxq = in_params->maxq;
+	params.min_node = in_params->min_node;
+
+	params.type = in_params->type;
+	params.learn_nthreads = in_params->learn_nthreads;
+	params.predict_nthreads = in_params->predict_nthreads;
 	params.sampsize = in_params->sampsize;
-	params.ntry = in_params->ntry ;
-	params.spread = in_params->spread ;
-	params.get_count = in_params->get_count ;
+	params.ntry = in_params->ntry;
+	params.spread = in_params->spread;
+	params.get_count = in_params->get_count;
 	params.n_categ = in_params->n_categ;
 
 	params.get_only_this_categ = in_params->get_only_this_categ;
@@ -69,7 +70,7 @@ int MedQRF::init(void *_in_params)
 
 	params.collect_oob = in_params->collect_oob;
 
-	return 0 ;
+	return 0;
 }
 
 //..............................................................................
@@ -77,7 +78,7 @@ int MedQRF::init(void *_in_params)
 //{
 //	init_defaults();
 //
-	vector<string> fields;
+vector<string> fields;
 //	split(fields, init_str, boost::is_any_of(",="));
 //	
 //	for (int i = 0; i < fields.size(); i++) {
@@ -172,7 +173,7 @@ void MedQRF::set_sampsize(float *y, int nsamples)
 {
 	if (params.sampsize != NULL) return;
 	if (params.max_samp <= 0 && params.samp_factor <= 0) return;
-	
+
 	if (params.type == QRF_REGRESSION_TREE && params.max_samp <= 0) return;
 
 	params.samp_vec.clear();
@@ -206,39 +207,39 @@ void MedQRF::set_sampsize(float *y, int nsamples)
 			max2_ind = i;
 			max2_val = params.samp_vec[i];
 		}
-	
-	if ((float)max_val / (float)(1 + max2_val) > params.samp_factor)
-		params.samp_vec[max_ind] = (int)(params.samp_factor*(float)max2_val);
+
+		if ((float)max_val / (float)(1 + max2_val) > params.samp_factor)
+			params.samp_vec[max_ind] = (int)(params.samp_factor*(float)max2_val);
 
 }
 
 //..............................................................................
-MedQRF::MedQRF ()
+MedQRF::MedQRF()
 {
 	init_defaults();
 }
 
 //..............................................................................
-MedQRF::MedQRF(MedQRFParams& _in_params) 
+MedQRF::MedQRF(MedQRFParams& _in_params)
 {
-	init((void *) &_in_params);
+	init((void *)&_in_params);
 }
 
 //..............................................................................
-MedQRF::MedQRF(void *_in_params) 
+MedQRF::MedQRF(void *_in_params)
 {
 	init(_in_params);
 }
 
 //..............................................................................
-int MedQRF::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	if (w != NULL)
-		MWARN("Weights are not implemented for QRF. Ignoring\n") ;
+		MWARN("Weights are not implemented for QRF. Ignoring\n");
 
 	// Correct y according to forest type
-	map<float,int> y_values ;
-	int n_categ = 0 ;
+	map<float, int> y_values;
+	int n_categ = 0;
 	qf.nthreads = params.learn_nthreads;
 	qf.collect_oob = params.collect_oob;
 	qf.get_only_this_categ = params.get_only_this_categ;
@@ -249,11 +250,11 @@ int MedQRF::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 			y_values[y[i]] = 1;
 
 		for (auto it = y_values.begin(); it != y_values.end(); it++)
-			y_values[it->first] = n_categ++ ;
+			y_values[it->first] = n_categ++;
 
 		if ((params.type == QRF_BINARY_TREE && n_categ != 2) || ((params.type == QRF_CATEGORICAL_CHI2_TREE || params.type == QRF_CATEGORICAL_ENTROPY_TREE) && n_categ < 2)) {
-			MERR("Mismatch between QRF type and number of categories (%d)\n",qf.n_categ) ;
-			return -1 ;
+			MERR("Mismatch between QRF type and number of categories (%d)\n", qf.n_categ);
+			return -1;
 		}
 		if (params.n_categ != n_categ) {
 			MERR("Mismatch between requested n_categ: %d and actual n_categ: %d. Discovered following cateogories:\n", params.n_categ, n_categ);
@@ -264,34 +265,36 @@ int MedQRF::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 	}
 
 	if (params.type == QRF_CATEGORICAL_CHI2_TREE || params.type == QRF_CATEGORICAL_ENTROPY_TREE) {
-		vector<float> qf_y (nsamples);
-		for (int i=0; i<nsamples; i++)
-			qf_y[i] = (float) y_values[y[i]] ;
+		vector<float> qf_y(nsamples);
+		for (int i = 0; i < nsamples; i++)
+			qf_y[i] = (float)y_values[y[i]];
 
-		if (qf.get_forest_categorical(x,&(qf_y[0]),nftrs,nsamples,params.sampsize,params.ntry,params.ntrees,params.maxq,params.min_node,n_categ,params.type) == -1) {
-			MERR("Categorial QRF failed\n") ;
-			return -1 ;
+		if (qf.get_forest_categorical(x, &(qf_y[0]), nftrs, nsamples, params.sampsize, params.ntry, params.ntrees, params.maxq, params.min_node, n_categ, params.type) == -1) {
+			MERR("Categorial QRF failed\n");
+			return -1;
 		}
-	} else if (params.type == QRF_BINARY_TREE) {
-		vector<int> qf_y (nsamples);
-		for (int i=0; i<nsamples; i++)
-			qf_y[i] = y_values[y[i]] ;
+	}
+	else if (params.type == QRF_BINARY_TREE) {
+		vector<int> qf_y(nsamples);
+		for (int i = 0; i < nsamples; i++)
+			qf_y[i] = y_values[y[i]];
 
-		if (qf.get_forest(x,&(qf_y[0]),nftrs,nsamples,params.sampsize,params.ntry,params.ntrees,params.maxq) == -1) {
-			MERR("Binary QRF failed\n") ;
-			return -1 ;
+		if (qf.get_forest(x, &(qf_y[0]), nftrs, nsamples, params.sampsize, params.ntry, params.ntrees, params.maxq) == -1) {
+			MERR("Binary QRF failed\n");
+			return -1;
 		}
-	} else { // REGRESSION
-		int _sampsize = (params.sampsize == NULL) ? nsamples : params.sampsize[0]; 
-		if (qf.get_forest_regression_trees(x,y,nftrs,nsamples,_sampsize,params.ntry,params.ntrees,params.maxq,params.min_node,params.spread) == -1) {
-			MERR("Regression QRF failed\n") ;
-			return -1 ;
+	}
+	else { // REGRESSION
+		int _sampsize = (params.sampsize == NULL) ? nsamples : params.sampsize[0];
+		if (qf.get_forest_regression_trees(x, y, nftrs, nsamples, _sampsize, params.ntry, params.ntrees, params.maxq, params.min_node, params.spread) == -1) {
+			MERR("Regression QRF failed\n");
+			return -1;
 		}
 	}
 
-//	if (params.samp_vec.size() > 0) params.sampsize = NULL;
+	//	if (params.samp_vec.size() > 0) params.sampsize = NULL;
 
-	return 0 ;
+	return 0;
 }
 
 //..............................................................................
@@ -301,27 +304,27 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs, int _get_c
 	qf.n_categ = params.n_categ;
 	qf.get_only_this_categ = params.get_only_this_categ;
 	qf.get_counts_flag = params.get_count;
-	return qf.score_samples(x,nftrs,nsamples,preds,_get_count) ;
+	return qf.score_samples(x, nftrs, nsamples, preds, _get_count);
 }
 
 //..............................................................................
 int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) {
-	return Predict(x,preds,nsamples,nftrs,params.get_count) ;
+	return Predict(x, preds, nsamples, nftrs, params.get_count);
 }
 
 //..............................................................................
 int MedQRF::preds_per_sample() {
-	return qf.n_categ ;
+	return qf.n_categ;
 }
 
 //..............................................................................
 size_t MedQRF::get_size() {
-	return qf.get_size() ;
+	return qf.get_size();
 }
 
 //..............................................................................
 size_t MedQRF::serialize(unsigned char *blob) {
-	return qf.serialize(blob) ;
+	return qf.serialize(blob);
 }
 
 //..............................................................................
@@ -331,7 +334,7 @@ size_t MedQRF::deserialize(unsigned char *blob) {
 		return -1;
 	params.ntrees = (int)qf.qtrees.size();
 	params.n_categ = qf.n_categ;
-	params.type = (QRF_TreeType) qf.mode;
+	params.type = (QRF_TreeType)qf.mode;
 	params.get_only_this_categ = qf.get_only_this_categ;
 	params.get_count = qf.get_counts_flag;
 
@@ -340,13 +343,107 @@ size_t MedQRF::deserialize(unsigned char *blob) {
 
 // Printing
 void MedQRF::print(FILE *fp, const string& prefix) {
-	fprintf(fp,"%s: MedQRF of type %d\n",prefix.c_str(),params.type) ;
-	fprintf(fp, "%s: params = (ntrees=%d, maxq=%d, sampsize=%d, ntry=%d, spread=%f, min_node=%d, n_categ=%d, get_count=%d)\n", 
-		prefix.c_str(), params.ntrees, params.maxq, params.sampsize==NULL?-1:*params.sampsize, params.ntry, params.spread, params.min_node, params.n_categ, params.get_count);
+	fprintf(fp, "%s: MedQRF of type %d\n", prefix.c_str(), params.type);
+	fprintf(fp, "%s: params = (ntrees=%d, maxq=%d, sampsize=%d, ntry=%d, spread=%f, min_node=%d, n_categ=%d, get_count=%d)\n",
+		prefix.c_str(), params.ntrees, params.maxq, params.sampsize == NULL ? -1 : *params.sampsize, params.ntry, params.spread, params.min_node, params.n_categ, params.get_count);
+}
+
+string printNode(const vector<string> &modelSignalNames, const vector<QRF_ResNode> &nodes, int n, int deepSize, bool leftSide) {
+	stringstream out;
+	for (size_t i = 0; i < deepSize; ++i)
+	{
+		out << "\t";
+	}
+	if (leftSide) {
+		out << "<=";
+	}
+	else {
+		out << ">=";
+	}
+	if (!nodes[n].is_leaf) {
+		out << modelSignalNames[nodes[n].ifeat];
+	}
+
+	if (nodes[n].counts.size() > 0) { //category, print histogram
+		out << "(c0=" << nodes[n].counts[0];
+		for (size_t i = 1; i < nodes[n].counts.size(); ++i)
+		{
+			out << ", c" << i << "=" << nodes[n].counts[i];
+		}
+	}
+	else {
+		out << "(pred=" << nodes[n].pred;
+	}
+	
+	out << ", size=" << nodes[n].size;
+	if (!nodes[n].is_leaf) {
+		out << ", split=" << nodes[n].split_val << ")";
+	}
+	out << endl;
+	return out.str();
+}
+
+void MedQRF::printTrees(const vector<string> &modelSignalNames, const string &outputPath) {
+	stringstream treeOut;
+	vector<QRF_ResTree> trees = qf.qtrees;
+	for (size_t i = 0; i < trees.size(); ++i)
+	{
+		treeOut << "Tree_" << i << " {" << endl;
+		vector<QRF_ResNode> nodes = trees[i].qnodes;
+		//print only leaves with full Path
+		vector<int> currPath = { 0 };
+		//print Root
+		treeOut << printNode(modelSignalNames, nodes, 0, 0, true);
+		unordered_set<int> completed;
+
+		while (completed.find(0) == completed.end()) { //haven't reached to finish root
+			for (int j = (int)currPath.size() - 1; j >= 0; --j) //search in curretn path where to traverse down
+			{
+				if (!nodes[currPath[j]].is_leaf) {
+					int candidateNode = nodes[currPath[j]].left;
+					if (completed.find(candidateNode) == completed.end()) {
+						currPath.push_back(candidateNode); //iterate left
+						string nodeText = printNode(modelSignalNames, nodes, candidateNode, j + 1, true);
+						treeOut << nodeText;
+						break;
+					}
+					else {
+						candidateNode = nodes[currPath[j]].right;
+						if (completed.find(candidateNode) == completed.end()) {
+							currPath.push_back(candidateNode); //iterate right
+							string nodeText = printNode(modelSignalNames, nodes, candidateNode, j + 1, false);
+							treeOut << nodeText;
+							break;
+						}
+						else { //right and left are finished:
+							   //mark current as finshed;
+							completed.insert(currPath[j]);
+							currPath.pop_back();
+							break;
+						}
+					}
+				}
+				else {
+					//mark branch completed, pop to parent
+					completed.insert(currPath[j]);
+					currPath.pop_back();
+					break;
+				}
+
+			}
+		}
+		treeOut << "}";
+
+		treeOut << endl;
+
+		ofstream fw(outputPath);
+		fw << treeOut.str();
+		fw.close();
+	}
 }
 
 // Prdictions per sample
-int MedQRF::n_preds_per_sample() 
+int MedQRF::n_preds_per_sample()
 {
 	if (params.type == QRF_REGRESSION_TREE)
 		return 1;
@@ -354,5 +451,5 @@ int MedQRF::n_preds_per_sample()
 		return 1;
 	if (params.get_only_this_categ >= 0 && params.get_only_this_categ < params.n_categ)
 		return 1;
-	return (max(1,qf.n_categ)) ;
+	return (max(1, qf.n_categ));
 }

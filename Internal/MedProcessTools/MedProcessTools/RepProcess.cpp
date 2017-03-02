@@ -186,9 +186,9 @@ void RepMultiProcessor::get_signal_ids(MedDictionarySections& dict) {
 int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
 
 	vector<int> rc(processors.size(), 0);
-#pragma omp parallel for
+
+#pragma omp parallel for schedule(dynamic)
 	for (int j=0; j<processors.size(); j++) {
-	//for (auto& cleaner : cleaners) {
 		rc[j] = processors[j]->Learn(rep, ids, prev_processors);
 	}
 
@@ -201,7 +201,9 @@ int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<Rep
 int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	vector<int> rc(processors.size(),0);
-#pragma omp parallel for
+
+// ??? chances are this next parallelization is not needed, as we parallel before on recs...
+//#pragma omp parallel for schedule(dynamic)
 	for (int j=0; j<processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points);
 	}
@@ -215,7 +217,8 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 
 	vector<int> rc(processors.size(), 0);
 
-#pragma omp parallel for
+// ??? chances are this next parallelization is not needed, as we parallel before on recs...
+//#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points, neededSignalIds);
 	}
@@ -332,9 +335,10 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
-	int rc = get_iterative_min_max(values);
+	int rc =  get_iterative_min_max(values);
+	//print();
 	return rc;
 }
 
@@ -349,7 +353,7 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	return get_quantile_min_max(values);
 }
@@ -525,6 +529,7 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "val_channel") time_channel = stoi(entry.second);
 		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
+
 	}
 
 	return MedValueCleaner::init(mapper);
@@ -555,7 +560,7 @@ int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& id
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	int rc = get_iterative_min_max(values);
 	return rc;
@@ -572,7 +577,7 @@ int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, values, prev_cleaners);
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	return get_quantile_min_max(values);
 }
@@ -808,7 +813,7 @@ void RepNbrsOutlierCleaner::print()
 //=======================================================================================
 //.......................................................................................
 // Get values of a signal from a set of ids
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_processors) 
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors) 
 {
 	vector<int> neededSignalIds = { signalId };
 	PidDynamicRec rec;
@@ -838,13 +843,18 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 			// Collect 
 			for (int i = 0; i < usv.len; i++) {
 				rec.uget(signalId, i, rec.usv);
-				values.push_back(rec.usv.Val(i, val_channel));
+				float ival = rec.usv.Val(i, val_channel);
+				if (ival >= range_min && ival <= range_max)
+					values.push_back(ival);
 			}
 		}
 		else {
 			// Collect 
-			for (int i = 0; i < usv.len; i++)
-				values.push_back(usv.Val(i, val_channel));
+			for (int i = 0; i < usv.len; i++) {
+				float ival = usv.Val(i, val_channel);
+				if (ival >= range_min && ival <= range_max)
+					values.push_back(ival);
+			}
 		}
 	}
 	
@@ -852,7 +862,7 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 }
 
 //.......................................................................................
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values) {
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) {
 	vector<RepProcessor *> temp;
-	return get_values(rep, ids, signalId, time_channel, val_channel, values, temp); 
+	return get_values(rep, ids, signalId, time_channel, val_channel, range_min, range_max, values, temp); 
 }

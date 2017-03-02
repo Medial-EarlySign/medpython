@@ -132,7 +132,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "time_unit") time_unit_periods = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second));
+		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second)!=0);
 		else if (field != "fg_type")
 			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
@@ -221,7 +221,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			rec.uget(signalId, 0, usv);
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), age, byear);
+				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
@@ -233,7 +233,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), age, byear);
+				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
@@ -420,7 +420,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		
 		models[type].params.rfactor = params.rfactor;
 		models[type].learn(tx, ty);		
-//		models[type].print(stderr, "model" + to_string(type));
+//		models[type].print(stdout, "model." + signalName + "." + to_string(type));
 
 	}
 
@@ -501,7 +501,7 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				}
 
 				if (iperiod != nperiods) {
-					get_age(rec.usv.Time(j, time_channel), age, byear);
+					get_age(rec.usv.Time(j, time_channel), time_unit_sig, age, byear);
 					if (age > BINNED_LM_MAX_AGE)
 						age = BINNED_LM_MAX_AGE;
 					type_sum += rec.usv.Val(j,val_channel) - means[gender-1][age];
@@ -514,7 +514,8 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				x(0, jperiod) = type_sum / type_num;
 			}
 
-			get_age(last_time, age, byear);
+			get_age(last_time, time_unit_periods, age, byear);
+
 			if (age > BINNED_LM_MAX_AGE)
 				age = BINNED_LM_MAX_AGE;
 
@@ -707,9 +708,67 @@ void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, Universal
 	}
 }
 
-inline void BinnedLmEstimates::get_age(int time, int& age, int byear) {
+inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, int byear) {
 	
 	if (! ageDirectlyGiven)
-		age =  med_time_converter.convert_times(time_unit_sig, MedTime::Date, time)/10000 - byear;
+		age =  med_time_converter.convert_times(time_unit_from, MedTime::Date, time)/10000 - byear;
+
 
 }
+
+
+void BinnedLmEstimates::print()
+{
+	string prefix = "BinnedLmEstimates(" + signalName + ") :: ";
+
+	string sout = "";
+
+	sout += prefix + "nmodels:" + to_string(models.size()) + "\n";
+
+	for (int i=0; i<models.size(); i++) {
+		string mprefix = prefix + "model " + to_string(i) + " :: ";
+		sout += mprefix + "len: " + to_string(models[i].b.size()) + " b0: " + to_string(models[i].b0) + " b:: ";
+		for (int j=0; j<models[i].b.size(); j++)
+			sout += to_string(j) + ":" + to_string(models[i].b[j]) + " ";
+		sout += "\n";
+	}
+
+	sout += prefix + "xmeans (" + to_string(xmeans.size()) + ")" + " ::";
+	for (int i=0; i<xmeans.size(); i++) {
+		sout += to_string(i) + ":" + to_string(xmeans[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "ymeans (" + to_string(ymeans.size()) + ")" + " ::";
+	for (int i=0; i<ymeans.size(); i++) {
+		sout += to_string(i) + ":" + to_string(ymeans[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "xsdvs (" + to_string(xsdvs.size()) + ")" + " ::";
+	for (int i=0; i<xsdvs.size(); i++) {
+		sout += to_string(i) + ":" + to_string(xsdvs[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "ysdvs (" + to_string(ysdvs.size()) + ")" + " ::";
+	for (int i=0; i<ysdvs.size(); i++) {
+		sout += to_string(i) + ":" + to_string(ysdvs[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "means[0] (" + to_string(means[0].size()) + ")" + " ::";
+	for (int i=0; i<means[0].size(); i++) {
+		sout += to_string(i) + ":" + to_string(means[0][i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "means[1] (" + to_string(means[1].size()) + ")" + " ::";
+	for (int i=0; i<means[1].size(); i++) {
+		sout += to_string(i) + ":" + to_string(means[1][i]) + " ";
+	}
+	sout += "\n";
+
+	MLOG("%s", sout.c_str());
+}
+

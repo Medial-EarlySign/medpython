@@ -101,6 +101,8 @@ public:
 	// Serialization
 	size_t get_generator_size();
 	size_t generator_serialize(unsigned char *blob);
+
+	virtual void print() { fprintf(stderr, "Print Not Implemented for feature\n"); }
 };
 
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
@@ -356,12 +358,15 @@ public:
 	// Age Related functions
 	void prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear);
 	void prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear);
-	inline void get_age(int time, int& age, int byear);
+	inline void get_age(int time, int time_unit_from, int& age, int byear);
 
 	// Serialization
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
+
+	// print 
+	void print();
 };
 
 #endif

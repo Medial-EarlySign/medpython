@@ -121,7 +121,7 @@ int MedModel::quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids
 
 	vector<int> rc(rep_processors.size(), 0);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<rep_processors.size(); i++)
 		rc[i] = rep_processors[i]->learn(rep,ids);
 
