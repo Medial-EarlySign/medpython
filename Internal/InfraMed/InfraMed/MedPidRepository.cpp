@@ -586,8 +586,6 @@ int PidDynamicRec::set_version_off_orig(int sid, int version)
 		if (curr_len + size > data_size)
 			resize_data(2*(data_size + size));
 		
-		void *datap = (void *)&data[pl->pos];
-
 		PosLen new_pl;
 		new_pl.pos = curr_len;
 		new_pl.len = len;
