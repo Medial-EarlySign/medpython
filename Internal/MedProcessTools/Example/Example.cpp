@@ -9,57 +9,28 @@ extern MedLogger global_logger;
 
 #include "Example.h"
 
-int main(int argc, char *argv[])
+float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variables_map &vm, vector<string> signals);
+
+
+float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variables_map &vm, vector<string> signals)
 {
-	int rc = 0;
-	po::variables_map vm;
-
-	MedTimer timer;
-	timer.start();
-
-	// Running Parameters
-	MLOG( "Reading params\n");
-	rc = read_run_params(argc, argv, vm);
-	assert(rc >= 0);
-
-	// Read Signals
-	MLOG( "Reading signals\n");
-
-	vector<string> signals;
-	rc = read_signals_list(vm, signals);
-	assert(rc >= 0);
-
-	// Read Samples
-	MLOG( "Reading samples\n");
-
-	MedSamples allSamples;
-	get_samples(vm, allSamples);
-	vector<int> ids;
-	allSamples.get_ids(ids);
-
-	// Read Repository
-	MLOG("Initializing repository\n");
-
-	MedPidRepository rep;
-	rc = read_repository(vm, ids, signals, rep);
-	assert(rc >= 0);
-
-	timer.take_curr_time();
-	MLOG("Reading params + rep time: %f sec\n", timer.diff_sec());
+	float AUC = -999;
 
 	// Define Model
 	MedModel my_model;
 
+	MedTimer timer;
 	timer.start();
 
-#define DIRECT_INIT 0
+//#define DIRECT_INIT 1
+	int DIRECT_INIT = vm["direct_init"].as<int>();
 	if (DIRECT_INIT) {
 		MLOG("Initializing RepCleaners and Features: nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
 		for (auto sig : signals) {
 
 			// cleaner for sig
-			my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
-//			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;signal="+sig);
+			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
+			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;range_min=0.01;range_max=1000;signal="+sig);
 
 			// features for sig
 
@@ -94,6 +65,7 @@ int main(int argc, char *argv[])
 		// Add feature processors
 		my_model.add_process_to_set(0, "fp_type=basic_cleaner");
 		my_model.add_process_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
+		//my_model.add_process_to_set(1, "fp_type=imputer;moment_type=0");
 		//my_model.add_process_to_set(2, "fp_type=normalizer");
 
 	}
@@ -114,7 +86,7 @@ int main(int argc, char *argv[])
 		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
 
 		// Age + Gender
-		MLOG( "Initializing Extra Features\n");
+		MLOG("Initializing Extra Features\n");
 		my_model.add_age();
 		my_model.add_gender();
 
@@ -133,7 +105,7 @@ int main(int argc, char *argv[])
 
 
 	// Predictor
-	MLOG( "Initializing Predictor\n");
+	MLOG("Initializing Predictor\n");
 	my_model.set_predictor(vm["predictor"].as<string>(), vm["predictor_params"].as<string>());
 	assert(my_model.predictor != NULL);
 
@@ -144,7 +116,7 @@ int main(int argc, char *argv[])
 		// Cross Validator
 		CrossValidator cv(&my_model);
 		timer.start();
-		MLOG( "Initializing Filters\n");
+		MLOG("Initializing Filters\n");
 
 		BasicTrainFilter *trainFilter = new BasicTrainFilter;
 		BasicTestFilter *testFilter = new BasicTestFilter;
@@ -155,12 +127,12 @@ int main(int argc, char *argv[])
 		MLOG("Init filters time: %g sec\n", timer.diff_sec());
 
 		int nfolds = vm["nfolds"].as<int>();
-		MLOG( "Performing %d-fold cross-validation\n", nfolds);
+		MLOG("Performing %d-fold cross-validation\n", nfolds);
 
 		MedSamples cvOutSamples;
 
 		if (cv.doCV(rep, allSamples, nfolds, cvOutSamples) < 0) {
-			MLOG( "CV failed\n");
+			MLOG("CV failed\n");
 			return -1;
 		}
 
@@ -178,7 +150,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		float AUC = get_preds_auc(preds, y);
+		AUC = get_preds_auc(preds, y);
 		MLOG("y size: %d , preds size: %d , cv AUC is : %f\n", y.size(), preds.size(), AUC);
 
 	}
@@ -191,7 +163,7 @@ int main(int argc, char *argv[])
 
 		// Learn on 50%; Predict on rest
 		BasicTrainFilter trainFilter;
-		BasicTestFilter testFilter; 
+		BasicTestFilter testFilter;
 
 		// Learning and test set
 		MedSamples learningSamples, testSamples;
@@ -208,7 +180,7 @@ int main(int argc, char *argv[])
 
 		// Learn Model
 		if (my_model.learn(rep, &learningSamples) < 0) {
-			fprintf(stderr,"Learning model failed\n");
+			fprintf(stderr, "Learning model failed\n");
 			return -1;
 		}
 
@@ -223,7 +195,7 @@ int main(int argc, char *argv[])
 
 		// Apply
 		if (new_model.apply(rep, testSamples) < 0) {
-			fprintf(stderr,"Applying model failed\n");
+			fprintf(stderr, "Applying model failed\n");
 			return -1;
 		}
 
@@ -238,12 +210,65 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		float AUC = get_preds_auc(preds, y);
+		AUC = get_preds_auc(preds, y);
 		MLOG("y size: %d , preds size: %d , cv AUC is : %f\n", y.size(), preds.size(), AUC);
 	}
-	
-	return 0;
 
+	return AUC;
+
+}
+
+int main(int argc, char *argv[])
+{
+	int rc = 0;
+	po::variables_map vm;
+
+	MedTimer timer;
+	timer.start();
+
+	// Running Parameters
+	MLOG( "Reading params\n");
+	rc = read_run_params(argc, argv, vm);
+	assert(rc >= 0);
+
+	// Read Signals
+	MLOG( "Reading signals\n");
+
+	vector<string> signals;
+	rc = read_signals_list(vm, signals);
+	assert(rc >= 0);
+
+	// Read Samples
+	MLOG( "Reading samples\n");
+
+	MedSamples allSamples;
+	get_samples(vm, allSamples);
+	vector<int> ids;
+	allSamples.get_ids(ids);
+
+	// Read Repository
+	MLOG("Initializing repository\n");
+
+	MedPidRepository rep;
+	vector<string> read_sigs = signals;
+	//read_sigs.push_back("Drug");
+	rc = read_repository(vm, ids, read_sigs, rep);
+	assert(rc >= 0);
+
+	timer.take_curr_time();
+	MLOG("Reading params + rep time: %f sec\n", timer.diff_sec());
+
+	if (vm.count("scan_sigs")) {
+		for (auto sig : signals) {
+			float auc = run_learn_apply(rep, allSamples, vm, { sig });
+			MLOG("##SCAN_SIGS## %s %f\n", sig.c_str(), auc);
+		}
+	}
+	else {
+		run_learn_apply(rep, allSamples, vm, signals);
+	}
+
+	return 0;
 }
 
 // Functions 
@@ -257,14 +282,17 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("config", po::value<string>()->required(), "repository file name")
 			("ids",po::value<string>(),"file of ids to consider")
 			("samples", po::value<string>()->required(), "samples file name")
-			("features", po::value<string>()->required(), "file of signals to consider")
+			("sigs", po::value<string>()->default_value("NONE"), "file of signals to consider")
+			("scan_sigs", "run and age+genger+sig model for each one of the signals")
+			("features", po::value<string>(), "file of signals to consider")
 			("rep_cleaner", po::value<string>(), "repository cleaner")
 			("rep_cleaner_params", po::value<string>()->default_value(""), "repository cleaner params")
 			("feat_cleaner", po::value<string>(), "features cleaner")
 			("feat_cleaner_params", po::value<string>()->default_value(""), "features cleaner params")
 			("predictor", po::value<string>()->default_value("linear_model"), "predictor")
 			("predictor_params", po::value<string>()->default_value(""), "predictor params")
-			("temp_file",po::value<string>(), "temporary file for serialization")
+			("temp_file", po::value<string>(), "temporary file for serialization")
+			("direct_init", po::value<int>()->default_value(0), "temporary file for serialization")
 
 			("nfolds", po::value<int>(), "number of cross-validation folds")
 			;
@@ -318,6 +346,13 @@ int read_repository(po::variables_map& vm, vector<int>& ids, vector<string>& sig
 
 int read_signals_list(po::variables_map& vm, vector<string>& signals) {
 	
+	string sigs = vm["sigs"].as<string>();
+	if (sigs != "NONE") {
+		signals.clear();
+		boost::split(signals, sigs, boost::is_any_of(","));
+		return 0;
+	}
+
 	string file_name = vm["features"].as<string>();
 	ifstream inf(file_name);
 

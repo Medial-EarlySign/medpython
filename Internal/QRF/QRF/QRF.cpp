@@ -707,6 +707,8 @@ int QuantizedRF::find_best_categories_chi2_split(QRF_Tree &tree, int node, int n
 								chi2s += SQUARE(histR[j]-expR)/expR;
 						}
 
+						if (!(left_sum >= min_split_node_size && right_sum >= min_split_node_size))
+							chi2s = max_score - 1;
 #ifdef DEBUG_ALGO_2
 						fprintf(stderr,"node %d ifeat %d i %d max_score %f node_size %d left_sum %f right_sum %f score %f\n",
 										node,ifeat,i,max_score,node_size,left_sum,right_sum,chi2s); fflush(stderr);
@@ -834,6 +836,8 @@ int QuantizedRF::find_best_categories_entropy_split(QRF_Tree &tree, int node, in
 						HR += log_table[(int)right_sum];
 						H = HL+HR;
 
+						if (!(left_sum >= min_split_node_size && right_sum >= min_split_node_size))
+							H = min_score + 1; // makes sure we do not split cases that split to nodes too small
 #ifdef DEBUG_ALGO_2
 						fprintf(stderr,"node %d ifeat %d i %d min_score %f node_size %d left_sum %f right_sum %f score %f\n",
 										node,ifeat,i,min_score,node_size,left_sum,right_sum,H); fflush(stderr);
@@ -937,6 +941,9 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 						left_avg = left_sum/left_num;
 						right_avg = right_sum/right_num;
 						score = left_num*left_avg*left_avg + right_num*right_avg*right_avg;
+
+						if (!(left_num >= min_split_node_size && right_num >= min_split_node_size))
+							score = max_score - 1; // don't split when getting to too small nodes
 #ifdef DEBUG_ALGO_2
 						fprintf(stderr,"node %d ifeat %d i %d max_score %f node_size %d left_sum %f left_num %f right_sum %f right_num %f right_avg %f left_avg %f score %f\n",
 										node,ifeat,i,max_score,node_size,left_sum,left_num,right_sum,right_num,right_avg,left_avg,score); fflush(stderr);
@@ -980,6 +987,9 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 						left_avg = left_sum/left_num;
 						right_avg = right_sum/right_num;
 						score = left_num*left_avg*left_avg + right_num*right_avg*right_avg;
+
+						if (!(left_num >= min_split_node_size && right_num >= min_split_node_size))
+							score = max_score - 1; // don't split when getting to too small nodes
 
 						if (score > max_score) {
 							max_score = score;
@@ -1066,7 +1076,7 @@ int QuantizedRF::find_best_split(QRF_Tree &tree, int node, int ntry)
 						right_n1 -= tree.hist[1][i];
 						right_d -= (tree.hist[0][i] + tree.hist[1][i]);
 
-						if (right_d > 0 && left_d > 0) {
+						if (right_d > 0 && left_d > 0 && right_d>=min_split_node_size && left_d>=min_split_node_size) {
 							score = (left_n0/tot) * (left_n1/left_d) + (right_n0/tot)*(right_n1/right_d);
 							if (score < min_score) {
 								min_score = score;
@@ -1100,7 +1110,7 @@ int QuantizedRF::find_best_split(QRF_Tree &tree, int node, int ntry)
 					right_n1 -= tree.qy[i].idx;
 					right_n0 -= (1-tree.qy[i].idx);
 					right_d--;
-					if (tree.qy[i].val < tree.qy[i+1].val && right_d>0 && left_d>0) {
+					if (tree.qy[i].val < tree.qy[i+1].val && right_d>0 && left_d>0 && right_d>=min_split_node_size && left_d>=min_split_node_size) {
 							score = (left_n0/tot) * (left_n1/left_d) + (right_n0/tot)*(right_n1/right_d);
 							if (score < min_score) {
 								min_score = score;
@@ -1172,8 +1182,8 @@ int QuantizedRF::split_regression_node(QRF_Tree &tree, int node)
 	for (i=k+1; i<=nd->to_sample; i++) {
 		tree.sample_ids[i] = tree.inds[i];
 		sumR += yr[tree.inds[i]];
-		if (yr[tree.inds[i]] > maxL) maxL = yr[tree.inds[i]];
-		if (yr[tree.inds[i]] < minL) minL = yr[tree.inds[i]];
+		if (yr[tree.inds[i]] > maxR) maxR = yr[tree.inds[i]];
+		if (yr[tree.inds[i]] < minR) minR = yr[tree.inds[i]];
 	}
 
 

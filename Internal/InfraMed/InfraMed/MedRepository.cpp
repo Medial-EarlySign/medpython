@@ -721,7 +721,7 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 	}
 	for (int i = 0; i<len; i++) {
 		int val;
-		MOUT("%d,%d,%s,%d,%d,", pid, sid, sigs.name(sid).c_str(), len, i);
+		MOUT("%d,%d,%s,%d,%d,%d,", pid, sid, sigs.name(sid).c_str(), sigs.type(sid), len, i);
 		if (sigs.type(sid) == T_Value) {
 			SVal *v = (SVal *)data;
 			if (dict_val)

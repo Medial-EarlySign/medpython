@@ -102,6 +102,8 @@ public:
 	// Serialization
 	size_t get_generator_size();
 	size_t generator_serialize(unsigned char *blob);
+
+	virtual void print() { fprintf(stderr, "Print Not Implemented for feature\n"); }
 };
 
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
@@ -368,6 +370,9 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
+
+	// print 
+	void print();
 };
 
 #endif

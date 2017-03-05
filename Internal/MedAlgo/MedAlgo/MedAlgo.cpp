@@ -4,6 +4,7 @@
 
 #include "MedAlgo.h"
 #include "MedXGB.h"
+#include "MedDeepBit.h"
 #include "MedUtils/MedUtils/MedIO.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 
@@ -43,6 +44,8 @@ MedPredictorTypes predictor_name_to_type(const string& model_name) {
 		return MODEL_MIC_NET;
 	else if (model_name == "booster")
 		return MODEL_BOOSTER;
+	else if (model_name == "deep_bit")
+		return MODEL_DEEP_BIT;
 	else
 		return MODEL_LAST ;
 }
@@ -87,6 +90,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedMicNet;
 	else if (model_type == MODEL_BOOSTER) 
 		return new MedBooster;
+	else if (model_type == MODEL_DEEP_BIT)
+		return new MedDeepBit;
 	else
 		return NULL ;
 
@@ -180,7 +185,6 @@ int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts)
 	}
 
 	prepare_x_mat(x,wgts,nsamples,nftrs,transpose_for_learn);
-
 	if (normalize_y_for_learn && !y.normalized_flag)
 		y.normalize();
 
@@ -491,7 +495,6 @@ int MedPredictor::learn(MedFeatures& ftrs_data) {
 	MedMat<float> y(x.nrows, 1);
 	for (int i = 0; i < y.nrows; i++)
 		y(i,0) = ftrs_data.samples[i].outcome ;
-
 	return learn(x, y);
 }
 
@@ -598,7 +601,6 @@ int MedPredictor::predict(MedFeatures& ftrs_data) {
 
 	int n = n_preds_per_sample();
 	ftrs_data.samples.resize(preds.size()/n);
-
 	for (int i = 0; i < x.nrows; i++) {
 		ftrs_data.samples[i].prediction.resize(n);
 		for (int j = 0; j < n; j++)

@@ -165,6 +165,7 @@ public:
 	int time_channel = 0;
 	int val_channel = 0;
 
+
 	// Constructors
 	RepBasicOutlierCleaner() : RepProcessor() { init_defaults(); }
 	RepBasicOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
@@ -285,7 +286,7 @@ public:
 //.......................................................................................
 
 // Get values of a signal from a set of ids
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, vector<float>& values) ;
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) ;
 
 #endif
