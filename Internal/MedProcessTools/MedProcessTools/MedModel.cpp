@@ -170,10 +170,10 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 
 	// Loop on ids
 	int RC = 0;
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int j=0; j<samples->idSamples.size(); j++) {
 		MedIdSamples& pid_samples = samples->idSamples[j];
-		int n_th = omp_get_thread_num();
+		int n_th = omp_get_thread_num(); 
 		int rc = 0;
 
 		// Generate DynamicRec with all relevant signals
@@ -186,7 +186,6 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 		// Generate Features
 		for (auto& generator : generators)
 			if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-
 #pragma omp critical 
 		if (rc < 0) RC = -1;
 	}

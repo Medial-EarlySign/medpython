@@ -234,7 +234,6 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
 	rec.uget(signalId, idx);
 
-
 	switch (type) {
 	case FTR_LAST_VALUE:	return uget_last(rec.usv, time, win_from, win_to);
 	case FTR_FIRST_VALUE:	return uget_first(rec.usv, time);
@@ -371,20 +370,27 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
-	if (byearId == -1) {
-		MERR("Uninitialized byearId\n");
+	if (signalId == -1) {
+		MERR("Uninitialized signalId in age generation\n");
 		return -1;
 	}
 
 	int len;
-	SVal *bYearSignal = (SVal *)rec.get(byearId, len);
-	if (len != 1) { MERR("id %d , got len %d for signal %d (BYEAR)...\n", rec.pid, len, byearId); }
-	assert(len == 1);
-	int byear = (int)(bYearSignal[0].val);
+	if (directlyGiven) {
+		rec.uget(signalId, 0); 
+		assert(rec.usv.len > 0);
+		for (int i = 0; i < num; i++)
+			features.data[names[0]][index + i] = rec.usv.Val(0);
+	}
+	else {
+		SVal *bYearSignal = (SVal *)rec.get(signalId, len);
+		if (len != 1) { MERR("id %d , got len %d for signal %d (BYEAR)...\n", rec.pid, len, signalId); }
+		assert(len == 1);
+		int byear = (int)(bYearSignal[0].val);
 
-	for (int i = 0; i < num; i++)
-		features.data[names[0]][index + i] = (float) (med_time_converter.convert_times(features.time_unit, MedTime::Years, features.samples[i].time) - byear);
-
+		for (int i = 0; i < num; i++)
+			features.data[names[0]][index + i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[i].time) / 10000 - byear);
+	}
 	return 0;
 }
 
@@ -400,9 +406,9 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 	}
 
 	int len;
-	SVal *genderSignal = (SVal *)rec.get(genderId, len);
-	assert(len == 1);
-	int gender = (int)(genderSignal[0].val);
+	rec.uget(genderId, 0);
+	assert(rec.usv.len >= 1);
+	int gender = (int)(rec.usv.Val(0));
 
 	for (int i = 0; i < num; i++)
 		features.data[names[0]][index + i] = (float) gender;

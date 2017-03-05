@@ -396,7 +396,7 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 			int itime = rec.usv.Time(i, time_channel);
 			float ival = rec.usv.Val(i, val_channel);
 
-			if (itime > time_points[jver])	break;
+			if (itime > time_points[iver])	break;
 
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
 				remove[nRemove++] = i;
@@ -412,6 +412,7 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 		
 		change.resize(nChange);
 		remove.resize(nRemove);
+
 		if (rec.update(signalId, jver, val_channel, change, remove) < 0)
 			return -1;
 
@@ -593,7 +594,6 @@ int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) 
 	}
 
 	int len;
-
 	for (int iver = 0; iver < time_points.size(); iver++) {
 
 		rec.uget(signalId, iver, rec.usv);
@@ -604,14 +604,15 @@ int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) 
 		int nRemove = 0, nChange = 0;
 
 		// Clean 
-		int verLen = 0;
+		int verLen = len;
 		vector<int> candidates(len, 0);
 		vector<int> removed(len, 0);
+		
 		for (int i = 0; i < len; i++) {
 			int itime = rec.usv.Time(i, time_channel);
 
 			if (itime > time_points[iver]) {
-				verLen = i - 1;
+				verLen = i ;
 				break;
 			}
 

@@ -54,7 +54,7 @@ void BinnedLmEstimates::set(string& _signalName) {
 	set_names();
 
 	req_signals.resize(3);
-	req_signals[0] = "GENDER";
+	req_signals[0] = med_rep_type.genderSignalName;
 	req_signals[1] = (ageDirectlyGiven) ?  "Age" : "BYEAR";
 	req_signals[2] = signalName;
 }
@@ -62,6 +62,7 @@ void BinnedLmEstimates::set(string& _signalName) {
 //.......................................................................................
 void BinnedLmEstimates::init_defaults() {
 
+	ageDirectlyGiven = med_rep_type.ageDirectlyGiven;
 	generator_type = FTR_GEN_BINNED_LM;
 
 	params.bin_bounds.resize(def_nbin_bounds);
@@ -76,10 +77,9 @@ void BinnedLmEstimates::init_defaults() {
 	for (int i = 0; i < def_nestimation_points; i++)
 		params.estimation_points[i] = def_estimation_points[i];
 
-	if (ageDirectlyGiven)
-		req_signals = { "GENDER","Age" };
-	else
-		req_signals ={ "GENDER", "BYEAR" };
+	req_signals.resize(2);
+	req_signals[0] = med_rep_type.genderSignalName;
+	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
 
 	signalId = -1; 
 	byearId = -1;
@@ -100,10 +100,10 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 
 	set_names();
 
-	if (ageDirectlyGiven)
-		req_signals ={ "GENDER", "Age", signalName };
-	else
-		req_signals = { "GENDER", "BYEAR", signalName };
+	req_signals.resize(3);
+	req_signals[0] = med_rep_type.genderSignalName;
+	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[2] = signalName;
 }
 
 //..............................................................................
@@ -140,10 +140,10 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 	names.clear();
 	set_names();
 
-	if (ageDirectlyGiven)
-		req_signals = { "GENDER", "Age", signalName };
-	else
-		req_signals = { "GENDER", "BYEAR", signalName };
+	req_signals.resize(3);
+	req_signals[0] = med_rep_type.genderSignalName;
+	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[2] = signalName;
 
 	return 0;
 }
@@ -152,7 +152,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 void BinnedLmEstimates::get_signal_ids(MedDictionarySections& dict) {
 	
 	signalId = dict.id(signalName); 
-	genderId = dict.id("GENDER");
+	genderId = dict.id(med_rep_type.genderSignalName);
 	
 	if (ageDirectlyGiven)
 		ageId = dict.id("Age");

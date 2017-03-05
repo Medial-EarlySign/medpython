@@ -67,7 +67,7 @@ public:
 	void add_feature_generator(string& name, string& signal) { vector<string> signals(1,signal) ; add_feature_generators(name, signals); }
 	void add_feature_generators(string& name, string& signal, string init_string) { vector<string> signals(1,signal) ; add_feature_generators(name, signals, init_string); }
 
-	void add_age() {generators.push_back(new AgeGenerator);}
+	void add_age() { generators.push_back(new AgeGenerator); }
 	void add_gender() { generators.push_back(new GenderGenerator); }
 
 	void get_all_features_names(vector<string> &feat_names);
@@ -101,7 +101,7 @@ public:
 
 
 	// Add Predictor
-	void set_predcitor(MedPredictor *_predictor) { predictor = _predictor; };
+	void set_predictor(MedPredictor *_predictor) { predictor = _predictor; };
 	void set_predictor(MedPredictorTypes type) { predictor = MedPredictor::make_predictor(type); }
 	void set_predictor(string name) { predictor = MedPredictor::make_predictor(name); }
 	void set_predictor(MedPredictorTypes type, string init_string) { predictor = MedPredictor::make_predictor(type,init_string); }

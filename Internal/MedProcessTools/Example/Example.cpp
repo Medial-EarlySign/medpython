@@ -58,8 +58,8 @@ int main(int argc, char *argv[])
 		for (auto sig : signals) {
 
 			// cleaner for sig
-			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
-			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;signal="+sig);
+			my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
+//			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;signal="+sig);
 
 			// features for sig
 
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 		// Repository Cleaners
 		MLOG("Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
 		my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
-		//	my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+//		my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
 
 		// Signal-based feature generators
 		MLOG("Initializing Features\n");
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 	
 		for (auto sig_type : sig_types) 
 			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
-//		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
+		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
 
 		// Age + Gender
 		MLOG( "Initializing Extra Features\n");
