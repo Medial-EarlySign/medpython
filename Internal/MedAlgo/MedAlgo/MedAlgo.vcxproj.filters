@@ -24,6 +24,9 @@
     <ClInclude Include="MedBooster.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MedDeepBit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedAlgo.cpp">
@@ -63,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedBooster.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MedDeepBit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

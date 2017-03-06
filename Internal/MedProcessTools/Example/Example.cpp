@@ -83,17 +83,17 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		// Repository Cleaners
 		MLOG("Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
 		my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
-		//	my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
+//		my_model.add_rep_processors_set(REP_PROCESS_BASIC_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
 
 		// Signal-based feature generators
 		MLOG("Initializing Features\n");
 
 		vector<BasicFeatureTypes> sig_types ={ FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE, FTR_STD_VALUE, FTR_LAST_DELTA_VALUE , FTR_LAST_DAYS, FTR_LAST2_DAYS };
-		//		vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE , FTR_FIRST_VALUE };
-
-		for (auto sig_type : sig_types)
-			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));
-		//		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
+//		vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE , FTR_FIRST_VALUE };
+	
+		for (auto sig_type : sig_types) 
+			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
+		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
 
 		// Age + Gender
 		MLOG("Initializing Extra Features\n");

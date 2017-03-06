@@ -10,6 +10,7 @@
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include <MedTime/MedTime/MedTime.h>
+#include "InfraMed/InfraMed/MedRepositoryType.h"
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
@@ -60,7 +61,7 @@ public:
 	vector<string> req_signals;
 	vector<int> req_signal_ids; 
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
-	void get_required_signal_ids(MedDictionarySections& dict);
+	virtual void get_required_signal_ids(MedDictionarySections& dict);
 
 	// Signal Ids
 	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
@@ -235,12 +236,15 @@ public:
 class AgeGenerator : public FeatureGenerator {
 public:
 
-	// Age Id
-	int byearId;
+	// Is Age Directly given ?
+	bool directlyGiven;
+
+	// Signak Id
+	int signalId;
 
 	// Constructor/Destructor
-	AgeGenerator() : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = -1; req_signals.assign(1,"BYEAR");}
-	AgeGenerator(int _byearId) : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); byearId = _byearId; req_signals.assign(1, "BYEAR"); }
+	AgeGenerator() : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven; }
+	AgeGenerator(int _signalId) : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = _signalId; directlyGiven = med_rep_type.ageDirectlyGiven;}
 	~AgeGenerator() {};
 
 	// Name
@@ -253,7 +257,8 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) {byearId = dict.id("BYEAR");}
+	void get_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
+	void get_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
@@ -273,8 +278,8 @@ public:
 	int genderId;
 
 	// Constructor/Destructor
-	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, "GENDER");}
-	GenderGenerator(int _genderId) : FeatureGenerator() {generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, "GENDER");}
+	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, med_rep_type.genderSignalName);}
+	GenderGenerator(int _genderId) : FeatureGenerator() {generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, med_rep_type.genderSignalName);}
 
 	~GenderGenerator() {};
 
@@ -288,7 +293,8 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { genderId = dict.id("GENDER"); }
+	void get_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
+	void get_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
@@ -319,7 +325,7 @@ public:
 	int signalId, byearId, genderId, ageId;
 
 	// Is age directly given (Hospital data) or through birth-year (Primary-care data)
-	bool ageDirectlyGiven = false;
+	bool ageDirectlyGiven ;
 
 	BinnedLmEstimatesParams params;
 	vector<MedLM> models;

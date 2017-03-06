@@ -147,6 +147,7 @@
     <ClInclude Include="MedConvert.h" />
     <ClInclude Include="MedDictionary.h" />
     <ClInclude Include="MedPidRepository.h" />
+    <ClInclude Include="MedRepositoryType.h" />
     <ClInclude Include="MedSignals.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
@@ -156,6 +157,7 @@
     <ClCompile Include="MedDictionary.cpp" />
     <ClCompile Include="MedPidRepository.cpp" />
     <ClCompile Include="MedRepository.cpp" />
+    <ClCompile Include="MedRepositoryType.cpp" />
     <ClCompile Include="MedSignals.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
