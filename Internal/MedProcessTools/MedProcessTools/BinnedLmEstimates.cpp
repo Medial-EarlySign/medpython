@@ -33,7 +33,7 @@ double def_rfactor = 0.99;
 void BinnedLmEstimates::set_names() {
 
 	if (names.empty()) {
-		string base_name = signalName + ".Estimate.";
+		string base_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".Estimate.";
 		for (int point : params.estimation_points) {
 			string name = base_name + std::to_string(point);
 			if (time_channel != 0 || val_channel != 0)
@@ -547,73 +547,22 @@ size_t BinnedLmEstimates::get_size() {
 
 	size_t size = 0;
 
-	// signalName
-	size += sizeof(size_t);
-	size += signalName.length() + 1;
-
-	// Params
-	size += sizeof(size_t); size += params.bin_bounds.size() * sizeof(int);
-	size += 2 * sizeof(int);
-	size += sizeof(float);
-	size += sizeof(size_t); 
-	size += params.estimation_points.size() * sizeof(int);
-
-	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
-
-	// Means and Sdvs
-	size += (2 * nfeatures + nmodels) * sizeof(float);
-	size += 2 * (BINNED_LM_MAX_AGE+1) * sizeof(float);
-
-	// Models
-	for (auto& model : models)
-		size += model.get_size();
+	size += MedSerialize::get_size(generator_type, signalName, names, req_signals);
+	size += MedSerialize::get_size(params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
+	size += MedSerialize::get_size(xmeans, xsdvs, ymeans, means[0], means[1], models);
 
 	return size;
 
 }
-
-extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	// SignalName
-	size_t nameLen = signalName.length();
-	assert(nameLen < MAX_NAME_LEN);
-
-	strcpy(signalName_c, signalName.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
-	size_t npoints = params.estimation_points.size();
-	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods * nmodels;
-
-	// Params
-	memcpy(blob + ptr, &nperiods, sizeof(size_t));  ptr += sizeof(size_t);
-	memcpy(blob + ptr, &(params.bin_bounds[0]), nperiods * sizeof(int)); ptr += nperiods * sizeof(int);
-	memcpy(blob + ptr, &params.min_period, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.max_period, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.rfactor, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &npoints, sizeof(size_t));  ptr += sizeof(size_t);
-	memcpy(blob + ptr, &(params.estimation_points[0]), npoints * sizeof(int)); ptr += npoints * sizeof(int);
-
-	// Means and Sdvs
-	memcpy(blob + ptr, &(xmeans[0]), nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	memcpy(blob + ptr, &(xsdvs[0]), nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	memcpy(blob + ptr, &(ymeans[0]), nmodels*sizeof(float)); ptr += nmodels*sizeof(float);
-	memcpy(blob + ptr, &(means[0][0]), (BINNED_LM_MAX_AGE + 1) * sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-	memcpy(blob + ptr, &(means[1][0]), (BINNED_LM_MAX_AGE + 1) * sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-
-	// Models
-	for (auto& model : models) 
-		ptr += model.serialize(blob + ptr);
+	ptr += MedSerialize::serialize(blob + ptr, generator_type, signalName, names, req_signals);
+	ptr += MedSerialize::serialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
+	ptr += MedSerialize::serialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 
 	return ptr;
 }
@@ -623,55 +572,9 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	size_t npoints, nperiods;
-	
-	// SignalName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	signalName = signalName_c;
-
-	// Params
-	memcpy(&nperiods, blob + ptr, sizeof(size_t));  ptr += sizeof(size_t);
-	params.bin_bounds.resize(nperiods);
-	memcpy(&(params.bin_bounds[0]), blob + ptr, nperiods * sizeof(int)); ptr += nperiods * sizeof(int);
-	memcpy(&params.min_period, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.max_period, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.rfactor, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&npoints, blob + ptr, sizeof(size_t));  ptr += sizeof(size_t);
-	params.estimation_points.resize(npoints);
-	memcpy(&(params.estimation_points[0]), blob + ptr, npoints * sizeof(int)); ptr += npoints * sizeof(int);
-
-	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods *nmodels;
-
-	// Means and Sdvs
-	xmeans.resize(nfeatures*sizeof(float));
-	memcpy(&(xmeans[0]), blob + ptr, nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	xsdvs.resize(nfeatures*sizeof(float));
-	memcpy(&(xsdvs[0]), blob + ptr, nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	ymeans.resize(nmodels*sizeof(float));
-	memcpy(&(ymeans[0]), blob + ptr, nmodels*sizeof(float)); ptr += nmodels*sizeof(float);
-
-	means[0].resize(BINNED_LM_MAX_AGE + 1);
-	memcpy(&(means[0][0]), blob + ptr, (BINNED_LM_MAX_AGE + 1)*sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-
-	means[1].resize(BINNED_LM_MAX_AGE + 1);
-	memcpy(&(means[1][0]), blob + ptr, (BINNED_LM_MAX_AGE + 1)*sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-
-	// Models
-	models.resize(nmodels);
-	for (auto& model : models) 
-		ptr += model.deserialize(blob + ptr);
-
-	set_names();
-
-	req_signals.resize(3);
-	req_signals[0] = "GENDER";
-	req_signals[1] = "BYEAR";
-	req_signals[2] = signalName;
+	ptr += MedSerialize::deserialize(blob + ptr, generator_type, signalName, names, req_signals);
+	ptr += MedSerialize::deserialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
+	ptr += MedSerialize::deserialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 
 	return ptr;
 }

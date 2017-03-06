@@ -64,4 +64,12 @@ public:
 
 };
 
+
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(MedSample)
+MEDSERIALIZE_SUPPORT(MedIdSamples)
+MEDSERIALIZE_SUPPORT(MedSamples)
+
 #endif

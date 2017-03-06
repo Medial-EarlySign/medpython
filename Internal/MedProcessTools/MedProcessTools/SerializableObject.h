@@ -5,6 +5,7 @@
 
 #include "Logger/Logger/Logger.h"
 #include "MedUtils/MedUtils/MedIO.h"
+//#include "MedAlgo/MedAlgo/MedAlgo.h"
 #include <cstring>
 
 using namespace std;
@@ -48,6 +49,14 @@ public:
 //	template <class T> size_t deserialize(unsigned char *blob, vector<T> &v);
 //
 //}
+
+
+#define MEDSERIALIZE_SUPPORT(Type)																	\
+namespace MedSerialize {																			\
+	static size_t get_size(Type &elem) { return elem.get_size(); }									\
+	static size_t serialize(unsigned char *blob, Type &elem) { return elem.serialize(blob); }		\
+	static size_t deserialize(unsigned char *blob, Type &elem) { return elem.deserialize(blob); }		\
+}
 
 #include "SerializableObject_imp.h"
 

@@ -344,5 +344,15 @@ public:
 
 void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values);
 
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(MultiFeatureProcessor)
+MEDSERIALIZE_SUPPORT(FeatureBasicOutlierCleaner)
+MEDSERIALIZE_SUPPORT(FeatureNormalizer)
+MEDSERIALIZE_SUPPORT(featureStrata)
+MEDSERIALIZE_SUPPORT(featureSetStrata)
+MEDSERIALIZE_SUPPORT(FeatureImputer)
+
 
 #endif

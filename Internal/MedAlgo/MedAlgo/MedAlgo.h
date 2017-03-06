@@ -15,6 +15,8 @@
 #include "string.h"
 #include "limits.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
+#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+
 // #include "MedBooster.h" // this include is at the end of file as it depends on following definitions to come first
 
 // Forward Declaration
@@ -870,6 +872,22 @@ int initialization_text_to_map(const string& text, map<string, string>& init_map
 //================================================================
 
 #include "MedBooster.h"
+
+
+//=================================================================
+// Joining the MedSerialize Wagon
+//=================================================================
+
+MEDSERIALIZE_SUPPORT(MedLM)
+MEDSERIALIZE_SUPPORT(MedLasso)
+MEDSERIALIZE_SUPPORT(MedGDLM)
+MEDSERIALIZE_SUPPORT(MedQRF)
+MEDSERIALIZE_SUPPORT(MedMicNet)
+MEDSERIALIZE_SUPPORT(MedBP)
+MEDSERIALIZE_SUPPORT(MedMars)
+MEDSERIALIZE_SUPPORT(MedKNN)
+MEDSERIALIZE_SUPPORT(MedGBM)
+MEDSERIALIZE_SUPPORT(MedMultiClass)
 
 
 #endif

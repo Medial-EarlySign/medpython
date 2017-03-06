@@ -55,98 +55,17 @@ void MedFeatures::insert_samples(MedIdSamples& in_samples, int index) {
 // (De)Serialization
 //.......................................................................................
 size_t MedFeatures::get_size() {
-
-	size_t size = 0;
-
-	// Number of Features and samples
-	size += 2*sizeof(int);
-
-	// Data
-	for (auto& rec : data) {
-		// name
-		size += sizeof(size_t);
-		size += rec.first.length() + 1;
-		// data
-		size += rec.second.size() * sizeof(float);
-	}
-
-	// Samples
-	size += samples.size() * sizeof(MedSample);
-
-	return size;
+	return MedSerialize::get_size(data, samples);
 }
-
-extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t  MedFeatures::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	
-	// Number of Features
-	int nFeatures = (int) data.size();
-	memcpy(blob + ptr, &nFeatures, sizeof(int)); ptr += sizeof(int);
-
-	// Features size
-	int nSamples = (int) samples.size();
-	memcpy(blob + ptr, &nSamples, sizeof(int)); ptr += sizeof(int);
-
-
-	// Data
-	for (auto& rec : data) {
-		// name
-		size_t nameLen = rec.first.length();
-		assert(nameLen < MAX_NAME_LEN);
-
-		strcpy(signalName_c, rec.first.c_str());
-
-		memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-		memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
-		// data
-		memcpy(blob + ptr, &(rec.second[0]), nSamples * sizeof(float)); ptr += nSamples * sizeof(float);
-	}
-
-	// Samples
-	for (unsigned int i = 0; i < samples.size(); i++)
-		ptr += samples[i].serialize(blob+ptr);
-
-	return ptr;
+	return MedSerialize::serialize(blob, data, samples);
 }
 
 //.......................................................................................
 size_t MedFeatures::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// Number of Features
-	int nFeatures;
-	memcpy(&nFeatures, blob + ptr, sizeof(int)); ptr += sizeof(int);
-
-	// Number of Samples
-	int nSamples;
-	memcpy(&nSamples, blob + ptr, sizeof(int)); ptr += sizeof(int);
-
-	// Data
-	for (int i = 0; i < nFeatures; i++) {
-		// name
-		size_t nameLen;
-		memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-		assert(nameLen < MAX_NAME_LEN);
-
-		memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-
-		// data
-		data[signalName_c] = vector<float>(nSamples);
-		memcpy(blob + ptr, &(data[signalName_c][0]), nSamples * sizeof(float)); ptr += nSamples * sizeof(float);
-	}
-
-	// Samples
-	samples.resize(nSamples);
-	for (unsigned int i = 0; i < samples.size(); i++)
-		ptr += samples[i].deserialize(blob + ptr);
-
-	return ptr;
+	return MedSerialize::deserialize(blob, data, samples);
 }
 
 //.......................................................................................
@@ -204,4 +123,60 @@ void MedFeatures::print_csv()
 			MLOG("%f,", v);
 		MLOG("\n");
 	}
+}
+
+//.......................................................................................
+int MedFeatures::write_as_csv_mat(const string &csv_fname)
+{
+	ofstream out_f;
+
+	out_f.open(csv_fname);
+
+	if (!out_f.is_open()) {
+		MERR("ERROR: MedFeatures::write_as_csv_mat() :: Can't open file %s for writing\n", csv_fname.c_str());
+		return -1;
+	}
+
+	vector<string> col_names;
+	get_feature_names(col_names);
+	int n_preds = 0;
+
+	// names line
+	// serial
+	out_f << "serial";
+	// samples
+	out_f << ",id,time,outcome,outcome_time";
+//	MLOG("samples.size %d , preds %d\n", samples.size(), samples[0].prediction.size());
+	if (samples.size() > 0 && samples[0].prediction.size() > 0) {
+		n_preds = (int)samples[0].prediction.size();
+		//MLOG("n_preds = %d\n", n_preds);
+		for (int j=0; j<n_preds; j++)
+			out_f << ",pred_"+to_string(j);
+	}
+	// names of features
+	for (int j=0; j<col_names.size(); j++)
+		out_f << "," + col_names[j];
+	out_f << "\n";
+
+	for (int i=0; i<samples.size(); i++) {
+
+		// serial
+		out_f << to_string(i);
+
+		// sample
+		out_f << "," + to_string(samples[i].id);
+		out_f << "," + to_string(samples[i].time);
+		out_f << "," + to_string(samples[i].outcome);
+		out_f << "," + to_string(samples[i].outcomeTime);
+		for (int j=0; j<n_preds; j++)
+			out_f << "," + to_string(samples[i].prediction[j]);
+
+		// features
+		for (int j=0; j<col_names.size(); j++)
+			out_f << "," + to_string(data[col_names[j]][i]);
+		out_f << "\n";
+	}
+
+	out_f.close();
+	return 0;
 }

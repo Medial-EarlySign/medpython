@@ -290,4 +290,11 @@ public:
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) ;
 
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(RepMultiProcessor)
+MEDSERIALIZE_SUPPORT(RepBasicOutlierCleaner)
+MEDSERIALIZE_SUPPORT(RepNbrsOutlierCleaner)
+
 #endif

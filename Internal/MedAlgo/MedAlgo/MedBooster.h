@@ -103,5 +103,9 @@ class MedBooster : public MedPredictor {
 		int update_round_residuals_single_linear(MedMat<float> &y, vector<float> &all_preds, MedMat<float> &residual, vector<float> &preds, vector<float> &a);
 };
 
+//=================================================================
+// Joining the MedSerialize Wagon
+//=================================================================
 
+MEDSERIALIZE_SUPPORT(MedBooster)
 #endif
