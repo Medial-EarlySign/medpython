@@ -467,8 +467,8 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 	MedMat<float> x(1, (int) nfeatures);
 	for (int i = 0; i < num; i++) {
 		rec.uget(signalId, i);
-		int last_time = med_time_converter.convert_times(features.time_unit, time_unit_periods, features.samples[i].time);
-		int last_sig_time = med_time_converter.convert_times(features.time_unit,time_unit_sig, features.samples[i].time);
+		int last_time = med_time_converter.convert_times(features.time_unit, time_unit_periods, features.samples[index + i].time);
+		int last_sig_time = med_time_converter.convert_times(features.time_unit,time_unit_sig, features.samples[index + i].time);
 
 		for (unsigned int ipoint = 0; ipoint < params.estimation_points.size(); ipoint++) {
 			int type = 0;
