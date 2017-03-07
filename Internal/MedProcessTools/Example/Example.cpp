@@ -31,6 +31,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 			// cleaner for sig
 			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=1;signal="+sig);
 			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;range_min=0.01;range_max=100000;signal="+sig);
+			//my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=0;signal="+sig);
 
 			// features for sig
 
@@ -76,7 +77,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		my_model.add_process_to_set(0, "fp_type=basic_cleaner");
 		my_model.add_process_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
 		//my_model.add_process_to_set(1, "fp_type=imputer;moment_type=0");
-		my_model.add_process_to_set(2, "fp_type=normalizer");
+		//my_model.add_process_to_set(2, "fp_type=normalizer");
 
 	}
 	else {
@@ -194,16 +195,18 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 			return -1;
 		}
 
-		if (my_model.predictor->classifier_type == MODEL_QRF) {
-			MedQRF *qrf = (MedQRF *)my_model.predictor;
-			MLOG("Running QRF Variable Importance\n");
-			vector<pair<short, double>> varImp;
-			vector<string> ftr_names;
-			my_model.features.get_feature_names(ftr_names);
-			int nfeatures = (int)ftr_names.size();
-			qrf->qf.variableImportance(varImp, nfeatures);
-			for (int i=0; i<nfeatures; i++)
-				MLOG("##IMPORTANCE## i= %d %d %s imp= %f\n", i, varImp[i].first, ftr_names[varImp[i].first].c_str(), varImp[i].second);
+		if (vm.count("importance")) {
+			if (my_model.predictor->classifier_type == MODEL_QRF) {
+				MedQRF *qrf = (MedQRF *)my_model.predictor;
+				MLOG("Running QRF Variable Importance\n");
+				vector<pair<short, double>> varImp;
+				vector<string> ftr_names;
+				my_model.features.get_feature_names(ftr_names);
+				int nfeatures = (int)ftr_names.size();
+				qrf->qf.variableImportance(varImp, nfeatures);
+				for (int i=0; i<nfeatures; i++)
+					MLOG("##IMPORTANCE## i= %d %d %s imp= %f\n", i, varImp[i].first, ftr_names[varImp[i].first].c_str(), varImp[i].second);
+			}
 		}
 
 		// Write to temporary file
@@ -323,6 +326,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("samples", po::value<string>()->required(), "samples file name")
 			("sigs", po::value<string>()->default_value("NONE"), "file of signals to consider")
 			("scan_sigs", "run and age+genger+sig model for each one of the signals")
+			("importance", "run importance when using qrf model")
 			("csv_feat", po::value<string>()->default_value("NONE"), "file name to save features as csv (NONE = no saving)")
 			("features", po::value<string>(), "file of signals to consider")
 			("rep_cleaner", po::value<string>(), "repository cleaner")
