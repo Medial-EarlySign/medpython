@@ -9,7 +9,7 @@ extern MedLogger global_logger;
 
 #include "Example.h"
 
-int main(int argc, char *argv[])
+int old_main(int argc, char *argv[])
 {
 	int rc = 0;
 	po::variables_map vm;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 	MLOG("Initializing repository\n");
 
 	MedPidRepository rep;
-	rc = read_repository(vm, ids, signals, rep);
+	rc = read_repository(vm["config"].as<string>(), ids, signals, rep);
 	assert(rc >= 0);
 
 	timer.take_curr_time();
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 			my_model.add_process_to_set(0, "fg_type=basic; type=slope; win_from=720; win_to=10000; time_unit=Days; signal=" + sig);
 
 			//// binnedLM
-			my_model.add_process_to_set(0, "fg_type=binnedLM; estimation_points=1440,720,360,180; signal=" + sig);
+			my_model.add_process_to_set(0, "fg_type=	; estimation_points=1440,720,360,180; signal=" + sig);
 		}
 		// Age/Gender features
 		my_model.add_process_to_set(0, "fg_type=age");
@@ -295,14 +295,13 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 	return 0;
 }
 
-int read_repository(po::variables_map& vm, vector<int>& ids, vector<string>& signals, MedPidRepository& rep) {
+int read_repository(string config_file, vector<int>& ids, vector<string>& signals, MedPidRepository& rep) {
 
 	vector<string> sigs = signals;
 	sigs.push_back("GENDER");
 	sigs.push_back("BYEAR");
 	sigs.push_back("TRAIN");
-	MLOG("Before reading config file %s\n", vm["config"].as<string>().c_str());
-	string config_file = vm["config"].as<string>();
+	MLOG("Before reading config file %s\n", config_file.c_str());
 
 	if (rep.read_all(config_file,ids,sigs) < 0) {
 		MLOG("Cannot init repository %s\n", config_file.c_str());
