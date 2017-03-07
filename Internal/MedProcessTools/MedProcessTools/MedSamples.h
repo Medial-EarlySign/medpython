@@ -6,6 +6,7 @@
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedTime/MedTime/MedTime.h"
+#include "InfraMed/InfraMed/MedRepositoryType.h"
 #include <unordered_set>
 
 class MedFeatures;
@@ -48,9 +49,12 @@ public:
 // A collection of ids and relevant samples
 class MedSamples {
 public:
-	int time_unit = MedTime::Date; // the time unit in which the samples are given. Default: Days
+	int time_unit; // the time unit in which the samples are given. Default: Days
 	vector<MedIdSamples> idSamples;
 
+
+	// Constructor
+	MedSamples() { time_unit = med_rep_type.basicTimeUnit; }
 	// Functions
 	int insert_preds(MedFeatures& featuresData);
 	void get_ids(vector<int>& ids);
@@ -63,5 +67,13 @@ public:
 	size_t deserialize(unsigned char *blob);
 
 };
+
+
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(MedSample)
+MEDSERIALIZE_SUPPORT(MedIdSamples)
+MEDSERIALIZE_SUPPORT(MedSamples)
 
 #endif

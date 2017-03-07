@@ -33,7 +33,7 @@ double def_rfactor = 0.99;
 void BinnedLmEstimates::set_names() {
 
 	if (names.empty()) {
-		string base_name = signalName + ".Estimate.";
+		string base_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".Estimate.";
 		for (int point : params.estimation_points) {
 			string name = base_name + std::to_string(point);
 			if (time_channel != 0 || val_channel != 0)
@@ -54,7 +54,7 @@ void BinnedLmEstimates::set(string& _signalName) {
 	set_names();
 
 	req_signals.resize(3);
-	req_signals[0] = "GENDER";
+	req_signals[0] = med_rep_type.genderSignalName;
 	req_signals[1] = (ageDirectlyGiven) ?  "Age" : "BYEAR";
 	req_signals[2] = signalName;
 }
@@ -62,6 +62,7 @@ void BinnedLmEstimates::set(string& _signalName) {
 //.......................................................................................
 void BinnedLmEstimates::init_defaults() {
 
+	ageDirectlyGiven = med_rep_type.ageDirectlyGiven;
 	generator_type = FTR_GEN_BINNED_LM;
 
 	params.bin_bounds.resize(def_nbin_bounds);
@@ -76,10 +77,9 @@ void BinnedLmEstimates::init_defaults() {
 	for (int i = 0; i < def_nestimation_points; i++)
 		params.estimation_points[i] = def_estimation_points[i];
 
-	if (ageDirectlyGiven)
-		req_signals = { "GENDER","Age" };
-	else
-		req_signals ={ "GENDER", "BYEAR" };
+	req_signals.resize(2);
+	req_signals[0] = med_rep_type.genderSignalName;
+	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
 
 	signalId = -1; 
 	byearId = -1;
@@ -100,10 +100,10 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 
 	set_names();
 
-	if (ageDirectlyGiven)
-		req_signals ={ "GENDER", "Age", signalName };
-	else
-		req_signals = { "GENDER", "BYEAR", signalName };
+	req_signals.resize(3);
+	req_signals[0] = med_rep_type.genderSignalName;
+	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[2] = signalName;
 }
 
 //..............................................................................
@@ -132,7 +132,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "time_unit") time_unit_periods = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second));
+		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second)!=0);
 		else if (field != "fg_type")
 			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
@@ -140,10 +140,10 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 	names.clear();
 	set_names();
 
-	if (ageDirectlyGiven)
-		req_signals = { "GENDER", "Age", signalName };
-	else
-		req_signals = { "GENDER", "BYEAR", signalName };
+	req_signals.resize(3);
+	req_signals[0] = med_rep_type.genderSignalName;
+	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[2] = signalName;
 
 	return 0;
 }
@@ -152,7 +152,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 void BinnedLmEstimates::get_signal_ids(MedDictionarySections& dict) {
 	
 	signalId = dict.id(signalName); 
-	genderId = dict.id("GENDER");
+	genderId = dict.id(med_rep_type.genderSignalName);
 	
 	if (ageDirectlyGiven)
 		ageId = dict.id("Age");
@@ -221,7 +221,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			rec.uget(signalId, 0, usv);
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), age, byear);
+				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
@@ -233,7 +233,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), age, byear);
+				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
@@ -420,7 +420,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		
 		models[type].params.rfactor = params.rfactor;
 		models[type].learn(tx, ty);		
-//		models[type].print(stderr, "model" + to_string(type));
+//		models[type].print(stdout, "model." + signalName + "." + to_string(type));
 
 	}
 
@@ -467,8 +467,8 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 	MedMat<float> x(1, (int) nfeatures);
 	for (int i = 0; i < num; i++) {
 		rec.uget(signalId, i);
-		int last_time = med_time_converter.convert_times(features.time_unit, time_unit_periods, features.samples[i].time);
-		int last_sig_time = med_time_converter.convert_times(features.time_unit,time_unit_sig, features.samples[i].time);
+		int last_time = med_time_converter.convert_times(features.time_unit, time_unit_periods, features.samples[index+i].time);
+		int last_sig_time = med_time_converter.convert_times(features.time_unit,time_unit_sig, features.samples[index+i].time);
 
 		for (unsigned int ipoint = 0; ipoint < params.estimation_points.size(); ipoint++) {
 			int type = 0;
@@ -501,7 +501,7 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				}
 
 				if (iperiod != nperiods) {
-					get_age(rec.usv.Time(j, time_channel), age, byear);
+					get_age(rec.usv.Time(j, time_channel), time_unit_sig, age, byear);
 					if (age > BINNED_LM_MAX_AGE)
 						age = BINNED_LM_MAX_AGE;
 					type_sum += rec.usv.Val(j,val_channel) - means[gender-1][age];
@@ -514,7 +514,8 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 				x(0, jperiod) = type_sum / type_num;
 			}
 
-			get_age(last_time, age, byear);
+			get_age(last_time, time_unit_periods, age, byear);
+
 			if (age > BINNED_LM_MAX_AGE)
 				age = BINNED_LM_MAX_AGE;
 
@@ -546,73 +547,22 @@ size_t BinnedLmEstimates::get_size() {
 
 	size_t size = 0;
 
-	// signalName
-	size += sizeof(size_t);
-	size += signalName.length() + 1;
-
-	// Params
-	size += sizeof(size_t); size += params.bin_bounds.size() * sizeof(int);
-	size += 2 * sizeof(int);
-	size += sizeof(float);
-	size += sizeof(size_t); 
-	size += params.estimation_points.size() * sizeof(int);
-
-	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
-
-	// Means and Sdvs
-	size += (2 * nfeatures + nmodels) * sizeof(float);
-	size += 2 * (BINNED_LM_MAX_AGE+1) * sizeof(float);
-
-	// Models
-	for (auto& model : models)
-		size += model.get_size();
+	size += MedSerialize::get_size(generator_type, signalName, names, req_signals);
+	size += MedSerialize::get_size(params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
+	size += MedSerialize::get_size(xmeans, xsdvs, ymeans, means[0], means[1], models);
 
 	return size;
 
 }
-
-extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	// SignalName
-	size_t nameLen = signalName.length();
-	assert(nameLen < MAX_NAME_LEN);
-
-	strcpy(signalName_c, signalName.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
-	size_t npoints = params.estimation_points.size();
-	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods * nmodels;
-
-	// Params
-	memcpy(blob + ptr, &nperiods, sizeof(size_t));  ptr += sizeof(size_t);
-	memcpy(blob + ptr, &(params.bin_bounds[0]), nperiods * sizeof(int)); ptr += nperiods * sizeof(int);
-	memcpy(blob + ptr, &params.min_period, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.max_period, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.rfactor, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &npoints, sizeof(size_t));  ptr += sizeof(size_t);
-	memcpy(blob + ptr, &(params.estimation_points[0]), npoints * sizeof(int)); ptr += npoints * sizeof(int);
-
-	// Means and Sdvs
-	memcpy(blob + ptr, &(xmeans[0]), nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	memcpy(blob + ptr, &(xsdvs[0]), nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	memcpy(blob + ptr, &(ymeans[0]), nmodels*sizeof(float)); ptr += nmodels*sizeof(float);
-	memcpy(blob + ptr, &(means[0][0]), (BINNED_LM_MAX_AGE + 1) * sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-	memcpy(blob + ptr, &(means[1][0]), (BINNED_LM_MAX_AGE + 1) * sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-
-	// Models
-	for (auto& model : models) 
-		ptr += model.serialize(blob + ptr);
+	ptr += MedSerialize::serialize(blob + ptr, generator_type, signalName, names, req_signals);
+	ptr += MedSerialize::serialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
+	ptr += MedSerialize::serialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 
 	return ptr;
 }
@@ -622,55 +572,9 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	size_t npoints, nperiods;
-	
-	// SignalName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	signalName = signalName_c;
-
-	// Params
-	memcpy(&nperiods, blob + ptr, sizeof(size_t));  ptr += sizeof(size_t);
-	params.bin_bounds.resize(nperiods);
-	memcpy(&(params.bin_bounds[0]), blob + ptr, nperiods * sizeof(int)); ptr += nperiods * sizeof(int);
-	memcpy(&params.min_period, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.max_period, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.rfactor, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&npoints, blob + ptr, sizeof(size_t));  ptr += sizeof(size_t);
-	params.estimation_points.resize(npoints);
-	memcpy(&(params.estimation_points[0]), blob + ptr, npoints * sizeof(int)); ptr += npoints * sizeof(int);
-
-	size_t nmodels = 1 << nperiods;
-	size_t nfeatures = nperiods *nmodels;
-
-	// Means and Sdvs
-	xmeans.resize(nfeatures*sizeof(float));
-	memcpy(&(xmeans[0]), blob + ptr, nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	xsdvs.resize(nfeatures*sizeof(float));
-	memcpy(&(xsdvs[0]), blob + ptr, nfeatures*sizeof(float)); ptr += nfeatures*sizeof(float);
-	ymeans.resize(nmodels*sizeof(float));
-	memcpy(&(ymeans[0]), blob + ptr, nmodels*sizeof(float)); ptr += nmodels*sizeof(float);
-
-	means[0].resize(BINNED_LM_MAX_AGE + 1);
-	memcpy(&(means[0][0]), blob + ptr, (BINNED_LM_MAX_AGE + 1)*sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-
-	means[1].resize(BINNED_LM_MAX_AGE + 1);
-	memcpy(&(means[1][0]), blob + ptr, (BINNED_LM_MAX_AGE + 1)*sizeof(float)); ptr += (BINNED_LM_MAX_AGE + 1)*sizeof(float);
-
-	// Models
-	models.resize(nmodels);
-	for (auto& model : models) 
-		ptr += model.deserialize(blob + ptr);
-
-	set_names();
-
-	req_signals.resize(3);
-	req_signals[0] = "GENDER";
-	req_signals[1] = "BYEAR";
-	req_signals[2] = signalName;
+	ptr += MedSerialize::deserialize(blob + ptr, generator_type, signalName, names, req_signals);
+	ptr += MedSerialize::deserialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
+	ptr += MedSerialize::deserialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 
 	return ptr;
 }
@@ -707,9 +611,67 @@ void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, Universal
 	}
 }
 
-inline void BinnedLmEstimates::get_age(int time, int& age, int byear) {
+inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, int byear) {
 	
 	if (! ageDirectlyGiven)
-		age =  med_time_converter.convert_times(time_unit_sig, MedTime::Date, time)/10000 - byear;
+		age =  med_time_converter.convert_times(time_unit_from, MedTime::Date, time)/10000 - byear;
+
 
 }
+
+
+void BinnedLmEstimates::print()
+{
+	string prefix = "BinnedLmEstimates(" + signalName + ") :: ";
+
+	string sout = "";
+
+	sout += prefix + "nmodels:" + to_string(models.size()) + "\n";
+
+	for (int i=0; i<models.size(); i++) {
+		string mprefix = prefix + "model " + to_string(i) + " :: ";
+		sout += mprefix + "len: " + to_string(models[i].b.size()) + " b0: " + to_string(models[i].b0) + " b:: ";
+		for (int j=0; j<models[i].b.size(); j++)
+			sout += to_string(j) + ":" + to_string(models[i].b[j]) + " ";
+		sout += "\n";
+	}
+
+	sout += prefix + "xmeans (" + to_string(xmeans.size()) + ")" + " ::";
+	for (int i=0; i<xmeans.size(); i++) {
+		sout += to_string(i) + ":" + to_string(xmeans[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "ymeans (" + to_string(ymeans.size()) + ")" + " ::";
+	for (int i=0; i<ymeans.size(); i++) {
+		sout += to_string(i) + ":" + to_string(ymeans[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "xsdvs (" + to_string(xsdvs.size()) + ")" + " ::";
+	for (int i=0; i<xsdvs.size(); i++) {
+		sout += to_string(i) + ":" + to_string(xsdvs[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "ysdvs (" + to_string(ysdvs.size()) + ")" + " ::";
+	for (int i=0; i<ysdvs.size(); i++) {
+		sout += to_string(i) + ":" + to_string(ysdvs[i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "means[0] (" + to_string(means[0].size()) + ")" + " ::";
+	for (int i=0; i<means[0].size(); i++) {
+		sout += to_string(i) + ":" + to_string(means[0][i]) + " ";
+	}
+	sout += "\n";
+
+	sout += prefix + "means[1] (" + to_string(means[1].size()) + ")" + " ::";
+	for (int i=0; i<means[1].size(); i++) {
+		sout += to_string(i) + ":" + to_string(means[1][i]) + " ";
+	}
+	sout += "\n";
+
+	MLOG("%s", sout.c_str());
+}
+

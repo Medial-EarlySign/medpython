@@ -52,6 +52,8 @@ int MedValueCleaner::get_quantile_min_max(vector<float>& values) {
 // Iterative cleaning
 int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 
+	float max_range = params.range_max;
+	float min_range = params.range_min;
 	// Take Log if required
 	if (params.take_log) {
 		for (unsigned int i = 0; i < values.size(); i++) {
@@ -60,6 +62,10 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 			else if (values[i] != params.missing_value)
 				values[i] = log(values[i]);
 		}
+		if (max_range <= 0) max_range = 1;
+		if (min_range <= 0) min_range = 0.01;
+		max_range = log(max_range);
+		min_range = log(min_range);
 	}
 
 	bool need_to_clean = true;
@@ -83,8 +89,8 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 			return 0;
 		}
 
-		vmax = min(mean + params.trimming_sd_num * sd, params.range_max);
-		vmin = max(mean - params.trimming_sd_num * sd, params.range_min);
+		vmax = min(mean + params.trimming_sd_num * sd, max_range);
+		vmin = max(mean - params.trimming_sd_num * sd, min_range);
 
 		// Clean
 		need_to_clean = false;

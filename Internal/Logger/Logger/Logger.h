@@ -71,6 +71,8 @@ using namespace std;
 #define LOG_SRL 23
 // MedModel section
 #define LOG_MED_MODEL 24
+// RepositoryType section
+#define LOG_REPTYPE 24
 
 #define MAX_LOG_SECTION	25
 

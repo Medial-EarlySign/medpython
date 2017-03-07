@@ -45,6 +45,8 @@ public:
 	MedFeatures(int _time_unit) { time_unit = _time_unit; }
 	MedFeatures() {};
 	~MedFeatures() {};
+	void clear() { data.clear(); samples.clear(); pid_pos_len.clear(); attributes.clear(); }
+	void set_time_unit(int _time_unit) { time_unit = _time_unit; }
 
 	// Serialization
 	size_t get_size();
@@ -64,6 +66,9 @@ public:
 
 	unsigned int get_crc(); // used for debugging mainly
 	void print_csv();
+
+	int write_as_csv_mat(const string &csv_fname);
+
 };
 
 #endif

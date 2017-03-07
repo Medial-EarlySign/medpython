@@ -580,17 +580,18 @@ int PidDynamicRec::set_version_off_orig(int sid, int version)
 		// This means our current version is in the original section (below data_len)
 		// Hence we will make a copy of it in the versions working area
 
-		void *datap = (void *)&data[pl->pos];
 		int len = pl->len;
 		int size = my_base_rep->sigs.Sid2Info[sid].bytes_len * len;
 
 		if (curr_len + size > data_size)
 			resize_data(2*(data_size + size));
+		
 		PosLen new_pl;
 		new_pl.pos = curr_len;
 		new_pl.len = len;
 		curr_len += size;
 
+		void *datap = (void *)&data[pl->pos];
 		memcpy((char *)&data[new_pl.pos], (char *)datap, size);
 		set_poslen(sid, version, new_pl);
 	}

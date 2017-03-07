@@ -179,7 +179,6 @@ public:
 		params.trimming_sd_num = DEF_REP_TRIMMING_SD_NUM; params.removing_sd_num = DEF_REP_REMOVING_SD_NUM;
 		params.take_log = 0;
 		params.doTrim = params.doRemove = true;
-		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
 		signalId = -1;
 		params.type = VAL_CLNR_ITERATIVE;
 		params.missing_value = MED_MAT_MISSING_VALUE;
@@ -193,7 +192,7 @@ public:
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	int init(map<string, string>& mapper); // { init_defaults();  return MedValueCleaner::init(mapper); };
+	int init(map<string, string>& mapper); 
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
@@ -289,5 +288,12 @@ public:
 // Get values of a signal from a set of ids
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) ;
+
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(RepMultiProcessor)
+MEDSERIALIZE_SUPPORT(RepBasicOutlierCleaner)
+MEDSERIALIZE_SUPPORT(RepNbrsOutlierCleaner)
 
 #endif

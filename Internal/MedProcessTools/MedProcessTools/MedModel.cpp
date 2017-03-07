@@ -48,7 +48,9 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	timer.take_curr_time();
 	MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
 
-	MedFeatures features(LearningSet->time_unit);
+	//MedFeatures features(LearningSet->time_unit);
+	features.clear();
+	features.set_time_unit(LearningSet->time_unit);
 
 	// Generate features
 	timer.start();
@@ -92,7 +94,9 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 		req_signals.push_back(signalId);
 
 	// Generate features
-	MedFeatures features(samples.time_unit);
+	//MedFeatures features(samples.time_unit);
+	features.clear();
+	features.set_time_unit(samples.time_unit);
 
 	if (generate_all_features(rep, &samples, features) < 0) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
@@ -136,7 +140,6 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	learn_samples->get_ids(ids);
 
 	vector<int> rc(generators.size(), 0);
-
 #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i<generators.size(); i++)
 		rc[i] = generators[i]->learn(rep, ids,rep_processors); //??? why is this done for ALL time points in an id???
@@ -148,7 +151,6 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 //.......................................................................................
 int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features)
 {
-
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
@@ -170,10 +172,10 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 
 	// Loop on ids
 	int RC = 0;
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int j=0; j<samples->idSamples.size(); j++) {
 		MedIdSamples& pid_samples = samples->idSamples[j];
-		int n_th = omp_get_thread_num();
+		int n_th = omp_get_thread_num(); 
 		int rc = 0;
 
 		// Generate DynamicRec with all relevant signals
@@ -186,7 +188,6 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 		// Generate Features
 		for (auto& generator : generators)
 			if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-
 #pragma omp critical 
 		if (rc < 0) RC = -1;
 	}

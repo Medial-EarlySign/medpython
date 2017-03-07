@@ -5,6 +5,8 @@
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+int FeatureGenerator::global_serial_id_cnt = 0;
+
 //=======================================================================================
 // FeatGenerator
 //=======================================================================================
@@ -185,7 +187,8 @@ void BasicFeatGenerator::set_names() {
 	names.clear();
 
 	if (names.empty()) {
-		string name = signalName + ".";
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
+		//string name = signalName + ".";
 		switch (type) {
 		case FTR_LAST_VALUE:	name += "last"; break;
 		case FTR_FIRST_VALUE:	name += "first"; break;
@@ -209,6 +212,7 @@ void BasicFeatGenerator::set_names() {
 		if (time_channel!=0 || val_channel != 0)
 			name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 		names.push_back(name);
+		//MLOG("Created %s\n", name.c_str());
 	}
 
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
@@ -233,7 +237,6 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
 	rec.uget(signalId, idx);
-
 
 	switch (type) {
 	case FTR_LAST_VALUE:	return uget_last(rec.usv, time, win_from, win_to);
@@ -296,41 +299,19 @@ size_t BasicFeatGenerator::get_size() {
 
 	size_t size = 0;
 
-	size += sizeof(BasicFeatureTypes); //  BasicFeatureTypes type;
-	size += 4 * sizeof(int); // win from-to d_win from-to
-	size += 4 * sizeof(int); // time_unit_win, time_channel, val_channel, sum_channel
-
-	// signalName
-	size += MedSerialize::get_size(signalName);
-
-	// sets
-	size += MedSerialize::get_size(sets);
+	size += MedSerialize::get_size(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
+	size += MedSerialize::get_size(signalName, sets, names, req_signals);
 
 	return size;
 }
-
-extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t BasicFeatGenerator::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	memcpy(blob + ptr, &type, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
-	memcpy(blob + ptr, &win_from, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &win_to, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &d_win_from, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &d_win_to, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &time_unit_win, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &sum_channel, sizeof(int)); ptr += sizeof(int);
-
-	// SignalName
-	ptr += MedSerialize::serialize(blob + ptr, signalName);
-
-	// sets
-	ptr += MedSerialize::serialize(blob + ptr, sets);
+	ptr += MedSerialize::serialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
+	ptr += MedSerialize::serialize(blob + ptr, signalName, sets, names, req_signals);
 
 	return ptr;
 }
@@ -340,26 +321,13 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	memcpy(&type, blob + ptr, sizeof(BasicFeatureTypes)); ptr += sizeof(BasicFeatureTypes);
-	memcpy(&win_from, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&win_to, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&d_win_from, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&d_win_to, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&time_unit_win, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&sum_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	ptr += MedSerialize::deserialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
+	ptr += MedSerialize::deserialize(blob + ptr, signalName, sets, names, req_signals);
 
-	//// SignalName
-	ptr += MedSerialize::deserialize(blob + ptr, signalName);
-	
-	// sets
-	ptr += MedSerialize::deserialize(blob + ptr, sets);
-
-	req_signals.assign(1,signalName);
-	
-	names.clear();
-	set_names();
+	//req_signals.assign(1,signalName);
+	//
+	//names.clear();
+	//set_names();
 
 	return ptr;
 }
@@ -371,20 +339,27 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
-	if (byearId == -1) {
-		MERR("Uninitialized byearId\n");
+	if (signalId == -1) {
+		MERR("Uninitialized signalId in age generation\n");
 		return -1;
 	}
 
 	int len;
-	SVal *bYearSignal = (SVal *)rec.get(byearId, len);
-	if (len != 1) { MERR("id %d , got len %d for signal %d (BYEAR)...\n", rec.pid, len, byearId); }
-	assert(len == 1);
-	int byear = (int)(bYearSignal[0].val);
+	if (directlyGiven) {
+		rec.uget(signalId, 0); 
+		assert(rec.usv.len > 0);
+		for (int i = 0; i < num; i++)
+			features.data[names[0]][index + i] = rec.usv.Val(0);
+	}
+	else {
+		SVal *bYearSignal = (SVal *)rec.get(signalId, len);
+		if (len != 1) { MERR("id %d , got len %d for signal %d (BYEAR)...\n", rec.pid, len, signalId); }
+		assert(len == 1);
+		int byear = (int)(bYearSignal[0].val);
 
-	for (int i = 0; i < num; i++)
-		features.data[names[0]][index + i] = (float) (med_time_converter.convert_times(features.time_unit, MedTime::Years, features.samples[i].time) - byear);
-
+		for (int i = 0; i < num; i++)
+			features.data[names[0]][index + i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index+i].time) / 10000 - byear);
+	}
 	return 0;
 }
 
@@ -400,9 +375,9 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 	}
 
 	int len;
-	SVal *genderSignal = (SVal *)rec.get(genderId, len);
-	assert(len == 1);
-	int gender = (int)(genderSignal[0].val);
+	rec.uget(genderId, 0);
+	assert(rec.usv.len >= 1);
+	int gender = (int)(rec.usv.Val(0));
 
 	for (int i = 0; i < num; i++)
 		features.data[names[0]][index + i] = (float) gender;
@@ -420,15 +395,13 @@ void BasicFeatGenerator::get_window_in_sig_time(int _win_from, int _win_to, int 
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_from);
-
-	//MLOG("_win_from %d _win_to_ %d unit_win %d unit_sig %d _win_time %d min_time %d max_time %d\n", _win_from, _win_to, _time_unit_win, _time_unit_sig, _win_time, _min_time, _max_time);
 }
 
 // get the last value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_from, int _win_to) 
 {
 	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	for (int i=usv.len-1; i>=0; i--) {
 		int itime = usv.Time(i, time_channel);
@@ -677,6 +650,7 @@ float BasicFeatGenerator::uget_win_delta(UniversalSigVec &usv, int time)
 	float val2 = uget_last(usv, time, d_win_from, d_win_to);
 	if (val2 == missing_val) return missing_val;
 
+
 	return (val1 - val2);
 }
 
@@ -689,7 +663,7 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 		int section_id = rec.my_base_rep->dict.section_id(signalName);
 		//MLOG("signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
 		rec.my_base_rep->dict.prep_sets_lookup_table(section_id, sets, lut);
-		int n1=0; for (auto l : lut) n1 += l;
+		//int n1=0; for (auto l : lut) n1 += l;
 		//MLOG("size of lut %d , n1 %d\n", lut.size(), n1);
 	}
 

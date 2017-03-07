@@ -935,7 +935,7 @@ int MedRepository::load(const vector<int> &sids)
 {
 	int rc = 0;
 	for (int sid : sids)
-		rc += lock(sid);
+		rc += load(sid);
 	return rc;
 }
 
