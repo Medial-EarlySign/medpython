@@ -278,67 +278,17 @@ int FeatureBasicOutlierCleaner::Apply(MedFeatures& features, unordered_set<int>&
 // (De)Serialization
 //.......................................................................................
 size_t FeatureBasicOutlierCleaner::get_size() {
-
-	// signalName
-	size_t size = sizeof(size_t);
-	size += feature_name.length() + 1;
-
-	size += sizeof(bool); //  bool doTrim;
-	size += 2 * sizeof(float); // float trimMax, trimMin;
-
-	size += sizeof(bool); //  bool doRemove;
-	size += 2 * sizeof(float); // float removeMax, removeMin;
-
-	return size;
+	return MedSerialize::get_size(processor_type, feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
 }
-
-extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t FeatureBasicOutlierCleaner::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// signalName
-	size_t nameLen = feature_name.length();
-	assert(nameLen < MAX_NAME_LEN);
-
-	strcpy(signalName_c, feature_name.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
-	memcpy(blob + ptr, &params.doTrim, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(blob + ptr, &trimMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &trimMin, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &params.doRemove, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(blob + ptr, &removeMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &removeMin, sizeof(float)); ptr += sizeof(float);
-
-	return ptr;
+	return MedSerialize::serialize(blob, processor_type, feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
 }
 
 //.......................................................................................
 size_t FeatureBasicOutlierCleaner::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// signalName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	feature_name = signalName_c;
-
-	memcpy(&params.doTrim, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(&trimMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&trimMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&params.doRemove, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(&removeMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&removeMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
-
-	return ptr;
+	return MedSerialize::deserialize(blob, processor_type, feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
 }
 
 //=======================================================================================
@@ -408,59 +358,19 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 // (De)Serialization
 //.......................................................................................
 size_t FeatureNormalizer::get_size() {
-
-	// signalName
-	size_t size = sizeof(size_t);
-	size += feature_name.length() + 1;
-
-	size += 2 * sizeof(float); //  mean / sd
-	size += 2 * sizeof(bool); // fillMissing / normalizeSd
-	return size;
+	return MedSerialize::get_size(processor_type, feature_name, mean, sd, normalizeSd, fillMissing);
 }
 
-extern char signalName_c[MAX_NAME_LEN + 1];
+//extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t FeatureNormalizer::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// signalName
-	size_t nameLen = feature_name.length();
-	assert(nameLen < MAX_NAME_LEN);
-
-	strcpy(signalName_c, feature_name.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
-	memcpy(blob + ptr, &mean, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &sd, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &normalizeSd, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(blob + ptr, &fillMissing, sizeof(bool)); ptr += sizeof(bool);
-
-	return ptr;
+	return MedSerialize::serialize(blob, processor_type, feature_name, mean, sd, normalizeSd, fillMissing);
 }
 
 //.......................................................................................
 size_t FeatureNormalizer::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// signalName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	feature_name = signalName_c;
-
-	memcpy(&mean, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&sd, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&normalizeSd, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(&fillMissing, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-
-	return ptr;
+	return MedSerialize::deserialize(blob, processor_type, feature_name, mean, sd, normalizeSd, fillMissing);
 }
 
 
@@ -612,165 +522,47 @@ void FeatureImputer::addStrata(string& init_string) {
 // (De)Serialization
 //.......................................................................................
 size_t FeatureImputer::get_size() {
-
-	// signalName
-	size_t size = sizeof(size_t);
-	size += feature_name.length() + 1;
-
-	// ImputerStrata
-	size += imputerStrata.get_size();
-
-	// Moments
-	size += sizeof(imputeMomentTypes);
-	size += sizeof(size_t);
-	size += moments.size() * sizeof(float);
-
-	return size;
+	return MedSerialize::get_size(processor_type, feature_name, imputerStrata, moment_type, moments);
 }
 
 //.......................................................................................
 size_t featureSetStrata::get_size() {
-
-	size_t size = sizeof(size_t);
-
-	for (auto& strata : stratas)
-		size += strata.get_size();
-
-	return size;
+	return MedSerialize::get_size(stratas);
 }
 
 //.......................................................................................
 size_t featureStrata::get_size() {
-
-	size_t size = sizeof(size_t);
-	size += name.length() + 1;
-
-	size += 3 * sizeof(float);
-
-	return size;
+	return MedSerialize::get_size(name, resolution, min, max);
 }
-
-extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t FeatureImputer::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// signalName
-	size_t nameLen = feature_name.length();
-	assert(nameLen < MAX_NAME_LEN);
-
-	strcpy(signalName_c, feature_name.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
-	// ImputerStrata
-	ptr += imputerStrata.serialize(blob+ptr);
-
-	// Moments
-	memcpy(blob + ptr, &moment_type, sizeof(imputeMomentTypes)); ptr += sizeof(imputeMomentTypes);
-	size_t nMoments = moments.size();
-	memcpy(blob + ptr, &nMoments, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, &(moments[0]), nMoments*sizeof(float)); ptr += nMoments*sizeof(float);
-
-	return ptr;
+	return MedSerialize::serialize(blob, processor_type, feature_name, imputerStrata, moment_type, moments);
 }
 
 //.......................................................................................
 size_t featureSetStrata::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	size_t nStratas = stratas.size(); 
-	memcpy(blob + ptr, &nStratas, sizeof(size_t)); ptr += sizeof(size_t);
-
-	for (auto& strata : stratas)
-		ptr += strata.serialize(blob + ptr);
-
-	return ptr;
+	return MedSerialize::serialize(blob, stratas);
 }
 
 //.......................................................................................
 size_t featureStrata::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	// signalName
-	size_t nameLen = name.length();
-	assert(nameLen < MAX_NAME_LEN);
-
-	strcpy(signalName_c, name.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-
-	memcpy(blob + ptr, &resolution, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &min, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &max, sizeof(float)); ptr += sizeof(float);
-
-	return ptr;
+	return MedSerialize::serialize(blob, name, resolution, min, max);
 }
 
 //.......................................................................................
 size_t FeatureImputer::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// signalName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	feature_name = signalName_c;
-
-	// ImputerStrata
-	ptr += imputerStrata.deserialize(blob + ptr);
-
-	// Moments
-	memcpy(&moment_type, blob + ptr, sizeof(imputeMomentTypes)); ptr += sizeof(imputeMomentTypes);
-	size_t nMoments;
-	memcpy(&nMoments, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	moments.resize(nMoments);
-	memcpy(&(moments[0]), blob + ptr,  nMoments*sizeof(float)); ptr += nMoments*sizeof(float);
-
-	return ptr;
+	return MedSerialize::deserialize(blob, processor_type, feature_name, imputerStrata, moment_type, moments);
 }
 
 //.......................................................................................
 size_t featureSetStrata::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	size_t nStratas;
-	memcpy(&nStratas, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	stratas.resize(nStratas);
-	
-	for (unsigned int i = 0; i < nStratas; i++)
-		ptr += stratas[i].deserialize(blob + ptr);
-
-	return ptr;
+	return MedSerialize::serialize(blob, stratas);
 }
 
 //.......................................................................................
 size_t featureStrata::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	// signalName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	name = signalName_c;
-
-	memcpy(&resolution, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&min, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&max, blob + ptr, sizeof(float)); ptr += sizeof(float);
-
-	return ptr;
+	return MedSerialize::deserialize(blob, name, resolution, min, max);
 }
 
 

@@ -46,6 +46,8 @@ public:
 	MedModel() { safe_mode = 0;  };
 	~MedModel() {};
 
+	MedFeatures features;	// no need to serialize
+
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);

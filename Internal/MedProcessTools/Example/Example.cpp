@@ -29,8 +29,8 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		for (auto sig : signals) {
 
 			// cleaner for sig
-			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
-			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;range_min=0.01;range_max=1000;signal="+sig);
+			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=1;signal="+sig);
+			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;range_min=0.01;range_max=100000;signal="+sig);
 
 			// features for sig
 
@@ -60,13 +60,23 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		// Age/Gender features
 		my_model.add_process_to_set(0, "fg_type=age");
 		my_model.add_process_to_set(0, "fg_type=gender");
-		//my_model.add_process_to_set(0, "fg_type=basic; type=category_set_sum; win_from=0; win_to=720; time_unit=Days; sets=ATC_A10_____; signal=Drug");
+		if (!vm.count("scan_sigs")) {
+			vector<string> sets ={ "ATC_A10_____", "ATC_C10_____", "ATC_B01_____", "ATC_B02_____" , "ATC_A10A____" , "ATC_A10B____ ",
+			"ATC_A10C____" , "ATC_B01A_B__", "ATC_B01A_C__", "ATC_B04_____", "ATC_C01_____", "ATC_C02_____", "ATC_C03_____", "ATC_C07_____",
+			"ATC_C08_____", "ATC_C09_____", "ATC_H03_____", "ATC_L02_____", "ATC_L04_____", "ATC_C10A_A__" };
+			//vector<string> sets ={ };
+			for (auto iset : sets) {
+				my_model.add_process_to_set(0, "fg_type=basic; type=category_set; win_from=0; win_to=720; time_unit=Days; signal=Drug; sets=" + iset);
+				my_model.add_process_to_set(0, "fg_type=basic; type=category_set_count; win_from=0; win_to=720; time_unit=Days; signal=Drug; sets=" + iset);
+				my_model.add_process_to_set(0, "fg_type=basic; type=category_set_sum; win_from=0; win_to=720; time_unit=Days; signal=Drug; sets=" + iset);
+			}
+		}
 
 		// Add feature processors
 		my_model.add_process_to_set(0, "fp_type=basic_cleaner");
 		my_model.add_process_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
 		//my_model.add_process_to_set(1, "fp_type=imputer;moment_type=0");
-		//my_model.add_process_to_set(2, "fp_type=normalizer");
+		my_model.add_process_to_set(2, "fp_type=normalizer");
 
 	}
 	else {
@@ -184,6 +194,18 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 			return -1;
 		}
 
+		if (my_model.predictor->classifier_type == MODEL_QRF) {
+			MedQRF *qrf = (MedQRF *)my_model.predictor;
+			MLOG("Running QRF Variable Importance\n");
+			vector<pair<short, double>> varImp;
+			vector<string> ftr_names;
+			my_model.features.get_feature_names(ftr_names);
+			int nfeatures = (int)ftr_names.size();
+			qrf->qf.variableImportance(varImp, nfeatures);
+			for (int i=0; i<nfeatures; i++)
+				MLOG("##IMPORTANCE## i= %d %d %s imp= %f\n", i, varImp[i].first, ftr_names[varImp[i].first].c_str(), varImp[i].second);
+		}
+
 		// Write to temporary file
 		my_model.write_to_file(tempFile);
 		fprintf(stderr, "Done writing to file %s\n", tempFile.c_str());
@@ -210,6 +232,23 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 			}
 		}
 
+		if (vm["csv_feat"].as<string>() != "NONE") {
+			MLOG("Writing predict features as csv\n");
+			new_model.features.write_as_csv_mat(vm["csv_feat"].as<string>());
+/*
+			vector<unsigned char> blob(new_model.features.get_size());
+			MLOG("blob size is %d\n", blob.size());
+			new_model.features.serialize(&blob[0]);
+			MLOG("After serialize: data size %d\n", new_model.features.data.size());
+			MedFeatures ftrs;
+			ftrs.deserialize(&blob[0]);
+			MLOG("After deserialize\n");
+			ftrs.write_as_csv_mat(vm["csv_feat"].as<string>());
+			ftrs.data.clear();
+			ftrs.samples.clear();
+			blob.clear();
+*/
+		}
 		AUC = get_preds_auc(preds, y);
 		MLOG("y size: %d , preds size: %d , cv AUC is : %f\n", y.size(), preds.size(), AUC);
 	}
@@ -251,7 +290,7 @@ int main(int argc, char *argv[])
 
 	MedPidRepository rep;
 	vector<string> read_sigs = signals;
-	//read_sigs.push_back("Drug");
+	if (!vm.count("scan_sigs")) read_sigs.push_back("Drug");
 	rc = read_repository(vm, ids, read_sigs, rep);
 	assert(rc >= 0);
 
@@ -284,6 +323,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("samples", po::value<string>()->required(), "samples file name")
 			("sigs", po::value<string>()->default_value("NONE"), "file of signals to consider")
 			("scan_sigs", "run and age+genger+sig model for each one of the signals")
+			("csv_feat", po::value<string>()->default_value("NONE"), "file name to save features as csv (NONE = no saving)")
 			("features", po::value<string>(), "file of signals to consider")
 			("rep_cleaner", po::value<string>(), "repository cleaner")
 			("rep_cleaner_params", po::value<string>()->default_value(""), "repository cleaner params")

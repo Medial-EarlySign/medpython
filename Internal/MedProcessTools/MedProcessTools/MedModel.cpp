@@ -48,7 +48,9 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	timer.take_curr_time();
 	MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
 
-	MedFeatures features(LearningSet->time_unit);
+	//MedFeatures features(LearningSet->time_unit);
+	features.clear();
+	features.set_time_unit(LearningSet->time_unit);
 
 	// Generate features
 	timer.start();
@@ -92,7 +94,9 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 		req_signals.push_back(signalId);
 
 	// Generate features
-	MedFeatures features(samples.time_unit);
+	//MedFeatures features(samples.time_unit);
+	features.clear();
+	features.set_time_unit(samples.time_unit);
 
 	if (generate_all_features(rep, &samples, features) < 0) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");

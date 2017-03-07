@@ -18,4 +18,6 @@ int init_map_from_string(string text, map<string, string>& map);
 int init_dvec(string& in, vector<int>& out);
 void get_single_val_from_init_string(string init_s, string attr, string &val_s);
 
+string int_to_string_digits(int i, int ndigits);
+
 #endif
