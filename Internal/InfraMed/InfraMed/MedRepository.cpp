@@ -719,7 +719,7 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 			section_id = dict.section_id("Drugs_nice_names");
 		}
 	}
-	for (int i = 0; i<len; i++) {
+	for (int i = 0; i < len; i++) {
 		int val;
 		MOUT("%d,%d,%s,%d,%d,%d,", pid, sid, sigs.name(sid).c_str(), sigs.type(sid), len, i);
 		if (sigs.type(sid) == T_Value) {
@@ -768,7 +768,7 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 		else if (sigs.type(sid) == T_CompactDateVal) {
 			SCompactDateVal *v = (SCompactDateVal *)data;
 			val = v[i].val;
-			MOUT("%d,0,%d,0,0,0,", v[i].val, compact_date_to_date(v[i].compact_date) );
+			MOUT("%d,0,%d,0,0,0,", v[i].val, compact_date_to_date(v[i].compact_date));
 		}
 		else if (sigs.type(sid) == T_TimeVal) {
 			STimeVal *v = (STimeVal *)data;
@@ -784,12 +784,15 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 			else MOUT("%f,", v[i].val);
 			MOUT("0,%lld,%lld,0,0,", v[i].time_start, v[i].time_end, v[i].val);
 		}
-		if (dict_val && dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end())
-			for (int j = 0; j<dict.dict(section_id)->Id2Names[val].size(); j++) {
-				string st = dict.dict(section_id)->Id2Names[val][j];
-				MOUT("%s,", st.c_str());
+		if (dict_val && dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end()) {
+			for (size_t j = 0; j < 2; j++)
+			{
+				if (j < dict.dict(section_id)->Id2Names[val].size()) {
+					string st = dict.dict(section_id)->Id2Names[val][j];
+					MOUT("\"%s\",", st.c_str());
+				} 
 			}
-
+		}
 		MOUT("\n");
 	}
 	

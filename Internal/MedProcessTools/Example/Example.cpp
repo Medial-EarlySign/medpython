@@ -260,7 +260,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 }
 
-int main(int argc, char *argv[])
+int old_main(int argc, char *argv[])
 {
 	int rc = 0;
 	po::variables_map vm;
@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 	MedPidRepository rep;
 	vector<string> read_sigs = signals;
 	if (vm.count("drug_feats")) read_sigs.push_back("Drug");
-	rc = read_repository(vm, ids, read_sigs, rep);
+	rc = read_repository(vm["config"].as<string>(), ids, read_sigs, rep);
 	assert(rc >= 0);
 
 	timer.take_curr_time();
@@ -368,14 +368,14 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 	return 0;
 }
 
-int read_repository(po::variables_map& vm, vector<int>& ids, vector<string>& signals, MedPidRepository& rep) {
+int read_repository(string config_file, vector<int>& ids, vector<string>& signals, MedPidRepository& rep) {
 
 	vector<string> sigs = signals;
 	sigs.push_back("GENDER");
 	sigs.push_back("BYEAR");
 	sigs.push_back("TRAIN");
-	MLOG("Before reading config file %s\n", vm["config"].as<string>().c_str());
-	string config_file = vm["config"].as<string>();
+	MLOG("Before reading config file %s\n", config_file.c_str());
+
 
 	if (rep.read_all(config_file,ids,sigs) < 0) {
 		MLOG("Cannot init repository %s\n", config_file.c_str());
