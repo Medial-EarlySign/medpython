@@ -29,7 +29,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		for (auto sig : signals) {
 
 			// cleaner for sig
-			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=1;signal="+sig);
+			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
 			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;range_min=0.01;range_max=100000;signal="+sig);
 			//my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=0;signal="+sig);
 
@@ -61,7 +61,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		// Age/Gender features
 		my_model.add_process_to_set(0, "fg_type=age");
 		my_model.add_process_to_set(0, "fg_type=gender");
-		if (!vm.count("scan_sigs")) {
+		if (vm.count("drug_feats")) {
 			vector<string> sets ={ "ATC_A10_____", "ATC_C10_____", "ATC_B01_____", "ATC_B02_____" , "ATC_A10A____" , "ATC_A10B____ ",
 			"ATC_A10C____" , "ATC_B01A_B__", "ATC_B01A_C__", "ATC_B04_____", "ATC_C01_____", "ATC_C02_____", "ATC_C03_____", "ATC_C07_____",
 			"ATC_C08_____", "ATC_C09_____", "ATC_H03_____", "ATC_L02_____", "ATC_L04_____", "ATC_C10A_A__" };
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
 
 	MedPidRepository rep;
 	vector<string> read_sigs = signals;
-	if (!vm.count("scan_sigs")) read_sigs.push_back("Drug");
+	if (vm.count("drug_feats")) read_sigs.push_back("Drug");
 	rc = read_repository(vm, ids, read_sigs, rep);
 	assert(rc >= 0);
 
@@ -327,6 +327,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("sigs", po::value<string>()->default_value("NONE"), "file of signals to consider")
 			("scan_sigs", "run and age+genger+sig model for each one of the signals")
 			("importance", "run importance when using qrf model")
+			("drug_feats", "add drug based features to model")
 			("csv_feat", po::value<string>()->default_value("NONE"), "file name to save features as csv (NONE = no saving)")
 			("features", po::value<string>(), "file of signals to consider")
 			("rep_cleaner", po::value<string>(), "repository cleaner")
