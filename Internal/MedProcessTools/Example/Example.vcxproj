@@ -131,7 +131,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Example.cpp" />
-    <ClCompile Include="TestBinnedLmEstimates.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Example.h" />
