@@ -738,5 +738,5 @@ float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
 	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
-	return missing_val;
+	return 0;
 }
