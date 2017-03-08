@@ -18,7 +18,7 @@ namespace po = boost::program_options;
 
 
 int read_run_params(int argc, char *argv[], po::variables_map& vm);
-int read_repository(po::variables_map& vm, vector<int>& ids, vector<string> &signals, MedPidRepository& rep);
+int read_repository(string config_file, vector<int>& ids, vector<string> &signals, MedPidRepository& rep);
 int read_signals_list(po::variables_map& vm, vector<string>& signals);
 int read_ids_list(po::variables_map& vm, vector<int>& ids);
 int get_samples(po::variables_map& vm, MedSamples& samples);

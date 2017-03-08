@@ -265,11 +265,13 @@ size_t RepMultiProcessor::get_size() {
 size_t RepMultiProcessor::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
+
 	int nProcessors = (int)processors.size();
 	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
 
-	for (auto& processor : processors)
+	for (auto& processor : processors) {
 		ptr += processor->processor_serialize(blob + ptr);
+	}
 
 	return ptr;
 }
@@ -279,6 +281,7 @@ size_t RepMultiProcessor::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 	int nProcessors;
+
 	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
 
 	processors.resize(nProcessors);
@@ -399,7 +402,7 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 			int itime = rec.usv.Time(i, time_channel);
 			float ival = rec.usv.Val(i, val_channel);
 
-			if (itime > time_points[jver])	break;
+			if (itime > time_points[iver])	break;
 
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
 				remove[nRemove++] = i;
@@ -415,6 +418,7 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 		
 		change.resize(nChange);
 		remove.resize(nRemove);
+
 		if (rec.update(signalId, jver, val_channel, change, remove) < 0)
 			return -1;
 
@@ -435,48 +439,21 @@ size_t RepBasicOutlierCleaner::get_size() {
 
 	size_t size = 0;
 
-	// signalName
-	size += sizeof(size_t);
-	size += signalName.length() + 1;
-	
-	size += 2*sizeof(int); // time_channel, val_channel
-
-	size += sizeof(int); // int take_log
-	size += sizeof(float); // float missing value
-
-	size += sizeof(bool); //  bool doTrim;
-	size += 2 * sizeof(float); // float trimMax, trimMin;
-
-	size += sizeof(bool); //  bool doRemove;
-	size += 2 * sizeof(float); // float removeMax, removeMin;
+	size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel);
+	size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin);
 
 	return size;
 }
-
-extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t RepBasicOutlierCleaner::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
-	// SignalName
-	size_t nameLen = signalName.length();
-	assert(nameLen < MAX_NAME_LEN);
+	ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
+	ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
 
-	strcpy(signalName_c, signalName.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t);
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.take_log, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.missing_value, sizeof(float)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.doTrim, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(blob + ptr, &trimMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &trimMin, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &params.doRemove, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(blob + ptr, &removeMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &removeMin, sizeof(float)); ptr += sizeof(float);
 
 	return ptr;
 }
@@ -485,24 +462,10 @@ size_t RepBasicOutlierCleaner::serialize(unsigned char *blob) {
 size_t RepBasicOutlierCleaner::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
+	ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
+	ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
 
-	// FeatureName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	signalName = signalName_c;
-	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.take_log, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.missing_value, blob + ptr, sizeof(float)); ptr += sizeof(int);
-	memcpy(&params.doTrim, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(&trimMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&trimMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&params.doRemove, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(&removeMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&removeMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
 
 	return ptr;
 }
@@ -598,7 +561,6 @@ int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) 
 	}
 
 	int len;
-
 	for (int iver = 0; iver < time_points.size(); iver++) {
 
 		rec.uget(signalId, iver, rec.usv);
@@ -609,14 +571,15 @@ int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) 
 		int nRemove = 0, nChange = 0;
 
 		// Clean 
-		int verLen = 0;
+		int verLen = len;
 		vector<int> candidates(len, 0);
 		vector<int> removed(len, 0);
+		
 		for (int i = 0; i < len; i++) {
 			int itime = rec.usv.Time(i, time_channel);
 
 			if (itime > time_points[iver]) {
-				verLen = i - 1;
+				verLen = i ;
 				break;
 			}
 
@@ -718,23 +681,9 @@ size_t RepNbrsOutlierCleaner::get_size() {
 
 	size_t size = 0;
 
-	// signalName
-	size += sizeof(size_t);
-	size += signalName.length() + 1;
-
-	size += 2*sizeof(int); // time_channel, val_channel
-	size += 2*sizeof(int); // nbr_time_unit, nbr_time_width
-
-	size += sizeof(int); // int take_log
-	size += sizeof(float); // float missing value
-
-	size += sizeof(bool); //  bool doTrim;
-	size += 2 * sizeof(float); // float trimMax, trimMin;
-
-	size += sizeof(bool); //  bool doRemove;
-	size += 2 * sizeof(float); // float removeMax, removeMin;
-
-	size += 2 * sizeof(float); // float nbrsMax, nbrsMin;
+	size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+	size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
 	return size;
 }
@@ -745,28 +694,10 @@ extern char signalName_c[MAX_NAME_LEN + 1];
 size_t RepNbrsOutlierCleaner::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
-	// SignalName
-	size_t nameLen = signalName.length();
-	assert(nameLen < MAX_NAME_LEN);
 
-	strcpy(signalName_c, signalName.c_str());
-
-	memcpy(blob + ptr, &nameLen, sizeof(size_t)); ptr += sizeof(size_t); 
-	memcpy(blob + ptr, signalName_c, nameLen + 1); ptr += nameLen + 1;
-	memcpy(blob + ptr, &time_channel, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &val_channel, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &nbr_time_unit, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &nbr_time_width, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.take_log, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.missing_value, sizeof(float)); ptr += sizeof(int);
-	memcpy(blob + ptr, &params.doTrim, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(blob + ptr, &trimMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &trimMin, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &params.doRemove, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(blob + ptr, &removeMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &removeMin, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &nbrsMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &nbrsMin, sizeof(float)); ptr += sizeof(float);
+	ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+	ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
 	return ptr;
 }
@@ -776,27 +707,9 @@ size_t RepNbrsOutlierCleaner::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	// FeatureName
-	size_t nameLen;
-	memcpy(&nameLen, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
-	assert(nameLen < MAX_NAME_LEN);
-
-	memcpy(signalName_c, blob + ptr, nameLen + 1); ptr += nameLen + 1;
-	signalName = signalName_c;
-	memcpy(&time_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&val_channel, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&nbr_time_unit, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&nbr_time_width, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.take_log, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&params.missing_value, blob + ptr, sizeof(float)); ptr += sizeof(int);
-	memcpy(&params.doTrim, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(&trimMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&trimMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&params.doRemove, blob + ptr, sizeof(bool)); ptr += sizeof(bool);
-	memcpy(&removeMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&removeMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&nbrsMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&nbrsMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
+	ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+	ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
 	return ptr;
 }

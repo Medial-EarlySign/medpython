@@ -61,3 +61,21 @@ void get_single_val_from_init_string(string init_s, string attr, string &val_s)
 	}
 
 }
+
+//..............................................................................
+string int_to_string_digits(int i, int ndigits)
+{
+	string s;
+
+	int imax = (int)pow(10, ndigits) - 1;
+	if (i > imax)
+		s = to_string(i);
+	else {
+
+		s = to_string(i + imax + 1);
+		s.erase(0, 1);
+
+	}
+
+	return s;
+}
