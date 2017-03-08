@@ -175,6 +175,8 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set")				return FTR_CATEGORY_SET;
 	if (name == "category_set_count")		return FTR_CATEGORY_SET_COUNT;
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
+	if (name == "nsamples")			return FTR_NSAMPLES;
+
 
 	return (BasicFeatureTypes)stoi(name);
 }
@@ -202,6 +204,8 @@ void BasicFeatGenerator::set_names() {
 		case FTR_CATEGORY_SET:			name += "category_set"; break;
 		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count"; break;
 		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum"; break;
+		case FTR_NSAMPLES:		name += "nsamples"; break;
+
 		default: name += "ERROR";
 		}
 
@@ -251,6 +255,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_CATEGORY_SET:				return uget_category_set(rec, rec.usv, time);
 	case FTR_CATEGORY_SET_COUNT:		return uget_category_set_count(rec, rec.usv, time);
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time);
+	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
 
 	default:	return missing_val;
 	}
@@ -747,4 +752,17 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 	}
 
 	return sum;
+}
+
+//.......................................................................................
+// get the number of samples in [win_to, win_from] before time
+float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	int i, j;
+	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
+	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
+	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
+	return missing_val;
 }

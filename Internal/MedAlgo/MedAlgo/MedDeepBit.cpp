@@ -1,68 +1,49 @@
 #include "MedDeepBit.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 
-
-double MedDeepBit::avg(const vector<double>& vec) {
-	double ans = 0;
-	for (double val : vec) ans += val;
-	ans /= vec.size();
-	return(ans);
-}
-
-double MedDeepBit::sd(const vector<double>& vec) {
-	double sum = 0;
-	double av = avg(vec);
-	for (double val : vec)
-		sum += pow((val - av), 2);
-	return sqrt(sum / vec.size());
-}
-
-void MedDeepBit::get_col_without_na(const vector<double>& col, vector<double>& col_without_na) {
-	for (int i = 0; i < col.size(); i++)
-		if (col[i] != MED_MAT_MISSING_VALUE)
-			col_without_na.push_back(col[i]);
-}
-
-void MedDeepBit::get_avgs(const vector<vector<double>>& x, vector<double>& avx) {
-	for (const vector<double>& col : x) {
-		vector<double> col_without_na;
-		get_col_without_na(col, col_without_na);
-		double av = avg(col_without_na);
-		avx.push_back(av);
-		cout << av << " ";
-	}
-	cout << endl;
-}
-void MedDeepBit::get_sds(const vector<vector<double>>& x, vector<double>& sdx) {
-	for (const vector<double>& col : x) {
-		vector<double> col_without_na;
-		get_col_without_na(col, col_without_na);
-		sdx.push_back(sd(col_without_na));
-	}
-}
-
+//Initialization of the model
 void MedDeepBit::init(float *x1, float *y1, int nsamples1, int nftrs1) {
 	nftrs = nftrs1;
-	nsamples = nsamples1;
-	x.resize(nftrs);
-	y.resize(nsamples);
-	label.resize(nsamples);
+	vector<int> indexes(nsamples1);
+	for (int i = 0; i < nsamples1; i++)
+		indexes[i] = i;
+	random_shuffle(indexes.begin(), indexes.end());
+	vector<bool> is_train(nsamples1, true);
+	internal_test_nsamples = (int) ((double) nsamples1 / params.internal_test_ratio);
+	cout << "internal test size = " << internal_test_nsamples << endl;
+	nsamples = nsamples1 - internal_test_nsamples;
+	cout << "Train size = " << nsamples << endl;
+	for (int i = 0; i < internal_test_nsamples; i++)
+		is_train[indexes[i]] = false;
+	x.resize(nftrs); 
+	internal_test_x.resize(nftrs);
 	for (int j = 0; j < nftrs; j++) {
-		x[j].resize(nsamples);
-		for (int i = 0; i < nsamples; i++) 
-			x[j][i] = x1[i * nftrs + j];
+		for (int i = 0; i < nsamples1; i++) {
+			if (is_train[i])
+				x[j].push_back(x1[i * nftrs + j]);
+			else
+				internal_test_x[j].push_back(x1[i * nftrs + j]);
+		}
 	}
-	for (int i = 0; i < nsamples; i++)
-		y[i] = label[i] = (int)y1[i];
-	scores.resize(nsamples);
+	transpose(internal_test_x, internal_test_transposed_x);
+	for (int i = 0; i < nsamples1; i++) {
+		if (is_train[i]) {
+			y.push_back(y1[i]);
+			label.push_back((int)y1[i]);
+		}
+		else
+			internal_test_label.push_back((int)y1[i]);
+	}
 	get_avgs(x, avx);
 	get_sds(x, sdx);
 	avy = avg(y);
 	impute_x(x, avx);
+	impute_x(internal_test_x, avx);
 	for (double& val : y)
 		val -= avy;
 	r = vector<double>(y);
 	scores.resize(nsamples);
+	internal_test_scores.resize(internal_test_nsamples);
 	ftr_grids.resize(nftrs);
 	is_categorial.resize(nftrs);
 	frequent_ftr_vals.resize(nftrs);
@@ -111,6 +92,7 @@ int MedDeepBit::init(map<string, string>& mapper) {
 		else if (field == "num_vals_to_be_categorial") params.num_vals_to_be_categorial = stoi(entry.second);
 		else if (field == "nparts_auc") params.nparts_auc = stoi(entry.second);
 		else if (field == "niter_coordinate_descent") params.niter_coordinate_descent = stoi(entry.second);
+		else if (field == "niter_auc_gitter") params.niter_auc_gitter = stoi(entry.second);
 		else if (field == "internal_test_ratio") params.internal_test_ratio = stoi(entry.second);
 		else if (field == "fraction_auc") params.fraction_auc = stof(entry.second);
 		else if (field == "grid_fraction") params.grid_fraction = stof(entry.second);
@@ -118,9 +100,10 @@ int MedDeepBit::init(map<string, string>& mapper) {
 		else if (field == "frac_continuous_frequent") params.frac_continuous_frequent = stof(entry.second);
 		else if (field == "frac_categorial_frequent") params.frac_categorial_frequent = stof(entry.second);
 		else if (field == "lambda") params.lambda = stof(entry.second);
+		else if (field == "min_cor_bin_ftr") params.min_cor_bin_ftr = stof(entry.second);
+
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
 	}
-
 	return 0;
 }
 
@@ -132,26 +115,18 @@ bool MedDeepBit::is_viable_01_ratios(int count0, int count1, int count_pos0, int
 }
 
 bool MedDeepBit::is_bin_ftr_valid(const vector<char>& bin_ftr) {
-	int count0 = 0, count1, count_pos0 = 0, count_pos1 = 0;
-	for (int i = 0; i < nsamples; i++) {
-		if (bin_ftr[i] == 0) {
-			count0++;
-		}
-		else {
-			count_pos1 += label[i];
-		}
-	}
-	count1 = nsamples - count0;
-	if (!is_viable_01_ratios(count0, count1, count_pos0, count_pos1))
-		return false;
-	return true;
+	vector<double> ftr(bin_ftr.size());
+	for (int i = 0; i < ftr.size(); i++)
+		ftr[i] = bin_ftr[i];
+	double ftr_cor = get_corr_pearson(ftr, y);
+	return(abs(ftr_cor) >= params.min_cor_bin_ftr);
 }
 
 void MedDeepBit::make_bin_ftrs(int j, const vector<double>& vals, bool is_categorial) {
 	int nvals = (int)vals.size();
 	vector<vector<char>> temp_bin_ftrs(2 * nvals);
 	vector<tuple<int, int, bool, bool>> temp_ftrs_map(2 * nvals);
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int k = 0; k < nvals; k++) {
 		vector<char> bin_ftr(nsamples);
 		if (is_categorial)
@@ -189,7 +164,7 @@ void MedDeepBit::mark_grids_and_frequent_vals() {
 	int num_vals_to_be_frequent;
 	cout << "Constructing binary features." << endl;
 	for (int j = 0; j < nftrs; j++) {
-		cout << j << " " << endl;
+		cout << j << " ";
 		frequent_ftr_vals[j] = vector<double>();
 		vector<double> col{ x[j] };
 		map<double, int> count;
@@ -415,6 +390,59 @@ void MedDeepBit::get_normalized_col(const vector<char>& col, vector<double>& nor
 			normalized_col[i] = (col[i] - av) / std;
 }
 
+double MedDeepBit::avg(const vector<double>& vec) {
+	double ans = 0;
+	for (double val : vec) ans += val;
+	ans /= vec.size();
+	return(ans);
+}
+
+double MedDeepBit::sd(const vector<double>& vec) {
+	double sum = 0;
+	double av = avg(vec);
+	for (double val : vec)
+		sum += pow((val - av), 2);
+	return sqrt(sum / vec.size());
+}
+
+void MedDeepBit::get_col_without_na(const vector<double>& col, vector<double>& col_without_na) {
+	for (int i = 0; i < col.size(); i++)
+		if (col[i] != MED_MAT_MISSING_VALUE)
+			col_without_na.push_back(col[i]);
+}
+
+void MedDeepBit::get_avgs(const vector<vector<double>>& x, vector<double>& avx) {
+	for (const vector<double>& col : x) {
+		vector<double> col_without_na;
+		get_col_without_na(col, col_without_na);
+		double av = avg(col_without_na);
+		avx.push_back(av);
+		cout << av << " ";
+	}
+	cout << endl;
+}
+void MedDeepBit::get_sds(const vector<vector<double>>& x, vector<double>& sdx) {
+	for (const vector<double>& col : x) {
+		vector<double> col_without_na;
+		get_col_without_na(col, col_without_na);
+		sdx.push_back(sd(col_without_na));
+	}
+}
+
+void MedDeepBit::transpose(const vector<vector<double>>& before, vector<vector<double>>& after) {
+	int nrow_old = (int)before.size();
+	int ncol_old = (int)before[0].size();
+	after.resize(ncol_old);
+	cout << "ftr_num = " << ncol_old << " sample_num = " << nrow_old << endl;
+	for (int j = 0; j < ncol_old; j++)
+		after[j].resize(nrow_old);
+	for (int i = 0; i < nrow_old; i++) {
+		for (int j = 0; j < ncol_old; j++)
+			after[j][i] = before[i][j];
+	}
+}
+
+
 double MedDeepBit::perform_lasso_iteration(const vector<double>& xk_train, const vector<double>& r, double lambda, double alpha) {
 	double bk_hat = 0;
 	if (alpha < 1) {
@@ -464,7 +492,7 @@ void MedDeepBit::gen_random_indexes(vector<int>& random_indexes) {
 }
 
 void MedDeepBit::score_random_ftrs(vector<double>& ftr_scores, const vector<int>& random_indexes, const vector<char>& final_bin_ftr) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int bin_ftr_num = 0; bin_ftr_num < params.num_ftrs_per_round; bin_ftr_num++) {
 		int bin_ftr_index = random_indexes[bin_ftr_num];
 		vector<char> bin_ftr(bin_ftrs[bin_ftr_index]);
@@ -478,7 +506,6 @@ void MedDeepBit::train_model() {
 	for (int it = 0; it < params.num_iterations; it++) {
 		vector<char> final_bin_ftr(nsamples, 1);
 		bin_ftr_indexes[it] = vector<int>(params.max_depth);
-		int count_dead_ends = 0, max_dead_ends = 0;
 		double best_score = 0;
 		for (int depth = 0; depth < params.max_depth; depth++) {
 			vector<double> ftr_scores(params.num_ftrs_per_round);
@@ -520,13 +547,12 @@ void MedDeepBit::train_model() {
 				cout << "Iteration #" << it << endl;
 				cout << "p = " << av << endl;
 				cout << "Train AUC = " << cur_auc << endl;
-				/*if (internal_test_nsamples > 0) {
-#pragma omp parallel for
-					for (int i = 0; i < internal_test_nsamples; i++) {
+				if (internal_test_nsamples > 0) {
+#pragma omp parallel for schedule(dynamic)
+					for (int i = 0; i < internal_test_nsamples; i++) 
 						internal_test_scores[i] = predict_sample(internal_test_transposed_x[i], it);
-					}
 					cout << "Test AUC = " << special_auc(internal_test_scores, internal_test_label) << endl << endl;
-				}*/
+				}
 			}
 		}
 		else {
@@ -591,7 +617,7 @@ void MedDeepBit::do_auc_gittering() {
 				grid.push_back(pt);
 			vector<double> grid_aucs(grid.size());
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 			for (int j = 0; j < grid.size(); j++) {
 				double b0 = grid[j];
 				vector<double> scores1(scores);
@@ -670,7 +696,7 @@ double MedDeepBit::get_normalized_val(double x_val, int j) {
 }
 
 void MedDeepBit::predict(const vector<vector<double>>& x, vector<double>& scores) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < x.size(); i++) {
 		scores[i] = predict_sample(x[i]);
 	}
@@ -903,8 +929,11 @@ size_t MedDeepBit::deserialize(unsigned char *blob) {
 	return ptr;
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------
+//MedDeepBitParams:
+
 size_t MedDeepBitParams::get_size() {
-	return 8 * sizeof(int) + 6 * sizeof(double);
+	return 8 * sizeof(int) + 7 * sizeof(double);
 }
 
 size_t MedDeepBitParams::serialize(unsigned char *blob) {
@@ -914,7 +943,7 @@ size_t MedDeepBitParams::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &(num_ftrs_per_round), sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &(num_vals_to_be_categorial), sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &(nparts_auc), sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &(coordinate_descent_niter), sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &(niter_auc_gitter), sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &(niter_coordinate_descent), sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &(internal_test_ratio), sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &(fraction_auc), sizeof(double)); ptr += sizeof(double);
@@ -923,6 +952,7 @@ size_t MedDeepBitParams::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &(frac_continuous_frequent), sizeof(double)); ptr += sizeof(double);
 	memcpy(blob + ptr, &(frac_categorial_frequent), sizeof(double)); ptr += sizeof(double);
 	memcpy(blob + ptr, &(lambda), sizeof(double)); ptr += sizeof(double);
+	memcpy(blob + ptr, &(min_cor_bin_ftr), sizeof(double)); ptr += sizeof(double);
 	return ptr;
 }
 
@@ -933,7 +963,7 @@ size_t MedDeepBitParams::deserialize(unsigned char *blob) {
 	memcpy(&(num_ftrs_per_round), blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&(num_vals_to_be_categorial), blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&(nparts_auc), blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&(coordinate_descent_niter), blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&(niter_auc_gitter), blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&(niter_coordinate_descent), blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&(internal_test_ratio), blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&(fraction_auc), blob + ptr, sizeof(double)); ptr += sizeof(double);
@@ -942,9 +972,18 @@ size_t MedDeepBitParams::deserialize(unsigned char *blob) {
 	memcpy(&(frac_continuous_frequent), blob + ptr, sizeof(double)); ptr += sizeof(double);
 	memcpy(&(frac_categorial_frequent), blob + ptr, sizeof(double)); ptr += sizeof(double);
 	memcpy(&(lambda), blob + ptr, sizeof(double)); ptr += sizeof(double);
+	memcpy(&(min_cor_bin_ftr), blob + ptr, sizeof(double)); ptr += sizeof(double);
 	return ptr;
 }
 
 void MedDeepBit::print(FILE *fp, const string& prefix) {
 	fprintf(fp, "%s: MedDeepBit ()\n", prefix.c_str());
+}
+
+string MedDeepBitParams::to_string() {
+	stringstream strm;
+	strm << "max_depth:" << max_depth << ",niter:" << num_iterations << "nftrs_round:" << num_ftrs_per_round << ",nvals_categorial:" << num_vals_to_be_categorial << "nparts_auc:" << nparts_auc <<
+		"niter_descent:" << niter_coordinate_descent << "niter_auc_gitter:" << niter_auc_gitter << "grid_fraction:" << grid_fraction << "min_fraction_zeros_ones:" << min_fraction_zeros_ones <<
+		"frac_continuous:" << frac_continuous_frequent << "frac_categorial" << frac_categorial_frequent << "lambda:" << lambda << "fraction_auc:" << fraction_auc << "internal_test_ratio:" << internal_test_ratio
+		<< "min_cor_bin_ftr=" << min_cor_bin_ftr;
 }
