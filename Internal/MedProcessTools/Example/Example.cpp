@@ -260,7 +260,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 }
 
-int old_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	int rc = 0;
 	po::variables_map vm;
