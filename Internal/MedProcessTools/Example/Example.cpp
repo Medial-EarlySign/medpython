@@ -36,6 +36,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 			// features for sig
 
 			// basics
+			//my_model.add_process_to_set(0, "fg_type=basic; type=nsamples; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_process_to_set(0, "fg_type=basic; type=last; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_process_to_set(0, "fg_type=basic; type=last; win_from=0; win_to=360; time_unit=Days; signal=" + sig);
 			my_model.add_process_to_set(0, "fg_type=basic; type=last; win_from=360; win_to=720; time_unit=Days; signal=" + sig);

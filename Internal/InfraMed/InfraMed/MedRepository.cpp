@@ -712,7 +712,7 @@ void MedRepository::print_data_vec_dict(int pid, int sid)
 void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool dict_val = false)
 {
 	int section_id;
-	int drug_sid;
+//	int drug_sid;
 	if (dict_val) {
 		section_id = dict.section_id(sigs.name(sid));
 		if (sigs.name(sid) == "Drug") {
