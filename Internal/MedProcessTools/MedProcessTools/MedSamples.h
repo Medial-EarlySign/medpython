@@ -26,11 +26,17 @@ public:
 	vector<float> prediction;
 	int outcomeTime;
 
+	MedSample() { prediction.clear(); }
+	~MedSample() { prediction.clear(); }
+
 	// (De)Serialization
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
+	// print
+	void print(const string prefix);
+	void print() { print(""); }
 };
 
 // A collection of samples of a given id

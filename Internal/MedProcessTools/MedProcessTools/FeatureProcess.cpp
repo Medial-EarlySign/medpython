@@ -522,47 +522,49 @@ void FeatureImputer::addStrata(string& init_string) {
 // (De)Serialization
 //.......................................................................................
 size_t FeatureImputer::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, imputerStrata, moment_type, moments);
-}
-
-//.......................................................................................
-size_t featureSetStrata::get_size() {
-	return MedSerialize::get_size(stratas);
-}
-
-//.......................................................................................
-size_t featureStrata::get_size() {
-	return MedSerialize::get_size(name, resolution, min, max);
+	return MedSerialize::get_size(processor_type, feature_name, missing_value, imputerStrata, moment_type, moments);
 }
 
 //.......................................................................................
 size_t FeatureImputer::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, imputerStrata, moment_type, moments);
-}
-
-//.......................................................................................
-size_t featureSetStrata::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, stratas);
-}
-
-//.......................................................................................
-size_t featureStrata::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, name, resolution, min, max);
+	return MedSerialize::serialize(blob, processor_type, feature_name, missing_value, imputerStrata, moment_type, moments);
 }
 
 //.......................................................................................
 size_t FeatureImputer::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, imputerStrata, moment_type, moments);
+	return MedSerialize::deserialize(blob, processor_type, feature_name, missing_value, imputerStrata, moment_type, moments);
+}
+
+
+//.......................................................................................
+size_t featureSetStrata::get_size() {
+	return MedSerialize::get_size(stratas, factors);
+}
+
+//.......................................................................................
+size_t featureSetStrata::serialize(unsigned char *blob) {
+	return MedSerialize::serialize(blob, stratas, factors);
 }
 
 //.......................................................................................
 size_t featureSetStrata::deserialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, stratas);
+	return MedSerialize::deserialize(blob, stratas, factors);
 }
 
 //.......................................................................................
+size_t featureStrata::get_size() {
+	return MedSerialize::get_size(name, resolution, min, max, nValues);
+}
+
+//.......................................................................................
+size_t featureStrata::serialize(unsigned char *blob) {
+	return MedSerialize::serialize(blob, name, resolution, min, max, nValues);
+}
+
+
+//.......................................................................................
 size_t featureStrata::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, name, resolution, min, max);
+	return MedSerialize::deserialize(blob, name, resolution, min, max, nValues);
 }
 
 

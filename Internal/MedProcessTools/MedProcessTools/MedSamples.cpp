@@ -25,6 +25,14 @@ size_t MedSample::deserialize(unsigned char *blob) {
 	return MedSerialize::deserialize(blob, id, time, outcomeTime, outcome, prediction);
 }
 
+//.......................................................................................
+void MedSample::print(const string prefix) {
+	MLOG("%s :: id %d time %d outcomeTime %d outcome %f prediction(%d)", prefix.c_str(), id, time, outcomeTime, outcome, prediction.size());
+	if (prediction.size() > 0)
+		for (auto pred : prediction)
+			MLOG(" %f", pred);
+	MLOG("\n");
+}
 
 //=======================================================================================
 // MedIdSample

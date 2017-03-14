@@ -5,7 +5,7 @@
 
 #include "Logger/Logger/Logger.h"
 #include "MedUtils/MedUtils/MedIO.h"
-//#include "MedAlgo/MedAlgo/MedAlgo.h"
+
 #include <cstring>
 
 using namespace std;
@@ -17,6 +17,10 @@ public:
 	virtual size_t get_size() { return 0; }
 	virtual size_t serialize(unsigned char *blob) { return 0; }
 	virtual size_t deserialize(unsigned char *blob) { return 0; }
+
+	// APIs for vectors
+	size_t serialize(vector<unsigned char> &blob) { size_t size = get_size(); blob.resize(size); return serialize(&blob[0]); }
+	size_t deserialize(vector<unsigned char> &blob) { return deserialize(&blob[0]); }
 
 	// read and deserialize model
 	virtual int read_from_file(const string &fname);
@@ -30,32 +34,17 @@ public:
 };
 
 
-// helpers to common serialization
-//namespace MedSerialize {
 //
-//	// templated simple ones : int, float, long, double, etc...
-//	template <class T> size_t get_size(T &elem);
-//	template <class T> size_t serialize(unsigned char *blob, T &elem);
-//	template <class T> size_t deserialize(unsigned char *blob, T &elem);
+// To Join the MedSerialize Wagon :
+// (1) include this h file, in your h file
+// (2) implement the get_size, serialize and deserialize functions for your class, you can use MedSerialize functions for that
+// (3) add the following macro for your class
 //
-//	// string is special
-//	template<> size_t get_size(string &str);
-//	template<> size_t serialize(unsigned char *blob, string &str);
-//	template<> size_t deserialize(unsigned char *blob, string &str);
-//
-//	// vector of type T that has a MedSerialize function
-//	template <class T> size_t get_size(vector<T> &v);
-//	template <class T> size_t serialize(unsigned char *blob, vector<T> &v);
-//	template <class T> size_t deserialize(unsigned char *blob, vector<T> &v);
-//
-//}
-
-
 #define MEDSERIALIZE_SUPPORT(Type)																	\
 namespace MedSerialize {																			\
-	static size_t get_size(Type &elem) { return elem.get_size(); }									\
-	static size_t serialize(unsigned char *blob, Type &elem) { return elem.serialize(blob); }		\
-	static size_t deserialize(unsigned char *blob, Type &elem) { return elem.deserialize(blob); }		\
+	template<> inline size_t get_size<Type>(Type &elem) { return elem.get_size(); }									\
+	template<> inline size_t serialize<Type>(unsigned char *blob, Type &elem) { return elem.serialize(blob); }		\
+	template<> inline size_t deserialize<Type>(unsigned char *blob, Type &elem) { return elem.deserialize(blob); }		\
 }
 
 #include "SerializableObject_imp.h"
