@@ -358,7 +358,7 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 		int byear = (int)(bYearSignal[0].val);
 
 		for (int i = 0; i < num; i++)
-			features.data[names[0]][index + i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[i].time) / 10000 - byear);
+			features.data[names[0]][index + i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index+i].time) / 10000 - byear);
 	}
 	return 0;
 }

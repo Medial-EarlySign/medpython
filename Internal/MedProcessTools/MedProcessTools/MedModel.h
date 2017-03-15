@@ -12,6 +12,15 @@
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 
+// MedModel learn/apply stages
+typedef enum {
+	MED_MDL_REP_PROCESSORS,
+	MED_MDL_FTR_GENERATORS,
+	MED_MDL_FTR_PROCESSORS,
+	MED_MDL_PREDICTOR,
+	MED_MDL_END
+} MedModelStage;
+
 //.......................................................................................
 //.......................................................................................
 // A model = repCleaner + featureGenerator + featureCleaner + MedPredictor
@@ -115,9 +124,12 @@ public:
 	void init_signal_ids(MedDictionarySections& dict);
 
 	// Apply
-	int learn(MedPidRepository& rep, MedSamples* samples);
-	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector);
-	int apply(MedPidRepository& rep, MedSamples& samples) ;
+	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_REP_PROCESSORS, MED_MDL_PREDICTOR); }
+	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
+	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector) { return learn(rep, samples, selector, MED_MDL_REP_PROCESSORS, MED_MDL_PREDICTOR); }
+	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector, MedModelStage start_stage, MedModelStage end_stage);
+	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_PREDICTOR); }
+	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage end_stage);
 
 	// De(Serialize)
 	size_t get_size();

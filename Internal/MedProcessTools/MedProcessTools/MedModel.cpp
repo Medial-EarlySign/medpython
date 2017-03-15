@@ -9,17 +9,24 @@
 // MedModel
 //=======================================================================================
 // Learn
-int MedModel::learn(MedPidRepository& rep, MedSamples* samples) {
-	
+//.......................................................................................
+int MedModel::learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage) {
+
 	DummyFeatsSelector selector;
-	return learn(rep, samples, selector);
+	return learn(rep, samples, selector, start_stage, end_stage);
 
 }
 
 //.......................................................................................
-int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector& selector) {
+int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector& selector, MedModelStage start_stage, MedModelStage end_stage) {
 
 	MedTimer timer;
+
+	// Stage Sanity
+	if (start_stage > end_stage) {
+		MERR("MedModel learn() : Illegal start and end\n");
+		return -1;
+	}
 
 	// Set of signals
 	init_signal_ids(rep.dict);
@@ -31,24 +38,31 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	LearningSet->get_ids(ids);
 
 	// Learn RepCleaners
-	timer.start();
-	if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
-		MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
-		return -1;
+	if (start_stage <= MED_MDL_REP_PROCESSORS) {
+		timer.start();
+		if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
+			MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : learn rep processors time %g ms\n", timer.diff_milisec());
 	}
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : learn rep processors time %g ms\n", timer.diff_milisec());
+	if (end_stage <= MED_MDL_REP_PROCESSORS)
+		return 0;
 
 	// Learn Feature Generators
-	timer.start();
-	if (learn_feature_generators(rep, LearningSet) < 0) {
-		MERR("MedModel learn() : ERROR: Failed learn_feature_generators\n");
-		return -1;
+	if (start_stage <= MED_MDL_FTR_GENERATORS) {
+		timer.start();
+		if (learn_feature_generators(rep, LearningSet) < 0) {
+			MERR("MedModel learn() : ERROR: Failed learn_feature_generators\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
 	}
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
+	if (end_stage <= MED_MDL_FTR_GENERATORS)
+		return 0;
 
-	//MedFeatures features(LearningSet->time_unit);
 	features.clear();
 	features.set_time_unit(LearningSet->time_unit);
 
@@ -61,30 +75,57 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	timer.take_curr_time();
 	MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
 
-	// Learn Feature cleaners and clean
-	timer.start();
-	if (learn_and_apply_feature_processors(features) < 0) {
-		MERR("MedModel::learn() : ERROR: Failed learn_and_apply_feature_cleaners()\n");
-		return -1;
+	// Learn Feature processors and apply
+	if (start_stage <= MED_MDL_FTR_PROCESSORS) {
+		timer.start();
+		if (learn_and_apply_feature_processors(features) < 0) {
+			MERR("MedModel::learn() : ERROR: Failed learn_and_apply_feature_cleaners()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
 	}
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+	else {
+		// Just apply feature processors
+		timer.start();
+		if (apply_feature_processors(features) < 0) {
+			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : feature processing time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+	}
+	if (end_stage <= MED_MDL_FTR_PROCESSORS)
+		return 0;
 
 	// Select Features
 	selector.select(generators);
 
 	// Learn predictor
-	timer.start();
-	int rc = predictor->learn(features);
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : model train time: %g ms\n", timer.diff_milisec());
+	if (start_stage <= MED_MDL_PREDICTOR) {
+		timer.start();
+		int rc = predictor->learn(features);
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : model train time: %g ms\n", timer.diff_milisec());
+		if (rc != 0)
+			return rc;
+	}
+	if (end_stage <= MED_MDL_PREDICTOR)
+		return 0;
 
-	return rc;
+
+	return 0;
 }
 
 //.......................................................................................
 // Apply
-int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
+int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage end_stage) {
+
+	// Stage Sanity
+	if (end_stage == MED_MDL_REP_PROCESSORS) {
+		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
+		return -1;
+	}
 
 	// Set of signals
 	init_signal_ids(rep.dict);
@@ -102,12 +143,16 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 		return -1;
 	}
+	if (end_stage <= MED_MDL_FTR_GENERATORS)
+		return 0;
 
-	// Clean Features
+	// Process Features
 	if (apply_feature_processors(features) < 0) {
 		MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 		return -1;
 	}
+	if (end_stage <= MED_MDL_FTR_PROCESSORS)
+		return 0;
 
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
@@ -116,6 +161,8 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 	}
 
 	samples.insert_preds(features);
+	if (end_stage <= MED_MDL_PREDICTOR)
+		return 0;
 	return 0;
 }
 
