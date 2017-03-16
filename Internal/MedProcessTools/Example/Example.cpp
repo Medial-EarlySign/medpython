@@ -4,8 +4,6 @@
 #include "Logger/Logger/Logger.h"
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
-extern MedLogger global_logger;
-
 
 #include "Example.h"
 
@@ -29,12 +27,14 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		for (auto sig : signals) {
 
 			// cleaner for sig
-			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=1;signal="+sig);
+			//my_model.add_process_to_set(0, "rp_type=nbrs_cln;take_log=0;signal="+sig);
 			my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=1;range_min=0.01;range_max=100000;signal="+sig);
+			//my_model.add_process_to_set(0, "rp_type=basic_cln;take_log=0;signal="+sig);
 
 			// features for sig
 
 			// basics
+			//my_model.add_process_to_set(0, "fg_type=basic; type=nsamples; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_process_to_set(0, "fg_type=basic; type=last; win_from=0; win_to=10000; time_unit=Days; signal=" + sig);
 			my_model.add_process_to_set(0, "fg_type=basic; type=last; win_from=0; win_to=360; time_unit=Days; signal=" + sig);
 			my_model.add_process_to_set(0, "fg_type=basic; type=last; win_from=360; win_to=720; time_unit=Days; signal=" + sig);
@@ -60,7 +60,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		// Age/Gender features
 		my_model.add_process_to_set(0, "fg_type=age");
 		my_model.add_process_to_set(0, "fg_type=gender");
-		if (!vm.count("scan_sigs")) {
+		if (vm.count("drug_feats")) {
 			vector<string> sets ={ "ATC_A10_____", "ATC_C10_____", "ATC_B01_____", "ATC_B02_____" , "ATC_A10A____" , "ATC_A10B____ ",
 			"ATC_A10C____" , "ATC_B01A_B__", "ATC_B01A_C__", "ATC_B04_____", "ATC_C01_____", "ATC_C02_____", "ATC_C03_____", "ATC_C07_____",
 			"ATC_C08_____", "ATC_C09_____", "ATC_H03_____", "ATC_L02_____", "ATC_L04_____", "ATC_C10A_A__" };
@@ -76,7 +76,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		my_model.add_process_to_set(0, "fp_type=basic_cleaner");
 		my_model.add_process_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
 		//my_model.add_process_to_set(1, "fp_type=imputer;moment_type=0");
-		my_model.add_process_to_set(2, "fp_type=normalizer");
+		//my_model.add_process_to_set(2, "fp_type=normalizer");
 
 	}
 	else {
@@ -194,16 +194,18 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 			return -1;
 		}
 
-		if (my_model.predictor->classifier_type == MODEL_QRF) {
-			MedQRF *qrf = (MedQRF *)my_model.predictor;
-			MLOG("Running QRF Variable Importance\n");
-			vector<pair<short, double>> varImp;
-			vector<string> ftr_names;
-			my_model.features.get_feature_names(ftr_names);
-			int nfeatures = (int)ftr_names.size();
-			qrf->qf.variableImportance(varImp, nfeatures);
-			for (int i=0; i<nfeatures; i++)
-				MLOG("##IMPORTANCE## i= %d %d %s imp= %f\n", i, varImp[i].first, ftr_names[varImp[i].first].c_str(), varImp[i].second);
+		if (vm.count("importance")) {
+			if (my_model.predictor->classifier_type == MODEL_QRF) {
+				MedQRF *qrf = (MedQRF *)my_model.predictor;
+				MLOG("Running QRF Variable Importance\n");
+				vector<pair<short, double>> varImp;
+				vector<string> ftr_names;
+				my_model.features.get_feature_names(ftr_names);
+				int nfeatures = (int)ftr_names.size();
+				qrf->qf.variableImportance(varImp, nfeatures);
+				for (int i=0; i<nfeatures; i++)
+					MLOG("##IMPORTANCE## i= %d %d %s imp= %f\n", i, varImp[i].first, ftr_names[varImp[i].first].c_str(), varImp[i].second);
+			}
 		}
 
 		// Write to temporary file
@@ -290,8 +292,8 @@ int main(int argc, char *argv[])
 
 	MedPidRepository rep;
 	vector<string> read_sigs = signals;
-	if (!vm.count("scan_sigs")) read_sigs.push_back("Drug");
-	rc = read_repository(vm, ids, read_sigs, rep);
+	if (vm.count("drug_feats")) read_sigs.push_back("Drug");
+	rc = read_repository(vm["config"].as<string>(), ids, read_sigs, rep);
 	assert(rc >= 0);
 
 	timer.take_curr_time();
@@ -323,6 +325,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("samples", po::value<string>()->required(), "samples file name")
 			("sigs", po::value<string>()->default_value("NONE"), "file of signals to consider")
 			("scan_sigs", "run and age+genger+sig model for each one of the signals")
+			("importance", "run importance when using qrf model")
+			("drug_feats", "add drug based features to model")
 			("csv_feat", po::value<string>()->default_value("NONE"), "file name to save features as csv (NONE = no saving)")
 			("features", po::value<string>(), "file of signals to consider")
 			("rep_cleaner", po::value<string>(), "repository cleaner")
@@ -363,14 +367,14 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 	return 0;
 }
 
-int read_repository(po::variables_map& vm, vector<int>& ids, vector<string>& signals, MedPidRepository& rep) {
+int read_repository(string config_file, vector<int>& ids, vector<string>& signals, MedPidRepository& rep) {
 
 	vector<string> sigs = signals;
 	sigs.push_back("GENDER");
 	sigs.push_back("BYEAR");
 	sigs.push_back("TRAIN");
-	MLOG("Before reading config file %s\n", vm["config"].as<string>().c_str());
-	string config_file = vm["config"].as<string>();
+	MLOG("Before reading config file %s\n", config_file.c_str());
+
 
 	if (rep.read_all(config_file,ids,sigs) < 0) {
 		MLOG("Cannot init repository %s\n", config_file.c_str());

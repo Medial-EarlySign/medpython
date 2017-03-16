@@ -1467,6 +1467,12 @@ size_t QRF_ResNode::serialized_size(int mode)
 	serialized_size += sizeof(size) ;
 	serialized_size += sizeof(pred);
 
+	// Values (might be empty)
+	if (is_leaf && mode == QRF_REGRESSION_TREE) {
+		serialized_size += sizeof(size_t);
+		serialized_size += sizeof(float) * values.size();
+	}
+
 	if (is_leaf && mode != QRF_REGRESSION_TREE) {
 		serialized_size += sizeof(majority) ;
 		serialized_size += counts.size() * sizeof(int) ;
@@ -1488,6 +1494,12 @@ size_t QRF_ResNode::serialize(unsigned char *buf, int mode)
 	*((int *)&buf[serialized_size]) = size; serialized_size += sizeof(size);
 	*((float *)&buf[serialized_size]) = pred; serialized_size += sizeof(pred);
 
+	if (is_leaf && mode == QRF_REGRESSION_TREE) {
+		size_t n_values = values.size();
+		*((size_t *)&buf[serialized_size]) = n_values; serialized_size += sizeof(n_values);
+		std::memcpy(&(buf[serialized_size]), &(values[0]), n_values*sizeof(float)); serialized_size += n_values * sizeof(float);
+	}
+
 	if (is_leaf && mode != QRF_REGRESSION_TREE) {
 		*((int *)&buf[serialized_size]) = majority ; serialized_size += sizeof(majority) ;
 		std::memcpy(&(buf[serialized_size]),&(counts[0]),counts.size()*sizeof(int)) ; serialized_size += counts.size() * sizeof(int) ;
@@ -1508,6 +1520,20 @@ size_t QRF_ResNode::deserialize(unsigned char *buf, int mode, int n_categ)
 	right = *((int *)&buf[serialized_size]); serialized_size += sizeof(right);
 	size = *((int *)&buf[serialized_size]); serialized_size += sizeof(size);
 	pred = *((float *)&buf[serialized_size]); serialized_size += sizeof(pred);
+
+	// Values (might be empty)
+	if (is_leaf && mode == QRF_REGRESSION_TREE) {
+		size_t n_values = *((size_t *)&buf[serialized_size]); serialized_size += sizeof(n_values); 
+		if (n_values > 0) {
+			values.resize(n_values);
+			for (size_t i = 0; i < n_values; i++) {
+				values[i] = (*((float *)&buf[serialized_size]));
+				serialized_size += sizeof(float);
+			}
+		}
+	}
+	else
+		values.clear();
 
 	if (is_leaf && mode != QRF_REGRESSION_TREE) {
 		majority = *((int *)&buf[serialized_size]); serialized_size += sizeof(majority);
@@ -1544,15 +1570,15 @@ int QRF_Forest::transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, in
 				//if (trees[i].nodes[j].is_leaf) {
 				if (1) {
 					qn.counts.resize(n_categ);
-					fill(qn.counts.begin(),qn.counts.end(),0);
-					for (int k=trees[i].nodes[j].from_sample; k<=trees[i].nodes[j].to_sample; k++) {
+					fill(qn.counts.begin(), qn.counts.end(), 0);
+					for (int k = trees[i].nodes[j].from_sample; k <= trees[i].nodes[j].to_sample; k++) {
 						if (mode == QRF_BINARY_TREE)
 							qn.counts[(int)(qrf.y[trees[i].sample_ids[k]])]++;
 						else
 							qn.counts[(int)(qrf.yr[trees[i].sample_ids[k]])]++;
 					}
-					int maxv=0, maxi = -1;
-					for (int j=0; j<n_categ; j++) {
+					int maxv = 0, maxi = -1;
+					for (int j = 0; j < n_categ; j++) {
 						if (qn.counts[j] > maxv) {
 							maxv = qn.counts[j];
 							maxi = j;
@@ -1560,10 +1586,17 @@ int QRF_Forest::transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, in
 					}
 					qn.majority = maxi;
 					if (maxi < 0) {
-						fprintf(stderr,"BUG in getting majority !\n"); fflush(stderr);
+						fprintf(stderr, "BUG in getting majority !\n"); fflush(stderr);
 					}
 				}
 			}
+			else if (keep_all_values && qn.is_leaf) {
+				qn.values.resize(trees[i].nodes[j].to_sample + 1 - trees[i].nodes[j].from_sample);
+				for (unsigned int k = 0; k < qn.values.size(); k++) 
+					qn.values[k] = qrf.yr[trees[i].sample_ids[k + trees[i].nodes[j].from_sample]];
+			}
+			else
+				qn.values.clear();
 			qt.qnodes.push_back(qn);
 		}
 		qtrees.push_back(qt);
@@ -1582,6 +1615,12 @@ size_t QRF_Forest::get_size() {
 	size += sizeof(int); // encoding ntrees
 	size += sizeof(int); // encoding get_only_this_categ
 	size += sizeof(int); // encoding get_count
+	size += sizeof(bool); // encoding keep_all_values
+	
+	// Quantiles
+	size += sizeof(size_t);
+	size += sizeof(float)*quantiles.size();
+
 	for (int i=0; i<qtrees.size(); i++) {
 		size += sizeof(int); // encoding nnodes
 		for (int j=0; j<qtrees[i].qnodes.size(); j++)
@@ -1626,6 +1665,16 @@ size_t QRF_Forest::serialize(unsigned char *&model)
 
 	((int *)model)[0] = get_counts_flag;
 	model += sizeof(int);
+
+	((bool *)model)[0] = keep_all_values;
+	model += sizeof(bool);
+
+	// Qunatiles
+	size_t n_quantiles = quantiles.size();
+	((size_t *)model)[0] = n_quantiles;
+	model += sizeof(size_t);
+	std::memcpy(&(model[0]), &(quantiles[0]), n_quantiles*sizeof(float));
+	model += sizeof(float)*n_quantiles; 
 
 	for (int i=0; i<qtrees.size(); i++) {
 		((int *)model)[0] = (int)qtrees[i].qnodes.size();
@@ -1743,6 +1792,16 @@ size_t QRF_Forest::deserialize(unsigned char *model)
 
 	get_counts_flag = ((int *)model)[0];
 	model += sizeof(int);
+
+	keep_all_values = ((bool *)model)[0];
+	model += sizeof(bool);
+
+	// Qunatiles
+	size_t n_quantiles = ((size_t *)model)[0];
+	model += sizeof(size_t);
+	quantiles.resize(n_quantiles);
+	std::memcpy(&(quantiles[0]), &(model[0]), n_quantiles*sizeof(float));
+	model += sizeof(float)*n_quantiles;
 
 	QRF_ResTree qt;
 	QRF_ResNode qn;
@@ -1945,7 +2004,9 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, int nfeat, int nsa
 #ifdef DEBUG
 	fprintf(stderr,"built %d trees, transffering to internal\n",ntrees); fflush(stderr);
 #endif
+
 	transfer_to_forest(trees,qrf,mode);
+
 #ifdef DEBUG
 	fprintf(stderr,"%d trees transffered\n",ntrees); fflush(stderr);
 #endif
@@ -1998,12 +2059,13 @@ struct qrf_scoring_thread_params {
 
 	int mode;
 	int n_categ;
+	vector<float> *quantiles;
 
 	int get_counts; // for CATEGORICAL runs there's such an option, 0 - don't get, 1 - sum counts 2 - sum probs
 //	thread th_handle;
 };
 
-void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts)
+void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts, vector<float> *quantiles)
 {
 	tp.clear();
 	tp.resize(nsplit);
@@ -2025,6 +2087,7 @@ void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, vector<QRF
 		tp[i].mode = mode;
 		tp[i].n_categ = n_categ;
 		tp[i].get_counts = get_counts;
+		tp[i].quantiles = quantiles;
 	}
 	tp[nsplit-1].to = nsamples-1;
 }
@@ -2041,6 +2104,8 @@ void get_score_thread(void *p)
 	int node;
 	int nfeat = tp->nfeat;
 	vector<QRF_ResTree> *trees = tp->trees;
+	vector<float> *quantiles = tp->quantiles;
+	int n_quantiles = (*quantiles).size();
 	int n_categ = tp->n_categ; 
 	vector<float> cnts(n_categ);
 
@@ -2048,6 +2113,7 @@ void get_score_thread(void *p)
 	for (int i=tp->from; i<=tp->to; i++) {
 		float sum = 0 ;
 		float norm = 0 ;
+		vector<float> values;
 
 //		if ((tp->mode == QRF_REGRESSION_TREE && tp->get_counts == PREDS_REGRESSION_AVG) || (tp->mode != QRF_REGRESSION_TREE && tp->get_counts < PREDS_CATEG_AVG_COUNTS))
 //			norm = (float) (*(tp->trees)).size() ;
@@ -2071,9 +2137,11 @@ void get_score_thread(void *p)
 				if (tp->get_counts == PREDS_REGRESSION_AVG) { // Average on predictions
 					sum += (*trees)[j].qnodes[node].pred ;
 					norm++;
-				} else { // Weighted average on predictions
+				} else if (tp->get_counts == PREDS_REGRESSION_WEIGHTED_AVG) { // Weighted average on predictions
 					sum += (*trees)[j].qnodes[node].pred * (*trees)[j].qnodes[node].size ;
 					norm += (*trees)[j].qnodes[node].size ;
+				} else { // Quantile Regression
+					values.insert(values.end(), (*trees)[j].qnodes[node].values.begin(), (*trees)[j].qnodes[node].values.end());
 				}
 			} else {
 				if (tp->get_counts == PROBS_CATEG_MAJORITY_AVG || tp->get_counts == PREDS_CATEG_MAJORITY_AVG) { // Majority
@@ -2091,8 +2159,20 @@ void get_score_thread(void *p)
 			}
 		}
 
-		if (tp->mode == QRF_REGRESSION_TREE)
-			tp->res[i] = sum/norm ;
+		if (tp->mode == QRF_REGRESSION_TREE) {
+			if (tp->get_counts != PREDS_REGRESSION_QUANTILE)
+				tp->res[i] = sum / norm;
+			else {
+				sort(values.begin(), values.end());
+				// Get Quantiles
+				for (int k = 0; k < n_quantiles; k++) {
+					if ((*quantiles)[k] == -1)
+						tp->res[i*n_quantiles + k] = values.size();
+					else
+						tp->res[i*n_quantiles + k] = values[(int)values.size()*(*quantiles)[k]];
+				}
+			}
+		}
 		else if (tp->get_counts == PREDS_CATEG_MAJORITY_AVG || tp->get_counts == PREDS_CATEG_AVG_COUNTS || tp->get_counts == PREDS_CATEG_AVG_PROBS) {
 
 			// collapse cnts/norm to a single prediction by expectation
@@ -2114,7 +2194,7 @@ void QRF_Forest::score_with_threads(float *x,  int nfeat, int nsamples, float *r
 {
 	vector<qrf_scoring_thread_params> stp;
 
-	get_scoring_thread_params(stp,&qtrees,res,nsamples,nfeat,x,nthreads,mode,n_categ,get_counts_flag);
+	get_scoring_thread_params(stp,&qtrees,res,nsamples,nfeat,x,nthreads,mode,n_categ,get_counts_flag,&quantiles);
 	vector<thread> th_handle(nthreads);
 	for (int i=0; i<nthreads; i++) {
 		th_handle[i] = thread(get_score_thread, (void *)&stp[i]);
@@ -2152,7 +2232,7 @@ int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res,
 #endif
 
 	if (mode == QRF_REGRESSION_TREE || get_only_this_categ < 0)
-		score_with_threads(x_in,nfeat,nsamples,res);
+		score_with_threads(x_in, nfeat, nsamples, res);
 	else {
 		vector<float> resall(nsamples*n_categ);
 		score_with_threads(x_in,nfeat,nsamples,&resall[0]);

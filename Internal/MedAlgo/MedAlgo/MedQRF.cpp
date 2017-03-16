@@ -41,6 +41,9 @@ void MedQRF::init_defaults()
 	params.max_samp = 0;
 	params.samp_factor = 0;
 
+	params.keep_all_values = false;
+	params.quantiles.clear();
+
 	params.collect_oob = 0;
 }
 
@@ -69,6 +72,9 @@ int MedQRF::init(void *_in_params)
 	params.samp_factor = in_params->samp_factor;
 
 	params.collect_oob = in_params->collect_oob;
+
+	params.keep_all_values = in_params->keep_all_values;
+	params.quantiles = in_params->quantiles;
 
 	return 0;
 }
@@ -133,6 +139,14 @@ int MedQRF::init(map<string, string>& mapper) {
 		else if (field == "spread") params.spread = stof(entry.second);
 		else if (field == "learn_nthreads") params.learn_nthreads = stoi(entry.second);
 		else if (field == "predict_nthreads") params.predict_nthreads = stoi(entry.second);
+		else if (field == "keep_all_values") params.keep_all_values = (bool)stoi(entry.second);
+		else if (field == "quantiles"){
+			vector<string> vals;
+			split(vals, entry.second, boost::is_any_of(","));
+			params.quantiles.resize(vals.size());
+			for (int j = 0; j < vals.size(); j++)
+				params.quantiles[j] = stof(vals[j]);
+		}
 		else if (field == "sampsize") {
 			vector<string> vals;
 			split(vals, entry.second, boost::is_any_of(","));
@@ -244,6 +258,8 @@ int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	qf.collect_oob = params.collect_oob;
 	qf.get_only_this_categ = params.get_only_this_categ;
 	qf.get_counts_flag = params.get_count;
+	qf.keep_all_values = params.keep_all_values;
+	qf.quantiles = params.quantiles;
 
 	if (params.type != QRF_REGRESSION_TREE) {
 		for (int i = 0; i < nsamples; i++)
@@ -304,17 +320,13 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs, int _get_c
 	qf.n_categ = params.n_categ;
 	qf.get_only_this_categ = params.get_only_this_categ;
 	qf.get_counts_flag = params.get_count;
+	qf.quantiles = params.quantiles;
 	return qf.score_samples(x, nftrs, nsamples, preds, _get_count);
 }
 
 //..............................................................................
 int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 	return Predict(x, preds, nsamples, nftrs, params.get_count);
-}
-
-//..............................................................................
-int MedQRF::preds_per_sample() {
-	return qf.n_categ;
 }
 
 //..............................................................................
@@ -337,6 +349,7 @@ size_t MedQRF::deserialize(unsigned char *blob) {
 	params.type = (QRF_TreeType)qf.mode;
 	params.get_only_this_categ = qf.get_only_this_categ;
 	params.get_count = qf.get_counts_flag;
+	params.quantiles = qf.quantiles; 
 
 	return s;
 }
@@ -346,6 +359,21 @@ void MedQRF::print(FILE *fp, const string& prefix) {
 	fprintf(fp, "%s: MedQRF of type %d\n", prefix.c_str(), params.type);
 	fprintf(fp, "%s: params = (ntrees=%d, maxq=%d, sampsize=%d, ntry=%d, spread=%f, min_node=%d, n_categ=%d, get_count=%d)\n",
 		prefix.c_str(), params.ntrees, params.maxq, params.sampsize == NULL ? -1 : *params.sampsize, params.ntry, params.spread, params.min_node, params.n_categ, params.get_count);
+
+	if (1) {
+		for (unsigned int i = 0; i < qf.qtrees.size(); i++) {
+			for (unsigned int j = 0; j < qf.qtrees[i].qnodes.size(); j++) {
+				QRF_ResNode& node = qf.qtrees[i].qnodes[j];
+
+				fprintf(fp, "Tree %d Node %d ", i, j);
+				if (node.is_leaf)
+					fprintf(fp, "Prediction %f\n", node.pred);
+				else
+					fprintf(fp, "Split by %d at %f to %d and %d\n", node.ifeat, node.split_val, node.left, node.right);
+			}
+		}
+	}
+
 }
 
 string printNode(const vector<string> &modelSignalNames, const vector<QRF_ResNode> &nodes, int n, int deepSize, bool leftSide) {
@@ -445,8 +473,12 @@ void MedQRF::printTrees(const vector<string> &modelSignalNames, const string &ou
 // Prdictions per sample
 int MedQRF::n_preds_per_sample()
 {
-	if (params.type == QRF_REGRESSION_TREE)
-		return 1;
+	if (params.type == QRF_REGRESSION_TREE) {
+		if (params.get_count == PREDS_REGRESSION_QUANTILE)
+			return (int)params.quantiles.size();
+		else
+			return 1;
+	}
 	if (params.get_count == PREDS_CATEG_MAJORITY_AVG || params.get_count == PREDS_CATEG_AVG_PROBS || params.get_count == PREDS_CATEG_AVG_COUNTS)
 		return 1;
 	if (params.get_only_this_categ >= 0 && params.get_only_this_categ < params.n_categ)

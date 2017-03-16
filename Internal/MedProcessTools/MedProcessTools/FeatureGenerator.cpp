@@ -177,6 +177,8 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set")				return FTR_CATEGORY_SET;
 	if (name == "category_set_count")		return FTR_CATEGORY_SET_COUNT;
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
+	if (name == "nsamples")			return FTR_NSAMPLES;
+
 
 	return (BasicFeatureTypes)stoi(name);
 }
@@ -205,6 +207,8 @@ void BasicFeatGenerator::set_names() {
 		case FTR_CATEGORY_SET:			name += "category_set"; break;
 		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count"; break;
 		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum"; break;
+		case FTR_NSAMPLES:		name += "nsamples"; break;
+
 		default: name += "ERROR";
 		}
 
@@ -223,12 +227,19 @@ void BasicFeatGenerator::set_names() {
 int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	string& name = names[0];
+
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
 	float *p_feat = &(features.data[name][index]);
 	for (int i = 0; i < num; i++)
 		//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
-		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index+i].time));
+		//if (type != FTR_NSAMPLES)
+			p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index+i].time));
+		//else {
+		//	//p_feat[i] = i;
+		//	p_feat[i] = features.samples[index+i].time/10000;
+		//}
+			
 	
 	return 0;
 }
@@ -254,6 +265,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_CATEGORY_SET:				return uget_category_set(rec, rec.usv, time);
 	case FTR_CATEGORY_SET_COUNT:		return uget_category_set_count(rec, rec.usv, time);
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time);
+	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
 
 	default:	return missing_val;
 	}
@@ -299,7 +311,7 @@ size_t BasicFeatGenerator::get_size() {
 
 	size_t size = 0;
 
-	size += MedSerialize::get_size(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
+	size += MedSerialize::get_size(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_unit_sig, time_channel, val_channel, sum_channel);
 	size += MedSerialize::get_size(signalName, sets, names, req_signals);
 
 	return size;
@@ -310,7 +322,7 @@ size_t BasicFeatGenerator::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::serialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
+	ptr += MedSerialize::serialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_unit_sig, time_channel, val_channel, sum_channel);
 	ptr += MedSerialize::serialize(blob + ptr, signalName, sets, names, req_signals);
 
 	return ptr;
@@ -321,7 +333,7 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::deserialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
+	ptr += MedSerialize::deserialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_unit_sig, time_channel, val_channel, sum_channel);
 	ptr += MedSerialize::deserialize(blob + ptr, signalName, sets, names, req_signals);
 
 	//req_signals.assign(1,signalName);
@@ -374,7 +386,6 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 		return -1;
 	}
 
-	int len;
 	rec.uget(genderId, 0);
 	assert(rec.usv.len >= 1);
 	int gender = (int)(rec.usv.Val(0));
@@ -721,4 +732,17 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 	}
 
 	return sum;
+}
+
+//.......................................................................................
+// get the number of samples in [win_to, win_from] before time
+float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	int i, j;
+	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
+	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
+	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
+	return 0;
 }

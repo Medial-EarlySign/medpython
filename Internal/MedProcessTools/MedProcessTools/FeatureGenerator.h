@@ -143,6 +143,7 @@ typedef enum {
 	FTR_CATEGORY_SET = 12,
 	FTR_CATEGORY_SET_COUNT = 13,
 	FTR_CATEGORY_SET_SUM = 14,
+	FTR_NSAMPLES = 15,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -162,9 +163,9 @@ public:
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
 	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
 	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
+	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 
 	// helpers
-	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	vector<char> lut;							// to be used when generating FTR_CATEGORY_SET_*
 
 	// Naming 
@@ -214,7 +215,7 @@ public:
 	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
-
+	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 	// helpers
 
 	// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time

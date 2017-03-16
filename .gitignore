@@ -3,3 +3,4 @@ x64/
 External/xgboost/xgboost
 *CMakeLists.txt
 *.suo
+*.opendb

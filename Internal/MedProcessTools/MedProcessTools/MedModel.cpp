@@ -196,14 +196,14 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 }
 
 //.......................................................................................
-int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features)
+int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features)
 {
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
 
 	// init features attributes
-	for (auto& generator : generators)
+	for (auto& generator : _generators)
 		generator->init(features);
 
 	// preparing records and features for threading
@@ -212,7 +212,7 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 	int samples_size = (int)features.samples.size();
-	for (auto &generator : generators) {
+	for (auto &generator : _generators) {
 		for (string& name : generator->names)
 			features.data[name].resize(samples_size, 0);
 	}
@@ -220,9 +220,9 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 	// Loop on ids
 	int RC = 0;
 #pragma omp parallel for schedule(dynamic)
-	for (int j=0; j<samples->idSamples.size(); j++) {
+	for (int j = 0; j<samples->idSamples.size(); j++) {
 		MedIdSamples& pid_samples = samples->idSamples[j];
-		int n_th = omp_get_thread_num(); 
+		int n_th = omp_get_thread_num();
 		int rc = 0;
 
 		// Generate DynamicRec with all relevant signals
@@ -233,7 +233,7 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 			if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
 
 		// Generate Features
-		for (auto& generator : generators)
+		for (auto& generator : _generators)
 			if (generator->generate(idRec[n_th], features) < 0) rc = -1;
 #pragma omp critical 
 		if (rc < 0) RC = -1;

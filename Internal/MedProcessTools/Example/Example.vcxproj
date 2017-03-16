@@ -91,7 +91,8 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(MR_LIBS)\$(Platform)\$(Configuration)\;$(BOOST_HOME)\stage\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>MedProcessTools.lib;micNet.lib;xgboost.lib;Logger.lib;InfraMed.lib;MedTime.lib;MedUtils.lib;MedStat.lib;MedFeat.lib;tsne.lib;QRF.lib;Mars.lib;gbm.lib;MedAlgo.lib;zlib.lib;rabit.lib;dmlc.lib</AdditionalDependencies>
+      <AdditionalDependencies>MedProcessTools.lib;micNet.lib;Logger.lib;InfraMed.lib;MedTime.lib;MedUtils.lib;MedStat.lib;MedFeat.lib;tsne.lib;QRF.lib;Mars.lib;gbm.lib;MedAlgo.lib;zlib.lib;rabit.lib;dmlc.lib;xgboost.lib</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -124,7 +125,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(MR_LIBS)\$(Platform)\$(Configuration)\;$(BOOST_HOME)\stage\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>MedProcessTools.lib;micNet.lib;xgboost.lib;Logger.lib;InfraMed.lib;MedTime.lib;MedUtils.lib;MedStat.lib;MedFeat.lib;tsne.lib;QRF.lib;Mars.lib;gbm.lib;MedAlgo.lib;zlib.lib;rabit.lib;dmlc.lib</AdditionalDependencies>
+      <AdditionalDependencies>MedProcessTools.lib;micNet.lib;Logger.lib;InfraMed.lib;MedTime.lib;MedUtils.lib;MedStat.lib;MedFeat.lib;tsne.lib;QRF.lib;Mars.lib;gbm.lib;MedAlgo.lib;zlib.lib;rabit.lib;dmlc.lib;xgboost.lib</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
