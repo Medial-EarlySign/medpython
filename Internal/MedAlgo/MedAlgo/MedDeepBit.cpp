@@ -729,7 +729,7 @@ struct sort_special {
 double MedDeepBit::special_auc(const vector<double>& all_predictions, const vector<int>& all_label, bool is_weighted, int nparts) {
 	vector<double> results(nparts);
 	for (int part = 0; part < nparts; part++) {
-		int first = all_predictions.size() / nparts * part, last = all_predictions.size() / nparts * (part + 1) - 1;
+		int first = (int)all_predictions.size() / nparts * part, last = (int)all_predictions.size() / nparts * (part + 1) - 1;
 		vector<double> predictions(all_predictions.begin() + first, all_predictions.begin() + last);
 		vector<int> label(all_label.begin() + first, all_label.begin() + last);
 		int len = (int)label.size();

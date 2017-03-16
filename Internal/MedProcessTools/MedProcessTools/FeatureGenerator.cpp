@@ -232,7 +232,13 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 	float *p_feat = &(features.data[name][index]);
 	for (int i = 0; i < num; i++)
 		//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
-		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index+i].time));
+		//if (type != FTR_NSAMPLES)
+			p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index+i].time));
+		//else {
+		//	//p_feat[i] = i;
+		//	p_feat[i] = features.samples[index+i].time/10000;
+		//}
+			
 	
 	return 0;
 }
@@ -379,7 +385,6 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 		return -1;
 	}
 
-	int len;
 	rec.uget(genderId, 0);
 	assert(rec.usv.len >= 1);
 	int gender = (int)(rec.usv.Val(0));

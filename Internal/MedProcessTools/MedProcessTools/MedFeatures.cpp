@@ -27,11 +27,14 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 
 	mat.resize(nrows, ncols);
 	
-	int i = 0;
-	for (auto& rec : data) {
+	vector<float *> datap;
+	for (auto& rec : data)
+		datap.push_back((float *)(&rec.second[0]));
+
+#pragma omp parallel for schedule(dynamic)
+	for (int i=0; i<(int)datap.size(); i++) {
 		for (int j = 0; j < nrows; j++)
-			mat(j, i) = rec.second[j];
-		i++;
+			mat(j, i) = datap[i][j];
 	}
 
 	// Normalization flag

@@ -63,7 +63,7 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 				values[i] = log(values[i]);
 		}
 		if (max_range <= 0) max_range = 1;
-		if (min_range <= 0) min_range = 0.01;
+		if (min_range <= 0) min_range = (float)0.01;
 		max_range = log(max_range);
 		min_range = log(min_range);
 	}
