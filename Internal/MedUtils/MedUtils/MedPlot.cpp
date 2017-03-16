@@ -2,6 +2,7 @@
 #include <fstream>
 #include <ctime>
 #include <iostream>
+#include <boost/filesystem/path.hpp>
 
 #ifdef _WIN32
 //define something for Windows
@@ -105,7 +106,6 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName, vector<string> seriesNames, int refreshTime)
 {
 
-
 	ifstream jsFile;
 	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
 	if (!jsFile.is_open()) {
@@ -115,13 +115,11 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 		istreambuf_iterator<char>());
 	ofstream jsOut;
 	size_t lastDirPos = outPath.find_last_of("/\\");
-	string outDir = outPath.substr(0, lastDirPos) + separator();
-	if (lastDirPos == string::npos)
-	{
-		outDir = "";
-	}
+	boost::filesystem::path p(outPath);
+	boost::filesystem::path outDir = p.parent_path();
 
-	jsOut.open(outDir + "plotly-latest.min.js");
+	cerr << "writing: [" << outDir.string() + "/plotly-latest.min.js" << "]\n";
+	jsOut.open(outDir.string() + "/plotly-latest.min.js");
 	jsOut << jsData;
 	jsOut.close();
 
@@ -201,6 +199,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	content.replace(ind, 3, rep);
 
 	ofstream myfile;
+	cerr << "writing: [" << outPath << "]\n";
 	myfile.open(outPath);
 	myfile << content;
 	myfile.close();
