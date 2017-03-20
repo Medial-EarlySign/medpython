@@ -31,7 +31,7 @@ public:
 	// Differences
 	string genderSignalName;
 	bool ageDirectlyGiven;
-	int basicTimeUnit;
+	int basicTimeUnit, windowTimeUnit;
 
 	// Constructor
 	MedRepositoryType() { setRepositoryType(REP_TYPE_GP); }

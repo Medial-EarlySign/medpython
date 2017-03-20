@@ -85,6 +85,8 @@ void BinnedLmEstimates::init_defaults() {
 	byearId = -1;
 	ageId = -1;
 	genderId = -1;
+
+	time_unit_periods = med_rep_type.windowTimeUnit;
 }
 
 //.......................................................................................
@@ -547,7 +549,7 @@ size_t BinnedLmEstimates::get_size() {
 
 	size_t size = 0;
 
-	size += MedSerialize::get_size(generator_type, signalName, names, req_signals);
+	size += MedSerialize::get_size(generator_type, signalName, names, req_signals, time_unit_periods);
 	size += MedSerialize::get_size(params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
 	size += MedSerialize::get_size(xmeans, xsdvs, ymeans, means[0], means[1], models);
 
@@ -560,7 +562,7 @@ size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::serialize(blob + ptr, generator_type, signalName, names, req_signals);
+	ptr += MedSerialize::serialize(blob + ptr, generator_type, signalName, names, req_signals, time_unit_periods);
 	ptr += MedSerialize::serialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
 	ptr += MedSerialize::serialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 
@@ -572,7 +574,7 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::deserialize(blob + ptr, generator_type, signalName, names, req_signals);
+	ptr += MedSerialize::deserialize(blob + ptr, generator_type, signalName, names, req_signals, time_unit_periods);
 	ptr += MedSerialize::deserialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
 	ptr += MedSerialize::deserialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 

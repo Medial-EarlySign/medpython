@@ -158,7 +158,7 @@ public:
 	BasicFeatureTypes type = FTR_LAST;
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
 	int d_win_from = 360, d_win_to = 360000;	// delta time window for the FTR_WIN_DELTA_VALUE feature
-	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
 	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
@@ -184,10 +184,7 @@ public:
 
 	// Init
 	int init(map<string, string>& mapper);
-	void init_defaults() { 
-		generator_type = FTR_GEN_BASIC; signalId = -1; time_unit_sig = MedTime::Date; 
-		time_unit_win = MedTime::Days; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); 
-	};
+	void init_defaults();
 
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
@@ -333,8 +330,8 @@ public:
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<float> means[2];
 
-	int time_unit_periods = MedTime::Days;		// the time unit in which the periods are given. Default: Days
-	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
+	int time_unit_periods = MedTime::Undefined;		// the time unit in which the periods are given. Default: Undefined
+	int time_unit_sig = MedTime::Undefined;			// the time init in which the signal is given. Default: Undefined
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
 
