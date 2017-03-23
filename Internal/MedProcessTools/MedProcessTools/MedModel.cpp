@@ -1,10 +1,15 @@
 #include "MedModel.h"
 #include "MedProcessUtils.h"
 #include <omp.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+using namespace boost::property_tree;
 //=======================================================================================
 // MedModel
 //=======================================================================================
@@ -227,8 +232,8 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 		// Generate DynamicRec with all relevant signals
 		if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
-
 		// Apply rep-cleaning
+
 		for (auto& processor : rep_processors)
 			if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
 
@@ -238,7 +243,6 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 #pragma omp critical 
 		if (rc < 0) RC = -1;
 	}
-
 	return RC;
 }
 
@@ -287,6 +291,60 @@ void MedModel::get_required_signals(MedDictionarySections& dict) {
 	for (FeatureGenerator *generator : generators) 
 		generator->get_required_signal_ids(required_signals, dict);
 
+}
+
+void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
+{
+	if (vecIndex >= allVecs.size())
+	{
+		result.push_back(strSoFar.substr(0, strSoFar.length() - 1));
+		return;
+	}
+	for (size_t i = 0; i < allVecs[vecIndex].size(); i++)
+		concatAllCombinations(allVecs, vecIndex + 1, strSoFar + allVecs[vecIndex][i] + ";", result);
+}
+
+void MedModel::init_from_string(istream &init_stream) {
+
+	ptree pt;
+	read_json(init_stream, pt);
+
+	for(ptree::value_type &p: pt.get_child("processes"))
+	{
+		int process_set = -1;
+		vector<vector<string>> all_attr_values;
+		for (ptree::value_type &attr : p.second) {
+			string attr_name = attr.first;
+			string single_attr_value = attr.second.data();			
+			if (attr_name == "process_set")
+				process_set = stoi(single_attr_value);
+			else {
+				vector<string> current_attr_values;
+				if (single_attr_value.length() > 0) {
+					if (boost::starts_with(single_attr_value, "ref:")) {
+						auto my_ref = pt.get_child(single_attr_value.substr(4));
+						for (auto &r : my_ref)
+							current_attr_values.push_back(r.second.data());
+					}
+					else
+						current_attr_values.push_back(single_attr_value);
+				}
+				else
+					for (ptree::value_type &attr_value : attr.second)
+						current_attr_values.push_back(attr_value.second.data());
+				all_attr_values.push_back(current_attr_values);
+			}			
+		}
+		vector<string> all_combinations;
+		concatAllCombinations(all_attr_values, 0, "", all_combinations);
+		for (string c : all_combinations) {
+			//MLOG("MedModel::init [%s]\n", c.c_str());
+			add_process_to_set(process_set, c);
+		}
+	}
+	auto my_pred = pt.get_child("predictor");
+	auto my_pred_params = pt.get_child("predictor_params");
+	set_predictor(my_pred.data(), my_pred_params.data());
 }
 
 // generalized adder

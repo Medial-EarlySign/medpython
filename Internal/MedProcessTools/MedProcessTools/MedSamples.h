@@ -66,6 +66,8 @@ public:
 	void get_ids(vector<int>& ids);
 	void append(MedSamples& newSamples) { idSamples.insert(idSamples.end(), newSamples.idSamples.begin(), newSamples.idSamples.end()); }
 	int read_from_file(const string& file_name);
+	void get_preds(vector<float>& preds);
+	void get_y(vector<float>& y);
 
 	// De(Serialize)
 	size_t get_size();

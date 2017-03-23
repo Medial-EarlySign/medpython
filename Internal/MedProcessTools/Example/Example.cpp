@@ -22,7 +22,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 //#define DIRECT_INIT 1
 	int DIRECT_INIT = vm["direct_init"].as<int>();
-	if (DIRECT_INIT) {
+	if (DIRECT_INIT == 1) {
 		MLOG("Initializing RepCleaners and Features: nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
 		for (auto sig : signals) {
 
@@ -78,8 +78,13 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		//my_model.add_process_to_set(1, "fp_type=imputer;moment_type=0");
 		//my_model.add_process_to_set(2, "fp_type=normalizer");
 
+		// Predictor
+		MLOG("Initializing Predictor\n");
+		my_model.set_predictor(vm["predictor"].as<string>(), vm["predictor_params"].as<string>());
+		assert(my_model.predictor != NULL);
+
 	}
-	else {
+	else if (DIRECT_INIT == 0) {
 		// Repository Cleaners
 		MLOG("Initializing RepCleaners : nsignals: %d , n_ids: %d\n", signals.size(), allSamples.idSamples.size());
 		my_model.add_rep_processors_set(REP_PROCESS_NBRS_OUTLIER_CLEANER, signals, vm["rep_cleaner_params"].as<string>());
@@ -110,14 +115,19 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		// Normalizers
 		MLOG("Adding normalizers\n");
 		my_model.add_normalizers();
+
+		// Predictor
+		MLOG("Initializing Predictor\n");
+		my_model.set_predictor(vm["predictor"].as<string>(), vm["predictor_params"].as<string>());
+		assert(my_model.predictor != NULL);
 	}
-
-
-
-	// Predictor
-	MLOG("Initializing Predictor\n");
-	my_model.set_predictor(vm["predictor"].as<string>(), vm["predictor_params"].as<string>());
-	assert(my_model.predictor != NULL);
+	else {
+		string model_init_file = vm["model_init_file"].as<string>();
+		MLOG("Reading model_init_file [%s]\n", model_init_file.c_str());
+		ifstream ifs(model_init_file);
+		my_model.init_from_string(ifs);
+		ifs.close();
+	}
 
 	timer.take_curr_time();
 	MLOG("Init model time: %f sec\n", timer.diff_sec());
@@ -148,18 +158,8 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 		// analyze
 		vector<float> y, preds;
-		for (auto& idSample : cvOutSamples.idSamples) {
-			for (auto& sample : idSample.samples) {
-				//MLOG("Id=%d\t%f", idSample.id, sample.outcome);
-				for (int i = 0; i < sample.prediction.size(); i++) {
-					y.push_back(sample.outcome);
-					preds.push_back(sample.prediction[i]);
-					//MLOG("\t%f", sample.prediction[i]);
-				}
-				//MLOG("\n");
-			}
-		}
-
+		cvOutSamples.get_preds(preds);
+		cvOutSamples.get_y(y);
 		AUC = get_preds_auc(preds, y);
 		MLOG("y size: %d , preds size: %d , cv AUC is : %f\n", y.size(), preds.size(), AUC);
 
@@ -337,7 +337,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("predictor_params", po::value<string>()->default_value(""), "predictor params")
 			("temp_file", po::value<string>(), "temporary file for serialization")
 			("direct_init", po::value<int>()->default_value(0), "temporary file for serialization")
-
+			("model_init_file", po::value<string>(), "init json file for entire model")
 			("nfolds", po::value<int>(), "number of cross-validation folds")
 			;
 

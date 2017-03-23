@@ -86,6 +86,20 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 }
 
+void MedSamples::get_preds(vector<float>& preds) {
+	for (auto& idSample : idSamples) 
+		for (auto& sample : idSample.samples) 
+			for (int i = 0; i < sample.prediction.size(); i++)
+				preds.push_back(sample.prediction[i]);
+}
+
+void MedSamples::get_y(vector<float>& y) {
+	for (auto& idSample : idSamples)
+		for (auto& sample : idSample.samples)
+			for (int i = 0; i < sample.prediction.size(); i++)
+				y.push_back(sample.outcome);
+}
+
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {

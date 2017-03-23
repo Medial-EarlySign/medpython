@@ -86,7 +86,7 @@ FeatureGenerator * FeatureGenerator::make_generator(FeatureGeneratorTypes genera
 //.......................................................................................
 // Add at end of feature vector
 int FeatureGenerator::generate(PidDynamicRec& in_rep, MedFeatures& features) {
-
+	//MLOG("gen [%s]\n", this->names[0].c_str());
 	return Generate(in_rep, features, features.get_pid_pos(in_rep.pid), features.get_pid_len(in_rep.pid));
 
 }
