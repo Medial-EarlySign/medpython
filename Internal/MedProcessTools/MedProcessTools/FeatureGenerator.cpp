@@ -222,6 +222,17 @@ void BasicFeatGenerator::set_names() {
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
 }
 
+// Init
+//.......................................................................................
+void BasicFeatGenerator::init_defaults() {
+	generator_type = FTR_GEN_BASIC; 
+	signalId = -1; 
+	time_unit_sig = MedTime::Undefined;
+	time_unit_win = med_rep_type.windowTimeUnit;
+	string _signalName = ""; 
+	set(_signalName, FTR_LAST, 0, 360000);
+};
+
 // Generate
 //.......................................................................................
 int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
@@ -311,7 +322,7 @@ size_t BasicFeatGenerator::get_size() {
 
 	size_t size = 0;
 
-	size += MedSerialize::get_size(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_unit_sig, time_channel, val_channel, sum_channel);
+	size += MedSerialize::get_size(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
 	size += MedSerialize::get_size(signalName, sets, names, req_signals);
 
 	return size;
@@ -322,7 +333,7 @@ size_t BasicFeatGenerator::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::serialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_unit_sig, time_channel, val_channel, sum_channel);
+	ptr += MedSerialize::serialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
 	ptr += MedSerialize::serialize(blob + ptr, signalName, sets, names, req_signals);
 
 	return ptr;
@@ -333,7 +344,7 @@ size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::deserialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_unit_sig, time_channel, val_channel, sum_channel);
+	ptr += MedSerialize::deserialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
 	ptr += MedSerialize::deserialize(blob + ptr, signalName, sets, names, req_signals);
 
 	//req_signals.assign(1,signalName);

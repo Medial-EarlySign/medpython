@@ -1337,7 +1337,6 @@ void IndexTable::clear()
 	if (is_locked || sid == 0)
 		return;
 
-	MERR("freeing signal [%d]\n", sid);
 	lock_guard<mutex> guard(index_table_locks[sid]);
 
 	if (work_area_allocated) {

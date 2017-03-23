@@ -1623,8 +1623,8 @@ size_t QRF_Forest::get_size() {
 
 	for (int i=0; i<qtrees.size(); i++) {
 		size += sizeof(int); // encoding nnodes
-		for (int j=0; j<qtrees[i].qnodes.size(); j++)
-			size += qtrees[i].qnodes[j].serialized_size(mode) ; // node
+		for (int j = 0; j < qtrees[i].qnodes.size(); j++)
+			size += qtrees[i].qnodes[j].serialized_size(mode); // node
 	}
 
 	return  size ;
@@ -1689,6 +1689,7 @@ size_t QRF_Forest::serialize(unsigned char *&model)
 	fprintf(stderr,"qrf: serialize: serialized size=%d diff=%d\n",(int)size,(int)(model-model_start)); fflush(stderr);
 #endif
 
+	assert(size == model - model_start);
 	model = model_start;
 	return size;
 }

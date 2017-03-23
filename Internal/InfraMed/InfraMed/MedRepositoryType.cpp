@@ -18,11 +18,13 @@ int MedRepositoryType::setRepositoryType(MedRepTypes type) {
 		genderSignalName = "GENDER";
 		ageDirectlyGiven = false;
 		basicTimeUnit = MedTime::Date;
+		windowTimeUnit = MedTime::Days;
 	}
 	else if (type == REP_TYPE_HOSPITAL) {
 		genderSignalName = "Gender";
 		ageDirectlyGiven = true;
 		basicTimeUnit = MedTime::Minutes;
+		windowTimeUnit = MedTime::Minutes;
 	}
 	else {
 		MERR("Unknown Repository Type %d\n", type);
