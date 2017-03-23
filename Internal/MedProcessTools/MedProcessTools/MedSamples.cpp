@@ -100,6 +100,7 @@ int MedSamples::read_from_file(const string &fname)
 	string curr_line;
 	unordered_set<int> allIds;
 
+	int samples = 0;
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -141,11 +142,12 @@ int MedSamples::read_from_file(const string &fname)
 						MERR("Id %d appears not consecutively\n", id);
 						return -1;
 					}
+					samples++;
 				}
 			}
 		}
 	}
-
+	MLOG("read [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
 	inf.close();
 	return 0;
 }

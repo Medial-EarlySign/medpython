@@ -7,6 +7,12 @@
 
 #include "Example.h"
 
+#include <fenv.h>
+#ifndef  __unix__
+#pragma float_control( except, on )
+#endif
+
+
 float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variables_map &vm, vector<string> signals);
 
 
@@ -92,9 +98,9 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 //		vector<BasicFeatureTypes> sig_types = { FTR_LAST_VALUE , FTR_FIRST_VALUE };
 	
 		for (auto sig_type : sig_types) 
-			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));	
+			my_model.add_feature_generators(FTR_GEN_BASIC, signals, "win_from=0; win_to=10000; type = " + std::to_string(sig_type));
 		my_model.add_feature_generators(FTR_GEN_BINNED_LM, signals, string("estimation_points=800,400,180"));
-
+		    
 		// Age + Gender
 		MLOG("Initializing Extra Features\n");
 		my_model.add_age();
@@ -261,6 +267,11 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 int main(int argc, char *argv[])
 {
+
+#if defined(__unix__)
+	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+#endif
+
 	int rc = 0;
 	po::variables_map vm;
 

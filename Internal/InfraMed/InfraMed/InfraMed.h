@@ -121,7 +121,7 @@ class IndexTable {
 
 	unsigned int acc;			// accumulator for easier insertions
 
-	void init() { sv.set_def(0); acc = 0; w_size = 0; tot_size = 0; tot_size_gb = 0; is_loaded=0; full_load = 0;
+	void init() { sid = 0; sv.set_def(0); acc = 0; w_size = 0; tot_size = 0; tot_size_gb = 0; is_loaded=0; full_load = 0;
 				  is_locked = 0; work_area_allocated = 0; work_area = NULL;
 	}
 	IndexTable() { init(); }
@@ -344,7 +344,11 @@ class MedIndex {
 		MedRepository() { work_area = NULL; work_size=0; fsignals_to_files = ""; index.my_rep=this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix="rep"; bound_gb = 100.0; }
 		~MedRepository() { 
 			//fprintf(stderr, "rep free\n"); fflush(stderr);
-			if (work_area) delete[] work_area; free_all_sigs();
+			if (work_area) {
+				delete[] work_area;
+				work_area = NULL;
+			}
+			free_all_sigs();
 			//fprintf(stderr, "rep free ended\n"); fflush(stderr);
 		};
 		//int build_full_format_index();

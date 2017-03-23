@@ -185,7 +185,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	vector<float> values;
 	vector<int> ages, times, genders;
 	vector<int> id_firsts(ids.size()), id_lasts(ids.size());
-
+	
 	UniversalSigVec usv, ageUsv;
 	for (unsigned int i = 0; i < ids.size(); i++) {
 		int id = ids[i];
@@ -233,17 +233,17 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			// BYear/Age
 			prepare_for_age(rep, id, ageUsv, age, byear);
 
-			for (int i = 0; i < usv.len; i++) {
-				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
+			for (int j = 0; j < usv.len; j++) {
+				values.push_back(usv.Val(j, val_channel));
+				get_age(usv.Time(j, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
-				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
+				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(j, time_channel)));
 			}
 		}
 		id_lasts[i] = id_firsts[i] + usv.len - 1;
 	}
-
+	
 	// Allocate
 	int num = (int) values.size();
 	if (num == 0) {
@@ -256,7 +256,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	xsdvs.resize(nfeatures, 0);
 	ymeans.resize(nmodels, 0);
 	ysdvs.resize(nmodels, 0);
-
+	
 	vector<double> sums[2];
 	vector<int> nums[2];
 	for (int igender = 0; igender < 2; igender++) {
@@ -267,12 +267,13 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 	// Gender/Age - Collect Data for means and standard deviations
 	for (int i = 0; i < num; i++) {
-		if (ages[i] <= BINNED_LM_MAX_AGE) {
+		if (ages[i] <= BINNED_LM_MAX_AGE && ages[i] >= 1) {
+			int id = ids[i];
 			nums[genders[i]-1][ages[i]] ++;
 			sums[genders[i]-1][ages[i]] += values[i];
 		}
 	}
-
+	
 	// Gender/Age - correct for missing data
 	for (int igender = 0; igender < 2; igender++) {
 		int most_common_age = 0;
@@ -283,6 +284,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 		if (nums[igender][most_common_age] == 0) {
 			MDBG(DEBUG_LOG_LEVEL,"No %s found for gender %d. Are we in a single gender mode ?\n", signalName.c_str(), igender + 1);
+			continue;   
 		}
 		else if (nums[igender][most_common_age] < BINNED_LM_MINIMAL_NUM_PER_AGE) {
 			MERR("Not enough tests for %s (most common age = %d has only %d samples)\n", signalName.c_str(), most_common_age, nums[igender][most_common_age]);
@@ -295,7 +297,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				nums[igender][iage] = BINNED_LM_MINIMAL_NUM_PER_AGE;
 				sums[igender][iage] += sums[igender][iage - 1] * ((0.0 + missing_num) / nums[igender][iage - 1]);
 			}
-
 			means[igender][iage] = (float)(sums[igender][iage] / nums[igender][iage]);
 		}
 
@@ -309,7 +310,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			means[igender][iage] = (float)(sums[igender][iage] / nums[igender][iage]);
 		}
 	}
-
 	// Collect data
 	MedMat<float> x((int) values.size(), (int) nperiods);
 	vector<float> y(values.size());
@@ -323,7 +323,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		int gender = genders[id_firsts[i]];
 
 		for (int idx1 = id_firsts[i]; idx1 <= id_lasts[i]; idx1++) {
-			if (ages[idx1] > BINNED_LM_MAX_AGE)
+			if (ages[idx1] > BINNED_LM_MAX_AGE || ages[idx1] < 1)
 				continue;
 
 			// Add line + type to data matrix
@@ -369,11 +369,10 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			types[irow++] = type;
 		}
 	}
-
 	// Build model for each class 
 	// Collect Data
 	int inrows = irow;
-
+	
 	models[0].n_ftrs = 0;
 	for (int type = 1; type < nmodels; type++) {
 		vector<int> cols(nperiods, 0);
@@ -425,7 +424,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 //		models[type].print(stdout, "model." + signalName + "." + to_string(type));
 
 	}
-
 
 	return 0;
 }
@@ -504,8 +502,8 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 
 				if (iperiod != nperiods) {
 					get_age(rec.usv.Time(j, time_channel), time_unit_sig, age, byear);
-					if (age > BINNED_LM_MAX_AGE)
-						age = BINNED_LM_MAX_AGE;
+					if (age > BINNED_LM_MAX_AGE) age = BINNED_LM_MAX_AGE;
+					if (age < 1) age = 1;
 					type_sum += rec.usv.Val(j,val_channel) - means[gender-1][age];
 					type_num++;
 				}
@@ -517,9 +515,8 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 			}
 
 			get_age(last_time, time_unit_periods, age, byear);
-
-			if (age > BINNED_LM_MAX_AGE)
-				age = BINNED_LM_MAX_AGE;
+			if (age > BINNED_LM_MAX_AGE) age = BINNED_LM_MAX_AGE;
+			if (age < 1) age = 1;
 
 			// Predict
 			if (type) {
