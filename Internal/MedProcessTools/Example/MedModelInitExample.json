@@ -14,7 +14,7 @@
 			"fg_type": "fg_type=basic",
 			"type": "type=win_delta",
 			"window": "win_from=0;win_to=180",
-			"d_win": ["d_win_from=360;win_to=720", "d_win_from=720;win_to=1080"],
+			"d_win": ["d_win_from=360;d_win_to=720", "d_win_from=720;d_win_to=1080"],
 			"time_unit": "time_unit=Days",
 			"signal": "ref:signals"
 		},

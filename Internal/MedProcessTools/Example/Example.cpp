@@ -13,9 +13,6 @@
 #endif
 
 
-float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variables_map &vm, vector<string> signals);
-
-
 float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variables_map &vm, vector<string> signals)
 {
 	float AUC = -999;
@@ -137,6 +134,23 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 	timer.take_curr_time();
 	MLOG("Init model time: %f sec\n", timer.diff_sec());
+
+	// Read Repository
+	MLOG("Initializing repository\n");
+	vector<int> ids;
+	allSamples.get_ids(ids);
+	if (signals.size() == 0) {
+		MLOG("Inferring signals from model required signals!\n");
+		unordered_set<string> req_signals;
+		my_model.get_required_signal_names(req_signals);
+		for (string sig : req_signals)
+			signals.push_back(sig);
+	}
+	int rc = read_repository(vm["config"].as<string>(), ids, signals, rep);
+	assert(rc >= 0);
+
+	timer.take_curr_time();
+	MLOG("Init rep time: %f sec\n", timer.diff_sec());
 
 	if (vm.count("nfolds")) {
 		// Cross Validator
@@ -295,20 +309,11 @@ int main(int argc, char *argv[])
 
 	MedSamples allSamples;
 	get_samples(vm, allSamples);
-	vector<int> ids;
-	allSamples.get_ids(ids);
-
-	// Read Repository
-	MLOG("Initializing repository\n");
-
-	MedPidRepository rep;
-	vector<string> read_sigs = signals;
-	if (vm.count("drug_feats")) read_sigs.push_back("Drug");
-	rc = read_repository(vm["config"].as<string>(), ids, read_sigs, rep);
-	assert(rc >= 0);
 
 	timer.take_curr_time();
-	MLOG("Reading params + rep time: %f sec\n", timer.diff_sec());
+	MLOG("Reading params time: %f sec\n", timer.diff_sec());
+
+	MedPidRepository rep;
 
 	if (vm.count("scan_sigs")) {
 		for (auto sig : signals) {
@@ -334,12 +339,12 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("config", po::value<string>()->required(), "repository file name")
 			("ids",po::value<string>(),"file of ids to consider")
 			("samples", po::value<string>()->required(), "samples file name")
-			("sigs", po::value<string>()->default_value("NONE"), "file of signals to consider")
+			("sigs", po::value<string>()->default_value("NONE"), "list of signals to consider")
 			("scan_sigs", "run and age+genger+sig model for each one of the signals")
 			("importance", "run importance when using qrf model")
 			("drug_feats", "add drug based features to model")
 			("csv_feat", po::value<string>()->default_value("NONE"), "file name to save features as csv (NONE = no saving)")
-			("features", po::value<string>(), "file of signals to consider")
+			("sigs_file", po::value<string>()->default_value("NONE"), "file of signals to consider")
 			("rep_cleaner", po::value<string>(), "repository cleaner")
 			("rep_cleaner_params", po::value<string>()->default_value(""), "repository cleaner params")
 			("feat_cleaner", po::value<string>(), "features cleaner")
@@ -408,9 +413,11 @@ int read_signals_list(po::variables_map& vm, vector<string>& signals) {
 		return 0;
 	}
 
-	string file_name = vm["features"].as<string>();
+	string file_name = vm["sigs_file"].as<string>();
+	if (file_name == "NONE")
+		return 0;
+	
 	ifstream inf(file_name);
-
 	if (!inf) {
 		MLOG("Cannot open %s for reading\n", file_name.c_str());
 		return -1;
