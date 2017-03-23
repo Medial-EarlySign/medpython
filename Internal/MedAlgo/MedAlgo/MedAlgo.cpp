@@ -663,6 +663,8 @@ int initialization_text_to_map(const string& text, map<string, string>& init_map
 	vector<string> sub_fields;
 
 	for (string& field : fields) {
+		if (field.size() == 0)
+			continue;
 		boost::split(sub_fields, field, boost::is_any_of("="));
 		if (sub_fields.size() != 2) {
 			fprintf(stderr, "Cannot parse \'%s\' from \'%s\'\n", field.c_str(), text.c_str());
