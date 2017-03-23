@@ -151,7 +151,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 }
 
 //..............................................................................
-void BinnedLmEstimates::get_signal_ids(MedDictionarySections& dict) {
+void BinnedLmEstimates::set_signal_ids(MedDictionarySections& dict) {
 	
 	signalId = dict.id(signalName); 
 	genderId = dict.id(med_rep_type.genderSignalName);

@@ -137,7 +137,7 @@ size_t FeatureGenerator::generator_serialize(unsigned char *blob) {
 
 // Required signals
 //.......................................................................................
-void FeatureGenerator::get_required_signal_ids(MedDictionarySections& dict){
+void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
 
 	req_signal_ids.resize(req_signals.size());
 
@@ -149,10 +149,15 @@ void FeatureGenerator::get_required_signal_ids(MedDictionarySections& dict){
 void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict) {
 
 	if (req_signal_ids.empty())
-		get_required_signal_ids(dict);
+		set_required_signal_ids(dict);
 
 	for (int signalId : req_signal_ids)
 		signalIds.insert(signalId);
+}
+
+void FeatureGenerator::get_required_signal_names(unordered_set<string>& signalNames) {
+	for (auto sig : req_signals)
+		signalNames.insert(sig);
 }
 
 //=======================================================================================

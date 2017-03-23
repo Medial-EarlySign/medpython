@@ -120,9 +120,10 @@ public:
 	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name,init_string); }
 
 	// signal ids
-	void get_required_signals(MedDictionarySections& dict);
-	void get_affected_signals(MedDictionarySections& dict);
+	void set_required_signals(MedDictionarySections& dict);
+	void set_affected_signals(MedDictionarySections& dict);
 	void init_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_names(unordered_set<string>& signalNames);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_REP_PROCESSORS, MED_MDL_PREDICTOR); }

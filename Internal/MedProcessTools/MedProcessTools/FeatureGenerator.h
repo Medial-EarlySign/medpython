@@ -61,10 +61,11 @@ public:
 	vector<string> req_signals;
 	vector<int> req_signal_ids; 
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
-	virtual void get_required_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_names(unordered_set<string>& signalNames);
+	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	// Signal Ids
-	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
 	// Learn a generator
 	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {return 0;}
@@ -194,7 +195,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int date);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
@@ -255,8 +256,8 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
-	void get_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
+	void set_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
+	void set_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
@@ -291,8 +292,8 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
-	void get_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
+	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
@@ -359,7 +360,7 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedDictionarySections& dict);
 
 	// Number of features generated
 	virtual int nfeatures() { return (int) params.estimation_points.size(); }
