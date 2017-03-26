@@ -60,7 +60,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	if (end_stage <= MED_MDL_REP_PROCESSORS)
 		return 0;
-
 	// Learn Feature Generators
 	if (start_stage <= MED_MDL_FTR_GENERATORS) {
 		timer.start();
@@ -73,7 +72,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	if (end_stage <= MED_MDL_FTR_GENERATORS)
 		return 0;
-
 	features.clear();
 	features.set_time_unit(LearningSet->time_unit);
 
@@ -85,7 +83,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	timer.take_curr_time();
 	MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
-
 	// Learn Feature processors and apply
 	if (start_stage <= MED_MDL_FTR_PROCESSORS) {
 		timer.start();
@@ -364,6 +361,7 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 		// exists 
 		if (rep_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
+			MLOG("Adding new rep_processor set [%d]\n", i_set);
 			RepMultiProcessor *processor = new RepMultiProcessor;
 			rep_processors[i_set] = processor;
 		}
@@ -373,16 +371,18 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 			RepMultiProcessor *mprocessor = new RepMultiProcessor;
 			rep_processors[i_set] = mprocessor;
 			mprocessor->processors.push_back(curr_p);
-
 		} 
 	}
 	else {
 		// resize rep_processors
 		rep_processors.resize(i_set+1, NULL);
-
-		// put a new empty multi in i_set
-		RepMultiProcessor *processor = new RepMultiProcessor;
-		rep_processors[i_set] = processor;
+		for (int i = 0; i < i_set + 1; i++) 
+			// put a new empty multi in i_set
+			if (rep_processors[i] == NULL) {
+				MLOG("Adding new rep_processor set [%d]\n", i);
+				RepMultiProcessor *processor = new RepMultiProcessor;
+				rep_processors[i] = processor;
+			}
 	}
 
 	// Now we are at a state in which we have a multi processor at i_set and need to create a new processor and push it in
@@ -408,6 +408,7 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 		// exists 
 		if (feature_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
+			MLOG("Adding new feature_processor set [%d]\n", i_set);
 			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
 			feature_processors[i_set] = mfprocessor;
 		}
@@ -424,9 +425,13 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 		// resize feature_processors
 		feature_processors.resize(i_set+1, NULL);
 
-		// put a new empty multi in i_set
-		MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
-		feature_processors[i_set] = mfprocessor;
+		for (int i = 0; i < i_set + 1; i++)
+			// put a new empty multi in i_set
+			if (feature_processors[i] == NULL) {
+				MLOG("Adding new feature_processor set [%d]\n", i);
+				MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+				feature_processors[i] = mfprocessor;
+			}
 	}
 
 	// Now we are at a state in which we have a multi feature processor at i_set and need to create a new processor or processors and push it in
@@ -445,7 +450,6 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 	string fp_type;
 	get_single_val_from_init_string(init_string, "fp_type", fp_type);
 	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
-	//MLOG("fp_type = %s %d\n", fp_type.c_str(), (int)type);
 
 	// actual adding to relevant MultiFeatureProcessor
 	((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
