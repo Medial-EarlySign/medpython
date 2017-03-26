@@ -43,7 +43,10 @@ public:
 class MedIdSamples {
 public:
 	int id;
+	int split;
 	vector<MedSample> samples;
+
+	MedIdSamples() { id = -1; split = -1; samples.clear(); }
 
 	// De(Serialize)
 	size_t get_size();
@@ -66,6 +69,7 @@ public:
 	void get_ids(vector<int>& ids);
 	void append(MedSamples& newSamples) { idSamples.insert(idSamples.end(), newSamples.idSamples.begin(), newSamples.idSamples.end()); }
 	int read_from_file(const string& file_name);
+	int write_to_file(const string &fname);
 	void get_preds(vector<float>& preds);
 	void get_y(vector<float>& y);
 
