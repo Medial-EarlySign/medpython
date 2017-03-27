@@ -87,13 +87,6 @@ public:
 	int generate(MedFeatures& features) { return Generate(features); }
 
 	// Init
-	// create a generator
-	static FeatureGenerator *make_generator(string name);
-	static FeatureGenerator *make_generator(string name, string params);
-	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
-	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
-
-	static FeatureGenerator *create_generator(string &params); // must include fg_type
 
 	virtual int init(void *generator_params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
@@ -110,9 +103,48 @@ public:
 
 	static int global_serial_id_cnt;
 	int serial_id;		// serial id of feature to 
+
+};
+
+
+/*
+see http://stackoverflow.com/a/582456/574187
+this factory creates feature generators by their class names
+*/
+template<typename T> FeatureGenerator * createFeatureGenerator() { return new T; }
+struct FeatureGeneratorFactory {
+	// create a generator
+	static FeatureGenerator *make_generator(string name);
+	static FeatureGenerator *make_generator(string name, string params);
+	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
+	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
+	static FeatureGenerator *create_generator(string &params); // must include fg_type	
+	typedef std::map<std::string, FeatureGenerator*(*)()> map_type;
+protected:
+	static map_type * getMap() {
+		// never delete'ed. (exist until program termination)
+		// because we can't guarantee correct destruction order 
+		if (!my_map) { my_map = new map_type; }
+		return my_map;
+	}
+private:
+	static map_type * my_map;
+};
+
+template<typename T>
+struct DerivedRegister : FeatureGeneratorFactory {
+	DerivedRegister(std::string const& s) {
+		getMap()->insert(std::make_pair(s, &createFeatureGenerator<T>));
+	}
 };
 
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
+
+#define DEC_FEATURE_GENERATOR(NAME) \
+    static DerivedRegister<NAME> reg
+
+#define DEF_FEATURE_GENERATOR(NAME) \
+    DerivedRegister<NAME> NAME::reg(#NAME)
 
 //..............................................................................................
 // FeatureSingleChannel -
@@ -224,7 +256,7 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-
+	DEC_FEATURE_GENERATOR(BasicFeatGenerator); 
 };
 
 //.......................................................................................
@@ -263,6 +295,7 @@ public:
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names); }
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names); }
+	DEC_FEATURE_GENERATOR(AgeGenerator);
 };
 
 //.......................................................................................
@@ -299,6 +332,7 @@ public:
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names); }
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names); }
+	DEC_FEATURE_GENERATOR(GenderGenerator);
 };
 
 //.......................................................................................
@@ -374,7 +408,7 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-
+	DEC_FEATURE_GENERATOR(BinnedLmEstimates);
 	// print 
 	void print();
 };
