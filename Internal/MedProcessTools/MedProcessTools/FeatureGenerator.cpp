@@ -7,16 +7,12 @@
 
 int FeatureGenerator::global_serial_id_cnt = 0;
 
-
 //=======================================================================================
 // FeatGenerator
 //=======================================================================================
 // Generator types
-
-// Note: this function is deprecated. When adding a new Generator, just use DEC_FEATURE_GENERATOR and DEF_FEATURE_GENERATOR 
-// to register it
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
-	
+
 	if (generator_name == "basic")
 		return FTR_GEN_BASIC;
 	else if (generator_name == "age")
@@ -39,10 +35,8 @@ void FeatureGenerator::init(MedFeatures &features) {
 		features.attributes[name].normalized = false;
 }
 
-FeatureGeneratorFactory::map_type * FeatureGeneratorFactory::my_map = NULL;
-
 //.......................................................................................
-FeatureGenerator *FeatureGeneratorFactory::create_generator(string &params)
+FeatureGenerator *FeatureGenerator::create_generator(string &params)
 {
 	string fg_type;
 	get_single_val_from_init_string(params, "fg_type", fg_type);
@@ -51,27 +45,20 @@ FeatureGenerator *FeatureGeneratorFactory::create_generator(string &params)
 
 // Initialization
 //.......................................................................................
-FeatureGenerator *FeatureGeneratorFactory::make_generator(string generator_name) {
+FeatureGenerator *FeatureGenerator::make_generator(string generator_name) {
 
-	auto it = getMap()->find(generator_name); // first try to find it in the registry
-	if (it != getMap()->end())
-		return it->second();
-	else
-		return make_generator(ftr_generator_name_to_type(generator_name));
+	return make_generator(ftr_generator_name_to_type(generator_name));
 }
 
 //.......................................................................................
-FeatureGenerator *FeatureGeneratorFactory::make_generator(string generator_name, string init_string) {
+FeatureGenerator *FeatureGenerator::make_generator(string generator_name, string init_string) {
 
 	//MLOG("making generator %s , %s\n", generator_name.c_str(), init_string.c_str());
-	FeatureGenerator *newFtrGenerator = make_generator(generator_name);
-	newFtrGenerator->init_from_string(init_string);
-	return newFtrGenerator;
+	return make_generator(ftr_generator_name_to_type(generator_name), init_string);
 }
 
 //.......................................................................................
-
-FeatureGenerator *FeatureGeneratorFactory::make_generator(FeatureGeneratorTypes generator_type) {
+FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type) {
 
 
 	if (generator_type == FTR_GEN_BASIC)
@@ -88,7 +75,7 @@ FeatureGenerator *FeatureGeneratorFactory::make_generator(FeatureGeneratorTypes 
 }
 
 //.......................................................................................
-FeatureGenerator * FeatureGeneratorFactory::make_generator(FeatureGeneratorTypes generator_type, string init_string) {
+FeatureGenerator * FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type, string init_string) {
 
 	//MLOG("making generator %d , %s\n", (int)generator_type, init_string.c_str());
 	FeatureGenerator *newFtrGenerator = make_generator(generator_type);
@@ -172,12 +159,6 @@ void FeatureGenerator::get_required_signal_names(unordered_set<string>& signalNa
 	for (auto sig : req_signals)
 		signalNames.insert(sig);
 }
-
-
-DEF_FEATURE_GENERATOR(BasicFeatGenerator);
-DEF_FEATURE_GENERATOR(AgeGenerator);
-DEF_FEATURE_GENERATOR(GenderGenerator);
-DEF_FEATURE_GENERATOR(BinnedLmEstimates);
 
 //=======================================================================================
 // Single signal features that do not require learning(e.g. last hemoglobin)
