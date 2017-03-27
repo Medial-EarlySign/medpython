@@ -104,6 +104,7 @@ public:
 
 	// general adders for easier handling of config files/lines
 	// the idea is to add to a specific set and let the adder create a multi if needed
+	void init_from_string(istream &init_stream);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
 	void add_feature_processor_to_set(int i_set, const string &init_string);	// fp_type and feature name are must have parameters
@@ -119,9 +120,10 @@ public:
 	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name,init_string); }
 
 	// signal ids
-	void get_required_signals(MedDictionarySections& dict);
-	void get_affected_signals(MedDictionarySections& dict);
+	void set_required_signals(MedDictionarySections& dict);
+	void set_affected_signals(MedDictionarySections& dict);
 	void init_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_names(unordered_set<string>& signalNames);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_REP_PROCESSORS, MED_MDL_PREDICTOR); }

@@ -61,10 +61,11 @@ public:
 	vector<string> req_signals;
 	vector<int> req_signal_ids; 
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
-	virtual void get_required_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_names(unordered_set<string>& signalNames);
+	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	// Signal Ids
-	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
 	// Learn a generator
 	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {return 0;}
@@ -86,13 +87,6 @@ public:
 	int generate(MedFeatures& features) { return Generate(features); }
 
 	// Init
-	// create a generator
-	static FeatureGenerator *make_generator(string name);
-	static FeatureGenerator *make_generator(string name, string params);
-	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
-	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
-
-	static FeatureGenerator *create_generator(string &params); // must include fg_type
 
 	virtual int init(void *generator_params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
@@ -109,9 +103,48 @@ public:
 
 	static int global_serial_id_cnt;
 	int serial_id;		// serial id of feature to 
+
+};
+
+
+/*
+see http://stackoverflow.com/a/582456/574187
+this factory creates feature generators by their class names
+*/
+template<typename T> FeatureGenerator * createFeatureGenerator() { return new T; }
+struct FeatureGeneratorFactory {
+	// create a generator
+	static FeatureGenerator *make_generator(string name);
+	static FeatureGenerator *make_generator(string name, string params);
+	static FeatureGenerator *make_generator(FeatureGeneratorTypes type);
+	static FeatureGenerator *make_generator(FeatureGeneratorTypes type, string params);
+	static FeatureGenerator *create_generator(string &params); // must include fg_type	
+	typedef std::map<std::string, FeatureGenerator*(*)()> map_type;
+protected:
+	static map_type * getMap() {
+		// never delete'ed. (exist until program termination)
+		// because we can't guarantee correct destruction order 
+		if (!my_map) { my_map = new map_type; }
+		return my_map;
+	}
+private:
+	static map_type * my_map;
+};
+
+template<typename T>
+struct DerivedRegister : FeatureGeneratorFactory {
+	DerivedRegister(std::string const& s) {
+		getMap()->insert(std::make_pair(s, &createFeatureGenerator<T>));
+	}
 };
 
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
+
+#define DEC_FEATURE_GENERATOR(NAME) \
+    static DerivedRegister<NAME> reg
+
+#define DEF_FEATURE_GENERATOR(NAME) \
+    DerivedRegister<NAME> NAME::reg(#NAME)
 
 //..............................................................................................
 // FeatureSingleChannel -
@@ -194,7 +227,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int date);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
@@ -223,7 +256,7 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-
+	DEC_FEATURE_GENERATOR(BasicFeatGenerator); 
 };
 
 //.......................................................................................
@@ -255,13 +288,14 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
-	void get_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
+	void set_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
+	void set_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names); }
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names); }
+	DEC_FEATURE_GENERATOR(AgeGenerator);
 };
 
 //.......................................................................................
@@ -291,13 +325,14 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
-	void get_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
+	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names); }
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names); }
+	DEC_FEATURE_GENERATOR(GenderGenerator);
 };
 
 //.......................................................................................
@@ -359,7 +394,7 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedDictionarySections& dict);
 
 	// Number of features generated
 	virtual int nfeatures() { return (int) params.estimation_points.size(); }
@@ -373,7 +408,7 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-
+	DEC_FEATURE_GENERATOR(BinnedLmEstimates);
 	// print 
 	void print();
 };

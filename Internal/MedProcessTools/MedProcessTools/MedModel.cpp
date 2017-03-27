@@ -1,10 +1,15 @@
 #include "MedModel.h"
 #include "MedProcessUtils.h"
 #include <omp.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+using namespace boost::property_tree;
 //=======================================================================================
 // MedModel
 //=======================================================================================
@@ -31,6 +36,12 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	// Set of signals
 	init_signal_ids(rep.dict);
 
+	for (int signalId : required_signals) {
+		if (rep.index.index_table[signalId].is_loaded != 1)
+			MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n", 
+				signalId, rep.dict.name(signalId).c_str());;
+	}
+
 	LearningSet = _samples;
 
 	// Set of ids
@@ -49,7 +60,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	if (end_stage <= MED_MDL_REP_PROCESSORS)
 		return 0;
-
 	// Learn Feature Generators
 	if (start_stage <= MED_MDL_FTR_GENERATORS) {
 		timer.start();
@@ -62,7 +72,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	if (end_stage <= MED_MDL_FTR_GENERATORS)
 		return 0;
-
 	features.clear();
 	features.set_time_unit(LearningSet->time_unit);
 
@@ -74,7 +83,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	timer.take_curr_time();
 	MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
-
 	// Learn Feature processors and apply
 	if (start_stage <= MED_MDL_FTR_PROCESSORS) {
 		timer.start();
@@ -227,8 +235,8 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 		// Generate DynamicRec with all relevant signals
 		if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
-
 		// Apply rep-cleaning
+
 		for (auto& processor : rep_processors)
 			if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
 
@@ -238,7 +246,6 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 #pragma omp critical 
 		if (rc < 0) RC = -1;
 	}
-
 	return RC;
 }
 
@@ -276,7 +283,7 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
 
 // Required Signals
 //.......................................................................................
-void MedModel::get_required_signals(MedDictionarySections& dict) {
+void MedModel::set_required_signals(MedDictionarySections& dict) {
 
 	required_signals.clear();
 
@@ -286,6 +293,61 @@ void MedModel::get_required_signals(MedDictionarySections& dict) {
 	int ii = 0;
 	for (FeatureGenerator *generator : generators) 
 		generator->get_required_signal_ids(required_signals, dict);
+
+}
+
+void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
+{
+	if (vecIndex >= allVecs.size())
+	{
+		result.push_back(strSoFar.substr(0, strSoFar.length() - 1));
+		return;
+	}
+	for (size_t i = 0; i < allVecs[vecIndex].size(); i++)
+		concatAllCombinations(allVecs, vecIndex + 1, strSoFar + allVecs[vecIndex][i] + ";", result);
+}
+
+void MedModel::init_from_string(istream &init_stream) {
+
+	ptree pt;
+	read_json(init_stream, pt);
+
+	for(ptree::value_type &p: pt.get_child("processes"))
+	{
+		int process_set = -1;
+		vector<vector<string>> all_attr_values;
+		for (ptree::value_type &attr : p.second) {
+			string attr_name = attr.first;
+			string single_attr_value = attr.second.data();			
+			if (attr_name == "process_set")
+				process_set = stoi(single_attr_value);
+			else {
+				vector<string> current_attr_values;
+				if (single_attr_value.length() > 0) {
+					if (boost::starts_with(single_attr_value, "ref:")) {
+						auto my_ref = pt.get_child(single_attr_value.substr(4));
+						for (auto &r : my_ref)
+							current_attr_values.push_back(r.second.data());
+					}
+					else
+						current_attr_values.push_back(single_attr_value);
+				}
+				else
+					for (ptree::value_type &attr_value : attr.second)
+						current_attr_values.push_back(attr_value.second.data());
+				all_attr_values.push_back(current_attr_values);
+			}			
+		}
+		vector<string> all_combinations;
+		concatAllCombinations(all_attr_values, 0, "", all_combinations);
+		for (string c : all_combinations) {
+			//MLOG("MedModel::init [%s]\n", c.c_str());
+			add_process_to_set(process_set, c);
+		}
+	}
+	auto my_pred = pt.get_child("predictor");
+	auto my_pred_params = pt.get_child("predictor_params");
+	set_predictor(my_pred.data(), my_pred_params.data());
 
 }
 
@@ -299,6 +361,7 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 		// exists 
 		if (rep_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
+			MLOG("Adding new rep_processor set [%d]\n", i_set);
 			RepMultiProcessor *processor = new RepMultiProcessor;
 			rep_processors[i_set] = processor;
 		}
@@ -308,16 +371,18 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 			RepMultiProcessor *mprocessor = new RepMultiProcessor;
 			rep_processors[i_set] = mprocessor;
 			mprocessor->processors.push_back(curr_p);
-
 		} 
 	}
 	else {
 		// resize rep_processors
 		rep_processors.resize(i_set+1, NULL);
-
-		// put a new empty multi in i_set
-		RepMultiProcessor *processor = new RepMultiProcessor;
-		rep_processors[i_set] = processor;
+		for (int i = 0; i < i_set + 1; i++) 
+			// put a new empty multi in i_set
+			if (rep_processors[i] == NULL) {
+				MLOG("Adding new rep_processor set [%d]\n", i);
+				RepMultiProcessor *processor = new RepMultiProcessor;
+				rep_processors[i] = processor;
+			}
 	}
 
 	// Now we are at a state in which we have a multi processor at i_set and need to create a new processor and push it in
@@ -343,6 +408,7 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 		// exists 
 		if (feature_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
+			MLOG("Adding new feature_processor set [%d]\n", i_set);
 			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
 			feature_processors[i_set] = mfprocessor;
 		}
@@ -359,9 +425,13 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 		// resize feature_processors
 		feature_processors.resize(i_set+1, NULL);
 
-		// put a new empty multi in i_set
-		MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
-		feature_processors[i_set] = mfprocessor;
+		for (int i = 0; i < i_set + 1; i++)
+			// put a new empty multi in i_set
+			if (feature_processors[i] == NULL) {
+				MLOG("Adding new feature_processor set [%d]\n", i);
+				MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+				feature_processors[i] = mfprocessor;
+			}
 	}
 
 	// Now we are at a state in which we have a multi feature processor at i_set and need to create a new processor or processors and push it in
@@ -380,7 +450,6 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 	string fp_type;
 	get_single_val_from_init_string(init_string, "fp_type", fp_type);
 	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
-	//MLOG("fp_type = %s %d\n", fp_type.c_str(), (int)type);
 
 	// actual adding to relevant MultiFeatureProcessor
 	((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
@@ -393,7 +462,7 @@ void MedModel::add_feature_generator_to_set(int i_set, const string &init_string
 	// hence currently we simply ignore i_set, and pile up generators into generators
 
 	string in = init_string;
-	FeatureGenerator *feat_gen = FeatureGenerator::create_generator(in);
+	FeatureGenerator *feat_gen = FeatureGeneratorFactory::create_generator(in);
 
 	// push it in
 	generators.push_back(feat_gen);
@@ -422,10 +491,10 @@ void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& si
 
 // Affected Signals
 //.......................................................................................
-void MedModel::get_affected_signals(MedDictionarySections& dict) {
+void MedModel::set_affected_signals(MedDictionarySections& dict) {
 
 	for (RepProcessor *processor : rep_processors)
-		processor->get_affected_signal_ids(dict);
+		processor->set_affected_signal_ids(dict);
 
 }
 
@@ -433,16 +502,23 @@ void MedModel::get_affected_signals(MedDictionarySections& dict) {
 //.......................................................................................
 void MedModel::init_signal_ids(MedDictionarySections& dict) {
 
-	get_affected_signals(dict);
-	get_required_signals(dict);
+	set_affected_signals(dict);
+	set_required_signals(dict);
 
 	for (RepProcessor *processor : rep_processors)
-		processor->get_signal_ids(dict);
+		processor->set_signal_ids(dict);
 
 	for (FeatureGenerator *generator : generators)
-		generator->get_signal_ids(dict);
+		generator->set_signal_ids(dict);
 }
 
+void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+	for (RepProcessor *processor : rep_processors)
+		processor->get_required_signal_names(signalNames);
+
+	for (FeatureGenerator *generator : generators)
+		generator->get_required_signal_names(signalNames);
+}
 //.......................................................................................
 void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string) {
 
@@ -496,7 +572,7 @@ void MedModel::add_feature_processors_set(FeatureProcessorTypes type, vector<str
 void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals) {
 
 	for (string& signal : signals) {
-		FeatureGenerator *generator = FeatureGenerator::make_generator(type, "signalName=" + signal);
+		FeatureGenerator *generator = FeatureGeneratorFactory::make_generator(type, "signalName=" + signal);
 		add_feature_generator(generator);
 	}
 }
@@ -505,7 +581,7 @@ void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>
 void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals, string init_string) {
 
 	for (string& signal : signals) {
-		FeatureGenerator *generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
+		FeatureGenerator *generator = FeatureGeneratorFactory::make_generator(type, init_string + ";signalName="+signal);
 		add_feature_generator(generator);
 	}
 }
@@ -611,7 +687,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	for (size_t i = 0; i < n; i++) {
 		FeatureGeneratorTypes type;
 		memcpy(&type, blob + ptr, sizeof(FeatureGeneratorTypes)); ptr += sizeof(FeatureGeneratorTypes);
-		generators[i] = FeatureGenerator::make_generator(type);
+		generators[i] = FeatureGeneratorFactory::make_generator(type);
 		ptr += generators[i]->deserialize(blob + ptr);
 
 	}

@@ -53,14 +53,15 @@ public:
 
 	// Required Signals functions
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
-	virtual void get_required_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_names(unordered_set<string>& signalNames);
+	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	// Affected Signals functions;
-	virtual void get_affected_signal_ids(MedDictionarySections& dict);
+	virtual void set_affected_signal_ids(MedDictionarySections& dict);
 	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
 
 	// Other signal ids
-	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
 	// Learn cleaning model
 	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
@@ -124,13 +125,15 @@ public:
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string);
 
 	// Required Signals
-	void get_required_signal_ids(MedDictionarySections& dict);
+	void set_required_signal_ids(MedDictionarySections& dict);
+
+	void get_required_signal_names(unordered_set<string>& signalNames);
 
 	// Affected Signals
-	void get_affected_signal_ids(MedDictionarySections& dict);
+	void set_affected_signal_ids(MedDictionarySections& dict);
 
 	// Other signal ids
-	void get_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedDictionarySections& dict);
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
@@ -188,7 +191,7 @@ public:
 	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
 
 	// Signal Id
-	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
@@ -257,7 +260,7 @@ public:
 	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
 
 	// Signal Id
-	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };

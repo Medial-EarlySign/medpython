@@ -40,17 +40,17 @@ void MedSample::print(const string prefix) {
 // De(Serialize)
 //.......................................................................................
 size_t MedIdSamples::get_size() {
-	return MedSerialize::get_size(id, samples);
+	return MedSerialize::get_size(id, split, samples);
 }
 
 //.......................................................................................
 size_t MedIdSamples::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, id, samples);
+	return MedSerialize::serialize(blob, id, split, samples);
 }
 
 //.......................................................................................
 size_t MedIdSamples::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, id, samples);
+	return MedSerialize::deserialize(blob, id, split, samples);
 }
 
 //=======================================================================================
@@ -86,6 +86,20 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 }
 
+void MedSamples::get_preds(vector<float>& preds) {
+	for (auto& idSample : idSamples) 
+		for (auto& sample : idSample.samples) 
+			for (int i = 0; i < sample.prediction.size(); i++)
+				preds.push_back(sample.prediction[i]);
+}
+
+void MedSamples::get_y(vector<float>& y) {
+	for (auto& idSample : idSamples)
+		for (auto& sample : idSample.samples)
+			for (int i = 0; i < sample.prediction.size(); i++)
+				y.push_back(sample.outcome);
+}
+
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {
@@ -117,16 +131,28 @@ int MedSamples::read_from_file(const string &fname)
 				if (fields[0] == "DESC") MLOG("reading DESC = %s\n", fields[1].c_str());
 				if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
 				if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
-
+				if (fields[0] == "EVENT_FIELDS") {
+					assert(fields[1] == "id");
+					assert(fields[2] == "time");
+					assert(fields[3] == "outcome");
+					assert(fields[4] == "outcomeLength");
+					assert(fields[5] == "outcomeTime");
+					assert(fields[6] == "split");
+					assert(fields[7] == "prediction");
+				}
 				if (fields[0] == "EVENT" && fields.size() >= 4) {
 					//MLOG("-->### %s %s (%d)\n",fields[0].c_str(),fields[1].c_str(),out.size());
 					MedSample sample;
 					int id = sample.id = stoi(fields[1]);
 					sample.time = stoi(fields[2]);
 					sample.outcome = stof(fields[3]);
-
+					int split = -1;
 					if (fields.size() > 5) 
 						sample.outcomeTime = stoi(fields[5]);
+					if (fields.size() > 6)
+						split = stoi(fields[6]);
+					if (fields.size() > 7)
+						sample.prediction.push_back(stof(fields[7]));
 
 					if (idSamples.empty() || (id != idSamples.back().id && allIds.find(id) == allIds.end())) {
 						MedIdSamples newIdSamples(id);
@@ -148,6 +174,33 @@ int MedSamples::read_from_file(const string &fname)
 	}
 	MLOG("read [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
 	inf.close();
+	return 0;
+}
+
+int MedSamples::write_to_file(const string &fname)
+{
+	ofstream of(fname);
+
+	MLOG("MedSamples: writing to %s\n", fname.c_str());
+	if (!of) {
+		MERR("MedSamples: can't open file %s for writing\n", fname.c_str());
+		return -1;
+	}
+	int samples = 0;
+
+	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeLength" <<
+		'\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
+
+	for (auto &s: idSamples) {
+		for (auto ss : s.samples) {
+			samples++;
+			of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
+				ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
+		}
+	}
+
+	MLOG("wrote [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
+	of.close();
 	return 0;
 }
 

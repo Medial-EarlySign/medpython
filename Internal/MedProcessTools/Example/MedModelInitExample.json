@@ -1,0 +1,83 @@
+{
+	"processes" : {
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=basic",
+			"type": "type=last",
+			"window": ["win_from=0;win_to=10000", "win_from=0;win_to=360", "win_from=360;win_to=720", "win_from=720;win_to=10000"],
+			"time_unit": "time_unit=Days",
+			"signal": "ref:signals"
+		},
+
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=basic",
+			"type": "type=win_delta",
+			"window": "win_from=0;win_to=180",
+			"d_win": ["d_win_from=360;d_win_to=720", "d_win_from=720;d_win_to=1080"],
+			"time_unit": "time_unit=Days",
+			"signal": "ref:signals"
+		},
+	
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=basic",
+			"type": ["type=first", "type=last2", "type=avg", "type=min", "type=max", "type=std", "type=last_time", "type=last_time2"],
+			"window": "win_from=0;win_to=10000",
+			"time_unit": "time_unit=Days",
+			"signal": "ref:signals"
+		},
+		
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=basic",
+			"type": "type=slope",
+			"window": ["win_from=0;win_to=720", "win_from=0;win_to=10000", "win_from=720;win_to=10000"],
+			"time_unit": "time_unit=Days",
+			"signal": "ref:signals"
+		},
+
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=binnedLM",
+			"estimation_points": "estimation_points=1440,720,360,180",
+			"signal": "ref:signals"
+		},
+
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=age"
+		},
+
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=gender"
+		},
+		
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=basic",
+			"type": ["type=category_set", "type=category_set_count", "type=category_set_sum"],
+			"window": "win_from=0;win_to=720",
+			"time_unit": "time_unit=Days",
+			"signal": "signal=Drug",
+			"sets": "ref:drug_sets"
+		},
+
+		"process": {
+			"process_set": "0",
+			"fp_type": "fp_type=basic_cleaner"
+		},
+
+		"process": {
+			"process_set": "1",
+			"fp_type": "fp_type=imputer",
+			"strata": "strata=Age,40,80,5",
+			"moment_type": "moment_type=0"
+		}
+	},
+	"predictor" : "qrf",
+	"predictor_params" : "type=3;ntrees=20;samp_factor=1.0;n_categ=2;get_only_this_categ=1;get_count=1;min_node=100",
+	"signals": ["signal=Creatinine", "signal=Hemoglobin"],
+	"drug_sets": ["sets=ATC_A10_____", "sets=ATC_C10_____", "sets=ATC_B01_____"]
+}

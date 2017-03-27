@@ -100,7 +100,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& 
 
 // Required signals
 //.......................................................................................
-void RepProcessor::get_required_signal_ids(MedDictionarySections& dict) {
+void RepProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 
 	req_signal_ids.resize(req_signals.size());
 
@@ -112,15 +112,20 @@ void RepProcessor::get_required_signal_ids(MedDictionarySections& dict) {
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict) {
 
 	if (req_signal_ids.empty())
-		get_required_signal_ids(dict);
+		set_required_signal_ids(dict);
 
 	for (int signalId : req_signal_ids)
 		signalIds.insert(signalId);
 }
 
+void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames) {
+	for (auto sig : req_signals)
+		signalNames.insert(sig);
+}
+
 // Affected signals
 //.......................................................................................
-void RepProcessor::get_affected_signal_ids(MedDictionarySections& dict) {
+void RepProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 
 	for (string signalName : aff_signals)
 		aff_signal_ids.insert(dict.id(signalName));
@@ -147,24 +152,24 @@ size_t RepProcessor::processor_serialize(unsigned char *blob) {
 //=======================================================================================
 // Required Signals
 //.......................................................................................
-void RepMultiProcessor::get_required_signal_ids(MedDictionarySections& dict) {
+void RepMultiProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 
 	req_signal_ids.clear();
 	for (auto& processor : processors) {
 		req_signal_ids.clear();
-		processor->get_required_signal_ids(dict);
+		processor->set_required_signal_ids(dict);
 		req_signal_ids.insert(req_signal_ids.end(), processor->req_signal_ids.begin(), processor->req_signal_ids.end());
 	}
 }
 
 // Affected Signals
 //.......................................................................................
-void RepMultiProcessor::get_affected_signal_ids(MedDictionarySections& dict) {
+void RepMultiProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 
 	aff_signal_ids.clear();
 	for (auto& processor : processors) {
 		processor->aff_signal_ids.clear();
-		processor->get_affected_signal_ids(dict);
+		processor->set_affected_signal_ids(dict);
 
 		processor->aff_signal_ids.clear();
 		for (int signalId : processor->aff_signal_ids)
@@ -174,11 +179,16 @@ void RepMultiProcessor::get_affected_signal_ids(MedDictionarySections& dict) {
 
 // Signal ids
 //.......................................................................................
-void RepMultiProcessor::get_signal_ids(MedDictionarySections& dict) {
+void RepMultiProcessor::set_signal_ids(MedDictionarySections& dict) {
 
 	for (auto& processor : processors)
-		processor->get_signal_ids(dict);
+		processor->set_signal_ids(dict);
 
+}
+
+void RepMultiProcessor::get_required_signal_names(unordered_set<string>& signalNames) {
+	for (auto& processor : processors)
+		processor->get_required_signal_names(signalNames);
 }
 
 // Learning
