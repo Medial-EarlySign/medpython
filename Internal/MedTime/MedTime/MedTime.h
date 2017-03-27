@@ -34,7 +34,7 @@ public:
 	vector<int> Days2Years;
 	vector<int> Days2Months;
 	vector<int> Days2Date;
-	vector<int> days2month ={ 0,31,59,90,120,151,181,212,243,273,304,334 };
+	vector<int> days2month ={ 0,31,59,90,120,151,181,212,243,273,304,334,365 };
 
 	MedTime() { init_time_tables(); }
 

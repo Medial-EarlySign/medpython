@@ -129,8 +129,7 @@ int MedSamples::read_from_file(const string &fname)
 						sample.outcomeTime = stoi(fields[5]);
 
 					if (idSamples.empty() || (id != idSamples.back().id && allIds.find(id) == allIds.end())) {
-						MedIdSamples newIdSamples;
-						newIdSamples.id = id;
+						MedIdSamples newIdSamples(id);
 						newIdSamples.samples.push_back(sample);
 						idSamples.push_back(newIdSamples);
 						allIds.insert(id);

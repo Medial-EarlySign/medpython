@@ -70,3 +70,28 @@ void get_probs_vec(vector<float> &v)
 			v[i] = v[i]/sum;
 	}
 }
+
+// Initialization Utility
+int initialization_text_to_map(const string& text, map<string, string>& init_map) {
+
+	if (text == "")
+		return 0;
+
+	// get "Name = value" fields
+	vector<string> fields;
+	boost::split(fields, text, boost::is_any_of(";"));
+
+	// get name + value
+	vector<string> sub_fields;
+
+	for (string& field : fields) {
+		boost::split(sub_fields, field, boost::is_any_of("="));
+		if (sub_fields.size() != 2) {
+			fprintf(stderr, "Cannot parse \'%s\' from \'%s\'\n", field.c_str(), text.c_str());
+			return -1;
+		}
+		init_map[sub_fields[0]] = sub_fields[1];
+	}
+
+	return 0;
+}

@@ -45,6 +45,10 @@ public:
 	int id;
 	vector<MedSample> samples;
 
+	// Constructors
+	MedIdSamples() {};
+	MedIdSamples(int _id) { id = _id; }
+
 	// De(Serialize)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);

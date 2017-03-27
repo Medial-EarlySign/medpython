@@ -31,7 +31,7 @@ int get_day(int val) {
 
 	// Full Months
 
-	int days2month[] = {0,31,59,90,120,151,181,212,243,273,304,334} ;
+	int days2month[] = {0,31,59,90,120,151,181,212,243,273,304,334,365} ;
 	days += days2month[month-1] ;
 	if (month>2 && (year%4)==0 && ((year%100)!=0 || (year%400)==0))
 		days ++ ;

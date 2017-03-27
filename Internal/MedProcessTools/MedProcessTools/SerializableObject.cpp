@@ -44,9 +44,11 @@ int SerializableObject::write_to_file(const string &fname)
 }
 
 // Init from string
-void SerializableObject::init_from_string(string init_string) {
+int SerializableObject::init_from_string(string init_string) {
 
 	map<string, string> map;
-	init_map_from_string(init_string, map);
-	init(map);
+	if (init_map_from_string(init_string, map) < 0) return -1;
+	if (init(map) < 0) return -1;
+
+	return 0;
 }

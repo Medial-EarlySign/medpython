@@ -17,6 +17,7 @@ typedef enum {
 	SMPL_FILTER_TRN,
 	SMPL_FILTER_TST,
 	SMPL_FILTER_OUTLIERS,
+	SMPL_FILTER_MATCH,
 	SMPL_FILTER_LAST
 } SampleFilterTypes;
 
@@ -41,7 +42,7 @@ public:
 	static SampleFilter *make_filter(string name, string params);
 	static SampleFilter *make_filter(SampleFilterTypes type, string params);
 
-	virtual int init(void *cleaner_params) { return 0; };
+	virtual int init(void *params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
 
@@ -56,14 +57,14 @@ public:
 
 	// Filter
 	// With Repository
-	virtual void _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {_filter(inSamples,outSamples) ;}
-	void filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) { _filter(rep, inSamples, outSamples); }
-	void filter(MedRepository& rep, MedSamples& samples);
+	virtual int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {return _filter(inSamples,outSamples) ;}
+	int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) { return _filter(rep, inSamples, outSamples); }
+	int filter(MedRepository& rep, MedSamples& samples);
 
 	// Without Repository
-	virtual void _filter(MedSamples& inSamples, MedSamples& outSamples) { return; }
-	void filter(MedSamples& inSamples, MedSamples& outSamples) { _filter(inSamples, outSamples); }
-	void filter(MedSamples& samples);
+	virtual int _filter(MedSamples& inSamples, MedSamples& outSamples) { return 0; }
+	int filter(MedSamples& inSamples, MedSamples& outSamples) { return _filter(inSamples, outSamples); }
+	int filter(MedSamples& samples);
 
 	// Serialization (including type)
 	size_t get_filter_size();
@@ -85,7 +86,7 @@ public:
 	~BasicTrainFilter() {};
 
 	// Filter
-	void _filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 };
 
 //.......................................................................................
@@ -100,7 +101,7 @@ public:
 	~BasicTestFilter() {};
 
 	// Filter
-	void _filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 };
 
 //.......................................................................................
@@ -118,7 +119,7 @@ public:
 	~OutlierSampleFilter() {};
 
 	// Filter
-	void _filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	// Learn
 	int _learn(MedSamples& samples);
@@ -137,6 +138,82 @@ public:
 		params.type = VAL_CLNR_ITERATIVE;
 		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
+
+	// Serialization
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+};
+
+//.......................................................................................
+//.......................................................................................
+// A matching filter
+//.......................................................................................
+//.......................................................................................
+
+typedef enum {
+	SMPL_MATCH_SIGNAL,
+	SMPL_MATCH_AGE,
+	SMPL_MATCH_TIME,
+	SMPL_MATCH_LAST
+} SampleMatchingType;
+
+class matchingParams {
+public:
+
+	// Match by ?
+	SampleMatchingType match_type;
+
+	// Matching details
+	string signalName; // For matching by signal
+	int timeWindow, windowTimeUnit ; // For matching by signal
+	int matchingTimeUnit; // For matching by time
+	float resolution ;
+
+	// Helpers (for matching by signal)
+	int signalId;
+	bool isTimeDependent;
+	int signalTimeUnit;
+
+	// Serialization
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+};
+
+class MatchingSampleFilter : public SampleFilter {
+public:
+
+	vector<matchingParams> matchingStrata;
+
+	float eventToCasePriceRatio = 100.0;
+	float matchMaxRatio = 10.0;
+
+	// helpers
+	int samplesTimeUnit;
+	int byearId, ageId;
+
+	// Constructor/Destructor
+	MatchingSampleFilter() { init_defaults(); };
+	~MatchingSampleFilter() {};
+
+	int init(map<string, string>& mapper);
+	void init_defaults() { filter_type = SMPL_FILTER_MATCH; };
+	int addMatchingStrata(string& init_string);
+
+	// Utilities
+	bool isRepRequired();
+	bool isAgeRequired();
+	int getSampleSignature(MedSample& sample, MedRepository& rep, string& signature);
+	int addToSampleSignature(MedSample& sample, matchingParams& stratum, MedRepository& rep, string& signature);
+	int initHelpers(MedSamples& inSamples, MedRepository& rep);
+
+	// Filter
+	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
+
+	// Matching optimization
+	float get_pairing_ratio(map<string, pair<int, int>> cnts, float w);
 
 	// Serialization
 	size_t get_size();
