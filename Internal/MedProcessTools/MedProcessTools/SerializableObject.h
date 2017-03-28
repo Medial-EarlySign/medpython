@@ -29,8 +29,8 @@ public:
 	virtual int write_to_file(const string &fname);
 
 	// Init from string
-	void init_from_string(string init_string);
-	virtual int  init(map<string, string>& map) { return 0; }
+	int init_from_string(string init_string);
+	virtual int init(map<string, string>& map) { return 0; }
 };
 
 

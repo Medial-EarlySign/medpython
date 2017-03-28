@@ -46,8 +46,10 @@ public:
 	int split;
 	vector<MedSample> samples;
 
+	// Constructors
+	MedIdSamples(int _id) { id = _id; split = -1; samples.clear(); }
 	MedIdSamples() { id = -1; split = -1; samples.clear(); }
-
+	
 	// De(Serialize)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);

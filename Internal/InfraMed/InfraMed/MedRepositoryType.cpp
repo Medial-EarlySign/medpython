@@ -14,6 +14,7 @@
 MedRepositoryType med_rep_type;
 
 int MedRepositoryType::setRepositoryType(MedRepTypes type) {
+	repType = type;
 	if (type == REP_TYPE_GP) {
 		genderSignalName = "GENDER";
 		ageDirectlyGiven = false;

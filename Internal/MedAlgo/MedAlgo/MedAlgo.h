@@ -863,11 +863,6 @@ int MedPCA(MedMat<float> &x, MedMat<float> &pca_base, vector<float> &varsum);
 int MedPCA_project(MedMat<float> &x, MedMat<float> &pca_base, int dim, MedMat<float> &projected);
 
 //================================================================
-// Utilities
-//================================================================
-int initialization_text_to_map(const string& text, map<string, string>& init_map);
-
-//================================================================
 // dependent includes
 //================================================================
 

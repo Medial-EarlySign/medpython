@@ -10,6 +10,10 @@
 #include <map>
 #include "MedGlobalRNG.h"
 
+
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 using namespace std;
 
 //================================================================
@@ -95,6 +99,11 @@ inline float rand_1() {return (float) globalRNG::rand()/(float)( globalRNG::max(
 
 // float number in from...to range
 inline float rand_range(float from, float to) { return from + rand_1()*(to-from); }
+
+//================================================================
+// Initialization Utilities
+//================================================================
+int initialization_text_to_map(const string& text, map<string, string>& init_map);
 
 
 // templated functions in _imp file

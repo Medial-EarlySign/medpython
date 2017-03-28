@@ -2106,7 +2106,7 @@ void get_score_thread(void *p)
 	int nfeat = tp->nfeat;
 	vector<QRF_ResTree> *trees = tp->trees;
 	vector<float> *quantiles = tp->quantiles;
-	int n_quantiles = (*quantiles).size();
+	int n_quantiles = (int) (*quantiles).size();
 	int n_categ = tp->n_categ; 
 	vector<float> cnts(n_categ);
 
@@ -2168,9 +2168,9 @@ void get_score_thread(void *p)
 				// Get Quantiles
 				for (int k = 0; k < n_quantiles; k++) {
 					if ((*quantiles)[k] == -1)
-						tp->res[i*n_quantiles + k] = values.size();
+						tp->res[i*n_quantiles + k] = (float) values.size();
 					else
-						tp->res[i*n_quantiles + k] = values[(int)values.size()*(*quantiles)[k]];
+						tp->res[i*n_quantiles + k] = values[(int)(values.size()*(*quantiles)[k])];
 				}
 			}
 		}
