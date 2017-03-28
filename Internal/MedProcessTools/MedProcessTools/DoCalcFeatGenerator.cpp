@@ -17,7 +17,7 @@ void DoCalcFeatGenerator::init(MedFeatures &features) {
 			if (candidate.first.find(substr) != string::npos) {
 				if (real_feature_name != "")
 					throw runtime_error(string("source_feature_name [") + substr + "] matches both [" +
-						real_feature_name + "] and [" + candidate.first + "], can not generate [" + target_feature_name + "]");
+						real_feature_name + "] and [" + candidate.first + "], can not generate [" + raw_target_feature_name + "]");
 				real_feature_name = candidate.first;
 			}
 		if (real_feature_name == "") {
