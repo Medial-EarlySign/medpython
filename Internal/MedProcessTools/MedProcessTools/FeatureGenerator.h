@@ -23,10 +23,12 @@
 //.......................................................................................
 // Types of feature generators
 typedef enum {
+	FTR_GEN_NOT_SET,
 	FTR_GEN_BASIC,
 	FTR_GEN_AGE,
 	FTR_GEN_GENDER,
 	FTR_GEN_BINNED_LM,
+	FTR_GEN_DO_CALC,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 

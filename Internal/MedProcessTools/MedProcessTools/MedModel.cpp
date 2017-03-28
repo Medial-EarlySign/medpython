@@ -146,7 +146,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage en
 	//MedFeatures features(samples.time_unit);
 	features.clear();
 	features.set_time_unit(samples.time_unit);
-
+	MLOG("MedModel apply() : before generate_all_features()\n");
 	if (generate_all_features(rep, &samples, features) < 0) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 		return -1;
@@ -213,12 +213,12 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	// init features attributes
 	for (auto& generator : _generators)
 		generator->init(features);
-
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
 	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
+
 	int samples_size = (int)features.samples.size();
 	for (auto &generator : _generators) {
 		for (string& name : generator->names)
