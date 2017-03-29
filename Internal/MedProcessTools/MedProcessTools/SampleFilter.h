@@ -18,6 +18,7 @@ typedef enum {
 	SMPL_FILTER_TST,
 	SMPL_FILTER_OUTLIERS,
 	SMPL_FILTER_MATCH,
+	SMPL_FILTER_REQ_SIGNAL,
 	SMPL_FILTER_LAST
 } SampleFilterTypes;
 
@@ -221,4 +222,34 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
+
+//.......................................................................................
+//.......................................................................................
+// A filter on required signal
+//.......................................................................................
+//.......................................................................................
+
+class RequiredSignalFilter : public SampleFilter {
+public:
+
+	string signalName; // Required signal
+	int timeWindow, windowTimeUnit; // Time before sample-time
+
+									// Constructor/Destructor
+	RequiredSignalFilter() { init_defaults(); };
+	~RequiredSignalFilter() {};
+
+	int init(map<string, string>& mapper);
+	void init_defaults();
+
+	// Filter
+	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
+
+
+	// Serialization
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+};
 #endif
