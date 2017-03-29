@@ -47,15 +47,6 @@
 
 		,"process": {
 			"process_set": "0",
-			"fg_type": "fg_type=do_calc",
-			"calc_type": "calc_type=sum",
-			"target_feature_name": "target_feature_name=my_sum",
-			"weights": "weights=0.1,2.0",
-			"source_feature_names": "source_feature_names=Age,Creatinine.last.win_0_10000"
-			
-		}
-		,"process": {
-			"process_set": "0",
 			"fg_type": "fg_type=basic",
 			"type": ["type=category_set", "type=category_set_count", "type=category_set_sum"],
 			"window": "win_from=0;win_to=720",
@@ -63,7 +54,8 @@
 			"signal": "signal=Drug",
 			"sets": "ref:drug_sets"
 		}
-		"process": {
+		
+		,"process": {
 			"process_set": "0",
 			"fg_type": "fg_type=age"
 		}
@@ -72,6 +64,16 @@
 			"process_set": "0",
 			"fg_type": "fg_type=gender"
 		}
+		
+		,"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=do_calc",
+			"calc_type": "calc_type=sum",
+			"target_feature_name": "target_feature_name=my_sum",
+			"weights": "weights=0.1,2.0",
+			"source_feature_names": "source_feature_names=Age,Creatinine.last.win_0_10000"			
+		}
+		
 		,"process": {
 			"process_set": "0",
 			"fp_type": "fp_type=basic_cleaner"
