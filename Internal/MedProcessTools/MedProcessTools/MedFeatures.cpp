@@ -41,6 +41,17 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 	mat.normalized_flag = true;
 	for (auto& attr : attributes)
 		mat.normalized_flag &= (int)attr.second.normalized;
+
+	vector<string> feat_names;
+	get_feature_names(feat_names);
+	mat.signals.insert(mat.signals.end(), feat_names.begin(), feat_names.end());
+	for (auto& ss : samples) {
+		RecordData rd;
+		rd.time = 0L;  rd.weight = rd.pred = rd.label = 0.0; rd.split = 0;
+		rd.id = ss.id;
+		rd.date = ss.time;
+		mat.recordsMetadata.push_back(rd);
+	}
 }
 
 //.......................................................................................

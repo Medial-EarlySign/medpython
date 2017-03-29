@@ -60,6 +60,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	if (end_stage <= MED_MDL_REP_PROCESSORS)
 		return 0;
+
 	// Learn Feature Generators
 	if (start_stage <= MED_MDL_FTR_GENERATORS) {
 		timer.start();
@@ -146,7 +147,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage en
 	//MedFeatures features(samples.time_unit);
 	features.clear();
 	features.set_time_unit(samples.time_unit);
-
+	MLOG("MedModel apply() : before generate_all_features()\n");
 	if (generate_all_features(rep, &samples, features) < 0) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 		return -1;
@@ -213,12 +214,12 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	// init features attributes
 	for (auto& generator : _generators)
 		generator->init(features);
-
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
 	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
+
 	int samples_size = (int)features.samples.size();
 	for (auto &generator : _generators) {
 		for (string& name : generator->names)
@@ -462,7 +463,7 @@ void MedModel::add_feature_generator_to_set(int i_set, const string &init_string
 	// hence currently we simply ignore i_set, and pile up generators into generators
 
 	string in = init_string;
-	FeatureGenerator *feat_gen = FeatureGeneratorFactory::create_generator(in);
+	FeatureGenerator *feat_gen = FeatureGenerator::create_generator(in);
 
 	// push it in
 	generators.push_back(feat_gen);
@@ -572,7 +573,7 @@ void MedModel::add_feature_processors_set(FeatureProcessorTypes type, vector<str
 void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals) {
 
 	for (string& signal : signals) {
-		FeatureGenerator *generator = FeatureGeneratorFactory::make_generator(type, "signalName=" + signal);
+		FeatureGenerator *generator = FeatureGenerator::make_generator(type, "signalName=" + signal);
 		add_feature_generator(generator);
 	}
 }
@@ -581,7 +582,7 @@ void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>
 void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals, string init_string) {
 
 	for (string& signal : signals) {
-		FeatureGenerator *generator = FeatureGeneratorFactory::make_generator(type, init_string + ";signalName="+signal);
+		FeatureGenerator *generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
 		add_feature_generator(generator);
 	}
 }
@@ -687,7 +688,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	for (size_t i = 0; i < n; i++) {
 		FeatureGeneratorTypes type;
 		memcpy(&type, blob + ptr, sizeof(FeatureGeneratorTypes)); ptr += sizeof(FeatureGeneratorTypes);
-		generators[i] = FeatureGeneratorFactory::make_generator(type);
+		generators[i] = FeatureGenerator::make_generator(type);
 		ptr += generators[i]->deserialize(blob + ptr);
 
 	}
