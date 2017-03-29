@@ -332,7 +332,6 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 					data[i] = 0;
 		}
 	}
-
 	return 0;
 }
 
@@ -466,7 +465,6 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Attribute
-	features.attributes[feature_name].normalized = true;
 
 	// Impute
 	imputerStrata.getFactors();

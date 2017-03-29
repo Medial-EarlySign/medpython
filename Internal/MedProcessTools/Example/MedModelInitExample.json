@@ -47,16 +47,6 @@
 
 		,"process": {
 			"process_set": "0",
-			"fg_type": "fg_type=age"
-		}
-
-		,"process": {
-			"process_set": "0",
-			"fg_type": "fg_type=gender"
-		}
-
-		,"process": {
-			"process_set": "0",
 			"fg_type": "fg_type=do_calc",
 			"calc_type": "calc_type=sum",
 			"target_feature_name": "target_feature_name=my_sum",
@@ -64,19 +54,6 @@
 			"source_feature_names": "source_feature_names=Age,Creatinine.last.win_0_10000"
 			
 		}
-		
-		,"process": {
-			"process_set": "0",
-			"fp_type": "fp_type=basic_cleaner"
-		}
-
-		,"process": {
-			"process_set": "1",
-			"fp_type": "fp_type=imputer",
-			"strata": "strata=Age,40,80,5",
-			"moment_type": "moment_type=0"
-		}
-		
 		,"process": {
 			"process_set": "0",
 			"fg_type": "fg_type=basic",
@@ -86,9 +63,36 @@
 			"signal": "signal=Drug",
 			"sets": "ref:drug_sets"
 		}
+		"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=age"
+		}
+
+		,"process": {
+			"process_set": "0",
+			"fg_type": "fg_type=gender"
+		}
+		,"process": {
+			"process_set": "0",
+			"fp_type": "fp_type=basic_cleaner"
+		}
+
+		,"process": {
+			"process_set": "1",
+			"fp_type": "fp_type=normalizer",
+			"normalizeSd" : "normalizeSd=1"
+		}
+		,"process": {
+			"process_set": "2",
+			"fp_type": "fp_type=imputer",
+			"strata": "strata=Age,40,80,5",
+			"moment_type": "moment_type=0"
+		}
 	},
-	"predictor" : "qrf",
-	"predictor_params" : "type=3;ntrees=20;samp_factor=1.0;n_categ=2;get_only_this_categ=1;get_count=1;min_node=100",
+	"predictor" : "linear_model",
+	"predictor_params" : "rfactor=0.99",
+//	"predictor" : "qrf",
+//	"predictor_params" : "type=3;ntrees=20;samp_factor=1.0;n_categ=2;get_only_this_categ=1;get_count=1;min_node=100",
 	"signals": ["signal=Creatinine", "signal=Hemoglobin"],
 	"drug_sets": ["sets=ATC_A10_____", "sets=ATC_C10_____", "sets=ATC_B01_____"]
 }
