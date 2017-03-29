@@ -2114,7 +2114,8 @@ void get_score_thread(void *p)
 	for (int i=tp->from; i<=tp->to; i++) {
 		float sum = 0 ;
 		float norm = 0 ;
-		vector<float> values;
+		vector<pair<float,float>> values;
+		vector<int> sizes;
 
 //		if ((tp->mode == QRF_REGRESSION_TREE && tp->get_counts == PREDS_REGRESSION_AVG) || (tp->mode != QRF_REGRESSION_TREE && tp->get_counts < PREDS_CATEG_AVG_COUNTS))
 //			norm = (float) (*(tp->trees)).size() ;
@@ -2142,7 +2143,10 @@ void get_score_thread(void *p)
 					sum += (*trees)[j].qnodes[node].pred * (*trees)[j].qnodes[node].size ;
 					norm += (*trees)[j].qnodes[node].size ;
 				} else { // Quantile Regression
-					values.insert(values.end(), (*trees)[j].qnodes[node].values.begin(), (*trees)[j].qnodes[node].values.end());
+					float w = 1.0 / (*trees)[j].qnodes[node].values.size(); 
+					for (unsigned int idx = 0; idx < (*trees)[j].qnodes[node].values.size(); idx++)
+						values.push_back({ (*trees)[j].qnodes[node].values[idx],w });
+					sizes.push_back((*trees)[j].qnodes[node].values.size());
 				}
 			} else {
 				if (tp->get_counts == PROBS_CATEG_MAJORITY_AVG || tp->get_counts == PREDS_CATEG_MAJORITY_AVG) { // Majority
@@ -2161,16 +2165,45 @@ void get_score_thread(void *p)
 		}
 
 		if (tp->mode == QRF_REGRESSION_TREE) {
-			if (tp->get_counts != PREDS_REGRESSION_QUANTILE)
+			if (tp->get_counts == PREDS_REGRESSION_WEIGHTED_AVG || tp->get_counts == PREDS_REGRESSION_AVG)
 				tp->res[i] = sum / norm;
 			else {
-				sort(values.begin(), values.end());
-				// Get Quantiles
-				for (int k = 0; k < n_quantiles; k++) {
-					if ((*quantiles)[k] == -1)
-						tp->res[i*n_quantiles + k] = (float) values.size();
-					else
-						tp->res[i*n_quantiles + k] = values[(int)(values.size()*(*quantiles)[k])];
+				
+				sort(values.begin(), values.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return v1.first < v2.first; });
+				if (tp->get_counts == PREDS_REGRESSION_QUANTILE) {
+					// Get Quantiles
+					for (int k = 0; k < n_quantiles; k++) {
+						float q = (*quantiles)[k];
+						if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
+							tp->res[i*n_quantiles + k] = sizes[(int)(-q - 2)];
+						else if (q == -1)
+							tp->res[i*n_quantiles + k] = (float)values.size();
+						else
+							tp->res[i*n_quantiles + k] = values[(int)(values.size()*(*quantiles)[k])].first;
+					}
+				} else {
+					// Get Weighted Quantiles
+					double totWeight = (double)(*(tp->trees)).size();
+
+					for (int k = 0; k < n_quantiles; k++) {
+						float q = (*quantiles)[k];
+						if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
+							tp->res[i*n_quantiles + k] = sizes[(int)(-q - 2)];
+						else if (q == -1)
+							tp->res[i*n_quantiles + k] = (float)values.size();
+						else {
+							float targetWeight = totWeight * q;
+
+							float currWeight = 0;
+							unsigned int idx = 0;
+
+							while (currWeight <= targetWeight && idx < values.size()) {
+								currWeight += values[idx].second;
+								idx++;
+							}
+							tp->res[i*n_quantiles + k] = values[idx - 1].first;
+						}
+					}
 				}
 			}
 		}

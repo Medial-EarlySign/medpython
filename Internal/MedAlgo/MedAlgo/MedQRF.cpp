@@ -474,7 +474,7 @@ void MedQRF::printTrees(const vector<string> &modelSignalNames, const string &ou
 int MedQRF::n_preds_per_sample()
 {
 	if (params.type == QRF_REGRESSION_TREE) {
-		if (params.get_count == PREDS_REGRESSION_QUANTILE)
+		if (params.get_count == PREDS_REGRESSION_QUANTILE || params.get_count == PREDS_REGRESSION_WEIGHTED_QUANTILE)
 			return (int)params.quantiles.size();
 		else
 			return 1;
