@@ -23,6 +23,10 @@ void MedTime::init_time_tables()
 		Years2Days[year-1900] = days;
 		//if (year<1905) fprintf(stderr, "y2d[%d] = %d\n", year-1900, days);
 
+		// month 0 - for lazy people !!
+		YearsMonths2Days[year*100] = days;
+
+		// months 1-12
 		for (int month = 1; month<=12; month++) {
 			int ym = year*100 + month;
 
