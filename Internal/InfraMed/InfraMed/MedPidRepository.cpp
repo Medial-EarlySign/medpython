@@ -405,6 +405,48 @@ void PidRec::free()
 	is_allocated = 0;
 }
 
+
+//..................................................................................................................
+int PidRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids_to_use)
+{
+	// clear what was before and init basics
+	sv.clear();
+	my_rep = NULL;
+	my_base_rep = rep;
+	pid = _pid;
+
+	data_len = 0;
+	if (data_size < 8) { realloc(1024); }	// making sure we have some work space
+	((int *)(&data[data_len]))[0] = _pid;		// it's here for debugging , and in order to make sure sv's don't start at 0 addresses
+	data_len += sizeof(int);
+
+	// copy data for sids to our data_buffer, and init the relevant records in sv
+	vector<int> sids = sids_to_use;
+	sort(sids.begin(), sids.end()); // sorting sids in preparation for inserts into sv.
+
+	for (auto sid : sids) {
+		int len;
+		unsigned char *sig_data = (unsigned char *)my_base_rep->get(pid, sid, len);
+		//unsigned char *sig_data = (unsigned char *)rep->get(pid, sid, len);
+		if (sig_data != NULL) {
+			int sid_serial = my_base_rep->sigs.sid2serial[sid];
+			int sid_byte_len = my_base_rep->sigs.Sid2Info[sid].bytes_len;
+			int slen = len * sid_byte_len;
+			if (data_len + slen >= data_size) { realloc(2*(data_len+slen)); }
+			memcpy(&data[data_len], sig_data, slen);
+			PosLen pl;
+			pl.pos = data_len;
+			pl.len = len;
+			sv.insert(sid_serial, pl);
+			data_len += slen;
+		}
+	}
+
+	return 0;
+
+}
+
+
 #if 1
 //==================================================================================================================
 // PidDynamicRec
