@@ -332,7 +332,6 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 					data[i] = 0;
 		}
 	}
-
 	return 0;
 }
 
@@ -466,7 +465,6 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Attribute
-	features.attributes[feature_name].normalized = true;
 
 	// Impute
 	imputerStrata.getFactors();
@@ -488,17 +486,21 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	return 0;
 }
 
-// Init
+// Init : starta can be a vector, separated by ":"
 //.......................................................................................
 int FeatureImputer::init(map<string, string>& mapper) {
 
 	init_defaults();
+	vector<string> strata;
 
 	for (auto entry : mapper) {
 		string field = entry.first;
 
 		if (field == "moment_type") moment_type = (imputeMomentTypes)stoi(entry.second);
-		else if (field == "strata") addStrata(entry.second);
+		else if (field == "strata") {
+			boost::split(strata, entry.second, boost::is_any_of(":"));
+			for (string& stratum : strata) addStrata(stratum);
+		}
 		else if (field != "names" && field != "fp_type")
 				MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
 	}

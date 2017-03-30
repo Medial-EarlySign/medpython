@@ -200,7 +200,7 @@ public:
 
 	// Init
 	int init(map<string, string>& mapper) ;
-	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = false; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER;};
+	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER;};
 
 	// Serialization
 	size_t get_size();

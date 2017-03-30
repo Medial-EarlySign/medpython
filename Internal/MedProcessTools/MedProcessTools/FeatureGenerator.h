@@ -23,10 +23,12 @@
 //.......................................................................................
 // Types of feature generators
 typedef enum {
+	FTR_GEN_NOT_SET,
 	FTR_GEN_BASIC,
 	FTR_GEN_AGE,
 	FTR_GEN_GENDER,
 	FTR_GEN_BINNED_LM,
+	FTR_GEN_DO_CALC,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -61,10 +63,11 @@ public:
 	vector<string> req_signals;
 	vector<int> req_signal_ids; 
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
-	virtual void get_required_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_names(unordered_set<string>& signalNames);
+	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	// Signal Ids
-	virtual void get_signal_ids(MedDictionarySections& dict) { return; }
+	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
 	// Learn a generator
 	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {return 0;}
@@ -158,14 +161,14 @@ public:
 	BasicFeatureTypes type = FTR_LAST;
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
 	int d_win_from = 360, d_win_to = 360000;	// delta time window for the FTR_WIN_DELTA_VALUE feature
-	int time_unit_win = MedTime::Days;			// the time unit in which the windows are given. Default: Days
+	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
 	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
 	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
+	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 
 	// helpers
-	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	vector<char> lut;							// to be used when generating FTR_CATEGORY_SET_*
 
 	// Naming 
@@ -184,10 +187,7 @@ public:
 
 	// Init
 	int init(map<string, string>& mapper);
-	void init_defaults() { 
-		generator_type = FTR_GEN_BASIC; signalId = -1; time_unit_sig = MedTime::Date; 
-		time_unit_win = MedTime::Days; string _signalName = ""; set(_signalName, FTR_LAST, 0, 360000); 
-	};
+	void init_defaults();
 
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
@@ -197,7 +197,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int date);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
@@ -258,8 +258,8 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
-	void get_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
+	void set_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
+	void set_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
@@ -294,8 +294,8 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
-	void get_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
+	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
@@ -333,8 +333,8 @@ public:
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<float> means[2];
 
-	int time_unit_periods = MedTime::Days;		// the time unit in which the periods are given. Default: Days
-	int time_unit_sig = MedTime::Date;			// the time init in which the signal is given. Default: Date
+	int time_unit_periods = MedTime::Undefined;		// the time unit in which the periods are given. Default: Undefined
+	int time_unit_sig = MedTime::Undefined;			// the time init in which the signal is given. Default: Undefined
 	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
 
@@ -362,7 +362,7 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void get_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedDictionarySections& dict);
 
 	// Number of features generated
 	virtual int nfeatures() { return (int) params.estimation_points.size(); }

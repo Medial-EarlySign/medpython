@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "FeatureGenerator.h"
+#include "DoCalcFeatGenerator.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -21,18 +22,22 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_GENDER;
 	else if (generator_name == "binnedLmEstimates" || generator_name == "binnedLm"  || generator_name == "binnedLM")
 		return FTR_GEN_BINNED_LM;
-	else
-		return FTR_GEN_LAST;
+	else if (generator_name == "do_calc")
+		return FTR_GEN_DO_CALC;
+	else MTHROW_AND_ERR(string("unknown generator name [") + generator_name + "]");
 }
 
 // Initialize featurse
 //.......................................................................................
 void FeatureGenerator::init(MedFeatures &features) {
 
+	//MLOG("FeatureGenerator::init _features\n");
 	if (names.size() == 0)
 		set_names();
-	for (auto& name : names) 
+	for (auto& name : names) {
 		features.attributes[name].normalized = false;
+		features.data[name].resize(0, 0);
+	}
 }
 
 //.......................................................................................
@@ -69,9 +74,9 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new GenderGenerator;
 	else if (generator_type == FTR_GEN_BINNED_LM)
 		return new BinnedLmEstimates;
-	else
-		return NULL;
-
+	else if (generator_type == FTR_GEN_DO_CALC)
+		return new DoCalcFeatGenerator;
+	else throw runtime_error(string("dont know how to make_generator for [") + to_string(generator_type) + "]");
 }
 
 //.......................................................................................
@@ -86,7 +91,7 @@ FeatureGenerator * FeatureGenerator::make_generator(FeatureGeneratorTypes genera
 //.......................................................................................
 // Add at end of feature vector
 int FeatureGenerator::generate(PidDynamicRec& in_rep, MedFeatures& features) {
-
+	//MLOG("gen [%s]\n", this->names[0].c_str());
 	return Generate(in_rep, features, features.get_pid_pos(in_rep.pid), features.get_pid_len(in_rep.pid));
 
 }
@@ -102,7 +107,6 @@ int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& featu
 		MERR("Data (%d) is longer than Samples (%d) for %s. Cannot generate features \n", data_size, samples_size, names[0].c_str());
 		return -1;
 	}
-
 	features.data[names[0]].resize(samples_size);
 	return generate(rep, id, features, data_size, (int)(samples_size - data_size));
 }
@@ -137,7 +141,7 @@ size_t FeatureGenerator::generator_serialize(unsigned char *blob) {
 
 // Required signals
 //.......................................................................................
-void FeatureGenerator::get_required_signal_ids(MedDictionarySections& dict){
+void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
 
 	req_signal_ids.resize(req_signals.size());
 
@@ -149,10 +153,15 @@ void FeatureGenerator::get_required_signal_ids(MedDictionarySections& dict){
 void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict) {
 
 	if (req_signal_ids.empty())
-		get_required_signal_ids(dict);
+		set_required_signal_ids(dict);
 
 	for (int signalId : req_signal_ids)
 		signalIds.insert(signalId);
+}
+
+void FeatureGenerator::get_required_signal_names(unordered_set<string>& signalNames) {
+	for (auto sig : req_signals)
+		signalNames.insert(sig);
 }
 
 //=======================================================================================
@@ -222,11 +231,23 @@ void BasicFeatGenerator::set_names() {
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
 }
 
+// Init
+//.......................................................................................
+void BasicFeatGenerator::init_defaults() {
+	generator_type = FTR_GEN_BASIC; 
+	signalId = -1; 
+	time_unit_sig = MedTime::Undefined;
+	time_unit_win = med_rep_type.windowTimeUnit;
+	string _signalName = ""; 
+	set(_signalName, FTR_LAST, 0, 360000);
+};
+
 // Generate
 //.......................................................................................
 int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	string& name = names[0];
+
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
 	float *p_feat = &(features.data[name][index]);

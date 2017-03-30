@@ -1,28 +1,46 @@
 #include "MedModel.h"
 #include "MedProcessUtils.h"
 #include <omp.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+using namespace boost::property_tree;
 //=======================================================================================
 // MedModel
 //=======================================================================================
 // Learn
-int MedModel::learn(MedPidRepository& rep, MedSamples* samples) {
-	
+//.......................................................................................
+int MedModel::learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage) {
+
 	DummyFeatsSelector selector;
-	return learn(rep, samples, selector);
+	return learn(rep, samples, selector, start_stage, end_stage);
 
 }
 
 //.......................................................................................
-int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector& selector) {
+int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector& selector, MedModelStage start_stage, MedModelStage end_stage) {
 
 	MedTimer timer;
 
+	// Stage Sanity
+	if (start_stage > end_stage) {
+		MERR("MedModel learn() : Illegal start and end\n");
+		return -1;
+	}
+
 	// Set of signals
 	init_signal_ids(rep.dict);
+
+	for (int signalId : required_signals) {
+		if (rep.index.index_table[signalId].is_loaded != 1)
+			MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n", 
+				signalId, rep.dict.name(signalId).c_str());;
+	}
 
 	LearningSet = _samples;
 
@@ -31,24 +49,30 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	LearningSet->get_ids(ids);
 
 	// Learn RepCleaners
-	timer.start();
-	if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
-		MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
-		return -1;
+	if (start_stage <= MED_MDL_REP_PROCESSORS) {
+		timer.start();
+		if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
+			MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : learn rep processors time %g ms\n", timer.diff_milisec());
 	}
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : learn rep processors time %g ms\n", timer.diff_milisec());
+	if (end_stage <= MED_MDL_REP_PROCESSORS)
+		return 0;
 
 	// Learn Feature Generators
-	timer.start();
-	if (learn_feature_generators(rep, LearningSet) < 0) {
-		MERR("MedModel learn() : ERROR: Failed learn_feature_generators\n");
-		return -1;
+	if (start_stage <= MED_MDL_FTR_GENERATORS) {
+		timer.start();
+		if (learn_feature_generators(rep, LearningSet) < 0) {
+			MERR("MedModel learn() : ERROR: Failed learn_feature_generators\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
 	}
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
-
-	//MedFeatures features(LearningSet->time_unit);
+	if (end_stage <= MED_MDL_FTR_GENERATORS)
+		return 0;
 	features.clear();
 	features.set_time_unit(LearningSet->time_unit);
 
@@ -60,31 +84,57 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	timer.take_curr_time();
 	MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
-
-	// Learn Feature cleaners and clean
-	timer.start();
-	if (learn_and_apply_feature_processors(features) < 0) {
-		MERR("MedModel::learn() : ERROR: Failed learn_and_apply_feature_cleaners()\n");
-		return -1;
+	// Learn Feature processors and apply
+	if (start_stage <= MED_MDL_FTR_PROCESSORS) {
+		timer.start();
+		if (learn_and_apply_feature_processors(features) < 0) {
+			MERR("MedModel::learn() : ERROR: Failed learn_and_apply_feature_cleaners()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
 	}
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+	else {
+		// Just apply feature processors
+		timer.start();
+		if (apply_feature_processors(features) < 0) {
+			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : feature processing time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+	}
+	if (end_stage <= MED_MDL_FTR_PROCESSORS)
+		return 0;
 
 	// Select Features
 	selector.select(generators);
 
 	// Learn predictor
-	timer.start();
-	int rc = predictor->learn(features);
-	timer.take_curr_time();
-	MLOG("MedModel::learn() : model train time: %g ms\n", timer.diff_milisec());
+	if (start_stage <= MED_MDL_PREDICTOR) {
+		timer.start();
+		int rc = predictor->learn(features);
+		timer.take_curr_time();
+		MLOG("MedModel::learn() : model train time: %g ms\n", timer.diff_milisec());
+		if (rc != 0)
+			return rc;
+	}
+	if (end_stage <= MED_MDL_PREDICTOR)
+		return 0;
 
-	return rc;
+
+	return 0;
 }
 
 //.......................................................................................
 // Apply
-int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
+int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage end_stage) {
+
+	// Stage Sanity
+	if (end_stage == MED_MDL_REP_PROCESSORS) {
+		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
+		return -1;
+	}
 
 	// Set of signals
 	init_signal_ids(rep.dict);
@@ -97,17 +147,21 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 	//MedFeatures features(samples.time_unit);
 	features.clear();
 	features.set_time_unit(samples.time_unit);
-
+	MLOG("MedModel apply() : before generate_all_features()\n");
 	if (generate_all_features(rep, &samples, features) < 0) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 		return -1;
 	}
+	if (end_stage <= MED_MDL_FTR_GENERATORS)
+		return 0;
 
-	// Clean Features
+	// Process Features
 	if (apply_feature_processors(features) < 0) {
 		MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 		return -1;
 	}
+	if (end_stage <= MED_MDL_FTR_PROCESSORS)
+		return 0;
 
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
@@ -116,6 +170,8 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples) {
 	}
 
 	samples.insert_preds(features);
+	if (end_stage <= MED_MDL_PREDICTOR)
+		return 0;
 	return 0;
 }
 
@@ -149,23 +205,23 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 }
 
 //.......................................................................................
-int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features)
+int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features)
 {
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
 
 	// init features attributes
-	for (auto& generator : generators)
+	for (auto& generator : _generators)
 		generator->init(features);
-
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
 	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
+
 	int samples_size = (int)features.samples.size();
-	for (auto &generator : generators) {
+	for (auto &generator : _generators) {
 		for (string& name : generator->names)
 			features.data[name].resize(samples_size, 0);
 	}
@@ -173,25 +229,24 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 	// Loop on ids
 	int RC = 0;
 #pragma omp parallel for schedule(dynamic)
-	for (int j=0; j<samples->idSamples.size(); j++) {
+	for (int j = 0; j<samples->idSamples.size(); j++) {
 		MedIdSamples& pid_samples = samples->idSamples[j];
-		int n_th = omp_get_thread_num(); 
+		int n_th = omp_get_thread_num();
 		int rc = 0;
 
 		// Generate DynamicRec with all relevant signals
 		if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
-
 		// Apply rep-cleaning
+
 		for (auto& processor : rep_processors)
 			if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
 
 		// Generate Features
-		for (auto& generator : generators)
+		for (auto& generator : _generators)
 			if (generator->generate(idRec[n_th], features) < 0) rc = -1;
 #pragma omp critical 
 		if (rc < 0) RC = -1;
 	}
-
 	return RC;
 }
 
@@ -229,7 +284,7 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
 
 // Required Signals
 //.......................................................................................
-void MedModel::get_required_signals(MedDictionarySections& dict) {
+void MedModel::set_required_signals(MedDictionarySections& dict) {
 
 	required_signals.clear();
 
@@ -239,6 +294,61 @@ void MedModel::get_required_signals(MedDictionarySections& dict) {
 	int ii = 0;
 	for (FeatureGenerator *generator : generators) 
 		generator->get_required_signal_ids(required_signals, dict);
+
+}
+
+void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
+{
+	if (vecIndex >= allVecs.size())
+	{
+		result.push_back(strSoFar.substr(0, strSoFar.length() - 1));
+		return;
+	}
+	for (size_t i = 0; i < allVecs[vecIndex].size(); i++)
+		concatAllCombinations(allVecs, vecIndex + 1, strSoFar + allVecs[vecIndex][i] + ";", result);
+}
+
+void MedModel::init_from_string(istream &init_stream) {
+
+	ptree pt;
+	read_json(init_stream, pt);
+
+	for(ptree::value_type &p: pt.get_child("processes"))
+	{
+		int process_set = -1;
+		vector<vector<string>> all_attr_values;
+		for (ptree::value_type &attr : p.second) {
+			string attr_name = attr.first;
+			string single_attr_value = attr.second.data();			
+			if (attr_name == "process_set")
+				process_set = stoi(single_attr_value);
+			else {
+				vector<string> current_attr_values;
+				if (single_attr_value.length() > 0) {
+					if (boost::starts_with(single_attr_value, "ref:")) {
+						auto my_ref = pt.get_child(single_attr_value.substr(4));
+						for (auto &r : my_ref)
+							current_attr_values.push_back(r.second.data());
+					}
+					else
+						current_attr_values.push_back(single_attr_value);
+				}
+				else
+					for (ptree::value_type &attr_value : attr.second)
+						current_attr_values.push_back(attr_value.second.data());
+				all_attr_values.push_back(current_attr_values);
+			}			
+		}
+		vector<string> all_combinations;
+		concatAllCombinations(all_attr_values, 0, "", all_combinations);
+		for (string c : all_combinations) {
+			//MLOG("MedModel::init [%s]\n", c.c_str());
+			add_process_to_set(process_set, c);
+		}
+	}
+	auto my_pred = pt.get_child("predictor");
+	auto my_pred_params = pt.get_child("predictor_params");
+	set_predictor(my_pred.data(), my_pred_params.data());
 
 }
 
@@ -252,6 +362,7 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 		// exists 
 		if (rep_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
+			MLOG("Adding new rep_processor set [%d]\n", i_set);
 			RepMultiProcessor *processor = new RepMultiProcessor;
 			rep_processors[i_set] = processor;
 		}
@@ -261,16 +372,18 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 			RepMultiProcessor *mprocessor = new RepMultiProcessor;
 			rep_processors[i_set] = mprocessor;
 			mprocessor->processors.push_back(curr_p);
-
 		} 
 	}
 	else {
 		// resize rep_processors
 		rep_processors.resize(i_set+1, NULL);
-
-		// put a new empty multi in i_set
-		RepMultiProcessor *processor = new RepMultiProcessor;
-		rep_processors[i_set] = processor;
+		for (int i = 0; i < i_set + 1; i++) 
+			// put a new empty multi in i_set
+			if (rep_processors[i] == NULL) {
+				MLOG("Adding new rep_processor set [%d]\n", i);
+				RepMultiProcessor *processor = new RepMultiProcessor;
+				rep_processors[i] = processor;
+			}
 	}
 
 	// Now we are at a state in which we have a multi processor at i_set and need to create a new processor and push it in
@@ -296,6 +409,7 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 		// exists 
 		if (feature_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
+			MLOG("Adding new feature_processor set [%d]\n", i_set);
 			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
 			feature_processors[i_set] = mfprocessor;
 		}
@@ -312,9 +426,13 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 		// resize feature_processors
 		feature_processors.resize(i_set+1, NULL);
 
-		// put a new empty multi in i_set
-		MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
-		feature_processors[i_set] = mfprocessor;
+		for (int i = 0; i < i_set + 1; i++)
+			// put a new empty multi in i_set
+			if (feature_processors[i] == NULL) {
+				MLOG("Adding new feature_processor set [%d]\n", i);
+				MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+				feature_processors[i] = mfprocessor;
+			}
 	}
 
 	// Now we are at a state in which we have a multi feature processor at i_set and need to create a new processor or processors and push it in
@@ -333,7 +451,6 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 	string fp_type;
 	get_single_val_from_init_string(init_string, "fp_type", fp_type);
 	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
-	//MLOG("fp_type = %s %d\n", fp_type.c_str(), (int)type);
 
 	// actual adding to relevant MultiFeatureProcessor
 	((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
@@ -375,10 +492,10 @@ void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& si
 
 // Affected Signals
 //.......................................................................................
-void MedModel::get_affected_signals(MedDictionarySections& dict) {
+void MedModel::set_affected_signals(MedDictionarySections& dict) {
 
 	for (RepProcessor *processor : rep_processors)
-		processor->get_affected_signal_ids(dict);
+		processor->set_affected_signal_ids(dict);
 
 }
 
@@ -386,16 +503,23 @@ void MedModel::get_affected_signals(MedDictionarySections& dict) {
 //.......................................................................................
 void MedModel::init_signal_ids(MedDictionarySections& dict) {
 
-	get_affected_signals(dict);
-	get_required_signals(dict);
+	set_affected_signals(dict);
+	set_required_signals(dict);
 
 	for (RepProcessor *processor : rep_processors)
-		processor->get_signal_ids(dict);
+		processor->set_signal_ids(dict);
 
 	for (FeatureGenerator *generator : generators)
-		generator->get_signal_ids(dict);
+		generator->set_signal_ids(dict);
 }
 
+void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+	for (RepProcessor *processor : rep_processors)
+		processor->get_required_signal_names(signalNames);
+
+	for (FeatureGenerator *generator : generators)
+		generator->get_required_signal_names(signalNames);
+}
 //.......................................................................................
 void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string) {
 

@@ -177,11 +177,6 @@ int MedMars::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedMars::preds_per_sample() {
-	return 1;
-}
-
-//..............................................................................
 size_t MedMars::get_size() {
 
 	size_t size = 0;

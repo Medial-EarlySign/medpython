@@ -403,6 +403,7 @@ struct MedQRFParams {
 
 	// Regression
 	float spread;
+	bool keep_all_values; // For quantile regression
 
 	// categorical
 	int min_node;
@@ -412,6 +413,7 @@ struct MedQRFParams {
 
 	// For Prediction
 	int get_count;
+	vector<float> quantiles; // For quantile regression
 };
 
 class MedQRF : public MedPredictor {
@@ -435,8 +437,6 @@ public:
 	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int get_count);
-
-	int preds_per_sample();
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
@@ -520,7 +520,6 @@ public:
 	//void print(FILE *fp, const string& prefix);
 
 	// Predictions per sample
-	int preds_per_sample() { return mic.n_preds_per_sample(); }
 	int n_preds_per_sample() { return mic.n_preds_per_sample(); }
 
 };
@@ -585,8 +584,6 @@ public:
 
 	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
-
-	int preds_per_sample();
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
@@ -864,11 +861,6 @@ int MedPCA(MedMat<float> &x, MedMat<float> &pca_base, vector<float> &varsum);
 
 // returns the projection of the pca base on the first dim dimensions.
 int MedPCA_project(MedMat<float> &x, MedMat<float> &pca_base, int dim, MedMat<float> &projected);
-
-//================================================================
-// Utilities
-//================================================================
-int initialization_text_to_map(const string& text, map<string, string>& init_map);
 
 //================================================================
 // dependent includes

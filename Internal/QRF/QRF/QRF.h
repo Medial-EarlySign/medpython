@@ -30,6 +30,8 @@ enum QRF_TreeType {
 
 #define PREDS_REGRESSION_AVG			0
 #define PREDS_REGRESSION_WEIGHTED_AVG	1
+#define PREDS_REGRESSION_QUANTILE		2
+#define PREDS_REGRESSION_WEIGHTED_QUANTILE		3
 #define PROBS_CATEG_MAJORITY_AVG		0
 #define PROBS_CATEG_AVG_PROBS			1
 #define PROBS_CATEG_AVG_COUNTS			2
@@ -107,6 +109,7 @@ class QRF_ResNode {
 		float pred;
 		int size;
 		vector<int> counts;		// none for regression, 2 for binary, ncateg (defined in QRF_Forest) for categorized case
+		vector<float> values;  // Actual values of learning set in regression learning
 		int majority;			// for categories cases
 
 		size_t serialized_size(int mode);
@@ -200,6 +203,9 @@ class QRF_Forest {
 		int n_categ;			// categories in y must be 0,1,...,n_categ-1 in this case
 		int get_counts_flag;	// how to get results
 		int get_only_this_categ; // in case of categorical model, return only probs for this category in predictions (def is -1: return all)
+
+		bool keep_all_values; // Keep all values in each node in regression mode
+		vector<float> quantiles; // Quantiles to predict in quantile-regression mode
 
 		vector<int> groups;		// if given should be at length nsamples. It maps each sample to a group (for example samples from the same patient at different times)
 								// this is important when we randomize elements to each tree and when we test oob.
