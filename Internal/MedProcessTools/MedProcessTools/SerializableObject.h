@@ -34,18 +34,28 @@ public:
 };
 
 
+
 //
 // To Join the MedSerialize Wagon :
 // (1) include this h file, in your h file
 // (2) implement the get_size, serialize and deserialize functions for your class, you can use MedSerialize functions for that
 // (3) add the following macro for your class
 //
-#define MEDSERIALIZE_SUPPORT(Type)																	\
-namespace MedSerialize {																			\
+#define MEDSERIALIZE_SUPPORT(Type)																					\
+namespace MedSerialize {																							\
 	template<> inline size_t get_size<Type>(Type &elem) { return elem.get_size(); }									\
 	template<> inline size_t serialize<Type>(unsigned char *blob, Type &elem) { return elem.serialize(blob); }		\
-	template<> inline size_t deserialize<Type>(unsigned char *blob, Type &elem) { return elem.deserialize(blob); }		\
+	template<> inline size_t deserialize<Type>(unsigned char *blob, Type &elem) { return elem.deserialize(blob); }	\
 }
+
+// 
+// To add automatic serialization to your class you can use the following macro with the list of the 
+// variables to serialize inside your class. They all should be MedSerialize supported
+//
+#define ADD_SERIALIZATION_FUNCS(...)																\
+	size_t get_size() { return MedSerialize::get_size(__VA_ARGS__); }								\
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, __VA_ARGS__);}		\
+	size_t deserialize(unsigned char *blob) {return MedSerialize::deserialize(blob, __VA_ARGS__);}
 
 #include "SerializableObject_imp.h"
 
