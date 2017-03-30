@@ -87,6 +87,12 @@ float get_Framingham(float age, float total_cholesterol, float hdl, float bp_sys
 // data_mode can be mhs or thin (if left empty it will be detected automatically using the type of the Drug )
 int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_healthy_date, int &first_pre_diabetes_date, int &first_diabetes_date)
 {
+	last_healthy_date = 0;
+	first_pre_diabetes_date = 0;
+	first_diabetes_date = 0;
+
+	int evidence = 0;
+
 	// assumes rep was already loaded with Glucose , HbA1C and Drugs
 
 	if (data_mode == "") {
@@ -100,6 +106,8 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 	SDateVal *glu_sdv = (SDateVal *)rep.get(pid, "Glucose", glu_len);
 	SDateVal *hba1c_sdv = (SDateVal *)rep.get(pid, "HbA1C", hba1c_len);
 
+	if (glu_len == 0 && hba1c_len == 0) return 1;
+
 	vector<vector<int>> events; // vector of triplets <date> <test 0: glu 1: hba1c 2: drugs> <type: 0 - healthy 1 - pre diabetic 2 - diabetic (but need 2 of those) , 3 diabetic even with a signle test>
 
 	int type;
@@ -110,6 +118,7 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 		else if (glu_sdv[i].val <= 125) type = 1;
 		else if (glu_sdv[i].val <= 300) type = 2;
 		else type = 3;
+		if (type > 0) evidence |= 10;
 		events.push_back({ glu_sdv[i].date, 0, type, date_to_days(glu_sdv[i].date) });
 	}
 
@@ -119,6 +128,7 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 		else if (hba1c_sdv[i].val <= 6.4) type = 1;
 		else if (hba1c_sdv[i].val <= 8.5) type = 2;
 		else type = 3;
+		if (type > 0) evidence |= 100;
 		events.push_back({ hba1c_sdv[i].date, 1, type, date_to_days(hba1c_sdv[i].date) });
 	}
 
@@ -138,8 +148,10 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 			if (is_in = rep.dict.is_in_set(section_id, (int)drug_sdv2[i].val, drug_set)) {
 				if (first_date == 0) first_date = drug_sdv2[i].date;
 				sum_days += drug_sdv2[i].val2;
-				if (sum_days > min_days)
+				if (sum_days > min_days) {
+					evidence += 1;
 					break;
+				}
 				MLOG("is_in %d :: %s\n", is_in, rep.dict.name((int)drug_sdv2[i].val).c_str());
 			}
 		}
@@ -154,8 +166,10 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 			if (rep.dict.is_in_set(section_id, (int)drug_sds2[i].val1, drug_set)) {
 				if (first_date == 0) first_date = drug_sds2[i].date;
 				sum_days += drug_sds2[i].val2;
-				if (sum_days > min_days)
+				if (sum_days > min_days) {
+					evidence += 1;
 					break;
+				}
 			}
 		}
 	}
@@ -236,6 +250,7 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 				break;
 	}
 
-	MLOG("Diabetes dates: pid %d healthy %d pre-diabetes %d diabetes %d\n",pid, last_healthy_date, first_pre_diabetes_date, first_diabetes_date);
-	return 0;
+	MLOG("Diabetes dates: pid %d healthy %d pre-diabetes %d diabetes %d evidence %d\n",pid, last_healthy_date, first_pre_diabetes_date, first_diabetes_date, evidence);
+	return 0; // not censored
 }
+
