@@ -68,6 +68,7 @@ class PidRec {
 		inline void *uget(const string &sig_name) { return uget(sig_name, usv); }
 
 
+		int init_from_rep(MedRepository *rep, int pid, vector<int> &sids_to_use);
 
 		// memory alloc & free
 		void prealloc(unsigned int len);

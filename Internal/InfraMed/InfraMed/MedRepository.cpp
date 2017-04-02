@@ -976,7 +976,7 @@ int MedRepository::load(const int sid, vector<int> &pids_to_take)
 	int load_full = 1;
 	if (pids_to_take.size() > 0) load_full = 0;
 
-	if (index.index_table[sid].is_loaded && load_full)
+	if (index.index_table[sid].full_load)
 		return 0; // nothing to do already fully loaded
 
 	if (index.index_table[sid].is_locked)

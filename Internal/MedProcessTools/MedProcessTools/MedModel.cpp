@@ -60,6 +60,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	if (end_stage <= MED_MDL_REP_PROCESSORS)
 		return 0;
+
 	// Learn Feature Generators
 	if (start_stage <= MED_MDL_FTR_GENERATORS) {
 		timer.start();

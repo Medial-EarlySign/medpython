@@ -20,6 +20,8 @@ SampleFilterTypes sample_filter_name_to_type(const string& filter_name) {
 		return SMPL_FILTER_OUTLIERS;
 	else if (filter_name == "match")
 		return SMPL_FILTER_MATCH;
+	else if (filter_name == "required")
+		return SMPL_FILTER_REQ_SIGNAL;
 	else
 		return SMPL_FILTER_LAST;
 }
@@ -48,6 +50,8 @@ SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type) {
 		return new OutlierSampleFilter;
 	else if (filter_type == SMPL_FILTER_MATCH)
 		return new MatchingSampleFilter;
+	else if (filter_type == SMPL_FILTER_REQ_SIGNAL)
+		return new RequiredSignalFilter;
 	else
 		return NULL;
 
@@ -344,6 +348,8 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 //.......................................................................................
 int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
 
+	outSamples.time_unit = inSamples.time_unit;
+
 	// Init helpers
 	if (initHelpers(inSamples, rep) < 0)
 		return -1;
@@ -638,17 +644,17 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 // (De)Serialization
 //.......................................................................................
 size_t MatchingSampleFilter::get_size() {
-	return MedSerialize::get_size(filter_type, matchingStrata, eventToCasePriceRatio, matchMaxRatio);
+	return MedSerialize::get_size(matchingStrata, eventToCasePriceRatio, matchMaxRatio);
 }
 
 //.......................................................................................
 size_t MatchingSampleFilter::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, filter_type, matchingStrata, eventToCasePriceRatio, matchMaxRatio);
+	return MedSerialize::serialize(blob, matchingStrata, eventToCasePriceRatio, matchMaxRatio);
 }
 
 //.......................................................................................
 size_t MatchingSampleFilter::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, filter_type, matchingStrata, eventToCasePriceRatio, matchMaxRatio);
+	return MedSerialize::deserialize(blob, matchingStrata, eventToCasePriceRatio, matchMaxRatio);
 }
 
 // (De)Serialization of matchingParams
@@ -665,4 +671,100 @@ size_t matchingParams::serialize(unsigned char *blob) {
 //.......................................................................................
 size_t matchingParams::deserialize(unsigned char *blob) {
 	return MedSerialize::deserialize(blob, match_type, signalName, timeWindow, matchingTimeUnit, resolution);
+}
+
+//=======================================================================================
+// RequiredSignalFilter
+//=======================================================================================
+
+// Init
+//.......................................................................................
+int RequiredSignalFilter::init(map<string, string>& mapper) {
+
+	vector<string> strata;
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "signalName") signalName = entry.second;
+		else if (field == "timeWindow") timeWindow = stof(entry.second);
+		else if (field == "timeUnit") windowTimeUnit = med_time_converter.string_to_type(entry.second);
+		else
+			MLOG("Unknonw parameter \'%s\' for RequiredSampleFilter\n", field.c_str());
+	}
+
+	return 0;
+}
+
+//.......................................................................................
+void RequiredSignalFilter::init_defaults() {
+
+	timeWindow = 0;
+	windowTimeUnit = med_rep_type.windowTimeUnit;
+}
+
+
+// Filter
+//.......................................................................................
+int RequiredSignalFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
+
+	outSamples.time_unit = inSamples.time_unit;
+
+	int signalId = rep.dict.id(signalName);
+	int signalTimeUnit = rep.sigs.Sid2Info[signalId].time_unit;
+
+	UniversalSigVec usv;
+	for (auto& idSamples : inSamples.idSamples) {
+		MedIdSamples outIdSamples(idSamples.id);
+		
+		rep.uget(idSamples.id, signalId, usv);
+		int idx = 0;
+		for (auto& sample : idSamples.samples) {
+
+			int target = med_time_converter.convert_times(inSamples.time_unit, windowTimeUnit, sample.time);
+			int maxTime = med_time_converter.convert_times(inSamples.time_unit, signalTimeUnit, sample.time);
+			int minTime = med_time_converter.convert_times(windowTimeUnit, signalTimeUnit, target - timeWindow);
+			//	MLOG("units = %d/%d/%d time = %d Target = %d min = %d\n", samplesTimeUnit, stratum.signalTimeUnit, stratum.windowTimeUnit, sample.time, maxTime, minTime);
+
+			while (idx < usv.len) {
+				if (usv.Time(idx) == maxTime) {
+					outIdSamples.samples.push_back(sample);
+					break;
+				}
+				else if (usv.Time(idx) > maxTime) {
+					if (idx > 0 && usv.Time(idx - 1) >= minTime)
+						outIdSamples.samples.push_back(sample);
+					break;
+				}
+				idx++;
+			}
+		}
+
+		if (!outIdSamples.samples.empty())
+			outSamples.idSamples.push_back(outIdSamples);
+	}
+
+	return 0;
+}
+
+//.......................................................................................
+int RequiredSignalFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) { 
+	MERR("A repository is required for Required-Signal Filter\n"); 
+	return -1; 
+}
+
+// (De)Serialization
+//.......................................................................................
+size_t RequiredSignalFilter::get_size() {
+	return MedSerialize::get_size(signalName,timeWindow,windowTimeUnit);
+}
+
+//.......................................................................................
+size_t RequiredSignalFilter::serialize(unsigned char *blob) {
+	return MedSerialize::serialize(blob, signalName, timeWindow, windowTimeUnit);
+}
+
+//.......................................................................................
+size_t RequiredSignalFilter::deserialize(unsigned char *blob) {
+	return MedSerialize::deserialize(blob, signalName, timeWindow, windowTimeUnit);
 }

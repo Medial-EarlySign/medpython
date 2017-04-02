@@ -57,5 +57,5 @@ template <class T> int read_vector(const string &fname, unsigned long long start
 //-----------------------------------------------------------------------------
 template <class T> int read_vector(const string &fname, vector<T> &data)
 {
-	return(read_vector(fname,data,0));
+	return(read_vector(fname,0,data));
 }

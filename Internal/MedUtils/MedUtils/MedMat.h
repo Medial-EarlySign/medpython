@@ -116,7 +116,8 @@ class MedMat {
 		int read_from_bin_file(const string &fname);
 		int write_to_bin_file(const string &fname);
 		int write_to_csv_file(const string &fname);
-		int read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out);
+		int read_from_csv_file(const string &fname, int titles_line_flag);
+		//int read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out);
 
 		// serialize(), deserialize()
 		size_t get_size();
