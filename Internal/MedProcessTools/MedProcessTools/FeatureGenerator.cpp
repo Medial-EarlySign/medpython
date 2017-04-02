@@ -2,6 +2,7 @@
 
 #include "FeatureGenerator.h"
 #include "DoCalcFeatGenerator.h"
+#include "SmokingGenerator.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -24,6 +25,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "do_calc")
 		return FTR_GEN_DO_CALC;
+	else if (generator_name == "smoking")
+		return FTR_GEN_SMOKING;
 	else MTHROW_AND_ERR(string("unknown generator name [") + generator_name + "]");
 }
 
@@ -76,6 +79,9 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_DO_CALC)
 		return new DoCalcFeatGenerator;
+	else if (generator_type == FTR_GEN_SMOKING)
+		return new SmokingGenerator;
+
 	else throw runtime_error(string("dont know how to make_generator for [") + to_string(generator_type) + "]");
 }
 
