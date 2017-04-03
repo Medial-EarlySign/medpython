@@ -1,0 +1,29 @@
+#pragma once
+#include "FeatureGenerator.h"
+
+class SmokingGenerator : public FeatureGenerator {
+public:
+
+	// Constructor/Destructor
+	SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; req_signals.assign(1, "SMOKING_ENRICHED"); }
+	~SmokingGenerator() {};
+
+	// Name
+	void set_names();
+
+	// Learn a generator
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+
+	// generate a new feature
+	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Signal Ids
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
+
+	// Serialization
+	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names); }
+};
+
+MEDSERIALIZE_SUPPORT(SmokingGenerator);
