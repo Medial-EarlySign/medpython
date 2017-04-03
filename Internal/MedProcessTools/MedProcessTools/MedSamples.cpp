@@ -188,8 +188,8 @@ int MedSamples::read_from_file(const string &fname)
 					assert(fields[1] == "id");
 					assert(fields[2] == "time");
 					assert(fields[3] == "outcome");
-					assert(fields[4] == "outcomeLength");
-					assert(fields[5] == "outcomeTime");
+					//assert(fields[4] == "outcomeLength");
+					//assert(fields[5] == "outcomeTime");
 					//assert(fields[6] == "split");
 					//assert(fields[7] == "prediction");
 				}
