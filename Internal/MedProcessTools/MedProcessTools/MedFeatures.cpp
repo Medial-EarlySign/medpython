@@ -33,8 +33,14 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 
 #pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<(int)datap.size(); i++) {
-		for (int j = 0; j < nrows; j++)
+		for (int j = 0; j < nrows; j++) {
+			if (!isfinite(datap[i][j])) {
+				vector<string> fnames;
+				get_feature_names(fnames);
+				MTHROW_AND_ERR(string("nan in col [") + fnames[i] + "] in record [" + to_string(j) + "]");
+			}
 			mat(j, i) = datap[i][j];
+		}
 	}
 
 	// Normalization flag
