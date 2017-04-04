@@ -133,8 +133,7 @@ void MedSamples::get_preds(vector<float>& preds) {
 void MedSamples::get_y(vector<float>& y) {
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
-			for (int i = 0; i < sample.prediction.size(); i++)
-				y.push_back(sample.outcome);
+			y.push_back(sample.outcome);
 }
 
 //.......................................................................................
