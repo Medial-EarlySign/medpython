@@ -65,4 +65,6 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		features.data[names[4]][index + i] = (float)pack_years;
 
 	}
+
+	return 0;
 }
