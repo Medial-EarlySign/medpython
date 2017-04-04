@@ -168,7 +168,7 @@ int MedSamples::read_from_file(const string &fname)
 	int samples = 0;
 	idSamples.clear();
 	int curr_id = -1;
-
+	unordered_set<int> seen_ids;
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -195,7 +195,10 @@ int MedSamples::read_from_file(const string &fname)
 				}
 				MedSample sample;
 				if (sample.parse_from_string(curr_line) >= 0) {
-					if (sample.id > curr_id) {
+					if (sample.id != curr_id) {
+						if (seen_ids.find(sample.id) != seen_ids.end())
+							MTHROW_AND_ERR(string("Sample id [") + to_string(sample.id) + "] records are not consecutive");
+						seen_ids.insert(sample.id);
 						// new idSample
 						MedIdSamples mis;
 						mis.id = sample.id;
@@ -210,13 +213,7 @@ int MedSamples::read_from_file(const string &fname)
 							MERR("Got conflicting split : %d,%d vs. %d,%d\n", idSamples.back().id, idSamples.back().split, sample.id, sample.split);
 							return -1;
 						}
-
 						idSamples.back().samples.push_back(sample);
-					}
-					else {
-						// error - ids must grow
-						MERR("Id %d appears not consecutively (prev is %d)\n", sample.id, curr_id);
-						return -1;
 					}
 					samples++;
 				}
@@ -224,8 +221,16 @@ int MedSamples::read_from_file(const string &fname)
 		}
 	}
 	MLOG("read [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
+	sort_by_id_date();
 	inf.close();
 	return 0;
+}
+
+void MedSamples::sort_by_id_date() {
+	MLOG("sorting samples by id, date\n");
+	sort(idSamples.begin(), idSamples.end(), comp_patient_id_time);
+	for (auto& pat : idSamples)
+		sort(pat.samples.begin(), pat.samples.end(), comp_sample_id_time);
 }
 
 //.......................................................................................

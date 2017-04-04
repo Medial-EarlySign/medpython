@@ -67,6 +67,10 @@ public:
 
 };
 
+inline bool comp_patient_id_time(const MedIdSamples &pr1, const MedIdSamples &pr2) {
+	return pr1.id < pr2.id;
+}
+
 // A collection of ids and relevant samples
 class MedSamples : public SerializableObject {
 public:
@@ -93,6 +97,8 @@ public:
 	void get_preds(vector<float>& preds);
 	void get_y(vector<float>& y);
 	void get_categs(vector<float> &categs); // gets a list of all categories appearing in the outcome
+
+	void sort_by_id_date(); 
 
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples);
 
