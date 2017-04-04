@@ -225,6 +225,8 @@ int FeatureBasicOutlierCleaner::iterativeLearn(MedFeatures& features, unordered_
 	get_all_values(features, feature_name, ids, values);
 
 	// Get bounds
+	if (values.size() == 0)
+		MWARN("EMPTY_VECTOR:: feature [%s] has 0 values\n", feature_name.c_str());
 	int rc = get_iterative_min_max(values);
 
 	return rc;
@@ -318,6 +320,8 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Attribute
 	features.attributes[feature_name].normalized = true;
+	if (fillMissing)
+		features.attributes[feature_name].imputed = true;
 
 	// Clean
 	bool empty = ids.empty();
@@ -465,6 +469,8 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Attribute
+	features.attributes[feature_name].imputed = true;
+
 
 	// Impute
 	imputerStrata.getFactors();
