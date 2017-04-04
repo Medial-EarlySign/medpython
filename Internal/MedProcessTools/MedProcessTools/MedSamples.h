@@ -63,6 +63,7 @@ public:
 	MedIdSamples(int _id) { id = _id; split = -1; samples.clear(); }
 	MedIdSamples() { id = -1; split = -1; samples.clear(); }
 	
+	void set_split(int _split) { split = _split; for (auto& s : samples) s.split = _split; }
 	ADD_SERIALIZATION_FUNCS(id, split, samples);
 
 };
