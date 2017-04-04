@@ -39,6 +39,17 @@ public:
 	void print() { print(""); }
 };
 
+inline bool comp_sample_pred(const MedSample &pr1, const MedSample &pr2) {
+	return pr1.prediction[0] < pr2.prediction[0];
+}
+
+inline bool comp_sample_id_time(const MedSample &pr1, const MedSample &pr2) {
+	if (pr1.id == pr2.id)
+		return pr1.time < pr2.time;
+	else
+		return pr1.id < pr2.id;
+}
+
 // A collection of samples of a given id
 class MedIdSamples {
 public:
