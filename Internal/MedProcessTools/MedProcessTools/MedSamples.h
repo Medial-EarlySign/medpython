@@ -20,23 +20,25 @@ class MedFeatures;
 // A single sample
 class MedSample : public SerializableObject {
 public:
-	int id; // Optional
-	int time;
-	float outcome;
+	int id = -1;		// Optional
+	int split = -1;	// Optional
+	int time = 0;
+	float outcome = 0;
+	int outcomeTime = 0;
 	vector<float> prediction;
-	int outcomeTime;
 
 	MedSample() { prediction.clear(); }
 	~MedSample() { prediction.clear(); }
 
-	// (De)Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction);
 
 	// print
 	void print(const string prefix);
 	void print() { print(""); }
+
+	// parsing
+	int parse_from_string(string &s);
+	int write_to_string(string &s);
 };
 
 inline bool comp_sample_pred(const MedSample &pr1, const MedSample &pr2) {
@@ -51,45 +53,48 @@ inline bool comp_sample_id_time(const MedSample &pr1, const MedSample &pr2) {
 }
 
 // A collection of samples of a given id
-class MedIdSamples {
+class MedIdSamples : public SerializableObject {
 public:
-	int id;
-	int split;
+	int id = -1;
+	int split = -1;
 	vector<MedSample> samples;
 
 	// Constructors
 	MedIdSamples(int _id) { id = _id; split = -1; samples.clear(); }
 	MedIdSamples() { id = -1; split = -1; samples.clear(); }
 	
-	// De(Serialize)
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(id, split, samples);
 
 };
 
 // A collection of ids and relevant samples
-class MedSamples {
+class MedSamples : public SerializableObject {
 public:
-	int time_unit; // the time unit in which the samples are given. Default: Days
+	int time_unit = MedTime::Date; // the time unit in which the samples are given. Default: Date
 	vector<MedIdSamples> idSamples;
-
 
 	// Constructor
 	MedSamples() { time_unit = med_rep_type.basicTimeUnit; }
+
+	void clear() { time_unit = MedTime::Date; idSamples.clear(); }
 	// Functions
 	int insert_preds(MedFeatures& featuresData);
 	void get_ids(vector<int>& ids);
 	void append(MedSamples& newSamples) { idSamples.insert(idSamples.end(), newSamples.idSamples.begin(), newSamples.idSamples.end()); }
+
+	// bin file
+	int read_from_bin_file(const string& file_name) { return SerializableObject::read_from_file(file_name); }
+	int write_to_bin_file(const string& file_name) { return SerializableObject::write_to_file(file_name); }
+
+	// text file - default option to read/write samples
 	int read_from_file(const string& file_name);
 	int write_to_file(const string &fname);
+
 	void get_preds(vector<float>& preds);
 	void get_y(vector<float>& y);
+	void get_categs(vector<float> &categs); // gets a list of all categories appearing in the outcome
 
-	// De(Serialize)
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(time_unit, idSamples);
 
 };
 

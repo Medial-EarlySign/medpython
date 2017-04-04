@@ -92,4 +92,6 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 			else MTHROW_AND_ERR(string("unknown feature name [" + raw_feature_names[j] + "]"));
 		}
 	}
+
+	return 0;
 }

@@ -6,7 +6,7 @@ namespace MedSerialize {
 	//========================================================================================
 	// FUNCTION FROM BELOW THAT IMPLEMENT AN STD CONTAINER (map, vector, etc) 
 	// MUST BE PRE DECLARED HERE BEFORE THE IMPLEMENTATION
-	// TO MAKE SURE THE CORRECT RECURSIVE REVOLVING IS DONE
+	// TO MAKE SURE THE CORRECT RECURSIVE RESOLVING IS DONE
 	// (simple, string & variadic need not - and will create a compilation error)
 	//========================================================================================
 

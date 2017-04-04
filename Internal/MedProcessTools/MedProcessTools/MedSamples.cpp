@@ -8,26 +8,75 @@
 //=======================================================================================
 // MedSample
 //=======================================================================================
-// (De)Serialization
 
 //.......................................................................................
-size_t MedSample::get_size() {
-	return MedSerialize::get_size(id, time, outcomeTime, outcome, prediction);
+int MedSample::parse_from_string(string &s)
+{
+	vector<string> fields;
+	boost::split(fields, s, boost::is_any_of("\t"));
+
+	// old format is starting with EVENT
+	// new format is starting with SAMPLE
+	prediction.clear();
+
+	// old format:
+	// EVENT <id> <time> <outcome> <outcomeLen(dummy here)> <outcomeTime> <split> <predictions>
+	// <split> and <prediction> optional
+	// <predictions> can be several numbers (tab delimited)
+	if (fields[0] == "EVENT") {
+		if (fields.size() < 6) return -1;
+		id = stoi(fields[1]);
+		time = stoi(fields[2]);
+		outcome = stof(fields[3]);
+		int dummy_length = stoi(fields[4]);
+		outcomeTime = stoi(fields[5]);
+		if (fields.size() >= 7)
+			split = stoi(fields[6]);
+		if (fields.size() >= 8) {
+			for (int i=7; i<fields.size(); i++)
+				prediction.push_back(stof(fields[i]));
+		}
+		return 0;
+	}
+
+	// new format:
+	// SAMPLE <id> <time> <outcome> <outcomeTime> <split> <predictions>
+	// <split> and <prediction> optional
+	// <predictions> can be several numbers (tab delimited)
+	if (fields[0] == "SAMPLE") {
+		if (fields.size() < 5) return -1;
+		id = stoi(fields[1]);
+		time = stoi(fields[2]);
+		outcome = stof(fields[3]);
+		outcomeTime = stoi(fields[4]);
+		if (fields.size() >= 6)
+			split = stoi(fields[5]);
+		if (fields.size() >= 7) {
+			for (int i=6; i<fields.size(); i++)
+				prediction.push_back(stof(fields[i]));
+		}
+		return 0;
+	}
+
+	return -1;
+
 }
 
 //.......................................................................................
-size_t MedSample::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, id, time, outcomeTime, outcome, prediction);
-}
-
-//.......................................................................................
-size_t MedSample::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, id, time, outcomeTime, outcome, prediction);
+int MedSample::write_to_string(string &s)
+{
+	s = "";
+	s += "SAMPLE\t" + to_string(id) + "\t" + to_string(time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
+	s += "\t" + to_string(split);
+	for (auto p : prediction)
+		s += "\t" + to_string(p);
+	s += "\n";
+	return 0;
 }
 
 //.......................................................................................
 void MedSample::print(const string prefix) {
-	MLOG("%s :: id %d time %d outcomeTime %d outcome %f prediction(%d)", prefix.c_str(), id, time, outcomeTime, outcome, prediction.size());
+	MLOG("%s :: id %d time %d outcomeTime %d outcome %f split %d prediction(%d)", prefix.c_str(), id, time, outcomeTime, outcome, split, prediction.size());
 	if (prediction.size() > 0)
 		for (auto pred : prediction)
 			MLOG(" %f", pred);
@@ -37,21 +86,7 @@ void MedSample::print(const string prefix) {
 //=======================================================================================
 // MedIdSample
 //=======================================================================================
-// De(Serialize)
-//.......................................................................................
-size_t MedIdSamples::get_size() {
-	return MedSerialize::get_size(id, split, samples);
-}
 
-//.......................................................................................
-size_t MedIdSamples::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, id, split, samples);
-}
-
-//.......................................................................................
-size_t MedIdSamples::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, id, split, samples);
-}
 
 //=======================================================================================
 // MedSamples
@@ -86,6 +121,7 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 }
 
+//.......................................................................................
 void MedSamples::get_preds(vector<float>& preds) {
 	for (auto& idSample : idSamples) 
 		for (auto& sample : idSample.samples) 
@@ -93,11 +129,27 @@ void MedSamples::get_preds(vector<float>& preds) {
 				preds.push_back(sample.prediction[i]);
 }
 
+//.......................................................................................
 void MedSamples::get_y(vector<float>& y) {
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
 			for (int i = 0; i < sample.prediction.size(); i++)
 				y.push_back(sample.outcome);
+}
+
+//.......................................................................................
+void MedSamples::get_categs(vector<float>& categs) 
+{
+	map<float, int> categ_inside;
+	categs.clear();
+
+	for (auto &id : idSamples)
+		for (auto &rec : id.samples)
+			categ_inside[rec.outcome] = 1;
+	
+	for (auto &it : categ_inside)
+		categs.push_back(it.first);
+
 }
 
 //-------------------------------------------------------------------------------------------
@@ -112,13 +164,14 @@ int MedSamples::read_from_file(const string &fname)
 	}
 
 	string curr_line;
-	unordered_set<int> allIds;
 
 	int samples = 0;
+	idSamples.clear();
+	int curr_id = -1;
+
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
-
 			if (curr_line[curr_line.size() - 1] == '\r')
 				curr_line.erase(curr_line.size() - 1);
 
@@ -135,36 +188,34 @@ int MedSamples::read_from_file(const string &fname)
 					assert(fields[1] == "id");
 					assert(fields[2] == "time");
 					assert(fields[3] == "outcome");
-					assert(fields[4] == "outcomeLength");
-					assert(fields[5] == "outcomeTime");
-					assert(fields[6] == "split");
-					assert(fields[7] == "prediction");
+					//assert(fields[4] == "outcomeLength");
+					//assert(fields[5] == "outcomeTime");
+					//assert(fields[6] == "split");
+					//assert(fields[7] == "prediction");
 				}
-				if (fields[0] == "EVENT" && fields.size() >= 4) {
-					//MLOG("-->### %s %s (%d)\n",fields[0].c_str(),fields[1].c_str(),out.size());
-					MedSample sample;
-					int id = sample.id = stoi(fields[1]);
-					sample.time = stoi(fields[2]);
-					sample.outcome = stof(fields[3]);
-					int split = -1;
-					if (fields.size() > 5) 
-						sample.outcomeTime = stoi(fields[5]);
-					if (fields.size() > 6)
-						split = stoi(fields[6]);
-					if (fields.size() > 7)
-						sample.prediction.push_back(stof(fields[7]));
-
-					if (idSamples.empty() || (id != idSamples.back().id && allIds.find(id) == allIds.end())) {
-						MedIdSamples newIdSamples(id);
-						newIdSamples.samples.push_back(sample);
-						idSamples.push_back(newIdSamples);
-						allIds.insert(id);
+				MedSample sample;
+				if (sample.parse_from_string(curr_line) >= 0) {
+					if (sample.id > curr_id) {
+						// new idSample
+						MedIdSamples mis;
+						mis.id = sample.id;
+						mis.split = sample.split;
+						mis.samples.push_back(sample);
+						curr_id = sample.id;
+						idSamples.push_back(mis);
 					}
-					else if (id == idSamples.back().id) {
+					else if (sample.id == curr_id) {
+						// another sample for the current MedIdSamples
+						if (idSamples.back().id != sample.id || idSamples.back().split != sample.split) {
+							MERR("Got conflicting split : %d,%d vs. %d,%d\n", idSamples.back().id, idSamples.back().split, sample.id, sample.split);
+							return -1;
+						}
+
 						idSamples.back().samples.push_back(sample);
 					}
 					else {
-						MERR("Id %d appears not consecutively\n", id);
+						// error - ids must grow
+						MERR("Id %d appears not consecutively (prev is %d)\n", sample.id, curr_id);
 						return -1;
 					}
 					samples++;
@@ -177,6 +228,7 @@ int MedSamples::read_from_file(const string &fname)
 	return 0;
 }
 
+//.......................................................................................
 int MedSamples::write_to_file(const string &fname)
 {
 	ofstream of(fname);
@@ -188,14 +240,18 @@ int MedSamples::write_to_file(const string &fname)
 	}
 	int samples = 0;
 
-	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeLength" <<
-		'\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
+	//of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeLength" <<
+	//	'\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
+	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
 
 	for (auto &s: idSamples) {
 		for (auto ss : s.samples) {
 			samples++;
-			of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
-				ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
+			string sout;
+			ss.write_to_string(sout);
+			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
+			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
+			of << sout;
 		}
 	}
 
@@ -203,21 +259,3 @@ int MedSamples::write_to_file(const string &fname)
 	of.close();
 	return 0;
 }
-
-// De(Serialize)
-//.......................................................................................
-size_t MedSamples::get_size() {
-	return MedSerialize::get_size(time_unit, idSamples);
-}
-
-//.......................................................................................
-size_t MedSamples::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, time_unit, idSamples);
-}
-
-//.......................................................................................
-size_t MedSamples::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, time_unit, idSamples);
-}
-
-
