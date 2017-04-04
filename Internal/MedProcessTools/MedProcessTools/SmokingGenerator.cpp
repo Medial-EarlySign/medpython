@@ -1,10 +1,31 @@
 #include "SmokingGenerator.h"
 
+#define LOCAL_SECTION LOG_FTRGNRTR
+#define LOCAL_LEVEL	LOG_DEF_LEVEL
+
 void SmokingGenerator::set_names() {
-	if (!names.empty())
-		return;
-	for (string s : {"Current_Smoker", "Ex_Smoker", "Smok_Years_Since_Quitting", "Smoking_Years", "Smok_Pack_Years"})
-		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);	
+	names.clear();
+	unordered_set<string> legal_features({ "Current_Smoker", "Ex_Smoker", "Smok_Years_Since_Quitting", "Smoking_Years", "Smok_Pack_Years" });
+	if (raw_feature_names.size() == 0)
+		MTHROW_AND_ERR(string("SmokingGenerator got no smoking_features"));
+	for (string s : raw_feature_names) {
+		if (legal_features.find(s) == legal_features.end())
+			MTHROW_AND_ERR(string("SmokingGenerator does not know how to generate [") + s + "]");
+		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
+	}
+}
+
+int SmokingGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "smoking_features")
+			split(raw_feature_names, entry.second, boost::is_any_of(","));
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for SmokingGenerator\n", field.c_str());
+	}
+	set_names();
+	return 0;
 }
 
 int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
@@ -57,12 +78,18 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 			pack_years = ((float)smx_status[0].val3 / 20) * smoking_years;
 			ex_smoker = 1 - current_smoker;
 		}
-
-		features.data[names[0]][index + i] = (float)current_smoker; 
-		features.data[names[1]][index + i] = (float)ex_smoker;
-		features.data[names[2]][index + i] = (float)years_since_quitting;
-		features.data[names[3]][index + i] = (float)smoking_years;
-		features.data[names[4]][index + i] = (float)pack_years;
-
+		for (int j = 0; j < raw_feature_names.size(); j++) {			
+			if (raw_feature_names[j] == "Current_Smoker")
+				features.data[names[j]][index + i] = (float)current_smoker;
+			else if (raw_feature_names[j] == "Ex_Smoker")
+				features.data[names[j]][index + i] = (float)ex_smoker;
+			else if (raw_feature_names[j] == "Smok_Years_Since_Quitting")
+				features.data[names[j]][index + i] = (float)years_since_quitting;
+			else if (raw_feature_names[j] == "Smoking_Years")
+				features.data[names[j]][index + i] = (float)smoking_years;
+			else if (raw_feature_names[j] == "Smok_Pack_Years")
+				features.data[names[j]][index + i] = (float)pack_years;
+			else MTHROW_AND_ERR(string("unknown feature name [" + raw_feature_names[j] + "]"));
+		}
 	}
 }
