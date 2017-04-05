@@ -129,6 +129,11 @@ int get_moments(vector<float>& values, vector<float>& wgts, float missing_value,
 			s += values[i];
 		}
 	}
+	if (n == 0) {
+		mean = 0;
+		sd = 1.0;
+		return 0;
+	}
 
 	mean = (float)(s / n);
 

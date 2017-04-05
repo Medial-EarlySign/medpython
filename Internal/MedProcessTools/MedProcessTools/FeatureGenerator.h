@@ -29,6 +29,7 @@ typedef enum {
 	FTR_GEN_GENDER,
 	FTR_GEN_BINNED_LM,
 	FTR_GEN_DO_CALC,
+	FTR_GEN_SMOKING,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
