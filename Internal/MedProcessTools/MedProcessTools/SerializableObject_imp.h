@@ -3,10 +3,26 @@
 
 namespace MedSerialize {
 
-	
+	//========================================================================================
+	// FUNCTION FROM BELOW THAT IMPLEMENT AN STD CONTAINER (map, vector, etc) 
+	// MUST BE PRE DECLARED HERE BEFORE THE IMPLEMENTATION
+	// TO MAKE SURE THE CORRECT RECURSIVE REVOLVING IS DONE
+	// (simple, string & variadic need not - and will create a compilation error)
+	//========================================================================================
+
+	template<class T>  size_t get_size(vector<T> &v);
+	template <class T> size_t serialize(unsigned char *blob, vector<T> &v);
+	template <class T> size_t deserialize(unsigned char *blob, vector<T> &v);
+	template <class T, class S> size_t get_size(map<T, S> &v);
+	template <class T, class S> size_t serialize(unsigned char *blob, map<T, S> &v);
+	template <class T, class S> size_t deserialize(unsigned char *blob, map<T, S> &v);
 	template <class T> size_t get_size(unordered_set<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, unordered_set<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, unordered_set<T> &v);
+
+	//========================================================================================
+	// IMPLEMANTATIONS 
+	//========================================================================================
 
 	//.........................................................................................
 	// templated simple ones : int, float, long, double, etc...
@@ -202,7 +218,7 @@ namespace MedSerialize {
 
 	
 	//.........................................................................................
-	// Wrappers to call several elements is a single line
+	// Variadic Wrappers to call several elements is a single line
 	//.........................................................................................
 	template <class T, class... Ts> size_t get_size(T& elem, Ts&... args)
 	{

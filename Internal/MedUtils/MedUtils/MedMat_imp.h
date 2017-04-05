@@ -535,7 +535,8 @@ template <class T> int MedMat<T>::write_to_bin_file(const string &fname)
 //...........................................................................................
 // expected format for titles line: id, date, time, split, weight, <signals>, label, pred
 // if no titles line, then only the naked matrix is expected
-template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out)
+//template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out)
+template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int titles_line_flag)
 {
 	if (!file_exists(fname)) {
 		fprintf(stderr, "File %s doesn't exist\n",fname.c_str());
@@ -596,7 +597,7 @@ template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int ti
 		}
 		vector<T> new_row(ncols);
 		for (int i = 0; i < ncols; i++)
-			new_row[i] = stof(fields[i + METADATA_COLUMNS_PREFIX]);
+			new_row[i] = (T)stof(fields[i + METADATA_COLUMNS_PREFIX]);
 		add_rows(new_row);		
 	}
 
