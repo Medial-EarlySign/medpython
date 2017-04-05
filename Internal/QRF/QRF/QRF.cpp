@@ -2182,9 +2182,11 @@ void get_score_thread(void *p)
 							tp->res[i*n_quantiles + k] = values[(int)(values.size()*(*quantiles)[k])].first;
 					}
 				} else {
-					// Get Weighted Quantiles
+					// Get Weighted Quantiles (quantiles are order
 					double totWeight = (double)(*(tp->trees)).size();
+					float currWeight = 0;
 
+					unsigned int idx = 0;
 					for (int k = 0; k < n_quantiles; k++) {
 						float q = (*quantiles)[k];
 						if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
@@ -2193,9 +2195,6 @@ void get_score_thread(void *p)
 							tp->res[i*n_quantiles + k] = (float)values.size();
 						else {
 							float targetWeight = totWeight * q;
-
-							float currWeight = 0;
-							unsigned int idx = 0;
 
 							while (currWeight <= targetWeight && idx < values.size()) {
 								currWeight += values[idx].second;
@@ -2228,7 +2227,17 @@ void QRF_Forest::score_with_threads(float *x,  int nfeat, int nsamples, float *r
 {
 	vector<qrf_scoring_thread_params> stp;
 
-	get_scoring_thread_params(stp,&qtrees,res,nsamples,nfeat,x,nthreads,mode,n_categ,get_counts_flag,&quantiles);
+	// order quantilers (keeping original order)
+	vector<pair<float, int>> indexd_quantiles(quantiles.size());
+	vector<float> sorted_quantiles(quantiles.size());
+
+	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+		for (unsigned int i = 0; i < quantiles.size(); i++) indexd_quantiles[i] = { quantiles[i],i };
+		sort(indexd_quantiles.begin(), indexd_quantiles.end(), [](const pair<float, int> &v1, const pair<float, int> &v2) {return v1.first < v2.first; });
+		for (unsigned int i = 0; i < quantiles.size(); i++) sorted_quantiles[i] = indexd_quantiles[i].first;
+	}
+
+	get_scoring_thread_params(stp,&qtrees,res,nsamples,nfeat,x,nthreads,mode,n_categ,get_counts_flag,&sorted_quantiles);
 	vector<thread> th_handle(nthreads);
 	for (int i=0; i<nthreads; i++) {
 		th_handle[i] = thread(get_score_thread, (void *)&stp[i]);
@@ -2243,6 +2252,18 @@ void QRF_Forest::score_with_threads(float *x,  int nfeat, int nsamples, float *r
 	}
 	for (int i=0; i<nthreads; i++)
 		th_handle[i].join();
+
+	// Reorderd quantiles to original orderd.diff 
+	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+		int nquantiles = (int)quantiles.size();
+		vector<float> tempRes(nsamples*nquantiles);
+		for (int i = 0; i < nsamples; i++) {
+			for (int j = 0; j < nquantiles; j++)
+				tempRes[i*nquantiles + indexd_quantiles[j].second] = res[i*nquantiles + j];
+		}
+		memcpy(res, &(tempRes[0]), nquantiles*nsamples*sizeof(float));
+	}
+
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
