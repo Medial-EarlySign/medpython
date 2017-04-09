@@ -21,9 +21,9 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	if (pos["date"] != -1)
 		time = stoi(fields[pos["time"]]);
 	if (pos["outcome"] != -1)
-		outcome = stoi(fields[pos["outcome"]]);
+		outcome = stof(fields[pos["outcome"]]);
 	if (pos["outcome_date"] != -1)
-		outcome = stoi(fields[pos["outcome_date"]]);
+		outcomeTime = stoi(fields[pos["outcome_date"]]);
 	if (pos["split"] != -1)
 		split = stoi(fields[pos["split"]]);
 	if (pos["pred"] != -1)
@@ -201,6 +201,8 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 		if (e.second == -1)
 			MWARN("WARNING: header line does not contain [%s]\n", e.first.c_str());
 		else MLOG("header line contains [%s] at column [%d]\n", e.first.c_str(), e.second);
+
+	return 0;
 }
 
 //-------------------------------------------------------------------------------------------
