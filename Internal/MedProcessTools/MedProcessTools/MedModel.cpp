@@ -9,6 +9,8 @@
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+#define CHECK_CRC 0
+
 using namespace boost::property_tree;
 //=======================================================================================
 // MedModel
@@ -83,7 +85,10 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 		return -1;
 	}
 	timer.take_curr_time();
-	MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+	if (CHECK_CRC)
+		MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+	else
+		MLOG("MedModel::learn() : generating learn matrix time %g ms\n", timer.diff_milisec());
 	// Learn Feature processors and apply
 	if (start_stage <= MED_MDL_FTR_PROCESSORS) {
 		timer.start();
@@ -92,7 +97,10 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 			return -1;
 		}
 		timer.take_curr_time();
-		MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+		if (CHECK_CRC)
+			MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+		else
+			MLOG("MedModel::learn() : feature processing learn and apply time %g ms\n", timer.diff_milisec());
 	}
 	else {
 		// Just apply feature processors
@@ -102,7 +110,10 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 			return -1;
 		}
 		timer.take_curr_time();
-		MLOG("MedModel::learn() : feature processing time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+		if (CHECK_CRC)
+			MLOG("MedModel::learn() : feature processing time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+		else
+			MLOG("MedModel::learn() : feature processing time %g ms\n", timer.diff_milisec());
 	}
 	if (end_stage <= MED_MDL_FTR_PROCESSORS)
 		return 0;
@@ -244,7 +255,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		// Generate Features
 		for (auto& generator : _generators)
 			if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-#pragma omp critical 
+//#pragma omp critical 
 		if (rc < 0) RC = -1;
 	}
 	return RC;
