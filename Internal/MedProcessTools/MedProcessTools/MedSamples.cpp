@@ -9,6 +9,28 @@
 // MedSample
 //=======================================================================================
 
+int MedSample::parse_from_string(string &s, map <string, int> & pos) {
+	if (pos.size() == 0)
+		return parse_from_string(s);
+	vector<string> fields; 
+	if (fields.size() == 0)
+		return -1;
+	boost::split(fields, s, boost::is_any_of("\t"));
+	if (pos["id"] != -1)
+		id = stoi(fields[pos["id"]]);
+	if (pos["date"] != -1)
+		time = stoi(fields[pos["time"]]);
+	if (pos["outcome"] != -1)
+		outcome = stoi(fields[pos["outcome"]]);
+	if (pos["outcome_date"] != -1)
+		outcome = stoi(fields[pos["outcome_date"]]);
+	if (pos["split"] != -1)
+		split = stoi(fields[pos["split"]]);
+	if (pos["pred"] != -1)
+		prediction.push_back(stof(fields[pos["pred"]]));
+	return 0;
+}
+
 //.......................................................................................
 int MedSample::parse_from_string(string &s)
 {
@@ -151,6 +173,36 @@ void MedSamples::get_categs(vector<float>& categs)
 
 }
 
+int extract_field_pos_from_header(vector<string> field_names, map <string, int> & pos) {
+
+	pos["id"] = -1;
+	pos["date"] = -1;
+	pos["outcome"] = -1;
+	pos["outcome_date"] = -1;
+	pos["pred"] = -1;
+	pos["split"] = -1;
+
+	for (int i = 0; i < field_names.size(); i++) {
+		if (field_names[i] == "id" || field_names[i] == "pid")
+			pos["id"] = i;
+		else if (field_names[i] == "date" || field_names[i] == "time")
+			pos["date"] = i;
+		else if (field_names[i] == "outcome")
+			pos["outcome"] = i;
+		else if (field_names[i] == "outcomeTime" || field_names[i] == "outcome_date")
+			pos["outcome_date"] = i;
+		else if (field_names[i] == "prediction" || field_names[i] == "pred")
+			pos["pred"] = i;
+		else if (field_names[i] == "split")
+			pos["split"] = i;
+		else MWARN("WARNING: header line contains [%s] which is not part of MedSample\n");
+	}
+	for (auto& e : pos)
+		if (e.second == -1)
+			MWARN("WARNING: header line does not contain [%s]\n", e.first.c_str());
+		else MLOG("header line contains [%s] at column [%d]\n", e.first.c_str(), e.second);
+}
+
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {
@@ -164,7 +216,7 @@ int MedSamples::read_from_file(const string &fname)
 
 	string curr_line;
 
-	int samples = 0;
+	int samples = 0, skipped_records = 0;
 	idSamples.clear();
 	int curr_id = -1;
 	unordered_set<int> seen_ids;
@@ -176,7 +228,7 @@ int MedSamples::read_from_file(const string &fname)
 
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
-
+			map<string, int> pos;
 			if (fields.size() >= 2) {
 
 				if (fields[0] == "NAME") MLOG("reading NAME = %s\n", fields[1].c_str());
@@ -184,42 +236,41 @@ int MedSamples::read_from_file(const string &fname)
 				if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
 				if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
 				if (fields[0] == "EVENT_FIELDS") {
-					assert(fields[1] == "id");
-					assert(fields[2] == "time");
-					assert(fields[3] == "outcome");
-					//assert(fields[4] == "outcomeLength");
-					//assert(fields[5] == "outcomeTime");
-					//assert(fields[6] == "split");
-					//assert(fields[7] == "prediction");
+					extract_field_pos_from_header(fields, pos);
+					continue;
 				}
 				MedSample sample;
-				if (sample.parse_from_string(curr_line) >= 0) {
-					if (sample.id != curr_id) {
-						if (seen_ids.find(sample.id) != seen_ids.end())
-							MTHROW_AND_ERR(string("Sample id [") + to_string(sample.id) + "] records are not consecutive");
-						seen_ids.insert(sample.id);
-						// new idSample
-						MedIdSamples mis;
-						mis.id = sample.id;
-						mis.split = sample.split;
-						mis.samples.push_back(sample);
-						curr_id = sample.id;
-						idSamples.push_back(mis);
-					}
-					else if (sample.id == curr_id) {
-						// another sample for the current MedIdSamples
-						if (idSamples.back().id != sample.id || idSamples.back().split != sample.split) {
-							MERR("Got conflicting split : %d,%d vs. %d,%d\n", idSamples.back().id, idSamples.back().split, sample.id, sample.split);
-							return -1;
-						}
-						idSamples.back().samples.push_back(sample);
-					}
-					samples++;
+				 
+				if (sample.parse_from_string(curr_line, pos) < 0) {
+					MWARN("skipping [%s]\n", curr_line.c_str());
+					skipped_records++;
+					continue;
 				}
+				if (sample.id != curr_id) {
+					if (seen_ids.find(sample.id) != seen_ids.end())
+						MTHROW_AND_ERR(string("Sample id [") + to_string(sample.id) + "] records are not consecutive");
+					seen_ids.insert(sample.id);
+					// new idSample
+					MedIdSamples mis;
+					mis.id = sample.id;
+					mis.split = sample.split;
+					mis.samples.push_back(sample);
+					curr_id = sample.id;
+					idSamples.push_back(mis);
+				}
+				else if (sample.id == curr_id) {
+					// another sample for the current MedIdSamples
+					if (idSamples.back().id != sample.id || idSamples.back().split != sample.split) {
+						MERR("Got conflicting split : %d,%d vs. %d,%d\n", idSamples.back().id, idSamples.back().split, sample.id, sample.split);
+						return -1;
+					}
+					idSamples.back().samples.push_back(sample);
+				}
+				samples++;
 			}
 		}
 	}
-	MLOG("read [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
+	MLOG("read [%d] samples for [%d] patient IDs. Skipped [%d] records\n", samples, idSamples.size(), skipped_records);
 	sort_by_id_date();
 	inf.close();
 	return 0;

@@ -38,6 +38,7 @@ public:
 
 	// parsing
 	int parse_from_string(string &s);
+	int parse_from_string(string &s, map <string, int> & pos);
 	int write_to_string(string &s);
 };
 
