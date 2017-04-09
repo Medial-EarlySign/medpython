@@ -225,6 +225,8 @@ int FeatureBasicOutlierCleaner::iterativeLearn(MedFeatures& features, unordered_
 	get_all_values(features, feature_name, ids, values);
 
 	// Get bounds
+	if (values.size() == 0)
+		MWARN("EMPTY_VECTOR:: feature [%s] has 0 values\n", feature_name.c_str());
 	int rc = get_iterative_min_max(values);
 
 	return rc;
@@ -303,6 +305,9 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	vector<float> wgts(values.size(), 1.0);
 	int rc = get_moments(values, wgts, missing_value, mean, sd);
+
+	if (sd == 0)
+		MTHROW_AND_ERR(string("FeatureNormalizer learn sd: ") + to_string(sd) + " mean: " + to_string(mean) + " size: " + to_string(values.size()));
 	return rc;
 }
 
@@ -318,6 +323,8 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Attribute
 	features.attributes[feature_name].normalized = true;
+	if (fillMissing)
+		features.attributes[feature_name].imputed = true;
 
 	// Clean
 	bool empty = ids.empty();
@@ -331,6 +338,9 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 			} else if (fillMissing)
 					data[i] = 0;
 		}
+		if (!isfinite(data[i]))
+			MTHROW_AND_ERR(string("FeatureNormalizer sd: ") + to_string(sd) + " mean: " + to_string(mean));
+
 	}
 	return 0;
 }
@@ -465,6 +475,8 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Attribute
+	features.attributes[feature_name].imputed = true;
+
 
 	// Impute
 	imputerStrata.getFactors();

@@ -137,6 +137,7 @@
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
     <ClCompile Include="SerializableObject.cpp" />
+    <ClCompile Include="SmokingGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CrossValidator.h" />
@@ -153,6 +154,7 @@
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SerializableObject.h" />
     <ClInclude Include="SerializableObject_imp.h" />
+    <ClInclude Include="SmokingGenerator.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

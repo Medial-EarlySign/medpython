@@ -318,7 +318,13 @@ void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecInd
 	for (size_t i = 0; i < allVecs[vecIndex].size(); i++)
 		concatAllCombinations(allVecs, vecIndex + 1, strSoFar + allVecs[vecIndex][i] + ";", result);
 }
-
+string parse_key_val(string key, string val) {
+	if (val.find('=') != string::npos) {
+		MLOG("found as-is literal string [%s]\n", val.c_str());
+		return val;
+	}
+	else return key + "=" + val;
+}
 void MedModel::init_from_string(istream &init_stream) {
 
 	ptree pt;
@@ -339,14 +345,17 @@ void MedModel::init_from_string(istream &init_stream) {
 					if (boost::starts_with(single_attr_value, "ref:")) {
 						auto my_ref = pt.get_child(single_attr_value.substr(4));
 						for (auto &r : my_ref)
-							current_attr_values.push_back(r.second.data());
+							//e.g. "signal": "ref:signals"
+							current_attr_values.push_back(parse_key_val(attr_name, r.second.data()));
 					}
 					else
-						current_attr_values.push_back(single_attr_value);
+						// e.g. "fg_type": "gender"
+						current_attr_values.push_back(parse_key_val(attr_name, single_attr_value));
 				}
 				else
+					//e.g. "type": ["last", "slope"]
 					for (ptree::value_type &attr_value : attr.second)
-						current_attr_values.push_back(attr_value.second.data());
+						current_attr_values.push_back(parse_key_val(attr_name, attr_value.second.data()));
 				all_attr_values.push_back(current_attr_values);
 			}			
 		}

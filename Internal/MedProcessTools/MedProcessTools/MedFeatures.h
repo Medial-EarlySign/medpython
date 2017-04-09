@@ -16,6 +16,7 @@
 class FeatureAttr {
 public:
 	bool normalized;
+	bool imputed;
 };
 
 
