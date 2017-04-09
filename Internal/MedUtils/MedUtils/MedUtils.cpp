@@ -148,5 +148,9 @@ int get_moments(vector<float>& values, vector<float>& wgts, float missing_value,
 	else
 		sd = (float) 1.0;
 
+	if (sd == 0) {
+		MWARN("get_moments for all-zeros vector, fixing SD from 0.0 to 1.0\n");
+		sd = 1.0;
+	}
 	return n;
 }
