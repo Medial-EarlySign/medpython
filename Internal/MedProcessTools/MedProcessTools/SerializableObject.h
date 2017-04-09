@@ -7,6 +7,7 @@
 #include "MedUtils/MedUtils/MedIO.h"
 
 #include <cstring>
+#include <unordered_set>
 
 using namespace std;
 
