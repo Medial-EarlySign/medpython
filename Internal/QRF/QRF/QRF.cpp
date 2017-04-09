@@ -299,11 +299,17 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, 
 
 	// quantizing data values to a (relatively) small range, allowing for much faster tree building later.
 	max_q.resize(nfeat);
-	vector<ValInd> vals(nsamples);
+	quant_values.clear();
+	quant_values.resize(nfeat);
+	q_data.clear();
+	q_data.resize(nfeat);
+	//vector<ValInd> vals(nsamples);
+#pragma omp parallel for
 	for (i=0; i<nfeat; i++) {
 #ifdef DEBUG_INIT
 		fprintf(stderr,"QRF init:: working on feature i=%d\n",i); fflush(stderr);
 #endif
+		vector<ValInd> vals(nsamples);
 		vector<float> quant_val;
 		vector<short> qd;
 		for (int j=0; j<nsamples; j++) {
@@ -311,9 +317,10 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, 
 			vals[j].idx = j;
 		}
 
-		max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_val, qd);
-		quant_values.push_back(quant_val);
-		q_data.push_back(qd);
+		max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_values[i], q_data[i]);
+		//max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_val, qd);
+		//quant_values.push_back(quant_val);
+		//q_data.push_back(qd);
 	}
 
 	return 0;
@@ -2143,10 +2150,10 @@ void get_score_thread(void *p)
 					sum += (*trees)[j].qnodes[node].pred * (*trees)[j].qnodes[node].size ;
 					norm += (*trees)[j].qnodes[node].size ;
 				} else { // Quantile Regression
-					float w = 1.0 / (*trees)[j].qnodes[node].values.size(); 
+					float w = (float)1.0 / (*trees)[j].qnodes[node].values.size(); 
 					for (unsigned int idx = 0; idx < (*trees)[j].qnodes[node].values.size(); idx++)
 						values.push_back({ (*trees)[j].qnodes[node].values[idx],w });
-					sizes.push_back((*trees)[j].qnodes[node].values.size());
+					sizes.push_back((int)((*trees)[j].qnodes[node].values.size()));
 				}
 			} else {
 				if (tp->get_counts == PROBS_CATEG_MAJORITY_AVG || tp->get_counts == PREDS_CATEG_MAJORITY_AVG) { // Majority
@@ -2175,7 +2182,7 @@ void get_score_thread(void *p)
 					for (int k = 0; k < n_quantiles; k++) {
 						float q = (*quantiles)[k];
 						if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
-							tp->res[i*n_quantiles + k] = sizes[(int)(-q - 2)];
+							tp->res[i*n_quantiles + k] = (float)sizes[(int)(-q - 2)];
 						else if (q == -1)
 							tp->res[i*n_quantiles + k] = (float)values.size();
 						else
@@ -2188,11 +2195,11 @@ void get_score_thread(void *p)
 					for (int k = 0; k < n_quantiles; k++) {
 						float q = (*quantiles)[k];
 						if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
-							tp->res[i*n_quantiles + k] = sizes[(int)(-q - 2)];
+							tp->res[i*n_quantiles + k] = (float)sizes[(int)(-q - 2)];
 						else if (q == -1)
 							tp->res[i*n_quantiles + k] = (float)values.size();
 						else {
-							float targetWeight = totWeight * q;
+							float targetWeight = (float)(totWeight * q);
 
 							float currWeight = 0;
 							unsigned int idx = 0;

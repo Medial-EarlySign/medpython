@@ -139,7 +139,7 @@ int MedQRF::init(map<string, string>& mapper) {
 		else if (field == "spread") params.spread = stof(entry.second);
 		else if (field == "learn_nthreads") params.learn_nthreads = stoi(entry.second);
 		else if (field == "predict_nthreads") params.predict_nthreads = stoi(entry.second);
-		else if (field == "keep_all_values") params.keep_all_values = (bool)stoi(entry.second);
+		else if (field == "keep_all_values") params.keep_all_values = (bool)(stoi(entry.second)!=0);
 		else if (field == "quantiles"){
 			vector<string> vals;
 			split(vals, entry.second, boost::is_any_of(","));
