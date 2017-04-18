@@ -986,4 +986,5 @@ string MedDeepBitParams::to_string() {
 		"niter_descent:" << niter_coordinate_descent << "niter_auc_gitter:" << niter_auc_gitter << "grid_fraction:" << grid_fraction << "min_fraction_zeros_ones:" << min_fraction_zeros_ones <<
 		"frac_continuous:" << frac_continuous_frequent << "frac_categorial" << frac_categorial_frequent << "lambda:" << lambda << "fraction_auc:" << fraction_auc << "internal_test_ratio:" << internal_test_ratio
 		<< "min_cor_bin_ftr=" << min_cor_bin_ftr;
+	return strm.str();
 }
