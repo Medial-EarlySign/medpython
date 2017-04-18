@@ -38,8 +38,20 @@ public:
 
 	// parsing
 	int parse_from_string(string &s);
+	int parse_from_string(string &s, map <string, int> & pos);
 	int write_to_string(string &s);
 };
+
+inline bool comp_sample_pred(const MedSample &pr1, const MedSample &pr2) {
+	return pr1.prediction[0] < pr2.prediction[0];
+}
+
+inline bool comp_sample_id_time(const MedSample &pr1, const MedSample &pr2) {
+	if (pr1.id == pr2.id)
+		return pr1.time < pr2.time;
+	else
+		return pr1.id < pr2.id;
+}
 
 // A collection of samples of a given id
 class MedIdSamples : public SerializableObject {
@@ -52,9 +64,14 @@ public:
 	MedIdSamples(int _id) { id = _id; split = -1; samples.clear(); }
 	MedIdSamples() { id = -1; split = -1; samples.clear(); }
 	
+	void set_split(int _split) { split = _split; for (auto& s : samples) s.split = _split; }
 	ADD_SERIALIZATION_FUNCS(id, split, samples);
 
 };
+
+inline bool comp_patient_id_time(const MedIdSamples &pr1, const MedIdSamples &pr2) {
+	return pr1.id < pr2.id;
+}
 
 // A collection of ids and relevant samples
 class MedSamples : public SerializableObject {
@@ -82,6 +99,8 @@ public:
 	void get_preds(vector<float>& preds);
 	void get_y(vector<float>& y);
 	void get_categs(vector<float> &categs); // gets a list of all categories appearing in the outcome
+
+	void sort_by_id_date(); 
 
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples);
 

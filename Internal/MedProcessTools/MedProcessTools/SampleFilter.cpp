@@ -298,7 +298,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 		}
 
 		newStrata.match_type = SMPL_MATCH_AGE;
-		newStrata.resolution = (fields.size() > 1) ? stof(fields[1]) : 1.0;
+		newStrata.resolution = (fields.size() > 1) ? stof(fields[1]) : (float)1.0;
 
 	}
 	else if (fields[0] == "time") {
@@ -309,7 +309,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 
 		newStrata.match_type = SMPL_MATCH_TIME;
 		newStrata.matchingTimeUnit = med_time_converter.string_to_type(fields[1]);
-		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : 1.0;
+		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : (float)1.0;
 	}
 	else if (fields[0] == "signal") {
 		if (fields.size() > 5 || fields.size() < 2) {
@@ -319,8 +319,8 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 
 		newStrata.match_type = SMPL_MATCH_SIGNAL;
 		newStrata.signalName = fields[1];
-		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : 1.0;
-		newStrata.timeWindow = (fields.size() > 3) ? stof(fields[3]) : 1.0;
+		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : (float)1.0;
+		newStrata.timeWindow = (fields.size() > 3) ? stof(fields[3]) : (float)1.0;
 		newStrata.windowTimeUnit = (fields.size() > 4) ? med_time_converter.string_to_type(fields[4]) : med_rep_type.windowTimeUnit;
 	}
 	else if (fields[0] == "gender") {
@@ -552,7 +552,7 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 			int byear = (int)((SVal *)rep.get(sample.id, byearId, len))[0].val;
 			age = med_time_converter.convert_times(samplesTimeUnit, MedTime::Date, sample.time) / 10000 - byear;
 		}
-		bin = age / stratum.resolution;
+		bin = (int)((float)age / stratum.resolution);
 		signature += to_string(bin) + ":";
 	}
 	else if (stratum.match_type == SMPL_MATCH_SIGNAL) {
@@ -687,7 +687,7 @@ int RequiredSignalFilter::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "signalName") signalName = entry.second;
-		else if (field == "timeWindow") timeWindow = stof(entry.second);
+		else if (field == "timeWindow") timeWindow = stoi(entry.second);
 		else if (field == "timeUnit") windowTimeUnit = med_time_converter.string_to_type(entry.second);
 		else
 			MLOG("Unknonw parameter \'%s\' for RequiredSampleFilter\n", field.c_str());

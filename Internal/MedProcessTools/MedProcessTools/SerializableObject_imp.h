@@ -16,7 +16,10 @@ namespace MedSerialize {
 	template <class T, class S> size_t get_size(map<T, S> &v);
 	template <class T, class S> size_t serialize(unsigned char *blob, map<T, S> &v);
 	template <class T, class S> size_t deserialize(unsigned char *blob, map<T, S> &v);
-	
+	template <class T> size_t get_size(unordered_set<T> &v);
+	template <class T> size_t serialize(unsigned char *blob, unordered_set<T> &v);
+	template <class T> size_t deserialize(unsigned char *blob, unordered_set<T> &v);
+
 	//========================================================================================
 	// IMPLEMANTATIONS 
 	//========================================================================================
@@ -80,12 +83,13 @@ namespace MedSerialize {
 	//.........................................................................................
 	// vector of type T that has a MedSerialize function
 	//.........................................................................................
-	template<class T>  size_t get_size(vector<T> &v)
+	template<class T> size_t get_size(vector<T> &v)
 	{
 		size_t size = 0, len = v.size();
 		size += MedSerialize::get_size<size_t>(len);
 		for (T &elem : v)
 			size += MedSerialize::get_size(elem);
+
 		return size;
 	}
 
@@ -112,6 +116,48 @@ namespace MedSerialize {
 			v.resize(len);
 			for (T &elem : v)
 				pos += MedSerialize::deserialize(blob+pos, elem);
+		}
+		return pos;
+	}
+
+	//.........................................................................................
+	// unordered_set<T> with a MedSerialize function
+	//.........................................................................................
+	template <class T> size_t get_size(unordered_set<T> &v)
+	{
+		size_t size = 0, len = v.size();
+		size += MedSerialize::get_size<size_t>(len);
+		for (T elem : v)
+			size += MedSerialize::get_size(elem);
+
+		return size;
+	}
+
+	//.........................................................................................
+	template <class T> size_t serialize(unsigned char *blob, unordered_set<T> &v)
+	{
+		//fprintf(stderr, "map serialize\n");
+		size_t pos = 0, len = v.size();
+		pos += MedSerialize::serialize<size_t>(blob + pos, len);
+		if (len > 0)
+			for (T elem : v) {
+				pos += MedSerialize::serialize(blob + pos, elem);
+			}
+		return pos;
+	}
+
+	//.........................................................................................
+	template <class T> size_t deserialize(unsigned char *blob, unordered_set<T> &v)
+	{
+		size_t pos = 0, len;
+		pos += MedSerialize::deserialize<size_t>(blob + pos, len);
+		v.clear();
+		T elem;
+		if (len > 0) {
+			for (int i = 0; i < len; i++) {
+				pos += MedSerialize::deserialize(blob + pos, elem);
+				v.insert(elem);
+			}
 		}
 		return pos;
 	}

@@ -299,11 +299,17 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, 
 
 	// quantizing data values to a (relatively) small range, allowing for much faster tree building later.
 	max_q.resize(nfeat);
-	vector<ValInd> vals(nsamples);
+	quant_values.clear();
+	quant_values.resize(nfeat);
+	q_data.clear();
+	q_data.resize(nfeat);
+	//vector<ValInd> vals(nsamples);
+#pragma omp parallel for
 	for (i=0; i<nfeat; i++) {
 #ifdef DEBUG_INIT
 		fprintf(stderr,"QRF init:: working on feature i=%d\n",i); fflush(stderr);
 #endif
+		vector<ValInd> vals(nsamples);
 		vector<float> quant_val;
 		vector<short> qd;
 		for (int j=0; j<nsamples; j++) {
@@ -311,9 +317,10 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, 
 			vals[j].idx = j;
 		}
 
-		max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_val, qd);
-		quant_values.push_back(quant_val);
-		q_data.push_back(qd);
+		max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_values[i], q_data[i]);
+		//max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_val, qd);
+		//quant_values.push_back(quant_val);
+		//q_data.push_back(qd);
 	}
 
 	return 0;
@@ -2143,10 +2150,10 @@ void get_score_thread(void *p)
 					sum += (*trees)[j].qnodes[node].pred * (*trees)[j].qnodes[node].size ;
 					norm += (*trees)[j].qnodes[node].size ;
 				} else { // Quantile Regression
-					float w = 1.0 / (*trees)[j].qnodes[node].values.size(); 
+					float w = (float)1.0 / (*trees)[j].qnodes[node].values.size(); 
 					for (unsigned int idx = 0; idx < (*trees)[j].qnodes[node].values.size(); idx++)
 						values.push_back({ (*trees)[j].qnodes[node].values[idx],w });
-					sizes.push_back((*trees)[j].qnodes[node].values.size());
+					sizes.push_back((int)((*trees)[j].qnodes[node].values.size()));
 				}
 			} else {
 				if (tp->get_counts == PROBS_CATEG_MAJORITY_AVG || tp->get_counts == PREDS_CATEG_MAJORITY_AVG) { // Majority
@@ -2175,27 +2182,26 @@ void get_score_thread(void *p)
 					for (int k = 0; k < n_quantiles; k++) {
 						float q = (*quantiles)[k];
 						if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
-							tp->res[i*n_quantiles + k] = sizes[(int)(-q - 2)];
+							tp->res[i*n_quantiles + k] = (float)sizes[(int)(-q - 2)];
 						else if (q == -1)
 							tp->res[i*n_quantiles + k] = (float)values.size();
 						else
 							tp->res[i*n_quantiles + k] = values[(int)(values.size()*(*quantiles)[k])].first;
 					}
 				} else {
-					// Get Weighted Quantiles
+					// Get Weighted Quantiles (quantiles are order
 					double totWeight = (double)(*(tp->trees)).size();
+					float currWeight = 0;
 
+					unsigned int idx = 0;
 					for (int k = 0; k < n_quantiles; k++) {
 						float q = (*quantiles)[k];
 						if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
-							tp->res[i*n_quantiles + k] = sizes[(int)(-q - 2)];
+							tp->res[i*n_quantiles + k] = (float)sizes[(int)(-q - 2)];
 						else if (q == -1)
 							tp->res[i*n_quantiles + k] = (float)values.size();
 						else {
-							float targetWeight = totWeight * q;
-
-							float currWeight = 0;
-							unsigned int idx = 0;
+							float targetWeight = (float)(totWeight * q);
 
 							while (currWeight <= targetWeight && idx < values.size()) {
 								currWeight += values[idx].second;
@@ -2228,7 +2234,17 @@ void QRF_Forest::score_with_threads(float *x,  int nfeat, int nsamples, float *r
 {
 	vector<qrf_scoring_thread_params> stp;
 
-	get_scoring_thread_params(stp,&qtrees,res,nsamples,nfeat,x,nthreads,mode,n_categ,get_counts_flag,&quantiles);
+	// order quantilers (keeping original order)
+	vector<pair<float, int>> indexd_quantiles(quantiles.size());
+	vector<float> sorted_quantiles(quantiles.size());
+
+	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+		for (unsigned int i = 0; i < quantiles.size(); i++) indexd_quantiles[i] = { quantiles[i],i };
+		sort(indexd_quantiles.begin(), indexd_quantiles.end(), [](const pair<float, int> &v1, const pair<float, int> &v2) {return v1.first < v2.first; });
+		for (unsigned int i = 0; i < quantiles.size(); i++) sorted_quantiles[i] = indexd_quantiles[i].first;
+	}
+
+	get_scoring_thread_params(stp,&qtrees,res,nsamples,nfeat,x,nthreads,mode,n_categ,get_counts_flag,&sorted_quantiles);
 	vector<thread> th_handle(nthreads);
 	for (int i=0; i<nthreads; i++) {
 		th_handle[i] = thread(get_score_thread, (void *)&stp[i]);
@@ -2243,6 +2259,18 @@ void QRF_Forest::score_with_threads(float *x,  int nfeat, int nsamples, float *r
 	}
 	for (int i=0; i<nthreads; i++)
 		th_handle[i].join();
+
+	// Reorderd quantiles to original orderd.diff 
+	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+		int nquantiles = (int)quantiles.size();
+		vector<float> tempRes(nsamples*nquantiles);
+		for (int i = 0; i < nsamples; i++) {
+			for (int j = 0; j < nquantiles; j++)
+				tempRes[i*nquantiles + indexd_quantiles[j].second] = res[i*nquantiles + j];
+		}
+		memcpy(res, &(tempRes[0]), nquantiles*nsamples*sizeof(float));
+	}
+
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
