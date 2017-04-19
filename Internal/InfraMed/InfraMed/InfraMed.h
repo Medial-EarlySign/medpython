@@ -159,7 +159,7 @@ class MedIndex {
 
 		vector<string> ifnames;
 
-		void clear() {ifnames.clear(); sid2idx.clear(); pid2idx.clear(); idx_i.clear(); idx.clear(); pids.clear(); signals.clear(); n_pids=0; n_signals=0;}
+		void clear() { ifnames.clear(); sid2idx.clear(); pid2idx.clear(); idx_i.clear(); idx.clear(); pids.clear(); signals.clear(); n_pids = 0; n_signals = 0; sid_in.clear(); }
 
 		int read_index(vector<string> &fnames);
 		int read_sub_index(vector<string> &fnames, const vector<int> &pids_to_include, const vector<int> &signals_to_include); // empty vector - means all are chosen
