@@ -820,7 +820,7 @@ void MedDeepBit::print_model() {
 	cout << "nftrs = " << nftrs << " num bin ftrs = " << num_bin_ftrs << " avy = " << avy << endl;
 	for (double val : avx) cout << val << " ";
 	cout << endl;
-	for (bool val : is_categorial) cout << val << " ";
+	for (int val : is_categorial) cout << ((bool)(val!=0)) << " ";
 	cout << endl;
 	/*for (int j = 0; j < nftrs; j++) {
 		int grid_size = (int)ftr_grids[j].size();
