@@ -2,6 +2,7 @@
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+using namespace boost;
 
 void SmokingGenerator::set_names() {
 	names.clear();
@@ -48,7 +49,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		if (len == 0) { // No Data
 			current_smoker = ex_smoker = (int)missing;
 			years_since_quitting = smoking_years = (int)missing;
-			pack_years = missing;
+			pack_years = (float)missing;
 		}
 		else if (never_smoked) { // Non Smoker
 			current_smoker = ex_smoker = 0;
@@ -59,7 +60,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		else { // (Ex)Smoker
 			int start_year = smx_status[0].val1;
 			int end_year = smx_status[0].val2;
-			int target_year = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000);
+			int target_year = (int)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000);
 			if (target_year < end_year) {
 				// still in smoking period
 				smoking_years = target_year - start_year;
