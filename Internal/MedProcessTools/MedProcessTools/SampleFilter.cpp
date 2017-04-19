@@ -2,6 +2,8 @@
 #include "Logger/Logger/Logger.h"
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string.hpp>
 
 #define LOCAL_SECTION LOG_SMPL_FILTER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -320,7 +322,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 		newStrata.match_type = SMPL_MATCH_SIGNAL;
 		newStrata.signalName = fields[1];
 		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : (float)1.0;
-		newStrata.timeWindow = (fields.size() > 3) ? stof(fields[3]) : (float)1.0;
+		newStrata.timeWindow = (fields.size() > 3) ? (int)stof(fields[3]) : (int)1.0;
 		newStrata.windowTimeUnit = (fields.size() > 4) ? med_time_converter.string_to_type(fields[4]) : med_rep_type.windowTimeUnit;
 	}
 	else if (fields[0] == "gender") {
@@ -640,6 +642,24 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 	return opt_r;
 }
 
+//.......................................................................................
+int MatchingSampleFilter::get_required_signals(vector<string> req_sigs)
+{
+	req_sigs.clear();
+	if (isAgeRequired()) {
+		if (med_rep_type.ageDirectlyGiven)
+			req_sigs.push_back("Age");
+		else
+			req_sigs.push_back("BYEAR");
+	}
+
+	for (auto &s : matchingStrata)
+		req_sigs.push_back(s.signalName);
+
+	return 0;
+
+}
+
 
 // (De)Serialization
 //.......................................................................................
@@ -767,4 +787,167 @@ size_t RequiredSignalFilter::serialize(unsigned char *blob) {
 //.......................................................................................
 size_t RequiredSignalFilter::deserialize(unsigned char *blob) {
 	return MedSerialize::deserialize(blob, signalName, timeWindow, windowTimeUnit);
+}
+
+
+//.......................................................................................
+// examples:
+// sig:TRAIN,min_val:1,max_val:1,min_Nvals:1
+// sig:Creatinine,win_from:0,win_to:720,min_Nvals:2
+//
+int BasicFilteringParams::init_from_string(const string &init_str)
+{
+	vector<string> fields;
+
+	boost::split(fields, init_str, boost::is_any_of(":=,"));
+
+	for (int i=0; i<fields.size(); i++) {
+		if (fields[i] == "sig") { sig_name = fields[++i]; }
+		if (fields[i] == "min_val") { min_val = stof(fields[++i]); }
+		if (fields[i] == "max_val") { max_val = stof(fields[++i]); }
+		if (fields[i] == "win_from") { win_from = stoi(fields[++i]); }
+		if (fields[i] == "win_to") { win_to = stoi(fields[++i]); }
+		if (fields[i] == "min_Nvals") { min_Nvals = stoi(fields[++i]); }
+		if (fields[i] == "time_ch") { time_channel = stoi(fields[++i]); }
+		if (fields[i] == "val_ch") { val_channel = stoi(fields[++i]); }
+	}
+
+
+	return 0;
+}
+
+//.......................................................................................
+int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int win_time_unit)
+{
+	if (sig_id < 0)
+		sig_id = rep.sigs.sid(sig_name);
+
+	UniversalSigVec usv;
+
+	rep.uget(sample.id, sig_id, usv);
+	//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
+
+	if (usv.len == 0 && min_Nvals > 0) return 0;
+	if (min_Nvals <= 0) return 1;
+
+	if (usv.n_time_channels() == 0) {
+		// timeless signal - checking the first
+		//MLOG("id %d val %f\n", sample.id, usv.Val(0));
+		if (usv.Val(0) < min_val || usv.Val(0) > max_val)
+			return 0;
+		return 1;
+	}
+	else {
+
+		int ref_time = med_time_converter.convert_times(usv.time_unit(), win_time_unit, sample.time);
+
+		// go over all values
+		int nvals = 0;
+		for (int i=0; i<usv.len; i++) {
+
+			// check if in relevant window
+			int i_time = usv.Time(i, time_channel);
+			int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
+			int dtime = ref_time - i_time_converted;
+			//MLOG("id %d i_time %d %d time %d %d dtime %d win %d %d\n", sample.id, i_time, i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+			if (dtime < win_from) break;
+			if (dtime <= win_to) {
+				// in relevant time window, checking the value range
+				float i_val = usv.Val(i, val_channel);
+				//MLOG("i %d id %d i_val %f min %f max %f minNvals %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals);
+				if (i_val >= min_val && i_val <= max_val) {
+					nvals++;
+					if (nvals >= min_Nvals)
+						return 1;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+//.......................................................................................
+int BasicSampleFilter::init(map<string, string>& mapper)
+{
+	req_sigs.clear();
+	for (auto &m : mapper) {
+		if (m.first == "min_sample_time") min_sample_time = stoi(m.second);
+		if (m.first == "max_sample_time") max_sample_time = stoi(m.second);
+		if (m.first == "win_time_unit") winsTimeUnit = med_time_converter.string_to_type(m.second);
+		if (m.first == "bfilter") {
+			vector<string> fields;
+			boost::split(fields, m.second, boost::is_any_of("+"));
+			for (auto &f : fields) {
+				BasicFilteringParams bfp;
+				bfp.init_from_string(f);
+				bfilters.push_back(bfp);
+				req_sigs.push_back(bfp.sig_name);
+			}
+		}
+		
+	}
+	return 0;
+}
+
+//.......................................................................................
+int BasicSampleFilter::get_req_signals(vector<string> &reqs)
+{
+	if (req_sigs.size() == 0) {
+		req_sigs.clear();
+		for (auto &bf : bfilters)
+			req_sigs.push_back(bf.sig_name);
+	}
+
+	reqs = req_sigs;
+	return 0;
+}
+
+//.......................................................................................
+int BasicSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples)
+{
+	// assumes rep is already loaded with relevant signals
+
+	outSamples = inSamples;
+	outSamples.idSamples.clear();
+
+	for (auto &id_s : inSamples.idSamples) {
+
+		MedIdSamples id_out;
+		id_out = id_s;
+		id_out.samples.clear();
+
+		for (auto &in_s : id_s.samples) {
+			int take_it = 1;
+			if (in_s.time < min_sample_time || in_s.time > max_sample_time) take_it = 0;
+			//MLOG("id %d time %d min %d max %d take_it %d\n", in_s.id, in_s.time, min_sample_time, max_sample_time,take_it);
+			if (take_it) {
+				for (auto &bf : bfilters) {
+					if (!bf.test_filter(in_s, rep, winsTimeUnit)) {
+						take_it = 0;
+						break;
+					}
+				}
+
+				if (take_it) id_out.samples.push_back(in_s);
+			}
+		}
+
+		if (id_out.samples.size() > 0) {
+			// id passed with some samples, keeping them
+			outSamples.idSamples.push_back(id_out);
+		}
+
+	}
+
+	outSamples.sort_by_id_date();
+	return 0;
+}
+
+//.......................................................................................
+// relevant only if bfilters is empty
+int BasicSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
+{
+	MedRepository dummy;
+	return (_filter(dummy, inSamples, outSamples));
 }
