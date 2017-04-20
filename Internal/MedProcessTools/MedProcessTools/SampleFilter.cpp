@@ -24,6 +24,8 @@ SampleFilterTypes sample_filter_name_to_type(const string& filter_name) {
 		return SMPL_FILTER_MATCH;
 	else if (filter_name == "required")
 		return SMPL_FILTER_REQ_SIGNAL;
+	else if (filter_name == "basic")
+		return SMPL_FILTER_REQ_SIGNAL;
 	else
 		return SMPL_FILTER_LAST;
 }
@@ -54,6 +56,8 @@ SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type) {
 		return new MatchingSampleFilter;
 	else if (filter_type == SMPL_FILTER_REQ_SIGNAL)
 		return new RequiredSignalFilter;
+	else if (filter_type == SMPL_FILTER_BASIC)
+		return new BasicSampleFilter;
 	else
 		return NULL;
 
