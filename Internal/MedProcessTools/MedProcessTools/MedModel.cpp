@@ -366,9 +366,12 @@ void MedModel::init_from_string(istream &init_stream) {
 			add_process_to_set(process_set, c);
 		}
 	}
-	auto my_pred = pt.get_child("predictor");
-	auto my_pred_params = pt.get_child("predictor_params");
-	set_predictor(my_pred.data(), my_pred_params.data());
+	if (pt.count("predictor") > 0){
+		auto my_pred = pt.get_child("predictor");
+		auto my_pred_params = pt.get_child("predictor_params");
+		set_predictor(my_pred.data(), my_pred_params.data());
+	}
+	else MWARN("NOTE: no [predictor] node found in file\n");
 
 }
 
