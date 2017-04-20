@@ -135,7 +135,7 @@ extern MedLogger global_logger;
 
 #define MOUT(fmt,...) global_logger.out(fmt, ##__VA_ARGS__)
 
-#define MTHROW_AND_ERR(msg_string) { MERR("%s\n", (msg_string).c_str()); throw runtime_error(msg_string);}
+#define MTHROW_AND_ERR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL, buff); throw runtime_error(string(buff));}
 
 
 //==================================================================
