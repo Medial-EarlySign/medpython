@@ -92,6 +92,7 @@ void MedTime::init_time_tables()
 //.....................................................................................................
 int MedTime::convert_days(int to_type, int in_time)
 {
+	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Days) return in_time;
 	if (to_type == MedTime::Hours) return in_time*24;
 	if (to_type == MedTime::Minutes) return in_time*24*60;
@@ -121,6 +122,7 @@ int MedTime::convert_date(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_years(int to_type, int in_time)
 {
+	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Date) return ((in_time+1900)*10000 + 101);
 	if (to_type == MedTime::Years) return in_time;
 	if (to_type == MedTime::Months) return in_time*12;
@@ -131,6 +133,7 @@ int MedTime::convert_years(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_months(int to_type, int in_time)
 {
+	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Months) return in_time;
 
 	int year = 1900 + (in_time/12);
@@ -148,6 +151,7 @@ int MedTime::convert_months(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_hours(int to_type, int in_time)
 {
+	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Hours) return in_time;
 	if (to_type == MedTime::Minutes) return in_time*60;
 	int days = in_time/24;
@@ -157,6 +161,7 @@ int MedTime::convert_hours(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_minutes(int to_type, int in_time)
 {
+	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Minutes) return in_time;
 	int hours = in_time/60;
 	return convert_hours(to_type, hours);
