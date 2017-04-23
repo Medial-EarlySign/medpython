@@ -357,7 +357,13 @@ int QuantizedRF::get_regression_Tree(int *sampsize, int ntry, QRF_Tree &tree)
 		tree.nodes.resize(tree.max_nodes);
 		tree.n_nodes = 0;
 		uniform_int_distribution<> dist(0,(int)yr.size()-1);
-		if (n_groups == 0) {
+		if (take_all_samples) { //when creating 1 tree - look at best seperation with min_node (similar to knn where k=min_node)
+			j = 0;
+			while (j<n) {
+				tree.sample_ids[j] = j++;
+			}
+		}
+		else if (n_groups == 0) {
 			for (j=0; j<n; j++) {
 				int r = dist(tree.rand_gen);
 				tree.sample_ids[j] = r;
@@ -1938,6 +1944,7 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, int nfeat, int nsa
 	}
 	qrf.min_split_node_size = min_node_size;
 	qrf.min_split_spread = min_spread;
+	qrf.take_all_samples = take_all_samples;
 
 	if (mode == QRF_BINARY_TREE)
 		qrf.init(x,(int *)y,nfeat,nsamples,maxq);
@@ -1958,7 +1965,6 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, int nfeat, int nsa
 	if (sampsize != NULL && ((mode == QRF_REGRESSION_TREE) || (mode == QRF_CATEGORICAL_CHI2_TREE) || (mode == QRF_CATEGORICAL_ENTROPY_TREE))) {fprintf(stderr,"get_forest: sampsize %d\n",sampsize[0]);}; 
 	fflush(stderr);
 #endif
-
 	qrf.init_groups(groups);
 	if (nthreads == 1) {
 		for (int i=0; i<ntrees; i++) {

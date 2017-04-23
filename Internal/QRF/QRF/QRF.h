@@ -174,6 +174,8 @@ class QuantizedRF {
 		int n_called;
 
 		void clear();
+
+		bool take_all_samples;
 		
 	private:
 		//int quantize_feature(vector<ValInd> &x, int nsamples, int maxq, vector<float> &quant_val, vector<short> &qd);
@@ -221,6 +223,8 @@ class QRF_Forest {
 
 		int nthreads; // number of threads to use in building a forest, and in scoring it.
 
+		//full samples to take - similar algorithm to knn where k=min_node. use with n_trees=1
+		bool take_all_samples;
 
 		// Learn Methods :
 		//-----------------
