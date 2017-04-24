@@ -58,6 +58,7 @@ class QRF_Node {
 		int l_ind;
 		float pred; // #1 / (#1 + #0)
 		float s2;   // avg sq err for regression
+		int depth;
 
 		// next used only for learn
 		short split_q_idx;
@@ -177,6 +178,8 @@ class QuantizedRF {
 
 		bool take_all_samples;
 		
+		int max_depth;
+
 	private:
 		//int quantize_feature(vector<ValInd> &x, int nsamples, int maxq, vector<float> &quant_val, vector<short> &qd);
 		int quantize_no_loss(vector<ValInd> &vals, int nsamples, int maxq, vector<float> &quant_val, vector<short> &qd);
@@ -225,6 +228,9 @@ class QRF_Forest {
 
 		//full samples to take - similar algorithm to knn where k=min_node. use with n_trees=1
 		bool take_all_samples;
+
+		//max depth  features to take in branch of tree
+		int max_depth;
 
 		// Learn Methods :
 		//-----------------

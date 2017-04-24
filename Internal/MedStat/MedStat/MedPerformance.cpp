@@ -480,7 +480,7 @@ float get_preds_auc_q(const vector<float> &preds, const vector<float> &y) {
 	int f_cnt = 0;
 	vector<float> true_rate = vector<float>((int)pred_indexes.size());
 	vector<float> false_rate = vector<float>((int)pred_indexes.size());
-	int st_size = pred_threshold.size() - 1;
+	int st_size = (int)pred_threshold.size() - 1;
 	for (int i = st_size; i >= 0; --i)
 	{
 		vector<int> indexes = pred_indexes[pred_threshold[i]];
