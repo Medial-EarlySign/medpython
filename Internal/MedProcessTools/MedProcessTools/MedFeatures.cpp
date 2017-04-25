@@ -37,7 +37,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 			if (!isfinite(datap[i][j])) {
 				vector<string> fnames;
 				get_feature_names(fnames);
-				MTHROW_AND_ERR(string("nan in col [") + fnames[i] + "] in record [" + to_string(j) + "]");
+				MTHROW_AND_ERR("nan in col [%s] in record [%d]", fnames[i].c_str(), j);
 			}
 			mat(j, i) = datap[i][j];
 		}

@@ -58,8 +58,7 @@ int DoCalcFeatGenerator::init(map<string, string>& mapper) {
 			MLOG("Unknown parameter \'%s\' for DoCalcFeatGenerator\n", field.c_str());
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
-		MTHROW_AND_ERR(string("DoCalcFeatGenerator got [") + to_string(weights.size()) + "] weights != [" +
-			to_string(raw_source_feature_names.size()) + "] source_feature_names");
+		MTHROW_AND_ERR("DoCalcFeatGenerator got [%d] weights != [%d] source_feature_names", weights.size(), raw_source_feature_names.size());
 	set_names();
 	return 0;
 }
@@ -76,7 +75,7 @@ int DoCalcFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int
 	for (int i = 0; i < num; i++) {	
 		if (calc_type == "sum")
 			p_target[i] = sum(p_sources, i);
-		else MTHROW_AND_ERR(string("CalcFeatGenerator got an unknown calc_type: [") + calc_type + "]");
+		else MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
 	}
 	return 0;
 }

@@ -36,6 +36,7 @@ void MedQRF::init_defaults()
 	params.ntry = 0;
 	params.spread = (float)MED_QRF_DEF_SPREAD;
 	params.get_count = PROBS_CATEG_AVG_PROBS;
+	params.max_depth = 0;
 
 	params.get_only_this_categ = 1;
 	params.max_samp = 0;
@@ -66,6 +67,7 @@ int MedQRF::init(void *_in_params)
 	params.spread = in_params->spread;
 	params.get_count = in_params->get_count;
 	params.n_categ = in_params->n_categ;
+	params.max_depth = in_params->max_depth;
 
 	params.get_only_this_categ = in_params->get_only_this_categ;
 	params.max_samp = in_params->max_samp;
@@ -260,6 +262,7 @@ int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	qf.get_counts_flag = params.get_count;
 	qf.keep_all_values = params.keep_all_values;
 	qf.quantiles = params.quantiles;
+	qf.max_depth = params.max_depth;
 
 	if (params.type != QRF_REGRESSION_TREE) {
 		for (int i = 0; i < nsamples; i++)

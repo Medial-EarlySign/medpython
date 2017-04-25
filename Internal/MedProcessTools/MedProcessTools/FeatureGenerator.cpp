@@ -27,7 +27,7 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_DO_CALC;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
-	else MTHROW_AND_ERR(string("unknown generator name [") + generator_name + "]");
+	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
 }
 
 // Initialize featurse
@@ -82,7 +82,7 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
 
-	else throw runtime_error(string("dont know how to make_generator for [") + to_string(generator_type) + "]");
+	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
 
 //.......................................................................................

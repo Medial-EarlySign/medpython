@@ -8,10 +8,10 @@ void SmokingGenerator::set_names() {
 	names.clear();
 	unordered_set<string> legal_features({ "Current_Smoker", "Ex_Smoker", "Smok_Years_Since_Quitting", "Smoking_Years", "Smok_Pack_Years" });
 	if (raw_feature_names.size() == 0)
-		MTHROW_AND_ERR(string("SmokingGenerator got no smoking_features"));
+		MTHROW_AND_ERR("SmokingGenerator got no smoking_features");
 	for (string s : raw_feature_names) {
 		if (legal_features.find(s) == legal_features.end())
-			MTHROW_AND_ERR(string("SmokingGenerator does not know how to generate [") + s + "]");
+			MTHROW_AND_ERR("SmokingGenerator does not know how to generate [%s]",s.c_str());
 		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
 	}
 }
@@ -90,7 +90,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 				features.data[names[j]][index + i] = (float)smoking_years;
 			else if (raw_feature_names[j] == "Smok_Pack_Years")
 				features.data[names[j]][index + i] = (float)pack_years;
-			else MTHROW_AND_ERR(string("unknown feature name [" + raw_feature_names[j] + "]"));
+			else MTHROW_AND_ERR("unknown feature name [%s]", raw_feature_names[j].c_str());
 		}
 	}
 

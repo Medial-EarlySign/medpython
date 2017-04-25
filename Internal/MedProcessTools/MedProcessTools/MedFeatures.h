@@ -44,7 +44,7 @@ public:
 
 	// Constructor/Destructor
 	MedFeatures(int _time_unit) { time_unit = _time_unit; }
-	MedFeatures() {};
+	MedFeatures() { time_unit = med_rep_type.basicTimeUnit; };
 	~MedFeatures() {};
 	void clear() { data.clear(); samples.clear(); pid_pos_len.clear(); attributes.clear(); }
 	void set_time_unit(int _time_unit) { time_unit = _time_unit; }

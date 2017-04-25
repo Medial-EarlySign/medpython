@@ -400,6 +400,7 @@ struct MedQRFParams {
 	int *sampsize;
 	int ntry;
 	int get_only_this_categ;
+	int max_depth; //maximial depth of tree branches - if 0 no limit
 
 	// Regression
 	float spread;
