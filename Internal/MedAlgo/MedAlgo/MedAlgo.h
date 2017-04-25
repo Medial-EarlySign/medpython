@@ -70,7 +70,7 @@ typedef enum {
 
 MedPredictorTypes predictor_name_to_type(const string& model_name);
 
-class MedPredictor {
+class MedPredictor : public SerializableObject {
 public:
 	MedPredictorTypes classifier_type;
 

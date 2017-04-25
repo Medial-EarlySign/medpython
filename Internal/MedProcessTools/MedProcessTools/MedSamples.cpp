@@ -195,7 +195,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 			pos["pred"] = i;
 		else if (field_names[i] == "split")
 			pos["split"] = i;
-		else MWARN("WARNING: header line contains [%s] which is not part of MedSample\n");
+		else MWARN("WARNING: header line contains [%s] which is not part of MedSample\n",field_names[i].c_str());
 	}
 	for (auto& e : pos)
 		if (e.second == -1)
