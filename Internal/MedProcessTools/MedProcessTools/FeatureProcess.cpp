@@ -307,7 +307,7 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	int rc = get_moments(values, wgts, missing_value, mean, sd);
 
 	if (sd == 0)
-		MTHROW_AND_ERR(string("FeatureNormalizer learn sd: ") + to_string(sd) + " mean: " + to_string(mean) + " size: " + to_string(values.size()));
+		MTHROW_AND_ERR("FeatureNormalizer learn sd: %f mean: %f size: %d", sd, mean, values.size());
 	return rc;
 }
 
@@ -339,7 +339,7 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 					data[i] = 0;
 		}
 		if (!isfinite(data[i]))
-			MTHROW_AND_ERR(string("FeatureNormalizer sd: ") + to_string(sd) + " mean: " + to_string(mean));
+			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);
 
 	}
 	return 0;

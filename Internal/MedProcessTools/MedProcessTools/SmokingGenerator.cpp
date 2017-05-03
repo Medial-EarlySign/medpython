@@ -2,15 +2,16 @@
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+using namespace boost;
 
 void SmokingGenerator::set_names() {
 	names.clear();
 	unordered_set<string> legal_features({ "Current_Smoker", "Ex_Smoker", "Smok_Years_Since_Quitting", "Smoking_Years", "Smok_Pack_Years" });
 	if (raw_feature_names.size() == 0)
-		MTHROW_AND_ERR(string("SmokingGenerator got no smoking_features"));
+		MTHROW_AND_ERR("SmokingGenerator got no smoking_features");
 	for (string s : raw_feature_names) {
 		if (legal_features.find(s) == legal_features.end())
-			MTHROW_AND_ERR(string("SmokingGenerator does not know how to generate [") + s + "]");
+			MTHROW_AND_ERR("SmokingGenerator does not know how to generate [%s]",s.c_str());
 		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
 	}
 }
@@ -48,7 +49,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		if (len == 0) { // No Data
 			current_smoker = ex_smoker = (int)missing;
 			years_since_quitting = smoking_years = (int)missing;
-			pack_years = missing;
+			pack_years = (float)missing;
 		}
 		else if (never_smoked) { // Non Smoker
 			current_smoker = ex_smoker = 0;
@@ -59,7 +60,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		else { // (Ex)Smoker
 			int start_year = smx_status[0].val1;
 			int end_year = smx_status[0].val2;
-			int target_year = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000);
+			int target_year = (int)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000);
 			if (target_year < end_year) {
 				// still in smoking period
 				smoking_years = target_year - start_year;
@@ -89,7 +90,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 				features.data[names[j]][index + i] = (float)smoking_years;
 			else if (raw_feature_names[j] == "Smok_Pack_Years")
 				features.data[names[j]][index + i] = (float)pack_years;
-			else MTHROW_AND_ERR(string("unknown feature name [" + raw_feature_names[j] + "]"));
+			else MTHROW_AND_ERR("unknown feature name [%s]", raw_feature_names[j].c_str());
 		}
 	}
 

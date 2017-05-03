@@ -19,6 +19,7 @@ typedef enum {
 	SMPL_FILTER_OUTLIERS,
 	SMPL_FILTER_MATCH,
 	SMPL_FILTER_REQ_SIGNAL,
+	SMPL_FILTER_BASIC,
 	SMPL_FILTER_LAST
 } SampleFilterTypes;
 
@@ -208,6 +209,7 @@ public:
 	int getSampleSignature(MedSample& sample, MedRepository& rep, string& signature);
 	int addToSampleSignature(MedSample& sample, matchingParams& stratum, MedRepository& rep, string& signature);
 	int initHelpers(MedSamples& inSamples, MedRepository& rep);
+	int get_required_signals(vector<string> req_sigs);
 
 	// Filter
 	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
@@ -252,4 +254,64 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 };
+
+
+//.......................................................................................
+//.......................................................................................
+// A general filter to allow the following basics:
+// (1) min and max time of outcomeTime
+// (2) option to allow for a signal to be in some given range (if there is a sample in some given window)
+// (3) option to force N samples of a specific signal within the given range (in the given time window)
+//.......................................................................................
+//.......................................................................................
+
+struct BasicFilteringParams : public SerializableObject {
+	string sig_name;
+	int win_from = 0;
+	int win_to = (int)(1<<30);
+	float min_val = -1e10;
+	float max_val = 1e10;
+	int min_Nvals = 1;
+	int time_channel = 0;
+	int val_channel = 0;
+
+	int init_from_string(const string &init_str);
+	int test_filter(MedSample &sample, MedRepository &rep, int win_time_unit);
+
+	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals);
+
+private:
+	int sig_id = -1; // uninitialized until first usage
+};
+
+class BasicSampleFilter : public SampleFilter {
+public:
+
+	// params
+	int min_sample_time = 0;
+	int max_sample_time = (int)(1<<30); // these should always be given in the unit time appearing in the sample file
+	vector<BasicFilteringParams> bfilters;
+	int winsTimeUnit = MedTime::Days;
+
+	// next is initialized with init string
+	vector<string> req_sigs; // useful to load the repository needed for this filter
+
+	// init from mapped string
+	int init(map<string, string>& mapper);
+
+	int get_req_signals(vector<string> &reqs);
+
+	// Filter
+	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples); // relevant only if bfilters is empty
+
+	ADD_SERIALIZATION_FUNCS(min_sample_time, max_sample_time, bfilters, winsTimeUnit);
+};
+
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(BasicFilteringParams);
+MEDSERIALIZE_SUPPORT(BasicSampleFilter);
+
 #endif

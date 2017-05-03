@@ -15,7 +15,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	vector<string> fields; 
 	if (fields.size() == 0)
 		return -1;
-	boost::split(fields, s, boost::is_any_of("\t"));
+	boost::split(fields, s, boost::is_any_of("\t\n\r"));
 	if (pos["id"] != -1)
 		id = stoi(fields[pos["id"]]);
 	if (pos["date"] != -1)
@@ -92,7 +92,6 @@ int MedSample::write_to_string(string &s)
 	s += "\t" + to_string(split);
 	for (auto p : prediction)
 		s += "\t" + to_string(p);
-	s += "\n";
 	return 0;
 }
 
@@ -195,7 +194,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 			pos["pred"] = i;
 		else if (field_names[i] == "split")
 			pos["split"] = i;
-		else MWARN("WARNING: header line contains [%s] which is not part of MedSample\n");
+		else MWARN("WARNING: header line contains [%s] which is not part of MedSample\n",field_names[i].c_str());
 	}
 	for (auto& e : pos)
 		if (e.second == -1)
@@ -250,7 +249,7 @@ int MedSamples::read_from_file(const string &fname)
 				}
 				if (sample.id != curr_id) {
 					if (seen_ids.find(sample.id) != seen_ids.end())
-						MTHROW_AND_ERR(string("Sample id [") + to_string(sample.id) + "] records are not consecutive");
+						MTHROW_AND_ERR("Sample id [%d] records are not consecutive", sample.id);
 					seen_ids.insert(sample.id);
 					// new idSample
 					MedIdSamples mis;
@@ -308,7 +307,7 @@ int MedSamples::write_to_file(const string &fname)
 			ss.write_to_string(sout);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
-			of << sout;
+			of << sout << endl;
 		}
 	}
 
