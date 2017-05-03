@@ -173,7 +173,6 @@ void MedSamples::get_categs(vector<float>& categs)
 }
 
 int extract_field_pos_from_header(vector<string> field_names, map <string, int> & pos) {
-
 	pos["id"] = -1;
 	pos["date"] = -1;
 	pos["outcome"] = -1;
@@ -249,7 +248,7 @@ int MedSamples::read_from_file(const string &fname)
 				}
 				if (sample.id != curr_id) {
 					if (seen_ids.find(sample.id) != seen_ids.end())
-						MTHROW_AND_ERR("Sample id [%d] records are not consecutive", sample.id);
+						MTHROW_AND_ERR("Sample id [%d] records are not consecutive\n", sample.id);
 					seen_ids.insert(sample.id);
 					// new idSample
 					MedIdSamples mis;
