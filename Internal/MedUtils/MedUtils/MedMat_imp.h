@@ -234,6 +234,7 @@ template <class T> void MedMat<T>::get_col(int i_col, vector<T> &colv)
 
 }
 
+/*
 #define MEDMAT_MAGIC_NUMBER 0x0011223344556677
 //...........................................................................................
 template <class T> size_t MedMat<T>::get_size()
@@ -393,6 +394,7 @@ template <class T> size_t MedMat<T>::deserialize(unsigned char *buf)
 
 	return size;
 }
+*/
 
 //...........................................................................................
 template <class T> int MedMat<T>::read_from_bin_file(const string &fname)

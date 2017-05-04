@@ -23,11 +23,12 @@
 #include <vector>
 #include "math.h"
 #include <boost/algorithm/string.hpp>
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
 
 using namespace std;
 
 
-class RecordData {
+class RecordData : public SerializableObject {
 public:
 	RecordData() {};
 	RecordData(int id, int date, long time, int split, float weight, float label, float pred){
@@ -47,6 +48,8 @@ public:
 
 	float pred;
 	float weight;
+
+	ADD_SERIALIZATION_FUNCS(id, date, time, split, label, pred, weight);
 };
 
 
@@ -57,7 +60,7 @@ public:
 // One can serialize/deserialize a matrix and then use other utils to IO it, or use a direct method.
 // mat(i,j) can be used to access the (i,j) element in the matrix for read or write.
 template <class T>
-class MedMat {
+class MedMat : public SerializableObject {
 	public:
 
 		const static int Normalize_Cols = 1;
@@ -65,8 +68,8 @@ class MedMat {
 
 		// data holders (major)
 		vector<T> m;
-		int nrows;
-		int ncols;
+		int nrows = 0;
+		int ncols = 0;
 		unsigned long long size() { return (unsigned long long)nrows*ncols; }
 
 		// metadata holders
@@ -78,8 +81,8 @@ class MedMat {
 		vector<T> avg;
 		vector<T> std;
 
-		int normalized_flag; // 0 - non normalized 1 - cols normalized, 2 - rows normalized
-		int transposed_flag; // 0 - as was when matrix was created/loaded, 1 - transpose of it
+		int normalized_flag = 0; // 0 - non normalized 1 - cols normalized, 2 - rows normalized
+		int transposed_flag = 0; // 0 - as was when matrix was created/loaded, 1 - transpose of it
 
 		T missing_value ;
 
@@ -120,9 +123,10 @@ class MedMat {
 		//int read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out);
 
 		// serialize(), deserialize()
-		size_t get_size();
-		size_t serialize(unsigned char *buf);
-		size_t deserialize(unsigned char *buf);
+		//size_t get_size();
+		//size_t serialize(unsigned char *buf);
+		//size_t deserialize(unsigned char *buf);
+		ADD_SERIALIZATION_FUNCS(m, nrows, ncols, row_ids, recordsMetadata, signals, avg, std, normalized_flag, transposed_flag, missing_value);
 
 		// simple handling options
 		void transpose();
@@ -194,5 +198,14 @@ int fast_element_affine_scalar(vector<float> &v, float s, vector<float> &u, vect
 //template <class T> template <class S> void medmat_avg_rows(MedMat<T> &A, MedMat<S> &B);
 //template <class T> template <class S> void medmat_avg_cols(MedMat<T> &A, MedMat<S> &B);
 //template <class T> template <class S> void medmat_scalar_mult(MedMat<T> &A, S &s);
+
+
+//========================================================
+// Joining the MedSerialize Wagon
+//========================================================
+MEDSERIALIZE_SUPPORT(RecordData);
+MEDSERIALIZE_SUPPORT(MedMat<float>);
+MEDSERIALIZE_SUPPORT(MedMat<int>);
+MEDSERIALIZE_SUPPORT(MedMat<double>);
 
 #endif
