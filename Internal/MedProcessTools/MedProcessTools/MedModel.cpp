@@ -158,7 +158,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage en
 	//MedFeatures features(samples.time_unit);
 	features.clear();
 	features.set_time_unit(samples.time_unit);
-	MLOG("MedModel apply() : before generate_all_features()\n");
+	MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
 	if (generate_all_features(rep, &samples, features) < 0) {
 		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 		return -1;
@@ -174,6 +174,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage en
 	if (end_stage <= MED_MDL_FTR_PROCESSORS)
 		return 0;
 
+	MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
 		MERR("Predictor failed\n");
