@@ -307,7 +307,7 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	int rc = get_moments(values, wgts, missing_value, mean, sd);
 
 	if (sd == 0)
-		MTHROW_AND_ERR("FeatureNormalizer learn sd: %f mean: %f size: %d", sd, mean, values.size());
+		MTHROW_AND_ERR("FeatureNormalizer learn sd: %f mean: %f size: %d", sd, mean, (int)values.size());
 	return rc;
 }
 
