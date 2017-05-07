@@ -9,6 +9,7 @@
 
 #include <vector>
 #include "MedUtils/MedUtils/MedUtils.h"
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
 
 using namespace std;
 
@@ -63,10 +64,11 @@ public:
 // in other cases we might want to build and spread the input/output dimensions according to other more complex rules (example: convolutional networks)
 // Inputs to a micNode can be coordinates from other nodes outputs, or from the input features
 //
-class micNode {
+class micNode : public SerializableObject {
 
 public:
 
+	int version = 0;	// for backward support. This micNode is version 0
 	int id;
 	string type;	// "Input","LeakyReLU","SoftMax","Normalization","Regression","MaxOut","Chooser"
 	string subtype; // "encoder","decoder"
@@ -171,9 +173,8 @@ public:
 
 	// serializations for a single node (partial... only what's needed by predictions, and not initialized by init_params)
 
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(version, id, wgt, alpha, beta);
+
 };
 
 
@@ -200,7 +201,7 @@ public:
 // 
 // currently - fully conected LeakyReLU layers with SoftMax/logloss at the end
 //
-class micNetParams {
+class micNetParams : public SerializableObject {
 public:
 	string params_init_string;
 
@@ -281,16 +282,17 @@ public:
 };
 
 
-class micNet {
+class micNet : public SerializableObject {
 
 public:
 
+	int version = 0;
 	vector<micNode> nodes; 
 	micNetParams params;
 
 	vector<micNode> nodes_last_best;
 
-	micNet() { nodes.clear(); }
+	micNet() { fprintf(stderr, "New micNet created\n"); nodes.clear(); }
 
 	void copy_nodes(vector<micNode> &in_nodes);		// needed in order to set up ir pointers correctly
 
@@ -333,13 +335,29 @@ public:
 	int learn(MedMat<float> &x_train, MedMat<float> &y_train);
 	int predict(MedMat<float> &x, vector<float> &preds);
 
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	size_t get_size() { return MedSerialize::get_size(version, params.params_init_string, nodes); }
+	size_t serialize(unsigned char *blob) {  return MedSerialize::serialize(blob, version, params.params_init_string, nodes); }
+	size_t deserialize(unsigned char *blob)	{
+		string init_str;
+		size_t size = MedSerialize::deserialize(blob, version, init_str);
+		fprintf(stderr, "micNet deserialize init with %s\n", init_str.c_str());
+		init_net(init_str);
+		size += MedSerialize::deserialize(&blob[size], nodes);
+		return size;
+	}
 
 	int n_preds_per_sample() { return params.n_preds_per_sample; }
 
 };
+
+//=======================================================
+// Joining the MedSerialize Wagon
+//=======================================================
+MEDSERIALIZE_SUPPORT(micNode);
+MEDSERIALIZE_SUPPORT(micNetParams);
+MEDSERIALIZE_SUPPORT(micNet);
+
+
 
 #endif
 

@@ -61,21 +61,25 @@ namespace MedSerialize {
 	{
 		size_t pos = 0;
 		size_t len = str.length();
+		//fprintf(stderr, "string serialize(%d) %s\n", len, str.c_str());
 		memcpy(blob, &len, sizeof(size_t)); pos += sizeof(size_t);
 		memcpy(blob+pos, str.c_str(), len); pos += len;
 		blob[pos] = 0; pos++;
+		//fprintf(stderr, "string serialize(%d) %s\n", len, &blob[sizeof(size_t)]);
 		return pos;
 	}
 
 	//.........................................................................................
 	template<> inline size_t deserialize<string>(unsigned char *blob, string &str)
 	{
-		//fprintf(stderr,"string deserialize\n");
+		//fprintf(stderr, "string deserialize\n");
 		size_t pos = 0;
 		size_t len;
 		memcpy(&len, blob, sizeof(size_t)); pos += sizeof(size_t);
-		string new_s((char *)blob+pos);
+		//fprintf(stderr, "string deserialize pos %d len %d\n", pos, len);
+		string new_s((char *)&blob[pos]);
 		str = new_s;
+		//fprintf(stderr, "string deserialize pos %d :: %s\n", pos, str.c_str());
 		pos += len+1;
 		return pos;
 	}
@@ -111,7 +115,7 @@ namespace MedSerialize {
 		//fprintf(stderr, "vector deserialize\n");
 		size_t pos = 0, len;
 		pos += MedSerialize::deserialize<size_t>(blob + pos, len);
-		v.clear();
+		if (len != v.size()) v.clear();
 		if (len > 0) {
 			v.resize(len);
 			for (T &elem : v)

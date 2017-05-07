@@ -79,7 +79,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 		my_model.add_process_to_set(0, "fp_type=basic_cleaner");
 		my_model.add_process_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
 		//my_model.add_process_to_set(1, "fp_type=imputer;moment_type=0");
-		//my_model.add_process_to_set(2, "fp_type=normalizer");
+		my_model.add_process_to_set(2, "fp_type=normalizer");
 
 		// Predictor
 		MLOG("Initializing Predictor\n");
@@ -239,7 +239,8 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 		// Apply
 		if (new_model.apply(rep, testSamples) < 0) {
-			fprintf(stderr, "Applying model failed\n");
+		//if (my_model.apply(rep, testSamples) < 0) {
+				fprintf(stderr, "Applying model failed\n");
 			return -1;
 		}
 

@@ -123,7 +123,7 @@ int micNode::get_input_batch(int do_grad_flag)
 		n_in_dim += ir.in_node_ptr[i]->k_out;
 
 	if (n_in_dim != n_in) {
-		MERR("%s :: get_input_batch() :: ERROR :: non matching input dimensions %d vs. %d\n", name.c_str(), n_in_dim, n_in);
+		MERR("%s :: get_input_batch() :: id %d type %s :: ERROR :: non matching input dimensions %d vs. %d\n", name.c_str(), id, type.c_str(), n_in_dim, n_in);
 		return -1;
 	}
 
@@ -1498,11 +1498,11 @@ int micNet::init_fully_connected(micNetParams &in_params)
 	MLOG("%s initialized micNet of %d nodes:\n", prefix.c_str(), nodes.size());
 	for (int i=0; i<nodes.size(); i++) {
 		if (nodes[i].learn_rates.size()>0)
-			MLOG("%s node %d : %d --> %d , type %s , learn_rate %f , dropout %f ",
-				prefix.c_str(), nodes[i].id, nodes[i].n_in, nodes[i].k_out, nodes[i].type.c_str(), nodes[i].learn_rates(0, 0), nodes[i].dropout_prob_in);
+			MLOG("%s node %d %d : %d --> %d , type %s , learn_rate %f , dropout %f ",
+				prefix.c_str(), i, nodes[i].id, nodes[i].n_in, nodes[i].k_out, nodes[i].type.c_str(), nodes[i].learn_rates(0, 0), nodes[i].dropout_prob_in);
 		else
-			MLOG("%s node %d : %d --> %d , type %s , dropout %f ",
-				prefix.c_str(), nodes[i].id, nodes[i].n_in, nodes[i].k_out, nodes[i].type.c_str(), nodes[i].dropout_prob_in);
+			MLOG("%s node %d %d : %d --> %d , type %s , dropout %f ",
+				prefix.c_str(), i, nodes[i].id, nodes[i].n_in, nodes[i].k_out, nodes[i].type.c_str(), nodes[i].dropout_prob_in);
 
 
 		if (i == 0)
@@ -1980,15 +1980,20 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 				eval.log_loss = loss;
 				eval.log_loss /= (float)nsamples;
 			}
-			/* // debug
-			for (int i=0; i<10; i++) {
-				MLOG("preds(%d,*) ::", i);
+#if 0
+			 // debug
+			for (int i=0; i<nsamples; i+=nsamples/20) {
+				MLOG("x: ");
+				for (int j=0; j<x.ncols; j++)
+					MLOG(" %f", x(i, j));
+				MLOG("\n");
+				MLOG("preds(%d,*) (%d) ::", i, (int)y(i,0));
 				for (int j=0; j<preds.ncols; j++)
 					MLOG(" (%d) %f", j, preds(i, j));
 				MLOG("\n");
 			}
-			*/
-
+			
+#endif
 			// TBD: more measures....auc,corr, etc....
 		}
 
@@ -2191,7 +2196,7 @@ int micNet::predict(MedMat<float> &x, vector<float> &preds)
 // serializations
 //--------------------------------------------------------------------------------------
 #define MICNET_MAGIC_NUMBER 0x02468acefdb97531
-
+/*
 //--------------------------------------------------------------------------------------
 size_t micNode::get_size()
 {
@@ -2325,6 +2330,10 @@ size_t micNode::deserialize(unsigned char *buf)
 
 }
 
+*/
+
+
+/*
 //--------------------------------------------------------------------------------------
 size_t micNet::get_size()
 {
@@ -2418,3 +2427,4 @@ size_t micNet::deserialize(unsigned char *buf)
 	// Done !
 	return size;
 }
+*/

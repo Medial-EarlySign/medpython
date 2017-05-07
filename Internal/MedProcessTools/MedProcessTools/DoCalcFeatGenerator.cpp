@@ -58,7 +58,7 @@ int DoCalcFeatGenerator::init(map<string, string>& mapper) {
 			MLOG("Unknown parameter \'%s\' for DoCalcFeatGenerator\n", field.c_str());
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
-		MTHROW_AND_ERR("DoCalcFeatGenerator got [%d] weights != [%d] source_feature_names", weights.size(), raw_source_feature_names.size());
+		MTHROW_AND_ERR("DoCalcFeatGenerator got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
 	set_names();
 	return 0;
 }

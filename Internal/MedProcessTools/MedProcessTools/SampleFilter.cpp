@@ -404,7 +404,7 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 		MLOG("updating factor {%8.3f} to 1/(maxFactor=%.3f)\n", factor, matchMaxRatio);
 		factor = 1/matchMaxRatio;
 	}
-//	MLOG("opt ratio is %8.3f (effective factor = %8.3f)\n", opt_factor, factor);
+	MLOG("opt ratio is %8.3f (effective factor = %8.3f)\n", opt_factor, factor);
 
 
 	// sample controls and events
@@ -432,10 +432,10 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 			selected.push_back(event_ids[signature][i]);
 		n_ctrl += ntake_ctrl;
 		n_events += ntake_ev;
-//		MLOG("%s : ntake_ctrl: %d/%d ntake_ev: %d/%d total size is %d\n", signature.c_str(), ntake_ctrl, control_ids[signature].size(),ntake_ev, event_ids[signature].size(), n_ctrl+n_events);
+		MLOG("%s : ntake_ctrl: %d/%d ntake_ev: %d/%d total size is %d\n", signature.c_str(), ntake_ctrl, control_ids[signature].size(),ntake_ev, event_ids[signature].size(), n_ctrl+n_events);
 	}
 
-//	MLOG("Added %d controls, %d events, with a factor of %f\n", n_ctrl, n_events, n_events, factor);
+	MLOG("Added %d controls, %d events, with a factor of %f\n", n_ctrl, n_events, n_events, factor);
 
 	// Fill outSamples
 	sort(selected.begin(), selected.end(), [](const pair<int, int> &v1, const pair<int, int> &v2) {return (v1.first < v2.first || (v1.first == v2.first && v1.second < v2.second)); });
@@ -607,7 +607,7 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 	}
 	sort(ratios.begin(), ratios.end());
 
-//	MLOG("min ratio %8.3f max ratio %8.3f\n", ratios[0], ratios[ratios.size() - 1]);
+	MLOG("min ratio %8.3f max ratio %8.3f\n", ratios[0], ratios[ratios.size() - 1]);
 
 	// Find Optimal ratio - cnt1 and cnt2 are the overall number of samples we're giving up on 
 	int opt_cnt1 = -1, opt_cnt2 = -1;
@@ -639,7 +639,7 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 			opt_cnt1 = cnt1;
 			opt_cnt2 = cnt2;
 		}
-//		MLOG("ratio %8.3f price %8.3f \t opt ratio %8.3f lose %d events and %d controls = price of %8.3f \n", r, current_price, opt_r, opt_cnt2, opt_cnt1, opt_price);
+		MLOG("ratio %8.3f price %8.3f (lose %d events, %d controls) \t opt ratio %8.3f lose %d events and %d controls = price of %8.3f \n", r, current_price, cnt2, cnt1, opt_r, opt_cnt2, opt_cnt1, opt_price);
 
 	}
 
