@@ -12,6 +12,7 @@
 #define CHECK_CRC 0
 
 using namespace boost::property_tree;
+
 //=======================================================================================
 // MedModel
 //=======================================================================================
@@ -326,10 +327,14 @@ string parse_key_val(string key, string val) {
 	else return key + "=" + val;
 }
 void MedModel::init_from_string(istream &init_stream) {
+	MLOG("init model from string, first 5 lines are:\n");
+	int i = 5; string my_line;
+	while (i-- > 0 && getline(init_stream, my_line))
+		MLOG("[%s]\n", my_line.c_str());
+	init_stream.seekg(0);
 
 	ptree pt;
 	read_json(init_stream, pt);
-
 	for(ptree::value_type &p: pt.get_child("processes"))
 	{
 		int process_set = -1;

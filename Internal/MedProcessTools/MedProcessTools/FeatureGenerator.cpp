@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <boost/algorithm/string/join.hpp>
 #include "FeatureGenerator.h"
 #include "DoCalcFeatGenerator.h"
 #include "SmokingGenerator.h"
@@ -206,6 +207,9 @@ void BasicFeatGenerator::set_names() {
 	if (names.empty()) {
 		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
 		//string name = signalName + ".";
+		string set_names = "";
+		if (this->sets.size() > 0)
+			set_names = boost::algorithm::join(this->sets, "_");
 		switch (type) {
 		case FTR_LAST_VALUE:	name += "last"; break;
 		case FTR_FIRST_VALUE:	name += "first"; break;
@@ -219,9 +223,9 @@ void BasicFeatGenerator::set_names() {
 		case FTR_LAST2_DAYS:			name += "last2_time"; break;
 		case FTR_SLOPE_VALUE:			name += "slope"; break;
 		case FTR_WIN_DELTA_VALUE:		name += "win_delta"; break;
-		case FTR_CATEGORY_SET:			name += "category_set"; break;
-		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count"; break;
-		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum"; break;
+		case FTR_CATEGORY_SET:			name += "category_set_" + set_names ; break;
+		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count_" + set_names; break;
+		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
 		case FTR_NSAMPLES:		name += "nsamples"; break;
 
 		default: name += "ERROR";
