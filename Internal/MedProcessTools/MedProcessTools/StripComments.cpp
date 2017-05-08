@@ -1,4 +1,4 @@
-# https://github.com/andrew-d/json-strip/blob/master/strip.cpp
+// https://github.com/andrew-d/json-strip/blob/master/strip.cpp
 
 #include "StripComments.h"
 
