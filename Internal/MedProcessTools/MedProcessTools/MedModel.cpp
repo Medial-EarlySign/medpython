@@ -5,6 +5,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include "StripComments.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -327,15 +328,23 @@ string parse_key_val(string key, string val) {
 	}
 	else return key + "=" + val;
 }
+
 void MedModel::init_from_string(istream &init_stream) {
-	MLOG("init model from string, first 5 lines are:\n");
+
+	stringstream sstr;
+	sstr << init_stream.rdbuf();	
+	string no_comments = stripComments(sstr.str());
+	istringstream no_comments_stream(no_comments);
+
+	MLOG("init model from string, stripping comments and displaying first 5 lines:\n");
 	int i = 5; string my_line;
-	while (i-- > 0 && getline(init_stream, my_line))
-		MLOG("[%s]\n", my_line.c_str());
-	init_stream.seekg(0);
+	while (i-- > 0 && getline(no_comments_stream, my_line))
+		MLOG("%s\n", my_line.c_str());
+	no_comments_stream.clear();
+	no_comments_stream.seekg(0);
 
 	ptree pt;
-	read_json(init_stream, pt);
+	read_json(no_comments_stream, pt);
 	for(ptree::value_type &p: pt.get_child("processes"))
 	{
 		int process_set = -1;
