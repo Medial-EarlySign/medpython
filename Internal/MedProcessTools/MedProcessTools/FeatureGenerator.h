@@ -28,7 +28,6 @@ typedef enum {
 	FTR_GEN_AGE,
 	FTR_GEN_GENDER,
 	FTR_GEN_BINNED_LM,
-	FTR_GEN_DO_CALC,
 	FTR_GEN_SMOKING,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
@@ -57,7 +56,7 @@ public:
 	virtual void init(MedFeatures &features);
 
 	// Constructor/Destructor
-	FeatureGenerator() { learn_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS; pred_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS;  missing_val = MED_MAT_MISSING_VALUE; serial_id = ++global_serial_id_cnt; };
+	FeatureGenerator() { learn_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS; pred_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS;  missing_val = MED_MAT_MISSING_VALUE; serial_id = ++MedFeatures::global_serial_id_cnt; };
 	~FeatureGenerator() {};
 
 	// Required Signals
@@ -111,8 +110,7 @@ public:
 
 	virtual void print() { fprintf(stderr, "Print Not Implemented for feature\n"); }
 
-	static int global_serial_id_cnt;
-	int serial_id;		// serial id of feature to 
+	int serial_id;		// serial id of feature
 };
 
 FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);

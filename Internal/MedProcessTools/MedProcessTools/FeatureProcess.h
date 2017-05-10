@@ -23,11 +23,15 @@ typedef enum {
 	FTR_PROCESS_BASIC_OUTLIER_CLEANER,
 	FTR_PROCESS_NORMALIZER,
 	FTR_PROCESS_IMPUTER,
+	FTR_PROCESS_DO_CALC,
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
 class FeatureProcessor : public SerializableObject  {
 public:
+
+	// Feature name
+	string feature_name;
 
 	// Type
 	FeatureProcessorTypes processor_type;
@@ -40,7 +44,9 @@ public:
 	~FeatureProcessor() {};
 
 	// Virtual Set Feature Name
-	virtual void set_name(const string& name) { return; }
+	virtual void set_feature_name(const string& feature_name) { this->feature_name = feature_name; }
+	virtual string get_feature_name() { return this->feature_name; }
+	virtual void get_feature_names(vector<string> & feature_names) { feature_names.clear(); feature_names.push_back(feature_name); };
 
 	// Learn cleaning model
 	virtual int Learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
@@ -55,9 +61,9 @@ public:
 	int apply(MedFeatures& features, unordered_set<int>& ids) { return Apply(features, ids); }
 
 	// Init
-	static FeatureProcessor *make_processor(string name);
+	static FeatureProcessor *make_processor(string processor_name);
 	static FeatureProcessor *make_processor(FeatureProcessorTypes type);
-	static FeatureProcessor *make_processor(string name, string params);
+	static FeatureProcessor *make_processor(string processor_name, string params);
 	static FeatureProcessor *make_processor(FeatureProcessorTypes type, string params);
 
 	virtual int init(void *processor_params) { return 0; };
@@ -95,6 +101,7 @@ public:
 	// Apply cleaning model
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
+	virtual void get_feature_names(vector<string>& feature_names);
 
 	// Add processors
 	void add_processors_set(FeatureProcessorTypes type, vector<string>& features);
@@ -118,14 +125,11 @@ public:
 class FeatureBasicOutlierCleaner : public FeatureProcessor, public MedValueCleaner {
 public:
 
-	// Name
-	string feature_name;
-
 	// Constructor
 	FeatureBasicOutlierCleaner() : FeatureProcessor() { init_defaults(); }
-	FeatureBasicOutlierCleaner(string& name) : FeatureProcessor() { feature_name = name;  init_defaults(); }
-	FeatureBasicOutlierCleaner(string& name, string init_string) : FeatureProcessor() { feature_name = name;  init_defaults();  init_from_string(init_string); }
-	FeatureBasicOutlierCleaner(string& name, ValueCleanerParams *_params) : FeatureProcessor() { feature_name = name;  MedValueCleaner::init(_params); }
+	FeatureBasicOutlierCleaner(string& feature_name) : FeatureProcessor() { set_feature_name(feature_name); init_defaults(); }
+	FeatureBasicOutlierCleaner(string& feature_name, string init_string) : FeatureProcessor() { set_feature_name(feature_name);  init_defaults();  init_from_string(init_string); }
+	FeatureBasicOutlierCleaner(string& feature_name, ValueCleanerParams *_params) : FeatureProcessor() { set_feature_name(feature_name);  MedValueCleaner::init(_params); }
 
 	void init_defaults() {
 		processor_type = FTR_PROCESS_BASIC_OUTLIER_CLEANER;
@@ -137,9 +141,6 @@ public:
 		params.type = VAL_CLNR_ITERATIVE;
 
 	};
-
-	// Set Feature Name
-	void set_name(const string& name) { feature_name = name; }
 
 	// Init
 	int init(void *processor_params) {return MedValueCleaner::init(processor_params);};
@@ -169,9 +170,6 @@ public:
 class FeatureNormalizer : public FeatureProcessor {
 public:
 
-	// Name
-	string feature_name;
-
 	// Missing Value
 	float missing_value;
 
@@ -186,11 +184,9 @@ public:
 
 	// Constructor
 	FeatureNormalizer() : FeatureProcessor() { init_defaults(); }
-	FeatureNormalizer(const  string& name) : FeatureProcessor() { init_defaults(); feature_name = name; }
-	FeatureNormalizer(const  string& name, string init_string) : FeatureProcessor() { init_from_string(init_string);  feature_name = name; }
+	FeatureNormalizer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
+	FeatureNormalizer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
 
-	// Set Feature Name
-	void set_name(const string& name) { feature_name = name; }
 
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -290,8 +286,6 @@ public:
 class FeatureImputer : public FeatureProcessor {
 public:
 
-	// Name
-	string feature_name;
 
 	// Missing Value
 	float missing_value;
@@ -305,11 +299,8 @@ public:
 
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
-	FeatureImputer(const  string& name) : FeatureProcessor() { init_defaults(); feature_name = name; }
-	FeatureImputer(const  string& name, string init_string) : FeatureProcessor() { init_from_string(init_string);  feature_name = name; }
-
-	// Set Feature Name
-	void set_name(const string& name) { feature_name = name; }
+	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
+	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name);}
 
 	// Add stratirfier
 	void addStrata(string& init_string);

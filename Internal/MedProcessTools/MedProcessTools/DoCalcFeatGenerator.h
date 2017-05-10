@@ -1,5 +1,6 @@
 #pragma once
-#include "FeatureGenerator.h"
+#include "FeatureProcess.h"
+#include "MedProcessTools/MedProcessTools/MedFeatures.h"
 
 //.......................................................................................
 //.......................................................................................
@@ -8,15 +9,15 @@
 //.......................................................................................
 //.......................................................................................
 
-class DoCalcFeatGenerator : public FeatureGenerator {
+class DoCalcFeatGenerator : public FeatureProcessor {
 public:
+	int serial_id;
 	// target_feature_name as specified by the user, will be decorated for uniqueness
 	string raw_target_feature_name = "";
 
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_source_feature_names;
 
-	// source_feature_names after resolving
 	vector<string> source_feature_names;
 
 	// user function selector (e.g. sum, ratio)
@@ -28,30 +29,29 @@ public:
 	// for sum
 	vector<float> weights;
 
-	DoCalcFeatGenerator() : FeatureGenerator() { init_defaults();  }
+	DoCalcFeatGenerator() : FeatureProcessor() { serial_id = ++MedFeatures::global_serial_id_cnt; init_defaults(); }
 	~DoCalcFeatGenerator() {};
+
+	virtual void set_feature_name(const string& feature_name) { 
+		if (feature_name.substr(0, 4) == "FTR_") 
+			this->feature_name = feature_name; // already uniq
+		else this->feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + feature_name;
+	}
 
 	void init_defaults();
 
 	// init_from_string
 	int init(map<string, string>& mapper);
 
-	// resolve raw_source_feature_names
-	virtual void init(MedFeatures &features);
-
-	// decorate raw_target_feature_name and make it unique 
-	virtual void set_names();
-
-	// Learn nothing, doCalc just uses known formulas
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
-
-	// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	virtual int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	float sum(vector<float*> p_sources, int offset);
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, raw_target_feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, raw_target_feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, raw_target_feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
+	size_t get_size() { return MedSerialize::get_size(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, serial_id, processor_type, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, serial_id, processor_type, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
+
+private:
+	virtual void resolve_feature_names(MedFeatures &features);
 };

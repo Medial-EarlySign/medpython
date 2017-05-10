@@ -481,14 +481,15 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 
 	vector<string> features;
 	if (feat_names == "" || feat_names == "All")
-		get_all_features_names(features);
+		get_all_features_names(features, i_set);
 	else
 		boost::split(features, feat_names, boost::is_any_of(","));
-
 	// get type of feature processor
 	string fp_type;
 	get_single_val_from_init_string(init_string, "fp_type", fp_type);
 	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
+
+	MLOG("fp_type [%s] acting on [%d] features\n", fp_type.c_str(), int(features.size()));
 
 	// actual adding to relevant MultiFeatureProcessor
 	((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
@@ -571,7 +572,7 @@ void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& s
 void MedModel::add_feature_processors_set(FeatureProcessorTypes type) {
 
 	vector<string> features;
-	get_all_features_names(features);
+	get_all_features_names(features, int(feature_processors.size()));
 
 //	for (auto &name : features) 
 //		MLOG("Adding %s to processors of type %d\n", name.c_str(),type);
@@ -584,7 +585,7 @@ void MedModel::add_feature_processors_set(FeatureProcessorTypes type) {
 void MedModel::add_feature_processors_set(FeatureProcessorTypes type, string init_string) {
 
 	vector<string> features;
-	get_all_features_names(features);
+	get_all_features_names(features, int(feature_processors.size()));
 
 	add_feature_processors_set(type, features,init_string);
 }
@@ -626,14 +627,23 @@ void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>
 }
 
 //.......................................................................................
-void MedModel::get_all_features_names(vector<string> &feat_names)
+void MedModel::get_all_features_names(vector<string> &feat_names, int before_process_set)
 {
-	feat_names.clear();
+	unordered_set<string> uniq_feat_names;
 	for (unsigned int i = 0; i < generators.size(); i++) {
 		for (string& name : generators[i]->names)
-			feat_names.push_back(name);
+			uniq_feat_names.insert(name);
 	}
-
+	assert(before_process_set < feature_processors.size());
+	for (int i = 0; i < before_process_set; i++) {
+		vector<string> my_names;
+		feature_processors[i]->get_feature_names(my_names);
+		for (string& name : my_names)
+			uniq_feat_names.insert(name);
+	}
+	feat_names.clear();
+	for (auto f : uniq_feat_names)
+		feat_names.push_back(f);
 }
 
 //.......................................................................................

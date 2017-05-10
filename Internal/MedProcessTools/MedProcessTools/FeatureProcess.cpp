@@ -4,6 +4,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 #include "FeatureProcess.h"
+#include "DoCalcFeatGenerator.h"
 #include <omp.h>
 
 //=======================================================================================
@@ -20,6 +21,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_NORMALIZER;
 	else if (processor_name == "imputer")
 		return FTR_PROCESS_IMPUTER;
+	else if (processor_name == "do_calc")
+		return FTR_PROCESS_DO_CALC;
 	else
 		return FTR_PROCESS_LAST;
 }
@@ -49,6 +52,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new FeatureNormalizer;
 	else if (processor_type == FTR_PROCESS_IMPUTER)
 		return new FeatureImputer;
+	else if (processor_type == FTR_PROCESS_DO_CALC)
+		return new DoCalcFeatGenerator;
 	else
 		return NULL;
 
@@ -125,6 +130,14 @@ int MultiFeatureProcessor::Apply(MedFeatures& features, unordered_set<int>& ids)
 
 	return RC;
 }
+void MultiFeatureProcessor::get_feature_names(vector<string>& all_feature_names) {
+	all_feature_names.clear();
+	for (auto p : processors) {
+		vector<string> my_feature_names;
+		p->get_feature_names(my_feature_names);
+		all_feature_names.insert(all_feature_names.end(), my_feature_names.begin(), my_feature_names.end());
+	}
+}
 
 // Add processors
 //.......................................................................................
@@ -132,7 +145,7 @@ void  MultiFeatureProcessor::add_processors_set(FeatureProcessorTypes type, vect
 	
 	for (string& feature : features) {
 		FeatureProcessor *processor = FeatureProcessor::make_processor(type);
-		processor->set_name(feature);
+		processor->set_feature_name(feature);
 		processors.push_back(processor);
 	}
 }
@@ -141,7 +154,7 @@ void  MultiFeatureProcessor::add_processors_set(FeatureProcessorTypes type, vect
 	
 	for (string& feature : features) {
 		FeatureProcessor *processor = FeatureProcessor::make_processor(type, init_string);
-		processor->set_name(feature);
+		processor->set_feature_name(feature);
 		processors.push_back(processor);
 	}
 
