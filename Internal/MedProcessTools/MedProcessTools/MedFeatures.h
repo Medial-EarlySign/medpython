@@ -70,6 +70,7 @@ public:
 
 	int write_as_csv_mat(const string &csv_fname);
 
+	static int global_serial_id_cnt;
 };
 
 #endif

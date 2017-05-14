@@ -2,13 +2,10 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include "FeatureGenerator.h"
-#include "DoCalcFeatGenerator.h"
 #include "SmokingGenerator.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
-
-int FeatureGenerator::global_serial_id_cnt = 0;
 
 //=======================================================================================
 // FeatGenerator
@@ -24,8 +21,6 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_GENDER;
 	else if (generator_name == "binnedLmEstimates" || generator_name == "binnedLm"  || generator_name == "binnedLM")
 		return FTR_GEN_BINNED_LM;
-	else if (generator_name == "do_calc")
-		return FTR_GEN_DO_CALC;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
@@ -78,8 +73,6 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new GenderGenerator;
 	else if (generator_type == FTR_GEN_BINNED_LM)
 		return new BinnedLmEstimates;
-	else if (generator_type == FTR_GEN_DO_CALC)
-		return new DoCalcFeatGenerator;
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
 

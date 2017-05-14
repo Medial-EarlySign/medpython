@@ -81,7 +81,7 @@ public:
 	void add_age() { generators.push_back(new AgeGenerator); }
 	void add_gender() { generators.push_back(new GenderGenerator); }
 
-	void get_all_features_names(vector<string> &feat_names);
+	void get_all_features_names(vector<string> &feat_names, int before_process_set);
 
 	// Add Feature Processors
 	void add_feature_processor(FeatureProcessor *processor) { feature_processors.push_back(processor); };

@@ -6,6 +6,8 @@
 #define LOCAL_SECTION LOG_MEDFEAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+int MedFeatures::global_serial_id_cnt = 0;
+
 //=======================================================================================
 // MedFeatures
 //=======================================================================================
