@@ -23,6 +23,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
+	else if (generator_name == "range")
+		return FTR_GEN_RANGE;
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
 }
 
@@ -75,6 +77,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
+	else if (generator_type == FTR_GEN_RANGE)
+		return new RangeFeatGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
@@ -419,17 +423,117 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 	return 0;
 }
 
+//=======================================================================================
+// ComorbidityGenerator
+//=======================================================================================
+
+//................................................................................................................
+void RangeFeatGenerator::set_names() {
+	
+	names.clear();
+
+	string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
+
+	switch (type) {
+	case FTR_RANGE_CURRENT:	name += "current"; break;
+	case FTR_RANGE_LATEST:	name += "latest"; break;
+	case FTR_RANGE_MIN:		name += "min"; break;
+	case FTR_RANGE_MAX:		name += "max"; break;
+
+	default: name += "ERROR";
+	}
+
+	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
+	if (val_channel != 0)
+		name += ".v" + std::to_string(val_channel);
+	names.push_back(name);
+
+}
+
+// Init
+//.......................................................................................
+int RangeFeatGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		
+		if (field == "type") { type = name_to_type(entry.second); }
+		else if (field == "win_from") win_from = stoi(entry.second);
+		else if (field == "win_to") win_to = stoi(entry.second);
+		else if (field == "signalName" || field == "signal") signalName = entry.second;
+		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
+		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+	}
+
+	// set names and require signals
+	set_names();
+	req_signals.assign(1, signalName);
+
+	return 0;
+}
+
+// Init
+//.......................................................................................
+void RangeFeatGenerator::init_defaults() {
+	generator_type = FTR_GEN_RANGE;
+	signalId = -1;
+	time_unit_sig = MedTime::Undefined;
+	time_unit_win = med_rep_type.windowTimeUnit;
+	string _signalName = "";
+	set(_signalName, FTR_RANGE_CURRENT, 0, 360000);
+};
+
+// Get type from name
+//.......................................................................................
+RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
+{
+
+	if (name == "current")				return FTR_RANGE_CURRENT;
+	if (name == "latest")			return FTR_RANGE_LATEST;
+	if (name == "max")			return FTR_RANGE_MAX;
+	if (name == "min")			return FTR_RANGE_MIN;
+
+	return (RangeFeatureTypes)stoi(name);
+}
+
+// Generate
+//.......................................................................................
+int RangeFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+
+	string& name = names[0];
+
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
+
+	float *p_feat = &(features.data[name][index]);
+	for (int i = 0; i < num; i++)
+		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time));
+
+	return 0;
+}
+
+//.......................................................................................
+float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
+
+	rec.uget(signalId, idx);
+
+	switch (type) {
+	case FTR_RANGE_CURRENT:	return uget_range_current(rec.usv, time);
+	case FTR_RANGE_LATEST:	return uget_range_latest(rec.usv, time);
+	case FTR_RANGE_MIN:	return uget_range_min(rec.usv, time);
+	case FTR_RANGE_MAX:		return uget_range_max(rec.usv, time);
+
+	default:	return missing_val;
+	}
+
+	return missing_val;
+}
 
 
 //................................................................................................................
 // in all following uget funcs the relevant time window is [min_time, max_time] and time is given in time_unit_win
 //................................................................................................................
-
-void BasicFeatGenerator::get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time)
-{
-	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_to);
-	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time -_win_from);
-}
 
 // get the last value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_from, int _win_to) 
@@ -768,4 +872,112 @@ float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
 	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
 	return 0;
+}
+
+//.......................................................................................
+// get values for RangeFeatGenerator
+//.......................................................................................
+// get the value in a range that includes time - win_from, if available
+float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int time)
+{
+	int dummy_time, time_to_check;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, dummy_time, time_to_check);
+
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+
+		if (fromTime > time_to_check)
+			break;
+		else if (toTime >= time_to_check)
+			return usv.Val(i, val_channel);
+	}
+
+	return missing_val;
+}
+
+//.......................................................................................
+// get the value in the latest range that intersets with time-win_to to time-win_from
+float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;  
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	float val = missing_val;
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+
+		if (fromTime > max_time)
+			break;
+		else if (toTime < min_time)
+			continue;
+		else if (fromTime >= min_time || toTime <= max_time)
+			val =  usv.Val(i, val_channel);
+	}
+
+	return val;
+}
+
+//.......................................................................................
+// get the minimal value in a range that intersets with time-win_to to time-win_from
+float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	float min_val = (float)1e20;
+
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+
+		if (fromTime > max_time)
+			break;
+		else if (toTime < min_time)
+			continue;
+		else if ((fromTime >= min_time || toTime <= max_time) && usv.Val(i, val_channel) < min_val)
+			min_val = usv.Val(i, val_channel);
+	}
+
+	if (min_val < (float)1e20)
+		return min_val;
+	else
+		return missing_val;
+}
+
+//.......................................................................................
+// get the maximal value in a range that intersets with time-win_to to time-win_from
+float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	float max_val = (float)-1e10;
+
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+
+		if (fromTime > max_time)
+			break;
+		else if (toTime < min_time)
+			continue;
+		else if ((fromTime >= min_time || toTime <= max_time) && usv.Val(i, val_channel) > max_val)
+			max_val = usv.Val(i, val_channel);
+	}
+
+	if (max_val > (float)-1e10)
+		return max_val;
+	else
+		return missing_val;
+}
+
+//................................................................................................................
+// Helper function for time conversion
+//................................................................................................................
+void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time)
+{
+	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
+	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
 }
