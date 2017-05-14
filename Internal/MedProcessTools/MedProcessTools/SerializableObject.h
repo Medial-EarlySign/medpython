@@ -23,11 +23,12 @@ public:
 	size_t serialize(vector<unsigned char> &blob) { size_t size = get_size(); blob.resize(size); return serialize(&blob[0]); }
 	size_t deserialize(vector<unsigned char> &blob) { return deserialize(&blob[0]); }
 
-	template <class T> void copy_object(T* dst) { 
-		vector<unsigned int> blob; 
-		serialize(blob);
-		dst->deserialize(blob);
-	}
+
+	//template <class T> void copy_object(T* dst) { 
+	//	vector<unsigned int> blob; 
+	//	serialize(blob);
+	//	dst->deserialize(blob);
+	//}
 
 	// read and deserialize model
 	virtual int read_from_file(const string &fname);
