@@ -318,6 +318,9 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	vector<float> wgts(values.size(), 1.0);
 	int rc = get_moments(values, wgts, missing_value, mean, sd);
+	if (sd == 1) {
+		MLOG("got sd=1.0 in feature %s....\n", feature_name.c_str());
+	}
 
 	if (sd == 0)
 		MTHROW_AND_ERR("FeatureNormalizer learn sd: %f mean: %f size: %d", sd, mean, (int)values.size());

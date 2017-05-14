@@ -390,7 +390,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		}
 
 		if (jnrows < ncols) {
-			fprintf(stderr, "Not enough samples of type %d (%d, required - %d)\n", type, jnrows, ncols);
+			fprintf(stderr, "Not enough samples of type %d (%d, required - %d) %s\n", type, jnrows, ncols, signalName.c_str());
 			return -1;
 		}
 
