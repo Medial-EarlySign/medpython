@@ -29,6 +29,7 @@ typedef enum {
 	FTR_GEN_GENDER,
 	FTR_GEN_BINNED_LM,
 	FTR_GEN_SMOKING,
+	FTR_GEN_RANGE,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -215,11 +216,6 @@ public:
 	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
-	// helpers
-
-	// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
-	void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
-
 
 	// Serialization
 	size_t get_size();
@@ -239,7 +235,7 @@ public:
 	// Is Age Directly given ?
 	bool directlyGiven;
 
-	// Signak Id
+	// Signal Id
 	int signalId;
 
 	// Constructor/Destructor
@@ -379,6 +375,80 @@ public:
 	// print 
 	void print();
 };
+
+//.......................................................................................
+//.......................................................................................
+// RangeFeatGenerator : Generate features from a range-val signal
+//.......................................................................................
+//.......................................................................................
+
+typedef enum {
+	FTR_RANGE_CURRENT = 0,
+	FTR_RANGE_LATEST = 1,
+	FTR_RANGE_MAX = 2,
+	FTR_RANGE_MIN = 3,
+	FTR_RANGE_LAST
+} RangeFeatureTypes;
+
+class RangeFeatGenerator : public FeatureGenerator {
+public:
+
+	string signalName; // Signal to consider
+	int signalId; 
+	RangeFeatureTypes type; // Type of comorbidity index to generate
+	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
+	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
+	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+
+	// Constructor/Destructor
+	RangeFeatGenerator() : FeatureGenerator() { init_defaults(); };
+	~RangeFeatGenerator() {};
+	void set(string& _signalName, RangeFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1, signalName); }
+	void set(string& _signalName, RangeFeatureTypes _type, int _time_win_from, int _time_win_to) {
+		signalName = _signalName; type = _type; win_from = _time_win_from; win_to = _time_win_to;
+		set_names(); req_signals.assign(1, signalName);
+	}
+
+	// Naming 
+	void set_names();
+
+	// Init
+	int init(map<string, string>& mapper);
+	void init_defaults();
+	RangeFeatureTypes name_to_type(const string &name);
+
+	// Learn a generator
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+
+	// generate a new feature
+	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	float get_value(PidDynamicRec& rec, int index, int date);
+
+	// Signal Ids
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+
+	// actual generators
+	float uget_range_current(UniversalSigVec &usv, int time_point);
+	float uget_range_latest(UniversalSigVec &usv, int time_point);
+	float uget_range_min(UniversalSigVec &usv, int time_point);
+	float uget_range_max(UniversalSigVec &usv, int time_point);
+
+	// Serialization
+	size_t get_size() { return MedSerialize::get_size(generator_type, signalName, type, win_from, win_to, val_channel, names); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names); };
+
+};
+
+MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
+
+//=======================================
+// Helpers
+//=======================================
+
+// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
+void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
 
 //=======================================
 // Joining the MedSerialze wagon
