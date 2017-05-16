@@ -66,7 +66,7 @@
 		}
 		
 		,"process": {
-			"process_set": "1",
+			"process_set": "0",
 			"fp_type": "do_calc",
 			"calc_type": "sum",
 			"names": "my_sum",
@@ -91,7 +91,7 @@
 			"strata": "Age,40,80,5",
 			"moment_type": "0"
 		}
-*/			
+*/
 	},
 //	"predictor" : "linear_model",
 //	"predictor_params" : "rfactor=0.99",

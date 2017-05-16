@@ -5,6 +5,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
 #include "StripComments.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
@@ -328,15 +329,42 @@ string parse_key_val(string key, string val) {
 	}
 	else return key + "=" + val;
 }
+void fill_list_from_file(const string& fname, vector<string>& list) {
+	ifstream inf(fname);
+	if (!inf)
+		MTHROW_AND_ERR("can't open file %s for read\n", fname.c_str());
 
-void MedModel::init_from_string(istream &init_stream) {
+	string curr_line;
+	int lines = 0;
+	while (getline(inf, curr_line)) {
+		if (curr_line[curr_line.size() - 1] == '\r')
+			curr_line.erase(curr_line.size() - 1);
+		lines++;
+		list.push_back(curr_line);
+	}
+	fprintf(stderr, "read %d lines from: %s\n", lines, fname.c_str());
+	inf.close();
 
+}
+string make_absolute_path(const string& main_file, const string& small_file) {
+	if (small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':'))
+		return small_file;
+	boost::filesystem::path p(main_file);
+	string abs = p.parent_path().string() + '/' + small_file;
+	MLOG("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
+	return abs;
+}
+void MedModel::init_from_json_file(const string &fname) {
+	ifstream inf(fname);
+	if (!inf)
+		MTHROW_AND_ERR("can't open json file [%s] for read\n", fname.c_str());
 	stringstream sstr;
-	sstr << init_stream.rdbuf();	
+	sstr << inf.rdbuf();
+	inf.close();
 	string no_comments = stripComments(sstr.str());
 	istringstream no_comments_stream(no_comments);
 
-	MLOG("init model from string, stripping comments and displaying first 5 lines:\n");
+	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());
 	int i = 5; string my_line;
 	while (i-- > 0 && getline(no_comments_stream, my_line))
 		MLOG("%s\n", my_line.c_str());
@@ -357,7 +385,15 @@ void MedModel::init_from_string(istream &init_stream) {
 			else {
 				vector<string> current_attr_values;
 				if (single_attr_value.length() > 0) {
-					if (boost::starts_with(single_attr_value, "ref:")) {
+					if (boost::starts_with(single_attr_value, "file:")) {
+						//e.g. "signal": "file:my_list.txt" - file can be relative
+						vector<string> my_list;
+						string small_file = single_attr_value.substr(5);
+						fill_list_from_file(make_absolute_path(fname, small_file), my_list);
+						for (string s: my_list)
+							current_attr_values.push_back(parse_key_val(attr_name, s));
+					}
+					else if (boost::starts_with(single_attr_value, "ref:")) {
 						auto my_ref = pt.get_child(single_attr_value.substr(4));
 						for (auto &r : my_ref)
 							//e.g. "signal": "ref:signals"
