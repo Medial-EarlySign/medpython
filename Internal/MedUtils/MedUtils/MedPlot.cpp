@@ -106,22 +106,22 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName, vector<string> seriesNames, int refreshTime)
 {
 
-	ifstream jsFile;
+	/*ifstream jsFile;
 	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
 	if (!jsFile.is_open()) {
 		throw logic_error("Unable to open js file");
 	}
 	string jsData((istreambuf_iterator<char>(jsFile)),
 		istreambuf_iterator<char>());
-	ofstream jsOut;
+	ofstream jsOut;*/
 	size_t lastDirPos = outPath.find_last_of("/\\");
 	boost::filesystem::path p(outPath);
 	boost::filesystem::path outDir = p.parent_path();
 
-	cerr << "writing: [" << outDir.string() + "/plotly-latest.min.js" << "]\n";
+	/*cerr << "writing: [" << outDir.string() + "/plotly-latest.min.js" << "]\n";
 	jsOut.open(outDir.string() + "/plotly-latest.min.js");
 	jsOut << jsData;
-	jsOut.close();
+	jsOut.close();*/
 
 	ifstream file(BaseResourcePath + separator() + "Graph_HTML.txt");
 	if (!file.is_open()) {
@@ -197,6 +197,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	rep += "' }, \n height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);
+	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
 
 	ofstream myfile;
 	cerr << "writing: [" << outPath << "]\n";
