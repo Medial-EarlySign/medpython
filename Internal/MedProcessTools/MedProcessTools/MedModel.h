@@ -14,10 +14,13 @@
 
 // MedModel learn/apply stages
 typedef enum {
-	MED_MDL_REP_PROCESSORS,
-	MED_MDL_FTR_GENERATORS,
-	MED_MDL_FTR_PROCESSORS,
-	MED_MDL_PREDICTOR,
+	MED_MDL_LEARN_REP_PROCESSORS,
+	MED_MDL_LEARN_FTR_GENERATORS,
+	MED_MDL_APPLY_FTR_GENERATORS,
+	MED_MDL_LEARN_FTR_PROCESSORS,
+	MED_MDL_APPLY_FTR_PROCESSORS,
+	MED_MDL_LEARN_PREDICTOR,
+	MED_MDL_APPLY_PREDICTOR,
 	MED_MDL_END
 } MedModelStage;
 
@@ -126,12 +129,12 @@ public:
 	void get_required_signal_names(unordered_set<string>& signalNames);
 
 	// Apply
-	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_REP_PROCESSORS, MED_MDL_PREDICTOR); }
+	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_LEARN_PREDICTOR); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
-	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector) { return learn(rep, samples, selector, MED_MDL_REP_PROCESSORS, MED_MDL_PREDICTOR); }
+	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector) { return learn(rep, samples, selector, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_LEARN_PREDICTOR); }
 	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector, MedModelStage start_stage, MedModelStage end_stage);
-	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_PREDICTOR); }
-	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage end_stage);
+	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR); }
+	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
 	// De(Serialize)
 	size_t get_size();
@@ -144,6 +147,7 @@ public:
 	int generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features);
 	int generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features) { return generate_features(rep, samples, generators, features); }
 	int learn_and_apply_feature_processors(MedFeatures &features);
+	int learn_feature_processors(MedFeatures &features);
 	int apply_feature_processors(MedFeatures &features);
 
 };
