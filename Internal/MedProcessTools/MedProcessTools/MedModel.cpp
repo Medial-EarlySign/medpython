@@ -6,6 +6,8 @@
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
+#include <string>
 #include "StripComments.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
@@ -347,22 +349,52 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 
 }
 string make_absolute_path(const string& main_file, const string& small_file) {
-	if (small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':'))
-		return small_file;
 	boost::filesystem::path p(main_file);
-	string abs = p.parent_path().string() + '/' + small_file;
+	string main_file_path = p.parent_path().string();
+	if (
+		(small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':')) ||
+		(main_file_path.size() == 0)
+		)
+		return small_file;
+	string abs = main_file_path + '/' + small_file;
 	MLOG("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
-void MedModel::init_from_json_file(const string &fname) {
+string file_to_string(int recursion_level, const string& main_file, const string& small_file = "") {
+	if (recursion_level > 3)
+		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
+	string fname;
+	if (small_file == "")
+		fname = main_file;
+	else
+		fname = make_absolute_path(main_file, small_file);
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open json file [%s] for read\n", fname.c_str());
 	stringstream sstr;
 	sstr << inf.rdbuf();
 	inf.close();
-	string no_comments = stripComments(sstr.str());
-	istringstream no_comments_stream(no_comments);
+	string orig = stripComments(sstr.str());
+	const char* pattern = "\\\"[[:blank:]]*json\\:(.+?)[[:blank:]]*?\\\"";
+	boost::regex ip_regex(pattern);
+
+	boost::sregex_iterator it(orig.begin(), orig.end(), ip_regex);
+	boost::sregex_iterator end;
+	std::cerr << "resolving referenced jsons...\n";
+	int last_char = 0;
+	string out_string = "";
+	for (; it != end; ++it) {
+		std::cerr << "found: " << it->str(0) << ":::" << it->str(1) << "\n";
+		out_string += orig.substr(last_char, it->position() - last_char);
+		out_string += file_to_string(recursion_level + 1, main_file, it->str(1));
+		last_char = it->position() + it->str(0).size();
+	}
+	out_string += orig.substr(last_char);
+	return out_string;
+}
+void MedModel::init_from_json_file(const string &fname) {
+	string json_contents = file_to_string(0, fname);
+	istringstream no_comments_stream(json_contents);
 
 	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());
 	int i = 5; string my_line;
