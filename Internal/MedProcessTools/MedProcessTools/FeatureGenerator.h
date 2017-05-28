@@ -102,8 +102,14 @@ public:
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
 
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *generator; }
+
 	// Number of features generated
-	virtual int nfeatures() { return 1; }
+	virtual int nfeatures() { return names.size(); }
+
+	// Filter generated features according to a set. return number of valid features
+	virtual int filter_features(unordered_set<string>& validFeatures);
 
 	// Serialization
 	size_t get_generator_size();
@@ -121,8 +127,6 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
 // This class is a mediator between FeatureGenerator and classes that generate
 // Features on a single variable (not including age and gender) and in it in a single channel.
 //..............................................................................................
-
-
 
 //.......................................................................................
 //.......................................................................................
@@ -189,6 +193,9 @@ public:
 	int init(map<string, string>& mapper);
 	void init_defaults();
 
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
+
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
@@ -246,6 +253,9 @@ public:
 	// Name
 	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Age"); }
 
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AgeGenerator *>(generator)); }
+
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
@@ -281,6 +291,9 @@ public:
 
 	// Name
 	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id,6) + ".Gender"); }
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<GenderGenerator *>(generator)); }
 
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
@@ -350,17 +363,20 @@ public:
 	void init_defaults();
 	int init(map<string, string>& mapper);
 
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BinnedLmEstimates *>(generator)); }
+
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
 
 	// generate new feature(s)
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
+	// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
+	int filter_features(unordered_set<string>& validFeatures);
+
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict);
-
-	// Number of features generated
-	virtual int nfeatures() { return (int) params.estimation_points.size(); }
 
 	// Age Related functions
 	void prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear);
@@ -417,6 +433,9 @@ public:
 	int init(map<string, string>& mapper);
 	void init_defaults();
 	RangeFeatureTypes name_to_type(const string &name);
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<RangeFeatGenerator *>(generator)); }
 
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }

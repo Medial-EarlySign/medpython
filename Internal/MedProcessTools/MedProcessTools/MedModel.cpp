@@ -99,6 +99,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 		else
 			MLOG("MedModel::learn() : generating learn matrix time %g ms\n", timer.diff_milisec());
 	}
+
 	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
 		return 0;
 
@@ -247,6 +248,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 //.......................................................................................
 int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features)
 {
+
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);

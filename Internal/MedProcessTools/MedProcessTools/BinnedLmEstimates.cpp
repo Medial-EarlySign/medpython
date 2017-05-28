@@ -578,6 +578,25 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 	return ptr;
 }
 
+//.......................................................................................
+// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
+int BinnedLmEstimates::filter_features(unordered_set<string>& validFeatures) {
+
+	int idx = 0;
+	for (int i = 0; i < names.size(); i++) {
+		if (validFeatures.find(names[i]) != validFeatures.end()) {
+			params.estimation_points[idx] = params.estimation_points[i];
+			names[idx] = names[i];
+			idx++;
+		}
+	}
+
+	names.resize(idx);
+	params.estimation_points.resize(idx);
+
+	return ((int)names.size());
+}
+
 // Age Related functions
 //.......................................................................................
 void BinnedLmEstimates::prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear) {

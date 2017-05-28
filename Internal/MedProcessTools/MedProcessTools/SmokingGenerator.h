@@ -16,6 +16,9 @@ public:
 	// Name
 	void set_names();
 
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<SmokingGenerator *>(generator)); }
+
 	// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
