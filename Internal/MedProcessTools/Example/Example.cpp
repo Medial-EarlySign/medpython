@@ -77,9 +77,9 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 		// Add feature processors
 		my_model.add_process_to_set(0, "fp_type=basic_cleaner");
-		my_model.add_process_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
+		//my_model.add_process_to_set(1, "fp_type=imputer;strata=Age,40,80,5;moment_type=0");
 		//my_model.add_process_to_set(1, "fp_type=imputer;moment_type=0");
-		my_model.add_process_to_set(2, "fp_type=normalizer");
+		//my_model.add_process_to_set(2, "fp_type=normalizer");
 
 		// Predictor
 		MLOG("Initializing Predictor\n");
@@ -127,9 +127,7 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 	else {
 		string model_init_file = vm["model_init_file"].as<string>();
 		MLOG("Reading model_init_file [%s]\n", model_init_file.c_str());
-		ifstream ifs(model_init_file);
-		my_model.init_from_string(ifs);
-		ifs.close();
+		my_model.init_from_json_file(model_init_file);
 	}
 
 	timer.take_curr_time();
