@@ -163,7 +163,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "nbrs_sd_num") params.nbrs_sd_num = stof(entry.second);
 		else if (field == "quantile") params.quantile = stof(entry.second);
 		else if (field == "trimming_quantile_factor") params.trimming_quantile_factor = stof(entry.second);
-		else if (field == "trimming_quantile_factor") params.trimming_quantile_factor = stof(entry.second);
+		else if (field == "removing_quantile_factor") params.removing_quantile_factor = stof(entry.second);
 		else if (field == "nbrs_quantile_factor") params.nbrs_quantile_factor = stof(entry.second);
 		else if (field == "doTrim") params.doTrim = (stoi(entry.second) != 0);
 		else if (field == "doRemove") params.doRemove = (stoi(entry.second) != 0);
