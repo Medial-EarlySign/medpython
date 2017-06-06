@@ -92,7 +92,7 @@ inline int date_to_days(int date)
 int get_day(int val) ;
 int get_day_approximate(int val);
 int get_date(int days);
-inline int rand_N(int N) { return ((int)((float)N*rand_1())); }
+inline int rand_N(int N) { return ((int)((float)N*rand_1()-(float)1e-6)); }
 
 // float random number in 0...1
 inline float rand_1() {return (float) globalRNG::rand()/(float)( globalRNG::max() + 1.0);}
