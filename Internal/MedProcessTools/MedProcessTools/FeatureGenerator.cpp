@@ -168,6 +168,20 @@ void FeatureGenerator::get_required_signal_names(unordered_set<string>& signalNa
 		signalNames.insert(sig);
 }
 
+//.......................................................................................
+// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
+int FeatureGenerator::filter_features(unordered_set<string>& validFeatures) {
+
+	int idx = 0;
+	for (int i = 0; i < names.size(); i++) {
+		if (validFeatures.find(names[i]) != validFeatures.end()) 
+			names[idx++] = names[i];
+	}
+
+	names.resize(idx);
+
+	return ((int)names.size());
+}
 //=======================================================================================
 // Single signal features that do not require learning(e.g. last hemoglobin)
 //=======================================================================================
@@ -258,14 +272,15 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
 	float *p_feat = &(features.data[name][index]);
-	for (int i = 0; i < num; i++)
+	for (int i = 0; i < num; i++) {
 		//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
 		//if (type != FTR_NSAMPLES)
-			p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index+i].time));
+		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time));
 		//else {
 		//	//p_feat[i] = i;
 		//	p_feat[i] = features.samples[index+i].time/10000;
 		//}
+	}
 			
 	
 	return 0;

@@ -6,6 +6,8 @@
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
+#include <string>
 #include "StripComments.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
@@ -39,12 +41,14 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 
 	// Set of signals
-	init_signal_ids(rep.dict);
+	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+		init_signal_ids(rep.dict);
 
-	for (int signalId : required_signals) {
-		if (rep.index.index_table[signalId].is_loaded != 1)
-			MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n", 
-				signalId, rep.dict.name(signalId).c_str());;
+		for (int signalId : required_signals) {
+			if (rep.index.index_table[signalId].is_loaded != 1)
+				MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
+					signalId, rep.dict.name(signalId).c_str());;
+		}
 	}
 
 	LearningSet = _samples;
@@ -54,7 +58,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	LearningSet->get_ids(ids);
 
 	// Learn RepCleaners
-	if (start_stage <= MED_MDL_REP_PROCESSORS) {
+	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
 		timer.start();
 		if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
 			MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
@@ -63,11 +67,11 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 		timer.take_curr_time();
 		MLOG("MedModel::learn() : learn rep processors time %g ms\n", timer.diff_milisec());
 	}
-	if (end_stage <= MED_MDL_REP_PROCESSORS)
+	if (end_stage <= MED_MDL_LEARN_REP_PROCESSORS)
 		return 0;
 
 	// Learn Feature Generators
-	if (start_stage <= MED_MDL_FTR_GENERATORS) {
+	if (start_stage <= MED_MDL_LEARN_FTR_GENERATORS) {
 		timer.start();
 		if (learn_feature_generators(rep, LearningSet) < 0) {
 			MERR("MedModel learn() : ERROR: Failed learn_feature_generators\n");
@@ -76,27 +80,35 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 		timer.take_curr_time();
 		MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
 	}
-	if (end_stage <= MED_MDL_FTR_GENERATORS)
+	if (end_stage <= MED_MDL_LEARN_FTR_GENERATORS)
 		return 0;
-	features.clear();
-	features.set_time_unit(LearningSet->time_unit);
 
 	// Generate features
-	timer.start();
-	if (generate_all_features(rep, LearningSet, features) < 0) {
-		MERR("MedModel learn() : ERROR: Failed generate_all_features()\n");
-		return -1;
+	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+		features.clear();
+		features.set_time_unit(LearningSet->time_unit);
+
+		timer.start();
+		if (generate_all_features(rep, LearningSet, features) < 0) {
+			MERR("MedModel learn() : ERROR: Failed generate_all_features()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		if (CHECK_CRC)
+			MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+		else
+			MLOG("MedModel::learn() : generating learn matrix time %g ms\n", timer.diff_milisec());
 	}
-	timer.take_curr_time();
-	if (CHECK_CRC)
-		MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
-	else
-		MLOG("MedModel::learn() : generating learn matrix time %g ms\n", timer.diff_milisec());
-	// Learn Feature processors and apply
-	if (start_stage <= MED_MDL_FTR_PROCESSORS) {
+
+	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
+		return 0;
+
+	// Learn and/or apply Feature processors and apply
+	if (start_stage <= MED_MDL_LEARN_FTR_PROCESSORS && end_stage >= MED_MDL_APPLY_FTR_PROCESSORS) {
+		// Learn + Apply
 		timer.start();
 		if (learn_and_apply_feature_processors(features) < 0) {
-			MERR("MedModel::learn() : ERROR: Failed learn_and_apply_feature_cleaners()\n");
+			MERR("MedModel::learn() : ERROR: Failed learn_and_apply_feature_processors()\n");
 			return -1;
 		}
 		timer.take_curr_time();
@@ -105,7 +117,20 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 		else
 			MLOG("MedModel::learn() : feature processing learn and apply time %g ms\n", timer.diff_milisec());
 	}
-	else {
+	else if (start_stage <= MED_MDL_LEARN_FTR_GENERATORS && end_stage < MED_MDL_APPLY_FTR_PROCESSORS) {
+		// Just learn feature processors
+		timer.start();
+		if (learn_feature_processors(features) < 0) {
+			MERR("MedModel::learn() : ERROR: Failed learn_feature_processors()\n");
+			return -1;
+		}
+		timer.take_curr_time();
+		if (CHECK_CRC)
+			MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+		else
+			MLOG("MedModel::learn() : feature processing learn and apply time %g ms\n", timer.diff_milisec());
+	}
+	else if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		// Just apply feature processors
 		timer.start();
 		if (apply_feature_processors(features) < 0) {
@@ -118,14 +143,14 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 		else
 			MLOG("MedModel::learn() : feature processing time %g ms\n", timer.diff_milisec());
 	}
-	if (end_stage <= MED_MDL_FTR_PROCESSORS)
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
 	// Select Features
 	selector.select(generators);
 
 	// Learn predictor
-	if (start_stage <= MED_MDL_PREDICTOR) {
+	if (start_stage <= MED_MDL_LEARN_PREDICTOR) {
 		timer.start();
 		int rc = predictor->learn(features);
 		timer.take_curr_time();
@@ -133,19 +158,16 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 		if (rc != 0)
 			return rc;
 	}
-	if (end_stage <= MED_MDL_PREDICTOR)
-		return 0;
-
 
 	return 0;
 }
 
 //.......................................................................................
 // Apply
-int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage end_stage) {
+int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 
 	// Stage Sanity
-	if (end_stage == MED_MDL_REP_PROCESSORS) {
+	if (end_stage <=  MED_MDL_APPLY_FTR_GENERATORS) {
 		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
 		return -1;
 	}
@@ -159,22 +181,27 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage en
 
 	// Generate features
 	//MedFeatures features(samples.time_unit);
-	features.clear();
-	features.set_time_unit(samples.time_unit);
-	MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
-	if (generate_all_features(rep, &samples, features) < 0) {
-		MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
-		return -1;
+	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+		features.clear();
+		features.set_time_unit(samples.time_unit);
+		MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (generate_all_features(rep, &samples, features) < 0) {
+			MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
+			return -1;
+		}
 	}
-	if (end_stage <= MED_MDL_FTR_GENERATORS)
+
+	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
 		return 0;
 
 	// Process Features
-	if (apply_feature_processors(features) < 0) {
-		MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
-		return -1;
+	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
+		if (apply_feature_processors(features) < 0) {
+			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
+			return -1;
+		}
 	}
-	if (end_stage <= MED_MDL_FTR_PROCESSORS)
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
 	MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
@@ -185,8 +212,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage en
 	}
 
 	samples.insert_preds(features);
-	if (end_stage <= MED_MDL_PREDICTOR)
-		return 0;
+
 	return 0;
 }
 
@@ -222,6 +248,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 //.......................................................................................
 int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features)
 {
+
 	vector<int> req_signals;
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
@@ -231,7 +258,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		generator->init(features);
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
-	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
+//	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 
@@ -272,6 +299,15 @@ int MedModel::learn_and_apply_feature_processors(MedFeatures &features)
 		if (processor->learn(features) < 0) return -1;
 		if (processor->apply(features) < 0) return -1;
 	}
+	return 0;
+}
+
+//.......................................................................................
+int MedModel::learn_feature_processors(MedFeatures &features)
+{
+	for (auto& processor : feature_processors)
+		if (processor->learn(features) < 0) return -1;
+
 	return 0;
 }
 
@@ -347,22 +383,52 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 
 }
 string make_absolute_path(const string& main_file, const string& small_file) {
-	if (small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':'))
-		return small_file;
 	boost::filesystem::path p(main_file);
-	string abs = p.parent_path().string() + '/' + small_file;
+	string main_file_path = p.parent_path().string();
+	if (
+		(small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':')) ||
+		(main_file_path.size() == 0)
+		)
+		return small_file;
+	string abs = main_file_path + '/' + small_file;
 	MLOG("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
-void MedModel::init_from_json_file(const string &fname) {
+string file_to_string(int recursion_level, const string& main_file, const string& small_file = "") {
+	if (recursion_level > 3)
+		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
+	string fname;
+	if (small_file == "")
+		fname = main_file;
+	else
+		fname = make_absolute_path(main_file, small_file);
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open json file [%s] for read\n", fname.c_str());
 	stringstream sstr;
 	sstr << inf.rdbuf();
 	inf.close();
-	string no_comments = stripComments(sstr.str());
-	istringstream no_comments_stream(no_comments);
+	string orig = stripComments(sstr.str());
+	const char* pattern = "\\\"[[:blank:]]*json\\:(.+?)[[:blank:]]*?\\\"";
+	boost::regex ip_regex(pattern);
+
+	boost::sregex_iterator it(orig.begin(), orig.end(), ip_regex);
+	boost::sregex_iterator end;
+	std::cerr << "resolving referenced jsons...\n";
+	int last_char = 0;
+	string out_string = "";
+	for (; it != end; ++it) {
+		std::cerr << "found: " << it->str(0) << ":::" << it->str(1) << "\n";
+		out_string += orig.substr(last_char, it->position() - last_char);
+		out_string += file_to_string(recursion_level + 1, main_file, it->str(1));
+		last_char = it->position() + it->str(0).size();
+	}
+	out_string += orig.substr(last_char);
+	return out_string;
+}
+void MedModel::init_from_json_file(const string &fname) {
+	string json_contents = file_to_string(0, fname);
+	istringstream no_comments_stream(json_contents);
 
 	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());
 	int i = 5; string my_line;

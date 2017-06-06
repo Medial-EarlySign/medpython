@@ -47,6 +47,9 @@ public:
 
 	float sum(vector<float*> p_sources, int offset);
 
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatGenerator *>(processor)); }
+
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, serial_id, processor_type, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }

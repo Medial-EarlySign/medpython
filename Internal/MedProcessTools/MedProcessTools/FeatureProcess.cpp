@@ -160,6 +160,37 @@ void  MultiFeatureProcessor::add_processors_set(FeatureProcessorTypes type, vect
 
 }
 
+// Filter according to a subset of features
+//.......................................................................................
+int  MultiFeatureProcessor::filter(unordered_set<string>& features) {
+
+	int idx = 0;
+	for (int i = 0; i < processors.size(); i++) {
+		if (features.find(processors[i]->feature_name) != features.end())
+			processors[idx++] = processors[i];
+	}
+
+	processors.resize(idx);
+	return processors.size();
+
+}
+
+// Copy
+//.......................................................................................
+void MultiFeatureProcessor::copy(FeatureProcessor *processor) {
+
+	MultiFeatureProcessor *tempProcessor = dynamic_cast<MultiFeatureProcessor*>(processor);
+	assert(tempProcessor != 0);
+
+	*this = *tempProcessor;
+
+	processors.resize(tempProcessor->processors.size());
+	for (int i = 0; i < processors.size(); i++) {
+		processors[i] = make_processor(tempProcessor->processors[i]->processor_type);
+		processors[i]->copy(tempProcessor->processors[i]);
+	}
+}
+
 // Serialization
 //.......................................................................................
 size_t MultiFeatureProcessor::get_size() {

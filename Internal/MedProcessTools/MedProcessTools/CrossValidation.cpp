@@ -31,8 +31,12 @@ int CrossValidator::doCV(MedPidRepository& rep, MedSamples& samples, int nfolds,
 		for (auto& sample : samples.idSamples) {
 			if (folds[sample.id] != ifold)
 				learningSamples.idSamples.push_back(sample);
-			else
+			else {
 				testSamples.idSamples.push_back(sample);
+				testSamples.idSamples.back().split = ifold;
+				for (auto& sample : testSamples.idSamples.back().samples)
+					sample.split = ifold;
+			}
 		}
 
 		// Filter
@@ -56,7 +60,7 @@ int CrossValidator::doCV(MedPidRepository& rep, MedSamples& samples, int nfolds,
 			return -1;
 		}
 
-		// Append
+		// Append with
 		outSamples.append(testSamples);
 	}
 

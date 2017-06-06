@@ -59,6 +59,40 @@ MedClassifierPerformance::MedClassifierPerformance() {
 //.........................................................................................................................................
 // Loaders
 
+// Load from Smplaes
+void MedClassifierPerformance::_load(MedSamples& samples) {
+
+	// First pass to check for splits
+	int maxSplits = -1, missingSplit = -1;
+	for (auto& idSamples : samples.idSamples) {
+		for (auto& sample : idSamples.samples) {
+
+			int split = sample.split;
+			if (split > maxSplits)
+				maxSplits = split;
+			if (split == -1)
+				missingSplit = 1;
+		}
+	}
+	assert(missingSplit == -1 || maxSplits == -1); // Can't have both splits and non-splits !
+
+	// Fill
+	preds.resize(maxSplits + 2);
+	for (auto& idSamples : samples.idSamples) {
+		for (auto& sample : idSamples.samples) {
+
+			int split = sample.split;
+			if (split == -1)
+				split = 0;
+			preds[split+1].push_back({ sample.prediction.back(),sample.outcome });
+		}
+	}
+
+	// Are there any splits ?
+	if (maxSplits > -1)
+		SplitsToComplete();
+}
+
 // Load from vectors
 void MedClassifierPerformance::_load(vector<pair<float, float> >& in_preds) {
 	preds.push_back(in_preds);
@@ -761,6 +795,9 @@ double get_chi2_n_x_m(vector<int> &cnts, int n, int m)
 //.........................................................................................................................................
 float get_pearson_corr(float *v1, float *v2, int len)
 {
+	if (len == 0)
+		return -2.0;
+
 	double sx, sy, sxy, sxx, syy, n;
 
 	sx = sy = sxy = sxx = syy = 0;
@@ -807,6 +844,6 @@ float get_pearson_corr(vector<float> &v1, vector<float> &v2, int &n, float missi
 		}
 	}
 
-	n = (int)clean_v1.size();
+	n = (int)clean_v1.size(); 
 	return get_pearson_corr(VEC_DATA(clean_v1), VEC_DATA(clean_v2), (int)clean_v1.size());
 }

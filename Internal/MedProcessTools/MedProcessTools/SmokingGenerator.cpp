@@ -30,6 +30,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 }
 
 int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+
 	int missing = -1;
 
 	for (int i = 0; i < num; i++) {
@@ -79,18 +80,20 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 			pack_years = ((float)smx_status[0].val3 / 20) * smoking_years;
 			ex_smoker = 1 - current_smoker;
 		}
-		for (int j = 0; j < raw_feature_names.size(); j++) {			
-			if (raw_feature_names[j] == "Current_Smoker")
+
+		for (int j = 0; j < names.size(); j++) {
+
+			if (names[j].size() >= 14 && names[j].substr(names[j].size() - 14, 14) == "Current_Smoker") 
 				features.data[names[j]][index + i] = (float)current_smoker;
-			else if (raw_feature_names[j] == "Ex_Smoker")
+			else if (names[j].size() >= 9 && names[j].substr(names[j].size() - 9, 9) == "Ex_Smoker")
 				features.data[names[j]][index + i] = (float)ex_smoker;
-			else if (raw_feature_names[j] == "Smok_Years_Since_Quitting")
+			else if (names[j].size() >= 25 && names[j].substr(names[j].size() - 25, 25) == "Smok_Years_Since_Quitting")
 				features.data[names[j]][index + i] = (float)years_since_quitting;
-			else if (raw_feature_names[j] == "Smoking_Years")
+			else if (names[j].size() >= 13 && names[j].substr(names[j].size() - 13, 13) == "Smoking_Years")
 				features.data[names[j]][index + i] = (float)smoking_years;
-			else if (raw_feature_names[j] == "Smok_Pack_Years")
+			else if (names[j].size() >= 15 && names[j].substr(names[j].size() - 15, 15) == "Smok_Pack_Years")
 				features.data[names[j]][index + i] = (float)pack_years;
-			else MTHROW_AND_ERR("unknown feature name [%s]", raw_feature_names[j].c_str());
+			else MTHROW_AND_ERR("unknown feature name [%s]", names[j].c_str());
 		}
 	}
 

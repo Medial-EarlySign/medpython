@@ -27,7 +27,7 @@ typedef enum {
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
-class FeatureProcessor : public SerializableObject  {
+class FeatureProcessor : public SerializableObject {
 public:
 
 	// Feature name
@@ -42,6 +42,9 @@ public:
 	// Constructor/Destructor
 	FeatureProcessor() { learn_nthreads = DEFAULT_FEAT_CLNR_NTHREADS;  clean_nthreads = DEFAULT_FEAT_CLNR_NTHREADS; };
 	~FeatureProcessor() {};
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *processor;}
 
 	// Virtual Set Feature Name
 	virtual void set_feature_name(const string& feature_name) { this->feature_name = feature_name; }
@@ -70,6 +73,9 @@ public:
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
 
+	// Filter according to a subset of features
+	virtual int filter(unordered_set<string>& features) { return (features.find(feature_name) == features.end()) ? 0 : 1; };
+
 	// Serialization (including type)
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
@@ -77,7 +83,6 @@ public:
 
 // Utilities
 FeatureProcessorTypes feature_processor_name_to_type(const string& cleaner_name);
-
 
 //.......................................................................................
 //.......................................................................................
@@ -95,6 +100,9 @@ public:
 	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; };
 	~MultiFeatureProcessor() {};
 
+	// Copy
+	virtual void copy(FeatureProcessor *processor) ;
+
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
@@ -106,6 +114,9 @@ public:
 	// Add processors
 	void add_processors_set(FeatureProcessorTypes type, vector<string>& features);
 	void add_processors_set(FeatureProcessorTypes type, vector<string>& features, string init_string);
+
+	// Filter according to a subset of features
+	int filter(unordered_set<string>& features);
 
 	// Serialization
 	size_t get_size();
@@ -145,6 +156,9 @@ public:
 	// Init
 	int init(void *processor_params) {return MedValueCleaner::init(processor_params);};
 	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) {*this = *(dynamic_cast<FeatureBasicOutlierCleaner *>(processor));}
 
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -187,7 +201,6 @@ public:
 	FeatureNormalizer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
 	FeatureNormalizer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
 
-
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
@@ -197,6 +210,9 @@ public:
 	// Init
 	int init(map<string, string>& mapper) ;
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER;};
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureNormalizer *>(processor)); }
 
 	// Serialization
 	size_t get_size();
@@ -286,7 +302,6 @@ public:
 class FeatureImputer : public FeatureProcessor {
 public:
 
-
 	// Missing Value
 	float missing_value;
 
@@ -310,6 +325,9 @@ public:
 	// Init
 	int init(map<string, string>& mapper);
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; moment_type = IMPUTE_MMNT_MEAN;  processor_type = FTR_PROCESS_IMPUTER; };
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureImputer *>(processor)); }
 
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
