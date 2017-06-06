@@ -421,7 +421,7 @@ string file_to_string(int recursion_level, const string& main_file, const string
 		std::cerr << "found: " << it->str(0) << ":::" << it->str(1) << "\n";
 		out_string += orig.substr(last_char, it->position() - last_char);
 		out_string += file_to_string(recursion_level + 1, main_file, it->str(1));
-		last_char = it->position() + it->str(0).size();
+		last_char = (int)it->position() + (int)it->str(0).size();
 	}
 	out_string += orig.substr(last_char);
 	return out_string;

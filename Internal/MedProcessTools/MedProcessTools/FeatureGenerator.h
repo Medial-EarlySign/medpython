@@ -106,7 +106,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *generator; }
 
 	// Number of features generated
-	virtual int nfeatures() { return names.size(); }
+	virtual int nfeatures() { return (int)names.size(); }
 
 	// Filter generated features according to a set. return number of valid features
 	virtual int filter_features(unordered_set<string>& validFeatures);

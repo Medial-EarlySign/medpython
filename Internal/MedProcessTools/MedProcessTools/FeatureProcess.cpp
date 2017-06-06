@@ -171,7 +171,7 @@ int  MultiFeatureProcessor::filter(unordered_set<string>& features) {
 	}
 
 	processors.resize(idx);
-	return processors.size();
+	return (int)processors.size();
 
 }
 
