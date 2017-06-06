@@ -491,6 +491,10 @@ int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedRepository& rep)
 	// Helpers
 	samplesTimeUnit = inSamples.time_unit;
 
+	if (rep.dict.read_state == 0) {
+		MWARN("WARNING Rep dictionary is empty\n");
+	}
+
 	if (isAgeRequired()) {
 		if (med_rep_type.ageDirectlyGiven) {
 			ageId = rep.dict.id("Age");
