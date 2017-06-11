@@ -197,7 +197,8 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
 
 	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+	//int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
 
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
@@ -225,9 +226,9 @@ public:
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, 
+							time_unit_win, time_channel, val_channel, sum_channel, signalName, sets, 
+							names, req_signals, lut);
 
 };
 

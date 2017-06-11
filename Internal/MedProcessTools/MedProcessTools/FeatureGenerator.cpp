@@ -286,6 +286,24 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 	return 0;
 }
 
+int BasicFeatGenerator::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { 
+	time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; 
+
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM) {
+#pragma omp critical
+		if (lut.size() == 0) {
+			int section_id = rep.dict.section_id(signalName);
+			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
+			rep.dict.prep_sets_lookup_table(section_id, sets, lut);
+			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
+		}
+	}
+	else
+		lut.clear();
+
+	return 0; 
+}
+
 //.......................................................................................
 float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
@@ -346,46 +364,6 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 
 	return 0;
 }
-
-// (De)Serialization
-//.......................................................................................
-size_t BasicFeatGenerator::get_size() {
-
-	size_t size = 0;
-
-	size += MedSerialize::get_size(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
-	size += MedSerialize::get_size(signalName, sets, names, req_signals);
-
-	return size;
-}
-
-//.......................................................................................
-size_t BasicFeatGenerator::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	ptr += MedSerialize::serialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
-	ptr += MedSerialize::serialize(blob + ptr, signalName, sets, names, req_signals);
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t BasicFeatGenerator::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	ptr += MedSerialize::deserialize(blob + ptr, generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel);
-	ptr += MedSerialize::deserialize(blob + ptr, signalName, sets, names, req_signals);
-
-	//req_signals.assign(1,signalName);
-	//
-	//names.clear();
-	//set_names();
-
-	return ptr;
-}
-
 
 //=======================================================================================
 // Age
@@ -810,15 +788,12 @@ float BasicFeatGenerator::uget_win_delta(UniversalSigVec &usv, int time)
 //.......................................................................................
 float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time)
 {
-#pragma omp critical
-	if (lut.size() == 0) {
 
-		int section_id = rec.my_base_rep->dict.section_id(signalName);
-		//MLOG("signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
-		rec.my_base_rep->dict.prep_sets_lookup_table(section_id, sets, lut);
-		//int n1=0; for (auto l : lut) n1 += l;
-		//MLOG("size of lut %d , n1 %d\n", lut.size(), n1);
-	}
+//#pragma omp critical
+//if (lut.size() == 0) {
+//		int section_id = rec.my_base_rep->dict.section_id(signalName);
+//		rec.my_base_rep->dict.prep_sets_lookup_table(section_id, sets, temp_lut);
+//	}
 
 	int min_time, max_time;
 	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
@@ -835,11 +810,11 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 //.......................................................................................
 float BasicFeatGenerator::uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time)
 {
-#pragma omp critical
-	if (lut.size() == 0) {
-		int section_id = rec.my_base_rep->dict.section_id(signalName);
-		rec.my_base_rep->dict.prep_sets_lookup_table(section_id, sets, lut);
-	}
+//#pragma omp critical
+//	if (lut.size() == 0) {
+//		int section_id = rec.my_base_rep->dict.section_id(signalName);
+//		rec.my_base_rep->dict.prep_sets_lookup_table(section_id, sets, lut);
+//	}
 
 	int min_time, max_time;
 	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
@@ -857,11 +832,11 @@ float BasicFeatGenerator::uget_category_set_count(PidDynamicRec &rec, UniversalS
 //.......................................................................................
 float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time)
 {
-#pragma omp critical
-	if (lut.size() == 0) {
-		int section_id = rec.my_base_rep->dict.section_id(signalName);
-		rec.my_base_rep->dict.prep_sets_lookup_table(section_id, sets, lut);
-	}
+//#pragma omp critical
+//	if (lut.size() == 0) {
+//		int section_id = rec.my_base_rep->dict.section_id(signalName);
+//		rec.my_base_rep->dict.prep_sets_lookup_table(section_id, sets, lut);
+//	}
 
 	int min_time, max_time;
 	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
