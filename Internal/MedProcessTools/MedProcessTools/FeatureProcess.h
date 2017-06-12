@@ -96,7 +96,11 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& cleaner_name)
 class MultiFeatureProcessor : public FeatureProcessor {
 public:
 
-	// Processors
+	// For generating processors only at learning, we need type + init_string
+	FeatureProcessorTypes members_type;
+	string init_string;
+
+	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
 
 	// Constructor/Destructor

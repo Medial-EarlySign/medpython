@@ -583,20 +583,18 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 	get_single_val_from_init_string(init_string, "fp_type", fp_type);
 	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
 
-	// Is duplication required ?
-	if (feat_names != "" || duplicate) {
+	
+	if (feat_names != "" && feat_names != "All") { // Are features given ?
 		vector<string> features;
-		if ((duplicate && feat_names == "") || feat_names == "All")
-			get_all_features_names(features, i_set);
-		else
-			boost::split(features, feat_names, boost::is_any_of(","));
-
+		boost::split(features, feat_names, boost::is_any_of(","));
 		MLOG("fp_type [%s] acting on [%d] features\n", fp_type.c_str(), int(features.size()));
-
-		// actual adding to relevant MultiFeatureProcessor
 		((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
 	}
-	else {
+	else if (feat_names == "All" || (feat_names == "" && duplicate)) { // Work on all features. Will be created at learn
+		((MultiFeatureProcessor *)feature_processors[i_set])->init_string = init_string;
+		((MultiFeatureProcessor *)feature_processors[i_set])->members_type = type;
+	} 
+	else { // No duplicating and no feature name given (e.g. selector)
 		FeatureProcessor *processor = FeatureProcessor::make_processor(type, init_string);
 		((MultiFeatureProcessor *)feature_processors[i_set])->processors.push_back(processor);
 	}

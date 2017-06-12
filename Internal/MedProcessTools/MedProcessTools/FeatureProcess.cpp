@@ -110,6 +110,12 @@ size_t FeatureProcessor::processor_serialize(unsigned char *blob) {
 int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Create processors
+	if (processors.size() == 0) {
+		vector<string> features_to_process;
+		for (auto& rec : features.data)
+			features_to_process.push_back(rec.first);
+		add_processors_set(members_type, features_to_process, init_string);
+	}
 
 	//	for (auto& cleaner : cleaners) {
 	int RC = 0;
