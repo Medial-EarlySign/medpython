@@ -204,3 +204,31 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 	out_f.close();
 	return 0;
 }
+
+// Filter set of features
+//.......................................................................................
+int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
+
+	// Sanity
+	for (string feature : selectedFeatures) {
+		if (data.find(feature) == data.end()) {
+			MERR("Cannot find feature %s in Matrix\n", feature.c_str());
+			return -1;
+		}
+	}
+
+	// Cleaning
+	vector<string> removedFeatures;
+	for (auto& rec : data) {
+		string feature = rec.first;
+		if (selectedFeatures.find(feature) == selectedFeatures.end())
+			removedFeatures.push_back(feature);
+	}
+
+	for (string& feature : removedFeatures) {
+		data.erase(feature);
+		attributes.erase(feature);
+	}
+
+	return 0;
+}

@@ -9,7 +9,7 @@
 //.......................................................................................
 //.......................................................................................
 
-class DoCalcFeatGenerator : public FeatureProcessor {
+class DoCalcFeatProcessor : public FeatureProcessor {
 public:
 	int serial_id;
 	// target_feature_name as specified by the user, will be decorated for uniqueness
@@ -29,8 +29,8 @@ public:
 	// for sum
 	vector<float> weights;
 
-	DoCalcFeatGenerator() : FeatureProcessor() { serial_id = ++MedFeatures::global_serial_id_cnt; init_defaults(); }
-	~DoCalcFeatGenerator() {};
+	DoCalcFeatProcessor() : FeatureProcessor() { serial_id = ++MedFeatures::global_serial_id_cnt; init_defaults(); }
+	~DoCalcFeatProcessor() {};
 
 	virtual void set_feature_name(const string& feature_name) { 
 		if (feature_name.substr(0, 4) == "FTR_") 
@@ -48,7 +48,7 @@ public:
 	float sum(vector<float*> p_sources, int offset);
 
 	// Copy
-	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatGenerator *>(processor)); }
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatProcessor *>(processor)); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }

@@ -48,19 +48,16 @@
     <ClCompile Include="FeatureGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FeatureSelector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="BinnedLmEstimates.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DoCalcFeatGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SmokingGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="StripComments.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DoCalcFeatProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -98,19 +95,16 @@
     <ClInclude Include="FeatureGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FeatureSelector.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="SerializableObject_imp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DoCalcFeatGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SmokingGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StripComments.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DoCalcFeatProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -70,6 +70,8 @@ public:
 
 	int write_as_csv_mat(const string &csv_fname);
 
+	int filter(unordered_set<string>& selectedFeatures);
+
 	static int global_serial_id_cnt;
 };
 

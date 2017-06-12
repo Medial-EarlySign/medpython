@@ -22,15 +22,7 @@ using namespace boost::property_tree;
 //=======================================================================================
 // Learn
 //.......................................................................................
-int MedModel::learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage) {
-
-	DummyFeatsSelector selector;
-	return learn(rep, samples, selector, start_stage, end_stage);
-
-}
-
-//.......................................................................................
-int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector& selector, MedModelStage start_stage, MedModelStage end_stage) {
+int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage start_stage, MedModelStage end_stage) {
 
 	MedTimer timer;
 
@@ -145,9 +137,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, FeatureSelector
 	}
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
-
-	// Select Features
-	selector.select(generators);
 
 	// Learn predictor
 	if (start_stage <= MED_MDL_LEARN_PREDICTOR) {
@@ -442,12 +431,20 @@ void MedModel::init_from_json_file(const string &fname) {
 	for(ptree::value_type &p: pt.get_child("processes"))
 	{
 		int process_set = -1;
+		int duplicate = 1;
 		vector<vector<string>> all_attr_values;
 		for (ptree::value_type &attr : p.second) {
 			string attr_name = attr.first;
 			string single_attr_value = attr.second.data();			
 			if (attr_name == "process_set")
 				process_set = stoi(single_attr_value);
+			else if (attr_name == "duplicate") {
+				boost::algorithm::to_lower(single_attr_value);
+				if (single_attr_value == "no" || single_attr_value == "n" || single_attr_value == "0")
+					duplicate = 0;
+				else if (single_attr_value != "yes" && single_attr_value != "y" && single_attr_value != "1")
+					MWARN("NOTE: cannot parse duplicate information \'%s\'. Ignoring\n", single_attr_value.c_str());
+			}
 			else {
 				vector<string> current_attr_values;
 				if (single_attr_value.length() > 0) {
@@ -480,7 +477,7 @@ void MedModel::init_from_json_file(const string &fname) {
 		concatAllCombinations(all_attr_values, 0, "", all_combinations);
 		for (string c : all_combinations) {
 			//MLOG("MedModel::init [%s]\n", c.c_str());
-			add_process_to_set(process_set, c);
+			add_process_to_set(process_set, duplicate, c);
 		}
 	}
 	if (pt.count("predictor") > 0){
@@ -537,7 +534,7 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 
 //.......................................................................................
 // fp_type and feature name are must have parameters
-void MedModel::add_feature_processor_to_set(int i_set, const string &init_string)
+void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const string &init_string)
 {
 	// if init_string does not have a names list (names parameter empty) it means a feature processor
 	// will be added to each of the currently initialized features.
@@ -581,20 +578,29 @@ void MedModel::add_feature_processor_to_set(int i_set, const string &init_string
 	string feat_names;
 	get_single_val_from_init_string(init_string, "names", feat_names);
 
-	vector<string> features;
-	if (feat_names == "" || feat_names == "All")
-		get_all_features_names(features, i_set);
-	else
-		boost::split(features, feat_names, boost::is_any_of(","));
 	// get type of feature processor
 	string fp_type;
 	get_single_val_from_init_string(init_string, "fp_type", fp_type);
 	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
 
-	MLOG("fp_type [%s] acting on [%d] features\n", fp_type.c_str(), int(features.size()));
+	// Is duplication required ?
+	if (feat_names != "" || duplicate) {
+		vector<string> features;
+		if ((duplicate && feat_names == "") || feat_names == "All")
+			get_all_features_names(features, i_set);
+		else
+			boost::split(features, feat_names, boost::is_any_of(","));
 
-	// actual adding to relevant MultiFeatureProcessor
-	((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
+		MLOG("fp_type [%s] acting on [%d] features\n", fp_type.c_str(), int(features.size()));
+
+		// actual adding to relevant MultiFeatureProcessor
+		((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
+	}
+	else {
+		FeatureProcessor *processor = FeatureProcessor::make_processor(type, init_string);
+		((MultiFeatureProcessor *)feature_processors[i_set])->processors.push_back(processor);
+	}
+
 }
 
 //.......................................................................................
@@ -611,11 +617,11 @@ void MedModel::add_feature_generator_to_set(int i_set, const string &init_string
 }
 
 //.......................................................................................
-void MedModel::add_process_to_set(int i_set, const string &init_string)
+void MedModel::add_process_to_set(int i_set, int duplicate, const string &init_string)
 {
 	if (init_string.find("rp_type") != string::npos) return add_rep_processor_to_set(i_set, init_string);
 	if (init_string.find("fg_type") != string::npos) return add_feature_generator_to_set(i_set, init_string);
-	if (init_string.find("fp_type") != string::npos) return add_feature_processor_to_set(i_set, init_string);
+	if (init_string.find("fp_type") != string::npos) return add_feature_processor_to_set(i_set, duplicate, init_string);
 
 	MERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
 }

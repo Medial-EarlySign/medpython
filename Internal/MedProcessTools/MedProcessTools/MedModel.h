@@ -7,7 +7,6 @@
 #include "MedProcessTools/MedProcessTools/RepProcess.h"
 #include "MedProcessTools/MedProcessTools/FeatureProcess.h"
 #include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
-#include "MedProcessTools/MedProcessTools/FeatureSelector.h"
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
@@ -27,7 +26,6 @@ typedef enum {
 //.......................................................................................
 //.......................................................................................
 // A model = repCleaner + featureGenerator + featureCleaner + MedPredictor
-// Feature selection can be applied in the learning stage but only the set of selected features should be maintained (?)
 //.......................................................................................
 //.......................................................................................
 class MedModel : public SerializableObject {
@@ -110,9 +108,9 @@ public:
 	void init_from_json_file(const string& fname);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
-	void add_feature_processor_to_set(int i_set, const string &init_string);	// fp_type and feature name are must have parameters
-	void add_process_to_set(int i_set, const string &init_string);		// will auto detect type by which type param is used (rp_type, fg_type OR fp_type)
-																		// and will call the relavant function
+	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);	// fp_type and feature name are must have parameters
+	void add_process_to_set(int i_set, int duplicate, const string &init_string); // will auto detect type by which type param is used (rp_type, fg_type OR fp_type)
+																				  // and will call the relavant function
 
 
 	// Add Predictor
@@ -131,8 +129,6 @@ public:
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_LEARN_PREDICTOR); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
-	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector) { return learn(rep, samples, selector, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_LEARN_PREDICTOR); }
-	int learn(MedPidRepository& rep, MedSamples* samples, FeatureSelector& selector, MedModelStage start_stage, MedModelStage end_stage);
 	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 

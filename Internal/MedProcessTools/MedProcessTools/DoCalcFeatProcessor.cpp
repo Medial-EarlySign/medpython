@@ -1,15 +1,15 @@
-#include "DoCalcFeatGenerator.h"
+#include "DoCalcFeatProcessor.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-void DoCalcFeatGenerator::init_defaults() {
+void DoCalcFeatProcessor::init_defaults() {
 	processor_type = FTR_PROCESS_DO_CALC;
 	missing_value = MED_MAT_MISSING_VALUE;
 	calc_type = "calc_type_not_set";
 };
 
-void DoCalcFeatGenerator::resolve_feature_names(MedFeatures &features) {	
+void DoCalcFeatProcessor::resolve_feature_names(MedFeatures &features) {
 	this->source_feature_names.clear();
 	for (string substr : raw_source_feature_names) {
 		string real_feature_name = "";
@@ -31,7 +31,7 @@ void DoCalcFeatGenerator::resolve_feature_names(MedFeatures &features) {
 	}
 }
 
-int DoCalcFeatGenerator::init(map<string, string>& mapper) {
+int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -49,15 +49,15 @@ int DoCalcFeatGenerator::init(map<string, string>& mapper) {
 				weights.push_back(stof(s));
 		}
 		else if (field != "fp_type")
-			MLOG("Unknown parameter \'%s\' for DoCalcFeatGenerator\n", field.c_str());
+			MLOG("Unknown parameter \'%s\' for DoCalcFeatProcessor\n", field.c_str());
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
-		MTHROW_AND_ERR("DoCalcFeatGenerator got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
+		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
 	set_feature_name(raw_target_feature_name);
 	return 0;
 }
 
-int DoCalcFeatGenerator::Apply(MedFeatures& features, unordered_set<int>& ids) {
+int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	resolve_feature_names(features);
 
 	int samples_size = (int)features.samples.size();
@@ -78,7 +78,7 @@ int DoCalcFeatGenerator::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	return 0;
 }
 
-float DoCalcFeatGenerator::sum(vector<float*> p_sources, int offset) {
+float DoCalcFeatProcessor::sum(vector<float*> p_sources, int offset) {
 	float res = 0.0;
 	
 	int cnt = 0;

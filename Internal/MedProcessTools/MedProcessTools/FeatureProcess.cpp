@@ -4,7 +4,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 #include "FeatureProcess.h"
-#include "DoCalcFeatGenerator.h"
+#include "DoCalcFeatProcessor.h"
 #include <omp.h>
 
 //=======================================================================================
@@ -23,6 +23,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_IMPUTER;
 	else if (processor_name == "do_calc")
 		return FTR_PROCESS_DO_CALC;
+	else if (processor_name == "univariate_selector")
+		return FTR_PROCESS_UNIVARIATE_SELECTOR;
 	else
 		return FTR_PROCESS_LAST;
 }
@@ -53,7 +55,9 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 	else if (processor_type == FTR_PROCESS_IMPUTER)
 		return new FeatureImputer;
 	else if (processor_type == FTR_PROCESS_DO_CALC)
-		return new DoCalcFeatGenerator;
+		return new DoCalcFeatProcessor;
+	else if (processor_type == FTR_PROCESS_UNIVARIATE_SELECTOR)
+		return new UnivariateFeatureSelector;
 	else
 		return NULL;
 
@@ -104,6 +108,8 @@ size_t FeatureProcessor::processor_serialize(unsigned char *blob) {
 // MultiFeatureProcessor
 //=======================================================================================
 int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	// Create processors
 
 	//	for (auto& cleaner : cleaners) {
 	int RC = 0;
@@ -271,8 +277,8 @@ int FeatureBasicOutlierCleaner::iterativeLearn(MedFeatures& features, unordered_
 	// Get bounds
 	if (values.size() == 0)
 		MWARN("EMPTY_VECTOR:: feature [%s] has 0 values\n", feature_name.c_str());
-	int rc = get_iterative_min_max(values);
 
+	int rc = get_iterative_min_max(values);
 	return rc;
 }
 
@@ -628,13 +634,156 @@ size_t featureStrata::deserialize(unsigned char *blob) {
 	return MedSerialize::deserialize(blob, name, resolution, min, max, nValues);
 }
 
+//=======================================================================================
+// FeatureSelector
+//=======================================================================================
+// Learn : Add required to feature selected by inheriting classes
+//.......................................................................................
+int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	// select, ignoring requirments
+	if (_learn(features, ids) < 0)
+		return -1;
+
+	// Add required signals
+	unordered_set<string> selectedFeatures;
+	for (string& feature : selected)
+		selectedFeatures.insert(feature);
+	
+	unordered_set<string> missingRequired;
+	for (string feature : required) {
+		if (selectedFeatures.find(feature) == selectedFeatures.end())
+			missingRequired.insert(feature);
+	}
+
+	// Keep maximum numToSelect ...
+	if (numToSelect > 0) {
+		int nMissing = (int)missingRequired.size();
+		int nSelected = (int)selected.size();
+		if (nSelected + nMissing > numToSelect)
+			selected.resize(numToSelect - nMissing);
+	}
+
+	for (string feature : missingRequired)
+		selected.push_back(feature);
+
+	return 0;
+}
+
+// Apply selection : Ignore set of ids
+//.......................................................................................
+int FeatureSelector::Apply(MedFeatures& features, unordered_set<int>& ids) {
+
+	unordered_set<string> selectedFeatures;
+	for (string& feature : selected)
+		selectedFeatures.insert(feature);
+
+	return features.filter(selectedFeatures);
+}
+
+// (De)Serialization
+//.......................................................................................
+size_t FeatureSelector::get_size() {
+	return MedSerialize::get_size(processor_type, selected);
+}
 
 //.......................................................................................
+size_t FeatureSelector::serialize(unsigned char *blob) {
+	return MedSerialize::serialize(blob, processor_type, processor_type, selected);
+}
 
+//.......................................................................................
+size_t FeatureSelector::deserialize(unsigned char *blob) {
+	return MedSerialize::deserialize(blob, processor_type, processor_type, selected);
+}
+
+//=======================================================================================
+// UnivariateFeatureSelector
+//=======================================================================================
+// Learn 
+//.......................................................................................
+int UnivariateFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	// Get Stats
+	vector<pair<string, float> > stats;
+	if (params.method == UNIV_SLCT_PRSN) {
+		getAbsPearsonCorrs(features, ids, stats);
+	}
+	else {
+		MERR("Unknown method %d for univariate feature selection\n", params.method);
+		return -1;
+	}
+
+	// Select
+	sort(stats.begin(), stats.end(), [](const pair<string, float> &v1, const pair<string, float> &v2) {return (v1.second > v2.second); });
+
+	if (numToSelect == 0) {
+		// Select according to minimum value of stat
+		for (auto& rec : stats) {
+			if (rec.second < params.minStat)
+				break;
+			selected.push_back(rec.first);
+		}
+	}
+	else {
+		// Select according to number
+		int n = (stats.size() > numToSelect) ? numToSelect : (int) stats.size();
+		selected.resize(n);
+		for (int i = 0; i < n; i++)
+			selected[i] = stats[i].first;
+	}
+
+	return 0;
+}
+
+// Utility : Caluclate pearson correlations
+//.......................................................................................
+int UnivariateFeatureSelector::getAbsPearsonCorrs(MedFeatures& features, unordered_set<int>& ids, vector<pair<string,float> >& stats) {
+
+	// Get outcome
+	vector<float> label;
+	get_all_outcomes(features, ids, label);
+
+	stats.resize(features.data.size());
+	vector<string> names(stats.size());
+	features.get_feature_names(names);
+	vector<vector<float>>values(stats.size());
+
+#pragma omp parallel for 
+	for (int i = 0; i < names.size(); i++) {
+		int n;
+		get_all_values(features, names[i], ids, values[i]);
+		stats[i].first = names[i];
+		stats[i].second = fabs(get_pearson_corr(values[i], label, n, missing_value));
+		if (n == 0) stats[i].second = 0.0;
+	}
+}
+
+// Init
+//.......................................................................................
+int UnivariateFeatureSelector::init(map<string, string>& mapper) {
+	
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field == "method") params.method = params.get_method(entry.second);
+		else if (field == "minStat") params.minStat = stof(entry.second);
+		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
+		else if (field != "fp_type")
+			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+	}
+
+	return 0;
+
+}
 //=======================================================================================
 // Utilities
 //=======================================================================================
-
+//.......................................................................................
 void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values) {
 
 	if (ids.empty()) {
@@ -654,5 +803,14 @@ void get_all_values(MedFeatures& features, string& signalName, unordered_set<int
 			if (ids.find(features.samples[i].id) != ids.end())
 				values.push_back(features.data[signalName][i]);
 		}
+	}
+}
+
+//.......................................................................................
+void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values) {
+
+	for (unsigned int i = 0; i < features.samples.size(); i++) {
+		if (ids.empty() || ids.find(features.samples[i].id) != ids.end())
+			values.push_back(features.samples[i].outcome);
 	}
 }
