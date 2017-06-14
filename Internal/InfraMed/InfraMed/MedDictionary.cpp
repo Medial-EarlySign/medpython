@@ -447,7 +447,7 @@ int MedDictionarySections::read(string path, vector<string> &dfnames)
 {
 	int rc = 0;
 	for (int i=0; i<dfnames.size(); i++) {
-		string fname = (path == "") ? dfnames[i] : path + "/" + dfnames[i];
+		string fname = (path == "" || (dfnames[i].length() > 0 && dfnames[i][0] == '/')) ? dfnames[i] : path + "/" + dfnames[i];
 		rc += read(fname);
 	}
 	return rc;
