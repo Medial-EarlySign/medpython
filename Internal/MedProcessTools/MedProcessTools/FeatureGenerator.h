@@ -171,6 +171,7 @@ public:
 	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
 	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
 	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	string in_set_name = "";					// set name (if not given - take list of members)
 
 	// helpers
 	vector<char> lut;							// to be used when generating FTR_CATEGORY_SET_*
@@ -228,7 +229,7 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, 
 							time_unit_win, time_channel, val_channel, sum_channel, signalName, sets, 
-							names, req_signals, lut);
+							names, req_signals, lut, in_set_name);
 
 };
 

@@ -99,12 +99,13 @@ public:
 	// For generating processors only at learning, we need type + init_string
 	FeatureProcessorTypes members_type;
 	string init_string;
+	int duplicate;
 
 	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
 
 	// Constructor/Destructor
-	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; };
+	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; };
 	~MultiFeatureProcessor() {};
 
 	// Copy

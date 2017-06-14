@@ -110,7 +110,7 @@ size_t FeatureProcessor::processor_serialize(unsigned char *blob) {
 int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Create processors
-	if (processors.size() == 0) {
+	if (processors.size() == 0 && duplicate) {
 		vector<string> features_to_process;
 		for (auto& rec : features.data)
 			features_to_process.push_back(rec.first);
@@ -792,6 +792,7 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 //.......................................................................................
 void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values) {
 
+	values.clear();
 	if (ids.empty()) {
 
 		int max_sample = 10000;
@@ -815,6 +816,7 @@ void get_all_values(MedFeatures& features, string& signalName, unordered_set<int
 //.......................................................................................
 void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values) {
 
+	values.clear();
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if (ids.empty() || ids.find(features.samples[i].id) != ids.end())
 			values.push_back(features.samples[i].outcome);

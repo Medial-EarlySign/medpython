@@ -218,8 +218,8 @@ void BasicFeatGenerator::set_names() {
 	if (names.empty()) {
 		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
 		//string name = signalName + ".";
-		string set_names = "";
-		if (this->sets.size() > 0)
+		string set_names = in_set_name;
+		if (set_names == "" && this->sets.size() > 0)
 			set_names = boost::algorithm::join(this->sets, "_");
 		switch (type) {
 		case FTR_LAST_VALUE:	name += "last"; break;
@@ -351,6 +351,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "sum_channel") sum_channel = stoi(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "in_set_name") in_set_name = entry.second;
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 	}

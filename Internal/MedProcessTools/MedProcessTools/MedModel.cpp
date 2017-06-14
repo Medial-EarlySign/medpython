@@ -593,6 +593,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 	else if (feat_names == "All" || (feat_names == "" && duplicate)) { // Work on all features. Will be created at learn
 		((MultiFeatureProcessor *)feature_processors[i_set])->init_string = init_string;
 		((MultiFeatureProcessor *)feature_processors[i_set])->members_type = type;
+		((MultiFeatureProcessor *)feature_processors[i_set])->duplicate = 1;
 	} 
 	else { // No duplicating and no feature name given (e.g. selector)
 		FeatureProcessor *processor = FeatureProcessor::make_processor(type, init_string);
