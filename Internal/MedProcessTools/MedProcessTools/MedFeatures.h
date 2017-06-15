@@ -38,6 +38,7 @@ public:
 
 	// Attributes
 	map<string, FeatureAttr> attributes;
+	map<string, unordered_set<string> > tags;
 
 	// time Unit
 	int time_unit;

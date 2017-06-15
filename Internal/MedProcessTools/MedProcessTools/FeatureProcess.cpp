@@ -88,6 +88,32 @@ int FeatureProcessor::apply(MedFeatures& features) {
 	return Apply(features, temp);
 }
 
+//.......................................................................................
+string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
+
+	string real_feature_name = "";
+
+	// Exact name ?
+	if (features.data.find(substr) != features.data.end())
+		return substr;
+
+	// Or ...
+	for (auto candidate : features.attributes)
+		if (candidate.first.find(substr) != string::npos) {
+			if (real_feature_name != "")
+				throw runtime_error(string("source_feature_name [") + substr + "] matches both [" + real_feature_name + "] and [" + candidate.first + "]");
+			real_feature_name = candidate.first;
+		}
+	if (real_feature_name == "") {
+		string err = string("source_feature_name [") + substr + "] does not match any feature. Tried matching to these features:\n";
+		for (auto candidate : features.attributes)
+			err += candidate.first + "\n";
+		throw runtime_error(err);
+	}
+
+	return real_feature_name;
+}
+
 // (De)Serialize
 //.......................................................................................
 size_t FeatureProcessor::get_processor_size() {
@@ -112,8 +138,11 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 	// Create processors
 	if (processors.size() == 0 && duplicate) {
 		vector<string> features_to_process;
-		for (auto& rec : features.data)
-			features_to_process.push_back(rec.first);
+		for (auto& rec : features.data) {
+			string name = rec.first;
+			if (tag == "" || features.tags[name].find(tag) != features.tags[name].end())
+				features_to_process.push_back(name);
+		}
 		add_processors_set(members_type, features_to_process, init_string);
 	}
 
@@ -142,6 +171,8 @@ int MultiFeatureProcessor::Apply(MedFeatures& features, unordered_set<int>& ids)
 
 	return RC;
 }
+
+//.......................................................................................
 void MultiFeatureProcessor::get_feature_names(vector<string>& all_feature_names) {
 	all_feature_names.clear();
 	for (auto p : processors) {
@@ -203,12 +234,25 @@ void MultiFeatureProcessor::copy(FeatureProcessor *processor) {
 	}
 }
 
+// Init 
+//.......................................................................................
+int MultiFeatureProcessor::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "tag") tag = entry.second;
+	}
+
+	return 0;
+}
+
 // Serialization
 //.......................................................................................
 size_t MultiFeatureProcessor::get_size() {
 
-	// Number of processors
-	size_t size = sizeof(int);
+	size_t size = MedSerialize::get_size(members_type, init_string, duplicate, tag);
+	size += sizeof(int);
 
 	for (auto& processor : processors)
 		size += processor->get_processor_size();
@@ -219,7 +263,7 @@ size_t MultiFeatureProcessor::get_size() {
 //.......................................................................................
 size_t MultiFeatureProcessor::serialize(unsigned char *blob) {
 
-	size_t ptr = 0;
+	size_t ptr = MedSerialize::serialize(blob, members_type, init_string, duplicate, tag);
 
 	int nProcessors = (int)processors.size();
 	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
@@ -233,9 +277,9 @@ size_t MultiFeatureProcessor::serialize(unsigned char *blob) {
 //.......................................................................................
 size_t MultiFeatureProcessor::deserialize(unsigned char *blob) {
 
-	size_t ptr = 0;
+	size_t ptr = MedSerialize::deserialize(blob, members_type, init_string, duplicate, tag);
 
-	// number of cleaners
+	// number of processors
 	int nProcessors;
 	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	processors.resize(nProcessors);
@@ -270,19 +314,16 @@ int FeatureBasicOutlierCleaner::Learn(MedFeatures& features, unordered_set<int>&
 //.......................................................................................
 int FeatureBasicOutlierCleaner::iterativeLearn(MedFeatures& features, unordered_set<int>& ids) {
 
-	// Sanity
-	if (features.data.find(feature_name) == features.data.end()) {
-		MERR("Cannot find signal %s in features data\n", feature_name.c_str());
-		return -1;
-	}
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values);
 
 	// Get bounds
 	if (values.size() == 0)
-		MWARN("EMPTY_VECTOR:: feature [%s] has 0 values\n", feature_name.c_str());
+		MWARN("EMPTY_VECTOR:: feature [%s] has 0 values\n", resolved_feature_name.c_str());
 
 	int rc = get_iterative_min_max(values);
 	return rc;
@@ -291,15 +332,12 @@ int FeatureBasicOutlierCleaner::iterativeLearn(MedFeatures& features, unordered_
 //.......................................................................................
 int FeatureBasicOutlierCleaner::quantileLearn(MedFeatures& features, unordered_set<int>& ids) {
 
-	// Sanity
-	if (features.data.find(feature_name) == features.data.end()) {
-		MERR("Cannot find signal %s in features data\n", feature_name.c_str());
-		return -1;
-	}
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values);
 
 	// Get bounds
 	return get_quantile_min_max(values);
@@ -309,15 +347,12 @@ int FeatureBasicOutlierCleaner::quantileLearn(MedFeatures& features, unordered_s
 //.......................................................................................
 int FeatureBasicOutlierCleaner::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
-	// Sanity
-	if (features.data.find(feature_name) == features.data.end()) {
-		MERR("Cannot find signal %s in features data\n", feature_name.c_str());
-		return -1;
-	}
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	// Clean
 	bool empty = ids.empty();
-	vector<float>& data = features.data[feature_name];
+	vector<float>& data = features.data[resolved_feature_name];
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if ((empty || ids.find(features.samples[i].id) != ids.end()) && data[i] != params.missing_value) {
 			if (params.doRemove && (data[i] < removeMin - NUMERICAL_CORRECTION_EPS || data[i] > removeMax + NUMERICAL_CORRECTION_EPS))
@@ -336,17 +371,17 @@ int FeatureBasicOutlierCleaner::Apply(MedFeatures& features, unordered_set<int>&
 // (De)Serialization
 //.......................................................................................
 size_t FeatureBasicOutlierCleaner::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
+	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
 }
 
 //.......................................................................................
 size_t FeatureBasicOutlierCleaner::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
+	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
 }
 
 //.......................................................................................
 size_t FeatureBasicOutlierCleaner::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
+	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
 }
 
 //=======================================================================================
@@ -355,9 +390,12 @@ size_t FeatureBasicOutlierCleaner::deserialize(unsigned char *blob) {
 //.......................................................................................
 int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
+
 	// Get all values
 	vector<float> values;
-	get_all_values(features, feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values);
 
 	vector<float> wgts(values.size(), 1.0);
 	int rc = get_moments(values, wgts, missing_value, mean, sd);
@@ -374,20 +412,17 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 //.......................................................................................
 int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
-	// Sanity
-	if (features.data.find(feature_name) == features.data.end()) {
-		MERR("Cannot find signal %s in features data\n", feature_name.c_str());
-		return -1;
-	}
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	// Attribute
-	features.attributes[feature_name].normalized = true;
+	features.attributes[resolved_feature_name].normalized = true;
 	if (fillMissing)
-		features.attributes[feature_name].imputed = true;
+		features.attributes[resolved_feature_name].imputed = true;
 
 	// Clean
 	bool empty = ids.empty();
-	vector<float>& data = features.data[feature_name];
+	vector<float>& data = features.data[resolved_feature_name];
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if ((empty || ids.find(features.samples[i].id) != ids.end())) {
 			if (data[i] != missing_value) {
@@ -416,7 +451,7 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
-		else if (field != "names" && field != "fp_type")
+		else if (field != "names" && field != "fp_type" && field != "tag")
 				MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 	}
 
@@ -426,19 +461,19 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 // (De)Serialization
 //.......................................................................................
 size_t FeatureNormalizer::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, mean, sd, normalizeSd, fillMissing);
+	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, mean, sd, normalizeSd, fillMissing);
 }
 
 //extern char signalName_c[MAX_NAME_LEN + 1];
 
 //.......................................................................................
 size_t FeatureNormalizer::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, mean, sd, normalizeSd, fillMissing);
+	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, mean, sd, normalizeSd, fillMissing);
 }
 
 //.......................................................................................
 size_t FeatureNormalizer::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, mean, sd, normalizeSd, fillMissing);
+	return MedSerialize::deserialize(blob, processor_type, resolved_feature_name, feature_name, mean, sd, normalizeSd, fillMissing);
 }
 
 
@@ -457,11 +492,8 @@ void FeatureImputer::print()
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
-	// Sanity
-	if (features.data.find(feature_name) == features.data.end()) {
-		MERR("Cannot find signal %s in features data\n", feature_name.c_str());
-		return -1;
-	}
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	for (int i = 0; i < imputerStrata.nStratas(); i++) {
 		if (features.data.find(imputerStrata.stratas[i].name) == features.data.end()) {
@@ -472,7 +504,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values);
 
 	// Get all strata values
 	vector<vector<float> > strataValues(imputerStrata.nStratas());
@@ -520,11 +552,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 //.......................................................................................
 int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
-	// Sanity
-	if (features.data.find(feature_name) == features.data.end()) {
-		MERR("Cannot find signal %s in features data\n", feature_name.c_str());
-		return -1;
-	}
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	for (int i = 0; i < imputerStrata.nStratas(); i++) {
 		if (features.data.find(imputerStrata.stratas[i].name) == features.data.end()) {
@@ -534,12 +563,11 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Attribute
-	features.attributes[feature_name].imputed = true;
-
+	features.attributes[resolved_feature_name].imputed = true;
 
 	// Impute
 	imputerStrata.getFactors();
-	vector<float>& data = features.data[feature_name];
+	vector<float>& data = features.data[resolved_feature_name];
 	vector<vector<float> *> strataData(imputerStrata.nStratas());
 	for (int j = 0; j < imputerStrata.nStratas(); j++)
 		strataData[j] = &(features.data[imputerStrata.stratas[j].name]);
@@ -572,7 +600,7 @@ int FeatureImputer::init(map<string, string>& mapper) {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addStrata(stratum);
 		}
-		else if (field != "names" && field != "fp_type")
+		else if (field != "names" && field != "fp_type" && field != "tag")
 				MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
 	}
 
@@ -595,17 +623,17 @@ void FeatureImputer::addStrata(string& init_string) {
 // (De)Serialization
 //.......................................................................................
 size_t FeatureImputer::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, missing_value, imputerStrata, moment_type, moments);
+	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments);
 }
 
 //.......................................................................................
 size_t FeatureImputer::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, missing_value, imputerStrata, moment_type, moments);
+	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments);
 }
 
 //.......................................................................................
 size_t FeatureImputer::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, missing_value, imputerStrata, moment_type, moments);
+	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments);
 }
 
 
@@ -779,7 +807,7 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "method") params.method = params.get_method(entry.second);
 		else if (field == "minStat") params.minStat = stof(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
-		else if (field != "fp_type")
+		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 	}
 

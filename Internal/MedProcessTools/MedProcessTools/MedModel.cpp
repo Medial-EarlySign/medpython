@@ -548,12 +548,14 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 			// NULL ... in that case init an empty MultiProcessor in i_set
 			MLOG("Adding new feature_processor set [%d]\n", i_set);
 			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+			mfprocessor->init_from_string(init_string);
 			feature_processors[i_set] = mfprocessor;
 		}
 		else if (feature_processors[i_set]->processor_type != FTR_PROCESS_MULTI) {
 			// the processor was not multi, and hence we create one switch it , and push the current into it
 			FeatureProcessor *curr_fp = feature_processors[i_set];
 			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+			mfprocessor->init_from_string(init_string);
 			feature_processors[i_set] = mfprocessor;
 			mfprocessor->processors.push_back(curr_fp);
 
@@ -568,6 +570,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 			if (feature_processors[i] == NULL) {
 				MLOG("Adding new feature_processor set [%d]\n", i);
 				MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
+				mfprocessor->init_from_string(init_string);
 				feature_processors[i] = mfprocessor;
 			}
 	}

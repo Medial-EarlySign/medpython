@@ -11,22 +11,9 @@ void DoCalcFeatProcessor::init_defaults() {
 
 void DoCalcFeatProcessor::resolve_feature_names(MedFeatures &features) {
 	this->source_feature_names.clear();
-	for (string substr : raw_source_feature_names) {
-		string real_feature_name = "";
-		for (auto candidate : features.attributes)
-			if (candidate.first.find(substr) != string::npos) {
-				if (real_feature_name != "")
-					throw runtime_error(string("source_feature_name [") + substr + "] matches both [" +
-						real_feature_name + "] and [" + candidate.first + "], can not generate [" + raw_target_feature_name + "]");
-				real_feature_name = candidate.first;
-			}
-		if (real_feature_name == "") {
-			string err = string("source_feature_name [") + substr + "] does not match any feature, can not generate [" +
-				raw_target_feature_name + "]. Tried matching to these features:\n";
-			for (auto candidate : features.attributes)
-				err += candidate.first + "\n";
-			throw runtime_error(err);
-		}
+
+	for (string name : raw_source_feature_names) {
+		string real_feature_name = resolve_feature_name(features, name);
 		this->source_feature_names.push_back(real_feature_name);
 	}
 }

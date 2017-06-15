@@ -32,8 +32,9 @@ typedef enum {
 class FeatureProcessor : public SerializableObject {
 public:
 
-	// Feature name
+	// Feature name ( + name as appears in MedFeatures) ;
 	string feature_name;
+	string resolved_feature_name;
 
 	// Type
 	FeatureProcessorTypes processor_type;
@@ -78,6 +79,9 @@ public:
 	// Filter according to a subset of features
 	virtual int filter(unordered_set<string>& features) { return (features.find(feature_name) == features.end()) ? 0 : 1; };
 
+	// Utility : get corresponding name in MedFeatures
+	string resolve_feature_name(MedFeatures& features, string substr);
+
 	// Serialization (including type)
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
@@ -100,6 +104,7 @@ public:
 	FeatureProcessorTypes members_type;
 	string init_string;
 	int duplicate;
+	string tag;
 
 	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
@@ -107,6 +112,9 @@ public:
 	// Constructor/Destructor
 	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; };
 	~MultiFeatureProcessor() {};
+
+	// Init
+	int init(map<string, string>& mapper);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) ;
