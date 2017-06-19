@@ -29,9 +29,9 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, raw_feature_names, names); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names, tags); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, raw_feature_names, names, tags); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names, tags); }
 };
 
 MEDSERIALIZE_SUPPORT(SmokingGenerator);
