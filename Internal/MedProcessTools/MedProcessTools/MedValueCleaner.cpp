@@ -108,7 +108,6 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 		}
 	}
 
-
 	trimMax = vmax; if (params.take_log) trimMax = exp(trimMax);
 	trimMin = vmin; if (params.take_log) trimMin = exp(trimMin);
 	removeMax = mean + params.removing_sd_num * sd; if (params.take_log) removeMax = exp(removeMax);

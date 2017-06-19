@@ -50,6 +50,9 @@ public:
 	// Missing value
 	float missing_val;
 
+	// Tags
+	vector<string> tags;
+
 	// Naming
 	virtual void set_names() {names.clear(); }
 
@@ -99,7 +102,7 @@ public:
 	static FeatureGenerator *create_generator(string &params); // must include fg_type
 
 	virtual int init(void *generator_params) { return 0; };
-	virtual int init(map<string, string>& mapper) { return 0; };
+	virtual int init(map<string, string>& mapper) ;
 	virtual void init_defaults() {};
 
 	// Copy
@@ -171,6 +174,7 @@ public:
 	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
 	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
 	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	string in_set_name = "";					// set name (if not given - take list of members)
 
 	// helpers
 	vector<char> lut;							// to be used when generating FTR_CATEGORY_SET_*
@@ -225,9 +229,9 @@ public:
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, type, serial_id, win_from, win_to, d_win_from, d_win_to, 
+	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
 							time_unit_win, time_channel, val_channel, sum_channel, signalName, sets, 
-							names, req_signals, lut);
+							names, req_signals, lut, in_set_name);
 
 };
 
@@ -267,9 +271,9 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags); }
 };
 
 //.......................................................................................
@@ -306,9 +310,9 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags); }
 };
 
 //.......................................................................................
@@ -454,9 +458,9 @@ public:
 	float uget_range_max(UniversalSigVec &usv, int time_point);
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, signalName, type, win_from, win_to, val_channel, names); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names); };
+	size_t get_size() { return MedSerialize::get_size(generator_type, signalName, type, win_from, win_to, val_channel, names, tags); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names, tags); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names, tags); };
 
 };
 

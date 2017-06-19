@@ -58,7 +58,7 @@ public:
 
 	// value channels float
 	inline float Val(int chan) { return 0; }
-	inline float SetVal(int chan) { return 0; }
+	inline void SetVal(int chan, float _val) {}
 
 	// Following functions are implemented based on the functions above (and save lots of coding hence)
 	// time channels int
@@ -83,7 +83,7 @@ public:
 //===================================
 // SVal
 //===================================
-class SVal : UnifiedSig {
+class SVal : public UnifiedSig {
 	public:
 		float val;
 
@@ -100,7 +100,7 @@ class SVal : UnifiedSig {
 //===================================
 // SDateVal
 //===================================
-class SDateVal : UnifiedSig {
+class SDateVal : public UnifiedSig {
 	public:
 		int date;
 		float val;
@@ -117,7 +117,7 @@ class SDateVal : UnifiedSig {
 //===================================
 // STimeVal
 //===================================
-class STimeVal : UnifiedSig {
+class STimeVal : public UnifiedSig {
 	public:
 		long long time;
 		float val;
@@ -134,7 +134,7 @@ class STimeVal : UnifiedSig {
 //===================================
 // SDateRangeVal
 //===================================
-class SDateRangeVal : UnifiedSig {
+class SDateRangeVal : public UnifiedSig {
 	public:
 		int date_start;
 		int date_end;
@@ -152,7 +152,7 @@ class SDateRangeVal : UnifiedSig {
 //===================================
 // STimeRangeVal
 //===================================
-class STimeRangeVal : UnifiedSig {
+class STimeRangeVal : public UnifiedSig {
 	public:
 		long long time_start;
 		long long time_end;
@@ -170,7 +170,7 @@ class STimeRangeVal : UnifiedSig {
 //===================================
 // STimeStamp
 //===================================
-class STimeStamp : UnifiedSig {
+class STimeStamp : public UnifiedSig {
 	public:
 		long long time;
 
@@ -187,7 +187,7 @@ class STimeStamp : UnifiedSig {
 //===================================
 // SDateVal2
 //===================================
-class SDateVal2 : UnifiedSig {
+class SDateVal2 : public UnifiedSig {
 	public:
 		int date;
 		float val;
@@ -206,7 +206,7 @@ class SDateVal2 : UnifiedSig {
 //===================================
 // STimeLongVal
 //===================================
-class STimeLongVal : UnifiedSig {
+class STimeLongVal : public UnifiedSig {
 	public:
 		long long time ;
 		long long val ;
@@ -225,7 +225,7 @@ class STimeLongVal : UnifiedSig {
 //===================================
 // SDateShort2
 //===================================
-class SDateShort2 : UnifiedSig {
+class SDateShort2 : public UnifiedSig {
 public:
 	int date;
 	short val1;
@@ -244,7 +244,7 @@ public:
 //===================================
 // SValShort2
 //===================================
-class SValShort2 : UnifiedSig {
+class SValShort2 : public UnifiedSig {
 public:
 	short val1;
 	short val2;
@@ -261,7 +261,7 @@ public:
 //===================================
 // SValShort4
 //===================================
-class SValShort4 : UnifiedSig {
+class SValShort4 : public UnifiedSig {
 public:
 	short val1;
 	short val2;

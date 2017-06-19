@@ -38,6 +38,7 @@ public:
 
 	// Attributes
 	map<string, FeatureAttr> attributes;
+	map<string, unordered_set<string> > tags;
 
 	// time Unit
 	int time_unit;
@@ -69,6 +70,8 @@ public:
 	void print_csv();
 
 	int write_as_csv_mat(const string &csv_fname);
+
+	int filter(unordered_set<string>& selectedFeatures);
 
 	static int global_serial_id_cnt;
 };

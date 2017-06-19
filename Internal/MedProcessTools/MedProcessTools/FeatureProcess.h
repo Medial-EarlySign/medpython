@@ -6,6 +6,7 @@
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
+#include "MedStat/MedStat/MedPerformance.h"
 #include "MedStat/MedStat/MedStat.h"
 #include <unordered_set>
 
@@ -24,14 +25,16 @@ typedef enum {
 	FTR_PROCESS_NORMALIZER,
 	FTR_PROCESS_IMPUTER,
 	FTR_PROCESS_DO_CALC,
+	FTR_PROCESS_UNIVARIATE_SELECTOR,
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
 class FeatureProcessor : public SerializableObject {
 public:
 
-	// Feature name
+	// Feature name ( + name as appears in MedFeatures) ;
 	string feature_name;
+	string resolved_feature_name;
 
 	// Type
 	FeatureProcessorTypes processor_type;
@@ -76,6 +79,9 @@ public:
 	// Filter according to a subset of features
 	virtual int filter(unordered_set<string>& features) { return (features.find(feature_name) == features.end()) ? 0 : 1; };
 
+	// Utility : get corresponding name in MedFeatures
+	string resolve_feature_name(MedFeatures& features, string substr);
+
 	// Serialization (including type)
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
@@ -93,12 +99,22 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& cleaner_name)
 
 class MultiFeatureProcessor : public FeatureProcessor {
 public:
-	// Cleaners
+
+	// For generating processors only at learning, we need type + init_string
+	FeatureProcessorTypes members_type;
+	string init_string;
+	int duplicate;
+	string tag;
+
+	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
 
 	// Constructor/Destructor
-	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; };
+	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; };
 	~MultiFeatureProcessor() {};
+
+	// Init
+	int init(map<string, string>& mapper);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) ;
@@ -147,6 +163,7 @@ public:
 		params.missing_value = MED_MAT_MISSING_VALUE; 
 		params.trimming_sd_num = DEF_FTR_TRIMMING_SD_NUM; 
 		params.removing_sd_num = DEF_FTR_REMOVING_SD_NUM;
+		params.nbrs_sd_num = 0;
 		params.take_log = 0; 
 		params.doTrim = params.doRemove = true;
 		params.type = VAL_CLNR_ITERATIVE;
@@ -347,11 +364,98 @@ public:
 
 //.......................................................................................
 //.......................................................................................
+// Feature Selector
+//.......................................................................................
+//.......................................................................................
+
+class FeatureSelector : public FeatureProcessor {
+public:
+
+	// Missing Value
+	float missing_value;
+
+	// Reauired Features
+	unordered_set<string> required;
+
+	// Selected Features (ordered)
+	vector<string> selected;
+
+	// Target number to select (if 0, ignored)
+	int numToSelect;
+
+	// Constructor
+	FeatureSelector() : FeatureProcessor() {}
+
+	// Find set of selected features
+	virtual int Learn(MedFeatures& features, unordered_set<int>& ids);
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
+
+	// Apply selection
+	int Apply(MedFeatures& features, unordered_set<int>& ids);
+
+	// Serialization
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+};
+
+//.......................................................................................
+//.......................................................................................
+// Feature Selector : Univariate
+//.......................................................................................
+//.......................................................................................
+
+typedef enum {
+	UNIV_SLCT_PRSN = 0,
+	UNIV_SLCT_LAST
+} UnivariateSelectionMethod;
+
+class univariateSelectionParams {
+public:
+	UnivariateSelectionMethod method;
+	float minStat;
+
+	UnivariateSelectionMethod get_method(string name) {
+
+		boost::algorithm::to_lower(name);
+		if (name == "pearson")
+			return UNIV_SLCT_PRSN;
+		else
+			return UNIV_SLCT_LAST;
+	}
+};
+
+class UnivariateFeatureSelector : public FeatureSelector {
+public:
+
+	// Selection Params
+	univariateSelectionParams params;
+
+	// Constructor
+	UnivariateFeatureSelector() : FeatureSelector() { init_defaults();}
+
+	// Find set of selected features
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_UNIVARIATE_SELECTOR;  params.method = UNIV_SLCT_PRSN; numToSelect = 0; params.minStat = 0.05F;};
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<UnivariateFeatureSelector *>(processor)); }
+
+	// Selection 
+	int getAbsPearsonCorrs(MedFeatures& features, unordered_set<int>& ids, vector<pair<string, float> >& stats);
+};
+
+//.......................................................................................
+//.......................................................................................
 // Utilities
 //.......................................................................................
 //.......................................................................................
 
 void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values);
+void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values);
 
 //=======================================
 // Joining the MedSerialze wagon

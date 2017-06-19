@@ -179,7 +179,7 @@ public:
 
 	void init_defaults() {
 		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
-		params.trimming_sd_num = DEF_REP_TRIMMING_SD_NUM; params.removing_sd_num = DEF_REP_REMOVING_SD_NUM;
+		params.trimming_sd_num = DEF_REP_TRIMMING_SD_NUM; params.removing_sd_num = DEF_REP_REMOVING_SD_NUM; params.nbrs_sd_num = 0;
 		params.take_log = 0;
 		params.doTrim = params.doRemove = true;
 		signalId = -1;

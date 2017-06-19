@@ -28,16 +28,24 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
 }
 
-// Initialize featurse
+// Initialize features
 //.......................................................................................
 void FeatureGenerator::init(MedFeatures &features) {
 
 	//MLOG("FeatureGenerator::init _features\n");
 	if (names.size() == 0)
 		set_names();
+
+	// Attributes
 	for (auto& name : names) {
 		features.attributes[name].normalized = false;
 		features.data[name].resize(0, 0);
+	}
+
+	// Tags
+	for (auto& name : names) {
+		for (string& tag : tags)
+			features.tags[name].insert(tag);
 	}
 }
 
@@ -125,6 +133,21 @@ int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& featu
 	rec.init_from_rep(std::addressof(rep), id, req_signal_ids, num);
 
 	return Generate(rec, features, index, num);
+}
+
+//.......................................................................................
+// Init 
+int FeatureGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "tags")
+			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for FeatureGenerator\n", field.c_str());
+	}
+	set_names();
+	return 0;
 }
 
 // (De)Serialize
@@ -218,8 +241,8 @@ void BasicFeatGenerator::set_names() {
 	if (names.empty()) {
 		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
 		//string name = signalName + ".";
-		string set_names = "";
-		if (this->sets.size() > 0)
+		string set_names = in_set_name;
+		if (set_names == "" && this->sets.size() > 0)
 			set_names = boost::algorithm::join(this->sets, "_");
 		switch (type) {
 		case FTR_LAST_VALUE:	name += "last"; break;
@@ -351,6 +374,8 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "sum_channel") sum_channel = stoi(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "in_set_name") in_set_name = entry.second;
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 	}
@@ -456,6 +481,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 	}

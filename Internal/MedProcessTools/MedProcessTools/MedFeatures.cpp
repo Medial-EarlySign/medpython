@@ -57,7 +57,10 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 	mat.signals.insert(mat.signals.end(), feat_names.begin(), feat_names.end());
 	for (auto& ss : samples) {
 		RecordData rd;
-		rd.time = 0L;  rd.weight = rd.pred = rd.label = 0.0; rd.split = 0;
+		rd.time = 0L;  rd.weight = 0.0;  rd.label = ss.outcome; ; rd.split = ss.split;
+		if (ss.prediction.size() == 1)
+			rd.pred = ss.prediction[0];
+		else rd.pred = 0.0;
 		rd.id = ss.id;
 		rd.date = ss.time;
 		mat.recordsMetadata.push_back(rd);
@@ -202,5 +205,33 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 	}
 
 	out_f.close();
+	return 0;
+}
+
+// Filter set of features
+//.......................................................................................
+int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
+
+	// Sanity
+	for (string feature : selectedFeatures) {
+		if (data.find(feature) == data.end()) {
+			MERR("Cannot find feature %s in Matrix\n", feature.c_str());
+			return -1;
+		}
+	}
+
+	// Cleaning
+	vector<string> removedFeatures;
+	for (auto& rec : data) {
+		string feature = rec.first;
+		if (selectedFeatures.find(feature) == selectedFeatures.end())
+			removedFeatures.push_back(feature);
+	}
+
+	for (string& feature : removedFeatures) {
+		data.erase(feature);
+		attributes.erase(feature);
+	}
+
 	return 0;
 }
