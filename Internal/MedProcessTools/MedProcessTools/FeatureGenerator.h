@@ -197,7 +197,6 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
 
 	// Learn a generator
-	//int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
 
 	// generate a new feature
