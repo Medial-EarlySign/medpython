@@ -118,9 +118,9 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		}
 		timer.take_curr_time();
 		if (CHECK_CRC)
-			MLOG("MedModel::learn() : feature processing learn and apply time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
+			MLOG("MedModel::learn() : feature processing learn time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
 		else
-			MLOG("MedModel::learn() : feature processing learn and apply time %g ms\n", timer.diff_milisec());
+			MLOG("MedModel::learn() : feature processing learn time %g ms\n", timer.diff_milisec());
 	}
 	else if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		// Just apply feature processors
