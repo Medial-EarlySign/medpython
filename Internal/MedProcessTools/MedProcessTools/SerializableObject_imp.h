@@ -125,6 +125,51 @@ namespace MedSerialize {
 	}
 
 	//.........................................................................................
+	// set<T> with a MedSerialize function
+	//.........................................................................................
+	template <class T> size_t get_size(set<T> &v)
+	{
+		size_t size = 0, len = v.size();
+		size += MedSerialize::get_size<size_t>(len);
+
+		for (typename set<T>::iterator it = v.begin(); it != v.end(); ++it)
+			size += MedSerialize::get_size(*it);
+
+		return size;
+	}
+
+	//.........................................................................................
+	template <class T> size_t serialize(unsigned char *blob, set<T> &v)
+	{
+		//fprintf(stderr, "map serialize\n");
+		size_t pos = 0, len = v.size();
+		pos += MedSerialize::serialize<size_t>(blob + pos, len);
+
+		if (len > 0) {
+			for (typename set<T>::iterator it = v.begin(); it != v.end(); ++it)
+				pos += MedSerialize::serialize(blob + pos, (T &)(*it));
+		}
+
+		return pos;
+	}
+
+	//.........................................................................................
+	template <class T> size_t deserialize(unsigned char *blob, set<T> &v)
+	{
+		size_t pos = 0, len;
+		pos += MedSerialize::deserialize<size_t>(blob + pos, len);
+		v.clear();
+		T elem;
+		if (len > 0) {
+			for (int i = 0; i < len; i++) {
+				pos += MedSerialize::deserialize(blob + pos, elem);
+				v.insert(elem);
+			}
+		}
+		return pos;
+	}
+
+	//.........................................................................................
 	// unordered_set<T> with a MedSerialize function
 	//.........................................................................................
 	template <class T> size_t get_size(unordered_set<T> &v)
@@ -219,7 +264,54 @@ namespace MedSerialize {
 		return pos;
 	}
 
+	//.........................................................................................
+	// unordered_map<T,S> both with a MedSerialize function
+	//.........................................................................................
+	template <class T, class S> size_t get_size(unordered_map<T, S> &v)
+	{
+		size_t size = 0, len = v.size();
+		size += MedSerialize::get_size<size_t>(len);
 
+		for (typename unordered_map<T, S>::iterator it = v.begin(); it != v.end(); ++it) {
+			size += MedSerialize::get_size((T &)(it->first));
+			size += MedSerialize::get_size((S &)(it->second));
+		}
+
+		return size;
+	}
+
+	//.........................................................................................
+	template <class T, class S> size_t serialize(unsigned char *blob, unordered_map<T, S> &v)
+	{
+		size_t pos = 0, len = v.size();
+		pos += MedSerialize::serialize<size_t>(blob + pos, len);
+		
+		if (len > 0) {
+			for (typename unordered_map<T, S>::iterator it = v.begin(); it != v.end(); ++it) {
+				pos += MedSerialize::serialize(blob + pos, (T &)(it->first));
+				pos += MedSerialize::serialize(blob + pos, (S &)(it->second));
+			}
+		}
+		return pos;
+	}
+
+	//.........................................................................................
+	template <class T, class S> size_t deserialize(unsigned char *blob, unordered_map<T, S> &v)
+	{
+		size_t pos = 0, len;
+		pos += MedSerialize::deserialize(blob + pos, len);
+		v.clear();
+		T t;
+		S s;
+		if (len > 0) {
+			for (int i = 0; i<len; i++) {
+				pos += MedSerialize::deserialize(blob + pos, t);
+				pos += MedSerialize::deserialize(blob + pos, s);
+				v[t] = s;
+			}
+		}
+		return pos;
+	}
 	
 	//.........................................................................................
 	// Variadic Wrappers to call several elements is a single line
