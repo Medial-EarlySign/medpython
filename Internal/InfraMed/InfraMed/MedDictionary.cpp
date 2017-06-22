@@ -366,6 +366,54 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 	return 0;
 }
 
+//-----------------------------------------------------------------------------------------------
+int MedDictionary::prep_sets_indexed_lookup_table(const vector<string> &set_names, vector<unsigned char> &lut)
+{
+	// convert names to ids
+	vector<int> sig_ids;
+	for (auto &name : set_names) {
+		int myid = id(name);
+		if (myid > 0)
+			sig_ids.push_back(myid);
+		else
+			MERR("prep_sets_lookup_table() : Found bad name %s :: not found in dictionary()\n", name.c_str());
+	}
+
+	int min_id = Id2Name.begin()->first;
+	int max_id = Id2Name.rbegin()->first;
+
+	lut.clear();
+	lut.resize(max_id + 1, 0);
+
+	/*
+	for (int j=0; j<sig_ids.size(); j++) {
+	MLOG("lut j=%d sig %s %d\n", j, set_names[j].c_str(), sig_ids[j]);
+	for (int i=min_id; i<=max_id; i++)
+	if (lut[sig_ids[j]] == 0)
+	if (is_in_set(i, sig_ids[j]))
+	lut[i] = 1;
+	}
+	*/
+	// below MUCH faster version than the previous using depth search and a queue
+	for (int j = 0; j<sig_ids.size(); j++) {
+		//		MLOG("lut j=%d sig %s %d\n", j, set_names[j].c_str(), sig_ids[j]);
+		queue<int> q;
+		q.push(sig_ids[j]);
+
+		while (q.size() > 0) {
+			int s = q.front();
+			q.pop();
+			lut[s] = j+1;
+			for (auto elem : Set2Members[s])
+				if (lut[elem] == 0)
+					q.push(elem);
+
+		}
+
+	}
+	return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------------------------
 int MedDictionarySections::read(const string &fname) 

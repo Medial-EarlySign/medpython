@@ -208,7 +208,7 @@ public:
 
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
-	float get_value(PidDynamicRec& rec, int index, int date);
+	float get_value(PidDynamicRec& rec, int index, int time);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }

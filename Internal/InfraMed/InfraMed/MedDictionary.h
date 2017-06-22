@@ -38,6 +38,7 @@ class DLLEXTERN  MedDictionary {
 		int is_in_set(const string& member, int set_id);
 
 		int prep_sets_lookup_table(const vector<string> &set_names, vector<char> &lut);
+		int prep_sets_indexed_lookup_table(const vector<string> &set_names, vector<unsigned char> &lut);
 
 		void get_set_members(const string &set, vector<int> &members);
 		void get_set_members(int set_id, vector<int> &members);
@@ -136,6 +137,7 @@ class DLLEXTERN MedDictionarySections {
 
 
 	int prep_sets_lookup_table(int section_id, const vector<string> &set_names, vector<char> &lut) { return dicts[section_id].prep_sets_lookup_table(set_names, lut); }
+	int prep_sets_indexed_lookup_table(int section_id, const vector<string> &set_names, vector<unsigned char> &lut) { return dicts[section_id].prep_sets_indexed_lookup_table(set_names, lut); }
 };
 
 
