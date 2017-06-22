@@ -105,7 +105,8 @@ public:
 
 	// general adders for easier handling of config files/lines
 	// the idea is to add to a specific set and let the adder create a multi if needed
-	void init_from_json_file(const string& fname);
+	void init_from_json_file(const string& fname) { vector<string> dummy;  init_from_json_file_with_alterations(fname, dummy); }
+	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
 	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);	// fp_type and feature name are must have parameters

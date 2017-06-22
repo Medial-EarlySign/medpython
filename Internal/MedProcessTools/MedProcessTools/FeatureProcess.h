@@ -26,6 +26,7 @@ typedef enum {
 	FTR_PROCESS_IMPUTER,
 	FTR_PROCESS_DO_CALC,
 	FTR_PROCESS_UNIVARIATE_SELECTOR,
+	FTR_PROCESSOR_MRMR_SELECTOR,
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -342,6 +343,7 @@ public:
 	// Init
 	int init(map<string, string>& mapper);
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; moment_type = IMPUTE_MMNT_MEAN;  processor_type = FTR_PROCESS_IMPUTER; };
+	imputeMomentTypes getMomentType(string& entry);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureImputer *>(processor)); }
@@ -407,6 +409,8 @@ public:
 
 typedef enum {
 	UNIV_SLCT_PRSN = 0,
+	UNIV_SLCT_MI = 1,
+	UNIV_SLCT_DCORR = 2,
 	UNIV_SLCT_LAST
 } UnivariateSelectionMethod;
 
@@ -415,13 +419,35 @@ public:
 	UnivariateSelectionMethod method;
 	float minStat;
 
+	// for mutual information
+	int nBins;
+	MedBinningType binMethod = BIN_EQUIDIST;
+
+	// for samples distance correlation
+	float pDistance; 
+
 	UnivariateSelectionMethod get_method(string name) {
 
 		boost::algorithm::to_lower(name);
 		if (name == "pearson")
 			return UNIV_SLCT_PRSN;
+		else if (name == "mi" || name == "mutual_information" || name == "mutualinformation")
+			return UNIV_SLCT_MI;
+		else if (name == "dcorr" || name == "dist_corr" || name == "distcorr")
+			return UNIV_SLCT_DCORR;
 		else
 			return UNIV_SLCT_LAST;
+	}
+
+	MedBinningType get_binning_method(string name) {
+
+		boost::algorithm::to_lower(name);
+		if (name == "equi_dist")
+			return BIN_EQUIDIST;
+		else if (name == "equi_size")
+			return BIN_EQUISIZE;
+		else
+			return BIN_LAST;
 	}
 };
 
@@ -444,8 +470,51 @@ public:
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<UnivariateFeatureSelector *>(processor)); }
 
-	// Selection 
-	int getAbsPearsonCorrs(MedFeatures& features, unordered_set<int>& ids, vector<pair<string, float> >& stats);
+	// Scores 
+	int getAbsPearsonCorrs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
+	int getMIs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
+	int getDistCorrs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
+};
+
+//.......................................................................................
+//.......................................................................................
+// Feature Selector : MRMR
+//.......................................................................................
+//.......................................................................................
+
+typedef enum {
+	MRMR_MAX = 0,
+	MRMR_MEAN = 1,
+	MRMR_LAST
+} MRMRPenaltyMethod;
+
+class MRMRFeatureSelector : public FeatureSelector {
+public:
+
+	// Selection Params
+	univariateSelectionParams params;
+	float penalty;
+	MRMRPenaltyMethod penaltyMethod;
+
+	// Constructor
+	MRMRFeatureSelector() : FeatureSelector() { init_defaults(); }
+
+	// Find set of selected features
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults(); 
+	MRMRPenaltyMethod get_penalty_method(string _method);
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<MRMRFeatureSelector *>(processor)); }
+
+	// Scores 
+	int fillStatsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
+	int fillAbsPearsonCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
+	int fillMIsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
+	int fillDistCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats,int index);
 };
 
 //.......................................................................................
@@ -456,6 +525,7 @@ public:
 
 void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values);
 void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values);
+void smearBins(vector<int>& bins, int nBins, int reqNbins);
 
 //=======================================
 // Joining the MedSerialze wagon

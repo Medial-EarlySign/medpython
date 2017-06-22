@@ -7,6 +7,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
+#include <boost/algorithm/string/regex.hpp>
 #include <string>
 #include "StripComments.h"
 
@@ -415,8 +416,23 @@ string file_to_string(int recursion_level, const string& main_file, const string
 	out_string += orig.substr(last_char);
 	return out_string;
 }
-void MedModel::init_from_json_file(const string &fname) {
+void alter_json(string &json_contents, vector<string>& alterations) {
+
+	if (alterations.size()==0) return;
+
+	// Alterations strings are of the format from::to
+	vector<string> fields;
+	for (string& alt : alterations) {
+		boost::algorithm::split_regex(fields, alt, boost::regex("::"));
+		if (fields.size() != 2)
+			MTHROW_AND_ERR("Cannot parse alteration string %s \n", alt.c_str());
+		MLOG("Json : Replacing %s with %s\n", fields[0].c_str(), fields[1].c_str());
+		boost::replace_all(json_contents, fields[0], fields[1]);
+	}
+}
+void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
 	string json_contents = file_to_string(0, fname);
+	alter_json(json_contents, alterations);
 	istringstream no_comments_stream(json_contents);
 
 	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());

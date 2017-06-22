@@ -16,7 +16,7 @@ Measurement::Measurement() {
 	queriedParam = "AUC";
 }
 
-Measurement::Measurement(const string& sParam, const string& qParam, float sValue) {
+Measurement::Measurement(const string& qParam, const string& sParam, float sValue) {
 	setParam = sParam;
 	setValue = sValue;
 	queriedParam = qParam;
@@ -238,7 +238,7 @@ void MedClassifierPerformance::getPerformanceValues() {
 int MedClassifierPerformance::GetPerformanceParam(const string& setParam, const string& queriedParam, float setValue) {
 
 	pair<string, float> set(setParam, setValue);
-	Measurement inMeasurement(setParam, queriedParam, setValue);
+	Measurement inMeasurement(queriedParam, setParam, setValue);
 	if (MeasurementValues.find(inMeasurement) != MeasurementValues.end())
 		return 0;
 
@@ -317,7 +317,7 @@ int MedClassifierPerformance::getPointer(const string& param, float value, int i
 
 	pair<string, float> pointer(param, value);
 
-	// Find Value >= or >= TargetValue
+	// Find Value >= or <= TargetValue
 	int targetIdx = -1;
 	for (unsigned int i = 0; i < preds[index].size(); i++) {
 		if ((direction == 1 && PerformanceValues[index][param][i] >= value) || (direction == -1 && PerformanceValues[index][param][i] <= value)) {
@@ -368,7 +368,6 @@ int MedClassifierPerformance::getPerformanceValues(pair<string, float>& set, con
 
 		float d2 = fabs(PerformanceValues[index][set.first][end] - set.second);
 		float v2 = PerformanceValues[index][queriedParam][end];
-
 		queriedValues[index] = (d1*v2 + d2*v1) / (d2 + d1);
 	}
 	else {
@@ -490,6 +489,7 @@ int MedClassifierPerformance::compare(MedClassifierPerformance& other) {
 };
 
 //quantize AUC calculation - calcs auc when the scores of preds are quantized
+//.........................................................................................................................................
 float get_preds_auc_q(const vector<float> &preds, const vector<float> &y) {
 	vector<float> pred_threshold;
 	map<float, vector<int>> pred_indexes;
@@ -537,6 +537,8 @@ float get_preds_auc_q(const vector<float> &preds, const vector<float> &y) {
 	return auc;
 }
 
+// AUC
+//.........................................................................................................................................
 float get_preds_auc(vector<float> &preds, vector<float> &y) {
 	vector<pair<float, float>> preds_y;
 
@@ -578,6 +580,8 @@ float get_preds_auc(vector<float> &preds, vector<float> &y) {
 	return (float)(((double)auc) / ((double)npos*(double)target_nneg));
 }
 
+// Collect cnts : TP,FP,FN,TN per positive rate (as given by size)
+//.........................................................................................................................................
 int get_preds_perf_cnts(vector<float> &preds, vector<float> &y, vector<float> &size, int direction, vector<vector<int>> &cnts)
 {
 	vector<pair<float, float>> preds_y;
@@ -622,6 +626,8 @@ int get_preds_perf_cnts(vector<float> &preds, vector<float> &y, vector<float> &s
 	return 0;
 }
 
+// Translate counts (TP,FP,FN,TN) to performance measurements (snes,spec,ppv,rr)
+//.........................................................................................................................................
 int cnts_to_perf(vector<int> &cnt, float &sens, float &spec, float &ppv, float &rr)
 {
 	float a = (float)cnt[0];
@@ -708,7 +714,7 @@ int multicateg_get_error_rate(vector<float> &probs, vector<float> &y, int nsampl
 	return 0;
 }
 
-
+//.........................................................................................................................................
 int get_quantized_breakdown(vector<float> &preds, vector<float> &y, vector<float> &bounds, MedMat<int> &counts)
 {
 	int i, ip, iy;
@@ -746,6 +752,7 @@ void print_quantized_breakdown(MedMat<int> &cnt, vector<float> &bounds)
 	}
 }
 
+// Chi-Square
 //.........................................................................................................................................
 double get_chi2_n_x_m(vector<int> &cnts, int n, int m, vector<double> &exp)
 {
@@ -792,6 +799,7 @@ double get_chi2_n_x_m(vector<int> &cnts, int n, int m)
 }
 
 
+// Pearson Correlations
 //.........................................................................................................................................
 float get_pearson_corr(float *v1, float *v2, int len)
 {
@@ -847,3 +855,158 @@ float get_pearson_corr(vector<float> &v1, vector<float> &v2, int &n, float missi
 	n = (int)clean_v1.size(); 
 	return get_pearson_corr(VEC_DATA(clean_v1), VEC_DATA(clean_v2), (int)clean_v1.size());
 }
+
+// Mutual information of binned-vectors
+//.........................................................................................................................................
+int get_mutual_information(vector<int>& x, vector<int>& y, int &n, float& mi) {
+
+	// Sanity
+	if (y.size() != x.size()) {
+		MERR("Size mismatch. Quitting\n");
+		return -1;
+	}
+
+	// Count bins
+	int nXbins = 0, nYbins = 0;
+	for (unsigned int i = 0; i < x.size(); i++) {
+		if (x[i] + 1 > nXbins)
+			nXbins = x[i] + 1;
+		if (y[i] + 1 > nYbins)
+			nYbins = y[i] + 1;
+	}
+
+	// Collect
+	vector<int> xCounts(nXbins,0), yCounts(nYbins,0), coCounts(nXbins*nYbins,0);
+	n = 0;
+	for (unsigned int i = 0; i<x.size(); i++) {
+		if (x[i] >= 0 && y[i] >= 0) {
+			xCounts[x[i]]++;
+			yCounts[y[i]]++;
+			coCounts[y[i] * nXbins + x[i]]++;
+			n++;
+		}
+	}
+
+	if (n < 2) {
+		MLOG_V("Not enough common non-missing entries for mutual information.\n");
+		mi = -1;
+	}
+
+	mi = get_mutual_information(xCounts, yCounts, coCounts, n);
+
+	return 0;
+}
+
+// Mutual information from counts
+float get_mutual_information(vector<int>& xCounts, vector<int>& yCounts, vector<int> coCounts, int n) {
+
+	double mi = 0;
+	int nXbins = (int)xCounts.size(); 
+	int nYbins = (int)yCounts.size();
+
+	for (int iX = 0; iX < nXbins; iX++) {
+		for (int iY = 0; iY < nYbins; iY++) {
+			if (coCounts[iY*nXbins + iX] != 0) {
+				double p = (coCounts[iY*nXbins + iX] + 0.0) / n;
+				double px = (xCounts[iX] + 0.0) / n;
+				double py = (yCounts[iY] + 0.0) / n;
+
+				mi += p * log(p / px / py) / log(2.0);
+			}
+		}
+	}
+
+	return (float) mi;
+}
+
+// Distance Correlations
+//.........................................................................................................................................
+// Get Distances matrix
+void get_dMatrix(vector<float>& values, MedMat<float>& dMatrix, float missing_value) {
+
+	int n = (int)values.size();
+	dMatrix.resize(n,n);
+
+	// Matrix + norms
+	vector<double> norm(n, 0);
+	vector<int> counts(n, 0);
+	double totNorm = 0;
+	int totCount = 0;
+
+	for (int i = 1; i < n; i++) {
+		if (values[i] == missing_value) {
+			for (int j = 0; j < i; j++)
+				dMatrix(i, j) = -1;
+		}
+		else {
+			for (int j = 0; j < i; j++) {
+				if (values[j] == missing_value)
+					dMatrix(i, j) = -1;
+				else {
+					dMatrix(i, j) = fabs(values[i] - values[j]);
+					norm[i] += 2 * dMatrix(i, j); counts[i] += 2;
+					norm[j] += 2 * dMatrix(i, j); counts[j] += 2;
+					totNorm += 2 * dMatrix(i, j); totCount += 2;
+				}
+			}
+		}
+	}
+
+	// Normalize
+	for (int i = 0; i < n; i++)
+		norm[i] /= counts[i];
+	totNorm /= totCount;
+
+	for (int i = 1; i < n; i++) {
+		for (int j = 0; j < i; j++) {
+			if (dMatrix(i, j) != -1)
+				dMatrix(i, j) = dMatrix(i, j) - (float)(norm[i] + norm[j] - totNorm);
+		}
+	}
+}
+
+// Get Distance variance
+float get_dVar(MedMat<float>& dMatrix) {
+
+	int n = dMatrix.nrows;
+
+	double sum = 0;
+	int num = 0;
+	for (int i = 1; i < n; i++) {
+		for (int j = 0; j < i; j++) {
+			if (dMatrix(i, j) != -1) {
+				sum += 2 * dMatrix(i, j)*dMatrix(i, j);
+				num += 2;
+			}
+		}
+	}
+
+	if (num)
+		return (float)(sum / num);
+	else
+		return -1;
+}
+
+// Get Distance covariance
+float get_dCov(MedMat<float>& xDistMat, MedMat<float>& yDistMat) {
+
+	int n = xDistMat.nrows;
+
+	double sum = 0;
+	int num = 0;
+	for (int i = 1; i < n; i++) {
+		for (int j = 0; j < i; j++) {
+			if (xDistMat(i, j) != -1 && yDistMat(i, j) != -1) {
+				sum += 2 * xDistMat(i, j)*yDistMat(i, j);
+				num += 2;
+			}
+		}
+	}
+
+	if (num)
+		return (float)(sum / num);
+	else
+		return -1;
+}
+
+
