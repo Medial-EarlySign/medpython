@@ -671,11 +671,15 @@ void MedModel::init_signal_ids(MedDictionarySections& dict) {
 	set_affected_signals(dict);
 	set_required_signals(dict);
 
-	for (RepProcessor *processor : rep_processors)
+	for (RepProcessor *processor : rep_processors) {
 		processor->set_signal_ids(dict);
+		processor->init_tables(dict);
+	}
 
-	for (FeatureGenerator *generator : generators)
+	for (FeatureGenerator *generator : generators) {
 		generator->set_signal_ids(dict);
+		generator->init_tables(dict);
+	}
 }
 
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {

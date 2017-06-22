@@ -73,6 +73,9 @@ public:
 	// Signal Ids
 	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
+	// Init required tables
+	virtual void init_tables(MedDictionarySections& dict) { return; }
+
 	// Learn a generator
 	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {return 0;}
 	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { set_names(); return _learn(rep, ids, processors); }
@@ -201,8 +204,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
 
 	// Learn a generator
-	//int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
@@ -210,6 +212,9 @@ public:
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+
+	// Init required tables
+	void init_tables(MedDictionarySections& dict);
 
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
@@ -232,7 +237,7 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
 							time_unit_win, time_channel, val_channel, sum_channel, signalName, sets, 
-							names, req_signals, lut, in_set_name);
+							names, req_signals, in_set_name);
 
 };
 
