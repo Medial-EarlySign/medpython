@@ -57,7 +57,10 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 	mat.signals.insert(mat.signals.end(), feat_names.begin(), feat_names.end());
 	for (auto& ss : samples) {
 		RecordData rd;
-		rd.time = 0L;  rd.weight = rd.pred = rd.label = 0.0; rd.split = 0;
+		rd.time = 0L;  rd.weight = 0.0;  rd.label = ss.outcome; ; rd.split = ss.split;
+		if (ss.prediction.size() == 1)
+			rd.pred = ss.prediction[0];
+		else rd.pred = 0.0;
 		rd.id = ss.id;
 		rd.date = ss.time;
 		mat.recordsMetadata.push_back(rd);
