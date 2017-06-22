@@ -38,16 +38,15 @@ enum PerformanceCompareMode {
 	PRF_COMPARE_LAST = 5,
 } ;
 
-
 class Measurement {
 public:
 	string setParam ;
 	string queriedParam ;
 	float setValue ;
 
-	Measurement(const string& sParam, const string& qParam, float sValue) ;
-	Measurement(const string& qParam, float sValue) ;
-	Measurement(const string& qParam) ;
+	Measurement(const string& qParam, const string& sParam, float sValue) ; // Look for value of qParams when sParam=sValue
+	Measurement(const string& qParam, float sValue) ; // Look at value of qParam parameterized by sValue (e.g. "auc",0.2 for partial AUC)
+	Measurement(const string& qParam) ; // Look at value of qParam (e.g. "auc")
 	Measurement() ;
 
 	inline bool operator<(const Measurement& otherMeasuemrent) const {
@@ -57,7 +56,6 @@ public:
 
 	}
 } ;
-
 
 class MedClassifierPerformance {
 public:
@@ -166,6 +164,15 @@ int multicateg_get_error_rate(vector<float> &probs, vector<float> &y, int nsampl
 int get_quantized_breakdown(vector<float> &preds, vector<float> &y, vector<float> &bounds, MedMat<int> &counts);
 void print_quantized_breakdown(MedMat<int> &cnt, vector<float> &bounds);
 
+// Mutual information
+int get_mutual_information(vector<int>& x, vector<int>& y, int &n, float& mi);
+float get_mutual_information(vector<int>& xCounts, vector<int>& yCounts, vector<int> coCounts, int n);
+
+// Distance Correlations
+//.........................................................................................................................................
+void get_dMatrix(vector<float>& values, MedMat<float>& dMatrix, float missing_value); // Get Distances matrix
+float get_dVar(MedMat<float>& dMatrix);// Get Distance variance
+float get_dCov(MedMat<float>& xDistMat, MedMat<float>& yDistMat); // Get Distance covariance
 
 //void get_mean_std(float *v, int len, float &mean, float &std);
 //void get_mean_std(vector<float> &v, float &mean, float &std);
