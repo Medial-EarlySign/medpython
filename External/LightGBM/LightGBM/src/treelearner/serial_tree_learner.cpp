@@ -202,7 +202,7 @@ Tree* SerialTreeLearner::Train(const score_t* gradients, const score_t *hessians
     #endif
     cur_depth = std::max(cur_depth, tree->leaf_depth(left_leaf));
   }
-  Log::Info("Trained a tree with leaves=%d and max_depth=%d", tree->num_leaves(), cur_depth);
+  //Log::Info("Trained a tree with leaves=%d and max_depth=%d", tree->num_leaves(), cur_depth); // Annoying print removed by Medial
   return tree.release();
 }
 

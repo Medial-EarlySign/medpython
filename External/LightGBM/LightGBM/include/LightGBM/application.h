@@ -23,8 +23,10 @@ class Metric;
 *        and save the score to disk.
 */
 class Application {
+	friend class MemApp; // ADDED by Medial to enable full control inheritance
 public:
   Application(int argc, char** argv);
+ // Application() {}; // ADDED by Medial to enable inheritance
 
   /*! \brief Destructor */
   ~Application();

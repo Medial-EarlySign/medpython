@@ -28,6 +28,7 @@
 namespace LightGBM {
 
 Application::Application(int argc, char** argv) {
+  if (argc == 0 || argv == NULL) return; // Added by Medial to enable full control inheritance
   LoadParameters(argc, argv);
   // set number of threads for openmp
   if (config_.num_threads > 0) {

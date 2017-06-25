@@ -13,6 +13,14 @@
       <Configuration>DLL</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="lib_debug|x64">
+      <Configuration>lib_debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="lib|x64">
+      <Configuration>lib</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release_mpi|x64">
       <Configuration>Release_mpi</Configuration>
       <Platform>x64</Platform>
@@ -42,6 +50,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL|x64'" Label="Configuration">
     <PlatformToolset>v140</PlatformToolset>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='lib|x64'" Label="Configuration">
+    <PlatformToolset>v140</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='lib_debug|x64'" Label="Configuration">
+    <PlatformToolset>v140</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PlatformToolset>v140</PlatformToolset>
@@ -82,6 +98,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DLL|x64'">
     <IncludePath>..\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <TargetName>lib_lightgbm</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='lib|x64'">
+    <IncludePath>..\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <TargetName>lightgbm</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='lib_debug|x64'">
+    <IncludePath>..\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <TargetName>lightgbm</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_mpi|x64'">
     <ClCompile>
@@ -181,6 +205,51 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <OmitFramePointers>true</OmitFramePointers>
       <FunctionLevelLinking>true</FunctionLevelLinking>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='lib|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>USE_SOCKET;_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level4</WarningLevel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <OmitFramePointers>true</OmitFramePointers>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='lib_debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>USE_SOCKET;_MBCS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <OmitFramePointers>true</OmitFramePointers>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <SDLCheck>false</SDLCheck>
+      <Optimization>Disabled</Optimization>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <AdditionalDependencies>
