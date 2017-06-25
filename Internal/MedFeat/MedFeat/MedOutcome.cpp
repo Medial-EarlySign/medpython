@@ -206,7 +206,7 @@ int MedSplit::read_from_file(const string &fname)
 
 			if (fields.size() >= 2) {
 
-				if (fields[0] == "NSPLITS") {
+				if (!found_nsplits && fields[0] == "NSPLITS") {
 					nsplits = stoi(fields[1]);
 					found_nsplits = true;
 				}
