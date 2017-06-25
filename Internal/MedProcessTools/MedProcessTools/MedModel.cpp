@@ -364,8 +364,13 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
+		int npos = curr_line.find("//");
+		if (npos == 0)
+			continue;
 		lines++;
-		list.push_back(curr_line);
+		if (npos < string::npos)
+			list.push_back(curr_line.substr(0, npos));
+		else list.push_back(curr_line);
 	}
 	fprintf(stderr, "read %d lines from: %s\n", lines, fname.c_str());
 	inf.close();
