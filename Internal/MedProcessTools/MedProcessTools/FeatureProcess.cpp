@@ -1285,6 +1285,6 @@ void smearBins(vector<int>& bins, int nBins, int reqNbins) {
 	for (int i = 0; i < bins.size(); i++) {
 		int origBin = bins[i];
 		int nNewBins = (int)newBins[origBin].size();
-		bins[i] = newBins[origBin][nNewBins*(rand() / (RAND_MAX+1))];
+		bins[i] = newBins[origBin][nNewBins*(rand() / ((int)RAND_MAX))];
 	}
 }
