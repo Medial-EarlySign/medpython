@@ -40,8 +40,8 @@ int CrossValidator::doCV(MedPidRepository& rep, MedSamples& samples, int nfolds,
 		}
 
 		// Filter
-		for (int ifilter = 0; ifilter < learning_set_filters.size(); ifilter++)
-			learning_set_filters[ifilter]->filter(rep,learningSamples);
+		for (int ifilter = 0; ifilter < learning_set_filters.size(); ifilter++) 
+			learning_set_filters[ifilter]->filter(rep, learningSamples);
 
 		for (int ifilter = 0; ifilter < test_set_filters.size(); ifilter++)
 			test_set_filters[ifilter]->filter(rep,testSamples);

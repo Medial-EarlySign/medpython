@@ -309,22 +309,22 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 	return 0;
 }
 
-int BasicFeatGenerator::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { 
-	time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; 
-
+// Init look-up table
+//.......................................................................................
+void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
+	
 	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM) {
-#pragma omp critical
 		if (lut.size() == 0) {
-			int section_id = rep.dict.section_id(signalName);
+			int section_id = dict.section_id(signalName);
 			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
-			rep.dict.prep_sets_lookup_table(section_id, sets, lut);
+			dict.prep_sets_lookup_table(section_id, sets, lut);
 			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
 		}
 	}
 	else
 		lut.clear();
 
-	return 0; 
+	return;
 }
 
 //.......................................................................................

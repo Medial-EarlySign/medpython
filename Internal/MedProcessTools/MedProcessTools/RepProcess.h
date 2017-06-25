@@ -63,6 +63,9 @@ public:
 	// Other signal ids
 	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
+	// Init required tables
+	virtual void init_tables(MedDictionarySections& dict) { return; }
+
 	// Learn cleaning model
 	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
 
