@@ -1275,16 +1275,16 @@ void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<flo
 //.......................................................................................
 void smearBins(vector<int>& bins, int nBins, int reqNbins) {
 
-	float f = nBins/(reqNbins + 0.0) ;
+	float f = (float)nBins/(float)reqNbins;
 	vector<vector<int> > newBins(nBins);
 	for (int iBin = 0; iBin < reqNbins; iBin++) {
-		int OrigBin = (int)iBin * f;
+		int OrigBin = (int)(iBin * f);
 		newBins[OrigBin].push_back(iBin);
 	}
 
 	for (int i = 0; i < bins.size(); i++) {
 		int origBin = bins[i];
-		int nNewBins = newBins[origBin].size();
-		bins[i] = newBins[origBin][nNewBins*(rand() / (RAND_MAX + 0.0))];
+		int nNewBins = (int)newBins[origBin].size();
+		bins[i] = newBins[origBin][nNewBins*(rand() / (RAND_MAX+1))];
 	}
 }
