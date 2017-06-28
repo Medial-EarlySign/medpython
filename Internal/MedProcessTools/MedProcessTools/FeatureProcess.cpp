@@ -753,22 +753,6 @@ int FeatureSelector::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	return features.filter(selectedFeatures);
 }
 
-// (De)Serialization
-//.......................................................................................
-size_t FeatureSelector::get_size() {
-	return MedSerialize::get_size(processor_type, selected);
-}
-
-//.......................................................................................
-size_t FeatureSelector::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, processor_type, selected);
-}
-
-//.......................................................................................
-size_t FeatureSelector::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, processor_type, selected);
-}
-
 //=======================================================================================
 // UnivariateFeatureSelector
 //=======================================================================================

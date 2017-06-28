@@ -6,6 +6,7 @@
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "MedProcessTools/MedProcessTools/RepProcess.h"
 #include "MedProcessTools/MedProcessTools/FeatureProcess.h"
+#include "MedProcessTools/MedProcessTools/DoCalcFeatProcessor.h"
 #include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
