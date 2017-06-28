@@ -7,6 +7,7 @@
 #include "MedDeepBit.h"
 #include "MedUtils/MedUtils/MedIO.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
+#include "MedLightGBM.h"
 
 #include <thread>
 
@@ -46,6 +47,8 @@ MedPredictorTypes predictor_name_to_type(const string& model_name) {
 		return MODEL_BOOSTER;
 	else if (model_name == "deep_bit")
 		return MODEL_DEEP_BIT;
+	else if (model_name == "lightgbm")
+		return MODEL_LIGHTGBM;
 	else
 		return MODEL_LAST ;
 }
@@ -92,6 +95,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedBooster;
 	else if (model_type == MODEL_DEEP_BIT)
 		return new MedDeepBit;
+	else if (model_type == MODEL_LIGHTGBM)
+		return new MedLightGBM;
 	else
 		return NULL ;
 
@@ -124,6 +129,11 @@ int MedPredictor::init_from_string(string text) {
 		int rc =  med_b->init_from_string(text);
 		cerr << "after " << rc << "\n";
 		return rc;
+	}
+
+	if (classifier_type == MODEL_LIGHTGBM) {
+		MedLightGBM *med_light = (MedLightGBM *)this;
+		return med_light->init_from_string(text);
 	}
 
 	// remove white spaces

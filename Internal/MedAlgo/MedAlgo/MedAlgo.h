@@ -65,6 +65,7 @@ typedef enum {
 	MODEL_MIC_NET = 10, //Home brew Neural Net implementation (Allows deep learning)
 	MODEL_BOOSTER = 11, //general booster (meta algorithm)
 	MODEL_DEEP_BIT = 12, //general booster (meta algorithm)
+	MODEL_LIGHTGBM = 13, // the celebrated LightGBM algorithm
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -868,6 +869,7 @@ int MedPCA_project(MedMat<float> &x, MedMat<float> &pca_base, int dim, MedMat<fl
 //================================================================
 
 #include "MedBooster.h"
+//#include "MedLightGBM.h"
 
 
 //=================================================================

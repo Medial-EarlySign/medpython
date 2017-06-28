@@ -63,3 +63,7 @@ cmake_build/
 .project
 CMakeLists.txt
 External/xgboost/xgboost
+External/LightGBM/LightGBM/windows/x64/DLL/LightGBM.tlog/CL.command.1.tlog
+External/LightGBM/LightGBM/windows/x64/
+*.so
+External/LightGBM/LightGBM/lightgbm

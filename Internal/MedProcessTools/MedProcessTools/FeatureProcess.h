@@ -394,7 +394,6 @@ public:
 
 	// Apply selection
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
-
 };
 
 //.......................................................................................
@@ -471,7 +470,7 @@ public:
 	int getMIs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
 	int getDistCorrs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
 
-	// Selection
+	// Serialization
 	ADD_SERIALIZATION_FUNCS(params, missing_value, required, selected, numToSelect)
 };
 
@@ -515,7 +514,7 @@ public:
 	int fillMIsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
 	int fillDistCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats,int index);
 
-	// Selection
+	// Serialization
 	ADD_SERIALIZATION_FUNCS(params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
 };
 
@@ -540,6 +539,5 @@ MEDSERIALIZE_SUPPORT(featureSetStrata)
 MEDSERIALIZE_SUPPORT(FeatureImputer)
 MEDSERIALIZE_SUPPORT(UnivariateFeatureSelector)
 MEDSERIALIZE_SUPPORT(MRMRFeatureSelector)
-
 
 #endif

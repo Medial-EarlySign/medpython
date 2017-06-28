@@ -135,6 +135,7 @@
     <ClInclude Include="MedAlgo.h" />
     <ClInclude Include="MedBooster.h" />
     <ClInclude Include="MedDeepBit.h" />
+    <ClInclude Include="MedLightGBM.h" />
     <ClInclude Include="MedXGB.h" />
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +147,7 @@
     <ClCompile Include="MedGBM.cpp" />
     <ClCompile Include="MedGDLM.cpp" />
     <ClCompile Include="MedKNN.cpp" />
+    <ClCompile Include="MedLightGBM.cpp" />
     <ClCompile Include="MedLM.cpp" />
     <ClCompile Include="MedMars.cpp" />
     <ClCompile Include="MedMultiClass.cpp" />
