@@ -395,10 +395,6 @@ public:
 	// Apply selection
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
-	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
 };
 
 //.......................................................................................
@@ -474,6 +470,9 @@ public:
 	int getAbsPearsonCorrs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
 	int getMIs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
 	int getDistCorrs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats);
+
+	// Selection
+	ADD_SERIALIZATION_FUNCS(params, missing_value, required, selected, numToSelect)
 };
 
 //.......................................................................................
@@ -515,6 +514,9 @@ public:
 	int fillAbsPearsonCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
 	int fillMIsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
 	int fillDistCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats,int index);
+
+	// Selection
+	ADD_SERIALIZATION_FUNCS(params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
 };
 
 //.......................................................................................
@@ -536,6 +538,8 @@ MEDSERIALIZE_SUPPORT(FeatureNormalizer)
 MEDSERIALIZE_SUPPORT(featureStrata)
 MEDSERIALIZE_SUPPORT(featureSetStrata)
 MEDSERIALIZE_SUPPORT(FeatureImputer)
+MEDSERIALIZE_SUPPORT(UnivariateFeatureSelector)
+MEDSERIALIZE_SUPPORT(MRMRFeatureSelector)
 
 
 #endif

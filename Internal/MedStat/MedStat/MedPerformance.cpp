@@ -82,8 +82,6 @@ void MedClassifierPerformance::_load(MedSamples& samples) {
 		for (auto& sample : idSamples.samples) {
 
 			int split = sample.split;
-			if (split == -1)
-				split = 0;
 			preds[split+1].push_back({ sample.prediction.back(),sample.outcome });
 		}
 	}

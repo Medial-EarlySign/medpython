@@ -317,7 +317,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		string field = entry.first;
 		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
 		else if (field == "time_channel") time_channel = stoi(entry.second);
-		else if (field == "val_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") val_channel = stoi(entry.second);
 	}
 
 	return MedValueCleaner::init(mapper); 
@@ -499,7 +499,7 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 		string field = entry.first;
 		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
 		else if (field == "time_channel") time_channel = stoi(entry.second);
-		else if (field == "val_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
 

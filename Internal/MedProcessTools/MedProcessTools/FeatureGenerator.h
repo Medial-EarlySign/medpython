@@ -30,6 +30,7 @@ typedef enum {
 	FTR_GEN_BINNED_LM,
 	FTR_GEN_SMOKING,
 	FTR_GEN_RANGE,
+	FTR_GEN_DRG_INTAKE,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -237,7 +238,7 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
 							time_unit_win, time_channel, val_channel, sum_channel, signalName, sets, 
-							names, req_signals, in_set_name);
+							names, req_signals, in_set_name)
 
 };
 
@@ -256,8 +257,14 @@ public:
 	int signalId;
 
 	// Constructor/Destructor
-	AgeGenerator() : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven; }
-	AgeGenerator(int _signalId) : FeatureGenerator() { generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = _signalId; directlyGiven = med_rep_type.ageDirectlyGiven;}
+	AgeGenerator() : FeatureGenerator() {
+		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven;
+		if (directlyGiven) req_signals.assign(1, "Age");  else req_signals.assign(1, "BYEAR");
+	}
+	AgeGenerator(int _signalId) : FeatureGenerator() {
+		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = _signalId; directlyGiven = med_rep_type.ageDirectlyGiven;
+		if (directlyGiven) req_signals.assign(1, "Age");  else req_signals.assign(1, "BYEAR");
+	}
 	~AgeGenerator() {};
 
 	// Name
@@ -464,10 +471,8 @@ public:
 	float uget_range_max(UniversalSigVec &usv, int time_point);
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, signalName, type, win_from, win_to, val_channel, names, tags); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names, tags); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, signalName, type, win_from, win_to, val_channel, names, tags); };
-
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals)
 };
 
 MEDSERIALIZE_SUPPORT(RangeFeatGenerator);

@@ -688,6 +688,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	for (FeatureGenerator *generator : generators)
 		generator->get_required_signal_names(signalNames);
+
 }
 //.......................................................................................
 void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string) {

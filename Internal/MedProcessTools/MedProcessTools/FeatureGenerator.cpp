@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
+#include "DrugIntakeGenerator.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -25,6 +26,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_SMOKING;
 	else if (generator_name == "range")
 		return FTR_GEN_RANGE;
+	else if (generator_name == "drugIntake")
+		return FTR_GEN_DRG_INTAKE;
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
 }
 
@@ -74,7 +77,6 @@ FeatureGenerator *FeatureGenerator::make_generator(string generator_name, string
 //.......................................................................................
 FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type) {
 
-
 	if (generator_type == FTR_GEN_BASIC)
 		return new BasicFeatGenerator;
 	else if (generator_type == FTR_GEN_AGE)
@@ -87,6 +89,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new SmokingGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
 		return new RangeFeatGenerator;
+	else if (generator_type == FTR_GEN_DRG_INTAKE)
+		return new DrugIntakeGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
@@ -486,8 +490,9 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 	}
 
-	// set names and require signals
+	// set names and required signals
 	set_names();
+
 	req_signals.assign(1, signalName);
 
 	return 0;
