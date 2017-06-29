@@ -25,18 +25,18 @@ void MedGDLM::init_defaults()
 	normalize_for_predict = false; //T
 	
 	params.max_iter=500; 
-	params.stop_at_err=(float)1e-5; 
+	params.stop_at_err=(float)1e-4; 
 	params.max_times_err_grows = 20;
 	params.method="logistic_sgd"; 
-	params.batch_size=256;
+	params.batch_size=512;
 	params.rate = (float)0.01;
 	params.rate_decay = (float)1.0;
-	params.momentum = (float)0.9;
+	params.momentum = (float)0.95;
 	params.last_is_bias = 0;
 	params.l_ridge=0; 
 	params.l_lasso=0;
 	params.nthreads=0;
-
+	params.err_freq = 10;
 	b0 = 0 ;
 	b.clear() ;
 }
@@ -81,6 +81,7 @@ int MedGDLM::init(map<string, string>& mapper) {
 		else if (field == "l_ridge") params.l_ridge = stof(entry.second);
 		else if (field == "l_lasso") params.l_lasso = stof(entry.second);
 		else if (field == "nthreads") params.nthreads = stoi(entry.second);
+		else if (field == "err_freq") params.err_freq = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for GDLM\n", field.c_str());
 	}
 
@@ -516,44 +517,48 @@ int MedGDLM::Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
 }
 
 
-
 //===============================================================================================
 int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
 {
-	
-	int print_every_iter = 100;
+	if (params.last_is_bias) {
+		MERR("logistic_sgd() : ERROR: last is bias not 0!!! This mode is NOT supported yet\n");
+		MERR("logistic_sgd() : we ignore this and calc a b0 normally\n");
+	}
+
 	set_eigen_threads();
 	// currently completely ignoring w.... , will add soon....
 
+	// check we are in a binary 0/1 problem
 	for (int i=0; i<nsamples; i++) {
 		if (y[i] != 0 && y[i] != 1)
-			MLOG("ERROR: i=%d y %f - only 0/1 values allowed\n",i, y[i]);
+			MLOG("ERROR: i=%d y %f - only 0/1 values allowed\n", i, y[i]);
 	}
 
 	float fact_numeric = (float)1000;
-	// initial guess - we start at 0.
+
+	// initial guess - we start at 0. (should we try random?)
 	b0 = 0;
 	b.resize(nftrs);
 	fill(b.begin(), b.end(), (float)0);
 	vector<float> prev_b = b;
 	float prev_b0 = b0;
 
+
 	// preparing for iterations
 	int niter = 0;
 	int nerr = 0;
-	float err = params.stop_at_err * 100;
+	float err = params.stop_at_err * 100; // inital err
 	float prev_err = 2*err;
-	Map<MatrixXf> bf(&b[0],1,nftrs);
-	Map<MatrixXf> prev_bf(&prev_b[0],1,nftrs);
-	MatrixXf grad(1,nftrs);
-	MatrixXf dx(1,nftrs);
-	MatrixXf prev_grad(1,nftrs);
-	MatrixXf pgrad(1,nftrs);
-	MatrixXf diff(1,nftrs);
-	
-	Map<MatrixXf> x_all(x,nftrs,nsamples);
-	MatrixXf xt = x_all.transpose();
+	Map<MatrixXf> bf(&b[0], 1, nftrs);
+	Map<MatrixXf> prev_bf(&prev_b[0], 1, nftrs);
+	MatrixXf grad(1, nftrs);
 
+	MatrixXf dx(1, nftrs);
+	MatrixXf prev_grad(1, nftrs);
+	MatrixXf diff(1, nftrs);
+
+	Map<MatrixXf> x_all(x, nftrs, nsamples);
+	MatrixXf xt = x_all.transpose();
 
 	float r = params.rate;
 	vector<float> vpf(params.batch_size);
@@ -563,19 +568,21 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 		n_batches++;
 
 	// iterating
-	MLOG("Learn_logistic_sgd:: err %f max_err %f , niter %d max_iter %d :: batch_size %d :: n_batches %d\n",err,params.stop_at_err,niter,params.max_iter,params.batch_size,n_batches);
+	MLOG("Learn_logistic_sgd:: err %f max_err %f , niter %d max_iter %d :: batch_size %d :: n_batches %d\n", err, params.stop_at_err, niter, params.max_iter, params.batch_size, n_batches);
 	float momentum = params.momentum;
-	grad = MatrixXf::Zero(1,nftrs);
+	grad = MatrixXf::Zero(1, nftrs);
 	prev_grad = grad;
-	pgrad = grad;
-	prev_bf = bf;
-	float gnorm,dnorm,bnorm,pgnorm,mxg;
-	vector<float> xx,yy;
-	float eg_sq = 0, ex_sq = 0 , ada_eps = (float)1e-8;
-
 	float bias_grad = 0, prev_bias_grad = 0;
 
-	while (err > params.stop_at_err && niter < params.max_iter && nerr < params.max_times_err_grows) {
+	prev_bf = bf;
+
+	float dnorm;
+	double prev_loss = 1e8;
+	////vector<float> xx, yy;
+	vector<float> preds(nsamples);
+	float *ppreds = &preds[0];
+
+	while (err > params.stop_at_err && niter < params.max_iter) {
 
 		for (int bn=0; bn<n_batches; bn++) {
 
@@ -583,6 +590,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 			int len = params.batch_size; // len is nsamples in batch
 			if (from+len > nsamples) len = nsamples - from;
 
+			// next patch is for randomizing the batch each round... currently "code in sleep"
 			//xx.resize(params.batch_size*nftrs);
 			//yy.resize(params.batch_size);
 			//for (int i=0; i<params.batch_size; i++) {
@@ -591,72 +599,54 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 			//	yy[i] = y[ir];
 			//}
 			//len = params.batch_size;
+			//			Map<MatrixXf> xf(&xx[0],nftrs,len);
+			//			Map<MatrixXf> yf(&yy[0],1,len);
 
-			Map<MatrixXf> xf(&x[from*nftrs],nftrs,len);
-//			Map<MatrixXf> xf(&xx[0],nftrs,len);
-			Map<MatrixXf> yf(&y[from],1,len);
-//			Map<MatrixXf> yf(&yy[0],1,len);
-			Map<MatrixXf> pf(&vpf[0],1,len);
-			//float fact_grad = fact_numeric/((float)len*(float)nftrs);
+			Map<MatrixXf> xf(&x[from*nftrs], nftrs, len);
+			Map<MatrixXf> yf(&y[from], 1, len);
+			Map<MatrixXf> pf(&vpf[0], 1, len);
 
-//			float fact_grad = (float)1.0/(float)n_batches;
 			float fact_grad = (float)1.0/(float)len;
-//			float fact_grad = (float)1.0/(float)nsamples;
 
+			// for each sample we calc pf(i) = - 1 / (1 + exp (B*Xi + b0))
 			pf = bf * xf;
 			pf.array() += b0;
-			//pf = -pf;
 			pf = pf.array().exp();
 			pf.array() += 1;
 			pf = pf.array().inverse();
-			pf = pf - yf;
+			pf = -pf;
+
+			// we add +1 to pf(i), since y is 0/1 this trick transforms the y=0 gradient to the y=1 gradient that is
+			// 1 / (1 + exp (-B*Xi-b0))
+			pf = pf + yf;
+
+			// summing current pf for the gradient of b0
 			float bias_g = pf.array().sum();
-			grad = pf * xt.block(from,0,len,nftrs);
-//			grad = pf * xf.transpose();
-			grad *= fact_grad; // normalizing gradient to be independent of sample size (to "gradient per sample" units)
+			// multiplying by X to get the gradients for the Bj elements
+			grad = pf * xt.block(from, 0, len, nftrs);
+
+			// normalizing gradients to be independent of sample size (to "gradient per sample" units)
+			// this allows for easier learning rate configuration
+			grad.array() *= fact_grad; 
 			bias_grad = bias_g*fact_grad;
 
-			if (grad.norm() > 1e10) {MLOG("grad norm too big\n");}
-			// ridge
+			if (grad.norm() > 1e10) { MLOG("grad norm too big\n"); }
+
+			// ridge reguralizer
 			if (params.l_ridge > 0) {
-				float ridge = params.l_ridge*(float)1/(float)nftrs; // trying to normalize ridge to be independent of feature num.
-				if (params.last_is_bias) {
-					MLOG("ERROR: last is bias not 0!!!\n");
-				}
-				else {
-					grad = grad + ridge*bf;
-				}
-				/*
-				float bias = grad(0,nftrs-1);
-				grad = grad + ridge*bf;
-				if (params.last_is_bias)
-					grad(0,nftrs-1) = bias;
-					*/
+				grad = grad + params.l_ridge*bf;
 			}
 
+			// lasso reguralizer
+			if (params.l_lasso > 0) {
+				grad.array() = grad.array() + params.l_lasso*bf.array().sign();
+			}
+
+			// initialize prev_grad in first iter
 			if (niter == 0) {
 				prev_grad = grad; prev_bias_grad = bias_grad;
 			}
 
-/*
-			// ada-delta
-			float gt = (grad*grad.transpose())(0,0);
-			if (niter == 0 && bn == 0)
-				eg_sq = gt;
-			else
-				eg_sq = momentum * eg_sq + (1 - momentum)*gt;
-
-			dx = -(sqrt(ex_sq+ada_eps)/sqrt(eg_sq+ada_eps))*grad;
-			float ex = (dx*dx.transpose())(0,0);
-			if (niter == 0 && bn == 0)
-				ex_sq = ex;
-			else
-				ex_sq = momentum * ex_sq + (1 - momentum)*ex;
-
-			bf = bf + dx;
-*/
-			//MLOG("batch %d :: gt %g eg_sq %g ex %g ex_sq %g\n",bn,gt,eg_sq,ex,ex_sq);
-			
 			// momentum
 			grad *= (1 - momentum);
 			grad = grad + momentum * prev_grad;
@@ -665,50 +655,60 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 			bias_grad = bias_grad + momentum * prev_bias_grad;
 
 			// step
-			bf = bf + r*grad;
-			b0 = b0 + r*bias_grad;
-			
-			
+			bf = bf - r*grad;
+			b0 = b0 - r*bias_grad;
+
+			// update prev
 			prev_grad = grad;
 			prev_bias_grad = bias_grad;
 		}
-		diff = bf - prev_bf;
-		pgrad = grad - pgrad;
-		dnorm = diff.squaredNorm()/(float)nftrs;
-		pgnorm = pgrad.squaredNorm()/(float)nftrs;
-		gnorm = grad.squaredNorm()/(float)nftrs;
-		bnorm = bf.squaredNorm()/(float)nftrs;
-		err = dnorm + pgnorm + (float)0.1*gnorm;
-		//err = dnorm + (float)0.1*gnorm;
-		//		err = pgnorm;
-		mxg = max(abs(grad.maxCoeff()),abs(grad.minCoeff()));
 
-		if (err > prev_err*(float)10.5 + params.stop_at_err)
-			nerr++;
+		if (niter % params.err_freq == 0) {
+			// after err_freq epochs of going through the data we check the stop criteria
+			// for that we calculate the loss func and wait until changes are small
 
-		float derr = prev_err - err;
-		if (derr>0 && derr<(float)1e-16) // 1e-12
-			r = r*(float)0.99; //0.25
+			// Evaluating so that we can get loss err and accuracy
+			Predict(x, ppreds, nsamples, nftrs);
 
-		if (niter % print_every_iter == 0)
-			MLOG("Learn_logistic_sgd:: rate %g err %g derr %g gnorm %g dnorm %g bnorm %g pgnorm %g mxg %g max_err %g , niter %d max_iter %d\n",
-				r,err,derr,gnorm,dnorm,bnorm,pgnorm,mxg,
-				params.stop_at_err,niter,params.max_iter);
+			int nacc = 0;
+			double loss = 0;
+			for (int i=0; i<nsamples; i++) {
+				if ((preds[i]>=0.5 && y[i]==1) || (preds[i]<0.5 && y[i]==0)) nacc++;
+
+				if (y[i] == 1)
+					loss += -log(max(1e-5, (double)preds[i]));
+				else
+					loss += -log(max(1e-5, 1.0-(double)preds[i]));
+			}
+
+			loss /= (double)nsamples;
+
+			diff = bf - prev_bf;
+
+			dnorm = sqrt(diff.array().square().sum() + (b0 - prev_b0)*(b0 - prev_b0))/(float)nftrs;
+			err = abs(loss-prev_loss)/(abs(prev_loss) + 1e-10);
+			prev_loss = loss;
+			
+			// printing
+			MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g stop_err %g acc %g loss %g , niter %d max_iter %d\n",
+				r, err, dnorm, params.stop_at_err, (double)nacc/(double)nsamples, loss, niter, params.max_iter);
+		}
+		
+		// update rate with rate decay
 		if (params.rate_decay < 1)
 			r = r * params.rate_decay;
 
+		// update prev_bf , prev_b0
 		prev_bf = bf;
-		prev_err = err;
-		pgrad = grad;
+		prev_b0 = b0;
 		niter++;
 	}
-	MLOG("Learn_logistic_sgd:: rate %g err %g gnorm %g dnorm %g bnorm %g pgnorm %g mxg %g max_err %g , niter %d max_iter %d\n",
-		  r,err,gnorm,dnorm,bnorm,pgnorm,mxg,
-		  params.stop_at_err,niter,params.max_iter);
+
+	MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g max_err %g , niter %d max_iter %d\n",
+		r, err, dnorm, params.stop_at_err, niter, params.max_iter);
 
 	return 0;
 }
-
 
 
 //===============================================================================================

@@ -320,10 +320,11 @@ struct MedGDLMParams {
 	float l_lasso; // labmda for lasso
 
 	int nthreads;  // 0 -> auto choose, >0 - user set.
+	int err_freq;  // the frequency in which the stopping err on loss will be tested, reccomended > 10
 
 	MedGDLMParams() {
-		max_iter = 100000; stop_at_err = (float)1e-5; max_times_err_grows = 20; method = "gd"; batch_size = 256; rate = (float)0.01; rate_decay = (float)1.0; momentum = (float)0.9; last_is_bias = 0;
-		l_ridge = (float)0; l_lasso = (float)0; nthreads = 0;
+		max_iter = 500; stop_at_err = (float)1e-4; max_times_err_grows = 20; method = "logistic_sgd"; batch_size = 512; rate = (float)0.01; rate_decay = (float)1.0; momentum = (float)0.95; last_is_bias = 0;
+		l_ridge = (float)0; l_lasso = (float)0; nthreads = 0; err_freq = 10;
 	}
 
 };
@@ -342,7 +343,7 @@ public:
 	MedGDLM();
 	MedGDLM(void *params);
 	MedGDLM(MedGDLMParams& params);
-	virtual int init(map<string, string>& mapper); ;
+	int init(map<string, string>& mapper); ;
 	int init(void *params);
 	void init_defaults();
 
@@ -368,7 +369,6 @@ public:
 	int Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs);
 	int Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int nftrs);
 	int Learn_logistic_sgd_threaded(float *x, float *y, float *w, int nsamples, int nftrs);
-
 private:
 	void set_eigen_threads();
 };
