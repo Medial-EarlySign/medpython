@@ -47,7 +47,7 @@ public:
 	MedSamples *LearningSet;
 
 	// Safe Mode for train/test intersection
-	int safe_mode;
+	int safe_mode = 0;
 
 	// All required signals
 	unordered_set<int> required_signals;
