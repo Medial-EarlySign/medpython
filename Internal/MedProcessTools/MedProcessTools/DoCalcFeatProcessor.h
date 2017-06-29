@@ -12,7 +12,7 @@
 class DoCalcFeatProcessor : public FeatureProcessor {
 public:
 	int serial_id;
-	// target_feature_name as specified by the user, will be decorated for uniqueness
+	// target_feature_name as specified by the user, will be decorated for uniqueness and extra information
 	string raw_target_feature_name = "";
 
 	// source_feature_names as specified by the user, will be resolved to decorated names
@@ -45,15 +45,15 @@ public:
 
 	virtual int Apply(MedFeatures& features, unordered_set<int>& ids);
 
-	float sum(vector<float*> p_sources, int offset);
+	// Specific Functions
+	void sum(vector<float*> p_sources, float *p_out, int n_samples);
+	void chads2(vector<float*> p_sources, float *p_out, int n_samples, int max_flag);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatProcessor *>(processor)); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, serial_id, processor_type, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, serial_id, processor_type, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights); }
+	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights)
 
 private:
 	virtual void resolve_feature_names(MedFeatures &features);

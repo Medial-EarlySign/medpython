@@ -7,7 +7,7 @@ void DoCalcFeatProcessor::init_defaults() {
 	processor_type = FTR_PROCESS_DO_CALC;
 	missing_value = MED_MAT_MISSING_VALUE;
 	calc_type = "calc_type_not_set";
-};
+}
 
 void DoCalcFeatProcessor::resolve_feature_names(MedFeatures &features) {
 	this->source_feature_names.clear();
@@ -22,7 +22,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		if (field == "names")
+		if (field == "name")
 			raw_target_feature_name = entry.second;
 		else if (field == "calc_type")
 			calc_type = entry.second;
@@ -40,41 +40,105 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
 		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
+	
 	set_feature_name(raw_target_feature_name);
 	return 0;
 }
 
 int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
-	resolve_feature_names(features);
-
+	
+	// Prepare new Feature
 	int samples_size = (int)features.samples.size();
 	features.data[feature_name].clear();
 	features.data[feature_name].resize(samples_size);
-	float *p_target = &(features.data[feature_name][0]);
+	float *p_out = &(features.data[feature_name][0]);
+	
+	// Attributes
+	features.attributes[feature_name].normalized = false;
+	features.attributes[feature_name].imputed = true;
+
+	// Get Source Features
+	resolve_feature_names(features);
 	vector<float*> p_sources;
 	for (string source : source_feature_names) {
 		assert(features.data.find(source) != features.data.end());
 		p_sources.push_back(&(features.data[source][0]));
 	}
+	
 
-	for (int i = 0; i < features.samples.size(); i++) {
-		if (calc_type == "sum")
-			p_target[i] = sum(p_sources, i);
-		else MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
-	}
+	// Do your stuff
+	if (calc_type == "sum")
+		sum(p_sources, p_out, samples_size);
+	else if (calc_type == "min_chads2")
+		chads2(p_sources, p_out, samples_size, 0);
+	else if (calc_type == "max_chads2")
+		chads2(p_sources, p_out, samples_size, 1);
+	else
+		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
+	
 	return 0;
 }
 
-float DoCalcFeatProcessor::sum(vector<float*> p_sources, int offset) {
-	float res = 0.0;
+// Out = Sum(In) or Sum(In*W)
+void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samples) {
+
+	for (int i = 0; i < n_samples; i++) {
+		float res = 0.0;
+
+		int cnt = 0;
+		for (float* p : p_sources) {
+			if (p[i] == missing_value) {
+				res = missing_value;
+				break;
+			}
+			else if (weights.size() > 0)
+				res += p[i] * weights[cnt++];
+			else
+				res += p[i];
+		}
+		p_out[i] = res;
+	}
+
+	return;
+}
+
+// Chads2 Scores: ASSUME order of given names is : age,Diabetes Registry, Hyper-Tenstion Registry, Stroke/TIA indicator, CHF indicator
+void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_samples, int max_flag) {
 	
-	int cnt = 0;
-	for (float* p : p_sources)
-		if (p[offset] == missing_value)
-			return missing_value;
-		else if (weights.size() > 0)
-			res += (p[offset]) * weights[cnt++];
-		else res += (p[offset]);
+	for (int i = 0; i < n_samples; i++) {
+
+		float chads2 = 0;
+		// Age
+		if (p_sources[0][i] >= 75)
+			chads2++;
+
+		// Diabetes
+		if (p_sources[1][i] == 2)
+			chads2++;
+		else if (p_sources[1][i] == missing_value && max_flag)
+			chads2++;
+
+		// HyperTension
+		if (p_sources[2][i] == 1)
+			chads2++;
+		else if (p_sources[2][i] == missing_value && max_flag)
+			chads2++;
+
+		// S2 : Prior Stroke or TIA or thromboembolism
+		if (p_sources[3][i] > 0)
+			chads2 += 2;
+		else if (p_sources[3][i] == missing_value && max_flag)
+			chads2 += 2;
+
+		// CHF
+		if (p_sources[4][i] > 0)
+			chads2++;
+		else if (p_sources[4][i] == missing_value && max_flag)
+			chads2++;
+
+		p_out[i] = chads2;
+	}
+
+	return;
 		
-	return res;
 }
