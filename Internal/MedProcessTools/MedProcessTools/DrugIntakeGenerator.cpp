@@ -107,6 +107,7 @@ float DrugIntakeGenerator::get_value(PidDynamicRec &rec, UniversalSigVec &usv, i
 	sort(periods.begin(), periods.end(), [](const pair<int, int> &v1, const pair<int, int> &v2) {return (v1.first < v2.first); });
 
 	int adminTime = 0;
+	int lastCovered = -1;
 	for (int i = 0; i < periods.size(); i++) {
  		if (periods[i].second < min_time)
 			continue;
@@ -120,10 +121,13 @@ float DrugIntakeGenerator::get_value(PidDynamicRec &rec, UniversalSigVec &usv, i
 		if (periods[i].first > periods[i].second)
 			continue;
 
-		if (i == 0 || periods[i].first > periods[i - 1].second)
+		if (lastCovered == -1 || periods[i].first > lastCovered)
 			adminTime += periods[i].second - periods[i].first;
-		else
-			adminTime += periods[i].second - periods[i - 1].second;
+		else if (periods[i].second > lastCovered)
+			adminTime += periods[i].second - lastCovered;
+
+		if (periods[i].second > lastCovered)
+			lastCovered = periods[i].second;
 	}
 
 	float coverage = (adminTime + 0.0) / (max_time + 1 - min_time);
