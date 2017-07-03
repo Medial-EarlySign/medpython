@@ -81,7 +81,7 @@ map<float, float> BuildAggeration(const vector<vector<float>> &vec_x, const vect
 
 void Build3Data(const vector<float> &x1, const vector<float> &x2,
 	const vector<float> &y,
-	float(*aggFunction)(const vector<float> &), vector<vector<float>> &data) {
+	float(*aggFunction)(const vector<float> &), vector<vector<float>> &data, int min_filter_cnt) {
 	//aggregate for each tuples of x1,x2 aggFucntion on y list results
 	if (x1.size() != x2.size() || x1.size() != y.size()) {
 		throw invalid_argument("arrays must have same size");
@@ -96,11 +96,16 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 	{
 		for (auto jt = it->second.begin(); jt != it->second.end(); ++jt)
 		{
+			if (jt->second.size() < min_filter_cnt)
+				continue; //filtered out
 			data[0].push_back(it->first);
 			data[1].push_back(jt->first);
 			data[2].push_back(aggFunction(jt->second));
 		}
 	}
+
+	if (data[0].size() == 0)
+		throw invalid_argument("filtered all points - min_filter_cnt is too high or axis bining is needed");
 }
 
 void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName, vector<string> seriesNames, int refreshTime)
@@ -206,7 +211,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	myfile.close();
 }
 
-void createHtml3D(string outPath, const vector<vector<float>> &vec3d, string title, string xName, string yName, string zName) {
+void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatmap, string title, string xName, string yName, string zName) {
 	if (vec3d.size() != 3) {
 		throw invalid_argument("please pass 3 signal vectors as input");
 	}
@@ -247,8 +252,12 @@ void createHtml3D(string outPath, const vector<vector<float>> &vec3d, string tit
 		throw invalid_argument("Not Found in template");
 	}
 
+	string type = "scatter3d";
+	if (heatmap)
+		type = "heatmap";
+
 	string rep = "";
-	rep += "var series" + to_string(0) + " = {\n type: 'scatter3d', \n mode: 'markers'";
+	rep += "var series" + to_string(0) + " = {\n type: '" + type + "', \n mode: 'markers'";
 	for (size_t i = 0; i < vec3d.size(); ++i) {
 		rep += ",\n" + ind2axis[i] + ": [";
 		rep += float2Str(vec3d[i][0]);
@@ -275,13 +284,19 @@ void createHtml3D(string outPath, const vector<vector<float>> &vec3d, string tit
 
 	rep += "var layout = { \n  title:'";
 	rep += title;
-	rep += "', \n xaxis: { title : '";
+	if (!heatmap)
+		rep += "', \n scene: {\n xaxis: { title : '";
+	else
+		rep += "', \n xaxis: { title : '";
 	rep += xName;
 	rep += "'}, \n yaxis: { title: '";
 	rep += yName;
 	rep += "'}, \n zaxis: { title: '";
 	rep += zName;
-	rep += "' }, \n height: 800, \n    width: 1200 \n }; ";
+	if (!heatmap)
+		rep += "' }\n }, \n height: 800, \n    width: 1200 \n }; ";
+	else
+		rep += "'}, \n height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);
 
