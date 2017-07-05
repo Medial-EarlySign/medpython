@@ -82,17 +82,17 @@ void MedFeatures::insert_samples(MedIdSamples& in_samples, int index) {
 // (De)Serialization
 //.......................................................................................
 size_t MedFeatures::get_size() {
-	return MedSerialize::get_size(data, samples);
+	return MedSerialize::get_size(data, samples, attributes);
 }
 
 //.......................................................................................
 size_t  MedFeatures::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, data, samples);
+	return MedSerialize::serialize(blob, data, samples, attributes);
 }
 
 //.......................................................................................
 size_t MedFeatures::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, data, samples);
+	return MedSerialize::deserialize(blob, data, samples, attributes);
 }
 
 //.......................................................................................
