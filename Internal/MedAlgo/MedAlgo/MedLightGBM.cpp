@@ -102,7 +102,7 @@ int MemApp::InitTrainData(float *xdata, float *ydata, float *weight, int nrows, 
 
 	// load weight
 	if (weight != NULL)
-		train_data_->SetFloatField("weight", ydata, nrows);
+		train_data_->SetFloatField("weight", weight, nrows);
 
 	// create training metric
 	MLOG("training eval bit %d\n", config_.boosting_config.is_provide_training_metric);
