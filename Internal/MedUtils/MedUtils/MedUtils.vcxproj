@@ -158,6 +158,7 @@
   <ItemGroup>
     <ClInclude Include="MedArchiver.h" />
     <ClInclude Include="MedArchiver_imp.h" />
+    <ClInclude Include="MedCohort.h" />
     <ClInclude Include="MedDataStructures.h" />
     <ClInclude Include="MedGenUtils.h" />
     <ClInclude Include="MedGenUtils_imp.h" />
@@ -176,6 +177,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedArchiver.cpp" />
+    <ClCompile Include="MedCohort.cpp" />
     <ClCompile Include="MedDataStructures.cpp" />
     <ClCompile Include="MedGenUtils.cpp" />
     <ClCompile Include="MedIO.cpp" />
