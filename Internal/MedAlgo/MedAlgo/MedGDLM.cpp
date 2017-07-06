@@ -547,7 +547,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 	// preparing for iterations
 	int niter = 0;
 	int nerr = 0;
-	float err = params.stop_at_err * 100; // inital err
+	double err = params.stop_at_err * 100; // inital err
 	float prev_err = 2*err;
 	Map<MatrixXf> bf(&b[0], 1, nftrs);
 	Map<MatrixXf> prev_bf(&prev_b[0], 1, nftrs);
