@@ -70,6 +70,7 @@ public:
 	void print_csv();
 
 	int write_as_csv_mat(const string &csv_fname);
+	int read_from_csv_mat(const string &csv_fname);
 
 	int filter(unordered_set<string>& selectedFeatures);
 

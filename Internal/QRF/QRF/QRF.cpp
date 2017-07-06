@@ -2052,7 +2052,8 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, int nfeat, int nsa
 	fprintf(stderr, "%d trees transffered\n", ntrees); fflush(stderr);
 #endif
 
-	fprintf(stderr, "collect oob = %d\n", collect_oob); fflush(stderr);
+	if (collect_oob > 0)
+		fprintf(stderr, "collect oob = %d\n", collect_oob); fflush(stderr);
 	if (collect_oob) {
 		for (int i = 0; i < ntrees; i++)
 			qrf.collect_Tree_oob_scores(x, nfeat, qtrees[i], trees[i].sample_ids);
