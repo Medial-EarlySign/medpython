@@ -164,7 +164,7 @@ int MedCohort::write_to_file(string fname)
 		of << sout << endl;
 	}
 
-	MLOG("wrote [%d] records in cohort file %s\n", recs.size(), fname.size());
+	MLOG("wrote [%d] records in cohort file %s\n", recs.size(), fname.c_str());
 	of.close();
 	return 0;
 }
@@ -313,6 +313,8 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 				}
 				else {
 					// control
+					to_days = outcome_days - int(365.0f * s_params.min_control_years);
+					from_days = max(from_days, from_days - int(365.0f * s_params.max_control_years));
 				}
 
 				to_days = min(to_days, outcome_days - s_params.min_days_from_outcome);
@@ -336,7 +338,10 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 					ms.time = rand_date;
 					nsamp++;
 
-					mis.samples.push_back(ms);
+					int age = (rand_date/10000) - byear;
+
+					if (age >= s_params.min_age && age <= s_params.max_age)
+						mis.samples.push_back(ms);
 
 					to_days -= s_params.jump_days;
 					delta -= s_params.jump_days;
@@ -355,11 +360,11 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	}
 
 	samples.sort_by_id_date();
-	MLOG("Created %d samples for %d ids\n", nsamp, samples.idSamples.size());
 	if (samples.write_to_file(out_sample_file) < 0) {
 		MERR("FAILED writing samples file %s\n", out_sample_file.c_str());
 		return -1;
 	}
+	MLOG("Created samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), nsamp, samples.idSamples.size());
 
 	return 0;
 }

@@ -1,4 +1,7 @@
 #pragma once
+#ifndef __MED_COHORT_H__
+#define __MED_COHORT_H__
+
 //===================================================================================
 // Data Structures and helpers to deal with a cohort.
 // A cohort is simply a list of:
@@ -26,6 +29,11 @@ struct CohortRec : SerializableObject {
 	int to = 0;
 	int outcome_date = 0;
 	float outcome = -1;
+
+	CohortRec() {};
+	CohortRec(int _pid, int _from, int _to, int _outcome_date, float _outcome) {
+		pid = _pid; from = _from; to = _to; outcome_date = _outcome_date; outcome = _outcome;
+	}
 
 	int init(map<string, string>& map);
 	int get_string(string &to_str);
@@ -75,6 +83,7 @@ class MedCohort : SerializableObject {
 
 	vector<CohortRec> recs;
 
+	void insert(int pid, int from, int to, int outcome_date, float outcome) { recs.push_back(CohortRec(pid, from, to, outcome_date, outcome)); }
 	int read_from_file(string fname);
 	int write_to_file(string fname);
 	int read_from_bin_file(string fname) { return SerializableObject::read_from_file(fname); }
@@ -82,10 +91,10 @@ class MedCohort : SerializableObject {
 
 	int get_pids(vector<int> &pids);
 
-	int print_general_stats();
+	//int print_general_stats();
 	int create_incidence_file(IncidenceParams &i_params, string out_file);
 	int create_sampling_file(SamplingParams &s_params, string out_sample_file);
-	int create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file) { return 0; };
+	int create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file) { fprintf(stderr, "MedCohort: Sticked sampling not implemented yet !!\n"); return -1; };
 
 };
 
@@ -106,3 +115,6 @@ class MedCohort : SerializableObject {
 //	     -> for all train/test group
 //       -> only for the subgroup of points that HAS no missing values (and compare to the base just on those)
 //
+
+
+#endif
