@@ -49,7 +49,6 @@ struct SamplingParams : SerializableObject {
 	int is_continous = 1;			// continous mode of sampling vs. stick to
 	int min_days_from_outcome = 30;
 	int jump_days = 180;
-	vector<string> stick_to_sigs;		// only use time points with these signals tested
 	int min_year = 1900;
 	int max_year = 2100;
 	int gender_mask = 0x3;
@@ -57,6 +56,7 @@ struct SamplingParams : SerializableObject {
 	int min_age = 0;
 	int max_age = 200;
 	string rep_fname;
+	vector<string> stick_to_sigs;		// only use time points with these signals tested
 
 	int init(map<string, string>& map);
 };

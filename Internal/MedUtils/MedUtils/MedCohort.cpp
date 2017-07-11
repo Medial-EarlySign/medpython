@@ -71,7 +71,7 @@ int SamplingParams::init(map<string, string>& map)
 		else if (m.first == "min_year") min_year = stoi(m.second);
 		else if (m.first == "max_year") max_year = stoi(m.second);
 		else if (m.first == "gender_mask") gender_mask = stoi(m.second);
-		else if (m.first == "train_mask") gender_mask = stoi(m.second);
+		else if (m.first == "train_mask") train_mask = stoi(m.second);
 		else if (m.first == "min_age") min_age = stoi(m.second);
 		else if (m.first == "max_age") max_age = stoi(m.second);
 		else if (m.first == "rep") rep_fname = m.second;
@@ -289,17 +289,17 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	int nsamp = 0;
 
 	for (auto &rc : recs) {
-		int fyear = rc.from / 10000;
-		int tyear = rc.to / 10000;
 		int byear = (int)((((SVal *)rep.get(rc.pid, byear_sid, len))[0]).val);
 		int gender = (int)((((SVal *)rep.get(rc.pid, gender_sid, len))[0]).val);
 		int train = (int)((((SVal *)rep.get(rc.pid, train_sid, len))[0]).val);
 
+		//MLOG("s: %d outcome %d %d from-to %d %d byear %d gender %d (mask %d) train %d (mask %d)\n", rc.pid, (int)rc.outcome, rc.outcome_date, rc.from, rc.to, byear, gender, s_params.gender_mask, train, s_params.train_mask);
 		if ((gender & s_params.gender_mask) && (train & s_params.train_mask)) {
 
-			//MLOG("s: %d outcome %d %d from-to %d %d \n", s.pid, (int)s.outcome, s.outcome_date, s.from_date, s.to_date);
-			if (rc.to <= rc.outcome_date && rc.from <= rc.to) {
+			//MLOG("pid %d passed masks\n", rc.pid);
+			if (rc.from <= rc.outcome_date && rc.outcome_date <= rc.to && rc.from <= rc.to) {
 
+				//MLOG("pid %d passed from-to\n", rc.pid);
 				// first moving to work with days
 				int to_days = med_time_converter.convert_date(MedTime::Days, rc.to);
 				int from_days = med_time_converter.convert_date(MedTime::Days, rc.from);
@@ -320,6 +320,7 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 				to_days = min(to_days, outcome_days - s_params.min_days_from_outcome);
 
 				int delta = to_days - from_days;
+				//MLOG("pid %d to_days %d outcome_days %d from_days %d delta %d\n", rc.pid, to_days, outcome_days, from_days, delta);
 
 				MedIdSamples mis;
 				mis.id = rc.pid;
@@ -340,6 +341,7 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 
 					int age = (rand_date/10000) - byear;
 
+					//MLOG("pid %d age %d delta %d \n", rc.pid, age, delta);
 					if (age >= s_params.min_age && age <= s_params.max_age)
 						mis.samples.push_back(ms);
 
