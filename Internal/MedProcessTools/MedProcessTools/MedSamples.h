@@ -30,7 +30,7 @@ public:
 	MedSample() { prediction.clear(); }
 	~MedSample() { prediction.clear(); }
 
-	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction);
+	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction)
 
 	// print
 	void print(const string prefix);
@@ -65,7 +65,7 @@ public:
 	MedIdSamples() { id = -1; split = -1; samples.clear(); }
 	
 	void set_split(int _split) { split = _split; for (auto& s : samples) s.split = _split; }
-	ADD_SERIALIZATION_FUNCS(id, split, samples);
+	ADD_SERIALIZATION_FUNCS(id, split, samples)
 
 };
 
@@ -102,7 +102,7 @@ public:
 
 	void sort_by_id_date(); 
 
-	ADD_SERIALIZATION_FUNCS(time_unit, idSamples);
+	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 
 };
 

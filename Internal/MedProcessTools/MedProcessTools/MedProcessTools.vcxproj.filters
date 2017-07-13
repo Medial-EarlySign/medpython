@@ -60,6 +60,9 @@
     <ClCompile Include="DoCalcFeatProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DrugIntakeGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -105,6 +108,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DoCalcFeatProcessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DrugIntakeGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

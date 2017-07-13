@@ -27,6 +27,7 @@ typedef enum {
 	FTR_PROCESS_DO_CALC,
 	FTR_PROCESS_UNIVARIATE_SELECTOR,
 	FTR_PROCESSOR_MRMR_SELECTOR,
+	FTR_PROCESSOR_LASSO_SELECTOR,
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -398,6 +399,29 @@ public:
 
 //.......................................................................................
 //.......................................................................................
+// Feature Selector : lasso 
+//.......................................................................................
+//.......................................................................................
+
+class LassoSelector : public FeatureSelector {
+
+	// Find set of selected features
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_LASSO_SELECTOR; };
+	 
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<LassoSelector *>(processor)); }
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(missing_value, required, selected, numToSelect)
+
+};
+
+//.......................................................................................
+//.......................................................................................
 // Feature Selector : Univariate
 //.......................................................................................
 //.......................................................................................
@@ -415,8 +439,11 @@ public:
 	float minStat;
 
 	// for mutual information
-	int nBins;
+	int nBins = 10;
 	MedBinningType binMethod = BIN_EQUIDIST;
+
+	// for correlation
+	int takeSquare = 0;
 
 	// for samples distance correlation
 	float pDistance; 

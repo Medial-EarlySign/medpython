@@ -148,6 +148,7 @@ public:
 
 	int learn(MedFeaturesData& data);
 	int learn(MedFeatures& features);
+	int learn(MedFeatures& features, vector<string>& names);
 	int cross_validate_splits(MedFeaturesData& data);
 	int predict(MedFeaturesData& data, int isplit);
 	int predict_on_train(MedFeaturesData& data, int isplit);

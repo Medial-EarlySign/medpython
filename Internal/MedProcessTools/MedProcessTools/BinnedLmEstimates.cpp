@@ -136,6 +136,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second)!=0);
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
 	}
@@ -476,7 +477,7 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 			float type_sum = 0;
 			int type_num = 0;
 
-			float *p_feat = &(features.data[names[0]][index]);
+			float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[ipoint]][index]);
 			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, last_time - params.estimation_points[ipoint]);
 
 			for (int j = 0; j < rec.usv.len; j++) {
@@ -530,10 +531,10 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 					}
 				}
 
-				features.data[names[ipoint]][index + i] = (pred + ymeans[type] + means[gender-1][age]);
+				p_feat[i] = (pred + ymeans[type] + means[gender-1][age]);
 			}
 			else {
-				features.data[names[ipoint]][index + i] = missing_val;
+				p_feat[i] = missing_val;
 			}
 		}
 	}
@@ -547,7 +548,7 @@ size_t BinnedLmEstimates::get_size() {
 
 	size_t size = 0;
 
-	size += MedSerialize::get_size(generator_type, signalName, names, tags, req_signals, time_unit_periods);
+	size += MedSerialize::get_size(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights);
 	size += MedSerialize::get_size(params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
 	size += MedSerialize::get_size(xmeans, xsdvs, ymeans, means[0], means[1], models);
 
@@ -560,7 +561,7 @@ size_t BinnedLmEstimates::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::serialize(blob + ptr, generator_type, signalName, names, tags, req_signals, time_unit_periods);
+	ptr += MedSerialize::serialize(blob + ptr, generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights);
 	ptr += MedSerialize::serialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
 	ptr += MedSerialize::serialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 
@@ -572,7 +573,7 @@ size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	ptr += MedSerialize::deserialize(blob + ptr, generator_type, signalName, names, tags, req_signals, time_unit_periods);
+	ptr += MedSerialize::deserialize(blob + ptr, generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights);
 	ptr += MedSerialize::deserialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
 	ptr += MedSerialize::deserialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
 

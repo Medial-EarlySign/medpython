@@ -1,64 +1,635 @@
-#include "FeatureSelector.h"
-#include "Logger/Logger/Logger.h"
+#define _CRT_SECURE_NO_WARNINGS
 
-#define LOCAL_SECTION LOG_FEAT_SELECTOR
+#define LOCAL_SECTION LOG_FEATCLEANER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+#include "FeatureProcess.h"
+#include "DoCalcFeatProcessor.h"
+#include <omp.h>
+
 //=======================================================================================
-// FeatsCleaner
+// FeatureSelector
 //=======================================================================================
-// Cleaner types
-FeatureSelectorTypes feature_selector_name_to_type(const string& selector_name) {
+// Learn : Add required to feature selected by inheriting classes
+//.......................................................................................
+int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
-	if (selector_name == "all")
-		return FTR_SLCTR_ALL;
+	// select, ignoring requirments
+	if (_learn(features, ids) < 0)
+		return -1;
+
+	// Add required signals
+	// Collect selected
+	unordered_set<string> selectedFeatures;
+	for (string& feature : selected)
+		selectedFeatures.insert(feature);
+
+	// Find Missing
+	vector<string> missingRequired;
+	for (string feature : required) {
+		if (selectedFeatures.find(feature) == selectedFeatures.end())
+			missingRequired.push_back(feature);
+	}
+
+	// Keep maximum numToSelect ...
+	if (numToSelect > 0) {
+		int nMissing = (int)missingRequired.size();
+		int nSelected = (int)selected.size();
+
+		if (nSelected + nMissing < numToSelect)
+			selected.resize(nSelected + nMissing, "");
+		else
+			selected.resize(numToSelect, "");
+	}
+
+	// Insert (making sure not to remove required features)
+	int insertIndex = (int)selected.size() - 1;
+	for (unsigned int i = 0; i < missingRequired.size(); i++) {
+		while (required.find(selected[insertIndex]) != required.end()) {
+			insertIndex--;
+			assert(insertIndex >= 0);
+		}
+		selected[insertIndex--] = missingRequired[i];
+	}
+
+	// Log
+	for (string& feature : selected)
+		MLOG("Feature Selection: Selected %s\n", feature.c_str());
+
+	return 0;
+}
+
+// Apply selection : Ignore set of ids
+//.......................................................................................
+int FeatureSelector::Apply(MedFeatures& features, unordered_set<int>& ids) {
+
+	unordered_set<string> selectedFeatures;
+	for (string& feature : selected)
+		selectedFeatures.insert(feature);
+
+	return features.filter(selectedFeatures);
+}
+
+//=======================================================================================
+// UnivariateFeatureSelector
+//=======================================================================================
+// Learn 
+//.......................................................................................
+int UnivariateFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	// Get Stats
+	vector<float> stats;
+
+	// "Correlation" to outcome
+	if (params.method == UNIV_SLCT_PRSN)
+		getAbsPearsonCorrs(features, ids, stats);
+	else if (params.method == UNIV_SLCT_MI) {
+		if (getMIs(features, ids, stats) < 0)
+			return -1;
+	}
+	else if (params.method == UNIV_SLCT_DCORR) {
+		if (getDistCorrs(features, ids, stats) < 0)
+			return -1;
+	}
+	else {
+		MERR("Unknown method %d for univariate feature selection\n", params.method);
+		return -1;
+	}
+
+	// Select
+	vector<pair<string, float >> namedStats(stats.size());
+	vector<string> names(stats.size());
+	features.get_feature_names(names);
+	for (int i = 0; i < names.size(); i++) {
+		namedStats[i].first = names[i];
+		namedStats[i].second = stats[i];
+	}
+
+	sort(namedStats.begin(), namedStats.end(), [](const pair<string, float> &v1, const pair<string, float> &v2) {return (v1.second > v2.second); });
+
+	if (numToSelect == 0) {
+		// Select according to minimum value of stat
+		for (auto& rec : namedStats) {
+			if (rec.second < params.minStat)
+				break;
+			selected.push_back(rec.first);
+		}
+	}
+	else {
+		// Select according to number
+		int n = (namedStats.size() > numToSelect) ? numToSelect : (int)namedStats.size();
+		selected.resize(n);
+		for (int i = 0; i < n; i++)
+			selected[i] = namedStats[i].first;
+	}
+
+	return 0;
+}
+
+// Init
+//.......................................................................................
+int UnivariateFeatureSelector::init(map<string, string>& mapper) {
+
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field == "method") params.method = params.get_method(entry.second);
+		else if (field == "minStat") params.minStat = stof(entry.second);
+		else if (field == "nBins") params.nBins = stoi(entry.second);
+		else if (field == "binMethod") params.binMethod = params.get_binning_method(entry.second);
+		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
+		else if (field == "takeSquare") params.takeSquare = stoi(entry.second);
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+	}
+
+	return 0;
+
+}
+
+// Utility : Caluclate pearson correlations to a vector
+//.......................................................................................
+int UnivariateFeatureSelector::getAbsPearsonCorrs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats) {
+
+	// Get outcome
+	vector<float> label;
+	get_all_outcomes(features, ids, label);
+
+	int nFeatures = (int)features.data.size();
+	vector<string> names(nFeatures);
+	features.get_feature_names(names);
+	stats.resize(nFeatures);
+
+#pragma omp parallel for 
+	for (int i = 0; i <nFeatures; i++) {
+		int n;
+		vector<float> values;
+		get_all_values(features, names[i], ids, values);
+
+		stats[i] = fabs(get_pearson_corr(values, label, n, missing_value));
+		if (n == 0) stats[i] = 0.0;
+
+		// If required, test also correlation to squared (normalized) values
+		if (params.takeSquare) {
+			float mean, std;
+			get_mean_and_std(values, mean, std, missing_value);
+			for (unsigned int j = 0; j < values.size(); j++) {
+				if (values[j] != missing_value)
+					values[j] = (values[j] - mean)*(values[j] - mean);
+			}
+
+			float newStat = fabs(get_pearson_corr(values, label, n, missing_value));
+			if (newStat > stats[i])
+				stats[i] = newStat;
+		}
+	}
+
+}
+
+// Utility : Caluclate Mutual Information
+//.......................................................................................
+int UnivariateFeatureSelector::getMIs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats) {
+
+	// Get outcome
+	vector<float> label;
+	get_all_outcomes(features, ids, label);
+
+	vector<int> binnedLabel;
+	int nBins;
+	if (discretize(label, binnedLabel, nBins, params.nBins, missing_value, params.binMethod) < 0)
+		return -1;
+
+	size_t nFeatures = features.data.size();
+	vector<string> names(nFeatures);
+	features.get_feature_names(names);
+	stats.resize(nFeatures);
+	vector<vector<int>> binnedValues(nFeatures);
+
+	int RC = 0;
+#pragma omp parallel for 
+	for (int i = 0; i < names.size(); i++) {
+		vector<float> values;
+		int nBins;
+		get_all_values(features, names[i], ids, values);
+		int rc = discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
+#pragma omp critical
+		if (rc < 0)  RC = -1;
+	}
+
+#pragma omp parallel for 
+	for (int i = 0; i < names.size(); i++) {
+		int n;
+		get_mutual_information(binnedValues[i], binnedLabel, n, stats[i]);
+		if (stats[i] < 0) stats[i] = 0;
+	}
+
+	return 0;
+
+}
+
+// Utility : Caluclate distance correlations
+//.......................................................................................
+int UnivariateFeatureSelector::getDistCorrs(MedFeatures& features, unordered_set<int>& ids, vector<float>& stats) {
+
+	// Get outcome
+	vector<float> label;
+	get_all_outcomes(features, ids, label);
+
+	MedMat<float> labelDistances;
+	get_dMatrix(label, labelDistances, missing_value);
+	float targetDistVar = get_dVar(labelDistances);
+	if (targetDistVar == -1.0) {
+		MERR("Cannot calucludate distance Var for target\n");
+		return -1;
+	}
+
+	size_t nFeatures = features.data.size();
+	vector<string> names(nFeatures);
+	features.get_feature_names(names);
+	stats.resize(nFeatures);
+
+	int RC = 0;
+#pragma omp parallel for 
+	for (int i = 0; i < names.size(); i++) {
+
+		vector<float> values;
+		get_all_values(features, names[i], ids, values);
+		MedMat<float> valueDistances;
+		get_dMatrix(values, valueDistances, missing_value);
+		float valueDistVar = get_dVar(valueDistances);
+		float distCov = get_dCov(labelDistances, valueDistances);
+#pragma omp critical
+		if (valueDistVar == -1 || distCov == -1) {
+			MERR("Cannot calculate distance correlation between label and %s\n", names[i].c_str());
+			RC = -1;
+		}
+		else {
+			stats[i] = distCov / sqrt(valueDistVar*targetDistVar);
+		}
+	}
+
+	return RC;
+
+}
+
+//=======================================================================================
+// MRMRFeatureSelector
+//=======================================================================================
+// Learn 
+//.......................................................................................
+int MRMRFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	if (numToSelect == 0) {
+		MERR("MRMR requires numToSelect>0");
+		return -1;
+	}
+
+	int nFeatures = (int)features.data.size();
+	vector<string> names(nFeatures);
+	features.get_feature_names(names);
+
+	// Start filling "Correlation" matrix
+	MedMat<float> stats(nFeatures + 1, nFeatures + 1);
+	for (int i = 0; i <= nFeatures; i++) {
+		for (int j = 0; j <= nFeatures; j++) {
+			stats(i, j) = stats(j, i) = -1;
+		}
+		stats(i, i) = 0;
+	}
+
+	if (fillStatsMatrix(features, ids, stats, nFeatures) < 0)
+		return -1;
+
+	// Actual selection
+	vector <int> selectedIds;
+	vector<int> selectFlags(nFeatures, 0);
+
+	for (int iSelect = 0; iSelect < numToSelect; iSelect++) {
+		float optScore;
+		int optFeature = -1;
+		for (int i = 0; i < nFeatures; i++) {
+			if (selectFlags[i] == 0) {
+				float score = stats(i, nFeatures);
+				if (iSelect > 0) {
+					float penaltyValue = 0.0;
+					if (penaltyMethod == MRMR_MAX) {
+						for (int j = 0; j < iSelect; j++) {
+							if (stats(i, selectedIds[j]) > penaltyValue) {
+								penaltyValue = stats(i, selectedIds[j]);
+							}
+						}
+					}
+					else if (penaltyMethod = MRMR_MEAN) {
+						for (int j = 0; j < iSelect; j++)
+							penaltyValue += stats(i, selectedIds[j]);
+						penaltyValue /= iSelect;
+					}
+
+					score -= penalty*penaltyValue;
+				}
+
+				if (optFeature == -1 || score > optScore) {
+					optScore = score;
+					optFeature = i;
+				}
+			}
+		}
+		selectedIds.push_back(optFeature);
+		selectFlags[optFeature] = 1;
+		fillStatsMatrix(features, ids, stats, optFeature);
+	}
+
+	selected.clear();
+	for (int id : selectedIds) selected.push_back(names[id]);
+	return 0;
+}
+
+// Init
+//.......................................................................................
+int MRMRFeatureSelector::init(map<string, string>& mapper) {
+
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field == "method") params.method = params.get_method(entry.second);
+		else if (field == "minStat") params.minStat = stof(entry.second);
+		else if (field == "nBins") params.nBins = stoi(entry.second);
+		else if (field == "binMethod") params.binMethod = params.get_binning_method(entry.second);
+		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
+		else if (field == "penalty") penalty = stof(entry.second);
+		else if (field == "penaltyMethod") penaltyMethod = get_penalty_method(entry.second);
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+	}
+
+	return 0;
+
+}
+
+//.......................................................................................
+MRMRPenaltyMethod MRMRFeatureSelector::get_penalty_method(string _method) {
+
+	boost::to_lower(_method);
+	if (_method == "max")
+		return MRMR_MAX;
+	else if (_method == "mean")
+		return MRMR_MEAN;
 	else
-		return FTR_SLCTR_LAST;
-}
+		return MRMR_LAST;
 
-// Initialization
-//.......................................................................................
-FeatureSelector* FeatureSelector::make_selector(string selector_name) {
-
-	return make_selector(feature_selector_name_to_type(selector_name));
 }
 
 //.......................................................................................
-FeatureSelector * FeatureSelector::make_selector(string selector_name, string init_string) {
-
-	return make_selector(feature_selector_name_to_type(selector_name), init_string);
+void MRMRFeatureSelector::init_defaults() {
+	missing_value = MED_MAT_MISSING_VALUE;
+	processor_type = FTR_PROCESSOR_MRMR_SELECTOR;
+	params.method = UNIV_SLCT_PRSN;
+	numToSelect = 50;
+	penaltyMethod = MRMR_MAX;
+	penalty = 0.5;
 }
 
+// Utility : Caluclate  correlations
 //.......................................................................................
-FeatureSelector * FeatureSelector::make_selector(FeatureSelectorTypes selector_type) {
+int MRMRFeatureSelector::fillStatsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index) {
 
-	if (selector_type == FTR_SLCTR_ALL)
-		return new DummyFeatsSelector;
+	if (params.method == UNIV_SLCT_PRSN)
+		fillAbsPearsonCorrsMatrix(features, ids, stats, index);
+	else if (params.method == UNIV_SLCT_MI) {
+		if (fillMIsMatrix(features, ids, stats, index) < 0)
+			return -1;
+	}
+	else if (params.method == UNIV_SLCT_DCORR) {
+		if (fillDistCorrsMatrix(features, ids, stats, index) < 0)
+			return -1;
+	}
+	else {
+		MERR("Unknown method %d for univariate feature selection\n", params.method);
+		return -1;
+	}
+
+	return 0;
+}
+
+// Utility : Caluclate pearson correlations
+//.......................................................................................
+int MRMRFeatureSelector::fillAbsPearsonCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index) {
+
+	int nFeatures = (int)features.data.size();
+	vector<string> names(nFeatures);
+	features.get_feature_names(names);
+	vector<vector<float>> values(nFeatures);
+
+	// Get outcome
+	vector<float> target;
+	if (index == nFeatures)
+		get_all_outcomes(features, ids, target);
 	else
-		return NULL;
+		get_all_values(features, names[index], ids, target);
+
+#pragma omp parallel for 
+	for (int i = 0; i < nFeatures; i++) {
+		if (stats(i, index) == -1)
+			get_all_values(features, names[i], ids, values[i]);
+	}
+
+#pragma omp parallel for 
+	for (int i = 0; i < nFeatures; i++) {
+		if (stats(i, index) == -1) {
+			int n;
+			stats(i, index) = fabs(get_pearson_corr(values[i], target, n, missing_value));
+			if (n == 0) stats(i, index) = 0.0;
+			stats(index, i) = stats(i, index);
+		}
+	}
+}
+
+// Utility : Caluclate Mutual Information
+//.......................................................................................
+int MRMRFeatureSelector::fillMIsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index) {
+
+	size_t nFeatures = features.data.size();
+	vector<string> names(nFeatures);
+	features.get_feature_names(names);
+	vector<vector<int>> binnedValues(nFeatures);
+
+	// Get outcome
+	vector<float> target;
+	if (index == nFeatures)
+		get_all_outcomes(features, ids, target);
+	else
+		get_all_values(features, names[index], ids, target);
+
+	vector<int> binnedTarget;
+	int nBins;
+	if (discretize(target, binnedTarget, nBins, params.nBins, missing_value, params.binMethod) < 0)
+		return -1;
+	if (nBins < params.nBins)
+		smearBins(binnedTarget, nBins, params.nBins);
+
+	int RC = 0;
+#pragma omp parallel for 
+	for (int i = 0; i < nFeatures; i++) {
+		if (stats(i, index) == -1) {
+			vector<float> values;
+			int nBins;
+			get_all_values(features, names[i], ids, values);
+			int rc = discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
+#pragma omp critical
+			if (rc < 0)  RC = -1;
+
+			if (nBins < params.nBins)
+				smearBins(binnedValues[i], nBins, params.nBins);
+		}
+	}
+
+#pragma omp parallel for 
+	for (int i = 0; i < nFeatures; i++) {
+		if (stats(i, index) == -1) {
+			int n;
+			get_mutual_information(binnedValues[i], binnedTarget, n, stats(i, index));
+			if (stats(i, index) < 0) stats(i, index) = 0;
+			stats(index, i) = stats(i, index);
+		}
+	}
+
+	return 0;
 
 }
 
+// Utility : Caluclate distance correlations
 //.......................................................................................
-FeatureSelector * FeatureSelector::make_selector(FeatureSelectorTypes selector_type, string init_string) {
+int MRMRFeatureSelector::fillDistCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index) {
 
-	FeatureSelector *newSelector = make_selector(selector_type);
-	newSelector->init_from_string(init_string);
-	return newSelector;
+	size_t nFeatures = features.data.size();
+	vector<string> names(nFeatures);
+	features.get_feature_names(names);
+
+	// Get outcome
+	vector<float> target;
+	if (index == nFeatures)
+		get_all_outcomes(features, ids, target);
+	else
+		get_all_values(features, names[index], ids, target);
+
+	MedMat<float> targetDistances;
+	get_dMatrix(target, targetDistances, missing_value);
+	float targetDistVar = get_dVar(targetDistances);
+	if (targetDistVar == -1.0) {
+		MERR("Cannot calucludate distance Var for target\n");
+		return -1;
+	}
+
+	int RC = 0;
+#pragma omp parallel for 
+	for (int i = 0; i < nFeatures; i++) {
+		if (stats(i, index) == -1) {
+			vector<float> values;
+			get_all_values(features, names[i], ids, values);
+			MedMat<float> valueDistances;
+			get_dMatrix(values, valueDistances, missing_value);
+			float valueDistVar = get_dVar(valueDistances);
+			float distCov = get_dCov(targetDistances, valueDistances);
+#pragma omp critical
+			if (valueDistVar == -1 || distCov == -1) {
+				MERR("Cannot calculate distance correlation between label and %s\n", names[i].c_str());
+				RC = -1;
+			}
+			else {
+				stats(index, i) = stats(i, index) = distCov / sqrt(valueDistVar*targetDistVar);
+			}
+		}
+	}
+
+	return RC;
+
 }
 
-// (De)Serialize
+//=======================================================================================
+// Lasso Feature Selection
+//=======================================================================================
+// Learn 
 //.......................................................................................
-size_t FeatureSelector::get_selector_size() {
-	return sizeof(selector_type) + get_size();
+int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+
+//	MedLasso predictor;
+	MedGDLM predictor;
+
+	features.get_feature_names(selected);
+	int nSelected = (int)selected.size();
+
+	// Labels
+	MedMat<float> y(features.samples.size(), 1);
+	for (int i = 0; i < y.nrows; i++)
+		y(i, 0) = features.samples[i].outcome;
+
+	float lambda = 1.0;
+	float prevLambda = 0.0;
+	MLOG("Lass Feature Selection : From %d to %d\n", nSelected, numToSelect);
+
+	while (nSelected != numToSelect) {
+
+		MLOG("Trying lasso Lambda = %f\n", lambda);
+		//	predictor.params.lambda = lambda;
+		predictor.params.l_lasso = lambda;
+
+		MedMat<float> x; 
+		features.get_as_matrix(x, selected);
+		x.normalize();
+		predictor.learn(x,y);
+
+		// Identify non-zero parameters
+		vector<string> nonZeroFeatures;
+		for (int i = 0; i < nSelected; i++) {
+			if (predictor.b[i] != 0.0)
+				nonZeroFeatures.push_back(selected[i]);
+		}
+
+		selected = nonZeroFeatures;
+		nSelected = (int)selected.size();
+		MLOG("# of non-zero features = %d\n", nSelected);
+
+		if (nSelected > numToSelect) {
+			if (lambda < prevLambda)
+				lambda = (lambda + prevLambda) / 2.0;
+			else
+				lambda = lambda * 2.0;
+		}
+		else if (nSelected < numToSelect) {
+			if (lambda > prevLambda)
+				lambda = (lambda + prevLambda) / 2.0;
+			else
+				lambda = lambda / 2.0;
+		}
+	}
+
+	return 0;
 }
 
+// Init
 //.......................................................................................
-size_t FeatureSelector::selector_serialize(unsigned char *blob) {
+int LassoSelector::init(map<string, string>& mapper) {
 
-	size_t ptr = 0;
-	memcpy(blob + ptr, &selector_type, sizeof(FeatureSelectorTypes)); ptr += sizeof(FeatureSelectorTypes);
-	ptr += serialize(blob + ptr);
+	init_defaults();
 
-	return ptr;
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+	}
+
+	return 0;
+
 }

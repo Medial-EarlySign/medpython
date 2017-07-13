@@ -70,9 +70,13 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	if (calc_type == "sum")
 		sum(p_sources, p_out, samples_size);
 	else if (calc_type == "min_chads2")
-		chads2(p_sources, p_out, samples_size, 0);
+		chads2(p_sources, p_out, samples_size, 0, 0);
 	else if (calc_type == "max_chads2")
-		chads2(p_sources, p_out, samples_size, 1);
+		chads2(p_sources, p_out, samples_size, 0, 1);
+	else if (calc_type == "min_chads2_vasc")
+		chads2(p_sources, p_out, samples_size, 1, 0);
+	else if (calc_type == "max_chads2_vasc")
+		chads2(p_sources, p_out, samples_size, 1, 1);
 	else
 		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
 	
@@ -102,14 +106,20 @@ void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samp
 	return;
 }
 
-// Chads2 Scores: ASSUME order of given names is : age,Diabetes Registry, Hyper-Tenstion Registry, Stroke/TIA indicator, CHF indicator
-void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_samples, int max_flag) {
+// Chads2 Scores: ASSUME order of given names is : age,Diabetes Registry, Hyper-Tenstion Registry, Stroke/TIA indicator, CHF indicator, (optinal: Sex, Vasc indicator)
+void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_samples, int vasc_flag, int max_flag) {
 	
 	for (int i = 0; i < n_samples; i++) {
 
 		float chads2 = 0;
 		// Age
-		if (p_sources[0][i] >= 75)
+		if (p_sources[0][i] >= 75) {
+			if (vasc_flag == 1)
+				chads2 += 2;
+			else
+				chads2++;
+		}
+		else if (p_sources[0][i] >= 65 && vasc_flag)
 			chads2++;
 
 		// Diabetes
@@ -135,6 +145,19 @@ void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_s
 			chads2++;
 		else if (p_sources[4][i] == missing_value && max_flag)
 			chads2++;
+
+		if (vasc_flag) {
+			// Sex
+			if (p_sources[5][i] == 2)
+				chads2++;
+
+			// Vasc
+			if (p_sources[6][i] > 0)
+				chads2++;
+			else if (p_sources[6][i] == missing_value && max_flag)
+				chads2++;
+		}
+		
 
 		p_out[i] = chads2;
 	}

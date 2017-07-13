@@ -23,23 +23,35 @@ void MedFeatures::get_feature_names(vector<string>& names) {
 
 //.......................................................................................
 void MedFeatures::get_as_matrix(MedMat<float>& mat) {
+	vector<string> dummy_names;
+	get_as_matrix(mat, dummy_names);
+}
 
-	int ncols = (int) data.size();
+//.......................................................................................
+void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
+
+	// Which Features to take ?
+	vector<string> namesToTake;
+	if (names.size())
+		namesToTake = names;
+	else
+		get_feature_names(namesToTake);
+
+
+	int ncols = (int)namesToTake.size();
 	int nrows = (int)samples.size();
 
 	mat.resize(nrows, ncols);
-	
+
 	vector<float *> datap;
-	for (auto& rec : data)
-		datap.push_back((float *)(&rec.second[0]));
+	for (string& name : namesToTake)
+		datap.push_back((float *)(&data[name][0]));
 
 #pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<(int)datap.size(); i++) {
 		for (int j = 0; j < nrows; j++) {
 			if (!isfinite(datap[i][j])) {
-				vector<string> fnames;
-				get_feature_names(fnames);
-				MTHROW_AND_ERR("nan in col [%s] in record [%d]", fnames[i].c_str(), j);
+				MTHROW_AND_ERR("nan in col [%s] in record [%d]", namesToTake[i].c_str(), j);
 			}
 			mat(j, i) = datap[i][j];
 		}
@@ -47,14 +59,12 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 
 	// Normalization flag
 	mat.normalized_flag = true;
-	for (auto& attr : attributes)
-		mat.normalized_flag &= (int)attr.second.normalized;
-	for (auto& attr : attributes)
-		mat.normalized_flag &= (int)attr.second.imputed;
+	for (string& name : namesToTake)
+		mat.normalized_flag &= (int)attributes[name].normalized;
+	for (string& name : namesToTake)
+		mat.normalized_flag &= (int)attributes[name].imputed;
 
-	vector<string> feat_names;
-	get_feature_names(feat_names);
-	mat.signals.insert(mat.signals.end(), feat_names.begin(), feat_names.end());
+	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
 	for (auto& ss : samples) {
 		RecordData rd;
 		rd.time = 0L;  rd.weight = 0.0;  rd.label = ss.outcome; ; rd.split = ss.split;
@@ -82,17 +92,17 @@ void MedFeatures::insert_samples(MedIdSamples& in_samples, int index) {
 // (De)Serialization
 //.......................................................................................
 size_t MedFeatures::get_size() {
-	return MedSerialize::get_size(data, samples, attributes);
+	return MedSerialize::get_size(data, weights, samples, attributes);
 }
 
 //.......................................................................................
 size_t  MedFeatures::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, data, samples, attributes);
+	return MedSerialize::serialize(blob, data, weights, samples, attributes);
 }
 
 //.......................................................................................
 size_t MedFeatures::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, data, samples, attributes);
+	return MedSerialize::deserialize(blob, data, weights, samples, attributes);
 }
 
 //.......................................................................................
@@ -171,6 +181,9 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 	// names line
 	// serial
 	out_f << "serial";
+	// Weight 
+	if (weights.size())
+		out_f << ",weight";
 	// samples
 	out_f << ",id,time,outcome,outcome_time";
 //	MLOG("samples.size %d , preds %d\n", samples.size(), samples[0].prediction.size());
@@ -190,6 +203,10 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 		// serial
 		out_f << to_string(i);
 
+		// Weights
+		if (weights.size())
+			out_f << "," + to_string(weights[i]);
+
 		// sample
 		out_f << "," + to_string(samples[i].id);
 		out_f << "," + to_string(samples[i].time);
@@ -205,6 +222,72 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 	}
 
 	out_f.close();
+	return 0;
+}
+
+//.......................................................................................
+int MedFeatures::read_from_csv_mat(const string &csv_fname)
+{
+	if (!file_exists(csv_fname)) {
+		fprintf(stderr, "File %s doesn't exist\n", csv_fname.c_str());
+		throw exception();
+	}
+	fprintf(stderr, "reading data from %s\n", csv_fname.c_str());
+	ifstream inf;
+	inf.open(csv_fname, ios::in);
+	if (!inf) {
+		cerr << "can not open file\n";
+		throw exception();
+	}
+	
+	int ncols = -1;
+	string curr_line;
+	vector<string> names;
+	int weighted = 0;
+	while (getline(inf, curr_line)) {
+		boost::trim(curr_line);
+		vector<string> fields;
+		boost::split(fields, curr_line, boost::is_any_of(","));
+		int idx = 0;
+		if (ncols == -1) {
+			assert(fields[idx++].compare("serial") == 0); 
+			if (fields[idx].compare("weight") == 0) {
+				weighted = 1; idx++;
+			}
+			assert(fields[idx++].compare("id") == 0);
+			assert(fields[idx++].compare("time") == 0);
+			assert(fields[idx++].compare("outcome") == 0);
+			assert(fields[idx++].compare("outcome_time") == 0);
+
+			for (int i = idx; i < fields.size(); i++) {
+				data[fields[i]] = vector<float>();
+				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
+				names.push_back(fields[i]);
+			}
+			ncols = fields.size();
+		}
+		else {
+			if (fields.size() != ncols) {
+				string msg = "expected " + to_string(ncols) + " fields, got " + to_string((int)fields.size()) + "fields in line: " + curr_line.c_str() + "\n";
+				throw runtime_error(msg.c_str());
+			}
+
+			if (weighted)
+				weights.push_back(stof(fields[idx++]));
+
+			MedSample newSample;
+			newSample.id = stoi(fields[idx++]);
+			newSample.time = stoi(fields[idx++]);
+			newSample.outcome = stof(fields[idx++]);
+			newSample.outcomeTime = stoi(fields[idx++]);
+			samples.push_back(newSample);
+
+			for (int i = 0; i < names.size(); i++)
+				data[names[i]].push_back(stof(fields[idx + i]));
+		}
+	}
+
+	inf.close();
 	return 0;
 }
 
