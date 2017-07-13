@@ -54,6 +54,9 @@ public:
 	// Tags
 	vector<string> tags;
 
+	// Feature/Weights generator
+	int iGenerateWeights = 0;
+
 	// Naming
 	virtual void set_names() {names.clear(); }
 
@@ -284,9 +287,9 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights); }
 };
 
 //.......................................................................................
@@ -323,9 +326,9 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights); }
 };
 
 //.......................................................................................

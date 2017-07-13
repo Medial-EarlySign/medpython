@@ -46,7 +46,7 @@ public:
 	void init_tables(MedDictionarySections& dict);
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name)
+	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights)
 };
 
 MEDSERIALIZE_SUPPORT(DrugIntakeGenerator);

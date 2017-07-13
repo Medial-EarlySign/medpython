@@ -495,17 +495,28 @@ int MedPredictor::learn(MedFeaturesData& ftrs_data) {
 
 int MedPredictor::learn(MedFeatures& ftrs_data) {
 
+	vector<string> dummy_names; 
+	return learn(ftrs_data, dummy_names);
+}
+
+int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
+
 	// Build X
 	MedMat<float> x;
-	ftrs_data.get_as_matrix(x);
+	ftrs_data.get_as_matrix(x,names);
 
 	MLOG("MedPredictor::learn() from MedFeatures, got train matrix of %d x %d\n", x.nrows, x.ncols);
 
 	// Labels
 	MedMat<float> y(x.nrows, 1);
 	for (int i = 0; i < y.nrows; i++)
-		y(i,0) = ftrs_data.samples[i].outcome ;
-	return learn(x, y);
+		y(i, 0) = ftrs_data.samples[i].outcome;
+
+	// Weights
+	if (ftrs_data.weights.size())
+		return learn(x, y, ftrs_data.weights);
+	else
+		return learn(x, y);
 }
 
 // Predicting

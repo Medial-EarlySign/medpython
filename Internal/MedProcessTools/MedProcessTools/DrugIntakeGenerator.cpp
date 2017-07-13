@@ -43,7 +43,7 @@ int DrugIntakeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
-	float *p_feat = &(features.data[name][index]);
+	float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[name][index]);
 	for (int i = 0; i < num; i++) {
 		rec.uget(signalId, i);
 		p_feat[i] = get_value(rec, rec.usv, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time),
@@ -148,6 +148,7 @@ int DrugIntakeGenerator::init(map<string, string>& mapper) {
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "in_set_name") in_set_name = entry.second;
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for DrugIntakeGenerator\n", field.c_str());
 	}
