@@ -29,6 +29,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESSOR_MRMR_SELECTOR;
 	else if (processor_name == "lasso")
 		return FTR_PROCESSOR_LASSO_SELECTOR;
+	else if (processor_name == "remove_deg")
+		return FTR_PROCESS_REMOVE_DGNRT_FTRS;
 	else
 		return FTR_PROCESS_LAST;
 }
@@ -66,6 +68,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new MRMRFeatureSelector;
 	else if (processor_type == FTR_PROCESSOR_LASSO_SELECTOR)
 		return new LassoSelector;
+	else if (processor_type == FTR_PROCESS_REMOVE_DGNRT_FTRS)
+		return new DgnrtFeatureRemvoer;
 	else
 		return NULL;
 
@@ -331,7 +335,7 @@ int FeatureBasicOutlierCleaner::iterativeLearn(MedFeatures& features, unordered_
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, resolved_feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values, params.max_samples);
 
 	// Get bounds
 	if (values.size() == 0)
@@ -349,7 +353,7 @@ int FeatureBasicOutlierCleaner::quantileLearn(MedFeatures& features, unordered_s
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, resolved_feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values, params.max_samples);
 
 	// Get bounds
 	return get_quantile_min_max(values);
@@ -407,7 +411,7 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, resolved_feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values, max_samples);
 
 	vector<float> wgts(values.size(), 1.0);
 	int rc = get_moments(values, wgts, missing_value, mean, sd);
@@ -463,6 +467,7 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
+		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 				MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 	}
@@ -516,12 +521,12 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, resolved_feature_name, ids, values);
+	get_all_values(features, resolved_feature_name, ids, values, max_samples);
 
 	// Get all strata values
 	vector<vector<float> > strataValues(imputerStrata.nStratas());
 	for (int i = 0; i < imputerStrata.nStratas(); i++)
-		get_all_values(features, imputerStrata.stratas[i].name, ids, strataValues[i]);
+		get_all_values(features, imputerStrata.stratas[i].name, ids, strataValues[i], max_samples);
 
 	// Collect
 	imputerStrata.getFactors();
@@ -608,6 +613,7 @@ int FeatureImputer::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "moment_type") moment_type = getMomentType(entry.second); 
+		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addStrata(stratum);
@@ -698,20 +704,18 @@ size_t featureStrata::deserialize(unsigned char *blob) {
 // Utilities
 //=======================================================================================
 //.......................................................................................
-void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values) {
+void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values, int max_sample) {
 
 	values.clear();
 	if (ids.empty()) {
 
-		int max_sample = 10000;
 		int jump = 1;
-		//MLOG("taking all values\n");
 		int size = (int)features.data[signalName].size();
-		if (size > max_sample)
+		if (max_sample > 0 && max_sample < size)
 			jump = size/max_sample;
+		
 		for (int i=0; i<size; i+=jump)
 			values.push_back(features.data[signalName][i]);
-		//values = features.data[signalName];
 
 	} else {
 		for (unsigned int i = 0; i < features.samples.size(); i++) {
@@ -722,17 +726,16 @@ void get_all_values(MedFeatures& features, string& signalName, unordered_set<int
 }
 
 //.......................................................................................
-void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values) {
+void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values, int max_sample) {
 
 	values.clear();
 	if (ids.empty()) {
 
-		int max_sample = 10000;
 		int jump = 1;
-		//MLOG("taking all values\n");
 		int size = (int)features.samples.size();
-		if (size > max_sample)
+		if (max_sample > 0 && max_sample < size)
 			jump = size / max_sample;
+
 		for (int i = 0; i<size; i += jump)
 			values.push_back(features.samples[i].outcome);
 		//values = features.data[signalName];

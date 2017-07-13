@@ -143,6 +143,7 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "binMethod") params.binMethod = params.get_binning_method(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
 		else if (field == "takeSquare") params.takeSquare = stoi(entry.second);
+		else if (field == "max_samples") params.max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 	}
@@ -157,7 +158,7 @@ int UnivariateFeatureSelector::getAbsPearsonCorrs(MedFeatures& features, unorder
 
 	// Get outcome
 	vector<float> label;
-	get_all_outcomes(features, ids, label);
+	get_all_outcomes(features, ids, label, params.max_samples);
 
 	int nFeatures = (int)features.data.size();
 	vector<string> names(nFeatures);
@@ -168,7 +169,7 @@ int UnivariateFeatureSelector::getAbsPearsonCorrs(MedFeatures& features, unorder
 	for (int i = 0; i <nFeatures; i++) {
 		int n;
 		vector<float> values;
-		get_all_values(features, names[i], ids, values);
+		get_all_values(features, names[i], ids, values, params.max_samples);
 
 		stats[i] = fabs(get_pearson_corr(values, label, n, missing_value));
 		if (n == 0) stats[i] = 0.0;
@@ -196,7 +197,7 @@ int UnivariateFeatureSelector::getMIs(MedFeatures& features, unordered_set<int>&
 
 	// Get outcome
 	vector<float> label;
-	get_all_outcomes(features, ids, label);
+	get_all_outcomes(features, ids, label, params.max_samples);
 
 	vector<int> binnedLabel;
 	int nBins;
@@ -214,7 +215,7 @@ int UnivariateFeatureSelector::getMIs(MedFeatures& features, unordered_set<int>&
 	for (int i = 0; i < names.size(); i++) {
 		vector<float> values;
 		int nBins;
-		get_all_values(features, names[i], ids, values);
+		get_all_values(features, names[i], ids, values, params.max_samples);
 		int rc = discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
 #pragma omp critical
 		if (rc < 0)  RC = -1;
@@ -237,7 +238,7 @@ int UnivariateFeatureSelector::getDistCorrs(MedFeatures& features, unordered_set
 
 	// Get outcome
 	vector<float> label;
-	get_all_outcomes(features, ids, label);
+	get_all_outcomes(features, ids, label, params.max_samples);
 
 	MedMat<float> labelDistances;
 	get_dMatrix(label, labelDistances, missing_value);
@@ -257,7 +258,7 @@ int UnivariateFeatureSelector::getDistCorrs(MedFeatures& features, unordered_set
 	for (int i = 0; i < names.size(); i++) {
 
 		vector<float> values;
-		get_all_values(features, names[i], ids, values);
+		get_all_values(features, names[i], ids, values, params.max_samples);
 		MedMat<float> valueDistances;
 		get_dMatrix(values, valueDistances, missing_value);
 		float valueDistVar = get_dVar(valueDistances);
@@ -366,6 +367,7 @@ int MRMRFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
 		else if (field == "penalty") penalty = stof(entry.second);
 		else if (field == "penaltyMethod") penaltyMethod = get_penalty_method(entry.second);
+		else if (field == "max_samples") params.max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 	}
@@ -431,14 +433,14 @@ int MRMRFeatureSelector::fillAbsPearsonCorrsMatrix(MedFeatures& features, unorde
 	// Get outcome
 	vector<float> target;
 	if (index == nFeatures)
-		get_all_outcomes(features, ids, target);
+		get_all_outcomes(features, ids, target, params.max_samples);
 	else
-		get_all_values(features, names[index], ids, target);
+		get_all_values(features, names[index], ids, target, params.max_samples);
 
 #pragma omp parallel for 
 	for (int i = 0; i < nFeatures; i++) {
 		if (stats(i, index) == -1)
-			get_all_values(features, names[i], ids, values[i]);
+			get_all_values(features, names[i], ids, values[i], params.max_samples);
 	}
 
 #pragma omp parallel for 
@@ -464,9 +466,9 @@ int MRMRFeatureSelector::fillMIsMatrix(MedFeatures& features, unordered_set<int>
 	// Get outcome
 	vector<float> target;
 	if (index == nFeatures)
-		get_all_outcomes(features, ids, target);
+		get_all_outcomes(features, ids, target, params.max_samples);
 	else
-		get_all_values(features, names[index], ids, target);
+		get_all_values(features, names[index], ids, target, params.max_samples);
 
 	vector<int> binnedTarget;
 	int nBins;
@@ -481,7 +483,7 @@ int MRMRFeatureSelector::fillMIsMatrix(MedFeatures& features, unordered_set<int>
 		if (stats(i, index) == -1) {
 			vector<float> values;
 			int nBins;
-			get_all_values(features, names[i], ids, values);
+			get_all_values(features, names[i], ids, values, params.max_samples);
 			int rc = discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
 #pragma omp critical
 			if (rc < 0)  RC = -1;
@@ -516,9 +518,9 @@ int MRMRFeatureSelector::fillDistCorrsMatrix(MedFeatures& features, unordered_se
 	// Get outcome
 	vector<float> target;
 	if (index == nFeatures)
-		get_all_outcomes(features, ids, target);
+		get_all_outcomes(features, ids, target, params.max_samples);
 	else
-		get_all_values(features, names[index], ids, target);
+		get_all_values(features, names[index], ids, target, params.max_samples);
 
 	MedMat<float> targetDistances;
 	get_dMatrix(target, targetDistances, missing_value);
@@ -533,7 +535,7 @@ int MRMRFeatureSelector::fillDistCorrsMatrix(MedFeatures& features, unordered_se
 	for (int i = 0; i < nFeatures; i++) {
 		if (stats(i, index) == -1) {
 			vector<float> values;
-			get_all_values(features, names[i], ids, values);
+			get_all_values(features, names[i], ids, values, params.max_samples);
 			MedMat<float> valueDistances;
 			get_dMatrix(values, valueDistances, missing_value);
 			float valueDistVar = get_dVar(valueDistances);
@@ -560,57 +562,67 @@ int MRMRFeatureSelector::fillDistCorrsMatrix(MedFeatures& features, unordered_se
 //.......................................................................................
 int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
-//	MedLasso predictor;
-	MedGDLM predictor;
+	MedLasso predictor;
+//	MedGDLM predictor;
 
-	features.get_feature_names(selected);
-	int nSelected = (int)selected.size();
+	vector<string> names; 
+	features.get_feature_names(names);
+	int nFeatures = (int)names.size();
 
 	// Labels
 	MedMat<float> y(features.samples.size(), 1);
 	for (int i = 0; i < y.nrows; i++)
 		y(i, 0) = features.samples[i].outcome;
 
-	float lambda = 1.0;
-	float prevLambda = 0.0;
-	MLOG("Lass Feature Selection : From %d to %d\n", nSelected, numToSelect);
+	float lambda = 0.001;
+	float lowerLambda = -1, upperLambda = -1;
+	MLOG("Lasso Feature Selection : From %d to %d\n", nFeatures, numToSelect);
+	vector<string> nonZeroFeatures;
 
+//	predictor.params.max_iter = 500;
+//	predictor.params.rate_decay = 0.99;
+//	predictor.params.stop_at_err = 0.0001;
+//	predictor.params.nthreads = 12;
+
+	int nSelected = nFeatures;
 	while (nSelected != numToSelect) {
 
 		MLOG("Trying lasso Lambda = %f\n", lambda);
-		//	predictor.params.lambda = lambda;
-		predictor.params.l_lasso = lambda;
-
-		MedMat<float> x; 
-		features.get_as_matrix(x, selected);
+//		predictor.params.l_lasso = lambda;
+		predictor.params.lambda = lambda;
+		MedMat<float> x;
+		features.get_as_matrix(x);
 		x.normalize();
-		predictor.learn(x,y);
+		predictor.learn(x,y) ;
 
 		// Identify non-zero parameters
-		vector<string> nonZeroFeatures;
-		for (int i = 0; i < nSelected; i++) {
-			if (predictor.b[i] != 0.0)
-				nonZeroFeatures.push_back(selected[i]);
+		nonZeroFeatures.clear();
+		for (int i = 0; i < nFeatures; i++) {
+			if (fabs(predictor.b[i]) > 1e-5) {
+				nonZeroFeatures.push_back(names[i]);
+			}
 		}
 
-		selected = nonZeroFeatures;
-		nSelected = (int)selected.size();
+		nSelected = (int)nonZeroFeatures.size();
 		MLOG("# of non-zero features = %d\n", nSelected);
 
 		if (nSelected > numToSelect) {
-			if (lambda < prevLambda)
-				lambda = (lambda + prevLambda) / 2.0;
-			else
+			lowerLambda = lambda;
+			if (upperLambda == -1)
 				lambda = lambda * 2.0;
+			else
+				lambda = (lambda + upperLambda) / 2.0;
 		}
 		else if (nSelected < numToSelect) {
-			if (lambda > prevLambda)
-				lambda = (lambda + prevLambda) / 2.0;
-			else
+			upperLambda = lambda;
+			if (lowerLambda == -1)
 				lambda = lambda / 2.0;
+			else
+				lambda = (lambda + lowerLambda) / 2.0;
 		}
 	}
 
+	selected = nonZeroFeatures;
 	return 0;
 }
 
@@ -630,6 +642,64 @@ int LassoSelector::init(map<string, string>& mapper) {
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 	}
 
+	return 0;
+
+}
+
+
+
+//=======================================================================================
+// Remove Degenerate Features
+//=======================================================================================
+// Learn 
+//.......................................................................................
+int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	selected.clear();
+
+	for (auto& rec : features.data) {
+		string name = rec.first;
+		vector<float>& data = rec.second;
+
+		map<float, int> counters;
+		for (float& val : data)
+			counters[val] ++;
+
+		int maxCount = 0;
+		float maxCountValue;
+		for (auto rec : counters) {
+			if (rec.second > maxCount) {
+				maxCount += rec.second;
+				maxCountValue = rec.first;
+			}
+		}
+
+		float p = (maxCount + 0.0) / data.size();
+		if (p >= percentage)
+			MLOG("Removing %s : %f of values is %f\n", name.c_str(), p, maxCountValue);
+		else
+			selected.push_back(name);
+	}
+
+	return 0;
+}
+
+// Init
+//.......................................................................................
+int DgnrtFeatureRemvoer::init(map<string, string>& mapper) {
+
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "missing_value") missing_value = stof(entry.second);
+		if (field == "percentage") percentage = stof(entry.second);
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+	}
+
+	assert(percentage >= 0 && percentage <= 1.0);
 	return 0;
 
 }

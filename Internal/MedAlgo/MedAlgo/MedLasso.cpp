@@ -120,7 +120,10 @@ void initialize_vars(double **&trainx, double *&y, float *x_in, float *y_in, flo
 	for (int j = 0; j < n_ftrs; j++)
 		trainx[j] = (double *)malloc(nrow_train * sizeof(double));
 	y = (double *)malloc(nrow_train * sizeof(double));
+	
 	b.resize(n_ftrs);
+	for (int i = 0; i < n_ftrs; i++) b[i] = 0;
+
 	for (int i = 0; i < nrow_train; i++)
 		for (int j = 0; j < n_ftrs; j++)
 			trainx[j][i] = sqrt(w[i]) * x_in[i * n_ftrs + j];

@@ -170,6 +170,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "doRemove") params.doRemove = (stoi(entry.second) != 0);
 		else if (field == "range_min") params.range_min = stof(entry.second);
 		else if (field == "range_max") params.range_max = stof(entry.second);
+		else if (field == "max_samples") params.max_samples = stoi(entry.second);
 
 		// next are in ignore ... used in level above
 		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&

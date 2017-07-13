@@ -291,65 +291,6 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 	return 0;
 }
 
-//.......................................................................................
-int MedFeatures::read_from_csv_mat(const string &csv_fname)
-{
-	if (!file_exists(csv_fname)) {
-		fprintf(stderr, "File %s doesn't exist\n", csv_fname.c_str());
-		throw exception();
-	}
-	fprintf(stderr, "reading data from %s\n", csv_fname.c_str());
-	ifstream inf;
-	inf.open(csv_fname, ios::in);
-	if (!inf) {
-		cerr << "can not open file\n";
-		throw exception();
-	}
-
-	int ncols = -1;
-	string curr_line;
-	vector<string> names;
-	while (getline(inf, curr_line)) {
-		boost::trim(curr_line);
-		vector<string> fields;
-		boost::split(fields, curr_line, boost::is_any_of(","));
-		if (ncols == -1) {
-			assert(fields[0].compare("serial") == 0);
-			assert(fields[1].compare("id") == 0);
-			assert(fields[2].compare("time") == 0);
-			assert(fields[3].compare("outcome") == 0);
-			assert(fields[4].compare("outcome_time") == 0);
-
-			for (int i = 5; i < fields.size(); i++) {
-				data[fields[i]] = vector<float>();
-				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
-				names.push_back(fields[i]);
-			}
-			ncols = (int) fields.size();
-		}
-		else {
-			if (fields.size() != ncols) {
-				string msg = "expected " + to_string(ncols) + " fields, got " + to_string((int)fields.size()) + "fields in line: " + curr_line.c_str() + "\n";
-				throw runtime_error(msg.c_str());
-			}
-
-			MedSample newSample;
-			newSample.id = stoi(fields[1]);
-			newSample.time = stoi(fields[2]);
-			newSample.outcome = stof(fields[3]);
-			newSample.outcomeTime = stoi(fields[4]);
-			samples.push_back(newSample);
-
-			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[5 + i]));
-		}
-	}
-
-	inf.close();
-	return 0;
-}
-
-
 // Filter set of features
 //.......................................................................................
 int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
