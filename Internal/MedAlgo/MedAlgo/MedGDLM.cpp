@@ -637,11 +637,6 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 				grad = grad + params.l_ridge*bf;
 			}
 
-			// lasso reguralizer
-			if (params.l_lasso > 0) {
-				grad.array() = grad.array() + params.l_lasso*bf.array().sign();
-			}
-
 			// initialize prev_grad in first iter
 			if (niter == 0) {
 				prev_grad = grad; prev_bias_grad = bias_grad;
@@ -657,6 +652,15 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 			// step
 			bf = bf - r*grad;
 			b0 = b0 - r*bias_grad;
+
+			// lasso reguralizer step !! (using Tibrishani proximal gradient descent method)
+			if (params.l_lasso > 0) {
+				float bound = r*params.l_lasso;
+				for (int i=0; i<nftrs; i++)
+					if (bf.array()(0, i) > bound) bf.array()(0, i) -= bound;
+					else if (bf.array()(0, i) < -bound) bf.array()(0, i) += bound;
+					else bf.array()(0, i) = 0;
+			}
 
 			// update prev
 			prev_grad = grad;
@@ -683,15 +687,31 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 
 			loss /= (double)nsamples;
 
+			if (params.l_ridge > 0) {
+				loss += params.l_ridge * (bf.array().square().sum());
+			}
+
+			if (params.l_lasso > 0) {
+				loss += params.l_lasso* (bf.array().abs().sum());
+			}
+
+
 			diff = bf - prev_bf;
 
 			dnorm = sqrt(diff.array().square().sum() + (b0 - prev_b0)*(b0 - prev_b0))/(float)nftrs;
-			err = abs(loss-prev_loss)/(abs(prev_loss) + 1e-10);
+			err = (prev_loss - loss)/(abs(prev_loss) + 1e-10);
 			prev_loss = loss;
 			
 			// printing
-			MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g stop_err %g acc %g loss %g , niter %d max_iter %d\n",
-				r, err, dnorm, params.stop_at_err, (double)nacc/(double)nsamples, loss, niter, params.max_iter);
+			int n0bs = 0, n_small_bs = 0;
+
+			for (int i=0; i<nftrs; i++) {
+				if (bf.array()(0, i) == 0) n0bs++;
+				if (bf.array().abs()(0, i) < (float)1e-5) n_small_bs++;
+			}
+
+			MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g stop_err %g acc %g loss %g , niter %d max_iter %d n0 %d ns %d\n",
+				r, err, dnorm, params.stop_at_err, (double)nacc/(double)nsamples, loss, niter, params.max_iter , n0bs, n_small_bs);
 		}
 		
 		// update rate with rate decay
