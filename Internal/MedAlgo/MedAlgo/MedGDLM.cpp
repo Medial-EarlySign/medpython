@@ -710,8 +710,8 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 				if (bf.array().abs()(0, i) < (float)1e-5) n_small_bs++;
 			}
 
-			MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g stop_err %g acc %g loss %g , niter %d max_iter %d n0 %d ns %d\n",
-				r, err, dnorm, params.stop_at_err, (double)nacc/(double)nsamples, loss, niter, params.max_iter , n0bs, n_small_bs);
+			MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g stop_err %g acc %g loss %g , niter %d max_iter %d n0 %d (%d) ns %d\n",
+				r, err, dnorm, params.stop_at_err, (double)nacc/(double)nsamples, loss, niter, params.max_iter , n0bs, nftrs-n0bs, n_small_bs);
 		}
 		
 		// update rate with rate decay
