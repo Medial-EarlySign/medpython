@@ -74,7 +74,7 @@ class RecordIOWriter {
    */
   explicit RecordIOWriter(Stream *stream)
       : stream_(stream), except_counter_(0) {
-    CHECK(sizeof(uint32_t) == 4) << "uint32_t needs to be 4 bytes";
+    CHECK_XGB(sizeof(uint32_t) == 4) << "uint32_t needs to be 4 bytes";
   }
   /*!
    * \brief write record to the stream
@@ -115,7 +115,7 @@ class RecordIOReader {
    */
   explicit RecordIOReader(Stream *stream)
       : stream_(stream), end_of_stream_(false) {
-    CHECK(sizeof(uint32_t) == 4) << "uint32_t needs to be 4 bytes";
+    CHECK_XGB(sizeof(uint32_t) == 4) << "uint32_t needs to be 4 bytes";
   }
   /*!
    * \brief read next complete record from stream

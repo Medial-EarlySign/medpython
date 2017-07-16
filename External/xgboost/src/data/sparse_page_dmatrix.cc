@@ -28,7 +28,7 @@ SparsePageDMatrix::ColPageIter::ColPageIter(
   for (size_t i = 0; i < files_.size(); ++i) {
     dmlc::SeekStream* fi = files_[i].get();
     std::string format;
-    CHECK(fi->Read(&format)) << "Invalid page format";
+    CHECK_XGB(fi->Read(&format)) << "Invalid page format";
     formats_[i].reset(SparsePage::Format::Create(format));
     SparsePage::Format* fmt = formats_[i].get();
     size_t fbegin = fi->Tell();
@@ -94,7 +94,7 @@ void SparsePageDMatrix::ColPageIter::Init(const std::vector<bst_uint>& index_set
 }
 
 dmlc::DataIter<ColBatch>* SparsePageDMatrix::ColIterator() {
-  CHECK(col_iter_.get() != nullptr);
+  CHECK_XGB(col_iter_.get() != nullptr);
   std::vector<bst_uint> col_index;
   size_t ncol = this->info().num_col;
   for (size_t i = 0; i < ncol; ++i) {
@@ -106,7 +106,7 @@ dmlc::DataIter<ColBatch>* SparsePageDMatrix::ColIterator() {
 
 dmlc::DataIter<ColBatch>* SparsePageDMatrix::
 ColIterator(const std::vector<bst_uint>& fset) {
-  CHECK(col_iter_.get() != nullptr);
+  CHECK_XGB(col_iter_.get() != nullptr);
   std::vector<bst_uint> col_index;
   size_t ncol = this->info().num_col;
   for (size_t i = 0; i < fset.size(); ++i) {
@@ -127,8 +127,8 @@ bool SparsePageDMatrix::TryInitColData() {
     std::unique_ptr<dmlc::Stream> fmeta(
         dmlc::Stream::Create(col_meta_name.c_str(), "r", true));
     if (fmeta.get() == nullptr) return false;
-    CHECK(fmeta->Read(&buffered_rowset_)) << "invalid col.meta file";
-    CHECK(fmeta->Read(&col_size_)) << "invalid col.meta file";
+    CHECK_XGB(fmeta->Read(&buffered_rowset_)) << "invalid col.meta file";
+    CHECK_XGB(fmeta->Read(&col_size_)) << "invalid col.meta file";
   }
   // load real data
   std::vector<std::unique_ptr<dmlc::SeekStream> > files;
@@ -292,7 +292,7 @@ void SparsePageDMatrix::InitColAccess(const std::vector<bool>& enabled,
   fo->Write(col_size_);
   fo.reset(nullptr);
   // initialize column data
-  CHECK(TryInitColData());
+  CHECK_XGB(TryInitColData());
 }
 
 }  // namespace data

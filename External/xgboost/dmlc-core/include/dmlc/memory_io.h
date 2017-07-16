@@ -31,7 +31,7 @@ struct MemoryFixedSizeStream : public SeekStream {
     curr_ptr_ = 0;
   }
   virtual size_t Read(void *ptr, size_t size) {
-    CHECK(curr_ptr_ + size <= buffer_size_);
+    CHECK_XGB(curr_ptr_ + size <= buffer_size_);
     size_t nread = std::min(buffer_size_ - curr_ptr_, size);
     if (nread != 0) std::memcpy(ptr, p_buffer_ + curr_ptr_, nread);
     curr_ptr_ += nread;
@@ -39,7 +39,7 @@ struct MemoryFixedSizeStream : public SeekStream {
   }
   virtual void Write(const void *ptr, size_t size) {
     if (size == 0) return;
-    CHECK(curr_ptr_ + size <=  buffer_size_);
+    CHECK_XGB(curr_ptr_ + size <=  buffer_size_);
     std::memcpy(p_buffer_ + curr_ptr_, ptr, size);
     curr_ptr_ += size;
   }
@@ -74,7 +74,7 @@ struct MemoryStringStream : public dmlc::SeekStream {
     curr_ptr_ = 0;
   }
   virtual size_t Read(void *ptr, size_t size) {
-    CHECK(curr_ptr_ <= p_buffer_->length());
+    CHECK_XGB(curr_ptr_ <= p_buffer_->length());
     size_t nread = std::min(p_buffer_->length() - curr_ptr_, size);
     if (nread != 0) std::memcpy(ptr, &(*p_buffer_)[0] + curr_ptr_, nread);
     curr_ptr_ += nread;

@@ -86,7 +86,7 @@ ParseBlock(char *begin,
   if (out->label.size() != 0) {
     out->offset.push_back(out->index.size());
   }
-  CHECK(out->label.size() + 1 == out->offset.size());
+  CHECK_XGB(out->label.size() + 1 == out->offset.size());
 }
 
 }  // namespace data

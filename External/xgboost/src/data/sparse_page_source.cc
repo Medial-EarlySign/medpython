@@ -36,7 +36,7 @@ SparsePageSource::SparsePageSource(const std::string& cache_info)
     files_[i].reset(dmlc::SeekStream::CreateForRead(name_row.c_str()));
     dmlc::SeekStream* fi = files_[i].get();
     std::string format;
-    CHECK(fi->Read(&format)) << "Invalid page format";
+    CHECK_XGB(fi->Read(&format)) << "Invalid page format";
     formats_[i].reset(SparsePage::Format::Create(format));
     SparsePage::Format* fmt = formats_[i].get();
     size_t fbegin = fi->Tell();

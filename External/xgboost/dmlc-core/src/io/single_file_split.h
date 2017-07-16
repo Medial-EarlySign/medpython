@@ -31,7 +31,7 @@ class SingleFileSplit : public InputSplit {
     }
     if (!use_stdin_) {
       fp_ = fopen64(fname, "rb");
-      CHECK(fp_ != NULL) << "SingleFileSplit: fail to open " << fname;
+      CHECK_XGB(fp_ != NULL) << "SingleFileSplit: fail to open " << fname;
     }
     buffer_.resize(kBufferSize);
   }
@@ -48,7 +48,7 @@ class SingleFileSplit : public InputSplit {
     return std::fread(ptr, 1, size, fp_);
   }
   virtual void ResetPartition(unsigned part_index, unsigned num_parts) {
-    CHECK(part_index == 0 && num_parts == 1);
+    CHECK_XGB(part_index == 0 && num_parts == 1);
     this->BeforeFirst();
   }
   virtual void Write(const void *ptr, size_t size) {

@@ -46,7 +46,7 @@ XGB_EXTERN_C int XGBoost4jCallbackDataIterNext(
   if (jni_status == JNI_EDETACHED) {
     global_jvm->AttachCurrentThread(reinterpret_cast<void **>(&jenv), nullptr);
   } else {
-    CHECK(jni_status == JNI_OK);
+    CHECK_XGB(jni_status == JNI_OK);
   }
   try {
     jclass iterClass = jenv->FindClass("java/util/Iterator");

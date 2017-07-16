@@ -231,8 +231,8 @@ class TreeModel {
    * \param value new leaf value
    */
   inline void ChangeToLeaf(int rid, float value) {
-    CHECK(nodes[nodes[rid].cleft() ].is_leaf());
-    CHECK(nodes[nodes[rid].cright()].is_leaf());
+    CHECK_XGB(nodes[nodes[rid].cleft() ].is_leaf());
+    CHECK_XGB(nodes[nodes[rid].cright()].is_leaf());
     this->DeleteNode(nodes[rid].cleft());
     this->DeleteNode(nodes[rid].cright());
     nodes[rid].set_leaf(value);
@@ -314,7 +314,7 @@ class TreeModel {
     CHECK_EQ(fi->Read(dmlc::BeginPtr(stats), sizeof(NodeStat) * stats.size()),
              sizeof(NodeStat) * stats.size());
     if (param.size_leaf_vector != 0) {
-      CHECK(fi->Read(&leaf_vector));
+      CHECK_XGB(fi->Read(&leaf_vector));
     }
     // chg deleted nodes
     deleted_nodes.resize(0);

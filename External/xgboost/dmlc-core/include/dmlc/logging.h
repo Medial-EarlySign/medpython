@@ -68,42 +68,42 @@ inline void InitLogging(const char* argv0) {
 }
 
 // Always-on checking
-#define CHECK(x)                                           \
+#define CHECK_XGB(x)                                           \
   if (!(x))                                                \
     dmlc::LogMessageFatal(__FILE__, __LINE__).stream() << "Check "  \
       "failed: " #x << ' '
-#define CHECK_LT(x, y) CHECK((x) < (y))
-#define CHECK_GT(x, y) CHECK((x) > (y))
-#define CHECK_LE(x, y) CHECK((x) <= (y))
-#define CHECK_GE(x, y) CHECK((x) >= (y))
-#define CHECK_EQ(x, y) CHECK((x) == (y))
-#define CHECK_NE(x, y) CHECK((x) != (y))
-#define CHECK_NOTNULL(x) \
+#define CHECK_LT(x, y) CHECK_XGB((x) < (y))
+#define CHECK_GT(x, y) CHECK_XGB((x) > (y))
+#define CHECK_LE(x, y) CHECK_XGB((x) <= (y))
+#define CHECK_GE(x, y) CHECK_XGB((x) >= (y))
+#define CHECK_EQ(x, y) CHECK_XGB((x) == (y))
+#define CHECK_NE(x, y) CHECK_XGB((x) != (y))
+#define CHECK_NOTNULL_XGB(x) \
   ((x) == NULL ? dmlc::LogMessageFatal(__FILE__, __LINE__).stream() << "Check  notnull: "  #x << ' ', (x) : (x)) // NOLINT(*)
 // Debug-only checking.
 #ifdef NDEBUG
-#define DCHECK(x) \
-  while (false) CHECK(x)
+#define DCHECK_XGB(x) \
+  while (false) CHECK_XGB(x)
 #define DCHECK_LT(x, y) \
-  while (false) CHECK((x) < (y))
+  while (false) CHECK_XGB((x) < (y))
 #define DCHECK_GT(x, y) \
-  while (false) CHECK((x) > (y))
+  while (false) CHECK_XGB((x) > (y))
 #define DCHECK_LE(x, y) \
-  while (false) CHECK((x) <= (y))
+  while (false) CHECK_XGB((x) <= (y))
 #define DCHECK_GE(x, y) \
-  while (false) CHECK((x) >= (y))
+  while (false) CHECK_XGB((x) >= (y))
 #define DCHECK_EQ(x, y) \
-  while (false) CHECK((x) == (y))
+  while (false) CHECK_XGB((x) == (y))
 #define DCHECK_NE(x, y) \
-  while (false) CHECK((x) != (y))
+  while (false) CHECK_XGB((x) != (y))
 #else
-#define DCHECK(x) CHECK(x)
-#define DCHECK_LT(x, y) CHECK((x) < (y))
-#define DCHECK_GT(x, y) CHECK((x) > (y))
-#define DCHECK_LE(x, y) CHECK((x) <= (y))
-#define DCHECK_GE(x, y) CHECK((x) >= (y))
-#define DCHECK_EQ(x, y) CHECK((x) == (y))
-#define DCHECK_NE(x, y) CHECK((x) != (y))
+#define DCHECK_XGB(x) CHECK_XGB(x)
+#define DCHECK_LT(x, y) CHECK_XGB((x) < (y))
+#define DCHECK_GT(x, y) CHECK_XGB((x) > (y))
+#define DCHECK_LE(x, y) CHECK_XGB((x) <= (y))
+#define DCHECK_GE(x, y) CHECK_XGB((x) >= (y))
+#define DCHECK_EQ(x, y) CHECK_XGB((x) == (y))
+#define DCHECK_NE(x, y) CHECK_XGB((x) != (y))
 #endif  // NDEBUG
 
 #if DMLC_LOG_CUSTOMIZE

@@ -19,7 +19,7 @@ DMLC_REGISTRY_FILE_TAG(rank_metric);
 struct EvalAMS : public Metric {
  public:
   explicit EvalAMS(const char* param) {
-    CHECK(param != nullptr)
+    CHECK_XGB(param != nullptr)
         << "AMS must be in format ams@k";
     ratio_ = atof(param);
     std::ostringstream os;
@@ -29,7 +29,7 @@ struct EvalAMS : public Metric {
   float Eval(const std::vector<float> &preds,
              const MetaInfo &info,
              bool distributed) const override {
-    CHECK(!distributed) << "metric AMS do not support distributed evaluation";
+    CHECK_XGB(!distributed) << "metric AMS do not support distributed evaluation";
     using namespace std;  // NOLINT(*)
 
     const bst_omp_uint ndata = static_cast<bst_omp_uint>(info.labels.size());
@@ -128,7 +128,7 @@ struct EvalAuc : public Metric {
         sum_npos += buf_pos;
         sum_nneg += buf_neg;
         // check weird conditions
-        CHECK(sum_npos > 0.0 && sum_nneg > 0.0)
+        CHECK_XGB(sum_npos > 0.0 && sum_nneg > 0.0)
             << "AUC: the dataset only contains pos or neg samples";
         // this is the AUC
         sum_auc += sum_pospair / (sum_npos*sum_nneg);

@@ -24,7 +24,7 @@ struct EvalMClassBase : public Metric {
              const MetaInfo &info,
              bool distributed) const override {
     CHECK_NE(info.labels.size(), 0) << "label set cannot be empty";
-    CHECK(preds.size() % info.labels.size() == 0)
+    CHECK_XGB(preds.size() % info.labels.size() == 0)
         << "label and prediction size not match";
     const size_t nclass = preds.size() / info.labels.size();
     CHECK_GE(nclass, 1)
@@ -46,7 +46,7 @@ struct EvalMClassBase : public Metric {
         label_error = label;
       }
     }
-    CHECK(label_error >= 0 && label_error < static_cast<int>(nclass))
+    CHECK_XGB(label_error >= 0 && label_error < static_cast<int>(nclass))
         << "MultiClassEvaluation: label must be in [0, num_class),"
         << " num_class=" << nclass << " but found " << label_error << " in label";
 

@@ -35,8 +35,8 @@ int main(int argc, char *argv[]) {
   while (in->NextRecord(&rec)) {
     std::string dat = std::string((char*)rec.dptr, rec.size);
     if (lcnt < nmax) {
-      CHECK(rec.size == data[lcnt].length());
-      CHECK(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
+      CHECK_XGB(rec.size == data[lcnt].length());
+      CHECK_XGB(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
     } else {
       data.push_back(dat);
     }
@@ -47,9 +47,9 @@ int main(int argc, char *argv[]) {
   lcnt = 0;
   while (in->NextRecord(&rec)) {
     std::string dat = std::string((char*)rec.dptr, rec.size);
-    CHECK(lcnt < data.size());
-    CHECK(rec.size == data[lcnt].length());
-    CHECK(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
+    CHECK_XGB(lcnt < data.size());
+    CHECK_XGB(rec.size == data[lcnt].length());
+    CHECK_XGB(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
     ++lcnt;
   }
   delete in;

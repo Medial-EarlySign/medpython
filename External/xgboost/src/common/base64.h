@@ -136,20 +136,20 @@ class Base64InStream: public dmlc::Stream {
       {
         // second byte
         tmp_ch = reader_.GetChar();
-        CHECK(tmp_ch != EOF && !isspace(tmp_ch)) << "invalid base64 format";
+        CHECK_XGB(tmp_ch != EOF && !isspace(tmp_ch)) << "invalid base64 format";
         nvalue |= DecodeTable[tmp_ch] << 12;
         *cptr++ = (nvalue >> 16) & 0xFF; --tlen;
         }
       {
         // third byte
         tmp_ch = reader_.GetChar();
-        CHECK(tmp_ch != EOF && !isspace(tmp_ch)) << "invalid base64 format";
+        CHECK_XGB(tmp_ch != EOF && !isspace(tmp_ch)) << "invalid base64 format";
         // handle termination
         if (tmp_ch == '=') {
           tmp_ch = reader_.GetChar();
-          CHECK(tmp_ch == '=') << "invalid base64 format";
+          CHECK_XGB(tmp_ch == '=') << "invalid base64 format";
           tmp_ch = reader_.GetChar();
-          CHECK(tmp_ch == EOF || isspace(tmp_ch))
+          CHECK_XGB(tmp_ch == EOF || isspace(tmp_ch))
               << "invalid base64 format";
           break;
         }
@@ -163,11 +163,11 @@ class Base64InStream: public dmlc::Stream {
       {
         // fourth byte
         tmp_ch = reader_.GetChar();
-        CHECK(tmp_ch != EOF && !isspace(tmp_ch))
+        CHECK_XGB(tmp_ch != EOF && !isspace(tmp_ch))
             << "invalid base64 format";
         if (tmp_ch == '=') {
           tmp_ch = reader_.GetChar();
-          CHECK(tmp_ch == EOF || isspace(tmp_ch))
+          CHECK_XGB(tmp_ch == EOF || isspace(tmp_ch))
               << "invalid base64 format";
           break;
         }

@@ -47,17 +47,17 @@ void MetaInfo::SaveBinary(dmlc::Stream *fo) const {
 
 void MetaInfo::LoadBinary(dmlc::Stream *fi) {
   int version;
-  CHECK(fi->Read(&version, sizeof(version)) == sizeof(version)) << "MetaInfo: invalid version";
+  CHECK_XGB(fi->Read(&version, sizeof(version)) == sizeof(version)) << "MetaInfo: invalid version";
   CHECK_EQ(version, kVersion) << "MetaInfo: invalid format";
-  CHECK(fi->Read(&num_row, sizeof(num_row)) == sizeof(num_row)) << "MetaInfo: invalid format";
-  CHECK(fi->Read(&num_col, sizeof(num_col)) == sizeof(num_col)) << "MetaInfo: invalid format";
-  CHECK(fi->Read(&num_nonzero, sizeof(num_nonzero)) == sizeof(num_nonzero))
+  CHECK_XGB(fi->Read(&num_row, sizeof(num_row)) == sizeof(num_row)) << "MetaInfo: invalid format";
+  CHECK_XGB(fi->Read(&num_col, sizeof(num_col)) == sizeof(num_col)) << "MetaInfo: invalid format";
+  CHECK_XGB(fi->Read(&num_nonzero, sizeof(num_nonzero)) == sizeof(num_nonzero))
       << "MetaInfo: invalid format";
-  CHECK(fi->Read(&labels)) <<  "MetaInfo: invalid format";
-  CHECK(fi->Read(&group_ptr)) << "MetaInfo: invalid format";
-  CHECK(fi->Read(&weights)) << "MetaInfo: invalid format";
-  CHECK(fi->Read(&root_index)) << "MetaInfo: invalid format";
-  CHECK(fi->Read(&base_margin)) << "MetaInfo: invalid format";
+  CHECK_XGB(fi->Read(&labels)) <<  "MetaInfo: invalid format";
+  CHECK_XGB(fi->Read(&group_ptr)) << "MetaInfo: invalid format";
+  CHECK_XGB(fi->Read(&weights)) << "MetaInfo: invalid format";
+  CHECK_XGB(fi->Read(&root_index)) << "MetaInfo: invalid format";
+  CHECK_XGB(fi->Read(&base_margin)) << "MetaInfo: invalid format";
 }
 
 // try to load group information from file, if exists
