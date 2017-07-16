@@ -161,7 +161,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 	int RC = 0;
 
 	// Allow nested parallelism if one processor
-	if (processors.size() == 1) omp_set_nested(1);
+	if (processors.size() == 1) omp_set_nested(2);
 
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {

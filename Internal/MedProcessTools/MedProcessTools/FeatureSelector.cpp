@@ -583,6 +583,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	x.get_cols_avg_std(avg, std); 
 	x.normalize(avg, std, 1); 
 
+	// Initialize
 	int found = 0;
 	vector<double> lambdas(nthreads);
 	float minLambda = 0.0, maxLambda = initMaxLambda;
@@ -593,10 +594,14 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	MLOG("Lasso Feature Selection : From %d to %d\n", nFeatures, numToSelect);
 	selected.clear();
-	float newLambda,prevLambda = 0.0;
+	float lowerBoundLambda = 0.0, upperBoundLambda = -1.0;
 
+	// Prevent being stuck ...
+	int nStuck = 0; 
+	int prevMaxN = -1, prevMinN = -1;
+
+	// Search
 	while (!found) {
-
 		if (nthreads == 1)
 			lambdas[0] = maxLambda;
 		else {
@@ -625,7 +630,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			}
 		}
 
-		MLOG("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d]\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1]);
+		MLOG("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1],nStuck);
 
 		if (nthreads == 1) { // Special care
 			if (nSelected[0] == numToSelect) {
@@ -636,21 +641,22 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 				}
 			} 
 			else if (nSelected[0] > numToSelect) {
-				if (prevLambda > maxLambda)
-					newLambda = (prevLambda + maxLambda) / 2.0;
+				lowerBoundLambda = maxLambda;
+				if (upperBoundLambda != -1.0)
+					maxLambda = (upperBoundLambda + maxLambda) / 2.0;
 				else
-					newLambda = maxLambda * 2.0;
+					maxLambda = maxLambda * 2.0;
 			}
 			else {
-				if (prevLambda < maxLambda)
-					newLambda = (prevLambda + maxLambda) / 2.0;
-				else
-					newLambda = maxLambda / 2.0;
+				upperBoundLambda = maxLambda;
+				maxLambda = (lowerBoundLambda + maxLambda) / 2.0;
 			}
-			prevLambda = maxLambda;
-			maxLambda = newLambda;
+			minLambda = maxLambda;
 		}
 		else {
+			for (int j = 0; j < nthreads; j++)
+				fprintf(stderr, "N[%.12f] = %d\n", lambdas[j], nSelected[j]);
+
 			float ratio;
 			if (nSelected[nthreads - 1] > numToSelect) { // MaxLambda is still too low
 				minLambda = maxLambda;
@@ -674,6 +680,35 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 				}
 			}
 		}
+
+		// Are We stuck ?
+		if (nSelected[0] == prevMaxN && nSelected[nthreads - 1] == prevMinN) {
+			nStuck++;
+			if (nStuck == 3) {
+
+				int minDiff = nFeatures;
+				int optimalI;
+				for (int i = 0; i < nthreads; i++) {
+					if (abs(nSelected[i] - numToSelect) < minDiff) {
+						minDiff = abs(nSelected[i] - numToSelect);
+						optimalI = i;
+					}
+				}
+
+				found = 1;
+				MLOG("Stuck at same N range for 3 steps. That's enough for now ... Actual NSelected = %d\n",nSelected[optimalI]);
+				for (int j = 0; j < nFeatures; j++) {
+					if (predictors[optimalI].b[j] != 0)
+						selected.push_back(names[j]);
+				}
+			}
+		}
+		else {
+			nStuck = 0;
+			prevMaxN = nSelected[0];
+			prevMinN = nSelected[nthreads - 1];
+		}
+		
 
 		if (!found)
 			MLOG("Lasso Feature Selection: about to try lambdas [%f,%f]\n", minLambda, maxLambda);
