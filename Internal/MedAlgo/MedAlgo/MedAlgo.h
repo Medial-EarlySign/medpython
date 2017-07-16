@@ -271,6 +271,10 @@ public:
 	// Parameters
 	MedLassoParams params;
 
+	// Work variables
+	double **trainx;
+	double *y1;
+
 	// Function
 	void Initb();
 	MedLasso();
@@ -289,6 +293,9 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
 
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
+
+	void initialize_vars(float *x_in, float *y_in, float *w, vector<float>& b, int nrow_train, int n_ftrs);
+	void lasso_regression(vector<float>& b, int nrow_train, int n_ftrs, double lambda, int num_iterations);
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);

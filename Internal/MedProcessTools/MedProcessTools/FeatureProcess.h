@@ -412,6 +412,11 @@ public:
 
 class LassoSelector : public FeatureSelector {
 
+	// Initial lambda
+	float initMaxLambda = 0.005;
+
+	int nthreads = 12;
+
 	// Find set of selected features
 	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
 
@@ -423,7 +428,7 @@ class LassoSelector : public FeatureSelector {
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<LassoSelector *>(processor)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(missing_value, required, selected, numToSelect)
+	ADD_SERIALIZATION_FUNCS(initMaxLambda, nthreads, missing_value, required, selected, numToSelect)
 
 };
 
