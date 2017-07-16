@@ -141,7 +141,7 @@ RowBlockContainer<IndexType>::GetBlock(void) const {
     CHECK_EQ(label.size() + 1, offset.size());
   }
   CHECK_EQ(offset.back(), index.size());
-  CHECK(offset.back() == value.size() || value.size() == 0);
+  CHECK_XGB(offset.back() == value.size() || value.size() == 0);
   RowBlock<IndexType> data;
   data.size = offset.size() - 1;
   data.offset = BeginPtr(offset);
@@ -165,11 +165,11 @@ template<typename IndexType>
 inline bool
 RowBlockContainer<IndexType>::Load(Stream *fi) {
   if (!fi->Read(&offset)) return false;
-  CHECK(fi->Read(&label)) << "Bad RowBlock format";
-  CHECK(fi->Read(&weight)) << "Bad RowBlock format";
-  CHECK(fi->Read(&index)) << "Bad RowBlock format";
-  CHECK(fi->Read(&value)) << "Bad RowBlock format";
-  CHECK(fi->Read(&max_index, sizeof(IndexType))) << "Bad RowBlock format";
+  CHECK_XGB(fi->Read(&label)) << "Bad RowBlock format";
+  CHECK_XGB(fi->Read(&weight)) << "Bad RowBlock format";
+  CHECK_XGB(fi->Read(&index)) << "Bad RowBlock format";
+  CHECK_XGB(fi->Read(&value)) << "Bad RowBlock format";
+  CHECK_XGB(fi->Read(&max_index, sizeof(IndexType))) << "Bad RowBlock format";
   return true;
 }
 }  // namespace data

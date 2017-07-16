@@ -269,7 +269,7 @@ class BaseMaker: public TreeUpdater {
           const bst_uint ridx = col[j].index;
           const float fvalue = col[j].fvalue;
           const int nid = this->DecodePosition(ridx);
-          CHECK(tree[nid].is_leaf());
+          CHECK_XGB(tree[nid].is_leaf());
           int pid = tree[nid].parent();
 
           // go back to parent, correct those who are not default

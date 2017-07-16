@@ -14,7 +14,7 @@ TEST(Logging, basics) {
   CHECK_GE(x, y);
 
   int *z = &x;
-  CHECK_EQ(*CHECK_NOTNULL(z), x);
+  CHECK_EQ(*CHECK_NOTNULL_XGB(z), x);
 
   ASSERT_DEATH(CHECK_NE(x, y), ".*");
 }

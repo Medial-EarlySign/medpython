@@ -160,7 +160,7 @@ class ThreadedIter : public DataIter<DType> {
    *  use the other Next instead
    */
   virtual const DType &Value(void) const {
-    CHECK(out_data_ != NULL) << "Calling Value at beginning or end?";
+    CHECK_XGB(out_data_ != NULL) << "Calling Value at beginning or end?";
     return *out_data_;
   }
   /*! \brief set the iterator before first location */
@@ -173,11 +173,11 @@ class ThreadedIter : public DataIter<DType> {
     if (producer_sig_ == kDestroy)  return;
 
     producer_sig_ = kBeforeFirst;
-    CHECK(!producer_sig_processed_);
+    CHECK_XGB(!producer_sig_processed_);
     if (nwait_producer_ != 0) {
       producer_cond_.notify_one();
     }
-    CHECK(!producer_sig_processed_);
+    CHECK_XGB(!producer_sig_processed_);
     // wait until the request has been processed
     consumer_cond_.wait(lock, [this]() {
         return producer_sig_processed_;
@@ -268,7 +268,7 @@ inline void ThreadedIter<DType>::Destroy(void) {
 template<typename DType>
 inline void ThreadedIter<DType>::
 Init(Producer *producer, bool pass_ownership) {
-  CHECK(producer_owned_ == NULL) << "can only call Init once";
+  CHECK_XGB(producer_owned_ == NULL) << "can only call Init once";
   if (pass_ownership) producer_owned_ = producer;
   auto next = [producer](DType **dptr) {
       return producer->Next(dptr);
@@ -327,7 +327,7 @@ Init(std::function<bool(DType **)> next,
           continue;
         } else {
           // destroy the thread
-          CHECK(producer_sig_ == kDestroy);
+          CHECK_XGB(producer_sig_ == kDestroy);
           producer_sig_processed_ = true;
           produce_end_ = true;
           consumer_cond_.notify_all();
@@ -336,7 +336,7 @@ Init(std::function<bool(DType **)> next,
       }  // end of lock scope
       // now without lock
       produce_end_ = !next(&cell);
-      CHECK(cell != NULL || produce_end_);
+      CHECK_XGB(cell != NULL || produce_end_);
       bool notify;
       {
         // lockscope
@@ -360,7 +360,7 @@ inline bool ThreadedIter<DType>::
 Next(DType **out_dptr) {
   if (producer_sig_ == kDestroy) return false;
   std::unique_lock<std::mutex> lock(mutex_);
-  CHECK(producer_sig_ == kProduce)
+  CHECK_XGB(producer_sig_ == kProduce)
       << "Make sure you call BeforeFirst not inconcurrent with Next!";
   ++nwait_consumer_;
   consumer_cond_.wait(lock, [this]() {
@@ -375,7 +375,7 @@ Next(DType **out_dptr) {
     if (notify) producer_cond_.notify_one();
     return true;
   } else  {
-    CHECK(produce_end_);
+    CHECK_XGB(produce_end_);
     return false;
   }
 }

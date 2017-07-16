@@ -58,12 +58,12 @@ void SparsePage::Writer::PushWrite(std::unique_ptr<SparsePage>&& page) {
 }
 
 void SparsePage::Writer::Alloc(std::unique_ptr<SparsePage>* out_page) {
-  CHECK(out_page->get() == nullptr);
+  CHECK_XGB(out_page->get() == nullptr);
   if (num_free_buffer_ != 0) {
     out_page->reset(new SparsePage());
     --num_free_buffer_;
   } else {
-    CHECK(qrecycle_.Pop(out_page));
+    CHECK_XGB(qrecycle_.Pop(out_page));
   }
 }
 }  // namespace data

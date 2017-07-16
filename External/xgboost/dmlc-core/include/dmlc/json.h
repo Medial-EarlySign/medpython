@@ -408,13 +408,13 @@ struct Handler<std::pair<K, V> > {
   }
   inline static void Read(JSONReader *reader, std::pair<K, V> *kv) {
     reader->BeginArray();
-    CHECK(reader->NextArrayItem())
+    CHECK_XGB(reader->NextArrayItem())
         << "Expect array of length 2";
     Handler<K>::Read(reader, &(kv->first));
-    CHECK(reader->NextArrayItem())
+    CHECK_XGB(reader->NextArrayItem())
         << "Expect array of length 2";
     Handler<V>::Read(reader, &(kv->second));
-    CHECK(!reader->NextArrayItem())
+    CHECK_XGB(!reader->NextArrayItem())
         << "Expect array of length 2";
   }
 };
@@ -500,7 +500,7 @@ inline void JSONReader::ReadString(std::string *out_str) {
 template<typename ValueType>
 inline void JSONReader::ReadNumber(ValueType *out_value) {
   *is_ >> *out_value;
-  CHECK(!is_->fail())
+  CHECK_XGB(!is_->fail())
       << "Error at" << line_info()
       << ", Expect number";
 }

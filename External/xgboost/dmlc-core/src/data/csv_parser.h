@@ -98,7 +98,7 @@ ParseBlock(char *begin,
     out->label.push_back(label);
     out->offset.push_back(out->index.size());
   }
-  CHECK(out->label.size() + 1 == out->offset.size());
+  CHECK_XGB(out->label.size() + 1 == out->offset.size());
 }
 }  // namespace data
 }  // namespace dmlc

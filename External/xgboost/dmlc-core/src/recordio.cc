@@ -9,7 +9,7 @@
 namespace dmlc {
 // implemmentation
 void RecordIOWriter::WriteRecord(const void *buf, size_t size) {
-  CHECK(size < (1 << 29U))
+  CHECK_XGB(size < (1 << 29U))
       << "RecordIO only accept record less than 2^29 bytes";
   const uint32_t umagic = kMagic;
   // initialize the magic number, in stack
@@ -61,14 +61,14 @@ bool RecordIOReader::NextRecord(std::string *out_rec) {
     if (nread == 0) {
       end_of_stream_ = true; return false;
     }
-    CHECK(nread == sizeof(header)) << "Inavlid RecordIO File";
-    CHECK(header[0] == RecordIOWriter::kMagic) << "Invalid RecordIO File";
+    CHECK_XGB(nread == sizeof(header)) << "Inavlid RecordIO File";
+    CHECK_XGB(header[0] == RecordIOWriter::kMagic) << "Invalid RecordIO File";
     uint32_t cflag = RecordIOWriter::DecodeFlag(header[1]);
     uint32_t len = RecordIOWriter::DecodeLength(header[1]);
     uint32_t upper_align = ((len + 3U) >> 2U) << 2U;
     out_rec->resize(size + upper_align);
     if (upper_align != 0) {
-      CHECK(stream_->Read(BeginPtr(*out_rec) + size, upper_align) == upper_align)
+      CHECK_XGB(stream_->Read(BeginPtr(*out_rec) + size, upper_align) == upper_align)
           << "Invalid RecordIO File upper_align=" << upper_align;
     }
     // squeeze back
@@ -114,7 +114,7 @@ RecordIOChunkReader::RecordIOChunkReader(InputSplit::Blob chunk,
 bool RecordIOChunkReader::NextRecord(InputSplit::Blob *out_rec) {
   if (pbegin_ >= pend_) return false;
   uint32_t *p = reinterpret_cast<uint32_t *>(pbegin_);
-  CHECK(p[0] == RecordIOWriter::kMagic);
+  CHECK_XGB(p[0] == RecordIOWriter::kMagic);
   uint32_t cflag = RecordIOWriter::DecodeFlag(p[1]);
   uint32_t clen = RecordIOWriter::DecodeLength(p[1]);
   if (cflag == 0) {
@@ -122,18 +122,18 @@ bool RecordIOChunkReader::NextRecord(InputSplit::Blob *out_rec) {
     out_rec->dptr = pbegin_ + 2 * sizeof(uint32_t);
     // move pbegin
     pbegin_ += 2 * sizeof(uint32_t) + (((clen + 3U) >> 2U) << 2U);
-    CHECK(pbegin_ <= pend_) << "Invalid RecordIO Format";
+    CHECK_XGB(pbegin_ <= pend_) << "Invalid RecordIO Format";
     out_rec->size = clen;
     return true;
   } else {
     const uint32_t kMagic = RecordIOWriter::kMagic;
     // abnormal path, read into string
-    CHECK(cflag == 1U) << "Invalid RecordIO Format";
+    CHECK_XGB(cflag == 1U) << "Invalid RecordIO Format";
     temp_.resize(0);
     while (true) {
-      CHECK(pbegin_ + 2 * sizeof(uint32_t) <= pend_);
+      CHECK_XGB(pbegin_ + 2 * sizeof(uint32_t) <= pend_);
       p = reinterpret_cast<uint32_t *>(pbegin_);
-      CHECK(p[0] == RecordIOWriter::kMagic);
+      CHECK_XGB(p[0] == RecordIOWriter::kMagic);
       cflag = RecordIOWriter::DecodeFlag(p[1]);
       clen = RecordIOWriter::DecodeLength(p[1]);
       size_t tsize = temp_.length();

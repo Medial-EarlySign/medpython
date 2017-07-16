@@ -57,7 +57,7 @@ struct XMLIter {
     if (pbegin == NULL || pbegin > cend_) return false;
     content_ = pbegin + begin.size();
     const char *pend = strstr(content_, end.c_str());
-    CHECK(pend != NULL) << "bad xml format";
+    CHECK_XGB(pend != NULL) << "bad xml format";
     value->content_ = content_;
     value->cend_ = pend;
     content_ = pend + end.size();
@@ -346,21 +346,21 @@ void CURLReadStreamBase::Cleanup() {
 }
 
 void CURLReadStreamBase::Init(size_t begin_bytes) {
-  CHECK(mcurl_ == NULL && ecurl_ == NULL &&
+  CHECK_XGB(mcurl_ == NULL && ecurl_ == NULL &&
         slist_ == NULL) << "must call init in clean state";
   // make request
   ecurl_ = curl_easy_init();
   this->InitRequest(begin_bytes, ecurl_, &slist_);
-  CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteStringCallback) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &buffer_) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADERFUNCTION, WriteStringCallback) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &header_) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteStringCallback) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &buffer_) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADERFUNCTION, WriteStringCallback) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &header_) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
   mcurl_ = curl_multi_init();
-  CHECK(curl_multi_add_handle(mcurl_, ecurl_) == CURLM_OK);
+  CHECK_XGB(curl_multi_add_handle(mcurl_, ecurl_) == CURLM_OK);
   int nrun;
   curl_multi_perform(mcurl_, &nrun);
-  CHECK(nrun != 0 || header_.length() != 0 || buffer_.length() != 0);
+  CHECK_XGB(nrun != 0 || header_.length() != 0 || buffer_.length() != 0);
   // start running and check header
   this->FillBuffer(1);
   if (FindHttpError(header_)) {
@@ -392,7 +392,7 @@ int CURLReadStreamBase::FillBuffer(size_t nwant) {
     if (curl_timeo < 0) curl_timeo = 980;
     timeout.tv_sec = curl_timeo / 1000;
     timeout.tv_usec = (curl_timeo % 1000) * 1000;
-    CHECK(curl_multi_fdset(mcurl_, &fdread, &fdwrite, &fdexcep, &maxfd) == CURLM_OK);
+    CHECK_XGB(curl_multi_fdset(mcurl_, &fdread, &fdwrite, &fdexcep, &maxfd) == CURLM_OK);
     int rc;
     if (maxfd == -1) {
 #ifdef _WIN32
@@ -408,7 +408,7 @@ int CURLReadStreamBase::FillBuffer(size_t nwant) {
     if (rc != -1) {
       CURLMcode ret = curl_multi_perform(mcurl_, &nrun);
       if (ret ==  CURLM_CALL_MULTI_PERFORM) continue;
-      CHECK(ret == CURLM_OK);
+      CHECK_XGB(ret == CURLM_OK);
       if (nrun == 0) break;
     }
   }
@@ -433,7 +433,7 @@ int CURLReadStreamBase::FillBuffer(size_t nwant) {
 // singleton class for global initialization
 struct CURLGlobal {
   CURLGlobal() {
-    CHECK(curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK);
+    CHECK_XGB(curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK);
   }
   ~CURLGlobal() {
     curl_global_cleanup();
@@ -488,11 +488,11 @@ void ReadStream::InitRequest(size_t begin_bytes,
   *slist = curl_slist_append(*slist, sdate.str().c_str());
   *slist = curl_slist_append(*slist, srange.str().c_str());
   *slist = curl_slist_append(*slist, sauth.str().c_str());
-  CHECK(curl_easy_setopt(ecurl, CURLOPT_HTTPHEADER, *slist) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl, CURLOPT_HEADER, 0L) == CURLE_OK);
-  CHECK(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_HTTPHEADER, *slist) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_HEADER, 0L) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
 }
 
 /*! \brief simple http read stream to check */
@@ -504,10 +504,10 @@ class HttpReadStream : public CURLReadStreamBase {
   virtual void InitRequest(size_t begin_bytes,
                            CURL *ecurl,
                            curl_slist **slist) {
-    CHECK(begin_bytes == 0)
+    CHECK_XGB(begin_bytes == 0)
         << " HttpReadStream: do not support Seek";
-    CHECK(curl_easy_setopt(ecurl, CURLOPT_URL, path_.str().c_str()) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_URL, path_.str().c_str()) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
   }
 
  private:
@@ -655,23 +655,23 @@ void WriteStream::Run(const std::string &method,
     // helper for read string
     ReadStringStream ss(data);
     curl_easy_reset(ecurl_);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADER, 0L) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &rdata) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEHEADER, WriteSStreamCallback) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &rheader) == CURLE_OK);
-    CHECK(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADER, 0L) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &rdata) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEHEADER, WriteSStreamCallback) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &rheader) == CURLE_OK);
+    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
     if (method == "POST") {
-      CHECK(curl_easy_setopt(ecurl_, CURLOPT_POST, 0L) == CURLE_OK);
-      CHECK(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDSIZE, data.length()) == CURLE_OK);
-      CHECK(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDS, BeginPtr(data)) == CURLE_OK);
+      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_POST, 0L) == CURLE_OK);
+      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDSIZE, data.length()) == CURLE_OK);
+      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDS, BeginPtr(data)) == CURLE_OK);
     } else if (method == "PUT") {
-      CHECK(curl_easy_setopt(ecurl_, CURLOPT_PUT, 1L) == CURLE_OK);
-      CHECK(curl_easy_setopt(ecurl_, CURLOPT_READDATA, &ss) == CURLE_OK);
-      CHECK(curl_easy_setopt(ecurl_, CURLOPT_INFILESIZE_LARGE, data.length()) == CURLE_OK);
-      CHECK(curl_easy_setopt(ecurl_, CURLOPT_READFUNCTION, ReadStringStream::Callback) == CURLE_OK);
+      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_PUT, 1L) == CURLE_OK);
+      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_READDATA, &ss) == CURLE_OK);
+      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_INFILESIZE_LARGE, data.length()) == CURLE_OK);
+      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_READFUNCTION, ReadStringStream::Callback) == CURLE_OK);
     }
     CURLcode ret = curl_easy_perform(ecurl_);
     if (ret != CURLE_OK) {
@@ -679,7 +679,7 @@ void WriteStream::Run(const std::string &method,
                 << curl_easy_strerror(ret) << " Progress "
                 << etags_.size() << " uploaded " << " retry=" << num_retry;
       num_retry += 1;
-      CHECK(num_retry < max_error_retry_) << " maximum retry time reached";
+      CHECK_XGB(num_retry < max_error_retry_) << " maximum retry time reached";
       curl_easy_cleanup(ecurl_);
       ecurl_ = curl_easy_init();
     } else {
@@ -700,7 +700,7 @@ void WriteStream::Init(void) {
       "binary/octel-stream", "", &rheader, &rdata);
   XMLIter xml(rdata.c_str());
   XMLIter upid;
-  CHECK(xml.GetNext("UploadId", &upid)) << "missing UploadId";
+  CHECK_XGB(xml.GetNext("UploadId", &upid)) << "missing UploadId";
   upload_id_ = upid.str();
 }
 
@@ -714,11 +714,11 @@ void WriteStream::Upload(bool force_upload_even_if_zero_bytes) {
   Run("PUT", path_, sarg.str(),
       "binary/octel-stream", buffer_, &rheader, &rdata);
   const char *p = strstr(rheader.c_str(), "ETag: ");
-  CHECK(p != NULL) << "cannot find ETag in header";
+  CHECK_XGB(p != NULL) << "cannot find ETag in header";
   p = strchr(p, '\"');
-  CHECK(p != NULL) << "cannot find ETag in header";
+  CHECK_XGB(p != NULL) << "cannot find ETag in header";
   const char *end = strchr(p + 1, '\"');
-  CHECK(end != NULL) << "cannot find ETag in header";
+  CHECK_XGB(end != NULL) << "cannot find ETag in header";
 
   etags_.push_back(std::string(p, end - p + 1));
   part_ids_.push_back(partno);
@@ -730,7 +730,7 @@ void WriteStream::Finish(void) {
   std::string rheader, rdata;
   sarg << "?uploadId=" << upload_id_;
   sdata << "<CompleteMultipartUpload>\n";
-  CHECK(etags_.size() == part_ids_.size());
+  CHECK_XGB(etags_.size() == part_ids_.size());
   for (size_t i = 0; i < etags_.size(); ++i) {
     sdata << " <Part>\n"
           << "  <PartNumber>" << part_ids_[i] << "</PartNumber>\n"
@@ -752,7 +752,7 @@ void ListObjects(const URI &path,
                  const std::string aws_id,
                  const std::string aws_key,
                  std::vector<FileInfo> *out_list) {
-  CHECK(path.host.length() != 0) << "bucket name not specified in s3";
+  CHECK_XGB(path.host.length() != 0) << "bucket name not specified in s3";
   out_list->clear();
   std::vector<std::string> amz;
   std::string date = GetDateString();
@@ -770,13 +770,13 @@ void ListObjects(const URI &path,
   curl_slist *slist = NULL;
   slist = curl_slist_append(slist, sdate.str().c_str());
   slist = curl_slist_append(slist, sauth.str().c_str());
-  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
-  CHECK(curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
-  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
-  CHECK(curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
-  CHECK(curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result) == CURLE_OK);
-  CHECK(curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
-  CHECK(curl_easy_perform(curl) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result) == CURLE_OK);
+  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+  CHECK_XGB(curl_easy_perform(curl) == CURLE_OK);
   curl_slist_free_all(slist);
   curl_easy_cleanup(curl);
   // parse xml
@@ -788,16 +788,16 @@ void ListObjects(const URI &path,
     // get files
     XMLIter xml(ret.c_str());
     XMLIter data;
-    CHECK(xml.GetNext("IsTruncated", &data)) << "missing IsTruncated";
-    CHECK(data.str() == "false") << "the returning list is truncated";
+    CHECK_XGB(xml.GetNext("IsTruncated", &data)) << "missing IsTruncated";
+    CHECK_XGB(data.str() == "false") << "the returning list is truncated";
     while (xml.GetNext("Contents", &data)) {
       FileInfo info;
       info.path = path;
       XMLIter value;
-      CHECK(data.GetNext("Key", &value));
+      CHECK_XGB(data.GetNext("Key", &value));
       // add root path to be consistent with other filesys convention
       info.path.name = '/' + value.str();
-      CHECK(data.GetNext("Size", &value));
+      CHECK_XGB(data.GetNext("Size", &value));
       info.size = static_cast<size_t>(atol(value.str().c_str()));
       info.type = kFile;
       out_list->push_back(info);
@@ -811,7 +811,7 @@ void ListObjects(const URI &path,
       FileInfo info;
       info.path = path;
       XMLIter value;
-      CHECK(data.GetNext("Prefix", &value));
+      CHECK_XGB(data.GetNext("Prefix", &value));
       // add root path to be consistent with other filesys convention
       info.path.name = '/' + value.str();
       info.size = 0; info.type = kDirectory;
@@ -861,15 +861,15 @@ bool S3FileSystem::TryGetPathInfo(const URI &path_, FileInfo *out_info) {
 }
 
 FileInfo S3FileSystem::GetPathInfo(const URI &path) {
-  CHECK(path.protocol == "s3://")
+  CHECK_XGB(path.protocol == "s3://")
       << " S3FileSystem.ListDirectory";
   FileInfo info;
-  CHECK(TryGetPathInfo(path, &info))
+  CHECK_XGB(TryGetPathInfo(path, &info))
       << "S3FileSytem.GetPathInfo cannot find information about " + path.str();
   return info;
 }
 void S3FileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_list) {
-  CHECK(path.protocol == "s3://")
+  CHECK_XGB(path.protocol == "s3://")
       << " S3FileSystem.ListDirectory";
   if (path.name[path.name.length() - 1] == '/') {
     s3::ListObjects(path, aws_access_id_,
@@ -883,12 +883,12 @@ void S3FileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_lis
                   aws_secret_key_, &files);
   for (size_t i = 0; i < files.size(); ++i) {
     if (files[i].path.name == path.name) {
-      CHECK(files[i].type == kFile);
+      CHECK_XGB(files[i].type == kFile);
       out_list->push_back(files[i]);
       return;
     }
     if (files[i].path.name == pdir) {
-      CHECK(files[i].type == kDirectory);
+      CHECK_XGB(files[i].type == kDirectory);
       s3::ListObjects(files[i].path, aws_access_id_,
                       aws_secret_key_, out_list);
       return;
@@ -901,7 +901,7 @@ Stream *S3FileSystem::Open(const URI &path, const char* const flag, bool allow_n
   if (!strcmp(flag, "r") || !strcmp(flag, "rb")) {
     return OpenForRead(path, allow_null);
   } else if (!strcmp(flag, "w") || !strcmp(flag, "wb")) {
-    CHECK(path.protocol == "s3://") << " S3FileSystem.Open";
+    CHECK_XGB(path.protocol == "s3://") << " S3FileSystem.Open";
     return new s3::WriteStream(path, aws_access_id_, aws_secret_key_);
   } else {
     LOG(FATAL) << "S3FileSytem.Open do not support flag " << flag;
@@ -914,12 +914,12 @@ SeekStream *S3FileSystem::OpenForRead(const URI &path, bool allow_null) {
   if (!allow_null && (path.protocol == "http://"|| path.protocol == "https://")) {
     return new s3::HttpReadStream(path);
   }
-  CHECK(path.protocol == "s3://") << " S3FileSystem.Open";
+  CHECK_XGB(path.protocol == "s3://") << " S3FileSystem.Open";
   FileInfo info;
   if (TryGetPathInfo(path, &info) && info.type == kFile) {
     return new s3::ReadStream(path, aws_access_id_, aws_secret_key_, info.size);
   } else {
-    CHECK(allow_null) << " S3FileSystem: fail to open \"" << path.str() << "\"";
+    CHECK_XGB(allow_null) << " S3FileSystem: fail to open \"" << path.str() << "\"";
     return NULL;
   }
 }

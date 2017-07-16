@@ -31,7 +31,7 @@ class FileStream : public SeekStream {
     return std::fread(ptr, 1, size, fp_);
   }
   virtual void Write(const void *ptr, size_t size) {
-    CHECK(std::fwrite(ptr, 1, size, fp_) == size)
+    CHECK_XGB(std::fwrite(ptr, 1, size, fp_) == size)
         << "FileStream.Write incomplete";
   }
   virtual void Seek(size_t pos) {
@@ -146,7 +146,7 @@ SeekStream *LocalFileSystem::Open(const URI &path,
   if (fp != NULL) {
     return new FileStream(fp, use_stdio);
   } else {
-    CHECK(allow_null) << " LocalFileSystem: fail to open \"" << path.str() << '\"';
+    CHECK_XGB(allow_null) << " LocalFileSystem: fail to open \"" << path.str() << '\"';
     return NULL;
   }
 }

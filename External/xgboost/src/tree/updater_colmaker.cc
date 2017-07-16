@@ -839,7 +839,7 @@ class DistColMaker : public ColMaker<TStats> {
         const bst_uint ridx = rowset[i];
         const int nid = this->DecodePosition(ridx);
         if (bitmap.Get(ridx)) {
-          CHECK(!tree[nid].is_leaf()) << "inconsistent reduce information";
+          CHECK_XGB(!tree[nid].is_leaf()) << "inconsistent reduce information";
           if (tree[nid].default_left()) {
             this->SetEncodePosition(ridx, tree[nid].cright());
           } else {

@@ -41,7 +41,7 @@ AzureFileSystem::AzureFileSystem() {
 
 void AzureFileSystem::ListDirectory(
     const URI &path, std::vector<FileInfo> *out_list) {
-  CHECK(path.host.length()) << "container name not specified in azure";
+  CHECK_XGB(path.host.length()) << "container name not specified in azure";
   out_list->clear();
 
   utility::string_t

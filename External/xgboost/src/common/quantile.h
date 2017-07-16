@@ -44,8 +44,8 @@ struct WQSummary {
      * \param eps the tolerate level for violating the relation
      */
     inline void CheckValid(RType eps = 0) const {
-      CHECK(rmin >= 0 && rmax >= 0 && wmin >= 0) << "nonneg constraint";
-      CHECK(rmax- rmin - wmin > -eps) <<  "relation constraint: min/max";
+      CHECK_XGB(rmin >= 0 && rmax >= 0 && wmin >= 0) << "nonneg constraint";
+      CHECK_XGB(rmax- rmin - wmin > -eps) <<  "relation constraint: min/max";
     }
     /*! \return rmin estimation for v strictly bigger than value */
     inline RType rmin_next() const {
@@ -168,8 +168,8 @@ struct WQSummary {
     for (size_t i = 0; i < size; ++i) {
       data[i].CheckValid(eps);
       if (i != 0) {
-        CHECK(data[i].rmin >= data[i - 1].rmin + data[i - 1].wmin) << "rmin range constraint";
-        CHECK(data[i].rmax >= data[i - 1].rmax + data[i].wmin) << "rmax range constraint";
+        CHECK_XGB(data[i].rmin >= data[i - 1].rmin + data[i - 1].wmin) << "rmin range constraint";
+        CHECK_XGB(data[i].rmax >= data[i - 1].rmax + data[i].wmin) << "rmax range constraint";
       }
     }
   }
@@ -196,7 +196,7 @@ struct WQSummary {
       // find first i such that  d < (rmax[i+1] + rmin[i+1]) / 2
       while (i < src.size - 1
              && dx2 >= src.data[i + 1].rmax + src.data[i + 1].rmin) ++i;
-      CHECK(i != src.size - 1);
+      CHECK_XGB(i != src.size - 1);
       if (dx2 < src.data[i].rmin_next() + src.data[i + 1].rmax_prev()) {
         if (i != lastidx) {
           data[size++] = src.data[i]; lastidx = i;
@@ -224,7 +224,7 @@ struct WQSummary {
     if (sb.size == 0) {
       this->CopyFrom(sa); return;
     }
-    CHECK(sa.size > 0 && sb.size > 0);
+    CHECK_XGB(sa.size > 0 && sb.size > 0);
     const Entry *a = sa.data, *a_end = sa.data + sa.size;
     const Entry *b = sb.data, *b_end = sb.data + sb.size;
     // extended rmin value
@@ -276,7 +276,7 @@ struct WQSummary {
                 << ", maxgap=" << err_maxgap
                 << ", wgap=" << err_wgap;
     }
-    CHECK(size <= sa.size + sb.size) << "bug in combine";
+    CHECK_XGB(size <= sa.size + sb.size) << "bug in combine";
   }
   // helper function to print the current content of sketch
   inline void Print() const {
@@ -385,7 +385,7 @@ struct WXQSummary : public WQSummary<DType, RType> {
       LOG(INFO) << " srcsize=" << src.size << ", maxsize=" << maxsize
                 << ", range=" << range << ", chunk=" << chunk;
       src.Print();
-      CHECK(nbig < n - 1) << "quantile: too many large chunk";
+      CHECK_XGB(nbig < n - 1) << "quantile: too many large chunk";
     }
     this->data[0] = src.data[0];
     this->size = 1;
@@ -536,7 +536,7 @@ struct GKSummary {
     if (sb.size == 0) {
       this->CopyFrom(sa); return;
     }
-    CHECK(sa.size > 0 && sb.size > 0) << "invalid input for merge";
+    CHECK_XGB(sa.size > 0 && sb.size > 0) << "invalid input for merge";
     const Entry *a = sa.data, *a_end = sa.data + sa.size;
     const Entry *b = sb.data, *b_end = sb.data + sb.size;
     this->size = sa.size + sb.size;
@@ -569,7 +569,7 @@ struct GKSummary {
         ++dst; ++b;
       } while (b != b_end);
     }
-    CHECK(dst == data + size) << "bug in combine";
+    CHECK_XGB(dst == data + size) << "bug in combine";
   }
 };
 
@@ -610,7 +610,7 @@ class QuantileSketchTemplate {
      */
     inline void SetMerge(const Summary *begin,
                          const Summary *end) {
-      CHECK(begin < end) << "can not set combine to empty instance";
+      CHECK_XGB(begin < end) << "can not set combine to empty instance";
       size_t len = end - begin;
       if (len == 1) {
         this->Reserve(begin[0].size);
@@ -678,8 +678,8 @@ class QuantileSketchTemplate {
     }
     // check invariant
     size_t n = (1UL << nlevel);
-    CHECK(n * limit_size >= maxn) << "invalid init parameter";
-    CHECK(nlevel <= limit_size * eps) << "invalid init parameter";
+    CHECK_XGB(n * limit_size >= maxn) << "invalid init parameter";
+    CHECK_XGB(nlevel <= limit_size * eps) << "invalid init parameter";
     // lazy reserve the space, if there is only one value, no need to allocate space
     inqueue.queue.resize(1);
     inqueue.qtail = 0;

@@ -69,7 +69,7 @@ InputSplit* InputSplit::Create(const char *uri_,
   if (!strcmp(spec.uri.c_str(), "stdin")) {
     return new SingleFileSplit(spec.uri.c_str());
   }
-  CHECK(part < nsplit) << "invalid input parameter for InputSplit::Create";
+  CHECK_XGB(part < nsplit) << "invalid input parameter for InputSplit::Create";
   URI path(spec.uri.c_str());
   InputSplitBase *split = NULL;
   if (!strcmp(type, "text")) {
@@ -88,7 +88,7 @@ InputSplit* InputSplit::Create(const char *uri_,
     return new CachedInputSplit(split, spec.cache_file.c_str());
   }
 #else
-  CHECK(spec.cache_file.length() == 0)
+  CHECK_XGB(spec.cache_file.length() == 0)
       << "to enable cached file, compile with c++11";
   return split;
 #endif
