@@ -111,12 +111,12 @@ class Row {
     V sum = static_cast<V>(0);
     if (value == NULL) {
       for (size_t i = 0; i < length; ++i) {
-        CHECK(index[i] < size) << "feature index exceed bound";
+        CHECK_XGB(index[i] < size) << "feature index exceed bound";
         sum += weight[index[i]];
       }
     } else {
       for (size_t i = 0; i < length; ++i) {
-        CHECK(index[i] < size) << "feature index exceed bound";
+        CHECK_XGB(index[i] < size) << "feature index exceed bound";
         sum += weight[index[i]] * value[i];
       }
     }
@@ -169,7 +169,7 @@ struct RowBlock {
    * \return the sliced RowBlock
    */
   inline RowBlock Slice(size_t begin, size_t end) const {
-    CHECK(begin <= end && end <= size);
+    CHECK_XGB(begin <= end && end <= size);
     RowBlock ret;
     ret.size = end - begin;
     ret.label = label + begin;
@@ -309,7 +309,7 @@ struct ParserFactoryReg
 template<typename IndexType>
 inline Row<IndexType>
 RowBlock<IndexType>::operator[](size_t rowid) const {
-  CHECK(rowid < size);
+  CHECK_XGB(rowid < size);
   Row<IndexType> inst;
   inst.label = label[rowid];
   if (weight != NULL) {

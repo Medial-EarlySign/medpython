@@ -182,6 +182,11 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 {
 	//string inc_params; // from_to_fname,pids_to_use_fname,from_year,to_year,min_age,max_age,bin_size,inc_file
 
+	vector<int> train_to_take ={ 0,0,0,0 };
+	if (i_params.train_mask &0x1) train_to_take[1] = 1;
+	if (i_params.train_mask &0x2) train_to_take[2] = 1;
+	if (i_params.train_mask &0x4) train_to_take[3] = 1;
+
 	vector<int> pids;
 	get_pids(pids);
 
@@ -211,12 +216,14 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 
 	for (auto &crec : recs) {
 		int fyear = crec.from / 10000;
-		int tyear = crec.to / 10000;
+		int to_date = crec.to;
+		if (crec.outcome != 0) to_date = crec.outcome_date;
+		int tyear = to_date / 10000;
 		int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
 		int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
 		int train = (int)((((SVal *)rep.get(crec.pid, train_sid, len))[0]).val);
 
-		if ((gender & i_params.gender_mask) && (train & i_params.train_mask))
+		if ((gender & i_params.gender_mask) && (train_to_take[train]))
 			for (int year = fyear; year <= tyear; year++) {
 				if (year >= i_params.from_year && year <= i_params.to_year) {
 					int age = year - byear;
@@ -272,6 +279,10 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	if (s_params.is_continous == 0)
 		return create_sampling_file_sticked(s_params, out_sample_file);
 
+	vector<int> train_to_take ={ 0,0,0,0 };
+	if (s_params.train_mask &0x1) train_to_take[1] = 1;
+	if (s_params.train_mask &0x2) train_to_take[2] = 1;
+	if (s_params.train_mask &0x4) train_to_take[3] = 1;
 	vector<int> pids;
 	get_pids(pids);
 	MedRepository rep;
@@ -294,7 +305,7 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 		int train = (int)((((SVal *)rep.get(rc.pid, train_sid, len))[0]).val);
 
 		//MLOG("s: %d outcome %d %d from-to %d %d byear %d gender %d (mask %d) train %d (mask %d)\n", rc.pid, (int)rc.outcome, rc.outcome_date, rc.from, rc.to, byear, gender, s_params.gender_mask, train, s_params.train_mask);
-		if ((gender & s_params.gender_mask) && (train & s_params.train_mask)) {
+		if ((gender & s_params.gender_mask) && (train_to_take[train])) {
 
 			//MLOG("pid %d passed masks\n", rc.pid);
 			if (rc.from <= rc.outcome_date && rc.outcome_date <= rc.to && rc.from <= rc.to) {

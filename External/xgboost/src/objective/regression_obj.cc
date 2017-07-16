@@ -38,7 +38,7 @@ struct LogisticRegression {
     return std::max(predt * (1.0f - predt), eps);
   }
   static float ProbToMargin(float base_score) {
-    CHECK(base_score > 0.0f && base_score < 1.0f)
+    CHECK_XGB(base_score > 0.0f && base_score < 1.0f)
         << "base_score must be in (0,1) for logistic loss";
     return -std::log(1.0f / base_score - 1.0f);
   }
@@ -187,7 +187,7 @@ class PoissonRegression : public ObjFunction {
         label_correct = false;
       }
     }
-    CHECK(label_correct) << "PoissonRegression: label must be nonnegative";
+    CHECK_XGB(label_correct) << "PoissonRegression: label must be nonnegative";
   }
   void PredTransform(std::vector<float> *io_preds) override {
     std::vector<float> &preds = *io_preds;

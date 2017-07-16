@@ -41,7 +41,7 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
     if (batch.weight != nullptr) {
       info.weights.insert(info.weights.end(), batch.weight, batch.weight + batch.size);
     }
-    CHECK(batch.index != nullptr);
+    CHECK_XGB(batch.index != nullptr);
     // update information
     this->info.num_row += batch.size;
     // copy the data over
@@ -62,7 +62,7 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
 
 void SimpleCSRSource::LoadBinary(dmlc::Stream* fi) {
   int tmagic;
-  CHECK(fi->Read(&tmagic, sizeof(tmagic)) == sizeof(tmagic)) << "invalid input file format";
+  CHECK_XGB(fi->Read(&tmagic, sizeof(tmagic)) == sizeof(tmagic)) << "invalid input file format";
   CHECK_EQ(tmagic, kMagic) << "invalid format, magic number mismatch";
   info.LoadBinary(fi);
   fi->Read(&row_ptr_);

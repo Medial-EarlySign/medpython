@@ -244,7 +244,7 @@ class LearnerImpl : public Learner {
             <<"BoostLearner: wrong model format";
       }
     }
-    CHECK(fi->Read(&name_gbm_))
+    CHECK_XGB(fi->Read(&name_gbm_))
         << "BoostLearner: wrong model format";
     // duplicated code with LazyInitModel
     obj_.reset(ObjFunction::Create(name_obj_));
@@ -280,7 +280,7 @@ class LearnerImpl : public Learner {
   }
 
   void UpdateOneIter(int iter, DMatrix* train) override {
-    CHECK(ModelInitialized())
+    CHECK_XGB(ModelInitialized())
         << "Always call InitModel or LoadModel before update";
     if (tparam.seed_per_iteration || rabit::IsDistributed()) {
       common::GlobalRandom().seed(tparam.seed * kRandSeedMagic + iter);
@@ -421,7 +421,7 @@ class LearnerImpl : public Learner {
 
     // setup
     cfg_["num_feature"] = common::ToString(mparam.num_feature);
-    CHECK(obj_.get() == nullptr && gbm_.get() == nullptr);
+    CHECK_XGB(obj_.get() == nullptr && gbm_.get() == nullptr);
     obj_.reset(ObjFunction::Create(name_obj_));
     gbm_.reset(GradientBooster::Create(name_gbm_));
     gbm_->Configure(cfg_.begin(), cfg_.end());
@@ -446,7 +446,7 @@ class LearnerImpl : public Learner {
   inline void PredictRaw(DMatrix* data,
                          std::vector<float>* out_preds,
                          unsigned ntree_limit = 0) const {
-    CHECK(gbm_.get() != nullptr)
+    CHECK_XGB(gbm_.get() != nullptr)
         << "Predict must happen after Load or InitModel";
     gbm_->Predict(data,
                   this->FindBufferOffset(data),

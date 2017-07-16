@@ -75,7 +75,7 @@ class CachedInputSplit : public InputSplit {
       delete fo_;
       iter_preproc_ = NULL;
       fo_ = NULL;
-      CHECK(this->InitCachedIter())
+      CHECK_XGB(this->InitCachedIter())
           << "Failed to initialize CachedIter";
     } else {
       iter_cached_.BeforeFirst();
@@ -172,12 +172,12 @@ inline bool CachedInputSplit::InitCachedIter(void) {
       size_t size;
       size_t nread = fi_->Read(&size, sizeof(size));
       if (nread == 0) return false;
-      CHECK(nread == sizeof(size))
+      CHECK_XGB(nread == sizeof(size))
           << cache_file_ << " has invalid cache file format";
       p->data.resize(size / sizeof(size_t) + 1);
       p->begin = reinterpret_cast<char*>(BeginPtr(p->data));
       p->end = p->begin + size;
-      CHECK(fi_->Read(p->begin, size) == size)
+      CHECK_XGB(fi_->Read(p->begin, size) == size)
           << cache_file_ << " has invalid cache file format";
       return true;
     },

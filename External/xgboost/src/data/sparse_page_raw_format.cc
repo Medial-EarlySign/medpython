@@ -77,7 +77,7 @@ class SparsePageRawFormat : public SparsePage::Format {
   }
 
   void Write(const SparsePage& page, dmlc::Stream* fo) override {
-    CHECK(page.offset.size() != 0 && page.offset[0] == 0);
+    CHECK_XGB(page.offset.size() != 0 && page.offset[0] == 0);
     CHECK_EQ(page.offset.back(), page.data.size());
     fo->Write(page.offset);
     if (page.data.size() != 0) {

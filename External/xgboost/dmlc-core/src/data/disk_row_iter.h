@@ -42,12 +42,12 @@ class DiskRowIter: public RowBlockIter<IndexType> {
     if (reuse_cache) {
       if (!TryLoadCache()) {
         this->BuildCache(parser);
-        CHECK(TryLoadCache())
+        CHECK_XGB(TryLoadCache())
             << "failed to build cache file " << cache_file;
       }
     } else {
       this->BuildCache(parser);
-      CHECK(TryLoadCache())
+      CHECK_XGB(TryLoadCache())
           << "failed to build cache file " << cache_file;
     }
     delete parser;

@@ -76,7 +76,7 @@ class NativeDataIter : public dmlc::Parser<uint32_t> {
 
   // override functions
   void BeforeFirst() override {
-    CHECK(at_first_) << "cannot reset NativeDataIter";
+    CHECK_XGB(at_first_) << "cannot reset NativeDataIter";
   }
 
   bool Next() override {
@@ -301,7 +301,7 @@ int XGDMatrixCreateFromMat(const float* data,
     xgboost::bst_ulong nelem = 0;
     for (xgboost::bst_ulong j = 0; j < ncol; ++j) {		
       if (common::CheckNAN(data[j])) {
-        CHECK(nan_missing)
+        CHECK_XGB(nan_missing)
             << "There are NAN in the matrix, however, you did not set missing=NAN";
       } else {
         if (nan_missing || data[j] != missing) {
@@ -338,7 +338,7 @@ int XGDMatrixSliceDMatrix(DMatrixHandle handle,
 
   dmlc::DataIter<RowBatch>* iter = &src;
   iter->BeforeFirst();
-  CHECK(iter->Next());
+  CHECK_XGB(iter->Next());
 
   const RowBatch& batch = iter->Value();
   for (xgboost::bst_ulong i = 0; i < len; ++i) {

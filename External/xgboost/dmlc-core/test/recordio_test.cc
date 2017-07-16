@@ -63,10 +63,10 @@ int main(int argc, char *argv[]) {
     std::string temp;
     size_t lcnt = 0;
     while (reader.NextRecord(&temp)) {
-      CHECK(lcnt < data.size());
-      CHECK(temp.length() == data[lcnt].length());
+      CHECK_XGB(lcnt < data.size());
+      CHECK_XGB(temp.length() == data[lcnt].length());
       if (temp.length() != 0) {
-        CHECK(!memcmp(BeginPtr(temp), BeginPtr(data[lcnt]), temp.length()));
+        CHECK_XGB(!memcmp(BeginPtr(temp), BeginPtr(data[lcnt]), temp.length()));
       }
       ++lcnt;
     }
@@ -80,10 +80,10 @@ int main(int argc, char *argv[]) {
       InputSplit::Blob rec;
       dmlc::InputSplit *split = InputSplit::Create(argv[1], i, nsplit, "recordio");
       while (split->NextRecord(&rec)) {
-        CHECK(lcnt < data.size());
-        CHECK(rec.size == data[lcnt].length());
+        CHECK_XGB(lcnt < data.size());
+        CHECK_XGB(rec.size == data[lcnt].length());
         if (rec.size != 0) {
-          CHECK(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
+          CHECK_XGB(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
         }
         ++lcnt;
       }
@@ -101,10 +101,10 @@ int main(int argc, char *argv[]) {
         InputSplit::Blob rec;
         dmlc::RecordIOChunkReader reader(chunk, i, nsplit);
         while (reader.NextRecord(&rec)) {
-          CHECK(lcnt < data.size());
-          CHECK(rec.size == data[lcnt].length());
+          CHECK_XGB(lcnt < data.size());
+          CHECK_XGB(rec.size == data[lcnt].length());
           if (rec.size != 0) {
-            CHECK(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
+            CHECK_XGB(!memcmp(rec.dptr, BeginPtr(data[lcnt]), rec.size));
           }
           ++lcnt;
         }

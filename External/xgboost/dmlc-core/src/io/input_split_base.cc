@@ -20,7 +20,7 @@ void InputSplitBase::Init(FileSystem *filesys,
   file_offset_[0] = 0;
   for (size_t i = 0; i < files_.size(); ++i) {
     file_offset_[i + 1] = file_offset_[i] + files_[i].size;
-    CHECK(files_[i].size % align_bytes == 0)
+    CHECK_XGB(files_[i].size % align_bytes == 0)
         << "file do not align by " << align_bytes << " bytes";
   }
   this->align_bytes_ = align_bytes_;
@@ -47,8 +47,8 @@ void InputSplitBase::ResetPartition(unsigned rank,
   }
   // find the exact ending position
   if (offset_end_ != file_offset_[file_ptr_end_]) {
-    CHECK(offset_end_ >file_offset_[file_ptr_end_]);
-    CHECK(file_ptr_end_ < files_.size());
+    CHECK_XGB(offset_end_ >file_offset_[file_ptr_end_]);
+    CHECK_XGB(file_ptr_end_ < files_.size());
     fs_ = filesys_->OpenForRead(files_[file_ptr_end_].path);
     fs_->Seek(offset_end_ - file_offset_[file_ptr_end_]);
     offset_end_ += SeekRecordBegin(fs_);

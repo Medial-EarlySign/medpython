@@ -85,7 +85,7 @@ class SparsePage {
   inline void Push(const dmlc::RowBlock<uint32_t>& batch) {
     data.reserve(data.size() + batch.offset[batch.size] - batch.offset[0]);
     offset.reserve(offset.size() + batch.size);
-    CHECK(batch.index != nullptr);
+    CHECK_XGB(batch.index != nullptr);
     for (size_t i = 0; i < batch.size; ++i) {
       offset.push_back(offset.back() + batch.offset[i + 1] - batch.offset[i]);
     }

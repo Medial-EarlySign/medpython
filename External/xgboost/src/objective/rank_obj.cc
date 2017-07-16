@@ -47,7 +47,7 @@ class LambdaRankObj : public ObjFunction {
     // quick consistency when group is not available
     std::vector<unsigned> tgptr(2, 0); tgptr[1] = static_cast<unsigned>(info.labels.size());
     const std::vector<unsigned> &gptr = info.group_ptr.size() == 0 ? tgptr : info.group_ptr;
-    CHECK(gptr.size() != 0 && gptr.back() == info.labels.size())
+    CHECK_XGB(gptr.size() != 0 && gptr.back() == info.labels.size())
         << "group structure not consistent with #rows";
     const bst_omp_uint ngroup = static_cast<bst_omp_uint>(gptr.size() - 1);
     #pragma omp parallel
