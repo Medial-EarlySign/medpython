@@ -97,6 +97,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedDeepBit;
 	else if (model_type == MODEL_LIGHTGBM)
 		return new MedLightGBM;
+	else if (model_type == MODEL_SPECIFIC_GROUPS_MODELS)
+		return new MedSpecificGroupModels;
 	else
 		return NULL ;
 
