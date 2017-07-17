@@ -656,9 +656,9 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 			if (params.l_lasso > 0) {
 				float bound = r*params.l_lasso;
 				for (int i=0; i<nftrs; i++)
-					if (bf.array()(0, i) > bound) bf.array()(0, i) -= bound;
-					else if (bf.array()(0, i) < -bound) bf.array()(0, i) += bound;
-					else bf.array()(0, i) = 0;
+					if (bf(0, i) > bound) bf(0, i) -= bound; 
+					else if (bf(0, i) < -bound) bf(0, i) += bound; 
+					else bf(0, i) = 0;
 			}
 
 			// update prev
