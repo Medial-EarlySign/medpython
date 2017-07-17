@@ -129,6 +129,7 @@
     <ClCompile Include="DrugIntakeGenerator.cpp" />
     <ClCompile Include="FeatureGenerator.cpp" />
     <ClCompile Include="FeatureProcess.cpp" />
+    <ClCompile Include="FeatureSelector.cpp" />
     <ClCompile Include="MedFeatures.cpp" />
     <ClCompile Include="MedModel.cpp" />
     <ClCompile Include="MedProcessUtils.cpp" />
