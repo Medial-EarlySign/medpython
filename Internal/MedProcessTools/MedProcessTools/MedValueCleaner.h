@@ -31,6 +31,9 @@ public:
 	bool doTrim;
 	bool doRemove;
 
+	// Utility : maximum number of samples to take for moments calculations
+	int max_samples = 10000;
+
 };
 
 class MedValueCleaner {

@@ -27,6 +27,8 @@ typedef enum {
 	FTR_PROCESS_DO_CALC,
 	FTR_PROCESS_UNIVARIATE_SELECTOR,
 	FTR_PROCESSOR_MRMR_SELECTOR,
+	FTR_PROCESSOR_LASSO_SELECTOR,
+	FTR_PROCESS_REMOVE_DGNRT_FTRS,
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -214,6 +216,9 @@ public:
 	// Moments
 	float mean, sd;
 
+	// Utility : maximum number of samples to take for moments calculations
+	int max_samples = 10000;
+
 	// Constructor
 	FeatureNormalizer() : FeatureProcessor() { init_defaults(); }
 	FeatureNormalizer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
@@ -330,6 +335,9 @@ public:
 	imputeMomentTypes moment_type;
 	vector<float> moments;
 
+	// Utility : maximum number of samples to take for moments calculations
+	int max_samples = 100000;
+
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
 	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
@@ -398,6 +406,64 @@ public:
 
 //.......................................................................................
 //.......................................................................................
+// Feature Selector : lasso 
+//.......................................................................................
+//.......................................................................................
+
+class LassoSelector : public FeatureSelector {
+
+	// Initial lambda
+	float initMaxLambda = 0.005;
+
+	int nthreads = 12;
+
+	// Find set of selected features
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_LASSO_SELECTOR; };
+	 
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<LassoSelector *>(processor)); }
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(initMaxLambda, nthreads, missing_value, required, selected, numToSelect)
+
+};
+
+//.......................................................................................
+//.......................................................................................
+// Feature Selector : Remove Degenerate features
+//.......................................................................................
+//.......................................................................................
+
+class DgnrtFeatureRemvoer : public FeatureSelector {
+public:
+
+	// Percantage covered by single value to define as degenerate
+	float percentage = 1.0F;
+
+	// Constructor
+	DgnrtFeatureRemvoer() : FeatureSelector() { }
+
+	// Find set of selected features
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_REMOVE_DGNRT_FTRS;  };
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DgnrtFeatureRemvoer *>(processor)); }
+
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(percentage, missing_value, selected)
+};
+
+//.......................................................................................
+//.......................................................................................
 // Feature Selector : Univariate
 //.......................................................................................
 //.......................................................................................
@@ -415,11 +481,17 @@ public:
 	float minStat;
 
 	// for mutual information
-	int nBins;
+	int nBins = 10;
 	MedBinningType binMethod = BIN_EQUIDIST;
+
+	// for correlation
+	int takeSquare = 0;
 
 	// for samples distance correlation
 	float pDistance; 
+
+	// Utility : maximum number of samples to take for moments calculations
+	int max_samples = 10000;
 
 	UnivariateSelectionMethod get_method(string name) {
 
@@ -524,8 +596,9 @@ public:
 //.......................................................................................
 //.......................................................................................
 
-void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values);
-void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values);
+#define DEF_MAX_SAMPLE 1000
+void get_all_values(MedFeatures& features, string& signalName, unordered_set<int>& ids, vector<float>& values, int max_sample = DEF_MAX_SAMPLE);
+void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values, int max_sample = DEF_MAX_SAMPLE);
 void smearBins(vector<int>& bins, int nBins, int reqNbins);
 
 //=======================================

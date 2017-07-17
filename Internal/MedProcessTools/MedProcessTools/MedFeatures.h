@@ -28,8 +28,9 @@ public:
 class MedFeatures : public SerializableObject {
 public:
 
-	// Map
+	// Data
 	map<string, vector<float> > data;
+	vector<float> weights;
 	vector<MedSample> samples;
 
 	// feature generation assumes that all "rows" for a specific pid are adjacent.
@@ -58,7 +59,8 @@ public:
 	// Functions
 	void get_feature_names(vector<string>& names) ;
 	void get_as_matrix(MedMat<float>& mat);
-	
+	void get_as_matrix(MedMat<float>& mat, vector<string>& names);
+
 	void append_samples(MedIdSamples& in_samples);
 	void insert_samples(MedIdSamples& in_samples, int index);
 	void init_all_samples(vector<MedIdSamples> &in_samples) { samples.clear(); for (auto& id : in_samples) append_samples(id); init_pid_pos_len(); }

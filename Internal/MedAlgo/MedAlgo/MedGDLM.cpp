@@ -583,7 +583,6 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 	float *ppreds = &preds[0];
 
 	while (err > params.stop_at_err && niter < params.max_iter) {
-
 		for (int bn=0; bn<n_batches; bn++) {
 
 			int from = bn*params.batch_size;
@@ -713,7 +712,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 			MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g stop_err %g acc %g loss %g , niter %d max_iter %d n0 %d (%d) ns %d\n",
 				r, err, dnorm, params.stop_at_err, (double)nacc/(double)nsamples, loss, niter, params.max_iter , n0bs, nftrs-n0bs, n_small_bs);
 		}
-		
+
 		// update rate with rate decay
 		if (params.rate_decay < 1)
 			r = r * params.rate_decay;
@@ -722,6 +721,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 		prev_bf = bf;
 		prev_b0 = b0;
 		niter++;
+
 	}
 
 	MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g max_err %g , niter %d max_iter %d\n",

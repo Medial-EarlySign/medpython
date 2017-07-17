@@ -254,8 +254,12 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 	int samples_size = (int)features.samples.size();
 	for (auto &generator : _generators) {
-		for (string& name : generator->names)
-			features.data[name].resize(samples_size, 0);
+		if (generator->iGenerateWeights)
+			features.weights.resize(samples_size, 0);
+		else {
+			for (string& name : generator->names)
+				features.data[name].resize(samples_size, 0);
+		}
 	}
 
 	// Loop on ids
@@ -384,7 +388,21 @@ string make_absolute_path(const string& main_file, const string& small_file) {
 	MLOG("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
-string file_to_string(int recursion_level, const string& main_file, const string& small_file = "") {
+void alter_json(string &json_contents, vector<string>& alterations) {
+
+	if (alterations.size() == 0) return;
+
+	// Alterations strings are of the format from::to
+	vector<string> fields;
+	for (string& alt : alterations) {
+		boost::algorithm::split_regex(fields, alt, boost::regex("::"));
+		if (fields.size() != 2)
+			MTHROW_AND_ERR("Cannot parse alteration string %s \n", alt.c_str());
+		MLOG("Json : Replacing %s with %s\n", fields[0].c_str(), fields[1].c_str());
+		boost::replace_all(json_contents, fields[0], fields[1]);
+	}
+}
+string file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "") {
 	if (recursion_level > 3)
 		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
 	string fname;
@@ -399,6 +417,7 @@ string file_to_string(int recursion_level, const string& main_file, const string
 	sstr << inf.rdbuf();
 	inf.close();
 	string orig = stripComments(sstr.str());
+	alter_json(orig, alterations);
 	const char* pattern = "\\\"[[:blank:]]*json\\:(.+?)[[:blank:]]*?\\\"";
 	boost::regex ip_regex(pattern);
 
@@ -410,29 +429,15 @@ string file_to_string(int recursion_level, const string& main_file, const string
 	for (; it != end; ++it) {
 		std::cerr << "found: " << it->str(0) << ":::" << it->str(1) << "\n";
 		out_string += orig.substr(last_char, it->position() - last_char);
-		out_string += file_to_string(recursion_level + 1, main_file, it->str(1));
+		out_string += file_to_string(recursion_level + 1, main_file, alterations, it->str(1));
 		last_char = (int)it->position() + (int)it->str(0).size();
 	}
 	out_string += orig.substr(last_char);
 	return out_string;
 }
-void alter_json(string &json_contents, vector<string>& alterations) {
 
-	if (alterations.size()==0) return;
-
-	// Alterations strings are of the format from::to
-	vector<string> fields;
-	for (string& alt : alterations) {
-		boost::algorithm::split_regex(fields, alt, boost::regex("::"));
-		if (fields.size() != 2)
-			MTHROW_AND_ERR("Cannot parse alteration string %s \n", alt.c_str());
-		MLOG("Json : Replacing %s with %s\n", fields[0].c_str(), fields[1].c_str());
-		boost::replace_all(json_contents, fields[0], fields[1]);
-	}
-}
 void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
-	string json_contents = file_to_string(0, fname);
-	alter_json(json_contents, alterations);
+	string json_contents = file_to_string(0, fname, alterations);
 	istringstream no_comments_stream(json_contents);
 
 	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());
@@ -688,6 +693,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	for (FeatureGenerator *generator : generators)
 		generator->get_required_signal_names(signalNames);
+
 }
 //.......................................................................................
 void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string) {

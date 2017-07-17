@@ -24,6 +24,8 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "tags") 
 			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator")
+			iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for SmokingGenerator\n", field.c_str());
 	}
@@ -84,17 +86,18 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		}
 
 		for (int j = 0; j < names.size(); j++) {
+			float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[names[j]][index]);
 
 			if (names[j].size() >= 14 && names[j].substr(names[j].size() - 14, 14) == "Current_Smoker") 
-				features.data[names[j]][index + i] = (float)current_smoker;
+				p_feat[i] = (float)current_smoker;
 			else if (names[j].size() >= 9 && names[j].substr(names[j].size() - 9, 9) == "Ex_Smoker")
-				features.data[names[j]][index + i] = (float)ex_smoker;
+				p_feat[i] = (float)ex_smoker;
 			else if (names[j].size() >= 25 && names[j].substr(names[j].size() - 25, 25) == "Smok_Years_Since_Quitting")
-				features.data[names[j]][index + i] = (float)years_since_quitting;
+				p_feat[i] = (float)years_since_quitting;
 			else if (names[j].size() >= 13 && names[j].substr(names[j].size() - 13, 13) == "Smoking_Years")
-				features.data[names[j]][index + i] = (float)smoking_years;
+				p_feat[i] = (float)smoking_years;
 			else if (names[j].size() >= 15 && names[j].substr(names[j].size() - 15, 15) == "Smok_Pack_Years")
-				features.data[names[j]][index + i] = (float)pack_years;
+				p_feat[i] = (float)pack_years;
 			else MTHROW_AND_ERR("unknown feature name [%s]", names[j].c_str());
 		}
 	}

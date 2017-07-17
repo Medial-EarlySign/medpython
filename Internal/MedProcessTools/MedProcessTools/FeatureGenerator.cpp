@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
+#include "DrugIntakeGenerator.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -25,6 +26,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_SMOKING;
 	else if (generator_name == "range")
 		return FTR_GEN_RANGE;
+	else if (generator_name == "drugIntake")
+		return FTR_GEN_DRG_INTAKE;
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
 }
 
@@ -32,21 +35,25 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 //.......................................................................................
 void FeatureGenerator::init(MedFeatures &features) {
 
-	//MLOG("FeatureGenerator::init _features\n");
-	if (names.size() == 0)
-		set_names();
+	if (!iGenerateWeights) {
+		//MLOG("FeatureGenerator::init _features\n");
+		if (names.size() == 0)
+			set_names();
 
-	// Attributes
-	for (auto& name : names) {
-		features.attributes[name].normalized = false;
-		features.data[name].resize(0, 0);
-	}
+		// Attributes
+		for (auto& name : names) {
+			features.attributes[name].normalized = false;
+			features.data[name].resize(0, 0);
+		}
 
-	// Tags
-	for (auto& name : names) {
-		for (string& tag : tags)
-			features.tags[name].insert(tag);
+		// Tags
+		for (auto& name : names) {
+			for (string& tag : tags)
+				features.tags[name].insert(tag);
+		}
 	}
+	else
+		features.weights.resize(0, 0);
 }
 
 //.......................................................................................
@@ -74,7 +81,6 @@ FeatureGenerator *FeatureGenerator::make_generator(string generator_name, string
 //.......................................................................................
 FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type) {
 
-
 	if (generator_type == FTR_GEN_BASIC)
 		return new BasicFeatGenerator;
 	else if (generator_type == FTR_GEN_AGE)
@@ -87,6 +93,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new SmokingGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
 		return new RangeFeatGenerator;
+	else if (generator_type == FTR_GEN_DRG_INTAKE)
+		return new DrugIntakeGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
@@ -113,13 +121,27 @@ int FeatureGenerator::generate(PidDynamicRec& in_rep, MedFeatures& features) {
 int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& features) {
 
 	int samples_size = (int)features.samples.size();
-	int data_size = (int)features.data[names[0]].size();
+	int data_size;
 
-	if (data_size > samples_size) {
-		MERR("Data (%d) is longer than Samples (%d) for %s. Cannot generate features \n", data_size, samples_size, names[0].c_str());
-		return -1;
+	if (iGenerateWeights) {
+		data_size = (int)features.weights.size();
+
+		if (data_size > samples_size) {
+			MERR("Data (%d) is longer than Samples (%d) for %s. Cannot generate weights \n", data_size, samples_size);
+			return -1;
+		}
+		features.weights.resize(samples_size);
 	}
-	features.data[names[0]].resize(samples_size);
+	else {
+		data_size = (int)features.data[names[0]].size();
+
+		if (data_size > samples_size) {
+			MERR("Data (%d) is longer than Samples (%d) for %s. Cannot generate feature \n", data_size, samples_size, names[0].c_str());
+			return -1;
+		}
+		for (string& name : names)
+			features.data[name].resize(samples_size);
+	}
 	return generate(rep, id, features, data_size, (int)(samples_size - data_size));
 }
 
@@ -143,6 +165,8 @@ int FeatureGenerator::init(map<string, string>& mapper) {
 		string field = entry.first;
 		if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator")
+			iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for FeatureGenerator\n", field.c_str());
 	}
@@ -294,7 +318,7 @@ int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
-	float *p_feat = &(features.data[name][index]);
+	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[name][index]);
 	for (int i = 0; i < num; i++) {
 		//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
 		//if (type != FTR_NSAMPLES)
@@ -315,7 +339,7 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 	
 	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM) {
 		if (lut.size() == 0) {
-			int section_id = dict.section_id(signalName);
+			int section_id = dict.section_id(signalName); 
 			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
 			dict.prep_sets_lookup_table(section_id, sets, lut);
 			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
@@ -376,6 +400,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "in_set_name") in_set_name = entry.second;
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 	}
@@ -401,12 +426,14 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 		return -1;
 	}
 
+	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
+
 	int len;
 	if (directlyGiven) {
 		rec.uget(signalId, 0); 
 		assert(rec.usv.len > 0);
 		for (int i = 0; i < num; i++)
-			features.data[names[0]][index + i] = rec.usv.Val(0);
+			p_feat[i] = rec.usv.Val(0);
 	}
 	else {
 		SVal *bYearSignal = (SVal *)rec.get(signalId, len);
@@ -415,7 +442,7 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 		int byear = (int)(bYearSignal[0].val);
 
 		for (int i = 0; i < num; i++)
-			features.data[names[0]][index + i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index+i].time) / 10000 - byear);
+			p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index+i].time) / 10000 - byear);
 	}
 	return 0;
 }
@@ -435,8 +462,9 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 	assert(rec.usv.len >= 1);
 	int gender = (int)(rec.usv.Val(0));
 
+	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
 	for (int i = 0; i < num; i++)
-		features.data[names[0]][index + i] = (float) gender;
+		p_feat[i] = (float) gender;
 
 	return 0;
 }
@@ -482,12 +510,14 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 	}
 
-	// set names and require signals
+	// set names and required signals
 	set_names();
+
 	req_signals.assign(1, signalName);
 
 	return 0;
@@ -525,7 +555,7 @@ int RangeFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
-	float *p_feat = &(features.data[name][index]);
+	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
 	for (int i = 0; i < num; i++)
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time));
 

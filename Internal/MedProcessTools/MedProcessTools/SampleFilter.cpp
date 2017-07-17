@@ -397,14 +397,14 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 	float opt_factor = get_pairing_ratio(cnts, eventToCasePriceRatio);
 	float factor = opt_factor;
 	if (factor > matchMaxRatio) {
-		MLOG("updating factor {%8.3f} to maxFactor=%.3f\n", factor, matchMaxRatio);
+//		MLOG("updating factor {%8.3f} to maxFactor=%.3f\n", factor, matchMaxRatio);
 		factor = matchMaxRatio;
 	}
 	else if (factor < 1 / matchMaxRatio) {
-		MLOG("updating factor {%8.3f} to 1/(maxFactor=%.3f)\n", factor, matchMaxRatio);
+//		MLOG("updating factor {%8.3f} to 1/(maxFactor=%.3f)\n", factor, matchMaxRatio);
 		factor = 1/matchMaxRatio;
 	}
-	MLOG("opt ratio is %8.3f (effective factor = %8.3f)\n", opt_factor, factor);
+//	MLOG("opt ratio is %8.3f (effective factor = %8.3f)\n", opt_factor, factor);
 
 
 	// sample controls and events
@@ -432,7 +432,7 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 			selected.push_back(event_ids[signature][i]);
 		n_ctrl += ntake_ctrl;
 		n_events += ntake_ev;
-		MLOG("%s : ntake_ctrl: %d/%d ntake_ev: %d/%d total size is %d\n", signature.c_str(), ntake_ctrl, control_ids[signature].size(),ntake_ev, event_ids[signature].size(), n_ctrl+n_events);
+//		MLOG("%s : ntake_ctrl: %d/%d ntake_ev: %d/%d total size is %d\n", signature.c_str(), ntake_ctrl, control_ids[signature].size(),ntake_ev, event_ids[signature].size(), n_ctrl+n_events);
 	}
 
 	MLOG("Added %d controls, %d events, with a factor of %f\n", n_ctrl, n_events, n_events, factor);
@@ -643,7 +643,7 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 			opt_cnt1 = cnt1;
 			opt_cnt2 = cnt2;
 		}
-		MLOG("ratio %8.3f price %8.3f (lose %d events, %d controls) \t opt ratio %8.3f lose %d events and %d controls = price of %8.3f \n", r, current_price, cnt2, cnt1, opt_r, opt_cnt2, opt_cnt1, opt_price);
+//		MLOG("ratio %8.3f price %8.3f (lose %d events, %d controls) \t opt ratio %8.3f lose %d events and %d controls = price of %8.3f \n", r, current_price, cnt2, cnt1, opt_r, opt_cnt2, opt_cnt1, opt_price);
 
 	}
 

@@ -105,27 +105,32 @@ double perform_lasso_iteration(double* xk_train, vector<double>& r, float bk, in
 	return bk_hat;
 }
 
-void lasso_regression(double **trainx, double *y, vector<float>& b, int nrow_train, int n_ftrs, double lambda, int num_iterations) {
+void MedLasso::lasso_regression(vector<float>& b, int nrow_train, int n_ftrs, double lambda, int num_iterations) {
 	vector<double> r(nrow_train);
 	for (int i = 0; i < nrow_train; i++)
-		r[i] = y[i];
+		r[i] = y1[i];
+
 	for (int it = 0; it < num_iterations; it++)
 		for (int k = 0; k < n_ftrs; k++)
 			b[k] = (float)perform_lasso_iteration(trainx[k], r, b[k], nrow_train, lambda);
+
 }
 
 
-void initialize_vars(double **&trainx, double *&y, float *x_in, float *y_in, float *w, vector<float>& b, int nrow_train, int n_ftrs) {
+void MedLasso::initialize_vars(float *x_in, float *y_in, float *w, vector<float>& b, int nrow_train, int n_ftrs) {
 	trainx = (double **)malloc(n_ftrs * sizeof(double*));
 	for (int j = 0; j < n_ftrs; j++)
 		trainx[j] = (double *)malloc(nrow_train * sizeof(double));
-	y = (double *)malloc(nrow_train * sizeof(double));
+	y1 = (double *)malloc(nrow_train * sizeof(double));
+	
 	b.resize(n_ftrs);
+	for (int i = 0; i < n_ftrs; i++) b[i] = 0;
+
 	for (int i = 0; i < nrow_train; i++)
 		for (int j = 0; j < n_ftrs; j++)
 			trainx[j][i] = sqrt(w[i]) * x_in[i * n_ftrs + j];
 	for (int i = 0; i < nrow_train; i++)
-		y[i] = sqrt(w[i]) * y_in[i];
+		y1[i] = sqrt(w[i]) * y_in[i];
 }
 
 //void initialize_test(double **&testx, float *test_in, int nrow_test, int n_ftrs) {
@@ -144,10 +149,9 @@ int MedLasso::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	MedLasso::n_ftrs = nftrs;
 	if (w == NULL)
 		return (Learn(x, y, nsamples, nftrs));
-	double **trainx;
-	double *y1;
-	initialize_vars(trainx, y1, x, y, w, b, nsamples, n_ftrs);
-	lasso_regression(trainx, y1, b, nsamples, n_ftrs, params.lambda, params.num_iterations);
+
+	initialize_vars(x, y, w, b, nsamples, n_ftrs);
+	lasso_regression(b, nsamples, n_ftrs, params.lambda, params.num_iterations);
 	return 0;
 }
 
@@ -234,12 +238,6 @@ int MedLasso::denormalize_model(float *f_avg, float *f_std, float label_avg, flo
 	normalize_for_predict = false;
 	return 0;
 }
-
-
-
-
-
-
 
 //..............................................................................
 void MedLasso::print(FILE *fp, const string& prefix) {
