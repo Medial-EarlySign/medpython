@@ -897,12 +897,12 @@ public:
 
 	//	void print(FILE *fp, const string& prefix) ;
 	// Parameters
-	void set_predictors(const vector<MedPredictor> &predictors); //for each group index
+	void set_predictors(const vector<MedPredictor *> &predictors); //for each group index
 	void set_group_selection(int featNum, const vector<float> &feat_ths);
-	MedPredictor &get_model(int ind);
+	MedPredictor *get_model(int ind);
 	int model_cnt();
 private:
-	vector<MedPredictor> predictors;
+	vector<MedPredictor *> predictors;
 	int featNum;
 	vector<float> feat_ths;
 	int selectPredictor(const float *x); //retrieve predictor index

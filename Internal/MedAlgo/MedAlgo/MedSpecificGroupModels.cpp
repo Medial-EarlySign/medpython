@@ -3,10 +3,18 @@
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-MedSpecificGroupModels::MedSpecificGroupModels() {};
+MedSpecificGroupModels::MedSpecificGroupModels() {
+	transpose_for_learn = false;
+	transpose_for_predict = false;
+	normalize_for_learn = false;
+	normalize_y_for_learn = false;
+	normalize_for_predict = false;
+
+	classifier_type = MODEL_SPECIFIC_GROUPS_MODELS;
+};
 MedSpecificGroupModels::~MedSpecificGroupModels() {};
 
-void MedSpecificGroupModels::set_predictors(const vector<MedPredictor> &predictors)
+void MedSpecificGroupModels::set_predictors(const vector<MedPredictor *> &predictors)
 {
 	this->predictors = predictors;
 	if (!feat_ths.empty() && predictors.size() != feat_ths.size() + 1)
@@ -44,13 +52,14 @@ int MedSpecificGroupModels::Learn(float *x, float *y, float *w, int nsamples, in
 		int predictor_index = selectPredictor(&x[i*nftrs]);
 		predictors_x[predictor_index].insert(predictors_x[predictor_index].end(), &x[i*nftrs], &x[(i + 1)*nftrs]);
 		predictors_y[predictor_index].insert(predictors_y[predictor_index].end(), &y[i], &y[i + 1]);
-		predictors_w[predictor_index].insert(predictors_w[predictor_index].end(), &w[i], &w[i + 1]);
+		if (w != NULL)
+			predictors_w[predictor_index].insert(predictors_w[predictor_index].end(), &w[i], &w[i + 1]);
 		++predictors_nsamples[predictor_index];
 	}
 
 	//now learn each predictor:
 	for (size_t i = 0; i < predictors.size(); ++i) {
-		predictors[i].learn(predictors_x[i], predictors_y[i], predictors_w[i], predictors_nsamples[i], nftrs);
+		predictors[i]->learn(predictors_x[i], predictors_y[i], predictors_w[i], predictors_nsamples[i], nftrs);
 	}
 
 	return 0;
@@ -75,7 +84,7 @@ int MedSpecificGroupModels::Predict(float *x, float *&preds, int nsamples, int n
 	{
 		if (predictors_x.size() == 0)
 			continue;
-		predictors[i].predict(predictors_x[i], predictors_preds[i], predictors_nsamples[i], nftrs);
+		predictors[i]->predict(predictors_x[i], predictors_preds[i], predictors_nsamples[i], nftrs);
 	}
 
 	//now collectby order:
@@ -91,14 +100,14 @@ int MedSpecificGroupModels::Predict(float *x, float *&preds, int nsamples, int n
 	return 0;
 }
 
-MedPredictor cloneModel(MedPredictor &model) {
+MedPredictor *cloneModel(MedPredictor *model) {
 	MedQRFParams pr_qrf;
 	map<string, string> empty_m;
-	MedPredictor newM;
-	switch (model.classifier_type) {
+	MedPredictor *newM;
+	switch (model->classifier_type) {
 	case MODEL_QRF:
-		pr_qrf = MedQRFParams(((MedQRF &)model).params);
-		newM = MedQRF(pr_qrf);
+		pr_qrf = MedQRFParams((*(MedQRF *)model).params);
+		newM = new MedQRF(pr_qrf);
 		break;
 	default:
 		throw invalid_argument("Unsupported Type init");
@@ -111,7 +120,7 @@ MedSpecificGroupModels *MedSpecificGroupModels::clone() {
 	MedSpecificGroupModels *res = new MedSpecificGroupModels;
 
 	res->set_group_selection(featNum, feat_ths);
-	vector<MedPredictor> cp_predictors((int)predictors.size());
+	vector<MedPredictor *> cp_predictors((int)predictors.size());
 	for (size_t i = 0; i < predictors.size(); ++i)
 		cp_predictors[i] = cloneModel(predictors[i]);
 	res->set_predictors(cp_predictors);
@@ -119,7 +128,7 @@ MedSpecificGroupModels *MedSpecificGroupModels::clone() {
 	return res;
 }
 
-MedPredictor &MedSpecificGroupModels::get_model(int ind) {
+MedPredictor *MedSpecificGroupModels::get_model(int ind) {
 	return predictors[ind];
 }
 
