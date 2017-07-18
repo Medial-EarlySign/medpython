@@ -89,7 +89,6 @@ int MedSpecificGroupModels::Predict(float *x, float *&preds, int nsamples, int n
 
 	//now collectby order:
 	vector<int> predictors_progress(predictors.size());
-	preds = new float[nsamples];
 	for (size_t i = 0; i < predictors_order.size(); ++i)
 	{
 		int p_index = predictors_order[i];
