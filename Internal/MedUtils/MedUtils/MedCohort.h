@@ -56,7 +56,11 @@ struct SamplingParams : SerializableObject {
 	int min_age = 0;
 	int max_age = 200;
 	string rep_fname;
+
+	// sticking related
 	vector<string> stick_to_sigs;		// only use time points with these signals tested
+	int take_closest = 0;
+	int take_all = 0;
 
 	int init(map<string, string>& map);
 };
@@ -94,7 +98,7 @@ class MedCohort : SerializableObject {
 	//int print_general_stats();
 	int create_incidence_file(IncidenceParams &i_params, string out_file);
 	int create_sampling_file(SamplingParams &s_params, string out_sample_file);
-	int create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file) { fprintf(stderr, "MedCohort: Sticked sampling not implemented yet !!\n"); return -1; };
+	int create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file);
 
 };
 

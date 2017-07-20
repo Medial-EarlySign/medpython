@@ -8,6 +8,19 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+// small helper for sampling
+struct SamplesBucket {
+	int from_date;
+	int to_date;
+	int from_days;
+	int to_days;
+	vector<int> sample_dates;
+	vector<int> sample_days;
+	void clear() { sample_dates.clear(); sample_days.clear(); }
+
+};
+
+
 //=====================================================================================
 // CohortRec
 //=====================================================================================
@@ -75,8 +88,11 @@ int SamplingParams::init(map<string, string>& map)
 		else if (m.first == "min_age") min_age = stoi(m.second);
 		else if (m.first == "max_age") max_age = stoi(m.second);
 		else if (m.first == "rep") rep_fname = m.second;
+		else if (m.first == "take_closest") take_closest = stoi(m.second);
+		else if (m.first == "take_all") take_all = stoi(m.second);
 		else if (m.first == "stick_to" || m.first == "stick_to_sigs") {
 			boost::split(stick_to_sigs, m.second, boost::is_any_of(","));
+			is_continous = 0;
 		}
 		else {
 			MERR("Unknown variable %s in SamplingParams\n", m.first.c_str());
@@ -378,6 +394,126 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 		return -1;
 	}
 	MLOG("Created samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), nsamp, samples.idSamples.size());
+
+	return 0;
+}
+
+//----------------------------------------------------------------------------------------------------------
+int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file)
+{
+	vector<int> train_to_take ={ 0,0,0,0 };
+	if (s_params.train_mask &0x1) train_to_take[1] = 1;
+	if (s_params.train_mask &0x2) train_to_take[2] = 1;
+	if (s_params.train_mask &0x4) train_to_take[3] = 1;
+	vector<int> pids;
+	get_pids(pids);
+	MedRepository rep;
+	vector<string> sigs ={ "BYEAR", "GENDER", "TRAIN" };
+	sigs.insert(sigs.end(), s_params.stick_to_sigs.begin(), s_params.stick_to_sigs.end());
+	if (rep.read_all(s_params.rep_fname, pids, sigs) < 0) {
+		MERR("FAILED reading repository %s\n", s_params.rep_fname.c_str());
+		return -1;
+	}
+
+	MedSamples samples;
+	int byear_sid = rep.sigs.sid("BYEAR");
+	int gender_sid = rep.sigs.sid("GENDER");
+	int train_sid = rep.sigs.sid("TRAIN");
+	//vector<int> sids_to_stick;
+	//for (auto &sig : sigs) sids_to_stick.push_back(rep.sigs.sid(sig));
+
+	int len;
+
+
+	int from0_days = (int)(s_params.max_control_years * 365.0f);
+	int to0_days = (int)(s_params.min_control_years * 365.0f);
+	int from1_days = (int)(s_params.max_case_years * 365.0f);
+	int to1_days = (int)(s_params.min_case_years * 365.0f);
+
+	int nsamp = 0;
+
+	for (auto &rc : recs) {
+		bool print = (rc.pid == 5000044);
+		int byear = (int)((((SVal *)rep.get(rc.pid, byear_sid, len))[0]).val);
+		int gender = (int)((((SVal *)rep.get(rc.pid, gender_sid, len))[0]).val);
+		int train = (int)((((SVal *)rep.get(rc.pid, train_sid, len))[0]).val);
+
+		if (print) MLOG("pid %d from %d to %d outcome %f outcome %d : byear %d gender %d train %d\n", rc.pid, rc.from, rc.to, rc.outcome, rc.outcome_date, byear, gender, train);
+		if (print) MLOG("pid %d from0 %d to0 %d from1 %d to1 %d\n", rc.pid, from0_days, to0_days, from1_days, to1_days);
+
+		if ((gender & s_params.gender_mask) && (train_to_take[train])) {
+
+			vector<int> dates_with_sigs;
+			rep.get_dates_with_signal(rc.pid, s_params.stick_to_sigs, dates_with_sigs);
+
+			int outcome_days = med_time_converter.convert_date(MedTime::Days, rc.outcome_date);
+			int to_days = med_time_converter.convert_date(MedTime::Days, rc.to);
+			int from_days = med_time_converter.convert_date(MedTime::Days, rc.from);
+
+			if (print) MLOG("pid %d outcome_days %d dates_with_sig size: %d \n", rc.pid, outcome_days, dates_with_sigs.size());
+			// split dates_with_sigs into buckets
+			map<int, vector<int>> buckets;
+			for (auto date : dates_with_sigs) {
+				int days = med_time_converter.convert_date(MedTime::Days, date);
+				int relative_days = outcome_days - days;
+				int age = date/10000 - byear;
+				bool date_is_in_cohort = (date >= rc.from && date < rc.to);
+				bool date_is_in_sample_window = (((rc.outcome == 0) && (relative_days <= from0_days) && (relative_days > to0_days)) ||
+					((rc.outcome != 0) && (relative_days <= from1_days) && (relative_days > to1_days)));
+				bool date_is_in_age_range = ((age >= s_params.min_age) && (age <= s_params.max_age));
+				int bucket_num = 0;
+				if (relative_days > 0)
+					bucket_num = relative_days/s_params.jump_days;
+				else
+					bucket_num = -((-relative_days)/s_params.jump_days)-1;
+				if (print) MLOG("pid %d date %d days %d relative_days %d age %d in_cohort %d in_win %d in age %d bucket %d\n", 
+					rc.pid, date, days, relative_days, age, date_is_in_cohort, date_is_in_sample_window, date_is_in_age_range);
+
+				if (date_is_in_cohort && date_is_in_sample_window && date_is_in_age_range) {
+					// Important: only samples that can be considered are put into a bucket.
+					if (buckets.find(bucket_num) == buckets.end()) {
+						buckets[bucket_num] = vector<int>();
+					}
+					buckets[bucket_num].push_back(date);
+				}
+			}
+
+			// Now going over buckets and actually sampling
+			vector<int> dates_to_take;
+			for (auto &bucket : buckets) {
+				if (s_params.take_all)
+					dates_to_take.insert(dates_to_take.end(), bucket.second.begin(), bucket.second.end());
+				else if (s_params.take_closest)
+					dates_to_take.push_back(bucket.second.back());
+				else {
+					int r = rand_N((int)bucket.second.size());
+					dates_to_take.push_back(bucket.second[r]);
+				}
+			}
+
+			// Now simply pushing into our MedSamples
+			MedIdSamples mis;
+			mis.id = rc.pid;
+			for (auto date : dates_to_take) {
+				MedSample ms;
+				ms.id = rc.pid;
+				ms.outcome = rc.outcome;
+				ms.outcomeTime = rc.outcome_date;
+				ms.time = date;
+				nsamp++;
+				mis.samples.push_back(ms);
+			}
+			samples.idSamples.push_back(mis);
+
+		}
+	}
+
+	samples.sort_by_id_date();
+	if (samples.write_to_file(out_sample_file) < 0) {
+		MERR("FAILED writing samples file %s\n", out_sample_file.c_str());
+		return -1;
+	}
+	MLOG("Created sticked samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), nsamp, samples.idSamples.size());
 
 	return 0;
 }
