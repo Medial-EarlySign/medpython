@@ -190,6 +190,7 @@ public:
 
 	float eventToCasePriceRatio = 100.0;
 	float matchMaxRatio = 10.0;
+	int verbose = 0;
 
 	// helpers
 	int samplesTimeUnit;
