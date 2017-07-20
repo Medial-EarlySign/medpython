@@ -66,6 +66,7 @@ typedef enum {
 	MODEL_BOOSTER = 11, //general booster (meta algorithm)
 	MODEL_DEEP_BIT = 12, //general booster (meta algorithm)
 	MODEL_LIGHTGBM = 13, // the celebrated LightGBM algorithm
+	MODEL_SPECIFIC_GROUPS_MODELS = 14,
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -872,6 +873,41 @@ int MedPCA(MedMat<float> &x, MedMat<float> &pca_base, vector<float> &varsum);
 // returns the projection of the pca base on the first dim dimensions.
 int MedPCA_project(MedMat<float> &x, MedMat<float> &pca_base, int dim, MedMat<float> &projected);
 
+//wrapper for MedPredictor for certian groups - routes the input to correct model group.
+//for example may be used to train specific model for each age group
+class MedSpecificGroupModels : public MedPredictor {
+public:
+	// Model
+
+	int nsamples;
+	int nftrs;
+	/*double **x;
+	double **y;
+	float *w;
+	*/
+
+	// Function
+	MedSpecificGroupModels();
+	~MedSpecificGroupModels();
+
+	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	MedSpecificGroupModels *clone();
+	ADD_SERIALIZATION_FUNCS(featNum, feat_ths, predictors)
+
+	//	void print(FILE *fp, const string& prefix) ;
+	// Parameters
+	void set_predictors(const vector<MedPredictor *> &predictors); //for each group index
+	void set_group_selection(int featNum, const vector<float> &feat_ths);
+	MedPredictor *get_model(int ind);
+	int model_cnt();
+private:
+	vector<MedPredictor *> predictors;
+	int featNum;
+	vector<float> feat_ths;
+	int selectPredictor(const float *x); //retrieve predictor index
+};
+
 //================================================================
 // dependent includes
 //================================================================
@@ -894,6 +930,7 @@ MEDSERIALIZE_SUPPORT(MedMars)
 MEDSERIALIZE_SUPPORT(MedKNN)
 MEDSERIALIZE_SUPPORT(MedGBM)
 MEDSERIALIZE_SUPPORT(MedMultiClass)
+MEDSERIALIZE_SUPPORT(MedSpecificGroupModels)
 
 
 #endif

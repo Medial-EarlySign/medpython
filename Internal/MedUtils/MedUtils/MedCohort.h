@@ -72,6 +72,7 @@ struct IncidenceParams : SerializableObject {
 	int from_age = 30;
 	int to_age = 90;
 	int age_bin = 5;
+	int incidence_years_window = 1; // how many years ahead do we consider an outcome?
 	int min_samples_in_bin = 20;
 	int gender_mask = 0x3;
 	int train_mask = 0x7;

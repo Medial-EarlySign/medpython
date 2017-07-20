@@ -118,6 +118,7 @@ int IncidenceParams::init(map<string, string>& map)
 		else if (m.first == "from_age") from_age = stoi(m.second);
 		else if (m.first == "to_age") to_age = stoi(m.second);
 		else if (m.first == "rep") rep_fname = m.second;
+		else if (m.first == "incidence_years_window") incidence_years_window = stoi(m.second);
 		else {
 			MERR("Unknown variable %s in IncidenceParams\n", m.first.c_str());
 		}
@@ -245,7 +246,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 					int age = year - byear;
 					int bin = i_params.age_bin*(age / i_params.age_bin);
 					counts[bin].first++; all_cnts[0]++;
-					if (year == tyear && (crec.outcome!=0)) { counts[bin].second++; all_cnts[1]++; }
+					if (year > tyear - i_params.incidence_years_window && (crec.outcome!=0)) { counts[bin].second++; all_cnts[1]++; }
 				}
 			}
 	}

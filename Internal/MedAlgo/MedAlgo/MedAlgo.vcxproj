@@ -152,6 +152,7 @@
     <ClCompile Include="MedMars.cpp" />
     <ClCompile Include="MedMultiClass.cpp" />
     <ClCompile Include="MedQRF.cpp" />
+    <ClCompile Include="MedSpecificGroupModels.cpp" />
     <ClCompile Include="MedXGB.cpp" />
     <ClCompile Include="MedLasso.cpp" />
   </ItemGroup>
