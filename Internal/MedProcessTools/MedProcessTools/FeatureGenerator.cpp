@@ -205,6 +205,17 @@ int FeatureGenerator::filter_features(unordered_set<string>& validFeatures) {
 
 	return ((int)names.size());
 }
+
+inline bool isInteger(const std::string & s)
+{
+	if (s.empty() || ((!isdigit(s[0])) && (s[0] != '-') && (s[0] != '+'))) return false;
+
+	char * p;
+	strtol(s.c_str(), &p, 10);
+
+	return (*p == 0);
+}
+
 //=======================================================================================
 // Single signal features that do not require learning(e.g. last hemoglobin)
 //=======================================================================================
@@ -221,7 +232,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "std")				return FTR_STD_VALUE;
 	if (name == "last_delta")		return FTR_LAST_DELTA_VALUE;
 	if (name == "last_time")		return FTR_LAST_DAYS;
-	if (name == "last_time2")		return FTR_LAST2_DAYS;
+	if (name == "last2_time")		return FTR_LAST2_DAYS;
 	if (name == "slope")			return FTR_SLOPE_VALUE;
 	if (name == "win_delta")				return FTR_WIN_DELTA_VALUE;
 	if (name == "category_set")				return FTR_CATEGORY_SET;
@@ -229,8 +240,10 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
 
-
-	return (BasicFeatureTypes)stoi(name);
+	if (isInteger(name))
+		return (BasicFeatureTypes)stoi(name);
+	else
+		MTHROW_AND_ERR("unknown name [%s]\n", name.c_str());
 }
 
 //.......................................................................................
@@ -362,7 +375,6 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
