@@ -59,7 +59,7 @@ int MedConvert::read_config(const string &fname)
 	ifstream inf(fname);
 
 	if (!inf) {
-		MERR("MedConvert: read_config: Can't open file %s\n",fname.c_str());
+		MERR("MedConvert: read_config: Can't open file [%s]\n",fname.c_str());
 		return -1;
 	}
 
@@ -355,15 +355,12 @@ int MedConvert::read_all(const string &config_fname)
 		return -1 ;
 
 	// Create repository config file
-	if (create_repository_config() < 0) {
-		MERR("MedConvert: read_all(): failed generating repository config file\n") ;
-	}
+	if (create_repository_config() < 0)
+		MTHROW_AND_ERR("MedConvert: read_all(): failed generating repository config file\n") ;
 
 	// Copy sig and dict file to output directory
-	if (copy_files_IM(path,out_path,sig_fnames) < 0 || copy_files_IM(path,out_path,dict_fnames) < 0) {
-		MERR ("MedConvert : read_all() : failed copying files from in to out directory\n") ;
-		return -1 ;
-	}
+	if (copy_files_IM(path,out_path,sig_fnames) < 0 || copy_files_IM(path,out_path,dict_fnames) < 0)
+		MTHROW_AND_ERR("MedConvert : read_all() : failed copying files from in to out directory\n") ;
 
 	// add path to more files + fix paths
 	if (add_path_to_name_IM(path,sig_fnames) == -1 || 
@@ -376,9 +373,8 @@ int MedConvert::read_all(const string &config_fname)
 
 
 	// actually do the work
-	if (create_indexes() < 0) {
-		MERR("MedConvert: read_all(): failed generating new data and indexes\n");
-	}
+	if (create_indexes() < 0)
+		MTHROW_AND_ERR("MedConvert: read_all(): failed generating new data and indexes\n");
 
 	return 0;
 }
