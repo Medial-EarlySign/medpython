@@ -171,7 +171,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 
 		// next are in ignore ... used in level above
 		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&
-				 field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width" && field != "rp_type")
+				 field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width" && field != "rp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for MedValueCleaner\n", field.c_str());
 
 	}
