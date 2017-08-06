@@ -505,22 +505,25 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// Get all values
 	vector<float> values;
 	get_all_values(features, resolved_feature_name, ids, values);
-
 	// Get all strata values
 	vector<vector<float> > strataValues(imputerStrata.nStratas());
-	for (int i = 0; i < imputerStrata.nStratas(); i++)
+	for (int i = 0; i < imputerStrata.nStratas(); i++) {
 		get_all_values(features, imputerStrata.stratas[i].name, ids, strataValues[i]);
+	}
 
 	// Collect
 	imputerStrata.getFactors();
+//	for (int i = 0; i < imputerStrata.nStratas(); i++)
+//		MLOG("starta [%s] factor [%d]\n", imputerStrata.stratas[i].name.c_str(), imputerStrata.factors[i]);
+//	MLOG("total stratas [%d]\n", imputerStrata.nValues());
 
 	vector<vector<float> > stratifiedValues(imputerStrata.nValues());
-	for (int i = 0; i < values.size(); i++) {
-		if (values[i] != missing_value) {
+	for (int j = 0; j < values.size(); j++) {
+		if (values[j] != missing_value) {
 			int index = 0;
-			for (int j = 0; j < imputerStrata.nStratas(); j++)
-				index += imputerStrata.factors[j] * imputerStrata.stratas[j].getIndex(strataValues[j][i], missing_value);
-			stratifiedValues[index].push_back(values[i]);
+			for (int i = 0; i < imputerStrata.nStratas(); i++)
+				index += imputerStrata.factors[i] * imputerStrata.stratas[i].getIndex(strataValues[i][j], missing_value);
+			stratifiedValues[index].push_back(values[j]);
 		}
 	}
 

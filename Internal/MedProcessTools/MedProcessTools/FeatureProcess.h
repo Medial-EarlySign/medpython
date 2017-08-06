@@ -261,6 +261,8 @@ public:
 	featureStrata(string& _name, float _resolution, float _min, float _max) { name = _name; resolution = _resolution; min = _min; max = _max; }
 
 	void SetNValues() { nValues = ((int)(max / resolution) - (int)(min / resolution) + 1);}
+	// returns the correct strata for a value. 
+	// E.g. if "strata": "Age,40,80,5" 42 will return 0, the first bin
 	int getIndex(float value, float missing_val) {
 		if (value == missing_val)
 			return nValues / 2;
@@ -280,6 +282,10 @@ public:
 	size_t deserialize(unsigned char *blob);
 
 } ;
+// When building startas on a set of several features, we build a cartesian product of their combinations:
+// e.g. when "strata": "Age,40,80,5:Gender,1,2,1"
+// starta [Age] factor [1] starta [Gender] factor[9]
+// for a total of [18] stratas
 
 class featureSetStrata {
 public:
@@ -299,7 +305,7 @@ public:
 			strata.SetNValues();
 
 		factors[0] = 1;
-		for (int i = 2; i < stratas.size(); i++)
+		for (int i = 1; i < stratas.size(); i++)
 			factors[i] = factors[i - 1] * stratas[i - 1].nValues;
 	}
 
