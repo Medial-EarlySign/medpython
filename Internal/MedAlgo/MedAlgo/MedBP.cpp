@@ -90,10 +90,12 @@ int MedBP::init(void *_in_params)
 
 
 netStruct  buildNet(int numLayers,int shared[],int xd[], int yd[],int zd[],int size2[][2],int skip2[][2]);
+netStruct  buildNet(int numLayers, int shared[], int xd[], int yd[], int zd[], int size2[][2], int skip2[][2], neuronFunT layerNeuronFun[]) ;// an overload that specifies for each later the neurons type
 void  feedForward(netStruct myNet,double *inputs,double *outputs,double beta);
  double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, double *actualOutputs,double alpha,double beta);
  double trainOnceLog(netStruct *myNet,double *inputs, double * desiredOutputs, double *actualOutputs,double alpha,double beta ,int sync,double *weightChange);
  double trainBatch(netStruct *myNet, double **inputs,double **outputs,int numSamples,double alpha,double beta,int sync);
+ double trainBatch(netStruct *myNet, double *inputs, double *outputs, int numSamples, double alpha, double beta, int sync);//overload for continous input matrix
  void printNet(netStruct thisNet);
  netStruct  loadNetwork(char *fname);
  void saveNetwork(netStruct thisNet,char *fname);
