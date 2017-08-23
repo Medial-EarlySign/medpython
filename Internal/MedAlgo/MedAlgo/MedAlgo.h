@@ -730,8 +730,11 @@ public:
 //======================================================================================
 // BackProp 
 //======================================================================================
+typedef enum { SIGMOID, RELU }neuronFunT;
+
 typedef struct {
 	int layerIndex;
+	neuronFunT neuronFunction ;
 	int x;
 	int y;
 	int  firstWeight, lastWeight;
@@ -744,7 +747,7 @@ typedef struct {
 //================================================================
 typedef struct {
 	neuronStruct *neuron;
-
+	
 
 	int *source;
 	double *weight;

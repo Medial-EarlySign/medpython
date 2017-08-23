@@ -245,8 +245,11 @@ size_t MedBP::deserialize(unsigned char *blob) {
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "MedAlgo/MedAlgo/MedAlgo.h"
+
 
 #define EPS (1.e-10) /* bind accuracy to avoid singularity */
+#define ALPHA (0.01)// RELU parameter
 
 netStruct  buildNet(int numLayers,int shared[],int xd[], int yd[],int zd[],int size2[][2],int skip2[][2])
 {
@@ -294,8 +297,8 @@ netStruct  buildNet(int numLayers,int shared[],int xd[], int yd[],int zd[],int s
 					myNet.neuron[neuronPointer].y=yNeuron;
 					myNet.neuron[neuronPointer].firstWeight=weightPointer;
 					myNet.neuron[neuronPointer].firstSource=sourcePointer;
-					
 					myNet.neuron[neuronPointer].layerIndex=layerIndex;
+					myNet.neuron[neuronPointer].neuronFunction = SIGMOID;
 					if(layerIndex==0){
 						myNet.neuron[neuronPointer].lastWeight=weightPointer;
 						myNet.neuron[neuronPointer].lastSource=sourcePointer;
@@ -314,8 +317,10 @@ netStruct  buildNet(int numLayers,int shared[],int xd[], int yd[],int zd[],int s
 								if(myNet.neuron[nIndex].layerIndex==layerIndex-1)
 									if(myNet.neuron[nIndex].x==xw)
 										if(myNet.neuron[nIndex].y==yw){
-											myNet.source[sourcePointer++]=nIndex;
-											urand=globalRNG::rand();
+											myNet.source[sourcePointer]=nIndex;
+											
+											sourcePointer++;
+											urand = globalRNG::rand();
 											myNet.weight[weightPointer++]=(double)urand/UINT_MAX*2-1;
 											
 										}
@@ -327,15 +332,43 @@ netStruct  buildNet(int numLayers,int shared[],int xd[], int yd[],int zd[],int s
 
 
 	}//layer
+	
 	myNet.numWeights=weightPointer;
 	myNet.numSource=sourcePointer;
 	myNet.weight=(double *)realloc(myNet.weight,weightPointer*sizeof(*(myNet.weight)));
-	myNet.source=(int *)realloc(myNet.source,sourcePointer*sizeof(int *));
+	myNet.source=(int *)realloc(myNet.source,sourcePointer*sizeof(int ));
 	return(myNet);
 }
+double trainBatch(netStruct *myNet, double *inputs, double *outputs, int numSamples, double alpha, double beta, int sync) {
+	int numInputs = myNet->numInputs;
+	int numOutputs = myNet->numOutputs;
+	double **inputP = (double **)malloc(numSamples *sizeof(double *));
+	assert(inputP);
+	double **outputP = (double **)malloc(numSamples *sizeof(double*));
+	assert(outputP);
+
+
+	for (int k = 0; k < numSamples; k++) {
+		inputP[k] = inputs + numInputs*k;
+		outputP[k] = outputs + numOutputs*k;
+	}
+	return(
+		trainBatch(myNet, inputP, outputP, numSamples, alpha, beta, sync)
+		);
 
 
 
+}
+
+netStruct  buildNet(int numLayers, int shared[], int xd[], int yd[], int zd[], int size2[][2], int skip2[][2], neuronFunT layerNeuronFun[]) // an overload that specifies for each later the neurons type
+{
+	netStruct myNet = buildNet(numLayers, shared, xd,yd, zd,size2,skip2);
+	for (int i = 0; i < myNet.numNeurons; i++)
+		myNet.neuron[i].neuronFunction = layerNeuronFun[myNet.neuron[i].layerIndex];
+
+	return(myNet);
+
+}
 void  feedForward(netStruct myNet,double *inputs,double *outputs,double beta)
 	// allocation of outputs is done by caller.
 {
@@ -350,10 +383,17 @@ void  feedForward(netStruct myNet,double *inputs,double *outputs,double beta)
 		int weightIndex=myNet.neuron[i].firstWeight;
 		for(int source=myNet.neuron[i].firstSource;source<myNet.neuron[i].lastSource;source++)
 			myNet.neuron[i].value+= myNet.neuron[myNet.source[source]].value*myNet.weight[weightIndex++];
-		if((-beta*myNet.neuron[i].value)<-log(EPS))
-			myNet.neuron[i].value=1./(1+exp(-beta*myNet.neuron[i].value));
-		else
-			myNet.neuron[i].value=EPS;
+		switch (myNet.neuron[i].neuronFunction) {
+		case SIGMOID:	if ((-beta*myNet.neuron[i].value) >-log(EPS))
+							myNet.neuron[i].value = EPS * 2 - 1;
+						else if ((-beta*myNet.neuron[i].value) < log(EPS))
+								myNet.neuron[i].value = -EPS * 2 + 1;
+							else
+								myNet.neuron[i].value =( 1. / (1 + exp(-beta*myNet.neuron[i].value)))*2-1;
+			
+							break;
+		case RELU: if (myNet.neuron[i].value < 0) myNet.neuron[i].value *= ALPHA;
+		}
 		
 	}
 
@@ -377,9 +417,17 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 		myNet->neuron[neuronIndex].error=(actualOutputs[i]-desiredOutputs[i]);
 		if(myNet->neuron[neuronIndex].error<0)myNet->neuron[neuronIndex].error *=COMPENSATION;
 		sumError+=SQR(myNet->neuron[neuronIndex].error);
-		myNet->neuron[neuronIndex].delta=myNet->neuron[neuronIndex].error*beta*(myNet->neuron[neuronIndex].value+EPS)*(1-myNet->neuron[neuronIndex].value+EPS);
-		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
+		switch (myNet->neuron[neuronIndex].neuronFunction) {
+		case SIGMOID:
+			myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error*beta*2*(myNet->neuron[neuronIndex].value+1 )*(1- myNet->neuron[neuronIndex].value );
+			break;
+		case RELU:
+				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
+				if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
+			break;
+		}
 
+		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
 		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++)
 			myNet->neuron[myNet->source[source]].delta+=myNet->weight[weightIndex++]*myNet->neuron[neuronIndex].delta;
 
@@ -389,74 +437,96 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 
 	//set the delta at non outputlayer and move it backwards
 	for(neuronIndex=myNet->numNeurons-1-myNet->numOutputs;neuronIndex>=0;neuronIndex--){
-		
-		myNet->neuron[neuronIndex].delta*=beta*(myNet->neuron[neuronIndex].value+EPS)*(1-myNet->neuron[neuronIndex].value+EPS);
-		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
-		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++){
-			myNet->neuron[myNet->source[source]].delta+=myNet->weight[weightIndex++]*myNet->neuron[neuronIndex].delta;
+		switch (myNet->neuron[neuronIndex].neuronFunction) {
+		case SIGMOID:
+			myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].delta*beta * 2 * (myNet->neuron[neuronIndex].value + 1)*(1 - myNet->neuron[neuronIndex].value);
+			break;
+		case RELU:
+			if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
 		}
+		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
+		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++)
+			myNet->neuron[myNet->source[source]].delta+=myNet->weight[weightIndex++]*myNet->neuron[neuronIndex].delta;
 	}
+
 	//adjust weights
 	for(neuronIndex=myNet->numNeurons-1;neuronIndex>=0;neuronIndex--){
 		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
 		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++)
 			myNet->weight[weightIndex++]-=alpha*myNet->neuron[neuronIndex].delta*myNet->neuron[myNet->source[source]].value;
 	}
+
 	return(sumError); 
 }									
 
-double trainOnceLog(netStruct *myNet,double *inputs, double * desiredOutputs, double *actualOutputs,double alpha,double beta ,int sync,double *weightChange)
+double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, double *actualOutputs,double alpha,double beta ,int sync,double *weightChange)
 	// use log winner prob as target error
 {
 	int neuronIndex;
 	double sumError=0;
-	double sumOutput=0;
+	double sumOutput = 0;
 	feedForward(*myNet,inputs,actualOutputs,beta);
 	//zero deltas
 	for (int i=0;i<myNet->numNeurons;i++)
 		myNet->neuron[i].delta=0;
 	//set the delta at output layer and move it backwards
-	for (int i=0;i<myNet->numOutputs;i++){
-		if(actualOutputs[i]<=EPS)actualOutputs[i]=EPS;
-		sumOutput+=actualOutputs[i];
-	}
-
 	
-	for (int i=0;i<myNet->numOutputs;i++){
-		
-		neuronIndex=myNet->numNeurons-myNet->numOutputs+i;
-		myNet->neuron[neuronIndex].error=1./sumOutput;
-		if(desiredOutputs[i]){
-			myNet->neuron[neuronIndex].error-=1./(actualOutputs[i]);
-		    sumError+=log(actualOutputs[i]/sumOutput);
-		
+
+
+		for (int i = 0; i < myNet->numOutputs; i++) {
+
+			neuronIndex = myNet->numNeurons - myNet->numOutputs + i;
+			myNet->neuron[neuronIndex].error = (actualOutputs[i] - desiredOutputs[i]);
+			if (myNet->neuron[neuronIndex].error < 0)myNet->neuron[neuronIndex].error *= COMPENSATION;
+			sumError += SQR(myNet->neuron[neuronIndex].error);
+
+			switch (myNet->neuron[neuronIndex].neuronFunction) {
+			case SIGMOID:
+				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error*beta * 2 * (myNet->neuron[neuronIndex].value + 1)*(1 - myNet->neuron[neuronIndex].value);
+				break;
+			case RELU:
+				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
+				if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
+				break;
+			}
+
+			int weightIndex = myNet->neuron[neuronIndex].firstWeight;
+			for (int sourceI = myNet->neuron[neuronIndex].firstSource; sourceI < myNet->neuron[neuronIndex].lastSource; sourceI++)
+				myNet->neuron[myNet->source[sourceI]].delta += myNet->weight[weightIndex++] * myNet->neuron[neuronIndex].delta;
+
 		}
-		myNet->neuron[neuronIndex].delta=myNet->neuron[neuronIndex].error*beta*(myNet->neuron[neuronIndex].value+EPS)*(1-myNet->neuron[neuronIndex].value+EPS);
-		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
-		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++)
-			myNet->neuron[myNet->source[source]].delta+=myNet->weight[weightIndex++]*myNet->neuron[neuronIndex].delta;
+		//set the delta at non outputlayer and move it backwards
+		for (neuronIndex = myNet->numNeurons - 1 - myNet->numOutputs; neuronIndex >= 0; neuronIndex--) {
+			switch (myNet->neuron[neuronIndex].neuronFunction) {
+			case SIGMOID:
+				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].delta*beta * 2 * (myNet->neuron[neuronIndex].value + 1)*(1 - myNet->neuron[neuronIndex].value);
+				break;
+			case RELU:
+				if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
+			}
+			int weightIndex = myNet->neuron[neuronIndex].firstWeight;
+			for (int sourceI = myNet->neuron[neuronIndex].firstSource; sourceI < myNet->neuron[neuronIndex].lastSource; sourceI++) {
 
-	}
-	//set the delta at non outputlayer and move it backwards
-	for(neuronIndex=myNet->numNeurons-1-myNet->numOutputs;neuronIndex>=0;neuronIndex--){
-		myNet->neuron[neuronIndex].delta*=beta*(myNet->neuron[neuronIndex].value+EPS)*(1-myNet->neuron[neuronIndex].value+EPS);
-		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
-		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++)
-			myNet->neuron[myNet->source[source]].delta+=myNet->weight[weightIndex++]*myNet->neuron[neuronIndex].delta;
-	}
 
-	//adjust weights
-	for(neuronIndex=myNet->numNeurons-1;neuronIndex>=0;neuronIndex--){
-		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
-		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++){
-			if(sync)weightChange[weightIndex]-=alpha*myNet->neuron[neuronIndex].delta*myNet->neuron[myNet->source[source]].value;
-			else myNet->weight[weightIndex]-=alpha*myNet->neuron[neuronIndex].delta*myNet->neuron[myNet->source[source]].value;
-			weightIndex++;
+
+				myNet->neuron[myNet->source[sourceI]].delta += myNet->weight[weightIndex++] * myNet->neuron[neuronIndex].delta;
+			}
+
 		}
+
+		//adjust weights
+		for (neuronIndex = myNet->numNeurons - 1; neuronIndex >= 0; neuronIndex--) {
+			int weightIndex = myNet->neuron[neuronIndex].firstWeight;
+			for (int sourceI = myNet->neuron[neuronIndex].firstSource; sourceI < myNet->neuron[neuronIndex].lastSource; sourceI++) {
+				if (sync)weightChange[weightIndex] -= alpha*myNet->neuron[neuronIndex].delta*myNet->neuron[myNet->source[sourceI]].value;
+				else myNet->weight[weightIndex] -= alpha*myNet->neuron[neuronIndex].delta*myNet->neuron[myNet->source[sourceI]].value;
+				weightIndex++;
+			}
+		}
+
+		return(sumError);
 	}
 
-	return(sumError); 
-}	
 double trainBatch(netStruct *myNet, double **inputs,double **outputs,int numSamples,double alpha,double beta,int sync)
 {
 	double sumError=0;
@@ -469,17 +539,19 @@ double trainBatch(netStruct *myNet, double **inputs,double **outputs,int numSamp
 		
 		int k=rperm[i];
 		//k=i;   //DEBUG
-		//sumError+=trainOnceLog(myNet,inputs[k],outputs[k],tempOutputs,alpha,beta,sync,weightChange);
-		sumError+=trainOnce(myNet,inputs[k],outputs[k],tempOutputs,alpha,beta);
-	//	if(!(i%100))fprintf(stderr,"%d %f\r",i,sumError);
+		sumError+=trainOnce(myNet,inputs[k],outputs[k],tempOutputs,alpha,beta,sync,weightChange);
+		//sumError+=trainOnce(myNet,inputs[k],outputs[k],tempOutputs,alpha,beta);
+		//if(!(i%100))fprintf(stderr,"%d %f\r",i,sumError);
 	}
 	if(sync){
 		for(int weightIndex=0;weightIndex<myNet->numWeights;weightIndex++)
 			myNet->weight[weightIndex]+=weightChange[weightIndex];
 		free(weightChange);
 	}
+
 	free(tempOutputs);
 	free (rperm);
+	
 	return(sumError/numSamples);
 }
 
@@ -502,7 +574,7 @@ double trainRP(netStruct *myNet, double **inputs,double **outputs,int numSamples
 			if(acc>*sumErrorArray*random01)break;
 		}
 		
-		sumError+= thisError=-trainOnceLog(myNet,inputs[ii],outputs[ii],tempOutputs,alpha,beta,0,NULL);
+		sumError+= thisError=-trainOnce(myNet,inputs[ii],outputs[ii],tempOutputs,alpha,beta,0,NULL);
 		*sumErrorArray+=thisError-errorArray[ii];
 		errorArray[ii]=thisError;
 		if(!(i%100))fprintf(stderr,"%d %f\r",i,*sumErrorArray);
