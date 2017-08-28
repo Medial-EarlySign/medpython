@@ -730,7 +730,7 @@ public:
 //======================================================================================
 // BackProp 
 //======================================================================================
-typedef enum { SIGMOID, RELU }neuronFunT;
+typedef enum { SIGMOID, RELU ,LINEAR}neuronFunT;
 
 typedef struct {
 	int layerIndex;

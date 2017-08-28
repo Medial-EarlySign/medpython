@@ -250,7 +250,7 @@ size_t MedBP::deserialize(unsigned char *blob) {
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 
 
-#define EPS (1.e-10) /* bind accuracy to avoid singularity */
+#define EPS (1.e-3) /* bind accuracy to avoid singularity */
 #define ALPHA (0.01)// RELU parameter
 
 netStruct  buildNet(int numLayers,int shared[],int xd[], int yd[],int zd[],int size2[][2],int skip2[][2])
@@ -387,14 +387,16 @@ void  feedForward(netStruct myNet,double *inputs,double *outputs,double beta)
 			myNet.neuron[i].value+= myNet.neuron[myNet.source[source]].value*myNet.weight[weightIndex++];
 		switch (myNet.neuron[i].neuronFunction) {
 		case SIGMOID:	if ((-beta*myNet.neuron[i].value) >-log(EPS))
-							myNet.neuron[i].value = EPS * 2 - 1;
+							myNet.neuron[i].value =EPS * 2 - 1;
 						else if ((-beta*myNet.neuron[i].value) < log(EPS))
 								myNet.neuron[i].value = -EPS * 2 + 1;
 							else
 								myNet.neuron[i].value =( 1. / (1 + exp(-beta*myNet.neuron[i].value)))*2-1;
 			
 							break;
-		case RELU: if (myNet.neuron[i].value < 0) myNet.neuron[i].value *= ALPHA;
+		case RELU: if (myNet.neuron[i].value < 0) myNet.neuron[i].value *= ALPHA;// leaky RELU positive stays the same. negative multiplied by alpha
+			break;
+		case LINEAR: break;// in linear value stays as is
 		}
 		
 	}
@@ -427,6 +429,10 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
 				if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
 			break;
+		case LINEAR:
+			myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
+			break;
+
 		}
 
 		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
@@ -445,6 +451,9 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 			break;
 		case RELU:
 			if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
+		case LINEAR:
+			myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
+			break;
 		}
 		int weightIndex=myNet->neuron[neuronIndex].firstWeight;
 		for(int source=myNet->neuron[neuronIndex].firstSource;source<myNet->neuron[neuronIndex].lastSource;source++)
@@ -490,7 +499,11 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
 				if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
 				break;
+			case LINEAR:
+				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
+				break;
 			}
+
 
 			int weightIndex = myNet->neuron[neuronIndex].firstWeight;
 			for (int sourceI = myNet->neuron[neuronIndex].firstSource; sourceI < myNet->neuron[neuronIndex].lastSource; sourceI++)
@@ -505,6 +518,9 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 				break;
 			case RELU:
 				if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
+			case LINEAR:
+				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
+				break;
 			}
 			int weightIndex = myNet->neuron[neuronIndex].firstWeight;
 			for (int sourceI = myNet->neuron[neuronIndex].firstSource; sourceI < myNet->neuron[neuronIndex].lastSource; sourceI++) {
