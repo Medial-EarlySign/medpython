@@ -451,6 +451,7 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 			break;
 		case RELU:
 			if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
+			break;
 		case LINEAR:
 			myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
 			break;
@@ -518,6 +519,7 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 				break;
 			case RELU:
 				if (myNet->neuron[neuronIndex].value < 0)myNet->neuron[neuronIndex].delta *= ALPHA;
+				break;
 			case LINEAR:
 				myNet->neuron[neuronIndex].delta = myNet->neuron[neuronIndex].error;
 				break;
