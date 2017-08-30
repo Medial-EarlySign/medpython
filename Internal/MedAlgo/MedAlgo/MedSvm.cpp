@@ -14,7 +14,7 @@ void MedSvm::init_defaults() {
 	classifier_type = MODEL_SVM;
 
 	params.C = 1.0;
-	params.cache_size = 100;
+	params.cache_size = 30000;
 	params.kernel_type = SVM_LINEAR; //all options: LINEAR, POLY, RBF, SIGMOID, PRECOMPUTED
 	params.svm_type = C_SVC; // all options: C_SVC, NU_SVC, ONE_CLASS(no labels, one class), EPSILON_SVR (regression), NU_SVR (Regression)
 	params.degree = 3; //only when kernel = POLY 
@@ -102,7 +102,7 @@ int MedSvm::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 		node[nftrs].index = -1;
 
 		problem.x[i] = node;
-		problem.y[i] = 2 * y[i] - 1; // convert to -1,+1 from 0,1
+		problem.y[i] = y[i]; // no need to convert to -1,+1 from 0,1. svm suports both formats
 	}
 	model = svm_train(&problem, &params);
 
