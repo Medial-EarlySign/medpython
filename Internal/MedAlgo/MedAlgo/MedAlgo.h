@@ -917,8 +917,6 @@ class MedSvm : public MedPredictor {
 public:
 	// Model
 
-	int nsamples;
-	int nftrs;
 	struct svm_parameter params;
 	struct svm_model *model;
 	/*double **x;
