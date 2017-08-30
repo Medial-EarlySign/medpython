@@ -565,7 +565,7 @@ double trainBatch(netStruct *myNet, double **inputs,double **outputs,int numSamp
 	}
 	if(sync){
 		for(int weightIndex=0;weightIndex<myNet->numWeights;weightIndex++)
-			myNet->weight[weightIndex]+=weightChange[weightIndex];
+			myNet->weight[weightIndex]+=weightChange[weightIndex]/numSamples;
 		free(weightChange);
 	}
 
