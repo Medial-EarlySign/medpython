@@ -69,6 +69,7 @@ typedef enum {
 	MODEL_LIGHTGBM = 13, // the celebrated LightGBM algorithm
 	MODEL_SPECIFIC_GROUPS_MODELS = 14,
 	MODEL_SVM = 15,
+	MODEL_LINEAR_SGD = 16,
 	MODEL_LAST
 } MedPredictorTypes;
 
