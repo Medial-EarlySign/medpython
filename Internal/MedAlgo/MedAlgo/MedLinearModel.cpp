@@ -352,6 +352,11 @@ MedLinearModel::MedLinearModel(int numOdSignals) : PredictiveModel("LinearModel(
 	normalize_for_learn = false; //doing internal and not with MedMat to save normalization params for predict
 	normalize_for_predict = false;
 	classifier_type = MODEL_LINEAR_SGD;
+	sample_count = numOdSignals * 15;
+	tot_steps = 10000;
+	learning_rate = 3 * 1e-7;
+	block_num = 1.0;
+	norm_l1 = false;
 }
 
 void MedLinearModel::print(const vector<string> &signalNames) {
@@ -451,7 +456,8 @@ void _learnModel(SGD &learner, const vector<vector<float>> &xData, const vector<
 			maxP = maxSignal;
 		}
 	}
-	cout << "maxDiffSignal = " << maxP << endl;
+	cout << "maxDiffSignal=" << maxP << " sample_count=" << sampleSize <<
+		" cat_cnt=" << categoryCnt << " h=" << h_size << " blocking=" << blocking_num << endl;
 	float blockDer = maxP / h_size;
 	if (learnRate > 0) {
 		learner.set_learing_rate((float)learnRate);
@@ -545,17 +551,15 @@ int MedLinearModel::Learn(float *x, float *y, float *w, int nsamples, int nftrs)
 	set_normalization(avg_diff, factors);
 	SGD learner(this, loss_function);
 	learner.subGradientI = NULL; //((LinearModel *)mdl)->getSubGradientsSvm();
-	learner.set_blocking((float)1);
+	learner.norm_l1 = norm_l1;
+	learner.set_blocking(block_num);
 	//learner.set_model_precision(1e-5);
 	learner.set_special_step_func(loss_function_step); //not in use if learner.subGradientI is not NULL
 
 	int minCat = 1;
-	int sampleSize = 500;
-	int tot_steps = 10000;
-	double learning_rate = 3 * 1e-7;
 
 	mark_learn_finish = false;
-	_learnModel(learner, xData, yData, minCat, tot_steps, 10, learning_rate, sampleSize);
+	_learnModel(learner, xData, yData, minCat, tot_steps, 10, learning_rate, sample_count);
 	mark_learn_finish = true;
 
 	return 0;

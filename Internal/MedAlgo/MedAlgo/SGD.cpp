@@ -35,6 +35,7 @@ SGD::SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, co
 	_blocking_val = 0;
 	_min_precision = 0;
 	output_num = 0;
+	norm_l1 = false;
 #if defined(PARALLEL_SGD)
 	_models_par.resize((int)_model->model_params.size());
 	for (size_t i = 0; i < _models_par.size(); ++i)
@@ -96,20 +97,21 @@ void factor(vector<double> &a, double fact) {
 	}
 }
 
-double vectorNorm(const vector<double> &v) {
+double vectorNorm(const vector<double> &v, bool norm_l1 = false) {
 	double res = 0;
-#ifndef NORM_L1
-	for (size_t i = 0; i < v.size(); ++i)
-	{
-		res += v[i] * v[i];
+	if (!norm_l1) {
+		for (size_t i = 0; i < v.size(); ++i)
+		{
+			res += v[i] * v[i];
+		}
+		res = sqrt(res);
 	}
-	res = sqrt(res);
-#else
-	for (size_t i = 0; i < v.size(); ++i)
-	{
-		res += abs(v[i]);
+	else {
+		for (size_t i = 0; i < v.size(); ++i)
+		{
+			res += abs(v[i]);
+		}
 	}
-#endif
 	return res;
 }
 
@@ -328,7 +330,7 @@ void SGD::_projection_step(vector<double> &params) {
 		return;
 	}
 	//search for closet solution till _blocking_val norm size in L2
-	double currentNorm = vectorNorm(params);
+	double currentNorm = vectorNorm(params, norm_l1);
 	if (_blocking_val > 0 && currentNorm <= _blocking_val) {
 		return;
 	}
@@ -386,9 +388,9 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 	int max_sample_size = 10000;
 	vector<int> inds_selected;
 	vector<double> modelRes;
-	if (yData.size() >= max_sample_size * 10) 
+	if (yData.size() >= max_sample_size * 10)
 		inds_selected = randomGroup(max_sample_size, (int)yData.size());
-	
+
 	if (_minSampForCat > 0) { //categorical
 		for (size_t i = 0; i < yData.size(); ++i)
 		{
@@ -444,7 +446,7 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 					for (size_t kk = 0; kk < xData.size(); ++kk)
 						xf[kk][k] = xData[kk][inds_selected[k]];
 				}
-				
+
 				_model->predict(xf, modelRes);
 				avgLoss = (float)loss_function(modelRes, yf);
 				if (step_loss_function != NULL) {

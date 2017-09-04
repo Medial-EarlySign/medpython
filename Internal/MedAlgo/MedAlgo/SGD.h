@@ -34,6 +34,7 @@ public:
 	float get_blocking();
 
 	size_t output_num; //The number of lines before printing output, 0= no printing
+	bool norm_l1;
 private:
 	PredictiveModel *_model;
 	vector<PredictiveModel *> _models_par;

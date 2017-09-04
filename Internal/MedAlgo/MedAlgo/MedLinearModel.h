@@ -24,6 +24,11 @@ public:
 	//Set Loss Fucntions to learn:
 	double(*loss_function)(const vector<double> &got, const vector<float> &y);
 	double(*loss_function_step)(const vector<double> &, const vector<float> &, const vector<double> &);
+	int sample_count;
+	int tot_steps;
+	double learning_rate;
+	float block_num;
+	bool norm_l1;
 
 	//MedPredictor Api:
 	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
