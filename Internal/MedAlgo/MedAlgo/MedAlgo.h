@@ -16,6 +16,7 @@
 #include "limits.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "svm.h"
 
 // #include "MedBooster.h" // this include is at the end of file as it depends on following definitions to come first
 
@@ -67,6 +68,8 @@ typedef enum {
 	MODEL_DEEP_BIT = 12, //general booster (meta algorithm)
 	MODEL_LIGHTGBM = 13, // the celebrated LightGBM algorithm
 	MODEL_SPECIFIC_GROUPS_MODELS = 14,
+	MODEL_SVM = 15,
+	MODEL_LINEAR_SGD = 16,
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -729,8 +732,11 @@ public:
 //======================================================================================
 // BackProp 
 //======================================================================================
+typedef enum { SIGMOID, RELU ,LINEAR}neuronFunT;
+
 typedef struct {
 	int layerIndex;
+	neuronFunT neuronFunction ;
 	int x;
 	int y;
 	int  firstWeight, lastWeight;
@@ -743,7 +749,7 @@ typedef struct {
 //================================================================
 typedef struct {
 	neuronStruct *neuron;
-
+	
 
 	int *source;
 	double *weight;
@@ -905,6 +911,40 @@ private:
 	int featNum;
 	vector<float> feat_ths;
 	int selectPredictor(const float *x); //retrieve predictor index
+};
+
+class MedSvm : public MedPredictor {
+public:
+	// Model
+
+	struct svm_parameter params;
+	struct svm_model *model;
+	/*double **x;
+	double **y;
+	float *w;
+	*/
+
+	// Function
+	MedSvm();
+	MedSvm(void *params);
+	MedSvm(struct svm_parameter &params);
+	~MedSvm();
+
+	void init_defaults();
+	int init(void *params);
+	virtual int init(map<string, string>& mapper);
+	int init(struct svm_parameter &params);
+
+	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+	
+private:
+	
+
 };
 
 //================================================================

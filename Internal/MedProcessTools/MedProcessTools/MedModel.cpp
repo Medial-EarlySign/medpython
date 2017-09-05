@@ -369,8 +369,13 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
+		int npos = curr_line.find("//");
+		if (npos == 0)
+			continue;
 		lines++;
-		list.push_back(curr_line);
+		if (npos < string::npos)
+			list.push_back(curr_line.substr(0, npos));
+		else list.push_back(curr_line);
 	}
 	fprintf(stderr, "read %d lines from: %s\n", lines, fname.c_str());
 	inf.close();
@@ -449,6 +454,9 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 
 	ptree pt;
 	read_json(no_comments_stream, pt);
+	string ser = pt.get<string>("serialize_learning_set", "1");
+	this->serialize_learning_set = stoi(ser);
+
 	for(ptree::value_type &p: pt.get_child("processes"))
 	{
 		int process_set = -1;
@@ -806,8 +814,15 @@ size_t MedModel::get_size() {
 	// Predictor
 	size += predictor->get_predictor_size();
 
+	size += sizeof(serialize_learning_set);
+
 	// Learning samples
-	size += LearningSet->get_size();
+	if (serialize_learning_set)
+		size += LearningSet->get_size();
+	else {
+		MedSamples empty_samples;
+		size += empty_samples.get_size();
+	}
 	  
 	return size;
 }
@@ -841,8 +856,15 @@ size_t MedModel::serialize(unsigned char *blob) {
 	// Predictor
 	ptr += predictor->predictor_serialize(blob+ptr);
 
+	memcpy(blob + ptr, &serialize_learning_set, sizeof(serialize_learning_set)); ptr += sizeof(serialize_learning_set);
+
 	// Learning samples
-	ptr += LearningSet->serialize(blob + ptr);
+	if (serialize_learning_set)
+		ptr += LearningSet->serialize(blob + ptr);
+	else {
+		MedSamples empty_samples;
+		ptr += empty_samples.serialize(blob + ptr);
+	}
 
 	return ptr;
 }
@@ -893,6 +915,8 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	memcpy(&type, blob + ptr, sizeof(MedPredictorTypes)); ptr += sizeof(MedPredictorTypes);
 	predictor = MedPredictor::make_predictor(type);
 	ptr += predictor->deserialize(blob + ptr);
+
+	memcpy(&serialize_learning_set, blob + ptr, sizeof(serialize_learning_set)); ptr += sizeof(serialize_learning_set);
 
 	// Learning samples
 	LearningSet = new MedSamples;

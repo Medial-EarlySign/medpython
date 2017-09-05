@@ -540,6 +540,7 @@ template <class T> int MedMat<T>::write_to_bin_file(const string &fname)
 //template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out)
 template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int titles_line_flag)
 {
+	clear();
 	if (!file_exists(fname)) {
 		fprintf(stderr, "File %s doesn't exist\n",fname.c_str());
 		throw exception();

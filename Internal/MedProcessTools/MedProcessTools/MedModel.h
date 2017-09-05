@@ -31,6 +31,8 @@ typedef enum {
 //.......................................................................................
 class MedModel : public SerializableObject {
 public:
+	// remember learning set
+	int serialize_learning_set = 1;
 
 	// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
@@ -54,7 +56,7 @@ public:
 	unordered_set<int> required_signals;
 
 	// Constructor/Destructor
-	MedModel() { safe_mode = 0;  };
+	MedModel() { safe_mode = 0; serialize_learning_set = 1; };
 	~MedModel() {};
 
 	MedFeatures features;	// no need to serialize
