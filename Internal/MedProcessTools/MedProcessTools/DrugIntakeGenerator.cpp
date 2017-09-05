@@ -83,11 +83,11 @@ float DrugIntakeGenerator::get_value(PidDynamicRec &rec, UniversalSigVec &usv, i
 
 	// Collect period of administration per drug
 	for (int i = 0; i < usv.len; i++) {
-		if (lut[usv.Val(i,0)] > 0) {
-			int setId = lut[usv.Val(i, 0)] - 1;
+		if (lut[(int)usv.Val(i,0)] > 0) {
+			int setId = lut[(int)usv.Val(i, 0)] - 1;
 			int currentTime = med_time_converter.convert_times(time_unit_sig,time_unit_win,usv.Time(i));
 		
-			int period = usv.Val(i,1);
+			int period = (int)usv.Val(i,1);
 
 			if (drugIntakePeriods[setId].empty() || currentTime > drugIntakePeriods[setId].back().second)
 				drugIntakePeriods[setId].push_back({ currentTime,currentTime + period - 1 });
@@ -130,7 +130,7 @@ float DrugIntakeGenerator::get_value(PidDynamicRec &rec, UniversalSigVec &usv, i
 			lastCovered = periods[i].second;
 	}
 
-	float coverage = (adminTime + 0.0) / (max_time + 1 - min_time);
+	float coverage = ((float)adminTime) / (float)(max_time + 1 - min_time);
 	return coverage;
 }
 
