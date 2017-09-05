@@ -311,7 +311,7 @@ int learn_lm(float *x, float *_y, float *w, int nsamples, int nftrs, int niter, 
 //==============================================================================================
 // Linear Models2: Linear regression (with Ridge and/or Lasso), using Gradient Descent variants
 //==============================================================================================
-struct MedGDLMParams {
+struct MedGDLMParams : public SerializableObject {
 
 	// Required params
 	int max_iter;
@@ -337,6 +337,7 @@ struct MedGDLMParams {
 		l_ridge = (float)0; l_lasso = (float)0; nthreads = 0; err_freq = 10;
 	}
 
+	ADD_SERIALIZATION_FUNCS(method, last_is_bias, max_iter, stop_at_err, max_times_err_grows, batch_size, rate, rate_decay, l_ridge, l_lasso, nthreads, err_freq);
 };
 
 class MedGDLM : public MedPredictor {
@@ -365,9 +366,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
 
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(params, n_ftrs, b, b0);
 
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
@@ -922,6 +921,7 @@ private:
 
 MEDSERIALIZE_SUPPORT(MedLM)
 MEDSERIALIZE_SUPPORT(MedLasso)
+MEDSERIALIZE_SUPPORT(MedGDLMParams)
 MEDSERIALIZE_SUPPORT(MedGDLM)
 MEDSERIALIZE_SUPPORT(MedQRF)
 MEDSERIALIZE_SUPPORT(MedMicNet)
