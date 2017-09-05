@@ -1907,6 +1907,7 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 
 	if (predict(x, preds, last_is_bias_flag) < 0) return -1;
 
+	MLOG("eval() after predict for %s : x %d x %d , preds %d x %d loss type: %s\n", name.c_str(), x.nrows, x.ncols, preds.nrows, preds.ncols, params.loss_type.c_str());
 	int nsamples = x.nrows;
 
 	if (0) { //params.n_categ == 1) {
@@ -1974,7 +1975,8 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 				float loss = 0;
 				float epsilon = (float)1e-5;
 				for (int i=0; i<nsamples; i++) {
-					float p = max(epsilon, preds(i, (int)max_pred[i]));
+//					float p = max(epsilon, preds(i, (int)max_pred[i]));
+					float p = max(epsilon, preds(i, (int)y(i,0)));
 					loss += -log(p);
 				}
 				eval.log_loss = loss;
@@ -2140,8 +2142,10 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train)
 		if (i_epoch > params.min_epochs && i_epoch > params.n_back) {
 			//if (params.net_type == "fc") {
 			if (params.loss_type == "log") {
-				curr = on_train_evals[i_epoch].acc_err;
-				back = on_train_evals[i_epoch-params.n_back].acc_err;
+				//curr = on_train_evals[i_epoch].acc_err;
+				curr = on_train_evals[i_epoch].log_loss;
+				//back = on_train_evals[i_epoch-params.n_back].acc_err;
+				back = on_train_evals[i_epoch-params.n_back].log_loss;
 				err = (back - curr)/back;
 			}
 			//if (params.net_type == "autoencoder") {
