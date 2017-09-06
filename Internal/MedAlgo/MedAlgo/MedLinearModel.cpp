@@ -2,6 +2,7 @@
 #include <map>
 #include <cmath>
 #include <iostream>
+#include <random>
 #include "MedLinearModel.h"
 #include "SGD.h"
 
@@ -43,6 +44,9 @@ void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double>
 	}
 }
 
+#define REG_LAMBDA 0.0
+#define SMOOTH false
+#define REGULARIZATION_GEOM 0.1
 subGradientFunction  MedLinearModel::getSubGradients() {
 	//This is subGradient in L2, for other loss function you need to change this function
 	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y) {
@@ -67,7 +71,6 @@ subGradientFunction  MedLinearModel::getSubGradients() {
 
 	return func;
 }
-#define REG_LAMBDA 1.0
 subGradientFunction  MedLinearModel::getSubGradientsAUC() {
 	//This is subGradient in L2, for other loss function you need to change this function. (need fix for bias param, W{n+1})
 	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y) {
@@ -151,22 +154,17 @@ subGradientFunction  MedLinearModel::getSubGradientsSvm() {
 
 	return func;
 }
-#define SMOOTH false
-#define REGULARIZATION_GEOM 0.0
 double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y) {
-	map<int, vector<int>> targetToInd;
+	vector<vector<int>> targetToInd(2);
 	for (size_t i = 0; i < y.size(); ++i)
-	{
-		targetToInd[(int)y[i]].push_back((int)i);
-	}
-	vector<int> posInds = targetToInd[1];
-	vector<int> negInds = targetToInd[0]; //change to -1 if y is given that way
+		targetToInd[int(y[i] > 0)].push_back((int)i);
+	
 	double res = 0;
-	for (size_t i = 0; i < posInds.size(); ++i)
+	for (size_t i = 0; i < targetToInd[1].size(); ++i)
 	{
-		for (size_t j = 0; j < negInds.size(); ++j)
+		for (size_t j = 0; j < targetToInd[0].size(); ++j)
 		{
-			double diffScores = preds[posInds[i]] - preds[negInds[j]];
+			double diffScores = preds[targetToInd[1][i]] - preds[targetToInd[0][j]];
 			//res += 1.0 / (1.0 + exp(-10 * diffScores));
 			if (SMOOTH) {
 				diffScores *= 5;
@@ -179,7 +177,7 @@ double _linear_loss_target_auc(const vector<double> &preds, const vector<float> 
 			}
 		}
 	}
-	res /= (posInds.size() * negInds.size());
+	res /= (targetToInd[1].size() * targetToInd[0].size());
 	res = -res; //auc needs to be maximize
 	return res;
 }
@@ -189,39 +187,37 @@ double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y
 	for (size_t i = 0; i < params.size(); ++i)
 		nrm += params[i] * params[i];
 	nrm /= 2;
-	//res += REG_LAMBDA*nrm; //not needed projecting to 1 after each iteration
+	res += REG_LAMBDA*nrm; //not needed projecting to 1 after each iteration
 	return res;
 }
 double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y) {
-	map<int, vector<int>> targetToInd;
+	vector<vector<int>> targetToInd(2);
 	for (size_t i = 0; i < y.size(); ++i)
-	{
 		targetToInd[(int)y[i]].push_back((int)i);
-	}
+	
 	double res = 0;
+	int smp_cnt = 500;
 	//random_device rd;
 	//auto gen = mt19937(rd());
 	std::default_random_engine gen;
 	gen.seed( /* your seed for the RNG goes here */);
-	vector<int> posInds = targetToInd[1];
-	vector<int> negInds = targetToInd[0]; //change to -1 if y is given that way
-	uniform_int_distribution<> pos_rand(0, (int)posInds.size() - 1);
-	uniform_int_distribution<> neg_rand(0, (int)negInds.size() - 1);
-	for (size_t i = 0; i < 100; ++i)
+	uniform_int_distribution<> pos_rand(0, (int)targetToInd[1].size() - 1);
+	uniform_int_distribution<> neg_rand(0, (int)targetToInd[0].size() - 1);
+	for (size_t i = 0; i < smp_cnt; ++i)
 	{
-		int posInd = posInds[pos_rand(gen)];
-		int negInd = negInds[neg_rand(gen)];
+		int posInd = targetToInd[1][pos_rand(gen)];
+		int negInd = targetToInd[0][neg_rand(gen)];
 		double diffScores = preds[posInd] - preds[negInd];
 		//res += 1.0 / (1.0 + exp(-diffScores));
 		res += diffScores > 0;
 		res += (diffScores == 0)* 0.5;
 	}
-	//res /= 100;
+	//res /= smp_cnt;
 	res = -res; //auc needs to be maximize
 
 	return res;
 }
-double _linear_loss_target(const vector<double> &preds, const vector<float> &y) {
+double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y) {
 	double res = 0;
 	int totPos = 0;
 	float deired_sen = (float)0.75; //Take AUC @ deired_sen (smooth local AUC)
@@ -266,8 +262,8 @@ double _linear_loss_target(const vector<double> &preds, const vector<float> &y) 
 
 	return res;
 }
-double _linear_loss_step(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
-	float loss_val = (float)_linear_loss_target(preds, y);
+double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
+	float loss_val = (float)_linear_loss_target_work_point(preds, y);
 	double nrm = 0;
 	if (REG_LAMBDA > 0) {
 		for (size_t i = 0; i < model_params.size(); ++i)
@@ -289,6 +285,18 @@ double _linear_loss_target_rmse(const vector<double> &preds, const vector<float>
 	res = sqrt(res);
 	return res;
 }
+double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
+	double res = _linear_loss_target_rmse(preds, y);
+
+	double reg = 0;
+	if (REG_LAMBDA > 0) {
+		for (size_t i = 0; i < model_params.size(); ++i)
+			reg += model_params[i] * model_params[i];
+		reg = sqrt(reg);
+	}
+
+	return res + REG_LAMBDA * reg;
+}
 double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y) {
 	double res = 0;
 	for (size_t i = 0; i < y.size(); ++i)
@@ -302,32 +310,7 @@ double _linear_loss_target_svm(const vector<double> &preds, const vector<float> 
 	return res; //no reg - maybe count only accourcy beyond 1 and beyond 0
 }
 double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
-	double res = 0;
-	for (size_t i = 0; i < y.size(); ++i)
-	{
-		double diff = 1 - (2 * (y[i] > 0) - 1) * preds[i];
-		if (diff > 0)
-			res += diff;
-	}
-	res /= y.size();
-
-	double reg = 0;
-	if (REG_LAMBDA > 0) {
-		for (size_t i = 0; i < model_params.size(); ++i)
-			reg += model_params[i] * model_params[i];
-		reg = sqrt(reg);
-	}
-
-	return res + REG_LAMBDA * reg;
-}
-double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
-	double res = 0;
-	for (size_t i = 0; i < y.size(); ++i)
-	{
-		res += (y[i] - preds[i]) * (y[i] - preds[i]);
-	}
-	res /= y.size();
-	res = sqrt(res);
+	double res = _linear_loss_target_svm(preds, y);
 
 	double reg = 0;
 	if (REG_LAMBDA > 0) {
@@ -360,14 +343,22 @@ MedLinearModel::MedLinearModel(int numOdSignals) : PredictiveModel("LinearModel(
 }
 
 void MedLinearModel::print(const vector<string> &signalNames) {
-	for (size_t i = 0; i < model_params.size(); ++i)
-	{
-		if (i == 0) {
-			cout << "Param0=" << model_params[i] << endl;
-			continue;
-		}
-		cout << "Param" << i << " " << signalNames[i - 1] << "=" << model_params[i] << endl;
+	cout << "Param0=" << model_params[0] << endl;
+
+	vector<pair<double, int>> tps((int)signalNames.size());
+	for (size_t i = 0; i < signalNames.size(); ++i) {
+		tps[i].first = model_params[i + 1];
+		tps[i].second = (int)i;
 	}
+	sort(tps.begin(), tps.end(), [](const pair<double, int>&a, const pair<double, int> &b) {
+		if (abs(a.first) == abs(b.first))
+			return a.second < b.second;
+		return abs(a.first) > abs(b.first);
+	});
+
+	for (size_t i = 0; i < tps.size(); ++i)
+		cout << "Param" << tps[i].second + 1 << " " << signalNames[tps[i].second] << "=" << tps[i].first << endl;
+
 }
 
 void MedLinearModel::set_normalization(const vector<float> &meanShift, const vector<float> &factors) {
@@ -390,6 +381,12 @@ void MedLinearModel::apply_normalization(vector<vector<float>> &input) {
 
 PredictiveModel *MedLinearModel::clone() {
 	PredictiveModel *copy = new MedLinearModel((int)model_params.size() - 1);
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_real_distribution<> rand_gen;
+	for (size_t i = 0; i < copy->model_params.size(); ++i)
+		copy->model_params[i] = rand_gen(gen);
+
 	//dont copy values of params and normalization - not need for now
 	return copy;
 }
@@ -515,8 +512,8 @@ float _stdVec(const vector<float> &vec, float avg) {
 }
 
 void _normalizeSignalToAvg(vector<vector<float>> &xData, vector<float> &meanShift, vector<float> &factor) {
-	meanShift = vector<float>((int)xData.size());
-	factor = vector<float>((int)xData.size());
+	meanShift.resize((int)xData.size());
+	factor.resize((int)xData.size());
 	for (size_t i = 0; i < xData.size(); ++i)
 	{
 		//fixOutlyers(xData[i]);

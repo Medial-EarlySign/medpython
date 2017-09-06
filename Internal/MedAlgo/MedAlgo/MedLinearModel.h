@@ -42,6 +42,18 @@ private:
 	bool mark_learn_finish;
 };
 
+
+inline double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y);
+inline double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y, const vector<double> &params);
+inline double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y);
+inline double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y);
+inline double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
+inline double _linear_loss_target_rmse(const vector<double> &preds, const vector<float> &y);
+inline double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
+inline double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y);
+inline double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
+
 MEDSERIALIZE_SUPPORT(MedLinearModel)
+
 #endif
 

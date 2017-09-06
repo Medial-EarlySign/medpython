@@ -57,6 +57,7 @@ private:
 	vector<vector<float>> _sampleX;
 	vector<double> _preds_plus;
 	vector<double> _preds_minus;
+	vector<double> _preds_base;
 
 	vector<double> _step(const vector<vector<float>> &xData, const vector<float> &yData);
 	void _projection_step(vector<double> &params);

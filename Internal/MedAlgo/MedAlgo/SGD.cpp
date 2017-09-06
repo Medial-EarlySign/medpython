@@ -13,8 +13,7 @@
 #pragma float_control( except, on )
 #endif
 
-//#define NORM_L1
-//#define PARALLEL_SGD
+#define IMPROVE_LINEAR_SPEED
 
 SGD::SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, const vector<float> &y)) {
 #if defined(__unix__)
@@ -36,11 +35,6 @@ SGD::SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, co
 	_min_precision = 0;
 	output_num = 0;
 	norm_l1 = false;
-#if defined(PARALLEL_SGD)
-	_models_par.resize((int)_model->model_params.size());
-	for (size_t i = 0; i < _models_par.size(); ++i)
-		_models_par[i] = mdl->clone();
-#endif
 }
 
 void SGD::set_learing_rate(float val) {
@@ -164,15 +158,14 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 			if (_minSampForCat > 0) { //statsfy _min category if have
 				for (auto it = _categoryIndex.begin(); it != _categoryIndex.end(); ++it)
 				{
-					vector<int> categoryIndexes = it->second;
-					uniform_int_distribution<> category_num(0, (int)categoryIndexes.size() - 1);
+					uniform_int_distribution<> category_num(0, (int)it->second.size() - 1);
 					vector<int> allRandomInds(_minSampForCat);
 					auto gen = std::bind(category_num, _gen);
 					generate(allRandomInds.begin(), allRandomInds.end(), gen);
 					for (size_t m = 0; m < _minSampForCat; ++m)
 					{
 						//int randomIndex = categoryIndexes[category_num(_gen)];
-						int randomIndex = categoryIndexes[allRandomInds[m]];
+						int randomIndex = it->second[allRandomInds[m]];
 
 						float expectedVal = yData[randomIndex];
 						_sampleY[addedCnt] = expectedVal;
@@ -235,11 +228,10 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 			if (_minSampForCat > 0) {
 				for (auto it = _categoryIndex.begin(); it != _categoryIndex.end(); ++it)
 				{
-					vector<int> categoryIndexes = it->second;
-					uniform_int_distribution<> category_num(0, (int)categoryIndexes.size() - 1);
+					uniform_int_distribution<> category_num(0, (int)it->second.size() - 1);
 					for (size_t m = 0; m < _minSampForCat; ++m)
 					{
-						int randomIndex = categoryIndexes[category_num(_gen)];
+						int randomIndex = it->second[category_num(_gen)];
 						float expectedVal = yData[randomIndex];
 						_sampleY[addedCnt] = expectedVal;
 						for (size_t k = 0; k < xData.size(); ++k)
@@ -260,25 +252,34 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 			}
 		}
 
-#if defined(PARALLEL_SGD)
+#if defined(IMPROVE_LINEAR_SPEED)
 		//calc numeric derivate for each variable:
-#pragma omp parallel for
+		_model->predict(_sampleX, _preds_base);
+		//now just adjust scores by the changed param:
 		for (int i = 0; i < _model->model_params.size(); ++i)
 		{
 			currentGrad[i] = 0;
-			//iterate on sample for this variable:
-			_models_par[i]->model_params[i] = _models_par[i]->model_params[i] + (_h / 2);
-			preds_plus = _models_par[i]->predict(allSampleX);
-			double lossVal_plus = step_loss_function(preds_plus, sampleY, _models_par[i]->model_params);
-			_models_par[i]->model_params[i] = _models_par[i]->model_params[i] - _h;
-			preds_minus = _models_par[i]->predict(allSampleX);
-			double lossVal_minus = step_loss_function(preds_minus, sampleY, _models_par[i]->model_params);
-			//_models_par[i]->model_params[i] = _models_par[i]->model_params[i] + (_h / 2); //not needed - will be updated in the end
+			//iterate on samples for this variable:
+			if (i == 0)  //free param
+				for (size_t j = 0; j < _preds_plus.size(); ++j) {
+					_preds_plus[j] = _preds_base[j] + _h / 2;
+					_preds_minus[j] = _preds_base[j] - _h / 2;
+				}
+			else
+				for (size_t j = 0; j < _preds_plus.size(); ++j) {
+					_preds_plus[j] = _preds_base[j] + (_h / 2 * _sampleX[i - 1][j]);
+					_preds_minus[j] = _preds_base[j] - (_h / 2 * _sampleX[i - 1][j]);
+				}
+
+			_model->model_params[i] = _model->model_params[i] + (_h / 2);
+			double lossVal_plus = step_loss_function(_preds_plus, _sampleY, _model->model_params); //can also improve speed by calcing only diff
+			_model->model_params[i] = _model->model_params[i] - _h;
+			double lossVal_minus = step_loss_function(_preds_minus, _sampleY, _model->model_params);
+			_model->model_params[i] = _model->model_params[i] + (_h / 2);
 
 			double subgradientSampleVal = (lossVal_plus - lossVal_minus) / _h;
 			currentGrad[i] += subgradientSampleVal;
 			currentGrad[i] /= sampleSize;
-			//TODO: calc STD and median - maybe it's not stable ? alert or show this data?
 		}
 #else
 		//calc numeric derivate for each variable:
@@ -306,11 +307,6 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 
 	for (size_t i = 0; i < _model->model_params.size(); ++i)
 		_model->model_params[i] = _model->model_params[i] - _learning_rate * currentGrad[i];
-#if defined(PARALLEL_SGD)
-	for (size_t i = 0; i < _models_par.size(); ++i)
-		for (size_t k = 0; i < _models_par[i]->model_params.size(); ++k)
-			_models_par[i]->model_params[k] = _model->model_params[k];
-#endif
 
 	return _model->model_params;
 }
@@ -407,6 +403,9 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 			_sampleX[k] = vector<float>(_sampleSize);
 		_preds_plus.resize(_sampleSize);
 		_preds_minus.resize(_sampleSize);
+#if defined(IMPROVE_LINEAR_SPEED)
+		_preds_base.resize(_sampleSize);
+#endif
 	}
 	else {
 		//preformance imporvment with using pointers aren't supported for this option right now
@@ -414,6 +413,9 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 		_sampleX = xData;
 		_preds_plus.resize(yData.size());
 		_preds_minus.resize(yData.size());
+#if defined(IMPROVE_LINEAR_SPEED)
+		_preds_base.resize(yData.size());
+#endif
 	}
 
 	time_t start = time(NULL);
