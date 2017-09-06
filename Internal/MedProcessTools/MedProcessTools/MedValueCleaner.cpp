@@ -27,7 +27,7 @@ int MedValueCleaner::get_quantile_min_max(vector<float>& values) {
 	float median = values[(int)(values.size() * 0.5)];
 	int access_ind = (int)(values.size() * (1.0 - params.quantile));
 	if (access_ind >= values.size()) //for example may happen if params.quantile == 0
-		access_ind = values.size() - 1;
+		access_ind = (int)values.size() - 1;
 	float upper = values[access_ind];
 	float lower = values[(int)(values.size() * params.quantile)];
 

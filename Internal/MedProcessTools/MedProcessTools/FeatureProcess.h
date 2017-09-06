@@ -29,6 +29,7 @@ typedef enum {
 	FTR_PROCESSOR_MRMR_SELECTOR,
 	FTR_PROCESSOR_LASSO_SELECTOR,
 	FTR_PROCESS_REMOVE_DGNRT_FTRS,
+	FTR_PROCESS_ITERATIVE_IMPUTER,
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -305,7 +306,7 @@ public:
 			strata.SetNValues();
 
 		factors[0] = 1;
-		for (int i = 2; i < stratas.size(); i++)
+		for (int i = 1; i < stratas.size(); i++)
 			factors[i] = factors[i - 1] * stratas[i - 1].nValues;
 	}
 
@@ -343,7 +344,7 @@ public:
 	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
 	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name);}
 
-	// Add stratirfier
+	// Add stratifier
 	void addStrata(string& init_string);
 	void addStrata(featureStrata& strata) { imputerStrata.stratas.push_back(strata); }
 	void addStrata(string& name, float resolution, float min, float max) { imputerStrata.stratas.push_back(featureStrata(name, resolution, min, max)); }
@@ -413,7 +414,7 @@ public:
 class LassoSelector : public FeatureSelector {
 
 	// Initial lambda
-	float initMaxLambda = 0.005;
+	float initMaxLambda = (float)0.005;
 
 	int nthreads = 12;
 
@@ -589,6 +590,13 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
 };
+
+//.......................................................................................
+//.......................................................................................
+// Additional implimentations in other h files
+//.......................................................................................
+//.......................................................................................
+#include "IterativeImputer.h"
 
 //.......................................................................................
 //.......................................................................................

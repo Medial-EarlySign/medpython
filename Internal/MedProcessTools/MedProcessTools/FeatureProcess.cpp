@@ -21,6 +21,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_NORMALIZER;
 	else if (processor_name == "imputer")
 		return FTR_PROCESS_IMPUTER;
+	else if (processor_name == "iterative_imputer")
+		return FTR_PROCESS_ITERATIVE_IMPUTER;
 	else if (processor_name == "do_calc")
 		return FTR_PROCESS_DO_CALC;
 	else if (processor_name == "univariate_selector")
@@ -60,6 +62,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new FeatureNormalizer;
 	else if (processor_type == FTR_PROCESS_IMPUTER)
 		return new FeatureImputer;
+	else if (processor_type == FTR_PROCESS_ITERATIVE_IMPUTER)
+		return new FeatureIterativeImputer;
 	else if (processor_type == FTR_PROCESS_DO_CALC)
 		return new DoCalcFeatProcessor;
 	else if (processor_type == FTR_PROCESS_UNIVARIATE_SELECTOR)
@@ -110,7 +114,7 @@ string FeatureProcessor::resolve_feature_name(MedFeatures& features, string subs
 		return substr;
 
 	// Or ...
-	for (auto candidate : features.attributes)
+	for (auto &candidate : features.attributes)
 		if (candidate.first.find(substr) != string::npos) {
 			if (real_feature_name != "")
 				throw runtime_error(string("source_feature_name [") + substr + "] matches both [" + real_feature_name + "] and [" + candidate.first + "]");
@@ -421,6 +425,9 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	if (sd == 0)
 		MTHROW_AND_ERR("FeatureNormalizer learn sd: %f mean: %f size: %d", sd, mean, (int)values.size());
+
+	//MLOG("FeatureNormalizer::Learn() done for feature %s , mean %f sd %f size %d\n", feature_name.c_str(), mean, sd, (int)values.size());
+
 	return rc;
 }
 
@@ -452,6 +459,10 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);
 
 	}
+
+	//MLOG("FeatureNormalizer::Apply() done for feature %s , mean %f sd %f size %d flags: normalized %d imputed %d\n", 
+	//	feature_name.c_str(), mean, sd, (int)data.size(), (int)features.attributes[resolved_feature_name].normalized, (int)features.attributes[resolved_feature_name].imputed);
+
 	return 0;
 }
 
@@ -535,8 +546,9 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	for (int i = 0; i < values.size(); i++) {
 		if (values[i] != missing_value) {
 			int index = 0;
-			for (int j = 0; j < imputerStrata.nStratas(); j++)
+			for (int j = 0; j < imputerStrata.nStratas(); j++) {
 				index += imputerStrata.factors[j] * imputerStrata.stratas[j].getIndex(strataValues[j][i], missing_value);
+			}
 			stratifiedValues[index].push_back(values[i]);
 		}
 	}

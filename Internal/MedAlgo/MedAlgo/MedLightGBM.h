@@ -147,8 +147,8 @@ public:
 	// Function
 	MedLightGBM() { 
 		classifier_type = MODEL_LIGHTGBM; 
-		normalize_for_learn = true;
-		normalize_for_predict = true;
+		normalize_for_learn = false; //true;
+		normalize_for_predict = false; //true;
 		normalize_y_for_learn = false;
 		transpose_for_learn = false;
 		transpose_for_predict = false;
