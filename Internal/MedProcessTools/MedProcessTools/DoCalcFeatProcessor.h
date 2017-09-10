@@ -48,6 +48,7 @@ public:
 	// Specific Functions
 	void sum(vector<float*> p_sources, float *p_out, int n_samples);
 	void chads2(vector<float*> p_sources, float *p_out, int n_samples, int vasc_flag, int max_flag);
+	void has_bled(vector<float*> p_sources, float *p_out, int n_samples, int max_flag);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatProcessor *>(processor)); }
