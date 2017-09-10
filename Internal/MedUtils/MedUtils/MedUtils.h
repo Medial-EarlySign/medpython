@@ -35,8 +35,13 @@ template <class S> int get_corr(vector<S>& _x, vector<S>& _y, double& corr, int&
 
 
 // Pearson correlation of two vectors
-template <class S> double get_corr_pearson(vector<S>& x, vector<S>& y) ;
-double get_corr_pearson(float *v1, float *v2, int len) ; // A COPY OF THE TEMPLATED VERSION FOR C INTERFACING
+template <class S> double get_corr_pearson(vector<S>& x, vector<S>& y);
+double get_corr_pearson(float *v1, float *v2, int len); // A COPY OF THE TEMPLATED VERSION FOR C INTERFACING
+
+template <class S> double get_squared_dist(vector<S>& x, vector<S>& y);
+template <class S> double get_abs_avg_dist(vector<S>& x, vector<S>& y);
+template <class S> double get_abs_relative_avg_dist(vector<S>& x, vector<S>& y);
+template <class S> double get_vecs_accuracy(vector<S>& x, vector<S>& y, double epsilon);
 
 // Discretization
 template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbins, int max_bins) ;

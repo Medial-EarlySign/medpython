@@ -16,6 +16,7 @@
 #include "limits.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "svm.h"
 
 // #include "MedBooster.h" // this include is at the end of file as it depends on following definitions to come first
 
@@ -67,6 +68,8 @@ typedef enum {
 	MODEL_DEEP_BIT = 12, //general booster (meta algorithm)
 	MODEL_LIGHTGBM = 13, // the celebrated LightGBM algorithm
 	MODEL_SPECIFIC_GROUPS_MODELS = 14,
+	MODEL_SVM = 15,
+	MODEL_LINEAR_SGD = 16,
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -311,7 +314,7 @@ int learn_lm(float *x, float *_y, float *w, int nsamples, int nftrs, int niter, 
 //==============================================================================================
 // Linear Models2: Linear regression (with Ridge and/or Lasso), using Gradient Descent variants
 //==============================================================================================
-struct MedGDLMParams {
+struct MedGDLMParams : public SerializableObject {
 
 	// Required params
 	int max_iter;
@@ -337,6 +340,7 @@ struct MedGDLMParams {
 		l_ridge = (float)0; l_lasso = (float)0; nthreads = 0; err_freq = 10;
 	}
 
+	ADD_SERIALIZATION_FUNCS(method, last_is_bias, max_iter, stop_at_err, max_times_err_grows, batch_size, rate, rate_decay, l_ridge, l_lasso, nthreads, err_freq);
 };
 
 class MedGDLM : public MedPredictor {
@@ -365,9 +369,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
 
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(params, n_ftrs, b, b0);
 
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
@@ -730,8 +732,11 @@ public:
 //======================================================================================
 // BackProp 
 //======================================================================================
+typedef enum { SIGMOID, RELU ,LINEAR}neuronFunT;
+
 typedef struct {
 	int layerIndex;
+	neuronFunT neuronFunction ;
 	int x;
 	int y;
 	int  firstWeight, lastWeight;
@@ -744,7 +749,7 @@ typedef struct {
 //================================================================
 typedef struct {
 	neuronStruct *neuron;
-
+	
 
 	int *source;
 	double *weight;
@@ -908,6 +913,40 @@ private:
 	int selectPredictor(const float *x); //retrieve predictor index
 };
 
+class MedSvm : public MedPredictor {
+public:
+	// Model
+
+	struct svm_parameter params;
+	struct svm_model *model;
+	/*double **x;
+	double **y;
+	float *w;
+	*/
+
+	// Function
+	MedSvm();
+	MedSvm(void *params);
+	MedSvm(struct svm_parameter &params);
+	~MedSvm();
+
+	void init_defaults();
+	int init(void *params);
+	virtual int init(map<string, string>& mapper);
+	int init(struct svm_parameter &params);
+
+	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+	
+private:
+	
+
+};
+
 //================================================================
 // dependent includes
 //================================================================
@@ -922,6 +961,7 @@ private:
 
 MEDSERIALIZE_SUPPORT(MedLM)
 MEDSERIALIZE_SUPPORT(MedLasso)
+MEDSERIALIZE_SUPPORT(MedGDLMParams)
 MEDSERIALIZE_SUPPORT(MedGDLM)
 MEDSERIALIZE_SUPPORT(MedQRF)
 MEDSERIALIZE_SUPPORT(MedMicNet)

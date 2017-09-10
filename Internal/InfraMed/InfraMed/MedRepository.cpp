@@ -62,7 +62,7 @@ int MedRepository::read_config(const string &fname)
 	ifstream inf(fixed_name);
 
 	if (!inf) {
-		MERR("MedRepository: read_config: Can't open file %s\n",fixed_name.c_str());
+		MERR("MedRepository: read_config: Can't open file [%s]\n",fixed_name.c_str());
 		return -1;
 	}
 

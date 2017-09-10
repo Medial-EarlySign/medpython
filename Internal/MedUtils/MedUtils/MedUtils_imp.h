@@ -2,6 +2,7 @@
 // templated code for MedUtils class, included after class definition
 //
 
+#include <math.h>
 
 // Correlation of vectors. Missing value = MED_MAT_MISSING_VAL.
 template <class S> int get_corr(vector<S>& _x, vector<S>& _y, double& corr, int& n) {
@@ -82,6 +83,64 @@ template <class S> double get_corr_pearson(vector<S>& x, vector<S>& y) {
 	double r2 = sxy/sqrt(sxx*syy) ;
 	return r2 ;
 }
+
+// Find Pearson correlation of two vectors. NOTE: A pure C version is in MedUtils.cpp
+template <class S> double get_squared_dist(vector<S>& x, vector<S>& y) {
+
+	double sxy2 = 0;
+	int n = (int)x.size();
+
+	for (unsigned int i=0; i<x.size(); i++)
+		sxy2 += (double)(x[i] - y[i])*(x[i] - y[i]);
+
+	if (n > 0)
+		return sxy2/(double)n;
+
+	return 0;
+}
+
+template <class S> double get_abs_avg_dist(vector<S>& x, vector<S>& y) {
+	double dabs = 0;
+	int n = (int)x.size();
+
+	for (unsigned int i=0; i<x.size(); i++)
+		dabs += abs((double)(x[i]-y[i]));
+
+	if (n > 0)
+		return dabs/(double)n;
+
+	return 0;
+}
+
+template <class S> double get_abs_relative_avg_dist(vector<S>& x, vector<S>& y) {
+	double dabs_rel = 0;
+	int n = (int)x.size();
+
+	for (unsigned int i=0; i<x.size(); i++)
+		if (x[i] != 0) {
+			dabs_rel += abs((double)(x[i]-y[i]))/abs((double)x[i]);
+		}
+
+	if (n > 0)
+		return dabs_rel/(double)n;
+
+	return 0;
+}
+
+template <class S> double get_vecs_accuracy(vector<S>& x, vector<S>& y, double epsilon) {
+	double n_similar = 0;
+	int n = (int)x.size();
+
+	for (unsigned int i=0; i<x.size(); i++)
+		if (abs((double)(x[i]-y[i])) <= epsilon)
+			n_similar++;
+
+	if (n > 0)
+		return n_similar/(double)n;
+
+	return 0;
+}
+
 
 // Discretization of values
 template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbins, int max_bins) {

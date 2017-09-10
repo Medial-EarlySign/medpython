@@ -48,7 +48,7 @@ public:
 	MedFeatures(int _time_unit) { time_unit = _time_unit; }
 	MedFeatures() { time_unit = med_rep_type.basicTimeUnit; };
 	~MedFeatures() {};
-	void clear() { data.clear(); samples.clear(); pid_pos_len.clear(); attributes.clear(); }
+	void clear() { data.clear(); samples.clear(); pid_pos_len.clear(); attributes.clear(); weights.clear(); tags.clear(); }
 	void set_time_unit(int _time_unit) { time_unit = _time_unit; }
 
 	// Serialization
@@ -60,6 +60,7 @@ public:
 	void get_feature_names(vector<string>& names) ;
 	void get_as_matrix(MedMat<float>& mat);
 	void get_as_matrix(MedMat<float>& mat, vector<string>& names);
+	void get_as_matrix(MedMat<float>& mat, const vector<string>& names, vector<int> &idx);
 
 	void append_samples(MedIdSamples& in_samples);
 	void insert_samples(MedIdSamples& in_samples, int index);

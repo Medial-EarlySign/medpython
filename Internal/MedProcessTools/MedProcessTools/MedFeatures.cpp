@@ -78,6 +78,59 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
 }
 
 //.......................................................................................
+void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names, vector<int> &idx)
+{
+	// Which Features to take ?
+	vector<string> namesToTake;
+	if (names.size())
+		namesToTake = names;
+	else
+		get_feature_names(namesToTake);
+
+
+	int ncols = (int)namesToTake.size();
+	int nrows = (int)idx.size();
+
+	mat.resize(nrows, ncols);
+
+	vector<float *> datap;
+	for (string& name : namesToTake)
+		datap.push_back((float *)(&data[name][0]));
+
+#pragma omp parallel for schedule(dynamic)
+	for (int i=0; i<(int)datap.size(); i++) {
+		for (int j = 0; j < nrows; j++) {
+			int jj = idx[j];
+			if (!isfinite(datap[i][jj])) {
+				MTHROW_AND_ERR("nan in col [%s] in record [%d]", namesToTake[i].c_str(), jj);
+			}
+			mat(j, i) = datap[i][jj];
+		}
+	}
+
+	// Normalization flag
+	mat.normalized_flag = true;
+	for (string& name : namesToTake)
+		mat.normalized_flag &= (int)attributes[name].normalized;
+	for (string& name : namesToTake)
+		mat.normalized_flag &= (int)attributes[name].imputed;
+
+	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
+	for (int i=0; i<nrows; i++) {
+	//for (auto& ss : samples) {
+		auto &ss = samples[idx[i]];
+		RecordData rd;
+		rd.time = 0L;  rd.weight = 0.0;  rd.label = ss.outcome; ; rd.split = ss.split;
+		if (ss.prediction.size() == 1)
+			rd.pred = ss.prediction[0];
+		else rd.pred = 0.0;
+		rd.id = ss.id;
+		rd.date = ss.time;
+		mat.recordsMetadata.push_back(rd);
+	}
+}
+
+//.......................................................................................
 void MedFeatures::append_samples(MedIdSamples& in_samples) {
 	samples.insert(samples.end(), in_samples.samples.begin(), in_samples.samples.end());
 }
@@ -264,7 +317,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
 				names.push_back(fields[i]);
 			}
-			ncols = fields.size();
+			ncols = (int)fields.size();
 		}
 		else {
 			if (fields.size() != ncols) {
