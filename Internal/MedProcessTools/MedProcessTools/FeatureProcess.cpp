@@ -494,7 +494,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
-
+	//MLOG("train imputing for [%s]\n", resolved_feature_name.c_str());
 	for (int i = 0; i < imputerStrata.nStratas(); i++) {
 		if (features.data.find(imputerStrata.stratas[i].name) == features.data.end()) {
 			MERR("Cannot find signal %s in features data\n", imputerStrata.stratas[i].name.c_str());
@@ -526,10 +526,14 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 			stratifiedValues[index].push_back(values[j]);
 		}
 	}
+	//for (int j = 0; j < stratifiedValues.size(); j++)
+		//MLOG("collected %d %d\n", j, stratifiedValues[j].size());
 
 	// Get moments
 	moments.resize(stratifiedValues.size());
+	strata_sizes.resize(stratifiedValues.size());
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
+		strata_sizes[i] = stratifiedValues[i].size();
 		if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
 		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
@@ -545,6 +549,9 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 
 	}
+
+	//for (int j = 0; j < moments.size(); j++)
+		//MLOG("moment %d = [%f]\n", j, moments[j]);
 
 //#pragma omp critical
 //	print();
@@ -577,10 +584,13 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if (data[i] == missing_value) {
-
 			int index = 0;
-			for (int j = 0; j < imputerStrata.nStratas(); j++)
+			for (int j = 0; j < imputerStrata.nStratas(); j++) {
 				index += imputerStrata.factors[j] * imputerStrata.stratas[j].getIndex((*strataData[j])[i], missing_value);
+			}
+			if (strata_sizes[index] == 0)
+				MTHROW_AND_ERR("can not impute [%s] for pid [%d] with a 0-sized strata\n", 
+					resolved_feature_name.c_str(), features.samples[i].id);
 			data[i] = moments[index];
 		}
 	}
@@ -626,17 +636,17 @@ void FeatureImputer::addStrata(string& init_string) {
 // (De)Serialization
 //.......................................................................................
 size_t FeatureImputer::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments);
+	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, strata_sizes);
 }
 
 //.......................................................................................
 size_t FeatureImputer::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments);
+	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, strata_sizes);
 }
 
 //.......................................................................................
 size_t FeatureImputer::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments);
+	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, strata_sizes);
 }
 
 

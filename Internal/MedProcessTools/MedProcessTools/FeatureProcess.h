@@ -334,6 +334,7 @@ public:
 	// Moment
 	imputeMomentTypes moment_type;
 	vector<float> moments;
+	vector<int> strata_sizes;
 
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
