@@ -333,6 +333,7 @@ public:
 
 	// Moment
 	imputeMomentTypes moment_type;
+	float default_moment;
 	vector<float> moments;
 	vector<int> strata_sizes;
 
