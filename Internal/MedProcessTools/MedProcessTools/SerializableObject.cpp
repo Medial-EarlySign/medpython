@@ -1,5 +1,6 @@
 // Object that can be serialized and written/read from file and also initialized from string
 
+#include <boost/crc.hpp>
 #include "SerializableObject.h"
 #include "MedProcessUtils.h"
 #include <assert.h>
@@ -17,8 +18,16 @@ int SerializableObject::read_from_file(const string &fname) {
 		return -1;
 	}
 
+	std::size_t const blob_len = sizeof(blob) / sizeof(blob[0]);
+	boost::crc_32_type checksum_agent;
+	checksum_agent.process_bytes(blob, blob_len);
+	MLOG("read [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
+
 	size_t serSize = deserialize(blob);
-	assert(serSize == size);
+	if (serSize != size) {
+		MERR("size=%d serSize=%d\n", size, serSize);
+		assert(serSize == size);
+	}
 	if (size > 0) delete[] blob;
 	return 0;
 }

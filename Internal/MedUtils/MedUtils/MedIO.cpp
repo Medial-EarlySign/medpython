@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <boost/crc.hpp>
 
 #define LOCAL_SECTION LOG_MEDIO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -201,6 +202,12 @@ int read_binary_data_alloc(const string &fname, unsigned char *&data, unsigned l
 	data = new unsigned char [size];
 	inf.seekg(0,ios::beg);
 	inf.read((char *)data,size);
+
+	std::size_t const blob_len = sizeof(data) / sizeof(data[0]);
+	boost::crc_32_type checksum_agent;
+	checksum_agent.process_bytes(data, blob_len);
+	MLOG("read [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
+
 	inf.close();
 	return 0;
 }
