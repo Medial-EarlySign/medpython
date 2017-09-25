@@ -16,9 +16,15 @@ namespace MedSerialize {
 	template <class T, class S> size_t get_size(map<T, S> &v);
 	template <class T, class S> size_t serialize(unsigned char *blob, map<T, S> &v);
 	template <class T, class S> size_t deserialize(unsigned char *blob, map<T, S> &v);
+	template <class T, class S> size_t get_size(unordered_map<T, S> &v);
+	template <class T, class S> size_t serialize(unsigned char *blob, unordered_map<T, S> &v);
+	template <class T, class S> size_t deserialize(unsigned char *blob, unordered_map<T, S> &v);
 	template <class T> size_t get_size(unordered_set<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, unordered_set<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, unordered_set<T> &v);
+	template <class T> size_t get_size(set<T> &v);
+	template <class T> size_t serialize(unsigned char *blob, set<T> &v);
+	template <class T> size_t deserialize(unsigned char *blob, set<T> &v);
 
 	//========================================================================================
 	// IMPLEMANTATIONS 
@@ -29,12 +35,14 @@ namespace MedSerialize {
 	//.........................................................................................
 	template <class T> size_t get_size(T &elem)
 	{
+		//cout << "inside simple getsize with type " << typeid(T).name() << endl;
 		return sizeof(T);
 	}
 
 	//.........................................................................................
 	template <class T> size_t serialize(unsigned char *blob, T &elem)
 	{
+		//cout << "inside simple serialize with type " << typeid(T).name() << endl;
 		memcpy(blob, &elem, sizeof(T));
 		return sizeof(T);
 	}
@@ -42,6 +50,7 @@ namespace MedSerialize {
 	//.........................................................................................
 	template <class T> size_t deserialize(unsigned char *blob, T &elem)
 	{
+		//cout << "inside simple deserialize with type " << typeid(T).name() << endl;
 		memcpy(&elem, blob, sizeof(T));
 		return sizeof(T);
 	}
@@ -89,6 +98,7 @@ namespace MedSerialize {
 	//.........................................................................................
 	template<class T> size_t get_size(vector<T> &v)
 	{
+		//cout << "inside vector getsize with type " << typeid(T).name() << endl;
 		size_t size = 0, len = v.size();
 		size += MedSerialize::get_size<size_t>(len);
 		for (T &elem : v)
@@ -101,6 +111,7 @@ namespace MedSerialize {
 	template <class T> size_t serialize(unsigned char *blob, vector<T> &v)
 	{
 		//fprintf(stderr, "vector serialize\n");
+		//cout << "inside vector serialize with type " << typeid(T).name() << endl;
 		size_t pos = 0, len = v.size();
 		pos += MedSerialize::serialize<size_t>(blob + pos, len);
 		if (len > 0)
@@ -113,6 +124,7 @@ namespace MedSerialize {
 	template <class T> size_t deserialize(unsigned char *blob, vector<T> &v)
 	{
 		//fprintf(stderr, "vector deserialize\n");
+		//cout << "inside vector deserialize with type " << typeid(T).name() << endl;
 		size_t pos = 0, len;
 		pos += MedSerialize::deserialize<size_t>(blob + pos, len);
 		if (len != v.size()) v.clear();

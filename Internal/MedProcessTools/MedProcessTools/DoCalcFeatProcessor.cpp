@@ -106,7 +106,7 @@ void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samp
 	return;
 }
 
-// Chads2 Scores: ASSUME order of given names is : age,Diabetes Registry, Hyper-Tenstion Registry, Stroke/TIA indicator, CHF indicator, (optinal: Sex, Vasc indicator)
+// Chads2 Scores: ASSUME order of given data is : age,Diabetes Registry, Hyper-Tenstion Registry, Stroke/TIA indicator, CHF indicator, (optinal: Sex, Vasc indicator)
 void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_samples, int vasc_flag, int max_flag) {
 	
 	for (int i = 0; i < n_samples; i++) {
@@ -164,4 +164,64 @@ void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_s
 
 	return;
 		
+}
+
+// HAS-BLED Scores: ASSUME order of given data is : systolic-blood-pressure,dialysis-info,transplant-info,creatinine,cirrhosis-info,bilirubin,AST,ALP,ALKP,Stroke indicator,Past bleeding indicator,
+//													unstable-INR indicator ,age,drugs-indicator, alcohol/drug consumption
+void DoCalcFeatProcessor::has_bled(vector<float*> p_sources, float *p_out, int n_samples, int max_flag) {
+
+	for (int i = 0; i < n_samples; i++) {
+
+		float score = 0;
+		// Blood-pressure (0 : Systolic blood pressure)
+		if (p_sources[0][i] == missing_value && max_flag)
+			score++;
+		if (p_sources[0][i] > 160)
+			score++;
+
+		// Kidney (1: Dialysis, 2: Transplanct, 3: Creatinine)
+		if (p_sources[3][i] == missing_value && max_flag)
+			score++;
+		else if (p_sources[1][i] == 1 || p_sources[2][i] == 1 || p_sources[3][i] > 2.26)
+			score++;
+
+		// Liver (4: Cirrhosis, 5: Bilirubin, 6: AST, 7: ALT, 8: ALKP)
+		if ((p_sources[5][i] == missing_value || p_sources[6][i] == missing_value || p_sources[7][i] == missing_value || p_sources[8][i] == missing_value) && max_flag)
+			score++;
+		else if (p_sources[4][i] == 1 || p_sources[5][i] > 2 * 1.9 || p_sources[6][i] > 3 * 40 || p_sources[7][i] > 3 * 56 || p_sources[8][i] > 3 * 147)
+			score++;
+
+		//Stroke History (9 : Indicator) 
+		if (p_sources[9][i] == 1)
+			score++;
+
+		// Prior Major Bleeding event (10: Indicator)
+		if (p_sources[10][i] == 1)
+			score++;
+
+		// Unstable INR (11: Indicator)
+		if (p_sources[11][i] == missing_value && max_flag)
+			score++;
+		if (p_sources[11][i] == 1)
+			score++;
+
+		// Age (12)
+		if (p_sources[12][i] > 65)
+			score++;
+
+		// Drugs (13 : Anti-platelets indicator, 14: NSAID indicator)
+		if (p_sources[13][i] == 1 || p_sources[14][i] == 1)
+			score++;
+
+		// Alcohol (14 : Amount)
+		if (p_sources[14][i] == missing_value && max_flag)
+			score++;
+		else if (p_sources[14][i] > 8)
+			score++;
+
+		p_out[i] = score;
+	}
+
+	return;
+
 }
