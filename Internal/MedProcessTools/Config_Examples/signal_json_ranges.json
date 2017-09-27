@@ -1,0 +1,1135 @@
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=4.000;range_max=5000.000",
+   "signal":"ALKP"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.100;range_max=6500.000",
+   "signal":"ALT"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=2.900;range_max=6000.000",
+   "signal":"AST"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=1.000;range_max=6.000",
+   "signal":"Albumin"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=2.900;range_max=6000.000",
+   "signal":"Amylase"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=70.000;range_max=2300.000",
+   "signal":"B12"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=10.000;range_max=70.000",
+   "signal":"BMI"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=100.000",
+   "signal":"Band%"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=18.000",
+   "signal":"Basophils#"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=100.000",
+   "signal":"Basophils%"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=60.000",
+   "signal":"Bilirubin"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=100.000",
+   "signal":"Blast%"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=2.000;range_max=30000.000",
+   "signal":"CK"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=50.100",
+   "signal":"CRP"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=4.000;range_max=20.000",
+   "signal":"Ca"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=20.000;range_max=1200.000",
+   "signal":"Cholesterol"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=5.000;range_max=140.000",
+   "signal":"Cl"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=20.000",
+   "signal":"Creatinine"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=50.000",
+   "signal":"Eosinophils#"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=100.000",
+   "signal":"Eosinophils%"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=20000.000",
+   "signal":"Ferritin"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=60.000;range_max=950.000",
+   "signal":"Fibrinogen"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.400;range_max=30.000",
+   "signal":"Follic_Acid"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.900;range_max=5.100",
+   "signal":"Gleason_1"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.900;range_max=5.100",
+   "signal":"Gleason_2"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=1.900;range_max=10.100",
+   "signal":"Gleason_Total"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=10.000;range_max=1000.000",
+   "signal":"Glucose"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=2.000;range_max=300.000",
+   "signal":"HDL"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=20.000;range_max=230.000",
+   "signal":"Height"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.100;range_max=75.000",
+   "signal":"Hematocrit"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=2.000;range_max=25.000",
+   "signal":"Hemoglobin"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.700;range_max=11.000",
+   "signal":"INR"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.900;range_max=700.000",
+   "signal":"Iron_Fe"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=1.500;range_max=11.000",
+   "signal":"K+"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=50.000;range_max=12000.000",
+   "signal":"LDH"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=1.000;range_max=1000.000",
+   "signal":"LDL"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=3.000",
+   "signal":"Lithium"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=500.000",
+   "signal":"Lymphocytes#"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=100.000",
+   "signal":"Lymphocytes%"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=11.000;range_max=100.000",
+   "signal":"MCH"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=18.000;range_max=200.000",
+   "signal":"MCHC-M"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=40.000;range_max=150.000",
+   "signal":"MCV"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=4.000;range_max=21.000",
+   "signal":"MPV"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=40.000",
+   "signal":"Monocytes#"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=100.000",
+   "signal":"Monocytes%"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=100.000;range_max=200.000",
+   "signal":"Na"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=150.000",
+   "signal":"Neutrophils#"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=100.000",
+   "signal":"Neutrophils%"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=5000.000",
+   "signal":"PSA"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=50.000",
+   "signal":"PSA_Ratio"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=3.900;range_max=140.000",
+   "signal":"PTP"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=16.000;range_max=150.000",
+   "signal":"PTT"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=8.000;range_max=180.000",
+   "signal":"PT_Seconds"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.400;range_max=14.000",
+   "signal":"Phosphore"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.100;range_max=3000.000",
+   "signal":"Platelets"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=2.500;range_max=15.000",
+   "signal":"Protein_Total"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=10.000",
+   "signal":"RBC"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=9.000;range_max=50.000",
+   "signal":"RDW"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=24.000;range_max=570.000",
+   "signal":"Transferrin"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=9.900;range_max=10000.000",
+   "signal":"Triglycerides"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=2.000;range_max=600.000",
+   "signal":"Urea"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=30.000",
+   "signal":"Uric_Acid"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=50.000",
+   "signal":"Urine_Bilirubin"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=1000.000",
+   "signal":"Urine_Erythrocytes"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=1500.000",
+   "signal":"Urine_Glucose"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=200.000",
+   "signal":"Urine_Ketone"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=1000.000",
+   "signal":"Urine_Leukocytes"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=1.100",
+   "signal":"Urine_Nitrite"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=10.000",
+   "signal":"Urine_PH"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=2000.000",
+   "signal":"Urine_Protein"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.000;range_max=20.000",
+   "signal":"Urine_Urubilinogen"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=3.000;range_max=150.000",
+   "signal":"VitaminD_25"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=500.000",
+   "signal":"WBC"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=10.000;range_max=230.000",
+   "signal":"Weight"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.1;range_max=60.100",
+   "signal":"eGFR"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=-0.1;range_max=60.100",
+   "signal":"GFR"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=31.900;range_max=42.100",
+   "signal":"TEMP"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=19.300",
+   "signal":"HbA1C"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "removing_quantile_factor":"1",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "range":"range_min=0.000;range_max=4000.000",
+   "signal":"GGT"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "removing_quantile_factor":"1",
+   "range":"range_min=30;range_max=140",
+   "val_channel":["0"],
+   "signal":"BP"
+}
+,
+"process":{
+   "process_set":"0",
+   "rp_type":"basic_cln",
+   "type":"quantile",
+   "quantile":"0",
+   "take_log":"0",
+   "nbrs_quantile_factor":"0",
+   "trimming_quantile_factor":"0",
+   "doTrim":"0",
+   "removing_quantile_factor":"1",
+   "range":"range_min=70;range_max=250",
+   "val_channel":["1"],
+   "signal":"BP"
+}
