@@ -327,6 +327,7 @@ struct MedGDLMParams : public SerializableObject {
 	float momentum;
 
 	int last_is_bias;
+	int print_model;
 
 	// Optional params
 	float l_ridge; // lambda for ridge

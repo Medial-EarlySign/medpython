@@ -102,6 +102,9 @@ public:
 
 	void sort_by_id_date(); 
 
+	// Count 
+	int nSamples();
+
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 
 };

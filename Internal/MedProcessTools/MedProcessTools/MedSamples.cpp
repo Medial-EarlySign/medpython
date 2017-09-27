@@ -314,3 +314,13 @@ int MedSamples::write_to_file(const string &fname)
 	of.close();
 	return 0;
 }
+
+// Count
+//.......................................................................................
+int MedSamples::nSamples() {
+	int n = 0;
+	for (auto& idSample : idSamples)
+		n += idSample.samples.size();
+
+	return n;
+}

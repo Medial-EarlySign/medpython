@@ -82,6 +82,7 @@ int MedGDLM::init(map<string, string>& mapper) {
 		else if (field == "l_lasso") params.l_lasso = stof(entry.second);
 		else if (field == "nthreads") params.nthreads = stoi(entry.second);
 		else if (field == "err_freq") params.err_freq = stoi(entry.second);
+		else if (field == "print") params.print_model = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for GDLM\n", field.c_str());
 	}
 
@@ -127,20 +128,31 @@ int MedGDLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 	n_ftrs = nftrs ;
 	b.resize(nftrs) ;
 
+	int rc = 0;
 	if (params.method == "full") {
-		return(Learn_full(x, y, w, nsamples, nftrs));
+		rc = Learn_full(x, y, w, nsamples, nftrs);
 	} else if (params.method == "gd") {
-		return(Learn_gd(x, y, w, nsamples, nftrs));
+		rc = Learn_gd(x, y, w, nsamples, nftrs);
 	} else if (params.method == "sgd") {
-		return(Learn_sgd(x, y, w, nsamples, nftrs));
+		rc = Learn_sgd(x, y, w, nsamples, nftrs);
 	} else if (params.method == "logistic_sgd") {
-		return(Learn_logistic_sgd(x, y, w, nsamples, nftrs));
+		rc = Learn_logistic_sgd(x, y, w, nsamples, nftrs);
 	} else if (params.method == "parallel_logistic_sgd") {
-		return(Learn_logistic_sgd_threaded(x, y, w, nsamples, nftrs));
+		rc = Learn_logistic_sgd_threaded(x, y, w, nsamples, nftrs);
+	}
+	else
+		rc = -1;
+
+	if (rc >= 0 && params.print_model==1) {
+		for (int i=0; i<b.size(); i++)
+			MLOG("## gdlm model i %d b %f\n", i, b[i]);
+		MLOG("## gdlm model i %d b0 %f\n",b.size(), b0);
+
 	}
 
-	MERR("GDLM:: Unsupported method %s\n",params.method.c_str());
-	return -1; // no need to get here....
+	if (rc < 0)
+		MERR("GDLM:: Unsupported method %s\n",params.method.c_str());
+	return rc; // no need to get here....
 }
 
 //..............................................................................
