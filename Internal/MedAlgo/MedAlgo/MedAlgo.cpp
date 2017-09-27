@@ -49,6 +49,8 @@ MedPredictorTypes predictor_name_to_type(const string& model_name) {
 		return MODEL_DEEP_BIT;
 	else if (model_name == "lightgbm")
 		return MODEL_LIGHTGBM;
+	else if (model_name == "svm")
+		return MODEL_SVM;
 	else
 		return MODEL_LAST ;
 }
@@ -99,6 +101,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedLightGBM;
 	else if (model_type == MODEL_SPECIFIC_GROUPS_MODELS)
 		return new MedSpecificGroupModels;
+	else if (model_type == MODEL_SVM)
+		return new MedSvm;
 	else
 		return NULL ;
 

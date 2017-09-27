@@ -570,7 +570,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		MTHROW_AND_ERR("Cannot select %d out of %d", numToSelect, nFeatures);
 
 	// Labels
-	MedMat<float> y(features.samples.size(), 1);
+	MedMat<float> y((int)features.samples.size(), 1);
 	for (int i = 0; i < y.nrows; i++) 
 		y(i, 0) = features.samples[i].outcome;
 //	y.normalize();
@@ -612,7 +612,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	
 		for (int i = 0; i < nthreads; i++) {
 			predictors[i].init_from_string("method = logistic_sgd; last_is_bias = 0; stop_at_err = 1e-4; batch_size = 2048; momentum = 0.95; rate = 0.01; rate_decay = 1; l_ridge = 0; l_lasso = " + to_string(lambdas[i]) + "; err_freq = 10; nthreads = 12");
-			predictors[i].params.l_lasso = lambdas[i];
+			predictors[i].params.l_lasso = (float)lambdas[i];
 //			predictors[i].params.lambda = lambdas[i];
 //			predictors[i].initialize_vars(x.data_ptr(), y.data_ptr(), &(w[0]), predictors[i].b, x.nrows, x.ncols);
 		}
@@ -643,13 +643,13 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			else if (nSelected[0] > numToSelect) {
 				lowerBoundLambda = maxLambda;
 				if (upperBoundLambda != -1.0)
-					maxLambda = (upperBoundLambda + maxLambda) / 2.0;
+					maxLambda = (upperBoundLambda + maxLambda) / (float)2.0;
 				else
-					maxLambda = maxLambda * 2.0;
+					maxLambda = maxLambda * (float)2.0;
 			}
 			else {
 				upperBoundLambda = maxLambda;
-				maxLambda = (lowerBoundLambda + maxLambda) / 2.0;
+				maxLambda = (lowerBoundLambda + maxLambda) / 2.0f;
 			}
 			minLambda = maxLambda;
 		}
@@ -657,7 +657,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			for (int j = 0; j < nthreads; j++)
 				fprintf(stderr, "N[%.12f] = %d\n", lambdas[j], nSelected[j]);
 
-			float ratio;
+//			float ratio;
 			if (nSelected[nthreads - 1] > numToSelect) { // MaxLambda is still too low
 				minLambda = maxLambda;
 				maxLambda *= 2.0;
@@ -673,8 +673,8 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 						break;
 					}
 					else if (nSelected[i] < numToSelect) {
-						minLambda = lambdas[i - 1];
-						maxLambda = lambdas[i];
+						minLambda = (float)lambdas[i - 1];
+						maxLambda = (float)lambdas[i];
 						break;
 					}
 				}
@@ -712,7 +712,21 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 		if (!found)
 			MLOG("Lasso Feature Selection: about to try lambdas [%f,%f]\n", minLambda, maxLambda);
+
 	}
+
+	map<float, string> b2Name;
+	int i = 0;
+	for (auto &feat : features.data) {
+		b2Name[predictors[0].b[i++]] = feat.first;
+	}
+
+	for (auto &b : b2Name) {
+		if (b.first != 0) {
+			MLOG("Feature %s :: B %f\n", b.second.c_str(), b.first);
+		}
+	}
+
 
 	return 0;
 }
@@ -767,7 +781,7 @@ int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) 
 			}
 		}
 
-		float p = (maxCount + 0.0) / data.size();
+		float p = ((float)maxCount) / (float)data.size();
 		if (p >= percentage)
 			MLOG("Removing %s : %f of values is %f\n", name.c_str(), p, maxCountValue);
 		else

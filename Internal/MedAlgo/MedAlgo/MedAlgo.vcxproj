@@ -132,14 +132,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="MedLinearModel.h" />
     <ClInclude Include="MedAlgo.h" />
     <ClInclude Include="MedBooster.h" />
     <ClInclude Include="MedDeepBit.h" />
     <ClInclude Include="MedLightGBM.h" />
     <ClInclude Include="MedXGB.h" />
+    <ClInclude Include="PredictiveModel.h" />
+    <ClInclude Include="SGD.h" />
     <ClInclude Include="svm.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MedLinearModel.cpp" />
     <ClCompile Include="MedAlgo.cpp" />
     <ClCompile Include="MedBooster.cpp" />
     <ClCompile Include="MedCluster.cpp" />
@@ -157,6 +161,8 @@
     <ClCompile Include="MedSvm.cpp" />
     <ClCompile Include="MedXGB.cpp" />
     <ClCompile Include="MedLasso.cpp" />
+    <ClCompile Include="PredictiveModel.cpp" />
+    <ClCompile Include="SGD.cpp" />
     <ClCompile Include="svm.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -82,6 +82,7 @@ int MedGDLM::init(map<string, string>& mapper) {
 		else if (field == "l_lasso") params.l_lasso = stof(entry.second);
 		else if (field == "nthreads") params.nthreads = stoi(entry.second);
 		else if (field == "err_freq") params.err_freq = stoi(entry.second);
+		else if (field == "print") params.print_model = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for GDLM\n", field.c_str());
 	}
 
@@ -127,20 +128,31 @@ int MedGDLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 	n_ftrs = nftrs ;
 	b.resize(nftrs) ;
 
+	int rc = 0;
 	if (params.method == "full") {
-		return(Learn_full(x, y, w, nsamples, nftrs));
+		rc = Learn_full(x, y, w, nsamples, nftrs);
 	} else if (params.method == "gd") {
-		return(Learn_gd(x, y, w, nsamples, nftrs));
+		rc = Learn_gd(x, y, w, nsamples, nftrs);
 	} else if (params.method == "sgd") {
-		return(Learn_sgd(x, y, w, nsamples, nftrs));
+		rc = Learn_sgd(x, y, w, nsamples, nftrs);
 	} else if (params.method == "logistic_sgd") {
-		return(Learn_logistic_sgd(x, y, w, nsamples, nftrs));
+		rc = Learn_logistic_sgd(x, y, w, nsamples, nftrs);
 	} else if (params.method == "parallel_logistic_sgd") {
-		return(Learn_logistic_sgd_threaded(x, y, w, nsamples, nftrs));
+		rc = Learn_logistic_sgd_threaded(x, y, w, nsamples, nftrs);
+	}
+	else
+		rc = -1;
+
+	if (rc >= 0 && params.print_model==1) {
+		for (int i=0; i<b.size(); i++)
+			MLOG("## gdlm model i %d b %f\n", i, b[i]);
+		MLOG("## gdlm model i %d b0 %f\n",b.size(), b0);
+
 	}
 
-	MERR("GDLM:: Unsupported method %s\n",params.method.c_str());
-	return -1; // no need to get here....
+	if (rc < 0)
+		MERR("GDLM:: Unsupported method %s\n",params.method.c_str());
+	return rc; // no need to get here....
 }
 
 //..............................................................................
@@ -186,34 +198,6 @@ int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int trans
 	}
 
 	return 0;
-}
-
-//..............................................................................
-size_t MedGDLM::get_size() {
-	return sizeof(int) + (n_ftrs+1) * sizeof(float) ;
-}
-
-//..............................................................................
-size_t MedGDLM::serialize(unsigned char *blob) {
-
-	size_t ptr = 0 ;
- 	memcpy(blob+ptr,&n_ftrs,sizeof(int)) ; ptr += sizeof(int) ;
-	memcpy(blob+ptr,&b0,sizeof(float)); ptr += sizeof(float) ;
-	memcpy(blob+ptr,&(b[0]),n_ftrs*sizeof(float)) ; ptr += n_ftrs*sizeof(float) ;
-
-	return ptr ;
-}
-
-size_t MedGDLM::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0 ;
-	memcpy(&n_ftrs,blob+ptr,sizeof(int)) ; ptr += sizeof(int) ;
-	memcpy(&b0,blob+ptr,sizeof(float)) ; ptr += sizeof(float) ;
-
-	b.resize(n_ftrs) ;
-	memcpy(&(b[0]),blob+ptr,n_ftrs*sizeof(float)) ; ptr += n_ftrs*sizeof(float) ;
-	
-	return ptr ;
 }
 
 //..............................................................................
@@ -264,45 +248,61 @@ void MedGDLM::set_eigen_threads()
 //===============================================================================================
 int MedGDLM::Learn_full(float *x, float *y, float *w, int nsamples, int nftrs)
 {
-	if (params.l_lasso > 0)
+	if (params.l_lasso > 0) {
+		MERR("MedGDLM::Learn : ERROR: methos=full can't learn model with lasso : try use the sgd model instead.\n");
 		return -1;
+	}
+	if (params.last_is_bias != 0) {
+		MERR("MedGDLM:: Learn : ERROR: method=full supports only last_is_bias==0 case... \n");
+		return -1;
+	}
+
 	set_eigen_threads();
 
 	float fact_numeric = (float)1000;
-	set_eigen_threads();
 	b0 = 0;
 	b.resize(nftrs);
 	fill(b.begin(), b.end(), (float)0);
-//	Map<MatrixXf> bf(&b[0],nftrs,1);
-	Map<VectorXf> bf(&b[0],nftrs);
-	Map<MatrixXf> xf(x,nftrs,nsamples);
-//	Map<MatrixXf> yf(y,nsamples,1);
-	Map<VectorXf> yf(y,nsamples);
 
-	MatrixXf xtx(nftrs,nftrs);
-//	MatrixXf preb(nftrs,1);
-	VectorXf preb(nftrs,1);
+	if (params.last_is_bias == 0) {
 
-	float fact = fact_numeric/((float)nsamples*(float)nftrs);
+		VectorXf bf(nftrs+1);
+		Map<MatrixXf> xf(x, nftrs, nsamples);
+		Map<VectorXf> yf(y, nsamples);
+		MatrixXf xtx(nftrs, nftrs);
+		VectorXf preb(nftrs, 1);
 
-	xtx = xf * xf.transpose();
-	xtx *= fact;
-	float bias = xtx(nftrs-1,nftrs-1);
-	if (params.l_ridge > 0) {
-		xtx.diagonal().array() += params.l_ridge*fact_numeric/(float)nftrs;
+		float fact = sqrt(fact_numeric/((float)nsamples*(float)nftrs));
+		//float fact = 1;
+		float sq_fact = fact*fact;
+		xf *= fact;
+		xtx = xf * xf.transpose();
+		if (params.l_ridge > 0) {
+			xtx.diagonal().array() += params.l_ridge;//*sq_fact;
+		}
+		xtx.conservativeResize(nftrs+1, nftrs+1);
+		xtx(nftrs, nftrs) = (float)nsamples*sq_fact;
+		for (int i=0; i<nftrs; i++) {
+			xtx(i, nftrs) = fact*xf.row(i).array().sum();
+			xtx(nftrs, i) = xtx(i, nftrs);
+		}
+
+		preb = xf * yf;
+		preb *= fact;
+		preb.conservativeResize(nftrs+1);
+		preb(nftrs) = sq_fact * yf.array().sum();
+		bf = xtx.colPivHouseholderQr().solve(preb);
+		for (int j=0; j<nftrs; j++) {
+			b[j] = bf(j);
+		}
+		b0 = bf(nftrs);
+		return 0;
 	}
-	if (params.last_is_bias)
-		xtx(nftrs-1,nftrs-1) = bias;
-
-	preb = xf * yf;;
-	preb *= fact;
-	bf = xtx.colPivHouseholderQr().solve(preb);
 	
 	return 0;
-
 }
 
-
+//===========================================================================================================
 int MedGDLM::Learn_gd(float *x, float *y, float *w, int nsamples, int nftrs)
 {
 	set_eigen_threads();
@@ -402,8 +402,6 @@ int MedGDLM::Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
 	b0 = 0;
 	b.resize(nftrs);
 	fill(b.begin(), b.end(), (float)0);
-	vector<float> prev_b = b;
-	float prev_b0 = b0;
 
 	// preparing for iterations
 	int niter = 0;
@@ -411,14 +409,13 @@ int MedGDLM::Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
 	float err = params.stop_at_err * 100;
 	float prev_err = 2*err;
 	Map<MatrixXf> bf(&b[0],1,nftrs);
-	Map<MatrixXf> prev_bf(&prev_b[0],1,nftrs);
 	MatrixXf grad(1,nftrs);
 	MatrixXf prev_grad(1,nftrs);
-	MatrixXf pgrad(1,nftrs);
-	MatrixXf diff(1,nftrs);
 	
 	Map<MatrixXf> x_all(x,nftrs,nsamples);
 	MatrixXf xt = x_all.transpose();
+	MatrixXf diff(1, nsamples);
+	Map<MatrixXf> y_m(&y[0], 1, nsamples);
 
 	float r = params.rate;
 	vector<float> vpf(params.batch_size);
@@ -431,48 +428,49 @@ int MedGDLM::Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
 	MLOG("Learn_sgd:: err %f max_err %f , niter %d max_iter %d :: batch_size %d :: n_batches %d\n",err,params.stop_at_err,niter,params.max_iter,params.batch_size,n_batches);
 	float momentum = params.momentum;
 	prev_grad = grad;
-	pgrad = grad;
-	prev_bf = bf;
 	int first_time = 1;
-	while (err > params.stop_at_err && niter < params.max_iter && nerr < params.max_times_err_grows) {
+	float bias_grad = 0, prev_bias_grad = 0;
+	double prev_loss = 1e8;
+	vector<float> preds(nsamples);
+	float *ppreds = &preds[0];
+	while (err > params.stop_at_err && niter < params.max_iter) {
 
 		for (int bn=0; bn<n_batches; bn++) {
 			int from = bn*params.batch_size;
 			int len = params.batch_size; // len is nsamples in batch
 			if (from+len > nsamples) len = nsamples - from;
 			Map<MatrixXf> xf(&x[from*nftrs],nftrs,len);
-			Map<MatrixXf> yf(&y[from],1,len);
+			Map<MatrixXf> yf(&y[from], 1, len);
 			Map<MatrixXf> pf(&vpf[0],1,len);
 			float fact_grad = (float)1/(float)len;
 
 			pf = bf * xf - yf;
+			pf.array() += b0;
 			grad = pf * xt.block(from,0,len,nftrs);
 			grad *= fact_grad; // normalizing gradient to be independent of sample size (to "gradient per sample" units)
-
+			bias_grad = pf.array().sum();
+			bias_grad *= fact_grad;
 
 			// ridge
 			if (params.l_ridge > 0) {
-				float ridge = params.l_ridge/(float)nftrs; // trying to normalize ridge to be independent of feature num.
-				float bias = grad(0,nftrs-1);
-				grad = grad + ridge*bf;
-				if (params.last_is_bias)
-					grad(0,nftrs-1) = bias;
-
+				grad = grad + params.l_ridge*bf;
 			}
 
 
-
 			// momentum
-			if (first_time) {prev_grad = grad; first_time = 0;}
+			if (first_time) { prev_grad = grad; prev_bias_grad = bias_grad; first_time = 0; }
 			grad *= (1 - momentum);
 			grad = grad + momentum * prev_grad;
+			bias_grad *= (1 - momentum);
+			bias_grad = bias_grad + momentum * prev_bias_grad;
 
 			// step
 			bf = bf - r*grad;
+			b0 = b0 - r*bias_grad;
 
 			// lasso
 			if (params.l_lasso > 0) {
-				float lasso = params.l_lasso;
+				float lasso = params.l_lasso/(float)nftrs;
 				for (int i=0; i<nftrs; i++) {
 					if (bf(0,i) > lasso)
 						bf(0,i) -= lasso;
@@ -485,31 +483,57 @@ int MedGDLM::Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
 
 
 			prev_grad = grad;
+			prev_bias_grad = bias_grad;
 		}
 
-		diff = bf - prev_bf;
-		pgrad = grad - pgrad;
-		float dnorm = diff.squaredNorm()/(float)nftrs;
-		float pgnorm = pgrad.squaredNorm()/(float)nftrs;
-		float gnorm = grad.squaredNorm()/(float)nftrs;
-		float bnorm = bf.squaredNorm()/(float)nftrs;
+		if (niter % params.err_freq == 0) {
+			// after err_freq epochs of going through the data we check the stop criteria
+			// for that we calculate the loss func and wait until changes are small
 
-//		err = dnorm + pgnorm + 1000*params.stop_at_err*gnorm;
-		err = dnorm + pgnorm + (float)0.01*gnorm;
-		float mxg = max(abs(grad.maxCoeff()),abs(grad.minCoeff()));
+			// Evaluating so that we can get loss err and accuracy
+			Predict(x, ppreds, nsamples, nftrs);
 
-		if (err > prev_err*(float)1.5 + params.stop_at_err)
-			nerr++;
+			Map<MatrixXf> p_m(&ppreds[0], 1, nsamples);
 
-		MLOG("Learn_sgd:: rate %g err %g gnorm %g dnorm %g bnorm %g pgnorm %g mxg %g max_err %g , niter %d max_iter %d\n",
-			r,err,gnorm,dnorm,bnorm,pgnorm,mxg,
-			params.stop_at_err,niter,params.max_iter);
+			int nacc = 0;
+			double loss = 0;
+			
+			diff = y_m - p_m;
+			loss = diff.array().square().sum();
+
+			for (int i=0; i<nsamples; i++) {
+				if ((preds[i]>=0.5 && y[i]==1) || (preds[i]<0.5 && y[i]==0)) nacc++;
+			}
+
+			loss /= (double)nsamples;
+
+			if (params.l_ridge > 0) {
+				loss += params.l_ridge * (bf.array().square().sum());
+			}
+
+			if (params.l_lasso > 0) {
+				loss += params.l_lasso* (bf.array().abs().sum());
+			}
+
+			err = (float)(abs(prev_loss - loss)/(abs(prev_loss) + 1e-10));
+			prev_loss = loss;
+
+			// printing
+			int n0bs = 0, n_small_bs = 0;
+
+			for (int i=0; i<nftrs; i++) {
+				if (bf.array()(0, i) == 0) n0bs++;
+				if (bf.array().abs()(0, i) < (float)1e-5) n_small_bs++;
+			}
+
+			MLOG("Learn_linear_sgd:: rate %g err %g stop_err %g acc %g loss %g , niter %d max_iter %d n0 %d (%d) ns %d\n",
+				r, err, params.stop_at_err, (double)nacc/(double)nsamples, loss, niter, params.max_iter, n0bs, nftrs-n0bs, n_small_bs);
+		}
+
+		// update rate with rate decay
 		if (params.rate_decay < 1)
 			r = r * params.rate_decay;
 
-		prev_bf = bf;
-		prev_err = err;
-		pgrad = grad;
 		niter++;
 	}
 
@@ -548,7 +572,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 	int niter = 0;
 	int nerr = 0;
 	double err = params.stop_at_err * 100; // inital err
-	float prev_err = 2*err;
+	float prev_err = (float)(2*err);
 	Map<MatrixXf> bf(&b[0], 1, nftrs);
 	Map<MatrixXf> prev_bf(&prev_b[0], 1, nftrs);
 	MatrixXf grad(1, nftrs);
