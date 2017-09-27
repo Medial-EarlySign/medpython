@@ -543,14 +543,14 @@ template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int ti
 	clear();
 	if (!file_exists(fname)) {
 		fprintf(stderr, "File %s doesn't exist\n",fname.c_str());
-		throw exception();
+		throw std::exception();
 	}
 	fprintf(stderr, "reading data from %s\n", fname.c_str());
 	ifstream inf;
 	inf.open(fname, ios::in);
 	if (!inf) {
 		cerr << "can not open file\n";
-		throw exception();
+		throw std::exception();
 	}
 	ncols = -1;
 	string curr_line;
