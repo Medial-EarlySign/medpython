@@ -21,7 +21,7 @@ int SerializableObject::read_from_file(const string &fname) {
 	std::size_t const blob_len = sizeof(blob) / sizeof(blob[0]);
 	boost::crc_32_type checksum_agent;
 	checksum_agent.process_bytes(blob, blob_len);
-	MLOG("read [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
+	MLOG("read_from_file [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
 
 	size_t serSize = deserialize(blob);
 	if (serSize != size) {
