@@ -13,7 +13,8 @@
 // Quantile cleaning
 int MedValueCleaner::get_quantile_min_max(vector<float>& values) {
 
-
+	if (values.size() == 0)
+		MTHROW_AND_ERR("Trying to get quantiles of an empty array\n");
 	if (params.take_log) {
 		for (unsigned int i = 0; i < values.size(); i++) {
 			if (values[i] <= 0)
@@ -25,7 +26,10 @@ int MedValueCleaner::get_quantile_min_max(vector<float>& values) {
 	sort(values.begin(), values.end());
 
 	float median = values[(int)(values.size() * 0.5)];
-	float upper = values[(int)(values.size() * (1.0 - params.quantile))];
+	int access_ind = (int)(values.size() * (1.0 - params.quantile));
+	if (access_ind >= values.size()) //for example may happen if params.quantile == 0
+		access_ind = (int)values.size() - 1;
+	float upper = values[access_ind];
 	float lower = values[(int)(values.size() * params.quantile)];
 
 	if (params.take_log) {
