@@ -159,6 +159,12 @@ public:
 	int predict(MedFeaturesData& data);
 	int predict(MedFeatures& features);
 
+	//caliberation for probability using training:
+	int learn_prob_calibration(MedMat<float> &x, vector<float> &y, 
+		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob);
+	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range, 
+		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs);
+
 	// init
 	static MedPredictor *make_predictor(string model_type);
 	static MedPredictor *make_predictor(MedPredictorTypes model_type);

@@ -26,17 +26,17 @@ MedPredictorTypes predictor_name_to_type(const string& model_name) {
 	else if (model_name == "gdlm")
 		return MODEL_GD_LINEAR;
 	else if (model_name == "qrf")
-		return MODEL_QRF ;
+		return MODEL_QRF;
 	else if (model_name == "knn")
 		return MODEL_KNN;
 	else if (model_name == "mars")
 		return MODEL_MARS;
 	else if (model_name == "gbm")
-		return MODEL_GBM ;
+		return MODEL_GBM;
 	else if (model_name == "BP")
 		return MODEL_BP;
 	else if (model_name == "multi_class")
-		return MODEL_MULTI_CLASS ;
+		return MODEL_MULTI_CLASS;
 	else if (model_name == "xgb")
 		return MODEL_XGB;
 	else if (model_name == "lasso")
@@ -52,20 +52,20 @@ MedPredictorTypes predictor_name_to_type(const string& model_name) {
 	else if (model_name == "svm")
 		return MODEL_SVM;
 	else
-		return MODEL_LAST ;
+		return MODEL_LAST;
 }
 
 // Initialization
 //.......................................................................................
 MedPredictor * MedPredictor::make_predictor(string model_type) {
 
-	return make_predictor(predictor_name_to_type(model_type)) ;
+	return make_predictor(predictor_name_to_type(model_type));
 }
 
 //.......................................................................................
 MedPredictor * MedPredictor::make_predictor(string model_type, string init_string) {
 
-	return make_predictor(predictor_name_to_type(model_type),init_string);
+	return make_predictor(predictor_name_to_type(model_type), init_string);
 }
 
 //.......................................................................................
@@ -76,8 +76,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 	else if (model_type == MODEL_GD_LINEAR)
 		return new MedGDLM;
 	else if (model_type == MODEL_QRF)
-		return new MedQRF ;
-	else if (model_type== MODEL_KNN)
+		return new MedQRF;
+	else if (model_type == MODEL_KNN)
 		return new MedKNN;
 	else if (model_type == MODEL_MARS)
 		return new MedMars;
@@ -86,14 +86,14 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 	else if (model_type == MODEL_BP)
 		return new MedGBM;
 	else if (model_type == MODEL_MULTI_CLASS)
-		return new MedMultiClass ;
+		return new MedMultiClass;
 	else if (model_type == MODEL_XGB)
 		return new MedXGB;
 	else if (model_type == MODEL_LASSO)
 		return new MedLasso;
 	else if (model_type == MODEL_MIC_NET)
 		return new MedMicNet;
-	else if (model_type == MODEL_BOOSTER) 
+	else if (model_type == MODEL_BOOSTER)
 		return new MedBooster;
 	else if (model_type == MODEL_DEEP_BIT)
 		return new MedDeepBit;
@@ -104,7 +104,7 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 	else if (model_type == MODEL_SVM)
 		return new MedSvm;
 	else
-		return NULL ;
+		return NULL;
 
 }
 MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type, string init_string) {
@@ -115,7 +115,7 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type, string
 }
 //.......................................................................................
 int MedPredictor::init_from_string(string text) {
-	
+
 	cerr << "MedPredictor init from string (classifier type is " << classifier_type << " )\n";
 	// parse text of the format "Name = Value ; Name = Value ; ..."
 
@@ -123,7 +123,7 @@ int MedPredictor::init_from_string(string text) {
 		cerr << "But we are going to call mic net version directly\n";
 		MedMicNet *mic = (MedMicNet *)this;
 		cerr << "before\n";
-		int rc =  mic->init_from_string(text);
+		int rc = mic->init_from_string(text);
 		cerr << "after " << rc << "\n";
 		return rc;
 	}
@@ -132,7 +132,7 @@ int MedPredictor::init_from_string(string text) {
 		cerr << "But we are going to call booster version directly\n";
 		MedBooster *med_b = (MedBooster *)this;
 		cerr << "before\n";
-		int rc =  med_b->init_from_string(text);
+		int rc = med_b->init_from_string(text);
 		cerr << "after " << rc << "\n";
 		return rc;
 	}
@@ -162,14 +162,15 @@ void MedPredictor::prepare_x_mat(MedMat<float> &x, vector<float> &wgts, int &nsa
 {
 
 	if ((transpose_needed && !x.transposed_flag) || (!transpose_needed && x.transposed_flag)) {
-//		MLOG("transposing matrix\n");
+		//		MLOG("transposing matrix\n");
 		x.transpose();
 	}
 
 	if (x.transposed_flag) {
 		nsamples = x.ncols;
 		nftrs = x.nrows;
-	} else {
+	}
+	else {
 		nsamples = x.nrows;
 		nftrs = x.ncols;
 	}
@@ -200,39 +201,39 @@ int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts)
 		return -1;
 	}
 
-	prepare_x_mat(x,wgts,nsamples,nftrs,transpose_for_learn);
+	prepare_x_mat(x, wgts, nsamples, nftrs, transpose_for_learn);
 	if (normalize_y_for_learn && !y.normalized_flag)
 		y.normalize();
 
-	return Learn(x.data_ptr(),y.data_ptr(),VEC_DATA(wgts),nsamples,nftrs) ;
+	return Learn(x.data_ptr(), y.data_ptr(), VEC_DATA(wgts), nsamples, nftrs);
 }
-	
+
 //.......................................................................................
 int MedPredictor::learn(MedMat<float> &x, vector<float> &y, vector<float> &wgts) {
 
-	int nsamples,nftrs ;
+	int nsamples, nftrs;
 
 	if (normalize_for_learn && !x.normalized_flag) {
 		MERR("Learner Requires normalized matrix. Quitting\n");
 		return -1;
 	}
 
-	prepare_x_mat(x,wgts,nsamples,nftrs,transpose_for_learn);
+	prepare_x_mat(x, wgts, nsamples, nftrs, transpose_for_learn);
 
-	return Learn(x.data_ptr(),y.data(),VEC_DATA(wgts),nsamples,nftrs) ;
+	return Learn(x.data_ptr(), y.data(), VEC_DATA(wgts), nsamples, nftrs);
 }
-	
+
 //.......................................................................................
-int MedPredictor::learn(vector<float> &x, vector<float> &y, vector<float> &w, int n_samples, int n_ftrs) 
+int MedPredictor::learn(vector<float> &x, vector<float> &y, vector<float> &w, int n_samples, int n_ftrs)
 {
-	return(Learn(VEC_DATA(x),VEC_DATA(y),VEC_DATA(w),n_samples,n_ftrs)) ;
+	return(Learn(VEC_DATA(x), VEC_DATA(y), VEC_DATA(w), n_samples, n_ftrs));
 }
 
 //.......................................................................................
 int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 
-	int nsamples,nftrs ;
-	vector<float> w ;
+	int nsamples, nftrs;
+	vector<float> w;
 
 	// patch for micNet
 	if (classifier_type == MODEL_MIC_NET) {
@@ -254,12 +255,12 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 	}
 
 
-	prepare_x_mat(x,w,nsamples,nftrs,transpose_for_predict);
+	prepare_x_mat(x, w, nsamples, nftrs, transpose_for_predict);
 
-	preds.resize(nsamples*n_preds_per_sample()) ;
+	preds.resize(nsamples*n_preds_per_sample());
 	float *_preds = &(preds[0]);
-//	MLOG("MedMat,vector call: preds size is %d n_preds_per_sample %d nsamples %d\n",preds.size(),n_preds_per_sample(),nsamples);
-	return Predict(x.data_ptr(),_preds,nsamples,nftrs) ;
+	//	MLOG("MedMat,vector call: preds size is %d n_preds_per_sample %d nsamples %d\n",preds.size(),n_preds_per_sample(),nsamples);
+	return Predict(x.data_ptr(), _preds, nsamples, nftrs);
 }
 
 struct pred_thread_info {
@@ -277,7 +278,7 @@ struct pred_thread_info {
 void MedPredictor::predict_thread(void *p)
 //void MedPredictor::predict_thread()
 {
-	
+
 	pred_thread_info *tp = (pred_thread_info *)p;
 
 	//MLOG("Start thread %d : from: %d to: %d\n",tp->id,tp->from_sample,tp->to_sample);
@@ -286,9 +287,9 @@ void MedPredictor::predict_thread(void *p)
 	int nsamples = tp->to_sample - tp->from_sample + 1;
 	int nftrs = tp->nftrs;
 
-	tp->rc = Predict(x,preds,nsamples,nftrs);
+	tp->rc = Predict(x, preds, nsamples, nftrs);
 	//MLOG("End thread %d : from: %d to: %d\n",tp->id,tp->from_sample,tp->to_sample);
-	
+
 	// signing job ended
 	tp->state = 1;
 }
@@ -296,8 +297,8 @@ void MedPredictor::predict_thread(void *p)
 //.......................................................................................
 int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int nthreads) {
 
-	int nsamples,nftrs ;
-	vector<float> w ;
+	int nsamples, nftrs;
+	vector<float> w;
 
 	if (transpose_for_predict) {
 		MERR("!!!!!! UNSUPORTED !!!! --> Currently threaded_predict does not support transposed matrices for predictions");
@@ -309,15 +310,15 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 		return -1;
 	}
 
-	prepare_x_mat(x,w,nsamples,nftrs,transpose_for_predict);
-	preds.resize(nsamples*n_preds_per_sample()) ;
-	
-	int th_nsamples = nsamples/nthreads;
+	prepare_x_mat(x, w, nsamples, nftrs, transpose_for_predict);
+	preds.resize(nsamples*n_preds_per_sample());
+
+	int th_nsamples = nsamples / nthreads;
 	vector<pred_thread_info> tp(nthreads);
-	for (int i=0; i<nthreads; i++) {
+	for (int i = 0; i < nthreads; i++) {
 		tp[i].id = i;
 		tp[i].from_sample = i*th_nsamples;
-		tp[i].to_sample = min((i+1)*th_nsamples - 1,nsamples-1);
+		tp[i].to_sample = min((i + 1)*th_nsamples - 1, nsamples - 1);
 		tp[i].preds = VEC_DATA(preds);
 		tp[i].x = &x;
 		tp[i].nftrs = nftrs;
@@ -328,23 +329,23 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 
 	// sending threads
 	vector<thread> th_handle(nthreads);
-	for (int i=0; i<nthreads; i++) {
-//		MLOG("Sending Thread %d\n",i);
-//		th_handle[i] = std::thread(&MedPredictor::predict_thread, (void *)&tp[i]);
-		th_handle[i] = std::thread(&MedPredictor::predict_thread,this, (void *)&tp[i]);
+	for (int i = 0; i < nthreads; i++) {
+		//		MLOG("Sending Thread %d\n",i);
+		//		th_handle[i] = std::thread(&MedPredictor::predict_thread, (void *)&tp[i]);
+		th_handle[i] = std::thread(&MedPredictor::predict_thread, this, (void *)&tp[i]);
 	}
 
 	int n_state = 0;
 	while (n_state < nthreads) {
 		this_thread::sleep_for(chrono::milliseconds(10));
 		n_state = 0;
-		for (int i=0; i<nthreads; i++)
+		for (int i = 0; i < nthreads; i++)
 			n_state += tp[i].state;
 	}
-	for (int i=0; i<nthreads; i++)
+	for (int i = 0; i < nthreads; i++)
 		th_handle[i].join();
 
-	for (int i=0; i<nthreads; i++)
+	for (int i = 0; i < nthreads; i++)
 		if (tp[i].rc != 0)
 			return -1;
 	return 0;
@@ -354,31 +355,31 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 
 //.......................................................................................
 int MedPredictor::predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs) {
-	preds.resize(n_samples*n_preds_per_sample()) ;
+	preds.resize(n_samples*n_preds_per_sample());
 	float *_preds = &(preds[0]);
-	return Predict(VEC_DATA(x),_preds,n_samples,n_ftrs) ;
+	return Predict(VEC_DATA(x), _preds, n_samples, n_ftrs);
 }
 
 
 // (De)Serialize
 //.......................................................................................
-size_t MedPredictor::get_predictor_size()  {
-	return sizeof(classifier_type) + get_size() ;
+size_t MedPredictor::get_predictor_size() {
+	return sizeof(classifier_type) + get_size();
 }
-	
+
 //.......................................................................................
 size_t MedPredictor::predictor_serialize(unsigned char *blob) {
 
-	size_t ptr = 0 ;
- 	memcpy(blob+ptr,&classifier_type,sizeof(MedPredictorTypes)) ; ptr += sizeof(MedPredictorTypes) ;
-	ptr += serialize(blob+ptr) ;
+	size_t ptr = 0;
+	memcpy(blob + ptr, &classifier_type, sizeof(MedPredictorTypes)); ptr += sizeof(MedPredictorTypes);
+	ptr += serialize(blob + ptr);
 
-	return ptr ;
+	return ptr;
 }
 
 //.......................................................................................
 
-void MedPredictor::print(FILE *fp, const string& prefix) { fprintf(fp,"%s : No Printing method defined\n",prefix.c_str());}
+void MedPredictor::print(FILE *fp, const string& prefix) { fprintf(fp, "%s : No Printing method defined\n", prefix.c_str()); }
 
 //===========================================================================================
 // MedPredictor MedFeaturesData API
@@ -386,12 +387,12 @@ void MedPredictor::print(FILE *fp, const string& prefix) { fprintf(fp,"%s : No P
 // Cross Validation
 int MedPredictor::cross_validate_splits(MedFeaturesData& data) {
 
-	data.split_preds.resize(data.nsplits) ;
+	data.split_preds.resize(data.nsplits);
 	data.split_preds_on_train.resize(data.nsplits);
-	
-	for (int isplit=0; isplit<data.nsplits; isplit++) {
-		if (learn(data,isplit) == -1) {
-			fprintf(stderr,"Learning failed\n") ;
+
+	for (int isplit = 0; isplit < data.nsplits; isplit++) {
+		if (learn(data, isplit) == -1) {
+			fprintf(stderr, "Learning failed\n");
 			return -1;
 		}
 
@@ -402,61 +403,61 @@ int MedPredictor::cross_validate_splits(MedFeaturesData& data) {
 			}
 		}
 
-		if (predict(data,isplit) == -1) {
-			fprintf(stderr,"Predict failed\n") ;
-			return -1 ;
+		if (predict(data, isplit) == -1) {
+			fprintf(stderr, "Predict failed\n");
+			return -1;
 		}
 	}
 
-	return 0 ;
+	return 0;
 }
 
 void MedPredictor::build_learning_x_mat_for_split(MedFeaturesData& ftrs_data, vector<float>& signal, int isplit, MedMat<float>& x) {
 	x.normalized_flag = 1;
 
-	for (int icol = 0; icol<x.ncols; icol++) {
+	for (int icol = 0; icol < x.ncols; icol++) {
 		string& name = ftrs_data.signals[icol];
 
 		int split_irow = 0;
-		for (int irow = 0; irow<ftrs_data.splits.size(); irow++) {
-			if (ftrs_data.splits[irow] != isplit) 
+		for (int irow = 0; irow < ftrs_data.splits.size(); irow++) {
+			if (ftrs_data.splits[irow] != isplit)
 				signal[split_irow++] = ftrs_data.data[name][irow];
 		}
 
 		ftrs_data.cleaners[name][isplit].clear(signal);
 		ftrs_data.cleaners[name][isplit].normalize(signal);
 
-		for (unsigned irow = 0; irow<signal.size(); irow++)
+		for (unsigned irow = 0; irow < signal.size(); irow++)
 			x(irow, icol) = signal[irow];
 	}
 }
 // Learning ....
 int MedPredictor::learn(MedFeaturesData& ftrs_data, int isplit) {
-	
-	MedMat<float> x((int) ftrs_data.get_learning_nrows(isplit),(int) ftrs_data.signals.size()) ;
-	MedMat<float> y(x.nrows,1) ;
+
+	MedMat<float> x((int)ftrs_data.get_learning_nrows(isplit), (int)ftrs_data.signals.size());
+	MedMat<float> y(x.nrows, 1);
 	vector<float> signal(x.nrows);
 
 	// Build X
 	build_learning_x_mat_for_split(ftrs_data, signal, isplit, x);
 
 	// Build Y
-	int split_irow = 0 ;
-	for (int irow=0; irow<ftrs_data.splits.size(); irow++) {
+	int split_irow = 0;
+	for (int irow = 0; irow < ftrs_data.splits.size(); irow++) {
 		if (ftrs_data.splits[irow] != isplit)
-			signal[split_irow++] = ftrs_data.label[irow] ;
+			signal[split_irow++] = ftrs_data.label[irow];
 	}
 	if (ftrs_data.label_cleaners.size() > 0) {
 		ftrs_data.label_cleaners[isplit].clear(signal);
 		ftrs_data.label_cleaners[isplit].normalize(signal);
 	}
 
-	for (unsigned irow=0; irow<signal.size(); irow++)
-		y(irow,0) = signal[irow] ;
-	y.normalized_flag = 1 ;
+	for (unsigned irow = 0; irow < signal.size(); irow++)
+		y(irow, 0) = signal[irow];
+	y.normalized_flag = 1;
 
 	// Learn
-	if (learn(x,y) == -1)
+	if (learn(x, y) == -1)
 		return -1;
 
 	ftrs_data.n_preds_per_sample = n_preds_per_sample();
@@ -465,35 +466,35 @@ int MedPredictor::learn(MedFeaturesData& ftrs_data, int isplit) {
 }
 
 int MedPredictor::learn(MedFeaturesData& ftrs_data) {
-	
+
 	// Build X
-	MedMat<float> x((int) ftrs_data.label.size(), (int) ftrs_data.signals.size()) ;
-	MedMat<float> y(x.nrows,1) ;
-	x.normalized_flag = 1 ;
+	MedMat<float> x((int)ftrs_data.label.size(), (int)ftrs_data.signals.size());
+	MedMat<float> y(x.nrows, 1);
+	x.normalized_flag = 1;
 
-	vector<float> signal(x.nrows) ;
-	for (int icol=0; icol<x.ncols; icol++) {
-		string& name = ftrs_data.signals[icol] ;
-		
-		signal = ftrs_data.data[name] ;
-		ftrs_data.cleaners[name][ftrs_data.nsplits].clear(signal) ;
-		ftrs_data.cleaners[name][ftrs_data.nsplits].normalize(signal) ;
+	vector<float> signal(x.nrows);
+	for (int icol = 0; icol < x.ncols; icol++) {
+		string& name = ftrs_data.signals[icol];
 
-		for (unsigned irow=0; irow<signal.size(); irow++)
-				x(irow,icol) = signal[irow] ;
+		signal = ftrs_data.data[name];
+		ftrs_data.cleaners[name][ftrs_data.nsplits].clear(signal);
+		ftrs_data.cleaners[name][ftrs_data.nsplits].normalize(signal);
+
+		for (unsigned irow = 0; irow < signal.size(); irow++)
+			x(irow, icol) = signal[irow];
 	}
 
 	// Build Y
-	signal = ftrs_data.label ;
-	ftrs_data.label_cleaners[ftrs_data.nsplits].clear(signal) ;
-	ftrs_data.label_cleaners[ftrs_data.nsplits].normalize(signal) ;
+	signal = ftrs_data.label;
+	ftrs_data.label_cleaners[ftrs_data.nsplits].clear(signal);
+	ftrs_data.label_cleaners[ftrs_data.nsplits].normalize(signal);
 
-	for (unsigned irow=0; irow<signal.size(); irow++)
-		y(irow,0) = signal[irow] ;
+	for (unsigned irow = 0; irow < signal.size(); irow++)
+		y(irow, 0) = signal[irow];
 	y.normalized_flag = 1;
 
 	// Learn
-	if (learn(x,y) == -1)
+	if (learn(x, y) == -1)
 		return -1;
 
 	return 0;
@@ -501,7 +502,7 @@ int MedPredictor::learn(MedFeaturesData& ftrs_data) {
 
 int MedPredictor::learn(MedFeatures& ftrs_data) {
 
-	vector<string> dummy_names; 
+	vector<string> dummy_names;
 	return learn(ftrs_data, dummy_names);
 }
 
@@ -509,7 +510,7 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 
 	// Build X
 	MedMat<float> x;
-	ftrs_data.get_as_matrix(x,names);
+	ftrs_data.get_as_matrix(x, names);
 
 	MLOG("MedPredictor::learn() from MedFeatures, got train matrix of %d x %d\n", x.nrows, x.ncols);
 
@@ -523,6 +524,85 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 		return learn(x, y, ftrs_data.weights);
 	else
 		return learn(x, y);
+}
+
+int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
+	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob) {
+	int min_bucket_size = int(100 / 0.01); //min bin size to flush prediction scores caliberation for PPV. divided by small prior
+	// > min and <= max
+
+	//add mapping from model score to probabilty based on big enough bins of score
+	//get prediction for X:
+	vector<float> preds;
+	predict(x, preds);
+
+	unordered_map<float, vector<int>> score_to_indexes;
+	vector<float> unique_scores;
+	for (size_t i = 0; i < preds.size(); ++i)
+	{
+		if (score_to_indexes.find(preds[i]) == score_to_indexes.end())
+			unique_scores.push_back(preds[i]);
+		score_to_indexes[preds[i]].push_back((int)i);
+	}
+	sort(unique_scores.begin(), unique_scores.end());
+	int sz = (int)unique_scores.size();
+
+	float curr_max = (float)INT32_MAX; //unbounded
+	float curr_min = curr_max;
+	float pred_sum = 0;
+	int curr_cnt = 0;
+	for (int i = sz - 1; i >= 0; --i)
+	{
+		//update values curr_cnt, pred_avg
+		for (int ind : score_to_indexes[unique_scores[i]])
+			pred_sum += int(y[ind] > 0);
+		curr_cnt += (int)score_to_indexes[unique_scores[i]].size();
+
+		if (curr_cnt > min_bucket_size) {
+			//flush buffer
+			curr_min = unique_scores[i];
+			max_range.push_back(curr_max);
+			min_range.push_back(curr_min);
+			map_prob.push_back(pred_sum / curr_cnt);
+
+			//init new buffer:
+			curr_cnt = 0;
+			curr_max = unique_scores[i];
+			pred_sum = 0;
+		}
+	}
+	if (curr_cnt > 0) {
+		//flush last buffer
+		curr_min = (float)INT32_MIN;
+		max_range.push_back(curr_max);
+		min_range.push_back(curr_min);
+		map_prob.push_back(pred_sum / curr_cnt);
+	}
+
+	MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
+	for (size_t i = 0; i < map_prob.size(); ++i)
+		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f\n", min_range[i], max_range[i], map_prob[i]);
+
+
+
+	return 0;
+}
+
+int MedPredictor::convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range,
+	const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs) {
+	probs.resize(preds.size());
+
+	for (size_t i = 0; i < probs.size(); ++i)
+	{
+		//search for right range:
+		int pos = 0;
+		while (pos < map_prob.size() &&
+			!((preds[i] > min_range[pos] || pos == map_prob.size() - 1) && (preds[i] <= max_range[pos] || pos == 0)))
+			++pos;
+		probs[i] = map_prob[pos];
+	}
+
+	return 0;
 }
 
 // Predicting
@@ -553,31 +633,31 @@ int MedPredictor::predict_on_train(MedFeaturesData& ftrs_data, int isplit) {
 int MedPredictor::predict(MedFeaturesData& ftrs_data, int isplit) {
 
 	// Build X
-	MedMat<float> x((int) ftrs_data.get_testing_nrows(isplit), (int) ftrs_data.signals.size()) ;
+	MedMat<float> x((int)ftrs_data.get_testing_nrows(isplit), (int)ftrs_data.signals.size());
 
-	vector<float> signal(x.nrows) ;
-	for (int icol=0; icol<ftrs_data.signals.size(); icol++) {
-		string& name = ftrs_data.signals[icol] ;
+	vector<float> signal(x.nrows);
+	for (int icol = 0; icol < ftrs_data.signals.size(); icol++) {
+		string& name = ftrs_data.signals[icol];
 
-		int split_irow = 0 ;
-		for (int irow=0; irow<ftrs_data.splits.size(); irow++) {
+		int split_irow = 0;
+		for (int irow = 0; irow < ftrs_data.splits.size(); irow++) {
 			if (ftrs_data.splits[irow] == isplit)
-				signal[split_irow++] = ftrs_data.data[name][irow] ;
+				signal[split_irow++] = ftrs_data.data[name][irow];
 		}
 
-		ftrs_data.cleaners[name][isplit].clear(signal) ;
-		ftrs_data.cleaners[name][isplit].normalize(signal) ;
+		ftrs_data.cleaners[name][isplit].clear(signal);
+		ftrs_data.cleaners[name][isplit].normalize(signal);
 
-		for (unsigned irow=0; irow<signal.size(); irow++) 
-			x(irow,icol) = signal[irow] ;
+		for (unsigned irow = 0; irow < signal.size(); irow++)
+			x(irow, icol) = signal[irow];
 
 	}
 
-	x.normalized_flag = 1 ;
+	x.normalized_flag = 1;
 
 	// Predict
-	if (predict(x,ftrs_data.split_preds[isplit])  == -1)
-		return -1 ;
+	if (predict(x, ftrs_data.split_preds[isplit]) == -1)
+		return -1;
 
 	if (ftrs_data.label_cleaners.size() > 0) {
 		for (unsigned int i = 0; i < ftrs_data.split_preds[isplit].size(); i++) {
@@ -587,32 +667,32 @@ int MedPredictor::predict(MedFeaturesData& ftrs_data, int isplit) {
 
 	ftrs_data.n_preds_per_sample = n_preds_per_sample();
 
-	return 0 ;
+	return 0;
 
 }
 
 int MedPredictor::predict(MedFeaturesData& ftrs_data) {
-	
+
 	// Build X
-	MedMat<float> x((int) ftrs_data.label.size(),(int) ftrs_data.signals.size()) ;
-	MedMat<float> y(x.nrows,1) ;
+	MedMat<float> x((int)ftrs_data.label.size(), (int)ftrs_data.signals.size());
+	MedMat<float> y(x.nrows, 1);
 
-	vector<float> signal(x.nrows) ;
-	for (int icol=0; icol<x.ncols; icol++) {
-		string& name = ftrs_data.signals[icol] ;
-		
-		signal = ftrs_data.data[name] ;
-		ftrs_data.cleaners[name][ftrs_data.nsplits].clear(signal) ;
+	vector<float> signal(x.nrows);
+	for (int icol = 0; icol < x.ncols; icol++) {
+		string& name = ftrs_data.signals[icol];
 
-		for (unsigned irow=0; irow<signal.size(); irow++)
-				x(icol,irow) = signal[irow] ;
+		signal = ftrs_data.data[name];
+		ftrs_data.cleaners[name][ftrs_data.nsplits].clear(signal);
+
+		for (unsigned irow = 0; irow < signal.size(); irow++)
+			x(icol, irow) = signal[irow];
 
 	}
-	x.normalized_flag = 1 ;
+	x.normalized_flag = 1;
 
 	// Predict
 	ftrs_data.n_preds_per_sample = n_preds_per_sample();
-	return predict(x,ftrs_data.preds)  ;
+	return predict(x, ftrs_data.preds);
 }
 
 int MedPredictor::predict(MedFeatures& ftrs_data) {
@@ -627,7 +707,7 @@ int MedPredictor::predict(MedFeatures& ftrs_data) {
 		return -1;
 
 	int n = n_preds_per_sample();
-	ftrs_data.samples.resize(preds.size()/n);
+	ftrs_data.samples.resize(preds.size() / n);
 	for (int i = 0; i < x.nrows; i++) {
 		ftrs_data.samples[i].prediction.resize(n);
 		for (int j = 0; j < n; j++)
@@ -642,8 +722,8 @@ int MedPredictor::read_from_file(const string &fname) // read and deserialize mo
 	unsigned char *blob;
 	unsigned long long size;
 
-	if (read_binary_data_alloc(fname,blob,size) < 0) {
-		MERR("Error reading model from file %s\n",fname.c_str());
+	if (read_binary_data_alloc(fname, blob, size) < 0) {
+		MERR("Error reading model from file %s\n", fname.c_str());
 		return -1;
 	}
 
@@ -658,15 +738,15 @@ int MedPredictor::write_to_file(const string &fname)  // serialize model and wri
 	unsigned long long size;
 
 	size = get_size();
-	vector<unsigned char> local_buf(size+1);
+	vector<unsigned char> local_buf(size + 1);
 	//blob = new unsigned char[size];
 	blob = &local_buf[0];
 
 	//MLOG("write_to_file 1: size %lld blob %llx\n", size, blob);
 	serialize(blob);
 
-	if (write_binary_data(fname,blob,size) < 0) {
-		MERR("Error writing model to file %s\n",fname.c_str());
+	if (write_binary_data(fname, blob, size) < 0) {
+		MERR("Error writing model to file %s\n", fname.c_str());
 		return -1;
 	}
 
