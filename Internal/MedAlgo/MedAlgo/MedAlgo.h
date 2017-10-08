@@ -160,10 +160,12 @@ public:
 	int predict(MedFeatures& features);
 
 	//caliberation for probability using training:
-	int learn_prob_calibration(MedMat<float> &x, vector<float> &y, 
-		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob);
-	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range, 
+	int learn_prob_calibration(MedMat<float> &x, vector<float> &y,
+		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000);
+	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range,
 		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs);
+	int learn_prob_calibration(MedMat<float> &x, vector<float> &y, float &A, float &B, int min_bucket_size = 10000);
+	int convert_scores_to_prob(const vector<float> &preds, float A, float B, vector<float> &probs);
 
 	// init
 	static MedPredictor *make_predictor(string model_type);
@@ -739,11 +741,11 @@ public:
 //======================================================================================
 // BackProp 
 //======================================================================================
-typedef enum { SIGMOID, RELU ,LINEAR}neuronFunT;
+typedef enum { SIGMOID, RELU, LINEAR }neuronFunT;
 
 typedef struct {
 	int layerIndex;
-	neuronFunT neuronFunction ;
+	neuronFunT neuronFunction;
 	int x;
 	int y;
 	int  firstWeight, lastWeight;
@@ -756,7 +758,7 @@ typedef struct {
 //================================================================
 typedef struct {
 	neuronStruct *neuron;
-	
+
 
 	int *source;
 	double *weight;
@@ -907,9 +909,9 @@ public:
 	MedSpecificGroupModels *clone();
 	ADD_SERIALIZATION_FUNCS(featNum, feat_ths, predictors)
 
-	//	void print(FILE *fp, const string& prefix) ;
-	// Parameters
-	void set_predictors(const vector<MedPredictor *> &predictors); //for each group index
+		//	void print(FILE *fp, const string& prefix) ;
+		// Parameters
+		void set_predictors(const vector<MedPredictor *> &predictors); //for each group index
 	void set_group_selection(int featNum, const vector<float> &feat_ths);
 	MedPredictor *get_model(int ind);
 	int model_cnt();
@@ -948,9 +950,9 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-	
+
 private:
-	
+
 
 };
 

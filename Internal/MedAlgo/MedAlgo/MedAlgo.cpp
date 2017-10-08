@@ -8,6 +8,7 @@
 #include "MedUtils/MedUtils/MedIO.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedLightGBM.h"
+#include "MedLinearModel.h"
 
 #include <thread>
 
@@ -527,8 +528,7 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 }
 
 int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
-	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob) {
-	int min_bucket_size = int(100 / 0.01); //min bin size to flush prediction scores caliberation for PPV. divided by small prior
+	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size) {
 	// > min and <= max
 
 	//add mapping from model score to probabilty based on big enough bins of score
@@ -603,6 +603,65 @@ int MedPredictor::convert_scores_to_prob(const vector<float> &preds, const vecto
 	}
 
 	return 0;
+}
+
+int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y, float &A, float &B, int min_bucket_size) {
+	vector<float> min_range, max_range, map_prob;
+	vector<float> preds;
+	predict(x, preds);
+	learn_prob_calibration(x, y, min_range, max_range, map_prob, min_bucket_size);
+
+	vector<float> probs;
+	convert_scores_to_prob(preds, min_range, max_range, map_prob, probs);
+	//probs is the new Y - lets learn A, B:
+	MedLinearModel lm(1); //B is param[0], A is param[1]
+
+	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
+		double res = 0;
+		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
+		for (size_t i = 0; i < y.size(); ++i)
+		{
+			double conv_prob = 1 / (1 + exp(prds[i]));
+			res += (conv_prob - y[i]) * (conv_prob - y[i]);
+		}
+		res /= y.size();
+		res = sqrt(res);
+		return res;
+	};
+	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params) {
+		double res = 0;
+		double reg_coef = 0;
+		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
+		for (size_t i = 0; i < y.size(); ++i)
+		{
+			double conv_prob = 1 / (1 + exp(prds[i]));
+			res += (conv_prob - y[i]) * (conv_prob - y[i]);
+		}
+		res /= y.size();
+		res = sqrt(res);
+		//Reg A,B:
+		if (reg_coef > 0)
+			res += reg_coef * sqrt((params[0] * params[0] + params[1] * params[1]) / 2);
+		return res;
+	};
+	lm.block_num = 10;
+	lm.sample_count = 1000;
+	lm.tot_steps = 500000;
+	lm.learning_rate = 3 * 1e-1;
+
+	lm.learn(preds, probs, (int)preds.size(), 1);
+
+	A = float(lm.model_params[1]);
+	B = float(lm.model_params[0]);
+
+	MLOG("Platt Scale A=%2.5F, B=%2.5f\n", A, B);
+	return 0;
+}
+
+int MedPredictor::convert_scores_to_prob(const vector<float> &preds, float A, float B, vector<float> &probs) {
+	probs.resize(preds.size());
+	for (size_t i = 0; i < probs.size(); ++i)
+		probs[i] = 1 / (1 + exp(A * preds[i] + B)); //Platt Scale technique for probabilty calibaration
 }
 
 // Predicting
