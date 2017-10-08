@@ -227,6 +227,7 @@ void QuantizedRF::clear()
 	max_q.clear();
 	cv.clear();
 	test_s.clear();
+	w.clear();
 
 	NSamples = 0;
 	NFeat = 0;
@@ -237,17 +238,17 @@ void QuantizedRF::clear()
 //-----------------------------------------------------------------------------------------------------------------------------------
 int QuantizedRF::init(float *X, int *Y, int nfeat, int nsamples, int maxq)
 {
-	return(init_all(X, Y, NULL, nfeat, nsamples, maxq));
+	return(init_all(X, Y, NULL, NULL, nfeat, nsamples, maxq));
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QuantizedRF::init_regression(float *X, float *Y, int nfeat, int nsamples, int maxq)
+int QuantizedRF::init_regression(float *X, float *Y, float *W, int nfeat, int nsamples, int maxq)
 {
-	return(init_all(X, NULL, Y, nfeat, nsamples, maxq));
+	return(init_all(X, NULL, Y, W, nfeat, nsamples, maxq));
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QuantizedRF::init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, int maxq)
+int QuantizedRF::init_all(float *X, int *Y, float *Yr, float *W, int nfeat, int nsamples, int maxq)
 {
 	int i;
 
@@ -290,6 +291,8 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, 
 	else {
 		// regression mode
 		yr.assign(Yr, Yr + nsamples);
+		if (W != NULL)
+			w.assign(W, W + nsamples);
 #ifdef DEBUG
 		fprintf(stderr, "QRF_init(): regression mode, yr size is %d\n", (int)yr.size()); fflush(stderr);
 #endif
@@ -325,7 +328,7 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, 
 		//max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_val, qd);
 		//quant_values.push_back(quant_val);
 		//q_data.push_back(qd);
-	}
+}
 
 	return 0;
 }
@@ -485,7 +488,7 @@ int QuantizedRF::get_regression_Tree(int *sampsize, int ntry, QRF_Tree &tree)
 	tree.feat_chosen.clear();
 
 	return 0;
-}
+	}
 
 //-----------------------------------------------------------------------------------------------------------------------------------
 int QuantizedRF::get_Tree(int *sampsize, int ntry, QRF_Tree &tree)
@@ -796,12 +799,17 @@ int QuantizedRF::find_best_categories_entropy_split(QRF_Tree &tree, int node, in
 
 	vector<int> histL(n_categ);
 	vector<int> histR(n_categ);
+	vector<double> histL_w, histR_w;
+
+	if (!w.empty()) {
+		histL_w.resize(n_categ);
+		histR_w.resize(n_categ);
+	}
 
 #ifdef DEBUG_ALGO
 	fprintf(stderr, "Searching a new spilt: node = %d , min_score %f , Entropy minimizing\n", node, min_score); fflush(stderr);
 #endif
 
-	double epsilon = 1e-6;
 	for (try_num = 0; try_num < ntry; try_num++) {
 
 		int ifeat = dist(tree.rand_gen);
@@ -811,63 +819,120 @@ int QuantizedRF::find_best_categories_entropy_split(QRF_Tree &tree, int node, in
 			tree.feat_chosen[ifeat] = node;
 
 			if (1) { //node_size > (max_q[ifeat]>>4) && node_size > 16) { 
-
-				// zero hist and then fill it back with values
-				fill(tree.histr_num.begin(), tree.histr_num.begin() + (n_categ*max_q[ifeat]), 0);
-				fill(tree.histr_sum.begin(), tree.histr_sum.begin() + max_q[ifeat], (float)0);
-
-				for (i = nd->from_sample; i <= nd->to_sample; i++) {
-					tree.histr_num[n_categ*q_data[ifeat][tree.sample_ids[i]] + (int)yr[tree.sample_ids[i]]]++;
-					tree.histr_sum[q_data[ifeat][tree.sample_ids[i]]]++;
-				}
-
-				fill(histL.begin(), histL.end(), 0);
-				fill(histR.begin(), histR.end(), 0);
-				for (i = 0; i < max_q[ifeat]; i++)
-					if (tree.histr_sum[i] > 0) {
-						for (j = 0; j < n_categ; j++)
-							histR[j] += tree.histr_num[i*n_categ + j];
+				vector<double> histr_num_w;
+				double max_start = (double)node_size;
+				if (!w.empty()) {
+					max_start = 0;
+					histr_num_w.resize(n_categ * max_q[ifeat]);
+					fill(tree.histr_sum.begin(), tree.histr_sum.begin() + max_q[ifeat], (float)0);
+					fill(tree.histr_num.begin(), tree.histr_num.begin() + (n_categ*max_q[ifeat]), 0);
+					for (i = nd->from_sample; i <= nd->to_sample; i++) {
+						histr_num_w[n_categ*q_data[ifeat][tree.sample_ids[i]] + (int)yr[tree.sample_ids[i]]] += w[tree.sample_ids[i]];
+						tree.histr_sum[q_data[ifeat][tree.sample_ids[i]]] += w[tree.sample_ids[i]];
+						++tree.histr_num[n_categ*q_data[ifeat][tree.sample_ids[i]] + (int)yr[tree.sample_ids[i]]];
 					}
+
+					fill(histL_w.begin(), histL_w.end(), double(0));
+					fill(histR_w.begin(), histR_w.end(), double(0));
+					for (i = 0; i < max_q[ifeat]; i++)
+						if (tree.histr_sum[i] > 0) {
+							for (j = 0; j < n_categ; j++)
+								histR_w[j] += histr_num_w[i*n_categ + j];
+
+						}
+					for (j = 0; j < n_categ; j++) //all sum
+						max_start += histR_w[j];
+				}
+				else {
+					// zero hist and then fill it back with values
+					fill(tree.histr_num.begin(), tree.histr_num.begin() + (n_categ*max_q[ifeat]), 0);
+					fill(tree.histr_sum.begin(), tree.histr_sum.begin() + max_q[ifeat], (float)0);
+					for (i = nd->from_sample; i <= nd->to_sample; i++) {
+						++tree.histr_num[n_categ*q_data[ifeat][tree.sample_ids[i]] + (int)yr[tree.sample_ids[i]]];
+						++tree.histr_sum[q_data[ifeat][tree.sample_ids[i]]];
+					}
+
+					fill(histL.begin(), histL.end(), 0);
+					fill(histR.begin(), histR.end(), 0);
+					for (i = 0; i < max_q[ifeat]; i++)
+						if (tree.histr_sum[i] > 0) {
+							for (j = 0; j < n_categ; j++)
+								histR[j] += tree.histr_num[i*n_categ + j];
+						}
+				}
 
 				// now we need to go over the hist and find the best split
 				// we are searching to maximize the H entropy score
 				left_sum = 0.0;
-				right_sum = (double)node_size;
-				tot_sum = (double)node_size;
+				right_sum = max_start;
+				int left_cnt = 0, right_cnt = node_size;
+				tot_sum = max_start;
 				max_i = -1;
 				for (i = 0; i < max_q[ifeat] - 1; i++) {
 
 					if (tree.histr_sum[i] > 0) {
-						for (j = 0; j < n_categ; j++) {
-							histL[j] += tree.histr_num[i*n_categ + j];
-							histR[j] -= tree.histr_num[i*n_categ + j];
-							left_sum += tree.histr_num[i*n_categ + j];
-							right_sum -= tree.histr_num[i*n_categ + j];
-						}
+						for (j = 0; j < n_categ; j++)
+							if (w.empty()) {
+								histL[j] += tree.histr_num[i*n_categ + j];
+								histR[j] -= tree.histr_num[i*n_categ + j];
+								left_sum += tree.histr_num[i*n_categ + j];
+								right_sum -= tree.histr_num[i*n_categ + j];
 
-						if (right_sum == 0)
-							break;
+								if (right_sum == 0)
+									break;
+							}
+							else {
+								histL_w[j] += histr_num_w[i*n_categ + j];
+								histR_w[j] -= histr_num_w[i*n_categ + j];
+								left_sum += histr_num_w[i*n_categ + j];
+								right_sum -= histr_num_w[i*n_categ + j];
+								left_cnt += tree.histr_num[i*n_categ + j];
+								right_cnt -= tree.histr_num[i*n_categ + j];
 
-						HL = 0.0; HR = 0.0;
-						for (j = 0; j < n_categ; j++) {
-							HL -= log_table[histL[j]];
-							HR -= log_table[histR[j]];
-						}
-						HL += log_table[(int)left_sum];
-						HR += log_table[(int)right_sum];
-						H = HL + HR;
+								if (right_cnt == 0)
+									break;
+							}
 
-						if (!(left_sum >= min_split_node_size && right_sum >= min_split_node_size))
-							H = min_score + 1; // makes sure we do not split cases that split to nodes too small
+							HL = 0.0; HR = 0.0;
+							for (j = 0; j < n_categ; j++) {
+								if (w.empty()) {
+									HL -= log_table[histL[j]];
+									HR -= log_table[histR[j]];
+								}
+								else {
+									int ind_L = (int)round(histL_w[j]);
+									int ind_R = (int)round(histR_w[j]);
+									if (ind_L < log_table.size())
+										HL -= log_table[(int)round(histL_w[j])];
+									else
+										HL -= log(histL_w[j]);
+									if (ind_R < log_table.size())
+										HR -= log_table[(int)round(histR_w[j])];
+									else
+										HR -= log(histR_w[j]);
+								}
+							}
+							if ((int)left_sum < log_table.size())
+								HL += log_table[(int)left_sum];
+							else
+								HL += log(left_sum);
+							if ((int)right_sum < log_table.size())
+								HR += log_table[(int)right_sum];
+							else
+								HR += log(right_sum);
+							H = HL + HR;
+
+							if (!(left_sum >= min_split_node_size && right_sum >= min_split_node_size))
+								H = min_score + 1; // makes sure we do not split cases that split to nodes too small
 #ifdef DEBUG_ALGO_2
-						fprintf(stderr, "node %d ifeat %d i %d min_score %f node_size %d left_sum %f right_sum %f score %f\n",
-							node, ifeat, i, min_score, node_size, left_sum, right_sum, H); fflush(stderr);
+							fprintf(stderr, "node %d ifeat %d i %d min_score %f node_size %d left_sum %f right_sum %f score %f\n",
+								node, ifeat, i, min_score, node_size, left_sum, right_sum, H); fflush(stderr);
 #endif
 
-						if (H < min_score) {
-							min_score = H;
-							max_i = i;
-						}
+							if (H < min_score) {
+								min_score = H;
+								max_i = i;
+							}
 					}
 
 				}
@@ -1201,7 +1266,7 @@ int QuantizedRF::split_regression_node(QRF_Tree &tree, int node)
 	for (i = nd->from_sample; i <= nd->to_sample; i++) {
 		if (q_data[ifeat][tree.sample_ids[i]] <= qval) {
 			tree.sample_ids[j++] = tree.sample_ids[i];
-			sumL += yr[tree.sample_ids[i]];
+			sumL += (w.empty() ? 1 : w[tree.sample_ids[i]]) * yr[tree.sample_ids[i]];
 			if (yr[tree.sample_ids[i]] > maxL) maxL = yr[tree.sample_ids[i]];
 			if (yr[tree.sample_ids[i]] < minL) minL = yr[tree.sample_ids[i]];
 		}
@@ -1212,7 +1277,7 @@ int QuantizedRF::split_regression_node(QRF_Tree &tree, int node)
 
 	for (i = k + 1; i <= nd->to_sample; i++) {
 		tree.sample_ids[i] = tree.inds[i];
-		sumR += yr[tree.inds[i]];
+		sumR += (w.empty() ? 1 : w[tree.sample_ids[i]]) * yr[tree.inds[i]];
 		if (yr[tree.inds[i]] > maxR) maxR = yr[tree.inds[i]];
 		if (yr[tree.inds[i]] < minR) minR = yr[tree.inds[i]];
 	}
@@ -1791,10 +1856,10 @@ void build_tree_thread(void *p)
 			fprintf(stderr, "Thread %d , building tree %d...\n", tp->serial, i);
 #endif
 			tp->qrf->get_regression_Tree(tp->sampsize, tp->ntry, (*(tp->trees))[i]);
-		}
+	}
 
 		(*(tp->trees))[i].nodes.resize((*(tp->trees))[i].n_nodes);
-	}
+}
 
 	//	fprintf(stderr,"Ending thread %d\n",tp->serial);
 	tp->state = 1;
@@ -1901,7 +1966,7 @@ int QRF_Forest::get_forest(float *x, int *y, int nfeat, int nsamples, int *samps
 {
 	n_categ = 2;
 	if (mode == QRF_BINARY_TREE)
-		return(get_forest_trees_all_modes(x, (void *)y, nfeat, nsamples, sampsize, ntry, ntrees, maxq, QRF_BINARY_TREE));
+		return(get_forest_trees_all_modes(x, (void *)y, NULL, nfeat, nsamples, sampsize, ntry, ntrees, maxq, QRF_BINARY_TREE));
 	else {
 		fprintf(stderr, "qrf: get_forest: error: unsupported mode in this API %d\n", mode); fflush(stderr);
 		return -1;
@@ -1918,11 +1983,11 @@ int QRF_Forest::get_forest_regression_trees(float *x, float *y, int nfeat, int n
 	if (min_node < 0) min_node_size = MIN_SPLIT_NODE_SIZE;
 	if (spread < 0) min_spread = (float)MIN_SPLIT_SPREAD;
 	n_categ = 0;
-	return(get_forest_trees_all_modes(x, (void *)y, nfeat, nsamples, &sampsize, ntry, ntrees, maxq, QRF_REGRESSION_TREE));
+	return(get_forest_trees_all_modes(x, (void *)y, NULL, nfeat, nsamples, &sampsize, ntry, ntrees, maxq, QRF_REGRESSION_TREE));
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QRF_Forest::get_forest_categorical(float *x, float *y, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method)
+int QRF_Forest::get_forest_categorical(float *x, float *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method)
 {
 
 	if (splitting_method != QRF_CATEGORICAL_CHI2_TREE && splitting_method != QRF_CATEGORICAL_ENTROPY_TREE) {
@@ -1940,12 +2005,12 @@ int QRF_Forest::get_forest_categorical(float *x, float *y, int nfeat, int nsampl
 	n_categ = ncateg;
 
 	//fprintf(stderr, "QRF1: sampsize %d %d type is %d\n", sampsize[0], sampsize[1], splitting_method);
-	return(get_forest_trees_all_modes(x, (void *)y, nfeat, nsamples, sampsize, ntry, ntrees, maxq, splitting_method));
+	return(get_forest_trees_all_modes(x, (void *)y, w, nfeat, nsamples, sampsize, ntry, ntrees, maxq, splitting_method));
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
 // in regression and categorical modes the sampsize is sampsize[0]
-int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int tree_mode)
+int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int tree_mode)
 {
 	QuantizedRF qrf;
 
@@ -1975,7 +2040,7 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, int nfeat, int nsa
 	if (mode == QRF_BINARY_TREE)
 		qrf.init(x, (int *)y, nfeat, nsamples, maxq);
 	if ((mode == QRF_REGRESSION_TREE) || (mode == QRF_CATEGORICAL_CHI2_TREE) || (mode == QRF_CATEGORICAL_ENTROPY_TREE))
-		qrf.init_regression(x, (float *)y, nfeat, nsamples, maxq);
+		qrf.init_regression(x, (float *)y, w, nfeat, nsamples, maxq);
 
 	vector<QRF_Tree> trees(ntrees);
 	for (int i = 0; i < ntrees; i++)
