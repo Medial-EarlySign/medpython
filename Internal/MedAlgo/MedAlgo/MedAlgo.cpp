@@ -605,7 +605,26 @@ int MedPredictor::convert_scores_to_prob(const vector<float> &preds, const vecto
 	return 0;
 }
 
-int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y, float &A, float &B, int min_bucket_size) {
+template<class T, class L> int MedPredictor::convert_scores_to_prob(const vector<T> &preds, const vector<double> &params, vector<L> &converted) {
+	converted.resize((int)preds.size());
+	for (size_t i = 0; i < converted.size(); ++i)
+	{
+		double val = params[0];
+		for (size_t k = 1; k < params.size(); ++k)
+			val += params[k] * pow(double(preds[i]), double(k));
+		val = 1 / (1 + exp(val));//Platt Scale technique for probabilty calibaration
+		converted[i] = (L)val;
+	} 
+	
+	return 0;
+}
+template int MedPredictor::convert_scores_to_prob<double, double>(const vector<double> &preds, const vector<double> &params, vector<double> &converted);
+template int MedPredictor::convert_scores_to_prob<double, float>(const vector<double> &preds, const vector<double> &params, vector<float> &converted);
+template int MedPredictor::convert_scores_to_prob<float, double>(const vector<float> &preds, const vector<double> &params, vector<double> &converted);
+template int MedPredictor::convert_scores_to_prob<float, float>(const vector<float> &preds, const vector<double> &params, vector<float> &converted);
+
+int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
+	int poly_rank, vector<double> &params, int min_bucket_size) {
 	vector<float> min_range, max_range, map_prob;
 	vector<float> preds;
 	predict(x, preds);
@@ -614,7 +633,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y, flo
 	vector<float> probs;
 	convert_scores_to_prob(preds, min_range, max_range, map_prob, probs);
 	//probs is the new Y - lets learn A, B:
-	MedLinearModel lm(1); //B is param[0], A is param[1]
+	MedLinearModel lm(poly_rank); //B is param[0], A is param[1]
 
 	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
 		double res = 0;
@@ -644,24 +663,43 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y, flo
 			res += reg_coef * sqrt((params[0] * params[0] + params[1] * params[1]) / 2);
 		return res;
 	};
-	lm.block_num = 10;
+	lm.block_num = float(10 * sqrt(poly_rank + 1));
 	lm.sample_count = 1000;
 	lm.tot_steps = 500000;
 	lm.learning_rate = 3 * 1e-1;
 
-	lm.learn(preds, probs, (int)preds.size(), 1);
+	vector<float> poly_preds_params(preds.size() * poly_rank);
+	for (size_t j = 0; j < poly_rank; ++j)
+		for (size_t i = 0; i < preds.size(); ++i)
+			poly_preds_params[i * poly_rank + j] = (float)pow(preds[i], j + 1);
 
-	A = float(lm.model_params[1]);
-	B = float(lm.model_params[0]);
+	lm.learn(poly_preds_params, probs, (int)preds.size(), poly_rank);
+	vector<float> factors(poly_rank), mean_shifts(poly_rank);
+	lm.get_normalization(mean_shifts, factors);
 
-	MLOG("Platt Scale A=%2.5F, B=%2.5f\n", A, B);
+	//put normalizations inside params:
+	params.resize(poly_rank + 1);
+	params[0] = lm.model_params[0];
+	for (size_t i = 1; i < params.size(); ++i) {
+		params[i] = lm.model_params[i] / factors[i - 1];
+		params[0] -= lm.model_params[i] * mean_shifts[i - 1] / factors[i - 1];
+	}
+
+	vector<double> converted((int)preds.size()), prior_score((int)preds.size());
+	convert_scores_to_prob(preds, params, converted);
+	int tot_pos = 0;
+	for (size_t i = 0; i < y.size(); ++i)
+		tot_pos += int(y[i] > 0);
+	for (size_t i = 0; i < converted.size(); ++i)
+		prior_score[i] = double(tot_pos) / y.size();
+
+	double loss_model = _linear_loss_target_rmse(converted, probs);
+	double loss_prior = _linear_loss_target_rmse(prior_score, probs);
+
+	MLOG("Platt Scale prior=%2.5f. loss_model=%2.5f, loss_prior=%2.5f\n",
+		double(tot_pos) / y.size(), loss_model, loss_prior);
+
 	return 0;
-}
-
-int MedPredictor::convert_scores_to_prob(const vector<float> &preds, float A, float B, vector<float> &probs) {
-	probs.resize(preds.size());
-	for (size_t i = 0; i < probs.size(); ++i)
-		probs[i] = 1 / (1 + exp(A * preds[i] + B)); //Platt Scale technique for probabilty calibaration
 }
 
 // Predicting

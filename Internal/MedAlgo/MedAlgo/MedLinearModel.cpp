@@ -158,7 +158,7 @@ double _linear_loss_target_auc(const vector<double> &preds, const vector<float> 
 	vector<vector<int>> targetToInd(2);
 	for (size_t i = 0; i < y.size(); ++i)
 		targetToInd[int(y[i] > 0)].push_back((int)i);
-	
+
 	double res = 0;
 	for (size_t i = 0; i < targetToInd[1].size(); ++i)
 	{
@@ -194,7 +194,7 @@ double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<floa
 	vector<vector<int>> targetToInd(2);
 	for (size_t i = 0; i < y.size(); ++i)
 		targetToInd[(int)y[i]].push_back((int)i);
-	
+
 	double res = 0;
 	int smp_cnt = 500;
 	//random_device rd;
@@ -364,6 +364,11 @@ void MedLinearModel::print(const vector<string> &signalNames) {
 void MedLinearModel::set_normalization(const vector<float> &meanShift, const vector<float> &factors) {
 	_meanShift = meanShift;
 	_factor = factors;
+}
+
+void MedLinearModel::get_normalization(vector<float> &meanShift, vector<float> &factors) {
+	meanShift = _meanShift;
+	factors = _factor;
 }
 
 void MedLinearModel::apply_normalization(vector<vector<float>> &input) {

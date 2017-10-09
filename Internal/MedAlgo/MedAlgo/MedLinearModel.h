@@ -20,6 +20,7 @@ public:
 	void print(const vector<string> &signalNames);
 	void set_normalization(const vector<float> &meanShift, const vector<float> &factors);
 	void apply_normalization(vector<vector<float>> &input);
+	void get_normalization(vector<float> &meanShift, vector<float> &factors);
 	
 	//Set Loss Fucntions to learn:
 	double(*loss_function)(const vector<double> &got, const vector<float> &y);
