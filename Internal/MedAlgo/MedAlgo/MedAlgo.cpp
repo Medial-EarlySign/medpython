@@ -528,7 +528,7 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 }
 
 int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
-	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, 
+	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob,
 	int min_bucket_size, float min_score_jump) {
 	// > min and <= max
 
@@ -550,7 +550,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 
 	float curr_max = (float)INT32_MAX; //unbounded
 	float curr_min = curr_max;
-	float pred_sum = 0;
+	int pred_sum = 0;
 	int curr_cnt = 0;
 	for (int i = sz - 1; i >= 0; --i)
 	{
@@ -564,7 +564,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 			curr_min = unique_scores[i];
 			max_range.push_back(curr_max);
 			min_range.push_back(curr_min);
-			map_prob.push_back(pred_sum / curr_cnt);
+			map_prob.push_back(float(double(pred_sum) / curr_cnt));
 
 			//init new buffer:
 			curr_cnt = 0;
@@ -577,14 +577,12 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 		curr_min = (float)INT32_MIN;
 		max_range.push_back(curr_max);
 		min_range.push_back(curr_min);
-		map_prob.push_back(pred_sum / curr_cnt);
+		map_prob.push_back(float(double(pred_sum) / curr_cnt));
 	}
 
 	MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
 	for (size_t i = 0; i < map_prob.size(); ++i)
 		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f\n", min_range[i], max_range[i], map_prob[i]);
-
-
 
 	return 0;
 }
@@ -615,8 +613,8 @@ template<class T, class L> int MedPredictor::convert_scores_to_prob(const vector
 			val += params[k] * pow(double(preds[i]), double(k));
 		val = 1 / (1 + exp(val));//Platt Scale technique for probabilty calibaration
 		converted[i] = (L)val;
-	} 
-	
+	}
+
 	return 0;
 }
 template int MedPredictor::convert_scores_to_prob<double, double>(const vector<double> &preds, const vector<double> &params, vector<double> &converted);
