@@ -528,7 +528,8 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 }
 
 int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
-	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size) {
+	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, 
+	int min_bucket_size, float min_score_jump) {
 	// > min and <= max
 
 	//add mapping from model score to probabilty based on big enough bins of score
@@ -558,7 +559,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 			pred_sum += int(y[ind] > 0);
 		curr_cnt += (int)score_to_indexes[unique_scores[i]].size();
 
-		if (curr_cnt > min_bucket_size) {
+		if (curr_cnt > min_bucket_size && curr_max - unique_scores[i] > min_score_jump) {
 			//flush buffer
 			curr_min = unique_scores[i];
 			max_range.push_back(curr_max);
@@ -624,11 +625,11 @@ template int MedPredictor::convert_scores_to_prob<float, double>(const vector<fl
 template int MedPredictor::convert_scores_to_prob<float, float>(const vector<float> &preds, const vector<double> &params, vector<float> &converted);
 
 int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
-	int poly_rank, vector<double> &params, int min_bucket_size) {
+	int poly_rank, vector<double> &params, int min_bucket_size, float min_score_jump) {
 	vector<float> min_range, max_range, map_prob;
 	vector<float> preds;
 	predict(x, preds);
-	learn_prob_calibration(x, y, min_range, max_range, map_prob, min_bucket_size);
+	learn_prob_calibration(x, y, min_range, max_range, map_prob, min_bucket_size, min_score_jump);
 
 	vector<float> probs;
 	convert_scores_to_prob(preds, min_range, max_range, map_prob, probs);
