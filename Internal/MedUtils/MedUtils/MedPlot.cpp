@@ -108,8 +108,15 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 		throw invalid_argument("filtered all points - min_filter_cnt is too high or axis bining is needed");
 }
 
-void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName, vector<string> seriesNames, int refreshTime)
+void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName, 
+	vector<string> seriesNames, int refreshTime, string chart_type)
 {
+	string x_name = "x";
+	string y_name = "y";
+	if (chart_type == "pie") {
+		x_name = "labels";
+		y_name = "values";
+	}
 
 	/*ifstream jsFile;
 	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
@@ -150,7 +157,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	{
 		map<float, float> dmap = data[i];
 
-		rep += "var series" + to_string(i) + " = {\n mode: 'lines+markers',\n x: [";
+		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name +": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
 		}
@@ -159,7 +166,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 		}
 		rep += "], \n";
 
-		rep += "y: [";
+		rep += y_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->second) + ", ";
 		}
@@ -194,12 +201,15 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	rep += " ]; \n";
 
 	rep += "var layout = { \n  title:'";
-	rep += title;
-	rep += "', \n xaxis: { title : '";
-	rep += xName;
-	rep += "'}, \n yaxis: { title: '";
-	rep += yName;
-	rep += "' }, \n height: 800, \n    width: 1200 \n }; ";
+	rep += title + "',\n ";
+	if (chart_type != "pie") {
+		rep += "xaxis: { title : '";
+		rep += xName;
+		rep += "'}, \n yaxis: { title: '";
+		rep += yName + "'},\n ";
+	}
+	
+	rep += "height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);
 	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
