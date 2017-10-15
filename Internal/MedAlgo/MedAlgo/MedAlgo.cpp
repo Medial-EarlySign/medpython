@@ -529,7 +529,7 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 
 int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob,
-	int min_bucket_size, float min_score_jump) {
+	int min_bucket_size, float min_score_jump, float min_prob_jump) {
 	// > min and <= max
 
 	//add mapping from model score to probabilty based on big enough bins of score
@@ -552,6 +552,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	float curr_min = curr_max;
 	int pred_sum = 0;
 	int curr_cnt = 0;
+	vector<int> bin_cnts;
 	for (int i = sz - 1; i >= 0; --i)
 	{
 		//update values curr_cnt, pred_avg
@@ -565,6 +566,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 			max_range.push_back(curr_max);
 			min_range.push_back(curr_min);
 			map_prob.push_back(float(double(pred_sum) / curr_cnt));
+			bin_cnts.push_back(curr_cnt);
 
 			//init new buffer:
 			curr_cnt = 0;
@@ -578,6 +580,33 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 		max_range.push_back(curr_max);
 		min_range.push_back(curr_min);
 		map_prob.push_back(float(double(pred_sum) / curr_cnt));
+		bin_cnts.push_back(curr_cnt);
+	}
+
+	//unite similar prob bins:
+	vector<int> ind_to_unite;
+	for (int i = (int)map_prob.size() - 1; i >= 1; --i)
+		if (abs(map_prob[i] - map_prob[i - 1]) < min_prob_jump) { //unite bins:
+			ind_to_unite.push_back(i);
+			int new_count = bin_cnts[i] + bin_cnts[i - 1];
+			float new_prob = (map_prob[i] * bin_cnts[i] + map_prob[i - 1] * bin_cnts[i - 1]) / new_count;
+			float max_th = max_range[i - 1];
+			float min_th = min_range[i];
+			min_range[i - 1] = min_th;
+			max_range[i - 1] = max_th;
+			map_prob[i - 1] = new_prob;
+			bin_cnts[i - 1] = new_count;
+		}
+
+	//unite from end to start:
+	for (int i = 0; i < ind_to_unite.size(); ++i)
+	{
+		int unite_index = ind_to_unite[i];
+		//delete old records:
+		min_range.erase(min_range.begin() + unite_index);
+		max_range.erase(max_range.begin() + unite_index);
+		map_prob.erase(map_prob.begin() + unite_index);
+		bin_cnts.erase(bin_cnts.begin() + unite_index);
 	}
 
 	MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());

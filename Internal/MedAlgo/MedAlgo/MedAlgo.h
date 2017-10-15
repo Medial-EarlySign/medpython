@@ -161,7 +161,8 @@ public:
 
 	//caliberation for probability using training:
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y,
-		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000, float min_score_jump = 0.001);
+		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000, 
+		float min_score_jump = 0.001, float min_prob_jump = 0.005);
 	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range,
 		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs);
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y, int poly_rank, vector<double> &params, int min_bucket_size = 10000, float min_score_jump = 0.001);
