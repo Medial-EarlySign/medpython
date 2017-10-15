@@ -16,44 +16,36 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 extern MedLogger global_logger;
 
+unordered_map<int, string> predictor_type_to_name = {
+	{ MODEL_LINEAR_MODEL , "linear_model"} ,
+	{ MODEL_GD_LINEAR , "gdlm" },
+	{ MODEL_QRF , "qrf" },
+	{ MODEL_KNN , "knn" },
+	{ MODEL_MARS , "mars" },
+	{ MODEL_GBM , "gbm" },
+	{ MODEL_BP , "BP" },
+	{ MODEL_MULTI_CLASS , "multi_class" },
+	{ MODEL_XGB , "xgb" },
+	{ MODEL_LASSO , "lasso" },
+	{ MODEL_MIC_NET , "micNet" },
+	{ MODEL_BOOSTER , "booster" },
+	{ MODEL_DEEP_BIT , "deep_bit" },
+	{ MODEL_LIGHTGBM , "lightgbm" },
+	{ MODEL_SVM , "svm" },
+	{ MODEL_LIGHTGBM , "lightgbm" },
+	{ MODEL_LINEAR_SGD , "linear_sgd" },
+	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" }
+};
 //=======================================================================================
 // MedPredictor
 //=======================================================================================
 // Model types
 MedPredictorTypes predictor_name_to_type(const string& model_name) {
-
-	if (model_name == "linear_model")
-		return  MODEL_LINEAR_MODEL;
-	else if (model_name == "gdlm")
-		return MODEL_GD_LINEAR;
-	else if (model_name == "qrf")
-		return MODEL_QRF;
-	else if (model_name == "knn")
-		return MODEL_KNN;
-	else if (model_name == "mars")
-		return MODEL_MARS;
-	else if (model_name == "gbm")
-		return MODEL_GBM;
-	else if (model_name == "BP")
-		return MODEL_BP;
-	else if (model_name == "multi_class")
-		return MODEL_MULTI_CLASS;
-	else if (model_name == "xgb")
-		return MODEL_XGB;
-	else if (model_name == "lasso")
-		return MODEL_LASSO;
-	else if (model_name == "micNet")
-		return MODEL_MIC_NET;
-	else if (model_name == "booster")
-		return MODEL_BOOSTER;
-	else if (model_name == "deep_bit")
-		return MODEL_DEEP_BIT;
-	else if (model_name == "lightgbm")
-		return MODEL_LIGHTGBM;
-	else if (model_name == "svm")
-		return MODEL_SVM;
-	else
-		return MODEL_LAST;
+	for (auto it = predictor_type_to_name.begin(); it != predictor_type_to_name.end(); ++it)
+		if (it->second == model_name) {
+			return MedPredictorTypes(it->first);
+		}
+	return MODEL_LAST;
 }
 
 // Initialization

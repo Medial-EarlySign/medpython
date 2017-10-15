@@ -17,6 +17,7 @@
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "svm.h"
+#include <unordered_map>
 
 // #include "MedBooster.h" // this include is at the end of file as it depends on following definitions to come first
 
@@ -73,6 +74,7 @@ typedef enum {
 	MODEL_LAST
 } MedPredictorTypes;
 
+extern unordered_map<int, string> predictor_type_to_name;
 MedPredictorTypes predictor_name_to_type(const string& model_name);
 
 class MedPredictor : public SerializableObject {
