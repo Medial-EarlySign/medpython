@@ -269,7 +269,7 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 
 	// read config
 	if (read_config(conf_fname) < 0) {
-		MERR("MedRepository: read_all: error: read_config %s failed\n",conf_fname.c_str());
+		MERR("MedRepository: read_all: error: read_config [%s] failed\n",conf_fname.c_str());
 		return -1;
 	}
 
