@@ -311,7 +311,7 @@ netStruct  buildNet(int numLayers,int shared[],int xd[], int yd[],int zd[],int s
 					myNet.source[sourcePointer++]=0;
 					unsigned int urand;
 					urand=globalRNG::rand();
-					myNet.weight[weightPointer++]=(double)urand/globalRNG::max()*2-1;
+					myNet.weight[weightPointer++]=(double)urand/ UINT_MAX *2-1;
 
 					for(xw=skip2[layerIndex][0]*xNeuron;xw<skip2[layerIndex][0]*xNeuron+size2[layerIndex][0];xw++)
 						for(yw=skip2[layerIndex][1]*yNeuron;yw<skip2[layerIndex][1]*yNeuron+size2[layerIndex][1];yw++)
@@ -554,7 +554,9 @@ double trainBatch(netStruct *myNet, double **inputs,double **outputs,int numSamp
 	double *tempOutputs=(double *)malloc(sizeof(double)*myNet->numOutputs);
 	if(sync)weightChange=(double *)calloc(sizeof(double),myNet->numWeights);
 	int *rperm=(int *)malloc(sizeof(int)*numSamples);
-	randperm(numSamples,rperm);
+	//randperm(numSamples,rperm);  
+	for (int k = 0; k < numSamples; k++)rperm[k] = rand() % numSamples;// deaw with repetitions
+	
 	for(int i=0;i<numSamples;i++){
 		
 		int k=rperm[i];

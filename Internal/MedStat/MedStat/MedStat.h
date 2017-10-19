@@ -21,6 +21,8 @@
 #include <cstring>
 
 #include "string.h"
+#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+
 
 #define MED_CLEANER_MAX_Z 15
 #define MED_CLEANER_EPSILON 0.0001
@@ -64,7 +66,7 @@ inline float roundf(float val, float rounder) {
 #define MED_DEFAULT_MIN_TRIM			-1e9
 #define MED_DEFAULT_MAX_TRIM			 1e9
 // Cleaner class : Normalizing and cleaning of outliers
-class MedCleaner {
+class MedCleaner : SerializableObject {
 public:
 
 	float missing_value ;
@@ -110,6 +112,9 @@ public:
 	size_t serialize(unsigned char *buffer) ;
 	size_t deserialize(unsigned char *buffer) ;
 } ;
+
+MEDSERIALIZE_SUPPORT(MedCleaner)
+
 
 //======================================================================================
 // MedHist - simple class to get histograms

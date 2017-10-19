@@ -51,6 +51,40 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
 		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
 
+	// Default lists of source features : See examples nin Config_Exacmple
+	if (raw_source_feature_names.empty()) {
+		if (calc_type == "fragile") {
+			raw_source_feature_names.push_back("Weight.last.win_180_360");
+			raw_source_feature_names.push_back("Weight.min.win_0_180");
+			raw_source_feature_names.push_back("BMI.min.win_0_180");
+			raw_source_feature_names.push_back("BMI.max.win_0_180");
+			raw_source_feature_names.push_back("CRP.max.win_0_180");
+			raw_source_feature_names.push_back("Albumin.min.win_0_180");
+			raw_source_feature_names.push_back("WBC.min.win_0_180");
+			raw_source_feature_names.push_back("WBC.max.win_0_180");
+			raw_source_feature_names.push_back("Gender");
+			raw_source_feature_names.push_back("Hemoglobin.min.win_0_180");
+			raw_source_feature_names.push_back("Current_Smoker");
+			raw_source_feature_names.push_back("category_set_RC_Weight");
+			raw_source_feature_names.push_back("category_set_RC_FallAdmission");
+			raw_source_feature_names.push_back("category_set_RC_Weakness");
+			raw_source_feature_names.push_back("category_set_RC_Vision");
+			raw_source_feature_names.push_back("category_set_RC_Dyspnea");
+			raw_source_feature_names.push_back("category_set_RC_Fatigue");
+			raw_source_feature_names.push_back("category_set_RC_Chronic_Pain");
+			raw_source_feature_names.push_back("category_set_RC_Urinery_Inconsistence");
+			raw_source_feature_names.push_back("category_set_RC_Depression");
+			raw_source_feature_names.push_back("category_set_RC_Coginition_Problems");
+			raw_source_feature_names.push_back("category_set_RC_Social");
+		}
+		else if (calc_type == "min_chads2" || calc_type == "max_chads2") { 
+			raw_source_feature_names = { "Age", "DM_Registry", "HT_Registry", "strokeIndicator", "chfIndicator" };
+		}
+		else if (calc_type == "min_chads2_vasc" || calc_type == "max_chads_vasc2") {
+			raw_source_feature_names = { "Age", "DM_Registry", "HT_Registry", "strokeIndicator", "chfIndicator","Gender","vascIndicator" };
+		} 
+	}
+
 	// Set name
 	if (raw_target_feature_name == "") {
 		string inFeatures = boost::join(raw_source_feature_names, "_");
@@ -74,7 +108,7 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	features.data[feature_name].clear();
 	features.data[feature_name].resize(samples_size);
 	float *p_out = &(features.data[feature_name][0]);
-	
+
 	// Attributes
 	features.attributes[feature_name].normalized = false;
 	features.attributes[feature_name].imputed = true;
@@ -85,7 +119,7 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 		assert(features.data.find(source) != features.data.end());
 		p_sources.push_back(&(features.data[source][0]));
 	}
-	
+
 
 	// Do your stuff
 	if (calc_type == "sum")
@@ -98,11 +132,13 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 		chads2(p_sources, p_out, samples_size, 1, 0);
 	else if (calc_type == "max_chads2_vasc")
 		chads2(p_sources, p_out, samples_size, 1, 1);
+	else if (calc_type == "fragile")
+		fragile(p_sources, p_out, samples_size);	
 	else if (calc_type == "log")
 		_log(p_sources, p_out, samples_size);
 	else
 		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
-	
+
 	return 0;
 }
 
@@ -131,7 +167,7 @@ void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samp
 
 // Chads2 Scores: ASSUME order of given data is : age,Diabetes Registry, Hyper-Tenstion Registry, Stroke/TIA indicator, CHF indicator, (optinal: Sex, Vasc indicator)
 void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_samples, int vasc_flag, int max_flag) {
-	
+
 	for (int i = 0; i < n_samples; i++) {
 
 		float chads2 = 0;
@@ -180,13 +216,13 @@ void DoCalcFeatProcessor::chads2(vector<float*> p_sources, float *p_out, int n_s
 			else if (p_sources[6][i] == missing_value && max_flag)
 				chads2++;
 		}
-		
+
 
 		p_out[i] = chads2;
 	}
 
 	return;
-		
+
 }
 
 // HAS-BLED Scores: ASSUME order of given data is : systolic-blood-pressure,dialysis-info,transplant-info,creatinine,cirrhosis-info,bilirubin,AST,ALP,ALKP,Stroke indicator,Past bleeding indicator,
@@ -249,6 +285,52 @@ void DoCalcFeatProcessor::has_bled(vector<float*> p_sources, float *p_out, int n
 
 }
 
+void DoCalcFeatProcessor::fragile(vector<float*> p_sources, float *p_out, int n_samples) {
+	for (int i = 0; i < n_samples; i++) {
+		float res = 0.0;
+		//Weight
+		res += ((p_sources[0][i] - p_sources[1][i] > 6.8) ||
+			(p_sources[2][i] <= 18.5) || (p_sources[3][i] >= 30)
+			|| (p_sources[11][i] > 0));
+		//Fall Admission
+		res += p_sources[12][i] > 0;
+		//Weakness Admission
+		res += p_sources[13][i] > 0;
+		//Vision:
+		res += p_sources[14][i] > 0;
+		//Dyspnea:
+		res += p_sources[15][i] > 0;
+		//Fatigue:
+		res += p_sources[16][i] > 0;
+		//Chronic Pain:
+		res += p_sources[17][i] > 0;
+		//Urinery Inconsistence:
+		res += p_sources[18][i] > 0;
+		//Depression:
+		res += p_sources[19][i] > 0;
+		//Coginition Problems:
+		res += p_sources[20][i] > 0;
+		//Social:
+		res += p_sources[21][i] > 0;
+		//Smoking - current smoker:
+		res += p_sources[10][i] > 0;
+		//CRP:
+		res += p_sources[4][i] >= 5;
+		//Albumin:
+		res += p_sources[5][i] <= 3.6;
+		//WBC:
+		res += p_sources[6][i] <= 3.2 || p_sources[7][i] >= 9.8;
+		//Hemoglobin:
+		int gen = p_sources[8][i];
+		if (gen == GENDER_MALE)
+			res += p_sources[9][i] < 12;
+		else
+			res += p_sources[9][i] < 13.7;
+
+		p_out[i] = res;
+	}
+}
+
 // Out = Log(In)
 void DoCalcFeatProcessor::_log(vector<float*> p_sources, float *p_out, int n_samples) {
 
@@ -263,3 +345,4 @@ void DoCalcFeatProcessor::_log(vector<float*> p_sources, float *p_out, int n_sam
 
 	return;
 }
+

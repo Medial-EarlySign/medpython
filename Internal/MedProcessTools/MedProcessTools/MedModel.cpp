@@ -157,7 +157,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 
 	// Stage Sanity
-	if (end_stage <  MED_MDL_APPLY_FTR_GENERATORS) {
+	if (end_stage <=  MED_MDL_APPLY_FTR_GENERATORS) {
 		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
 		return -1;
 	}
@@ -353,7 +353,7 @@ void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecInd
 		concatAllCombinations(allVecs, vecIndex + 1, strSoFar + allVecs[vecIndex][i] + ";", result);
 }
 string parse_key_val(string key, string val) {
-	if (val.find('=') != string::npos) {
+	if (val.length() > 0 && val[0] != '{' && val.find('=') != string::npos) {
 		MLOG("found as-is literal string [%s]\n", val.c_str());
 		return val;
 	}
@@ -477,6 +477,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 			else {
 				vector<string> current_attr_values;
 				if (single_attr_value.length() > 0) {
+					//MLOG("attr %s %s\n", attr_name.c_str(), single_attr_value.c_str());
 					if (boost::starts_with(single_attr_value, "file:")) {
 						//e.g. "signal": "file:my_list.txt" - file can be relative
 						vector<string> my_list;
@@ -693,7 +694,6 @@ void MedModel::init_signal_ids(MedDictionarySections& dict) {
 		generator->set_signal_ids(dict);
 		generator->init_tables(dict);
 	}
-
 }
 
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {

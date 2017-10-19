@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Config_Examples">
+      <UniqueIdentifier>{07c383cf-813a-4bd4-a9b5-ea7a612529c6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedModel.cpp">
@@ -122,5 +125,16 @@
     <ClInclude Include="IterativeImputer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Config_Examples\fragile_config.json">
+      <Filter>Config_Examples</Filter>
+    </None>
+    <None Include="..\Config_Examples\signal_json_ranges.json">
+      <Filter>Config_Examples</Filter>
+    </None>
+    <None Include="..\Config_Examples\chads2_config.json">
+      <Filter>Config_Examples</Filter>
+    </None>
   </ItemGroup>
 </Project>
