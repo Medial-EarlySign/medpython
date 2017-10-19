@@ -56,8 +56,10 @@ public:
 	unordered_set<int> required_signals;
 
 	// Constructor/Destructor
-	MedModel() { safe_mode = 0; serialize_learning_set = 1; };
-	~MedModel() {};
+	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
+	~MedModel() { clear(); };
+
+	void clear() {}; 
 
 	MedFeatures features;	// no need to serialize
 
