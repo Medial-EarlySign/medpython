@@ -80,6 +80,12 @@ public:
 	inline float Val() { return Val(0); }
 };
 
+//=============================================================================================
+// General Fill in function
+//=============================================================================================
+int MedSignalsSingleElemFill(int sig_type, char *buf, int *time_data, float *val_data);
+
+
 //===================================
 // SVal
 //===================================
@@ -94,7 +100,14 @@ class SVal : public UnifiedSig {
 		inline int Time(int chan) { return 0; }
 		inline float Val(int chan) { return val; }
 		inline void SetVal(int chan, float _val) { val = _val; };
-		
+
+		inline void Set(float _val) { val = _val; }
+		inline void Set(int *times, float *vals) { val = vals[0]; }
+
+		bool operator<(const SVal& s) { return (this->val < s.val); }
+		bool operator==(const SVal& s) { return (this->val == s.val); }
+
+		friend ostream& operator<<(ostream& os, const SVal& s) { os << s.val; return os; }
 };
 
 //===================================
@@ -112,6 +125,14 @@ class SDateVal : public UnifiedSig {
 		inline int Time(int chan) { return date; }
 		inline float Val(int chan) { return val; }
 		inline void SetVal(int chan, float _val) { val = _val; };
+
+		inline void Set(int _date, float _val) { date = _date; val = _val; }
+		inline void Set(int *times, float *vals) { date = times[0]; val = vals[0]; }
+
+		bool operator<(const SDateVal& s) { if (this->date < s.date) return true; if (this->date > s.date) return false; return (this->val < s.val); }
+		bool operator==(const SDateVal& s) { return (this->val == s.val && this->date == s.date); }
+
+		friend ostream& operator<<(ostream& os, const SDateVal& s) { os << s.date << ":" << s.val; return os; }
 };
 
 //===================================
@@ -129,6 +150,15 @@ class STimeVal : public UnifiedSig {
 		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return val; }
 		inline void SetVal(int chan, float _val) { val = _val; };
+
+		inline void Set(long long _time, float _val) { time = _time; val = _val; }
+		inline void Set(int *times, float *vals) { time = (long long)times[0]; val = vals[0]; }
+
+		bool operator<(const STimeVal& s) { if (this->time < s.time) return true; if (this->time > s.time) return false; return (this->val < s.val); }
+		bool operator==(const STimeVal& s) { return (this->val == s.val && this->time == s.time); }
+
+		friend ostream& operator<<(ostream& os, const STimeVal& s) { os << s.time << ":" << s.val; return os; }
+
 };
 
 //===================================
@@ -147,6 +177,19 @@ class SDateRangeVal : public UnifiedSig {
 		inline int Time(int chan) { return ((chan) ? (date_end) : (date_start)); } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return val; }
 		inline void SetVal(int chan, float _val) { val = _val; };
+
+		inline void Set(int _date_start, int _date_end, float _val) { date_start = _date_start; _date_end = date_end; val = _val; }
+		inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; }
+
+		bool operator<(const SDateRangeVal& s) {
+			if (this->date_start < s.date_start) return true; if (this->date_start > s.date_start) return false;
+			if (this->date_end < s.date_end) return true; if (this->date_end > s.date_end) return false;
+			return (this->val < s.val);
+		}
+		bool operator==(const SDateRangeVal& s) { return (this->val == s.val && this->date_start == s.date_start && this->date_end == s.date_end); }
+
+		friend ostream& operator<<(ostream& os, const SDateRangeVal& s) { os << s.date_start << "-" << s.date_end << ":" << s.val; return os; }
+
 };
 
 //===================================
@@ -165,6 +208,19 @@ class STimeRangeVal : public UnifiedSig {
 		inline int Time(int chan) { return ((chan) ? ((int)time_end) : ((int)time_start)); } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return val; }
 		inline void SetVal(int chan, float _val) { val = _val; };
+
+		inline void Set(long long _time_start, long long _time_end, float _val) { time_start = _time_start; time_end = _time_end; val = _val; }
+		inline void Set(int *times, float *vals) { time_start = (long long)times[0]; time_end = (long long)times[1]; val = vals[0]; }
+
+		bool operator<(const STimeRangeVal& s) {
+			if (this->time_start < s.time_start) return true; if (this->time_start > s.time_start) return false;
+			if (this->time_end < s.time_end) return true; if (this->time_end > s.time_end) return false;
+			return (this->val < s.val);
+		}
+		bool operator==(const STimeRangeVal& s) { return (this->val == s.val && this->time_start == s.time_start && this->time_end == s.time_end); }
+
+		friend ostream& operator<<(ostream& os, const STimeRangeVal& s) { os << s.time_start << "-" << s.time_end << ":" << s.val; return os; }
+
 };
 
 //===================================
@@ -181,6 +237,14 @@ class STimeStamp : public UnifiedSig {
 		inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
 		inline float Val(int chan) { return 0; }
 		inline void SetVal(int chan, float _val) { return; };
+
+		inline void Set(long long _time) { time = _time;  }
+		inline void Set(int *times, float *vals) { time = (long long)times[0]; }
+
+		bool operator<(const STimeStamp& s) { if (this->time < s.time) return true; return false; }
+		bool operator==(const STimeStamp& s) { return (this->time == s.time); }
+
+		friend ostream& operator<<(ostream& os, const STimeStamp& s) { os << s.time; return os; }
 
 };
 
@@ -201,6 +265,18 @@ class SDateVal2 : public UnifiedSig {
 		inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val) ; }
 		inline void SetVal(int chan, float _val) { (chan) ? val2 = (unsigned short)_val : val = _val; };
 
+		inline void Set(int _date, float _val, unsigned short _val2) { date = _date; val = _val; val2 = _val2; }
+		inline void Set(int *times, float *vals) { date = times[0]; val = vals[0]; val2 = (unsigned short)vals[1]; }
+
+		bool operator<(const SDateVal2& s) {
+			if (this->date < s.date) return true; if (this->date > s.date) return false;
+			if (this->val < s.val) return true; if (this->val > val) return false;
+			return (this->val2 < s.val2);
+		}
+		bool operator==(const SDateVal2& s) { return (this->date == s.date && this->val == s.val && this->val2 == s.val2); }
+
+		friend ostream& operator<<(ostream& os, const SDateVal2& s) { os << s.date << ":" << s.val << "," << s.val2; return os; }
+
 };
 
 //===================================
@@ -219,7 +295,18 @@ class STimeLongVal : public UnifiedSig {
 		inline float Val(int chan) { return (float)val; }
 		inline void SetVal(int chan, float _val) { val = (long long)_val; };
 
+		inline void Set(long long _time, long long _val) { time = _time; val = _val; }
 		// Waiting with unified here until we support long version of values.
+		inline void Set(int *times, float *vals) { time = (long long)times[0]; val = (long long)vals[0]; }
+
+		bool operator<(const STimeLongVal& s) {
+			if (this->time < s.time) return true; if (this->time > s.time) return false;
+			return (this->val < s.val);
+		}
+		bool operator==(const STimeLongVal& s) { return (this->time == s.time && this->val == s.val); }
+
+		friend ostream& operator<<(ostream& os, const STimeLongVal& s) { os << s.time << ":" << s.val; return os; }
+
 };
 
 //===================================
@@ -239,6 +326,17 @@ public:
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
 	inline void SetVal(int chan, float _val) { (chan) ? val2 = (short)_val : val1 = (short)_val; };
 
+	inline void Set(int _date, short _val1, short _val2) { date = date; val1 = _val1; val2 = _val2; }
+	inline void Set(int *times, float *vals) { date = times[0]; val1 = (short)vals[0]; val2 = (short)vals[1]; }
+
+	bool operator<(const SDateShort2& s) {
+		if (this->date < s.date) return true; if (this->date > s.date) return false;
+		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
+		return (this->val2 < s.val2);
+	}
+	bool operator==(const SDateShort2& s) { return (this->date == s.date && this->val1 == s.val1 && this->val2 == s.val2); }
+
+	friend ostream& operator<<(ostream& os, const SDateShort2& s) { os << s.date << ":" << s.val1 << "," << s.val2; return os; }
 };
 
 //===================================
@@ -255,6 +353,18 @@ public:
 	inline int Time(int chan) { return 0; }
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
 	inline void SetVal(int chan, float _val) { (chan) ? val2 = (short)_val : val1 = (short)_val; };
+
+	inline void Set(short _val1, short _val2) { val1 = _val1; val2 = _val2; }
+	inline void Set(int *times, float *vals) { val1 = (short)vals[0]; val2 = (short)vals[1]; }
+
+	bool operator<(const SValShort2& s) {
+		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
+		return (this->val2 < s.val2);
+	}
+	bool operator==(const SValShort2& s) { return (this->val1 == s.val1 && this->val2 == s.val2); }
+
+	friend ostream& operator<<(ostream& os, const SValShort2& s) { os << s.val1 << "," << s.val2; return os; }
+
 };
 
 
@@ -292,7 +402,25 @@ public:
 		}
 	};
 
+	inline void Set(short _val1, short _val2, short _val3, short _val4) { val1 = _val1; val2 = _val2; val3 = _val3; val4 = _val4; }
+	inline void Set(int *times, float *vals) { val1 = (short)vals[0]; val2 = (short)vals[1]; val3 = (short)vals[2]; val4 = (short)vals[3]; }
+
+	bool operator<(const SValShort4& s) {
+		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
+		if (this->val2 < s.val2) return true; if (this->val1 > val1) return false;
+		if (this->val3 < s.val3) return true; if (this->val1 > val1) return false;
+		return (this->val4 < s.val4);
+	}
+	bool operator==(const SValShort4& s) { return (this->val1 == s.val1 && this->val2 == s.val2 && this->val3 == s.val3 && this->val4 == s.val4); }
+	friend ostream& operator<<(ostream& os, const SValShort4& s) { os << s.val1 << "," << s.val2 << "," << s.val3 << "," << s.val4; return os; }
+
 };
+
+
+template <class T> void SetSignalElement(void *elem_buf, int *times, float *vals) { (*(T *)elem_buf).Set(times, vals); }
+template <class T> int MedSignalsCompareSig(const void *a, const void *b) { if (*(T*)a < *(T*)b) return -1; if (*(T*)a == *(T*)b) return 0; return 1; }
+template <class T> int MedSignalsPrintVec(ostream& os, T *vec, int n_elem);
+int MedSignalsPrintVecByType(ostream &os, int sig_type, void* vec, int len);
 
 //===================================
 // SCompactDateVal
@@ -468,8 +596,10 @@ class MedSignals {
 
 };
 
+
+
 //=============================================================================================
-// Inline functions
+// Inline/templated functions
 //=============================================================================================
 inline int MedSignals::sid(const string &name) 
 { 
@@ -489,5 +619,14 @@ inline int MedSignals::sid(const string &name)
 //
 //	return 0;
 //}
+
+
+template <class T> int MedSignalsPrintVec(ostream& os, T *vec, int n_elem)
+{
+	for (int i=0; i<n_elem; i++)
+		os << vec[i] << " ";
+}
+
+
 
 #endif

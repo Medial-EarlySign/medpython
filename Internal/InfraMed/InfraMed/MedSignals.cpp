@@ -348,3 +348,50 @@ void UniversalSigVec::init(SigType _type)
 	type = T_Last;
 
 }
+
+
+//-------------------------------------------------------------------------------------------------------------------
+int MedSignalsSingleElemFill(int sig_type, char *buf, int *time_data, float *val_data)
+{
+	switch ((SigType)sig_type) {
+
+	case T_Value:				SetSignalElement<SVal>(buf, time_data, val_data);				break;
+	case T_DateVal:				SetSignalElement<SDateVal>(buf, time_data, val_data);			break;
+	case T_TimeVal:				SetSignalElement<STimeVal>(buf, time_data, val_data);			break;
+	case T_DateRangeVal:		SetSignalElement<SDateRangeVal>(buf, time_data, val_data);		break;
+	case T_TimeStamp:			SetSignalElement<STimeStamp>(buf, time_data, val_data);			break;
+	case T_TimeRangeVal:		SetSignalElement<STimeRangeVal>(buf, time_data, val_data);		break;
+	case T_DateVal2:			SetSignalElement<SDateVal2>(buf, time_data, val_data);			break;
+	case T_TimeLongVal:			SetSignalElement<STimeLongVal>(buf, time_data, val_data);		break;
+	case T_DateShort2:			SetSignalElement<SDateShort2>(buf, time_data, val_data);		break;
+	case T_ValShort2:			SetSignalElement<SValShort2>(buf, time_data, val_data);			break;
+	case T_ValShort4:			SetSignalElement<SValShort4>(buf, time_data, val_data);			break;
+	//case T_CompactDateVal:		SetSignalElement<SCompactDateVal>(buf, time_data, val_data);	break; // not fully supported yet
+	default: MERR("ERROR:MedSignalsSingleElemFill Unknown sig_type %d\n", sig_type);
+		return -1;
+
+	}
+	return 0;
+}
+
+int MedSignalsPrintVecByType(ostream &os, int sig_type, void* vec, int len_bytes)
+{
+	switch ((SigType)sig_type) {
+
+	case T_Value:				MedSignalsPrintVec<SVal>(os, (SVal *)vec, len_bytes/sizeof(SVal));									break;
+	case T_DateVal:				MedSignalsPrintVec<SDateVal>(os, (SDateVal *)vec, len_bytes/sizeof(SDateVal));						break;
+	case T_TimeVal:				MedSignalsPrintVec<STimeVal>(os, (STimeVal *)vec, len_bytes/sizeof(STimeVal));						break;
+	case T_DateRangeVal:		MedSignalsPrintVec<SDateRangeVal>(os, (SDateRangeVal *)vec, len_bytes/sizeof(SDateRangeVal));		break;
+	case T_TimeStamp:			MedSignalsPrintVec<STimeStamp>(os, (STimeStamp *)vec, len_bytes/sizeof(STimeStamp));				break;
+	case T_TimeRangeVal:		MedSignalsPrintVec<STimeRangeVal>(os, (STimeRangeVal *)vec, len_bytes/sizeof(STimeRangeVal));		break;
+	case T_DateVal2:			MedSignalsPrintVec<SDateVal2>(os, (SDateVal2 *)vec, len_bytes/sizeof(SDateVal2));					break;
+	case T_TimeLongVal:			MedSignalsPrintVec<STimeLongVal>(os, (STimeLongVal *)vec, len_bytes/sizeof(STimeLongVal));			break;
+	case T_DateShort2:			MedSignalsPrintVec<SDateShort2>(os, (SDateShort2 *)vec, len_bytes/sizeof(SDateShort2));				break;
+	case T_ValShort2:			MedSignalsPrintVec<SValShort2>(os, (SValShort2 *)vec, len_bytes/sizeof(SValShort2));				break;
+	case T_ValShort4:			MedSignalsPrintVec<SValShort4>(os, (SValShort4 *)vec, len_bytes/sizeof(SValShort4));				break;
+	default: MERR("ERROR: MedSignalsPrintVecByType Unknown sig_type %d\n", sig_type);
+		return -1;
+
+	}
+	return 0;
+}
