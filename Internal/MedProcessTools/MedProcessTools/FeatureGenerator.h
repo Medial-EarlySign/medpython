@@ -154,6 +154,7 @@ typedef enum {
 	FTR_CATEGORY_SET_COUNT = 13,
 	FTR_CATEGORY_SET_SUM = 14,
 	FTR_NSAMPLES = 15,
+	FTR_EXISTS = 16,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -228,6 +229,7 @@ public:
 	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
+	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
