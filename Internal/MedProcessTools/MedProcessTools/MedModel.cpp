@@ -157,7 +157,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 
 	// Stage Sanity
-	if (end_stage <=  MED_MDL_APPLY_FTR_GENERATORS) {
+	if (end_stage <  MED_MDL_APPLY_FTR_GENERATORS) {
 		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
 		return -1;
 	}
@@ -693,6 +693,7 @@ void MedModel::init_signal_ids(MedDictionarySections& dict) {
 		generator->set_signal_ids(dict);
 		generator->init_tables(dict);
 	}
+
 }
 
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {

@@ -29,14 +29,9 @@ public:
 	// for sum
 	vector<float> weights;
 
+	// Functions
 	DoCalcFeatProcessor() : FeatureProcessor() { serial_id = ++MedFeatures::global_serial_id_cnt; init_defaults(); }
 	~DoCalcFeatProcessor() {};
-
-	virtual void set_feature_name(const string& feature_name) { 
-		if (feature_name.substr(0, 4) == "FTR_") 
-			this->feature_name = feature_name; // already uniq
-		else this->feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + feature_name;
-	}
 
 	void init_defaults();
 
@@ -50,11 +45,17 @@ public:
 	void chads2(vector<float*> p_sources, float *p_out, int n_samples, int vasc_flag, int max_flag);
 	void has_bled(vector<float*> p_sources, float *p_out, int n_samples, int max_flag);
 
+	// Single Input Functions
+	void _log(vector<float*> p_sources, float *p_out, int n_samples);
+
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatProcessor *>(processor)); }
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights)
+
+	// Naming
+	void set_feature_name(const string& feature_name);
 
 private:
 	virtual void resolve_feature_names(MedFeatures &features);

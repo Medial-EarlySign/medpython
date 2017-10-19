@@ -309,6 +309,13 @@ size_t RepMultiProcessor::deserialize(unsigned char *blob) {
 // BasicOutlierCleaner
 //=======================================================================================
 //.......................................................................................
+void RepBasicOutlierCleaner::init_lists() {
+
+	req_signals.push_back(signalName); 
+	aff_signals.insert(signalName);
+}
+
+//.......................................................................................
 int RepBasicOutlierCleaner::init(map<string, string>& mapper) 
 { 
 	init_defaults(); 
@@ -320,6 +327,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 	}
 
+	init_lists();
 	return MedValueCleaner::init(mapper); 
 }
 
@@ -490,6 +498,12 @@ void RepBasicOutlierCleaner::print()
 //=======================================================================================
 // NbrsOutlierCleaner
 //=======================================================================================
+void RepNbrsOutlierCleaner::init_lists() {
+
+	req_signals.push_back(signalName);
+	aff_signals.insert(signalName);
+}
+
 //.......................................................................................
 int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 {

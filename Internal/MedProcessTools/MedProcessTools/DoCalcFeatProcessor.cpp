@@ -18,6 +18,16 @@ void DoCalcFeatProcessor::resolve_feature_names(MedFeatures &features) {
 	}
 }
 
+// Set single-input calculation in/out names
+void DoCalcFeatProcessor::set_feature_name(const string& feature_name) {
+
+	if (raw_target_feature_name != "")
+		MTHROW_AND_ERR("DoCalcFeatProcessor cannot set feature name for %s on %s . Already given: %s", calc_type.c_str(), feature_name.c_str(), raw_target_feature_name.c_str());
+
+	raw_source_feature_names.assign(1,feature_name);
+	this->feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + calc_type + "_" + feature_name;
+}
+
 int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
@@ -32,7 +42,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 			weights.clear();
 			vector<string> vals;
 			split(vals, entry.second, boost::is_any_of(","));
-			for (string& s: vals)
+			for (string& s : vals)
 				weights.push_back(stof(s));
 		}
 		else if (field != "fp_type")
@@ -40,13 +50,25 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
 		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
-	
-	set_feature_name(raw_target_feature_name);
+
+	// Set name
+	if (raw_target_feature_name == "") {
+		string inFeatures = boost::join(raw_source_feature_names, "_");
+		feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + calc_type + "_" + inFeatures;
+	}
+	else if (raw_target_feature_name.substr(0, 4) == "FTR_")
+		feature_name = raw_target_feature_name;
+	else
+		feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + raw_target_feature_name;
+
 	return 0;
 }
 
 int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	
+	// Get Source Features
+	resolve_feature_names(features);
+
 	// Prepare new Feature
 	int samples_size = (int)features.samples.size();
 	features.data[feature_name].clear();
@@ -57,8 +79,7 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	features.attributes[feature_name].normalized = false;
 	features.attributes[feature_name].imputed = true;
 
-	// Get Source Features
-	resolve_feature_names(features);
+	// Prepare
 	vector<float*> p_sources;
 	for (string source : source_feature_names) {
 		assert(features.data.find(source) != features.data.end());
@@ -77,6 +98,8 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 		chads2(p_sources, p_out, samples_size, 1, 0);
 	else if (calc_type == "max_chads2_vasc")
 		chads2(p_sources, p_out, samples_size, 1, 1);
+	else if (calc_type == "log")
+		_log(p_sources, p_out, samples_size);
 	else
 		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
 	
@@ -224,4 +247,19 @@ void DoCalcFeatProcessor::has_bled(vector<float*> p_sources, float *p_out, int n
 
 	return;
 
+}
+
+// Out = Log(In)
+void DoCalcFeatProcessor::_log(vector<float*> p_sources, float *p_out, int n_samples) {
+
+	float *p = p_sources[0];
+	for (int i = 0; i < n_samples; i++) {
+
+		if (p[i] == missing_value || p[i] <= 0)
+			p_out[i] = missing_value;
+		else
+			p_out[i] = log(p[i]);
+	}
+
+	return;
 }
