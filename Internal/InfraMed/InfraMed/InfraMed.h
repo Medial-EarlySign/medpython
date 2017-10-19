@@ -17,6 +17,7 @@
 
 #include "Logger/Logger/Logger.h"
 #include "MedUtils/MedUtils/MedSparseVec.h"
+#include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include <map>
 #include <vector>
 #include <string>
@@ -50,6 +51,7 @@ using namespace std;
 #define INFRAMED_MAX_AGE		150
 
 class MedRepository;
+class InMemRepData;
 
 class MedBufferedFile {
 	public:
@@ -250,6 +252,48 @@ class MedIndex {
 
 };
 
+// InMemRepData is a class holding RAW data to be loaded into a repository 
+// it works under the assumption of a small number of pids (1-1000 more or less).
+// Large datasets would better be from an already made repository
+// The advantages are that no loading from a file is needed and that there are API's to
+// load data in and to connect this to a repository.
+// API's are more c-style to enable easier work with C# API's
+class InMemRepData : public SerializableObject {
+public:
+	MedRepository *my_rep;
+	map<pair<int, int>, pair<int, vector<char>>> data;  // map from a pair of pid,sid to a pair of nvals, data vector
+
+														// init_rep must be called first , as we must know the sigs names/types/etc...
+	void init_rep(MedRepository &rep) { my_rep = &rep; }
+	//int init_sigs(string &sigs_fname) { return my_rep->sigs.read({ sigs_fname }); }
+
+	// insert data basic API's . These are for a single pid/sid but a vector of elements can be loaded
+	// data can be insertred in any order and several times per pid/sid , different pids are supported too.
+	int insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val);
+	int insertData(int pid, char *sig, int *time_data, float *val_data, int n_time, int n_val);
+
+
+	// This sort action MUST be called after inserting all data, otherwise the order of the elements in each pid-sid vector will be the inserting order
+	int sortData();
+	int sort_pid_sid(int pid, int sid); // helper func - sort single vector
+
+										// clearing 
+	void clear() { data.clear(); }
+
+	// a repository get function to use with this type of data
+	void *get(int pid, int sid, int &len);
+
+	// debug and prints
+	int print_all();
+	int print(int pid);
+	int print(int pid, int sid);
+
+	// serializer for data
+	ADD_SERIALIZATION_FUNCS(data);
+
+};
+
+
  class DLLEXTERN  MedRepository {
 	public:
 		int rep_mode;
@@ -274,6 +318,8 @@ class MedIndex {
 		vector<int> pids;
 		vector<int> all_pids_list;
 
+		InMemRepData in_mem_rep; // for mode of running in in_mem
+
 		//-------------------------------------------------------------------
 		// most useful APIs - more overloads below
 		//-------------------------------------------------------------------
@@ -289,8 +335,16 @@ class MedIndex {
 		// getting the data for a pid,signal . Pointer to start returned, len elements inside. If not found NULL and 0 returned.
 		inline void *get(int pid, const string &sig_name, int &len);
 		inline void *uget(int pid, const string &sig_name, UniversalSigVec &usv);
-		inline void *get(int pid, int sid, int &len);					// use this variant inside big loops to avoid map from string to int.
+//		inline void *get(int pid, int sid, int &len);					// use this variant inside big loops to avoid map from string to int. // default variant
+		inline void *get_all_modes(int pid, int sid, int &len);
 		inline void *uget(int pid, int sid, UniversalSigVec &usv);		// Universal vec API, use this inside loops to avoid string map
+		void * (MedRepository::*get_ptr)(int, int, int&) = &MedRepository::get3;
+		inline void *get(int pid, int sid, int &len) { return (this->*get_ptr)(pid, sid, len); }
+
+		//-------------------------------------------------------------------
+
+		inline void *get_in_mem(int pid, int sid, int &len) { return in_mem_rep.get(pid, sid, len); }
+		int switch_to_in_mem_mode() { in_mem_rep.clear(); in_mem_rep.my_rep = this; get_ptr = &MedRepository::get_in_mem; }
 
 		//-------------------------------------------------------------------
 		int   read_config(const string &fname);
@@ -498,8 +552,9 @@ inline void *MedRepository::get(int pid, const string &sig_name, int &len)
 
 //-----------------------------------------------------------
 // returns also len - in units of the relevant sid type (!) 
-inline void *MedRepository::get(int pid, int sid, int &len)
+inline void *MedRepository::get_all_modes(int pid, int sid, int &len)
 {
+	//return ((get_ptr)(pid, sid, len));
 
 	if (rep_mode >= 3)
 		return get3(pid, sid, len);

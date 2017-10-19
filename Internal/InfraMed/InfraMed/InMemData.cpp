@@ -1,0 +1,132 @@
+#include "InfraMed.h"
+
+#define LOCAL_SECTION LOG_REP
+#define LOCAL_LEVEL	LOG_DEF_LEVEL
+extern MedLogger global_logger;
+
+//-------------------------------------------------------------------------------------------------------------------
+int InMemRepData::insertData(int pid, char *sig, int *time_data, float *val_data, int n_time, int n_val)
+{
+	int sid = my_rep->sigs.sid(string(sig));
+	if (sid < 0) {
+		MERR("ERROR: InMemRepData: sig %s in not is signals file (did you read the file??)\n", sig);
+		return -1;
+	}
+	return insertData(pid, sid, time_data, val_data, n_time, n_val);
+
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------
+int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val)
+{
+	int n_time_ch = my_rep->sigs.Sid2Info[sid].n_time_channels;
+	int n_val_ch = my_rep->sigs.Sid2Info[sid].n_val_channels;
+
+	int n_elem_by_time = n_time/n_time_ch;
+	int n_elem_by_val = n_val/n_val_ch;
+
+	// a few sanity tests
+	if ((n_time != n_elem_by_time*n_time_ch) || (n_val != n_elem_by_val*n_val_ch) || 
+	    (n_time_ch == 0 && n_time > 0) || (n_val_ch == 0 && n_val > 0) ||
+	    (n_time_ch > 0 && n_time == 0) || (n_val_ch > 0 && n_val > 0) || 
+		(n_time_ch > 0 && n_val_ch > 0 && n_elem_by_time != n_elem_by_val))
+	{
+		MERR("ERROR: InMemRepData: non matching time/value numbers : needed (%d,%d) per element , got (%d,%d) ...\n", n_time_ch, n_val_ch, n_time, n_val);
+		return -1;
+	}
+
+	int n_elem = max(n_elem_by_time, n_elem_by_val);
+
+	int len_bytes = my_rep->sigs.Sid2Info[sid].bytes_len;
+	vector<char> elem(len_bytes*n_elem);
+
+	int type = my_rep->sigs.Sid2Info[sid].type;
+
+	int *tdata = time_data;
+	float *vdata = val_data;
+
+	if (n_time_ch == 0) tdata = NULL;
+	if (n_val_ch == 0) tdata = NULL;
+
+	for (int i=0; i<n_elem; i++) {
+		if (MedSignalsSingleElemFill(type, &elem[len_bytes*i], tdata, vdata) < 0) {
+			MERR("ERROR: InMemRepData::insertData failed fill element %d/%d.", i, n_elem);
+			return -1;
+		}
+
+		if (tdata) tdata += n_time_ch;
+		if (vdata) vdata += n_val_ch;
+	}
+
+	// all is ready -> we push it to the map
+	pair<int, int> pid_sid(pid, sid);
+	pair<int, vector<char>> n_data;
+	if (data.find(pid_sid) == data.end()) {
+		data[pid_sid] = n_data;
+		data[pid_sid].second = elem;
+		data[pid_sid].first = n_elem;
+	}
+	else {
+		data[pid_sid].second.insert(data[pid_sid].second.end(), elem.begin(), elem.end());
+		data[pid_sid].first += n_elem;
+	}
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+int InMemRepData::sort_pid_sid(int pid, int sid)
+{
+	pair<int, int> pid_sid(pid, sid);
+
+	if (data.find(pid_sid) == data.end()) return 0; // nothing to do.
+
+	if (data[pid_sid].first <= 1) return 0; // no need to sort a single variable
+
+	int (*compare_func)(const void *, const void *);
+	switch (my_rep->sigs.Sid2Info[sid].type) {
+	case T_Value:				compare_func = &MedSignalsCompareSig<SVal>;				break;
+	case T_DateVal:				compare_func = &MedSignalsCompareSig<SDateVal>;			break;
+	case T_TimeVal:				compare_func = &MedSignalsCompareSig<STimeVal>;			break;
+	case T_DateRangeVal:		compare_func = &MedSignalsCompareSig<SDateRangeVal>;	break;
+	case T_TimeStamp:			compare_func = &MedSignalsCompareSig<STimeStamp>;		break;
+	case T_TimeRangeVal:		compare_func = &MedSignalsCompareSig<STimeRangeVal>;	break;
+	case T_DateVal2:			compare_func = &MedSignalsCompareSig<SDateVal2>;		break;
+	case T_TimeLongVal:			compare_func = &MedSignalsCompareSig<STimeLongVal>;		break;
+	case T_DateShort2:			compare_func = &MedSignalsCompareSig<SDateShort2>;		break;
+	case T_ValShort2:			compare_func = &MedSignalsCompareSig<SValShort2>;		break;
+	case T_ValShort4:			compare_func = &MedSignalsCompareSig<SValShort4>;		break;
+	//case T_CompactDateVal:		break; // not fully supported yet
+	default: MERR("ERROR:sort_pid_sid Unknown sig_type %d\n", my_rep->sigs.Sid2Info[sid].type);
+		return -1;
+	}
+
+	qsort(&data[pid_sid].second[0], data[pid_sid].first, my_rep->sigs.Sid2Info[sid].bytes_len, compare_func);
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+int InMemRepData::sortData()
+{
+	for (auto &data_elem : data) {
+		if (sort_pid_sid(data_elem.first.first, data_elem.first.second) < 0)
+			return -1;
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+void * InMemRepData::get(int pid, int sid, int &len)
+{
+	pair<int, int> pid_sid(pid, sid);
+	if (data.find(pid_sid) == data.end()) {
+		len = 0;
+		return NULL;
+	}
+
+	len = data[pid_sid].first;
+	return (void *)&data[pid_sid].second[0];
+
+}
