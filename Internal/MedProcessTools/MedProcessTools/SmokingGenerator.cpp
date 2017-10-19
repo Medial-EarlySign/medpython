@@ -6,7 +6,7 @@ using namespace boost;
 
 void SmokingGenerator::set_names() {
 	names.clear();
-	unordered_set<string> legal_features({ "Current_Smoker", "Ex_Smoker", "Smok_Years_Since_Quitting", "Smoking_Years", "Smok_Pack_Years" });
+	unordered_set<string> legal_features({ "Current_Smoker", "Ex_Smoker", "Smok_Years_Since_Quitting", "Smoking_Years", "Smok_Pack_Years", "PLM_Smoking_Level" });
 	if (raw_feature_names.size() == 0)
 		MTHROW_AND_ERR("SmokingGenerator got no smoking_features");
 	for (string s : raw_feature_names) {
@@ -33,7 +33,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 
 int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
-	int missing = -1;
+	int missing = MED_MAT_MISSING_VALUE;
 
 	for (int i = 0; i < num; i++) {
 		int current_smoker, ex_smoker;
@@ -46,7 +46,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		string sname = "SMOKING_ENRICHED";
 		SValShort4 *smx_status = (SValShort4 *)rec.get(sname, 0, len);
 		if (len > 0)
-			never_smoked = (smx_status[0].val1 == -1);
+			never_smoked = (smx_status[0].val1 == -1); // never smoked is -1, -1, 0, 0
 		assert(len <= 1);
 
 		if (len == 0) { // No Data
@@ -82,7 +82,29 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 			pack_years = ((float)smx_status[0].val3 / 20) * smoking_years;
 			ex_smoker = 1 - current_smoker;
 		}
-
+		int plm_smoking_level = missing;
+		
+		if (current_smoker == missing)
+			plm_smoking_level = missing;
+		else if (never_smoked)
+			plm_smoking_level = 0;
+		else if (ex_smoker == 1) {
+			if (years_since_quitting > 5)
+				plm_smoking_level = 1;
+			else if (years_since_quitting <= 5)
+				plm_smoking_level = 2;
+		}
+		else if (current_smoker == 1) {
+			float packs_per_day = pack_years / smoking_years;
+			if (packs_per_day <= 0.25)
+				plm_smoking_level = 3;
+			else if (packs_per_day > 0.25 && packs_per_day <= 0.5)
+				plm_smoking_level = 4;
+			else if (packs_per_day > 0.5 && packs_per_day <= 1)
+				plm_smoking_level = 5;
+			else if (packs_per_day > 1)
+				plm_smoking_level = 6;
+		}
 		for (int j = 0; j < names.size(); j++) {
 
 			if (names[j].size() >= 14 && names[j].substr(names[j].size() - 14, 14) == "Current_Smoker") 
@@ -95,6 +117,8 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 				features.data[names[j]][index + i] = (float)smoking_years;
 			else if (names[j].size() >= 15 && names[j].substr(names[j].size() - 15, 15) == "Smok_Pack_Years")
 				features.data[names[j]][index + i] = (float)pack_years;
+			else if (names[j].size() >= 17 && names[j].substr(names[j].size() - 17, 17) == "PLM_Smoking_Level")
+				features.data[names[j]][index + i] = (float)plm_smoking_level;			
 			else MTHROW_AND_ERR("unknown feature name [%s]", names[j].c_str());
 		}
 	}
