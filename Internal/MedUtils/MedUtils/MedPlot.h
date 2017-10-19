@@ -55,7 +55,9 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 // the plot will print the iteration on the keys with their corresponding values. the map object is used to store vector of tuples (x,y) to plot in each series
 // title - graph title, xName-  xAxis name, yName - y axis name
 //refreshTime - time in milliseconds for the file to be refreshed by the browser (default 0, taken as do not refresh)
-void createHtmlGraph(string outPath, vector<map<float, float>> data, string title = "", string xName = "", string yName = "", vector<string> seriesNames = vector<string>(), int refreshTime = 0);
+//chart type can be: "scatter", "bar", "pie"
+void createHtmlGraph(string outPath, vector<map<float, float>> data, string title = "", string xName = "", string yName = "", 
+	vector<string> seriesNames = vector<string>(), int refreshTime = 0, string chart_type = "scatter");
 
 void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatmap = true, string title = "", string xName = "x", string yName = "y", string zName = "z");
 

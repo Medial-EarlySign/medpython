@@ -112,6 +112,10 @@
     <ClInclude Include="SmokingGenerator.h" />
     <ClInclude Include="StripComments.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Config_Examples\fragile_config.json" />
+    <None Include="..\Config_Examples\signal_json_ranges.json" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

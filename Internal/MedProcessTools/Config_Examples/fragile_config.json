@@ -1,0 +1,232 @@
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":"last",
+    "window":"win_from=180;win_to=360",
+    "time_unit":"Days",
+    "signal":"Weight"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":"min",
+    "window":"win_from=0;win_to=180",
+    "time_unit":"Days",
+    "signal":"Weight"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "min",
+        "max"
+    ],
+    "window":"win_from=0;win_to=180",
+    "time_unit":"Days",
+    "signal":"BMI"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "min",
+        "max"
+    ],
+    "window":"win_from=0;win_to=180",
+    "time_unit":"Days",
+    "signal":"WBC"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":"min",
+    "window":"win_from=0;win_to=180",
+    "time_unit":"Days",
+    "signal":"Hemoglobin"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":"min",
+    "window":"win_from=0;win_to=180",
+    "time_unit":"Days",
+    "signal":"Albumin"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":"max",
+    "window":"win_from=0;win_to=180",
+    "time_unit":"Days",
+    "signal":"CRP"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"gender"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"smoking",
+    "smoking_features":"Current_Smoker"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"1625.00,1625.11,1626.00,1627.00,1612.00",
+    "in_set_name":"RC_Weight"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"16D1.00,16D2.00,16D6.00",
+    "in_set_name":"RC_FallAdmission"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"1B3..12,1B32.00,2832.12,R007211",
+    "in_set_name":"RC_Weakness"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"1483.00,14N9.00,14NA.00,14NC.00,1a00000,22E5.00,2B6A.11,2B6B.00,2BBk.00,2BBl.00,8LC0.00,2BBo.00,2BBP.00,2BBQ.00,2BBR.00,2BBS.00,2BBT.00,2BBV.00,2BBY.00,2BT0.00,2BT1.00,C108F00,C108F11,C108F12,C109600,C109611,C109612,C109E00,C109E11,C109E12,C10E700,C10E711,C10E712,C10EF00,C10EF11,C10EF12,C10F600,C10F611,C10FE00,C10FE11,F46..00,F425.11,F425000,F425100,F425200,1482.00,66T1.00,7259.00,7259000,7259100,7259200,7259300,7259400,7259y00,7259z00,F45..00,F45z.00,FyuG.00,FyuG000,FyuG100,FyuG200",
+    "in_set_name":"RC_Vision"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"173..00,173..11,173..12,173..13,1732.00,1733.00,1734.00,1735.00,1736.00,1738.00,1739.00,173Z.00,R060A00,R060D00",
+    "in_set_name":"RC_Dyspnea"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"168..11,1682.00,1B1Q.00,A86..11,Eu46011,Eu51400,F286.00, F286.11, F286200, H5B..00,R005.00,R005.12,R005000,R005100,R005300,R005311,R005312,R005500,R005600,R005700,R005800,R005800,R005900,R005z00,R007.00,R007100,Z6M1.11,Z6M1.13,Z6M1100,Z6M1200,Z6M1300",
+    "in_set_name":"RC_Fatigue"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"1M52.00,Ryu7000",
+    "in_set_name":"RC_Chronic_Pain"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"1A23000,Kyu5A00",
+    "in_set_name":"RC_Urinery_Inconsistence"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"1B1U.00,E2B1.00,Eu32z11,Eu33212,Eu32400,Eu32500,Eu32600,Eu32700,Eu32800,E2B..00",
+    "in_set_name":"RC_Depression"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"6AB..00,8BM0200 ,8CMZ.00,E00..11 ,Eu00.00 ,Eu00000,Eu00.00,Eu00000,Eu00011,Eu00012,Eu00100,Eu00112,Eu00113,Eu00200,Eu00z00,Eu00z11,Eu01.00,Eu01.11,Eu01000,Eu01100,Eu01111,Eu01200,Eu01300,Eu01y00,Eu01z00,Eu02.00,Eu02000,Eu02100,Eu02200,Eu02300,Eu02500,Eu02y00,Eu02z00,Eu02z11,Eu02z13,Eu02z14,Eu02z16,Eu04000,Eu04100,Eu10711,Eu84311,13Y7.00,F110.00,F110000,F110100,Fyu3000,Eu00111,Eu00013,1B1A.00,1B1a.00,1B1A.12,1B1A.13,1B1A000,1B1A100,1B1Y.00,1S2..00,1S21.00,1S22.00,1S23.00,38C1500,3A...11,3A1..00,3A10.00,3A11.00,3A2..00,3A20.00,3A21.00,3A3..00,3A30.00,3A31.00,3A4..00,3A40.00,3A41.00,3A5..00,3A50.00,3A51.00,3A6..00,3A60.00,3A61.00,3A7..00,3A70.00,3A71.00,3A8..00,3A80.00,3A81.00,3A9..00,3A90.00,3A91.00,3AA..00,3AA0.00,3AA1.00,3AG..00,3AG0.00,E2A1000,R00z011,Z7CE400,Z7CE412,Z7CE413,Z7CE414,Z7CE415,Z7CE611,Z7CE612,Z7CE614,Z7CE615,Z7CE616,Z7CEA11,Z7CEA13,Z7CEB11,Z7CEB12,Z7CEC11,Z7CEC12,Z7CEF00,Z7CEG00,Z7CEH00,Z7CEH11,Z7CEH12,Z7CEH13,Z7CEH14,Z7CEH15,Z7CEJ00,Z7CEK00,Z7CEL00,Z7CEM00,Z7CEN11,Z7CF800,Z7CF811,Z7CFO00,Z7CFO11,E010.12,Eu04.00,E....00,9bA1.00,E000.00,E001.00",
+    "in_set_name":"RC_Coginition_Problems"
+},
+"process":{
+    "process_set":"0",
+    "fg_type":"basic",
+    "type":[
+        "category_set"
+    ],
+    "window":[
+        "win_from=0;win_to=180"
+    ],
+    "time_unit":"Days",
+    "signal":"RC",
+    "sets":"13F2.00,13F3.00,13F3100,13Fc.00,13FJ.00,1B1K.12,ZU31.00,ZV60300,1331.00,1331.11",
+    "in_set_name":"RC_Social"
+},
+"process":{
+    "process_set":"1",
+    "name":"Frailty_Score",
+    "fp_type": "do_calc",
+    "duplicate":"0",
+    "calc_type":"fragile"
+}

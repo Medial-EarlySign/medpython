@@ -20,6 +20,7 @@ public:
 	void print(const vector<string> &signalNames);
 	void set_normalization(const vector<float> &meanShift, const vector<float> &factors);
 	void apply_normalization(vector<vector<float>> &input);
+	void get_normalization(vector<float> &meanShift, vector<float> &factors);
 	
 	//Set Loss Fucntions to learn:
 	double(*loss_function)(const vector<double> &got, const vector<float> &y);
@@ -43,15 +44,15 @@ private:
 };
 
 
-inline double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y);
-inline double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y, const vector<double> &params);
-inline double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y);
-inline double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y);
-inline double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
-inline double _linear_loss_target_rmse(const vector<double> &preds, const vector<float> &y);
-inline double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
-inline double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y);
-inline double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
+double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y);
+double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y, const vector<double> &params);
+double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y);
+double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y);
+double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
+double _linear_loss_target_rmse(const vector<double> &preds, const vector<float> &y);
+double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
+double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y);
+double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
 
 MEDSERIALIZE_SUPPORT(MedLinearModel)
 

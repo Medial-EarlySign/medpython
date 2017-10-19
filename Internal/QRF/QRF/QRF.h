@@ -135,6 +135,7 @@ class QuantizedRF {
 		vector<vector<float>> quant_values;
 		vector<vector<short>> q_data;
 		vector<float> yr; // y for regression trees
+		vector<float> w; // weights
 
 		vector<double> log_table;
 
@@ -147,7 +148,7 @@ class QuantizedRF {
 		int n_groups;
 
 
-		int init_all(float *X, int *Y, float *Yr, int nfeat, int nsamples, int maxq);
+		int init_all(float *X, int *Y, float *Yr, float *W, int nfeat, int nsamples, int maxq);
 
 		void init_groups(vector<int> &groups_in);
 		// binary problem related
@@ -161,7 +162,7 @@ class QuantizedRF {
 		double get_cross_validation_auc();
 
 		// regresssion problem
-		int init_regression(float *X, float *Y, int nfeat, int nsamples, int maxq);
+		int init_regression(float *X, float *Y, float *W, int nfeat, int nsamples, int maxq);
 		int get_regression_Tree(int *sampsize, int ntry, QRF_Tree &tree);
 
 		// categorized, split by chi square problem
@@ -248,7 +249,7 @@ class QRF_Forest {
 		// categorical chi2/entropy problem - Splitting method: QRF_CATEGORICAL_ENTROPY_TREE/QRF_CATEGORICAL_CHI2_TREE
 		// y must be in 0 ... (ncateg-1) values.
 		// sampsize : if NULL all bagging size is the number of samples, otherwise sampsize for each category is expected (sampsize[0]....sampsize[ncateg-1])
-		int get_forest_categorical(float *x, float *y, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method);
+		int get_forest_categorical(float *x, float *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method);
 
 		// Predict Methods :
 		//------------------
@@ -282,7 +283,7 @@ class QRF_Forest {
 
 	private:
 		// learn for all modes
-		int get_forest_trees_all_modes(float *x, void *y, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int mode);
+		int get_forest_trees_all_modes(float *x, void *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int mode);
 
 		// scoring with threads for all modes
 		void score_with_threads(float *x, int nfeat, int nsamples, float *res);

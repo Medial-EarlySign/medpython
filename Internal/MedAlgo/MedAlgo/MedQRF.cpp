@@ -251,8 +251,8 @@ MedQRF::MedQRF(void *_in_params)
 //..............................................................................
 int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
-	if (w != NULL)
-		MWARN("Weights are not implemented for QRF. Ignoring\n");
+	if (w != NULL && params.type != QRF_CATEGORICAL_ENTROPY_TREE)
+		MWARN("Weights are not implemented for QRF that is not CATEGORICAL_ENTROPY. Ignoring\n");
 
 	// Correct y according to forest type
 	map<float, int> y_values;
@@ -289,7 +289,7 @@ int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 		for (int i = 0; i < nsamples; i++)
 			qf_y[i] = (float)y_values[y[i]];
 
-		if (qf.get_forest_categorical(x, &(qf_y[0]), nftrs, nsamples, params.sampsize, params.ntry, params.ntrees, params.maxq, params.min_node, n_categ, params.type) == -1) {
+		if (qf.get_forest_categorical(x, &(qf_y[0]), w, nftrs, nsamples, params.sampsize, params.ntry, params.ntrees, params.maxq, params.min_node, n_categ, params.type) == -1) {
 			MERR("Categorial QRF failed\n");
 			return -1;
 		}

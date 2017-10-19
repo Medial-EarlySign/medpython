@@ -53,7 +53,7 @@ public:
 
 	// Required Signals functions
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
-	void get_required_signal_names(unordered_set<string>& signalNames);
+	virtual void get_required_signal_names(unordered_set<string>& signalNames);
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	// Affected Signals functions;
