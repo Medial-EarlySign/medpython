@@ -31,9 +31,9 @@ void MedLM::init_defaults()
 	classifier_type = MODEL_LINEAR_MODEL ;
 	transpose_for_learn = true ; 
 	transpose_for_predict = false;
-	normalize_for_learn = true;
-	normalize_y_for_learn = true;
-	normalize_for_predict = true;
+	normalize_for_learn = false;
+	normalize_y_for_learn = false;
+	normalize_for_predict = false;
 	
 	init_default_lm_params(params) ;
 
@@ -162,6 +162,11 @@ int MedLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 	if (w == NULL) 
 		return (Learn(x,y,nsamples,nftrs));
 
+	// Normalization
+	vector<float> x_avg(nftrs), x_std(nftrs);
+	float y_avg, y_std;
+	normalize_x_and_y(x, y, w, nsamples, nftrs, x_avg, x_std, y_avg, y_std);
+
 	vector<float> _rfactors(nftrs) ;
 	vector<float> _corrs(nftrs) ;
 
@@ -185,10 +190,16 @@ int MedLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 	n_ftrs = nftrs ;
 	b.resize(nftrs) ;
 
+	int rc;
 	if (params.sumxx == NULL)
-		return learn_lm(x,y,w,nsamples,nftrs,params.niter,params.eiter,&(_rfactors[0]),&(b[0]),&err,&(_corrs[0])) ;
+		rc = learn_lm(x,y,w,nsamples,nftrs,params.niter,params.eiter,&(_rfactors[0]),&(b[0]),&err,&(_corrs[0])) ;
 	else
-		return learn_lm(x,y,w,nsamples,nftrs,params.niter,params.eiter,&(_rfactors[0]),&(b[0]),&err,&(_corrs[0]),params.sumxx) ;
+		rc = learn_lm(x,y,w,nsamples,nftrs,params.niter,params.eiter,&(_rfactors[0]),&(b[0]),&err,&(_corrs[0]),params.sumxx) ;
+
+	if (rc == 0)
+		denormalize_model(&(x_avg[0]), &(x_std[0]), y_avg, y_std);
+
+	return rc;
 }
 
 //..............................................................................
@@ -269,6 +280,7 @@ size_t MedLM::serialize(unsigned char *blob) {
 	return ptr ;
 }
 
+//..............................................................................
 size_t MedLM::deserialize(unsigned char *blob) {
 
 	size_t ptr = 0 ;
@@ -279,6 +291,26 @@ size_t MedLM::deserialize(unsigned char *blob) {
 	memcpy(&(b[0]),blob+ptr,n_ftrs*sizeof(float)) ; ptr += n_ftrs*sizeof(float) ;
 	
 	return ptr ;
+}
+
+//..............................................................................
+void MedLM::normalize_x_and_y(float *x, float *y, float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std) {
+
+	// Get moments
+	for (int i = 0; i < nftrs; i++)
+		get_moments(x + nsamples*i, w, nsamples, -1, x_avg[i], x_std[i], false);
+	get_moments(y, w, nsamples, -1, y_avg, y_std, false);
+
+	// Normalize
+	for (int i = 0; i < nftrs; i++) {
+		float *xi = x + i*nsamples;
+		for (int j = 0; j < nsamples; j++)
+			xi[j] = (xi[j] - x_avg[i]) / x_std[i];
+	}
+
+	for (int j = 0; j < nsamples; j++)
+		y[j] = (y[j] - y_avg) / y_std;
+
 }
 
 //..............................................................................
@@ -329,7 +361,6 @@ int learn_lm (float *x, float *_y, float *w, int nsamples, int nftrs, int niter,
 
 //..............................................................................
 int learn_lm (float *x, float *_y, float *w, int nsamples, int nftrs, int niter, float eiter , float *rfactors, float *b, float *err, float *corrs, float *sumxx)  {
-
 
 	// Prepare
 	float *y ;

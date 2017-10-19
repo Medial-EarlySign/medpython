@@ -113,6 +113,7 @@
     <ClInclude Include="StripComments.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Config_Examples\chads2_config.json" />
     <None Include="..\Config_Examples\fragile_config.json" />
     <None Include="..\Config_Examples\signal_json_ranges.json" />
   </ItemGroup>

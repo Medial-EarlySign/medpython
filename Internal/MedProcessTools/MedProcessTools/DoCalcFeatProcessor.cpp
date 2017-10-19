@@ -18,6 +18,16 @@ void DoCalcFeatProcessor::resolve_feature_names(MedFeatures &features) {
 	}
 }
 
+// Set single-input calculation in/out names
+void DoCalcFeatProcessor::set_feature_name(const string& feature_name) {
+
+	if (raw_target_feature_name != "")
+		MTHROW_AND_ERR("DoCalcFeatProcessor cannot set feature name for %s on %s . Already given: %s", calc_type.c_str(), feature_name.c_str(), raw_target_feature_name.c_str());
+
+	raw_source_feature_names.assign(1,feature_name);
+	this->feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + calc_type + "_" + feature_name;
+}
+
 int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
@@ -41,36 +51,57 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
 		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
 
-	if (calc_type == "fragile") {
-		raw_source_feature_names.clear();
-		raw_source_feature_names.push_back("Weight.last.win_180_360");
-		raw_source_feature_names.push_back("Weight.min.win_0_180");
-		raw_source_feature_names.push_back("BMI.min.win_0_180");
-		raw_source_feature_names.push_back("BMI.max.win_0_180");
-		raw_source_feature_names.push_back("CRP.max.win_0_180");
-		raw_source_feature_names.push_back("Albumin.min.win_0_180");
-		raw_source_feature_names.push_back("WBC.min.win_0_180");
-		raw_source_feature_names.push_back("WBC.max.win_0_180");
-		raw_source_feature_names.push_back("Gender");
-		raw_source_feature_names.push_back("Hemoglobin.min.win_0_180");
-		raw_source_feature_names.push_back("Current_Smoker");
-		raw_source_feature_names.push_back("category_set_RC_Weight");
-		raw_source_feature_names.push_back("category_set_RC_FallAdmission");
-		raw_source_feature_names.push_back("category_set_RC_Weakness");
-		raw_source_feature_names.push_back("category_set_RC_Vision");
-		raw_source_feature_names.push_back("category_set_RC_Dyspnea");
-		raw_source_feature_names.push_back("category_set_RC_Fatigue");
-		raw_source_feature_names.push_back("category_set_RC_Chronic_Pain");
-		raw_source_feature_names.push_back("category_set_RC_Urinery_Inconsistence");
-		raw_source_feature_names.push_back("category_set_RC_Depression");
-		raw_source_feature_names.push_back("category_set_RC_Coginition_Problems");
-		raw_source_feature_names.push_back("category_set_RC_Social");
+	// Default lists of source features : See examples nin Config_Exacmple
+	if (raw_source_feature_names.empty()) {
+		if (calc_type == "fragile") {
+			raw_source_feature_names.push_back("Weight.last.win_180_360");
+			raw_source_feature_names.push_back("Weight.min.win_0_180");
+			raw_source_feature_names.push_back("BMI.min.win_0_180");
+			raw_source_feature_names.push_back("BMI.max.win_0_180");
+			raw_source_feature_names.push_back("CRP.max.win_0_180");
+			raw_source_feature_names.push_back("Albumin.min.win_0_180");
+			raw_source_feature_names.push_back("WBC.min.win_0_180");
+			raw_source_feature_names.push_back("WBC.max.win_0_180");
+			raw_source_feature_names.push_back("Gender");
+			raw_source_feature_names.push_back("Hemoglobin.min.win_0_180");
+			raw_source_feature_names.push_back("Current_Smoker");
+			raw_source_feature_names.push_back("category_set_RC_Weight");
+			raw_source_feature_names.push_back("category_set_RC_FallAdmission");
+			raw_source_feature_names.push_back("category_set_RC_Weakness");
+			raw_source_feature_names.push_back("category_set_RC_Vision");
+			raw_source_feature_names.push_back("category_set_RC_Dyspnea");
+			raw_source_feature_names.push_back("category_set_RC_Fatigue");
+			raw_source_feature_names.push_back("category_set_RC_Chronic_Pain");
+			raw_source_feature_names.push_back("category_set_RC_Urinery_Inconsistence");
+			raw_source_feature_names.push_back("category_set_RC_Depression");
+			raw_source_feature_names.push_back("category_set_RC_Coginition_Problems");
+			raw_source_feature_names.push_back("category_set_RC_Social");
+		}
+		else if (calc_type == "min_chads2" || calc_type == "max_chads2") { 
+			raw_source_feature_names = { "Age", "DM_Registry", "HT_Registry", "strokeIndicator", "chfIndicator" };
+		}
+		else if (calc_type == "min_chads2_vasc" || calc_type == "max_chads_vasc2") {
+			raw_source_feature_names = { "Age", "DM_Registry", "HT_Registry", "strokeIndicator", "chfIndicator","Gender","vascIndicator" };
+		} 
 	}
-	set_feature_name(raw_target_feature_name);
+
+	// Set name
+	if (raw_target_feature_name == "") {
+		string inFeatures = boost::join(raw_source_feature_names, "_");
+		feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + calc_type + "_" + inFeatures;
+	}
+	else if (raw_target_feature_name.substr(0, 4) == "FTR_")
+		feature_name = raw_target_feature_name;
+	else
+		feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + raw_target_feature_name;
+
 	return 0;
 }
 
 int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
+	
+	// Get Source Features
+	resolve_feature_names(features);
 
 	// Prepare new Feature
 	int samples_size = (int)features.samples.size();
@@ -82,8 +113,7 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	features.attributes[feature_name].normalized = false;
 	features.attributes[feature_name].imputed = true;
 
-	// Get Source Features
-	resolve_feature_names(features);
+	// Prepare
 	vector<float*> p_sources;
 	for (string source : source_feature_names) {
 		assert(features.data.find(source) != features.data.end());
@@ -103,7 +133,9 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	else if (calc_type == "max_chads2_vasc")
 		chads2(p_sources, p_out, samples_size, 1, 1);
 	else if (calc_type == "fragile")
-		fragile(p_sources, p_out, samples_size);
+		fragile(p_sources, p_out, samples_size);	
+	else if (calc_type == "log")
+		_log(p_sources, p_out, samples_size);
 	else
 		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
 
@@ -298,3 +330,19 @@ void DoCalcFeatProcessor::fragile(vector<float*> p_sources, float *p_out, int n_
 		p_out[i] = res;
 	}
 }
+
+// Out = Log(In)
+void DoCalcFeatProcessor::_log(vector<float*> p_sources, float *p_out, int n_samples) {
+
+	float *p = p_sources[0];
+	for (int i = 0; i < n_samples; i++) {
+
+		if (p[i] == missing_value || p[i] <= 0)
+			p_out[i] = missing_value;
+		else
+			p_out[i] = log(p[i]);
+	}
+
+	return;
+}
+

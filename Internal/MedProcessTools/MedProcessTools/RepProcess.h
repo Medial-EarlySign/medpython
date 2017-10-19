@@ -174,11 +174,9 @@ public:
 
 	// Constructors
 	RepBasicOutlierCleaner() : RepProcessor() { init_defaults(); }
-	RepBasicOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
-	RepBasicOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); init_from_string(init_string); }
-	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {
-		signalId = -1; signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); MedValueCleaner::init(_params);
-	}
+	RepBasicOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); }
+	RepBasicOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); }
+	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {signalId = -1; signalName = _signalName; init_lists() ; MedValueCleaner::init(_params);}
 
 	void init_defaults() {
 		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
@@ -191,7 +189,7 @@ public:
 	};
 
 	// Set Signal
-	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
+	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	// Signal Id
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -199,6 +197,7 @@ public:
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
 	int init(map<string, string>& mapper); 
+	void init_lists();
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
@@ -241,13 +240,9 @@ public:
 
 	// Constructors
 	RepNbrsOutlierCleaner() : RepProcessor() { init_defaults(); }
-	RepNbrsOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
-	RepNbrsOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() {
-		init_defaults(); signalName = _signalName; req_signals.push_back(signalName); ; aff_signals.insert(signalName); init_from_string(init_string);
-	}
-	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {
-		signalId = -1; signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); MedValueCleaner::init(_params);
-	}
+	RepNbrsOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); }
+	RepNbrsOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() {init_defaults(); signalId = -1; signalName = _signalName; init_lists();}
+	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params);}
 
 	void init_defaults() {
 		processor_type = REP_PROCESS_NBRS_OUTLIER_CLEANER;
@@ -260,7 +255,7 @@ public:
 	};
 
 	// Set Signal
-	void set_signal(const string& _signalName) { signalName = _signalName; req_signals.push_back(signalName); aff_signals.insert(signalName); }
+	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists();}
 
 	// Signal Id
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -268,6 +263,7 @@ public:
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
 	int init(map<string, string>& mapper); // { init_defaults();  return MedValueCleaner::init(mapper); };
+	void init_lists();
 
 	// Learn cleaning model
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);

@@ -246,6 +246,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
 
+	void normalize_x_and_y(float *x, float *y, float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std);
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
 	size_t get_size();

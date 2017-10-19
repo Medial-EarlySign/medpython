@@ -133,5 +133,8 @@
     <None Include="..\Config_Examples\signal_json_ranges.json">
       <Filter>Config_Examples</Filter>
     </None>
+    <None Include="..\Config_Examples\chads2_config.json">
+      <Filter>Config_Examples</Filter>
+    </None>
   </ItemGroup>
 </Project>

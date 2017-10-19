@@ -1,0 +1,49 @@
+{
+	"processes" : {		
+		// Age
+		"process": {"process_set": "0",	"fg_type": "age"},
+
+		// Gender
+		"process": {"process_set": "0",	"fg_type": "gender"},
+		
+		// CHF history
+		"process": {"process_set": "0",	"fg_type": "basic",	"type":"category_set","time_unit": "Days","sets": "file:../NewLists/heart_failure_events","signal": "ref:rc_signals","in_set_name":"chf"},
+		
+		// Ischemic event history
+		"process": {"process_set": "0",	"fg_type": "basic",	"type":"category_set","time_unit": "Days","sets": "file:../NewLists/ischemic_strokes","signal": "ref:rc_signals","in_set_name":"stroke"},
+
+		// thromoboembolism event history
+		"process": {"process_set": "0",	"fg_type": "basic",	"type":"category_set","time_unit": "Days","sets": "file:../NewLists/thromboembolism_events","signal": "ref:rc_signals","in_set_name":"thrombo"},
+
+		// Vascular event history
+		"process": {"process_set": "0",	"fg_type": "basic",	"type":"category_set","time_unit": "Days","sets": "file:../NewLists/chads_vascular_events","signal": "ref:rc_signals","in_set_name":"vasc"},
+
+		// HyperTension
+		"process": {"process_set": "0",	"fg_type": "range",	"type": "current","time_unit": "Days","signal": "HT_Registry"},
+		
+		// Diabetes
+		"process": {"process_set": "0",	"fg_type": "range",	"type": "current","time_unit": "Days","signal": "DM_Registry"},
+	
+		// CHADS2 
+		"process": {"process_set": "0", "fg_type": "basic", "type": "last","win_from":"0","win_to":"365","time_unit": "Days","signal": "CHADS2"},
+		
+		// FUTURE Anti coagulants intake
+		"process": {"process_set": "0", "fg_type": "drugIntake", "signal":"Drug", "sets":"file:../NewLists/AntiCoagulants_without_Aspirin","win_from":"-365","win_to":"0","in_set_name":"antiCoags"},
+		"process": {"process_set": "0", "fg_type": "drugIntake", "signal":"Drug", "sets":"file:../NewLists/Aspirin","win_from":"-365","win_to":"0","in_set_name":"aspirin"},
+		"process": {"process_set": "0", "fg_type": "drugIntake", "signal":"Drug", "sets":"file:../NewLists/AntiCoagulants_for_AF","win_from":"-365","win_to":"0","in_set_name":"antiCoagsForAF"},
+		
+		// Processors : Sum indicators
+		"process": {"process_set": "0", "fp_type": "do_calc","calc_type":"sum","source_feature_names":"RC_Diagnosis.category_set_chf,RC_Diagnostic_Procedures.category_set_chf,RC_Demographic.category_set_chf,RC_History.category_set_chf,RC_Radiology.category_set_chf,RC_Procedures.category_set_chf,RC_Admin.category_set_chf,RC_Injuries.category_set_chf","name":"chfIndicator","duplicate":"no"},
+		"process": {"process_set": "1", "fp_type": "do_calc","calc_type":"sum","source_feature_names":"RC_Diagnosis.category_set_stroke,RC_Diagnostic_Procedures.category_set_stroke,RC_Demographic.category_set_stroke,RC_History.category_set_stroke,RC_Radiology.category_set_stroke,RC_Procedures.category_set_stroke,RC_Admin.category_set_stroke,RC_Injuries.category_set_stroke","name":"strokeIndicator","duplicate":"no"},
+		"process": {"process_set": "2", "fp_type": "do_calc","calc_type":"sum","source_feature_names":"RC_Diagnosis.category_set_vasc,RC_Diagnostic_Procedures.category_set_vasc,RC_Demographic.category_set_vasc,RC_History.category_set_vasc,RC_Radiology.category_set_vasc,RC_Procedures.category_set_vasc,RC_Admin.category_set_vasc,RC_Injuries.category_set_vasc","name":"vascIndicator","duplicate":"no"},
+		
+		// Processors : CHADS
+		"process": {"process_set": "3", "fp_type": "do_calc","calc_type":"min_chads2","source_feature_names":"Age,DM_Registry,HT_Registry,strokeIndicator,chfIndicator","name":"min_chads2","duplicate":"no"},
+		"process": {"process_set": "4", "fp_type": "do_calc","calc_type":"max_chads2","source_feature_names":"Age,DM_Registry,HT_Registry,strokeIndicator,chfIndicator","name":"max_chads2","duplicate":"no"},
+		"process": {"process_set": "5", "fp_type": "do_calc","calc_type":"min_chads2_vasc","source_feature_names":"Age,DM_Registry,HT_Registry,strokeIndicator,chfIndicator,Gender,vascIndicator","name":"min_chads2_vasc","duplicate":"no"},
+		"process": {"process_set": "6", "fp_type": "do_calc","calc_type":"max_chads2_vasc","source_feature_names":"Age,DM_Registry,HT_Registry,strokeIndicator,chfIndicator,Gender,vascIndicator","name":"max_chads2_vasc","duplicate":"no"}
+	},
+	
+	"rc_signals":["RC_Diagnosis","RC_Diagnostic_Procedures","RC_Demographic","RC_History","RC_Radiology","RC_Procedures","RC_Admin","RC_Injuries"]
+}
+

@@ -65,25 +65,20 @@ void MedClassifierPerformance::_load(MedSamples& samples) {
 	// First pass to check for splits
 	int maxSplits = -1, missingSplit = -1;
 	for (auto& idSamples : samples.idSamples) {
-		for (auto& sample : idSamples.samples) {
-
-			int split = sample.split;
-			if (split > maxSplits)
-				maxSplits = split;
-			if (split == -1)
-				missingSplit = 1;
-		}
+		int split = idSamples.split;
+		if (split > maxSplits)
+			maxSplits = split;
+		if (split == -1)
+			missingSplit = 1;
 	}
 	assert(missingSplit == -1 || maxSplits == -1); // Can't have both splits and non-splits !
 
 	// Fill
 	preds.resize(maxSplits + 2);
 	for (auto& idSamples : samples.idSamples) {
-		for (auto& sample : idSamples.samples) {
-
-			int split = sample.split;
+		int split = idSamples.split;
+		for (auto& sample : idSamples.samples)
 			preds[split+1].push_back({ sample.prediction.back(),sample.outcome });
-		}
 	}
 
 	// Are there any splits ?
