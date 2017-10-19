@@ -13,6 +13,9 @@ namespace MedSerialize {
 	template<class T>  size_t get_size(vector<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, vector<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, vector<T> &v);
+	template <class T, class S> size_t get_size(pair<T, S> &v);
+	template <class T, class S> size_t serialize(unsigned char *blob, pair<T, S> &v);
+	template <class T, class S> size_t deserialize(unsigned char *blob, pair<T, S> &v);
 	template <class T, class S> size_t get_size(map<T, S> &v);
 	template <class T, class S> size_t serialize(unsigned char *blob, map<T, S> &v);
 	template <class T, class S> size_t deserialize(unsigned char *blob, map<T, S> &v);
@@ -223,6 +226,47 @@ namespace MedSerialize {
 		return pos;
 	}
 
+	//.........................................................................................
+	// pair<T,S> both with a MedSerialize function
+	//.........................................................................................
+	template <class T, class S> size_t get_size(pair<T, S> &v)
+	{
+		size_t size = 0;
+		T *t = (T *)&v.first;
+		S *s = (S *)&v.second;
+		size += MedSerialize::get_size((*t));
+		size += MedSerialize::get_size((*s));
+
+		return size;
+	}
+
+	//.........................................................................................
+	template <class T, class S> size_t serialize(unsigned char *blob, pair<T, S> &v)
+	{
+		//fprintf(stderr, "map serialize\n");
+		size_t pos = 0;
+		T *t = (T *)&v.first;
+		S *s = (S *)&v.second;
+		pos += MedSerialize::serialize(blob+pos, (*t));
+		pos += MedSerialize::serialize(blob+pos, (*s));
+
+		return pos;
+	}
+
+	//.........................................................................................
+	template <class T, class S> size_t deserialize(unsigned char *blob, pair<T, S> &v)
+	{
+		//fprintf(stderr, "map deserialize\n");
+		size_t pos = 0;
+		T t;
+		S s;
+		pos += MedSerialize::deserialize(blob+pos, t);
+		pos += MedSerialize::deserialize(blob+pos, s);
+		v.first = t;
+		v.second = s;
+
+		return pos;
+	}
 
 	//.........................................................................................
 	// map<T,S> both with a MedSerialize function
