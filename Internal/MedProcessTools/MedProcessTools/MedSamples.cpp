@@ -317,10 +317,27 @@ int MedSamples::write_to_file(const string &fname)
 
 // Count
 //.......................................................................................
-int MedSamples::nSamples() {
+int MedSamples::nSamples()
+{
 	int n = 0;
 	for (auto& idSample : idSamples)
-		n += idSample.samples.size();
+		n += (int)idSample.samples.size();
 
 	return n;
+}
+
+//.......................................................................................
+int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime) 
+{
+	MedIdSamples sample;
+
+	sample.id = pid;
+	MedSample s;
+	s.id = pid;
+	s.time = time;
+	s.outcome = outcome;
+	s.outcomeTime = outcomeTime;
+	sample.samples.push_back(s);
+	idSamples.push_back(sample);
+	return 0;
 }
