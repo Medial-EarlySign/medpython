@@ -30,6 +30,7 @@ typedef enum {
 	FTR_GEN_BINNED_LM,
 	FTR_GEN_SMOKING,
 	FTR_GEN_RANGE,
+	FTR_GEN_ALCOHOL,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 

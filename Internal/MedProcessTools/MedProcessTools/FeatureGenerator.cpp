@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
+#include "AlcoholGenerator.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -23,6 +24,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
+	else if (generator_name == "alcohol")
+		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
 		return FTR_GEN_RANGE;
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
@@ -85,6 +88,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
+	else if (generator_type == FTR_GEN_ALCOHOL)
+		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
 		return new RangeFeatGenerator;
 
