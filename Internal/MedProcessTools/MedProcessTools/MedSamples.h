@@ -109,8 +109,9 @@ public:
 	int insertRec(int pid, int time, float outcome, int outcomeTime);
 	int insertRec(int pid, int time) { return insertRec(pid, time, -1, 0); }
 
+	int version() { return  1; };
+	//version 1: Added version, model_features, features_count to serialization
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
-
 };
 
 

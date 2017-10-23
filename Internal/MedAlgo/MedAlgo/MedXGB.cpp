@@ -49,7 +49,7 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 	return 0;
 }
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
-	vector<float> w;	
+	vector<float> w;
 	for (int i = 0; i < nsamples; i++)
 		w.push_back(1.0);
 
@@ -84,9 +84,9 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	cfg.push_back(std::make_pair("max_depth", boost::lexical_cast<std::string>(params.max_depth)));
 	cfg.push_back(std::make_pair("silent", boost::lexical_cast<std::string>(params.silent)));
 	cfg.push_back(std::make_pair("eval_metric", params.eval_metric));
-	cfg.push_back(std::make_pair("colsample_bytree", boost::lexical_cast<std::string>(params.colsample_bytree))); 
+	cfg.push_back(std::make_pair("colsample_bytree", boost::lexical_cast<std::string>(params.colsample_bytree)));
 	cfg.push_back(std::make_pair("colsample_bylevel", boost::lexical_cast<std::string>(params.colsample_bylevel)));
-	cfg.push_back(std::make_pair("subsample", boost::lexical_cast<std::string>(params.subsample))); 
+	cfg.push_back(std::make_pair("subsample", boost::lexical_cast<std::string>(params.subsample)));
 	cfg.push_back(std::make_pair("scale_pos_weight", boost::lexical_cast<std::string>(params.scale_pos_weight)));
 	cfg.push_back(std::make_pair("lambda", boost::lexical_cast<std::string>(params.lambda)));
 	cfg.push_back(std::make_pair("alpha", boost::lexical_cast<std::string>(params.alpha)));
@@ -140,7 +140,7 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 			version += 1;
 		}
 		std::string res = learner->EvalOneIter(i, eval_datasets, eval_data_names);
-		if (params.silent == 0) 
+		if (params.silent == 0)
 			MLOG("%s", res.c_str());
 		version += 1;
 	}
@@ -165,8 +165,8 @@ size_t MedXGB::get_size() {
 
 	MemoryBufferStream fo(&raw_str);
 	my_learner->Save(&fo);
-	return raw_str.size() + sizeof(int);
-
+	return raw_str.size() + sizeof(int) + MedSerialize::get_size(model_features)
+		+ MedSerialize::get_size(features_count);
 }
 
 void MedXGB::print(FILE *fp, const string& prefix) {
@@ -180,16 +180,30 @@ size_t MedXGB::serialize(unsigned char *blob) {
 	MemoryBufferStream fo(&raw_str);
 	my_learner->Save(&fo);
 
-	*((int*)blob) = (int)raw_str.size();
-	memcpy(blob + sizeof(int), raw_str.c_str(), raw_str.size());
-	return raw_str.size() + sizeof(int);
+	*((int*)blob) = (int)raw_str.size(); //save xgb_model size
+	size_t s = sizeof(int);
+	memcpy(blob + s, raw_str.c_str(), raw_str.size()); //save model
+	s += raw_str.size();
+	MedSerialize::serialize(blob + s, model_features);
+	s += MedSerialize::get_size(model_features);
+	MedSerialize::serialize(blob + s, features_count);
+	s += MedSerialize::get_size(features_count);
+
+	return s;
 }
 
 size_t MedXGB::deserialize(unsigned char *blob) {
-	int size = *((int*)blob);
-	MemoryFixSizeBuffer fs((blob + sizeof(int)), size);
+	size_t size = *((int*)blob);
+	size_t s = sizeof(int);
+	MemoryFixSizeBuffer fs((blob + s), size);
 	my_learner->Load(&fs);
-	return size + sizeof(int);
+	s += size;
+
+	MedSerialize::deserialize(blob + s, model_features);
+	s += MedSerialize::get_size(model_features);
+	MedSerialize::deserialize(blob + s, features_count);
+	s += MedSerialize::get_size(features_count);
+	return s;
 }
 
 void MedXGB::init_defaults()

@@ -17,7 +17,14 @@ int SerializableObject::read_from_file(const string &fname) {
 		return -1;
 	}
 
-	size_t serSize = deserialize(blob);
+	int vers = *((int*)blob);
+	int s = sizeof(int);
+	if (vers != version())
+		MTHROW_AND_ERR("deserialization error. code version %d. requested file version %d\n",
+			version(), vers);
+	unsigned char *blob_without_version = blob + s;
+
+	size_t serSize = deserialize(blob_without_version);
 	assert(serSize == size);
 	if (size > 0) delete[] blob;
 	return 0;
@@ -30,9 +37,14 @@ int SerializableObject::write_to_file(const string &fname)
 	unsigned long long size;
 
 	size = get_size();
-	blob = new unsigned char[size];
 
-	size_t serSize = serialize(blob);
+	blob = new unsigned char[size + sizeof(int)];
+	*((int*)blob) = version(); //save version
+	size_t serSize = serialize(blob + sizeof(int));
+	size_t final_size = serSize + sizeof(int);
+	if (size != serSize)
+		MLOG("get_size=%d, acctual_szie=%d\n", size, (int)serSize);
+	assert(size == serSize);
 
 	if (write_binary_data(fname, blob, size) < 0) {
 		MERR("Error writing model to file %s\n", fname.c_str());
