@@ -72,6 +72,9 @@
     <ClCompile Include="IterativeImputer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AlcoholGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -123,6 +126,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="IterativeImputer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AlcoholGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
