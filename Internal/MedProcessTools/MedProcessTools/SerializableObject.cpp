@@ -3,6 +3,7 @@
 #include "SerializableObject.h"
 #include "MedProcessUtils.h"
 #include <assert.h>
+#include <boost/crc.hpp>
 
 #define LOCAL_SECTION LOG_SRL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -16,6 +17,11 @@ int SerializableObject::read_from_file(const string &fname) {
 		MERR("Error reading model from file %s\n", fname.c_str());
 		return -1;
 	}
+
+	std::size_t const blob_len = sizeof(blob) / sizeof(blob[0]);
+	boost::crc_32_type checksum_agent;
+	checksum_agent.process_bytes(blob, blob_len);
+	MLOG("read_from_file [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
 
 	int vers = *((int*)blob);
 	int s = sizeof(int);

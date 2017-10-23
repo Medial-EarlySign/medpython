@@ -354,7 +354,8 @@ void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecInd
 }
 string parse_key_val(string key, string val) {
 	if (val.length() > 0 && val[0] != '{' && val.find('=') != string::npos) {
-		MLOG("found as-is literal string [%s]\n", val.c_str());
+		if (val.find(';') == string::npos)
+			MLOG("found as-is literal string [%s]\n", val.c_str());
 		return val;
 	}
 	else return key + "=" + val;
