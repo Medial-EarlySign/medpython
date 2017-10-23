@@ -168,6 +168,11 @@ void MedPredictor::prepare_x_mat(MedMat<float> &x, vector<float> &wgts, int &nsa
 	}
 }
 
+string norm_feature_name(const string &feat_name) {
+	return  feat_name.substr(0, 3) != "FTR" || feat_name.find_first_of('.') == string::npos ? feat_name :
+		feat_name.substr(feat_name.find_first_of('.') + 1);
+}
+
 //.......................................................................................
 int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts)
 {
@@ -231,7 +236,7 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 				(int)model_features.size(), (int)x.signals.size());
 
 		for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
-			if (x.signals[feat_num] != model_features[feat_num])
+			if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
 				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
 					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
@@ -309,7 +314,7 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 				(int)model_features.size(), (int)x.signals.size());
 
 		for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
-			if (x.signals[feat_num] != model_features[feat_num])
+			if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
 				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
 					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
@@ -779,7 +784,7 @@ int MedPredictor::predict_on_train(MedFeaturesData& ftrs_data, int isplit) {
 				(int)model_features.size(), (int)ftrs_data.data.size());
 		int feat_num = 0;
 		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-			if (it->first != model_features[feat_num++])
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
 				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
 					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
 	}
@@ -812,7 +817,7 @@ int MedPredictor::predict(MedFeaturesData& ftrs_data, int isplit) {
 				(int)model_features.size(), (int)ftrs_data.data.size());
 		int feat_num = 0;
 		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-			if (it->first != model_features[feat_num++])
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
 				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
 					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
 	}
@@ -866,7 +871,7 @@ int MedPredictor::predict(MedFeaturesData& ftrs_data) {
 				(int)model_features.size(), (int)ftrs_data.data.size());
 		int feat_num = 0;
 		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-			if (it->first != model_features[feat_num++])
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
 				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
 					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
 	}
@@ -903,7 +908,7 @@ int MedPredictor::predict(MedFeatures& ftrs_data) {
 				(int)model_features.size(), (int)ftrs_data.data.size());
 		int feat_num = 0;
 		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-			if (it->first != model_features[feat_num++])
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
 				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
 					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
 	}
