@@ -1,9 +1,9 @@
 // Object that can be serialized and written/read from file and also initialized from string
 
-#include <boost/crc.hpp>
 #include "SerializableObject.h"
 #include "MedProcessUtils.h"
 #include <assert.h>
+#include <boost/crc.hpp>
 
 #define LOCAL_SECTION LOG_SRL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -23,11 +23,15 @@ int SerializableObject::read_from_file(const string &fname) {
 	checksum_agent.process_bytes(blob, blob_len);
 	MLOG("read_from_file [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
 
-	size_t serSize = deserialize(blob);
-	if (serSize != size) {
-		MERR("size=%d serSize=%d\n", size, serSize);
-		assert(serSize == size);
-	}
+	int vers = *((int*)blob);
+	int s = sizeof(int);
+	if (vers != version())
+		MTHROW_AND_ERR("deserialization error. code version %d. requested file version %d\n",
+			version(), vers);
+	unsigned char *blob_without_version = blob + s;
+
+	size_t serSize = deserialize(blob_without_version);
+	assert(serSize == size);
 	if (size > 0) delete[] blob;
 	return 0;
 }
@@ -39,9 +43,14 @@ int SerializableObject::write_to_file(const string &fname)
 	unsigned long long size;
 
 	size = get_size();
-	blob = new unsigned char[size];
 
-	size_t serSize = serialize(blob);
+	blob = new unsigned char[size + sizeof(int)];
+	*((int*)blob) = version(); //save version
+	size_t serSize = serialize(blob + sizeof(int));
+	size_t final_size = serSize + sizeof(int);
+	if (size != serSize)
+		MLOG("get_size=%d, acctual_szie=%d\n", size, (int)serSize);
+	assert(size == serSize);
 
 	if (write_binary_data(fname, blob, size) < 0) {
 		MERR("Error writing model to file %s\n", fname.c_str());

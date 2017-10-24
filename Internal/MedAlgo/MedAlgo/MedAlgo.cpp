@@ -153,7 +153,6 @@ int MedPredictor::init_from_string(string text) {
 //.......................................................................................
 void MedPredictor::prepare_x_mat(MedMat<float> &x, vector<float> &wgts, int &nsamples, int &nftrs, bool transpose_needed)
 {
-
 	if ((transpose_needed && !x.transposed_flag) || (!transpose_needed && x.transposed_flag)) {
 		//		MLOG("transposing matrix\n");
 		x.transpose();
@@ -169,9 +168,15 @@ void MedPredictor::prepare_x_mat(MedMat<float> &x, vector<float> &wgts, int &nsa
 	}
 }
 
+string norm_feature_name(const string &feat_name) {
+	return  feat_name.substr(0, 3) != "FTR" || feat_name.find_first_of('.') == string::npos ? feat_name :
+		feat_name.substr(feat_name.find_first_of('.') + 1);
+}
+
 //.......................................................................................
 int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts)
 {
+	model_features = x.signals;
 	int nsamples, nftrs;
 
 	// patch for micNet
@@ -203,7 +208,7 @@ int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts)
 
 //.......................................................................................
 int MedPredictor::learn(MedMat<float> &x, vector<float> &y, vector<float> &wgts) {
-
+	model_features = x.signals;
 	int nsamples, nftrs;
 
 	if (normalize_for_learn && !x.normalized_flag) {
@@ -219,11 +224,25 @@ int MedPredictor::learn(MedMat<float> &x, vector<float> &y, vector<float> &wgts)
 //.......................................................................................
 int MedPredictor::learn(vector<float> &x, vector<float> &y, vector<float> &w, int n_samples, int n_ftrs)
 {
+	features_count = n_ftrs;
 	return(Learn(VEC_DATA(x), VEC_DATA(y), VEC_DATA(w), n_samples, n_ftrs));
 }
 
 //.......................................................................................
 int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
+	if (!model_features.empty()) {//test names of entered matrix:
+		if (model_features.size() != x.signals.size())
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)x.signals.size());
+
+		for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
+			if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
+				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
+	}
+	else if (features_count > 0 && features_count != x.signals.size())
+		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			features_count, (int)x.signals.size());
 
 	int nsamples, nftrs;
 	vector<float> w;
@@ -289,6 +308,19 @@ void MedPredictor::predict_thread(void *p)
 
 //.......................................................................................
 int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int nthreads) {
+	if (!model_features.empty()) {//test names of entered matrix:
+		if (model_features.size() != x.signals.size())
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)x.signals.size());
+
+		for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
+			if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
+				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
+	}
+	else if (features_count > 0 && features_count != x.signals.size())
+		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			features_count, (int)x.signals.size());
 
 	int nsamples, nftrs;
 	vector<float> w;
@@ -348,6 +380,14 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 
 //.......................................................................................
 int MedPredictor::predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs) {
+	if (!model_features.empty() && model_features.size() != n_ftrs) {
+		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			(int)model_features.size(), (int)x.size());
+	}
+	else if (features_count > 0 && features_count != n_ftrs)
+		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			features_count, n_ftrs);
+
 	preds.resize(n_samples*n_preds_per_sample());
 	float *_preds = &(preds[0]);
 	return Predict(VEC_DATA(x), _preds, n_samples, n_ftrs);
@@ -430,6 +470,10 @@ int MedPredictor::learn(MedFeaturesData& ftrs_data, int isplit) {
 	MedMat<float> x((int)ftrs_data.get_learning_nrows(isplit), (int)ftrs_data.signals.size());
 	MedMat<float> y(x.nrows, 1);
 	vector<float> signal(x.nrows);
+	//save model features names
+	model_features.clear();
+	for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
+		model_features.push_back(it->first);
 
 	// Build X
 	build_learning_x_mat_for_split(ftrs_data, signal, isplit, x);
@@ -464,6 +508,10 @@ int MedPredictor::learn(MedFeaturesData& ftrs_data) {
 	MedMat<float> x((int)ftrs_data.label.size(), (int)ftrs_data.signals.size());
 	MedMat<float> y(x.nrows, 1);
 	x.normalized_flag = 1;
+	//save model features names
+	model_features.clear();
+	for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
+		model_features.push_back(it->first);
 
 	vector<float> signal(x.nrows);
 	for (int icol = 0; icol < x.ncols; icol++) {
@@ -500,6 +548,10 @@ int MedPredictor::learn(MedFeatures& ftrs_data) {
 }
 
 int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
+	//save model features names
+	model_features.clear();
+	for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
+		model_features.push_back(it->first);
 
 	// Build X
 	MedMat<float> x;
@@ -726,6 +778,17 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 int MedPredictor::predict_on_train(MedFeaturesData& ftrs_data, int isplit) {
 	MedMat<float> x((int)ftrs_data.get_learning_nrows(isplit), (int)ftrs_data.signals.size());
 	vector<float> signal(x.nrows);
+	if (!model_features.empty()) {//test names of entered matrix:
+		if (model_features.size() != ftrs_data.data.size())
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)ftrs_data.data.size());
+		int feat_num = 0;
+		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
+				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
+	}
+
 
 	// Build X
 	build_learning_x_mat_for_split(ftrs_data, signal, isplit, x);
@@ -748,6 +811,19 @@ int MedPredictor::predict_on_train(MedFeaturesData& ftrs_data, int isplit) {
 
 // Predicting
 int MedPredictor::predict(MedFeaturesData& ftrs_data, int isplit) {
+	if (!model_features.empty()) {//test names of entered matrix:
+		if (model_features.size() != ftrs_data.data.size())
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)ftrs_data.data.size());
+		int feat_num = 0;
+		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
+				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
+	}
+	else if (features_count > 0 && features_count != ftrs_data.data.size())
+		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			features_count, (int)ftrs_data.data.size());
 
 	// Build X
 	MedMat<float> x((int)ftrs_data.get_testing_nrows(isplit), (int)ftrs_data.signals.size());
@@ -789,6 +865,19 @@ int MedPredictor::predict(MedFeaturesData& ftrs_data, int isplit) {
 }
 
 int MedPredictor::predict(MedFeaturesData& ftrs_data) {
+	if (!model_features.empty()) {//test names of entered matrix:
+		if (model_features.size() != ftrs_data.data.size())
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)ftrs_data.data.size());
+		int feat_num = 0;
+		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
+				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
+	}
+	else if (features_count > 0 && features_count != ftrs_data.data.size())
+		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			features_count, (int)ftrs_data.data.size());
 
 	// Build X
 	MedMat<float> x((int)ftrs_data.label.size(), (int)ftrs_data.signals.size());
@@ -813,6 +902,19 @@ int MedPredictor::predict(MedFeaturesData& ftrs_data) {
 }
 
 int MedPredictor::predict(MedFeatures& ftrs_data) {
+	if (!model_features.empty()) {//test names of entered matrix:
+		if (model_features.size() != ftrs_data.data.size())
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)ftrs_data.data.size());
+		int feat_num = 0;
+		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
+			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
+				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
+	}
+	else if (features_count > 0 && features_count != ftrs_data.data.size())
+		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			features_count, (int)ftrs_data.data.size());
 
 	// Build X
 	MedMat<float> x;
@@ -831,44 +933,5 @@ int MedPredictor::predict(MedFeatures& ftrs_data) {
 			ftrs_data.samples[i].prediction[j] = preds[i*n + j];
 	}
 
-	return 0;
-}
-
-int MedPredictor::read_from_file(const string &fname) // read and deserialize model
-{
-	unsigned char *blob;
-	unsigned long long size;
-
-	if (read_binary_data_alloc(fname, blob, size) < 0) {
-		MERR("Error reading model from file %s\n", fname.c_str());
-		return -1;
-	}
-
-	deserialize(blob);
-	if (size > 0) delete[] blob;
-	return 0;
-}
-
-int MedPredictor::write_to_file(const string &fname)  // serialize model and write to file
-{
-	unsigned char *blob;
-	unsigned long long size;
-
-	size = get_size();
-	vector<unsigned char> local_buf(size + 1);
-	//blob = new unsigned char[size];
-	blob = &local_buf[0];
-
-	//MLOG("write_to_file 1: size %lld blob %llx\n", size, blob);
-	serialize(blob);
-
-	if (write_binary_data(fname, blob, size) < 0) {
-		MERR("Error writing model to file %s\n", fname.c_str());
-		return -1;
-	}
-
-	//MLOG("write_to_file 1: size %lld blob %llx\n", size, blob);
-	//MLOG("Before Release blob size = %lld\n",size);
-	//if (size > 0) delete[] blob;
 	return 0;
 }
