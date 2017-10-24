@@ -1,6 +1,8 @@
 #pragma once
 #include "FeatureGenerator.h"
 
+void generateAlcoholRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal);
+
 class AlcoholGenerator : public FeatureGenerator {
 public:
 

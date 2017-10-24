@@ -1,8 +1,13 @@
 #include "SmokingGenerator.h"
+#include <boost/algorithm/string/predicate.hpp>
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 using namespace boost;
+
+void generateSmokingRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal) {
+
+}
 
 void SmokingGenerator::set_names() {
 	names.clear();
@@ -110,17 +115,17 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		for (int j = 0; j < names.size(); j++) {
 			float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[names[j]][index]);
 
-			if (names[j].size() >= 14 && names[j].substr(names[j].size() - 14, 14) == "Current_Smoker") 
+			if (algorithm::ends_with(names[j], "Current_Smoker"))
 				p_feat[i] = (float)current_smoker;
-			else if (names[j].size() >= 9 && names[j].substr(names[j].size() - 9, 9) == "Ex_Smoker")
+			else if (algorithm::ends_with(names[j], "Ex_Smoker"))
 				p_feat[i] = (float)ex_smoker;
-			else if (names[j].size() >= 25 && names[j].substr(names[j].size() - 25, 25) == "Smok_Years_Since_Quitting")
+			else if (algorithm::ends_with(names[j], "Smok_Years_Since_Quitting"))
 				p_feat[i] = (float)years_since_quitting;
-			else if (names[j].size() >= 13 && names[j].substr(names[j].size() - 13, 13) == "Smoking_Years")
+			else if (algorithm::ends_with(names[j], "Smoking_Years"))
 				p_feat[i] = (float)smoking_years;
-			else if (names[j].size() >= 15 && names[j].substr(names[j].size() - 15, 15) == "Smok_Pack_Years")
+			else if (algorithm::ends_with(names[j], "Smok_Pack_Years"))
 				p_feat[i] = (float)pack_years;
-			else if (names[j].size() >= 17 && names[j].substr(names[j].size() - 17, 17) == "PLM_Smoking_Level")
+			else if (algorithm::ends_with(names[j], "PLM_Smoking_Level"))
 				p_feat[i] = (float)plm_smoking_level;			
 			else MTHROW_AND_ERR("unknown feature name [%s]", names[j].c_str());
 		}

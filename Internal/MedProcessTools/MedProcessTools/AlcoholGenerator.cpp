@@ -1,8 +1,13 @@
 #include "AlcoholGenerator.h"
+#include <boost/algorithm/string/predicate.hpp>
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 using namespace boost;
+
+void generateAlcoholRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal) {
+
+}
 
 void AlcoholGenerator::set_names() {
 	names.clear();
@@ -43,7 +48,7 @@ int AlcoholGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 			drinking_level = alcohol_status[len - 1].val2;
 			if (drinking_level == -1)
 				plm_drinking_level = drinking_level = missing;
-			else if (drinking_level <= 0)
+			else if (current_drinker == 0 || drinking_level <= 0)
 				plm_drinking_level = 0;
 			else if (drinking_level <= 1)
 				plm_drinking_level = 1;
@@ -59,11 +64,11 @@ int AlcoholGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		}
 
 		for (int j = 0; j < names.size(); j++) {
-			if (names[j].size() >= 15 && names[j].substr(names[j].size() - 15, 15) == "Current_Drinker")
+			if (algorithm::ends_with(names[j], "Current_Drinker"))
 				features.data[names[j]][index + i] = (float)current_drinker;
-			else if (names[j].size() >= 17 && names[j].substr(names[j].size() - 17, 17) == "Drinking_Quantity")
+			else if (algorithm::ends_with(names[j], "Drinking_Quantity"))
 				features.data[names[j]][index + i] = (float)drinking_level;
-			else if (names[j].size() >= 18 && names[j].substr(names[j].size() - 18, 18) == "PLM_Drinking_Level")
+			else if (algorithm::ends_with(names[j], "PLM_Drinking_Level"))
 				features.data[names[j]][index + i] = (float)plm_drinking_level;
 			else MTHROW_AND_ERR("unknown feature name [%s]", names[j].c_str());
 		}
