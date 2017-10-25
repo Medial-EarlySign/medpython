@@ -176,7 +176,12 @@ string norm_feature_name(const string &feat_name) {
 //.......................................................................................
 int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts)
 {
-	model_features = x.signals;
+	if (!x.signals.empty())
+		model_features = x.signals;
+	else {
+		model_features.clear();
+		features_count = x.ncols;
+	}
 	int nsamples, nftrs;
 
 	// patch for micNet
@@ -208,7 +213,12 @@ int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts)
 
 //.......................................................................................
 int MedPredictor::learn(MedMat<float> &x, vector<float> &y, vector<float> &wgts) {
-	model_features = x.signals;
+	if (!x.signals.empty())
+		model_features = x.signals;
+	else {
+		model_features.clear();
+		features_count = x.ncols;
+	}
 	int nsamples, nftrs;
 
 	if (normalize_for_learn && !x.normalized_flag) {
@@ -231,18 +241,19 @@ int MedPredictor::learn(vector<float> &x, vector<float> &y, vector<float> &w, in
 //.......................................................................................
 int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 	if (!model_features.empty()) {//test names of entered matrix:
-		if (model_features.size() != x.signals.size())
+		if (model_features.size() != x.ncols)
 			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)x.signals.size());
+				(int)model_features.size(), (int)x.ncols);
 
-		for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
-			if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
-				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
+		if (!x.signals.empty()) //can compare names
+			for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
+				if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
+					MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+						(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
-	else if (features_count > 0 && features_count != x.signals.size())
+	else if (features_count > 0 && features_count != x.ncols)
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-			features_count, (int)x.signals.size());
+			features_count, (int)x.ncols);
 
 	int nsamples, nftrs;
 	vector<float> w;
@@ -309,18 +320,19 @@ void MedPredictor::predict_thread(void *p)
 //.......................................................................................
 int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int nthreads) {
 	if (!model_features.empty()) {//test names of entered matrix:
-		if (model_features.size() != x.signals.size())
+		if (model_features.size() != x.ncols)
 			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)x.signals.size());
+				(int)model_features.size(), (int)x.ncols);
 
-		for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
-			if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
-				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
+		if (!x.signals.empty()) //can compare names
+			for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
+				if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
+					MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
+						(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
-	else if (features_count > 0 && features_count != x.signals.size())
+	else if (features_count > 0 && features_count != x.ncols)
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-			features_count, (int)x.signals.size());
+			features_count, (int)x.ncols);
 
 	int nsamples, nftrs;
 	vector<float> w;
