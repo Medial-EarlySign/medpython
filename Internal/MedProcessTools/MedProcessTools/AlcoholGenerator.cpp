@@ -44,23 +44,31 @@ int AlcoholGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 			current_drinker = drinking_level = plm_drinking_level = missing;
 		}
 		else {
+			/*
+PLM_Drinking_Level	per day	per week
+0	not at all	`0
+1	less than 1 	`1-4 drinks
+2	1-2 drinks	`5-17 drinks
+3	3-6 drinks	`18-45 drinks
+4	7-9 drinks	`46-65 drinks
+5	9 or more	`66-99 drinks
+			*/
 			current_drinker = alcohol_status[len - 1].val1;
 			drinking_level = alcohol_status[len - 1].val2;
-			if (drinking_level == -1)
-				plm_drinking_level = drinking_level = missing;
+			if (current_drinker == 1 && drinking_level == -1)
+				drinking_level = missing, plm_drinking_level = 2;
 			else if (current_drinker == 0 || drinking_level <= 0)
 				plm_drinking_level = 0;
-			else if (drinking_level <= 1)
+			else if (drinking_level >= 1 && drinking_level <= 4)
 				plm_drinking_level = 1;
-			else if (drinking_level <= 2)
+			else if (drinking_level >= 5 && drinking_level <= 17)
 				plm_drinking_level = 2;
-			else if (drinking_level <= 6)
+			else if (drinking_level >= 18 && drinking_level <= 45)
 				plm_drinking_level = 3;
-			else if (drinking_level <= 9)
+			else if (drinking_level >= 46 && drinking_level <= 65)
 				plm_drinking_level = 4;
 			else 
 				plm_drinking_level = 5;
-
 		}
 
 		for (int j = 0; j < names.size(); j++) {
