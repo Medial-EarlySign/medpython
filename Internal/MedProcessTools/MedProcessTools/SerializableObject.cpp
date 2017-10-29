@@ -18,28 +18,28 @@
 int SerializableObject::read_from_file(const string &fname) {
 	int attempts = 0;
 	unsigned char *blob;
-	unsigned long long size;
+	size_t final_size;
 	for (;;) {
 		try {
-			if (read_binary_data_alloc(fname, blob, size) < 0) {
+			if (read_binary_data_alloc(fname, blob, final_size) < 0) {
 				MERR("Error reading model from file %s\n", fname.c_str());
 				return -1;
 			}
 
 			boost::crc_32_type checksum_agent;
-			checksum_agent.process_bytes(blob, size);
+			checksum_agent.process_bytes(blob, final_size);
 			MLOG("read_from_file [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
 
 			int vers = *((int*)blob);
-			int s = sizeof(int);
 			if (vers != version())
 				MTHROW_AND_ERR("deserialization error. code version %d. requested file version %d\n",
 					version(), vers);
-			unsigned char *blob_without_version = blob + s;
+			unsigned char *blob_without_version = blob + sizeof(int);
 
 			size_t serSize = deserialize(blob_without_version);
-			assert(serSize == size);
-			if (size > 0) delete[] blob;
+			if (serSize + sizeof(int) != final_size)
+				MTHROW_AND_ERR("final_size=%d, serSize=%d\n", final_size, (int)serSize);
+			if (final_size > 0) delete[] blob;
 			return 0;
 		}
 		catch (exception e) {
@@ -55,19 +55,23 @@ int SerializableObject::read_from_file(const string &fname) {
 int SerializableObject::write_to_file(const string &fname)
 {
 	unsigned char *blob;
-	unsigned long long size;
+	size_t size;
 
 	size = get_size();
 
 	blob = new unsigned char[size + sizeof(int)];
 	*((int*)blob) = version(); //save version
 	size_t serSize = serialize(blob + sizeof(int));
-	size_t final_size = serSize + sizeof(int);
 	if (size != serSize)
-		MLOG("get_size=%d, acctual_szie=%d\n", size, (int)serSize);
-	assert(size == serSize);
+		MTHROW_AND_ERR("size=%d, serSize=%d\n", size, (int)serSize);
 
-	if (write_binary_data(fname, blob, size) < 0) {
+	size_t final_size = serSize + sizeof(int);
+
+	boost::crc_32_type checksum_agent;
+	checksum_agent.process_bytes(blob, final_size);
+	MLOG("write_to_file [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
+
+	if (write_binary_data(fname, blob, final_size) < 0) {
 		MERR("Error writing model to file %s\n", fname.c_str());
 		return -1;
 	}
