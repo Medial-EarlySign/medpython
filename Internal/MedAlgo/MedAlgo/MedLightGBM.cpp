@@ -178,13 +178,13 @@ void MemApp::Predict(float *x, int nrows, int ncols, float *&preds)
 	int64_t num_preb_in_one_row = boosting_->NumPredictOneRow(config_.io_config.num_iteration_predict, config_.io_config.is_predict_leaf_index);
 	auto pred_fun = predictor.GetPredictFunction();
 
-	string str;
-	serialize_to_string(str);
+	//string str;
+	//serialize_to_string(str);
 
 	int64_t len_res = nrows * num_preb_in_one_row;
-	MLOG("[MedLightGBM] predict: nrows %d , num_pred %d , len_res %d\n", nrows, num_preb_in_one_row, len_res);
-	MLOG("[MedLightGBM] predict: num_iter %d , is_raw %d , is_leaf %d\n", 
-		config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score ? 1 : 0, config_.io_config.is_predict_leaf_index ? 1:0);
+	//MLOG("[MedLightGBM] predict: nrows %d , num_pred %d , len_res %d\n", nrows, num_preb_in_one_row, len_res);
+	//MLOG("[MedLightGBM] predict: num_iter %d , is_raw %d , is_leaf %d\n", 
+	//	config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score ? 1 : 0, config_.io_config.is_predict_leaf_index ? 1:0);
 	vector<double> out_result_vec(len_res);
 	double *out_result = &out_result_vec[0];
 	if (preds == NULL) preds = new float[len_res];
