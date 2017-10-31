@@ -5,6 +5,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/find.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/algorithm/string/regex.hpp>
@@ -354,7 +355,8 @@ void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecInd
 }
 string parse_key_val(string key, string val) {
 	if (val.length() > 0 && val[0] != '{' && val.find('=') != string::npos) {
-		MLOG("found as-is literal string [%s]\n", val.c_str());
+		if (val.find(';') == string::npos)
+			MLOG("found as-is literal string [%s]\n", val.c_str());
 		return val;
 	}
 	else return key + "=" + val;
@@ -402,8 +404,10 @@ void alter_json(string &json_contents, vector<string>& alterations) {
 	for (string& alt : alterations) {
 		boost::algorithm::split_regex(fields, alt, boost::regex("::"));
 		if (fields.size() != 2)
-			MTHROW_AND_ERR("Cannot parse alteration string %s \n", alt.c_str());
-		MLOG("Json : Replacing %s with %s\n", fields[0].c_str(), fields[1].c_str());
+			MTHROW_AND_ERR("Cannot parse alteration string [%s] \n", alt.c_str());
+		vector<string> res;
+		boost::find_all(res, json_contents, fields[0]);
+		MLOG("Json : Replacing [%d] occurrences of [%s] with [%s]\n", res.size(), fields[0].c_str(), fields[1].c_str());
 		boost::replace_all(json_contents, fields[0], fields[1]);
 	}
 }

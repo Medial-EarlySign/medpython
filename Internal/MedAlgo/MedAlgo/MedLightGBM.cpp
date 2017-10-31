@@ -38,133 +38,133 @@ extern MedLogger global_logger;
 
 namespace LightGBM {
 
-std::function<std::vector<double>(int row_idx)>	RowFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major);
-std::function<std::vector<std::pair<int, double>>(int row_idx)> RowPairFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major);
-//-------------------------------------------------------------------------------------------------
-int MemApp::init(map<string, string>& init_params)
-{
-	unordered_map<string, string> params;
-	for (auto &e : init_params) params[e.first] = e.second;
-	ParameterAlias::KeyAliasTransform(&params);
-	// load configs
-	config_.Set(params);
-	Log::Info("Finished loading parameters");
-	return 0;
-}
+	std::function<std::vector<double>(int row_idx)>	RowFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major);
+	std::function<std::vector<std::pair<int, double>>(int row_idx)> RowPairFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major);
+	//-------------------------------------------------------------------------------------------------
+	int MemApp::init(map<string, string>& init_params)
+	{
+		unordered_map<string, string> params;
+		for (auto &e : init_params) params[e.first] = e.second;
+		ParameterAlias::KeyAliasTransform(&params);
+		// load configs
+		config_.Set(params);
+		Log::Info("Finished loading parameters");
+		return 0;
+	}
 
-//-------------------------------------------------------------------------------------------------
-int MemApp::InitTrainData(float *xdata, float *ydata, float *weight, int nrows, int ncols)
-{
-	MLOG("MedLightGBM:: init train data %d x %d\n", nrows, ncols);
-	if (config_.num_threads > 0) omp_set_num_threads(config_.num_threads);
+	//-------------------------------------------------------------------------------------------------
+	int MemApp::InitTrainData(float *xdata, float *ydata, float *weight, int nrows, int ncols)
+	{
+		MLOG("MedLightGBM:: init train data %d x %d\n", nrows, ncols);
+		if (config_.num_threads > 0) omp_set_num_threads(config_.num_threads);
 
-	std::unique_ptr<Dataset> ret;
-	auto get_row_fun = RowFunctionFromDenseMatric(xdata, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
+		std::unique_ptr<Dataset> ret;
+		auto get_row_fun = RowFunctionFromDenseMatric(xdata, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
 
-	// sample data first
-	Random rand(config_.io_config.data_random_seed);
-	int sample_cnt = static_cast<int>(nrows < config_.io_config.bin_construct_sample_cnt ? nrows : config_.io_config.bin_construct_sample_cnt);
-	auto sample_indices = rand.Sample(nrows, sample_cnt);
-	sample_cnt = static_cast<int>(sample_indices.size());
-	std::vector<std::vector<double>> sample_values(ncols);
-	std::vector<std::vector<int>> sample_idx(ncols);
-	for (size_t i = 0; i < sample_indices.size(); ++i) {
-		auto idx = sample_indices[i];
-		auto row = get_row_fun(static_cast<int>(idx));
-		for (size_t j = 0; j < row.size(); ++j) {
-			if (std::fabs(row[j]) > kEpsilon) {
-				sample_values[j].emplace_back(row[j]);
-				sample_idx[j].emplace_back(static_cast<int>(i));
+		// sample data first
+		Random rand(config_.io_config.data_random_seed);
+		int sample_cnt = static_cast<int>(nrows < config_.io_config.bin_construct_sample_cnt ? nrows : config_.io_config.bin_construct_sample_cnt);
+		auto sample_indices = rand.Sample(nrows, sample_cnt);
+		sample_cnt = static_cast<int>(sample_indices.size());
+		std::vector<std::vector<double>> sample_values(ncols);
+		std::vector<std::vector<int>> sample_idx(ncols);
+		for (size_t i = 0; i < sample_indices.size(); ++i) {
+			auto idx = sample_indices[i];
+			auto row = get_row_fun(static_cast<int>(idx));
+			for (size_t j = 0; j < row.size(); ++j) {
+				if (std::fabs(row[j]) > kEpsilon) {
+					sample_values[j].emplace_back(row[j]);
+					sample_idx[j].emplace_back(static_cast<int>(i));
+				}
 			}
 		}
-	}
-	DatasetLoader loader(config_.io_config, nullptr, 1, nullptr);
-	train_data_.reset(loader.CostructFromSampleData(Common::Vector2Ptr<double>(sample_values).data(),
-		Common::Vector2Ptr<int>(sample_idx).data(),
-		static_cast<int>(sample_values.size()),
-		Common::VectorSize<double>(sample_values).data(),
-		sample_cnt, nrows));
-	
-	OMP_INIT_EX();
+		DatasetLoader loader(config_.io_config, nullptr, 1, nullptr);
+		train_data_.reset(loader.CostructFromSampleData(Common::Vector2Ptr<double>(sample_values).data(),
+			Common::Vector2Ptr<int>(sample_idx).data(),
+			static_cast<int>(sample_values.size()),
+			Common::VectorSize<double>(sample_values).data(),
+			sample_cnt, nrows));
+
+		OMP_INIT_EX();
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < nrows; ++i) {
-		OMP_LOOP_EX_BEGIN();
-		const int tid = omp_get_thread_num();
-		auto one_row = get_row_fun(i);
-		train_data_->PushOneRow(tid, i, one_row);
-		OMP_LOOP_EX_END();
-	}
-	OMP_THROW_EX();
-	train_data_->FinishLoad();
-
-	// load label
-	train_data_->SetFloatField("label", ydata, nrows);
-
-	// load weight
-	if (weight != NULL)
-		train_data_->SetFloatField("weight", weight, nrows);
-
-	// create training metric
-	MLOG("training eval bit %d\n", config_.boosting_config.is_provide_training_metric);
-	if (config_.boosting_config.is_provide_training_metric) {
-		MLOG("Creating training metrics: types %d\n", config_.metric_types.size());
-		for (auto metric_type : config_.metric_types) {
-			auto metric = std::unique_ptr<Metric>(Metric::CreateMetric(metric_type, config_.metric_config));
-			if (metric == nullptr) { continue; }
-			metric->Init(train_data_->metadata(), train_data_->num_data());
-			train_metric_.push_back(std::move(metric));
+		for (int i = 0; i < nrows; ++i) {
+			OMP_LOOP_EX_BEGIN();
+			const int tid = omp_get_thread_num();
+			auto one_row = get_row_fun(i);
+			train_data_->PushOneRow(tid, i, one_row);
+			OMP_LOOP_EX_END();
 		}
+		OMP_THROW_EX();
+		train_data_->FinishLoad();
+
+		// load label
+		train_data_->SetFloatField("label", ydata, nrows);
+
+		// load weight
+		if (weight != NULL)
+			train_data_->SetFloatField("weight", weight, nrows);
+
+		// create training metric
+		MLOG("training eval bit %d\n", config_.boosting_config.is_provide_training_metric);
+		if (config_.boosting_config.is_provide_training_metric) {
+			MLOG("Creating training metrics: types %d\n", config_.metric_types.size());
+			for (auto metric_type : config_.metric_types) {
+				auto metric = std::unique_ptr<Metric>(Metric::CreateMetric(metric_type, config_.metric_config));
+				if (metric == nullptr) { continue; }
+				metric->Init(train_data_->metadata(), train_data_->num_data());
+				train_metric_.push_back(std::move(metric));
+			}
+		}
+		train_metric_.shrink_to_fit();
+
+		MLOG("MedLightGBM:: finished loading train mat\n");
+		return 0;
 	}
-	train_metric_.shrink_to_fit();
 
-	MLOG("MedLightGBM:: finished loading train mat\n");
-	return 0;
-}
+	//-------------------------------------------------------------------------------------------------
+	int MemApp::InitTrain(float *xdata, float *ydata, float *weight, int nrows, int ncols) {
+		if (config_.is_parallel) { Log::Info("parallel mode not supported yet for MedLightGBM !!"); return -1; }
 
-//-------------------------------------------------------------------------------------------------
-int MemApp::InitTrain(float *xdata, float *ydata, float *weight, int nrows, int ncols) {
-	if (config_.is_parallel) { Log::Info("parallel mode not supported yet for MedLightGBM !!"); return -1; }
+		// create boosting
+		boosting_.reset(Boosting::CreateBoosting(config_.boosting_type, config_.io_config.input_model.c_str()));
 
-	// create boosting
-	boosting_.reset( Boosting::CreateBoosting(config_.boosting_type, config_.io_config.input_model.c_str()) );
+		// create objective function
+		objective_fun_.reset(ObjectiveFunction::CreateObjectiveFunction(config_.objective_type, config_.objective_config));
 
-	// create objective function
-	objective_fun_.reset( ObjectiveFunction::CreateObjectiveFunction(config_.objective_type, config_.objective_config) );
+		// load training data
+		InitTrainData(xdata, ydata, weight, nrows, ncols);
 
-	// load training data
-	InitTrainData(xdata, ydata, weight, nrows, ncols);
+		// initialize the objective function
+		objective_fun_->Init(train_data_->metadata(), train_data_->num_data());
 
-	// initialize the objective function
-	objective_fun_->Init(train_data_->metadata(), train_data_->num_data());
+		// initialize the boosting
+		boosting_->Init(&config_.boosting_config, train_data_.get(), objective_fun_.get(), Common::ConstPtrInVectorWrapper<Metric>(train_metric_));
 
-	// initialize the boosting
-	boosting_->Init(&config_.boosting_config, train_data_.get(), objective_fun_.get(), Common::ConstPtrInVectorWrapper<Metric>(train_metric_));
+		// add validation data into boosting ==> Currently not used, as we do not allow loading validation data at this stage in MedLightGBM
+		//for (size_t i = 0; i < valid_datas_.size(); ++i)
+		//	boosting_->AddValidDataset(valid_datas_[i].get(), Common::ConstPtrInVectorWrapper<Metric>(valid_metrics_[i]));
 
-	// add validation data into boosting ==> Currently not used, as we do not allow loading validation data at this stage in MedLightGBM
-	//for (size_t i = 0; i < valid_datas_.size(); ++i)
-	//	boosting_->AddValidDataset(valid_datas_[i].get(), Common::ConstPtrInVectorWrapper<Metric>(valid_metrics_[i]));
-
-	Log::Info("Finished initializing training");
-	return 0;
-}
-
-//-------------------------------------------------------------------------------------------------
-void MemApp::Train() {
-	Log::Info("Started training...");
-	int total_iter = config_.boosting_config.num_iterations;
-	bool is_finished = false;
-	bool need_eval = true;
-	auto start_time = std::chrono::steady_clock::now();
-	Log::Info("total_iter %d is_finished %d need_eval %d\n", total_iter, (int)is_finished, (int)need_eval);
-	for (int iter = 0; iter < total_iter && !is_finished; ++iter) {
-		is_finished = boosting_->TrainOneIter(nullptr, nullptr, need_eval);
-		auto end_time = std::chrono::steady_clock::now();
-		// output used time per iteration
-		if ((((iter+1) % config_.boosting_config.output_freq) == 0) || (iter == total_iter-1))
-			Log::Info("%f seconds elapsed, finished iteration %d", std::chrono::duration<double,std::milli>(end_time - start_time) * 1e-3, iter + 1);
+		Log::Info("Finished initializing training");
+		return 0;
 	}
-	Log::Info("Finished training");
-}
+
+	//-------------------------------------------------------------------------------------------------
+	void MemApp::Train() {
+		Log::Info("Started training...");
+		int total_iter = config_.boosting_config.num_iterations;
+		bool is_finished = false;
+		bool need_eval = true;
+		auto start_time = std::chrono::steady_clock::now();
+		Log::Info("total_iter %d is_finished %d need_eval %d\n", total_iter, (int)is_finished, (int)need_eval);
+		for (int iter = 0; iter < total_iter && !is_finished; ++iter) {
+			is_finished = boosting_->TrainOneIter(nullptr, nullptr, need_eval);
+			auto end_time = std::chrono::steady_clock::now();
+			// output used time per iteration
+			if ((((iter + 1) % config_.boosting_config.output_freq) == 0) || (iter == total_iter - 1))
+				Log::Info("%f seconds elapsed, finished iteration %d", std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1);
+		}
+		Log::Info("Finished training");
+	}
 
 
 //-------------------------------------------------------------------------------------------------
@@ -296,34 +296,44 @@ RowFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_
 // serializations
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-size_t MedLightGBM::get_size() 
-{ 
-	size_t size = MedSerialize::get_size(params);
+size_t MedLightGBM::get_size()
+{
+	size_t size = 0;
+	size += MedSerialize::get_size(params);
 	string str;
 	if (mem_app.serialize_to_string(str) < 0)
 		MERR("MedLightGBM::get_size() failed moving model to string\n");
 	size += MedSerialize::get_size(str);
+
+	size += MedSerialize::get_size(model_features);
+	size += MedSerialize::get_size(features_count);
 	return size;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------
-size_t MedLightGBM::serialize(unsigned char *blob) 
-{ 
-	size_t size = MedSerialize::serialize(blob, params);
+size_t MedLightGBM::serialize(unsigned char *blob)
+{
+	size_t size = 0;
+
+	size += MedSerialize::serialize(blob, params);
 	string str;
 	if (mem_app.serialize_to_string(str) < 0)
 		MERR("MedLightGBM::serialize() failed moving model to string\n");
-	size += MedSerialize::serialize(blob+size, str);
+	size += MedSerialize::serialize(blob + size, str);
+	size += MedSerialize::serialize(blob + size, model_features);
+	size += MedSerialize::serialize(blob + size, features_count);
 	return size;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------
-size_t MedLightGBM::deserialize(unsigned char *blob) 
+size_t MedLightGBM::deserialize(unsigned char *blob)
 {
 	size_t size = MedSerialize::deserialize(blob, params);
 	init_from_string(""); //loading the params as they were saved
 	string str;
-	size += MedSerialize::deserialize(blob+size, str);
+	size += MedSerialize::deserialize(blob + size, str);
 	if (mem_app.deserialize_from_string(str) < 0)
 		MERR("MedLightGBM::deserialize() failed moving model to string\n");
+	size += MedSerialize::deserialize(blob + size, model_features);
+	size += MedSerialize::deserialize(blob + size, features_count);
 	return size;
 }
 

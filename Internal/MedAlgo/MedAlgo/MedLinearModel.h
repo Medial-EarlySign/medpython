@@ -35,7 +35,7 @@ public:
 	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 
-	ADD_SERIALIZATION_FUNCS(model_params, _meanShift, _factor)
+	ADD_SERIALIZATION_FUNCS(model_params, _meanShift, _factor, model_features, features_count)
 
 private:
 	vector<float> _meanShift;

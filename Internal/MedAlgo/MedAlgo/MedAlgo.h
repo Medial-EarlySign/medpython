@@ -92,6 +92,9 @@ public:
 	bool transpose_for_predict;
 	bool normalize_for_predict;
 
+	vector<string> model_features; //the model features used in Learn, to validate when caling predict
+	int features_count;
+
 	// Each wrapped algorithm needs to implement the following:
 	//.........................................................
 	// Init
@@ -163,7 +166,7 @@ public:
 
 	//caliberation for probability using training:
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y,
-		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000, 
+		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000,
 		float min_score_jump = 0.001, float min_prob_jump = 0.005);
 	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range,
 		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs);
@@ -181,8 +184,8 @@ public:
 	size_t predictor_serialize(unsigned char *blob);
 
 	// write/read from file
-	int read_from_file(const string &fname); // read and deserialize model
-	int write_to_file(const string &fname);  // serialize model and write to file
+	//int read_from_file(const string &fname); // read and deserialize model //has default
+	//int write_to_file(const string &fname);  // serialize model and write to file
 
 private:
 	// some needed helpers
@@ -382,7 +385,9 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
 
-	ADD_SERIALIZATION_FUNCS(params, n_ftrs, b, b0);
+	int version() { return  1; }; //increase when changing binary serizlization
+	//version 1: Added version, model_features, features_count to serialization
+	ADD_SERIALIZATION_FUNCS(params, n_ftrs, b, b0, model_features, features_count);
 
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
@@ -466,6 +471,8 @@ public:
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
+	int version() { return  1; }; //increase when changing binary serizlization
+	//version 1: Added model_features, features_count to serialization
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
@@ -911,7 +918,7 @@ public:
 	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	MedSpecificGroupModels *clone();
-	ADD_SERIALIZATION_FUNCS(featNum, feat_ths, predictors)
+	ADD_SERIALIZATION_FUNCS(featNum, feat_ths, predictors, model_features, features_count)
 
 		//	void print(FILE *fp, const string& prefix) ;
 		// Parameters
