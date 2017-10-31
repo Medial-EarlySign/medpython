@@ -563,7 +563,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	moments.resize(stratifiedValues.size());
 	strata_sizes.resize(stratifiedValues.size());
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
-		strata_sizes[i] = stratifiedValues[i].size();
+		strata_sizes[i] = (int)stratifiedValues[i].size();
 		if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
 		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
