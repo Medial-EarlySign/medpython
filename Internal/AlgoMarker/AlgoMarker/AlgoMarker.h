@@ -15,10 +15,15 @@
 // AM_DLL_EXPORT is defined only in the matching .cpp file to handle the dll building
 // apps just include this h file and hence will work in import mode.
 
+
+#ifdef _WIN32
 #if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllimport)
 #else
 #define DLL_WORK_MODE __declspec(dllexport)
+#endif
+#else
+#define DLL_WORK_MODE
 #endif
 
 
