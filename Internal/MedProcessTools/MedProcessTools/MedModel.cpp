@@ -174,7 +174,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		features.clear();
 		features.set_time_unit(samples.time_unit);
-		MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (verbosity > 0) MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
 		if (generate_all_features(rep, &samples, features) < 0) {
 			MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 			return -1;
@@ -194,7 +194,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
-	MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
 		MERR("Predictor failed\n");
@@ -369,7 +369,7 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
-		int npos = curr_line.find("//");
+		int npos = (int)(curr_line.find("//"));
 		if (npos == 0)
 			continue;
 		lines++;
