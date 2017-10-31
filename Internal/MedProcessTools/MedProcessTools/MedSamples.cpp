@@ -276,11 +276,36 @@ int MedSamples::read_from_file(const string &fname)
 	return 0;
 }
 
+//.......................................................................................
 void MedSamples::sort_by_id_date() {
 	MLOG("sorting samples by id, date\n");
 	sort(idSamples.begin(), idSamples.end(), comp_patient_id_time);
 	for (auto& pat : idSamples)
 		sort(pat.samples.begin(), pat.samples.end(), comp_sample_id_time);
+}
+
+//.......................................................................................
+void MedSamples::normalize() {
+	
+	// since order may be random, we need a map to collect by pid
+	map<int, vector<MedSample>> pid_to_samples;
+	map<int, int> pid_to_split;
+	for (auto &ids : idSamples) {
+		pid_to_split[ids.id] = ids.split;
+		for (auto &s : ids.samples)
+			pid_to_samples[s.id].push_back(s);
+	}
+
+	// copy back to idSamples and sort
+	idSamples.clear();
+	for (auto &vs : pid_to_samples) {
+		MedIdSamples ids;
+		ids.id = vs.first;
+		ids.split = pid_to_split[ids.id];
+		ids.samples = vs.second;
+		sort(ids.samples.begin(), ids.samples.end(), comp_sample_id_time);
+		idSamples.push_back(ids);
+	}
 }
 
 //.......................................................................................
@@ -336,11 +361,12 @@ int MedSamples::nSamples()
 }
 
 //.......................................................................................
-int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime) 
+int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 {
 	MedIdSamples sample;
 
 	sample.id = pid;
+	sample.split = -1;
 	MedSample s;
 	s.id = pid;
 	s.time = time;
@@ -349,4 +375,15 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 	sample.samples.push_back(s);
 	idSamples.push_back(sample);
 	return 0;
+}
+
+//.......................................................................................
+void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
+{
+	vec_samples.clear();
+	for (auto &s: idSamples) {
+		for (auto &samp : s.samples) {
+			vec_samples.push_back(samp);
+		}
+	}
 }
