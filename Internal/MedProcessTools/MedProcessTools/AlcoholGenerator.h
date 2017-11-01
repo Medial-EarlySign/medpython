@@ -5,6 +5,8 @@ void generateAlcoholRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSig
 
 class AlcoholGenerator : public FeatureGenerator {
 public:
+	// source_feature_names as specified by the user, will be resolved to decorated names
+	vector<string> raw_feature_names;
 
 	// Constructor/Destructor
 	AlcoholGenerator() : FeatureGenerator() { generator_type = FTR_GEN_ALCOHOL; req_signals.assign(1, "ALCOHOL"); }
