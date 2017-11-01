@@ -18,7 +18,7 @@
 int SerializableObject::read_from_file(const string &fname) {
 	int attempts = 0;
 	unsigned char *blob;
-	size_t final_size;
+	unsigned long long final_size;
 	for (;;) {
 		try {
 			if (read_binary_data_alloc(fname, blob, final_size) < 0) {
