@@ -27,7 +27,7 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 		string field = entry.first;
 		if (field == "alcohol_features")
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
-		if (field == "tags")
+		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for AlcoholGenerator\n", field.c_str());
