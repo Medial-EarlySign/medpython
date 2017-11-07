@@ -11,11 +11,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bootstrap.h" />
+    <ClInclude Include="MedBootstrap.h" />
     <ClInclude Include="MedPerformance.h" />
     <ClInclude Include="MedPerformance_imp.h" />
     <ClInclude Include="MedStat.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="bootstrap.cpp" />
+    <ClCompile Include="MedBootstrap.cpp" />
     <ClCompile Include="MedCleaner.cpp" />
     <ClCompile Include="MedPerformance.cpp" />
     <ClCompile Include="MedStat.cpp" />

@@ -24,6 +24,12 @@
     <ClInclude Include="MedPerformance_imp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bootstrap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedBootstrap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedCleaner.cpp">
@@ -33,6 +39,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedStat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bootstrap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MedBootstrap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
