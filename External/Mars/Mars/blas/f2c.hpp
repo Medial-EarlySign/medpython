@@ -227,8 +227,9 @@ typedef doublereal E_f; /* real function with -R not specified */
 
 #endif
 
-#define min(a,b) ((a) <= (b) ? (a) : (b))
-#define max(a,b) ((a) >= (b) ? (a) : (b))
 #include "../blas.hpp"
 
 #endif
+
+#define min(a,b) ((a) <= (b) ? (a) : (b))
+#define max(a,b) ((a) >= (b) ? (a) : (b))
