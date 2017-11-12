@@ -16,7 +16,7 @@ map<string, float> calc_npos_nneg(const vector<float> &preds, const vector<float
 map<string, float> calc_only_auc(const vector<float> &preds, const vector<float> &y, void *function_params);
 map<string, float> calc_roc_measures(const vector<float> &preds, const vector<float> &y, void *function_params); //SENS, SPEC, SCORE. no ppv, no PR
 map<string, float> calc_roc_measures_full(const vector<float> &preds, const vector<float> &y, void *function_params); //with PPV and PR
-map<string, float> calc_roc_measures_full_fraction(const vector<float> &preds, const vector<float> &y_prob, void *function_params);
+map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const vector<float> &y, void *function_params); //with PPV and PR
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -29,9 +29,9 @@ public:
 	//outcome_labels - sorted:
 	vector<float> sorted_outcome_labels;
 	//male:
-	vector<vector<int>> male_labels_count_per_age; //for each age_bin, histogram of outcome labels
+	vector<vector<double>> male_labels_count_per_age; //for each age_bin, histogram of outcome labels
 												   //female:
-	vector<vector<int>> female_labels_count_per_age; //for each age_bin, histogram of outcome labels
+	vector<vector<double>> female_labels_count_per_age; //for each age_bin, histogram of outcome labels
 };
 
 //Parameter object for calc_roc_measures fucntions:
@@ -48,7 +48,6 @@ public:
 		use_score_working_points = false;
 		working_point_FPR = { (float)0.1, 1, 5, 10,20,30,40,50,55,60,65,70,75,80,85,90,95 };
 	}
-private:
 	Incident_Stats cohort_inc_stats; //the cohort inc stats
 };
 
