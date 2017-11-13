@@ -21,6 +21,12 @@
     <ClInclude Include="AlgoMarkerInternal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AMAPISuggestion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgoMarkerErr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AlgoMarker.cpp">
@@ -29,5 +35,10 @@
     <ClCompile Include="AlgoMarkerInternal.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="AlgoMarkerConfig.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>
