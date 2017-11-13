@@ -901,10 +901,514 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 	return res;
 }
 
-//TODO: add function that uses inc. stats to fix the values of PPV, PR
+class compare_pair
+{
+	bool reverse;
+public:
+	compare_pair(const bool& revparam = true)
+	{
+		reverse = revparam;
+	}
+	bool operator() (const pair<int, int>& lhs, const pair<int, int>&rhs) const
+	{
+		if (reverse) return (lhs.first > rhs.first);
+		else return (lhs.first < rhs.first);
+	}
+};
+
+void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
+	const pair<int, int> *index_to_merge, int min_size) {
+	pair<int, int> *merge_into = NULL;
+	int to_merge_size = ind_to_size[index_to_merge->first - 1];
+	//remove index_to_merge.first - 1:
+	for (size_t j = 0; j < size_to_ind[to_merge_size].size(); ++j)
+		if (size_to_ind[to_merge_size][j].second <= index_to_merge->first - 1 &&
+			size_to_ind[to_merge_size][j].first >= index_to_merge->first - 1) {
+			merge_into = &size_to_ind[to_merge_size][j];
+			size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
+			break;
+		}
+	if (merge_into == NULL)
+		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
+
+	int new_size = min_size + to_merge_size;
+	sizes.insert(new_size);
+	//insert new union
+	size_to_ind[new_size].push_back(pair<int, int>(merge_into->first, index_to_merge->second));
+	//update in min,max:
+	ind_to_size[merge_into->first] = new_size;
+	ind_to_size[index_to_merge->second] = new_size;
+}
+void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
+	const pair<int, int> *index_to_merge, int min_size) {
+	//merge with +1
+	pair<int, int> *merge_into = NULL;
+	int to_merge_size = ind_to_size[index_to_merge->second + 1];
+	//remove index_to_merge.second + 1:
+	for (size_t j = 0; j < size_to_ind[to_merge_size].size(); ++j)
+		if (size_to_ind[to_merge_size][j].second <= index_to_merge->second + 1 &&
+			size_to_ind[to_merge_size][j].first >= index_to_merge->second + 1) {
+			merge_into = &size_to_ind[to_merge_size][j];
+			size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
+			break;
+		}
+	if (merge_into == NULL)
+		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
+
+	int new_size = min_size + to_merge_size;
+	sizes.insert(new_size);
+	//insert new union set:
+	size_to_ind[new_size].push_back(pair<int, int>(index_to_merge->first, merge_into->second));
+	//update in min,max:
+	ind_to_size[index_to_merge->first] = new_size;
+	ind_to_size[merge_into->second] = new_size;
+}
+
 map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const vector<float> &y, void *function_params) {
 	map<string, float> res;
-	//TODO: implement
+	int max_qunt_vals = 10;
+	bool censor_removed = true;
+
+	ROC_Params params;
+	if (function_params != NULL)
+		params = *(ROC_Params *)function_params;
+	float max_diff_in_wp = params.max_diff_working_point;
+	int scores_bin = params.score_bins;
+
+	vector<float> fpr_points = params.working_point_FPR;
+	sort(fpr_points.begin(), fpr_points.end());
+	for (size_t i = 0; i < fpr_points.size(); ++i)
+		fpr_points[i] /= 100.0;
+	vector<float> sens_points = params.working_point_SENS; //Working FR points:
+	sort(sens_points.begin(), sens_points.end());
+	for (size_t i = 0; i < sens_points.size(); ++i)
+		sens_points[i] /= 100.0;
+	vector<float> pr_points = params.working_point_PR; //Working FR points:
+	sort(pr_points.begin(), pr_points.end());
+	for (size_t i = 0; i < pr_points.size(); ++i)
+		pr_points[i] /= 100.0;
+
+	unordered_map<float, vector<int>> thresholds_indexes;
+	vector<float> unique_scores;
+	for (size_t i = 0; i < preds.size(); ++i) {
+		if (thresholds_indexes.find(preds[i]) == thresholds_indexes.end())
+			unique_scores.push_back(preds[i]);
+		thresholds_indexes[preds[i]].push_back((int)i);
+	}
+	sort(unique_scores.begin(), unique_scores.end());
+
+	bool clear_mem = false;
+	if (scores_bin > 0 && unique_scores.size() > scores_bin) {
+		clear_mem = true;
+		int bin_size_last = (int)unique_scores.size();
+		int c = 0;
+		vector<vector<pair<int, int>>> size_to_ind(preds.size()); //size, group, index_min_max
+		vector<int> ind_to_size(bin_size_last);
+		set<int> sizes;
+		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
+		{
+			size_to_ind[(int)it->second.size()].push_back(pair<int, int>(c, c));
+			ind_to_size[c] = (int)it->second.size();
+			++c;
+			sizes.insert((int)it->second.size());
+		}
+
+		while (bin_size_last > scores_bin) {
+			int min_size = *sizes.begin();
+			pair<int, int> *index_to_merge = &size_to_ind[min_size].back();
+			size_to_ind[min_size].pop_back();
+			if (size_to_ind[min_size].empty()) //erase if left empty after merge
+				sizes.erase(sizes.begin());
+			pair<int, int> *merge_into = NULL;
+			//merge index_to_merge with index_to_merge+-1. and update size_to_ind, ind_to_size, sizes
+			if (index_to_merge->second == unique_scores.size() - 1)
+				merge_down(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+			else if (index_to_merge->first == 0)
+				merge_up(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+			else {
+				if (ind_to_size[index_to_merge->second + 1] < ind_to_size[index_to_merge->first - 1])
+					merge_up(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+				else
+					merge_down(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+			}
+
+			--bin_size_last;
+		}
+
+		//update thresholds_indexes based on: size_to_ind groups -
+		//merge all indexes in each group to first index in thresholds_indexes. "mean" other scores to unique_scores
+
+		unordered_map<float, vector<int>> *new_thresholds = new unordered_map<float, vector<int>>;
+		for (auto it = sizes.begin(); it != sizes.end(); ++it)
+		{
+			for (size_t k = 0; k < size_to_ind[*it].size(); ++k)
+			{ //merge from first => second
+				pair<int, int> *merge = &size_to_ind[*it][k];
+				double mean_score = 0, tot_cnt = 0;
+				vector<int> *merged_inds = new vector<int>;
+				for (int ii = merge->first; ii <= merge->second; ++ii) {
+					mean_score += unique_scores[ii] * thresholds_indexes[unique_scores[ii]].size();
+					tot_cnt += thresholds_indexes[unique_scores[ii]].size();
+					merged_inds->insert(merged_inds->end(),
+						thresholds_indexes[unique_scores[ii]].begin(), thresholds_indexes[unique_scores[ii]].end());
+				}
+				mean_score /= tot_cnt;
+				(*new_thresholds)[(float)mean_score] = move(*merged_inds);
+			}
+		}
+
+		thresholds_indexes = move(*new_thresholds);
+		unique_scores.clear();
+		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
+			unique_scores.push_back(it->first);
+		sort(unique_scores.begin(), unique_scores.end());
+	}
+
+	//calc measures on each bucket of scores as possible threshold:
+	double t_sum = 0, f_sum = 0;
+	int f_cnt = 0;
+	int t_cnt = 0;
+	vector<float> true_rate((int)unique_scores.size());
+	vector<float> false_rate((int)unique_scores.size());
+	int st_size = (int)unique_scores.size() - 1;
+	for (int i = st_size; i >= 0; --i)
+	{
+		vector<int> indexes = thresholds_indexes[unique_scores[i]];
+		for (int ind : indexes)
+		{
+			float true_label = y[ind];
+			t_sum += true_label;
+			if (!censor_removed)
+				f_sum += (1 - true_label);
+			else
+				f_sum += int(true_label <= 0);
+			f_cnt += int(true_label <= 0);
+			t_cnt += int(true_label > 0);
+		}
+		true_rate[st_size - i] = float(t_sum);
+		false_rate[st_size - i] = float(f_sum);
+	}
+
+	if (f_cnt == 0 || t_sum <= 0)
+		throw invalid_argument("no falses or no positives exists in cohort");
+	for (size_t i = 0; i < true_rate.size(); ++i) {
+		true_rate[i] /= float(t_sum);
+		false_rate[i] /= float(f_sum);
+	}
+	//calc maesures based on true_rate and false_rate
+	double auc = false_rate[0] * true_rate[0] / 2; //"auc" on expectitions:
+	for (size_t i = 1; i < true_rate.size(); ++i)
+		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
+
+	bool use_wp = unique_scores.size() > max_qunt_vals || params.use_score_working_points; //change all working points
+	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
+	int i = 0;
+	vector<float> wp_fpr_spec, wp_fpr_sens, wp_fpr_score, wp_fpr_ppv, wp_fpr_pr;
+	vector<float> wp_sens_spec, wp_sens_score, wp_sens_ppv, wp_sens_pr, wp_sens_fpr;
+	vector<float> wp_pr_spec, wp_pr_sens, wp_pr_score, wp_pr_ppv, wp_pr_fpr;
+
+	if (use_wp) {
+		wp_fpr_spec.resize((int)fpr_points.size());
+		wp_fpr_sens.resize((int)fpr_points.size());
+		wp_fpr_score.resize((int)fpr_points.size());
+		wp_fpr_ppv.resize((int)fpr_points.size());
+		wp_fpr_pr.resize((int)fpr_points.size());
+		while (curr_wp_fpr_ind < fpr_points.size() && false_rate[i] > fpr_points[curr_wp_fpr_ind])
+		{
+			wp_fpr_score[curr_wp_fpr_ind] = -65336;
+			wp_fpr_spec[curr_wp_fpr_ind] = -65336;
+			wp_fpr_sens[curr_wp_fpr_ind] = -65336;
+			wp_fpr_ppv[curr_wp_fpr_ind] = -65336;
+			wp_fpr_pr[curr_wp_fpr_ind] = -65336;
+			++curr_wp_fpr_ind;
+		}
+
+		wp_sens_score.resize((int)sens_points.size());
+		wp_sens_spec.resize((int)sens_points.size());
+		wp_sens_fpr.resize((int)sens_points.size());
+		wp_sens_ppv.resize((int)sens_points.size());
+		wp_sens_pr.resize((int)sens_points.size());
+		while (curr_wp_sens_ind < sens_points.size() && true_rate[i] > sens_points[curr_wp_sens_ind])
+		{
+			wp_sens_score[curr_wp_sens_ind] = -65336;
+			wp_sens_spec[curr_wp_sens_ind] = -65336;
+			wp_sens_fpr[curr_wp_sens_ind] = -65336;
+			wp_sens_ppv[curr_wp_sens_ind] = -65336;
+			wp_sens_pr[curr_wp_sens_ind] = -65336;
+			++curr_wp_sens_ind;
+		}
+
+		wp_pr_score.resize((int)pr_points.size());
+		wp_pr_spec.resize((int)pr_points.size());
+		wp_pr_fpr.resize((int)pr_points.size());
+		wp_pr_ppv.resize((int)pr_points.size());
+		wp_pr_sens.resize((int)pr_points.size());
+		while (curr_wp_pr_ind < pr_points.size() && true_rate[i] > pr_points[curr_wp_pr_ind])
+		{
+			wp_pr_score[curr_wp_pr_ind] = -65336;
+			wp_pr_spec[curr_wp_pr_ind] = -65336;
+			wp_pr_fpr[curr_wp_pr_ind] = -65336;
+			wp_pr_ppv[curr_wp_pr_ind] = -65336;
+			wp_pr_sens[curr_wp_pr_ind] = -65336;
+			++curr_wp_pr_ind;
+		}
+
+		//fpr points:
+		i = 1;
+		while (i < true_rate.size() && curr_wp_fpr_ind < fpr_points.size())
+		{
+			if (curr_wp_fpr_ind < fpr_points.size() &&
+				false_rate[i] >= fpr_points[curr_wp_fpr_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
+
+				float prev_diff = fpr_points[curr_wp_fpr_ind] - false_rate[i - 1];
+				float curr_diff = false_rate[i] - fpr_points[curr_wp_fpr_ind];
+				float tot_diff = prev_diff + curr_diff;
+				if (tot_diff <= 0) {
+					curr_diff = 1;
+					tot_diff = 1; //take prev - first apeareance
+				}
+				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
+					wp_fpr_score[curr_wp_fpr_ind] = -65336;
+					wp_fpr_sens[curr_wp_fpr_ind] = -65336;
+					wp_fpr_spec[curr_wp_fpr_ind] = -65336;
+					wp_fpr_pr[curr_wp_fpr_ind] = -65336;
+					wp_fpr_ppv[curr_wp_fpr_ind] = -65336;
+#ifdef  WARN_SKIP_WP
+					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
+						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
+						pred_threshold[st_size - (i - 1)], pred_threshold[st_size - i]);
+#endif
+					++curr_wp_fpr_ind;
+					continue; //skip working point - diff is too big
+				}
+				wp_fpr_score[curr_wp_fpr_ind] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
+					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
+				wp_fpr_sens[curr_wp_fpr_ind] = true_rate[i] * (prev_diff / tot_diff) +
+					true_rate[i - 1] * (curr_diff / tot_diff);
+				wp_fpr_spec[curr_wp_fpr_ind] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
+					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
+				float ppv_c = float((true_rate[i] * t_sum) /
+					((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+				float ppv_prev = float((true_rate[i - 1] * t_sum) /
+					((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+				if (params.incidence_fix > 0) {
+					ppv_c = float(params.incidence_fix*(true_rate[i] * t_sum) /
+						(params.incidence_fix*(true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+					ppv_prev = float(params.incidence_fix*(true_rate[i - 1] * t_sum) /
+						(params.incidence_fix*(true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+				}
+				wp_fpr_ppv[curr_wp_fpr_ind] = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				float pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+					(t_sum + f_sum));
+				float pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+					(t_sum + f_sum));
+				if (params.incidence_fix > 0) {
+					pr_c = float((params.incidence_fix*(true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+						(params.incidence_fix*t_sum + f_sum));
+					pr_prev = float((params.incidence_fix*(true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+						(params.incidence_fix*t_sum + f_sum));
+				}
+				wp_fpr_pr[curr_wp_fpr_ind] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
+
+				++curr_wp_fpr_ind;
+				continue;
+			}
+			++i;
+		}
+
+		//handle sens points:
+		i = 1; //first point is always before
+		while (i < true_rate.size() && curr_wp_sens_ind < sens_points.size())
+		{
+			if (curr_wp_sens_ind < sens_points.size() &&
+				true_rate[i] >= sens_points[curr_wp_sens_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
+
+				float prev_diff = sens_points[curr_wp_sens_ind] - true_rate[i - 1];
+				float curr_diff = true_rate[i] - sens_points[curr_wp_sens_ind];
+				float tot_diff = prev_diff + curr_diff;
+				if (tot_diff <= 0) {
+					curr_diff = 1;
+					tot_diff = 1; //take prev - first apeareance
+				}
+				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
+					wp_sens_score[curr_wp_sens_ind] = -65336;
+					wp_sens_spec[curr_wp_sens_ind] = -65336;
+					wp_sens_fpr[curr_wp_sens_ind] = -65336;
+					wp_sens_ppv[curr_wp_sens_ind] = -65336;
+					wp_sens_pr[curr_wp_sens_ind] = -65336;
+#ifdef  WARN_SKIP_WP
+					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
+						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
+						pred_threshold[st_size - (i - 1)], pred_threshold[st_size - i]);
+#endif
+					++curr_wp_sens_ind;
+					continue; //skip working point - diff is too big
+				}
+				wp_sens_score[curr_wp_sens_ind] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
+					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
+				wp_sens_fpr[curr_wp_sens_ind] = false_rate[i] * (prev_diff / tot_diff) +
+					false_rate[i - 1] * (curr_diff / tot_diff);
+				wp_sens_spec[curr_wp_sens_ind] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
+					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
+				float ppv_c = float((true_rate[i] * t_sum) /
+					((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+				float ppv_prev = float((true_rate[i - 1] * t_sum) /
+					((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+				if (params.incidence_fix > 0) {
+					ppv_c = float(params.incidence_fix*(true_rate[i] * t_sum) /
+						(params.incidence_fix*(true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+					ppv_prev = float(params.incidence_fix*(true_rate[i - 1] * t_sum) /
+						(params.incidence_fix*(true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+				}
+				wp_sens_ppv[curr_wp_sens_ind] = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				float pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+					(t_sum + f_sum));
+				float pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+					(t_sum + f_sum));
+				if (params.incidence_fix > 0) {
+					pr_c = float((params.incidence_fix*(true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+						(params.incidence_fix*t_sum + f_sum));
+					pr_prev = float((params.incidence_fix*(true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+						(params.incidence_fix*t_sum + f_sum));
+				}
+				wp_sens_pr[curr_wp_sens_ind] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
+
+				++curr_wp_sens_ind;
+				continue;
+			}
+			++i;
+		}
+
+		//handle pr points:
+		i = 1; //first point is always before
+		while (i < true_rate.size() && curr_wp_pr_ind < pr_points.size())
+		{
+			float pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+				(t_sum + f_sum));
+			if (curr_wp_pr_ind < pr_points.size() && pr_c >= pr_points[curr_wp_pr_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
+				float pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+					(t_sum + f_sum));
+
+				float prev_diff = pr_points[curr_wp_pr_ind] - pr_prev;
+				float curr_diff = pr_c - pr_points[curr_wp_pr_ind];
+				float tot_diff = prev_diff + curr_diff;
+				if (tot_diff <= 0) {
+					curr_diff = 1;
+					tot_diff = 1; //take prev - first apeareance
+				}
+				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
+					wp_pr_score[curr_wp_pr_ind] = -65336;
+					wp_pr_fpr[curr_wp_pr_ind] = -65336;
+					wp_pr_spec[curr_wp_pr_ind] = -65336;
+					wp_pr_ppv[curr_wp_pr_ind] = -65336;
+					wp_pr_sens[curr_wp_pr_ind] = -65336;
+#ifdef  WARN_SKIP_WP
+					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
+						pr_points[curr_wp_pr_ind], pr_prev, pr_c,
+						pred_threshold[st_size - (i - 1)], pred_threshold[st_size - i]);
+#endif //  WARN_SKIP_WP
+					++curr_wp_pr_ind;
+					continue; //skip working point - diff is too big
+			}
+				wp_pr_score[curr_wp_pr_ind] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
+					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
+				wp_pr_fpr[curr_wp_pr_ind] = false_rate[i] * (prev_diff / tot_diff) +
+					false_rate[i - 1] * (curr_diff / tot_diff);
+				wp_pr_spec[curr_wp_pr_ind] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
+					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
+				float ppv_c = float((true_rate[i] * t_sum) /
+					((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+				float ppv_prev = float((true_rate[i - 1] * t_sum) /
+					((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+				if (params.incidence_fix > 0) {
+					ppv_c = float(params.incidence_fix*(true_rate[i] * t_sum) /
+						(params.incidence_fix*(true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+					ppv_prev = float(params.incidence_fix*(true_rate[i - 1] * t_sum) /
+						(params.incidence_fix*(true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+				}
+				wp_pr_ppv[curr_wp_pr_ind] = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				wp_pr_sens[curr_wp_pr_ind] = true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff);
+
+				++curr_wp_pr_ind;
+				continue;
+		}
+			++i;
+	}
+
+}
+	else {
+		wp_fpr_spec.resize((int)true_rate.size());
+		wp_fpr_sens.resize((int)true_rate.size());
+		wp_fpr_score.resize((int)true_rate.size());
+		wp_fpr_ppv.resize((int)true_rate.size());
+		wp_fpr_pr.resize((int)true_rate.size());
+		for (i = 0; i < true_rate.size(); ++i)
+		{
+			wp_fpr_score[i] = unique_scores[st_size - i];
+			wp_fpr_sens[i] = true_rate[i];
+			wp_fpr_spec[i] = (1 - false_rate[i]);
+			wp_fpr_ppv[i] = float((true_rate[i] * t_sum) /
+				((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+			if (params.incidence_fix > 0) {
+				wp_fpr_ppv[i] = float(params.incidence_fix*(true_rate[i] * t_sum) /
+					(params.incidence_fix*(true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+			}
+			wp_fpr_pr[i] = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+				(t_sum + f_sum));
+			if (params.incidence_fix > 0) {
+				wp_fpr_pr[i] = float((params.incidence_fix*(true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+					(params.incidence_fix*t_sum + f_sum));
+			}
+		}
+	}
+
+
+	res["AUC"] = float(auc);
+	if (use_wp) {
+		for (size_t k = 0; k < fpr_points.size(); ++k)
+		{
+			res["SPEC@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_spec[k];
+			res["SENS@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_sens[k];
+			res["SCORE@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_score[k];
+			res["PPV@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_ppv[k];
+			res["PR@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_pr[k];
+		}
+		for (size_t k = 0; k < sens_points.size(); ++k)
+		{
+			res["SPEC@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_spec[k];
+			res["FPR@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_fpr[k];
+			res["SCORE@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_score[k];
+			res["PPV@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_ppv[k];
+			res["PR@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_pr[k];
+		}
+		for (size_t k = 0; k < pr_points.size(); ++k)
+		{
+			res["SPEC@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_spec[k];
+			res["SENS@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_sens[k];
+			res["SCORE@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_score[k];
+			res["PPV@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_ppv[k];
+			res["FPR@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_fpr[k];
+		}
+	}
+	else
+		for (size_t k = 0; k < unique_scores.size(); ++k)
+		{
+			res["SPEC@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_spec[k];
+			res["SENS@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_sens[k];
+			res["PPV@SCORE_" + print_obj(wp_fpr_score[k], "%05.3f")] = wp_fpr_ppv[k];
+			res["PR@SCORE_" + print_obj(wp_fpr_score[k], "%05.3f")] = wp_fpr_pr[k];
+		}
+
+	res["NEG_SUM"] = float(f_sum);
+	res["POS_SUM"] = float(t_sum);
+	res["POS_CNT"] = float(t_cnt);
+	res["NEG_CNT"] = float(f_cnt);
+
+	if (clear_mem) {
+		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
+			delete &it->second;
+		delete &thresholds_indexes;
+	}
 
 	return res;
 }
@@ -1006,35 +1510,49 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 		}
 	}
 
-	params->cohort_inc_stats.age_bin_years = params->inc_stats.age_bin_years;
-	params->cohort_inc_stats.max_age = params->inc_stats.max_age;
-	params->cohort_inc_stats.min_age = params->inc_stats.min_age;
-	params->cohort_inc_stats.sorted_outcome_labels = params->inc_stats.sorted_outcome_labels;
-	params->cohort_inc_stats.male_labels_count_per_age.resize(bin_counts);
-	params->cohort_inc_stats.female_labels_count_per_age.resize(bin_counts);
+	//params->cohort_inc_stats.age_bin_years = params->inc_stats.age_bin_years;
+	//params->cohort_inc_stats.max_age = params->inc_stats.max_age;
+	//params->cohort_inc_stats.min_age = params->inc_stats.min_age;
+	//params->cohort_inc_stats.sorted_outcome_labels = params->inc_stats.sorted_outcome_labels;
+	Incident_Stats cohort_inc_stats;
+	cohort_inc_stats.male_labels_count_per_age.resize(bin_counts);
+	cohort_inc_stats.female_labels_count_per_age.resize(bin_counts);
 	//recalc new ratio of 1/0 and fix stats
 	for (size_t i = 0; i < bin_counts; ++i)
 	{
 		if (i == 0) {
-			params->cohort_inc_stats.male_labels_count_per_age[i].resize(2);
-			params->cohort_inc_stats.female_labels_count_per_age[i].resize(2);
+			cohort_inc_stats.male_labels_count_per_age[i].resize(2);
+			cohort_inc_stats.female_labels_count_per_age[i].resize(2);
 		}
 		if (male_counts[i][0] > 0)
-			params->cohort_inc_stats.male_labels_count_per_age[i][1] =
+			cohort_inc_stats.male_labels_count_per_age[i][1] =
 			(male_counts[i][1] / male_counts[i][0]) * params->inc_stats.male_labels_count_per_age[i][1];
 		else {
-			MWARN("Warning:: has too litle controls\n");
-			params->cohort_inc_stats.male_labels_count_per_age[i][1] = params->inc_stats.male_labels_count_per_age[i][1];
+			MWARN("Warning:: has too little controls\n");
+			cohort_inc_stats.male_labels_count_per_age[i][1] = params->inc_stats.male_labels_count_per_age[i][1];
 		}
 
 		if (female_counts[i][0] > 0)
-			params->cohort_inc_stats.female_labels_count_per_age[i][1] =
+			cohort_inc_stats.female_labels_count_per_age[i][1] =
 			(female_counts[i][1] / female_counts[i][0]) * params->inc_stats.female_labels_count_per_age[i][1];
 		else {
 			MWARN("Warning:: has too litle controls\n");
-			params->cohort_inc_stats.female_labels_count_per_age[i][1] = params->inc_stats.female_labels_count_per_age[i][1];
+			cohort_inc_stats.female_labels_count_per_age[i][1] = params->inc_stats.female_labels_count_per_age[i][1];
 		}
 	}
 
+	//calc mean fix:
+	params->incidence_fix = 0;
+	double controls_count = 0;
+	for (size_t i = 0; i < bin_counts; ++i)
+	{
+		params->incidence_fix += cohort_inc_stats.male_labels_count_per_age[i][1];
+		params->incidence_fix += cohort_inc_stats.female_labels_count_per_age[i][1];
+
+		controls_count += cohort_inc_stats.male_labels_count_per_age[i][0];
+		controls_count += cohort_inc_stats.female_labels_count_per_age[i][0];
+	}
+
+	params->incidence_fix /= controls_count;
 }
 #pragma endregion

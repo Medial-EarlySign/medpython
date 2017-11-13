@@ -1,5 +1,6 @@
 #include <unordered_set>
 #include "MedBootstrap.h"
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 #include "Logger/Logger/Logger.h"
 
 #define LOCAL_SECTION LOG_APP
@@ -11,7 +12,7 @@ map<string, map<string, float>> booststrap_base(const vector<float> &preds, cons
 	const ROC_Params &roc_params, float sample_ratio, int sample_per_pid, int loopCnt) {
 
 	map<string, FilterCohortFunc> cohorts;
-	vector<MeasurementFunctions> measures = { calc_npos_nneg, calc_roc_measures_full };
+	vector<MeasurementFunctions> measures = { calc_npos_nneg, calc_roc_measures_with_inc };
 	map<string, void *> cohort_params;
 	vector<void *> measurements_params = { NULL, (void *)&roc_params };
 
@@ -93,6 +94,36 @@ map<string, map<string, float>> booststrap(MedFeatures &features,
 
 	return booststrap_base(preds, y, pids, data, filter_cohort, roc_params, sample_ratio,
 		sample_per_pid, loopCnt);
+}
+
+map<string, map<string, float>> booststrap(MedSamples &samples, const string &rep_path,
+	const map<string, vector<Filter_Param>> &filter_cohort,
+	const ROC_Params &roc_params, float sample_ratio, int sample_per_pid,
+	int loopCnt) {
+	MedModel mdl;
+	mdl.add_age();
+	mdl.add_gender();
+	vector<int> pids_to_take;
+	samples.get_ids(pids_to_take);
+
+	unordered_set<string> req_names;
+	mdl.get_required_signal_names(req_names);
+	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	for (string s : req_names)
+		sigs.push_back(s);
+	sort(sigs.begin(), sigs.end());
+	auto it = unique(sigs.begin(), sigs.end());
+	sigs.resize(std::distance(sigs.begin(), it));
+
+	MedPidRepository rep;
+	if (rep.read_all(rep_path, pids_to_take, sigs) < 0)
+		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_path.c_str());
+
+	if (mdl.apply(rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
+		MTHROW_AND_ERR("Error creating age,gender for samples\n");
+
+	return booststrap(mdl.features, filter_cohort, roc_params,
+		sample_ratio, sample_per_pid, loopCnt);
 }
 
 void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples) {

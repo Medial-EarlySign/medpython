@@ -21,6 +21,11 @@ map<string, map<string, float>> booststrap(MedFeatures &features,
 	const ROC_Params &roc_params, float sample_ratio = (float)0.7, int sample_per_pid = 1,
 	int loopCnt = 500);
 
+map<string, map<string, float>> booststrap(MedSamples &samples, const string &rep_path,
+	const map<string, vector<Filter_Param>> &filter_cohort,
+	const ROC_Params &roc_params, float sample_ratio = (float)0.7, int sample_per_pid = 1,
+	int loopCnt = 500);
+
 void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples);
 void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features);
 void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedFeatures &features);
