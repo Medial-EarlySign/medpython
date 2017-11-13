@@ -97,11 +97,20 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	int cohort_size = int(sample_ratio * pid_to_inds.size());
 	int cnt_i = 0;
 	vector<int> ind_to_pid((int)pid_to_inds.size());
+
+	int min_pid_start = INT_MAX;
+	int max_pid_start = 0;
 	for (auto it = pid_to_inds.begin(); it != pid_to_inds.end(); ++it)
 	{
 		ind_to_pid[cnt_i] = it->first;
 		++cnt_i;
+		if (it->first < min_pid_start)
+			min_pid_start = it->first;
+		if (it->first > max_pid_start)
+			max_pid_start = it->first;
 	}
+	int rep_pid_size = max_pid_start - min_pid_start;
+
 	//choose pids:
 	uniform_int_distribution<> rand_pids(0, (int)pid_to_inds.size() - 1);
 	if (sample_per_pid > 0) {
@@ -109,15 +118,20 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		for (int i = 0; i < loopCnt; ++i)
 		{
 			int curr_ind = 0;
-			unordered_set<int> selected_ind_pid;
 			vector<int> selected_inds(cohort_size * sample_per_pid);
+			vector<bool> selected_ind_pid((int)pid_to_inds.size());
 
 			for (size_t k = 0; k < cohort_size; ++k)
 			{
-				int ind_pid = rand_pids(rd_gen);
-				while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
+				int ind_pid;
+				if (sample_ratio < 1) {
 					ind_pid = rand_pids(rd_gen);
-				selected_ind_pid.insert(ind_pid);
+					while (selected_ind_pid[ind_pid - min_pid_start])
+						ind_pid = rand_pids(rd_gen);
+					selected_ind_pid[ind_pid - min_pid_start] = true;
+				}
+				else
+					ind_pid = (int)k;
 
 				vector<int> inds = pid_to_inds[ind_to_pid[ind_pid]];
 				uniform_int_distribution<> random_num(0, (int)inds.size() - 1);
@@ -129,7 +143,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			}
 
 			//now calculate measures on cohort of selected indexes for preds, y:
-			vector<float> selected_preds((int)selected_inds.size()), selected_y((int)selected_inds.size());
+			vector<float> selected_preds(cohort_size * sample_per_pid), selected_y(cohort_size * sample_per_pid);
 			for (size_t k = 0; k < selected_inds.size(); ++k)
 			{
 				selected_preds[k] = preds[selected_inds[k]];
@@ -153,14 +167,14 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp parallel for schedule(dynamic,1)
 		for (int i = 0; i < loopCnt; ++i)
 		{
-			unordered_set<int> selected_ind_pid;
+			vector<bool> selected_ind_pid;
 			vector<int> selected_pids(cohort_size);
 			for (size_t k = 0; k < cohort_size; ++k)
 			{
 				int ind_pid = rand_pids(rd_gen);
-				while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
+				while (selected_ind_pid[ind_pid - min_pid_start])
 					ind_pid = rand_pids(rd_gen);
-				selected_ind_pid.insert(ind_pid);
+				selected_ind_pid[ind_pid - min_pid_start] = true;
 				selected_pids[k] = ind_to_pid[ind_pid];
 			}
 
@@ -1309,7 +1323,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 #endif //  WARN_SKIP_WP
 					++curr_wp_pr_ind;
 					continue; //skip working point - diff is too big
-			}
+				}
 				wp_pr_score[curr_wp_pr_ind] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				wp_pr_fpr[curr_wp_pr_ind] = false_rate[i] * (prev_diff / tot_diff) +
@@ -1331,11 +1345,11 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 				++curr_wp_pr_ind;
 				continue;
-		}
+			}
 			++i;
-	}
+		}
 
-}
+	}
 	else {
 		wp_fpr_spec.resize((int)true_rate.size());
 		wp_fpr_sens.resize((int)true_rate.size());
