@@ -2,6 +2,7 @@
 #define __BOOTSTRAP_ANALYSIS_H__
 
 #include "MedUtils/MedUtils/MedUtils.h"
+#include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include <vector>
 #include <string>
 #include <map>
@@ -21,7 +22,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 #pragma endregion
 
 //The Incident Object:
-class Incident_Stats {
+class Incident_Stats : public SerializableObject {
 public:
 	//age bin config:
 	int age_bin_years;
@@ -30,12 +31,15 @@ public:
 	vector<float> sorted_outcome_labels;
 	//male:
 	vector<vector<double>> male_labels_count_per_age; //for each age_bin, histogram of outcome labels
-												   //female:
+	//female:
 	vector<vector<double>> female_labels_count_per_age; //for each age_bin, histogram of outcome labels
+
+	ADD_SERIALIZATION_FUNCS(age_bin_years, min_age, max_age, sorted_outcome_labels, 
+		male_labels_count_per_age, female_labels_count_per_age)
 };
 
 //Parameter object for calc_roc_measures fucntions:
-class ROC_Params {
+class ROC_Params : public SerializableObject {
 public:
 	vector<float> working_point_FPR;
 	vector<float> working_point_SENS;
@@ -52,7 +56,9 @@ public:
 		incidence_fix = 0;
 	}
 	double incidence_fix;
-	//Incident_Stats cohort_inc_stats; //the cohort inc stats
+	
+	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
+		max_diff_working_point, score_bins, inc_stats)
 };
 
 #pragma region Cohort Fucntions
@@ -61,10 +67,12 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 #pragma endregion
 
 //Parameter object for filter_params fucntion:
-class Filter_Param { //for example Age and range for filter
+class Filter_Param : public SerializableObject { //for example Age and range for filter
 public:
 	string param_name;
 	float min_range, max_range;
+
+	ADD_SERIALIZATION_FUNCS(param_name, min_range, max_range)
 };
 
 //Infra
@@ -81,14 +89,18 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 //The bootstrap function process
 map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
-	const vector<MeasurementFunctions> &meas_functions = { calc_npos_nneg , calc_roc_measures },
+	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
 	const map<string, void *> *cohort_params = NULL, const vector<void *> *function_params = NULL,
 	ProcessMeasurementParamFunc process_measurments_params = NULL,
-	float sample_ratio = (float)0.7, int sample_per_pid = 1,
+	float sample_ratio = (float)1.0, int sample_per_pid = 1,
 	int loopCnt = 500, bool binary_outcome = true);
 
 //will output the bootstrap results  into file
 void PrintMeasurement(const map<string, map<string, float>> &all_cohorts_measurments, const string &file_name);
+
+MEDSERIALIZE_SUPPORT(Incident_Stats)
+MEDSERIALIZE_SUPPORT(ROC_Params)
+MEDSERIALIZE_SUPPORT(Filter_Param)
 
 #endif // !__BOOTSTRAP_ANALYSIS_H__
 

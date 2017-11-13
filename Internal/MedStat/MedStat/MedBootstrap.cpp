@@ -2,19 +2,25 @@
 #include "MedBootstrap.h"
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include "Logger/Logger/Logger.h"
+#include <boost/algorithm/string.hpp>
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
-map<string, map<string, float>> booststrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
-	const map<string, vector<float>> &additional_info,
-	const map<string, vector<Filter_Param>> &filter_cohort,
-	const ROC_Params &roc_params, float sample_ratio, int sample_per_pid, int loopCnt) {
+MedBootstrap::MedBootstrap() {
+	sample_ratio = (float)1.0;
+	sample_per_pid = 1;
+	loopCnt = 500;
+	filter_cohort["All"] = {};
+}
+
+map<string, map<string, float>> MedBootstrap::booststrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
+	const map<string, vector<float>> &additional_info) {
 
 	map<string, FilterCohortFunc> cohorts;
-	vector<MeasurementFunctions> measures = { calc_npos_nneg, calc_roc_measures_with_inc };
+	vector<MeasurementFunctions> measures = { calc_roc_measures_with_inc };
 	map<string, void *> cohort_params;
-	vector<void *> measurements_params = { NULL, (void *)&roc_params };
+	vector<void *> measurements_params = { NULL, (void *)&roc_Params };
 
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
 		cohorts[it->first] = filter_range_params;
@@ -26,53 +32,20 @@ map<string, map<string, float>> booststrap_base(const vector<float> &preds, cons
 		sample_ratio, sample_per_pid, loopCnt);
 }
 
-map<string, map<string, float>> booststrap(MedSamples &samples,
-	map<string, vector<float>> &additional_info,
-	const map<string, vector<Filter_Param>> &filter_cohort,
-	const ROC_Params &roc_params, float sample_ratio, int sample_per_pid,
-	int loopCnt) {
-	vector<float> preds;
-	vector<float> y;
-	vector<int> pids(samples.nSamples());
-	samples.get_y(y);
-	samples.get_preds(preds);
-	int c = 0;
-	for (size_t i = 0; i < samples.idSamples.size(); ++i)
-		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
-			pids[c++] = samples.idSamples[i].samples[j].id;
-
-	bool uses_time_window = true;
-
-	if (uses_time_window) {
-		additional_info["Time-Window"].resize(c); //negative value to mark control
-		MedTime tm;
-		tm.init_time_tables();
-		c = 0;
-		for (size_t i = 0; i < samples.idSamples.size(); ++i)
-			for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
-				int diff_days = (tm.convert_date(MedTime::Days,
-					samples.idSamples[i].samples[j].outcomeTime)
-					- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
-				if (samples.idSamples[i].samples[j].outcome <= 0)
-					diff_days = -diff_days;
-				additional_info["Time-Window"][c] = (float)diff_days;
-				++c;
-			}
-	}
-
-	return booststrap_base(preds, y, pids, additional_info,
-		filter_cohort, roc_params, sample_ratio, sample_per_pid, loopCnt);
+bool MedBootstrap::use_time_window() {
+	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
+		for (size_t i = 0; i < it->second.size(); ++i)
+			if (boost::to_lower_copy(it->second[i].param_name) == "time-window")
+				return true;
+	return false;
 }
 
-map<string, map<string, float>> booststrap(MedFeatures &features,
-	const map<string, vector<Filter_Param>> &filter_cohort,
-	const ROC_Params &roc_params, float sample_ratio, int sample_per_pid,
-	int loopCnt) {
+map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features) {
 	vector<float> preds((int)features.samples.size());
 	vector<float> y((int)features.samples.size());
 	vector<int> pids((int)features.samples.size());
 	map<string, vector<float>> data = features.data;
-	bool uses_time_window = true;
+	bool uses_time_window = use_time_window();
 
 	if (uses_time_window)
 		data["Time-Window"].resize((int)features.samples.size());
@@ -92,14 +65,44 @@ map<string, map<string, float>> booststrap(MedFeatures &features,
 		}
 	}
 
-	return booststrap_base(preds, y, pids, data, filter_cohort, roc_params, sample_ratio,
-		sample_per_pid, loopCnt);
+	return booststrap_base(preds, y, pids, data);
 }
 
-map<string, map<string, float>> booststrap(MedSamples &samples, const string &rep_path,
-	const map<string, vector<Filter_Param>> &filter_cohort,
-	const ROC_Params &roc_params, float sample_ratio, int sample_per_pid,
-	int loopCnt) {
+map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples,
+	map<string, vector<float>> &additional_info) {
+	vector<float> preds;
+	vector<float> y;
+	vector<int> pids(samples.nSamples());
+	samples.get_y(y);
+	samples.get_preds(preds);
+	int c = 0;
+	for (size_t i = 0; i < samples.idSamples.size(); ++i)
+		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
+			pids[c++] = samples.idSamples[i].samples[j].id;
+
+	bool uses_time_window = use_time_window();
+
+	if (uses_time_window) {
+		additional_info["Time-Window"].resize(c); //negative value to mark control
+		MedTime tm;
+		tm.init_time_tables();
+		c = 0;
+		for (size_t i = 0; i < samples.idSamples.size(); ++i)
+			for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
+				int diff_days = (tm.convert_date(MedTime::Days,
+					samples.idSamples[i].samples[j].outcomeTime)
+					- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
+				if (samples.idSamples[i].samples[j].outcome <= 0)
+					diff_days = -diff_days;
+				additional_info["Time-Window"][c] = (float)diff_days;
+				++c;
+			}
+	}
+
+	return booststrap_base(preds, y, pids, additional_info);
+}
+
+map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, const string &rep_path) {
 	MedModel mdl;
 	mdl.add_age();
 	mdl.add_gender();
@@ -122,11 +125,10 @@ map<string, map<string, float>> booststrap(MedSamples &samples, const string &re
 	if (mdl.apply(rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
 		MTHROW_AND_ERR("Error creating age,gender for samples\n");
 
-	return booststrap(mdl.features, filter_cohort, roc_params,
-		sample_ratio, sample_per_pid, loopCnt);
+	return booststrap(mdl.features);
 }
 
-void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples) {
+void MedBootstrap::apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples) {
 	vector<int> remove_indexes_pid, remove_indexes_sample;
 	vector<int> remove_complete_pids;
 	int tot_cnt = 0;
@@ -204,7 +206,7 @@ void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &s
 		//samples.sort_by_id_date(); //not needed
 	}
 }
-void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features) {
+void MedBootstrap::apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features) {
 	vector<int> remove_indexes;
 	for (size_t i = 0; i < features.samples.size(); ++i)
 	{
@@ -260,14 +262,14 @@ void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &
 		features.init_pid_pos_len();
 	}
 }
-void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedSamples &samples) {
+void MedBootstrap::apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedSamples &samples) {
 	unordered_map<int, int> pid_censor_dates;
 	pid_censor_dates.reserve((int)pids.size());
 	for (size_t i = 0; i < pids.size(); ++i)
 		pid_censor_dates[pids[i]] = censor_dates[i];
 	apply_censor(pid_censor_dates, samples);
 }
-void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedFeatures &features) {
+void MedBootstrap::apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedFeatures &features) {
 	unordered_map<int, int> pid_censor_dates;
 	pid_censor_dates.reserve((int)pids.size());
 	for (size_t i = 0; i < pids.size(); ++i)
@@ -275,7 +277,7 @@ void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedF
 	apply_censor(pid_censor_dates, features);
 }
 
-void change_sample_autosim(MedSamples &samples, int min_time, int max_time, MedSamples &new_samples) {
+void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int max_time, MedSamples &new_samples) {
 	MedTime tm;
 	tm.init_time_tables();
 	new_samples.time_unit = samples.time_unit;
@@ -317,7 +319,7 @@ void change_sample_autosim(MedSamples &samples, int min_time, int max_time, MedS
 	//new_samples.sort_by_id_date(); //not needed
 }
 
-void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features) {
+void MedBootstrap::change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features) {
 	MedTime tm;
 	tm.init_time_tables();
 	new_features.attributes = features.attributes;
@@ -368,4 +370,128 @@ void change_sample_autosim(MedFeatures &features, int min_time, int max_time, Me
 		}
 	}
 	new_features.init_pid_pos_len();
+}
+
+void MedBootstrapResult::booststrap(MedFeatures &features) {
+	bootstrap_results = bootstrap_params.booststrap(features);
+}
+void MedBootstrapResult::booststrap(MedSamples &samples, map<string, vector<float>> &additional_info) {
+	bootstrap_results = bootstrap_params.booststrap(samples, additional_info);
+}
+void MedBootstrapResult::booststrap(MedSamples &samples, const string &rep_path) {
+	bootstrap_results = bootstrap_params.booststrap(samples, rep_path);
+}
+
+bool MedBootstrapResult::find_in_range(const vector<float> &vec, float search, float th) {
+	for (size_t i = 0; i < vec.size(); ++i)
+	{
+		float diff = abs(vec[i] - search);
+		if (diff < th)
+			return true;
+	}
+	return false;
+}
+
+void MedBootstrapResult::find_working_points(const map<string, float> &bootstrap_cohort,
+	vector<float> &sens_points, vector<float> &pr_points) {
+	unordered_set<string> all_columns_uniq;
+	float min_dif = (float)1.0; //remove too close working points
+
+	for (auto it = bootstrap_cohort.begin(); it != bootstrap_cohort.end(); ++it)
+		all_columns_uniq.insert(it->first);
+	vector<string> all_columns(all_columns_uniq.begin(), all_columns_uniq.end());
+	//search for @SCORE when SENS, and PR are not 0 or 1:
+	for (string column_name : all_columns)
+	{
+		if (column_name.size() > 7 && column_name.substr(0, 7) == "SENS@SC" && column_name.substr(column_name.size() - 4) == "_Obs")  //sens@score
+			if (bootstrap_cohort.at(column_name) != MED_MAT_MISSING_VALUE && bootstrap_cohort.at(column_name) != 0
+				&& bootstrap_cohort.at(column_name) != 1) {
+				float cand_val = round(10000 * bootstrap_cohort.at(column_name)) / 100;
+				if (!find_in_range(sens_points, cand_val, min_dif))
+					sens_points.push_back(cand_val);
+			}
+
+		if (column_name.size() > 5 && column_name.substr(0, 5) == "PR@SC"  && column_name.substr(column_name.size() - 4) == "_Obs")  //sens@score
+			if (bootstrap_cohort.at(column_name) != MED_MAT_MISSING_VALUE && bootstrap_cohort.at(column_name) != 0
+				&& bootstrap_cohort.at(column_name) != 1) {
+				float cand_val = round(10000 * bootstrap_cohort.at(column_name)) / 100;
+				if (!find_in_range(pr_points, cand_val, min_dif))
+					pr_points.push_back(cand_val);
+			}
+	}
+
+}
+
+void MedBootstrapResult::explore_measure(const string &measure_name, float value, map<string, float> &score_measurements,
+	const string &string_cohort, float max_search_range) {
+	if (bootstrap_results.empty())
+		MTHROW_AND_ERR("Please run bootstrap first\n");
+	if (bootstrap_results.find(string_cohort) == bootstrap_results.end())
+		MTHROW_AND_ERR("Couldn't find \"%s\" cohort in bootstrap\n", string_cohort.c_str());
+	map<string, float> all_measures = bootstrap_results.at(string_cohort);
+	string value_att = "@" + boost::to_upper_copy(measure_name) + "_";
+
+	if (!bootstrap_params.roc_Params.use_score_working_points)
+		MWARN("Warnning:: You have ran bootstrap without score preformance!\n");
+	//search for closest score
+	unordered_map<string, float> lower_bound, upper_bound;
+	unordered_map<string, float> lower_val, upper_val;
+	unordered_set<string> all_measures_opts;
+	for (auto it = all_measures.begin(); it != all_measures.end(); ++it)
+	{
+		string column_name = it->first;
+		if (column_name.find(value_att) != string::npos && boost::ends_with(column_name, "_Mean")) {
+			string measure = column_name.substr(0, column_name.find_first_of('@'));
+			all_measures_opts.insert(measure);
+			if (it->second != MED_MAT_MISSING_VALUE) {
+				float score_val = stof(column_name.substr(column_name.find(value_att) + value_att.length()));
+
+				if (abs(score_val - value) <= max_search_range) {
+					if (lower_bound.find(measure) == lower_bound.end() ||
+						(lower_bound[measure] > score_val && score_val < value)) {
+						lower_bound[measure] = score_val;
+						lower_val[measure] = it->second;
+					}
+					if (upper_bound.find(measure) == upper_bound.end() ||
+						(upper_bound[measure] < score_val && score_val > value)) {
+						upper_bound[measure] = score_val;
+						upper_val[measure] = it->second;
+					}
+				}
+			}
+		}
+	}
+
+	//calc interp for the score measurements:
+	for (auto it = all_measures_opts.begin(); it != all_measures_opts.end(); ++it)
+	{
+		if (lower_bound.find(*it) == lower_bound.end() && upper_bound.find(*it) == upper_bound.end()) {
+			MWARN("Couldn't find measure \"%s\" in search_range %2.3f\n",
+				(*it).c_str(), max_search_range);
+			continue;
+		}
+
+		//only upper exists:
+		if (lower_bound.find(*it) == lower_bound.end()) {
+			score_measurements[*it] = upper_val[*it];
+			continue;
+		}
+		//only lower exists:
+		if (upper_bound.find(*it) == upper_bound.end()) {
+			score_measurements[*it] = lower_val[*it];
+			continue;
+		}
+		//interp between both:
+		float lower_diff = value - lower_bound[*it];
+		float upper_diff = upper_bound[*it] - value;
+		float tot_diff = lower_diff + upper_diff;
+		float final_val = (upper_diff / tot_diff) * lower_val[*it] +
+			(lower_diff / tot_diff) * upper_val[*it]; //in inverse order to distance
+		score_measurements[*it] = final_val;
+	}
+}
+
+void MedBootstrapResult::explore_score(float score, map<string, float> &score_measurements,
+	const string &string_cohort, float max_search_range) {
+	explore_measure("SCORE", score, score_measurements, string_cohort, max_search_range);
 }

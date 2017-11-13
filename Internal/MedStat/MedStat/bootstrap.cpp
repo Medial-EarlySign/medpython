@@ -14,24 +14,24 @@
 
 #pragma region Helper Functions
 float meanArr(const vector<float> &arr) {
-	double res = 0;
+	double res = 0; 
 	int cnt = 0;
 	for (size_t i = 0; i < arr.size(); ++i)
-		if (arr[i] != -65336) {
+		if (arr[i] != MED_MAT_MISSING_VALUE) {
 			res += arr[i];
 			++cnt;
 		}
 	if (cnt > 0)
 		res /= cnt;
 	else
-		res = -65336;
+		res = MED_MAT_MISSING_VALUE;
 	return (float)res;
 }
 float stdArr(const vector<float> &arr, float meanVal) {
 	double res = 0;
 	int cnt = 0;
 	for (size_t i = 0; i < arr.size(); ++i)
-		if (arr[i] != -65336) {
+		if (arr[i] != MED_MAT_MISSING_VALUE) {
 			res += (arr[i] - meanVal) * (arr[i] - meanVal);
 			++cnt;
 		}
@@ -40,7 +40,7 @@ float stdArr(const vector<float> &arr, float meanVal) {
 		res = sqrt(res);
 	}
 	else
-		res = -65336;
+		res = MED_MAT_MISSING_VALUE;
 	return (float)res;
 }
 template<class T> string print_obj(T obj, string format) {
@@ -311,7 +311,7 @@ void PrintMeasurement(const map<string, map<string, float>> &all_cohorts_measurm
 		fw << cohort_name;
 		for (size_t i = 0; i < all_columns.size(); ++i)
 			fw << delimeter <<
-			(cohort_values.find(all_columns[i]) != cohort_values.end() ? cohort_values.at(all_columns[i]) : -65336);
+			(cohort_values.find(all_columns[i]) != cohort_values.end() ? cohort_values.at(all_columns[i]) : MED_MAT_MISSING_VALUE);
 		fw << endl;
 	}
 
@@ -459,9 +459,9 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 		wp_fpr_score.resize((int)fpr_points.size());
 		while (curr_wp_fpr_ind < fpr_points.size() && false_rate[i] > fpr_points[curr_wp_fpr_ind])
 		{
-			wp_fpr_score[curr_wp_fpr_ind] = -65336;
-			wp_fpr_spec[curr_wp_fpr_ind] = -65336;
-			wp_fpr_sens[curr_wp_fpr_ind] = -65336;
+			wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_fpr_ind;
 		}
 
@@ -470,8 +470,8 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 		while (curr_wp_sens_ind < sens_points.size() &&
 			true_rate[i] > sens_points[curr_wp_sens_ind])
 		{
-			wp_sens_score[curr_wp_sens_ind] = -65336;
-			wp_sens_spec[curr_wp_sens_ind] = -65336;
+			wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_sens_ind;
 		}
 
@@ -485,9 +485,9 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 				float curr_diff = false_rate[i] - fpr_points[curr_wp_fpr_ind];
 				float tot_diff = prev_diff + curr_diff;
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_fpr_score[curr_wp_fpr_ind] = -65336;
-					wp_fpr_sens[curr_wp_fpr_ind] = -65336;
-					wp_fpr_spec[curr_wp_fpr_ind] = -65336;
+					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -520,8 +520,8 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 				float curr_diff = true_rate[i] - sens_points[curr_wp_sens_ind];
 				float tot_diff = prev_diff + curr_diff;
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_sens_score[curr_wp_sens_ind] = -65336;
-					wp_sens_spec[curr_wp_sens_ind] = -65336;
+					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
 						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
@@ -661,11 +661,11 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 		wp_fpr_pr.resize((int)fpr_points.size());
 		while (curr_wp_fpr_ind < fpr_points.size() && false_rate[i] > fpr_points[curr_wp_fpr_ind])
 		{
-			wp_fpr_score[curr_wp_fpr_ind] = -65336;
-			wp_fpr_spec[curr_wp_fpr_ind] = -65336;
-			wp_fpr_sens[curr_wp_fpr_ind] = -65336;
-			wp_fpr_ppv[curr_wp_fpr_ind] = -65336;
-			wp_fpr_pr[curr_wp_fpr_ind] = -65336;
+			wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_ppv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_pr[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_fpr_ind;
 		}
 
@@ -676,11 +676,11 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 		wp_sens_pr.resize((int)sens_points.size());
 		while (curr_wp_sens_ind < sens_points.size() && true_rate[i] > sens_points[curr_wp_sens_ind])
 		{
-			wp_sens_score[curr_wp_sens_ind] = -65336;
-			wp_sens_spec[curr_wp_sens_ind] = -65336;
-			wp_sens_fpr[curr_wp_sens_ind] = -65336;
-			wp_sens_ppv[curr_wp_sens_ind] = -65336;
-			wp_sens_pr[curr_wp_sens_ind] = -65336;
+			wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_fpr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_ppv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_pr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_sens_ind;
 		}
 
@@ -691,11 +691,11 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 		wp_pr_sens.resize((int)pr_points.size());
 		while (curr_wp_pr_ind < pr_points.size() && true_rate[i] > pr_points[curr_wp_pr_ind])
 		{
-			wp_pr_score[curr_wp_pr_ind] = -65336;
-			wp_pr_spec[curr_wp_pr_ind] = -65336;
-			wp_pr_fpr[curr_wp_pr_ind] = -65336;
-			wp_pr_ppv[curr_wp_pr_ind] = -65336;
-			wp_pr_sens[curr_wp_pr_ind] = -65336;
+			wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_spec[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_ppv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_sens[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_pr_ind;
 		}
 
@@ -714,11 +714,11 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_fpr_score[curr_wp_fpr_ind] = -65336;
-					wp_fpr_sens[curr_wp_fpr_ind] = -65336;
-					wp_fpr_spec[curr_wp_fpr_ind] = -65336;
-					wp_fpr_pr[curr_wp_fpr_ind] = -65336;
-					wp_fpr_ppv[curr_wp_fpr_ind] = -65336;
+					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_pr[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_ppv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -765,11 +765,11 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_sens_score[curr_wp_sens_ind] = -65336;
-					wp_sens_spec[curr_wp_sens_ind] = -65336;
-					wp_sens_fpr[curr_wp_sens_ind] = -65336;
-					wp_sens_ppv[curr_wp_sens_ind] = -65336;
-					wp_sens_pr[curr_wp_sens_ind] = -65336;
+					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_fpr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_ppv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_pr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
 						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
@@ -819,11 +819,11 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_pr_score[curr_wp_pr_ind] = -65336;
-					wp_pr_fpr[curr_wp_pr_ind] = -65336;
-					wp_pr_spec[curr_wp_pr_ind] = -65336;
-					wp_pr_ppv[curr_wp_pr_ind] = -65336;
-					wp_pr_sens[curr_wp_pr_ind] = -65336;
+					wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_spec[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_ppv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_sens[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
 						pr_points[curr_wp_pr_ind], pr_prev, pr_c,
@@ -1004,10 +1004,14 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 	unordered_map<float, vector<int>> thresholds_indexes;
 	vector<float> unique_scores;
-	for (size_t i = 0; i < preds.size(); ++i) {
-		if (thresholds_indexes.find(preds[i]) == thresholds_indexes.end())
-			unique_scores.push_back(preds[i]);
+	for (size_t i = 0; i < preds.size(); ++i)
 		thresholds_indexes[preds[i]].push_back((int)i);
+	unique_scores.resize((int)thresholds_indexes.size());
+	int ind_p = 0;
+	for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
+	{
+		unique_scores[ind_p] = it->first;
+		++ind_p;
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 
@@ -1072,9 +1076,12 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 		}
 
 		thresholds_indexes = move(*new_thresholds);
-		unique_scores.clear();
-		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
-			unique_scores.push_back(it->first);
+		unique_scores.resize((int)thresholds_indexes.size());
+		int ind_pp = 0;
+		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it) {
+			unique_scores[ind_pp] = it->first;
+			++ind_pp;
+		}
 		sort(unique_scores.begin(), unique_scores.end());
 	}
 
@@ -1129,11 +1136,11 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 		wp_fpr_pr.resize((int)fpr_points.size());
 		while (curr_wp_fpr_ind < fpr_points.size() && false_rate[i] > fpr_points[curr_wp_fpr_ind])
 		{
-			wp_fpr_score[curr_wp_fpr_ind] = -65336;
-			wp_fpr_spec[curr_wp_fpr_ind] = -65336;
-			wp_fpr_sens[curr_wp_fpr_ind] = -65336;
-			wp_fpr_ppv[curr_wp_fpr_ind] = -65336;
-			wp_fpr_pr[curr_wp_fpr_ind] = -65336;
+			wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_ppv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+			wp_fpr_pr[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_fpr_ind;
 		}
 
@@ -1144,11 +1151,11 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 		wp_sens_pr.resize((int)sens_points.size());
 		while (curr_wp_sens_ind < sens_points.size() && true_rate[i] > sens_points[curr_wp_sens_ind])
 		{
-			wp_sens_score[curr_wp_sens_ind] = -65336;
-			wp_sens_spec[curr_wp_sens_ind] = -65336;
-			wp_sens_fpr[curr_wp_sens_ind] = -65336;
-			wp_sens_ppv[curr_wp_sens_ind] = -65336;
-			wp_sens_pr[curr_wp_sens_ind] = -65336;
+			wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_fpr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_ppv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+			wp_sens_pr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_sens_ind;
 		}
 
@@ -1159,11 +1166,11 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 		wp_pr_sens.resize((int)pr_points.size());
 		while (curr_wp_pr_ind < pr_points.size() && true_rate[i] > pr_points[curr_wp_pr_ind])
 		{
-			wp_pr_score[curr_wp_pr_ind] = -65336;
-			wp_pr_spec[curr_wp_pr_ind] = -65336;
-			wp_pr_fpr[curr_wp_pr_ind] = -65336;
-			wp_pr_ppv[curr_wp_pr_ind] = -65336;
-			wp_pr_sens[curr_wp_pr_ind] = -65336;
+			wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_spec[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_ppv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+			wp_pr_sens[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 			++curr_wp_pr_ind;
 		}
 
@@ -1182,11 +1189,11 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_fpr_score[curr_wp_fpr_ind] = -65336;
-					wp_fpr_sens[curr_wp_fpr_ind] = -65336;
-					wp_fpr_spec[curr_wp_fpr_ind] = -65336;
-					wp_fpr_pr[curr_wp_fpr_ind] = -65336;
-					wp_fpr_ppv[curr_wp_fpr_ind] = -65336;
+					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_pr[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					wp_fpr_ppv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -1245,11 +1252,11 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_sens_score[curr_wp_sens_ind] = -65336;
-					wp_sens_spec[curr_wp_sens_ind] = -65336;
-					wp_sens_fpr[curr_wp_sens_ind] = -65336;
-					wp_sens_ppv[curr_wp_sens_ind] = -65336;
-					wp_sens_pr[curr_wp_sens_ind] = -65336;
+					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_fpr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_ppv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					wp_sens_pr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
 						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
@@ -1311,11 +1318,11 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_pr_score[curr_wp_pr_ind] = -65336;
-					wp_pr_fpr[curr_wp_pr_ind] = -65336;
-					wp_pr_spec[curr_wp_pr_ind] = -65336;
-					wp_pr_ppv[curr_wp_pr_ind] = -65336;
-					wp_pr_sens[curr_wp_pr_ind] = -65336;
+					wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_spec[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_ppv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					wp_pr_sens[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
 						pr_points[curr_wp_pr_ind], pr_prev, pr_c,
