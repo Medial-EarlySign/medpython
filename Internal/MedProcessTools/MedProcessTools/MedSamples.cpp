@@ -24,9 +24,9 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 		outcome = stof(fields[pos["outcome"]]);
 	if (pos["outcome_date"] != -1)
 		outcomeTime = stoi(fields[pos["outcome_date"]]);
-	if (pos["split"] != -1)
+	if (pos["split"] != -1 && fields.size() > pos["split"])
 		split = stoi(fields[pos["split"]]);
-	if (pos["pred"] != -1)
+	if (pos["pred"] != -1 && fields.size() > pos["pred"])
 		prediction.push_back(stof(fields[pos["pred"]]));
 	return 0;
 }
