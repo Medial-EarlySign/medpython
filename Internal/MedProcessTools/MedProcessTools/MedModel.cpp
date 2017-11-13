@@ -458,7 +458,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 
 	ptree pt;
 	read_json(no_comments_stream, pt);
-	string ser = pt.get<string>("serialize_learning_set", "1");
+	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());
 	this->serialize_learning_set = stoi(ser);
 
 	for(ptree::value_type &p: pt.get_child("processes"))
@@ -922,7 +922,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	ptr += predictor->deserialize(blob + ptr);
 
 	memcpy(&serialize_learning_set, blob + ptr, sizeof(serialize_learning_set)); ptr += sizeof(serialize_learning_set);
-
+	MLOG("serialize_learning_set is %d\n", serialize_learning_set);
 	// Learning samples
 	LearningSet = new MedSamples;
 	ptr += LearningSet->deserialize(blob + ptr);
