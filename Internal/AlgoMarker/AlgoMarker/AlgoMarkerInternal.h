@@ -47,7 +47,7 @@ public:
 	}
 
 	// init model
-	int init_model_from_file(const char *_model_fname) { model.clear();	model.verbosity = 0; (model.read_from_file(string(_model_fname))); }
+	int init_model_from_file(const char *_model_fname) { model.clear();	model.verbosity = 0; return (model.read_from_file(string(_model_fname))); }
 
 
 	// init samples
@@ -69,6 +69,13 @@ public:
 		int n_times = n_elems * rep.sigs.Sid2Info[sid].n_time_channels, n_vals = n_elems  * rep.sigs.Sid2Info[sid].n_val_channels;
 		if (times == NULL) n_times = 0;
 		if (vals == NULL) n_vals = 0;
+		return rep.in_mem_rep.insertData(pid, sid, times, vals, n_times, n_vals);
+	}
+
+	// load pid,sig with vectors of times and vals
+	int data_load_pid_sig(int pid, const char *sig_name, int *times, int n_times, float *vals, int n_vals) {
+		int sid = rep.sigs.Name2Sid[string(sig_name)];
+		if (sid < 0) return -1; // no such signal
 		return rep.in_mem_rep.insertData(pid, sid, times, vals, n_times, n_vals);
 	}
 
@@ -96,6 +103,9 @@ public:
 
 	int insert_sample(int pid, int time) { return insert_samples(&pid, &time, 1); }
 
+	// normalize samples must be called after finishing inserting all samples.
+	int normalize_samples() { samples.normalize(); return 0; }
+
 	//========================================================
 	// Calculate predictions
 	//========================================================
@@ -105,6 +115,10 @@ public:
 		// init_samples
 		init_samples(_pids, times, n_samples);
 
+		return get_raw_preds(_pids, times, preds);
+	}
+
+	int get_raw_preds(int *_pids, int *times, float *preds) {
 		// run model to calculate predictions
 		if (model.apply(rep, samples) < 0) {
 			fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
@@ -122,7 +136,6 @@ public:
 
 		return 0;
 	}
-
 
 	int get_preds(MedSamples &_samples, float *preds) {
 
