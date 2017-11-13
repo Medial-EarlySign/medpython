@@ -426,6 +426,7 @@ typedef enum {
 	FTR_RANGE_LATEST = 1,
 	FTR_RANGE_MAX = 2,
 	FTR_RANGE_MIN = 3,
+	FTR_RANGE_EVER = 4,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -434,6 +435,7 @@ public:
 
 	string signalName; // Signal to consider
 	int signalId; 
+	int signalValue; // FTR_RANGE_EVER checks if the signal ever had the value signalValue
 	RangeFeatureTypes type; // Type of comorbidity index to generate
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
 	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
@@ -475,7 +477,7 @@ public:
 	float uget_range_latest(UniversalSigVec &usv, int time_point);
 	float uget_range_min(UniversalSigVec &usv, int time_point);
 	float uget_range_max(UniversalSigVec &usv, int time_point);
-
+	float uget_range_ever(UniversalSigVec &usv, int time_point);
 	// Serialization
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals)

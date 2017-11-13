@@ -13,13 +13,13 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	if (pos.size() == 0)
 		return parse_from_string(s);
 	vector<string> fields; 
+	boost::split(fields, s, boost::is_any_of("\t\n\r"));
 	if (fields.size() == 0)
 		return -1;
-	boost::split(fields, s, boost::is_any_of("\t\n\r"));
 	if (pos["id"] != -1)
 		id = stoi(fields[pos["id"]]);
 	if (pos["date"] != -1)
-		time = stoi(fields[pos["time"]]);
+		time = stoi(fields[pos["date"]]);
 	if (pos["outcome"] != -1)
 		outcome = stof(fields[pos["outcome"]]);
 	if (pos["outcome_date"] != -1)
@@ -216,26 +216,25 @@ int MedSamples::read_from_file(const string &fname)
 
 	string curr_line;
 
-	int samples = 0, skipped_records = 0;
+	int samples = 0, read_records = 0, skipped_records = 0;
 	idSamples.clear();
 	int curr_id = -1;
 	unordered_set<int> seen_ids;
+	map<string, int> pos;
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 			if (curr_line[curr_line.size() - 1] == '\r')
 				curr_line.erase(curr_line.size() - 1);
-
+			read_records++;
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
-			map<string, int> pos;
 			if (fields.size() >= 2) {
-
 				if (fields[0] == "NAME") MLOG("reading NAME = %s\n", fields[1].c_str());
-				if (fields[0] == "DESC") MLOG("reading DESC = %s\n", fields[1].c_str());
-				if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
-				if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
-				if (fields[0] == "EVENT_FIELDS") {
+				else if (fields[0] == "DESC") MLOG("reading DESC = %s\n", fields[1].c_str());
+				else if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
+				else if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
+				else if ((fields[0] == "EVENT_FIELDS" || fields[0] == "pid" || fields[0] == "id") && read_records == 1) {
 					extract_field_pos_from_header(fields, pos);
 					continue;
 				}
@@ -244,6 +243,8 @@ int MedSamples::read_from_file(const string &fname)
 				if (sample.parse_from_string(curr_line, pos) < 0) {
 					MWARN("skipping [%s]\n", curr_line.c_str());
 					skipped_records++;
+					if (read_records > 30 && skipped_records > read_records / 2)
+						MTHROW_AND_ERR("skipped %d/%d first records, exiting\n", skipped_records, read_records);
 					continue;
 				}
 				if (sample.id != curr_id) {

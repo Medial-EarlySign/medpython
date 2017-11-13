@@ -1,6 +1,9 @@
 // Management of trees and predictions.
 struct gbm_tree ;
 struct cat_splits ;
+#include <string>
+
+using namespace std;
 
 // Prediction
 GBMRESULT gbm_pred (double *radX, int rcRows, int rcCols, int cTrees, double rdInitF, gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) ;

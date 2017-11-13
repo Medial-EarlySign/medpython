@@ -12,7 +12,11 @@ void generateAlcoholRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSig
 void AlcoholGenerator::set_names() {
 	names.clear();
 	unordered_set<string> legal_features({ "Current_Drinker", "Drinking_Quantity", "PLM_Drinking_Level" });
-	for (string s : legal_features) {
+	if (raw_feature_names.size() == 0)
+		MTHROW_AND_ERR("AlcoholGenerator got no alcohol_features");
+	for (string s : raw_feature_names) {
+		if (legal_features.find(s) == legal_features.end())
+			MTHROW_AND_ERR("AlcoholGenerator does not know how to generate [%s]", s.c_str());
 		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
 	}
 }
@@ -21,7 +25,9 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		if (field == "tags")
+		if (field == "alcohol_features")
+			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
+		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for AlcoholGenerator\n", field.c_str());

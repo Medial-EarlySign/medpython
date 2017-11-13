@@ -8,9 +8,12 @@ public:
 
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
+	string smoking_method = "SMOKING_ENRICHED";
 
 	// Constructor/Destructor
-	SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; req_signals.assign(1, "SMOKING_ENRICHED"); }
+	//SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; req_signals.assign(1, "SMOKING_ENRICHED"); }
+	SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; req_signals.push_back("Smoking_quantity");  req_signals.push_back("SMOKING_ENRICHED"); req_signals.push_back("BYEAR"); }
+	
 	~SmokingGenerator() {};
 
 	virtual int init(map<string, string>& mapper);
@@ -28,7 +31,9 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
+	//void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("SMOKING_ENRICHED")); req_signal_ids.push_back(dict.id("Smoking_quantity")); req_signals.push_back("BYEAR");
+	}
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names, tags, iGenerateWeights); }
