@@ -19,6 +19,8 @@ public:
 	//filter_cohort - it's a file where each line is new cohort. "cohort_name TAB paramter_name:min_range,max_range;..."
 	MedBootstrap(const string &init_string); 
 
+	void clean_feature_name_prefix(map<string, vector<float>> &features);
+
 	map<string, map<string, float>> booststrap(MedFeatures &features);
 	map<string, map<string, float>> booststrap(MedSamples &samples, map<string, vector<float>> &additional_info);
 	map<string, map<string, float>> booststrap(MedSamples &samples, const string &rep_path);

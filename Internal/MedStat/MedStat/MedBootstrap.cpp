@@ -93,11 +93,24 @@ bool MedBootstrap::use_time_window() {
 	return false;
 }
 
+void MedBootstrap::clean_feature_name_prefix(map<string, vector<float>> &features) {
+	map<string, vector<float>> name_data;
+	for (auto it = features.begin(); it != features.end(); ++it)
+	{
+		if (boost::starts_with(it->first, "FTR_") && it->first.find('.') != string::npos) {
+			string new_name = it->first.substr(it->first.find('.') + 1);
+			name_data[new_name].swap(it->second);
+		}
+	}
+	name_data.swap(features); //feature_data will steal "name_data" data
+}
+
 map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features) {
 	vector<float> preds((int)features.samples.size());
 	vector<float> y((int)features.samples.size());
 	vector<int> pids((int)features.samples.size());
 	map<string, vector<float>> data = features.data;
+	clean_feature_name_prefix(data);
 	bool uses_time_window = use_time_window();
 
 	if (uses_time_window)
