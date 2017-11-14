@@ -1446,8 +1446,8 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 		{
 			res["SPEC@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_spec[k];
 			res["SENS@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_sens[k];
-			res["PPV@SCORE_" + print_obj(wp_fpr_score[k], "%05.3f")] = wp_fpr_ppv[k];
-			res["PR@SCORE_" + print_obj(wp_fpr_score[k], "%05.3f")] = wp_fpr_pr[k];
+			res["PPV@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_ppv[k];
+			res["PR@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_pr[k];
 		}
 
 	res["NEG_SUM"] = float(f_sum);
