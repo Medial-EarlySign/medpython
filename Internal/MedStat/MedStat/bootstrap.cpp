@@ -14,7 +14,7 @@
 
 #pragma region Helper Functions
 float meanArr(const vector<float> &arr) {
-	double res = 0; 
+	double res = 0;
 	int cnt = 0;
 	for (size_t i = 0; i < arr.size(); ++i)
 		if (arr[i] != MED_MAT_MISSING_VALUE) {
@@ -287,7 +287,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	return all_cohorts_measurments;
 }
 
-void PrintMeasurement(const map<string, map<string, float>> &all_cohorts_measurments, const string &file_name) {
+void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
 	string delimeter = ",";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
@@ -317,6 +317,36 @@ void PrintMeasurement(const map<string, map<string, float>> &all_cohorts_measurm
 
 	fw.close();
 }
+void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
+	string delimeter = ",";
+	ifstream of(file_name);
+	string line, header;
+	getline(of, header); //read header
+	vector<string> column_names;
+	boost::split(column_names, header, boost::is_any_of(delimeter));
+	int cohort_name_ind = (int)distance(column_names.begin(), find(column_names.begin(), column_names.end(), "Cohort_Description"));
+	if (cohort_name_ind > column_names.size())
+		MTHROW_AND_ERR("Couldn't find \"Cohort_Description\" in bootstrap header\n");
+
+	while (getline(of, line)) {
+		vector<string> tokens;
+		boost::split(tokens, line, boost::is_any_of(delimeter));
+		if (tokens.size() != column_names.size())
+			MTHROW_AND_ERR("Bad bootstrap format! header has %d columns. got line with %d fields. line=\"%s\"\n",
+				(int)column_names.size(), (int)tokens.size(), line.c_str());
+		string name = tokens[cohort_name_ind];
+		map<string, float> cohort_values;
+		for (size_t i = 0; i < tokens.size(); ++i)
+		{
+			if (i == cohort_name_ind)
+				continue;
+			cohort_values[column_names[i]] = stof(tokens[i]);
+		}
+		all_cohorts_measurments[name] = cohort_values;
+	}
+	of.close();
+}
+
 
 #pragma region Measurements Fucntions
 
@@ -505,9 +535,9 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 
 				++curr_wp_fpr_ind;
 				continue;
-			}
+	}
 			++i;
-		}
+}
 
 		//sens points:
 		i = 0;
@@ -537,10 +567,10 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 
 				++curr_wp_sens_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
 	}
+}
 	else {
 		wp_fpr_spec.resize((int)true_rate.size());
 		wp_fpr_sens.resize((int)true_rate.size());
@@ -712,7 +742,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-				}
+			}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
@@ -746,9 +776,9 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 
 				++curr_wp_fpr_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+	}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -763,7 +793,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-				}
+			}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
@@ -797,9 +827,9 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 
 				++curr_wp_sens_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -817,7 +847,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-				}
+			}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 					wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
@@ -847,7 +877,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 
 				++curr_wp_pr_ind;
 				continue;
-			}
+		}
 			++i;
 		}
 
@@ -1187,7 +1217,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-				}
+			}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
@@ -1233,9 +1263,9 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 				++curr_wp_fpr_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+	}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -1250,7 +1280,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-				}
+			}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
@@ -1296,9 +1326,9 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 				++curr_wp_sens_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -1316,7 +1346,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-				}
+			}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 					wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
@@ -1352,7 +1382,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 				++curr_wp_pr_ind;
 				continue;
-			}
+		}
 			++i;
 		}
 
@@ -1575,5 +1605,136 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	}
 
 	params->incidence_fix /= controls_count;
+}
+#pragma endregion
+
+#pragma region Parameter Functions
+Filter_Param::Filter_Param(const string &init_string) {
+	if (init_string.find(':') == string::npos)
+		MTHROW_AND_ERR("Wrong format given \"%s\". expected format is \"PARAM_NAME:min_range,max_range\"\n",
+			init_string.c_str());
+	param_name = init_string.substr(0, init_string.find(':'));
+	string rest = init_string.substr(init_string.find(':') + 1);
+	if (rest.find(',') == string::npos)
+		MTHROW_AND_ERR("Wrong format given \"%s\". expected format is \"PARAM_NAME:min_range,max_range\"\n",
+			init_string.c_str());
+	min_range = stof(rest.substr(0, rest.find(',')));
+	max_range = stof(rest.substr(rest.find(',') + 1));
+}
+void Incident_Stats::write_to_text_file(const string &text_file) {
+	ofstream fw(text_file);
+	string delim = "\t";
+	fw << "AGE_BIN" << delim << age_bin_years << endl;
+	fw << "AGE_MIN" << delim << min_age << endl;
+	fw << "AGE_MAX" << delim << max_age << endl;
+	for (size_t i = 0; i < sorted_outcome_labels.size(); ++i)
+		fw << "OUTCOME_VALUE" << delim << sorted_outcome_labels[i] << "\n";
+	fw.flush();
+	for (size_t i = 0; i < male_labels_count_per_age.size(); ++i)
+		for (size_t j = 0; j < male_labels_count_per_age[i].size(); ++j)
+			fw << "STATS_ROW" << delim << "MALE" << delim << min_age + i*age_bin_years
+			<< delim << sorted_outcome_labels[j] << delim << male_labels_count_per_age[i][j] << "\n";
+	for (size_t i = 0; i < female_labels_count_per_age.size(); ++i)
+		for (size_t j = 0; j < female_labels_count_per_age[i].size(); ++j)
+			fw << "STATS_ROW" << delim << "FEMALE" << delim << min_age + i*age_bin_years
+			<< delim << sorted_outcome_labels[j] << delim << female_labels_count_per_age[i][j] << "\n";
+	fw.flush();
+	fw.close();
+}
+void Incident_Stats::read_from_text_file(const string &text_file) {
+	ifstream of(text_file);
+	string line;
+	while (getline(of, line)) {
+		if (line.empty() || boost::starts_with(line, "#"))
+			continue;
+		vector<string> tokens;
+		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() < 2)
+			MTHROW_AND_ERR("Format Error: got line: \"%s\"\n", line.c_str());
+		string command = tokens[0];
+		if (command == "AGE_BIN")
+			age_bin_years = stoi(tokens[1]);
+		else if (command == "AGE_MIN")
+			min_age = stof(tokens[1]);
+		else if (command == "AGE_MAX")
+			max_age = stof(tokens[1]);
+		else if (command == "OUTCOME_VALUE")
+			sorted_outcome_labels.push_back(stof(tokens[1]));
+		else if (command == "STATS_ROW") {
+			if (tokens.size() != 5)
+				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
+			float age = stof(tokens[2]);
+			if (age < min_age || age> max_age) {
+				MWARN("Warning:: skip age because out of range in line \"%s\"", line.c_str());
+				continue;
+			}
+			int age_bin = (int)floor((age - min_age) / age_bin_years);
+			int max_bins = (int)floor((max_age - min_age) / age_bin_years);
+			if (max_bins * age_bin_years > (max_age - min_age) + 0.5)
+				++max_bins;
+			if (age_bin >= max_bins)
+				age_bin = max_bins - 1;
+			float outcome_val = stof(tokens[3]);
+			int outcome_ind = (int)distance(sorted_outcome_labels.begin(),
+				find(sorted_outcome_labels.begin(), sorted_outcome_labels.end(), outcome_val));
+			if (outcome_ind > sorted_outcome_labels.size())
+				MTHROW_AND_ERR("Couldn't find outcome_value=%2.3f\n", outcome_val);
+			if (tokens[1] == "MALE")
+				male_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
+			else if (tokens[1] == "FEMALE")
+				female_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
+			else
+				MTHROW_AND_ERR("Unknown gender \"%s\"\n", tokens[1].c_str());
+		}
+		else
+			MTHROW_AND_ERR("Unknown command \"%s\"\n", command.c_str());
+	}
+	sort(sorted_outcome_labels.begin(), sorted_outcome_labels.end());
+	of.close();
+}
+void parse_vector(const string &value, vector<float> &output_vec) {
+	vector<string> vec;
+	boost::split(vec, value, boost::is_any_of(","));
+	output_vec.resize((int)vec.size());
+	for (size_t i = 0; i < vec.size(); ++i)
+		output_vec[i] = stof(vec[i]);
+}
+ROC_Params::ROC_Params(const string &init_string) {
+	max_diff_working_point = (float)0.05;
+	use_score_working_points = false;
+	working_point_FPR = { (float)0.1, 1, 5, 10,20,30,40,50,55,60,65,70,75,80,85,90,95 };
+	score_bins = 0;
+	incidence_fix = 0;
+
+	//override default with given string:
+	vector<string> tokens;
+	boost::split(tokens, init_string, boost::is_any_of(";"));
+	for (string token : tokens)
+	{
+		if (token.find('=') == string::npos)
+			MTHROW_AND_ERR("Wrong token. has no value \"%s\"\n", token.c_str());
+		string param_name = token.substr(0, token.find('='));
+		string param_value = token.substr(token.find('=') + 1);
+		boost::to_lower(param_name);
+
+		if (param_name == "max_diff_working_point")
+			max_diff_working_point = stof(param_value);
+		else if (param_name == "use_score_working_points")
+			use_score_working_points = stoi(param_value) > 0;
+		else if (param_name == "score_bins")
+			score_bins = stoi(param_value);
+		else if (param_name == "inc_stats_text")
+			inc_stats.read_from_text_file(param_value);
+		else if (param_name == "inc_stats_bin")
+			inc_stats.read_from_file(param_value);
+		else if (param_name == "working_point_fpr")
+			parse_vector(param_value, working_point_FPR);
+		else if (param_name == "working_point_pr")
+			parse_vector(param_value, working_point_PR);
+		else if (param_name == "working_point_sens")
+			parse_vector(param_value, working_point_SENS);
+		else
+			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
+	}
 }
 #pragma endregion

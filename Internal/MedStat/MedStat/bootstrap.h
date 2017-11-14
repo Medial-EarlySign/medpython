@@ -34,6 +34,9 @@ public:
 	//female:
 	vector<vector<double>> female_labels_count_per_age; //for each age_bin, histogram of outcome labels
 
+	void read_from_text_file(const string &text_file);
+	void write_to_text_file(const string &text_file);
+
 	ADD_SERIALIZATION_FUNCS(age_bin_years, min_age, max_age, sorted_outcome_labels, 
 		male_labels_count_per_age, female_labels_count_per_age)
 };
@@ -55,6 +58,7 @@ public:
 		score_bins = 0;
 		incidence_fix = 0;
 	}
+	ROC_Params(const string &init_string); //in format "paramter_name=value;..." for vector use ","
 	double incidence_fix;
 	
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
@@ -71,6 +75,10 @@ class Filter_Param : public SerializableObject { //for example Age and range for
 public:
 	string param_name;
 	float min_range, max_range;
+
+	//in format: "PARAM_NAME:min_range,max_range"
+	Filter_Param(const string &init_string);
+	Filter_Param() {}
 
 	ADD_SERIALIZATION_FUNCS(param_name, min_range, max_range)
 };
@@ -96,7 +104,8 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	int loopCnt = 500, bool binary_outcome = true);
 
 //will output the bootstrap results  into file
-void PrintMeasurement(const map<string, map<string, float>> &all_cohorts_measurments, const string &file_name);
+void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);
+void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments);
 
 MEDSERIALIZE_SUPPORT(Incident_Stats)
 MEDSERIALIZE_SUPPORT(ROC_Params)

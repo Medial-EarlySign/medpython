@@ -15,6 +15,9 @@ public:
 	int loopCnt;
 
 	MedBootstrap();
+	//init_string format: paramter_name=value;... roc_Params is the init_string of roc_Params
+	//filter_cohort - it's a file where each line is new cohort. "cohort_name TAB paramter_name:min_range,max_range;..."
+	MedBootstrap(const string &init_string); 
 
 	map<string, map<string, float>> booststrap(MedFeatures &features);
 	map<string, map<string, float>> booststrap(MedSamples &samples, map<string, vector<float>> &additional_info);
@@ -50,6 +53,9 @@ public:
 
 	void explore_score(float score, map<string, float> &score_measurements,
 		const string &string_cohort = "All", float max_search_range = 0.1);
+
+	void write_results_to_text_file(const string &path);
+	void read_results_to_text_file(const string &path);
 
 	ADD_SERIALIZATION_FUNCS(bootstrap_params, bootstrap_results)
 private:

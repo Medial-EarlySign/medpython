@@ -14,6 +14,59 @@ MedBootstrap::MedBootstrap() {
 	filter_cohort["All"] = {};
 }
 
+MedBootstrap::MedBootstrap(const string &init_string) {
+	sample_ratio = (float)1.0;
+	sample_per_pid = 1;
+	loopCnt = 500;
+	filter_cohort["All"] = {};
+
+	//now read init_string to override default:
+	vector<string> tokens;
+	boost::split(tokens, init_string, boost::is_any_of(";"));
+	for (string token : tokens)
+	{
+		if (token.find('=') == string::npos)
+			MTHROW_AND_ERR("Wrong token. has no value \"%s\"\n", token.c_str());
+		string param_name = token.substr(0, token.find('='));
+		string param_value = token.substr(token.find('=') + 1);
+		boost::to_lower(param_name);
+
+		if (param_name == "sample_ratio") {
+			sample_ratio = stof(param_value);
+			if (sample_ratio > 1.0 || sample_ratio < 0)
+				MTHROW_AND_ERR("sample_ratio should be between 0-1, got %2.3f\n", sample_ratio);
+		}
+		else if (param_name == "sample_per_pid")
+			sample_per_pid = stoi(param_value);
+		else if (param_name == "loopCnt")
+			loopCnt = stoi(param_value);
+		else if (param_name == "roc_params")
+			roc_Params = ROC_Params(param_value);
+		else if (param_name == "filter_cohort") {
+			ifstream of(param_value);
+			string line;
+			while (getline(of, line)) {
+				if (line.empty() || boost::starts_with(line, "#"))
+					continue;
+				if (line.find('\t') == string::npos)
+					MTHROW_AND_ERR("filter_cohort file \"%s\" is in wing format. line=\"%s\"\n",
+						param_value.c_str(), line.c_str());
+				string cohort_name = line.substr(0, line.find('\t'));
+				string cohort_definition = line.substr(line.find('\t') + 1);
+				vector<string> params;
+				boost::split(params, cohort_definition, boost::is_any_of(";"));
+				vector<Filter_Param> convert_params((int)params.size());
+				for (size_t i = 0; i < params.size(); ++i)
+					convert_params[i] = Filter_Param(params[i]);
+				filter_cohort[cohort_name] = convert_params;
+			}
+			of.close();
+		}
+		else
+			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
+	}
+}
+
 map<string, map<string, float>> MedBootstrap::booststrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info) {
 
@@ -494,4 +547,12 @@ void MedBootstrapResult::explore_measure(const string &measure_name, float value
 void MedBootstrapResult::explore_score(float score, map<string, float> &score_measurements,
 	const string &string_cohort, float max_search_range) {
 	explore_measure("SCORE", score, score_measurements, string_cohort, max_search_range);
+}
+
+void MedBootstrapResult::write_results_to_text_file(const string &path) {
+	write_bootstrap_results(path, bootstrap_results);
+}
+
+void MedBootstrapResult::read_results_to_text_file(const string &path) {
+	read_bootstrap_results(path, bootstrap_results);
 }
