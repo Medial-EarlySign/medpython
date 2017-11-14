@@ -175,7 +175,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		features.clear();
 		features.set_time_unit(samples.time_unit);
-		MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (verbosity > 0) MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
 		if (generate_all_features(rep, &samples, features) < 0) {
 			MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 			return -1;
@@ -195,7 +195,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
-	MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
 		MERR("Predictor failed\n");
@@ -371,7 +371,7 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
-		int npos = curr_line.find("//");
+		int npos = (int)(curr_line.find("//"));
 		if (npos == 0)
 			continue;
 		lines++;
@@ -458,7 +458,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 
 	ptree pt;
 	read_json(no_comments_stream, pt);
-	string ser = pt.get<string>("serialize_learning_set", "1");
+	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());
 	this->serialize_learning_set = stoi(ser);
 
 	for(ptree::value_type &p: pt.get_child("processes"))
@@ -922,7 +922,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	ptr += predictor->deserialize(blob + ptr);
 
 	memcpy(&serialize_learning_set, blob + ptr, sizeof(serialize_learning_set)); ptr += sizeof(serialize_learning_set);
-
+	MLOG("serialize_learning_set is %d\n", serialize_learning_set);
 	// Learning samples
 	LearningSet = new MedSamples;
 	ptr += LearningSet->deserialize(blob + ptr);

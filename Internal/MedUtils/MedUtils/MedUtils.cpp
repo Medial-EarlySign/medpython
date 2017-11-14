@@ -120,14 +120,14 @@ double get_mutual_information(map<int,int>& x_count, int nx, map<int,int>& y_cou
 // Get moments of a vector
 int get_moments(vector<float>& values, vector<float>& wgts, float missing_value, float& mean, float&sd, bool do_missing) {
 
-	return get_moments(&(values[0]), &(wgts[0]), values.size(), missing_value, mean, sd, do_missing);
+	return get_moments(&(values[0]), &(wgts[0]), (int)values.size(), missing_value, mean, sd, do_missing);
 }
 
 int get_moments(float *values, float* wgts, int size, float missing_value, float& mean, float&sd, bool do_missing) {
 	double  n = 0;
 	double s = 0;
 
-	for (unsigned int i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		if (!do_missing || values[i] != missing_value) {
 			n += wgts[i];
 			s += wgts[i] * values[i];
@@ -142,7 +142,7 @@ int get_moments(float *values, float* wgts, int size, float missing_value, float
 	mean = (float)(s / n);
 
 	s = 0.0;
-	for (unsigned int i = 0; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		if (!do_missing || values[i] != missing_value)
 			s += wgts[i] * (values[i]-mean)*(values[i]-mean);
 	}
@@ -156,5 +156,5 @@ int get_moments(float *values, float* wgts, int size, float missing_value, float
 		MWARN("get_moments for all-zeros vector, fixing SD from 0.0 to 1.0\n");
 		sd = 1.0;
 	}
-	return n;
+	return (int)n;
 }
