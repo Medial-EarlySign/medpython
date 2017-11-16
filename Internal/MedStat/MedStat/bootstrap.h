@@ -89,6 +89,7 @@ public:
 typedef map<string, float>(*MeasurementFunctions)(const vector<float> &preds, const vector<float> &y, void *function_params);
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
 typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def, void *cohort_params, void *function_params);
+typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
 
 #pragma region Process Measurement Param Functions
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
@@ -96,12 +97,18 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	void *cohort_params, void *function_params);
 #pragma endregion
 
+#pragma region Process Scores Functions
+//To Speedup bootstrap
+void preprocess_bin_scores(vector<float> &preds, void *function_params);
+#pragma endregion
+
 //The bootstrap function process
 map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
 	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
 	const map<string, void *> *cohort_params = NULL, const vector<void *> *function_params = NULL,
-	ProcessMeasurementParamFunc process_measurments_params = NULL,
+	ProcessMeasurementParamFunc process_measurments_params = NULL, 
+	PreprocessScoresFunc preprocess_scores = NULL, void *preprocess_scores_params = NULL,
 	float sample_ratio = (float)1.0, int sample_per_pid = 1,
 	int loopCnt = 500, bool binary_outcome = true);
 

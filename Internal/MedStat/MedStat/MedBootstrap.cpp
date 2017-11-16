@@ -83,7 +83,7 @@ map<string, map<string, float>> MedBootstrap::booststrap_base(const vector<float
 
 	return booststrap_analyze(preds, y, pids, additional_info, cohorts,
 		measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-		sample_ratio, sample_per_pid, loopCnt);
+		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
 }
 
 bool MedBootstrap::use_time_window() {
