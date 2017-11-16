@@ -964,12 +964,14 @@ void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_t
 	const pair<int, int> *index_to_merge) {
 	pair<int, int> *merge_into = NULL;
 	int to_merge_size = ind_to_size[index_to_merge->first - 1];
+	int erase_index = -1;
 	//remove index_to_merge.first - 1:
-	for (size_t j = 0; j < size_to_ind[to_merge_size].size(); ++j)
-		if (size_to_ind[to_merge_size][j].second <= index_to_merge->first - 1 &&
-			size_to_ind[to_merge_size][j].first >= index_to_merge->first - 1) {
+	for (int j = (int)size_to_ind[to_merge_size].size() - 1; j >= 0; --j)
+		if (size_to_ind[to_merge_size][j].second >= index_to_merge->first - 1 &&
+			size_to_ind[to_merge_size][j].first <= index_to_merge->first - 1) {
 			merge_into = &size_to_ind[to_merge_size][j];
-			size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
+			erase_index = j;
+			//size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
 			break;
 		}
 	if (merge_into == NULL)
@@ -977,23 +979,29 @@ void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_t
 
 	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
-	//insert new union
-	size_to_ind[new_size].push_back(pair<int, int>(merge_into->first, index_to_merge->second));
 	//update in min,max:
 	ind_to_size[merge_into->first] = new_size;
 	ind_to_size[index_to_merge->second] = new_size;
+	//erase old one
+	int first_pos = merge_into->first;
+	int second_pos = index_to_merge->second;
+	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
+	//insert new union
+	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
 void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
 	const pair<int, int> *index_to_merge) {
 	//merge with +1
 	pair<int, int> *merge_into = NULL;
 	int to_merge_size = ind_to_size[index_to_merge->second + 1];
+	int erase_index = -1;
 	//remove index_to_merge.second + 1:
-	for (size_t j = 0; j < size_to_ind[to_merge_size].size(); ++j)
-		if (size_to_ind[to_merge_size][j].second <= index_to_merge->second + 1 &&
-			size_to_ind[to_merge_size][j].first >= index_to_merge->second + 1) {
+	for (int j = (int)size_to_ind[to_merge_size].size()-1; j >=0; --j)
+		if (size_to_ind[to_merge_size][j].second >= index_to_merge->second + 1 &&
+			size_to_ind[to_merge_size][j].first <= index_to_merge->second + 1) {
 			merge_into = &size_to_ind[to_merge_size][j];
-			size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
+			//size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
+			erase_index = j;
 			break;
 		}
 	if (merge_into == NULL)
@@ -1001,11 +1009,15 @@ void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_
 
 	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
-	//insert new union set:
-	size_to_ind[new_size].push_back(pair<int, int>(index_to_merge->first, merge_into->second));
 	//update in min,max:
 	ind_to_size[index_to_merge->first] = new_size;
 	ind_to_size[merge_into->second] = new_size;
+	//erase old one:
+	int first_pos = index_to_merge->first;
+	int second_pos = merge_into->second;
+	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
+	//insert new union set:
+	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
 
 map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const vector<float> &y, void *function_params) {
@@ -1049,9 +1061,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 
-	bool clear_mem = false;
 	if (scores_bin > 0 && unique_scores.size() > scores_bin) {
-		clear_mem = true;
 		int bin_size_last = (int)unique_scores.size();
 		int c = 0;
 		vector<vector<pair<int, int>>> size_to_ind(preds.size()); //size, group, index_min_max
@@ -1067,23 +1077,29 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 		while (bin_size_last > scores_bin) {
 			int min_size = *sizes.begin();
-			pair<int, int> *index_to_merge = &size_to_ind[min_size].back();
-			size_to_ind[min_size].pop_back();
-			if (size_to_ind[min_size].empty()) //erase if left empty after merge
-				sizes.erase(sizes.begin());
+			if (size_to_ind[min_size].empty())
+				MTHROW_AND_ERR("Bug couldn't found min_size=%d\n", min_size);
+			
+			pair<int, int> index_to_merge = size_to_ind[min_size].back();
+			size_to_ind[min_size].pop_back(); //now popback
 			pair<int, int> *merge_into = NULL;
 			//merge index_to_merge with index_to_merge+-1. and update size_to_ind, ind_to_size, sizes
-			if (index_to_merge->second == unique_scores.size() - 1)
-				merge_down(ind_to_size, size_to_ind, sizes, index_to_merge);
-			else if (index_to_merge->first == 0)
-				merge_up(ind_to_size, size_to_ind, sizes, index_to_merge);
+			if (index_to_merge.second == unique_scores.size() - 1)
+				merge_down(ind_to_size, size_to_ind, sizes, &index_to_merge);
+			else if (index_to_merge.first == 0)
+				merge_up(ind_to_size, size_to_ind, sizes, &index_to_merge);
 			else {
-				if (ind_to_size[index_to_merge->second + 1] < ind_to_size[index_to_merge->first - 1])
-					merge_up(ind_to_size, size_to_ind, sizes, index_to_merge);
+				//MLOG("DEBUG: %d,%d\n", index_to_merge.first, index_to_merge.second);
+				if (ind_to_size[index_to_merge.second + 1] < ind_to_size[index_to_merge.first - 1])
+					merge_up(ind_to_size, size_to_ind, sizes, &index_to_merge);
 				else
-					merge_down(ind_to_size, size_to_ind, sizes, index_to_merge);
+					merge_down(ind_to_size, size_to_ind, sizes, &index_to_merge);
 			}
 
+			while (size_to_ind[min_size].empty()) {//erase if left empty after merge
+				sizes.erase(sizes.begin());
+				min_size = *sizes.begin();
+			}
 			--bin_size_last;
 		}
 
@@ -1109,7 +1125,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 			}
 		}
 
-		thresholds_indexes = move(*new_thresholds);
+		thresholds_indexes.swap(*new_thresholds);
 		unique_scores.resize((int)thresholds_indexes.size());
 		int ind_pp = 0;
 		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it) {
@@ -1458,12 +1474,6 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 	res["POS_SUM"] = float(t_sum);
 	res["POS_CNT"] = float(t_cnt);
 	res["NEG_CNT"] = float(f_cnt);
-
-	if (clear_mem) {
-		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
-			delete &it->second;
-		delete &thresholds_indexes;
-	}
 
 	return res;
 }
