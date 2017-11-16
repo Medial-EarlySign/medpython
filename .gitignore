@@ -69,3 +69,6 @@ External/LightGBM/LightGBM/windows/x64/
 External/LightGBM/LightGBM/lightgbm
 *.tlog
 Internal/MedProcessTools/MedProcessTools/x64/DLL-Release/
+*.samples
+Internal/AlgoMarker/samples.debug
+*.vspx

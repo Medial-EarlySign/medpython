@@ -5,7 +5,7 @@
 extern MedLogger global_logger;
 
 //-------------------------------------------------------------------------------------------------------------------
-int InMemRepData::insertData(int pid, char *sig, int *time_data, float *val_data, int n_time, int n_val)
+int InMemRepData::insertData(int pid, const char *sig, int *time_data, float *val_data, int n_time, int n_val)
 {
 	int sid = my_rep->sigs.sid(string(sig));
 	if (sid < 0) {
@@ -20,35 +20,42 @@ int InMemRepData::insertData(int pid, char *sig, int *time_data, float *val_data
 //-------------------------------------------------------------------------------------------------------------------
 int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val)
 {
+
 	int n_time_ch = my_rep->sigs.Sid2Info[sid].n_time_channels;
 	int n_val_ch = my_rep->sigs.Sid2Info[sid].n_val_channels;
 
-	int n_elem_by_time = n_time/n_time_ch;
-	int n_elem_by_val = n_val/n_val_ch;
+	int n_elem_by_time = 0;
+	int n_elem_by_val = 0;
+	if (n_time_ch > 0) n_elem_by_time = n_time/n_time_ch;
+	if (n_val_ch > 0) n_elem_by_val = n_val/n_val_ch;
 
+
+	//MLOG(">>>> sid %d ch(%d,%d) elem(%d,%d) n(%d,%d)\n", sid, n_time_ch, n_val_ch, n_elem_by_time, n_elem_by_val, n_time, n_val);
 	// a few sanity tests
 	if ((n_time != n_elem_by_time*n_time_ch) || (n_val != n_elem_by_val*n_val_ch) || 
 	    (n_time_ch == 0 && n_time > 0) || (n_val_ch == 0 && n_val > 0) ||
-	    (n_time_ch > 0 && n_time == 0) || (n_val_ch > 0 && n_val > 0) || 
+	    (n_time_ch > 0 && n_time == 0) || (n_val_ch > 0 && n_val == 0) || 
 		(n_time_ch > 0 && n_val_ch > 0 && n_elem_by_time != n_elem_by_val))
 	{
 		MERR("ERROR: InMemRepData: non matching time/value numbers : needed (%d,%d) per element , got (%d,%d) ...\n", n_time_ch, n_val_ch, n_time, n_val);
 		return -1;
 	}
-
 	int n_elem = max(n_elem_by_time, n_elem_by_val);
 
 	int len_bytes = my_rep->sigs.Sid2Info[sid].bytes_len;
+
 	vector<char> elem(len_bytes*n_elem);
 
 	int type = my_rep->sigs.Sid2Info[sid].type;
 
+	//MLOG("pid %d sid %d type %d len_bytes %d nelem %d\n", pid, sid, type, len_bytes, n_elem);
 	int *tdata = time_data;
 	float *vdata = val_data;
 
 	if (n_time_ch == 0) tdata = NULL;
 	if (n_val_ch == 0) tdata = NULL;
 
+	//MLOG("pid %d sid %d type %d len_bytes %d nelem %d\n", pid, sid, type, len_bytes, n_elem);
 	for (int i=0; i<n_elem; i++) {
 		if (MedSignalsSingleElemFill(type, &elem[len_bytes*i], tdata, vdata) < 0) {
 			MERR("ERROR: InMemRepData::insertData failed fill element %d/%d.", i, n_elem);
@@ -66,6 +73,7 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 		data[pid_sid] = n_data;
 		data[pid_sid].second = elem;
 		data[pid_sid].first = n_elem;
+		//MLOG("inserted pid %d sid %d nelem %d bytes %d size %d\n", pid, sid, n_elem, len_bytes, elem.size());
 	}
 	else {
 		data[pid_sid].second.insert(data[pid_sid].second.end(), elem.begin(), elem.end());
@@ -102,6 +110,7 @@ int InMemRepData::sort_pid_sid(int pid, int sid)
 		return -1;
 	}
 
+	//MLOG("pid %d sid %d len %d bytes %d first_val %f\n", pid, sid, data[pid_sid].first, my_rep->sigs.Sid2Info[sid].bytes_len, data[pid_sid].second[0]);
 	qsort(&data[pid_sid].second[0], data[pid_sid].first, my_rep->sigs.Sid2Info[sid].bytes_len, compare_func);
 
 	return 0;
@@ -111,8 +120,11 @@ int InMemRepData::sort_pid_sid(int pid, int sid)
 int InMemRepData::sortData()
 {
 	for (auto &data_elem : data) {
-		if (sort_pid_sid(data_elem.first.first, data_elem.first.second) < 0)
+		//MLOG("Now sorting pid %d sid %d (%s)\n", data_elem.first.first, data_elem.first.second, my_rep->sigs.Sid2Name[data_elem.first.second].c_str());
+		if (sort_pid_sid(data_elem.first.first, data_elem.first.second) < 0) {
+			MERR("FAILED:: InMemRepData::sortData() failed sorting pid %d sid %d\n", data_elem.first.first, data_elem.first.second);
 			return -1;
+		}
 	}
 	return 0;
 }
