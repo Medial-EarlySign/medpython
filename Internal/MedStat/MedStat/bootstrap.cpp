@@ -961,7 +961,7 @@ public:
 };
 
 void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
-	const pair<int, int> *index_to_merge, int min_size) {
+	const pair<int, int> *index_to_merge) {
 	pair<int, int> *merge_into = NULL;
 	int to_merge_size = ind_to_size[index_to_merge->first - 1];
 	//remove index_to_merge.first - 1:
@@ -975,7 +975,7 @@ void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_t
 	if (merge_into == NULL)
 		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
 
-	int new_size = min_size + to_merge_size;
+	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
 	//insert new union
 	size_to_ind[new_size].push_back(pair<int, int>(merge_into->first, index_to_merge->second));
@@ -984,7 +984,7 @@ void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_t
 	ind_to_size[index_to_merge->second] = new_size;
 }
 void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
-	const pair<int, int> *index_to_merge, int min_size) {
+	const pair<int, int> *index_to_merge) {
 	//merge with +1
 	pair<int, int> *merge_into = NULL;
 	int to_merge_size = ind_to_size[index_to_merge->second + 1];
@@ -999,7 +999,7 @@ void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_
 	if (merge_into == NULL)
 		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
 
-	int new_size = min_size + to_merge_size;
+	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
 	//insert new union set:
 	size_to_ind[new_size].push_back(pair<int, int>(index_to_merge->first, merge_into->second));
@@ -1034,8 +1034,12 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 	unordered_map<float, vector<int>> thresholds_indexes;
 	vector<float> unique_scores;
-	for (size_t i = 0; i < preds.size(); ++i)
-		thresholds_indexes[preds[i]].push_back((int)i);
+	if (params.score_resolution == 0)
+		for (size_t i = 0; i < preds.size(); ++i)
+			thresholds_indexes[preds[i]].push_back((int)i);
+	else //truncate score to resolution
+		for (size_t i = 0; i < preds.size(); ++i)
+			thresholds_indexes[(float)round((double)preds[i] / params.score_resolution) * params.score_resolution].push_back((int)i);
 	unique_scores.resize((int)thresholds_indexes.size());
 	int ind_p = 0;
 	for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
@@ -1070,14 +1074,14 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 			pair<int, int> *merge_into = NULL;
 			//merge index_to_merge with index_to_merge+-1. and update size_to_ind, ind_to_size, sizes
 			if (index_to_merge->second == unique_scores.size() - 1)
-				merge_down(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+				merge_down(ind_to_size, size_to_ind, sizes, index_to_merge);
 			else if (index_to_merge->first == 0)
-				merge_up(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+				merge_up(ind_to_size, size_to_ind, sizes, index_to_merge);
 			else {
 				if (ind_to_size[index_to_merge->second + 1] < ind_to_size[index_to_merge->first - 1])
-					merge_up(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+					merge_up(ind_to_size, size_to_ind, sizes, index_to_merge);
 				else
-					merge_down(ind_to_size, size_to_ind, sizes, index_to_merge, min_size);
+					merge_down(ind_to_size, size_to_ind, sizes, index_to_merge);
 			}
 
 			--bin_size_last;
@@ -1706,6 +1710,7 @@ ROC_Params::ROC_Params(const string &init_string) {
 	use_score_working_points = false;
 	working_point_FPR = { (float)0.1, 1, 5, 10,20,30,40,50,55,60,65,70,75,80,85,90,95 };
 	score_bins = 0;
+	score_resolution = 0;
 	incidence_fix = 0;
 
 	//override default with given string:
@@ -1725,6 +1730,8 @@ ROC_Params::ROC_Params(const string &init_string) {
 			use_score_working_points = stoi(param_value) > 0;
 		else if (param_name == "score_bins")
 			score_bins = stoi(param_value);
+		else if (param_name == "score_resolution")
+			score_resolution = stof(param_value);
 		else if (param_name == "inc_stats_text")
 			inc_stats.read_from_text_file(param_value);
 		else if (param_name == "inc_stats_bin")

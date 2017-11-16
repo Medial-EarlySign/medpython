@@ -50,12 +50,14 @@ public:
 	bool use_score_working_points; //if true will calculate all roc measurements based on scores working points
 	float max_diff_working_point; //the maximal diff in calculated working point to requested working point to drop
 	int score_bins;
+	float score_resolution;
 	Incident_Stats inc_stats; //the incedince data if provided for general population
 	ROC_Params() {
 		max_diff_working_point = (float)0.05;
 		use_score_working_points = false;
 		working_point_FPR = { (float)0.1, 1, 5, 10,20,30,40,50,55,60,65,70,75,80,85,90,95 };
 		score_bins = 0;
+		score_resolution = 0;
 		incidence_fix = 0;
 	}
 	ROC_Params(const string &init_string); //in format "paramter_name=value;..." for vector use ","
