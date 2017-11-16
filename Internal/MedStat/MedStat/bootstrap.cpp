@@ -535,9 +535,9 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 
 				++curr_wp_fpr_ind;
 				continue;
-	}
+			}
 			++i;
-}
+		}
 
 		//sens points:
 		i = 0;
@@ -567,10 +567,10 @@ map<string, float> calc_roc_measures(const vector<float> &preds, const vector<fl
 
 				++curr_wp_sens_ind;
 				continue;
-		}
+			}
 			++i;
+		}
 	}
-}
 	else {
 		wp_fpr_spec.resize((int)true_rate.size());
 		wp_fpr_sens.resize((int)true_rate.size());
@@ -742,7 +742,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-			}
+				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
@@ -776,9 +776,9 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 
 				++curr_wp_fpr_ind;
 				continue;
-		}
+			}
 			++i;
-	}
+		}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -793,7 +793,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-			}
+				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
@@ -827,9 +827,9 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 
 				++curr_wp_sens_ind;
 				continue;
-		}
+			}
 			++i;
-}
+		}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -847,7 +847,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-			}
+				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 					wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
@@ -877,7 +877,7 @@ map<string, float> calc_roc_measures_full(const vector<float> &preds, const vect
 
 				++curr_wp_pr_ind;
 				continue;
-		}
+			}
 			++i;
 		}
 
@@ -1217,7 +1217,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-			}
+				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
 					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
@@ -1263,9 +1263,9 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 				++curr_wp_fpr_ind;
 				continue;
-		}
+			}
 			++i;
-	}
+		}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -1280,7 +1280,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-			}
+				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
 					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
@@ -1326,9 +1326,9 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 				++curr_wp_sens_ind;
 				continue;
-		}
+			}
 			++i;
-}
+		}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -1346,7 +1346,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 				if (tot_diff <= 0) {
 					curr_diff = 1;
 					tot_diff = 1; //take prev - first apeareance
-			}
+				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
 					wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
@@ -1382,7 +1382,7 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 
 				++curr_wp_pr_ind;
 				continue;
-		}
+			}
 			++i;
 		}
 
@@ -1512,6 +1512,8 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def,
 	void *cohort_params, void *function_params) {
 	ROC_Params *params = (ROC_Params *)function_params;
+	if (params->inc_stats.sorted_outcome_labels.empty())
+		return; //no inc file
 	//calculating the "fixed" incidence in the cohort giving the true inc. in the general population
 	// select cohort - and multiply in the given original incidence
 	if (params->inc_stats.sorted_outcome_labels.size() != 2)

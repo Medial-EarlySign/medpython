@@ -38,11 +38,12 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 		}
 		else if (param_name == "sample_per_pid")
 			sample_per_pid = stoi(param_value);
-		else if (param_name == "loopCnt")
+		else if (param_name == "loopcnt")
 			loopCnt = stoi(param_value);
 		else if (param_name == "roc_params")
 			roc_Params = ROC_Params(param_value);
 		else if (param_name == "filter_cohort") {
+			filter_cohort.clear();
 			ifstream of(param_value);
 			string line;
 			while (getline(of, line)) {
@@ -73,7 +74,7 @@ map<string, map<string, float>> MedBootstrap::booststrap_base(const vector<float
 	map<string, FilterCohortFunc> cohorts;
 	vector<MeasurementFunctions> measures = { calc_roc_measures_with_inc };
 	map<string, void *> cohort_params;
-	vector<void *> measurements_params = { NULL, (void *)&roc_Params };
+	vector<void *> measurements_params = { (void *)&roc_Params };
 
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
 		cohorts[it->first] = filter_range_params;
