@@ -133,11 +133,11 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				else
 					ind_pid = (int)k;
 
-				vector<int> inds = pid_to_inds[ind_to_pid[ind_pid]];
-				uniform_int_distribution<> random_num(0, (int)inds.size() - 1);
+				vector<int> *inds = &pid_to_inds[ind_to_pid[ind_pid]];
+				uniform_int_distribution<> random_num(0, (int)inds->size() - 1);
 				for (size_t kk = 0; kk < sample_per_pid; ++kk)
 				{
-					selected_inds[curr_ind] = inds[random_num(rd_gen)];
+					selected_inds[curr_ind] = (*inds)[random_num(rd_gen)];
 					++curr_ind;
 				}
 			}
