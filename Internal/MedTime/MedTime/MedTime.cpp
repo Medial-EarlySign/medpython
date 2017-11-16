@@ -243,3 +243,10 @@ int MedTime::string_to_type(const string &str)
 	if (str == "Minutes" || str == "minutes" || str == "Minute" || str == "minute") return MedTime::Minutes;
 	return -1;
 }
+//.....................................................................................................
+int MedTime::add_subtruct_days(int in_time, int delta_days) {
+	int in_time_n = convert_times(Date, Days, in_time);
+	in_time_n += delta_days;
+	int out_time = convert_times(Days, Date, in_time_n);
+	return out_time;
+}
