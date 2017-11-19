@@ -15,8 +15,6 @@ static MedTime med_time;
 #pragma region Measurements Fucntions
 map<string, float> calc_npos_nneg(const vector<float> &preds, const vector<float> &y, void *function_params);
 map<string, float> calc_only_auc(const vector<float> &preds, const vector<float> &y, void *function_params);
-map<string, float> calc_roc_measures(const vector<float> &preds, const vector<float> &y, void *function_params); //SENS, SPEC, SCORE. no ppv, no PR
-map<string, float> calc_roc_measures_full(const vector<float> &preds, const vector<float> &y, void *function_params); //with PPV and PR
 map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const vector<float> &y, void *function_params); //with PPV and PR
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion

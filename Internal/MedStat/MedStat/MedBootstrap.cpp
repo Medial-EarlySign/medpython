@@ -102,6 +102,8 @@ void MedBootstrap::clean_feature_name_prefix(map<string, vector<float>> &feature
 			string new_name = it->first.substr(it->first.find('.') + 1);
 			name_data[new_name].swap(it->second);
 		}
+		else
+			name_data[it->first].swap(it->second);
 	}
 	name_data.swap(features); //feature_data will steal "name_data" data
 }
@@ -186,8 +188,11 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, co
 	sigs.resize(std::distance(sigs.begin(), it));
 
 	MedPidRepository rep;
+	int curr_level = global_logger.levels.front();
+	global_logger.init_all_levels(LOG_DEF_LEVEL);
 	if (rep.read_all(rep_path, pids_to_take, sigs) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_path.c_str());
+	global_logger.init_all_levels(curr_level);
 
 	if (mdl.apply(rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
 		MTHROW_AND_ERR("Error creating age,gender for samples\n");
