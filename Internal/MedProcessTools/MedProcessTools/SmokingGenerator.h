@@ -9,6 +9,7 @@ public:
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
 	string smoking_method = "SMOKING_ENRICHED";
+	string future_ind = "0";
 
 	// Constructor/Destructor
 	//SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; req_signals.assign(1, "SMOKING_ENRICHED"); }

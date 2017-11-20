@@ -7,9 +7,10 @@ class AlcoholGenerator : public FeatureGenerator {
 public:
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
+	string future_ind = "0";
 
 	// Constructor/Destructor
-	AlcoholGenerator() : FeatureGenerator() { generator_type = FTR_GEN_ALCOHOL; req_signals.assign(1, "ALCOHOL"); }
+	AlcoholGenerator() : FeatureGenerator() { generator_type = FTR_GEN_ALCOHOL; req_signals.push_back("Alcohol_quantity"); req_signals.push_back("BYEAR");	}
 	~AlcoholGenerator() {};
 
 	virtual int init(map<string, string>& mapper);
@@ -27,7 +28,7 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("ALCOHOL")); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("Alcohol_quantity")); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags); }

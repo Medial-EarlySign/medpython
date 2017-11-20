@@ -16,19 +16,25 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	boost::split(fields, s, boost::is_any_of("\t\n\r"));
 	if (fields.size() == 0)
 		return -1;
-	if (pos["id"] != -1)
-		id = stoi(fields[pos["id"]]);
-	if (pos["date"] != -1)
-		time = stoi(fields[pos["date"]]);
-	if (pos["outcome"] != -1)
-		outcome = stof(fields[pos["outcome"]]);
-	if (pos["outcome_date"] != -1)
-		outcomeTime = stoi(fields[pos["outcome_date"]]);
-	if (pos["split"] != -1 && fields.size() > pos["split"])
-		split = stoi(fields[pos["split"]]);
-	if (pos["pred"] != -1 && fields.size() > pos["pred"])
-		prediction.push_back(stof(fields[pos["pred"]]));
-	return 0;
+	try {
+		if (pos["id"] != -1)
+			id = stoi(fields[pos["id"]]);
+		if (pos["date"] != -1)
+			time = stoi(fields[pos["date"]]);
+		if (pos["outcome"] != -1)
+			outcome = stof(fields[pos["outcome"]]);
+		if (pos["outcome_date"] != -1)
+			outcomeTime = stoi(fields[pos["outcome_date"]]);
+		if (pos["split"] != -1 && fields.size() > pos["split"])
+			split = stoi(fields[pos["split"]]);
+		if (pos["pred"] != -1 && fields.size() > pos["pred"])
+			prediction.push_back(stof(fields[pos["pred"]]));
+		return 0;
+	}
+	catch (std::invalid_argument e) {
+		MLOG("could not parse [%s]\n", s.c_str());
+		throw e;
+	}
 }
 
 //.......................................................................................
