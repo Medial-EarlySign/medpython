@@ -65,19 +65,20 @@ string printVec(const vector<float> &v, int from, int to) {
 	return res;
 }
 
+random_device Lazy_Iterator::rd;
+
 Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
 	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops) {
 	sample_per_pid = p_sample_per_pid;
 	sample_ratio = p_sample_ratio;
 	pids = p_pids;
-	y = p_y;
-	preds = p_preds;
+	y = p_y->data();
+	preds = p_preds->data();
 	maxThreadCount = max_loops;
 	if (sample_per_pid == 0 && sample_ratio >= 1)
 		MTHROW_AND_ERR("You can't sample on all pids and take all thier samples."
 			" sample_per_pid==0, sample_ratio==1 is ilegal\n");
 
-	rd_gen = mt19937(rd());
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
 		pid_to_inds[(*pids)[i]].push_back(int(i));
@@ -103,16 +104,20 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	int rep_pid_size = max_pid_start - min_pid_start;
 	cohort_size = int(sample_ratio * pid_index_to_indexes.size());
 	//init:
+	rd_gen.resize(maxThreadCount);
+	for (size_t i = 0; i < maxThreadCount; ++i)
+		rd_gen[i] = mt19937(rd());
 	rand_pids = uniform_int_distribution<>(0, (int)pid_index_to_indexes.size() - 1);
 	internal_random.resize(max_samples);
 	for (int i = 1; i <= max_samples; ++i)
 		internal_random[i] = uniform_int_distribution<>(0, i - 1);
+	//MLOG_D("created %d random gens\n", (int)internal_random.size());
 
 	current_pos.resize(maxThreadCount, 0);
 	inner_pos.resize(maxThreadCount, 0);
 	sel_pid_index.resize(maxThreadCount, -1);
 	selected_ind_pid.resize(maxThreadCount);
-	for (size_t i = 0; i < maxThreadCount; ++i)
+	for (size_t i = 0; i < maxThreadCount; ++i) 
 		selected_ind_pid[i].resize((int)pid_index_to_indexes.size(), false);
 }
 
@@ -121,44 +126,45 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		//choose pid:
 		int selected_pid_index = int(current_pos[thread] / sample_per_pid);
 		if (sample_ratio < 1) {
-			selected_pid_index = rand_pids(rd_gen);
+			selected_pid_index = rand_pids(rd_gen[thread]);
 			while (selected_ind_pid[thread][selected_pid_index - min_pid_start])
-				selected_pid_index = rand_pids(rd_gen);
+				selected_pid_index = rand_pids(rd_gen[thread]);
+#pragma omp critical
 			selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
 		}
 
 		vector<int> *inds = &pid_index_to_indexes[selected_pid_index];
 		uniform_int_distribution<> *rnd_num = &internal_random[inds->size()];
 
-		int selected_index = (*inds)[(*rnd_num)(rd_gen)];
-		ret_y = (*y)[selected_index];
-		ret_pred = (*preds)[selected_index];
+		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
+		ret_y = y[selected_index];
+		ret_pred = preds[selected_index];
 		++current_pos[thread];
+		return current_pos[thread] < sample_per_pid * cohort_size;
 	}
 	else { //taking all samples for pid when selected, sample_ratio is less than 1
 		if (sel_pid_index[thread] < 0)
 		{
-			int selected_pid_index = rand_pids(rd_gen);
+			int selected_pid_index = rand_pids(rd_gen[thread]);
 			while (selected_ind_pid[thread][selected_pid_index - min_pid_start])
-				selected_pid_index = rand_pids(rd_gen);
+				selected_pid_index = rand_pids(rd_gen[thread]);
+#pragma omp critical
 			selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
 			sel_pid_index[thread] = selected_pid_index;
 			inner_pos[thread] = 0;
 		}
 		vector<int> *inds = &pid_index_to_indexes[sel_pid_index[thread]];
 		int final_index = (*inds)[inner_pos[thread]];
-		ret_y = (*y)[final_index];
-		ret_pred = (*preds)[final_index];
+		ret_y = y[final_index];
+		ret_pred = preds[final_index];
 		//take all inds:
 		++inner_pos[thread];
 		if (inner_pos[thread] >= inds->size()) {
 			sel_pid_index[thread] = -1;
 			++current_pos[thread]; //mark pid as done
 		}
+		return current_pos[thread] < cohort_size;
 	}
-
-	return sample_per_pid > 0 ? current_pos[thread] < sample_per_pid * cohort_size :
-		current_pos[thread] < cohort_size;
 }
 
 #pragma endregion
@@ -171,7 +177,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params) {
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
-	
+
 	//initialize measurement params per cohort:
 	time_t st = time(NULL);
 	for (size_t i = 0; i < function_params.size(); ++i)
@@ -190,18 +196,19 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	for (size_t k = 0; k < meas_functions.size(); ++k)
 	{
 		vector<void *> measure_params = { &loopCnt ,function_params[k] };
-		map<string, float> batch_measures = meas_functions[k](iterator, (void *)&measure_params);
+		map<string, float> batch_measures = meas_functions[k](&iterator, (void *)&measure_params);
 		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 			all_measures[jt->first + "_Obs"].push_back(jt->second);
 	}
 
-#pragma omp parallel for schedule(dynamic, 1)
+	Lazy_Iterator *iter_for_omp = &iterator;
+#pragma omp parallel for schedule(static)
 	for (int i = 0; i < loopCnt; ++i)
 	{
 		for (size_t k = 0; k < meas_functions.size(); ++k)
 		{
 			vector<void *> measure_params = { &i ,function_params[k] };
-			map<string, float> batch_measures = meas_functions[k](iterator, (void *)&measure_params);
+			map<string, float> batch_measures = meas_functions[k](iter_for_omp, (void *)&measure_params);
 #pragma omp critical
 			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 				all_measures[jt->first].push_back(jt->second);
@@ -248,7 +255,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	if (preds.size() != y.size() || preds.size() != pids.size()) {
 		cerr << "bootstrap sizes aren't equal preds=" << preds.size() << " y=" << y.size() << endl;
 		throw invalid_argument("bootstrap sizes aren't equal");
-	}
+}
 	vector<void *> params((int)meas_functions.size());
 	if (function_params == NULL)
 		for (size_t i = 0; i < params.size(); ++i)
@@ -371,14 +378,14 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 
 #pragma region Measurements Fucntions
 
-map<string, float> calc_npos_nneg(Lazy_Iterator &iterator, void *function_params) {
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params) {
 	map<string, float> res;
 	vector<void *> *orig_params = (vector<void *> *)function_params;
 	int *thread = (int *)orig_params->front();
 
 	map<float, int> cnts;
 	float y, pred;
-	while (iterator.fetch_next(*thread, y, pred))
+	while (iterator->fetch_next(*thread, y, pred))
 		cnts[y] += 1;
 
 	res["NPOS"] = (float)cnts[(float)1.0];
@@ -387,7 +394,7 @@ map<string, float> calc_npos_nneg(Lazy_Iterator &iterator, void *function_params
 	return res;
 }
 
-map<string, float> calc_only_auc(Lazy_Iterator &iterator, void *function_params) {
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params) {
 	map<string, float> res;
 	vector<void *> *orig_params = (vector<void *> *)function_params;
 	int *thread = (int *)orig_params->front();
@@ -397,7 +404,7 @@ map<string, float> calc_only_auc(Lazy_Iterator &iterator, void *function_params)
 	int tot_true_labels = 0;
 	float y, pred;
 	int tot_cnt = 0;
-	while (iterator.fetch_next(*thread, y, pred)) {
+	while (iterator->fetch_next(*thread, y, pred)) {
 		pred_to_labels[pred].push_back(y);
 		tot_true_labels += int(y > 0);
 		++tot_cnt;
@@ -443,7 +450,7 @@ map<string, float> calc_only_auc(Lazy_Iterator &iterator, void *function_params)
 	return res;
 }
 
-map<string, float> calc_roc_measures_with_inc(Lazy_Iterator &iterator, void *function_params) {
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
 	bool censor_removed = true;
@@ -472,7 +479,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator &iterator, void *fun
 	unordered_map<float, vector<float>> thresholds_labels;
 	vector<float> unique_scores;
 	float y, pred;
-	while (iterator.fetch_next(*thread, y, pred))
+	//while (iterator->fetch_next(*thread, y, pred))
+	while (iterator->fetch_next(*thread, y, pred))
 		thresholds_labels[pred].push_back(y);
 
 	unique_scores.resize((int)thresholds_labels.size());

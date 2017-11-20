@@ -20,11 +20,10 @@ public:
 		const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops);
 
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
-
 private:
 	//internal structure - one time init
-	random_device rd;
-	mt19937 rd_gen;
+	static random_device rd;
+	vector<mt19937> rd_gen;
 	uniform_int_distribution<> rand_pids;
 	vector<int> ind_to_pid;
 	vector<vector<int>> pid_index_to_indexes; //for each pid_index retrieve the indexes in the original vectors
@@ -39,8 +38,8 @@ private:
 	vector<int> sel_pid_index; //only used when sample_per_pid==0
 
 	//original vectors
-	const vector<float> *preds;
-	const vector<float> *y;
+	const float *preds;
+	const float *y;
 	const vector<int> *pids;
 
 	//sampling params:
@@ -52,9 +51,9 @@ private:
 };
 
 #pragma region Measurements Fucntions
-map<string, float> calc_npos_nneg(Lazy_Iterator &iterator, void *function_params);
-map<string, float> calc_only_auc(Lazy_Iterator &iterator, void *function_params);
-map<string, float> calc_roc_measures_with_inc(Lazy_Iterator &iterator, void *function_params); //with PPV and PR
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params);
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params);
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *function_params); //with PPV and PR
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -123,7 +122,7 @@ public:
 };
 
 //Infra
-typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator &iterator, void *function_params);
+typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, void *function_params);
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
 typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def, void *cohort_params, void *function_params);
 typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
