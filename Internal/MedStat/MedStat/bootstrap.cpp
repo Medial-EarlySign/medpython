@@ -7,6 +7,7 @@
 #include <fstream>
 #include <ctime>
 #include <cmath>
+#include <omp.h>
 #include <fenv.h>
 #ifndef  __unix__
 #pragma float_control( except, on )
@@ -63,6 +64,103 @@ string printVec(const vector<float> &v, int from, int to) {
 	}
 	return res;
 }
+
+Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
+	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops) {
+	sample_per_pid = p_sample_per_pid;
+	sample_ratio = p_sample_ratio;
+	pids = p_pids;
+	y = p_y;
+	preds = p_preds;
+	maxThreadCount = max_loops;
+	if (sample_per_pid == 0 && sample_ratio >= 1)
+		MTHROW_AND_ERR("You can't sample on all pids and take all thier samples."
+			" sample_per_pid==0, sample_ratio==1 is ilegal\n");
+
+	rd_gen = mt19937(rd());
+	unordered_map<int, vector<int>> pid_to_inds;
+	for (size_t i = 0; i < pids->size(); ++i)
+		pid_to_inds[(*pids)[i]].push_back(int(i));
+
+	pid_index_to_indexes.resize((int)pid_to_inds.size());
+	ind_to_pid.resize((int)pid_index_to_indexes.size());
+	min_pid_start = INT_MAX;
+	int max_pid_start = 0;
+	int cnt_i = 0;
+	int max_samples = 0;
+	for (auto it = pid_to_inds.begin(); it != pid_to_inds.end(); ++it)
+	{
+		ind_to_pid[cnt_i] = it->first;
+		if (max_samples < it->second.size())
+			max_samples = (int)it->second.size();
+		pid_index_to_indexes[cnt_i].swap(it->second);
+		++cnt_i;
+		if (it->first < min_pid_start)
+			min_pid_start = it->first;
+		if (it->first > max_pid_start)
+			max_pid_start = it->first;
+	}
+	int rep_pid_size = max_pid_start - min_pid_start;
+	cohort_size = int(sample_ratio * pid_index_to_indexes.size());
+	//init:
+	rand_pids = uniform_int_distribution<>(0, (int)pid_index_to_indexes.size() - 1);
+	internal_random.resize(max_samples);
+	for (int i = 1; i <= max_samples; ++i)
+		internal_random[i] = uniform_int_distribution<>(0, i - 1);
+
+	current_pos.resize(maxThreadCount, 0);
+	inner_pos.resize(maxThreadCount, 0);
+	sel_pid_index.resize(maxThreadCount, -1);
+	selected_ind_pid.resize(maxThreadCount);
+	for (size_t i = 0; i < maxThreadCount; ++i)
+		selected_ind_pid[i].resize((int)pid_index_to_indexes.size(), false);
+}
+
+bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
+	if (sample_per_pid > 0) {
+		//choose pid:
+		int selected_pid_index = int(current_pos[thread] / sample_per_pid);
+		if (sample_ratio < 1) {
+			selected_pid_index = rand_pids(rd_gen);
+			while (selected_ind_pid[thread][selected_pid_index - min_pid_start])
+				selected_pid_index = rand_pids(rd_gen);
+			selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
+		}
+
+		vector<int> *inds = &pid_index_to_indexes[selected_pid_index];
+		uniform_int_distribution<> *rnd_num = &internal_random[inds->size()];
+
+		int selected_index = (*inds)[(*rnd_num)(rd_gen)];
+		ret_y = (*y)[selected_index];
+		ret_pred = (*preds)[selected_index];
+		++current_pos[thread];
+	}
+	else { //taking all samples for pid when selected, sample_ratio is less than 1
+		if (sel_pid_index[thread] < 0)
+		{
+			int selected_pid_index = rand_pids(rd_gen);
+			while (selected_ind_pid[thread][selected_pid_index - min_pid_start])
+				selected_pid_index = rand_pids(rd_gen);
+			selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
+			sel_pid_index[thread] = selected_pid_index;
+			inner_pos[thread] = 0;
+		}
+		vector<int> *inds = &pid_index_to_indexes[sel_pid_index[thread]];
+		int final_index = (*inds)[inner_pos[thread]];
+		ret_y = (*y)[final_index];
+		ret_pred = (*preds)[final_index];
+		//take all inds:
+		++inner_pos[thread];
+		if (inner_pos[thread] >= inds->size()) {
+			sel_pid_index[thread] = -1;
+			++current_pos[thread]; //mark pid as done
+		}
+	}
+
+	return sample_per_pid > 0 ? current_pos[thread] < sample_per_pid * cohort_size :
+		current_pos[thread] < cohort_size;
+}
+
 #pragma endregion
 
 map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
@@ -73,18 +171,17 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params) {
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
-	unordered_map<int, vector<int>> pid_to_inds;
-	for (size_t i = 0; i < pids.size(); ++i)
-		pid_to_inds[pids[i]].push_back(int(i));
-
+	
 	//initialize measurement params per cohort:
+	time_t st = time(NULL);
 	for (size_t i = 0; i < function_params.size(); ++i)
 		if (process_measurments_params != NULL && function_params[i] != NULL)
 			process_measurments_params(additional_info, y_full, pids_full, cohort_def, cohort_params
 				, function_params[i]);
+	MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
-	random_device rd;
-	mt19937 rd_gen(rd());
+	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1); //for Obs
+	MLOG_D("took %2.1f sec to allocate mem\n", (float)difftime(time(NULL), st));
 
 	//this function called after filter cohort
 
@@ -92,118 +189,22 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//save results for all cohort:
 	for (size_t k = 0; k < meas_functions.size(); ++k)
 	{
-		map<string, float> batch_measures;
-		batch_measures = meas_functions[k](preds, y, function_params[k]);
+		vector<void *> measure_params = { &loopCnt ,function_params[k] };
+		map<string, float> batch_measures = meas_functions[k](iterator, (void *)&measure_params);
 		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 			all_measures[jt->first + "_Obs"].push_back(jt->second);
 	}
 
-	int cohort_size = int(sample_ratio * pid_to_inds.size());
-	int cnt_i = 0;
-	vector<int> ind_to_pid((int)pid_to_inds.size());
-
-	int min_pid_start = INT_MAX;
-	int max_pid_start = 0;
-	for (auto it = pid_to_inds.begin(); it != pid_to_inds.end(); ++it)
+#pragma omp parallel for schedule(dynamic, 1)
+	for (int i = 0; i < loopCnt; ++i)
 	{
-		ind_to_pid[cnt_i] = it->first;
-		++cnt_i;
-		if (it->first < min_pid_start)
-			min_pid_start = it->first;
-		if (it->first > max_pid_start)
-			max_pid_start = it->first;
-	}
-	int rep_pid_size = max_pid_start - min_pid_start;
-
-	//choose pids:
-	uniform_int_distribution<> rand_pids(0, (int)pid_to_inds.size() - 1);
-	if (sample_per_pid > 0) {
-#pragma omp parallel for schedule(dynamic,1)
-		for (int i = 0; i < loopCnt; ++i)
+		for (size_t k = 0; k < meas_functions.size(); ++k)
 		{
-			int curr_ind = 0;
-			vector<int> selected_inds(cohort_size * sample_per_pid);
-			vector<bool> selected_ind_pid((int)pid_to_inds.size());
-
-			for (size_t k = 0; k < cohort_size; ++k)
-			{
-				int ind_pid;
-				if (sample_ratio < 1) {
-					ind_pid = rand_pids(rd_gen);
-					while (selected_ind_pid[ind_pid - min_pid_start])
-						ind_pid = rand_pids(rd_gen);
-					selected_ind_pid[ind_pid - min_pid_start] = true;
-				}
-				else
-					ind_pid = (int)k;
-
-				vector<int> *inds = &pid_to_inds[ind_to_pid[ind_pid]];
-				uniform_int_distribution<> random_num(0, (int)inds->size() - 1);
-				for (size_t kk = 0; kk < sample_per_pid; ++kk)
-				{
-					selected_inds[curr_ind] = (*inds)[random_num(rd_gen)];
-					++curr_ind;
-				}
-			}
-
-			//now calculate measures on cohort of selected indexes for preds, y:
-			vector<float> selected_preds(cohort_size * sample_per_pid), selected_y(cohort_size * sample_per_pid);
-			for (size_t k = 0; k < selected_inds.size(); ++k)
-			{
-				selected_preds[k] = preds[selected_inds[k]];
-				selected_y[k] = y[selected_inds[k]];
-			}
-
-			for (size_t k = 0; k < meas_functions.size(); ++k)
-			{
-				map<string, float> batch_measures;
-				batch_measures = meas_functions[k](selected_preds, selected_y, function_params[k]);
+			vector<void *> measure_params = { &i ,function_params[k] };
+			map<string, float> batch_measures = meas_functions[k](iterator, (void *)&measure_params);
 #pragma omp critical
-				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-					all_measures[jt->first].push_back(jt->second);
-			}
-		}
-	}
-	else { //other sampling - sample pids and take all thier data:
-		   //now sample cohort 
-
-
-#pragma omp parallel for schedule(dynamic,1)
-		for (int i = 0; i < loopCnt; ++i)
-		{
-			vector<bool> selected_ind_pid;
-			vector<int> selected_pids(cohort_size);
-			for (size_t k = 0; k < cohort_size; ++k)
-			{
-				int ind_pid = rand_pids(rd_gen);
-				while (selected_ind_pid[ind_pid - min_pid_start])
-					ind_pid = rand_pids(rd_gen);
-				selected_ind_pid[ind_pid - min_pid_start] = true;
-				selected_pids[k] = ind_to_pid[ind_pid];
-			}
-
-			//create preds, y for all seleceted pids:
-			vector<float> selected_preds, selected_y;
-			for (size_t k = 0; k < selected_pids.size(); ++k)
-			{
-				int pid = selected_pids[k];
-				vector<int> ind_vec = pid_to_inds[pid];
-				for (int ind : ind_vec)
-				{
-					selected_preds.push_back(preds[ind]);
-					selected_y.push_back(y[ind]);
-				}
-			}
-
-			//calc measures for sample:
-			for (size_t k = 0; k < meas_functions.size(); ++k)
-			{
-				map<string, float> batch_measures;
-				batch_measures = meas_functions[k](selected_preds, selected_y, function_params[k]);
-#pragma omp critical
-				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-					all_measures[jt->first].push_back(jt->second);
-			}
+			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+				all_measures[jt->first].push_back(jt->second);
 		}
 	}
 
@@ -263,15 +264,22 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	}
 
 	map<string, map<string, float>> all_cohorts_measurments;
+	vector<float> preds_c, y_c;
+	vector<int> pids_c;
+	vector<int> class_sz;
+	pids_c.reserve((int)y.size());
+	preds_c.reserve((int)y.size());
+	y_c.reserve((int)y.size());
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 	{
 		void *c_params = NULL;
 		if (cohort_params != NULL && (*cohort_params).find(it->first) != (*cohort_params).end())
 			c_params = (*cohort_params).at(it->first);
 
-		vector<float> preds_c, y_c;
-		vector<int> pids_c;
-		vector<int> class_sz(2);
+		class_sz.resize(2, 0);
+		pids_c.clear();
+		preds_c.clear();
+		y_c.clear();
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
 				pids_c.push_back(pids[j]);
@@ -363,12 +371,15 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 
 #pragma region Measurements Fucntions
 
-map<string, float> calc_npos_nneg(const vector<float> &preds, const vector<float> &y, void *function_params) {
+map<string, float> calc_npos_nneg(Lazy_Iterator &iterator, void *function_params) {
 	map<string, float> res;
+	vector<void *> *orig_params = (vector<void *> *)function_params;
+	int *thread = (int *)orig_params->front();
 
 	map<float, int> cnts;
-	for (size_t i = 0; i < y.size(); ++i)
-		cnts[y[i]] += 1;
+	float y, pred;
+	while (iterator.fetch_next(*thread, y, pred))
+		cnts[y] += 1;
 
 	res["NPOS"] = (float)cnts[(float)1.0];
 	res["NNEG"] = (float)cnts[(float)0];
@@ -376,22 +387,27 @@ map<string, float> calc_npos_nneg(const vector<float> &preds, const vector<float
 	return res;
 }
 
-map<string, float> calc_only_auc(const vector<float> &preds, const vector<float> &y, void *function_params) {
+map<string, float> calc_only_auc(Lazy_Iterator &iterator, void *function_params) {
 	map<string, float> res;
+	vector<void *> *orig_params = (vector<void *> *)function_params;
+	int *thread = (int *)orig_params->front();
 
 	vector<float> pred_threshold;
-	map<float, vector<int>> pred_indexes;
+	unordered_map<float, vector<float>> pred_to_labels;
 	int tot_true_labels = 0;
-	for (size_t i = 0; i < preds.size(); ++i)
-	{
-		pred_indexes[preds[i]].push_back((int)i);
-		tot_true_labels += int(y[i] > 0);
+	float y, pred;
+	int tot_cnt = 0;
+	while (iterator.fetch_next(*thread, y, pred)) {
+		pred_to_labels[pred].push_back(y);
+		tot_true_labels += int(y > 0);
+		++tot_cnt;
 	}
-	int tot_false_labels = (int)y.size() - tot_true_labels;
+
+	int tot_false_labels = tot_cnt - tot_true_labels;
 	if (tot_true_labels == 0 || tot_false_labels == 0)
 		throw invalid_argument("only falses or positives exists in cohort");
-	pred_threshold = vector<float>((int)pred_indexes.size());
-	map<float, vector<int>>::iterator it = pred_indexes.begin();
+	pred_threshold = vector<float>((int)pred_to_labels.size());
+	unordered_map<float, vector<float>>::iterator it = pred_to_labels.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
 	{
 		pred_threshold[i] = it->first;
@@ -401,16 +417,16 @@ map<string, float> calc_only_auc(const vector<float> &preds, const vector<float>
 	//From up to down sort:
 	int t_cnt = 0;
 	int f_cnt = 0;
-	vector<float> true_rate = vector<float>((int)pred_indexes.size());
-	vector<float> false_rate = vector<float>((int)pred_indexes.size());
+	vector<float> true_rate = vector<float>((int)pred_to_labels.size());
+	vector<float> false_rate = vector<float>((int)pred_to_labels.size());
 	int st_size = (int)pred_threshold.size() - 1;
 	for (int i = st_size; i >= 0; --i)
 	{
-		vector<int> indexes = pred_indexes[pred_threshold[i]];
+		vector<float> *indexes = &pred_to_labels[pred_threshold[i]];
 		//calc AUC status for this step:
-		for (int ind : indexes)
+		for (float y : *indexes)
 		{
-			bool true_label = y[ind] > 0;
+			bool true_label = y > 0;
 			t_cnt += int(true_label);
 			f_cnt += int(!true_label);
 		}
@@ -427,14 +443,16 @@ map<string, float> calc_only_auc(const vector<float> &preds, const vector<float>
 	return res;
 }
 
-map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const vector<float> &y, void *function_params) {
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator &iterator, void *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
 	bool censor_removed = true;
 
+	vector<void *> *orig_params = (vector<void *> *)function_params;
 	ROC_Params params;
-	if (function_params != NULL)
-		params = *(ROC_Params *)function_params;
+	if (orig_params != NULL && orig_params->size() == 2 && (*orig_params)[1] != NULL)
+		params = *(ROC_Params *)(*orig_params)[1];
+	int *thread = (int *)orig_params->front();
 	float max_diff_in_wp = params.max_diff_working_point;
 	int scores_bin = params.score_bins;
 
@@ -451,14 +469,15 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 	for (size_t i = 0; i < pr_points.size(); ++i)
 		pr_points[i] /= 100.0;
 
-	unordered_map<float, vector<int>> thresholds_indexes;
+	unordered_map<float, vector<float>> thresholds_labels;
 	vector<float> unique_scores;
-	for (size_t i = 0; i < preds.size(); ++i)
-		thresholds_indexes[preds[i]].push_back((int)i);
+	float y, pred;
+	while (iterator.fetch_next(*thread, y, pred))
+		thresholds_labels[pred].push_back(y);
 
-	unique_scores.resize((int)thresholds_indexes.size());
+	unique_scores.resize((int)thresholds_labels.size());
 	int ind_p = 0;
-	for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
+	for (auto it = thresholds_labels.begin(); it != thresholds_labels.end(); ++it)
 	{
 		unique_scores[ind_p] = it->first;
 		++ind_p;
@@ -474,10 +493,10 @@ map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const 
 	int st_size = (int)unique_scores.size() - 1;
 	for (int i = st_size; i >= 0; --i)
 	{
-		vector<int> indexes = thresholds_indexes[unique_scores[i]];
-		for (int ind : indexes)
+		vector<float> *labels = &thresholds_labels[unique_scores[i]];
+		for (float y : *labels)
 		{
-			float true_label = y[ind];
+			float true_label = y;
 			t_sum += true_label;
 			if (!censor_removed)
 				f_sum += (1 - true_label);
@@ -916,12 +935,7 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 		MTHROW_AND_ERR("Male vector has %d members. and need to have %d members\n",
 			(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
 
-	vector<vector<double>> male_counts(2), female_counts(2);
 	vector<vector<double>> filtered_male_counts(2), filtered_female_counts(2);
-	for (size_t i = 0; i < male_counts.size(); ++i)
-		male_counts[i].resize(bin_counts);
-	for (size_t i = 0; i < female_counts.size(); ++i)
-		female_counts[i].resize(bin_counts);
 	for (size_t i = 0; i < filtered_male_counts.size(); ++i)
 		filtered_male_counts[i].resize(bin_counts);
 	for (size_t i = 0; i < filtered_female_counts.size(); ++i)
@@ -938,12 +952,10 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 			age_index = bin_counts - 1;
 
 		if (additional_info.at("Gender")[i] == 1) { //Male
-			++male_counts[y[i] > 0][age_index];
 			if (cohort_def(additional_info, (int)i, cohort_params))
 				++filtered_male_counts[y[i] > 0][age_index];
 		}
 		else {//Female
-			++female_counts[y[i] > 0][age_index];
 			if (cohort_def(additional_info, (int)i, cohort_params))
 				++filtered_female_counts[y[i] > 0][age_index];
 		}
