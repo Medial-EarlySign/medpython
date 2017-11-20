@@ -20,6 +20,10 @@ public:
 		const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops);
 
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
+
+	//sampling params:
+	float sample_ratio;
+	int sample_per_pid;
 private:
 	//internal structure - one time init
 	static random_device rd;
@@ -41,10 +45,6 @@ private:
 	const float *preds;
 	const float *y;
 	const vector<int> *pids;
-
-	//sampling params:
-	float sample_ratio;
-	int sample_per_pid;
 
 	//threading:
 	int maxThreadCount;
@@ -124,13 +124,12 @@ public:
 //Infra
 typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, void *function_params);
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
-typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def, void *cohort_params, void *function_params);
+typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, void *function_params);
 typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
 
 #pragma region Process Measurement Param Functions
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def,
-	void *cohort_params, void *function_params);
+	const vector<float> &y, const vector<int> &pids, void *function_params);
 #pragma endregion
 
 #pragma region Process Scores Functions

@@ -117,7 +117,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	inner_pos.resize(maxThreadCount, 0);
 	sel_pid_index.resize(maxThreadCount, -1);
 	selected_ind_pid.resize(maxThreadCount);
-	for (size_t i = 0; i < maxThreadCount; ++i) 
+	for (size_t i = 0; i < maxThreadCount; ++i)
 		selected_ind_pid[i].resize((int)pid_index_to_indexes.size(), false);
 }
 
@@ -143,6 +143,13 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		return current_pos[thread] < sample_per_pid * cohort_size;
 	}
 	else { //taking all samples for pid when selected, sample_ratio is less than 1
+		if (sample_ratio >= 1) {
+			//iterate on all!:
+			ret_y = y[current_pos[thread]];
+			ret_pred = preds[current_pos[thread]];
+			++current_pos[thread];
+			return current_pos[thread] < pids->size();
+		}
 		if (sel_pid_index[thread] < 0)
 		{
 			int selected_pid_index = rand_pids(rd_gen[thread]);
@@ -182,17 +189,18 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	time_t st = time(NULL);
 	for (size_t i = 0; i < function_params.size(); ++i)
 		if (process_measurments_params != NULL && function_params[i] != NULL)
-			process_measurments_params(additional_info, y_full, pids_full, cohort_def, cohort_params
-				, function_params[i]);
+			process_measurments_params(additional_info, y, pids, function_params[i]);
 	MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1); //for Obs
-	MLOG_D("took %2.1f sec to allocate mem\n", (float)difftime(time(NULL), st));
+	MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
 	//this function called after filter cohort
 
 	map<string, vector<float>> all_measures;
 	//save results for all cohort:
+	iterator.sample_per_pid = 0; //take all samples in Obs
+	iterator.sample_ratio = 1; //take all pids
 	for (size_t k = 0; k < meas_functions.size(); ++k)
 	{
 		vector<void *> measure_params = { &loopCnt ,function_params[k] };
@@ -201,6 +209,8 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			all_measures[jt->first + "_Obs"].push_back(jt->second);
 	}
 
+	iterator.sample_per_pid = sample_per_pid;
+	iterator.sample_ratio = sample_ratio;
 	Lazy_Iterator *iter_for_omp = &iterator;
 #pragma omp parallel for schedule(static)
 	for (int i = 0; i < loopCnt; ++i)
@@ -255,7 +265,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	if (preds.size() != y.size() || preds.size() != pids.size()) {
 		cerr << "bootstrap sizes aren't equal preds=" << preds.size() << " y=" << y.size() << endl;
 		throw invalid_argument("bootstrap sizes aren't equal");
-}
+	}
 	vector<void *> params((int)meas_functions.size());
 	if (function_params == NULL)
 		for (size_t i = 0; i < params.size(); ++i)
@@ -923,8 +933,7 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 
 #pragma region Process Measurement Param Functions
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def,
-	void *cohort_params, void *function_params) {
+	const vector<float> &y, const vector<int> &pids, void *function_params) {
 	ROC_Params *params = (ROC_Params *)function_params;
 	if (params->inc_stats.sorted_outcome_labels.empty())
 		return; //no inc file
@@ -959,14 +968,10 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 		if (age_index >= bin_counts)
 			age_index = bin_counts - 1;
 
-		if (additional_info.at("Gender")[i] == 1) { //Male
-			if (cohort_def(additional_info, (int)i, cohort_params))
-				++filtered_male_counts[y[i] > 0][age_index];
-		}
-		else {//Female
-			if (cohort_def(additional_info, (int)i, cohort_params))
-				++filtered_female_counts[y[i] > 0][age_index];
-		}
+		if (additional_info.at("Gender")[i] == 1)  //Male
+			++filtered_male_counts[y[i] > 0][age_index];
+		else //Female
+			++filtered_female_counts[y[i] > 0][age_index];
 	}
 
 	params->incidence_fix = 0;
