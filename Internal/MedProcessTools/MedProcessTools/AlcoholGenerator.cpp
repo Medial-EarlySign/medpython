@@ -159,12 +159,12 @@ int AlcoholGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 				else if (type == 5) {
 					if (first_special_group == -1) first_special_group = date; 
 					last_special_group = date;
-					fprintf(stderr, "alcoholic : %i \n", date);
+					//fprintf(stderr, "alcoholic : %i \n", date);
 				}
 			}
 
-			fprintf(stderr, "first_special_group %i \n", first_special_group);
-			fprintf(stderr, "last_special_group %i \n", last_special_group);
+			//fprintf(stderr, "first_special_group %i \n", first_special_group);
+			//fprintf(stderr, "last_special_group %i \n", last_special_group);
 
 			drinking_dates.push_back(29990101);
 
@@ -441,7 +441,7 @@ int AlcoholGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 
 				if (test_date >= start_date && test_date <= end_date) {
 					int val = drink_ranges[kk].val;
-					fprintf(stderr, "val : %i \n", val);
+					//fprintf(stderr, "val : %i \n", val);
 					if (val == 1) unknown_f = 1;
 					else if (val == 2) never_drink_f = 1;
 					else if (val == 3) {
@@ -468,16 +468,16 @@ int AlcoholGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 
 			//********************* alcoholist
 
-			fprintf(stderr, "first_special_group %i \n", first_special_group);
-			fprintf(stderr, "last_special_group %i \n", last_special_group);
-			fprintf(stderr, "__current_alcoholist %i \n", __current_alcoholist);
+			//fprintf(stderr, "first_special_group %i \n", first_special_group);
+			//fprintf(stderr, "last_special_group %i \n", last_special_group);
+			//fprintf(stderr, "__current_alcoholist %i \n", __current_alcoholist);
 
 			if (first_special_group != -1) {
 				if (test_date >= first_special_group && test_date <= last_special_group) __current_alcoholist = 1;
 				else if (test_date > last_special_group) __ex_alcoholist = 1;
 			}
 
-			fprintf(stderr, "__current_alcoholist %i \n", __current_alcoholist);
+			//fprintf(stderr, "__current_alcoholist %i \n", __current_alcoholist);
 
 			//***************************************  final ***************************************
 

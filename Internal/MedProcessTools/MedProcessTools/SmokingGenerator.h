@@ -37,9 +37,9 @@ public:
 	}
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names, tags, iGenerateWeights); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind); }
 };
 
 MEDSERIALIZE_SUPPORT(SmokingGenerator);
