@@ -21,9 +21,10 @@ public:
 
 	void clean_feature_name_prefix(map<string, vector<float>> &features);
 
-	map<string, map<string, float>> booststrap(MedFeatures &features);
-	map<string, map<string, float>> booststrap(MedSamples &samples, map<string, vector<float>> &additional_info);
-	map<string, map<string, float>> booststrap(MedSamples &samples, const string &rep_path);
+	//if results_per_split is NULL (not provided) will not calculate results by each split. the return value is on all values without splits
+	map<string, map<string, float>> booststrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL); 
+	map<string, map<string, float>> booststrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	map<string, map<string, float>> booststrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples);
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features);
@@ -38,6 +39,10 @@ public:
 private:
 	map<string, map<string, float>> booststrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 		const map<string, vector<float>> &additional_info);
+	void add_splits_results(const vector<float> &preds, const vector<float> &y,
+		const vector<int> &pids, const map<string, vector<float>> &data,
+		const unordered_map<int, vector<int>> &splits_inds,
+		map<int, map<string, map<string, float>>> &results_per_split);
 	bool use_time_window();
 };
 
