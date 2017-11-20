@@ -68,20 +68,22 @@ int AMResponses::get_score(int _pid, long _timestamp, char *_score_type, float *
 
 	if (point2response_idx.find(p) == point2response_idx.end())
 		return AM_FAIL_RC;
+	int pidx = point2response_idx[p];
 
+	return get_score_by_type(pidx, _score_type, out_score);
+}
+
+//-----------------------------------------------------------------------------------
+int AMResponses::get_score_by_type(int index, char *_score_type, float *out_score)
+{
 	string s = string(_score_type);
 
+	if (index < 0 || index >= get_n_responses())
+		return AM_FAIL_RC;
 	if (stype2idx.find(s) == stype2idx.end())
 		return AM_FAIL_RC;
-
-	int pidx = point2response_idx[p];
 	int sidx = stype2idx[s];
-
-	if (sidx >= responses[pidx].get_n_scores())
-		return AM_FAIL_RC;
-
-	*out_score = responses[pidx].get_score(sidx);
-
+	*out_score = responses[index].get_score(sidx);
 	return AM_OK_RC;
 }
 
@@ -405,21 +407,19 @@ int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalNa
 // Null RC means failure
 // pids and timestamps here are the timepoints to give predictions at
 //-----------------------------------------------------------------------------------------------------------
-AMRequest *AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points)
+int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points, AMRequest **new_req)
 {
-	AMRequest *new_req;
+	(*new_req) = new AMRequest;
 
-	new_req = new AMRequest;
-
-	if (new_req == NULL)
-		return NULL;
+	if ((*new_req) == NULL)
+		return AM_FAIL_RC;
 	
-	new_req->set_request_id(requestId);
-	new_req->insert_score_types(_score_types, n_score_types);
+	(*new_req)->set_request_id(requestId);
+	(*new_req)->insert_score_types(_score_types, n_score_types);
 	for (int i=0; i<n_points; i++)
-		new_req->insert_point(patient_ids[i], time_stamps[i]);
+		(*new_req)->insert_point(patient_ids[i], time_stamps[i]);
 
-	return new_req;
+	return AM_OK_RC;
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -511,7 +511,7 @@ int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long _timestamp)
 //-----------------------------------------------------------------------------------------------------------
 // get scores for a scpefic response given its index.
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores)
+int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores, char ***_score_types)
 {
 	AMResponse *res = responses->get_response(index);
 
@@ -521,8 +521,7 @@ int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timest
 	*pid = res->get_patient_id();
 	*timestamp = res->get_timestamp();
 	*n_scores = res->get_n_scores();
-	char **dummy_types;
-	res->get_scores(scores, &dummy_types);
+	res->get_scores(scores, _score_types);
 
 	return AM_OK_RC;
 }
@@ -556,8 +555,15 @@ int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId)
 }
 //-----------------------------------------------------------------------------------------------------------
 
-
-
-
+//-----------------------------------------------------------------------------------------------------------
+// get a score using the response index and the score type. RC: fail if something is wrong.
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score)
+{
+	if (responses == NULL)
+		return AM_FAIL_RC;
+	return responses->get_score_by_type(res_index, _score_type, out_score);
+}
+//-----------------------------------------------------------------------------------------------------------
 
 

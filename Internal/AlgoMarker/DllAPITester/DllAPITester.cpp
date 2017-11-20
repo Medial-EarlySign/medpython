@@ -122,7 +122,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	//MLOG("Before CreateRequest\n");
 	// prep request
-	AMRequest *req = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size());
+	AMRequest *req;
+	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
 	if (req == NULL)
 		MLOG("ERROR: Got a NULL request !!\n");
 	AMResponses *resp;
@@ -140,9 +141,10 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	float *_scr = NULL;
 	int pid;
 	long ts;
+	char **_scr_types;
 	for (int i=0; i<n_resp; i++) {
 		//MLOG("Getting response no. %d\n", i);
-		int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr);
+		int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_types);
 		//MLOG("resp_rc = %d\n", resp_rc);
 		//MLOG("i %d , pid %d ts %d n_scr %d scr %f\n", i, pid, ts, n_scr, _scr[0]);
 		MedSample s;

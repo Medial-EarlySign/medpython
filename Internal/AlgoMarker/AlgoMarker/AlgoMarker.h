@@ -154,6 +154,7 @@ public:
 	char *get_request_id() { return (char *)requestId.c_str(); }
 	char *get_version() { return (char *)version.c_str(); }
 	int get_score(int _pid, long _timestamp, char *_score_type, float *out_score);
+	int get_score_by_type(int index, char *_score_type, float *out_score);
 	vector<char *> *get_score_type_vec_ptr() { return &score_types; }
 
 	// set things
@@ -297,7 +298,7 @@ extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient
 
 // Prepare a Request
 // Null RC means failure
-extern "C" DLL_WORK_MODE AMRequest *AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points);
+extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points, AMRequest **new_req);
 
 // Get scores for a ready request
 extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **responses);
@@ -306,9 +307,10 @@ extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
 extern "C" DLL_WORK_MODE int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long _timestamp);
-extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores);
+extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores, char ***_score_types);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponses *responses, int index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId);
+extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
 
 // Dispose of AlgoMarker - free all memory 
 extern "C" DLL_WORK_MODE void AM_API_DisposeAlgoMarker(AlgoMarker *pAlgoMarker);
