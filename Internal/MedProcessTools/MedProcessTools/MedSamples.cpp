@@ -378,6 +378,25 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 	return 0;
 }
 
+
+//.......................................................................................
+int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred)
+{
+	MedIdSamples sample;
+
+	sample.id = pid;
+	sample.split = -1;
+	MedSample s;
+	s.id = pid;
+	s.time = time;
+	s.outcome = outcome;
+	s.outcomeTime = outcomeTime;
+	s.prediction.push_back(pred);
+	sample.samples.push_back(s);
+	idSamples.push_back(sample);
+	return 0;
+}
+
 //.......................................................................................
 void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 {
