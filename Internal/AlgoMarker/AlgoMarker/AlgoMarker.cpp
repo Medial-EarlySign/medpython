@@ -1,6 +1,8 @@
 #include "AlgoMarker.h"
 
-
+#include <Logger/Logger/Logger.h>
+#define LOCAL_SECTION LOG_APP
+#define LOCAL_LEVEL	LOG_DEF_LEVEL
 //-----------------------------------------------------------------------------------
 void AMMessages::get_messages(int *n_msgs, int **msgs_codes, char ***msgs_args) 
 {
@@ -66,20 +68,22 @@ int AMResponses::get_score(int _pid, long _timestamp, char *_score_type, float *
 
 	if (point2response_idx.find(p) == point2response_idx.end())
 		return AM_FAIL_RC;
+	int pidx = point2response_idx[p];
 
+	return get_score_by_type(pidx, _score_type, out_score);
+}
+
+//-----------------------------------------------------------------------------------
+int AMResponses::get_score_by_type(int index, char *_score_type, float *out_score)
+{
 	string s = string(_score_type);
 
+	if (index < 0 || index >= get_n_responses())
+		return AM_FAIL_RC;
 	if (stype2idx.find(s) == stype2idx.end())
 		return AM_FAIL_RC;
-
-	int pidx = point2response_idx[p];
 	int sidx = stype2idx[s];
-
-	if (sidx >= responses[pidx].get_n_scores())
-		return AM_FAIL_RC;
-
-	*out_score = responses[pidx].get_score(sidx);
-
+	*out_score = responses[index].get_score(sidx);
 	return AM_OK_RC;
 }
 
@@ -156,12 +160,14 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	if (type_in_config_file != "MEDIAL_INFRA")
 		return AM_ERROR_LOAD_NON_MATCHING_TYPE;
 
-	if (name == "")
+	if (strlen(get_name()) == 0) {
+		MERR("ERROR: Name is %s\n", get_name());
 		return AM_ERROR_LOAD_BAD_NAME;
+	}
 
 
 	// prepare internal ma for work: set name, rep and model
-	ma.set_name(name.c_str());
+	ma.set_name(get_name());
 	
 	if (ma.init_rep_config(rep_fname.c_str()) < 0)
 		return AM_ERROR_LOAD_READ_REP_ERR;
@@ -197,7 +203,7 @@ int MedialInfraAlgoMarker::ClearData()
 //-----------------------------------------------------------------------------------
 // AddData() - adding data for a signal with values and timestamps
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddData(int patient_id, char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values)
+int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values)
 {
 	// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
 	// This may change in the future as needed.
@@ -225,6 +231,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	*responses = new AMResponses; // allocating responses, should be disposed by user after usage.
 
 	(*responses)->set_request_id(request->get_request_id());
+	for (int i=0; i<request->get_n_score_types(); i++) {
+		char *stype = request->get_score_type(i);
+		(*responses)->insert_score_types(&stype, 1);
+	}
 
 	string msg_prefix = "reqId: " + string(request->get_request_id()) + " :: ";
 
@@ -239,6 +249,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	// again - we only deal with int times in this class, so we convert the long stamps to int
 	ma.clear_samples();
 	int n_points = request->get_n_points();
+
 	for (int i=0; i<n_points; i++)
 		if (ma.insert_sample(request->get_pid(i), (int)request->get_timestamp(i)) < 0) {
 			string msg = msg_prefix + "Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
@@ -251,7 +262,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	int n_score_types = request->get_n_score_types();
 	for (int i=0; i<n_score_types; i++) {
 		if (!IsScoreTypeSupported(request->get_score_type(i))) {
-			string msg = msg_prefix + "AlgoMarker of type " + name + " does not support score type " + string(request->get_score_type(i));
+			string msg = msg_prefix + "AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
 			shared_msgs->insert_message(AM_MSG_BAD_SCORE_TYPE, msg.c_str());
 			return AM_FAIL_RC;
 		}
@@ -259,10 +270,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 
 	// Calculating raw scores
 	vector<int> _pids(n_points, -1), _times(n_points, -1);
-	vector<float> raw_scores(n_points, AM_UNDEFINED_VALUE);
+	vector<float> raw_scores(n_points, (float)AM_UNDEFINED_VALUE);
 
 	if (ma.get_raw_preds(&_pids[0], &_times[0], &raw_scores[0]) < 0) {
-		string msg = msg_prefix + "Failed getting RAW scores in AlgoMarker " + name;
+		string msg = msg_prefix + "Failed getting RAW scores in AlgoMarker " + string(get_name());
 		shared_msgs->insert_message(AM_MSG_RAW_SCORES_ERROR, msg.c_str());
 		return AM_FAIL_RC;
 	}
@@ -281,11 +292,13 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 		res->set_score_types((*responses)->get_score_type_vec_ptr());
 		res->init_scores(_n_score_types);
 
-		for (int i=0; i<_n_score_types; i++) {
+		for (int j=0; j<_n_score_types; j++) {
 
-			if (strcmp(_score_types[i], "Raw") == 0) {
-				res->set_score(i, raw_scores[i]);
+			if (strcmp(_score_types[j], "Raw") == 0) {
+				res->set_score(j, raw_scores[i]);
 			}
+			else
+				res->set_score(j, (float)AM_UNDEFINED_VALUE);
 
 		}
 
@@ -302,7 +315,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::read_config(string conf_f)
 {
-	config_fname = conf_f;
+	set_config(conf_f.c_str());
 
 	ifstream inf(conf_f);
 
@@ -345,6 +358,8 @@ int AM_API_Create(int am_type, const char *name, AlgoMarker **new_am)
 {
 	*new_am = AlgoMarker::make_algomarker((AlgoMarkerType)am_type);
 
+	(*new_am)->set_name(name);
+
 	if (new_am == NULL)
 		return AM_FAIL_RC;
 
@@ -378,7 +393,7 @@ int AM_API_ClearData(AlgoMarker* pAlgoMarker)
 // adding data to an AlgoMarker
 // this API allows adding a specific signal, with matching arrays of times and values
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values)
+int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values)
 {
 	if (pAlgoMarker == NULL)
 		return AM_FAIL_RC;
@@ -392,21 +407,19 @@ int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, char *signalName, in
 // Null RC means failure
 // pids and timestamps here are the timepoints to give predictions at
 //-----------------------------------------------------------------------------------------------------------
-AMRequest *AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points)
+int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points, AMRequest **new_req)
 {
-	AMRequest *new_req;
+	(*new_req) = new AMRequest;
 
-	new_req = new AMRequest;
-
-	if (new_req == NULL)
-		return NULL;
+	if ((*new_req) == NULL)
+		return AM_FAIL_RC;
 	
-	new_req->set_request_id(requestId);
-	new_req->insert_score_types(_score_types, n_score_types);
+	(*new_req)->set_request_id(requestId);
+	(*new_req)->insert_score_types(_score_types, n_score_types);
 	for (int i=0; i<n_points; i++)
-		new_req->insert_point(patient_ids[i], time_stamps[i]);
+		(*new_req)->insert_point(patient_ids[i], time_stamps[i]);
 
-	return new_req;
+	return AM_OK_RC;
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -498,16 +511,17 @@ int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long _timestamp)
 //-----------------------------------------------------------------------------------------------------------
 // get scores for a scpefic response given its index.
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponse(AMResponses *responses, int index, int *n_scores, float **scores)
+int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores, char ***_score_types)
 {
 	AMResponse *res = responses->get_response(index);
 
 	if (res == NULL)
 		return AM_FAIL_RC;
 
+	*pid = res->get_patient_id();
+	*timestamp = res->get_timestamp();
 	*n_scores = res->get_n_scores();
-	char **dummy_types;
-	res->get_scores(scores, &dummy_types);
+	res->get_scores(scores, _score_types);
 
 	return AM_OK_RC;
 }
@@ -541,8 +555,15 @@ int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId)
 }
 //-----------------------------------------------------------------------------------------------------------
 
-
-
-
+//-----------------------------------------------------------------------------------------------------------
+// get a score using the response index and the score type. RC: fail if something is wrong.
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score)
+{
+	if (responses == NULL)
+		return AM_FAIL_RC;
+	return responses->get_score_by_type(res_index, _score_type, out_score);
+}
+//-----------------------------------------------------------------------------------------------------------
 
 
