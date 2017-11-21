@@ -5,6 +5,7 @@
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "InfraMed/InfraMed/MedPidRepository.h"
 
 class MedBootstrap : public SerializableObject {
 public:
@@ -25,6 +26,7 @@ public:
 	map<string, map<string, float>> booststrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL); 
 	map<string, map<string, float>> booststrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 	map<string, map<string, float>> booststrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	map<string, map<string, float>> booststrap(MedSamples &samples, MedPidRepository &rep, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples);
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features);

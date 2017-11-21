@@ -163,12 +163,12 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features,
 				diff_days = -diff_days;
 			data["Time-Window"][i] = (float)diff_days;
 		}
-		if (results_per_split != NULL) 
+		if (results_per_split != NULL)
 			splits_inds[features.samples[i].split].push_back((int)i);
 	}
-	if (results_per_split != NULL) 
+	if (results_per_split != NULL)
 		add_splits_results(preds, y, pids, data, splits_inds, *results_per_split);
-	
+
 	return booststrap_base(preds, y, pids, data);
 }
 
@@ -234,6 +234,30 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, co
 	if (rep.read_all(rep_path, pids_to_take, sigs) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_path.c_str());
 	global_logger.init_all_levels(curr_level);
+
+	if (mdl.apply(rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
+		MTHROW_AND_ERR("Error creating age,gender for samples\n");
+
+	return booststrap(mdl.features, results_per_split);
+}
+
+map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, MedPidRepository &rep, map<int, map<string, map<string, float>>> *results_per_split) {
+	MedModel mdl;
+	mdl.add_age();
+	mdl.add_gender();
+	vector<int> pids_to_take;
+	samples.get_ids(pids_to_take);
+
+	unordered_set<string> req_names;
+	mdl.get_required_signal_names(req_names);
+	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	for (string s : req_names)
+		sigs.push_back(s);
+	sort(sigs.begin(), sigs.end());
+	auto it = unique(sigs.begin(), sigs.end());
+	sigs.resize(std::distance(sigs.begin(), it));
+	if (rep.load(sigs, pids_to_take) < 0)
+		MTHROW_AND_ERR("Couldn't load signals in given repository\n");
 
 	if (mdl.apply(rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
 		MTHROW_AND_ERR("Error creating age,gender for samples\n");
