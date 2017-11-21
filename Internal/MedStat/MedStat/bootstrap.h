@@ -54,7 +54,6 @@ private:
 
 #pragma region Measurements Fucntions
 map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params);
-map<string, float> calc_checksum(Lazy_Iterator *iterator, void *function_params);
 map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params);
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *function_params); //with PPV and PR
 //For example we can put here statistical measures for regression problem or more measurements for classification..

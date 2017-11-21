@@ -16,6 +16,7 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 //#define WARN_SKIP_WP
+//#define USE_MIN_THREADS
 
 #pragma region Helper Functions
 float meanArr(const vector<float> &arr) {
@@ -188,7 +189,7 @@ void Lazy_Iterator::restart_iterator(int thread) {
 	current_pos[thread] = 0;
 	inner_pos[thread] = 0;
 	sel_pid_index[thread] = -1;
-	selected_ind_pid[thread].resize((int)pid_index_to_indexes.size(), false);
+	fill(selected_ind_pid[thread].begin(), selected_ind_pid[thread].end(), false);
 }
 }
 
@@ -201,6 +202,12 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 }
 
 #pragma endregion
+
+int get_checksum(const vector<int> &pids) {
+	int checksum = 0;
+	for (int pid : pids)
+		checksum = (checksum + pid) & 0xFFFF;
+}
 
 map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
 	const vector<int> &pids, float sample_ratio, int sample_per_pid, int loopCnt,
@@ -218,10 +225,11 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			process_measurments_params(additional_info, y, pids, function_params[i]);
 	MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
-
-	//TODO: change to use omp_get_num_threads, omp_get_thread_num functions
-	//Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_num_threads()); //for Obs
+#ifdef USE_MIN_THREADS
+	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_max_threads()); //for Obs
+#else
 	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1); //for Obs
+#endif
 	MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
 	//this function called after filter cohort
@@ -230,8 +238,11 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//save results for all cohort:
 	iterator.sample_per_pid = 0; //take all samples in Obs
 	iterator.sample_ratio = 1; //take all pids
-	//int main_thread = 0;
+#ifdef USE_MIN_THREADS
+	int main_thread = 0;
+#else
 	int main_thread = loopCnt;
+#endif
 	for (size_t k = 0; k < meas_functions.size(); ++k)
 	{
 		if (k > 0)
@@ -240,8 +251,10 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		map<string, float> batch_measures = meas_functions[k](&iterator, (void *)&measure_params);
 		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 			all_measures[jt->first + "_Obs"].push_back(jt->second);
-		//Add Checksum
 	}
+#ifdef USE_MIN_THREADS
+	iterator.restart_iterator(0);
+#endif
 
 	iterator.sample_per_pid = sample_per_pid;
 	iterator.sample_ratio = sample_ratio;
@@ -249,12 +262,15 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp parallel for schedule(static)
 	for (int i = 0; i < loopCnt; ++i)
 	{
-		//int th_num = omp_get_thread_num();
+#ifdef USE_MIN_THREADS
+		int th_num = omp_get_thread_num();
+#else
 		int th_num = i;
+#endif
 		for (size_t k = 0; k < meas_functions.size(); ++k)
 		{
 			if (k > 0)
-				iterator.restart_iterator(i);
+				iterator.restart_iterator(th_num);
 			vector<void *> measure_params = { &th_num ,function_params[k] };
 			map<string, float> batch_measures = meas_functions[k](iter_for_omp, (void *)&measure_params);
 #pragma omp critical
@@ -286,6 +302,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			all_final_measures[it->first + "_CI.Upper.95"] = upper_ci;
 		}
 	}
+	all_final_measures["Checksum"] = get_checksum(pids);
 
 	return all_final_measures;
 }
@@ -887,22 +904,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 		res["NNEG"] = float(f_sum);
 		res["NPOS"] = float(t_sum);
 	}
-
-	return res;
-}
-
-map<string, float> calc_checksum(Lazy_Iterator *iterator, void *function_params) {
-	map<string, float> res;
-	vector<void *> *orig_params = (vector<void *> *)function_params;
-	int *thread = (int *)orig_params->front();
-
-	map<float, int> cnts;
-	float y, pred;
-	while (iterator->fetch_next(*thread, y, pred))
-		cnts[y] += 1;
-
-	res["NPOS"] = (float)cnts[(float)1.0];
-	res["NNEG"] = (float)cnts[(float)0];
 
 	return res;
 }
