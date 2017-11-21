@@ -207,6 +207,7 @@ int get_checksum(const vector<int> &pids) {
 	int checksum = 0;
 	for (int pid : pids)
 		checksum = (checksum + pid) & 0xFFFF;
+	return checksum;
 }
 
 map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
@@ -302,7 +303,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			all_final_measures[it->first + "_CI.Upper.95"] = upper_ci;
 		}
 	}
-	all_final_measures["Checksum"] = get_checksum(pids);
+	all_final_measures["Checksum"] = (float)get_checksum(pids);
 
 	return all_final_measures;
 }
