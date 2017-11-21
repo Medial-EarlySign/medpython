@@ -139,6 +139,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
 		ret_y = y[selected_index];
 		ret_pred = preds[selected_index];
+#pragma omp atomic
 		++current_pos[thread];
 		return current_pos[thread] < sample_per_pid * cohort_size;
 	}
@@ -147,6 +148,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 			//iterate on all!:
 			ret_y = y[current_pos[thread]];
 			ret_pred = preds[current_pos[thread]];
+#pragma omp atomic
 			++current_pos[thread];
 			return current_pos[thread] < pids->size();
 		}
@@ -155,23 +157,47 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 			int selected_pid_index = rand_pids(rd_gen[thread]);
 			while (selected_ind_pid[thread][selected_pid_index - min_pid_start])
 				selected_pid_index = rand_pids(rd_gen[thread]);
-#pragma omp critical
-			selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
-			sel_pid_index[thread] = selected_pid_index;
-			inner_pos[thread] = 0;
+#pragma omp critical 
+			{
+				selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
+				sel_pid_index[thread] = selected_pid_index;
+				inner_pos[thread] = 0;
+			}
 		}
 		vector<int> *inds = &pid_index_to_indexes[sel_pid_index[thread]];
 		int final_index = (*inds)[inner_pos[thread]];
 		ret_y = y[final_index];
 		ret_pred = preds[final_index];
 		//take all inds:
+#pragma omp atomic
 		++inner_pos[thread];
 		if (inner_pos[thread] >= inds->size()) {
+#pragma omp critical
+		{
 			sel_pid_index[thread] = -1;
 			++current_pos[thread]; //mark pid as done
 		}
+		}
 		return current_pos[thread] < cohort_size;
 	}
+}
+
+void Lazy_Iterator::restart_iterator(int thread) {
+#pragma omp critical 
+{
+	current_pos[thread] = 0;
+	inner_pos[thread] = 0;
+	sel_pid_index[thread] = -1;
+	selected_ind_pid[thread].resize((int)pid_index_to_indexes.size(), false);
+}
+}
+
+inline string format_working_point(const string &init_str, float wp, bool perc = true) {
+	char res[100];
+	if (perc)
+		wp *= 100;
+	snprintf(res, sizeof(res), "%s_%06.3f", init_str.c_str(), wp);
+	return string(res);
 }
 
 #pragma endregion
@@ -192,6 +218,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			process_measurments_params(additional_info, y, pids, function_params[i]);
 	MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
+
+	//TODO: change to use omp_get_num_threads, omp_get_thread_num functions
+	//Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_num_threads()); //for Obs
 	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1); //for Obs
 	MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
@@ -201,12 +230,17 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//save results for all cohort:
 	iterator.sample_per_pid = 0; //take all samples in Obs
 	iterator.sample_ratio = 1; //take all pids
+	//int main_thread = 0;
+	int main_thread = loopCnt;
 	for (size_t k = 0; k < meas_functions.size(); ++k)
 	{
-		vector<void *> measure_params = { &loopCnt ,function_params[k] };
+		if (k > 0)
+			iterator.restart_iterator(main_thread);
+		vector<void *> measure_params = { &main_thread ,function_params[k] };
 		map<string, float> batch_measures = meas_functions[k](&iterator, (void *)&measure_params);
 		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 			all_measures[jt->first + "_Obs"].push_back(jt->second);
+		//Add Checksum
 	}
 
 	iterator.sample_per_pid = sample_per_pid;
@@ -215,9 +249,13 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp parallel for schedule(static)
 	for (int i = 0; i < loopCnt; ++i)
 	{
+		//int th_num = omp_get_thread_num();
+		int th_num = i;
 		for (size_t k = 0; k < meas_functions.size(); ++k)
 		{
-			vector<void *> measure_params = { &i ,function_params[k] };
+			if (k > 0)
+				iterator.restart_iterator(i);
+			vector<void *> measure_params = { &th_num ,function_params[k] };
 			map<string, float> batch_measures = meas_functions[k](iter_for_omp, (void *)&measure_params);
 #pragma omp critical
 			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
@@ -541,63 +579,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 	bool use_wp = unique_scores.size() > max_qunt_vals || params.use_score_working_points; //change all working points
 	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
 	int i = 0;
-	vector<float> wp_fpr_spec, wp_fpr_sens, wp_fpr_score, wp_fpr_ppv, wp_fpr_pr, wp_fpr_npv;
-	vector<float> wp_sens_spec, wp_sens_score, wp_sens_ppv, wp_sens_pr, wp_sens_fpr, wp_sens_npv;
-	vector<float> wp_pr_spec, wp_pr_sens, wp_pr_score, wp_pr_ppv, wp_pr_fpr, wp_pr_npv;
 
 	float ppv_c, pr_prev, ppv_prev, pr_c, npv_c, npv_prev;
 	if (use_wp) {
-		wp_fpr_spec.resize((int)fpr_points.size());
-		wp_fpr_sens.resize((int)fpr_points.size());
-		wp_fpr_score.resize((int)fpr_points.size());
-		wp_fpr_ppv.resize((int)fpr_points.size());
-		wp_fpr_pr.resize((int)fpr_points.size());
-		wp_fpr_npv.resize((int)fpr_points.size());
-		while (curr_wp_fpr_ind < fpr_points.size() && false_rate[i] > fpr_points[curr_wp_fpr_ind])
-		{
-			wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-			wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-			wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-			wp_fpr_ppv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-			wp_fpr_pr[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-			wp_fpr_npv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-			++curr_wp_fpr_ind;
-		}
-
-		wp_sens_score.resize((int)sens_points.size());
-		wp_sens_spec.resize((int)sens_points.size());
-		wp_sens_fpr.resize((int)sens_points.size());
-		wp_sens_ppv.resize((int)sens_points.size());
-		wp_sens_pr.resize((int)sens_points.size());
-		wp_sens_npv.resize((int)sens_points.size());
-		while (curr_wp_sens_ind < sens_points.size() && true_rate[i] > sens_points[curr_wp_sens_ind])
-		{
-			wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-			wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-			wp_sens_fpr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-			wp_sens_ppv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-			wp_sens_pr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-			wp_sens_npv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-			++curr_wp_sens_ind;
-		}
-
-		wp_pr_score.resize((int)pr_points.size());
-		wp_pr_spec.resize((int)pr_points.size());
-		wp_pr_fpr.resize((int)pr_points.size());
-		wp_pr_ppv.resize((int)pr_points.size());
-		wp_pr_sens.resize((int)pr_points.size());
-		wp_pr_npv.resize((int)pr_points.size());
-		while (curr_wp_pr_ind < pr_points.size() && true_rate[i] > pr_points[curr_wp_pr_ind])
-		{
-			wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-			wp_pr_spec[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-			wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-			wp_pr_ppv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-			wp_pr_sens[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-			wp_pr_npv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-			++curr_wp_pr_ind;
-		}
-
 		//fpr points:
 		i = 1;
 		while (i < true_rate.size() && curr_wp_fpr_ind < fpr_points.size())
@@ -613,12 +597,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_fpr_score[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-					wp_fpr_sens[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-					wp_fpr_spec[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-					wp_fpr_pr[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-					wp_fpr_ppv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
-					wp_fpr_npv[curr_wp_fpr_ind] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -627,17 +611,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					++curr_wp_fpr_ind;
 					continue; //skip working point - diff is too big
 				}
-				wp_fpr_score[curr_wp_fpr_ind] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
+				res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
-				wp_fpr_sens[curr_wp_fpr_ind] = true_rate[i] * (prev_diff / tot_diff) +
+				res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = true_rate[i] * (prev_diff / tot_diff) +
 					true_rate[i - 1] * (curr_diff / tot_diff);
-				wp_fpr_spec[curr_wp_fpr_ind] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
+				res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
 					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
 				if (params.incidence_fix > 0) {
-					/*ppv_c = float(params.incidence_fix*(true_rate[i] * t_sum) /
-						(params.incidence_fix*(true_rate[i] * t_sum) + (1 - params.incidence_fix)*(false_rate[i] * f_sum)));
-					ppv_prev = float(params.incidence_fix*(true_rate[i - 1] * t_sum) /
-						(params.incidence_fix*(true_rate[i - 1] * t_sum) + (1 - params.incidence_fix)*(false_rate[i - 1] * f_sum)));*/
 					ppv_c = float(params.incidence_fix*true_rate[i] / (params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]));
 					ppv_prev = float(params.incidence_fix*true_rate[i - 1] / (params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]));
 				}
@@ -647,14 +627,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					ppv_prev = float((true_rate[i - 1] * t_sum) /
 						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
 				}
-				wp_fpr_ppv[curr_wp_fpr_ind] = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = ppv;
 				if (params.incidence_fix > 0) {
-					/*pr_c = float((params.incidence_fix*(true_rate[i] * t_sum) +
-						(1 - params.incidence_fix)*(false_rate[i] * f_sum)) /
-						(params.incidence_fix*t_sum + (1 - params.incidence_fix)*f_sum));
-					pr_prev = float((params.incidence_fix*(true_rate[i - 1] * t_sum) +
-						(1 - params.incidence_fix)*(false_rate[i - 1] * f_sum)) /
-						(params.incidence_fix*t_sum + (1 - params.incidence_fix)*f_sum));*/
 					pr_c = float(params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]);
 					pr_prev = float(params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]);
 				}
@@ -664,7 +639,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
 						(t_sum + f_sum));
 				}
-				wp_fpr_pr[curr_wp_fpr_ind] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
+				res[format_working_point("PR@FPR", fpr_points[curr_wp_fpr_ind])] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
 				if (params.incidence_fix > 0) {
 					npv_c = float(((1 - false_rate[i]) *  (1 - params.incidence_fix)) /
 						(((1 - true_rate[i]) *  params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
@@ -677,7 +652,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
 				}
-				wp_fpr_npv[curr_wp_fpr_ind] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
+				res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
+				if (params.incidence_fix > 0)
+					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv / params.incidence_fix);
+				else
+					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv /
+						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
 				++curr_wp_fpr_ind;
 				continue;
@@ -700,12 +680,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_sens_score[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-					wp_sens_spec[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-					wp_sens_fpr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-					wp_sens_ppv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-					wp_sens_pr[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
-					wp_sens_npv[curr_wp_sens_ind] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SCORE@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("FPR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SPEC@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
 						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
@@ -714,19 +694,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					++curr_wp_sens_ind;
 					continue; //skip working point - diff is too big
 				}
-				wp_sens_score[curr_wp_sens_ind] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
+				res[format_working_point("SCORE@SENS", sens_points[curr_wp_sens_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
-				wp_sens_fpr[curr_wp_sens_ind] = false_rate[i] * (prev_diff / tot_diff) +
+				res[format_working_point("FPR@SENS", sens_points[curr_wp_sens_ind])] = false_rate[i] * (prev_diff / tot_diff) +
 					false_rate[i - 1] * (curr_diff / tot_diff);
-				wp_sens_spec[curr_wp_sens_ind] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
+				res[format_working_point("SPEC@SENS", sens_points[curr_wp_sens_ind])] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
 					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
 				if (params.incidence_fix > 0) {
-					/*ppv_c = float(params.incidence_fix*(true_rate[i] * t_sum) /
-						(params.incidence_fix*(true_rate[i] * t_sum) +
-							(1 - params.incidence_fix)*(false_rate[i] * f_sum)));
-					ppv_prev = float(params.incidence_fix*(true_rate[i - 1] * t_sum) /
-						(params.incidence_fix*(true_rate[i - 1] * t_sum) +
-							(1 - params.incidence_fix)*(false_rate[i - 1] * f_sum)));*/
 					ppv_c = float(params.incidence_fix*true_rate[i] / (params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]));
 					ppv_prev = float(params.incidence_fix*true_rate[i - 1] / (params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]));
 				}
@@ -736,12 +710,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					ppv_prev = float((true_rate[i - 1] * t_sum) /
 						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
 				}
-				wp_sens_ppv[curr_wp_sens_ind] = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = ppv;
 				if (params.incidence_fix > 0) {
-					/*pr_c = float((params.incidence_fix*(true_rate[i] * t_sum) + (1 - params.incidence_fix)*(false_rate[i] * f_sum)) /
-						(params.incidence_fix*t_sum + (1 - params.incidence_fix)*f_sum));
-					pr_prev = float((params.incidence_fix*(true_rate[i - 1] * t_sum) + (1 - params.incidence_fix)*(false_rate[i - 1] * f_sum)) /
-						(params.incidence_fix*t_sum + (1 - params.incidence_fix)*f_sum));*/
 					pr_c = float(params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]);
 					pr_prev = float(params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]);
 				}
@@ -751,7 +722,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
 						(t_sum + f_sum));
 				}
-				wp_sens_pr[curr_wp_sens_ind] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
+				res[format_working_point("PR@SENS", sens_points[curr_wp_sens_ind])] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
 				if (params.incidence_fix > 0) {
 					npv_c = float(((1 - false_rate[i]) *  (1 - params.incidence_fix)) /
 						(((1 - true_rate[i]) *  params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
@@ -764,7 +735,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
 				}
-				wp_sens_npv[curr_wp_sens_ind] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
+				res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
+				if (params.incidence_fix > 0)
+					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv / params.incidence_fix);
+				else
+					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv /
+						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
 				++curr_wp_sens_ind;
 				continue;
@@ -776,23 +752,18 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 		i = 1; //first point is always before
 		while (i < true_rate.size() && curr_wp_pr_ind < pr_points.size())
 		{
-			pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
-				(t_sum + f_sum));
-			if (params.incidence_fix > 0) {
-				/*pr_c = float((params.incidence_fix * (true_rate[i] * t_sum) +
-					(1 - params.incidence_fix)*(false_rate[i] * f_sum)) /
-					(params.incidence_fix *t_sum + (1 - params.incidence_fix) *f_sum));*/
+			if (params.incidence_fix > 0)
 				pr_c = float(params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]);
-			}
-			if (curr_wp_pr_ind < pr_points.size() && pr_c >= pr_points[curr_wp_pr_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
-				pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+			else
+				pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
 					(t_sum + f_sum));
-				if (params.incidence_fix>0) {
-					/*pr_prev = float((params.incidence_fix *(true_rate[i - 1] * t_sum) +
-						(1 - params.incidence_fix) *(false_rate[i - 1] * f_sum)) /
-						(params.incidence_fix *t_sum + (1 - params.incidence_fix) *f_sum));*/
+
+			if (curr_wp_pr_ind < pr_points.size() && pr_c >= pr_points[curr_wp_pr_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
+				if (params.incidence_fix>0)
 					pr_prev = float(params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]);
-				}
+				else
+					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+						(t_sum + f_sum));
 
 				float prev_diff = pr_points[curr_wp_pr_ind] - pr_prev;
 				float curr_diff = pr_c - pr_points[curr_wp_pr_ind];
@@ -802,12 +773,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					wp_pr_score[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-					wp_pr_fpr[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-					wp_pr_spec[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-					wp_pr_ppv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-					wp_pr_sens[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
-					wp_pr_npv[curr_wp_pr_ind] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SCORE@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("FPR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SPEC@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SENS@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
 						pr_points[curr_wp_pr_ind], pr_prev, pr_c,
@@ -816,17 +787,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					++curr_wp_pr_ind;
 					continue; //skip working point - diff is too big
 				}
-				wp_pr_score[curr_wp_pr_ind] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
+				res[format_working_point("SCORE@PR", pr_points[curr_wp_pr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
-				wp_pr_fpr[curr_wp_pr_ind] = false_rate[i] * (prev_diff / tot_diff) +
+				res[format_working_point("FPR@PR", pr_points[curr_wp_pr_ind])] = false_rate[i] * (prev_diff / tot_diff) +
 					false_rate[i - 1] * (curr_diff / tot_diff);
-				wp_pr_spec[curr_wp_pr_ind] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
+				res[format_working_point("SPEC@PR", pr_points[curr_wp_pr_ind])] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
 					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
 				if (params.incidence_fix > 0) {
-					/*	ppv_c = float(params.incidence_fix*(true_rate[i] * t_sum) /
-							(params.incidence_fix*(true_rate[i] * t_sum) + (1 - params.incidence_fix)*(false_rate[i] * f_sum)));
-						ppv_prev = float(params.incidence_fix*(true_rate[i - 1] * t_sum) /
-							(params.incidence_fix*(true_rate[i - 1] * t_sum) + (1 - params.incidence_fix)*(false_rate[i - 1] * f_sum)));*/
 					ppv_c = float(params.incidence_fix*true_rate[i] / (params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]));
 					ppv_prev = float(params.incidence_fix*true_rate[i - 1] / (params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]));
 				}
@@ -836,8 +803,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					ppv_prev = float((true_rate[i - 1] * t_sum) /
 						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
 				}
-				wp_pr_ppv[curr_wp_pr_ind] = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
-				wp_pr_sens[curr_wp_pr_ind] = true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff);
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = ppv;
+				res[format_working_point("SENS@PR", pr_points[curr_wp_pr_ind])] = true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff);
 				if (params.incidence_fix > 0) {
 					npv_c = float(((1 - false_rate[i]) *  (1 - params.incidence_fix)) /
 						(((1 - true_rate[i]) *  params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
@@ -850,7 +818,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
 				}
-				wp_pr_npv[curr_wp_pr_ind] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
+				res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
+				if (params.incidence_fix > 0)
+					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv / params.incidence_fix);
+				else
+					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv /
+						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
 				++curr_wp_pr_ind;
 				continue;
@@ -860,83 +833,49 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 
 	}
 	else {
-		wp_fpr_spec.resize((int)true_rate.size());
-		wp_fpr_sens.resize((int)true_rate.size());
-		wp_fpr_score.resize((int)true_rate.size());
-		wp_fpr_ppv.resize((int)true_rate.size());
-		wp_fpr_npv.resize((int)true_rate.size());
-		wp_fpr_pr.resize((int)true_rate.size());
+		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)
 		{
-			wp_fpr_score[i] = unique_scores[st_size - i];
-			wp_fpr_sens[i] = true_rate[i];
-			wp_fpr_spec[i] = (1 - false_rate[i]);
-			if (params.incidence_fix > 0) {
-				wp_fpr_ppv[i] = float((true_rate[i] * params.incidence_fix) /
+			score_working_point = unique_scores[st_size - i];
+			res[format_working_point("SENS@SCORE", score_working_point, false)] = true_rate[i];
+			res[format_working_point("SPEC@SCORE", score_working_point, false)] = 1 - false_rate[i];
+			float ppv;
+			if (params.incidence_fix > 0)
+				ppv = float((true_rate[i] * params.incidence_fix) /
 					(params.incidence_fix*(true_rate[i] * params.incidence_fix) +
 						(false_rate[i] * (1 - params.incidence_fix))));
-			}
-			else {
-				wp_fpr_ppv[i] = float((true_rate[i] * t_sum) /
+			else
+				ppv = float((true_rate[i] * t_sum) /
 					((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
-			}
+			res[format_working_point("PPV@SCORE", score_working_point, false)] = ppv;
+
 			if (params.incidence_fix > 0) {
-				wp_fpr_pr[i] = float((true_rate[i] * params.incidence_fix) + (false_rate[i] * (1 - params.incidence_fix)));
+				res[format_working_point("PR@SCORE", score_working_point, false)] = float((true_rate[i] * params.incidence_fix) + (false_rate[i] * (1 - params.incidence_fix)));
 			}
 			else {
-				wp_fpr_pr[i] = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+				res[format_working_point("PR@SCORE", score_working_point, false)] = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
 					(t_sum + f_sum));
 			}
 			if (params.incidence_fix > 0) {
-				wp_fpr_npv[i] = float(((1 - false_rate[i]) * (1 - params.incidence_fix)) /
+				res[format_working_point("NPV@SCORE", score_working_point, false)] = float(((1 - false_rate[i]) * (1 - params.incidence_fix)) /
 					(((1 - true_rate[i]) * params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
 			}
 			else {
-				wp_fpr_npv[i] = float(((1 - false_rate[i]) * f_sum) /
+				res[format_working_point("NPV@SCORE", score_working_point, false)] = float(((1 - false_rate[i]) * f_sum) /
 					(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+			}
+			if (params.incidence_fix > 0) {
+				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv / params.incidence_fix);
+			}
+			else {
+				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
+					(t_sum / (t_sum + f_sum)));
 			}
 		}
 	}
 
 
 	res["AUC"] = float(auc);
-	if (use_wp) {
-		for (size_t k = 0; k < fpr_points.size(); ++k)
-		{
-			res["SPEC@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_spec[k];
-			res["SENS@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_sens[k];
-			res["SCORE@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_score[k];
-			res["PPV@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_ppv[k];
-			res["PR@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_pr[k];
-			res["NPV@FPR_" + print_obj(fpr_points[k] * 100, "%06.3f")] = wp_fpr_npv[k];
-		}
-		for (size_t k = 0; k < sens_points.size(); ++k)
-		{
-			res["SPEC@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_spec[k];
-			res["FPR@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_fpr[k];
-			res["SCORE@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_score[k];
-			res["PPV@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_ppv[k];
-			res["PR@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_pr[k];
-			res["NPV@SENS_" + print_obj(sens_points[k] * 100, "%06.3f")] = wp_sens_npv[k];
-		}
-		for (size_t k = 0; k < pr_points.size(); ++k)
-		{
-			res["SPEC@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_spec[k];
-			res["SENS@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_sens[k];
-			res["SCORE@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_score[k];
-			res["PPV@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_ppv[k];
-			res["FPR@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_fpr[k];
-			res["NPV@PR_" + print_obj(pr_points[k] * 100, "%06.3f")] = wp_pr_npv[k];
-		}
-	}
-	else
-		for (size_t k = 0; k < unique_scores.size(); ++k)
-		{
-			res["SPEC@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_spec[k];
-			res["SENS@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_sens[k];
-			res["PPV@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_ppv[k];
-			res["PR@SCORE_" + print_obj(wp_fpr_score[k], "%06.3f")] = wp_fpr_pr[k];
-		}
 
 	if (abs(t_cnt - t_sum) > 0.01) {
 		res["NEG_SUM"] = float(f_sum);
@@ -948,6 +887,22 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 		res["NNEG"] = float(f_sum);
 		res["NPOS"] = float(t_sum);
 	}
+
+	return res;
+}
+
+map<string, float> calc_checksum(Lazy_Iterator *iterator, void *function_params) {
+	map<string, float> res;
+	vector<void *> *orig_params = (vector<void *> *)function_params;
+	int *thread = (int *)orig_params->front();
+
+	map<float, int> cnts;
+	float y, pred;
+	while (iterator->fetch_next(*thread, y, pred))
+		cnts[y] += 1;
+
+	res["NPOS"] = (float)cnts[(float)1.0];
+	res["NNEG"] = (float)cnts[(float)0];
 
 	return res;
 }
