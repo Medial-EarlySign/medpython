@@ -189,8 +189,9 @@ void Lazy_Iterator::restart_iterator(int thread) {
 	current_pos[thread] = 0;
 	inner_pos[thread] = 0;
 	sel_pid_index[thread] = -1;
-	fill(selected_ind_pid[thread].begin(), selected_ind_pid[thread].end(), false);
 }
+if (sample_ratio < 1)
+	fill(selected_ind_pid[thread].begin(), selected_ind_pid[thread].end(), false);
 }
 
 inline string format_working_point(const string &init_str, float wp, bool perc = true) {
@@ -270,8 +271,12 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #endif
 		for (size_t k = 0; k < meas_functions.size(); ++k)
 		{
+#ifdef USE_MIN_THREADS
+			iterator.restart_iterator(th_num);
+#else
 			if (k > 0)
 				iterator.restart_iterator(th_num);
+#endif
 			vector<void *> measure_params = { &th_num ,function_params[k] };
 			map<string, float> batch_measures = meas_functions[k](iter_for_omp, (void *)&measure_params);
 #pragma omp critical
@@ -545,7 +550,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 	unordered_map<float, vector<float>> thresholds_labels;
 	vector<float> unique_scores;
 	float y, pred;
-	//while (iterator->fetch_next(*thread, y, pred))
 	while (iterator->fetch_next(*thread, y, pred))
 		thresholds_labels[pred].push_back(y);
 
@@ -679,9 +683,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 
 				++curr_wp_fpr_ind;
 				continue;
-			}
+				}
 			++i;
-		}
+			}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -762,9 +766,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 
 				++curr_wp_sens_ind;
 				continue;
-			}
+				}
 			++i;
-		}
+			}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -845,11 +849,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 
 				++curr_wp_pr_ind;
 				continue;
-			}
+				}
 			++i;
-		}
+			}
 
-	}
+		}
 	else {
 		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)
@@ -907,7 +911,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 	}
 
 	return res;
-}
+		}
 
 #pragma endregion
 
