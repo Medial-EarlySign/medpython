@@ -6,18 +6,56 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <random>
 #include "Logger/Logger/Logger.h"
 
 using namespace std;
 
 static MedTime med_time;
 
+//save memory allocation speedup for the bootstrap sampling
+class Lazy_Iterator {
+public:
+	Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
+		const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops);
+
+	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
+
+	void restart_iterator(int thread);
+
+	//sampling params:
+	float sample_ratio;
+	int sample_per_pid;
+private:
+	//internal structure - one time init
+	static random_device rd;
+	vector<mt19937> rd_gen;
+	uniform_int_distribution<> rand_pids;
+	vector<int> ind_to_pid;
+	vector<vector<int>> pid_index_to_indexes; //for each pid_index retrieve the indexes in the original vectors
+	vector<uniform_int_distribution<>> internal_random;
+	int cohort_size;
+	int min_pid_start;
+	//init each time again
+	//save for each Thread!
+	vector<vector<bool>> selected_ind_pid;
+	vector<int> current_pos;
+	vector<int> inner_pos; //only used when sample_per_pid==0
+	vector<int> sel_pid_index; //only used when sample_per_pid==0
+
+	//original vectors
+	const float *preds;
+	const float *y;
+	const vector<int> *pids;
+
+	//threading:
+	int maxThreadCount;
+};
+
 #pragma region Measurements Fucntions
-map<string, float> calc_npos_nneg(const vector<float> &preds, const vector<float> &y, void *function_params);
-map<string, float> calc_only_auc(const vector<float> &preds, const vector<float> &y, void *function_params);
-map<string, float> calc_roc_measures(const vector<float> &preds, const vector<float> &y, void *function_params); //SENS, SPEC, SCORE. no ppv, no PR
-map<string, float> calc_roc_measures_full(const vector<float> &preds, const vector<float> &y, void *function_params); //with PPV and PR
-map<string, float> calc_roc_measures_with_inc(const vector<float> &preds, const vector<float> &y, void *function_params); //with PPV and PR
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params);
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params);
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *function_params); //with PPV and PR
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -37,7 +75,7 @@ public:
 	void read_from_text_file(const string &text_file);
 	void write_to_text_file(const string &text_file);
 
-	ADD_SERIALIZATION_FUNCS(age_bin_years, min_age, max_age, sorted_outcome_labels, 
+	ADD_SERIALIZATION_FUNCS(age_bin_years, min_age, max_age, sorted_outcome_labels,
 		male_labels_count_per_age, female_labels_count_per_age)
 };
 
@@ -62,7 +100,7 @@ public:
 	}
 	ROC_Params(const string &init_string); //in format "paramter_name=value;..." for vector use ","
 	double incidence_fix;
-	
+
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
 		max_diff_working_point, score_bins, inc_stats)
 };
@@ -86,15 +124,14 @@ public:
 };
 
 //Infra
-typedef map<string, float>(*MeasurementFunctions)(const vector<float> &preds, const vector<float> &y, void *function_params);
+typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, void *function_params);
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
-typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def, void *cohort_params, void *function_params);
+typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, void *function_params);
 typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
 
 #pragma region Process Measurement Param Functions
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, FilterCohortFunc cohort_def,
-	void *cohort_params, void *function_params);
+	const vector<float> &y, const vector<int> &pids, void *function_params);
 #pragma endregion
 
 #pragma region Process Scores Functions
@@ -107,7 +144,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
 	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
 	const map<string, void *> *cohort_params = NULL, const vector<void *> *function_params = NULL,
-	ProcessMeasurementParamFunc process_measurments_params = NULL, 
+	ProcessMeasurementParamFunc process_measurments_params = NULL,
 	PreprocessScoresFunc preprocess_scores = NULL, void *preprocess_scores_params = NULL,
 	float sample_ratio = (float)1.0, int sample_per_pid = 1,
 	int loopCnt = 500, bool binary_outcome = true);

@@ -146,7 +146,7 @@ public:
 
 	// get things
 	int get_n_responses() { return (int)responses.size(); }
-	AMResponse *get_response(int index) { if (index < (int)responses.size()) return NULL; return &responses[index]; }
+	AMResponse *get_response(int index) { if (index >= (int)responses.size()) return NULL; return &(responses[index]); }
 	int get_response_index_by_point(int _pid, long _timestamp); // if does not exist returns -1.
 	AMResponse *get_response_by_point(int _pid, long _timestamp); // if does not exist, return NULL
 	void get_score_types(int *n_score_types, char ***_score_types);
@@ -154,6 +154,7 @@ public:
 	char *get_request_id() { return (char *)requestId.c_str(); }
 	char *get_version() { return (char *)version.c_str(); }
 	int get_score(int _pid, long _timestamp, char *_score_type, float *out_score);
+	int get_score_by_type(int index, char *_score_type, float *out_score);
 	vector<char *> *get_score_type_vec_ptr() { return &score_types; }
 
 	// set things
@@ -222,7 +223,7 @@ public:
 	virtual int Load(const char *config_f) { return 0; }
 	virtual int Unload() { return 0; }
 	virtual int ClearData() { return 0; }
-	virtual int AddData(int patient_id, char *signalName,  int TimeStamps_len, long* TimeStamps, int Values_len, float* Values) { return 0; }
+	virtual int AddData(int patient_id, const char *signalName,  int TimeStamps_len, long* TimeStamps, int Values_len, float* Values) { return 0; }
 	virtual int Calculate(AMRequest *request, AMResponses **responses) { return 0; }
 
 	// check supported score types in the supported_score_types vector
@@ -235,8 +236,9 @@ public:
 
 	// set things
 	void set_type(int _type) { type = (AlgoMarkerType)_type; }
-	void set_name(char *_name) { name = string(_name); }
-	void set_config(char *_config_f) { config_fname = string(_config_f); }
+	void set_name(const char *_name) { name = string(_name); }
+	void set_config(const char *_config_f) { config_fname = string(_config_f); }
+	void add_supported_stype(const char *stype) { supported_score_types.push_back(string(stype)); }
 
 	// get a new AlgoMarker
 	static AlgoMarker *make_algomarker(AlgoMarkerType am_type);
@@ -253,24 +255,23 @@ private:
 	MedAlgoMarkerInternal ma;
 
 	// some configs
-	string config_fname = "";
 	string type_in_config_file = "";
 	string rep_fname = "";
 	string model_fname = "";
-	string name = "";
 	//string input_tests_filters = "";
 
 	int read_config(string conf_f);
-	vector<string> supported_score_types ={ "Raw" };
+
+	//vector<string> supported_score_types ={ "Raw" };
 
 
 public:
-	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); }
+	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw");}
 	
 	int Load(const char *config_f);
 	int Unload();
 	int ClearData();
-	int AddData(int patient_id, char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values);
+	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values);
 	int Calculate(AMRequest *request, AMResponses **responses);
 
 };
@@ -293,11 +294,11 @@ extern "C" DLL_WORK_MODE int AM_API_ClearData(AlgoMarker* pAlgoMarker);
 
 // adding data to an AlgoMarker
 // this API allows adding a specific signal, with matching arrays of times and values
-extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values);
+extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values);
 
 // Prepare a Request
 // Null RC means failure
-extern "C" DLL_WORK_MODE AMRequest *AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points);
+extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points, AMRequest **new_req);
 
 // Get scores for a ready request
 extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **responses);
@@ -306,9 +307,10 @@ extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
 extern "C" DLL_WORK_MODE int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long _timestamp);
-extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, int *n_scores, float **scores);
+extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores, char ***_score_types);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponses *responses, int index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId);
+extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
 
 // Dispose of AlgoMarker - free all memory 
 extern "C" DLL_WORK_MODE void AM_API_DisposeAlgoMarker(AlgoMarker *pAlgoMarker);

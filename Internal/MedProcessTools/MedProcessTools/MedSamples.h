@@ -110,6 +110,7 @@ public:
 
 	// API's for online insertions : main use case is a single time point for prediction per pid
 	int insertRec(int pid, int time, float outcome, int outcomeTime);
+	int insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
 	int insertRec(int pid, int time) { return insertRec(pid, time, -1, 0); }
 
 	int version() { return  1; };

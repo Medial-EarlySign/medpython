@@ -626,7 +626,7 @@ template <class T> int MedMat<T>::write_to_csv_file(const string &fname) {
 		cerr << "nrows: " << nrows << " number of records metadata entries: " << recordsMetadata.size() << ", not writing record metadata\n";
 
 	if (with_records && with_signals)
-		of << "pid,date,time,split,weight,";
+		of << "pid,date,outcomeTime,split,weight,";
 	if (with_signals)
 		for (int j = 0; j < ncols; j++) {
 			of << signals[j] << ",";
