@@ -23,6 +23,8 @@ public:
 
 	void restart_iterator(int thread);
 
+	~Lazy_Iterator();
+
 	//sampling params:
 	float sample_ratio;
 	int sample_per_pid;
@@ -53,9 +55,9 @@ private:
 };
 
 #pragma region Measurements Fucntions
-map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params);
-map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params);
-map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *function_params); //with PPV and PR
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params);
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params);
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params); //with PPV and PR
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -124,7 +126,7 @@ public:
 };
 
 //Infra
-typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, void *function_params);
+typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, int thread_num, void *function_params);
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
 typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, void *function_params);
 typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
