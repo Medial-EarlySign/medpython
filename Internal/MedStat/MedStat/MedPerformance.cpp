@@ -102,6 +102,31 @@ void MedClassifierPerformance::_load(vector<vector<pair<float, float> > >& in_sp
 }
 
 // Load from predictor data
+void MedClassifierPerformance::_load(MedFeatures& ftrs) {
+
+	// First pass to check for splits
+	int maxSplits = -1, missingSplit = -1;
+	for (auto& sample: ftrs.samples) {
+		if (sample.split > maxSplits)
+			maxSplits = sample.split;
+		if (sample.split == -1)
+			missingSplit = 1;
+	}
+	assert(missingSplit == -1 || maxSplits == -1); // Can't have both splits and non-splits !
+
+	// Fill
+	preds.resize(maxSplits + 2);
+	for (auto& sample : ftrs.samples) {
+		int split = sample.split;
+		preds[split + 1].push_back({ sample.prediction.back(),sample.outcome });
+	}
+
+	// Are there any splits ?
+	if (maxSplits > -1)
+		SplitsToComplete();
+}
+
+// Load from predictor data
 void MedClassifierPerformance::_load(MedFeaturesData& predictor_data) {
 
 	preds.resize(predictor_data.nsplits + 1);

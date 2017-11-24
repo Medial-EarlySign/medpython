@@ -104,12 +104,14 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type, string
 
 	MedPredictor *newPred = make_predictor(model_type);
 	newPred->init_from_string(init_string);
+
 	return newPred;
 }
 //.......................................................................................
 int MedPredictor::init_from_string(string text) {
 
-	cerr << "MedPredictor init from string (classifier type is " << classifier_type << " )\n";
+	MLOG("MedPredictor init from string (classifier type is %d)\n", classifier_type);
+
 	// parse text of the format "Name = Value ; Name = Value ; ..."
 
 	if (classifier_type == MODEL_MIC_NET) {
@@ -392,9 +394,10 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 
 //.......................................................................................
 int MedPredictor::predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs) {
-	if (!model_features.empty() && model_features.size() != n_ftrs) {
-		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-			(int)model_features.size(), (int)x.size());
+	if (!model_features.empty()) {
+		if (model_features.size() != n_ftrs)
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)x.size());
 	}
 	else if (features_count > 0 && features_count != n_ftrs)
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",

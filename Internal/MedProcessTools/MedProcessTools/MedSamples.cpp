@@ -8,7 +8,8 @@
 //=======================================================================================
 // MedSample
 //=======================================================================================
-
+// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split,pred)
+//.......................................................................................
 int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	if (pos.size() == 0)
 		return parse_from_string(s);
@@ -31,6 +32,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	return 0;
 }
 
+// Get sample from tab-delimited string, in old or new format (<split> and <prediction> optional, <predictions> can be several numbers (tab delimited))
 //.......................................................................................
 int MedSample::parse_from_string(string &s)
 {
@@ -84,6 +86,7 @@ int MedSample::parse_from_string(string &s)
 
 }
 
+// Write to string in new format
 //.......................................................................................
 int MedSample::write_to_string(string &s)
 {
@@ -95,6 +98,7 @@ int MedSample::write_to_string(string &s)
 	return 0;
 }
 
+// printing all samples with prefix appearing in the begining of each line
 //.......................................................................................
 void MedSample::print(const string prefix) {
 	MLOG("%s :: id %d time %d outcomeTime %d outcome %f split %d prediction(%d)", prefix.c_str(), id, time, outcomeTime, outcome, split, prediction.size());
@@ -104,14 +108,12 @@ void MedSample::print(const string prefix) {
 	MLOG("\n");
 }
 
-//=======================================================================================
-// MedIdSample
-//=======================================================================================
-
 
 //=======================================================================================
 // MedSamples
 //=======================================================================================
+// Extract predictions from MedFeatures and insert to corresponding samples
+// Samples in MedFeatures are assumed to be of the same size and order as in MedSamples
 //.......................................................................................
 int MedSamples::insert_preds(MedFeatures& features) {
 
@@ -133,6 +135,7 @@ int MedSamples::insert_preds(MedFeatures& features) {
 	return 0;
 }
 
+// Get all patient ids
 //.......................................................................................
 void MedSamples::get_ids(vector<int>& ids) {
 
@@ -142,6 +145,7 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 }
 
+// Extract a single vector of concatanated predictions
 //.......................................................................................
 void MedSamples::get_preds(vector<float>& preds) {
 	for (auto& idSample : idSamples) 
@@ -150,6 +154,7 @@ void MedSamples::get_preds(vector<float>& preds) {
 				preds.push_back(sample.prediction[i]);
 }
 
+// Extract a vector of all outcomes
 //.......................................................................................
 void MedSamples::get_y(vector<float>& y) {
 	for (auto& idSample : idSamples)
@@ -157,21 +162,26 @@ void MedSamples::get_y(vector<float>& y) {
 			y.push_back(sample.outcome);
 }
 
+// gets a list of all categories (different values) appearing in the outcome
 //.......................................................................................
 void MedSamples::get_categs(vector<float>& categs) 
 {
 	map<float, int> categ_inside;
 	categs.clear();
 
+	// Collect categories
 	for (auto &id : idSamples)
 		for (auto &rec : id.samples)
 			categ_inside[rec.outcome] = 1;
 	
+	// Create a vector
 	for (auto &it : categ_inside)
 		categs.push_back(it.first);
 
 }
 
+// Helper function : get a vector of fields and generate the fields' positions map 
+//.......................................................................................
 int extract_field_pos_from_header(vector<string> field_names, map <string, int> & pos) {
 	pos["id"] = -1;
 	pos["date"] = -1;
@@ -203,6 +213,9 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 	return 0;
 }
 
+// read from text file.
+// If the line starting with EVENT_FIELDS (followed by tabe-delimeted field names : id,date,outcome,outcome_date,split,pred) appears before the data lines, it is used to determine
+// fields positions, otherwise - old or new formats are used.
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {
@@ -276,6 +289,8 @@ int MedSamples::read_from_file(const string &fname)
 	return 0;
 }
 
+// Sort by id and then date
+//.......................................................................................
 void MedSamples::sort_by_id_date() {
 	MLOG("sorting samples by id, date\n");
 	sort(idSamples.begin(), idSamples.end(), comp_patient_id_time);
@@ -283,6 +298,7 @@ void MedSamples::sort_by_id_date() {
 		sort(pat.samples.begin(), pat.samples.end(), comp_sample_id_time);
 }
 
+// write to text file in new format
 //.......................................................................................
 int MedSamples::write_to_file(const string &fname)
 {
@@ -324,7 +340,7 @@ int MedSamples::write_to_file(const string &fname)
 	return 0;
 }
 
-// Count
+// Count samples
 //.......................................................................................
 int MedSamples::nSamples()
 {
@@ -335,6 +351,7 @@ int MedSamples::nSamples()
 	return n;
 }
 
+// API's for online insertions : main use case is a single time point for prediction per pid
 //.......................................................................................
 int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime) 
 {

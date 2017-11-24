@@ -8,7 +8,8 @@
 //=======================================================================================
 // RepProcessors
 //=======================================================================================
-// Processors types
+// Processors types from names
+//.......................................................................................
 RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 
 	if (processor_name == "multi_processor" || processor_name == "multi")
@@ -21,8 +22,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_LAST;
 }
 
+// Create processor from params string (type must be given within string)
 //.......................................................................................
-// create from params : must have type parameter
 RepProcessor *RepProcessor::create_processor(string &params)
 {
 	string rp_type;
@@ -30,19 +31,21 @@ RepProcessor *RepProcessor::create_processor(string &params)
 	return (make_processor(rp_type, params));
 }
 
-// Initialization
+// Initialization : given processor name
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(string processor_name) {
 
 	return make_processor(rep_processor_name_to_type(processor_name));
 }
 
+// Initialization : given processor name and intialization string
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(string processor_name, string init_string) {
 
 	return make_processor(rep_processor_name_to_type(processor_name), init_string);
 }
 
+// Initialization : given processor type
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 
@@ -57,6 +60,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 
 }
 
+// Initialization : given processor type and intialization string
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, string init_string) {
 
@@ -66,7 +70,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 	return newRepProcessor;
 }
 
-// Applying
+// Apply processing on a single PidDynamicRec at a set of time-points given by samples
 //.......................................................................................
 int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 
@@ -77,6 +81,8 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 	return apply(rec, time_points);
 }
 
+// Apply processing on a single PidDynamicRec at a set of time-points given by time-points,
+// only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
 int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
 
@@ -88,6 +94,8 @@ int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int
 	return 0;
 }
 
+// Apply processing on a single PidDynamicRec at a set of time-points given by samples,
+// only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
 int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds) {
 
@@ -98,7 +106,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& 
 	return apply(rec, time_points, neededSignalIds);
 }
 
-// Required signals
+// Fill req_signal_ids from req_signals
 //.......................................................................................
 void RepProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 
@@ -108,6 +116,7 @@ void RepProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 		req_signal_ids[i] = dict.id(req_signals[i]);
 }
 
+// Append req_signal_ids to vector (fill req_signal_ids from req_signals if empty)
 //.......................................................................................
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict) {
 
@@ -118,12 +127,14 @@ void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, MedDic
 		signalIds.insert(signalId);
 }
 
+// Append req_signals to vector
+//.......................................................................................
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames) {
 	for (auto sig : req_signals)
 		signalNames.insert(sig);
 }
 
-// Affected signals
+// Affected signals - set aff_signal_ids from aff_signals (id->name)
 //.......................................................................................
 void RepProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 

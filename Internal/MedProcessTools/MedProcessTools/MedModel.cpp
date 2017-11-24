@@ -202,6 +202,9 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
+	if (end_stage <= MED_MDL_INSERT_PREDS)
+		return 0;
+
 	samples.insert_preds(features);
 
 	return 0;
@@ -371,7 +374,7 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
-		int npos = curr_line.find("//");
+		size_t npos = curr_line.find("//");
 		if (npos == 0)
 			continue;
 		lines++;
@@ -432,7 +435,7 @@ string file_to_string(int recursion_level, const string& main_file, vector<strin
 
 	boost::sregex_iterator it(orig.begin(), orig.end(), ip_regex);
 	boost::sregex_iterator end;
-	std::cerr << "resolving referenced jsons...\n";
+	MLOG("resolving referenced jsons...\n");
 	int last_char = 0;
 	string out_string = "";
 	for (; it != end; ++it) {

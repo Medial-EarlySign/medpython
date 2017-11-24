@@ -630,7 +630,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			}
 		}
 
-		MLOG("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1],nStuck);
+		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1],nStuck);
 
 		if (nthreads == 1) { // Special care
 			if (nSelected[0] == numToSelect) {
@@ -655,7 +655,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		else {
 			for (int j = 0; j < nthreads; j++)
-				fprintf(stderr, "N[%.12f] = %d\n", lambdas[j], nSelected[j]);
+				MLOG("N[%.12f] = %d\n", lambdas[j], nSelected[j]);
 
 //			float ratio;
 			if (nSelected[nthreads - 1] > numToSelect) { // MaxLambda is still too low
@@ -776,7 +776,7 @@ int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) 
 		float maxCountValue;
 		for (auto rec : counters) {
 			if (rec.second > maxCount) {
-				maxCount += rec.second;
+				maxCount = rec.second;
 				maxCountValue = rec.first;
 			}
 		}

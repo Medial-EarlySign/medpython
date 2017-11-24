@@ -21,6 +21,7 @@
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedFeat/MedFeat/MedFeat.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
+#include "MedProcessTools/MedProcessTools/MedFeatures.h"
 
 #include "string.h"
 
@@ -88,6 +89,7 @@ public:
 	void _load(MedFeaturesData& predictor_data) ;
 	void _load(MedSamples& inSamples);
 	void load_preds_on_train(MedFeaturesData& predictor_data);
+	void _load(MedFeatures& ftrs);
 	void post_load();
 	template <typename T> void load(T& object) ;
 	template <typename T, typename S> void load(T *preds, S *labels, int n) ;
