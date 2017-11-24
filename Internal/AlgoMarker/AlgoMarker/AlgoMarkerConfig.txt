@@ -1,0 +1,21 @@
+#
+# AlgoMarker config example file
+#
+
+# comment lines start with #
+
+# type of AlgoMarker
+TYPE	MEDIAL_INFRA
+
+# name should be the same as the one called with : this is here to double check and make sure the right config is used
+NAME	MedialES_Pre2D_1.0
+
+# repository file : to enable load of signal names and dictionaries, or optionally also data
+REPOSITORY	//nas1/Work/CancerData/Repositories/THIN/thin_mar2017/thin.repository
+
+# config file for sanity tests & filters on input data: when missing or with NONE value, no tests are done
+
+# INPUT_TESTS	MedialES_Pre2D_1.0.filters
+
+# model file for AlgoMarker
+MODEL	//nas1/Work/Users/Avi/Diabetes/order/pre2d/runs/partial/pre2d_partial_S6.model
