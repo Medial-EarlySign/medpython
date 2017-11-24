@@ -10,6 +10,7 @@
 #include <map>
 #include <algorithm>
 #include <MedTime/MedTime/MedTime.h>
+#include <iostream>
 
 using namespace std;
 
@@ -107,8 +108,9 @@ class SVal : public UnifiedSig {
 		bool operator<(const SVal& s) { return (this->val < s.val); }
 		bool operator==(const SVal& s) { return (this->val == s.val); }
 
-//		friend ostream& operator<<(ostream& os, const SVal& s) { os << s.val; return os; }
+		friend ostream& operator<<(ostream& os, const SVal& s) { os << s.val; return os; }
 };
+
 
 //===================================
 // SDateVal
@@ -132,7 +134,7 @@ class SDateVal : public UnifiedSig {
 		bool operator<(const SDateVal& s) { if (this->date < s.date) return true; if (this->date > s.date) return false; return (this->val < s.val); }
 		bool operator==(const SDateVal& s) { return (this->val == s.val && this->date == s.date); }
 
-//		friend ostream& operator<<(ostream& os, const SDateVal& s) { os << s.date << ":" << s.val; return os; }
+		friend ostream& operator<<(ostream& os, const SDateVal& s) { os << s.date << ":" << s.val; return os; }
 };
 
 //===================================
@@ -157,7 +159,7 @@ class STimeVal : public UnifiedSig {
 		bool operator<(const STimeVal& s) { if (this->time < s.time) return true; if (this->time > s.time) return false; return (this->val < s.val); }
 		bool operator==(const STimeVal& s) { return (this->val == s.val && this->time == s.time); }
 
-//		friend ostream& operator<<(ostream& os, const STimeVal& s) { os << s.time << ":" << s.val; return os; }
+		friend ostream& operator<<(ostream& os, const STimeVal& s) { os << s.time << ":" << s.val; return os; }
 
 };
 
@@ -188,7 +190,7 @@ class SDateRangeVal : public UnifiedSig {
 		}
 		bool operator==(const SDateRangeVal& s) { return (this->val == s.val && this->date_start == s.date_start && this->date_end == s.date_end); }
 
-//		friend ostream& operator<<(ostream& os, const SDateRangeVal& s) { os << s.date_start << "-" << s.date_end << ":" << s.val; return os; }
+		friend ostream& operator<<(ostream& os, const SDateRangeVal& s) { os << s.date_start << "-" << s.date_end << ":" << s.val; return os; }
 
 };
 
@@ -219,7 +221,7 @@ class STimeRangeVal : public UnifiedSig {
 		}
 		bool operator==(const STimeRangeVal& s) { return (this->val == s.val && this->time_start == s.time_start && this->time_end == s.time_end); }
 
-//		friend ostream& operator<<(ostream& os, const STimeRangeVal& s) { os << s.time_start << "-" << s.time_end << ":" << s.val; return os; }
+		friend ostream& operator<<(ostream& os, const STimeRangeVal& s) { os << s.time_start << "-" << s.time_end << ":" << s.val; return os; }
 
 };
 
@@ -244,7 +246,7 @@ class STimeStamp : public UnifiedSig {
 		bool operator<(const STimeStamp& s) { if (this->time < s.time) return true; return false; }
 		bool operator==(const STimeStamp& s) { return (this->time == s.time); }
 
-//		friend ostream& operator<<(ostream& os, const STimeStamp& s) { os << s.time; return os; }
+		friend ostream& operator<<(ostream& os, const STimeStamp& s) { os << s.time; return os; }
 
 };
 
@@ -275,7 +277,7 @@ class SDateVal2 : public UnifiedSig {
 		}
 		bool operator==(const SDateVal2& s) { return (this->date == s.date && this->val == s.val && this->val2 == s.val2); }
 
-//		friend ostream& operator<<(ostream& os, const SDateVal2& s) { os << s.date << ":" << s.val << "," << s.val2; return os; }
+		friend ostream& operator<<(ostream& os, const SDateVal2& s) { os << s.date << ":" << s.val << "," << s.val2; return os; }
 
 };
 
@@ -305,7 +307,7 @@ class STimeLongVal : public UnifiedSig {
 		}
 		bool operator==(const STimeLongVal& s) { return (this->time == s.time && this->val == s.val); }
 
-//		friend ostream& operator<<(ostream& os, const STimeLongVal& s) { os << s.time << ":" << s.val; return os; }
+		friend ostream& operator<<(ostream& os, const STimeLongVal& s) { os << s.time << ":" << s.val; return os; }
 
 };
 
@@ -336,7 +338,7 @@ public:
 	}
 	bool operator==(const SDateShort2& s) { return (this->date == s.date && this->val1 == s.val1 && this->val2 == s.val2); }
 
-//	friend ostream& operator<<(ostream& os, const SDateShort2& s) { os << s.date << ":" << s.val1 << "," << s.val2; return os; }
+	friend ostream& operator<<(ostream& os, const SDateShort2& s) { os << s.date << ":" << s.val1 << "," << s.val2; return os; }
 };
 
 //===================================
@@ -363,7 +365,7 @@ public:
 	}
 	bool operator==(const SValShort2& s) { return (this->val1 == s.val1 && this->val2 == s.val2); }
 
-//	friend ostream& operator<<(ostream& os, const SValShort2& s) { os << s.val1 << "," << s.val2; return os; }
+	friend ostream& operator<<(ostream& os, const SValShort2& s) { os << s.val1 << "," << s.val2; return os; }
 
 };
 
@@ -412,7 +414,7 @@ public:
 		return (this->val4 < s.val4);
 	}
 	bool operator==(const SValShort4& s) { return (this->val1 == s.val1 && this->val2 == s.val2 && this->val3 == s.val3 && this->val4 == s.val4); }
-//	friend ostream& operator<<(ostream& os, const SValShort4& s) { os << s.val1 << "," << s.val2 << "," << s.val3 << "," << s.val4; return os; }
+	friend ostream& operator<<(ostream& os, const SValShort4& s) { os << s.val1 << "," << s.val2 << "," << s.val3 << "," << s.val4; return os; }
 
 };
 
@@ -623,8 +625,8 @@ inline int MedSignals::sid(const string &name)
 
 template <class T> int MedSignalsPrintVec(ostream& os, T *vec, int n_elem)
 {
-//	for (int i=0; i<n_elem; i++)
-//		os << vec[i] << " ";
+	for (int i=0; i<n_elem; i++)
+		os << vec[i] << " ";
 }
 
 

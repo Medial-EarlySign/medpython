@@ -141,9 +141,9 @@ int MedQRF::init(map<string, string>& mapper) {
 		else if (field == "spread") params.spread = stof(entry.second);
 		else if (field == "learn_nthreads") params.learn_nthreads = stoi(entry.second);
 		else if (field == "predict_nthreads") params.predict_nthreads = stoi(entry.second);
-		else if (field == "keep_all_values") params.keep_all_values = (bool)(stoi(entry.second)!=0);
+		else if (field == "keep_all_values") params.keep_all_values = (bool)(stoi(entry.second) != 0);
 		else if (field == "max_depth") params.max_depth = stoi(entry.second);
-		else if (field == "quantiles"){
+		else if (field == "quantiles") {
 			vector<string> vals;
 			split(vals, entry.second, boost::is_any_of(","));
 			params.quantiles.resize(vals.size());
@@ -335,12 +335,16 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 
 //..............................................................................
 size_t MedQRF::get_size() {
-	return qf.get_size();
+	return qf.get_size()
+		+ MedSerialize::get_size(model_features) + MedSerialize::get_size(features_count);
 }
 
 //..............................................................................
 size_t MedQRF::serialize(unsigned char *blob) {
-	return qf.serialize(blob);
+	size_t size = qf.serialize(blob);
+	size += MedSerialize::serialize(blob + size, model_features);
+	size += MedSerialize::serialize(blob + size, features_count);
+	return size;
 }
 
 //..............................................................................
@@ -353,8 +357,10 @@ size_t MedQRF::deserialize(unsigned char *blob) {
 	params.type = (QRF_TreeType)qf.mode;
 	params.get_only_this_categ = qf.get_only_this_categ;
 	params.get_count = qf.get_counts_flag;
-	params.quantiles = qf.quantiles; 
+	params.quantiles = qf.quantiles;
 
+	s += MedSerialize::deserialize(blob + s, model_features);
+	s += MedSerialize::deserialize(blob + s, features_count);
 	return s;
 }
 
@@ -406,7 +412,7 @@ string printNode(const vector<string> &modelSignalNames, const vector<QRF_ResNod
 	else {
 		out << "(pred=" << nodes[n].pred;
 	}
-	
+
 	out << ", size=" << nodes[n].size;
 	if (!nodes[n].is_leaf) {
 		out << ", split=" << nodes[n].split_val << ")";

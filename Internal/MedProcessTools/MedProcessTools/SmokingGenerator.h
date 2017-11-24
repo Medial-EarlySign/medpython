@@ -1,6 +1,8 @@
 #pragma once
 #include "FeatureGenerator.h"
 
+void generateSmokingRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal);
+
 class SmokingGenerator : public FeatureGenerator {
 public:
 

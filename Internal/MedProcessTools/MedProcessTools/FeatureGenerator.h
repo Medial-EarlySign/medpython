@@ -31,6 +31,7 @@ typedef enum {
 	FTR_GEN_SMOKING,
 	FTR_GEN_RANGE,
 	FTR_GEN_DRG_INTAKE,
+	FTR_GEN_ALCOHOL,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -161,6 +162,7 @@ typedef enum {
 	FTR_CATEGORY_SET_COUNT = 13,
 	FTR_CATEGORY_SET_SUM = 14,
 	FTR_NSAMPLES = 15,
+	FTR_EXISTS = 16,
 
 	FTR_LAST
 } BasicFeatureTypes;
@@ -237,6 +239,7 @@ public:
 	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
+	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
@@ -423,6 +426,7 @@ typedef enum {
 	FTR_RANGE_LATEST = 1,
 	FTR_RANGE_MAX = 2,
 	FTR_RANGE_MIN = 3,
+	FTR_RANGE_EVER = 4,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -431,6 +435,7 @@ public:
 
 	string signalName; // Signal to consider
 	int signalId; 
+	int signalValue; // FTR_RANGE_EVER checks if the signal ever had the value signalValue
 	RangeFeatureTypes type; // Type of comorbidity index to generate
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
 	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
@@ -472,7 +477,7 @@ public:
 	float uget_range_latest(UniversalSigVec &usv, int time_point);
 	float uget_range_min(UniversalSigVec &usv, int time_point);
 	float uget_range_max(UniversalSigVec &usv, int time_point);
-
+	float uget_range_ever(UniversalSigVec &usv, int time_point);
 	// Serialization
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals)

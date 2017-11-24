@@ -15,6 +15,8 @@ using namespace std;
 
 class SerializableObject {
 public:
+	//the object version
+	virtual int version() { return  0; }
 
 	// Virtual serialization
 	virtual size_t get_size() { return 0; }
@@ -43,8 +45,6 @@ public:
 	virtual int init(map<string, string>& map) { return 0; }
 };
 
-
-
 //
 // To Join the MedSerialize Wagon :
 // (1) include this h file, in your h file
@@ -64,8 +64,8 @@ namespace MedSerialize {																							\
 //
 #define ADD_SERIALIZATION_FUNCS(...)																\
 	size_t get_size() { return MedSerialize::get_size(__VA_ARGS__); }								\
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, __VA_ARGS__);}		\
-	size_t deserialize(unsigned char *blob) {return MedSerialize::deserialize(blob, __VA_ARGS__);}
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob,  __VA_ARGS__);}		\
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, __VA_ARGS__); }
 
 #include "SerializableObject_imp.h"
 

@@ -74,6 +74,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AlcoholGenerator.cpp" />
     <ClCompile Include="BinnedLmEstimates.cpp" />
     <ClCompile Include="CrossValidation.cpp" />
     <ClCompile Include="DoCalcFeatProcessor.cpp" />
@@ -94,6 +95,7 @@
     <ClCompile Include="StripComments.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AlcoholGenerator.h" />
     <ClInclude Include="CrossValidator.h" />
     <ClInclude Include="DoCalcFeatProcessor.h" />
     <ClInclude Include="DrugIntakeGenerator.h" />

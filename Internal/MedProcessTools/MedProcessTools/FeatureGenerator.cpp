@@ -4,6 +4,7 @@
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
+#include "AlcoholGenerator.h"
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -24,6 +25,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
+	else if (generator_name == "alcohol")
+		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
 		return FTR_GEN_RANGE;
 	else if (generator_name == "drugIntake")
@@ -91,6 +94,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
+	else if (generator_type == FTR_GEN_ALCOHOL)
+		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
 		return new RangeFeatGenerator;
 	else if (generator_type == FTR_GEN_DRG_INTAKE)
@@ -263,6 +268,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set_count")		return FTR_CATEGORY_SET_COUNT;
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
+	if (name == "exists")			return FTR_EXISTS;
 
 	if (isInteger(name))
 		return (BasicFeatureTypes)stoi(name);
@@ -298,6 +304,7 @@ void BasicFeatGenerator::set_names() {
 		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count_" + set_names; break;
 		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
 		case FTR_NSAMPLES:		name += "nsamples"; break;
+		case FTR_EXISTS:		name += "exists"; break;
 
 		default: name += "ERROR";
 		}
@@ -386,6 +393,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_CATEGORY_SET_COUNT:		return uget_category_set_count(rec, rec.usv, time);
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time);
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
+	case FTR_EXISTS:			return uget_exists(rec.usv, time, win_from, win_to);
 
 	default:	return missing_val;
 	}
@@ -497,6 +505,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_LATEST:	name += "latest"; break;
 	case FTR_RANGE_MIN:		name += "min"; break;
 	case FTR_RANGE_MAX:		name += "max"; break;
+	case FTR_RANGE_EVER:	name += "ever_" + to_string(signalValue); break;
 
 	default: name += "ERROR";
 	}
@@ -521,6 +530,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "val") signalValue = stoi(entry.second);
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
@@ -540,6 +550,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 void RangeFeatGenerator::init_defaults() {
 	generator_type = FTR_GEN_RANGE;
 	signalId = -1;
+	signalValue = -1;
 	time_unit_sig = MedTime::Undefined;
 	time_unit_win = med_rep_type.windowTimeUnit;
 	string _signalName = "";
@@ -555,6 +566,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "latest")			return FTR_RANGE_LATEST;
 	if (name == "max")			return FTR_RANGE_MAX;
 	if (name == "min")			return FTR_RANGE_MIN;
+	if (name == "ever")			return FTR_RANGE_EVER;
 
 	return (RangeFeatureTypes)stoi(name);
 }
@@ -584,6 +596,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_LATEST:	return uget_range_latest(rec.usv, time);
 	case FTR_RANGE_MIN:	return uget_range_min(rec.usv, time);
 	case FTR_RANGE_MAX:		return uget_range_max(rec.usv, time);
+	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, time);
 
 	default:	return missing_val;
 	}
@@ -933,6 +946,20 @@ float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win
 }
 
 //.......................................................................................
+// get 1.0 if there were any samples in [win_to, win_from] before time, else 0.0
+float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	int i, j;
+	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
+	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
+	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time && i - j >= 0) 
+		return 1.0;
+	else return 0.0;
+}
+
+//.......................................................................................
 // get values for RangeFeatGenerator
 //.......................................................................................
 // get the value in a range that includes time - win_from, if available
@@ -1029,6 +1056,27 @@ float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int time)
 		return max_val;
 	else
 		return missing_val;
+}
+
+//.......................................................................................
+// returns 1 if the range ever (up to time) had the value signalValue
+float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+
+		if (fromTime > max_time)
+			break;
+		else if (toTime < min_time)
+			continue;
+		else if ((fromTime >= min_time || toTime <= max_time) && (int)usv.Val(i, val_channel) == signalValue)
+			return 1.0;
+	}
+	return 0.0;
 }
 
 //................................................................................................................
