@@ -588,7 +588,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	}
 
 	if (f_cnt == 0 || t_sum <= 0)
-		throw invalid_argument("no falses or no positives exists in cohort");
+		MTHROW_AND_ERR("no falses or no positives exists in cohort\n");
 	for (size_t i = 0; i < true_rate.size(); ++i) {
 		true_rate[i] /= float(t_sum);
 		false_rate[i] /= float(f_sum);
@@ -602,7 +602,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
 	int i = 0;
 
-	float ppv_c, pr_prev, ppv_prev, pr_c, npv_c, npv_prev, or_prev, or_c;
+	float ppv_c, pr_prev, ppv_prev, pr_c, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
 	if (use_wp) {
 		//fpr points:
 		i = 1;
@@ -699,6 +699,27 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_c;
 				else
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_prev;
+
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+						(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+						(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = rr_c * (prev_diff / tot_diff) +
+						rr_prev * (curr_diff / tot_diff);
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = rr_c;
+					else
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = rr_prev;
+				}
 
 				++curr_wp_fpr_ind;
 				continue;
@@ -801,6 +822,26 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_c;
 				else
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_prev;
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+						(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+						(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = rr_c * (prev_diff / tot_diff) +
+						rr_prev * (curr_diff / tot_diff);
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = rr_c;
+					else
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = rr_prev;
+				}
 
 				++curr_wp_sens_ind;
 				continue;
@@ -819,7 +860,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					(t_sum + f_sum));
 
 			if (curr_wp_pr_ind < pr_points.size() && pr_c >= pr_points[curr_wp_pr_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
-				if (params->incidence_fix>0)
+				if (params->incidence_fix > 0)
 					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
 				else
 					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
@@ -902,6 +943,26 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_c;
 				else
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_prev;
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+						(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+						(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_c * (prev_diff / tot_diff) +
+						rr_prev * (curr_diff / tot_diff);
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_c;
+					else
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_prev;
+				}
 
 				++curr_wp_pr_ind;
 				continue;
@@ -949,11 +1010,16 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
 					(t_sum / (t_sum + f_sum)));
 			}
-
 			if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 				res[format_working_point("OR@SCORE", score_working_point, false)] = float(
 					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 
+			if (params->incidence_fix > 0)
+				if (true_rate[i] < 1)
+					res[format_working_point("RR@SCORE", score_working_point, false)] = float(ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+					(params->incidence_fix * (1 - true_rate[i])));
+				else
+					res[format_working_point("RR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 		}
 	}
 
