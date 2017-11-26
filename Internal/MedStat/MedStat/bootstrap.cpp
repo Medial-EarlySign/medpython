@@ -71,15 +71,14 @@ random_device Lazy_Iterator::rd;
 Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
 	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops) {
 	sample_per_pid = p_sample_per_pid;
-	sample_ratio = p_sample_ratio;
+	//sample_ratio = p_sample_ratio;
+	sample_ratio = 1.0; //no support for smaller size for now - need to fix Std for smaller sizes
+	sample_all_no_sampling = false;
 	pids = p_pids;
 	y = p_y->data();
 	preds = p_preds->data();
 	maxThreadCount = max_loops;
-	if (sample_per_pid == 0 && sample_ratio >= 1)
-		MTHROW_AND_ERR("You can't sample on all pids and take all thier samples."
-			" sample_per_pid==0, sample_ratio==1 is ilegal\n");
-
+	
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
 		pid_to_inds[(*pids)[i]].push_back(int(i));
@@ -117,22 +116,14 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	current_pos.resize(maxThreadCount, 0);
 	inner_pos.resize(maxThreadCount, 0);
 	sel_pid_index.resize(maxThreadCount, -1);
-	selected_ind_pid.resize(maxThreadCount);
-	for (size_t i = 0; i < maxThreadCount; ++i)
-		selected_ind_pid[i].resize((int)pid_index_to_indexes.size(), false);
 }
 
 bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 	if (sample_per_pid > 0) {
 		//choose pid:
 		int selected_pid_index = int(current_pos[thread] / sample_per_pid);
-		if (sample_ratio < 1) {
+		if (!sample_all_no_sampling)
 			selected_pid_index = rand_pids(rd_gen[thread]);
-			while (selected_ind_pid[thread][selected_pid_index])
-				selected_pid_index = rand_pids(rd_gen[thread]);
-#pragma omp critical
-			selected_ind_pid[thread][selected_pid_index] = true;
-		}
 
 		vector<int> *inds = &pid_index_to_indexes[selected_pid_index];
 		uniform_int_distribution<> *rnd_num = &internal_random[inds->size()];
@@ -145,7 +136,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		return current_pos[thread] < sample_per_pid * cohort_size;
 	}
 	else { //taking all samples for pid when selected, sample_ratio is less than 1
-		if (sample_ratio >= 1) {
+		if (sample_all_no_sampling) {
 			//iterate on all!:
 			ret_y = y[current_pos[thread]];
 			ret_pred = preds[current_pos[thread]];
@@ -156,11 +147,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		if (sel_pid_index[thread] < 0)
 		{
 			int selected_pid_index = rand_pids(rd_gen[thread]);
-			while (selected_ind_pid[thread][selected_pid_index])
-				selected_pid_index = rand_pids(rd_gen[thread]);
 #pragma omp critical 
 			{
-				selected_ind_pid[thread][selected_pid_index] = true;
 				sel_pid_index[thread] = selected_pid_index;
 				inner_pos[thread] = 0;
 			}
@@ -191,7 +179,6 @@ void Lazy_Iterator::restart_iterator(int thread) {
 		current_pos[thread] = 0;
 		inner_pos[thread] = 0;
 		sel_pid_index[thread] = -1;
-		fill(selected_ind_pid[thread].begin(), selected_ind_pid[thread].end(), false);
 	}
 	}
 	else {
@@ -247,8 +234,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 
 	map<string, vector<float>> all_measures;
 	//save results for all cohort:
-	iterator.sample_per_pid = 0; //take all samples in Obs
-	iterator.sample_ratio = 1; //take all pids
+	//iterator.sample_per_pid = 0; //take all samples in Obs
+	//iterator.sample_ratio = 1; //take all pids
+	iterator.sample_all_no_sampling = true;
 #ifdef USE_MIN_THREADS
 	int main_thread = 0;
 #else
@@ -266,8 +254,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	iterator.restart_iterator(0);
 #endif
 
-	iterator.sample_per_pid = sample_per_pid;
-	iterator.sample_ratio = sample_ratio;
+	//iterator.sample_per_pid = sample_per_pid;
+	//iterator.sample_ratio = sample_ratio;
+	iterator.sample_all_no_sampling = false;
 	Lazy_Iterator *iter_for_omp = &iterator;
 #pragma omp parallel for schedule(static)
 	for (int i = 0; i < loopCnt; ++i)
@@ -290,7 +279,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 				all_measures[jt->first].push_back(jt->second);
 		}
-	}
+}
 
 	//now calc - mean, std , CI0.95_lower, CI0.95_upper for each measurement in all exp
 	map<string, float> all_final_measures;
@@ -703,13 +692,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
-						(params->incidence_fix * (1 - true_rate[i - 1])));
+							(params->incidence_fix * (1 - true_rate[i - 1])));
 					else
 						rr_prev = MED_MAT_MISSING_VALUE;
 
 					if (true_rate[i] < 1)
 						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-						(params->incidence_fix * (1 - true_rate[i])));
+							(params->incidence_fix * (1 - true_rate[i])));
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
@@ -825,13 +814,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
-						(params->incidence_fix * (1 - true_rate[i - 1])));
+							(params->incidence_fix * (1 - true_rate[i - 1])));
 					else
 						rr_prev = MED_MAT_MISSING_VALUE;
 
 					if (true_rate[i] < 1)
 						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-						(params->incidence_fix * (1 - true_rate[i])));
+							(params->incidence_fix * (1 - true_rate[i])));
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
@@ -946,13 +935,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
-						(params->incidence_fix * (1 - true_rate[i - 1])));
+							(params->incidence_fix * (1 - true_rate[i - 1])));
 					else
 						rr_prev = MED_MAT_MISSING_VALUE;
 
 					if (true_rate[i] < 1)
 						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-						(params->incidence_fix * (1 - true_rate[i])));
+							(params->incidence_fix * (1 - true_rate[i])));
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
@@ -1017,7 +1006,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			if (params->incidence_fix > 0)
 				if (true_rate[i] < 1)
 					res[format_working_point("RR@SCORE", score_working_point, false)] = float(ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-					(params->incidence_fix * (1 - true_rate[i])));
+						(params->incidence_fix * (1 - true_rate[i])));
 				else
 					res[format_working_point("RR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 		}

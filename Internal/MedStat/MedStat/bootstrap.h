@@ -28,6 +28,7 @@ public:
 	//sampling params:
 	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
 	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
+	bool sample_all_no_sampling; //for Obs
 private:
 	//internal structure - one time init
 	static random_device rd;
@@ -40,7 +41,6 @@ private:
 	int min_pid_start;
 	//init each time again
 	//save for each Thread!
-	vector<vector<bool>> selected_ind_pid;
 	vector<int> current_pos;
 	vector<int> inner_pos; //only used when sample_per_pid==0
 	vector<int> sel_pid_index; //only used when sample_per_pid==0
