@@ -35,6 +35,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("samples", po::value<string>()->default_value(""), "medsamples file to use")
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "algo marker configuration file")
+			("direct_test" , "split to a dedicated debug routine")
 			;
 
 
@@ -162,6 +163,89 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	return 0;
 }
 
+//=============================================================================================================================
+int debug_me(po::variables_map &vm)
+{
+
+	// init AM
+	AlgoMarker *test_am;
+
+	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, "Pre2D", &test_am) != AM_OK_RC) {
+		MERR("ERROR: Failed creating test algomarker\n");
+		return -1;
+	}
+
+	MLOG("Name is %s\n", test_am->get_name());
+
+	int load_rc;
+	if ((load_rc = AM_API_Load(test_am, vm["amconfig"].as<string>().c_str())) != AM_OK_RC) {
+		MERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), vm["amconfig"].as<string>().c_str(), load_rc);
+		return -1;
+	}
+	MLOG("Algomarker %s was loaded with config file %s\n", test_am->get_name(), test_am->get_config());
+
+
+	// Load Data
+	vector<long> times ={ 20160101 };
+	vector<float> vals ={ 6 };
+	AM_API_AddData(test_am, 1, "RBC", (int)times.size(), &times[0], (int)vals.size(), &vals[0]);
+	/*vector<float>*/ vals ={ 1960 };
+	AM_API_AddData(test_am, 1, "BYEAR", 0, NULL, (int)vals.size(), &vals[0]);
+	/*vector<float>*/ vals ={ 1 };
+	//AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
+
+	// Calculate
+	char *stypes[] ={ "Raw" };
+	vector<int> _pids ={ 1 };
+	vector<long> _timestamps ={ 20160101 };
+	AMRequest *req;
+	MLOG("Creating Request\n");
+	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
+	if (req == NULL)
+		MLOG("ERROR: Got a NULL request !!\n");
+	AMResponses *resp;
+
+	// calculate scores
+	MLOG("Before Calculate\n");
+	int calc_rc = AM_API_Calculate(test_am, req, &resp);
+	
+
+	// Shared messages
+	int n_shared_msgs;
+	int *shared_codes;
+	char **shared_args;
+	AM_API_GetSharedMessages(resp, &n_shared_msgs, &shared_codes, &shared_args);
+	MLOG("Shared Messages: %d\n", n_shared_msgs);
+	//for (int i=0; i<n_shared_msgs; i++) {
+	//	MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
+	//}
+
+
+	AM_API_DisposeResponses(resp); resp=NULL;
+	AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
+	AM_API_Calculate(test_am, req, &resp);
+
+	// print result
+	int n_resp = AM_API_GetResponsesNum(resp);
+	MLOG("Got %d responses\n", n_resp);
+	int n_scr = 0;
+	float *_scr = NULL;
+	int pid;
+	long ts;
+	char **_scr_types;
+	for (int i=0; i<n_resp; i++) {
+		MLOG("Getting response no. %d\n", i);
+		int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_types);
+		MLOG("resp_rc = %d\n", resp_rc);
+		MLOG("i %d , pid %d ts %d n_scr %d scr %f\n", i, pid, ts, n_scr, _scr[0]);
+	}
+
+
+	// Dispose
+	AM_API_DisposeRequest(req);
+	AM_API_DisposeResponses(resp);
+	AM_API_DisposeAlgoMarker(test_am);
+}
 
 //========================================================================================
 // MAIN
@@ -172,10 +256,15 @@ int main(int argc, char *argv[])
 	int rc = 0;
 	po::variables_map vm;
 
+
 	// Running Parameters
 	MLOG("Reading params\n");
 	rc = read_run_params(argc, argv, vm);
 	assert(rc >= 0);
+
+
+	if (vm.count("direct_test"))
+		return debug_me(vm);
 
 	// read model file
 	MedModel model;
