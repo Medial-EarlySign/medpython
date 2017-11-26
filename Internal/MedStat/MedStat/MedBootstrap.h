@@ -11,9 +11,10 @@ class MedBootstrap : public SerializableObject {
 public:
 	ROC_Params roc_Params;
 	map<string, vector<Filter_Param>> filter_cohort;
-	float sample_ratio;
-	int sample_per_pid;
-	int loopCnt;
+	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
+	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
+	bool sample_patient_label; //if true will treat patient+label as the "id" for the sampling
+	int loopCnt; //the bootstrap count
 
 	MedBootstrap();
 	//init_string format: paramter_name=value;... roc_Params is the init_string of roc_Params

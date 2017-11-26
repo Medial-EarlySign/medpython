@@ -7,9 +7,11 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
-MedBootstrap::MedBootstrap() {
+MedBootstrap::MedBootstrap()
+{
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
+	sample_patient_label = false;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 }
@@ -81,6 +83,15 @@ map<string, map<string, float>> MedBootstrap::booststrap_base(const vector<float
 		cohort_params[it->first] = (void *)&it->second;
 	}
 
+	vector<int> new_ids((int)pids.size());
+	if (sample_patient_label)
+	{
+		for (size_t i = 0; i < pids.size(); ++i)
+			new_ids[i] = pids[i] * 10 + (int)y[i];
+		return booststrap_analyze(preds, y, new_ids, additional_info, cohorts,
+			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
+			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
+	}
 	return booststrap_analyze(preds, y, pids, additional_info, cohorts,
 		measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
 		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
