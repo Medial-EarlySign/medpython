@@ -150,6 +150,61 @@ void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<f
 
 }
 
+void rec_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges,
+	map<string, vector<Filter_Param>> &current_filters) {
+	if (parameters_ranges.empty())
+		return;
+	auto curr = parameters_ranges.begin();
+	if (current_filters.empty()) {
+		for (size_t i = 0; i < curr->second.size(); ++i)
+		{
+			char buff[1000];
+			snprintf(buff, sizeof(buff), "%s:%1.3f-%1.3f", curr->first.c_str(),
+				curr->second[i].first, curr->second[i].second);
+			Filter_Param fp;
+			fp.param_name = curr->first;
+			fp.min_range = curr->second[i].first;
+			fp.max_range = curr->second[i].second;
+			current_filters[string(buff)].push_back(fp);
+		}
+		++curr;
+		map<string, vector<pair<float, float>>> rest(curr, parameters_ranges.end());
+		rec_filter_cohorts(rest, current_filters);
+		return;
+	}
+
+	map<string, vector<Filter_Param>> new_step;
+	for (auto it = current_filters.begin(); it != current_filters.end(); ++it) {
+		for (size_t i = 0; i < curr->second.size(); ++i)
+		{
+			//add to it curr->second[i] 
+			char buff[1000];
+			snprintf(buff, sizeof(buff), "%s,%s:%1.3f-%1.3f", it->first.c_str(), curr->first.c_str(),
+				curr->second[i].first, curr->second[i].second);
+			Filter_Param fp;
+			fp.param_name = curr->first;
+			fp.min_range = curr->second[i].first;
+			fp.max_range = curr->second[i].second;
+			string str_name = string(buff);
+			new_step[str_name] = it->second;
+			new_step[str_name].push_back(fp);
+		}
+	}
+
+	++curr;
+	map<string, vector<pair<float, float>>> rest(curr, parameters_ranges.end());
+	current_filters = new_step;
+	rec_filter_cohorts(rest, current_filters);
+}
+
+void MedBootstrap::add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges) {
+	map<string, vector<Filter_Param>> filters;
+	rec_filter_cohorts(parameters_ranges, filters);
+	//add filters to object:
+	for (auto it = filters.begin(); it != filters.end(); ++it)
+		filter_cohort[it->first] = it->second;
+}
+
 map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features,
 	map<int, map<string, map<string, float>>> *results_per_split) {
 	vector<float> preds((int)features.samples.size());

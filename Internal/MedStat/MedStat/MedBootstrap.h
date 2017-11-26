@@ -19,9 +19,11 @@ public:
 	MedBootstrap();
 	//init_string format: paramter_name=value;... roc_Params is the init_string of roc_Params
 	//filter_cohort - it's a file where each line is new cohort. "cohort_name TAB paramter_name:min_range,max_range;..."
-	MedBootstrap(const string &init_string); 
+	MedBootstrap(const string &init_string);
 
 	void clean_feature_name_prefix(map<string, vector<float>> &features);
+
+	void add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges);
 
 	//if results_per_split is NULL (not provided) will not calculate results by each split. the return value is on all values without splits
 	map<string, map<string, float>> booststrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL); 
