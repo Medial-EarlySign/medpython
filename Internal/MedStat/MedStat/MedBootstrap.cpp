@@ -647,10 +647,16 @@ void MedBootstrapResult::explore_score(float score, map<string, float> &score_me
 	explore_measure("SCORE", score, score_measurements, string_cohort, max_search_range);
 }
 
-void MedBootstrapResult::write_results_to_text_file(const string &path) {
-	write_bootstrap_results(path, bootstrap_results);
+void MedBootstrapResult::write_results_to_text_file(const string &path, bool pivot_format) {
+	if (pivot_format)
+		write_pivot_bootstrap_results(path, bootstrap_results);
+	else
+		write_bootstrap_results(path, bootstrap_results);
 }
 
-void MedBootstrapResult::read_results_to_text_file(const string &path) {
-	read_bootstrap_results(path, bootstrap_results);
+void MedBootstrapResult::read_results_to_text_file(const string &path, bool pivot_format) {
+	if (pivot_format)
+		read_pivot_bootstrap_results(path, bootstrap_results);
+	else
+		read_bootstrap_results(path, bootstrap_results);
 }

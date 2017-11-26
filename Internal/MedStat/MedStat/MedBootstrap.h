@@ -64,8 +64,8 @@ public:
 	void explore_score(float score, map<string, float> &score_measurements,
 		const string &string_cohort = "All", float max_search_range = 0.1);
 
-	void write_results_to_text_file(const string &path);
-	void read_results_to_text_file(const string &path);
+	void write_results_to_text_file(const string &path, bool pivot_format = true);
+	void read_results_to_text_file(const string &path, bool pivot_format = true);
 
 	ADD_SERIALIZATION_FUNCS(bootstrap_params, bootstrap_results)
 private:
