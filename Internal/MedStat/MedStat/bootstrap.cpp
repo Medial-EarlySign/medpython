@@ -396,7 +396,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 }
 
 void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
-	string delimeter = ",";
+	string delimeter = "\t";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
 	unordered_set<string> all_columns_uniq;
@@ -426,7 +426,7 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	fw.close();
 }
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
-	string delimeter = ",";
+	string delimeter = "\t";
 	ifstream of(file_name);
 	string line, header;
 	getline(of, header); //read header
