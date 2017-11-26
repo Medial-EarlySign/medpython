@@ -26,8 +26,8 @@ public:
 	~Lazy_Iterator();
 
 	//sampling params:
-	float sample_ratio;
-	int sample_per_pid;
+	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
+	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
 private:
 	//internal structure - one time init
 	static random_device rd;

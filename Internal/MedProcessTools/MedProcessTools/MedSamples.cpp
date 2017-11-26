@@ -134,7 +134,7 @@ int MedSamples::insert_preds(MedFeatures& features) {
 
 	int idx = 0;
 	for (MedIdSamples& idSample : idSamples) {
-		for (unsigned int i = 0; i < idSample.samples.size(); i++)
+		for (unsigned int i = 0; i < idSample.samples.size(); i++) 
 			idSample.samples[i].prediction = features.samples[idx++].prediction;
 	}
 

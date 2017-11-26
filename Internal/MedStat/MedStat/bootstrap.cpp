@@ -396,7 +396,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 }
 
 void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
-	string delimeter = ",";
+	string delimeter = "\t";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
 	unordered_set<string> all_columns_uniq;
@@ -426,7 +426,7 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	fw.close();
 }
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
-	string delimeter = ",";
+	string delimeter = "\t";
 	ifstream of(file_name);
 	string line, header;
 	getline(of, header); //read header
@@ -935,8 +935,8 @@ bool filter_range_param(const map<string, vector<float>> &record_info, int index
 		return record_info.at(param->param_name)[index] >= param->min_range &&
 		record_info.at(param->param_name)[index] <= param->max_range;
 	else
-		return time_range_filter(record_info.at(param->param_name)[index] > 0, param->min_range,
-			param->max_range, abs(record_info.at(param->param_name)[index]));
+		return time_range_filter(record_info.at("Label")[index] > 0, param->min_range,
+			param->max_range, record_info.at(param->param_name)[index]);
 }
 
 bool filter_range_params(const map<string, vector<float>> &record_info, int index, void *cohort_params) {
@@ -948,8 +948,8 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 			res = record_info.at((*param)[i].param_name)[index] >= (*param)[i].min_range &&
 			record_info.at((*param)[i].param_name)[index] <= (*param)[i].max_range;
 		else
-			res = time_range_filter(record_info.at((*param)[i].param_name)[index] > 0, (*param)[i].min_range,
-				(*param)[i].max_range, abs(record_info.at((*param)[i].param_name)[index]));
+			res = time_range_filter(record_info.at("Label")[index] > 0, (*param)[i].min_range,
+				(*param)[i].max_range, record_info.at((*param)[i].param_name)[index]);
 		++i;
 	}
 	return res;
