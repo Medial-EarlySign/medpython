@@ -9,6 +9,7 @@
 #include "MedProcessTools/MedProcessTools/RepProcess.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
 #include <MedTime/MedTime/MedTime.h>
 #include "InfraMed/InfraMed/MedRepositoryType.h"
 
