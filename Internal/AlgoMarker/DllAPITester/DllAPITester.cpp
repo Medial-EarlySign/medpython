@@ -216,14 +216,14 @@ int debug_me(po::variables_map &vm)
 	char **shared_args;
 	AM_API_GetSharedMessages(resp, &n_shared_msgs, &shared_codes, &shared_args);
 	MLOG("Shared Messages: %d\n", n_shared_msgs);
-	//for (int i=0; i<n_shared_msgs; i++) {
-	//	MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
-	//}
+	for (int i=0; i<n_shared_msgs; i++) {
+		MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
+	}
 
 
-	AM_API_DisposeResponses(resp); resp=NULL;
-	AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
-	AM_API_Calculate(test_am, req, &resp);
+	//AM_API_DisposeResponses(resp); resp=NULL;
+	//AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
+	//AM_API_Calculate(test_am, req, &resp);
 
 	// print result
 	int n_resp = AM_API_GetResponsesNum(resp);
