@@ -935,8 +935,8 @@ bool filter_range_param(const map<string, vector<float>> &record_info, int index
 		return record_info.at(param->param_name)[index] >= param->min_range &&
 		record_info.at(param->param_name)[index] <= param->max_range;
 	else
-		return time_range_filter(record_info.at(param->param_name)[index] > 0, param->min_range,
-			param->max_range, abs(record_info.at(param->param_name)[index]));
+		return time_range_filter(record_info.at("Label")[index] > 0, param->min_range,
+			param->max_range, record_info.at(param->param_name)[index]);
 }
 
 bool filter_range_params(const map<string, vector<float>> &record_info, int index, void *cohort_params) {
@@ -948,8 +948,8 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 			res = record_info.at((*param)[i].param_name)[index] >= (*param)[i].min_range &&
 			record_info.at((*param)[i].param_name)[index] <= (*param)[i].max_range;
 		else
-			res = time_range_filter(record_info.at((*param)[i].param_name)[index] > 0, (*param)[i].min_range,
-				(*param)[i].max_range, abs(record_info.at((*param)[i].param_name)[index]));
+			res = time_range_filter(record_info.at("Label")[index] > 0, (*param)[i].min_range,
+				(*param)[i].max_range, record_info.at((*param)[i].param_name)[index]);
 		++i;
 	}
 	return res;

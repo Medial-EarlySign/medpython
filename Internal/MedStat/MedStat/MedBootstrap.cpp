@@ -42,6 +42,8 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 			sample_per_pid = stoi(param_value);
 		else if (param_name == "loopcnt")
 			loopCnt = stoi(param_value);
+		else if (param_name == "sample_patient_label")
+			sample_patient_label = stoi(param_value) > 0;
 		else if (param_name == "roc_params")
 			roc_Params = ROC_Params(param_value);
 		else if (param_name == "filter_cohort") {
@@ -158,8 +160,10 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features,
 	bool uses_time_window = use_time_window();
 	unordered_map<int, vector<int>> splits_inds;
 
-	if (uses_time_window)
+	if (uses_time_window) {
 		data["Time-Window"].resize((int)features.samples.size());
+		data["Label"].resize((int)features.samples.size());
+	}
 	MedTime tm;
 	tm.init_time_tables();
 	for (size_t i = 0; i < features.samples.size(); ++i)
@@ -170,9 +174,8 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features,
 		if (uses_time_window) {
 			int diff_days = (tm.convert_date(MedTime::Days, features.samples[i].outcomeTime)
 				- tm.convert_date(MedTime::Days, features.samples[i].time));
-			if (y[i] <= 0)
-				diff_days = -diff_days;
 			data["Time-Window"][i] = (float)diff_days;
+			data["Label"][i] = y[i];
 		}
 		if (results_per_split != NULL)
 			splits_inds[features.samples[i].split].push_back((int)i);
@@ -203,6 +206,7 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples,
 
 	if (uses_time_window) {
 		additional_info["Time-Window"].resize(c); //negative value to mark control
+		additional_info["Label"].resize(c); //negative value to mark control
 		MedTime tm;
 		tm.init_time_tables();
 		c = 0;
@@ -211,9 +215,8 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples,
 				int diff_days = (tm.convert_date(MedTime::Days,
 					samples.idSamples[i].samples[j].outcomeTime)
 					- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
-				if (samples.idSamples[i].samples[j].outcome <= 0)
-					diff_days = -diff_days;
 				additional_info["Time-Window"][c] = (float)diff_days;
+				additional_info["Label"][c] = samples.idSamples[i].samples[j].outcome;
 				++c;
 			}
 	}
