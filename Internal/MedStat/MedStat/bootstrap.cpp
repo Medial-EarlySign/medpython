@@ -78,7 +78,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	y = p_y->data();
 	preds = p_preds->data();
 	maxThreadCount = max_loops;
-	
+
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
 		pid_to_inds[(*pids)[i]].push_back(int(i));
@@ -278,7 +278,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 				all_measures[jt->first].push_back(jt->second);
-		}
+}
 }
 
 	//now calc - mean, std , CI0.95_lower, CI0.95_upper for each measurement in all exp
@@ -576,8 +576,10 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		false_rate[st_size - i] = float(f_sum);
 	}
 
-	if (f_cnt == 0 || t_sum <= 0)
-		MTHROW_AND_ERR("no falses or no positives exists in cohort\n");
+	if (f_cnt == 0 || t_sum <= 0) {
+		//MTHROW_AND_ERR("no falses or no positives exists in cohort\n");
+		return res;
+	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
 		true_rate[i] /= float(t_sum);
 		false_rate[i] /= float(f_sum);
