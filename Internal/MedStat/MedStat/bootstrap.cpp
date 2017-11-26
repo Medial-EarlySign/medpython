@@ -278,8 +278,8 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 				all_measures[jt->first].push_back(jt->second);
-}
-}
+		}
+	}
 
 	//now calc - mean, std , CI0.95_lower, CI0.95_upper for each measurement in all exp
 	map<string, float> all_final_measures;
@@ -442,6 +442,61 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 		all_cohorts_measurments[name] = cohort_values;
 	}
 	of.close();
+}
+
+void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
+	string delimeter = "\t";
+	if (all_cohorts_measurments.empty())
+		throw invalid_argument("all_cohorts_measurments can't be empty");
+	map<string, float> flat_map;
+	for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt)
+		for (auto it = jt->second.begin(); it != jt->second.end(); ++it) {
+			char buff[1000];
+			snprintf(buff, sizeof(buff), "%s$%s", jt->first.c_str(), it->first.c_str());
+			flat_map[string(buff)] = it->second;
+		}
+
+	ofstream fw(file_name);
+
+	fw << "Cohort$Measurement" << delimeter << "Value" << endl;
+	for (auto it = flat_map.begin(); it != flat_map.end(); ++it)
+	{
+		string cohort_measure_name = it->first;
+		float value = it->second;
+		fw << cohort_measure_name << delimeter << value << "\n";
+	}
+	fw.flush();
+	fw.close();
+}
+void read_pivot_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
+	string delimeter = "\t";
+	if (all_cohorts_measurments.empty())
+		throw invalid_argument("all_cohorts_measurments can't be empty");
+	map<string, float> flat_map;
+
+	ifstream fr(file_name);
+	string line;
+	getline(fr, line); //skip header
+	while (getline(fr, line)) {
+		boost::trim(line);
+		if (line.empty())
+			continue;
+		vector<string> tokens;
+		boost::split(tokens, line, boost::is_any_of(delimeter));
+		if (tokens.size() != 2)
+			MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
+		float value = stof(tokens[1]);
+		string cohort_and_measure = tokens[0];
+		tokens.clear();
+		boost::split(tokens, cohort_and_measure, boost::is_any_of("$"));
+		if (tokens.size() != 2)
+			MTHROW_AND_ERR("coudn't parse cohort_name and measure with $. got \"%s\"\n", cohort_and_measure.c_str());
+		string cohort_name = tokens[0];
+		string measure_name = tokens[1];
+		all_cohorts_measurments[cohort_name][measure_name] = value;
+	}
+
+	fr.close();
 }
 
 #pragma region Measurements Fucntions

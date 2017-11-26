@@ -151,9 +151,13 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	float sample_ratio = (float)1.0, int sample_per_pid = 1,
 	int loopCnt = 500, bool binary_outcome = true);
 
-//will output the bootstrap results  into file
+//will output the bootstrap results into file
 void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments);
+
+//will output the bootstrap results into file with the new format with columns: "Cohort$Measure_Name", "Value"
+void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);
+void read_pivot_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments);
 
 MEDSERIALIZE_SUPPORT(Incident_Stats)
 MEDSERIALIZE_SUPPORT(ROC_Params)

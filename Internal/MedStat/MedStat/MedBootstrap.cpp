@@ -58,12 +58,30 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 						param_value.c_str(), line.c_str());
 				string cohort_name = line.substr(0, line.find('\t'));
 				string cohort_definition = line.substr(line.find('\t') + 1);
-				vector<string> params;
-				boost::split(params, cohort_definition, boost::is_any_of(";"));
-				vector<Filter_Param> convert_params((int)params.size());
-				for (size_t i = 0; i < params.size(); ++i)
-					convert_params[i] = Filter_Param(params[i]);
-				filter_cohort[cohort_name] = convert_params;
+				if (cohort_name != "MULTI") {
+					vector<string> params;
+					boost::split(params, cohort_definition, boost::is_any_of(";"));
+					vector<Filter_Param> convert_params((int)params.size());
+					for (size_t i = 0; i < params.size(); ++i)
+						convert_params[i] = Filter_Param(params[i]);
+					filter_cohort[cohort_name] = convert_params;
+				}
+				else {
+					vector<string> tokens_p;
+					boost::split(tokens_p, cohort_definition, boost::is_any_of("\t"));
+					vector<vector<Filter_Param>> multi_line;
+					for (size_t i = 0; i < tokens_p.size(); ++i)
+					{
+						vector<string> params;
+						boost::split(params, tokens_p[i], boost::is_any_of(";"));
+						vector<Filter_Param> convert_params((int)params.size());
+						for (size_t k = 0; k < params.size(); ++k)
+							convert_params[k] = Filter_Param(params[k]);
+						multi_line.push_back(convert_params);
+					}
+
+					add_filter_cohorts(multi_line);
+				}
 			}
 			of.close();
 		}
@@ -148,6 +166,103 @@ void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<f
 			booststrap_base(split_preds, split_y, split_pids, split_data);
 	}
 
+}
+
+void rec_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges,
+	map<string, vector<Filter_Param>> &current_filters) {
+	if (parameters_ranges.empty())
+		return;
+	auto curr = parameters_ranges.begin();
+	if (current_filters.empty()) {
+		for (size_t i = 0; i < curr->second.size(); ++i)
+		{
+			char buff[1000];
+			snprintf(buff, sizeof(buff), "%s:%1.3f-%1.3f", curr->first.c_str(),
+				curr->second[i].first, curr->second[i].second);
+			Filter_Param fp;
+			fp.param_name = curr->first;
+			fp.min_range = curr->second[i].first;
+			fp.max_range = curr->second[i].second;
+			current_filters[string(buff)].push_back(fp);
+		}
+		++curr;
+		map<string, vector<pair<float, float>>> rest(curr, parameters_ranges.end());
+		rec_filter_cohorts(rest, current_filters);
+		return;
+	}
+
+	map<string, vector<Filter_Param>> new_step;
+	for (auto it = current_filters.begin(); it != current_filters.end(); ++it) {
+		for (size_t i = 0; i < curr->second.size(); ++i)
+		{
+			//add to it curr->second[i] 
+			char buff[1000];
+			snprintf(buff, sizeof(buff), "%s,%s:%1.3f-%1.3f", it->first.c_str(), curr->first.c_str(),
+				curr->second[i].first, curr->second[i].second);
+			Filter_Param fp;
+			fp.param_name = curr->first;
+			fp.min_range = curr->second[i].first;
+			fp.max_range = curr->second[i].second;
+			string str_name = string(buff);
+			new_step[str_name] = it->second;
+			new_step[str_name].push_back(fp);
+		}
+	}
+
+	++curr;
+	map<string, vector<pair<float, float>>> rest(curr, parameters_ranges.end());
+	current_filters = new_step;
+	rec_filter_cohorts(rest, current_filters);
+}
+
+void MedBootstrap::add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges) {
+	map<string, vector<Filter_Param>> filters;
+	rec_filter_cohorts(parameters_ranges, filters);
+	//add filters to object:
+	for (auto it = filters.begin(); it != filters.end(); ++it)
+		filter_cohort[it->first] = it->second;
+}
+void rec_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges,
+	map<string, vector<Filter_Param>> &current_filters) {
+	if (parameters_ranges.empty())
+		return;
+	vector<Filter_Param> curr = parameters_ranges.front();
+	if (current_filters.empty()) {
+		for (size_t i = 0; i < curr.size(); ++i)
+		{
+			char buff[1000];
+			snprintf(buff, sizeof(buff), "%s:%1.3f-%1.3f", curr[i].param_name.c_str(),
+				curr[i].min_range, curr[i].max_range);
+			current_filters[string(buff)].push_back(curr[i]);
+		}
+	}
+	else {
+		map<string, vector<Filter_Param>> new_step;
+		for (auto it = current_filters.begin(); it != current_filters.end(); ++it) {
+			for (size_t i = 0; i < curr.size(); ++i)
+			{
+				//add to it curr->second[i] 
+				char buff[1000];
+				snprintf(buff, sizeof(buff), "%s,%s:%1.3f-%1.3f", it->first.c_str(), curr[i].param_name.c_str(),
+					curr[i].min_range, curr[i].max_range);
+				string str_name = string(buff);
+				new_step[str_name] = it->second;
+				new_step[str_name].push_back(curr[i]);
+			}
+		}
+		current_filters = new_step;
+	}
+
+	vector<vector<Filter_Param>> rest(parameters_ranges.begin() + 1, parameters_ranges.end());
+	rec_filter_cohorts(rest, current_filters);
+
+}
+void MedBootstrap::add_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges) {
+	map<string, vector<Filter_Param>> filters;
+	rec_filter_cohorts(parameters_ranges, filters);
+	//add filters to object:
+	for (auto it = filters.begin(); it != filters.end(); ++it)
+		filter_cohort[it->first] = it->second;
 }
 
 map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features,
@@ -647,10 +762,16 @@ void MedBootstrapResult::explore_score(float score, map<string, float> &score_me
 	explore_measure("SCORE", score, score_measurements, string_cohort, max_search_range);
 }
 
-void MedBootstrapResult::write_results_to_text_file(const string &path) {
-	write_bootstrap_results(path, bootstrap_results);
+void MedBootstrapResult::write_results_to_text_file(const string &path, bool pivot_format) {
+	if (pivot_format)
+		write_pivot_bootstrap_results(path, bootstrap_results);
+	else
+		write_bootstrap_results(path, bootstrap_results);
 }
 
-void MedBootstrapResult::read_results_to_text_file(const string &path) {
-	read_bootstrap_results(path, bootstrap_results);
+void MedBootstrapResult::read_results_to_text_file(const string &path, bool pivot_format) {
+	if (pivot_format)
+		read_pivot_bootstrap_results(path, bootstrap_results);
+	else
+		read_bootstrap_results(path, bootstrap_results);
 }
