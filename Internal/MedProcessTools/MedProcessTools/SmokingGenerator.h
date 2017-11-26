@@ -33,13 +33,13 @@ public:
 
 	// Signal Ids
 	//void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("SMOKING_ENRICHED")); req_signal_ids.push_back(dict.id("Smoking_quantity")); req_signals.push_back("BYEAR");
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("SMOKING_ENRICHED")); req_signal_ids.push_back(dict.id("Smoking_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
 	}
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names, tags, iGenerateWeights); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind); }
 };
 
 MEDSERIALIZE_SUPPORT(SmokingGenerator);

@@ -7,9 +7,11 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
-MedBootstrap::MedBootstrap() {
+MedBootstrap::MedBootstrap()
+{
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
+	sample_patient_label = false;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 }
@@ -40,6 +42,8 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 			sample_per_pid = stoi(param_value);
 		else if (param_name == "loopcnt")
 			loopCnt = stoi(param_value);
+		else if (param_name == "sample_patient_label")
+			sample_patient_label = stoi(param_value) > 0;
 		else if (param_name == "roc_params")
 			roc_Params = ROC_Params(param_value);
 		else if (param_name == "filter_cohort") {
@@ -81,6 +85,15 @@ map<string, map<string, float>> MedBootstrap::booststrap_base(const vector<float
 		cohort_params[it->first] = (void *)&it->second;
 	}
 
+	vector<int> new_ids((int)pids.size());
+	if (sample_patient_label)
+	{
+		for (size_t i = 0; i < pids.size(); ++i)
+			new_ids[i] = pids[i] * 10 + (int)y[i];
+		return booststrap_analyze(preds, y, new_ids, additional_info, cohorts,
+			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
+			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
+	}
 	return booststrap_analyze(preds, y, pids, additional_info, cohorts,
 		measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
 		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
@@ -108,16 +121,49 @@ void MedBootstrap::clean_feature_name_prefix(map<string, vector<float>> &feature
 	name_data.swap(features); //feature_data will steal "name_data" data
 }
 
-map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features) {
+void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<float> &y,
+	const vector<int> &pids, const map<string, vector<float>> &data,
+	const unordered_map<int, vector<int>> &splits_inds,
+	map<int, map<string, map<string, float>>> &results_per_split) {
+
+	results_per_split.clear();
+	for (auto it = splits_inds.begin(); it != splits_inds.end(); ++it)
+	{
+		int split_id = it->first;
+		vector<float> split_preds((int)it->second.size());
+		vector<float> split_y((int)it->second.size());
+		vector<int> split_pids((int)it->second.size());
+		map<string, vector<float>> split_data;
+		for (auto jt = data.begin(); jt != data.end(); ++jt)
+			split_data[jt->first].resize((int)it->second.size());
+		for (size_t i = 0; i < split_preds.size(); ++i)
+		{
+			split_preds[i] = preds[it->second[i]];
+			split_y[i] = y[it->second[i]];
+			split_pids[i] = pids[it->second[i]];
+			for (auto jt = data.begin(); jt != data.end(); ++jt)
+				split_data[jt->first][i] = jt->second[i];
+		}
+		results_per_split[split_id] =
+			booststrap_base(split_preds, split_y, split_pids, split_data);
+	}
+
+}
+
+map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features,
+	map<int, map<string, map<string, float>>> *results_per_split) {
 	vector<float> preds((int)features.samples.size());
 	vector<float> y((int)features.samples.size());
 	vector<int> pids((int)features.samples.size());
 	map<string, vector<float>> data = features.data;
 	clean_feature_name_prefix(data);
 	bool uses_time_window = use_time_window();
+	unordered_map<int, vector<int>> splits_inds;
 
-	if (uses_time_window)
+	if (uses_time_window) {
 		data["Time-Window"].resize((int)features.samples.size());
+		data["Label"].resize((int)features.samples.size());
+	}
 	MedTime tm;
 	tm.init_time_tables();
 	for (size_t i = 0; i < features.samples.size(); ++i)
@@ -128,31 +174,39 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedFeatures &features) 
 		if (uses_time_window) {
 			int diff_days = (tm.convert_date(MedTime::Days, features.samples[i].outcomeTime)
 				- tm.convert_date(MedTime::Days, features.samples[i].time));
-			if (y[i] <= 0)
-				diff_days = -diff_days;
 			data["Time-Window"][i] = (float)diff_days;
+			data["Label"][i] = y[i];
 		}
+		if (results_per_split != NULL)
+			splits_inds[features.samples[i].split].push_back((int)i);
 	}
+	if (results_per_split != NULL)
+		add_splits_results(preds, y, pids, data, splits_inds, *results_per_split);
 
 	return booststrap_base(preds, y, pids, data);
 }
 
 map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples,
-	map<string, vector<float>> &additional_info) {
+	map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split) {
 	vector<float> preds;
 	vector<float> y;
 	vector<int> pids(samples.nSamples());
 	samples.get_y(y);
 	samples.get_preds(preds);
 	int c = 0;
+	unordered_map<int, vector<int>> splits_inds;
 	for (size_t i = 0; i < samples.idSamples.size(); ++i)
-		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
+		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
 			pids[c++] = samples.idSamples[i].samples[j].id;
+			if (results_per_split != NULL)
+				splits_inds[samples.idSamples[i].samples[j].split].push_back((int)c);
+		}
 
 	bool uses_time_window = use_time_window();
 
 	if (uses_time_window) {
 		additional_info["Time-Window"].resize(c); //negative value to mark control
+		additional_info["Label"].resize(c); //negative value to mark control
 		MedTime tm;
 		tm.init_time_tables();
 		c = 0;
@@ -161,17 +215,18 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples,
 				int diff_days = (tm.convert_date(MedTime::Days,
 					samples.idSamples[i].samples[j].outcomeTime)
 					- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
-				if (samples.idSamples[i].samples[j].outcome <= 0)
-					diff_days = -diff_days;
 				additional_info["Time-Window"][c] = (float)diff_days;
+				additional_info["Label"][c] = samples.idSamples[i].samples[j].outcome;
 				++c;
 			}
 	}
 
+	if (results_per_split != NULL)
+		add_splits_results(preds, y, pids, additional_info, splits_inds, *results_per_split);
 	return booststrap_base(preds, y, pids, additional_info);
 }
 
-map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, const string &rep_path) {
+map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split) {
 	MedModel mdl;
 	mdl.add_age();
 	mdl.add_gender();
@@ -197,7 +252,31 @@ map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, co
 	if (mdl.apply(rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
 		MTHROW_AND_ERR("Error creating age,gender for samples\n");
 
-	return booststrap(mdl.features);
+	return booststrap(mdl.features, results_per_split);
+}
+
+map<string, map<string, float>> MedBootstrap::booststrap(MedSamples &samples, MedPidRepository &rep, map<int, map<string, map<string, float>>> *results_per_split) {
+	MedModel mdl;
+	mdl.add_age();
+	mdl.add_gender();
+	vector<int> pids_to_take;
+	samples.get_ids(pids_to_take);
+
+	unordered_set<string> req_names;
+	mdl.get_required_signal_names(req_names);
+	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	for (string s : req_names)
+		sigs.push_back(s);
+	sort(sigs.begin(), sigs.end());
+	auto it = unique(sigs.begin(), sigs.end());
+	sigs.resize(std::distance(sigs.begin(), it));
+	if (rep.load(sigs, pids_to_take) < 0)
+		MTHROW_AND_ERR("Couldn't load signals in given repository\n");
+
+	if (mdl.apply(rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
+		MTHROW_AND_ERR("Error creating age,gender for samples\n");
+
+	return booststrap(mdl.features, results_per_split);
 }
 
 void MedBootstrap::apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples) {
