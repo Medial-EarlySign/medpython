@@ -281,7 +281,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		// Generate Features
 		for (auto& generator : _generators)
 			if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-//#pragma omp critical 
+#pragma omp critical 
 		if (rc < 0) RC = -1;
 	}
 	return RC;

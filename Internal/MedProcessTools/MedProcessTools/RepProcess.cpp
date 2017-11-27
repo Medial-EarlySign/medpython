@@ -17,6 +17,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_BASIC_OUTLIER_CLEANER;
 	else if (processor_name == "nbrs_outlier_cleaner" || processor_name == "nbrs_cln")
 		return REP_PROCESS_NBRS_OUTLIER_CLEANER;
+	else if (processor_name == "configured_outlier_cleaner" || processor_name == "conf_cln")
+		return REP_PROCESS_CONFIGURED_OUTLIER_CLEANER;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -52,6 +54,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepBasicOutlierCleaner;
 	else if (processor_type == REP_PROCESS_NBRS_OUTLIER_CLEANER)
 		return new RepNbrsOutlierCleaner;
+	else if (processor_type == REP_PROCESS_CONFIGURED_OUTLIER_CLEANER)
+		return new RepConfiguredOutlierCleaner;
 	else
 		return NULL;
 
@@ -213,7 +217,7 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 	vector<int> rc(processors.size(),0);
 
 // ??? chances are this next parallelization is not needed, as we parallel before on recs...
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int j=0; j<processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points);
 	}
@@ -228,7 +232,7 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 	vector<int> rc(processors.size(), 0);
 
 // ??? chances are this next parallelization is not needed, as we parallel before on recs...
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points, neededSignalIds);
 	}
@@ -316,7 +320,7 @@ void RepBasicOutlierCleaner::init_lists() {
 }
 
 //.......................................................................................
-int RepBasicOutlierCleaner::init(map<string, string>& mapper) 
+ int RepBasicOutlierCleaner::init(map<string, string>& mapper) 
 { 
 	init_defaults(); 
 
@@ -493,6 +497,212 @@ void RepBasicOutlierCleaner::print()
 {
 	MLOG("BasicOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
 		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+}
+
+
+//=======================================================================================
+// ConfiguredOutlierCleaner  
+//=======================================================================================
+//.......................................................................................
+int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
+// read from outlierParamFile into outlierParams map
+{
+	ifstream infile;
+	confRecord thisRecord;
+	string thisLine;
+	infile.open(confFileName.c_str(),ifstream::in);
+	if(!infile.is_open()){
+		fprintf(stderr, "Cannot open %s for reading\n", confFileName.c_str());
+		return -1;
+	}
+	getline(infile,thisLine);//consume title line.
+	while (!infile.eof()) {
+		getline(infile,thisLine);
+		vector<string> f;
+		boost::split(f, thisLine, boost::is_any_of(","));
+		if(f.size()!=7){
+			fprintf(stderr, "Wrong field count in  %s \n", confFileName.c_str());
+			infile.close();
+			return -1;
+		}
+		thisRecord.confirmedLow=thisRecord.logicalLow =atof( f[1].c_str());
+		thisRecord.confirmedHigh=thisRecord.logicalHigh = atof(f[2].c_str());
+		
+			
+		thisRecord.distLow = f[4];
+		thisRecord.distHigh = f[6];
+		if (thisRecord.distLow != "none")thisRecord.confirmedLow = atof(f[3].c_str());
+		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = atof(f[5].c_str());
+		outlierParams[f[0]] = thisRecord;
+	}
+	infile.close();
+	return(0);
+
+}
+int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
+{
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
+		else if (field == "time_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "conf_file") {
+			confFileName = entry.second; if (int res = readConfFile(confFileName, outlierParams))return(res);
+		}
+		else if (field == "clean_method")cleanMethod = entry.second;
+	}
+
+	init_lists();
+	return MedValueCleaner::init(mapper);
+}
+
+// Learn bounds
+//.......................................................................................
+int RepConfiguredOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+	if (outlierParams.find(signalName) == outlierParams.end()) {
+		MERR("MedModel learn() : ERROR: Signal not supported by conf_cln()\n");
+		return -1;
+	}
+	trimMax = 1e+98;
+	trimMin = -1e+98;
+
+	if (cleanMethod == "logical") {
+		removeMax = outlierParams[signalName].logicalHigh;
+		removeMin = outlierParams[signalName].logicalLow;
+		return(0);
+	}
+	else if (cleanMethod == "confirmed") {
+		removeMax = outlierParams[signalName].confirmedHigh;
+		removeMin = outlierParams[signalName].confirmedLow;
+		return(0);
+	}
+	else if (cleanMethod == "learned") {
+		removeMax = outlierParams[signalName].logicalHigh;
+		removeMin = outlierParams[signalName].logicalLow;
+		string thisDistHi = outlierParams[signalName].distHigh;
+		string thisDistLo = outlierParams[signalName].distLow;
+		if (thisDistHi == "none" && thisDistLo == "none") return(0);//nothing to learn
+
+		else {
+			
+			vector<float> values, filteredValues;
+
+			double borderHi, borderLo, logBorderHi, logBorderLo;
+			get_values(rep, ids, signalId, time_channel, val_channel, removeMin, removeMax, values, prev_cleaners);
+			for (auto& el : values)if (el != 0)filteredValues.push_back(el);
+			sort(filteredValues.begin(), filteredValues.end());
+			if (thisDistHi == "norm" || thisDistLo == "norm")
+				learnDistributionBorders(borderHi, borderLo, filteredValues);
+			if (thisDistHi == "lognorm" || thisDistLo == "lognorm") {
+			/*	ofstream dFile;
+				dFile.open("DFILE");
+				for (auto& el : filteredValues)dFile << el << "\n";
+				dFile.close();
+				*/
+
+
+				for (auto& el : filteredValues)
+					if (el > 0)el = log(el);
+					else return(-1);
+				
+				learnDistributionBorders(logBorderHi, logBorderLo, filteredValues);
+			}
+			if (thisDistHi == "norm")removeMax = borderHi;
+			else if (thisDistHi == "lognorm")removeMax = exp(logBorderHi);
+			else if (thisDistHi == "manual")removeMax = outlierParams[signalName].confirmedHigh;
+			if (thisDistLo == "norm")removeMin = borderLo;
+			else if (thisDistLo == "lognorm")removeMin = exp(logBorderLo);
+			else if (thisDistLo == "manual")removeMin = outlierParams[signalName].confirmedLow;
+			
+			return(0);
+		}
+
+	}
+
+	else {
+		MERR("Unknown cleaning method %s\n", cleanMethod.c_str());
+		return -1;
+	}
+}
+
+
+void learnDistributionBorders(double& borderHi, double& borderLo, vector<float> filteredValues)
+// a function that takes sorted vector of filtered values and estimates the +- 7 sd borders based on the center of distribution
+// predefined calibration constants are used for estimation of the borders. 
+{
+	double sum = 0;
+	double sumsq = 0;
+	const float margin[] = {(float) 0.01, (float)0.99 };// avoid tails of distribution
+	const float varianceFactor = 0.8585;
+	const float meanShift = 0; // has value when margins are asymetric
+	const float sdNums = 7; // how many standard deviation on each side of the mean.
+
+	int start = round(filteredValues.size()*margin[0]);
+	int stop = round(filteredValues.size()*margin[1]);
+	for (vector<float>::iterator el = filteredValues.begin()+start; el < filteredValues.begin()+stop; el++) {
+		
+		sum += *el;
+		sumsq += *el* *el;
+	}
+	 double mean= sum/(stop-start);
+	 double var =sumsq/(stop-start) - mean*mean;
+	 printf("sum %f sumsq %f  stop %d start %d\n", sum, sumsq, stop, start);
+	 var = var / varianceFactor;
+	 mean=  mean - meanShift*sqrt(var);
+	 borderHi = mean + sdNums*sqrt(var);
+	 borderLo = mean - sdNums*sqrt(var);
+
+
+
+}
+
+
+//.......................................................................................
+size_t RepConfiguredOutlierCleaner::get_size() {
+
+	size_t size = 0;
+
+	size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel);
+	size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin);
+	size += MedSerialize::get_size(confFileName, cleanMethod, outlierParams);
+
+	return size;
+}
+
+//.......................................................................................
+size_t RepConfiguredOutlierCleaner::serialize(unsigned char *blob) {
+
+	size_t ptr = 0;
+	ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
+	ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
+	ptr += MedSerialize::serialize(blob + ptr, confFileName, cleanMethod, outlierParams);
+
+
+	return ptr;
+}
+
+//.......................................................................................
+size_t RepConfiguredOutlierCleaner::deserialize(unsigned char *blob) {
+
+	size_t ptr = 0;
+	ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
+	ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
+	ptr += MedSerialize::deserialize(blob + ptr, confFileName, cleanMethod, outlierParams);
+
+
+	return ptr;
+}
+
+//.......................................................................................
+void RepConfiguredOutlierCleaner::print()
+{
+	MLOG("BasicOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
+		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin, confFileName.c_str(), cleanMethod.c_str());
 }
 
 //=======================================================================================
