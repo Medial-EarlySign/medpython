@@ -1,6 +1,3 @@
-// RepProcess : Apply processing on repository before generatring features
-// E.g. - Cleaning.
-
 #ifndef _REP_PROCESS_H_
 #define _REP_PROCESS_H_
 
@@ -17,30 +14,35 @@
 
 //.......................................................................................
 //.......................................................................................
-// A virtual class of processing repository data
+// RepProcessor is the parent class for processing a MedRepository or PidDynamicRec
+// Basic functionalities:
+//		learn : learn the processoring parameters from a given list of ids and a rpository 
+//		apply : process a dynamic PidDynamicRec
 //.......................................................................................
 //.......................................................................................
-
+// Define types of repository processors
 typedef enum {
 	REP_PROCESS_MULTI,
 	REP_PROCESS_BASIC_OUTLIER_CLEANER,
 	REP_PROCESS_NBRS_OUTLIER_CLEANER,
+	REP_PROCESS_CONFIGURED_OUTLIER_CLEANER,
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
 class RepProcessor : public SerializableObject {
 public:
 
+	// Type
 	RepProcessorTypes processor_type;
 
-	// Threading
+	// Threading (learn/apply) - 
 	int learn_nthreads, apply_nthreads;
 
-	// Required Signals
+	// Required Signals (and their ids) for processing
 	vector<string> req_signals;
 	vector<int> req_signal_ids;
 
-	// Affected Signals
+	// Signals (and their ids) affected by processing 
 	unordered_set<string> aff_signals;
 	unordered_set<int> aff_signal_ids;
 
@@ -48,59 +50,76 @@ public:
 	RepProcessor() { learn_nthreads = DEFAULT_REP_CLNR_NTHREADS; apply_nthreads = DEFAULT_REP_CLNR_NTHREADS; };
 	~RepProcessor() {};
 
-	// Virtual set-id function
-	virtual void set_signal(const string& _signalName) { return; };
-
-	// Required Signals functions
-	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
-	virtual void get_required_signal_names(unordered_set<string>& signalNames);
-	virtual void set_required_signal_ids(MedDictionarySections& dict);
-
-	// Affected Signals functions;
-	virtual void set_affected_signal_ids(MedDictionarySections& dict);
-	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
-
-	// Other signal ids
-	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
-
-	// Init required tables
-	virtual void init_tables(MedDictionarySections& dict) { return; }
-
-	// Learn cleaning model
-	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
-
-	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return Learn(rep, ids, prev_processors); }
-	int learn(MedPidRepository& rep, vector<RepProcessor *>& prev_processors) { return Learn(rep, rep.pids, prev_processors); }
-
-	int learn(MedPidRepository& rep, vector<int>& ids) { vector<RepProcessor *> temp;  return Learn(rep, ids, temp); }
-	int learn(MedPidRepository& rep) { vector<RepProcessor *> temp; return learn(rep, temp); }
-
-	// Apply cleaning model - ASSUME OUT_REC is preallocated !
-	virtual int apply(PidDynamicRec& rec, vector<int>& time_points) {return 0; }
-	virtual int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds);
-
-	int apply(PidDynamicRec& rec, MedIdSamples& samples);
-	int apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds);
-
-	// Init
+	// Init from name or type. optinally with a parameters string
 	static RepProcessor *make_processor(string name);
 	static RepProcessor *make_processor(string type, string params);
 	static RepProcessor *make_processor(RepProcessorTypes type);
 	static RepProcessor *make_processor(RepProcessorTypes type, string params);
 
-	// Create processor with just params (type is a must)
+	// Create processor from params string (type must be given within string)
 	static RepProcessor *create_processor(string &params);
-	
 
+	// initialize : from object/string/defaults.
+	// Should be implemented for inheriting classes that have parameters
 	virtual int init(void *params) { return 0; };
 	virtual int init(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
 
-	// Serialization
+	// Set signalName
+	// Should be implemented for inheriting classes that have signalName
+	virtual void set_signal(const string& _signalName) { return; };
+
+	// Set signalId
+	// Should be implemented for inheriting classes that have signalId
+	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
+
+	// Required Signals functions : get all signals that are required by the processor
+	// Append required signal names to vector : parent function just uses req_signals
+	virtual void get_required_signal_names(unordered_set<string>& signalNames);
+	// Fill req_signal_ids : parent function just fills from req_signals
+	virtual void set_required_signal_ids(MedDictionarySections& dict);
+	// Append required signal ids to vector. call set_required_signal_ids if req_signal_ids empty
+	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
+	
+	// Affected Signals functions;
+	// Fill aff_signal_ids : parent function just fills from aff_signals
+	virtual void set_affected_signal_ids(MedDictionarySections& dict);
+	// Check if a signal is affected by processor
+	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
+
+	// Init required tables
+	// Should be implemented for inheriting classes that have such tables
+	virtual void init_tables(MedDictionarySections& dict) { return; }
+
+	// Learn processing model on a subset of ids. Apply set of preceesing processors on DynamicPidRec before learning
+	// Should be implemented for inheriting classes that require learning
+	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
+
+	// Envelope learning functions
+	// Learn on subset of ids
+	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return Learn(rep, ids, prev_processors); }
+	// Learn on all ids in repository
+	int learn(MedPidRepository& rep, vector<RepProcessor *>& prev_processors) { return Learn(rep, rep.pids, prev_processors); }
+	// Learn on subset of ids without preceesing processors
+	int learn(MedPidRepository& rep, vector<int>& ids) { vector<RepProcessor *> temp;  return Learn(rep, ids, temp); }
+	// Learn on all ids in repository without preceesing processors
+	int learn(MedPidRepository& rep) { vector<RepProcessor *> temp; return learn(rep, temp); }
+
+	// Apply processing on a single PidDynamicRec at a set of time-points
+	// Should be implemented for all inheriting classes
+	virtual int apply(PidDynamicRec& rec, vector<int>& time_points) {return 0; }
+	// Apply processing on a single PidDynamicRec at a set of time-points only if required : if any of the signals in neededSignalIds is actually affected by processor
+	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds);
+	// Apply processing on a single PidDynamicRec at a set of time-points given by Samples
+	int apply(PidDynamicRec& rec, MedIdSamples& samples);
+	// Apply processing on a single PidDynamicRec at a set of time-points given by Samples only if required
+	int apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds);	
+
+	// Serialization (including type)
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
 
-	// optional printing of cleaner
+	// optional printing of processor
 	virtual void print() { fprintf(stderr, "No implementation for print()\n"); }
 };
 
@@ -196,7 +215,7 @@ public:
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	int init(map<string, string>& mapper); 
+	virtual int init(map<string, string>& mapper); 
 	void init_lists();
 
 	// Learn cleaning model
@@ -215,6 +234,65 @@ public:
 	void print();
 };
 
+//.......................................................................................
+//.......................................................................................
+// A simple cleaner considering each value of a certain signal separatley, but this time use 
+// configuration file that holds for each signal the logical values, statistically confirmed values 
+// and distribution for relearning statistical values
+//.......................................................................................
+//.......................................................................................
+
+typedef struct {
+	double logicalLow, logicalHigh, confirmedLow, confirmedHigh;
+    string distLow,distHigh; //"none" "norm" or "log" 
+}confRecord;
+
+class RepConfiguredOutlierCleaner : public  RepBasicOutlierCleaner {
+public:
+
+	// Signal to clean -- inheritted
+	
+	// configuration file and mapping
+	string confFileName;
+	string cleanMethod; // "logical" "confirmed" or "learned"
+	map<string,confRecord> outlierParams;
+
+
+
+	// Constructors 
+	// Set Signal -- inheritted
+	// Signal Id -- inheritted
+	
+	void init_defaults() {
+		processor_type = REP_PROCESS_CONFIGURED_OUTLIER_CLEANER;
+		params.trimming_sd_num = DEF_REP_TRIMMING_SD_NUM; params.removing_sd_num = DEF_REP_REMOVING_SD_NUM; params.nbrs_sd_num = 0;
+		params.take_log = 0;
+		params.doTrim = params.doRemove = true;
+		signalId = -1;
+		params.type = VAL_CLNR_ITERATIVE;
+		params.missing_value = MED_MAT_MISSING_VALUE;
+	};
+	// Init
+	int init(map<string, string>& mapper);
+	
+	// Learn cleaning model
+	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	
+
+	// Apply cleaning model -inheritted
+	
+
+	// Serialization
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+
+	void print();
+};
+
+void learnDistributionBorders(double& borderHi, double& borderLo,vector<float> filteredValues);
+// a function that takes sorted vector of filtered values and estimates the +- 7 sd borders based on the center of distribution
+// predefined calibration constants are used for estimation of the borders. 
 
 //.......................................................................................
 //.......................................................................................

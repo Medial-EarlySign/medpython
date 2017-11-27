@@ -11,6 +11,7 @@ int MedFeatures::global_serial_id_cnt = 0;
 //=======================================================================================
 // MedFeatures
 //=======================================================================================
+// Get a vector of feature names
 //.......................................................................................
 void MedFeatures::get_feature_names(vector<string>& names) {
 
@@ -21,12 +22,14 @@ void MedFeatures::get_feature_names(vector<string>& names) {
 		names[i++] = rec.first;
 }
 
+// Get data (+attributes) as matrix
 //.......................................................................................
 void MedFeatures::get_as_matrix(MedMat<float>& mat) {
 	vector<string> dummy_names;
 	get_as_matrix(mat, dummy_names);
 }
 
+// Get subset of data (+attributes) as matrix : Only features in 'names'
 //.......................................................................................
 void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
 
@@ -77,6 +80,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
 	}
 }
 
+// Get subset of data (+attributes) as matrix: Only features in 'names' and rows in 'idx'
 //.......................................................................................
 void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names, vector<int> &idx)
 {
@@ -130,11 +134,13 @@ void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names,
 	}
 }
 
+// Append samples at end of samples vector
 //.......................................................................................
 void MedFeatures::append_samples(MedIdSamples& in_samples) {
 	samples.insert(samples.end(), in_samples.samples.begin(), in_samples.samples.end());
 }
 
+// Insert samples at position idex, assuming samples vector is properly allocated
 //.......................................................................................
 void MedFeatures::insert_samples(MedIdSamples& in_samples, int index) {
 
@@ -142,22 +148,7 @@ void MedFeatures::insert_samples(MedIdSamples& in_samples, int index) {
 		samples[index + i] = in_samples.samples[i];
 }
 
-// (De)Serialization
-//.......................................................................................
-size_t MedFeatures::get_size() {
-	return MedSerialize::get_size(data, weights, samples, attributes);
-}
-
-//.......................................................................................
-size_t  MedFeatures::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, data, weights, samples, attributes);
-}
-
-//.......................................................................................
-size_t MedFeatures::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, data, weights, samples, attributes);
-}
-
+// initialize pid_pos_len vector according to samples
 //.......................................................................................
 void MedFeatures::init_pid_pos_len()
 {
@@ -166,6 +157,8 @@ void MedFeatures::init_pid_pos_len()
 	int i = -1;
 	for (auto& sample : samples) {
 		i++;
+
+		// New pid
 		if (curr_pid != sample.id) {
 			if (curr_len > 0)
 				pid_pos_len[curr_pid] = make_pair(curr_pos, curr_len);
@@ -179,6 +172,7 @@ void MedFeatures::init_pid_pos_len()
 	pid_pos_len[curr_pid] = make_pair(curr_pos, curr_len);
 }
 
+// Calculate a crc for the data (used for debugging mainly)
 //.......................................................................................
 unsigned int MedFeatures::get_crc()
 {
@@ -204,6 +198,7 @@ unsigned int MedFeatures::get_crc()
 	return (unsigned int)(~crc);
 }
 
+// MLOG data in csv format 
 //.......................................................................................
 void MedFeatures::print_csv()
 {
@@ -215,6 +210,7 @@ void MedFeatures::print_csv()
 	}
 }
 
+// Write features (samples + weights + data) as csv with a header line
 //.......................................................................................
 int MedFeatures::write_as_csv_mat(const string &csv_fname)
 {
@@ -231,40 +227,37 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 	get_feature_names(col_names);
 	int n_preds = 0;
 
-	// names line
-	// serial
-	out_f << "serial";
-	// Weight 
-	if (weights.size())
-		out_f << ",weight";
-	// samples
-	out_f << ",id,time,outcome,outcome_time";
-//	MLOG("samples.size %d , preds %d\n", samples.size(), samples[0].prediction.size());
+	// header line
+	out_f << "serial"; // serial
+	if (weights.size()) out_f << ",weight"; // Weight (if given)
+	out_f << ",id,time,outcome,outcome_time,split"; // samples
+
+	// Predictions
 	if (samples.size() > 0 && samples[0].prediction.size() > 0) {
 		n_preds = (int)samples[0].prediction.size();
-		//MLOG("n_preds = %d\n", n_preds);
 		for (int j=0; j<n_preds; j++)
 			out_f << ",pred_"+to_string(j);
 	}
+	
 	// names of features
 	for (int j=0; j<col_names.size(); j++)
 		out_f << "," + col_names[j];
 	out_f << "\n";
 
+	// data
 	for (int i=0; i<samples.size(); i++) {
 
-		// serial
-		out_f << to_string(i);
-
-		// Weights
-		if (weights.size())
-			out_f << "," + to_string(weights[i]);
+		out_f << to_string(i); // serial
+		if (weights.size()) out_f << "," + to_string(weights[i]); // Weights
 
 		// sample
 		out_f << "," + to_string(samples[i].id);
 		out_f << "," + to_string(samples[i].time);
 		out_f << "," + to_string(samples[i].outcome);
 		out_f << "," + to_string(samples[i].outcomeTime);
+		out_f << "," + to_string(samples[i].split);
+
+		// predictions
 		for (int j=0; j<n_preds; j++)
 			out_f << "," + to_string(samples[i].prediction[j]);
 
@@ -278,6 +271,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 	return 0;
 }
 
+// Read features (samples + weights + data) from a csv file with a header line
 //.......................................................................................
 int MedFeatures::read_from_csv_mat(const string &csv_fname)
 {
@@ -285,6 +279,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 		fprintf(stderr, "File %s doesn't exist\n", csv_fname.c_str());
 		throw exception();
 	}
+
 	fprintf(stderr, "reading data from %s\n", csv_fname.c_str());
 	ifstream inf;
 	inf.open(csv_fname, ios::in);
@@ -302,7 +297,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 		vector<string> fields;
 		boost::split(fields, curr_line, boost::is_any_of(","));
 		int idx = 0;
-		if (ncols == -1) {
+		if (ncols == -1) { // Header line	
 			assert(fields[idx++].compare("serial") == 0); 
 			if (fields[idx].compare("weight") == 0) {
 				weighted = 1; idx++;
@@ -311,6 +306,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			assert(fields[idx++].compare("time") == 0);
 			assert(fields[idx++].compare("outcome") == 0);
 			assert(fields[idx++].compare("outcome_time") == 0);
+			assert(fields[idx++].compare("split") == 0);
 
 			for (int i = idx; i < fields.size(); i++) {
 				data[fields[i]] = vector<float>();
@@ -319,7 +315,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			}
 			ncols = (int)fields.size();
 		}
-		else {
+		else { // Data lines
 			if (fields.size() != ncols) {
 				string msg = "expected " + to_string(ncols) + " fields, got " + to_string((int)fields.size()) + "fields in line: " + curr_line.c_str() + "\n";
 				throw runtime_error(msg.c_str());
@@ -333,6 +329,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			newSample.time = stoi(fields[idx++]);
 			newSample.outcome = stof(fields[idx++]);
 			newSample.outcomeTime = stoi(fields[idx++]);
+			newSample.split = stoi(fields[idx++]);
 			samples.push_back(newSample);
 
 			for (int i = 0; i < names.size(); i++)
@@ -344,7 +341,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 	return 0;
 }
 
-// Filter set of features
+// Filter data (and attributes) to include only selected features
 //.......................................................................................
 int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 
@@ -370,4 +367,20 @@ int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 	}
 
 	return 0;
+}
+
+// (De)Serialization
+//.......................................................................................
+size_t MedFeatures::get_size() {
+	return MedSerialize::get_size(data, weights, samples, attributes);
+}
+
+//.......................................................................................
+size_t  MedFeatures::serialize(unsigned char *blob) {
+	return MedSerialize::serialize(blob, data, weights, samples, attributes);
+}
+
+//.......................................................................................
+size_t MedFeatures::deserialize(unsigned char *blob) {
+	return MedSerialize::deserialize(blob, data, weights, samples, attributes);
 }
