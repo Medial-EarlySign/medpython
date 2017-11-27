@@ -676,7 +676,7 @@ void MedBootstrapResult::find_working_points(const map<string, float> &bootstrap
 		if (column_name.size() > 7 && column_name.substr(0, 7) == "SENS@SC" && column_name.substr(column_name.size() - 4) == "_Obs")  //sens@score
 			if (bootstrap_cohort.at(column_name) != MED_MAT_MISSING_VALUE && bootstrap_cohort.at(column_name) != 0
 				&& bootstrap_cohort.at(column_name) != 1) {
-				float cand_val = round(10000 * bootstrap_cohort.at(column_name)) / 100;
+				float cand_val = round(100 * bootstrap_cohort.at(column_name)) / 100;
 				if (!find_in_range(sens_points, cand_val, min_dif))
 					sens_points.push_back(cand_val);
 			}
@@ -684,7 +684,7 @@ void MedBootstrapResult::find_working_points(const map<string, float> &bootstrap
 		if (column_name.size() > 5 && column_name.substr(0, 5) == "PR@SC"  && column_name.substr(column_name.size() - 4) == "_Obs")  //sens@score
 			if (bootstrap_cohort.at(column_name) != MED_MAT_MISSING_VALUE && bootstrap_cohort.at(column_name) != 0
 				&& bootstrap_cohort.at(column_name) != 1) {
-				float cand_val = round(10000 * bootstrap_cohort.at(column_name)) / 100;
+				float cand_val = round(100 * bootstrap_cohort.at(column_name)) / 100;
 				if (!find_in_range(pr_points, cand_val, min_dif))
 					pr_points.push_back(cand_val);
 			}
