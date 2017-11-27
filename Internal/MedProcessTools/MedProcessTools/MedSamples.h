@@ -99,14 +99,18 @@ public:
 	void get_preds(vector<float>& preds);
 	void get_y(vector<float>& y);
 	void get_categs(vector<float> &categs); // gets a list of all categories appearing in the outcome
+	void export_to_sample_vec(vector<MedSample> &vec_samples);
 
 	void sort_by_id_date(); 
+	void normalize(); // normalization means making sure that (1) : every pid has one idSample at most and (2) everything is sorted
+
 
 	// Count 
 	int nSamples();
 
 	// API's for online insertions : main use case is a single time point for prediction per pid
 	int insertRec(int pid, int time, float outcome, int outcomeTime);
+	int insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
 	int insertRec(int pid, int time) { return insertRec(pid, time, -1, 0); }
 
 	int version() { return  1; };

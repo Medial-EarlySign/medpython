@@ -30,6 +30,8 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "smoking_method")
 			smoking_method = entry.second;
+		else if (field == "future_ind")
+			future_ind = entry.second;
 		else if (field == "tags") 
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator")
@@ -71,14 +73,21 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 						assert(len_byear == 1);
 						int byear = (int)(bYearSignal[0].val);
 
+						int MAX_TO_TRIM = 60;
+						int MAX_TO_REMOVE = 100;
+
 						int AGE_START_SMOKING = 20;
 						int EX_SMOKING_YEARS = 10;
 						int SMOKING_QUANTITY_IMPUTE = 10;
 						int PACK_SIZE = 20;
 
-
 						int date_age_may_start_smoking = (byear + AGE_START_SMOKING) * 10000 + 101;
 						int start_age = med_time_converter.convert_times(MedTime::Date, MedTime::Days, date_age_may_start_smoking);
+
+						int future_date = 20990101;
+						if (future_ind == "1") {
+							future_date = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
+						}
 
 						//*********************************************** create ranges ***********************************************
 
@@ -110,6 +119,11 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 								int quan = smx_info[j].val2;
 								int date = smx_info[j].date;
 								if (date == 0) continue;
+
+								if (date>future_date) continue;
+								
+								if (quan > MAX_TO_REMOVE) quan=-9;
+								if (quan > MAX_TO_TRIM) quan = MAX_TO_TRIM;
 
 								if (j == 0 && date > date_age_may_start_smoking)
 									smoking_dates.push_back(date_age_may_start_smoking);
@@ -325,7 +339,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 										pack_years += temp_pack_years;
 										if (qa_print == 1) fprintf(stderr, "years: smoker %f quantity  %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
 									}
-									if (smoke_ranges[kk].val == 1 && smoke_ranges[kk + 1].val == 7) {
+									else if (smoke_ranges[kk].val == 1 && smoke_ranges[kk + 1].val == 7) {
 										int diff = end_n - start_n;   //smoking
 										smoking_year += diff;   // unknown before smoking
 
@@ -335,7 +349,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 										pack_years += temp_pack_years;
 										if (qa_print == 1) fprintf(stderr, "years: unknown and smoker %f diff %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
 									}
-									if (smoke_ranges[kk].val == 1 && smoke_ranges[kk + 1].val == 3) {
+									else if (smoke_ranges[kk].val == 1 && smoke_ranges[kk + 1].val == 3) {
 										int diff = end_n - start_n;
 										diff -= 365 * EX_SMOKING_YEARS;
 
@@ -352,8 +366,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 											//fprintf(stderr, "years: unknown and ex smoker ______ \n");
 										}
 									}
-
-									if ((smoke_ranges[kk].val == 3 && smoke_ranges.size()==1) || (smoke_ranges[kk].val == 3 &&  (smoke_ranges[kk-1].val == 2 || smoke_ranges[kk - 1].val == 1) && smoke_ranges.size()<=3)) {
+									else if ((smoke_ranges[kk].val == 3 && smoke_ranges.size()==1) || (smoke_ranges[kk].val == 3 &&  (smoke_ranges[kk-1].val == 2 || smoke_ranges[kk - 1].val == 1) && smoke_ranges.size()<=3)) {
 										int diff = start_n- 365 * EX_SMOKING_YEARS- start_age;   //smoking
 
 										if (diff > 0) {

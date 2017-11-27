@@ -321,7 +321,7 @@ void DoCalcFeatProcessor::fragile(vector<float*> p_sources, float *p_out, int n_
 		//WBC:
 		res += p_sources[6][i] <= 3.2 || p_sources[7][i] >= 9.8;
 		//Hemoglobin:
-		int gen = p_sources[8][i];
+		int gen = (int)p_sources[8][i];
 		if (gen == GENDER_MALE)
 			res += p_sources[9][i] < 12;
 		else

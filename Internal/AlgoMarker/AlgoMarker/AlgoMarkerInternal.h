@@ -30,16 +30,16 @@ public:
 	//========================================================
 
 	// init name
-	void set_name(char *_name) { name = string(_name); }
+	void set_name(const char *_name) { name = string(_name); }
 
 	// init repository config
-	int init_rep_config(char *config_fname) { if (rep.read_config(string(config_fname)) < 0) return -1; rep.switch_to_in_mem_mode(); }
+	int init_rep_config(const char *config_fname) { if (rep.MedRepository::init(string(config_fname)) < 0) return -1; rep.switch_to_in_mem_mode(); return 0; }
 
 	// init pids
 	void set_pids(int *_pids, int npids) { pids.clear(); pids.assign(_pids, _pids + npids); }
 
 	// init rep , model , samples
-	int init_rep_with_file_data(char *_rep_fname) {
+	int init_rep_with_file_data(const char *_rep_fname) {
 		rep.clear();
 		rep_fname = string(_rep_fname);
 		vector<string> sigs ={};
@@ -47,11 +47,11 @@ public:
 	}
 
 	// init model
-	int init_model_from_file(char *_model_fname) {	model.clear();	return (model.read_from_file(string(_model_fname))); }
+	int init_model_from_file(const char *_model_fname) { model.clear();	model.verbosity = 0; return (model.read_from_file(string(_model_fname))); }
 
 
 	// init samples
-	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); return insert_samples(pids, times, n_samples); }
+	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); int rc = insert_samples(pids, times, n_samples); samples.normalize(); return rc; }
 	int init_samples(int pid, int time) { return init_samples(&pid, &time, 1); }  // single prediction point initiation 
 
 
@@ -60,21 +60,31 @@ public:
    //========================================================
 	
     // init loading : actions that must be taken BEFORE any loading starts
-	int data_load_init() { rep.switch_to_in_mem_mode(); }
+	int data_load_init() { rep.switch_to_in_mem_mode(); return 0; }
 
 	// load n_elems for a pid,sig
-	int data_load_pid_sig(int pid, char *sig_name, int *times, float *vals, int n_elems) {
-		int n_times = n_elems, n_vals = n_elems;
+	int data_load_pid_sig(int pid, const char *sig_name, int *times, float *vals, int n_elems) {
+		int sid = rep.sigs.Name2Sid[string(sig_name)];
+		if (sid < 0) return -1; // no such signal
+		int n_times = n_elems * rep.sigs.Sid2Info[sid].n_time_channels, n_vals = n_elems  * rep.sigs.Sid2Info[sid].n_val_channels;
 		if (times == NULL) n_times = 0;
 		if (vals == NULL) n_vals = 0;
-		return rep.in_mem_rep.insertData(pid, sig_name, times, vals, n_times, n_vals);
+		return rep.in_mem_rep.insertData(pid, sid, times, vals, n_times, n_vals);
+	}
+
+	// load pid,sig with vectors of times and vals
+	int data_load_pid_sig(int pid, const char *sig_name, int *times, int n_times, float *vals, int n_vals) {
+		int sid = rep.sigs.Name2Sid[string(sig_name)];
+		if (sid < 0) return -1; // no such signal
+		return rep.in_mem_rep.insertData(pid, sid, times, vals, n_times, n_vals);
 	}
 
 	// load a single element for a pid,sig
-	int data_load_pid_sig(int pid, char *sig_name, int *times, float *vals) { return data_load_pid_sig(pid, sig_name, times, vals, 1); }
+	int data_load_pid_sig(int pid, const char *sig_name, int *times, float *vals) { return data_load_pid_sig(pid, sig_name, times, vals, 1); }
 
 	// end loading : actions that must be taken AFTER all loading was done, and BEFORE we calculate the predictions
 	int data_load_end() { return rep.in_mem_rep.sortData(); }
+
 
 	//========================================================
 	// Samples
@@ -93,13 +103,54 @@ public:
 
 	int insert_sample(int pid, int time) { return insert_samples(&pid, &time, 1); }
 
+	// normalize samples must be called after finishing inserting all samples.
+	int normalize_samples() { samples.normalize(); return 0; }
+
 	//========================================================
 	// Calculate predictions
 	//========================================================
-	int get_preds(int *pids, int *times, float *preds, int n_samples) {
+	// note that if (_pids,times) are not sorted, they will be changed and sorted.
+	int get_preds(int *_pids, int *times, float *preds, int n_samples) {
 
 		// init_samples
-		init_samples(pids, times, n_samples);
+		init_samples(_pids, times, n_samples);
+
+		return get_raw_preds(_pids, times, preds);
+	}
+
+	int get_raw_preds(int *_pids, int *times, float *preds) {
+
+		try {
+			// run model to calculate predictions
+			if (model.apply(rep, samples) < 0) {
+				fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
+				return -1;
+			}
+
+			// export pids, times and preds to c arrays
+			int j = 0;
+			for (auto& idSample : samples.idSamples)
+				for (auto& sample : idSample.samples) {
+					_pids[j] = sample.id;
+					times[j] = sample.time;
+					preds[j++] = sample.prediction[0]; // This is Naive - but works for simple predictors giving the Raw score.
+				}
+
+			return 0;
+		}
+		catch (int &exception_code) {
+			return exception_code;
+		}
+		catch (...) {
+			fprintf(stderr,"Caught Something...\n");
+			return -1;
+		}
+	}
+
+	int get_preds(MedSamples &_samples, float *preds) {
+
+		samples = _samples;
+		int n_samples = samples.nSamples();
 
 		// run model to calculate predictions
 		if (model.apply(rep, samples) < 0) {
@@ -111,9 +162,7 @@ public:
 		int j = 0;
 		for (auto& idSample : samples.idSamples)
 			for (auto& sample : idSample.samples) {
-				pids[j] = sample.id;
-				times[j] = sample.time;
-				preds[j++] = sample.prediction[0]; // This Naive - but works for simple predictors giving the Raw score.
+				preds[j++] = sample.prediction[0]; // This is Naive - but works for simple predictors giving the Raw score.
 			}
 	}
 
@@ -124,6 +173,9 @@ public:
 	// Clearing - freeing mem
 	//========================================================
 	void clear() { pids.clear(); model.clear(); samples.clear(); rep.in_mem_rep.clear(); rep.clear(); }
+	
+	// clear_data() : leave model up, leave repository config up, but get rid of data and samples
+	void clear_data() { samples.clear(); rep.in_mem_rep.clear(); }
 
 
 	//========================================================

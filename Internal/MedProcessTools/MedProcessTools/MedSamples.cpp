@@ -13,22 +13,28 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	if (pos.size() == 0)
 		return parse_from_string(s);
 	vector<string> fields; 
+	boost::split(fields, s, boost::is_any_of("\t\n\r"));
 	if (fields.size() == 0)
 		return -1;
-	boost::split(fields, s, boost::is_any_of("\t\n\r"));
-	if (pos["id"] != -1)
-		id = stoi(fields[pos["id"]]);
-	if (pos["date"] != -1)
-		time = stoi(fields[pos["time"]]);
-	if (pos["outcome"] != -1)
-		outcome = stof(fields[pos["outcome"]]);
-	if (pos["outcome_date"] != -1)
-		outcomeTime = stoi(fields[pos["outcome_date"]]);
-	if (pos["split"] != -1)
-		split = stoi(fields[pos["split"]]);
-	if (pos["pred"] != -1)
-		prediction.push_back(stof(fields[pos["pred"]]));
-	return 0;
+	try {
+		if (pos["id"] != -1)
+			id = stoi(fields[pos["id"]]);
+		if (pos["date"] != -1)
+			time = stoi(fields[pos["date"]]);
+		if (pos["outcome"] != -1)
+			outcome = stof(fields[pos["outcome"]]);
+		if (pos["outcome_date"] != -1)
+			outcomeTime = stoi(fields[pos["outcome_date"]]);
+		if (pos["split"] != -1 && fields.size() > pos["split"])
+			split = stoi(fields[pos["split"]]);
+		if (pos["pred"] != -1 && fields.size() > pos["pred"])
+			prediction.push_back(stof(fields[pos["pred"]]));
+		return 0;
+	}
+	catch (std::invalid_argument e) {
+		MLOG("could not parse [%s]\n", s.c_str());
+		throw e;
+	}
 }
 
 //.......................................................................................
@@ -216,26 +222,25 @@ int MedSamples::read_from_file(const string &fname)
 
 	string curr_line;
 
-	int samples = 0, skipped_records = 0;
+	int samples = 0, read_records = 0, skipped_records = 0;
 	idSamples.clear();
 	int curr_id = -1;
 	unordered_set<int> seen_ids;
+	map<string, int> pos;
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 			if (curr_line[curr_line.size() - 1] == '\r')
 				curr_line.erase(curr_line.size() - 1);
-
+			read_records++;
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
-			map<string, int> pos;
 			if (fields.size() >= 2) {
-
 				if (fields[0] == "NAME") MLOG("reading NAME = %s\n", fields[1].c_str());
-				if (fields[0] == "DESC") MLOG("reading DESC = %s\n", fields[1].c_str());
-				if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
-				if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
-				if (fields[0] == "EVENT_FIELDS") {
+				else if (fields[0] == "DESC") MLOG("reading DESC = %s\n", fields[1].c_str());
+				else if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
+				else if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
+				else if ((fields[0] == "EVENT_FIELDS" || fields[0] == "pid" || fields[0] == "id") && read_records == 1) {
 					extract_field_pos_from_header(fields, pos);
 					continue;
 				}
@@ -244,6 +249,8 @@ int MedSamples::read_from_file(const string &fname)
 				if (sample.parse_from_string(curr_line, pos) < 0) {
 					MWARN("skipping [%s]\n", curr_line.c_str());
 					skipped_records++;
+					if (read_records > 30 && skipped_records > read_records / 2)
+						MTHROW_AND_ERR("skipped %d/%d first records, exiting\n", skipped_records, read_records);
 					continue;
 				}
 				if (sample.id != curr_id) {
@@ -276,11 +283,36 @@ int MedSamples::read_from_file(const string &fname)
 	return 0;
 }
 
+//.......................................................................................
 void MedSamples::sort_by_id_date() {
 	MLOG("sorting samples by id, date\n");
 	sort(idSamples.begin(), idSamples.end(), comp_patient_id_time);
 	for (auto& pat : idSamples)
 		sort(pat.samples.begin(), pat.samples.end(), comp_sample_id_time);
+}
+
+//.......................................................................................
+void MedSamples::normalize() {
+	
+	// since order may be random, we need a map to collect by pid
+	map<int, vector<MedSample>> pid_to_samples;
+	map<int, int> pid_to_split;
+	for (auto &ids : idSamples) {
+		pid_to_split[ids.id] = ids.split;
+		for (auto &s : ids.samples)
+			pid_to_samples[s.id].push_back(s);
+	}
+
+	// copy back to idSamples and sort
+	idSamples.clear();
+	for (auto &vs : pid_to_samples) {
+		MedIdSamples ids;
+		ids.id = vs.first;
+		ids.split = pid_to_split[ids.id];
+		ids.samples = vs.second;
+		sort(ids.samples.begin(), ids.samples.end(), comp_sample_id_time);
+		idSamples.push_back(ids);
+	}
 }
 
 //.......................................................................................
@@ -336,11 +368,12 @@ int MedSamples::nSamples()
 }
 
 //.......................................................................................
-int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime) 
+int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 {
 	MedIdSamples sample;
 
 	sample.id = pid;
+	sample.split = -1;
 	MedSample s;
 	s.id = pid;
 	s.time = time;
@@ -349,4 +382,34 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 	sample.samples.push_back(s);
 	idSamples.push_back(sample);
 	return 0;
+}
+
+
+//.......................................................................................
+int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred)
+{
+	MedIdSamples sample;
+
+	sample.id = pid;
+	sample.split = -1;
+	MedSample s;
+	s.id = pid;
+	s.time = time;
+	s.outcome = outcome;
+	s.outcomeTime = outcomeTime;
+	s.prediction.push_back(pred);
+	sample.samples.push_back(s);
+	idSamples.push_back(sample);
+	return 0;
+}
+
+//.......................................................................................
+void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
+{
+	vec_samples.clear();
+	for (auto &s: idSamples) {
+		for (auto &samp : s.samples) {
+			vec_samples.push_back(samp);
+		}
+	}
 }

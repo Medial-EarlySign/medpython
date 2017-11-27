@@ -270,7 +270,7 @@ public:
 	// insert data basic API's . These are for a single pid/sid but a vector of elements can be loaded
 	// data can be insertred in any order and several times per pid/sid , different pids are supported too.
 	int insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val);
-	int insertData(int pid, char *sig, int *time_data, float *val_data, int n_time, int n_val);
+	int insertData(int pid, const char *sig, int *time_data, float *val_data, int n_time, int n_val);
 
 
 	// This sort action MUST be called after inserting all data, otherwise the order of the elements in each pid-sid vector will be the inserting order
@@ -344,7 +344,7 @@ public:
 		//-------------------------------------------------------------------
 
 		inline void *get_in_mem(int pid, int sid, int &len) { return in_mem_rep.get(pid, sid, len); }
-		int switch_to_in_mem_mode() { in_mem_rep.clear(); in_mem_rep.my_rep = this; get_ptr = &MedRepository::get_in_mem; }
+		void switch_to_in_mem_mode() { in_mem_rep.clear(); in_mem_rep.my_rep = (MedRepository *)this; get_ptr = &MedRepository::get_in_mem; }
 
 		//-------------------------------------------------------------------
 		int   read_config(const string &fname);

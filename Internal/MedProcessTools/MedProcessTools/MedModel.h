@@ -11,6 +11,7 @@
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
 
 // MedModel learn/apply stages
 typedef enum {
@@ -31,8 +32,9 @@ typedef enum {
 //.......................................................................................
 class MedModel : public SerializableObject {
 public:
+	
 	// remember learning set
-	int serialize_learning_set = 1;
+	int serialize_learning_set = 0;
 
 	// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
@@ -62,6 +64,8 @@ public:
 	void clear() {}; 
 
 	MedFeatures features;	// no need to serialize
+
+	int verbosity = 1; // verbosity 0 -> much less printouts in predict
 
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);

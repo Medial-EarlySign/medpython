@@ -104,6 +104,7 @@
     <ClInclude Include="IterativeImputer.h" />
     <ClInclude Include="MedFeatures.h" />
     <ClInclude Include="MedModel.h" />
+    <ClInclude Include="MedModelExceptions.h" />
     <ClInclude Include="MedProcessUtils.h" />
     <ClInclude Include="MedSamples.h" />
     <ClInclude Include="MedValueCleaner.h" />
