@@ -78,6 +78,12 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	y = p_y->data();
 	preds = p_preds->data();
 	maxThreadCount = max_loops;
+	vec_size.resize(maxThreadCount);
+	vec_y.resize(maxThreadCount);
+	vec_preds.resize(maxThreadCount);
+	vec_size.back() = (int)p_pids->size();
+	vec_y.back() = y;
+	vec_preds.back() = preds;
 
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
@@ -118,6 +124,15 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	sel_pid_index.resize(maxThreadCount, -1);
 }
 
+void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num) {
+#pragma omp critical 
+{
+	vec_size[thread_num] = p_y->size();
+	vec_y[thread_num] = p_y->data();
+	vec_preds[thread_num] = p_preds->data();
+}
+}
+
 bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 	if (sample_per_pid > 0) {
 		//choose pid:
@@ -138,11 +153,11 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 	else { //taking all samples for pid when selected, sample_ratio is less than 1
 		if (sample_all_no_sampling) {
 			//iterate on all!:
-			ret_y = y[current_pos[thread]];
-			ret_pred = preds[current_pos[thread]];
+			ret_y = vec_y[thread][current_pos[thread]];
+			ret_pred = vec_preds[thread][current_pos[thread]];
 #pragma omp atomic
 			++current_pos[thread];
-			return current_pos[thread] < pids->size();
+			return current_pos[thread] < vec_size[thread];
 		}
 		if (sel_pid_index[thread] < 0)
 		{
@@ -233,51 +248,160 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//this function called after filter cohort
 
 	map<string, vector<float>> all_measures;
-	//save results for all cohort:
-	//iterator.sample_per_pid = 0; //take all samples in Obs
-	//iterator.sample_ratio = 1; //take all pids
-	iterator.sample_all_no_sampling = true;
+	if (sample_per_pid > 0) {
+		//save results for all cohort:
+		//iterator.sample_per_pid = 0; //take all samples in Obs
+		//iterator.sample_ratio = 1; //take all pids
+		iterator.sample_all_no_sampling = true;
 #ifdef USE_MIN_THREADS
-	int main_thread = 0;
+		int main_thread = 0;
 #else
-	int main_thread = loopCnt;
-#endif
-	for (size_t k = 0; k < meas_functions.size(); ++k)
-	{
-		if (k > 0)
-			iterator.restart_iterator(main_thread);
-		map<string, float> batch_measures = meas_functions[k](&iterator, main_thread, function_params[k]);
-		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-			all_measures[jt->first + "_Obs"].push_back(jt->second);
-	}
-#ifdef USE_MIN_THREADS
-	iterator.restart_iterator(0);
-#endif
-
-	//iterator.sample_per_pid = sample_per_pid;
-	//iterator.sample_ratio = sample_ratio;
-	iterator.sample_all_no_sampling = false;
-	Lazy_Iterator *iter_for_omp = &iterator;
-#pragma omp parallel for schedule(static)
-	for (int i = 0; i < loopCnt; ++i)
-	{
-#ifdef USE_MIN_THREADS
-		int th_num = omp_get_thread_num();
-#else
-		int th_num = i;
+		int main_thread = loopCnt;
 #endif
 		for (size_t k = 0; k < meas_functions.size(); ++k)
 		{
-#ifdef USE_MIN_THREADS
-			iterator.restart_iterator(th_num);
-#else
 			if (k > 0)
-				iterator.restart_iterator(th_num);
-#endif
-			map<string, float> batch_measures = meas_functions[k](iter_for_omp, th_num, function_params[k]);
-#pragma omp critical
+				iterator.restart_iterator(main_thread);
+			map<string, float> batch_measures = meas_functions[k](&iterator, main_thread, function_params[k]);
 			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-				all_measures[jt->first].push_back(jt->second);
+				all_measures[jt->first + "_Obs"].push_back(jt->second);
+		}
+#ifdef USE_MIN_THREADS
+		iterator.restart_iterator(0);
+#endif
+
+		//iterator.sample_per_pid = sample_per_pid;
+		//iterator.sample_ratio = sample_ratio;
+		iterator.sample_all_no_sampling = false;
+		Lazy_Iterator *iter_for_omp = &iterator;
+#pragma omp parallel for schedule(static)
+		for (int i = 0; i < loopCnt; ++i)
+		{
+#ifdef USE_MIN_THREADS
+			int th_num = omp_get_thread_num();
+#else
+			int th_num = i;
+#endif
+			for (size_t k = 0; k < meas_functions.size(); ++k)
+			{
+#ifdef USE_MIN_THREADS
+				iterator.restart_iterator(th_num);
+#else
+				if (k > 0)
+					iterator.restart_iterator(th_num);
+#endif
+				map<string, float> batch_measures = meas_functions[k](iter_for_omp, th_num, function_params[k]);
+#pragma omp critical
+				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+					all_measures[jt->first].push_back(jt->second);
+		}
+	}
+}
+	else {
+		//old implementition with memory:
+		iterator.sample_all_no_sampling = true;
+		random_device rd;
+		mt19937 rd_gen(rd());
+		unordered_map<int, vector<int>> pid_to_inds;
+		for (size_t i = 0; i < pids.size(); ++i)
+			pid_to_inds[pids[i]].push_back(int(i));
+
+		int cohort_size = int(sample_ratio * pid_to_inds.size());
+		int cnt_i = 0;
+		vector<int> ind_to_pid((int)pid_to_inds.size());
+		for (auto it = pid_to_inds.begin(); it != pid_to_inds.end(); ++it)
+		{
+			ind_to_pid[cnt_i] = it->first;
+			++cnt_i;
+		}
+		//choose pids:
+		uniform_int_distribution<> rand_pids(0, (int)pid_to_inds.size() - 1);
+		if (sample_per_pid > 0) {
+#pragma omp parallel for schedule(dynamic,1)
+			for (int i = 0; i < loopCnt; ++i)
+			{
+				int curr_ind = 0;
+				unordered_set<int> selected_ind_pid;
+				vector<int> selected_inds(cohort_size * sample_per_pid);
+
+				for (size_t k = 0; k < cohort_size; ++k)
+				{
+					int ind_pid = rand_pids(rd_gen);
+					while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
+						ind_pid = rand_pids(rd_gen);
+					selected_ind_pid.insert(ind_pid);
+
+					vector<int> inds = pid_to_inds[ind_to_pid[ind_pid]];
+					uniform_int_distribution<> random_num(0, (int)inds.size() - 1);
+					for (size_t kk = 0; kk < sample_per_pid; ++kk)
+					{
+						selected_inds[curr_ind] = inds[random_num(rd_gen)];
+						++curr_ind;
+					}
+				}
+
+				//now calculate measures on cohort of selected indexes for preds, y:
+				vector<float> selected_preds((int)selected_inds.size()), selected_y((int)selected_inds.size());
+				for (size_t k = 0; k < selected_inds.size(); ++k)
+				{
+					selected_preds[k] = preds[selected_inds[k]];
+					selected_y[k] = y[selected_inds[k]];
+				}
+
+				iterator.set_static(&selected_y, &selected_preds, i);
+
+				for (size_t k = 0; k < meas_functions.size(); ++k)
+				{
+					map<string, float> batch_measures;
+					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
+#pragma omp critical
+					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+						all_measures[jt->first].push_back(jt->second);
+				}
+			}
+		}
+		else { //other sampling - sample pids and take all thier data:
+			   //now sample cohort 
+
+
+#pragma omp parallel for schedule(dynamic,1)
+			for (int i = 0; i < loopCnt; ++i)
+			{
+				unordered_set<int> selected_ind_pid;
+				vector<int> selected_pids(cohort_size);
+				for (size_t k = 0; k < cohort_size; ++k)
+				{
+					int ind_pid = rand_pids(rd_gen);
+					while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
+						ind_pid = rand_pids(rd_gen);
+					selected_ind_pid.insert(ind_pid);
+					selected_pids[k] = ind_to_pid[ind_pid];
+				}
+
+				//create preds, y for all seleceted pids:
+				vector<float> selected_preds, selected_y;
+				for (size_t k = 0; k < selected_pids.size(); ++k)
+				{
+					int pid = selected_pids[k];
+					vector<int> ind_vec = pid_to_inds[pid];
+					for (int ind : ind_vec)
+					{
+						selected_preds.push_back(preds[ind]);
+						selected_y.push_back(y[ind]);
+					}
+				}
+
+				iterator.set_static(&selected_y, &selected_preds, i);
+				//calc measures for sample:
+				for (size_t k = 0; k < meas_functions.size(); ++k)
+				{
+					map<string, float> batch_measures;
+					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
+#pragma omp critical
+					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+						all_measures[jt->first].push_back(jt->second);
+				}
+			}
 		}
 	}
 
@@ -1270,7 +1394,6 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	else
 		return;
 
-	MLOG_D("Running preprocess_bin_scores...\n");
 	if (params.score_resolution != 0)
 		for (size_t i = 0; i < preds.size(); ++i)
 			preds[i] = (float)round((double)preds[i] / params.score_resolution) *
@@ -1354,6 +1477,8 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 			}
 		}
 	}
+
+	MLOG_D("Preprocess_bin_scores Done!\n");
 }
 #pragma endregion
 
