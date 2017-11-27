@@ -38,7 +38,7 @@ int SerializableObject::read_from_file(const string &fname) {
 
 			size_t serSize = deserialize(blob_without_version);
 			if (serSize + sizeof(int) != final_size)
-				MTHROW_AND_ERR("final_size=%ld, serSize=%ld\n", final_size, (int)serSize);
+				MTHROW_AND_ERR("final_size=%lld, serSize=%d\n", final_size, (int)serSize);
 			if (final_size > 0) delete[] blob;
 			return 0;
 		}
@@ -63,7 +63,7 @@ int SerializableObject::write_to_file(const string &fname)
 	*((int*)blob) = version(); //save version
 	size_t serSize = serialize(blob + sizeof(int));
 	if (size != serSize)
-		MTHROW_AND_ERR("size=%d, serSize=%d\n", size, (int)serSize);
+		MTHROW_AND_ERR("size=%lld, serSize=%d\n", size, (int)serSize);
 
 	size_t final_size = serSize + sizeof(int);
 

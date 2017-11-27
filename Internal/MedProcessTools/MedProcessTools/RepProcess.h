@@ -25,6 +25,7 @@ typedef enum {
 	REP_PROCESS_MULTI,
 	REP_PROCESS_BASIC_OUTLIER_CLEANER,
 	REP_PROCESS_NBRS_OUTLIER_CLEANER,
+	REP_PROCESS_CONFIGURED_OUTLIER_CLEANER,
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -214,7 +215,7 @@ public:
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	int init(map<string, string>& mapper); 
+	virtual int init(map<string, string>& mapper); 
 	void init_lists();
 
 	// Learn cleaning model
@@ -233,6 +234,65 @@ public:
 	void print();
 };
 
+//.......................................................................................
+//.......................................................................................
+// A simple cleaner considering each value of a certain signal separatley, but this time use 
+// configuration file that holds for each signal the logical values, statistically confirmed values 
+// and distribution for relearning statistical values
+//.......................................................................................
+//.......................................................................................
+
+typedef struct {
+	double logicalLow, logicalHigh, confirmedLow, confirmedHigh;
+    string distLow,distHigh; //"none" "norm" or "log" 
+}confRecord;
+
+class RepConfiguredOutlierCleaner : public  RepBasicOutlierCleaner {
+public:
+
+	// Signal to clean -- inheritted
+	
+	// configuration file and mapping
+	string confFileName;
+	string cleanMethod; // "logical" "confirmed" or "learned"
+	map<string,confRecord> outlierParams;
+
+
+
+	// Constructors 
+	// Set Signal -- inheritted
+	// Signal Id -- inheritted
+	
+	void init_defaults() {
+		processor_type = REP_PROCESS_CONFIGURED_OUTLIER_CLEANER;
+		params.trimming_sd_num = DEF_REP_TRIMMING_SD_NUM; params.removing_sd_num = DEF_REP_REMOVING_SD_NUM; params.nbrs_sd_num = 0;
+		params.take_log = 0;
+		params.doTrim = params.doRemove = true;
+		signalId = -1;
+		params.type = VAL_CLNR_ITERATIVE;
+		params.missing_value = MED_MAT_MISSING_VALUE;
+	};
+	// Init
+	int init(map<string, string>& mapper);
+	
+	// Learn cleaning model
+	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	
+
+	// Apply cleaning model -inheritted
+	
+
+	// Serialization
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+
+	void print();
+};
+
+void learnDistributionBorders(double& borderHi, double& borderLo,vector<float> filteredValues);
+// a function that takes sorted vector of filtered values and estimates the +- 7 sd borders based on the center of distribution
+// predefined calibration constants are used for estimation of the borders. 
 
 //.......................................................................................
 //.......................................................................................
