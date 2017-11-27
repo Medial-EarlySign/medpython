@@ -11,6 +11,7 @@
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
 
 // MedModel learn/apply stages
 typedef enum {

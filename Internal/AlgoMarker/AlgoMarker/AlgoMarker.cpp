@@ -272,8 +272,9 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	vector<int> _pids(n_points, -1), _times(n_points, -1);
 	vector<float> raw_scores(n_points, (float)AM_UNDEFINED_VALUE);
 
-	if (ma.get_raw_preds(&_pids[0], &_times[0], &raw_scores[0]) < 0) {
-		string msg = msg_prefix + "Failed getting RAW scores in AlgoMarker " + string(get_name());
+	int get_preds_rc;
+	if ((get_preds_rc = ma.get_raw_preds(&_pids[0], &_times[0], &raw_scores[0])) < 0) {
+		string msg = msg_prefix + "Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
 		shared_msgs->insert_message(AM_MSG_RAW_SCORES_ERROR, msg.c_str());
 		return AM_FAIL_RC;
 	}
@@ -338,6 +339,17 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				else if (fields[0] == "MODEL") model_fname = fields[1];
 			}
 		}
+	}
+
+	string dir = conf_f.substr(0, conf_f.find_last_of("/\\"));
+	if (rep_fname != "" && rep_fname[0] != '/' && rep_fname[0] != '\\') {
+		// relative path
+		rep_fname = dir + "/" + rep_fname;
+	}
+
+	if (model_fname != "" && model_fname[0] != '/' && model_fname[0] != '\\') {
+		// relative path
+		model_fname = dir + "/" + model_fname;
 	}
 
 	return AM_OK_RC;

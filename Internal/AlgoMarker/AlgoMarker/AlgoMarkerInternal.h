@@ -33,7 +33,7 @@ public:
 	void set_name(const char *_name) { name = string(_name); }
 
 	// init repository config
-	int init_rep_config(const char *config_fname) { if (rep.init(string(config_fname)) < 0) return -1; rep.switch_to_in_mem_mode(); return 0; }
+	int init_rep_config(const char *config_fname) { if (rep.MedRepository::init(string(config_fname)) < 0) return -1; rep.switch_to_in_mem_mode(); return 0; }
 
 	// init pids
 	void set_pids(int *_pids, int npids) { pids.clear(); pids.assign(_pids, _pids + npids); }
@@ -119,22 +119,32 @@ public:
 	}
 
 	int get_raw_preds(int *_pids, int *times, float *preds) {
-		// run model to calculate predictions
-		if (model.apply(rep, samples) < 0) {
-			fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
-			return -1;
-		}
 
-		// export pids, times and preds to c arrays
-		int j = 0;
-		for (auto& idSample : samples.idSamples)
-			for (auto& sample : idSample.samples) {
-				_pids[j] = sample.id;
-				times[j] = sample.time;
-				preds[j++] = sample.prediction[0]; // This is Naive - but works for simple predictors giving the Raw score.
+		try {
+			// run model to calculate predictions
+			if (model.apply(rep, samples) < 0) {
+				fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
+				return -1;
 			}
 
-		return 0;
+			// export pids, times and preds to c arrays
+			int j = 0;
+			for (auto& idSample : samples.idSamples)
+				for (auto& sample : idSample.samples) {
+					_pids[j] = sample.id;
+					times[j] = sample.time;
+					preds[j++] = sample.prediction[0]; // This is Naive - but works for simple predictors giving the Raw score.
+				}
+
+			return 0;
+		}
+		catch (int &exception_code) {
+			return exception_code;
+		}
+		catch (...) {
+			fprintf(stderr,"Caught Something...\n");
+			return -1;
+		}
 	}
 
 	int get_preds(MedSamples &_samples, float *preds) {

@@ -16,10 +16,13 @@ public:
 	bool sample_patient_label; //if true will treat patient+label as the "id" for the sampling
 	int loopCnt; //the bootstrap count
 
+	void add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges);
+	void add_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges);
+
 	MedBootstrap();
 	//init_string format: paramter_name=value;... roc_Params is the init_string of roc_Params
 	//filter_cohort - it's a file where each line is new cohort. "cohort_name TAB paramter_name:min_range,max_range;..."
-	MedBootstrap(const string &init_string); 
+	MedBootstrap(const string &init_string);
 
 	void clean_feature_name_prefix(map<string, vector<float>> &features);
 
@@ -64,8 +67,8 @@ public:
 	void explore_score(float score, map<string, float> &score_measurements,
 		const string &string_cohort = "All", float max_search_range = 0.1);
 
-	void write_results_to_text_file(const string &path);
-	void read_results_to_text_file(const string &path);
+	void write_results_to_text_file(const string &path, bool pivot_format = true);
+	void read_results_to_text_file(const string &path, bool pivot_format = true);
 
 	ADD_SERIALIZATION_FUNCS(bootstrap_params, bootstrap_results)
 private:
