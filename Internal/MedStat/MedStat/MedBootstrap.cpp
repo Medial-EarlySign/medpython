@@ -269,19 +269,18 @@ void MedBootstrap::add_filter_cohorts(const vector<vector<Filter_Param>> &parame
 		filter_cohort[it->first] = it->second;
 }
 
-map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
-	map<int, map<string, map<string, float>>> *results_per_split) {
-	vector<float> preds((int)features.samples.size());
-	vector<float> y((int)features.samples.size());
-	vector<int> pids((int)features.samples.size());
-	map<string, vector<float>> data = features.data;
-	clean_feature_name_prefix(data);
+void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
+	map<string, vector<float>> &final_additional_info, unordered_map<int, vector<int>> *splits_inds) {
+	preds.resize((int)features.samples.size());
+	y.resize((int)features.samples.size());
+	pids.resize((int)features.samples.size());
+	final_additional_info = features.data;
+	clean_feature_name_prefix(final_additional_info);
 	bool uses_time_window = use_time_window();
-	unordered_map<int, vector<int>> splits_inds;
 
 	if (uses_time_window) {
-		data["Time-Window"].resize((int)features.samples.size());
-		data["Label"].resize((int)features.samples.size());
+		final_additional_info["Time-Window"].resize((int)features.samples.size());
+		final_additional_info["Label"].resize((int)features.samples.size());
 	}
 	MedTime tm;
 	tm.init_time_tables();
@@ -293,32 +292,43 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 		if (uses_time_window) {
 			int diff_days = (tm.convert_date(MedTime::Days, features.samples[i].outcomeTime)
 				- tm.convert_date(MedTime::Days, features.samples[i].time));
-			data["Time-Window"][i] = (float)diff_days;
-			data["Label"][i] = y[i];
+			final_additional_info["Time-Window"][i] = (float)diff_days;
+			final_additional_info["Label"][i] = y[i];
 		}
-		if (results_per_split != NULL)
-			splits_inds[features.samples[i].split].push_back((int)i);
+		if (splits_inds != NULL)
+			(*splits_inds)[features.samples[i].split].push_back((int)i);
 	}
+}
+map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
+	map<int, map<string, map<string, float>>> *results_per_split) {
+
+	vector<float> preds, y;
+	vector<int> pids;
+	map<string, vector<float>> data;
+	unordered_map<int, vector<int>> splits_inds;
+
+	if (results_per_split != NULL)
+		prepare_bootstrap(features, preds, y, pids, data, &splits_inds);
+	else
+		prepare_bootstrap(features, preds, y, pids, data);
+
 	if (results_per_split != NULL)
 		add_splits_results(preds, y, pids, data, splits_inds, *results_per_split);
 
 	return bootstrap_base(preds, y, pids, data);
 }
 
-map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples,
-	map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split) {
-	vector<float> preds;
-	vector<float> y;
-	vector<int> pids(samples.nSamples());
+void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids,
+	 unordered_map<int, vector<int>> *splits_inds) {
+	pids.resize(samples.nSamples());
 	samples.get_y(y);
 	samples.get_preds(preds);
 	int c = 0;
-	unordered_map<int, vector<int>> splits_inds;
 	for (size_t i = 0; i < samples.idSamples.size(); ++i)
 		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
 			pids[c++] = samples.idSamples[i].samples[j].id;
-			if (results_per_split != NULL)
-				splits_inds[samples.idSamples[i].samples[j].split].push_back((int)c);
+			if (splits_inds != NULL)
+				(*splits_inds)[samples.idSamples[i].samples[j].split].push_back((int)c);
 		}
 
 	bool uses_time_window = use_time_window();
@@ -339,7 +349,17 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples,
 				++c;
 			}
 	}
-
+}
+map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples,
+	map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split) {
+	vector<float> preds, y;
+	vector<int> pids;
+	unordered_map<int, vector<int>> splits_inds;
+	if (results_per_split == NULL)
+		prepare_bootstrap(samples, additional_info, preds, y, pids);
+	else
+		prepare_bootstrap(samples, additional_info, preds, y, pids, &splits_inds);
+	
 	if (results_per_split != NULL)
 		add_splits_results(preds, y, pids, additional_info, splits_inds, *results_per_split);
 	return bootstrap_base(preds, y, pids, additional_info);

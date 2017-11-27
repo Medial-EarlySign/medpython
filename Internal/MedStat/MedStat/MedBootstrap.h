@@ -29,6 +29,10 @@ public:
 	void clean_feature_name_prefix(map<string, vector<float>> &features);
 
 	//if results_per_split is NULL (not provided) will not calculate results by each split. the return value is on all values without splits
+	void prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
+		map<string, vector<float>> &final_additional_info, unordered_map<int, vector<int>> *splits_inds = NULL);
+	void prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids,
+		unordered_map<int, vector<int>> *splits_inds = NULL);
 	map<string, map<string, float>> bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL); 
 	map<string, map<string, float>> bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 	map<string, map<string, float>> bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);

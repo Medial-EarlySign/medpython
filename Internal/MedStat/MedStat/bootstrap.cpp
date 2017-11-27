@@ -847,9 +847,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				}
 				res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
 				if (params->incidence_fix > 0)
-					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(100 * ppv / params->incidence_fix);
+					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv / params->incidence_fix);
 				else
-					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(100 * ppv /
+					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv /
 						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
 				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
@@ -863,12 +863,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				else
 					or_prev = MED_MAT_MISSING_VALUE;
 				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (or_c * (prev_diff / tot_diff) +
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = (or_c * (prev_diff / tot_diff) +
 						or_prev * (curr_diff / tot_diff));
 				else if (or_c != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * or_c;
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * or_prev;
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_prev;
 
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
@@ -883,12 +883,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (rr_c * (prev_diff / tot_diff) +
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = (rr_c * (prev_diff / tot_diff) +
 							rr_prev * (curr_diff / tot_diff));
 					else if (rr_c != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * rr_c;
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = rr_c;
 					else if (rr_prev != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * rr_prev;
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = rr_prev;
 					else
 						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 				}
@@ -972,9 +972,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				}
 				res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
 				if (params->incidence_fix > 0)
-					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(100 * ppv / params->incidence_fix);
+					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv / params->incidence_fix);
 				else
-					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(100 * ppv /
+					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv /
 						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
 				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
@@ -988,12 +988,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				else
 					or_prev = MED_MAT_MISSING_VALUE;
 				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = 100 * (or_c * (prev_diff / tot_diff) +
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = (or_c * (prev_diff / tot_diff) +
 						or_prev * (curr_diff / tot_diff));
 				else if (or_c != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = 100 * or_c;
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = 100 * or_prev;
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_prev;
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
@@ -1007,12 +1007,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = 100 * (rr_c * (prev_diff / tot_diff) +
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = (rr_c * (prev_diff / tot_diff) +
 							rr_prev * (curr_diff / tot_diff));
 					else if (rr_c != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = 100 * rr_c;
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = rr_c;
 					else if (rr_prev != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = 100 * rr_prev;
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = rr_prev;
 					else
 						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 				}
@@ -1096,9 +1096,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				}
 				res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
 				if (params->incidence_fix > 0)
-					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(100 * ppv / params->incidence_fix);
+					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv / params->incidence_fix);
 				else
-					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(100 * ppv /
+					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv /
 						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 					or_c = float(
@@ -1111,12 +1111,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				else
 					or_prev = MED_MAT_MISSING_VALUE;
 				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = 100 * (or_c * (prev_diff / tot_diff) +
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = (or_c * (prev_diff / tot_diff) +
 						or_prev * (curr_diff / tot_diff));
 				else if (or_c != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = 100 * or_c;
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
-					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = 100 * or_prev;
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_prev;
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
@@ -1130,12 +1130,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = 100 * (rr_c * (prev_diff / tot_diff) +
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = (rr_c * (prev_diff / tot_diff) +
 							rr_prev * (curr_diff / tot_diff));
 					else if (rr_c != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = 100 * rr_c;
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_c;
 					else if (rr_prev != MED_MAT_MISSING_VALUE)
-						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = 100 * rr_prev;
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_prev;
 					else
 						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 				}
@@ -1180,19 +1180,19 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
 			}
 			if (params->incidence_fix > 0) {
-				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(100 * ppv / params->incidence_fix);
+				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv / params->incidence_fix);
 			}
 			else {
-				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(100 * ppv /
+				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
 					(t_sum / (t_sum + f_sum)));
 			}
 			if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 				res[format_working_point("OR@SCORE", score_working_point, false)] = float(
-					100 * (true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 
 			if (params->incidence_fix > 0)
 				if (true_rate[i] < 1)
-					res[format_working_point("RR@SCORE", score_working_point, false)] = float(100 * (ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+					res[format_working_point("RR@SCORE", score_working_point, false)] = float((ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
 						(params->incidence_fix * (1 - true_rate[i]))));
 				else
 					res[format_working_point("RR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
