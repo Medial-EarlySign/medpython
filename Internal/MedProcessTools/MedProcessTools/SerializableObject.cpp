@@ -28,7 +28,7 @@ int SerializableObject::read_from_file(const string &fname) {
 
 			boost::crc_32_type checksum_agent;
 			checksum_agent.process_bytes(blob, final_size);
-			MLOG("read_from_file [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
+			MLOG("read_from_file [%s] with crc32 [%d] and size [%ld]\n", fname.c_str(), checksum_agent.checksum(),final_size);
 
 			int vers = *((int*)blob);
 			if (vers != version())

@@ -22,6 +22,7 @@ typedef enum {
 	MED_MDL_APPLY_FTR_PROCESSORS,
 	MED_MDL_LEARN_PREDICTOR,
 	MED_MDL_APPLY_PREDICTOR,
+	MED_MDL_INSERT_PREDS,
 	MED_MDL_END
 } MedModelStage;
 
@@ -137,9 +138,9 @@ public:
 	void get_required_signal_names(unordered_set<string>& signalNames);
 
 	// Apply
-	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_LEARN_PREDICTOR); }
+	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
-	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR); }
+	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
 	// De(Serialize)

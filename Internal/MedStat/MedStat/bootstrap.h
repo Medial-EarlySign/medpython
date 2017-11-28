@@ -22,6 +22,7 @@ public:
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
 
 	void restart_iterator(int thread);
+	void set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num);
 
 	~Lazy_Iterator();
 
@@ -44,11 +45,15 @@ private:
 	vector<int> current_pos;
 	vector<int> inner_pos; //only used when sample_per_pid==0
 	vector<int> sel_pid_index; //only used when sample_per_pid==0
+	vector<int> vec_size;
+	vector<const float *> vec_y;
+	vector<const float *> vec_preds;
 
 	//original vectors
 	const float *preds;
 	const float *y;
 	const vector<int> *pids;
+	
 
 	//threading:
 	int maxThreadCount;
