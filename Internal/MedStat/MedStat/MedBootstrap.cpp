@@ -58,6 +58,7 @@ MedBootstrap::MedBootstrap()
 MedBootstrap::MedBootstrap(const string &init_string) {
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
+	sample_patient_label = false;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 
