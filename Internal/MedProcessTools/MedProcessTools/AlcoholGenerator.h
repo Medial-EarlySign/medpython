@@ -28,7 +28,8 @@ public:
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("Alcohol_quantity")); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("Alcohol_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
+	}
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, future_ind); }

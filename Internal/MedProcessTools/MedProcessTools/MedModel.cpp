@@ -158,7 +158,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 
 	// Stage Sanity
-	if (end_stage <=  MED_MDL_APPLY_FTR_GENERATORS) {
+	if (end_stage <  MED_MDL_APPLY_FTR_GENERATORS) {
 		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
 		return -1;
 	}
@@ -201,6 +201,9 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		MERR("Predictor failed\n");
 		return -1;
 	}
+
+	if (end_stage <= MED_MDL_INSERT_PREDS)
+		return 0;
 
 	samples.insert_preds(features);
 
@@ -249,7 +252,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		generator->init(features);
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
-//	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
+	//	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 
@@ -265,26 +268,36 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 	// Loop on ids
 	int RC = 0;
+	int thrown = 0;
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<samples->idSamples.size(); j++) {
-		MedIdSamples& pid_samples = samples->idSamples[j];
-		int n_th = omp_get_thread_num();
-		int rc = 0;
+		try {
+			MedIdSamples& pid_samples = samples->idSamples[j];
+			int n_th = omp_get_thread_num();
+			int rc = 0;
 
-		// Generate DynamicRec with all relevant signals
-		if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
-		// Apply rep-cleaning
+			// Generate DynamicRec with all relevant signals
+			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
+			// Apply rep-cleaning
 
-		for (auto& processor : rep_processors)
-			if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
+			for (auto& processor : rep_processors)
+				if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
 
-		// Generate Features
-		for (auto& generator : _generators)
-			if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-//#pragma omp critical 
-		if (rc < 0) RC = -1;
+			// Generate Features
+			for (auto& generator : _generators)
+				if (generator->generate(idRec[n_th], features) < 0) rc = -1;
+			//#pragma omp critical 
+			if (rc < 0) RC = -1;
+		}
+		catch (int &i_e) {
+			// have to catch each thread
+			if (i_e < thrown) thrown = i_e;
+		}
 	}
+
+	if (thrown < 0) throw thrown; // throwing if needed
 	return RC;
+
 }
 
 //.......................................................................................
@@ -371,7 +384,7 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
-		int npos = (int)(curr_line.find("//"));
+		size_t npos = curr_line.find("//");
 		if (npos == 0)
 			continue;
 		lines++;
@@ -432,7 +445,7 @@ string file_to_string(int recursion_level, const string& main_file, vector<strin
 
 	boost::sregex_iterator it(orig.begin(), orig.end(), ip_regex);
 	boost::sregex_iterator end;
-	std::cerr << "resolving referenced jsons...\n";
+	MLOG("resolving referenced jsons...\n");
 	int last_char = 0;
 	string out_string = "";
 	for (; it != end; ++it) {

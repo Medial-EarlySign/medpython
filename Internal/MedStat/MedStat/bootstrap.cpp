@@ -71,14 +71,19 @@ random_device Lazy_Iterator::rd;
 Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
 	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops) {
 	sample_per_pid = p_sample_per_pid;
-	sample_ratio = p_sample_ratio;
+	//sample_ratio = p_sample_ratio;
+	sample_ratio = 1.0; //no support for smaller size for now - need to fix Std for smaller sizes
+	sample_all_no_sampling = false;
 	pids = p_pids;
 	y = p_y->data();
 	preds = p_preds->data();
 	maxThreadCount = max_loops;
-	if (sample_per_pid == 0 && sample_ratio >= 1)
-		MTHROW_AND_ERR("You can't sample on all pids and take all thier samples."
-			" sample_per_pid==0, sample_ratio==1 is ilegal\n");
+	vec_size.resize(maxThreadCount);
+	vec_y.resize(maxThreadCount);
+	vec_preds.resize(maxThreadCount);
+	vec_size.back() = (int)p_pids->size();
+	vec_y.back() = y;
+	vec_preds.back() = preds;
 
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
@@ -109,7 +114,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	for (size_t i = 0; i < maxThreadCount; ++i)
 		rd_gen[i] = mt19937(rd());
 	rand_pids = uniform_int_distribution<>(0, (int)pid_index_to_indexes.size() - 1);
-	internal_random.resize(max_samples);
+	internal_random.resize(max_samples + 1);
 	for (int i = 1; i <= max_samples; ++i)
 		internal_random[i] = uniform_int_distribution<>(0, i - 1);
 	//MLOG_D("created %d random gens\n", (int)internal_random.size());
@@ -117,22 +122,23 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	current_pos.resize(maxThreadCount, 0);
 	inner_pos.resize(maxThreadCount, 0);
 	sel_pid_index.resize(maxThreadCount, -1);
-	selected_ind_pid.resize(maxThreadCount);
-	for (size_t i = 0; i < maxThreadCount; ++i)
-		selected_ind_pid[i].resize((int)pid_index_to_indexes.size(), false);
+}
+
+void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num) {
+#pragma omp critical 
+{
+	vec_size[thread_num] = p_y->size();
+	vec_y[thread_num] = p_y->data();
+	vec_preds[thread_num] = p_preds->data();
+}
 }
 
 bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 	if (sample_per_pid > 0) {
 		//choose pid:
 		int selected_pid_index = int(current_pos[thread] / sample_per_pid);
-		if (sample_ratio < 1) {
+		if (!sample_all_no_sampling)
 			selected_pid_index = rand_pids(rd_gen[thread]);
-			while (selected_ind_pid[thread][selected_pid_index - min_pid_start])
-				selected_pid_index = rand_pids(rd_gen[thread]);
-#pragma omp critical
-			selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
-		}
 
 		vector<int> *inds = &pid_index_to_indexes[selected_pid_index];
 		uniform_int_distribution<> *rnd_num = &internal_random[inds->size()];
@@ -145,22 +151,19 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		return current_pos[thread] < sample_per_pid * cohort_size;
 	}
 	else { //taking all samples for pid when selected, sample_ratio is less than 1
-		if (sample_ratio >= 1) {
+		if (sample_all_no_sampling) {
 			//iterate on all!:
-			ret_y = y[current_pos[thread]];
-			ret_pred = preds[current_pos[thread]];
+			ret_y = vec_y[thread][current_pos[thread]];
+			ret_pred = vec_preds[thread][current_pos[thread]];
 #pragma omp atomic
 			++current_pos[thread];
-			return current_pos[thread] < pids->size();
+			return current_pos[thread] < vec_size[thread];
 		}
 		if (sel_pid_index[thread] < 0)
 		{
 			int selected_pid_index = rand_pids(rd_gen[thread]);
-			while (selected_ind_pid[thread][selected_pid_index - min_pid_start])
-				selected_pid_index = rand_pids(rd_gen[thread]);
 #pragma omp critical 
 			{
-				selected_ind_pid[thread][selected_pid_index - min_pid_start] = true;
 				sel_pid_index[thread] = selected_pid_index;
 				inner_pos[thread] = 0;
 			}
@@ -184,15 +187,23 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 }
 
 void Lazy_Iterator::restart_iterator(int thread) {
+
+	if (sample_ratio < 1) {
 #pragma omp critical 
-{
-	current_pos[thread] = 0;
-	inner_pos[thread] = 0;
-	sel_pid_index[thread] = -1;
+	{
+		current_pos[thread] = 0;
+		inner_pos[thread] = 0;
+		sel_pid_index[thread] = -1;
+	}
+	}
+	else {
+#pragma omp critical 
+		current_pos[thread] = 0;
+	}
+
 }
-if (sample_ratio < 1)
-	fill(selected_ind_pid[thread].begin(), selected_ind_pid[thread].end(), false);
-}
+
+Lazy_Iterator::~Lazy_Iterator() {} //do nothing. nothing to clear
 
 inline string format_working_point(const string &init_str, float wp, bool perc = true) {
 	char res[100];
@@ -225,63 +236,172 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	for (size_t i = 0; i < function_params.size(); ++i)
 		if (process_measurments_params != NULL && function_params[i] != NULL)
 			process_measurments_params(additional_info, y, pids, function_params[i]);
-	MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
+	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 #ifdef USE_MIN_THREADS
 	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_max_threads()); //for Obs
 #else
 	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1); //for Obs
 #endif
-	MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
+	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
 	//this function called after filter cohort
 
 	map<string, vector<float>> all_measures;
-	//save results for all cohort:
-	iterator.sample_per_pid = 0; //take all samples in Obs
-	iterator.sample_ratio = 1; //take all pids
+	if (sample_per_pid > 0) {
+		//save results for all cohort:
+		//iterator.sample_per_pid = 0; //take all samples in Obs
+		//iterator.sample_ratio = 1; //take all pids
+		iterator.sample_all_no_sampling = true;
 #ifdef USE_MIN_THREADS
-	int main_thread = 0;
+		int main_thread = 0;
 #else
-	int main_thread = loopCnt;
-#endif
-	for (size_t k = 0; k < meas_functions.size(); ++k)
-	{
-		if (k > 0)
-			iterator.restart_iterator(main_thread);
-		vector<void *> measure_params = { &main_thread ,function_params[k] };
-		map<string, float> batch_measures = meas_functions[k](&iterator, (void *)&measure_params);
-		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-			all_measures[jt->first + "_Obs"].push_back(jt->second);
-	}
-#ifdef USE_MIN_THREADS
-	iterator.restart_iterator(0);
-#endif
-
-	iterator.sample_per_pid = sample_per_pid;
-	iterator.sample_ratio = sample_ratio;
-	Lazy_Iterator *iter_for_omp = &iterator;
-#pragma omp parallel for schedule(static)
-	for (int i = 0; i < loopCnt; ++i)
-	{
-#ifdef USE_MIN_THREADS
-		int th_num = omp_get_thread_num();
-#else
-		int th_num = i;
+		int main_thread = loopCnt;
 #endif
 		for (size_t k = 0; k < meas_functions.size(); ++k)
 		{
-#ifdef USE_MIN_THREADS
-			iterator.restart_iterator(th_num);
-#else
 			if (k > 0)
-				iterator.restart_iterator(th_num);
-#endif
-			vector<void *> measure_params = { &th_num ,function_params[k] };
-			map<string, float> batch_measures = meas_functions[k](iter_for_omp, (void *)&measure_params);
-#pragma omp critical
+				iterator.restart_iterator(main_thread);
+			map<string, float> batch_measures = meas_functions[k](&iterator, main_thread, function_params[k]);
 			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-				all_measures[jt->first].push_back(jt->second);
+				all_measures[jt->first + "_Obs"].push_back(jt->second);
+		}
+#ifdef USE_MIN_THREADS
+		iterator.restart_iterator(0);
+#endif
+
+		//iterator.sample_per_pid = sample_per_pid;
+		//iterator.sample_ratio = sample_ratio;
+		iterator.sample_all_no_sampling = false;
+		Lazy_Iterator *iter_for_omp = &iterator;
+#pragma omp parallel for schedule(static)
+		for (int i = 0; i < loopCnt; ++i)
+		{
+#ifdef USE_MIN_THREADS
+			int th_num = omp_get_thread_num();
+#else
+			int th_num = i;
+#endif
+			for (size_t k = 0; k < meas_functions.size(); ++k)
+			{
+#ifdef USE_MIN_THREADS
+				iterator.restart_iterator(th_num);
+#else
+				if (k > 0)
+					iterator.restart_iterator(th_num);
+#endif
+				map<string, float> batch_measures = meas_functions[k](iter_for_omp, th_num, function_params[k]);
+#pragma omp critical
+				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+					all_measures[jt->first].push_back(jt->second);
+			}
+		}
+	}
+	else {
+		//old implementition with memory:
+		iterator.sample_all_no_sampling = true;
+		random_device rd;
+		mt19937 rd_gen(rd());
+		unordered_map<int, vector<int>> pid_to_inds;
+		for (size_t i = 0; i < pids.size(); ++i)
+			pid_to_inds[pids[i]].push_back(int(i));
+
+		int cohort_size = int(sample_ratio * pid_to_inds.size());
+		int cnt_i = 0;
+		vector<int> ind_to_pid((int)pid_to_inds.size());
+		for (auto it = pid_to_inds.begin(); it != pid_to_inds.end(); ++it)
+		{
+			ind_to_pid[cnt_i] = it->first;
+			++cnt_i;
+		}
+		//choose pids:
+		uniform_int_distribution<> rand_pids(0, (int)pid_to_inds.size() - 1);
+		if (sample_per_pid > 0) {
+#pragma omp parallel for schedule(dynamic,1)
+			for (int i = 0; i < loopCnt; ++i)
+			{
+				int curr_ind = 0;
+				unordered_set<int> selected_ind_pid;
+				vector<int> selected_inds(cohort_size * sample_per_pid);
+
+				for (size_t k = 0; k < cohort_size; ++k)
+				{
+					int ind_pid = rand_pids(rd_gen);
+					while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
+						ind_pid = rand_pids(rd_gen);
+					selected_ind_pid.insert(ind_pid);
+
+					vector<int> inds = pid_to_inds[ind_to_pid[ind_pid]];
+					uniform_int_distribution<> random_num(0, (int)inds.size() - 1);
+					for (size_t kk = 0; kk < sample_per_pid; ++kk)
+					{
+						selected_inds[curr_ind] = inds[random_num(rd_gen)];
+						++curr_ind;
+					}
+				}
+
+				//now calculate measures on cohort of selected indexes for preds, y:
+				vector<float> selected_preds((int)selected_inds.size()), selected_y((int)selected_inds.size());
+				for (size_t k = 0; k < selected_inds.size(); ++k)
+				{
+					selected_preds[k] = preds[selected_inds[k]];
+					selected_y[k] = y[selected_inds[k]];
+				}
+
+				iterator.set_static(&selected_y, &selected_preds, i);
+
+				for (size_t k = 0; k < meas_functions.size(); ++k)
+				{
+					map<string, float> batch_measures;
+					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
+#pragma omp critical
+					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+						all_measures[jt->first].push_back(jt->second);
+				}
+			}
+		}
+		else { //other sampling - sample pids and take all thier data:
+			   //now sample cohort 
+
+
+#pragma omp parallel for schedule(dynamic,1)
+			for (int i = 0; i < loopCnt; ++i)
+			{
+				unordered_set<int> selected_ind_pid;
+				vector<int> selected_pids(cohort_size);
+				for (size_t k = 0; k < cohort_size; ++k)
+				{
+					int ind_pid = rand_pids(rd_gen);
+					while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
+						ind_pid = rand_pids(rd_gen);
+					selected_ind_pid.insert(ind_pid);
+					selected_pids[k] = ind_to_pid[ind_pid];
+				}
+
+				//create preds, y for all seleceted pids:
+				vector<float> selected_preds, selected_y;
+				for (size_t k = 0; k < selected_pids.size(); ++k)
+				{
+					int pid = selected_pids[k];
+					vector<int> ind_vec = pid_to_inds[pid];
+					for (int ind : ind_vec)
+					{
+						selected_preds.push_back(preds[ind]);
+						selected_y.push_back(y[ind]);
+					}
+				}
+
+				iterator.set_static(&selected_y, &selected_preds, i);
+				//calc measures for sample:
+				for (size_t k = 0; k < meas_functions.size(); ++k)
+				{
+					map<string, float> batch_measures;
+					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
+#pragma omp critical
+					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+						all_measures[jt->first].push_back(jt->second);
+				}
+			}
 		}
 	}
 
@@ -309,6 +429,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		}
 	}
 	all_final_measures["Checksum"] = (float)get_checksum(pids);
+	//MLOG_D("took %2.1f sec to cohort\n", (float)difftime(time(NULL), st));
 
 	return all_final_measures;
 }
@@ -388,7 +509,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 }
 
 void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
-	string delimeter = ",";
+	string delimeter = "\t";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
 	unordered_set<string> all_columns_uniq;
@@ -418,7 +539,7 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	fw.close();
 }
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
-	string delimeter = ",";
+	string delimeter = "\t";
 	ifstream of(file_name);
 	string line, header;
 	getline(of, header); //read header
@@ -447,16 +568,69 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 	of.close();
 }
 
+void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
+	string delimeter = "\t";
+	if (all_cohorts_measurments.empty())
+		throw invalid_argument("all_cohorts_measurments can't be empty");
+	map<string, float> flat_map;
+	for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt)
+		for (auto it = jt->second.begin(); it != jt->second.end(); ++it) {
+			char buff[1000];
+			snprintf(buff, sizeof(buff), "%s$%s", jt->first.c_str(), it->first.c_str());
+			flat_map[string(buff)] = it->second;
+		}
+
+	ofstream fw(file_name);
+
+	fw << "Cohort$Measurement" << delimeter << "Value" << endl;
+	for (auto it = flat_map.begin(); it != flat_map.end(); ++it)
+	{
+		string cohort_measure_name = it->first;
+		float value = it->second;
+		fw << cohort_measure_name << delimeter << value << "\n";
+	}
+	fw.flush();
+	fw.close();
+}
+void read_pivot_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
+	string delimeter = "\t";
+	if (all_cohorts_measurments.empty())
+		throw invalid_argument("all_cohorts_measurments can't be empty");
+	map<string, float> flat_map;
+
+	ifstream fr(file_name);
+	string line;
+	getline(fr, line); //skip header
+	while (getline(fr, line)) {
+		boost::trim(line);
+		if (line.empty())
+			continue;
+		vector<string> tokens;
+		boost::split(tokens, line, boost::is_any_of(delimeter));
+		if (tokens.size() != 2)
+			MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
+		float value = stof(tokens[1]);
+		string cohort_and_measure = tokens[0];
+		tokens.clear();
+		boost::split(tokens, cohort_and_measure, boost::is_any_of("$"));
+		if (tokens.size() != 2)
+			MTHROW_AND_ERR("coudn't parse cohort_name and measure with $. got \"%s\"\n", cohort_and_measure.c_str());
+		string cohort_name = tokens[0];
+		string measure_name = tokens[1];
+		all_cohorts_measurments[cohort_name][measure_name] = value;
+	}
+
+	fr.close();
+}
+
 #pragma region Measurements Fucntions
 
-map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params) {
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params) {
 	map<string, float> res;
-	vector<void *> *orig_params = (vector<void *> *)function_params;
-	int *thread = (int *)orig_params->front();
 
 	map<float, int> cnts;
 	float y, pred;
-	while (iterator->fetch_next(*thread, y, pred))
+	while (iterator->fetch_next(thread_num, y, pred))
 		cnts[y] += 1;
 
 	res["NPOS"] = (float)cnts[(float)1.0];
@@ -465,17 +639,15 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params
 	return res;
 }
 
-map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params) {
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params) {
 	map<string, float> res;
-	vector<void *> *orig_params = (vector<void *> *)function_params;
-	int *thread = (int *)orig_params->front();
 
 	vector<float> pred_threshold;
 	unordered_map<float, vector<float>> pred_to_labels;
 	int tot_true_labels = 0;
 	float y, pred;
 	int tot_cnt = 0;
-	while (iterator->fetch_next(*thread, y, pred)) {
+	while (iterator->fetch_next(thread_num, y, pred)) {
 		pred_to_labels[pred].push_back(y);
 		tot_true_labels += int(y > 0);
 		++tot_cnt;
@@ -521,28 +693,24 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params)
 	return res;
 }
 
-map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *function_params) {
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
 	bool censor_removed = true;
 
-	vector<void *> *orig_params = (vector<void *> *)function_params;
-	ROC_Params params;
-	if (orig_params != NULL && orig_params->size() == 2 && (*orig_params)[1] != NULL)
-		params = *(ROC_Params *)(*orig_params)[1];
-	int *thread = (int *)orig_params->front();
-	float max_diff_in_wp = params.max_diff_working_point;
-	int scores_bin = params.score_bins;
+	ROC_Params *params = (ROC_Params *)function_params;
+	float max_diff_in_wp = params->max_diff_working_point;
+	int scores_bin = params->score_bins;
 
-	vector<float> fpr_points = params.working_point_FPR;
+	vector<float> fpr_points = params->working_point_FPR; //Working FPR points:
 	sort(fpr_points.begin(), fpr_points.end());
 	for (size_t i = 0; i < fpr_points.size(); ++i)
 		fpr_points[i] /= 100.0;
-	vector<float> sens_points = params.working_point_SENS; //Working FR points:
+	vector<float> sens_points = params->working_point_SENS; //Working SENS points:
 	sort(sens_points.begin(), sens_points.end());
 	for (size_t i = 0; i < sens_points.size(); ++i)
 		sens_points[i] /= 100.0;
-	vector<float> pr_points = params.working_point_PR; //Working FR points:
+	vector<float> pr_points = params->working_point_PR; //Working PR points:
 	sort(pr_points.begin(), pr_points.end());
 	for (size_t i = 0; i < pr_points.size(); ++i)
 		pr_points[i] /= 100.0;
@@ -550,7 +718,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 	unordered_map<float, vector<float>> thresholds_labels;
 	vector<float> unique_scores;
 	float y, pred;
-	while (iterator->fetch_next(*thread, y, pred))
+	while (iterator->fetch_next(thread_num, y, pred))
 		thresholds_labels[pred].push_back(y);
 
 	unique_scores.resize((int)thresholds_labels.size());
@@ -587,8 +755,10 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 		false_rate[st_size - i] = float(f_sum);
 	}
 
-	if (f_cnt == 0 || t_sum <= 0)
-		throw invalid_argument("no falses or no positives exists in cohort");
+	if (f_cnt == 0 || t_sum <= 0) {
+		//MTHROW_AND_ERR("no falses or no positives exists in cohort\n");
+		return res;
+	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
 		true_rate[i] /= float(t_sum);
 		false_rate[i] /= float(f_sum);
@@ -598,11 +768,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 	for (size_t i = 1; i < true_rate.size(); ++i)
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
-	bool use_wp = unique_scores.size() > max_qunt_vals || params.use_score_working_points; //change all working points
+	bool use_wp = unique_scores.size() > max_qunt_vals || params->use_score_working_points; //change all working points
 	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
 	int i = 0;
 
-	float ppv_c, pr_prev, ppv_prev, pr_c, npv_c, npv_prev;
+	float ppv_c, pr_prev, ppv_prev, pr_c, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
 	if (use_wp) {
 		//fpr points:
 		i = 1;
@@ -625,6 +795,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					res[format_working_point("PR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -635,25 +806,31 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 				}
 				res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
-				res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = true_rate[i] * (prev_diff / tot_diff) +
-					true_rate[i - 1] * (curr_diff / tot_diff);
-				res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
-					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
-				if (params.incidence_fix > 0) {
-					ppv_c = float(params.incidence_fix*true_rate[i] / (params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]));
-					ppv_prev = float(params.incidence_fix*true_rate[i - 1] / (params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]));
+				res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) +
+					true_rate[i - 1] * (curr_diff / tot_diff));
+				res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * ((1 - false_rate[i]) * (prev_diff / tot_diff) +
+					(1 - false_rate[i - 1]) * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
+					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
+						ppv_prev = float(params->incidence_fix*true_rate[i - 1] / (params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]));
+					else
+						ppv_prev = ppv_c;
 				}
 				else {
 					ppv_c = float((true_rate[i] * t_sum) /
 						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
-					ppv_prev = float((true_rate[i - 1] * t_sum) /
-						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
+						ppv_prev = float((true_rate[i - 1] * t_sum) /
+							((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					else
+						ppv_prev = ppv_c;
 				}
 				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
-				res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = ppv;
-				if (params.incidence_fix > 0) {
-					pr_c = float(params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]);
-					pr_prev = float(params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]);
+				res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * ppv;
+				if (params->incidence_fix > 0) {
+					pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
+					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
 				}
 				else {
 					pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
@@ -661,31 +838,78 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
 						(t_sum + f_sum));
 				}
-				res[format_working_point("PR@FPR", fpr_points[curr_wp_fpr_ind])] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
-				if (params.incidence_fix > 0) {
-					npv_c = float(((1 - false_rate[i]) *  (1 - params.incidence_fix)) /
-						(((1 - true_rate[i]) *  params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
-					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params.incidence_fix)) /
-						(((1 - true_rate[i - 1]) *  params.incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params.incidence_fix))));
+				res[format_working_point("PR@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
+							(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+					else
+						npv_c = npv_prev;
 				}
 				else {
-					npv_c = float(((1 - false_rate[i]) * f_sum) /
-						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
 					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) * f_sum) /
+							(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+					else
+						npv_c = npv_prev;
 				}
-				res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
-				if (params.incidence_fix > 0)
-					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv / params.incidence_fix);
+				res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
+				if (params->incidence_fix > 0)
+					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv /
 						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
+				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
+					or_c = float(
+						(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+				else
+					or_c = MED_MAT_MISSING_VALUE;
+				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
+					or_prev = float(
+						(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+				else
+					or_prev = MED_MAT_MISSING_VALUE;
+				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = (or_c * (prev_diff / tot_diff) +
+						or_prev * (curr_diff / tot_diff));
+				else if (or_c != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_c;
+				else if (or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_prev;
+
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+							(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+							(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = (rr_c * (prev_diff / tot_diff) +
+							rr_prev * (curr_diff / tot_diff));
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = rr_c;
+					else if (rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = rr_prev;
+					else
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+				}
+
 				++curr_wp_fpr_ind;
 				continue;
-				}
-			++i;
 			}
+			++i;
+		}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -708,6 +932,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					res[format_working_point("PR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
 						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
@@ -718,25 +943,31 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 				}
 				res[format_working_point("SCORE@SENS", sens_points[curr_wp_sens_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
-				res[format_working_point("FPR@SENS", sens_points[curr_wp_sens_ind])] = false_rate[i] * (prev_diff / tot_diff) +
-					false_rate[i - 1] * (curr_diff / tot_diff);
-				res[format_working_point("SPEC@SENS", sens_points[curr_wp_sens_ind])] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
-					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
-				if (params.incidence_fix > 0) {
-					ppv_c = float(params.incidence_fix*true_rate[i] / (params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]));
-					ppv_prev = float(params.incidence_fix*true_rate[i - 1] / (params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]));
+				res[format_working_point("FPR@SENS", sens_points[curr_wp_sens_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
+					false_rate[i - 1] * (curr_diff / tot_diff));
+				res[format_working_point("SPEC@SENS", sens_points[curr_wp_sens_ind])] = 100 * ((1 - false_rate[i]) * (prev_diff / tot_diff) +
+					(1 - false_rate[i - 1]) * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
+					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
+						ppv_prev = float(params->incidence_fix*true_rate[i - 1] / (params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]));
+					else
+						ppv_prev = ppv_c;
 				}
 				else {
 					ppv_c = float((true_rate[i] * t_sum) /
 						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
-					ppv_prev = float((true_rate[i - 1] * t_sum) /
-						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
+						ppv_prev = float((true_rate[i - 1] * t_sum) /
+							((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					else
+						ppv_prev = ppv_c;
 				}
 				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
-				res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = ppv;
-				if (params.incidence_fix > 0) {
-					pr_c = float(params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]);
-					pr_prev = float(params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]);
+				res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = 100 * ppv;
+				if (params->incidence_fix > 0) {
+					pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
+					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
 				}
 				else {
 					pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
@@ -744,45 +975,91 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
 						(t_sum + f_sum));
 				}
-				res[format_working_point("PR@SENS", sens_points[curr_wp_sens_ind])] = pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff);
-				if (params.incidence_fix > 0) {
-					npv_c = float(((1 - false_rate[i]) *  (1 - params.incidence_fix)) /
-						(((1 - true_rate[i]) *  params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
-					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params.incidence_fix)) /
-						(((1 - true_rate[i - 1]) *  params.incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params.incidence_fix))));
+				res[format_working_point("PR@SENS", sens_points[curr_wp_sens_ind])] = 100 * (pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
+							(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+					else
+						npv_c = npv_prev;
 				}
 				else {
-					npv_c = float(((1 - false_rate[i]) * f_sum) /
-						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
 					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) * f_sum) /
+							(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+					else
+						npv_c = npv_prev;
 				}
-				res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
-				if (params.incidence_fix > 0)
-					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv / params.incidence_fix);
+				res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
+				if (params->incidence_fix > 0)
+					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv /
 						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
+				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
+					or_c = float(
+						(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+				else
+					or_c = MED_MAT_MISSING_VALUE;
+				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
+					or_prev = float(
+						(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+				else
+					or_prev = MED_MAT_MISSING_VALUE;
+				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = (or_c * (prev_diff / tot_diff) +
+						or_prev * (curr_diff / tot_diff));
+				else if (or_c != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_c;
+				else if (or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_prev;
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+							(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+							(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = (rr_c * (prev_diff / tot_diff) +
+							rr_prev * (curr_diff / tot_diff));
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = rr_c;
+					else if (rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = rr_prev;
+					else
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+				}
+
 				++curr_wp_sens_ind;
 				continue;
-				}
-			++i;
 			}
+			++i;
+		}
 
 		//handle pr points:
 		i = 1; //first point is always before
 		while (i < true_rate.size() && curr_wp_pr_ind < pr_points.size())
 		{
-			if (params.incidence_fix > 0)
-				pr_c = float(params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]);
+			if (params->incidence_fix > 0)
+				pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
 			else
 				pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
 					(t_sum + f_sum));
 
 			if (curr_wp_pr_ind < pr_points.size() && pr_c >= pr_points[curr_wp_pr_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
-				if (params.incidence_fix>0)
-					pr_prev = float(params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]);
+				if (params->incidence_fix > 0)
+					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
 				else
 					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
 						(t_sum + f_sum));
@@ -801,6 +1078,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 					res[format_working_point("SENS@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
 						pr_points[curr_wp_pr_ind], pr_prev, pr_c,
@@ -811,88 +1089,163 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 				}
 				res[format_working_point("SCORE@PR", pr_points[curr_wp_pr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
-				res[format_working_point("FPR@PR", pr_points[curr_wp_pr_ind])] = false_rate[i] * (prev_diff / tot_diff) +
-					false_rate[i - 1] * (curr_diff / tot_diff);
-				res[format_working_point("SPEC@PR", pr_points[curr_wp_pr_ind])] = (1 - false_rate[i]) * (prev_diff / tot_diff) +
-					(1 - false_rate[i - 1]) * (curr_diff / tot_diff);
-				if (params.incidence_fix > 0) {
-					ppv_c = float(params.incidence_fix*true_rate[i] / (params.incidence_fix*true_rate[i] + (1 - params.incidence_fix)*false_rate[i]));
-					ppv_prev = float(params.incidence_fix*true_rate[i - 1] / (params.incidence_fix*true_rate[i - 1] + (1 - params.incidence_fix)*false_rate[i - 1]));
+				res[format_working_point("FPR@PR", pr_points[curr_wp_pr_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
+					false_rate[i - 1] * (curr_diff / tot_diff));
+				res[format_working_point("SPEC@PR", pr_points[curr_wp_pr_ind])] = 100 * ((1 - false_rate[i]) * (prev_diff / tot_diff) +
+					(1 - false_rate[i - 1]) * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
+					if (false_rate[i - 1] > 0 || true_rate[i - 1] > 0)
+						ppv_prev = float(params->incidence_fix*true_rate[i - 1] / (params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]));
+					else
+						ppv_prev = ppv_c;
 				}
 				else {
 					ppv_c = float((true_rate[i] * t_sum) /
 						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
-					ppv_prev = float((true_rate[i - 1] * t_sum) /
-						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					if (false_rate[i - 1] > 0 || true_rate[i - 1] > 0)
+						ppv_prev = float((true_rate[i - 1] * t_sum) /
+							((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					else
+						ppv_prev = ppv_c;
 				}
 				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
-				res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = ppv;
-				res[format_working_point("SENS@PR", pr_points[curr_wp_pr_ind])] = true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff);
-				if (params.incidence_fix > 0) {
-					npv_c = float(((1 - false_rate[i]) *  (1 - params.incidence_fix)) /
-						(((1 - true_rate[i]) *  params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
-					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params.incidence_fix)) /
-						(((1 - true_rate[i - 1]) *  params.incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params.incidence_fix))));
+				res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = 100 * ppv;
+				res[format_working_point("SENS@PR", pr_points[curr_wp_pr_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
+							(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+					else
+						npv_c = npv_prev;
 				}
 				else {
-					npv_c = float(((1 - false_rate[i]) * f_sum) /
-						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
 					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) * f_sum) /
+							(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+					else
+						npv_c = npv_prev;
 				}
-				res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff);
-				if (params.incidence_fix > 0)
-					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv / params.incidence_fix);
+				res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
+				if (params->incidence_fix > 0)
+					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv /
 						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
+				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
+					or_c = float(
+						(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+				else
+					or_c = MED_MAT_MISSING_VALUE;
+				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
+					or_prev = float(
+						(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+				else
+					or_prev = MED_MAT_MISSING_VALUE;
+				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = (or_c * (prev_diff / tot_diff) +
+						or_prev * (curr_diff / tot_diff));
+				else if (or_c != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_c;
+				else if (or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_prev;
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+							(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+							(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = (rr_c * (prev_diff / tot_diff) +
+							rr_prev * (curr_diff / tot_diff));
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_c;
+					else if (rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_prev;
+					else
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+				}
 
 				++curr_wp_pr_ind;
 				continue;
-				}
-			++i;
 			}
-
+			++i;
 		}
+
+	}
 	else {
 		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)
 		{
 			score_working_point = unique_scores[st_size - i];
-			res[format_working_point("SENS@SCORE", score_working_point, false)] = true_rate[i];
-			res[format_working_point("SPEC@SCORE", score_working_point, false)] = 1 - false_rate[i];
+			res[format_working_point("SENS@SCORE", score_working_point, false)] = 100 * true_rate[i];
+			res[format_working_point("SPEC@SCORE", score_working_point, false)] = 100 * (1 - false_rate[i]);
 			float ppv;
-			if (params.incidence_fix > 0)
-				ppv = float((true_rate[i] * params.incidence_fix) /
-					(params.incidence_fix*(true_rate[i] * params.incidence_fix) +
-						(false_rate[i] * (1 - params.incidence_fix))));
+			if (true_rate[i] > 0 || false_rate[i] > 0) {
+				if (params->incidence_fix > 0)
+					ppv = float((true_rate[i] * params->incidence_fix) /
+						(params->incidence_fix*(true_rate[i] * params->incidence_fix) +
+							(false_rate[i] * (1 - params->incidence_fix))));
+				else
+					ppv = float((true_rate[i] * t_sum) /
+						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+				res[format_working_point("PPV@SCORE", score_working_point, false)] = 100 * ppv;
+			}
 			else
-				ppv = float((true_rate[i] * t_sum) /
-					((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
-			res[format_working_point("PPV@SCORE", score_working_point, false)] = ppv;
+				res[format_working_point("PPV@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 
-			if (params.incidence_fix > 0) {
-				res[format_working_point("PR@SCORE", score_working_point, false)] = float((true_rate[i] * params.incidence_fix) + (false_rate[i] * (1 - params.incidence_fix)));
+			if (params->incidence_fix > 0) {
+				res[format_working_point("PR@SCORE", score_working_point, false)] = float(100 * ((true_rate[i] * params->incidence_fix) + (false_rate[i] * (1 - params->incidence_fix))));
 			}
 			else {
-				res[format_working_point("PR@SCORE", score_working_point, false)] = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+				res[format_working_point("PR@SCORE", score_working_point, false)] = float(100 * ((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
 					(t_sum + f_sum));
 			}
-			if (params.incidence_fix > 0) {
-				res[format_working_point("NPV@SCORE", score_working_point, false)] = float(((1 - false_rate[i]) * (1 - params.incidence_fix)) /
-					(((1 - true_rate[i]) * params.incidence_fix) + ((1 - false_rate[i]) *  (1 - params.incidence_fix))));
+			if (true_rate[i] < 1 || false_rate[i] < 1) {
+				if (params->incidence_fix > 0) {
+					res[format_working_point("NPV@SCORE", score_working_point, false)] = float(100 * ((1 - false_rate[i]) * (1 - params->incidence_fix)) /
+						(((1 - true_rate[i]) * params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+				}
+				else {
+					res[format_working_point("NPV@SCORE", score_working_point, false)] = float(100 * ((1 - false_rate[i]) * f_sum) /
+						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+				}
+			}
+			else
+				res[format_working_point("NPV@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
+			if (params->incidence_fix > 0) {
+				if (true_rate[i] > 0 || false_rate[i] > 0)
+					res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv / params->incidence_fix);
+				else
+					res[format_working_point("LIFT@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			}
 			else {
-				res[format_working_point("NPV@SCORE", score_working_point, false)] = float(((1 - false_rate[i]) * f_sum) /
-					(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+				if (true_rate[i] > 0 || false_rate[i] > 0)
+					res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
+						(t_sum / (t_sum + f_sum)));
+				else
+					res[format_working_point("LIFT@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			}
-			if (params.incidence_fix > 0) {
-				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv / params.incidence_fix);
-			}
-			else {
-				res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
-					(t_sum / (t_sum + f_sum)));
-			}
+			if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
+				res[format_working_point("OR@SCORE", score_working_point, false)] = float(
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+
+			if (params->incidence_fix > 0)
+				if (true_rate[i] < 1)
+					res[format_working_point("RR@SCORE", score_working_point, false)] = float((ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+						(params->incidence_fix * (1 - true_rate[i]))));
+				else
+					res[format_working_point("RR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 		}
 	}
 
@@ -911,7 +1264,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *fun
 	}
 
 	return res;
-		}
+}
 
 #pragma endregion
 
@@ -935,8 +1288,8 @@ bool filter_range_param(const map<string, vector<float>> &record_info, int index
 		return record_info.at(param->param_name)[index] >= param->min_range &&
 		record_info.at(param->param_name)[index] <= param->max_range;
 	else
-		return time_range_filter(record_info.at(param->param_name)[index] > 0, param->min_range,
-			param->max_range, abs(record_info.at(param->param_name)[index]));
+		return time_range_filter(record_info.at("Label")[index] > 0, param->min_range,
+			param->max_range, record_info.at(param->param_name)[index]);
 }
 
 bool filter_range_params(const map<string, vector<float>> &record_info, int index, void *cohort_params) {
@@ -948,8 +1301,8 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 			res = record_info.at((*param)[i].param_name)[index] >= (*param)[i].min_range &&
 			record_info.at((*param)[i].param_name)[index] <= (*param)[i].max_range;
 		else
-			res = time_range_filter(record_info.at((*param)[i].param_name)[index] > 0, (*param)[i].min_range,
-				(*param)[i].max_range, abs(record_info.at((*param)[i].param_name)[index]));
+			res = time_range_filter(record_info.at("Label")[index] > 0, (*param)[i].min_range,
+				(*param)[i].max_range, record_info.at((*param)[i].param_name)[index]);
 		++i;
 	}
 	return res;
@@ -1097,7 +1450,6 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	else
 		return;
 
-	MLOG_D("Running preprocess_bin_scores...\n");
 	if (params.score_resolution != 0)
 		for (size_t i = 0; i < preds.size(); ++i)
 			preds[i] = (float)round((double)preds[i] / params.score_resolution) *
@@ -1181,6 +1533,8 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 			}
 		}
 	}
+
+	MLOG_D("Preprocess_bin_scores Done!\n");
 }
 #pragma endregion
 

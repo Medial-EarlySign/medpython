@@ -51,9 +51,9 @@ typedef enum {
 extern "C" class DLL_WORK_MODE AMPoint {
 public:
 	int pid = -1;
-	long timestamp = -1;
+	long long timestamp = -1;
 
-	void set(int _pid, long _timestamp) { pid = _pid; timestamp = _timestamp; }
+	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp; }
 	
 	void clear() { pid = -1; timestamp = -1; }
 };
@@ -102,7 +102,7 @@ public:
 
 	// get things
 	int get_patient_id() { return point.pid; }
-	long get_timestamp() { return point.timestamp; }
+	long long get_timestamp() { return point.timestamp; }
 	void get_scores(float **_scores, char ***_types) { *_scores = &scores[0];  *_types = &((*p_score_types)[0]); }
 	int get_n_scores() { return (int)scores.size(); }
 	float get_score(int idx) { return scores[idx]; }
@@ -110,7 +110,7 @@ public:
 
 	// set things
 	void set_patient_id(int _patient_id) { point.pid = _patient_id; }
-	void set_timestamp(long _timestamp) { point.timestamp = _timestamp; }
+	void set_timestamp(long long _timestamp) { point.timestamp = _timestamp; }
 	void set_score_types(vector<char *> *_types) { p_score_types = _types; }
 	void set_score(int index, float score) { if (index < scores.size()) scores[index] = score; }
 	void init_scores(int size) { scores.clear(); scores.resize(size, (float)AM_UNDEFINED_VALUE); }
@@ -133,7 +133,7 @@ private:
 	// For each point: pid , time : we hold an AMResponse object that contains all the results on all types for this time point
 	// plus all its specific messages
 	vector<AMResponse> responses;
-	map<pair<int,long>, int> point2response_idx;
+	map<pair<int,long long>, int> point2response_idx;
 
 	// score_types : these are common to all responses
 	vector<string> score_types_str;
@@ -147,13 +147,13 @@ public:
 	// get things
 	int get_n_responses() { return (int)responses.size(); }
 	AMResponse *get_response(int index) { if (index >= (int)responses.size()) return NULL; return &(responses[index]); }
-	int get_response_index_by_point(int _pid, long _timestamp); // if does not exist returns -1.
-	AMResponse *get_response_by_point(int _pid, long _timestamp); // if does not exist, return NULL
+	int get_response_index_by_point(int _pid, long long _timestamp); // if does not exist returns -1.
+	AMResponse *get_response_by_point(int _pid, long long _timestamp); // if does not exist, return NULL
 	void get_score_types(int *n_score_types, char ***_score_types);
 	AMMessages *get_shared_messages() { return &shared_msgs; }
 	char *get_request_id() { return (char *)requestId.c_str(); }
 	char *get_version() { return (char *)version.c_str(); }
-	int get_score(int _pid, long _timestamp, char *_score_type, float *out_score);
+	int get_score(int _pid, long long _timestamp, char *_score_type, float *out_score);
 	int get_score_by_type(int index, char *_score_type, float *out_score);
 	vector<char *> *get_score_type_vec_ptr() { return &score_types; }
 
@@ -161,7 +161,7 @@ public:
 	void set_request_id(char *request_id) {	requestId = string(request_id); }
 	void set_version(char *_version) { version = string(_version); }
 	void insert_score_types(char **_score_type, int n_score_types); 
-	AMResponse *create_point_response(int _pid, long _timestamp);
+	AMResponse *create_point_response(int _pid, long long _timestamp);
 
 	// clear
 	void clear() { requestId=""; version=""; responses.clear(); point2response_idx.clear(); score_types_str.clear(); score_types.clear(); stype2idx.clear(); shared_msgs.clear(); }
@@ -192,11 +192,11 @@ public:
 	int get_n_points() { return (int)points.size(); }
 	AMPoint *get_point(int index) { if (index >= get_n_points()) return NULL;  return &points[index]; }
 	int get_pid(int index) { if (index >= get_n_points()) return -1; return points[index].pid; }
-	long get_timestamp(int index) { if (index >= get_n_points()) return -1; return points[index].timestamp; }
+	long long get_timestamp(int index) { if (index >= get_n_points()) return -1; return points[index].timestamp; }
 
 	// set things
 	void set_request_id(char *req_id) { requestId = string(req_id); }
-	void insert_point(int _pid, long _timestamp) { AMPoint p; p.set(_pid,_timestamp) ; points.push_back(p); }
+	void insert_point(int _pid, long long _timestamp) { AMPoint p; p.set(_pid,_timestamp) ; points.push_back(p); }
 	void insert_score_types(char **_score_types, int n_score_types) { for (int i=0; i<n_score_types; i++) score_types_str.push_back(string(_score_types[i])); }
 
 	// clear
@@ -223,7 +223,7 @@ public:
 	virtual int Load(const char *config_f) { return 0; }
 	virtual int Unload() { return 0; }
 	virtual int ClearData() { return 0; }
-	virtual int AddData(int patient_id, const char *signalName,  int TimeStamps_len, long* TimeStamps, int Values_len, float* Values) { return 0; }
+	virtual int AddData(int patient_id, const char *signalName,  int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
 	virtual int Calculate(AMRequest *request, AMResponses **responses) { return 0; }
 
 	// check supported score types in the supported_score_types vector
@@ -271,7 +271,7 @@ public:
 	int Load(const char *config_f);
 	int Unload();
 	int ClearData();
-	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values);
+	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	int Calculate(AMRequest *request, AMResponses **responses);
 
 };
@@ -294,11 +294,11 @@ extern "C" DLL_WORK_MODE int AM_API_ClearData(AlgoMarker* pAlgoMarker);
 
 // adding data to an AlgoMarker
 // this API allows adding a specific signal, with matching arrays of times and values
-extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values);
+extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 
 // Prepare a Request
 // Null RC means failure
-extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points, AMRequest **new_req);
+extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 
 // Get scores for a ready request
 extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **responses);
@@ -306,8 +306,8 @@ extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest
 // exploring responses
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
 extern "C" DLL_WORK_MODE int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long _timestamp);
-extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores, char ***_score_types);
+extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp);
+extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long long *timestamp, int *n_scores, float **scores, char ***_score_types);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponses *responses, int index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);

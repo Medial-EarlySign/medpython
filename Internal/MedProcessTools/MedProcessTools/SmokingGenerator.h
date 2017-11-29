@@ -33,7 +33,7 @@ public:
 
 	// Signal Ids
 	//void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("SMOKING_ENRICHED")); req_signal_ids.push_back(dict.id("Smoking_quantity")); req_signals.push_back("BYEAR");
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("SMOKING_ENRICHED")); req_signal_ids.push_back(dict.id("Smoking_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
 	}
 
 	// Serialization
