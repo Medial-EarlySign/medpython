@@ -28,9 +28,9 @@ void AMMessages::insert_message(int code, const char *arg_ch)
 
 //-----------------------------------------------------------------------------------
 // if does not exist returns -1.
-int AMResponses::get_response_index_by_point(int _pid, long _timestamp)
+int AMResponses::get_response_index_by_point(int _pid, long long _timestamp)
 {
-	pair<int, long> p(_pid, _timestamp);
+	pair<int, long long> p(_pid, _timestamp);
 
 	if (point2response_idx.find(p) == point2response_idx.end())
 		return -1;
@@ -41,9 +41,9 @@ int AMResponses::get_response_index_by_point(int _pid, long _timestamp)
 
 //-----------------------------------------------------------------------------------
 // if does not exist returns NULL
-AMResponse *AMResponses::get_response_by_point(int _pid, long _timestamp)
+AMResponse *AMResponses::get_response_by_point(int _pid, long long _timestamp)
 {
-	pair<int,long> p(_pid,_timestamp);
+	pair<int,long long> p(_pid,_timestamp);
 
 	if (point2response_idx.find(p) == point2response_idx.end())
 		return NULL;
@@ -62,9 +62,9 @@ void AMResponses::get_score_types(int *n_score_types, char ***_score_types)
 }
 
 //-----------------------------------------------------------------------------------
-int AMResponses::get_score(int _pid, long _timestamp, char *_score_type, float *out_score)
+int AMResponses::get_score(int _pid, long long _timestamp, char *_score_type, float *out_score)
 {
-	pair<int, long> p(_pid, _timestamp);
+	pair<int, long long> p(_pid, _timestamp);
 
 	if (point2response_idx.find(p) == point2response_idx.end())
 		return AM_FAIL_RC;
@@ -98,9 +98,9 @@ void AMResponses::insert_score_types(char **_score_type, int n_score_types) {
 }
 
 //-----------------------------------------------------------------------------------
-AMResponse *AMResponses::create_point_response(int _pid, long _timestamp)
+AMResponse *AMResponses::create_point_response(int _pid, long long _timestamp)
 {
-	pair<int, long> p(_pid, _timestamp);
+	pair<int, long long> p(_pid, _timestamp);
 
 	AMResponse response;
 
@@ -203,7 +203,7 @@ int MedialInfraAlgoMarker::ClearData()
 //-----------------------------------------------------------------------------------
 // AddData() - adding data for a signal with values and timestamps
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values)
+int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values)
 {
 	// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
 	// This may change in the future as needed.
@@ -246,7 +246,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	}
 
 	// We now have to prepare samples for the requested points
-	// again - we only deal with int times in this class, so we convert the long stamps to int
+	// again - we only deal with int times in this class, so we convert the long long stamps to int
 	ma.clear_samples();
 	int n_points = request->get_n_points();
 
@@ -288,7 +288,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	for (int i=0; i<n_points; i++) {
 
 		// create a response
-		AMResponse *res = (*responses)->create_point_response(_pids[i], (long)_times[i]);
+		AMResponse *res = (*responses)->create_point_response(_pids[i], (long long)_times[i]);
 
 		res->set_score_types((*responses)->get_score_type_vec_ptr());
 		res->init_scores(_n_score_types);
@@ -405,7 +405,7 @@ int AM_API_ClearData(AlgoMarker* pAlgoMarker)
 // adding data to an AlgoMarker
 // this API allows adding a specific signal, with matching arrays of times and values
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long* TimeStamps, int Values_len, float* Values)
+int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values)
 {
 	if (pAlgoMarker == NULL)
 		return AM_FAIL_RC;
@@ -419,7 +419,7 @@ int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalNa
 // Null RC means failure
 // pids and timestamps here are the timepoints to give predictions at
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types, int *patient_ids, long *time_stamps, int n_points, AMRequest **new_req)
+int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req)
 {
 	(*new_req) = new AMRequest;
 
@@ -514,7 +514,7 @@ int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_cod
 //-----------------------------------------------------------------------------------------------------------
 // get an index of a specific pid,time response, or -1 if it doesn't exist
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long _timestamp)
+int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp)
 {
 	return responses->get_response_index_by_point(_pid, _timestamp);
 }
@@ -523,7 +523,7 @@ int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long _timestamp)
 //-----------------------------------------------------------------------------------------------------------
 // get scores for a scpefic response given its index.
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long *timestamp, int *n_scores, float **scores, char ***_score_types)
+int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long long *timestamp, int *n_scores, float **scores, char ***_score_types)
 {
 	AMResponse *res = responses->get_response(index);
 

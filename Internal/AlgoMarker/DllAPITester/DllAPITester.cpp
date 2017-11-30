@@ -72,7 +72,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	UniversalSigVec usv;
 
 	int max_vals = 100000;
-	vector<long> times(max_vals);
+	vector<long long> times(max_vals);
 	vector<float> vals(max_vals);
 
 	AM_API_ClearData(am);
@@ -83,7 +83,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 			rep.uget(pid, sig, usv);
 			int nelem = usv.len;
 			if (nelem > 0) {
-				long *p_times = &times[0];
+				long long *p_times = &times[0];
 				float *p_vals = &vals[0];
 				int i_time = 0;
 				int i_val = 0;
@@ -91,7 +91,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 				if (usv.n_time_channels() > 0) {
 					for (int i=0; i<nelem; i++)
 						for (int j=0; j<usv.n_time_channels(); j++)
-							p_times[i_time++] = (long)usv.Time(i, j);
+							p_times[i_time++] = (long long)usv.Time(i, j);
 				}
 				else
 					p_times = NULL;
@@ -113,7 +113,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	// finish rep loading 
 	char *stypes[] ={ "Raw" };
 	vector<int> _pids;
-	vector<long> _timestamps;
+	vector<long long> _timestamps;
 	vector<MedSample> _vsamp;
 	samples.export_to_sample_vec(_vsamp);
 	for (auto &s : _vsamp) {
@@ -141,7 +141,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	int n_scr = 0;
 	float *_scr = NULL;
 	int pid;
-	long ts;
+	long long ts;
 	char **_scr_types;
 	for (int i=0; i<n_resp; i++) {
 		//MLOG("Getting response no. %d\n", i);
@@ -186,7 +186,7 @@ int debug_me(po::variables_map &vm)
 
 
 	// Load Data
-	vector<long> times ={ 20160101 };
+	vector<long long> times ={ 20160101 };
 	vector<float> vals ={ 6 };
 	AM_API_AddData(test_am, 1, "RBC", (int)times.size(), &times[0], (int)vals.size(), &vals[0]);
 	/*vector<float>*/ vals ={ 1960 };
@@ -197,7 +197,7 @@ int debug_me(po::variables_map &vm)
 	// Calculate
 	char *stypes[] ={ "Raw" };
 	vector<int> _pids ={ 1 };
-	vector<long> _timestamps ={ 20160101 };
+	vector<long long> _timestamps ={ 20160101 };
 	AMRequest *req;
 	MLOG("Creating Request\n");
 	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
@@ -231,7 +231,7 @@ int debug_me(po::variables_map &vm)
 	int n_scr = 0;
 	float *_scr = NULL;
 	int pid;
-	long ts;
+	long long ts;
 	char **_scr_types;
 	for (int i=0; i<n_resp; i++) {
 		MLOG("Getting response no. %d\n", i);
@@ -245,6 +245,8 @@ int debug_me(po::variables_map &vm)
 	AM_API_DisposeRequest(req);
 	AM_API_DisposeResponses(resp);
 	AM_API_DisposeAlgoMarker(test_am);
+
+	return 0;
 }
 
 //========================================================================================
