@@ -110,6 +110,9 @@ int MedTime::convert_date(int to_type, int in_time)
 	if (to_type == MedTime::Years) return in_time/10000 - 1900;
 	if (to_type == MedTime::Months) return ((in_time/10000)-1900)*12 + (in_time%10000)/100 - 1;
 
+	if (in_time >= 30000000)
+		return convert_days(to_type, 1100 * 365);
+
 	int ym = in_time/100;
 	int days = (in_time % 100) - 1;
 
