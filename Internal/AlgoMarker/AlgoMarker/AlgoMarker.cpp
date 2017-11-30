@@ -241,7 +241,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	AMMessages *shared_msgs = (*responses)->get_shared_messages();
 
 	if (request == NULL) {
-		shared_msgs->insert_message(AM_MSG_NULL_REQUEST, "NULL request in Calculate()");
+		string msg = msg_prefix + "(" + to_string(AM_MSG_NULL_REQUEST) + " ) NULL request in Calculate()";
+		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 		return AM_FAIL_RC;
 	}
 
@@ -252,8 +253,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 
 	for (int i=0; i<n_points; i++)
 		if (ma.insert_sample(request->get_pid(i), (int)request->get_timestamp(i)) < 0) {
-			string msg = msg_prefix + "Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
-			shared_msgs->insert_message(AM_MSG_BAD_PREDICTION_POINT, msg.c_str());
+			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_PREDICTION_POINT) + ") Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
+			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
 		}
 	ma.normalize_samples();
@@ -262,8 +263,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	int n_score_types = request->get_n_score_types();
 	for (int i=0; i<n_score_types; i++) {
 		if (!IsScoreTypeSupported(request->get_score_type(i))) {
-			string msg = msg_prefix + "AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
-			shared_msgs->insert_message(AM_MSG_BAD_SCORE_TYPE, msg.c_str());
+			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
+			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
 		}
 	}
@@ -274,8 +275,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 
 	int get_preds_rc;
 	if ((get_preds_rc = ma.get_raw_preds(&_pids[0], &_times[0], &raw_scores[0])) < 0) {
-		string msg = msg_prefix + "Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
-		shared_msgs->insert_message(AM_MSG_RAW_SCORES_ERROR, msg.c_str());
+		string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
+		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 		return AM_FAIL_RC;
 	}
 
