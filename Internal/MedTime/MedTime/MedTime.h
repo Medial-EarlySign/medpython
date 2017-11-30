@@ -23,7 +23,7 @@ public:
 	// names for timing options
 	const static int Undefined = 0;			// undefined time unit
 	const static int Date = 1;				// dates are in full regular format YYYYMMDD
-	const static int Years = 2;				// years since 1900 (not since 1900!)
+	const static int Years = 2;				// years since 1900 (not since 0!)
 	const static int Months = 3;			// months since 1900/01/01
 	const static int Days = 4;				// days since 1900/01/01
 	const static int Hours = 5;				// hours since 1900/01/01
@@ -59,7 +59,6 @@ public:
 	int add_subtruct_days(int in_time, int delta_days);
 
 	int string_to_type(const string &str);
-
 
 };
 
