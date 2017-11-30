@@ -83,7 +83,8 @@ int AMResponses::get_score_by_type(int index, char *_score_type, float *out_scor
 	if (stype2idx.find(s) == stype2idx.end())
 		return AM_FAIL_RC;
 	int sidx = stype2idx[s];
-	*out_score = responses[index].get_score(sidx);
+	char *dummy_type;
+	if (responses[index].get_score(sidx, out_score, &dummy_type) != AM_OK_RC) return AM_FAIL_RC;
 	return AM_OK_RC;
 }
 
@@ -106,7 +107,6 @@ AMResponse *AMResponses::create_point_response(int _pid, long long _timestamp)
 
 	response.set_patient_id(_pid);
 	response.set_timestamp(_timestamp);
-	response.set_score_types(&score_types);
 	response.init_scores((int)score_types.size());
 
 	responses.push_back(response);
@@ -290,16 +290,16 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 		// create a response
 		AMResponse *res = (*responses)->create_point_response(_pids[i], (long long)_times[i]);
 
-		res->set_score_types((*responses)->get_score_type_vec_ptr());
+		//res->set_score_types((*responses)->get_score_type_vec_ptr());
 		res->init_scores(_n_score_types);
 
 		for (int j=0; j<_n_score_types; j++) {
 
 			if (strcmp(_score_types[j], "Raw") == 0) {
-				res->set_score(j, raw_scores[i]);
+				res->set_score(j, raw_scores[i], _score_types[j]);
 			}
 			else
-				res->set_score(j, (float)AM_UNDEFINED_VALUE);
+				res->set_score(j, (float)AM_UNDEFINED_VALUE, _score_types[j]);
 
 		}
 
@@ -523,33 +523,66 @@ int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timesta
 //-----------------------------------------------------------------------------------------------------------
 // get scores for a scpefic response given its index.
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long long *timestamp, int *n_scores, float **scores, char ***_score_types)
+int AM_API_GetResponse(AMResponses *responses, int res_index, AMResponse **res)
 {
-	AMResponse *res = responses->get_response(index);
-
-	if (res == NULL)
+	*res = NULL;
+	if (responses == NULL)
 		return AM_FAIL_RC;
 
-	*pid = res->get_patient_id();
-	*timestamp = res->get_timestamp();
-	*n_scores = res->get_n_scores();
-	res->get_scores(scores, _score_types);
+	if (res_index < 0 || res_index >= responses->get_n_responses())
+		return AM_FAIL_RC;
+
+	*res = responses->get_response(res_index);
 
 	return AM_OK_RC;
 }
 //-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
-// get all messages for a specific response given its index
+// get number of scores in a response (could contain several score types)
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponseMessages(AMResponses *responses, int index, int *n_msgs, int **msgs_codes, char ***msgs_args)
+int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores)
 {
-	AMResponse *res = responses->get_response(index);
-
-	if (res == NULL)
+	if (response == NULL)
 		return AM_FAIL_RC;
 
-	res->get_msgs()->get_messages(n_msgs, msgs_codes, msgs_args);
+	*n_scores = response->get_n_scores();
+	return AM_FAIL_RC;
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// given a score index , return all we need about it : pid , timestamp, score and score type
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *_score, char **_score_type)
+{
+	if (response == NULL)
+		return AM_FAIL_RC;
+
+	if (score_index < 0 || score_index >= response->get_n_scores())
+		return AM_FAIL_RC;
+
+	*pid = response->get_patient_id();
+	*timestamp = response->get_timestamp();
+	if (response->get_score(score_index, _score, _score_type) != AM_OK_RC)
+		return AM_FAIL_RC;
+
+	return AM_OK_RC;	
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// get all messages for a specific response given its index
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args)
+{
+	if (response == NULL)
+		return AM_FAIL_RC;
+
+	if (score_index < 0 || score_index >= response->get_n_scores())
+		return AM_FAIL_RC;
+
+	response->get_msgs(score_index)->get_messages(n_msgs, msgs_codes, msgs_args);
 	return AM_OK_RC;
 }
 //-----------------------------------------------------------------------------------------------------------
@@ -578,4 +611,17 @@ int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_
 }
 //-----------------------------------------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------------------------------------
+// get the nameof an algo marker
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetName(AlgoMarker *pAlgoMarker, char **name)
+{
+	*name = NULL;
+	if (pAlgoMarker == NULL) 
+		return AM_FAIL_RC;
+
+	*name = pAlgoMarker->get_name();
+	return AM_OK_RC;
+}
+//-----------------------------------------------------------------------------------------------------------
 

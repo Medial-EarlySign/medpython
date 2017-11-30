@@ -10,6 +10,7 @@
 #include <boost/program_options.hpp>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedProcessTools/MedProcessTools/SampleFilter.h>
 #include <AlgoMarker/AlgoMarker/AlgoMarker.h>
 
 #include <Logger/Logger/Logger.h>
@@ -28,6 +29,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("rep", po::value<string>()->default_value("/home/Repositories/THIN/thin_mar2017/thin.repository"), "repository file name")
 			("samples", po::value<string>()->default_value(""), "medsamples file to use")
 			("model", po::value<string>()->default_value(""), "model file to use")
+			("test_filter", "flag to run a test on filters")
 			;
 
 
@@ -276,6 +278,82 @@ int get_preds_with_medalgomarker_internal_loop(string rep_conf, MedPidRepository
 	return 0;
 }
 
+//========================================================================================================
+int read_files(po::variables_map &vm, MedModel &model, vector<string> &sigs, MedSamples &samples, vector<int> &pids, MedPidRepository &rep)
+{
+	// read model file
+	if (model.read_from_file(vm["model"].as<string>()) < 0) {
+		MERR("FAILED reading model file %s\n", vm["model"].as<string>().c_str());
+		return -1;
+	}
+
+	unordered_set<string> sigs_set;
+	//vector<string> sigs;
+	model.get_required_signal_names(sigs_set);
+
+	MLOG("Reuired signals:");
+	for (auto &sig : sigs_set) {
+		MLOG(" %s", sig.c_str());
+		sigs.push_back(sig);
+	}
+	MLOG("\n");
+
+	// read samples file
+	if (samples.read_from_file(vm["samples"].as<string>())) {
+		MERR("FAILES reading samples file %s\n", vm["samples"].as<string>().c_str());
+		return -1;
+	}
+
+	samples.get_ids(pids);
+
+	MLOG("Read samples file %s with %d samples from %d pids\n", vm["samples"].as<string>().c_str(), samples.nSamples(), pids.size());
+
+
+	// read rep
+
+	if (rep.read_all(vm["rep"].as<string>(), pids, sigs) < 0) return -1;
+
+	return 0;
+}
+
+//=================================================================================================
+int test_filter(po::variables_map &vm)
+{
+	
+	MedModel model;
+	vector<string> sigs;
+	MedSamples samples;
+	vector<int> pids;
+	MedPidRepository rep;
+
+	if (read_files(vm, model, sigs, samples, pids, rep) < 0) return -1;
+
+	vector<SanitySimpleFilter> bfilters;
+
+	SanitySimpleFilter bf;
+
+	bf.init_from_string("sig=Glucose,win_from=0,win_to=730,min_NVals=1,max_Nvals=3");	bfilters.push_back(bf);
+	bf.init_from_string("sig=Glucose,win_from=0,win_to=365,min_val=50,max_val=150,max_outliers=0,time_unit=Days");	bfilters.push_back(bf);
+
+	MLOG("initialized %d filters\n", bfilters.size());
+
+	vector<MedSample> svec;
+	samples.export_to_sample_vec(svec);
+
+	for (auto &s : svec) {
+		for (int j=0; j<bfilters.size(); j++) {
+			int nvals, noutliers, rc;
+			if ((rc = bfilters[j].test_filter(s, rep, nvals, noutliers)) != SanitySimpleFilter::Passed) {
+				MLOG("failed filter %d on sample %d,%d with code %d nvals %d noutliers %d\n", j, s.id, s.time, rc, nvals, noutliers);
+			}
+		}
+	}
+
+
+	return 0;
+
+}
+
 
 //========================================================================================
 // MAIN
@@ -291,6 +369,20 @@ int main(int argc, char *argv[])
 	rc = read_run_params(argc, argv, vm);
 	assert(rc >= 0);
 
+
+	if (vm.count("test_filter")) return test_filter(vm);
+
+	MedModel model;
+	vector<string> sigs;
+	MedSamples samples;
+	vector<int> pids;
+	MedPidRepository rep;
+
+	if (read_files(vm, model, sigs, samples, pids, rep) < 0) return -1;
+
+	MedSamples samples2 = samples;
+
+/*
 	// read model file
 	MedModel model;
 	if (model.read_from_file(vm["model"].as<string>()) < 0) {
@@ -329,7 +421,7 @@ int main(int argc, char *argv[])
 
 	if (rep.read_all(vm["rep"].as<string>(), pids, sigs) < 0) return -1;
 
-
+*/
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
 
