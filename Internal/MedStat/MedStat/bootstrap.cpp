@@ -127,7 +127,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num) {
 #pragma omp critical 
 {
-	vec_size[thread_num] = p_y->size();
+	vec_size[thread_num] = (int)p_y->size();
 	vec_y[thread_num] = p_y->data();
 	vec_preds[thread_num] = p_preds->data();
 }
@@ -489,8 +489,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 			}
 		//now we have cohort: run analysis:
 		string cohort_name = it->first;
-		MLOG("Cohort %s - has %d samples with labels = [%d, %d]\n",
-			cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
+
 		if (y_c.size() < 100) {
 			MWARN("WARN: Cohort %s is too small - has %d samples. Skipping\n", cohort_name.c_str(), int(y_c.size()));
 			continue;
@@ -500,6 +499,10 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
 			continue;
 		}
+		else if (binary_outcome)
+			MLOG_D("Cohort %s - has %d samples with labels = [%d, %d]\n",
+				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
+
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
