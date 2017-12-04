@@ -1196,7 +1196,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			score_working_point = unique_scores[st_size - i];
 			res[format_working_point("SENS@SCORE", score_working_point, false)] = 100 * true_rate[i];
 			res[format_working_point("SPEC@SCORE", score_working_point, false)] = 100 * (1 - false_rate[i]);
-			float ppv;
+			float ppv = MED_MAT_MISSING_VALUE;
 			if (true_rate[i] > 0 || false_rate[i] > 0) {
 				if (params->incidence_fix > 0)
 					ppv = float((true_rate[i] * params->incidence_fix) /
@@ -1230,13 +1230,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			else
 				res[format_working_point("NPV@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			if (params->incidence_fix > 0) {
-				if (true_rate[i] > 0 || false_rate[i] > 0)
+				if (true_rate[i] > 0 || false_rate[i] > 0 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			}
 			else {
-				if (true_rate[i] > 0 || false_rate[i] > 0)
+				if (true_rate[i] > 0 || false_rate[i] > 0 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
 						(t_sum / (t_sum + f_sum)));
 				else
@@ -1247,7 +1247,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 
 			if (params->incidence_fix > 0)
-				if (true_rate[i] < 1)
+				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("RR@SCORE", score_working_point, false)] = float((ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
 						(params->incidence_fix * (1 - true_rate[i]))));
 				else
