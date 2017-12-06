@@ -471,7 +471,7 @@ public:
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
-	int version() { return  1; }; //increase when changing binary serizlization
+	int version() { return  2; }; //increase when changing binary serizlization
 	//version 1: Added model_features, features_count to serialization
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	size_t get_size();

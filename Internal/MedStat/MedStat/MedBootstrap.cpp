@@ -320,7 +320,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 }
 
 void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids,
-	 unordered_map<int, vector<int>> *splits_inds) {
+	unordered_map<int, vector<int>> *splits_inds) {
 	pids.resize(samples.nSamples());
 	samples.get_y(y);
 	samples.get_preds(preds);
@@ -360,7 +360,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples,
 		prepare_bootstrap(samples, additional_info, preds, y, pids);
 	else
 		prepare_bootstrap(samples, additional_info, preds, y, pids, &splits_inds);
-	
+
 	if (results_per_split != NULL)
 		add_splits_results(preds, y, pids, additional_info, splits_inds, *results_per_split);
 	return bootstrap_base(preds, y, pids, additional_info);
@@ -420,137 +420,28 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples, Med
 }
 
 void MedBootstrap::apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples) {
-	vector<int> remove_indexes_pid, remove_indexes_sample;
-	vector<int> remove_complete_pids;
-	int tot_cnt = 0;
 	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
-		bool keep_pid = false;
-		tot_cnt += (int)samples.idSamples[i].samples.size();
 		if (pid_censor_dates.find(samples.idSamples[i].id) == pid_censor_dates.end())
 			continue; //no censor date
 		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
 		{
 			int censor_date = pid_censor_dates.at(samples.idSamples[i].samples[j].id);
-			if (samples.idSamples[i].samples[j].time >= censor_date) {
-				remove_indexes_pid.push_back((int)i);
-				remove_indexes_sample.push_back((int)j);
-			}
-			else
-				keep_pid = true;
-		}
-		if (!keep_pid)
-			remove_complete_pids.push_back((int)i);
-	}
-
-	if (remove_indexes_pid.empty())
-		return;
-
-	//remove or keep- if remove less than 5% than remove directly, otherwise create new
-	bool better_create_new = (double(remove_indexes_pid.size()) / double(tot_cnt)) > 0.05;
-	if (better_create_new) {
-		int remove_index = 0, remove_index_complete = 0;
-		MedSamples new_samples;
-		new_samples.time_unit = samples.time_unit;
-		//allocate memory:
-		new_samples.idSamples.reserve(samples.idSamples.size() - remove_complete_pids.size());
-		//samples - filtered:
-		for (size_t i = 0; i < samples.idSamples.size(); ++i) {
-			if (remove_index_complete < remove_complete_pids.size() &&
-				i == remove_complete_pids[remove_index_complete]) {
-				++remove_index_complete;
-				while (remove_index < remove_indexes_pid.size() &&
-					remove_indexes_pid[remove_index] == i)
-					++remove_index;
-				continue;
-			}
-			for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
-			{
-				//remove selected row when matched:
-				if (remove_index < remove_indexes_pid.size()
-					&& i == remove_indexes_pid[remove_index]
-					&& j == remove_indexes_sample[remove_index]) {
-					++remove_index;
-					continue;
-				}
-				//insert new sample for pid if needed
-				if (new_samples.idSamples.empty() ||
-					new_samples.idSamples.back().id != samples.idSamples[i].id)
-					new_samples.idSamples.push_back(MedIdSamples(samples.idSamples[i].id));
-				new_samples.idSamples.back().samples.push_back(samples.idSamples[i].samples[j]);
+			//act only on controls:
+			if (samples.idSamples[i].samples[j].outcome <= 0 &&
+				samples.idSamples[i].samples[j].outcomeTime > censor_date) {
+				samples.idSamples[i].samples[j].outcomeTime = censor_date;
 			}
 		}
-
-		//new_samples.sort_by_id_date(); //not needed
-		samples = new_samples;
-	}
-	else {
-		unordered_set<int> removed_pid_set(remove_complete_pids.begin(), remove_complete_pids.end());
-		for (int i = (int)remove_indexes_pid.size() - 1; i >= 0; --i) {
-			if (removed_pid_set.find(remove_indexes_pid[i]) != removed_pid_set.end())
-				continue; //will removed all later
-			samples.idSamples[remove_indexes_pid[i]].samples.erase(samples.idSamples[remove_indexes_pid[i]].samples.begin() +
-				remove_indexes_sample[i]);
-		}
-		for (int i = (int)remove_complete_pids.size() - 1; i >= 0; --i)
-			samples.idSamples.erase(samples.idSamples.begin() + remove_complete_pids[i]);
-
-		//samples.sort_by_id_date(); //not needed
 	}
 }
 void MedBootstrap::apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features) {
-	vector<int> remove_indexes;
 	for (size_t i = 0; i < features.samples.size(); ++i)
 	{
 		if (pid_censor_dates.find(features.samples[i].id) == pid_censor_dates.end())
 			continue; //no censor date
 		int censor_date = pid_censor_dates.at(features.samples[i].id);
-		if (features.samples[i].time >= censor_date)
-			remove_indexes.push_back((int)i);
-	}
-	if (remove_indexes.empty())
-		return;
-
-	//remove or keep- if remove less than 5% than remove directly, otherwise create new
-	bool better_create_new = (double(remove_indexes.size()) / double(features.samples.size())) > 0.05;
-	if (better_create_new) {
-		int curr_ind = 0;
-		MedFeatures new_feature;
-		new_feature.time_unit = features.time_unit;
-		new_feature.tags = features.tags;
-		new_feature.attributes = features.attributes;
-		//alocate memory:
-		new_feature.samples.reserve(features.samples.size() - remove_indexes.size());
-		for (auto iit = features.data.begin(); iit != features.data.end(); ++iit)
-			new_feature.data[iit->first].reserve(features.samples.size() - remove_indexes.size());
-		//data and samples - filtered:
-		for (int i = 0; i < features.samples.size(); ++i)
-		{
-			//remove selected row when matched:
-			if (curr_ind < remove_indexes.size() && i == remove_indexes[curr_ind]) {
-				++curr_ind;
-				continue;
-			}
-			new_feature.samples.push_back(features.samples[i]);
-			for (auto iit = features.data.begin(); iit != features.data.end(); ++iit)
-				new_feature.data[iit->first].push_back(iit->second[i]);
-			if (!features.weights.empty())
-				new_feature.weights.push_back(features.weights[i]);
-		}
-
-		new_feature.init_pid_pos_len();
-		features = new_feature;
-	}
-	else {
-		for (int i = (int)remove_indexes.size() - 1; i >= 0; --i)
-		{
-			//remove selected rows:
-			features.samples.erase(features.samples.begin() + remove_indexes[i]);
-			for (auto iit = features.data.begin(); iit != features.data.end(); ++iit)
-				features.data[iit->first].erase(features.data[iit->first].begin() + remove_indexes[i]);
-			if (!features.weights.empty())
-				features.weights.erase(features.weights.begin() + remove_indexes[i]);
-		}
-		features.init_pid_pos_len();
+		if (features.samples[i].outcome <= 0 && features.samples[i].outcomeTime > censor_date)
+			features.samples[i].outcomeTime = censor_date;
 	}
 }
 void MedBootstrap::apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedSamples &samples) {

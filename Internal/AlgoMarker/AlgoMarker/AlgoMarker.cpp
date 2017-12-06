@@ -83,7 +83,8 @@ int AMResponses::get_score_by_type(int index, char *_score_type, float *out_scor
 	if (stype2idx.find(s) == stype2idx.end())
 		return AM_FAIL_RC;
 	int sidx = stype2idx[s];
-	*out_score = responses[index].get_score(sidx);
+	char *dummy_type;
+	if (responses[index].get_score(sidx, out_score, &dummy_type) != AM_OK_RC) return AM_FAIL_RC;
 	return AM_OK_RC;
 }
 
@@ -106,7 +107,6 @@ AMResponse *AMResponses::create_point_response(int _pid, long long _timestamp)
 
 	response.set_patient_id(_pid);
 	response.set_timestamp(_timestamp);
-	response.set_score_types(&score_types);
 	response.init_scores((int)score_types.size());
 
 	responses.push_back(response);
@@ -241,7 +241,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	AMMessages *shared_msgs = (*responses)->get_shared_messages();
 
 	if (request == NULL) {
-		shared_msgs->insert_message(AM_MSG_NULL_REQUEST, "NULL request in Calculate()");
+		string msg = msg_prefix + "(" + to_string(AM_MSG_NULL_REQUEST) + " ) NULL request in Calculate()";
+		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 		return AM_FAIL_RC;
 	}
 
@@ -252,8 +253,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 
 	for (int i=0; i<n_points; i++)
 		if (ma.insert_sample(request->get_pid(i), (int)request->get_timestamp(i)) < 0) {
-			string msg = msg_prefix + "Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
-			shared_msgs->insert_message(AM_MSG_BAD_PREDICTION_POINT, msg.c_str());
+			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_PREDICTION_POINT) + ") Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
+			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
 		}
 	ma.normalize_samples();
@@ -262,8 +263,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	int n_score_types = request->get_n_score_types();
 	for (int i=0; i<n_score_types; i++) {
 		if (!IsScoreTypeSupported(request->get_score_type(i))) {
-			string msg = msg_prefix + "AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
-			shared_msgs->insert_message(AM_MSG_BAD_SCORE_TYPE, msg.c_str());
+			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
+			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
 		}
 	}
@@ -274,8 +275,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 
 	int get_preds_rc;
 	if ((get_preds_rc = ma.get_raw_preds(&_pids[0], &_times[0], &raw_scores[0])) < 0) {
-		string msg = msg_prefix + "Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
-		shared_msgs->insert_message(AM_MSG_RAW_SCORES_ERROR, msg.c_str());
+		string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
+		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 		return AM_FAIL_RC;
 	}
 
@@ -290,16 +291,16 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 		// create a response
 		AMResponse *res = (*responses)->create_point_response(_pids[i], (long long)_times[i]);
 
-		res->set_score_types((*responses)->get_score_type_vec_ptr());
+		//res->set_score_types((*responses)->get_score_type_vec_ptr());
 		res->init_scores(_n_score_types);
 
 		for (int j=0; j<_n_score_types; j++) {
 
 			if (strcmp(_score_types[j], "Raw") == 0) {
-				res->set_score(j, raw_scores[i]);
+				res->set_score(j, raw_scores[i], _score_types[j]);
 			}
 			else
-				res->set_score(j, (float)AM_UNDEFINED_VALUE);
+				res->set_score(j, (float)AM_UNDEFINED_VALUE, _score_types[j]);
 
 		}
 
@@ -368,14 +369,19 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_Create(int am_type, const char *name, AlgoMarker **new_am)
 {
-	*new_am = AlgoMarker::make_algomarker((AlgoMarkerType)am_type);
+	try {
+		*new_am = AlgoMarker::make_algomarker((AlgoMarkerType)am_type);
 
-	(*new_am)->set_name(name);
+		(*new_am)->set_name(name);
 
-	if (new_am == NULL)
+		if (new_am == NULL)
+			return AM_FAIL_RC;
+
+		return AM_OK_RC;
+	}
+	catch (...) {
 		return AM_FAIL_RC;
-
-	return AM_OK_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -384,10 +390,15 @@ int AM_API_Create(int am_type, const char *name, AlgoMarker **new_am)
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_Load(AlgoMarker* pAlgoMarker, const char *config_fname)
 {
-	if (pAlgoMarker == NULL)
-		return AM_FAIL_RC;
+	try {
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
 
-	return pAlgoMarker->Load(config_fname);
+		return pAlgoMarker->Load(config_fname);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -397,7 +408,12 @@ int AM_API_Load(AlgoMarker* pAlgoMarker, const char *config_fname)
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_ClearData(AlgoMarker* pAlgoMarker)
 {
-	return pAlgoMarker->ClearData();
+	try {
+		return pAlgoMarker->ClearData();
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -407,10 +423,15 @@ int AM_API_ClearData(AlgoMarker* pAlgoMarker)
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values)
 {
-	if (pAlgoMarker == NULL)
-		return AM_FAIL_RC;
+	try {
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
 
-	return pAlgoMarker->AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
+		return pAlgoMarker->AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -421,17 +442,22 @@ int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalNa
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req)
 {
-	(*new_req) = new AMRequest;
+	try {
+		(*new_req) = new AMRequest;
 
-	if ((*new_req) == NULL)
+		if ((*new_req) == NULL)
+			return AM_FAIL_RC;
+
+		(*new_req)->set_request_id(requestId);
+		(*new_req)->insert_score_types(_score_types, n_score_types);
+		for (int i=0; i<n_points; i++)
+			(*new_req)->insert_point(patient_ids[i], time_stamps[i]);
+
+		return AM_OK_RC;
+	}
+	catch (...) {
 		return AM_FAIL_RC;
-	
-	(*new_req)->set_request_id(requestId);
-	(*new_req)->insert_score_types(_score_types, n_score_types);
-	for (int i=0; i<n_points; i++)
-		(*new_req)->insert_point(patient_ids[i], time_stamps[i]);
-
-	return AM_OK_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -441,10 +467,15 @@ int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **responses)
 {
-	if (pAlgoMarker == NULL || request == NULL)
-		return AM_FAIL_RC;
+	try {
+		if (pAlgoMarker == NULL || request == NULL)
+			return AM_FAIL_RC;
 
-	return pAlgoMarker->Calculate(request, responses);
+		return pAlgoMarker->Calculate(request, responses);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -453,12 +484,17 @@ int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **
 //-----------------------------------------------------------------------------------------------------------
 void AM_API_DisposeAlgoMarker(AlgoMarker *pAlgoMarker)
 {
-	if (pAlgoMarker == NULL)
-		return;
+	try {
+		if (pAlgoMarker == NULL)
+			return;
 
-	pAlgoMarker->Unload();
+		pAlgoMarker->Unload();
 
-	delete pAlgoMarker;
+		delete pAlgoMarker;
+	}
+	catch (...) {
+		
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -467,9 +503,14 @@ void AM_API_DisposeAlgoMarker(AlgoMarker *pAlgoMarker)
 //-----------------------------------------------------------------------------------------------------------
 void AM_API_DisposeRequest(AMRequest *pRequest)
 {
-	if (pRequest == NULL)
-		return;
-	delete pRequest;
+	try {
+		if (pRequest == NULL)
+			return;
+		delete pRequest;
+	}
+	catch (...) {
+		
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -478,9 +519,14 @@ void AM_API_DisposeRequest(AMRequest *pRequest)
 //-----------------------------------------------------------------------------------------------------------
 void AM_API_DisposeResponses(AMResponses *responses)
 {
-	if (responses == NULL)
-		return;
-	delete responses;
+	try {
+		if (responses == NULL)
+			return;
+		delete responses;
+	}
+	catch (...) {
+	
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -490,9 +536,14 @@ void AM_API_DisposeResponses(AMResponses *responses)
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_GetResponsesNum(AMResponses *responses)
 {
-	if (responses == NULL)
-		return 0;
-	return responses->get_n_responses();
+	try {
+		if (responses == NULL)
+			return 0;
+		return responses->get_n_responses();
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -501,13 +552,18 @@ int AM_API_GetResponsesNum(AMResponses *responses)
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args)
 {
-	if (responses == NULL)
+	try {
+		if (responses == NULL)
+			return AM_FAIL_RC;
+
+		AMMessages *shared_m = responses->get_shared_messages();
+		shared_m->get_messages(n_msgs, msgs_codes, msgs_args);
+
+		return AM_OK_RC;
+	}
+	catch (...) {
 		return AM_FAIL_RC;
-
-	AMMessages *shared_m = responses->get_shared_messages();
-	shared_m->get_messages(n_msgs, msgs_codes, msgs_args);
-
-	return AM_OK_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -516,41 +572,99 @@ int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_cod
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp)
 {
-	return responses->get_response_index_by_point(_pid, _timestamp);
+	try {
+		return responses->get_response_index_by_point(_pid, _timestamp);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
 // get scores for a scpefic response given its index.
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponse(AMResponses *responses, int index, int *pid, long long *timestamp, int *n_scores, float **scores, char ***_score_types)
+int AM_API_GetResponse(AMResponses *responses, int res_index, AMResponse **res)
 {
-	AMResponse *res = responses->get_response(index);
+	try {
+		*res = NULL;
+		if (responses == NULL)
+			return AM_FAIL_RC;
 
-	if (res == NULL)
+		if (res_index < 0 || res_index >= responses->get_n_responses())
+			return AM_FAIL_RC;
+
+		*res = responses->get_response(res_index);
+
+		return AM_OK_RC;
+	}
+	catch (...) {
 		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
 
-	*pid = res->get_patient_id();
-	*timestamp = res->get_timestamp();
-	*n_scores = res->get_n_scores();
-	res->get_scores(scores, _score_types);
+//-----------------------------------------------------------------------------------------------------------
+// get number of scores in a response (could contain several score types)
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores)
+{
+	try {
+		if (response == NULL)
+			return AM_FAIL_RC;
 
-	return AM_OK_RC;
+		*n_scores = response->get_n_scores();
+		return AM_FAIL_RC;
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// given a score index , return all we need about it : pid , timestamp, score and score type
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *_score, char **_score_type)
+{
+	try {
+		if (response == NULL)
+			return AM_FAIL_RC;
+
+		if (score_index < 0 || score_index >= response->get_n_scores())
+			return AM_FAIL_RC;
+
+		*pid = response->get_patient_id();
+		*timestamp = response->get_timestamp();
+		if (response->get_score(score_index, _score, _score_type) != AM_OK_RC)
+			return AM_FAIL_RC;
+
+		return AM_OK_RC;
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
 // get all messages for a specific response given its index
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponseMessages(AMResponses *responses, int index, int *n_msgs, int **msgs_codes, char ***msgs_args)
+int AM_API_GetResponseMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args)
 {
-	AMResponse *res = responses->get_response(index);
+	try {
+		if (response == NULL)
+			return AM_FAIL_RC;
 
-	if (res == NULL)
+		if (score_index < 0 || score_index >= response->get_n_scores())
+			return AM_FAIL_RC;
+
+		response->get_msgs(score_index)->get_messages(n_msgs, msgs_codes, msgs_args);
+		return AM_OK_RC;
+	}
+	catch (...) {
 		return AM_FAIL_RC;
-
-	res->get_msgs()->get_messages(n_msgs, msgs_codes, msgs_args);
-	return AM_OK_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -559,11 +673,16 @@ int AM_API_GetResponseMessages(AMResponses *responses, int index, int *n_msgs, i
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId)
 {
-	if (responses == NULL)
-		return AM_FAIL_RC;
+	try {
+		if (responses == NULL)
+			return AM_FAIL_RC;
 
-	*requestId = responses->get_request_id();
-	return AM_OK_RC;
+		*requestId = responses->get_request_id();
+		return AM_OK_RC;
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
@@ -572,10 +691,33 @@ int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId)
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score)
 {
-	if (responses == NULL)
+	try {
+		if (responses == NULL)
+			return AM_FAIL_RC;
+		return responses->get_score_by_type(res_index, _score_type, out_score);
+	}
+	catch (...) {
 		return AM_FAIL_RC;
-	return responses->get_score_by_type(res_index, _score_type, out_score);
+	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------------------------------------
+// get the nameof an algo marker
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetName(AlgoMarker *pAlgoMarker, char **name)
+{
+	try {
+		*name = NULL;
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
+
+		*name = pAlgoMarker->get_name();
+		return AM_OK_RC;
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
 

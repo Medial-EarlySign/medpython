@@ -310,7 +310,7 @@ int MRMRFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) 
 	vector<int> selectFlags(nFeatures, 0);
 
 	for (int iSelect = 0; iSelect < numToSelect; iSelect++) {
-		float optScore;
+		float optScore = missing_value;
 		int optFeature = -1;
 		for (int i = 0; i < nFeatures; i++) {
 			if (selectFlags[i] == 0) {
@@ -687,7 +687,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			if (nStuck == 3) {
 
 				int minDiff = nFeatures;
-				int optimalI;
+				int optimalI = 0;
 				for (int i = 0; i < nthreads; i++) {
 					if (abs(nSelected[i] - numToSelect) < minDiff) {
 						minDiff = abs(nSelected[i] - numToSelect);
@@ -773,7 +773,7 @@ int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) 
 			counters[val] ++;
 
 		int maxCount = 0;
-		float maxCountValue;
+		float maxCountValue = missing_value;
 		for (auto rec : counters) {
 			if (rec.second > maxCount) {
 				maxCount = rec.second;
