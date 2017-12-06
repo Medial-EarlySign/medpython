@@ -748,7 +748,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		vector<float> *labels = &thresholds_labels[unique_scores[i]];
 		for (float y : *labels)
 		{
-			float true_label = y > 0;
+			float true_label = params->fix_label_to_binary ? y > 0 : y;
 			t_sum += true_label;
 			if (!censor_removed)
 				f_sum += (1 - true_label);
@@ -1653,6 +1653,7 @@ ROC_Params::ROC_Params(const string &init_string) {
 	score_bins = 0;
 	score_resolution = 0;
 	incidence_fix = 0;
+	fix_label_to_binary = true;
 
 	//override default with given string:
 	vector<string> tokens;
@@ -1669,6 +1670,8 @@ ROC_Params::ROC_Params(const string &init_string) {
 			max_diff_working_point = stof(param_value);
 		else if (param_name == "use_score_working_points")
 			use_score_working_points = stoi(param_value) > 0;
+		else if (param_name == "fix_label_to_binary")
+			fix_label_to_binary = stoi(param_value) > 0;
 		else if (param_name == "score_bins")
 			score_bins = stoi(param_value);
 		else if (param_name == "score_resolution")
