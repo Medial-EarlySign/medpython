@@ -228,6 +228,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
 	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params) {
+	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
 
@@ -245,34 +246,33 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
-	//this function called after filter cohort
-
 	map<string, vector<float>> all_measures;
+	iterator.sample_all_no_sampling = true;
+	//iterator.sample_per_pid = 0; //take all samples in Obs
+	//iterator.sample_ratio = 1; //take all pids
+#ifdef USE_MIN_THREADS
+	int main_thread = 0;
+#else
+	int main_thread = loopCnt;
+#endif
+	for (size_t k = 0; k < meas_functions.size(); ++k)
+	{
+		if (k > 0)
+			iterator.restart_iterator(main_thread);
+		map<string, float> batch_measures = meas_functions[k](&iterator, main_thread, function_params[k]);
+		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+			all_measures[jt->first + "_Obs"].push_back(jt->second);
+	}
+#ifdef USE_MIN_THREADS
+	iterator.restart_iterator(0);
+#endif
+
 	if (sample_per_pid > 0) {
 		//save results for all cohort:
-		//iterator.sample_per_pid = 0; //take all samples in Obs
-		//iterator.sample_ratio = 1; //take all pids
-		iterator.sample_all_no_sampling = true;
-#ifdef USE_MIN_THREADS
-		int main_thread = 0;
-#else
-		int main_thread = loopCnt;
-#endif
-		for (size_t k = 0; k < meas_functions.size(); ++k)
-		{
-			if (k > 0)
-				iterator.restart_iterator(main_thread);
-			map<string, float> batch_measures = meas_functions[k](&iterator, main_thread, function_params[k]);
-			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-				all_measures[jt->first + "_Obs"].push_back(jt->second);
-		}
-#ifdef USE_MIN_THREADS
-		iterator.restart_iterator(0);
-#endif
-
+		iterator.sample_all_no_sampling = false;
 		//iterator.sample_per_pid = sample_per_pid;
 		//iterator.sample_ratio = sample_ratio;
-		iterator.sample_all_no_sampling = false;
+
 		Lazy_Iterator *iter_for_omp = &iterator;
 #pragma omp parallel for schedule(static)
 		for (int i = 0; i < loopCnt; ++i)
