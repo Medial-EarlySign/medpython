@@ -131,7 +131,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	// calculate scores
 	//MLOG("Before Calculate\n");
-	int calc_rc = AM_API_Calculate(am, req, &resp);
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(am, req, resp);
 	//MLOG("After Calculate: rc = %d\n", calc_rc);
 
 	// go over reponses and pack them to a MesSample vector
@@ -167,6 +168,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	MLOG("Finished getting preds from algomarker");
 	return 0;
 }
+
+
 
 //=============================================================================================================================
 int debug_me(po::variables_map &vm)
@@ -212,7 +215,8 @@ int debug_me(po::variables_map &vm)
 
 	// calculate scores
 	MLOG("Before Calculate\n");
-	int calc_rc = AM_API_Calculate(test_am, req, &resp);
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(test_am, req, resp);
 	
 
 	// Shared messages

@@ -226,19 +226,19 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 //------------------------------------------------------------------------------------------
 // Calculate() - after data loading : get a request, get predictions, and pack as responses
 //------------------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses)
+int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
-	*responses = new AMResponses; // allocating responses, should be disposed by user after usage.
+	//*responses = new AMResponses; // allocating responses, should be disposed by user after usage.
 
-	(*responses)->set_request_id(request->get_request_id());
+	responses->set_request_id(request->get_request_id());
 	for (int i=0; i<request->get_n_score_types(); i++) {
 		char *stype = request->get_score_type(i);
-		(*responses)->insert_score_types(&stype, 1);
+		responses->insert_score_types(&stype, 1);
 	}
 
 	string msg_prefix = "reqId: " + string(request->get_request_id()) + " :: ";
 
-	AMMessages *shared_msgs = (*responses)->get_shared_messages();
+	AMMessages *shared_msgs = responses->get_shared_messages();
 
 	if (request == NULL) {
 		string msg = msg_prefix + "(" + to_string(AM_MSG_NULL_REQUEST) + " ) NULL request in Calculate()";
@@ -285,11 +285,11 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses **responses
 	// going over raw scores, and for each create a response
 	char **_score_types;
 	int _n_score_types;
-	(*responses)->get_score_types(&_n_score_types, &_score_types);
+	responses->get_score_types(&_n_score_types, &_score_types);
 	for (int i=0; i<n_points; i++) {
 
 		// create a response
-		AMResponse *res = (*responses)->create_point_response(_pids[i], (long long)_times[i]);
+		AMResponse *res = responses->create_point_response(_pids[i], (long long)_times[i]);
 
 		//res->set_score_types((*responses)->get_score_type_vec_ptr());
 		res->init_scores(_n_score_types);
@@ -456,16 +456,38 @@ int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types
 		return AM_OK_RC;
 	}
 	catch (...) {
+		(*new_req) = NULL;
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// Create a new empty responses object to be later used 
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_CreateResponses(AMResponses **new_responses)
+{
+	try {
+		(*new_responses) = new AMResponses;
+
+		if ((*new_responses) == NULL)
+			return AM_FAIL_RC;
+
+		return AM_OK_RC;
+	}
+	catch (...) {
+		(*new_responses) = NULL;
 		return AM_FAIL_RC;
 	}
 }
 //-----------------------------------------------------------------------------------------------------------
 
 
+
 //-----------------------------------------------------------------------------------------------------------
 // Get scores for a ready request
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **responses)
+int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses)
 {
 	try {
 		if (pAlgoMarker == NULL || request == NULL)
