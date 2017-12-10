@@ -228,6 +228,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
 	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params) {
+	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
 
@@ -245,34 +246,33 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
-	//this function called after filter cohort
-
 	map<string, vector<float>> all_measures;
+	iterator.sample_all_no_sampling = true;
+	//iterator.sample_per_pid = 0; //take all samples in Obs
+	//iterator.sample_ratio = 1; //take all pids
+#ifdef USE_MIN_THREADS
+	int main_thread = 0;
+#else
+	int main_thread = loopCnt;
+#endif
+	for (size_t k = 0; k < meas_functions.size(); ++k)
+	{
+		if (k > 0)
+			iterator.restart_iterator(main_thread);
+		map<string, float> batch_measures = meas_functions[k](&iterator, main_thread, function_params[k]);
+		for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+			all_measures[jt->first + "_Obs"].push_back(jt->second);
+	}
+#ifdef USE_MIN_THREADS
+	iterator.restart_iterator(0);
+#endif
+
 	if (sample_per_pid > 0) {
 		//save results for all cohort:
-		//iterator.sample_per_pid = 0; //take all samples in Obs
-		//iterator.sample_ratio = 1; //take all pids
-		iterator.sample_all_no_sampling = true;
-#ifdef USE_MIN_THREADS
-		int main_thread = 0;
-#else
-		int main_thread = loopCnt;
-#endif
-		for (size_t k = 0; k < meas_functions.size(); ++k)
-		{
-			if (k > 0)
-				iterator.restart_iterator(main_thread);
-			map<string, float> batch_measures = meas_functions[k](&iterator, main_thread, function_params[k]);
-			for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-				all_measures[jt->first + "_Obs"].push_back(jt->second);
-		}
-#ifdef USE_MIN_THREADS
-		iterator.restart_iterator(0);
-#endif
-
+		iterator.sample_all_no_sampling = false;
 		//iterator.sample_per_pid = sample_per_pid;
 		//iterator.sample_ratio = sample_ratio;
-		iterator.sample_all_no_sampling = false;
+
 		Lazy_Iterator *iter_for_omp = &iterator;
 #pragma omp parallel for schedule(static)
 		for (int i = 0; i < loopCnt; ++i)
@@ -748,7 +748,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		vector<float> *labels = &thresholds_labels[unique_scores[i]];
 		for (float y : *labels)
 		{
-			float true_label = y > 0;
+			float true_label = params->fix_label_to_binary ? y > 0 : y;
 			t_sum += true_label;
 			if (!censor_removed)
 				f_sum += (1 - true_label);
@@ -1196,7 +1196,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			score_working_point = unique_scores[st_size - i];
 			res[format_working_point("SENS@SCORE", score_working_point, false)] = 100 * true_rate[i];
 			res[format_working_point("SPEC@SCORE", score_working_point, false)] = 100 * (1 - false_rate[i]);
-			float ppv;
+			float ppv = MED_MAT_MISSING_VALUE;
 			if (true_rate[i] > 0 || false_rate[i] > 0) {
 				if (params->incidence_fix > 0)
 					ppv = float((true_rate[i] * params->incidence_fix) /
@@ -1230,13 +1230,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			else
 				res[format_working_point("NPV@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			if (params->incidence_fix > 0) {
-				if (true_rate[i] > 0 || false_rate[i] > 0)
+				if (true_rate[i] > 0 || false_rate[i] > 0 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			}
 			else {
-				if (true_rate[i] > 0 || false_rate[i] > 0)
+				if (true_rate[i] > 0 || false_rate[i] > 0 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
 						(t_sum / (t_sum + f_sum)));
 				else
@@ -1247,7 +1247,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 
 			if (params->incidence_fix > 0)
-				if (true_rate[i] < 1)
+				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("RR@SCORE", score_working_point, false)] = float((ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
 						(params->incidence_fix * (1 - true_rate[i]))));
 				else
@@ -1653,6 +1653,7 @@ ROC_Params::ROC_Params(const string &init_string) {
 	score_bins = 0;
 	score_resolution = 0;
 	incidence_fix = 0;
+	fix_label_to_binary = true;
 
 	//override default with given string:
 	vector<string> tokens;
@@ -1669,6 +1670,8 @@ ROC_Params::ROC_Params(const string &init_string) {
 			max_diff_working_point = stof(param_value);
 		else if (param_name == "use_score_working_points")
 			use_score_working_points = stoi(param_value) > 0;
+		else if (param_name == "fix_label_to_binary")
+			fix_label_to_binary = stoi(param_value) > 0;
 		else if (param_name == "score_bins")
 			score_bins = stoi(param_value);
 		else if (param_name == "score_resolution")

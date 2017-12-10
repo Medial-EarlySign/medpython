@@ -562,9 +562,14 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// Get moments
 	moments.resize(stratifiedValues.size());
 	strata_sizes.resize(stratifiedValues.size());
+	int too_small_stratas = 0;
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
 		strata_sizes[i] = (int) stratifiedValues[i].size();
-		if (moment_type == IMPUTE_MMNT_MEAN)
+		if (strata_sizes[i] < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+			too_small_stratas++;
+			moments[i] = missing_value;
+		}
+		else if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
 		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
 			if (stratifiedValues[i].size() > 0)
@@ -578,7 +583,13 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 			MERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 		}
 	}
-	if (moment_type == IMPUTE_MMNT_MEAN)
+	if (too_small_stratas > 0)
+		MLOG("NOTE: featureImputer found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
+			MIN_SAMPLES_IN_STRATA_FOR_LEARNING, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+	if (all_existing_values.size() < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+		MLOG("NOTE: featureImputer found only %d < %d samples over all for [%s], will not impute it at all\n",
+			all_existing_values.size(), MIN_SAMPLES_IN_STRATA_FOR_LEARNING, feature_name.c_str());
+	} else if (moment_type == IMPUTE_MMNT_MEAN)
 		get_mean(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_MEDIAN)
 		sort_and_get_median(all_existing_values, default_moment);

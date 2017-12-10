@@ -65,7 +65,7 @@ int get_date(int days) {
 
 	// Full Months
 	bool leap_year = ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0));
-	int month;
+	int month = 0;
 	for (int i = 1; i <= 12; i++) {
 		int mdays = days2month[i] + ((leap_year && i > 1) ? 1 : 0);
 		if (days < mdays) {
