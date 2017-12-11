@@ -27,6 +27,9 @@
     <ClInclude Include="AlgoMarkerErr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="InputTesters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AlgoMarker.cpp">

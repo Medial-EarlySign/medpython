@@ -600,7 +600,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 
 	prev_bf = bf;
 
-	float dnorm;
+	float dnorm = 0;
 	double prev_loss = 1e8;
 	////vector<float> xx, yy;
 	vector<float> preds(nsamples);
@@ -822,7 +822,7 @@ int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, float *w, int nsamp
 
 	for (int i=0; i<n_threads; i++) normalizer(0,i) = (float)1/(float)n_threads;
 
-	float gnorm,dnorm,bnorm,pgnorm,mxg;
+	float gnorm=0,dnorm=0,bnorm=0,pgnorm=0,mxg=0;
 	int k = 0;
 
 	while (go_on && niter < params.max_iter) {

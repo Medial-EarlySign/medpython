@@ -69,7 +69,7 @@ void MedTime::init_time_tables()
 
 		// Full Months
 		bool leap_year = ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0));
-		int month;
+		int month = 0;
 		for (int i = 1; i <= 12; i++) {
 			int mdays = days2month[i] + ((leap_year && i > 1) ? 1 : 0);
 			if (days < mdays) {
@@ -109,6 +109,9 @@ int MedTime::convert_date(int to_type, int in_time)
 	if (to_type == MedTime::Date) return in_time;
 	if (to_type == MedTime::Years) return in_time/10000 - 1900;
 	if (to_type == MedTime::Months) return ((in_time/10000)-1900)*12 + (in_time%10000)/100 - 1;
+
+	if (in_time >= 30000000)
+		return convert_days(to_type, 1100 * 365);
 
 	int ym = in_time/100;
 	int days = (in_time % 100) - 1;

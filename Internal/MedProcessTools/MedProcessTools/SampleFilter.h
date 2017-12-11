@@ -336,7 +336,8 @@ struct BasicFilteringParams : public SerializableObject {
 
 private:
 	int sig_id = -1; // uninitialized until first usage
-};
+};				
+
 
 class BasicSampleFilter : public SampleFilter {
 public:
@@ -362,9 +363,65 @@ public:
 	ADD_SERIALIZATION_FUNCS(min_sample_time, max_sample_time, bfilters, winsTimeUnit);
 };
 
+//
+// Sanity Simple Filter helps making sanity tests on input data
+//
+// The basic tests optional are:
+// (1) test that the signal actually exist in name (in the signals list in the repository)
+// (2) within a given window: minimal number of tests
+// (3) within a given window: maximal number of outliers
+// (4) count outliers within a given window
+// 
+struct SanitySimpleFilter : public SerializableObject {
+	// Name of signal to filter by
+	string sig_name;
+	// Time window for deciding on filtering
+	int win_from = 0;
+	int win_to = (int)(1<<30);
+	// Allowed values range for signal
+	float min_val = -1e10;
+	float max_val = 1e10;
+	// Required number of instances of signal within time window
+	int min_Nvals = 0;
+	int max_Nvals = -1; // -1 signs to not test this
+
+	int max_outliers = -1; // -1 means don't do the max_outliers test
+
+	int win_time_unit = MedTime::Days;
+
+	// Signal parameters
+	int time_channel = 0;
+	int val_channel = 0;
+
+
+	// Initialization from string
+	int init_from_string(const string &init_str);
+	// Test filtering criteria. Return 1 if passing and 0 otherwise
+	int test_filter(MedSample &sample, MedRepository &rep) {
+		int nvals, noutliers; return test_filter(sample, rep, nvals, noutliers);
+	}
+	int test_filter(MedSample &sample, MedRepository &rep, int &nvals, int &noutliers);
+
+	// test_filter return codes
+	const static int Passed = 0;
+	const static int Failed = 1; // General fail due to reasons different than the following
+	const static int Signal_Not_Valid = 2;
+	const static int Failed_Min_Nvals = 3;
+	const static int Failed_Max_Nvals = 4;
+	const static int Failed_Outliers = 5;
+
+
+
+	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals, max_Nvals, max_outliers, win_time_unit);
+
+private:
+	int sig_id = -1; // uninitialized until first usage
+};
+
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================
+MEDSERIALIZE_SUPPORT(SanitySimpleFilter);
 MEDSERIALIZE_SUPPORT(BasicFilteringParams);
 MEDSERIALIZE_SUPPORT(BasicSampleFilter);
 

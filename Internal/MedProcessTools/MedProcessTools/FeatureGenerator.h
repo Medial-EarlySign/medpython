@@ -436,12 +436,14 @@ public:
 
 	string signalName; // Signal to consider
 	int signalId; 
-	int signalValue; // FTR_RANGE_EVER checks if the signal ever had the value signalValue
+	vector<string> sets;						// FTR_RANGE_EVER checks if the signal ever was in one of these sets/defs from the respective dict
 	RangeFeatureTypes type; // Type of comorbidity index to generate
 	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
 	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
 	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+
+	vector<char> lut;							// to be used when generating FTR_RANGE_EVER
 
 	// Constructor/Destructor
 	RangeFeatGenerator() : FeatureGenerator() { init_defaults(); };
@@ -459,7 +461,7 @@ public:
 	int init(map<string, string>& mapper);
 	void init_defaults();
 	RangeFeatureTypes name_to_type(const string &name);
-
+	void init_tables(MedDictionarySections& dict);
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<RangeFeatGenerator *>(generator)); }
 
@@ -481,7 +483,8 @@ public:
 	float uget_range_ever(UniversalSigVec &usv, int time_point);
 	// Serialization
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals)
+	virtual int version() { return  1; };	// ihadanny 20171206 - added sets
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets)
 };
 
 MEDSERIALIZE_SUPPORT(RangeFeatGenerator);

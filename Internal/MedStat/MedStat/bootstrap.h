@@ -53,7 +53,7 @@ private:
 	const float *preds;
 	const float *y;
 	const vector<int> *pids;
-	
+
 
 	//threading:
 	int maxThreadCount;
@@ -96,6 +96,7 @@ public:
 	float max_diff_working_point; //the maximal diff in calculated working point to requested working point to drop
 	int score_bins;
 	float score_resolution;
+	bool fix_label_to_binary;
 	Incident_Stats inc_stats; //the incedince data if provided for general population
 	ROC_Params() {
 		max_diff_working_point = (float)0.05;
@@ -104,12 +105,13 @@ public:
 		score_bins = 0;
 		score_resolution = 0;
 		incidence_fix = 0;
+		fix_label_to_binary = true;
 	}
 	ROC_Params(const string &init_string); //in format "paramter_name=value;..." for vector use ","
 	double incidence_fix;
 
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
-		max_diff_working_point, score_bins, inc_stats)
+		max_diff_working_point, score_bins, score_resolution, fix_label_to_binary, inc_stats)
 };
 
 #pragma region Cohort Fucntions

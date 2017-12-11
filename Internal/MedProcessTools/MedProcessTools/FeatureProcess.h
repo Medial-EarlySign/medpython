@@ -330,6 +330,9 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
+// ihadanny 20171205 - this should be changed to a configurable value
+#define MIN_SAMPLES_IN_STRATA_FOR_LEARNING 50
+
 class FeatureImputer : public FeatureProcessor {
 public:
 

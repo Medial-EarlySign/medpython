@@ -1,6 +1,18 @@
 #pragma once
 //=====================================================================
-// Error codes used for AlgoMarkers 
+// External Error Codes
+//=====================================================================
+#define AM_ELIGIBILITY_ERROR						300
+#define AM_INSUFFICIENT_DATA						310
+#define AM_INVALID_DATA								311
+#define AM_OUTLIER_NON_FATAL						320
+#define AM_OUTLIER_FATAL							321
+#define AM_GENERAL_INFO								390
+#define AM_GENERAL_NON_FATAL						391
+#define AM_GENERAL_FATAL							392
+
+//=====================================================================
+// Internal Error codes used for AlgoMarkers 
 //=====================================================================
 
 // OK RESPONSE
@@ -30,4 +42,6 @@
 #define AM_MSG_BAD_PREDICTION_POINT					102
 #define AM_MSG_BAD_SCORE_TYPE						103
 #define AM_MSG_RAW_SCORES_ERROR						104
+
+
 
