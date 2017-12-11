@@ -255,6 +255,7 @@ typedef enum {
 	IMPUTE_MMNT_MEAN,
 	IMPUTE_MMNT_MEDIAN,
 	IMPUTE_MMNT_COMMON,
+	IMPUTE_MMNT_SAMPLE,
 	IMPUTE_MMNT_LAST
 } imputeMomentTypes;
 
@@ -342,6 +343,10 @@ public:
 	imputeMomentTypes moment_type;
 	float default_moment;
 	vector<float> moments;
+	// for sampling-imputation
+	vector < pair<float, float> > default_histogram;
+	vector < vector<pair<float, float> > > histograms; 
+
 	vector<int> strata_sizes;
 
 	// Utility : maximum number of samples to take for moments calculations
