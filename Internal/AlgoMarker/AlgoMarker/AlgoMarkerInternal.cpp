@@ -1,16 +1,23 @@
 #include "AlgoMarkerInternal.h"
 
-//--------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------
+InputTester *InputTester::make_input_tester(InputTesterType it_type)
+{
+	if (it_type == INPUT_TESTER_TYPE_SIMPLE)
+		return new InputTesterSimple;
+
+	return NULL;
+}
 
 //-------------------------------------------------------------------------------------------------------------------------
-void InputTester::input_from_string(const string &in_str)
+void InputTesterSimple::input_from_string(const string &in_str)
 {
-
+	
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
 // 1: good to go 0: did not pass -1: could not test
-int InputTester::test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers)
+int InputTesterSimple::test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers)
 {
 
 }

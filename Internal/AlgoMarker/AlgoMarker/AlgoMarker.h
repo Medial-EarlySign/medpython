@@ -331,12 +331,12 @@ extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
 extern "C" DLL_WORK_MODE int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp);
 
-extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, AMResponse **response);
+extern "C" DLL_WORK_MODE int AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *scores, char **_score_type);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
+extern "C" DLL_WORK_MODE int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 
-extern "C" DLL_WORK_MODE int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId);
+extern "C" DLL_WORK_MODE int AM_API_GetResponsesRequestId(AMResponses *responses, char **requestId);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
 
 // get the name of an algomarker

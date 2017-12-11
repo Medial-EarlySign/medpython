@@ -228,23 +228,26 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 //------------------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
-	//*responses = new AMResponses; // allocating responses, should be disposed by user after usage.
+	if (responses == NULL)
+		return AM_FAIL_RC;
 
+	AMMessages *shared_msgs = responses->get_shared_messages();
+
+	//*responses = new AMResponses; // allocating responses, should be disposed by user after usage.
+	if (request == NULL) {
+		string msg = "Error :: (" + to_string(AM_MSG_NULL_REQUEST) + " ) NULL request in Calculate()";
+		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
+		return AM_FAIL_RC;
+	}
+
+	string msg_prefix = "reqId: " + string(request->get_request_id()) + " :: ";
 	responses->set_request_id(request->get_request_id());
+
 	for (int i=0; i<request->get_n_score_types(); i++) {
 		char *stype = request->get_score_type(i);
 		responses->insert_score_types(&stype, 1);
 	}
 
-	string msg_prefix = "reqId: " + string(request->get_request_id()) + " :: ";
-
-	AMMessages *shared_msgs = responses->get_shared_messages();
-
-	if (request == NULL) {
-		string msg = msg_prefix + "(" + to_string(AM_MSG_NULL_REQUEST) + " ) NULL request in Calculate()";
-		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
-		return AM_FAIL_RC;
-	}
 
 	// We now have to prepare samples for the requested points
 	// again - we only deal with int times in this class, so we convert the long long stamps to int
@@ -490,7 +493,7 @@ int AM_API_CreateResponses(AMResponses **new_responses)
 int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses)
 {
 	try {
-		if (pAlgoMarker == NULL || request == NULL)
+		if (pAlgoMarker == NULL)
 			return AM_FAIL_RC;
 
 		return pAlgoMarker->Calculate(request, responses);
@@ -606,7 +609,7 @@ int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timesta
 //-----------------------------------------------------------------------------------------------------------
 // get scores for a scpefic response given its index.
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponse(AMResponses *responses, int res_index, AMResponse **res)
+int AM_API_GetResponseAtIndex(AMResponses *responses, int res_index, AMResponse **res)
 {
 	try {
 		*res = NULL;
@@ -636,7 +639,7 @@ int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores)
 			return AM_FAIL_RC;
 
 		*n_scores = response->get_n_scores();
-		return AM_FAIL_RC;
+		return AM_OK_RC;
 	}
 	catch (...) {
 		return AM_FAIL_RC;
@@ -672,7 +675,7 @@ int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *p
 //-----------------------------------------------------------------------------------------------------------
 // get all messages for a specific response given its index
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponseMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args)
+int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args)
 {
 	try {
 		if (response == NULL)
@@ -693,7 +696,7 @@ int AM_API_GetResponseMessages(AMResponse *response, int score_index, int *n_msg
 //-----------------------------------------------------------------------------------------------------------
 // get request id . Direct pointer so do not free.
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId)
+int AM_API_GetResponsesRequestId(AMResponses *responses, char **requestId)
 {
 	try {
 		if (responses == NULL)

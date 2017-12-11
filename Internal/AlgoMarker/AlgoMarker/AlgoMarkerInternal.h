@@ -4,7 +4,7 @@
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
-#include <MedProcessTools/MedProcessTools/SampleFilter.h>
+#include "InputTesters.h"
 
 //===============================================================================
 // MedAlgoMarkerInternal - a mid-way API class : hiding all details of 
@@ -185,29 +185,3 @@ public:
 	const char *get_name()	{ return name.c_str();	}
 };
 
-class InputTester {
-
-public:
-	SanitySimpleFilter sf;
-	int externl_rc;	 // rcs -1 and 0 are reserved 
-	int internal_rc; // rcs -1 and 0 are reserved 
-	string err_msg;
-
-	void input_from_string(const string &in_str);
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers); // 1: good to go 0: did not pass -1: could not test
-
-};
-
-//-----------------------------------------------------------------------------------------------------
-class InputSanityTester {
-
-private:
-	vector<InputTester> testers;
-	int max_overall_outliers;
-
-public:
-
-	int read_config(const string &f_conf);
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers); // tests and stops at first cardinal failed test
-
-};
