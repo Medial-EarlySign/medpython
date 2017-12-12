@@ -9,6 +9,8 @@
 
 void MedBootstrap::parse_cohort_file(const string &cohorts_path) {
 	ifstream of(cohorts_path);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", cohorts_path.c_str());
 	string line;
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))

@@ -475,6 +475,8 @@ void MedQRF::printTrees(const vector<string> &modelSignalNames, const string &ou
 		treeOut << endl;
 
 		ofstream fw(outputPath);
+		if (!fw.good())
+			MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", outputPath.c_str());
 		fw << treeOut.str();
 		fw.close();
 	}

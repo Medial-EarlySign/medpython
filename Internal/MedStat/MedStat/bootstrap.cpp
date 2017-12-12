@@ -525,6 +525,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	vector<string> all_columns(all_columns_uniq.begin(), all_columns_uniq.end());
 	sort(all_columns.begin(), all_columns.end());
 	ofstream fw(file_name);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
 	fw << "Cohort_Description";
 	for (size_t i = 0; i < all_columns.size(); ++i)
@@ -547,6 +549,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
 	string delimeter = "\t";
 	ifstream of(file_name);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", file_name.c_str());
 	string line, header;
 	getline(of, header); //read header
 	vector<string> column_names;
@@ -587,6 +591,8 @@ void write_pivot_bootstrap_results(const string &file_name, const map<string, ma
 		}
 
 	ofstream fw(file_name);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
 	fw << "Cohort$Measurement" << delimeter << "Value" << endl;
 	for (auto it = flat_map.begin(); it != flat_map.end(); ++it)
@@ -605,6 +611,8 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 	map<string, float> flat_map;
 
 	ifstream fr(file_name);
+	if (!fr.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", file_name.c_str());
 	string line;
 	getline(fr, line); //skip header
 	while (getline(fr, line)) {
@@ -797,7 +805,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
-					res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("PR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
@@ -814,8 +821,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) +
 					true_rate[i - 1] * (curr_diff / tot_diff));
-				res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * ((1 - false_rate[i]) * (prev_diff / tot_diff) +
-					(1 - false_rate[i - 1]) * (curr_diff / tot_diff));
 				if (params->incidence_fix > 0) {
 					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
 					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
@@ -1559,6 +1564,8 @@ Filter_Param::Filter_Param(const string &init_string) {
 }
 void Incident_Stats::write_to_text_file(const string &text_file) {
 	ofstream fw(text_file);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", text_file.c_str());
 	string delim = "\t";
 	fw << "AGE_BIN" << delim << age_bin_years << endl;
 	fw << "AGE_MIN" << delim << min_age << endl;
@@ -1580,6 +1587,8 @@ void Incident_Stats::write_to_text_file(const string &text_file) {
 void Incident_Stats::read_from_text_file(const string &text_file) {
 	MLOG("Loading Incidence file %s\n", text_file.c_str());
 	ifstream of(text_file);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", text_file.c_str());
 	string line;
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))
