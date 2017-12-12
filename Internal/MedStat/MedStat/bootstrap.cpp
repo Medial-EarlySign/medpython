@@ -525,6 +525,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	vector<string> all_columns(all_columns_uniq.begin(), all_columns_uniq.end());
 	sort(all_columns.begin(), all_columns.end());
 	ofstream fw(file_name);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
 	fw << "Cohort_Description";
 	for (size_t i = 0; i < all_columns.size(); ++i)
@@ -589,6 +591,8 @@ void write_pivot_bootstrap_results(const string &file_name, const map<string, ma
 		}
 
 	ofstream fw(file_name);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
 	fw << "Cohort$Measurement" << delimeter << "Value" << endl;
 	for (auto it = flat_map.begin(); it != flat_map.end(); ++it)
@@ -1560,6 +1564,8 @@ Filter_Param::Filter_Param(const string &init_string) {
 }
 void Incident_Stats::write_to_text_file(const string &text_file) {
 	ofstream fw(text_file);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", text_file.c_str());
 	string delim = "\t";
 	fw << "AGE_BIN" << delim << age_bin_years << endl;
 	fw << "AGE_MIN" << delim << min_age << endl;
