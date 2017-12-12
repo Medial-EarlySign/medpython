@@ -380,6 +380,7 @@ public:
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
+	int version() { return  1; }
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
