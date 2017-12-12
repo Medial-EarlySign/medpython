@@ -267,8 +267,10 @@ int MedSamples::read_from_file(const string &fname)
 					continue;
 				}
 				if (sample.id != curr_id) {
-					if (seen_ids.find(sample.id) != seen_ids.end())
+					if (seen_ids.find(sample.id) != seen_ids.end()) {
+						MERR("ERROR: Wrong MedSample format in line \"%s\"", curr_line.c_str());
 						MTHROW_AND_ERR("Sample id [%d] records are not consecutive\n", sample.id);
+					}
 					seen_ids.insert(sample.id);
 					// new idSample
 					MedIdSamples mis;
@@ -281,6 +283,7 @@ int MedSamples::read_from_file(const string &fname)
 				else if (sample.id == curr_id) {
 					// another sample for the current MedIdSamples
 					if (idSamples.back().id != sample.id || idSamples.back().split != sample.split) {
+						MERR("ERROR: Wrong MedSample format in line \"%s\"", curr_line.c_str());
 						MERR("Got conflicting split : %d,%d vs. %d,%d\n", idSamples.back().id, idSamples.back().split, sample.id, sample.split);
 						return -1;
 					}
