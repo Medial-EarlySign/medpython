@@ -547,6 +547,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
 	string delimeter = "\t";
 	ifstream of(file_name);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", file_name.c_str());
 	string line, header;
 	getline(of, header); //read header
 	vector<string> column_names;
@@ -605,6 +607,8 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 	map<string, float> flat_map;
 
 	ifstream fr(file_name);
+	if (!fr.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", file_name.c_str());
 	string line;
 	getline(fr, line); //skip header
 	while (getline(fr, line)) {
@@ -1577,6 +1581,8 @@ void Incident_Stats::write_to_text_file(const string &text_file) {
 void Incident_Stats::read_from_text_file(const string &text_file) {
 	MLOG("Loading Incidence file %s\n", text_file.c_str());
 	ifstream of(text_file);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", text_file.c_str());
 	string line;
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))
