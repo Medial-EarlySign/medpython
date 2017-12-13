@@ -984,6 +984,8 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 
 		// Get signal
 		rep.uget(id, signalId, usv);
+		
+		// Nothing to do if empty ...
 		if (usv.len == 0)
 			continue;
 
