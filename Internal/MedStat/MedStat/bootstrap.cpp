@@ -1461,6 +1461,9 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	else
 		return;
 
+	if (params.use_score_working_points)
+		return;
+
 	if (params.score_resolution != 0)
 		for (size_t i = 0; i < preds.size(); ++i)
 			preds[i] = (float)round((double)preds[i] / params.score_resolution) *
@@ -1479,6 +1482,11 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
+	if (params.score_bins == 0 && bin_size_last < 10)
+		MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+			" is highly quantitize(%d). try canceling preprocess_score by "
+			"score_resolution, score_bins. Will use score working points\n",
+			bin_size_last);
 
 	if (params.score_bins > 0 && bin_size_last > params.score_bins) {
 		int c = 0;
@@ -1523,7 +1531,7 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 
 		//update thresholds_indexes based on: size_to_ind groups -
 		//merge all indexes in each group to first index in thresholds_indexes. "mean" other scores to unique_scores
-
+		unordered_set<float> u_scores;
 		for (auto it = sizes.begin(); it != sizes.end(); ++it)
 		{
 			for (size_t k = 0; k < size_to_ind[*it].size(); ++k)
@@ -1541,10 +1549,17 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 				//update all preds to mean_score in merged_inds:
 				for (int ind : merged_inds)
 					preds[ind] = (float)mean_score;
+				u_scores.insert((float)mean_score);
 			}
 		}
+		if (u_scores.size() < 10) {
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). try canceling preprocess_score by "
+				"score_resolution, score_bins. Will use score working points\n", 
+				(int)u_scores.size());
+		}
 	}
-
+	
 	MLOG_D("Preprocess_bin_scores Done!\n");
 }
 #pragma endregion

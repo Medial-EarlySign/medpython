@@ -341,6 +341,7 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				if (fields[0] == "TYPE") type_in_config_file = fields[1];
 				else if (fields[0] == "REPOSITORY") rep_fname = fields[1];
 				else if (fields[0] == "MODEL") model_fname = fields[1];
+				else if (fields[0] == "NAME")  set_name(fields[1].c_str());
 			}
 		}
 	}
@@ -370,12 +371,10 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 //-----------------------------------------------------------------------------------------------------------
 // create a new AlgoMarker of type am_type and init its name
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_Create(int am_type, const char *name, AlgoMarker **new_am)
+int AM_API_Create(int am_type, AlgoMarker **new_am)
 {
 	try {
 		*new_am = AlgoMarker::make_algomarker((AlgoMarkerType)am_type);
-
-		(*new_am)->set_name(name);
 
 		if (new_am == NULL)
 			return AM_FAIL_RC;

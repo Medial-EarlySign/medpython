@@ -178,7 +178,7 @@ int debug_me(po::variables_map &vm)
 	// init AM
 	AlgoMarker *test_am;
 
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, "Pre2D", &test_am) != AM_OK_RC) {
+	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		return -1;
 	}
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
 	//===============================================================================
 	AlgoMarker *test_am;
 
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, "Pre2D", &test_am) != AM_OK_RC) {
+	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		return -1;
 	}
