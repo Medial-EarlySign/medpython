@@ -7,6 +7,8 @@
 #if NEW_COMPLIER
 #pragma message ( "You Are Compiling with the new compiler" )
 #include "External/vowpal_wabbit/vowpalwabbit/ezexample.h"
+#include "External/vowpal_wabbit/vowpalwabbit/parse_regressor.h"
+
 void MedVW::init_defaults() {
 	transpose_for_learn = false;
 	transpose_for_predict = false;
@@ -31,7 +33,7 @@ int MedVW::init_from_string(string text) {
 int MedVW::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	char buff[500];
 	for (int i = 0; i < nsamples; ++i)
-	{		
+	{
 		string example_string = to_string(y[i]) + " |";
 		for (size_t k = 0; k < nftrs; ++k)
 		{
@@ -67,23 +69,34 @@ int MedVW::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 		example *e = VW::read_example(*_v, example_string);
 		e->in_use = false;
 		e->test_only = true;
-		
-		_v->learn(e); //v->l->learn(*e);
-		//_v->l->finish_example(*_v, *e);
+
 		_v->l->predict(*e);
-	//	preds[i] = e->pred.scalar;
+		//	preds[i] = e->pred.scalar;
 		preds[i] = e->partial_prediction;
 	}
 	return 0;
 }
 
+void MedVW::save_model(const string &path) {
+	_v->save_per_pass = false;
+	save_predictor(*_v, path, 0);
+}
+
+void MedVW::load_model(const string &path) {
+	_v->l = NULL;
+	io_buf buf;
+	buf.open_file(path.c_str(), _v->stdin_off, io_buf::READ);
+	save_load_header(*_v, buf, true, false);
+}
+
 size_t MedVW::get_size() {
-	MTHROW_AND_ERR("ERROR: not supported right now\n");
+	return 0;
 }
 size_t MedVW::serialize(unsigned char *blob) {
-	MTHROW_AND_ERR("ERROR: not supported right now\n");
+
+	MTHROW_AND_ERR("ERROR: Use save_model directly\n");
 }
 size_t MedVW::deserialize(unsigned char *blob) {
-	MTHROW_AND_ERR("ERROR: not supported right now\n");
+	MTHROW_AND_ERR("ERROR: Use load_model directly\n");
 }
 #endif

@@ -21,6 +21,9 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
+	void save_model(const string &path);
+	void load_model(const string &path);
+
 private:
 	vw* _v;
 
