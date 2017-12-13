@@ -304,7 +304,7 @@ public:
 // all return codes are defined in AlgoMarkerErr.h
 
 // create a new AlgoMarker of type am_type and init its name
-extern "C" DLL_WORK_MODE int AM_API_Create(int am_type, const char *name, AlgoMarker **new_am);
+extern "C" DLL_WORK_MODE int AM_API_Create(int am_type, AlgoMarker **new_am);
 
 // loading AlgoMarker and making it ready to get Requests
 extern "C" DLL_WORK_MODE int AM_API_Load(AlgoMarker* pAlgoMarker, const char *config_fname);
