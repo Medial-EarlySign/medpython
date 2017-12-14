@@ -55,6 +55,8 @@ MedBootstrap::MedBootstrap()
 	sample_patient_label = false;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
+	measurements_with_params.resize(1);
+	measurements_with_params[0] = pair<MeasurementFunctions, void*>(calc_roc_measures_with_inc, &roc_Params);
 }
 
 MedBootstrap::MedBootstrap(const string &init_string) {
@@ -63,6 +65,8 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	sample_patient_label = false;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
+	measurements_with_params.resize(1);
+	measurements_with_params[0] = pair<MeasurementFunctions, void*>(calc_roc_measures_with_inc, &roc_Params);
 
 	//now read init_string to override default:
 	vector<string> tokens;
@@ -101,14 +105,24 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	const map<string, vector<float>> &additional_info) {
 
 	map<string, FilterCohortFunc> cohorts;
-	vector<MeasurementFunctions> measures = { calc_roc_measures_with_inc };
 	map<string, void *> cohort_params;
-	vector<void *> measurements_params = { (void *)&roc_Params };
+	vector<MeasurementFunctions> measures((int)measurements_with_params.size());
+	vector<void *> measurements_params((int)measurements_with_params.size());
+	for (size_t i = 0; i < measurements_with_params.size(); ++i)
+	{
+		measures[i] = measurements_with_params[i].first;
+		measurements_params[i] = measurements_with_params[i].second;
+	}
 
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
 		cohorts[it->first] = filter_range_params;
 		cohort_params[it->first] = (void *)&it->second;
 	}
+	for (auto it = additional_cohorts.begin(); it != additional_cohorts.end(); ++it)
+		if (cohorts.find(it->first) == cohorts.end())
+			cohorts[it->first] = it->second;
+		else
+			MWARN("Cohort \"%s\" name already exists - skip additional\n");
 
 	vector<int> new_ids((int)pids.size());
 	if (sample_patient_label)

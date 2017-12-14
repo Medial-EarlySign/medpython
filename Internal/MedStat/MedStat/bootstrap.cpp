@@ -213,6 +213,52 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 	return string(res);
 }
 
+template<typename T> inline int binary_search_position(const T *begin, const T *end, T val, bool reversed = false) {
+	int maxSize = (int)(end - begin) + 1;
+	int mid = int((maxSize - 1) / 2);
+	if (maxSize <= 2) {
+		if (!reversed) {
+			if (val <= *begin) {
+				return 0;
+			}
+			else if (val <= *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+		else {
+			if (val >= *begin) {
+				return 0;
+			}
+			else if (val >= *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+	}
+
+	if (!reversed) {
+		if (val <= begin[mid]) {
+			return binary_search_position(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position(begin + mid, end, val, reversed);
+		}
+	}
+	else {
+		if (val >= begin[mid]) {
+			return binary_search_position(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position(begin + mid, end, val, reversed);
+		}
+	}
+}
+
 #pragma endregion
 
 int get_checksum(const vector<int> &pids) {
@@ -349,10 +395,20 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 
 				iterator.set_static(&selected_y, &selected_preds, i);
-
+#ifdef USE_MIN_THREADS
+				int th_num = omp_get_thread_num();
+#else
+				int th_num = i;
+#endif
 				for (size_t k = 0; k < meas_functions.size(); ++k)
 				{
 					map<string, float> batch_measures;
+#ifdef USE_MIN_THREADS
+					iterator.restart_iterator(th_num);
+#else
+					if (k > 0)
+						iterator.restart_iterator(th_num);
+#endif
 					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
 #pragma omp critical
 					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
@@ -392,10 +448,21 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 
 				iterator.set_static(&selected_y, &selected_preds, i);
+#ifdef USE_MIN_THREADS
+				int th_num = omp_get_thread_num();
+#else
+				int th_num = i;
+#endif
 				//calc measures for sample:
 				for (size_t k = 0; k < meas_functions.size(); ++k)
 				{
 					map<string, float> batch_measures;
+#ifdef USE_MIN_THREADS
+					iterator.restart_iterator(th_num);
+#else
+					if (k > 0)
+						iterator.restart_iterator(th_num);
+#endif
 					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
 #pragma omp critical
 					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
@@ -711,6 +778,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	map<string, float> res;
 	int max_qunt_vals = 10;
 	bool censor_removed = true;
+	bool trunc_max = false;
 
 	ROC_Params *params = (ROC_Params *)function_params;
 	float max_diff_in_wp = params->max_diff_working_point;
@@ -745,7 +813,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	sort(unique_scores.begin(), unique_scores.end());
 
 	//calc measures on each bucket of scores as possible threshold:
-	double t_sum = 0, f_sum = 0;
+	double t_sum = 0, f_sum = 0, tt_cnt = 0;
 	int f_cnt = 0;
 	int t_cnt = 0;
 	vector<float> true_rate((int)unique_scores.size());
@@ -758,6 +826,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		{
 			float true_label = params->fix_label_to_binary ? y > 0 : y;
 			t_sum += true_label;
+			tt_cnt += true_label > 0 ? true_label : 0;
 			if (!censor_removed)
 				f_sum += (1 - true_label);
 			else
@@ -774,7 +843,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		return res;
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
-		true_rate[i] /= float(t_sum);
+		true_rate[i] /= float(!trunc_max ? t_sum : tt_cnt);
 		false_rate[i] /= float(f_sum);
 	}
 	//calc maesures based on true_rate and false_rate
@@ -1277,6 +1346,50 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	return res;
 }
 
+map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params) {
+	map<string, float> res;
+
+	double tau = 0, cnt = 0;
+	float y, pred;
+	//vector<float> scores, labels;
+	unordered_map<float, vector<float>> label_to_scores;
+	while (iterator->fetch_next(thread_num, y, pred))
+		label_to_scores[y].push_back(pred);
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+		sort(it->second.begin(), it->second.end());
+
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+	{
+		auto bg = it;
+		++bg;
+		vector<float> *preds = &it->second;
+		for (auto jt = bg; jt != label_to_scores.end(); ++jt)
+		{
+			vector<float> *preds_comp = &jt->second;
+			double p_size = (double)preds_comp->size();
+			int pos;
+			for (float pred : *preds)
+			{
+				pos = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				if (it->first > jt->first)
+					//tau += pos;
+					tau += 2 * pos - p_size;
+				else
+					//tau += p_size - pos;
+					tau += p_size - 2 * pos;
+			}
+			cnt += p_size * preds->size();
+		}
+	}
+
+	if (cnt > 1) {
+		tau /= cnt;
+		res["Kendall-Tau"] = (float)tau;
+	}
+
+	return res;
+}
+
 #pragma endregion
 
 #pragma region Cohort Fucntions
@@ -1555,11 +1668,11 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 		if (u_scores.size() < 10) {
 			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
 				" is highly quantitize(%d). try canceling preprocess_score by "
-				"score_resolution, score_bins. Will use score working points\n", 
+				"score_resolution, score_bins. Will use score working points\n",
 				(int)u_scores.size());
 		}
 	}
-	
+
 	MLOG_D("Preprocess_bin_scores Done!\n");
 }
 #pragma endregion
