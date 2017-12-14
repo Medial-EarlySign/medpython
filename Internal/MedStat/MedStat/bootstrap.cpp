@@ -259,6 +259,53 @@ template<typename T> inline int binary_search_position(const T *begin, const T *
 	}
 }
 
+template<typename T> inline int binary_search_position_last(const T *begin, const T *end, T val, bool reversed = false) {
+	int maxSize = (int)(end - begin) + 1;
+	int mid = int((maxSize - 1) / 2);
+	if (maxSize <= 2) {
+		if (!reversed) {
+			if (val < *begin) {
+				return 0;
+			}
+			else if (val < *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+		else {
+			if (val > *begin) {
+				return 0;
+			}
+			else if (val > *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+	}
+
+	if (!reversed) {
+		if (val < begin[mid]) {
+			return binary_search_position_last(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position_last(begin + mid, end, val, reversed);
+		}
+	}
+	else {
+		if (val > begin[mid]) {
+			return binary_search_position_last(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position_last(begin + mid, end, val, reversed);
+		}
+	}
+}
+
+
 #pragma endregion
 
 int get_checksum(const vector<int> &pids) {
@@ -1363,20 +1410,22 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void
 		auto bg = it;
 		++bg;
 		vector<float> *preds = &it->second;
+		int pred_i_bigger;
+		double pred_i_smaller;
 		for (auto jt = bg; jt != label_to_scores.end(); ++jt)
 		{
 			vector<float> *preds_comp = &jt->second;
 			double p_size = (double)preds_comp->size();
-			int pos;
 			for (float pred : *preds)
 			{
-				pos = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				pred_i_bigger = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				pred_i_smaller = p_size - binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
 				if (it->first > jt->first)
-					//tau += pos;
-					tau += 2 * pos - p_size;
+					//tau += pred_i_bigger;
+					tau += pred_i_bigger - pred_i_smaller;
 				else
-					//tau += p_size - pos;
-					tau += p_size - 2 * pos;
+					//tau += pred_i_smaller;
+					tau += pred_i_smaller - pred_i_bigger;
 			}
 			cnt += p_size * preds->size();
 		}
