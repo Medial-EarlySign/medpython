@@ -55,8 +55,6 @@ MedBootstrap::MedBootstrap()
 	sample_patient_label = false;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
-	measurements_with_params.resize(1);
-	measurements_with_params[0] = pair<MeasurementFunctions, void*>(calc_roc_measures_with_inc, &roc_Params);
 }
 
 MedBootstrap::MedBootstrap(const string &init_string) {
@@ -65,8 +63,6 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	sample_patient_label = false;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
-	measurements_with_params.resize(1);
-	measurements_with_params[0] = pair<MeasurementFunctions, void*>(calc_roc_measures_with_inc, &roc_Params);
 
 	//now read init_string to override default:
 	vector<string> tokens;
@@ -106,6 +102,10 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 
 	map<string, FilterCohortFunc> cohorts;
 	map<string, void *> cohort_params;
+	if (measurements_with_params.empty()) { //if not touched(than empty) - this is the default!
+		measurements_with_params.resize(1);
+		measurements_with_params[0] = pair<MeasurementFunctions, void*>(calc_roc_measures_with_inc, &roc_Params);
+	}
 	vector<MeasurementFunctions> measures((int)measurements_with_params.size());
 	vector<void *> measurements_params((int)measurements_with_params.size());
 	for (size_t i = 0; i < measurements_with_params.size(); ++i)
