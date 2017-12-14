@@ -27,6 +27,9 @@ MedVW::MedVW() {
 int MedVW::init_from_string(string text) {
 	_v = VW::initialize(text);
 	_v->vw_is_main = true;
+	_v->sd->min_label = (float)INT_MIN;
+	_v->sd->max_label = (float)INT_MAX;
+
 	return 0;
 }
 
@@ -34,7 +37,7 @@ int MedVW::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	char buff[500];
 	for (int i = 0; i < nsamples; ++i)
 	{
-		string example_string = to_string(y[i]) + " |";
+		string example_string = to_string(int(y[i])) + " |";
 		for (size_t k = 0; k < nftrs; ++k)
 		{
 			snprintf(buff, 1000, " FTR_%d:%f", (int)k, x[i*nftrs + k]);
@@ -47,7 +50,7 @@ int MedVW::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 		_v->l->finish_example(*_v, *e);
 	}
 
-	_v->l->end_examples();
+	//_v->l->end_examples();
 	return 0;
 }
 
@@ -71,8 +74,8 @@ int MedVW::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 		e->test_only = true;
 
 		_v->l->predict(*e);
-		//	preds[i] = e->pred.scalar;
-		preds[i] = e->partial_prediction;
+		preds[i] = e->pred.scalar;
+		//preds[i] = e->partial_prediction;
 	}
 	return 0;
 }

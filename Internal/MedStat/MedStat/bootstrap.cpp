@@ -1645,10 +1645,15 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
 	if (params.score_bins == 0 && bin_size_last < 10)
-		MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
-			" is highly quantitize(%d). try canceling preprocess_score by "
-			"score_resolution, score_bins. Will use score working points\n",
-			bin_size_last);
+		if (params.score_resolution != 0)
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). try canceling preprocess_score by "
+				"score_resolution, score_bins. Will use score working points\n",
+				bin_size_last);
+		else
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). Will use score working points\n",
+				bin_size_last);
 
 	if (params.score_bins > 0 && bin_size_last > params.score_bins) {
 		int c = 0;
