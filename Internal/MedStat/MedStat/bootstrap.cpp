@@ -760,6 +760,7 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void 
 	float y, pred;
 	while (iterator->fetch_next(thread_num, y, pred))
 		cnts[y] += 1;
+	cnts[y] += 1; //last one
 
 	res["NPOS"] = (float)cnts[(float)1.0];
 	res["NNEG"] = (float)cnts[(float)0];
@@ -780,6 +781,10 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *
 		tot_true_labels += int(y > 0);
 		++tot_cnt;
 	}
+	//last one
+	pred_to_labels[pred].push_back(y);
+	tot_true_labels += int(y > 0);
+	++tot_cnt;
 
 	int tot_false_labels = tot_cnt - tot_true_labels;
 	if (tot_true_labels == 0 || tot_false_labels == 0)
@@ -849,6 +854,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	float y, pred;
 	while (iterator->fetch_next(thread_num, y, pred))
 		thresholds_labels[pred].push_back(y);
+	thresholds_labels[pred].push_back(y); //last one
 
 	unique_scores.resize((int)thresholds_labels.size());
 	int ind_p = 0;
@@ -1402,6 +1408,7 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void
 	unordered_map<float, vector<float>> label_to_scores;
 	while (iterator->fetch_next(thread_num, y, pred))
 		label_to_scores[y].push_back(pred);
+	label_to_scores[y].push_back(pred);// last one
 	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
 		sort(it->second.begin(), it->second.end());
 
