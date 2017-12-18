@@ -105,18 +105,21 @@ int FeaturePCA::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	//ids not supported
 	features.get_as_matrix(base_mat);
 	//apply multiply by W: and add to features
-	int pca_cnt = 0;
-	for (string name : names)
+	
+#pragma omp parallel for
+	for (int pca_cnt = 0; pca_cnt < names.size(); ++pca_cnt)
 	{
-		features.data[name].resize((int)features.samples.size());
-		features.attributes[name].imputed = true;
-		features.tags[name].insert("pca_encoder");
+		string name = names[pca_cnt];
+#pragma omp critical 
+		{
+			features.data[name].resize((int)features.samples.size());
+			features.attributes[name].imputed = true;
+			features.tags[name].insert("pca_encoder");
+		}
 		//do multiply:
 		for (int i = 0; i < features.samples.size(); ++i)
 			for (int j = 0; j < selected_indexes.size(); ++j)
 				features.data[name][i] += base_mat(i, selected_indexes[j])*W(pca_cnt, j);
-
-		++pca_cnt;
 	}
 
 	return 0;
