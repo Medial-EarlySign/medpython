@@ -131,7 +131,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	// calculate scores
 	//MLOG("Before Calculate\n");
-	int calc_rc = AM_API_Calculate(am, req, &resp);
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(am, req, resp);
 	//MLOG("After Calculate: rc = %d\n", calc_rc);
 
 	// go over reponses and pack them to a MesSample vector
@@ -146,7 +147,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	AMResponse *response;
 	for (int i=0; i<n_resp; i++) {
 		//MLOG("Getting response no. %d\n", i);
-		int resp_rc = AM_API_GetResponse(resp, i, &response);
+		int resp_rc = AM_API_GetResponseAtIndex(resp, i, &response);
 		resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
 		//int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_types);
 		//MLOG("resp_rc = %d\n", resp_rc);
@@ -168,6 +169,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	return 0;
 }
 
+
+
 //=============================================================================================================================
 int debug_me(po::variables_map &vm)
 {
@@ -175,7 +178,7 @@ int debug_me(po::variables_map &vm)
 	// init AM
 	AlgoMarker *test_am;
 
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, "Pre2D", &test_am) != AM_OK_RC) {
+	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		return -1;
 	}
@@ -212,7 +215,8 @@ int debug_me(po::variables_map &vm)
 
 	// calculate scores
 	MLOG("Before Calculate\n");
-	int calc_rc = AM_API_Calculate(test_am, req, &resp);
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(test_am, req, resp);
 	
 
 	// Shared messages
@@ -242,7 +246,7 @@ int debug_me(po::variables_map &vm)
 	for (int i=0; i<n_resp; i++) {
 		MLOG("Getting response no. %d\n", i);
 
-		AM_API_GetResponse(resp, i, &response);
+		AM_API_GetResponseAtIndex(resp, i, &response);
 		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
 		MLOG("resp_rc = %d\n", resp_rc);
 		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
@@ -334,7 +338,7 @@ int main(int argc, char *argv[])
 	//===============================================================================
 	AlgoMarker *test_am;
 
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, "Pre2D", &test_am) != AM_OK_RC) {
+	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		return -1;
 	}
@@ -372,3 +376,8 @@ int main(int argc, char *argv[])
 
 }
 
+//
+// keep command line:
+//
+// typical test:
+// Linux/Release/DllAPITester --model /nas1/Work/Users/Avi/Diabetes/order/pre2d/runs/partial/pre2d_partial_S6.model --samples test_100k.samples --amconfig /nas1/Work/Users/Avi/AlgoMarkers/pre2d/pre2d.amconfig

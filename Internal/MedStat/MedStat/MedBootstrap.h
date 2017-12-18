@@ -11,10 +11,12 @@ class MedBootstrap : public SerializableObject {
 public:
 	ROC_Params roc_Params;
 	map<string, vector<Filter_Param>> filter_cohort;
+	map<string, FilterCohortFunc> additional_cohorts; //not Serializable! additional cohorts given by function
 	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
 	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
 	bool sample_patient_label; //if true will treat patient+label as the "id" for the sampling
 	int loopCnt; //the bootstrap count
+	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  //not Serializable! the measurements with the params
 
 	void add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges);
 	void add_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges);

@@ -161,6 +161,9 @@ private:
 	AMMessages shared_msgs;
 public:
 
+	AMResponses() { clear(); }
+	~AMResponses() { clear(); }
+
 	// get things
 	int get_n_responses() { return (int)responses.size(); }
 	AMResponse *get_response(int index) { if (index >= (int)responses.size()) return NULL; return &(responses[index]); }
@@ -241,7 +244,7 @@ public:
 	virtual int Unload() { return 0; }
 	virtual int ClearData() { return 0; }
 	virtual int AddData(int patient_id, const char *signalName,  int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
-	virtual int Calculate(AMRequest *request, AMResponses **responses) { return 0; }
+	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
 	// check supported score types in the supported_score_types vector
 	int IsScoreTypeSupported(const char *_stype);
@@ -289,7 +292,7 @@ public:
 	int Unload();
 	int ClearData();
 	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
-	int Calculate(AMRequest *request, AMResponses **responses);
+	int Calculate(AMRequest *request, AMResponses *responses);
 
 };
 
@@ -301,7 +304,7 @@ public:
 // all return codes are defined in AlgoMarkerErr.h
 
 // create a new AlgoMarker of type am_type and init its name
-extern "C" DLL_WORK_MODE int AM_API_Create(int am_type, const char *name, AlgoMarker **new_am);
+extern "C" DLL_WORK_MODE int AM_API_Create(int am_type, AlgoMarker **new_am);
 
 // loading AlgoMarker and making it ready to get Requests
 extern "C" DLL_WORK_MODE int AM_API_Load(AlgoMarker* pAlgoMarker, const char *config_fname);
@@ -317,20 +320,23 @@ extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient
 // Null RC means failure
 extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 
+// Create a new empty responses object
+extern "C" DLL_WORK_MODE int AM_API_CreateResponses(AMResponses **new_responses);
+
 // Get scores for a ready request
-extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **responses);
+extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
 
 // exploring responses
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
 extern "C" DLL_WORK_MODE int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp);
 
-extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, AMResponse **response);
+extern "C" DLL_WORK_MODE int AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *scores, char **_score_type);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
+extern "C" DLL_WORK_MODE int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 
-extern "C" DLL_WORK_MODE int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId);
+extern "C" DLL_WORK_MODE int AM_API_GetResponsesRequestId(AMResponses *responses, char **requestId);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
 
 // get the name of an algomarker

@@ -63,6 +63,7 @@ private:
 map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params);
 map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params);
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params); //with PPV and PR
+map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params);
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 

@@ -108,7 +108,7 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 		throw invalid_argument("filtered all points - min_filter_cnt is too high or axis bining is needed");
 }
 
-void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName, 
+void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName,
 	vector<string> seriesNames, int refreshTime, string chart_type)
 {
 	string x_name = "x";
@@ -157,7 +157,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	{
 		map<float, float> dmap = data[i];
 
-		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name +": [";
+		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
 		}
@@ -208,7 +208,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 		rep += "'}, \n yaxis: { title: '";
 		rep += yName + "'},\n ";
 	}
-	
+
 	rep += "height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);
@@ -217,6 +217,8 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	ofstream myfile;
 	cerr << "writing: [" << outPath << "]\n";
 	myfile.open(outPath);
+	if (!myfile.good())
+		cerr << "IO Error: can't write " << outPath << endl;
 	myfile << content;
 	myfile.close();
 }
@@ -243,6 +245,8 @@ void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatm
 	}
 
 	jsOut.open(outDir + "plotly-latest.min.js");
+	if (!jsOut.good())
+		cerr << "IO Error: can't write " << outDir + "plotly-latest.min.js" << endl;
 	jsOut << jsData;
 	jsOut.close();
 
@@ -312,6 +316,8 @@ void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatm
 
 	ofstream myfile;
 	myfile.open(outPath);
+	if (!myfile.good())
+		cerr << "IO Error: can't write " << outPath << endl;
 	myfile << content;
 	myfile.close();
 }

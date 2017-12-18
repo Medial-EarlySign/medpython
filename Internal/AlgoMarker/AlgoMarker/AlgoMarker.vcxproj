@@ -176,6 +176,7 @@
     <ClInclude Include="AlgoMarkerErr.h" />
     <ClInclude Include="AlgoMarkerInternal.h" />
     <ClInclude Include="AMAPISuggestion.h" />
+    <ClInclude Include="InputTesters.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AlgoMarker.cpp" />

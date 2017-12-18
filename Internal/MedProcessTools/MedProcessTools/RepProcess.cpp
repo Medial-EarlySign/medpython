@@ -973,6 +973,7 @@ void RepNbrsOutlierCleaner::print()
 // Get values of a signal from a set of ids
 int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors) 
 {
+
 	vector<int> neededSignalIds = { signalId };
 	PidDynamicRec rec;
 	vector<int> req_signal_ids(1, signalId);
@@ -983,6 +984,10 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 
 		// Get signal
 		rep.uget(id, signalId, usv);
+		
+		// Nothing to do if empty ...
+		if (usv.len == 0)
+			continue;
 
 		if (prev_processors.size()) {
 

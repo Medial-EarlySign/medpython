@@ -213,6 +213,99 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 	return string(res);
 }
 
+template<typename T> inline int binary_search_position(const T *begin, const T *end, T val, bool reversed = false) {
+	int maxSize = (int)(end - begin) + 1;
+	int mid = int((maxSize - 1) / 2);
+	if (maxSize <= 2) {
+		if (!reversed) {
+			if (val <= *begin) {
+				return 0;
+			}
+			else if (val <= *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+		else {
+			if (val >= *begin) {
+				return 0;
+			}
+			else if (val >= *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+	}
+
+	if (!reversed) {
+		if (val <= begin[mid]) {
+			return binary_search_position(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position(begin + mid, end, val, reversed);
+		}
+	}
+	else {
+		if (val >= begin[mid]) {
+			return binary_search_position(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position(begin + mid, end, val, reversed);
+		}
+	}
+}
+
+template<typename T> inline int binary_search_position_last(const T *begin, const T *end, T val, bool reversed = false) {
+	int maxSize = (int)(end - begin) + 1;
+	int mid = int((maxSize - 1) / 2);
+	if (maxSize <= 2) {
+		if (!reversed) {
+			if (val < *begin) {
+				return 0;
+			}
+			else if (val < *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+		else {
+			if (val > *begin) {
+				return 0;
+			}
+			else if (val > *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+	}
+
+	if (!reversed) {
+		if (val < begin[mid]) {
+			return binary_search_position_last(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position_last(begin + mid, end, val, reversed);
+		}
+	}
+	else {
+		if (val > begin[mid]) {
+			return binary_search_position_last(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position_last(begin + mid, end, val, reversed);
+		}
+	}
+}
+
+
 #pragma endregion
 
 int get_checksum(const vector<int> &pids) {
@@ -349,10 +442,20 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 
 				iterator.set_static(&selected_y, &selected_preds, i);
-
+#ifdef USE_MIN_THREADS
+				int th_num = omp_get_thread_num();
+#else
+				int th_num = i;
+#endif
 				for (size_t k = 0; k < meas_functions.size(); ++k)
 				{
 					map<string, float> batch_measures;
+#ifdef USE_MIN_THREADS
+					iterator.restart_iterator(th_num);
+#else
+					if (k > 0)
+						iterator.restart_iterator(th_num);
+#endif
 					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
 #pragma omp critical
 					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
@@ -392,10 +495,21 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 
 				iterator.set_static(&selected_y, &selected_preds, i);
+#ifdef USE_MIN_THREADS
+				int th_num = omp_get_thread_num();
+#else
+				int th_num = i;
+#endif
 				//calc measures for sample:
 				for (size_t k = 0; k < meas_functions.size(); ++k)
 				{
 					map<string, float> batch_measures;
+#ifdef USE_MIN_THREADS
+					iterator.restart_iterator(th_num);
+#else
+					if (k > 0)
+						iterator.restart_iterator(th_num);
+#endif
 					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
 #pragma omp critical
 					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
@@ -525,6 +639,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	vector<string> all_columns(all_columns_uniq.begin(), all_columns_uniq.end());
 	sort(all_columns.begin(), all_columns.end());
 	ofstream fw(file_name);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
 	fw << "Cohort_Description";
 	for (size_t i = 0; i < all_columns.size(); ++i)
@@ -547,6 +663,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
 	string delimeter = "\t";
 	ifstream of(file_name);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", file_name.c_str());
 	string line, header;
 	getline(of, header); //read header
 	vector<string> column_names;
@@ -587,6 +705,8 @@ void write_pivot_bootstrap_results(const string &file_name, const map<string, ma
 		}
 
 	ofstream fw(file_name);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
 	fw << "Cohort$Measurement" << delimeter << "Value" << endl;
 	for (auto it = flat_map.begin(); it != flat_map.end(); ++it)
@@ -605,6 +725,8 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 	map<string, float> flat_map;
 
 	ifstream fr(file_name);
+	if (!fr.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", file_name.c_str());
 	string line;
 	getline(fr, line); //skip header
 	while (getline(fr, line)) {
@@ -638,6 +760,7 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void 
 	float y, pred;
 	while (iterator->fetch_next(thread_num, y, pred))
 		cnts[y] += 1;
+	cnts[y] += 1; //last one
 
 	res["NPOS"] = (float)cnts[(float)1.0];
 	res["NNEG"] = (float)cnts[(float)0];
@@ -658,6 +781,10 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *
 		tot_true_labels += int(y > 0);
 		++tot_cnt;
 	}
+	//last one
+	pred_to_labels[pred].push_back(y);
+	tot_true_labels += int(y > 0);
+	++tot_cnt;
 
 	int tot_false_labels = tot_cnt - tot_true_labels;
 	if (tot_true_labels == 0 || tot_false_labels == 0)
@@ -703,6 +830,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	map<string, float> res;
 	int max_qunt_vals = 10;
 	bool censor_removed = true;
+	bool trunc_max = false;
 
 	ROC_Params *params = (ROC_Params *)function_params;
 	float max_diff_in_wp = params->max_diff_working_point;
@@ -726,6 +854,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	float y, pred;
 	while (iterator->fetch_next(thread_num, y, pred))
 		thresholds_labels[pred].push_back(y);
+	thresholds_labels[pred].push_back(y); //last one
 
 	unique_scores.resize((int)thresholds_labels.size());
 	int ind_p = 0;
@@ -737,7 +866,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	sort(unique_scores.begin(), unique_scores.end());
 
 	//calc measures on each bucket of scores as possible threshold:
-	double t_sum = 0, f_sum = 0;
+	double t_sum = 0, f_sum = 0, tt_cnt = 0;
 	int f_cnt = 0;
 	int t_cnt = 0;
 	vector<float> true_rate((int)unique_scores.size());
@@ -750,6 +879,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		{
 			float true_label = params->fix_label_to_binary ? y > 0 : y;
 			t_sum += true_label;
+			tt_cnt += true_label > 0 ? true_label : 0;
 			if (!censor_removed)
 				f_sum += (1 - true_label);
 			else
@@ -766,7 +896,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		return res;
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
-		true_rate[i] /= float(t_sum);
+		true_rate[i] /= float(!trunc_max ? t_sum : tt_cnt);
 		false_rate[i] /= float(f_sum);
 	}
 	//calc maesures based on true_rate and false_rate
@@ -797,7 +927,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
-					res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("PR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
@@ -814,8 +943,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) +
 					true_rate[i - 1] * (curr_diff / tot_diff));
-				res[format_working_point("SPEC@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * ((1 - false_rate[i]) * (prev_diff / tot_diff) +
-					(1 - false_rate[i - 1]) * (curr_diff / tot_diff));
 				if (params->incidence_fix > 0) {
 					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
 					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
@@ -1272,6 +1399,53 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	return res;
 }
 
+map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params) {
+	map<string, float> res;
+
+	double tau = 0, cnt = 0;
+	float y, pred;
+	//vector<float> scores, labels;
+	unordered_map<float, vector<float>> label_to_scores;
+	while (iterator->fetch_next(thread_num, y, pred))
+		label_to_scores[y].push_back(pred);
+	label_to_scores[y].push_back(pred);// last one
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+		sort(it->second.begin(), it->second.end());
+
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+	{
+		auto bg = it;
+		++bg;
+		vector<float> *preds = &it->second;
+		int pred_i_bigger;
+		double pred_i_smaller;
+		for (auto jt = bg; jt != label_to_scores.end(); ++jt)
+		{
+			vector<float> *preds_comp = &jt->second;
+			double p_size = (double)preds_comp->size();
+			for (float pred : *preds)
+			{
+				pred_i_bigger = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				pred_i_smaller = p_size - binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				if (it->first > jt->first)
+					//tau += pred_i_bigger;
+					tau += pred_i_bigger - pred_i_smaller;
+				else
+					//tau += pred_i_smaller;
+					tau += pred_i_smaller - pred_i_bigger;
+			}
+			cnt += p_size * preds->size();
+		}
+	}
+
+	if (cnt > 1) {
+		tau /= cnt;
+		res["Kendall-Tau"] = (float)tau;
+	}
+
+	return res;
+}
+
 #pragma endregion
 
 #pragma region Cohort Fucntions
@@ -1456,6 +1630,9 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	else
 		return;
 
+	if (params.use_score_working_points)
+		return;
+
 	if (params.score_resolution != 0)
 		for (size_t i = 0; i < preds.size(); ++i)
 			preds[i] = (float)round((double)preds[i] / params.score_resolution) *
@@ -1474,6 +1651,16 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
+	if (params.score_bins == 0 && bin_size_last < 10)
+		if (params.score_resolution != 0)
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). try canceling preprocess_score by "
+				"score_resolution, score_bins. Will use score working points\n",
+				bin_size_last);
+		else
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). Will use score working points\n",
+				bin_size_last);
 
 	if (params.score_bins > 0 && bin_size_last > params.score_bins) {
 		int c = 0;
@@ -1518,7 +1705,7 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 
 		//update thresholds_indexes based on: size_to_ind groups -
 		//merge all indexes in each group to first index in thresholds_indexes. "mean" other scores to unique_scores
-
+		unordered_set<float> u_scores;
 		for (auto it = sizes.begin(); it != sizes.end(); ++it)
 		{
 			for (size_t k = 0; k < size_to_ind[*it].size(); ++k)
@@ -1536,7 +1723,14 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 				//update all preds to mean_score in merged_inds:
 				for (int ind : merged_inds)
 					preds[ind] = (float)mean_score;
+				u_scores.insert((float)mean_score);
 			}
+		}
+		if (u_scores.size() < 10) {
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). try canceling preprocess_score by "
+				"score_resolution, score_bins. Will use score working points\n",
+				(int)u_scores.size());
 		}
 	}
 
@@ -1559,6 +1753,8 @@ Filter_Param::Filter_Param(const string &init_string) {
 }
 void Incident_Stats::write_to_text_file(const string &text_file) {
 	ofstream fw(text_file);
+	if (!fw.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", text_file.c_str());
 	string delim = "\t";
 	fw << "AGE_BIN" << delim << age_bin_years << endl;
 	fw << "AGE_MIN" << delim << min_age << endl;
@@ -1580,6 +1776,8 @@ void Incident_Stats::write_to_text_file(const string &text_file) {
 void Incident_Stats::read_from_text_file(const string &text_file) {
 	MLOG("Loading Incidence file %s\n", text_file.c_str());
 	ifstream of(text_file);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", text_file.c_str());
 	string line;
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))
