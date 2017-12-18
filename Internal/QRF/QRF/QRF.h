@@ -39,6 +39,8 @@ enum QRF_TreeType {
 #define PREDS_CATEG_AVG_PROBS			5
 #define PREDS_CATEG_AVG_COUNTS			6
 
+#define COLLECTED_VALUES_SIZE	200000
+
 using namespace std;
 
 struct ValInd {
@@ -110,7 +112,9 @@ class QRF_ResNode {
 		float pred;
 		int size;
 		vector<int> counts;		// none for regression, 2 for binary, ncateg (defined in QRF_Forest) for categorized case
-		vector<float> values;  // Actual values of learning set in regression learning
+//		vector<float> values;  // Actual values of learning set in regression learning
+		vector<int> values; // Counting of values in learning set in regression learning
+		int tot_n_values;
 		int majority;			// for categories cases
 
 		size_t serialized_size(int mode);
@@ -212,6 +216,7 @@ class QRF_Forest {
 
 		bool keep_all_values; // Keep all values in each node in regression mode
 		vector<float> quantiles; // Quantiles to predict in quantile-regression mode
+		vector<float> sorted_values; // sorted prediction values actually appearing in learning set in regression mode
 
 		vector<int> groups;		// if given should be at length nsamples. It maps each sample to a group (for example samples from the same patient at different times)
 								// this is important when we randomize elements to each tree and when we test oob.

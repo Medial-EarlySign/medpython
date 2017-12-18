@@ -1,6 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
@@ -118,7 +120,6 @@ FeatureGenerator * FeatureGenerator::make_generator(FeatureGeneratorTypes genera
 int FeatureGenerator::generate(PidDynamicRec& in_rep, MedFeatures& features) {
 	//MLOG("gen [%s]\n", this->names[0].c_str());
 	return Generate(in_rep, features, features.get_pid_pos(in_rep.pid), features.get_pid_len(in_rep.pid));
-
 }
 
 //.......................................................................................
@@ -451,14 +452,14 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 	int len;
 	if (directlyGiven) {
 		rec.uget(signalId, 0); 
-		assert(rec.usv.len > 0);
+		if (rec.usv.len == 0) throw MED_EXCEPTION_NO_AGE_GIVEN;
 		for (int i = 0; i < num; i++)
 			p_feat[i] = rec.usv.Val(0);
 	}
 	else {
 		SVal *bYearSignal = (SVal *)rec.get(signalId, len);
 		if (len != 1) { MERR("id %d , got len %d for signal %d (BYEAR)...\n", rec.pid, len, signalId); }
-		assert(len == 1);
+		if (len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
 		int byear = (int)(bYearSignal[0].val);
 
 		for (int i = 0; i < num; i++)
@@ -479,13 +480,12 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 	}
 
 	rec.uget(genderId, 0);
-	assert(rec.usv.len >= 1);
+	if (rec.usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
 	int gender = (int)(rec.usv.Val(0));
 
 	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
 	for (int i = 0; i < num; i++)
-		p_feat[i] = (float) gender;
-
+		p_feat[i] = (float)gender;
 	return 0;
 }
 
@@ -505,7 +505,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_LATEST:	name += "latest"; break;
 	case FTR_RANGE_MIN:		name += "min"; break;
 	case FTR_RANGE_MAX:		name += "max"; break;
-	case FTR_RANGE_EVER:	name += "ever_" + to_string(signalValue); break;
+	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
 
 	default: name += "ERROR";
 	}
@@ -530,7 +530,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "val") signalValue = stoi(entry.second);
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
@@ -545,12 +545,25 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
+
+	if (type == FTR_RANGE_EVER) {
+		if (lut.size() == 0) {
+			int section_id = dict.section_id(signalName);
+			dict.prep_sets_lookup_table(section_id, sets, lut);
+		}
+	}
+	else
+		lut.clear();
+	return;
+}
+
 // Init
 //.......................................................................................
 void RangeFeatGenerator::init_defaults() {
 	generator_type = FTR_GEN_RANGE;
 	signalId = -1;
-	signalValue = -1;
+	sets.clear();
 	time_unit_sig = MedTime::Undefined;
 	time_unit_win = med_rep_type.windowTimeUnit;
 	string _signalName = "";
@@ -1073,8 +1086,7 @@ float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int time)
 			break;
 		else if (toTime < min_time)
 			continue;
-		else if ((fromTime >= min_time || toTime <= max_time) && (int)usv.Val(i, val_channel) == signalValue)
-			return 1.0;
+		else if (lut[(int)usv.Val(i, val_channel)]) 	return 1;
 	}
 	return 0.0;
 }

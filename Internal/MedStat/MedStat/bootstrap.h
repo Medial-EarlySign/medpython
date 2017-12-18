@@ -22,10 +22,14 @@ public:
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
 
 	void restart_iterator(int thread);
+	void set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num);
+
+	~Lazy_Iterator();
 
 	//sampling params:
-	float sample_ratio;
-	int sample_per_pid;
+	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
+	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
+	bool sample_all_no_sampling; //for Obs
 private:
 	//internal structure - one time init
 	static random_device rd;
@@ -38,24 +42,27 @@ private:
 	int min_pid_start;
 	//init each time again
 	//save for each Thread!
-	vector<vector<bool>> selected_ind_pid;
 	vector<int> current_pos;
 	vector<int> inner_pos; //only used when sample_per_pid==0
 	vector<int> sel_pid_index; //only used when sample_per_pid==0
+	vector<int> vec_size;
+	vector<const float *> vec_y;
+	vector<const float *> vec_preds;
 
 	//original vectors
 	const float *preds;
 	const float *y;
 	const vector<int> *pids;
 
+
 	//threading:
 	int maxThreadCount;
 };
 
 #pragma region Measurements Fucntions
-map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, void *function_params);
-map<string, float> calc_only_auc(Lazy_Iterator *iterator, void *function_params);
-map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, void *function_params); //with PPV and PR
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params);
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params);
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params); //with PPV and PR
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -89,6 +96,7 @@ public:
 	float max_diff_working_point; //the maximal diff in calculated working point to requested working point to drop
 	int score_bins;
 	float score_resolution;
+	bool fix_label_to_binary;
 	Incident_Stats inc_stats; //the incedince data if provided for general population
 	ROC_Params() {
 		max_diff_working_point = (float)0.05;
@@ -97,12 +105,13 @@ public:
 		score_bins = 0;
 		score_resolution = 0;
 		incidence_fix = 0;
+		fix_label_to_binary = true;
 	}
 	ROC_Params(const string &init_string); //in format "paramter_name=value;..." for vector use ","
 	double incidence_fix;
 
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
-		max_diff_working_point, score_bins, inc_stats)
+		max_diff_working_point, score_bins, score_resolution, fix_label_to_binary, inc_stats)
 };
 
 #pragma region Cohort Fucntions
@@ -124,7 +133,7 @@ public:
 };
 
 //Infra
-typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, void *function_params);
+typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, int thread_num, void *function_params);
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
 typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, void *function_params);
 typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
@@ -149,9 +158,13 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	float sample_ratio = (float)1.0, int sample_per_pid = 1,
 	int loopCnt = 500, bool binary_outcome = true);
 
-//will output the bootstrap results  into file
+//will output the bootstrap results into file
 void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);
 void read_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments);
+
+//will output the bootstrap results into file with the new format with columns: "Cohort$Measure_Name", "Value"
+void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);
+void read_pivot_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments);
 
 MEDSERIALIZE_SUPPORT(Incident_Stats)
 MEDSERIALIZE_SUPPORT(ROC_Params)
