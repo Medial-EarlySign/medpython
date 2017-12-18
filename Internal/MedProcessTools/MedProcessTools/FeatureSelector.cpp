@@ -818,7 +818,7 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "missing_value") missing_value = stof(entry.second);
-		if (field == "selected") boost::split(selected_tags, entry.second, boost::is_any_of(";"));
+		if (field == "selected_tags") boost::split(selected_tags, entry.second, boost::is_any_of(","));
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
 	}
@@ -829,8 +829,16 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
 	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
-	for (auto it = features.tags.begin(); it != features.tags.end(); ++it)
-		if (s.find(it->first) != s.end())
+	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
+		bool found_match = false;
+		auto start_it = it->second.begin();
+		while (!found_match && start_it != it->second.end()) {
+			if (s.find(*start_it) != s.end())
+				found_match = true;
+			++start_it;
+		}
+		if (found_match)
 			selected.push_back(it->first);
+	}
 	return 0;
 }
