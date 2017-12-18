@@ -75,6 +75,7 @@ int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		if (params.pca_cutoff == 0 || eigen_to_index[i].first >= params.pca_cutoff) {
 			++final_size;
 			selected_index[i] = true;
+			selected_indexes.push_back((int)i);
 		}
 
 	W.resize(final_size, final_size);
@@ -112,8 +113,8 @@ int FeaturePCA::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		features.tags[name].insert("pca_encoder");
 		//do multiply:
 		for (int i = 0; i < features.samples.size(); ++i)
-			for (int j = 0; j < base_mat.ncols; ++j)
-				features.data[name][i] += base_mat(i, j)*W(pca_cnt, j);
+			for (int j = 0; j < selected_indexes.size(); ++j)
+				features.data[name][i] += base_mat(i, selected_indexes[j])*W(pca_cnt, j);
 
 		++pca_cnt;
 	}
@@ -128,7 +129,7 @@ int FeaturePCA::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "pca_cutoff") params.pca_cutoff = stof(entry.second);
-		else if (field == "pca_top") params.pca_top =stoi(entry.second);
+		else if (field == "pca_top") params.pca_top = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeaturePCA\n", field.c_str());
 	}

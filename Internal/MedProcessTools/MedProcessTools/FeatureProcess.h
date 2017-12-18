@@ -690,10 +690,11 @@ public:
 
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeaturePCA *>(processor)); }
 
-	ADD_SERIALIZATION_FUNCS(params, W)
+	ADD_SERIALIZATION_FUNCS(params, selected_indexes, W)
 
 private:
 	MedMat<float> W;
+	vector<int> selected_indexes;
 };
 
 //=======================================
