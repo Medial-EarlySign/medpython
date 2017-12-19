@@ -428,6 +428,7 @@ typedef enum {
 	FTR_RANGE_MAX = 2,
 	FTR_RANGE_MIN = 3,
 	FTR_RANGE_EVER = 4,
+	FTR_RANGE_TIME_DIFF = 5,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -442,8 +443,12 @@ public:
 	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
 	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+	int check_first = 1;						// if 1 choose first occurance of check_val otherwise choose last
+
 
 	vector<char> lut;							// to be used when generating FTR_RANGE_EVER
+
+
 
 	// Constructor/Destructor
 	RangeFeatGenerator() : FeatureGenerator() { init_defaults(); };
@@ -481,10 +486,11 @@ public:
 	float uget_range_min(UniversalSigVec &usv, int time_point);
 	float uget_range_max(UniversalSigVec &usv, int time_point);
 	float uget_range_ever(UniversalSigVec &usv, int time_point);
+	float uget_range_time_diff(UniversalSigVec &usv, int time_point);
 	// Serialization
 	// Serialization
 	virtual int version() { return  1; };	// ihadanny 20171206 - added sets
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first)
 };
 
 MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
