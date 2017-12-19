@@ -28,8 +28,10 @@ typedef enum {
 	FTR_PROCESS_UNIVARIATE_SELECTOR,
 	FTR_PROCESSOR_MRMR_SELECTOR,
 	FTR_PROCESSOR_LASSO_SELECTOR,
+	FTR_PROCESSOR_TAGS_SELECTOR,
 	FTR_PROCESS_REMOVE_DGNRT_FTRS,
 	FTR_PROCESS_ITERATIVE_IMPUTER,
+	FTR_PROCESS_ENCODER_PCA, //can be PCA, AutoEncoder or other..
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -51,7 +53,7 @@ public:
 	~FeatureProcessor() {};
 
 	// Copy
-	virtual void copy(FeatureProcessor *processor) { *this = *processor;}
+	virtual void copy(FeatureProcessor *processor) { *this = *processor; }
 
 	// Virtual Set Feature Name
 	virtual void set_feature_name(const string& feature_name) { this->feature_name = feature_name; }
@@ -67,7 +69,7 @@ public:
 	// Apply cleaning model
 	virtual int Apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
 
-	int apply(MedFeatures& features) ;
+	int apply(MedFeatures& features);
 	int apply(MedFeatures& features, unordered_set<int>& ids) { return Apply(features, ids); }
 
 	// Init
@@ -121,7 +123,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	// Copy
-	virtual void copy(FeatureProcessor *processor) ;
+	virtual void copy(FeatureProcessor *processor);
 
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -164,22 +166,22 @@ public:
 
 	void init_defaults() {
 		processor_type = FTR_PROCESS_BASIC_OUTLIER_CLEANER;
-		params.missing_value = MED_MAT_MISSING_VALUE; 
-		params.trimming_sd_num = DEF_FTR_TRIMMING_SD_NUM; 
+		params.missing_value = MED_MAT_MISSING_VALUE;
+		params.trimming_sd_num = DEF_FTR_TRIMMING_SD_NUM;
 		params.removing_sd_num = DEF_FTR_REMOVING_SD_NUM;
 		params.nbrs_sd_num = 0;
-		params.take_log = 0; 
+		params.take_log = 0;
 		params.doTrim = params.doRemove = true;
 		params.type = VAL_CLNR_ITERATIVE;
 
 	};
 
 	// Init
-	int init(void *processor_params) {return MedValueCleaner::init(processor_params);};
+	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
 	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
 
 	// Copy
-	virtual void copy(FeatureProcessor *processor) {*this = *(dynamic_cast<FeatureBasicOutlierCleaner *>(processor));}
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureBasicOutlierCleaner *>(processor)); }
 
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -232,8 +234,8 @@ public:
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Init
-	int init(map<string, string>& mapper) ;
-	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER;};
+	int init(map<string, string>& mapper);
+	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER; };
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureNormalizer *>(processor)); }
@@ -268,7 +270,7 @@ public:
 	featureStrata() {};
 	featureStrata(string& _name, float _resolution, float _min, float _max) { name = _name; resolution = _resolution; min = _min; max = _max; }
 
-	void SetNValues() { nValues = ((int)(max / resolution) - (int)(min / resolution) + 1);}
+	void SetNValues() { nValues = ((int)(max / resolution) - (int)(min / resolution) + 1); }
 	// returns the correct strata for a value. 
 	// E.g. if "strata": "Age,40,80,5" 42 will return 0, the first bin
 	int getIndex(float value, float missing_val) {
@@ -289,7 +291,7 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
-} ;
+};
 // When building startas on a set of several features, we build a cartesian product of their combinations:
 // e.g. when "strata": "Age,40,80,5:Gender,1,2,1"
 // starta [Age] factor [1] starta [Gender] factor[9]
@@ -298,7 +300,7 @@ public:
 class featureSetStrata {
 public:
 	vector<featureStrata> stratas;
-	vector<int> factors; 
+	vector<int> factors;
 
 	size_t nStratas() { return stratas.size(); }
 
@@ -317,11 +319,11 @@ public:
 			factors[i] = factors[i - 1] * stratas[i - 1].nValues;
 	}
 
-	int nValues() { 
+	int nValues() {
 		if (stratas.size() == 0)
 			return 1;
 		else
-			return factors.back() * stratas.back().nValues; 
+			return factors.back() * stratas.back().nValues;
 	}
 
 	// Serialization
@@ -348,7 +350,7 @@ public:
 	vector<float> moments;
 	// for sampling-imputation
 	vector < pair<float, float> > default_histogram;
-	vector < vector<pair<float, float> > > histograms; 
+	vector < vector<pair<float, float> > > histograms;
 
 	vector<int> strata_sizes;
 
@@ -358,7 +360,7 @@ public:
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
 	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
-	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name);}
+	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
 
 	// Add stratifier
 	void addStrata(string& init_string);
@@ -441,7 +443,7 @@ class LassoSelector : public FeatureSelector {
 	// Init
 	int init(map<string, string>& mapper);
 	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_LASSO_SELECTOR; };
-	 
+
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<LassoSelector *>(processor)); }
 
@@ -470,7 +472,7 @@ public:
 
 	// Init
 	int init(map<string, string>& mapper);
-	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_REMOVE_DGNRT_FTRS;  };
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_REMOVE_DGNRT_FTRS; };
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DgnrtFeatureRemvoer *>(processor)); }
@@ -506,7 +508,7 @@ public:
 	int takeSquare = 0;
 
 	// for samples distance correlation
-	float pDistance; 
+	float pDistance;
 
 	// Utility : maximum number of samples to take for moments calculations
 	int max_samples = 10000;
@@ -543,14 +545,14 @@ public:
 	univariateSelectionParams params;
 
 	// Constructor
-	UnivariateFeatureSelector() : FeatureSelector() { init_defaults();}
+	UnivariateFeatureSelector() : FeatureSelector() { init_defaults(); }
 
 	// Find set of selected features
 	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Init
 	int init(map<string, string>& mapper);
-	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_UNIVARIATE_SELECTOR;  params.method = UNIV_SLCT_PRSN; numToSelect = 0; params.minStat = 0.05F;};
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_UNIVARIATE_SELECTOR;  params.method = UNIV_SLCT_PRSN; numToSelect = 0; params.minStat = 0.05F; };
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<UnivariateFeatureSelector *>(processor)); }
@@ -592,7 +594,7 @@ public:
 
 	// Init
 	int init(map<string, string>& mapper);
-	virtual void init_defaults(); 
+	virtual void init_defaults();
 	MRMRPenaltyMethod get_penalty_method(string _method);
 
 	// Copy
@@ -602,7 +604,7 @@ public:
 	int fillStatsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
 	int fillAbsPearsonCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
 	int fillMIsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
-	int fillDistCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats,int index);
+	int fillDistCorrsMatrix(MedFeatures& features, unordered_set<int>& ids, MedMat<float>& stats, int index);
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
@@ -626,6 +628,78 @@ void get_all_values(MedFeatures& features, string& signalName, unordered_set<int
 void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<float>& values, int max_sample = DEF_MAX_SAMPLE);
 void smearBins(vector<int>& bins, int nBins, int reqNbins);
 
+class TagFeatureSelector : public FeatureSelector {
+public:
+	vector<string> selected_tags;
+	// Constructor
+	TagFeatureSelector() : FeatureSelector() { }
+
+	// Find set of selected features
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_TAGS_SELECTOR; };
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<TagFeatureSelector *>(processor)); }
+
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(selected_tags, selected)
+};
+
+class FeatureEncoder : public FeatureProcessor {
+public:
+
+	// generated names
+	vector<string> names;
+
+	// Constructor
+	FeatureEncoder() : FeatureProcessor() {}
+
+	// Find set of selected features
+	virtual int Learn(MedFeatures& features, unordered_set<int>& ids);
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
+
+	// Apply selection
+	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	virtual int _apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
+};
+
+class FeaturePCAParams : SerializableObject {
+public:
+	int pca_top;
+	float pca_cutoff;
+	int subsample_count;
+
+	ADD_SERIALIZATION_FUNCS(pca_top, pca_cutoff)
+};
+
+class FeaturePCA :public FeatureEncoder {
+public:
+	FeaturePCAParams params;
+
+	// Constructor
+	FeaturePCA() : FeatureEncoder() { init_defaults(); }
+
+	int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Apply selection
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
+
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { processor_type = FTR_PROCESS_ENCODER_PCA;  params.pca_cutoff = 0; params.pca_top = 100; };
+
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeaturePCA *>(processor)); }
+
+	ADD_SERIALIZATION_FUNCS(params, selected_indexes, W)
+
+private:
+	MedMat<float> W;
+	vector<int> selected_indexes;
+};
+
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================
@@ -637,5 +711,8 @@ MEDSERIALIZE_SUPPORT(featureSetStrata)
 MEDSERIALIZE_SUPPORT(FeatureImputer)
 MEDSERIALIZE_SUPPORT(UnivariateFeatureSelector)
 MEDSERIALIZE_SUPPORT(MRMRFeatureSelector)
+MEDSERIALIZE_SUPPORT(FeaturePCAParams)
+MEDSERIALIZE_SUPPORT(FeaturePCA)
+MEDSERIALIZE_SUPPORT(TagFeatureSelector)
 
 #endif

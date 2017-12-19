@@ -33,6 +33,10 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESSOR_LASSO_SELECTOR;
 	else if (processor_name == "remove_deg")
 		return FTR_PROCESS_REMOVE_DGNRT_FTRS;
+	else if (processor_name == "tags_selector")
+		return FTR_PROCESSOR_TAGS_SELECTOR;
+	else if (processor_name == "pca")
+		return FTR_PROCESS_ENCODER_PCA;
 	else
 		return FTR_PROCESS_LAST;
 }
@@ -74,6 +78,10 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new LassoSelector;
 	else if (processor_type == FTR_PROCESS_REMOVE_DGNRT_FTRS)
 		return new DgnrtFeatureRemvoer;
+	else if (processor_type == FTR_PROCESS_ENCODER_PCA)
+		return new FeaturePCA;
+	else if (processor_type == FTR_PROCESSOR_TAGS_SELECTOR)
+		return new TagFeatureSelector;
 	else
 		return NULL;
 
