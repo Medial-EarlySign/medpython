@@ -15,6 +15,7 @@ public:
 	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
 	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
 	bool sample_patient_label; //if true will treat patient+label as the "id" for the sampling
+	int sample_seed; //if 0 will use random_device
 	int loopCnt; //the bootstrap count
 	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  //not Serializable! the measurements with the params
 
@@ -48,7 +49,7 @@ public:
 	void change_sample_autosim(MedSamples &samples, int min_time, int max_time, MedSamples &new_samples);
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
 
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, loopCnt, roc_Params, filter_cohort);
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort);
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,

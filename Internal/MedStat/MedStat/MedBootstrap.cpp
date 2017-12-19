@@ -53,6 +53,7 @@ MedBootstrap::MedBootstrap()
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
 	sample_patient_label = false;
+	sample_seed = 0;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 }
@@ -61,6 +62,7 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
 	sample_patient_label = false;
+	sample_seed = 0;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 
@@ -84,6 +86,8 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 			sample_per_pid = stoi(param_value);
 		else if (param_name == "loopcnt")
 			loopCnt = stoi(param_value);
+		else if (param_name == "sample_seed")
+			sample_seed = stoi(param_value);
 		else if (param_name == "sample_patient_label")
 			sample_patient_label = stoi(param_value) > 0;
 		else if (param_name == "roc_params")
@@ -135,7 +139,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	}
 	return booststrap_analyze(preds, y, pids, additional_info, cohorts,
 		measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
+		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
 }
 
 bool MedBootstrap::use_time_window() {

@@ -69,7 +69,7 @@ string printVec(const vector<float> &v, int from, int to) {
 random_device Lazy_Iterator::rd;
 
 Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
-	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops) {
+	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed) {
 	sample_per_pid = p_sample_per_pid;
 	//sample_ratio = p_sample_ratio;
 	sample_ratio = 1.0; //no support for smaller size for now - need to fix Std for smaller sizes
@@ -112,7 +112,10 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	//init:
 	rd_gen.resize(maxThreadCount);
 	for (size_t i = 0; i < maxThreadCount; ++i)
-		rd_gen[i] = mt19937(rd());
+		if (seed == 0) 
+			rd_gen[i] = mt19937(rd());
+		else
+			rd_gen[i] = mt19937(seed);
 	rand_pids = uniform_int_distribution<>(0, (int)pid_index_to_indexes.size() - 1);
 	internal_random.resize(max_samples + 1);
 	for (int i = 1; i <= max_samples; ++i)
@@ -320,7 +323,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	const vector<MeasurementFunctions> &meas_functions, const vector<void *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
-	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params) {
+	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params, int seed = 0) {
 	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
@@ -333,9 +336,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 #ifdef USE_MIN_THREADS
-	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_max_threads()); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_max_threads(), seed); //for Obs
 #else
-	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1, seed); //for Obs
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
@@ -393,8 +396,14 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	else {
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = true;
-		random_device rd;
-		mt19937 rd_gen(rd());
+
+		mt19937 rd_gen;
+		if (seed > 0)
+			rd_gen = mt19937(seed);
+		else {
+			random_device rd;
+			rd_gen = mt19937(rd());
+		}
 		unordered_map<int, vector<int>> pid_to_inds;
 		for (size_t i = 0; i < pids.size(); ++i)
 			pid_to_inds[pids[i]].push_back(int(i));
@@ -553,7 +562,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	, const vector<MeasurementFunctions> &meas_functions, const map<string, void *> *cohort_params,
 	const vector<void *> *function_params, ProcessMeasurementParamFunc process_measurments_params,
 	PreprocessScoresFunc preprocess_scores, void *preprocess_scores_params, float sample_ratio, int sample_per_pid,
-	int loopCnt, bool binary_outcome) {
+	int loopCnt, int seed, bool binary_outcome) {
 #if defined(__unix__)
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
@@ -620,7 +629,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, it->second, c_params);
+			process_measurments_params, additional_info, y, pids, it->second, c_params, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 	}
