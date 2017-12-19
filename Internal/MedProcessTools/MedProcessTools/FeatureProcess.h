@@ -667,10 +667,13 @@ public:
 	virtual int _apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
 };
 
-class FeaturePCAParams {
+class FeaturePCAParams : SerializableObject {
 public:
 	int pca_top;
 	float pca_cutoff;
+	int subsample_count;
+
+	ADD_SERIALIZATION_FUNCS(pca_top, pca_cutoff)
 };
 
 class FeaturePCA :public FeatureEncoder {
@@ -708,6 +711,7 @@ MEDSERIALIZE_SUPPORT(featureSetStrata)
 MEDSERIALIZE_SUPPORT(FeatureImputer)
 MEDSERIALIZE_SUPPORT(UnivariateFeatureSelector)
 MEDSERIALIZE_SUPPORT(MRMRFeatureSelector)
+MEDSERIALIZE_SUPPORT(FeaturePCAParams)
 MEDSERIALIZE_SUPPORT(FeaturePCA)
 MEDSERIALIZE_SUPPORT(TagFeatureSelector)
 

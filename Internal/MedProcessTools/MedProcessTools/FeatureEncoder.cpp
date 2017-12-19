@@ -1,5 +1,6 @@
 #include "FeatureProcess.h"
 #include <algorithm>
+#include <random>
 
 #define LOCAL_SECTION LOG_FEATCLEANER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -21,33 +22,58 @@ int FeatureEncoder::Apply(MedFeatures& features, unordered_set<int>& ids) {
 }
 
 int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) {
-	MedMat<float> base_mat, cov_mat, pca_mat;
+	MedMat<float> init_mat, cov_mat, pca_mat;
 	vector<string> feat_names;
-	vector<int> row_ids;
-	for (int i = 0; i < features.samples.size(); ++i)
-		if (ids.find(features.samples[i].id) != ids.end())
-			row_ids.push_back(i);
-	features.get_as_matrix(base_mat, feat_names, row_ids);
+	if (!ids.empty()) {
+		vector<int> row_ids;
+		for (int i = 0; i < features.samples.size(); ++i)
+			if (ids.find(features.samples[i].id) != ids.end())
+				row_ids.push_back(i);
+		features.get_as_matrix(init_mat, feat_names, row_ids);
+	}
+	else
+		features.get_as_matrix(init_mat);
+	//subsample base_mat if given:
+	MedMat<float> *base_mat = &init_mat;
+	MedMat<float> subsample_mat;
+	if (params.subsample_count > 0 && params.subsample_count < init_mat.nrows) {
+		random_device rd;
+		mt19937 gen(rd());
+		uniform_int_distribution<> random_index(0, init_mat.nrows - 1);
+		vector<bool> seen_index(init_mat.nrows);
+		subsample_mat.resize(params.subsample_count, init_mat.ncols);
+		for (size_t i = 0; i < subsample_mat.nrows; ++i)
+		{
+			int sel = random_index(gen);
+			while (seen_index[sel])
+				sel = random_index(gen);
+			seen_index[sel] = true;
+			for (size_t j = 0; j < init_mat.ncols; ++j)
+				subsample_mat(i, j) = init_mat(sel, j);
+		}
+
+		base_mat = &subsample_mat;
+	}
+
 	vector<float> varsum;
-	cov_mat.resize(base_mat.ncols, base_mat.ncols);
-	vector<double> mean_vec(base_mat.ncols);
-	for (int i = 0; i < base_mat.ncols; ++i)
+	cov_mat.resize(base_mat->ncols, base_mat->ncols);
+	vector<double> mean_vec(base_mat->ncols);
+	for (int i = 0; i < base_mat->ncols; ++i)
 	{
 		double s = 0;
-		for (int k = 0; k < base_mat.nrows; ++k)
-			s += base_mat(k, i);
-		s /= base_mat.nrows;
+		for (int k = 0; k < base_mat->nrows; ++k)
+			s += (*base_mat)(k, i);
+		s /= base_mat->nrows;
 		mean_vec[i] = s;
 	}
-	for (int i = 0; i < base_mat.ncols; ++i)
+	for (int i = 0; i < base_mat->ncols; ++i)
 	{
-		for (int j = i; j < base_mat.ncols; ++j)
+		for (int j = i; j < base_mat->ncols; ++j)
 		{
 			double s = 0;
-			for (int k = 0; k < base_mat.nrows; ++k)
-				s += base_mat(k, i)*base_mat(k, j);
-			s /= base_mat.nrows;
-			s -= mean_vec[i] * mean_vec[j];
+			for (int k = 0; k < base_mat->nrows; ++k)
+				s += ((*base_mat)(k, i) - mean_vec[i])*((*base_mat)(k, j) - mean_vec[j]);
+			s /= base_mat->nrows;
 
 			cov_mat(i, j) = float(s);
 			cov_mat(j, i) = cov_mat(i, j);
@@ -63,9 +89,10 @@ int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		eigen_to_index[i].first = varsum[i];
 		eigen_to_index[i].second = (int)i;
 	}
-	sort(eigen_to_index.begin(), eigen_to_index.end(),
+	//already sorted! this sort is wrong!:
+	/*sort(eigen_to_index.begin(), eigen_to_index.end(),
 		[](const pair<float, int> &v1, const pair<float, int> &v2)
-	{return (v1.first > v2.first); });
+	{return (v1.first > v2.first); });*/
 
 	//choose top :
 	int final_size = 0;
@@ -78,18 +105,13 @@ int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			selected_indexes.push_back((int)i);
 		}
 
-	W.resize(final_size, final_size);
+	W.resize(final_size, (int)eigen_to_index.size());
 	//update features:
-	int w_i = 0, w_j;
+	int w_i = 0;
 	for (int i = 0; i < eigen_to_index.size(); ++i)
 		if (selected_index[i]) {
-			w_j = 0;
 			for (int j = 0; j < eigen_to_index.size(); ++j)
-				if (selected_index[j])
-				{
-					W(w_i, w_j) = pca_mat(i, j);
-					++w_j;
-				}
+				W(w_i, j) = pca_mat(i, j);
 			++w_i;
 		}
 
@@ -105,7 +127,7 @@ int FeaturePCA::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	//ids not supported
 	features.get_as_matrix(base_mat);
 	//apply multiply by W: and add to features
-	
+
 #pragma omp parallel for
 	for (int pca_cnt = 0; pca_cnt < names.size(); ++pca_cnt)
 	{
@@ -118,8 +140,8 @@ int FeaturePCA::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		//do multiply:
 		for (int i = 0; i < features.samples.size(); ++i)
-			for (int j = 0; j < selected_indexes.size(); ++j)
-				features.data[name][i] += base_mat(i, selected_indexes[j])*W(pca_cnt, j);
+			for (int j = 0; j < base_mat.ncols; ++j)
+				features.data[name][i] += base_mat(i, j)*W(pca_cnt, j);
 	}
 
 	return 0;
@@ -133,6 +155,7 @@ int FeaturePCA::init(map<string, string>& mapper) {
 
 		if (field == "pca_cutoff") params.pca_cutoff = stof(entry.second);
 		else if (field == "pca_top") params.pca_top = stoi(entry.second);
+		else if (field == "subsample_count") params.subsample_count = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeaturePCA\n", field.c_str());
 	}
