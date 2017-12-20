@@ -67,6 +67,7 @@ extern "C" class DLL_WORK_MODE AMMessages {
 	vector<string> args_strs;
 
 	vector<char *> args; // for easier c c# export. pointing to strings , so no need to free.
+	int need_to_update_args = 0;
 
   public:
 
@@ -113,6 +114,8 @@ private:
 
 	AMPoint point;
 
+	AMMessages msgs;
+
 public:
 
 	// get things
@@ -125,7 +128,8 @@ public:
 		scores[idx].get_score(_score, _score_type);
 		return AM_OK_RC;
 	}
-	AMMessages *get_msgs(int idx) { if (idx < 0 || idx >= scores.size()) return NULL; return scores[idx].get_msgs(); }
+	AMMessages *get_score_msgs(int idx) { if (idx < 0 || idx >= scores.size()) return NULL; return scores[idx].get_msgs(); }
+	AMMessages *get_msgs() { return &msgs; }
 
 	// set things
 	void set_patient_id(int _patient_id) { point.pid = _patient_id; }
@@ -273,12 +277,13 @@ extern "C" class DLL_WORK_MODE MedialInfraAlgoMarker : public AlgoMarker {
 
 private:
 	MedAlgoMarkerInternal ma;
+	InputSanityTester ist;
 
 	// some configs
 	string type_in_config_file = "";
 	string rep_fname = "";
 	string model_fname = "";
-	//string input_tests_filters = "";
+	string input_tester_config_file = "";
 
 	int read_config(string conf_f);
 
@@ -334,6 +339,7 @@ extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int
 extern "C" DLL_WORK_MODE int AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *scores, char **_score_type);
+extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
 extern "C" DLL_WORK_MODE int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesRequestId(AMResponses *responses, char **requestId);

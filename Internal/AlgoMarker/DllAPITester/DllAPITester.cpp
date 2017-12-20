@@ -148,7 +148,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	for (int i=0; i<n_resp; i++) {
 		//MLOG("Getting response no. %d\n", i);
 		int resp_rc = AM_API_GetResponseAtIndex(resp, i, &response);
-		resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
+		int n_scores;
+		AM_API_GetResponseScoresNum(response, &n_scores);
 		//int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_types);
 		//MLOG("resp_rc = %d\n", resp_rc);
 		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
@@ -156,16 +157,56 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		MedSample s;
 		s.id = pid;
 		s.time = (int)ts;
-		if (resp_rc == AM_OK_RC)
+		if (resp_rc == AM_OK_RC && n_scores > 0) {
+			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
 			s.prediction.push_back(_scr);
+		}
+		else {
+			s.prediction.push_back(AM_UNDEFINED_VALUE);
+		}
 		res.push_back(s);
 	}
 
 
+
+	// print error messages
+
+	// AM level
+	int n_msgs, *msg_codes;
+	char **msgs_errs;
+	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+	for (int i=0; i<n_msgs; i++) {
+		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
+	}
+
+	n_resp = AM_API_GetResponsesNum(resp);
+	for (int i=0; i<n_resp; i++) {
+		AMResponse *r;
+		AM_API_GetResponseAtIndex(resp, i, &r);
+		int n_scores;
+		AM_API_GetResponseScoresNum(r, &n_scores);
+		int p;
+		long long t;
+		float scr;
+		char *scr_t;
+
+		AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
+		for (int k=0; k<n_msgs; k++) {
+			MLOG("Response %d : Message %d : code %d : err: %s\n", i, k, msg_codes[k], msgs_errs[k]);
+		}
+
+		for (int j=0; j<n_scores; j++) {
+			AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
+			for (int k=0; k<n_msgs; k++) {
+				MLOG("Response %d : score %d : Message %d : code %d : err: %s\n", i, j, k, msg_codes[k], msgs_errs[k]);
+			}
+		}
+	}
+
 	AM_API_DisposeRequest(req);
 	AM_API_DisposeResponses(resp);
 
-	MLOG("Finished getting preds from algomarker");
+	MLOG("Finished getting preds from algomarker\n");
 	return 0;
 }
 
@@ -250,6 +291,17 @@ int debug_me(po::variables_map &vm)
 		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
 		MLOG("resp_rc = %d\n", resp_rc);
 		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
+	}
+
+
+	// print error messages
+
+	// AM level
+	int n_msgs, *msg_codes;
+	char **msgs_errs;
+	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+	for (int i=0; i<n_msgs; i++) {
+		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
 	}
 
 
@@ -358,20 +410,27 @@ int main(int argc, char *argv[])
 	}
 
 	// test results
-	int nbad = 0;
+	int nbad = 0, n_miss = 0, n_similar = 0;
 	if (res1.size() != res2.size()) {
 		MLOG("ERROR:: Didn't get the same number of tests ... %d vs %d\n", res1.size(), res2.size());
 	}
 
 	MLOG("Comparing %d scores\n", res1.size());
 	for (int i=0; i<res1.size(); i++) {
-		if (res1[i].prediction[0] != res2[i].prediction[0]) {
+
+		if (res2[i].prediction[0] == (float)AM_UNDEFINED_VALUE) {
+			n_miss++;
+		} else if (res1[i].prediction[0] != res2[i].prediction[0]) {
 			MLOG("ERROR !!!: #Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 			nbad++;
 		}
+		else
+			n_similar++;
+
 	}
 
-	MLOG(">>>>>TEST1: test DLL API batch: ");
+
+	MLOG(">>>>>TEST1: test DLL API batch: total %d : n_similar %d : n_bad %d : n_miss %d\n", res1.size(), n_similar, nbad, n_miss);
 	if (nbad == 0) MLOG("PASSED\n"); else MLOG("FAILED\n");
 
 }

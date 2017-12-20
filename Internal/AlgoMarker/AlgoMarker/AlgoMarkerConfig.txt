@@ -11,11 +11,25 @@ TYPE	MEDIAL_INFRA
 NAME	MedialES_Pre2D_1.0
 
 # repository file : to enable load of signal names and dictionaries, or optionally also data
-REPOSITORY	//nas1/Work/CancerData/Repositories/THIN/thin_mar2017/thin.repository
+REPOSITORY	../thin.repository
 
-# config file for sanity tests & filters on input data: when missing or with NONE value, no tests are done
-
-# INPUT_TESTS	MedialES_Pre2D_1.0.filters
 
 # model file for AlgoMarker
 MODEL	//nas1/Work/Users/Avi/Diabetes/order/pre2d/runs/partial/pre2d_partial_S6.model
+
+
+# config file for sanity tests & filters on input data: when missing or empty no tests are done
+
+# if a file is given it will be used, if "." is the file name, then it means this file contains also the filters definitions.
+INPUT_TESTER_CONFIG	.
+
+# each filter is in the following format:
+# FILTER	<filter type>|<filter params>|use_for_max_outliers_flag|external_rc|internal_rc|err_msg
+
+# a few examples for filters:
+TESTER_NAME	pre2d_tester
+FILTER	simple|sig=Glucose,win_from=0,win_to=730,min_NVals=1|0|310|310|Not enough Glucose tests in the last 2 years
+FILTER	simple|sig=GENDER,min_NVals=1|0|310|310|Missing GENDER
+FILTER	simple|sig=BYEAR,min_NVals=1|0|310|310|Missing BYEAR , can't estimate Age
+FILTER	simple|sig=Glucose,win_from=0,win_to=10000,min_val=10,max_val=2000,max_outliers=5|1|321|321|Too many glucose outliers
+MAX_OVERLALL_OUTLIERS	4

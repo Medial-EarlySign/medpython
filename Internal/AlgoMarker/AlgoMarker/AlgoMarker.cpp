@@ -6,6 +6,13 @@
 //-----------------------------------------------------------------------------------
 void AMMessages::get_messages(int *n_msgs, int **msgs_codes, char ***msgs_args) 
 {
+	if (need_to_update_args) {
+		args.clear();
+		for (auto &s : args_strs)
+			args.push_back((char *)s.c_str());
+		need_to_update_args = 0;
+	}
+
 	*n_msgs = get_n_msgs();
 	if (*n_msgs > 0) {
 		*msgs_codes = &codes[0];
@@ -23,7 +30,8 @@ void AMMessages::insert_message(int code, const char *arg_ch)
 	string arg = string(arg_ch);
 	codes.push_back(code); 
 	args_strs.push_back(arg); 
-	args.push_back((char *)args_strs.back().c_str()); 
+	need_to_update_args = 1;
+	//args.push_back((char *)args_strs.back().c_str()); 
 }
 
 //-----------------------------------------------------------------------------------
@@ -93,9 +101,12 @@ void AMResponses::insert_score_types(char **_score_type, int n_score_types) {
 	for (int i=0; i<n_score_types; i++) {
 		string s = string(_score_type[i]);
 		score_types_str.push_back(s);
-		score_types.push_back((char *)score_types_str.back().c_str());
 		stype2idx[s] = (int)score_types.size() - 1;
 	}
+
+	for (int i=0; i<n_score_types; i++)
+		score_types.push_back((char *)score_types_str[i].c_str());
+
 }
 
 //-----------------------------------------------------------------------------------
@@ -165,6 +176,13 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 		return AM_ERROR_LOAD_BAD_NAME;
 	}
 
+	// loading tester file if needed
+	if (input_tester_config_file != "") {
+		if (ist.read_config(input_tester_config_file) < 0) {
+			MERR("ERROR: Could not read testers config file %s\n", input_tester_config_file.c_str());
+			return AM_ERROR_LOAD_BAD_TESTERS_FILE;
+		}
+	}
 
 	// prepare internal ma for work: set name, rep and model
 	ma.set_name(get_name());
@@ -272,27 +290,70 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		}
 	}
 
+
+	// At this stage we need to create a response entry for each of the requested points
+	// Then we have to test for eligibility - err the ones that are not eligible
+	// And then score all the eligible ones in a single batch.
+	vector<int> eligible_pids, eligible_timepoints;
+
+	MedRepository &rep = ma.get_rep();
+
+	int n_bad_scores = 0;
+	for (int i=0; i<n_points; i++) {
+		int _pid = request->get_pid(i);
+		long long _ts = request->get_timestamp(i);
+
+		// create a response
+		AMResponse *res = responses->create_point_response(_pid, _ts);
+
+		// test aligibility
+		// test this point for eligibility and add errors if needed
+		InputSanityTesterResult test_res;
+		int test_rc = ist.test_if_ok(rep, _pid, _ts, test_res);
+		//MLOG("pid %d time %d test_rc %d\n", _pids[i], _times[i], test_rc);
+		if (test_rc <= 0) {
+			// add message and code to response
+			AMMessages *msgs = res->get_msgs();
+			string msg = msg_prefix + test_res.err_msg + " Internal Code: " + to_string(test_res.internal_rc);
+			msgs->insert_message(test_res.external_rc, msg.c_str());
+			n_bad_scores++;
+			//MLOG("n_bad_scores %d\n", n_bad_scores);
+		}
+		else {
+			eligible_pids.push_back(_pid);
+			eligible_timepoints.push_back((int)_ts);
+		}
+
+	}
+
+	int _n_points = (int)eligible_pids.size();
+
 	// Calculating raw scores
-	vector<int> _pids(n_points, -1), _times(n_points, -1);
-	vector<float> raw_scores(n_points, (float)AM_UNDEFINED_VALUE);
+	//vector<int> _pids(n_points, -1), _times(n_points, -1);
+	vector<float> raw_scores(_n_points, (float)AM_UNDEFINED_VALUE);
 
 	int get_preds_rc;
-	if ((get_preds_rc = ma.get_raw_preds(&_pids[0], &_times[0], &raw_scores[0])) < 0) {
+	if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], &raw_scores[0], _n_points)) < 0) {
 		string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
 		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 		return AM_FAIL_RC;
 	}
 
 
-	// Reporting back and building responses
-	// going over raw scores, and for each create a response
+	// going over scores, and adding them to the right responses
 	char **_score_types;
 	int _n_score_types;
 	responses->get_score_types(&_n_score_types, &_score_types);
-	for (int i=0; i<n_points; i++) {
+
+
+	for (int i=0; i<_n_points; i++) {
 
 		// create a response
-		AMResponse *res = responses->create_point_response(_pids[i], (long long)_times[i]);
+		AMResponse *res = responses->get_response_by_point(eligible_pids[i], (long long)eligible_timepoints[i]);
+
+		if (res == NULL) {
+			// TBD
+		}
 
 		//res->set_score_types((*responses)->get_score_type_vec_ptr());
 		res->init_scores(_n_score_types);
@@ -301,14 +362,29 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 			if (strcmp(_score_types[j], "Raw") == 0) {
 				res->set_score(j, raw_scores[i], _score_types[j]);
-			}
-			else
+
+			} else {
 				res->set_score(j, (float)AM_UNDEFINED_VALUE, _score_types[j]);
+				AMScore *am_scr = res->get_am_score(j);
+				AMMessages *msgs = am_scr->get_msgs();
+				string msg = msg_prefix + "Undefined Score Type: " + string(_score_types[j]) ;
+				msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
+			}
 
 		}
 
 	}
 
+	if (n_bad_scores > 0) {
+		string msg = msg_prefix + "Failed input tests for " + to_string(n_bad_scores) + " out of " + to_string(n_points) + " scores";
+		if (n_bad_scores < n_points) {
+			shared_msgs->insert_message(AM_GENERAL_NON_FATAL, msg.c_str());
+			return AM_OK_RC;
+		}
+		
+		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
+		return AM_FAIL_RC;
+	}
 
 	return AM_OK_RC;
 }
@@ -341,6 +417,7 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				if (fields[0] == "TYPE") type_in_config_file = fields[1];
 				else if (fields[0] == "REPOSITORY") rep_fname = fields[1];
 				else if (fields[0] == "MODEL") model_fname = fields[1];
+				else if (fields[0] == "INPUT_TESTER_CONFIG") input_tester_config_file = fields[1];
 				else if (fields[0] == "NAME")  set_name(fields[1].c_str());
 			}
 		}
@@ -356,6 +433,15 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 		// relative path
 		model_fname = dir + "/" + model_fname;
 	}
+
+	if (input_tester_config_file == ".") {
+		input_tester_config_file = conf_f;  // option to use the general config file as the file to config the tester as well.
+	} 
+	else if (input_tester_config_file != "" && input_tester_config_file[0] != '/' && input_tester_config_file[0] != '\\') {
+		// relative path
+		input_tester_config_file = dir + "/" + input_tester_config_file;
+	}
+
 
 	return AM_OK_RC;
 }
@@ -674,6 +760,24 @@ int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *p
 //-----------------------------------------------------------------------------------------------------------
 // get all messages for a specific response given its index
 //-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args)
+{
+	try {
+		if (response == NULL)
+			return AM_FAIL_RC;
+
+		response->get_msgs()->get_messages(n_msgs, msgs_codes, msgs_args);
+		return AM_OK_RC;
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// get all messages for a specific response given its index
+//-----------------------------------------------------------------------------------------------------------
 int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args)
 {
 	try {
@@ -683,7 +787,7 @@ int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, 
 		if (score_index < 0 || score_index >= response->get_n_scores())
 			return AM_FAIL_RC;
 
-		response->get_msgs(score_index)->get_messages(n_msgs, msgs_codes, msgs_args);
+		response->get_score_msgs(score_index)->get_messages(n_msgs, msgs_codes, msgs_args);
 		return AM_OK_RC;
 	}
 	catch (...) {
