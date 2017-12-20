@@ -69,7 +69,7 @@ string printVec(const vector<float> &v, int from, int to) {
 random_device Lazy_Iterator::rd;
 
 Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
-	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops) {
+	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed) {
 	sample_per_pid = p_sample_per_pid;
 	//sample_ratio = p_sample_ratio;
 	sample_ratio = 1.0; //no support for smaller size for now - need to fix Std for smaller sizes
@@ -112,7 +112,10 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	//init:
 	rd_gen.resize(maxThreadCount);
 	for (size_t i = 0; i < maxThreadCount; ++i)
-		rd_gen[i] = mt19937(rd());
+		if (seed == 0) 
+			rd_gen[i] = mt19937(rd());
+		else
+			rd_gen[i] = mt19937(seed);
 	rand_pids = uniform_int_distribution<>(0, (int)pid_index_to_indexes.size() - 1);
 	internal_random.resize(max_samples + 1);
 	for (int i = 1; i <= max_samples; ++i)
@@ -213,6 +216,99 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 	return string(res);
 }
 
+template<typename T> inline int binary_search_position(const T *begin, const T *end, T val, bool reversed = false) {
+	int maxSize = (int)(end - begin) + 1;
+	int mid = int((maxSize - 1) / 2);
+	if (maxSize <= 2) {
+		if (!reversed) {
+			if (val <= *begin) {
+				return 0;
+			}
+			else if (val <= *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+		else {
+			if (val >= *begin) {
+				return 0;
+			}
+			else if (val >= *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+	}
+
+	if (!reversed) {
+		if (val <= begin[mid]) {
+			return binary_search_position(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position(begin + mid, end, val, reversed);
+		}
+	}
+	else {
+		if (val >= begin[mid]) {
+			return binary_search_position(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position(begin + mid, end, val, reversed);
+		}
+	}
+}
+
+template<typename T> inline int binary_search_position_last(const T *begin, const T *end, T val, bool reversed = false) {
+	int maxSize = (int)(end - begin) + 1;
+	int mid = int((maxSize - 1) / 2);
+	if (maxSize <= 2) {
+		if (!reversed) {
+			if (val < *begin) {
+				return 0;
+			}
+			else if (val < *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+		else {
+			if (val > *begin) {
+				return 0;
+			}
+			else if (val > *end) {
+				return 1;
+			}
+			else {
+				return maxSize;
+			}
+		}
+	}
+
+	if (!reversed) {
+		if (val < begin[mid]) {
+			return binary_search_position_last(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position_last(begin + mid, end, val, reversed);
+		}
+	}
+	else {
+		if (val > begin[mid]) {
+			return binary_search_position_last(begin, begin + mid, val, reversed);
+		}
+		else {
+			return mid + binary_search_position_last(begin + mid, end, val, reversed);
+		}
+	}
+}
+
+
 #pragma endregion
 
 int get_checksum(const vector<int> &pids) {
@@ -227,7 +323,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	const vector<MeasurementFunctions> &meas_functions, const vector<void *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
-	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params) {
+	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params, int seed = 0) {
 	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
@@ -240,9 +336,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 #ifdef USE_MIN_THREADS
-	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_max_threads()); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_max_threads(), seed); //for Obs
 #else
-	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1, seed); //for Obs
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
@@ -300,8 +396,14 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	else {
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = true;
-		random_device rd;
-		mt19937 rd_gen(rd());
+
+		mt19937 rd_gen;
+		if (seed > 0)
+			rd_gen = mt19937(seed);
+		else {
+			random_device rd;
+			rd_gen = mt19937(rd());
+		}
 		unordered_map<int, vector<int>> pid_to_inds;
 		for (size_t i = 0; i < pids.size(); ++i)
 			pid_to_inds[pids[i]].push_back(int(i));
@@ -349,10 +451,20 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 
 				iterator.set_static(&selected_y, &selected_preds, i);
-
+#ifdef USE_MIN_THREADS
+				int th_num = omp_get_thread_num();
+#else
+				int th_num = i;
+#endif
 				for (size_t k = 0; k < meas_functions.size(); ++k)
 				{
 					map<string, float> batch_measures;
+#ifdef USE_MIN_THREADS
+					iterator.restart_iterator(th_num);
+#else
+					if (k > 0)
+						iterator.restart_iterator(th_num);
+#endif
 					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
 #pragma omp critical
 					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
@@ -392,10 +504,21 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 
 				iterator.set_static(&selected_y, &selected_preds, i);
+#ifdef USE_MIN_THREADS
+				int th_num = omp_get_thread_num();
+#else
+				int th_num = i;
+#endif
 				//calc measures for sample:
 				for (size_t k = 0; k < meas_functions.size(); ++k)
 				{
 					map<string, float> batch_measures;
+#ifdef USE_MIN_THREADS
+					iterator.restart_iterator(th_num);
+#else
+					if (k > 0)
+						iterator.restart_iterator(th_num);
+#endif
 					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
 #pragma omp critical
 					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
@@ -439,7 +562,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	, const vector<MeasurementFunctions> &meas_functions, const map<string, void *> *cohort_params,
 	const vector<void *> *function_params, ProcessMeasurementParamFunc process_measurments_params,
 	PreprocessScoresFunc preprocess_scores, void *preprocess_scores_params, float sample_ratio, int sample_per_pid,
-	int loopCnt, bool binary_outcome) {
+	int loopCnt, int seed, bool binary_outcome) {
 #if defined(__unix__)
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
@@ -506,7 +629,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, it->second, c_params);
+			process_measurments_params, additional_info, y, pids, it->second, c_params, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 	}
@@ -646,6 +769,7 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void 
 	float y, pred;
 	while (iterator->fetch_next(thread_num, y, pred))
 		cnts[y] += 1;
+	cnts[y] += 1; //last one
 
 	res["NPOS"] = (float)cnts[(float)1.0];
 	res["NNEG"] = (float)cnts[(float)0];
@@ -666,6 +790,10 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *
 		tot_true_labels += int(y > 0);
 		++tot_cnt;
 	}
+	//last one
+	pred_to_labels[pred].push_back(y);
+	tot_true_labels += int(y > 0);
+	++tot_cnt;
 
 	int tot_false_labels = tot_cnt - tot_true_labels;
 	if (tot_true_labels == 0 || tot_false_labels == 0)
@@ -711,6 +839,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	map<string, float> res;
 	int max_qunt_vals = 10;
 	bool censor_removed = true;
+	bool trunc_max = false;
 
 	ROC_Params *params = (ROC_Params *)function_params;
 	float max_diff_in_wp = params->max_diff_working_point;
@@ -734,6 +863,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	float y, pred;
 	while (iterator->fetch_next(thread_num, y, pred))
 		thresholds_labels[pred].push_back(y);
+	thresholds_labels[pred].push_back(y); //last one
 
 	unique_scores.resize((int)thresholds_labels.size());
 	int ind_p = 0;
@@ -745,7 +875,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	sort(unique_scores.begin(), unique_scores.end());
 
 	//calc measures on each bucket of scores as possible threshold:
-	double t_sum = 0, f_sum = 0;
+	double t_sum = 0, f_sum = 0, tt_cnt = 0;
 	int f_cnt = 0;
 	int t_cnt = 0;
 	vector<float> true_rate((int)unique_scores.size());
@@ -758,6 +888,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		{
 			float true_label = params->fix_label_to_binary ? y > 0 : y;
 			t_sum += true_label;
+			tt_cnt += true_label > 0 ? true_label : 0;
 			if (!censor_removed)
 				f_sum += (1 - true_label);
 			else
@@ -774,7 +905,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		return res;
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
-		true_rate[i] /= float(t_sum);
+		true_rate[i] /= float(!trunc_max ? t_sum : tt_cnt);
 		false_rate[i] /= float(f_sum);
 	}
 	//calc maesures based on true_rate and false_rate
@@ -1277,6 +1408,53 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	return res;
 }
 
+map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params) {
+	map<string, float> res;
+
+	double tau = 0, cnt = 0;
+	float y, pred;
+	//vector<float> scores, labels;
+	unordered_map<float, vector<float>> label_to_scores;
+	while (iterator->fetch_next(thread_num, y, pred))
+		label_to_scores[y].push_back(pred);
+	label_to_scores[y].push_back(pred);// last one
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+		sort(it->second.begin(), it->second.end());
+
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+	{
+		auto bg = it;
+		++bg;
+		vector<float> *preds = &it->second;
+		int pred_i_bigger;
+		double pred_i_smaller;
+		for (auto jt = bg; jt != label_to_scores.end(); ++jt)
+		{
+			vector<float> *preds_comp = &jt->second;
+			double p_size = (double)preds_comp->size();
+			for (float pred : *preds)
+			{
+				pred_i_bigger = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				pred_i_smaller = p_size - binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				if (it->first > jt->first)
+					//tau += pred_i_bigger;
+					tau += pred_i_bigger - pred_i_smaller;
+				else
+					//tau += pred_i_smaller;
+					tau += pred_i_smaller - pred_i_bigger;
+			}
+			cnt += p_size * preds->size();
+		}
+	}
+
+	if (cnt > 1) {
+		tau /= cnt;
+		res["Kendall-Tau"] = (float)tau;
+	}
+
+	return res;
+}
+
 #pragma endregion
 
 #pragma region Cohort Fucntions
@@ -1483,10 +1661,15 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
 	if (params.score_bins == 0 && bin_size_last < 10)
-		MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
-			" is highly quantitize(%d). try canceling preprocess_score by "
-			"score_resolution, score_bins. Will use score working points\n",
-			bin_size_last);
+		if (params.score_resolution != 0)
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). try canceling preprocess_score by "
+				"score_resolution, score_bins. Will use score working points\n",
+				bin_size_last);
+		else
+			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
+				" is highly quantitize(%d). Will use score working points\n",
+				bin_size_last);
 
 	if (params.score_bins > 0 && bin_size_last > params.score_bins) {
 		int c = 0;
@@ -1555,11 +1738,11 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 		if (u_scores.size() < 10) {
 			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
 				" is highly quantitize(%d). try canceling preprocess_score by "
-				"score_resolution, score_bins. Will use score working points\n", 
+				"score_resolution, score_bins. Will use score working points\n",
 				(int)u_scores.size());
 		}
 	}
-	
+
 	MLOG_D("Preprocess_bin_scores Done!\n");
 }
 #pragma endregion

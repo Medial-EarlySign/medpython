@@ -53,6 +53,7 @@ MedBootstrap::MedBootstrap()
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
 	sample_patient_label = false;
+	sample_seed = 0;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 }
@@ -61,6 +62,7 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
 	sample_patient_label = false;
+	sample_seed = 0;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 
@@ -84,6 +86,8 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 			sample_per_pid = stoi(param_value);
 		else if (param_name == "loopcnt")
 			loopCnt = stoi(param_value);
+		else if (param_name == "sample_seed")
+			sample_seed = stoi(param_value);
 		else if (param_name == "sample_patient_label")
 			sample_patient_label = stoi(param_value) > 0;
 		else if (param_name == "roc_params")
@@ -101,14 +105,28 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	const map<string, vector<float>> &additional_info) {
 
 	map<string, FilterCohortFunc> cohorts;
-	vector<MeasurementFunctions> measures = { calc_roc_measures_with_inc };
 	map<string, void *> cohort_params;
-	vector<void *> measurements_params = { (void *)&roc_Params };
+	if (measurements_with_params.empty()) { //if not touched(than empty) - this is the default!
+		measurements_with_params.resize(1);
+		measurements_with_params[0] = pair<MeasurementFunctions, void*>(calc_roc_measures_with_inc, &roc_Params);
+	}
+	vector<MeasurementFunctions> measures((int)measurements_with_params.size());
+	vector<void *> measurements_params((int)measurements_with_params.size());
+	for (size_t i = 0; i < measurements_with_params.size(); ++i)
+	{
+		measures[i] = measurements_with_params[i].first;
+		measurements_params[i] = measurements_with_params[i].second;
+	}
 
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
 		cohorts[it->first] = filter_range_params;
 		cohort_params[it->first] = (void *)&it->second;
 	}
+	for (auto it = additional_cohorts.begin(); it != additional_cohorts.end(); ++it)
+		if (cohorts.find(it->first) == cohorts.end())
+			cohorts[it->first] = it->second;
+		else
+			MWARN("Cohort \"%s\" name already exists - skip additional\n");
 
 	vector<int> new_ids((int)pids.size());
 	if (sample_patient_label)
@@ -121,7 +139,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	}
 	return booststrap_analyze(preds, y, pids, additional_info, cohorts,
 		measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
+		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
 }
 
 bool MedBootstrap::use_time_window() {
