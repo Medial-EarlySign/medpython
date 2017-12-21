@@ -67,4 +67,12 @@ string createCsvFile(map<float, float> data);
 //returns a csv string content of all features with header name for each feature to save in csv format
 string createCsvFile(vector<vector<float>> &data, const vector<string> &headers);
 
+void down_sample_graph(map<float, float> &points, int points_count = 10000);
+extern vector<bool> empty_bool_arr;
+void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
+	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
+	vector<bool> &indexes = empty_bool_arr);
+void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
+	string baseOut, vector<bool> &indexes = empty_bool_arr);
+
 #endif

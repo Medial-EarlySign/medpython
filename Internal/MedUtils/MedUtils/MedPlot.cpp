@@ -2,7 +2,9 @@
 #include <fstream>
 #include <ctime>
 #include <iostream>
+#include <algorithm>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 
 #ifdef _WIN32
 //define something for Windows
@@ -355,3 +357,158 @@ string createCsvFile(vector<vector<float>> &data, const vector<string> &headers)
 
 	return out;
 }
+
+vector<bool> empty_bool_arr;
+void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
+	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
+	vector<bool> &indexes) {
+	map<float, vector<int>> pred_indexes;
+	double tot_true_labels = 0;
+	if (indexes.empty())
+		indexes.resize(y.size(), true);
+	double tot_obj = 0;
+	for (size_t i = 0; i < preds.size(); ++i)
+		if (indexes[i]) {
+			pred_indexes[preds[i]].push_back((int)i);
+			tot_true_labels += y[i];
+			++tot_obj;
+		}
+	double tot_false_labels = tot_obj - tot_true_labels;
+	pred_threshold = vector<float>((int)pred_indexes.size());
+	map<float, vector<int>>::iterator it = pred_indexes.begin();
+	for (size_t i = 0; i < pred_threshold.size(); ++i)
+	{
+		pred_threshold[i] = it->first;
+		++it;
+	}
+	sort(pred_threshold.begin(), pred_threshold.end());
+	//From up to down sort:
+	double t_cnt = 0;
+	double f_cnt = 0;
+	true_rate = vector<float>((int)pred_indexes.size());
+	false_rate = vector<float>((int)pred_indexes.size());
+	ppv = vector<float>((int)pred_indexes.size());
+	for (int i = (int)pred_threshold.size() - 1; i >= 0; --i)
+	{
+		vector<int> indexes = pred_indexes[pred_threshold[i]];
+		//calc AUC status for this step:
+		for (int ind : indexes)
+		{
+			float true_label = y[ind];
+			t_cnt += true_label;
+			f_cnt += (1 - true_label);
+		}
+		true_rate[i] = float(t_cnt / tot_true_labels);
+		false_rate[i] = float(f_cnt / tot_false_labels);
+		ppv[i] = float(t_cnt / (t_cnt + f_cnt));
+	}
+}
+void down_sample_graph(map<float, float> &points, int points_count) {
+	if (points_count == 0 || points_count >= points.size())
+		return;
+	//linear interpolate points to points_count sample count:
+	vector<pair<float, float>> xy((int)points.size());
+	int i = 0;
+	for (auto it = points.begin(); it != points.end(); ++it)
+	{
+		xy[i] = pair<float, float>(it->first, it->second);
+		++i;
+	}
+	sort(xy.begin(), xy.end()); //should be already sorted - it's map
+	double jmp_size = double(xy.size() - 1) / (points_count - 1);
+	points.clear();
+	for (size_t j = 0; j < points_count; ++j)
+	{
+		double newPos = j * jmp_size;
+		//find interpolation of 2 close integers:
+		int basePos = (int)newPos;
+		int endPos = basePos + 1;
+		double beforeFactor = 1 - (newPos - basePos);
+		double afterFactor = 1 - ((basePos + 1) - newPos);
+		if (endPos >= xy.size()) {
+			endPos = (int)xy.size() - 1;
+			beforeFactor = 1;
+			afterFactor = 0;
+		}
+		if (basePos >= xy.size()) {
+			basePos = (int)xy.size() - 1;
+			beforeFactor = 1;
+			afterFactor = 0;
+		}
+		double interp_y = beforeFactor * xy[basePos].second + afterFactor* xy[endPos].second;
+		double interp_x = beforeFactor * xy[basePos].first + afterFactor* xy[endPos].first;
+		points[(float)interp_x] = (float)interp_y;
+	}
+}
+
+void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
+	string baseOut, vector<bool> &indexes) {
+	vector<float> pred_threshold;
+	vector<float> true_rate;
+	vector<float> false_rate;
+	vector<float> ppv;
+	if (indexes.empty())
+		indexes.resize(y.size(), true);
+	boost::filesystem::create_directories(baseOut.data());
+	vector<map<float, float>> allData;
+	vector<map<float, float>> allPPV;
+	vector<double> auc((int)all_preds.size());
+	for (size_t i = 0; i < all_preds.size(); ++i)
+	{
+		vector<float> preds = all_preds[i];
+		get_ROC_working_points(preds, y, pred_threshold, true_rate, false_rate, ppv, indexes);
+		map<float, float> false_true;
+		map<float, float> th_false;
+		map<float, float> false_ppv;
+		map<float, float> xy;
+		for (size_t k = 0; k < true_rate.size(); ++k)
+		{
+			false_true[100 * false_rate[k]] = 100 * true_rate[k];
+			th_false[pred_threshold[k]] = 100 * false_rate[k];
+			false_ppv[100 * false_rate[k]] = 100 * ppv[k];
+			if (i == 0) {
+				xy[100 * false_rate[k]] = 100 * false_rate[k];
+			}
+		}
+		auc[i] = false_rate.back() * true_rate.back() / 2; //"auc" - saved in reversed order from smallest score to highest score)
+		for (int k = (int)true_rate.size() - 1; k > 0; --k)
+			auc[i] += (false_rate[k - 1] - false_rate[k]) * (true_rate[k - 1] + true_rate[k]) / 2;
+
+
+		if (i == 0) {
+			down_sample_graph(xy);
+			allData.push_back(xy);
+		}
+		down_sample_graph(false_true);
+		down_sample_graph(false_ppv);
+		allData.push_back(false_true);
+		allPPV.push_back(false_ppv);
+		vector<map<float, float>> model_false_scores;
+		down_sample_graph(th_false);
+		model_false_scores.push_back(th_false);
+		createHtmlGraph(baseOut + separator() + modelNames[i] + "_False_Thresholds.html", model_false_scores,
+			"False rate as function of thresholds", "Prediction Threshold score value", "False Positive Rate");
+	}
+	vector<string> data_titles(modelNames);
+	//append Auc to titles
+	char buff[200];
+	for (size_t i = 0; i < data_titles.size(); i++) {
+		snprintf(buff, sizeof(buff), "%s (AUC=%1.3f)", data_titles[i].c_str(), auc[i]);
+		data_titles[i] = string(buff);
+	}
+	data_titles.insert(data_titles.begin(), "x=y reference");
+	createHtmlGraph(baseOut + separator() + "ROC.html", allData, "ROC curve", "False Positive Rate",
+		"True Positive Rate", data_titles);
+	data_titles = vector<string>(modelNames);
+	createHtmlGraph(baseOut + separator() + "PPV.html", allPPV, "PPV curve", "False Positive Rate",
+		"Positive Predictive Value", data_titles);
+	allData.clear();
+	vector<float> filt_y;
+	for (size_t i = 0; i < y.size(); ++i)
+		if (indexes[i])
+			filt_y.push_back(y[i]);
+	allData.push_back(BuildHist(filt_y));
+	createHtmlGraph(baseOut + separator() + "y_labels.html", allData, "Y Labels", "Y",
+		"Count", {}, 0, "pie");
+}
+
