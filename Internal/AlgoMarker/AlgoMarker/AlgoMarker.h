@@ -331,19 +331,38 @@ extern "C" DLL_WORK_MODE int AM_API_CreateResponses(AMResponses **new_responses)
 // Get scores for a ready request
 extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
 
-// exploring responses
+// get Responses num
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
+
+// get messages shared for all responses
 extern "C" DLL_WORK_MODE int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
+
+// get a response at a specific index
 extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp);
 
+// get the request id that was used to create a responses object
+extern "C" DLL_WORK_MODE int AM_API_GetResponsesRequestId(AMResponses *responses, char **requestId);
+
+// get a score from responses given the response index and the type of the score
+extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
+
+// get a response at a certain index in responses
 extern "C" DLL_WORK_MODE int AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response);
+
+// get number of different scores in a response
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *scores, char **_score_type);
+
+// get response score at a given score_index, returns pid, ts, score, and score_type
+extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *score, char **_score_type);
+
+// get messages for a response : messages that are score independent (such as raw eligibility tests)
 extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
+
+// get score messages for a specific score index
 extern "C" DLL_WORK_MODE int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 
-extern "C" DLL_WORK_MODE int AM_API_GetResponsesRequestId(AMResponses *responses, char **requestId);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
+// get pid and timepoint of a response 
+extern "C" DLL_WORK_MODE int AM_API_GetResponsePoint(AMResponse *response, int *pid, long long *timestamp);
 
 // get the name of an algomarker
 extern "C" DLL_WORK_MODE int AM_API_GetName(AlgoMarker *pAlgoMArker, char **name);

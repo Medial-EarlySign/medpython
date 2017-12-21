@@ -154,6 +154,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		//MLOG("resp_rc = %d\n", resp_rc);
 		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 		
+		AM_API_GetResponsePoint(response, &pid, &ts);
 		MedSample s;
 		s.id = pid;
 		s.time = (int)ts;
