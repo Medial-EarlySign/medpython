@@ -353,7 +353,7 @@ extern "C" DLL_WORK_MODE int AM_API_GetResponseAtIndex(AMResponses *responses, i
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
 
 // get response score at a given score_index, returns pid, ts, score, and score_type
-extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *score, char **_score_type);
+extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *score, char **_score_type);
 
 // get messages for a response : messages that are score independent (such as raw eligibility tests)
 extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);

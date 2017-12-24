@@ -735,7 +735,7 @@ int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores)
 //-----------------------------------------------------------------------------------------------------------
 // given a score index , return all we need about it : pid , timestamp, score and score type
 //-----------------------------------------------------------------------------------------------------------
-int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *_score, char **_score_type)
+int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *_score, char **_score_type)
 {
 	try {
 		if (response == NULL)
@@ -744,8 +744,6 @@ int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *p
 		if (score_index < 0 || score_index >= response->get_n_scores())
 			return AM_FAIL_RC;
 
-		*pid = response->get_patient_id();
-		*timestamp = response->get_timestamp();
 		if (response->get_score(score_index, _score, _score_type) != AM_OK_RC)
 			return AM_FAIL_RC;
 

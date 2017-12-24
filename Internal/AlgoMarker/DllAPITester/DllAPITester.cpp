@@ -159,11 +159,11 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		s.id = pid;
 		s.time = (int)ts;
 		if (resp_rc == AM_OK_RC && n_scores > 0) {
-			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
+			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 			s.prediction.push_back(_scr);
 		}
 		else {
-			s.prediction.push_back(AM_UNDEFINED_VALUE);
+			s.prediction.push_back((float)AM_UNDEFINED_VALUE);
 		}
 		res.push_back(s);
 	}
@@ -186,10 +186,6 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		AM_API_GetResponseAtIndex(resp, i, &r);
 		int n_scores;
 		AM_API_GetResponseScoresNum(r, &n_scores);
-		int p;
-		long long t;
-		float scr;
-		char *scr_t;
 
 		AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
 		for (int k=0; k<n_msgs; k++) {
@@ -289,7 +285,8 @@ int debug_me(po::variables_map &vm)
 		MLOG("Getting response no. %d\n", i);
 
 		AM_API_GetResponseAtIndex(resp, i, &response);
-		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
+		AM_API_GetResponsePoint(response, &pid, &ts);
+		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 		MLOG("resp_rc = %d\n", resp_rc);
 		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
 	}
