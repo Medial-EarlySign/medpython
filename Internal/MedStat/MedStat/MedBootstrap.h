@@ -66,9 +66,9 @@ public:
 	MedBootstrap bootstrap_params;
 	map<string, map<string, float>> bootstrap_results;
 
-	void bootstrap(MedFeatures &features);
-	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info);
-	void bootstrap(MedSamples &samples, const string &rep_path);
+	void bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	void bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 
 	void find_working_points(const map<string, float> &bootstrap_cohort,
 		vector<float> &sens_points, vector<float> &pr_points);
