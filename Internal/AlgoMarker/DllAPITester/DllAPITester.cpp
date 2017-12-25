@@ -109,7 +109,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 			}
 		}
 
-
+	MLOG("After AddData for all batch\n");
 	// finish rep loading 
 	char *stypes[] ={ "Raw" };
 	vector<int> _pids;
@@ -118,7 +118,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	samples.export_to_sample_vec(_vsamp);
 	for (auto &s : _vsamp) {
 		_pids.push_back(s.id);
-		_timestamps.push_back(s.time);
+		_timestamps.push_back((long long)s.time*10000 + 1010);
 	}
 
 	//MLOG("Before CreateRequest\n");
@@ -130,7 +130,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	AMResponses *resp;
 
 	// calculate scores
-	//MLOG("Before Calculate\n");
+	MLOG("Before Calculate\n");
 	AM_API_CreateResponses(&resp);
 	int calc_rc = AM_API_Calculate(am, req, resp);
 	//MLOG("After Calculate: rc = %d\n", calc_rc);
@@ -157,7 +157,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		AM_API_GetResponsePoint(response, &pid, &ts);
 		MedSample s;
 		s.id = pid;
-		s.time = (int)ts;
+		s.time = (int)(ts/10000);
 		if (resp_rc == AM_OK_RC && n_scores > 0) {
 			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 			s.prediction.push_back(_scr);

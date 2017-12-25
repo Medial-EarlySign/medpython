@@ -53,9 +53,12 @@ public:
 	int pid = -1;
 	long long timestamp = -1;
 
-	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp; }
+	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp;}
 	
 	void clear() { pid = -1; timestamp = -1; }
+
+	// auto time convertor helper function
+	static int auto_time_convert(long long ts, int to_format);
 };
 
 //-------------------------------------------------------------------------------
@@ -238,6 +241,7 @@ private:
 	string name = "";
 	string config_fname = "";
 	vector<string> supported_score_types;
+	int time_unit = MedTime::Date; // typically Date (for outpatient) or Minutes (for in patients)
 
 public:
 
@@ -257,12 +261,14 @@ public:
 	int get_type() { return (int)type; }
 	char *get_name() { return  (char *)name.c_str(); }
 	char *get_config() { return (char *)config_fname.c_str(); }
+	int get_time_unit() { return time_unit; }
 
 	// set things
 	void set_type(int _type) { type = (AlgoMarkerType)_type; }
 	void set_name(const char *_name) { name = string(_name); }
 	void set_config(const char *_config_f) { config_fname = string(_config_f); }
 	void add_supported_stype(const char *stype) { supported_score_types.push_back(string(stype)); }
+	void set_time_unit(int tu) { time_unit = tu; }
 
 	// get a new AlgoMarker
 	static AlgoMarker *make_algomarker(AlgoMarkerType am_type);
