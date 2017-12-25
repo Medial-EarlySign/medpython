@@ -21,9 +21,11 @@ public:
 	int type = (int)INPUT_TESTER_TYPE_UNDEFINED;
 
 	// return code and messages to return in case of not passing the test
-	int externl_rc;	 // rcs -1 and 0 are reserved 
-	int internal_rc; // rcs -1 and 0 are reserved 
-	string err_msg;
+	int externl_rc = 0;	 // rcs -1 and 0 are reserved 
+	int internal_rc = 0; // rcs -1 and 0 are reserved 
+	string err_msg = "";
+
+	int max_outliers_flag = 0; // use or not use the tester to accumulate outliers counts
 
 	string tester_params; // params for the internal tester
 
@@ -43,8 +45,8 @@ public:
 	}
 
 	// get a new InputTester
-	static InputTester *make_input_tester(InputTesterType it_type);
-	static InputTesterType name_to_input_tester_type(const string &name);
+	static InputTester *make_input_tester(int it_type);
+	static int name_to_input_tester_type(const string &name);
 };
 //==============================================================================================================
 
@@ -70,13 +72,18 @@ public:
 };
 //==============================================================================================================
 
+struct InputSanityTesterResult {
+	int external_rc = 0;
+	int internal_rc = 0;
+	string err_msg = "";
+};
 //==============================================================================================================
 // InputSanityTester : able to read a config file containing several tests and test them.
 // Format of config file:
 // # comment lines start with #
 // NAME <name of tester : for debug prints, etc>
 // # each filter defined using:
-// FILTER	<filter type>|<filter params>|external_rc|internal_rc|err_msg
+// FILTER	<filter type>|<filter params>|use_for_max_outliers_flag|external_rc|internal_rc|err_msg
 // # max_overall_outliers config
 // MAX_OVERALL_OUTLIERS	<number>
 //==============================================================================================================
@@ -91,12 +98,12 @@ public:
 	~InputSanityTester() { clear(); }
 
 	int read_config(const string &f_conf);
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers); // tests and stops at first cardinal failed test
+	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, InputSanityTesterResult &res); // tests and stops at first cardinal failed test
 
 	 // tests and stops at first cardinal failed test 
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp) {
+	int test_if_ok(MedRepository &rep, int pid, long long timestamp, InputSanityTesterResult &res) {
 		int nvals, noutliers;
-		return test_if_ok(rep, pid, timestamp, nvals, noutliers);
+		return test_if_ok(rep, pid, timestamp, nvals, noutliers, res);
 	}
 
 	void clear() {

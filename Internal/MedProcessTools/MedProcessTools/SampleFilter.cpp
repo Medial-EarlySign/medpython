@@ -1049,7 +1049,7 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 //.......................................................................................
 int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &nvals, int &noutliers)
 {
-	MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+	//MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
 	if (sig_id < 0)
 		sig_id = rep.sigs.sid(sig_name);
 	if (sig_id < 0)
@@ -1059,7 +1059,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 
 	rep.uget(sample.id, sig_id, usv);
 	//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
-	MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
+	//MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
 
 	nvals = 0;
 	noutliers = 0;
@@ -1088,14 +1088,14 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			int i_time = usv.Time(i, time_channel);
 			int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
 			int dtime = ref_time - i_time_converted;
-			MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+			//MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
 			if (dtime < win_from) break;
 			if (dtime <= win_to) {
 				nvals++;
 				// in relevant time window, checking the value range
 				float i_val = usv.Val(i, val_channel);
 				if (i_val < min_val || i_val > max_val) noutliers++;
-				MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
+				//MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
 			}
 
 		}
