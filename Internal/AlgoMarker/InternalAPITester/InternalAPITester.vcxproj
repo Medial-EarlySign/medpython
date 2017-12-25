@@ -152,6 +152,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(MR_LIBS)\Internal\AlgoMarker\x64\ReleaseDLL;$(MR_LIBS)\$(Platform)\$(Configuration);$(BOOST_HOME)\stage\lib;$(MR_SHARED_LIBS)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Logger.lib;InfraMed.lib;MedStat.lib;MedFeat.lib;MedUtils.lib;MedAlgo.lib;MedProcessTools.lib;QRF.lib;Mars.lib;gbm.lib;micNet.lib;xgboost.lib;rabit.lib;dmlc.lib;MedTime.lib;lightgbm.lib;AlgoMarker.lib;vw_dynamic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|x64'">

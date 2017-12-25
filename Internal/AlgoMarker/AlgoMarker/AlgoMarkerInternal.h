@@ -37,7 +37,20 @@ public:
 	void set_name(const char *_name) { name = string(_name); }
 
 	// init repository config
-	int init_rep_config(const char *config_fname) { if (rep.MedRepository::init(string(config_fname)) < 0) return -1; rep.switch_to_in_mem_mode(); return 0; }
+	int init_rep_config(const char *config_fname) { 
+		if (rep.MedRepository::init(string(config_fname)) < 0) return -1; 
+		rep.switch_to_in_mem_mode();
+
+		return 0; 
+	}
+
+	// set time_unit env for repositories and models
+	int set_time_unit_env(int time_unit) {
+		if (time_unit == MedTime::Date)
+			med_rep_type.setRepositoryType(REP_TYPE_GP);
+		else
+			med_rep_type.setRepositoryType(REP_TYPE_HOSPITAL);
+	}
 
 	// init pids
 	void set_pids(int *_pids, int npids) { pids.clear(); pids.assign(_pids, _pids + npids); }

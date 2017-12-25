@@ -13,6 +13,8 @@ NAME	MedialES_Pre2D_1.0
 # repository file : to enable load of signal names and dictionaries, or optionally also data
 REPOSITORY	../thin.repository
 
+# repository time unit (optional: default is Date), typically Date for outpatient , Minutes for inpatients
+TIME_UNIT	Date
 
 # model file for AlgoMarker
 MODEL	//nas1/Work/Users/Avi/Diabetes/order/pre2d/runs/partial/pre2d_partial_S6.model
