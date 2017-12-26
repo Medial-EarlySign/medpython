@@ -186,6 +186,8 @@
   <ItemGroup>
     <ClCompile Include="AlgoMarker.cpp" />
     <ClCompile Include="AlgoMarkerInternal.cpp" />
+    <ClCompile Include="MedialInfra_AM.cpp" />
+    <ClCompile Include="SimpleExampleEGFR_AM.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="AlgoMarkerConfig.txt" />

@@ -41,7 +41,8 @@
 
 typedef enum {
 	AM_TYPE_UNDEFINED = 0,
-	AM_TYPE_MEDIAL_INFRA = 1
+	AM_TYPE_MEDIAL_INFRA = 1,
+	AM_TYPE_SIMPLE_EXAMPLE_EGFR = 2,
 } AlgoMarkerType;
 
 
@@ -302,6 +303,30 @@ public:
 	int Load(const char *config_f);
 	int Unload();
 	int ClearData();
+	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
+	int Calculate(AMRequest *request, AMResponses *responses);
+
+};
+
+//===============================================================================
+// SimpleExampleEGFRAlgoMarker - the simplest example for a different AM
+//===============================================================================
+extern "C" class DLL_WORK_MODE SimpleExampleEGFRAlgoMarker : public AlgoMarker {
+
+private:
+
+	// inputs for egfr
+	float age = -1, gender = -1, creatinine = -1;
+	int ethnicity = 0;
+
+	int pid = -1; // this example AM supports only a single pid at a time and no batches
+
+public:
+	SimpleExampleEGFRAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); this->set_name("SimpleEGFR"); }
+
+	int Load(const char *config_f) { ClearData(); return AM_OK_RC; }
+	int Unload() { return AM_OK_RC; }
+	int ClearData() { age = -1; gender = -1; creatinine = -1; return AM_OK_RC; }
 	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 

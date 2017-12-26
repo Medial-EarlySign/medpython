@@ -36,6 +36,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "algo marker configuration file")
 			("direct_test" , "split to a dedicated debug routine")
+			("egfr_test" , "split to a debug routine for the simple egfr algomarker")
 			;
 
 
@@ -313,6 +314,105 @@ int debug_me(po::variables_map &vm)
 	return 0;
 }
 
+//--------------------------------------------------------------------------------------------------------------------------------
+int simple_egfr_test()
+{
+	// init AM
+	AlgoMarker *test_am;
+
+	if (AM_API_Create((int)AM_TYPE_SIMPLE_EXAMPLE_EGFR, &test_am) != AM_OK_RC) {
+		MERR("ERROR: Failed creating test algomarker\n");
+		return -1;
+	}
+
+	MLOG("Name is %s\n", test_am->get_name());
+
+	int load_rc;
+	if ((load_rc = AM_API_Load(test_am, "AUTO") != AM_OK_RC)) {
+		MERR("ERROR: Failed loading algomarker %s  , rc: %d\n", test_am->get_name(), load_rc);
+		return -1;
+	}
+	MLOG("Algomarker %s was loaded\n", test_am->get_name());
+
+
+	// Load Data
+	vector<long long> times ={ 20160101 };
+	vector<float> vals ={ 2.0 };
+	AM_API_AddData(test_am, 1, "Creatinine", (int)times.size(), &times[0], (int)vals.size(), &vals[0]);
+	/*vector<float>*/ vals ={ 55 };
+	AM_API_AddData(test_am, 1, "Age", 0, NULL, (int)vals.size(), &vals[0]);
+	/*vector<float>*/ vals ={ 1 };
+	AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
+
+	// Calculate
+	char *stypes[] ={ "Raw" };
+	vector<int> _pids ={ 1 };
+	vector<long long> _timestamps ={ 20160101 };
+	AMRequest *req;
+	MLOG("Creating Request\n");
+	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
+	if (req == NULL)
+		MLOG("ERROR: Got a NULL request !!\n");
+	AMResponses *resp;
+
+	// calculate scores
+	MLOG("Before Calculate\n");
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(test_am, req, resp);
+
+
+	// Shared messages
+	int n_shared_msgs;
+	int *shared_codes;
+	char **shared_args;
+	AM_API_GetSharedMessages(resp, &n_shared_msgs, &shared_codes, &shared_args);
+	MLOG("Shared Messages: %d\n", n_shared_msgs);
+	for (int i=0; i<n_shared_msgs; i++) {
+		MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
+	}
+
+	// print result
+	int n_resp = AM_API_GetResponsesNum(resp);
+	MLOG("Got %d responses\n", n_resp);
+	int n_scr = 0;
+	float _scr;
+	int pid;
+	long long ts;
+	char *_scr_type;
+	AMResponse *response;
+	for (int i=0; i<n_resp; i++) {
+		MLOG("Getting response no. %d\n", i);
+
+		AM_API_GetResponseAtIndex(resp, i, &response);
+		AM_API_GetResponsePoint(response, &pid, &ts);
+		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+		MLOG("_scr %f _scr_type %s\n", _scr, _scr_type);
+		MLOG("resp_rc = %d\n", resp_rc);
+		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
+	}
+
+
+	// print error messages
+
+	// AM level
+	int n_msgs, *msg_codes;
+	char **msgs_errs;
+	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+	for (int i=0; i<n_msgs; i++) {
+		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
+	}
+
+
+	// Dispose
+	AM_API_DisposeRequest(req);
+	AM_API_DisposeResponses(resp);
+	AM_API_DisposeAlgoMarker(test_am);
+
+	MLOG("Finished egfr_test()\n");
+
+	return 0;
+}
+
 //========================================================================================
 // MAIN
 //========================================================================================
@@ -331,6 +431,9 @@ int main(int argc, char *argv[])
 
 	if (vm.count("direct_test"))
 		return debug_me(vm);
+
+	if (vm.count("egfr_test"))
+		return simple_egfr_test();
 
 	// read model file
 	MedModel model;
