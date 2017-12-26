@@ -316,11 +316,11 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	ofstream of_new(out_file + ".new_format");
 	if (!of_new.good())
 		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (out_file + ".new_format").c_str());
-	of_new << "AGE_BIN " << i_params.age_bin << "\n";
-	of_new << "AGE_MIN " << i_params.from_age << "\n";
-	of_new << "AGE_MAX " << i_params.to_age << "\n";
-	of_new << "OUTCOME_VALUE " << "0.0" << "\n";
-	of_new << "OUTCOME_VALUE " << "1.0" << "\n";
+	of_new << "AGE_BIN" << "\t" << i_params.age_bin << "\n";
+	of_new << "AGE_MIN" << "\t" << i_params.from_age << "\n";
+	of_new << "AGE_MAX" << "\t" << i_params.to_age << "\n";
+	of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+	of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
 
 	for (auto it = counts.begin(); it != counts.end(); ++it) {
 
