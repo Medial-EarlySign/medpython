@@ -550,7 +550,7 @@ void _normalizeSignalToAvg(vector<vector<float>> &xData, vector<float> &meanShif
 int MedLinearModel::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	vector<float> avg_diff, factors;
-	vector<float> yData(y, y + nsamples - 1);
+	vector<float> yData(y, y + nsamples);
 	vector<vector<float>> xData(nftrs);
 	for (size_t i = 0; i < nftrs; ++i)
 	{
