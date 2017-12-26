@@ -512,3 +512,19 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, con
 		"Count", {}, 0, "pie");
 }
 
+void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>> &y, const vector<string> &modelNames,
+	string baseOut) {
+	
+	vector<vector<float>> single_preds(1);
+	const vector<float> *curr_y;
+	vector<string> single_name(1);
+
+	for (size_t i = 0; i < all_preds.size(); ++i)
+	{
+		single_preds[0] = move(all_preds[i]);
+		curr_y = &y[i];
+		single_name[0] = modelNames[i];
+
+		plotAUC(single_preds, *curr_y, single_name, baseOut);
+	}
+}
