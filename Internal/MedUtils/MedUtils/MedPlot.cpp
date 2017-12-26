@@ -441,22 +441,21 @@ void down_sample_graph(map<float, float> &points, int points_count) {
 	}
 }
 
-void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
-	string baseOut, vector<bool> &indexes) {
+void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>> &y, const vector<string> &modelNames,
+	string baseOut) {
 	vector<float> pred_threshold;
 	vector<float> true_rate;
 	vector<float> false_rate;
 	vector<float> ppv;
-	if (indexes.empty())
-		indexes.resize(y.size(), true);
+
 	boost::filesystem::create_directories(baseOut.data());
 	vector<map<float, float>> allData;
 	vector<map<float, float>> allPPV;
 	vector<double> auc((int)all_preds.size());
 	for (size_t i = 0; i < all_preds.size(); ++i)
 	{
-		vector<float> preds = all_preds[i];
-		get_ROC_working_points(preds, y, pred_threshold, true_rate, false_rate, ppv, indexes);
+		const vector<float> &preds = all_preds[i];
+		get_ROC_working_points(preds, y[i], pred_threshold, true_rate, false_rate, ppv);
 		map<float, float> false_true;
 		map<float, float> th_false;
 		map<float, float> false_ppv;
@@ -502,13 +501,35 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, con
 	data_titles = vector<string>(modelNames);
 	createHtmlGraph(baseOut + separator() + "PPV.html", allPPV, "PPV curve", "False Positive Rate",
 		"Positive Predictive Value", data_titles);
-	allData.clear();
-	vector<float> filt_y;
-	for (size_t i = 0; i < y.size(); ++i)
-		if (indexes[i])
-			filt_y.push_back(y[i]);
-	allData.push_back(BuildHist(filt_y));
-	createHtmlGraph(baseOut + separator() + "y_labels.html", allData, "Y Labels", "Y",
-		"Count", {}, 0, "pie");
+
+	for (size_t i = 0; i < y.size(); ++i) {
+		allData.clear();
+		allData.push_back(BuildHist(y[i]));
+		createHtmlGraph(baseOut + separator() + "y_labels_" + modelNames[i] + ".html", allData, "Y Labels", "Y",
+			"Count", {}, 0, "pie");
+	}
 }
 
+void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
+	string baseOut, vector<bool> &indexes) {
+	if (indexes.empty())
+		indexes.resize(y.size(), true);
+	vector<vector<float>> all_y(all_preds.size());
+	vector<vector<float>> all_preds_filtered(all_preds.size());
+	for (size_t k = 0; k < all_preds.size(); ++k)
+	{
+		all_y[k].reserve((int)y.size());
+		all_preds_filtered[k].reserve((int)y.size());
+	}
+	for (size_t i = 0; i < y.size(); ++i)
+	{
+		if (indexes[i])
+			for (size_t k = 0; k < all_preds.size(); ++k)
+			{
+				all_preds_filtered[k].push_back(all_preds[k][i]);
+				all_y[k].push_back(y[i]);
+			}
+	}
+
+	plotAUC(all_preds_filtered, all_y, modelNames, baseOut);
+}
