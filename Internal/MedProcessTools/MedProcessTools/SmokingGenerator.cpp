@@ -54,9 +54,9 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 	for (int i = 0; i < num; i++) {
 
 		int __current_smoker, __ex_smoker, __never_smoker, __unknown_smoker, __years_since_quitting, __smoking_years, __smoking_quantity, __plm_smoking_level;
-		float __pack_years;
+		float __pack_years = (float)MED_MAT_MISSING_VALUE;
 		int len;
-		__current_smoker = __ex_smoker = __never_smoker = __unknown_smoker = __years_since_quitting = __smoking_years = __smoking_quantity = __plm_smoking_level = __pack_years = MED_MAT_MISSING_VALUE;
+		__current_smoker = __ex_smoker = __never_smoker = __unknown_smoker = __years_since_quitting = __smoking_years = __smoking_quantity = __plm_smoking_level = MED_MAT_MISSING_VALUE;
 		int qa_print = 0;
 
 		if (smoking_method != "SMOKING_ENRICHED") {
@@ -334,7 +334,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 						int diff = end_n - start_n + 1;   //smoking
 						smoking_year += diff;
 						int temp_pack_years = 0;
-						if (smoking_quan != missing_val) temp_pack_years += diff*smoking_quan;
+						if (smoking_quan != missing_val) temp_pack_years += diff*((int)smoking_quan);
 						else temp_pack_years += diff*SMOKING_QUANTITY_IMPUTE;
 						pack_years += temp_pack_years;
 						if (qa_print == 1) fprintf(stderr, "years: smoker %f quantity  %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
@@ -344,7 +344,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 						smoking_year += diff;   // unknown before smoking
 
 						int temp_pack_years = 0;
-						if (smoking_quan != missing_val) temp_pack_years += diff*smoking_quan;
+						if (smoking_quan != missing_val) temp_pack_years += diff*((int)smoking_quan);
 						else temp_pack_years += diff*SMOKING_QUANTITY_IMPUTE;
 						pack_years += temp_pack_years;
 						if (qa_print == 1) fprintf(stderr, "years: unknown and smoker %f diff %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
@@ -357,7 +357,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 							smoking_year += diff;   // unknown before smoking
 
 							int temp_pack_years = 0;
-							if (ex_smoking_quan != missing_val) temp_pack_years += diff*ex_smoking_quan;
+							if (ex_smoking_quan != missing_val) temp_pack_years += diff*((int)ex_smoking_quan);
 							else temp_pack_years += diff*SMOKING_QUANTITY_IMPUTE;
 							pack_years += temp_pack_years;
 							if (qa_print == 1) fprintf(stderr, "years: unknown and ex smoker %f diff %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
@@ -409,12 +409,12 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 			float smoke_f = 0;
 			float unknown_f = 0;
 			float quantity_f = 0;
-			for (int kk = smoke_ranges.size() - 1; kk >= 0; kk--) {
+			for (int kk = (int)smoke_ranges.size() - 1; kk >= 0; kk--) {
 				int start_date = smoke_ranges[kk].date_start;
 				int end_date = smoke_ranges[kk].date_end;
 
 				if (test_date >= start_date && test_date <= end_date) {
-					int val = smoke_ranges[kk].val;
+					int val = (int)smoke_ranges[kk].val;
 					if (val == 1) unknown_f = 1;
 					else if (val == 2) never_smoke_f = 1;
 					else if (val == 3) {
@@ -423,7 +423,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 							if (smoke_ranges[jj].val == 7 || smoke_ranges[jj].val == 1) {
 								int smoke_end_date = smoke_ranges[jj].date_end;
 								int diff_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, test_date) - med_time_converter.convert_times(MedTime::Date, MedTime::Days, smoke_end_date);
-								years_since_q_f = diff_days / 365;
+								years_since_q_f = (float)diff_days / 365;
 								if (years_since_q_f < 1) years_since_q_f = 1;
 								years_since_q_f = round(years_since_q_f);
 								break;
@@ -439,24 +439,26 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 				}
 			}
 
-			__current_smoker = smoke_f;
-			__ex_smoker = ex_smoke_f;
-			__never_smoker = never_smoke_f;
-			__unknown_smoker = unknown_f;
-			__years_since_quitting = years_since_q_f;
-			__smoking_years = smoking_year_ff;
-			__smoking_quantity = quantity_f;
+
+
+			__current_smoker = (int)smoke_f;
+			__ex_smoker = (int)ex_smoke_f;
+			__never_smoker = (int)never_smoke_f;
+			__unknown_smoker = (int)unknown_f;
+			__years_since_quitting = (int)years_since_q_f;
+			__smoking_years = (int)smoking_year_ff;
+			__smoking_quantity = (int)quantity_f;
 			__pack_years = pack_years_ff;
 
 			if (qa_print == 1) {
 				fprintf(stderr, "====== final : \n");
-				fprintf(stderr, "years_since_q_f %f \n", __years_since_quitting);
-				fprintf(stderr, "never_smoke_f %f \n", __never_smoker);
-				fprintf(stderr, "ex_smoke_f %f \n", __ex_smoker);
-				fprintf(stderr, "smoke_f %f \n", __current_smoker);
-				fprintf(stderr, "unknown_f %f \n", __unknown_smoker);
-				fprintf(stderr, "quantity_f  %f \n", __smoking_quantity);
-				fprintf(stderr, "smoking_year_f: %f \n", __smoking_years);
+				fprintf(stderr, "years_since_q_f %i \n", __years_since_quitting);
+				fprintf(stderr, "never_smoke_f %i \n", __never_smoker);
+				fprintf(stderr, "ex_smoke_f %i \n", __ex_smoker);
+				fprintf(stderr, "smoke_f %i \n", __current_smoker);
+				fprintf(stderr, "unknown_f %i \n", __unknown_smoker);
+				fprintf(stderr, "quantity_f  %i \n", __smoking_quantity);
+				fprintf(stderr, "smoking_year_f: %i \n", __smoking_years);
 				fprintf(stderr, "pack_years_f : %f \n", __pack_years);
 			}
 		}
@@ -537,7 +539,7 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 		else if (__current_smoker == 1) {
 			float packs_per_day = 0;
 			if (__smoking_years > 0)
-				packs_per_day = __pack_years / __smoking_years;
+				packs_per_day = __pack_years / __smoking_years; //avoid dividing by zero!
 			if (packs_per_day <= 0.25)
 				plm_smoking_level = 3;
 			else if (packs_per_day > 0.25 && packs_per_day <= 0.5)

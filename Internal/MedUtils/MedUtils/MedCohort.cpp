@@ -229,10 +229,12 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	unordered_set<int> pids_set;
 	for (auto pid : pids) pids_set.insert(pid);
 
-	map<int, pair<int, int>> counts;
+	map<int, pair<int, int>> counts, male_counts, female_counts;
 
 	// age bins init
 	for (int i = 0; i < 200; i += i_params.age_bin) counts[i] = pair<int, int>(0, 0);
+	for (int i = 0; i < 200; i += i_params.age_bin) male_counts[i] = pair<int, int>(0, 0);
+	for (int i = 0; i < 200; i += i_params.age_bin) female_counts[i] = pair<int, int>(0, 0);
 
 
 	int byear_sid = rep.sigs.sid("BYEAR");
@@ -254,10 +256,21 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 		if ((gender & i_params.gender_mask) && (train_to_take[train]))
 			for (int year = fyear; year <= tyear; year++) {
 				if (year >= i_params.from_year && year <= i_params.to_year) {
+
 					int age = year - byear;
 					int bin = i_params.age_bin*(age / i_params.age_bin);
 					counts[bin].first++; all_cnts[0]++;
-					if (year > tyear - i_params.incidence_years_window && (crec.outcome!=0)) { counts[bin].second++; all_cnts[1]++; }
+					if (gender == GENDER_MALE)
+						++male_counts[bin].first;
+					else if (gender == GENDER_FEMALE)
+						++female_counts[bin].first;
+					if (year > tyear - i_params.incidence_years_window && crec.outcome) {
+						counts[bin].second++; all_cnts[1]++;
+						if (gender == GENDER_MALE)
+							++male_counts[bin].second;
+						else if (gender == GENDER_FEMALE)
+							++female_counts[bin].second;
+					}
 				}
 			}
 	}
@@ -278,6 +291,8 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	}
 
 	ofstream of(out_file);
+	if (!of.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", out_file.c_str());
 
 	of << "KeySize 1\n";
 	of << "Nkeys " << nlines << "\n";
@@ -296,6 +311,42 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	}
 
 	of.close();
+
+	//New Format:
+	ofstream of_new(out_file + ".new_format");
+	if (!of_new.good())
+		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (out_file + ".new_format").c_str());
+	of_new << "AGE_BIN" << "\t" << i_params.age_bin << "\n";
+	of_new << "AGE_MIN" << "\t" << i_params.from_age << "\n";
+	of_new << "AGE_MAX" << "\t" << i_params.to_age << "\n";
+	of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+	of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
+
+	for (auto it = counts.begin(); it != counts.end(); ++it) {
+
+		int age = it->first;
+		int male_n0 = male_counts[it->first].first;
+		int male_n1 = male_counts[it->first].second;
+
+		if (age >= i_params.from_age && age <= i_params.to_age && male_n0 > 0) {
+			of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+				age + i_params.age_bin / 2 << "\t" << "0.0" << "\t" << male_n0 - male_n1 << "\n";
+			of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+				age + i_params.age_bin / 2 << "\t" << "1.0" << "\t" << male_n1 << "\n";
+		}
+
+		int female_n0 = female_counts[it->first].first;
+		int female_n1 = female_counts[it->first].second;
+
+		if (age >= i_params.from_age && age <= i_params.to_age && female_n0 > 0) {
+			of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+				age + i_params.age_bin / 2 << "\t" << "0.0" << "\t" << female_n0 - female_n1 << "\n";
+			of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+				age + i_params.age_bin / 2 << "\t" << "1.0" << "\t" << female_n1 << "\n";
+		}
+	}
+
+	of_new.close();
 
 	return 0;
 }

@@ -17,7 +17,7 @@ static MedTime med_time;
 class Lazy_Iterator {
 public:
 	Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
-		const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops);
+		const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed);
 
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
 
@@ -157,7 +157,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	ProcessMeasurementParamFunc process_measurments_params = NULL,
 	PreprocessScoresFunc preprocess_scores = NULL, void *preprocess_scores_params = NULL,
 	float sample_ratio = (float)1.0, int sample_per_pid = 1,
-	int loopCnt = 500, bool binary_outcome = true);
+	int loopCnt = 500, int seed = 0, bool binary_outcome = true);
 
 //will output the bootstrap results into file
 void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);

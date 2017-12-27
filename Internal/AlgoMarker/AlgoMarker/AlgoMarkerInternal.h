@@ -19,6 +19,7 @@ private:
 	MedPidRepository rep;
 	MedModel model;
 	MedSamples samples;
+	//InputSanityTester ist;
 
 	string name;
 	string model_fname;
@@ -26,6 +27,8 @@ private:
 	vector<int> pids;
 
 public:
+
+	MedPidRepository &get_rep() { return rep; }
 	//========================================================
 	// Initializations
 	//========================================================
@@ -34,7 +37,21 @@ public:
 	void set_name(const char *_name) { name = string(_name); }
 
 	// init repository config
-	int init_rep_config(const char *config_fname) { if (rep.MedRepository::init(string(config_fname)) < 0) return -1; rep.switch_to_in_mem_mode(); return 0; }
+	int init_rep_config(const char *config_fname) { 
+		if (rep.MedRepository::init(string(config_fname)) < 0) return -1; 
+		rep.switch_to_in_mem_mode();
+
+		return 0; 
+	}
+
+	// set time_unit env for repositories and models
+	int set_time_unit_env(int time_unit) {
+		if (time_unit == MedTime::Date)
+			med_rep_type.setRepositoryType(REP_TYPE_GP);
+		else
+			med_rep_type.setRepositoryType(REP_TYPE_HOSPITAL);
+		return 0;
+	}
 
 	// init pids
 	void set_pids(int *_pids, int npids) { pids.clear(); pids.assign(_pids, _pids + npids); }
@@ -54,6 +71,9 @@ public:
 	// init samples
 	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); int rc = insert_samples(pids, times, n_samples); samples.normalize(); return rc; }
 	int init_samples(int pid, int time) { return init_samples(&pid, &time, 1); }  // single prediction point initiation 
+
+	// init input_tester
+	//int init_input_tester(const char *_fname) { return ist.read_config(string(_fname)); }
 
 
    //========================================================

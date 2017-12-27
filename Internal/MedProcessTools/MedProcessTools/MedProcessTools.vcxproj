@@ -79,6 +79,7 @@
     <ClCompile Include="CrossValidation.cpp" />
     <ClCompile Include="DoCalcFeatProcessor.cpp" />
     <ClCompile Include="DrugIntakeGenerator.cpp" />
+    <ClCompile Include="FeatureEncoder.cpp" />
     <ClCompile Include="FeatureGenerator.cpp" />
     <ClCompile Include="FeatureProcess.cpp" />
     <ClCompile Include="FeatureSelector.cpp" />

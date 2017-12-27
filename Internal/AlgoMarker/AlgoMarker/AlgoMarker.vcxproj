@@ -146,6 +146,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(BOOST_HOME);$(MR_LIBS_INC)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -153,6 +154,9 @@
       <AdditionalLibraryDirectories>$(MR_LIBS)\$(Platform)\$(Configuration);$(BOOST_HOME)\stage\lib;$(MR_SHARED_LIBS)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Logger.lib;InfraMed.lib;MedStat.lib;MedFeat.lib;MedUtils.lib;MedAlgo.lib;MedProcessTools.lib;QRF.lib;Mars.lib;gbm.lib;micNet.lib;xgboost.lib;rabit.lib;dmlc.lib;MedTime.lib;lightgbm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Lib>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|x64'">
     <ClCompile>
@@ -168,7 +172,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(MR_LIBS)\$(Platform)\Release;$(BOOST_HOME)\stage\lib;$(MR_SHARED_LIBS)\$(Platform)\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Logger.lib;InfraMed.lib;MedStat.lib;MedFeat.lib;MedUtils.lib;MedAlgo.lib;MedProcessTools.lib;QRF.lib;Mars.lib;gbm.lib;micNet.lib;xgboost.lib;rabit.lib;dmlc.lib;MedTime.lib;lightgbm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Logger.lib;InfraMed.lib;MedStat.lib;MedFeat.lib;MedUtils.lib;MedAlgo.lib;MedProcessTools.lib;QRF.lib;Mars.lib;gbm.lib;micNet.lib;xgboost.lib;rabit.lib;dmlc.lib;MedTime.lib;lightgbm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;libvw.lib;vw_dynamic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -181,6 +186,8 @@
   <ItemGroup>
     <ClCompile Include="AlgoMarker.cpp" />
     <ClCompile Include="AlgoMarkerInternal.cpp" />
+    <ClCompile Include="MedialInfra_AM.cpp" />
+    <ClCompile Include="SimpleExampleEGFR_AM.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="AlgoMarkerConfig.txt" />
