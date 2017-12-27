@@ -346,7 +346,8 @@ template <class T> class MedSparseVec {
 		unsigned int len_is_in_bit = ((unsigned int *)curr)[0]; curr += sizeof(unsigned int);
 		is_in_bit.resize(len_is_in_bit);
 		for (unsigned int i=0; i<len_is_in_bit; i++) {
-			is_in_bit[i] = ((unsigned long long *)curr)[0]; curr += sizeof(unsigned long long);
+			is_in_bit[i] = ((unsigned long long volatile *)curr)[0];
+			curr += sizeof(unsigned long long);
 		}
 		unsigned int len_data = ((unsigned int *)curr)[0]; curr += sizeof(unsigned int);
 		data.resize(len_data);
