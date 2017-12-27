@@ -11,7 +11,8 @@
 //=======================================================================================
 // SampleFilter
 //=======================================================================================
-// Filter Types
+// Filter Types from names
+//.......................................................................................
 SampleFilterTypes sample_filter_name_to_type(const string& filter_name) {
 
 	if (filter_name == "train")
@@ -30,19 +31,21 @@ SampleFilterTypes sample_filter_name_to_type(const string& filter_name) {
 		return SMPL_FILTER_LAST;
 }
 
-// Initialization
+// Initialization : given filter name
 //.......................................................................................
 SampleFilter* SampleFilter::make_filter(string filter_name) {
 
 	return make_filter(sample_filter_name_to_type(filter_name));
 }
 
+// Initialization : given filter name and intialization string
 //.......................................................................................
 SampleFilter * SampleFilter::make_filter(string filter_name, string init_string) {
 
 	return make_filter(sample_filter_name_to_type(filter_name), init_string);
 }
 
+// Initialization : given filter type
 //.......................................................................................
 SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type) {
 
@@ -63,6 +66,7 @@ SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type) {
 
 }
 
+// Initialization : given filter type and intialization string
 //.......................................................................................
 SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type, string init_string) {
 
@@ -74,6 +78,7 @@ SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type, string i
 //.......................................................................................
 
 // (De)Serialize
+// Add filter-type to (De)Serialization of inheriting class
 //.......................................................................................
 size_t SampleFilter::get_filter_size() {
 	return sizeof(filter_type) + get_size();
@@ -89,7 +94,7 @@ size_t SampleFilter::filter_serialize(unsigned char *blob) {
 	return ptr;
 }
 
-// Filter
+// In-place filtering : apply filtering and copy
 //.......................................................................................
 int SampleFilter::filter(MedSamples& samples) {
 
@@ -102,7 +107,7 @@ int SampleFilter::filter(MedSamples& samples) {
 	return rc;
 }
 
-// Filter
+// In-place filtering with repository : apply filtering and copy
 //.......................................................................................
 int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 
@@ -115,9 +120,9 @@ int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 	return rc;
 }
 
-
 //=======================================================================================
-// BasicTrainFilter
+// BasicTrainFilter : 
+//			take all controls samples (outcome=0) and all cases before outcomeTime
 //=======================================================================================
 // Filter
 //.......................................................................................
@@ -144,7 +149,8 @@ int BasicTrainFilter::_filter(MedSamples& inSamples,MedSamples& outSamples) {
 }
 
 //=======================================================================================
-// BasicTestFilter
+// BasicTestFilter :
+//			dummy filter - take everything
 //=======================================================================================
 // Filter
 //.......................................................................................
@@ -157,7 +163,9 @@ int BasicTestFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
 }
 
 //=======================================================================================
-// OutlierSampleFilter
+// OutlierSampleFilter :
+//	- A filter that remove samples with outlier-outcomes (suitable for regression)
+//	  Outliers detection is done using MedValueCleaner's methods (through inheritance)
 //=======================================================================================
 // Filter
 //.......................................................................................
@@ -182,7 +190,7 @@ int OutlierSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) 
 
 }
 
-// Learn
+// Learning : check outlier-detection method and call appropriate learner (iterative/quantile)
 //.......................................................................................
 int OutlierSampleFilter::_learn(MedSamples& samples) {
 
@@ -196,7 +204,7 @@ int OutlierSampleFilter::_learn(MedSamples& samples) {
 	}
 }
 
-// Learn
+// Learning : learn outliers using MedValueCleaner's iterative approximation of moments
 //.......................................................................................
 int OutlierSampleFilter::iterativeLearn(MedSamples& samples) {
 
@@ -207,7 +215,7 @@ int OutlierSampleFilter::iterativeLearn(MedSamples& samples) {
 	return get_iterative_min_max(values);
 }
 
-// Learn
+// Learning : learn outliers using MedValueCleaner's quantile appeoximation of moments
 //.......................................................................................
 int OutlierSampleFilter::quantileLearn(MedSamples& samples) {
 
@@ -218,7 +226,7 @@ int OutlierSampleFilter::quantileLearn(MedSamples& samples) {
 	return get_quantile_min_max(values);
 }
 
-// Utility for learning
+// Helper for learning - extract all outcomes from samples.
 //.......................................................................................
 void OutlierSampleFilter::get_values(MedSamples& samples, vector<float>& values) {
 
@@ -268,7 +276,7 @@ size_t OutlierSampleFilter::deserialize(unsigned char *blob) {
 // MatchingSampleFilter
 //=======================================================================================
 
-// Init
+// Init from map
 //.......................................................................................
 int MatchingSampleFilter::init(map<string, string>& mapper) {
 
@@ -277,7 +285,7 @@ int MatchingSampleFilter::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 
-		if (field == "priceRatio") eventToCasePriceRatio = stof(entry.second);
+		if (field == "priceRatio") eventToControlPriceRatio = stof(entry.second);
 		else if (field == "maxRatio") matchMaxRatio = stof(entry.second);
 		else if (field == "verbose") verbose = stoi(entry.second);
 		else if (field == "strata") {
@@ -290,6 +298,12 @@ int MatchingSampleFilter::init(map<string, string>& mapper) {
 	return 0;
 }
 
+// Add a matching stratum defined by a string
+// Possibilities are :
+//	"age",resolution-in-years
+//	"time",time-unit(string, from MedTime),resolution
+//	"signal",name,resolution,time-window,time-unit(string, from MedTime)
+//  "gender"
 //.......................................................................................
 int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 
@@ -351,7 +365,11 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 	return 0;
 }
 
-// Filter
+// Filter with repository
+// Find signature of each sample according to matching strata, thus assigning samples (cases+controls) to bins
+// Find optimal case-control matching ratio according to bins and relative puhishment for
+// removing cases and controls (eventToControlPriceRatio). Adjust ratio to maximal allowed 
+// ratio (matchMaxRatio) and then sample randomly from each bin.
 //.......................................................................................
 int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
 
@@ -395,7 +413,7 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 	}
 
 	// Identify pairing ratio
-	float opt_factor = get_pairing_ratio(cnts, eventToCasePriceRatio);
+	float opt_factor = get_pairing_ratio(cnts, eventToControlPriceRatio);
 	float factor = opt_factor;
 	if (factor > matchMaxRatio) {
 		if (verbose) MLOG("updating factor {%8.3f} to maxFactor=%.3f\n", factor, matchMaxRatio);
@@ -450,6 +468,7 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 
 }
 
+// Filter without repository (return -1 if repository is required)
 //.......................................................................................
 int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
 
@@ -464,6 +483,7 @@ int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 }
 
 // Utilities
+// Check if repository is needed for matching (strata includes signal/age)
 //.......................................................................................
 bool MatchingSampleFilter::isRepRequired() {
 
@@ -475,6 +495,7 @@ bool MatchingSampleFilter::isRepRequired() {
 	return false;
 }
 
+// Check if age is needed for matching
 //.......................................................................................
 bool MatchingSampleFilter::isAgeRequired() {
 
@@ -486,16 +507,19 @@ bool MatchingSampleFilter::isAgeRequired() {
 	return false;
 }
 
+// initialize values of helpers
 //.......................................................................................
 int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedRepository& rep) {
 
 	// Helpers
+	// Time unit from samples
 	samplesTimeUnit = inSamples.time_unit;
 
 	if (rep.dict.read_state == 0) {
 		MWARN("WARNING Rep dictionary is empty\n");
 	}
 
+	// Age : either as a signal or using BYEAR
 	if (isAgeRequired()) {
 		if (med_rep_type.ageDirectlyGiven) {
 			ageId = rep.dict.id("Age");
@@ -513,6 +537,7 @@ int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedRepository& rep)
 		}
 	}
 
+	// Check time dependence of matching signals
 	for (matchingParams& stratum : matchingStrata) {
 		if (stratum.match_type == SMPL_MATCH_SIGNAL) {
 			stratum.signalId = rep.dict.id(stratum.signalName);
@@ -530,6 +555,7 @@ int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedRepository& rep)
 }
 
 // Indexing of a single sample according to strata
+// an index is a colon-separated string of bins per stratum
 //.......................................................................................
 int MatchingSampleFilter::getSampleSignature(MedSample& sample, MedRepository& rep, string& signature) {
 
@@ -542,6 +568,7 @@ int MatchingSampleFilter::getSampleSignature(MedSample& sample, MedRepository& r
 	return 0;
 }
 
+// add indexing of a single sample according to a single stratum to sample's index
 //.......................................................................................
 int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams& stratum, MedRepository& rep, string& signature) {
 
@@ -550,11 +577,13 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 	int bin;
 
 	if (stratum.match_type == SMPL_MATCH_TIME) {
+		// Take binned time in 'matchingTimeUnit'
 		int time = med_time_converter.convert_times(samplesTimeUnit, stratum.matchingTimeUnit, sample.time);
 		int bin = (int)(time / stratum.resolution);
 		signature += to_string(bin) + ":";
 	}
 	else if (stratum.match_type == SMPL_MATCH_AGE) {
+		// Take binned age
 		if (med_rep_type.ageDirectlyGiven) {
 			rep.uget(sample.id, ageId, usv);
 			age = (int)usv.Val(0, 0);
@@ -569,6 +598,7 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 	else if (stratum.match_type == SMPL_MATCH_SIGNAL) {
 		rep.uget(sample.id, stratum.signalId, usv);
 		if (!stratum.isTimeDependent) {
+			// Signal is not time dependent - take binned value
 			bin = (int)(usv.Val(0) / stratum.resolution);
 			signature += to_string(bin) + ":";
 		}
@@ -579,6 +609,7 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 //			MLOG("units = %d/%d/%d time = %d Target = %d min = %d\n", samplesTimeUnit, stratum.signalTimeUnit, stratum.windowTimeUnit, sample.time, maxTime, minTime);
 
 			string tempSignature = "NULL";
+			// Find first value after maxTime and check previous value
 			for (int idx = 0; idx < usv.len; idx++) {
 				if (usv.Time(idx) > maxTime) {
 					if (idx > 0 && usv.Time(idx - 1) >= minTime)
@@ -587,6 +618,7 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 				}
 			}
 
+			// Is last value between minTime and maxTime ? (missed by previous check)
 			if (usv.len>0 && usv.Time(usv.len-1) <= maxTime && usv.Time(usv.len-1) >= minTime)
 				tempSignature = to_string((int)(0.001 + usv.Val(usv.len - 1) / stratum.resolution));
 
@@ -597,8 +629,8 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 	return 0;
 }
 
-// search for the optimal ratio between control/event samples
-// the price of giving up 1 control is 1.0, the price of giving up 1 event is w 
+// search for the optimal ratio between control/case samples
+// the price of giving up 1 control is 1.0, the price of giving up 1 case is w 
 //.......................................................................................
 float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, float w) {
 
@@ -651,6 +683,7 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 	return opt_r;
 }
 
+//Get all signals required  for matching
 //.......................................................................................
 int MatchingSampleFilter::get_required_signals(vector<string> req_sigs)
 {
@@ -669,21 +702,20 @@ int MatchingSampleFilter::get_required_signals(vector<string> req_sigs)
 
 }
 
-
 // (De)Serialization
 //.......................................................................................
 size_t MatchingSampleFilter::get_size() {
-	return MedSerialize::get_size(matchingStrata, eventToCasePriceRatio, matchMaxRatio);
+	return MedSerialize::get_size(matchingStrata, eventToControlPriceRatio, matchMaxRatio);
 }
 
 //.......................................................................................
 size_t MatchingSampleFilter::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, matchingStrata, eventToCasePriceRatio, matchMaxRatio);
+	return MedSerialize::serialize(blob, matchingStrata, eventToControlPriceRatio, matchMaxRatio);
 }
 
 //.......................................................................................
 size_t MatchingSampleFilter::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, matchingStrata, eventToCasePriceRatio, matchMaxRatio);
+	return MedSerialize::deserialize(blob, matchingStrata, eventToControlPriceRatio, matchMaxRatio);
 }
 
 // (De)Serialization of matchingParams
@@ -703,7 +735,9 @@ size_t matchingParams::deserialize(unsigned char *blob) {
 }
 
 //=======================================================================================
-// RequiredSignalFilter
+// Required Signal Filter 
+//	- Keep only samples with a required signal appearing in a time-window.
+//	- OBSOLETE - REPLACED BY BasicSampleFilter. KEPT HERE FOR BACKWARD COMPETABILITY
 //=======================================================================================
 
 // Init
@@ -725,13 +759,13 @@ int RequiredSignalFilter::init(map<string, string>& mapper) {
 	return 0;
 }
 
+// Init to defaults
 //.......................................................................................
 void RequiredSignalFilter::init_defaults() {
 
 	timeWindow = 0;
 	windowTimeUnit = med_rep_type.windowTimeUnit;
 }
-
 
 // Filter
 //.......................................................................................
@@ -776,6 +810,7 @@ int RequiredSignalFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 	return 0;
 }
 
+// Filter without repository : Return an error
 //.......................................................................................
 int RequiredSignalFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) { 
 	MERR("A repository is required for Required-Signal Filter\n"); 
@@ -799,11 +834,19 @@ size_t RequiredSignalFilter::deserialize(unsigned char *blob) {
 }
 
 
-//.......................................................................................
+//=======================================================================================
+// A general filter to allow the following basics:
+// (1) min and max time of outcomeTime
+// (2) option to allow for a signal to be in some given range (if there is a sample in some given window)
+// (3) option to force N samples of a specific signal within the given range (in the given time window)
+//
 // examples:
 // sig:TRAIN,min_val:1,max_val:1,min_Nvals:1
 // sig:Creatinine,win_from:0,win_to:720,min_Nvals:2
-//
+//=======================================================================================
+
+// BasicFilteringParams Initialization from string
+//.......................................................................................
 int BasicFilteringParams::init_from_string(const string &init_str)
 {
 	vector<string> fields;
@@ -825,9 +868,12 @@ int BasicFilteringParams::init_from_string(const string &init_str)
 	return 0;
 }
 
+// Test filtering criteria
+// Return 1 if passing and 0 otherwise
 //.......................................................................................
 int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int win_time_unit)
 {
+	//MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
 	if (sig_id < 0)
 		sig_id = rep.sigs.sid(sig_name);
 
@@ -835,6 +881,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 
 	rep.uget(sample.id, sig_id, usv);
 	//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
+	//MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
 
 	if (usv.len == 0 && min_Nvals > 0) return 0;
 	if (min_Nvals <= 0) return 1;
@@ -858,7 +905,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 			int i_time = usv.Time(i, time_channel);
 			int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
 			int dtime = ref_time - i_time_converted;
-			//MLOG("id %d i_time %d %d time %d %d dtime %d win %d %d\n", sample.id, i_time, i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+			//MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
 			if (dtime < win_from) break;
 			if (dtime <= win_to) {
 				// in relevant time window, checking the value range
@@ -876,6 +923,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 	return 0;
 }
 
+// Initialize from map
 //.......................................................................................
 int BasicSampleFilter::init(map<string, string>& mapper)
 {
@@ -912,6 +960,7 @@ int BasicSampleFilter::get_req_signals(vector<string> &reqs)
 	return 0;
 }
 
+// Filter with repository
 //.......................................................................................
 int BasicSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples)
 {
@@ -953,10 +1002,109 @@ int BasicSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSam
 	return 0;
 }
 
+// Filter without repository
+// relevant only if bfilters is empty. Otherwise, return -1
 //.......................................................................................
-// relevant only if bfilters is empty
 int BasicSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 {
-	MedRepository dummy;
-	return (_filter(dummy, inSamples, outSamples));
+
+	if (bfilters.empty()) {
+		MedRepository dummy;
+		return (_filter(dummy, inSamples, outSamples));
+	}
+	else {
+		MERR("A repository is required for Required-Signal Filter\n");
+		return -1;
+	}
+}
+
+// SanitySimpleFilter Initialization from string
+//.......................................................................................
+int SanitySimpleFilter::init_from_string(const string &init_str)
+{
+	vector<string> fields;
+
+	boost::split(fields, init_str, boost::is_any_of(":=,;"));
+
+	for (int i=0; i<fields.size(); i++) {
+		if (fields[i] == "sig") { sig_name = fields[++i]; }
+		if (fields[i] == "min_val") { min_val = stof(fields[++i]); }
+		if (fields[i] == "max_val") { max_val = stof(fields[++i]); }
+		if (fields[i] == "win_from") { win_from = stoi(fields[++i]); }
+		if (fields[i] == "win_to") { win_to = stoi(fields[++i]); }
+		if (fields[i] == "min_Nvals") { min_Nvals = stoi(fields[++i]); }
+		if (fields[i] == "max_Nvals") { max_Nvals = stoi(fields[++i]); }
+		if (fields[i] == "max_outliers") { max_outliers = stoi(fields[++i]); }
+		if (fields[i] == "time_ch") { time_channel = stoi(fields[++i]); }
+		if (fields[i] == "val_ch") { val_channel = stoi(fields[++i]); }
+		if (fields[i] == "time_unit") { win_time_unit = med_time_converter.string_to_type(fields[++i]); }
+	}
+
+
+	return 0;
+}
+
+// Test filtering criteria
+// Returns one of the codes defined as static in the h file
+//.......................................................................................
+int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &nvals, int &noutliers)
+{
+	MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+	if (sig_id < 0)
+		sig_id = rep.sigs.sid(sig_name);
+	if (sig_id < 0)
+		return SanitySimpleFilter::Signal_Not_Valid;
+
+	UniversalSigVec usv;
+
+	rep.uget(sample.id, sig_id, usv);
+	//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
+	MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
+
+	nvals = 0;
+	noutliers = 0;
+	if (usv.len == 0 && min_Nvals > 0) return SanitySimpleFilter::Failed_Min_Nvals;
+
+	if (usv.n_time_channels() == 0) {
+		// timeless signal
+
+		nvals = usv.len;
+		if (max_outliers >= 0) {
+			for (int i=0; i<usv.len; i++) {
+				if (usv.Val(i) < min_val || usv.Val(i) > max_val)
+					noutliers++;
+			}
+			
+		}
+
+	} else {
+
+		int ref_time = med_time_converter.convert_times(usv.time_unit(), win_time_unit, sample.time);
+
+		// go over all values
+		for (int i=0; i<usv.len; i++) {
+
+			// check if in relevant window
+			int i_time = usv.Time(i, time_channel);
+			int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
+			int dtime = ref_time - i_time_converted;
+			MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+			if (dtime < win_from) break;
+			if (dtime <= win_to) {
+				nvals++;
+				// in relevant time window, checking the value range
+				float i_val = usv.Val(i, val_channel);
+				if (i_val < min_val || i_val > max_val) noutliers++;
+				MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
+			}
+
+		}
+	}
+
+	if (nvals < min_Nvals) return SanitySimpleFilter::Failed_Min_Nvals;
+	if (max_Nvals >= 0 && nvals > max_Nvals) return SanitySimpleFilter::Failed_Max_Nvals;
+	if (max_outliers >= 0 && noutliers > max_outliers) return SanitySimpleFilter::Failed_Outliers;
+	return SanitySimpleFilter::Passed;
+
+	return 0;
 }

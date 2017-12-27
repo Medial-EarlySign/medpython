@@ -158,8 +158,8 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 
 	// Stage Sanity
-	if (end_stage <=  MED_MDL_APPLY_FTR_GENERATORS) {
-		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);
+	if (end_stage <  MED_MDL_APPLY_FTR_GENERATORS) {
+		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
 		return -1;
 	}
 
@@ -202,6 +202,9 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
+	if (end_stage <= MED_MDL_INSERT_PREDS)
+		return 0;
+
 	samples.insert_preds(features);
 
 	return 0;
@@ -213,7 +216,7 @@ int MedModel::quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids
 
 	vector<int> rc(rep_processors.size(), 0);
 
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<rep_processors.size(); i++)
 		rc[i] = rep_processors[i]->learn(rep,ids);
 
@@ -228,7 +231,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	learn_samples->get_ids(ids);
 
 	vector<int> rc(generators.size(), 0);
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i<generators.size(); i++)
 		rc[i] = generators[i]->learn(rep, ids,rep_processors); //??? why is this done for ALL time points in an id???
 
@@ -266,7 +269,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	// Loop on ids
 	int RC = 0;
 	int thrown = 0;
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<samples->idSamples.size(); j++) {
 		try {
 			MedIdSamples& pid_samples = samples->idSamples[j];
@@ -277,13 +280,15 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 			// Apply rep-cleaning
 
-			for (auto& processor : rep_processors)
+			for (auto& processor : rep_processors) 
 				if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
+
+			
 
 			// Generate Features
 			for (auto& generator : _generators)
-				if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-			//#pragma omp critical 
+				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
+			#pragma omp critical 
 			if (rc < 0) RC = -1;
 		}
 		catch (int &i_e) {
@@ -381,7 +386,7 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);
-		int npos = (int)(curr_line.find("//"));
+		size_t npos = curr_line.find("//");
 		if (npos == 0)
 			continue;
 		lines++;
@@ -442,7 +447,7 @@ string file_to_string(int recursion_level, const string& main_file, vector<strin
 
 	boost::sregex_iterator it(orig.begin(), orig.end(), ip_regex);
 	boost::sregex_iterator end;
-	std::cerr << "resolving referenced jsons...\n";
+	MLOG("resolving referenced jsons...\n");
 	int last_char = 0;
 	string out_string = "";
 	for (; it != end; ++it) {
@@ -517,12 +522,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				all_attr_values.push_back(current_attr_values);
 			}			
 		}
-		for (auto &i : all_attr_values) {
-			for (auto ii : i)
-				printf(" ii   %s \n", ii.c_str());
-			printf("new ii\n");
-		}
-
+		
 		vector<string> all_combinations;
 		concatAllCombinations(all_attr_values, 0, "", all_combinations);
 		for (string c : all_combinations) {

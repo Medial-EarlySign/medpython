@@ -5,6 +5,12 @@
 #ifndef __MED_ALGO_H__
 #define __MED_ALGO_H__
 
+#if __GNUC__  >= 5
+#define NEW_COMPLIER true
+#else
+#define NEW_COMPLIER false
+#endif
+
 #include "Logger/Logger/Logger.h"
 #include "MedUtils/MedUtils/MedUtils.h"
 #include "MedStat/MedStat/MedStat.h"
@@ -71,6 +77,7 @@ typedef enum {
 	MODEL_SPECIFIC_GROUPS_MODELS = 14,
 	MODEL_SVM = 15,
 	MODEL_LINEAR_SGD = 16,
+	MODEL_VW = 17,
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -471,7 +478,7 @@ public:
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
-	int version() { return  1; }; //increase when changing binary serizlization
+	int version() { return  2; }; //increase when changing binary serizlization
 	//version 1: Added model_features, features_count to serialization
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	size_t get_size();

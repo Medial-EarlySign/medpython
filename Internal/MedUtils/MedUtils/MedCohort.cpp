@@ -24,6 +24,7 @@ struct SamplesBucket {
 //=====================================================================================
 // CohortRec
 //=====================================================================================
+// Init from map
 //-------------------------------------------------------------------------------------
 int CohortRec::init(map<string, string>& map)
 {
@@ -41,6 +42,7 @@ int CohortRec::init(map<string, string>& map)
 	return 0;
 }
 
+// Represent a cohort as a tab-delimited string
 //-------------------------------------------------------------------------------------
 int CohortRec::get_string(string &to_str)
 {
@@ -48,6 +50,7 @@ int CohortRec::get_string(string &to_str)
 	return 0;
 }
 
+// Get a cohort from a tab-delimited string
 //-------------------------------------------------------------------------------------
 int CohortRec::from_string(string &from_str)
 {
@@ -70,6 +73,7 @@ int CohortRec::from_string(string &from_str)
 //=====================================================================================
 // SamplingParams
 //=====================================================================================
+// Init from map
 //-------------------------------------------------------------------------------------
 int SamplingParams::init(map<string, string>& map)
 {
@@ -105,6 +109,7 @@ int SamplingParams::init(map<string, string>& map)
 //=====================================================================================
 // IncidenceParams
 //=====================================================================================
+// Init from map
 //-------------------------------------------------------------------------------------
 int IncidenceParams::init(map<string, string>& map)
 {
@@ -130,6 +135,7 @@ int IncidenceParams::init(map<string, string>& map)
 //=====================================================================================
 // MedCohort
 //=====================================================================================
+// Read from tab-delimeted file
 //-------------------------------------------------------------------------------------
 int MedCohort::read_from_file(string fname)
 {
@@ -164,6 +170,7 @@ int MedCohort::read_from_file(string fname)
 	return 0;
 }
 
+// Write to tab-delimeted file
 //-------------------------------------------------------------------------------------
 int MedCohort::write_to_file(string fname)
 {
@@ -186,6 +193,7 @@ int MedCohort::write_to_file(string fname)
 	return 0;
 }
 
+// Get all pids
 //-------------------------------------------------------------------------------------
 int MedCohort::get_pids(vector<int> &pids)
 {
@@ -194,6 +202,9 @@ int MedCohort::get_pids(vector<int> &pids)
 	return 0;
 }
 
+// Generate an incidence file from cohort + incidence-params
+// Check all patient-years within cohort that fit to IncidenceParams and count positive outcomes within i_params.incidence_years_window
+// Outcome - incidence per age-bin - is written to file
 //-------------------------------------------------------------------------------------
 int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 {
@@ -289,7 +300,9 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	return 0;
 }
 
-
+// Generate a samples file from cohort + sampling-params
+// Generate samples within cohort times that fit SampleingParams criteria and windows.
+// Sample dates are selected randomly for each window of s_params.jump_days in the legal period, and written to file
 //-------------------------------------------------------------------------------------
 int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_file)
 {
@@ -399,7 +412,10 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	return 0;
 }
 
-//----------------------------------------------------------------------------------------------------------
+// Generate a samples file from cohort + sampling-params
+// Generate samples within cohort times that fit SampleingParams criteria and windows.
+// Sample dates are those with the required signals for each window of s_params.jump_days in the legal period (if existing), and written to file
+//-------------------------------------------------------------------------------------
 int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file)
 {
 	vector<int> train_to_take ={ 0,0,0,0 };

@@ -255,6 +255,7 @@ typedef enum {
 	IMPUTE_MMNT_MEAN,
 	IMPUTE_MMNT_MEDIAN,
 	IMPUTE_MMNT_COMMON,
+	IMPUTE_MMNT_SAMPLE,
 	IMPUTE_MMNT_LAST
 } imputeMomentTypes;
 
@@ -329,6 +330,9 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
+// ihadanny 20171205 - this should be changed to a configurable value
+#define MIN_SAMPLES_IN_STRATA_FOR_LEARNING 50
+
 class FeatureImputer : public FeatureProcessor {
 public:
 
@@ -342,6 +346,10 @@ public:
 	imputeMomentTypes moment_type;
 	float default_moment;
 	vector<float> moments;
+	// for sampling-imputation
+	vector < pair<float, float> > default_histogram;
+	vector < vector<pair<float, float> > > histograms; 
+
 	vector<int> strata_sizes;
 
 	// Utility : maximum number of samples to take for moments calculations
@@ -372,6 +380,7 @@ public:
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
+	int version() { return  1; }
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);

@@ -22,6 +22,7 @@ public:
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
 
 	void restart_iterator(int thread);
+	void set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num);
 
 	~Lazy_Iterator();
 
@@ -44,11 +45,15 @@ private:
 	vector<int> current_pos;
 	vector<int> inner_pos; //only used when sample_per_pid==0
 	vector<int> sel_pid_index; //only used when sample_per_pid==0
+	vector<int> vec_size;
+	vector<const float *> vec_y;
+	vector<const float *> vec_preds;
 
 	//original vectors
 	const float *preds;
 	const float *y;
 	const vector<int> *pids;
+
 
 	//threading:
 	int maxThreadCount;
@@ -58,6 +63,7 @@ private:
 map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params);
 map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params);
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params); //with PPV and PR
+map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params);
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -91,6 +97,7 @@ public:
 	float max_diff_working_point; //the maximal diff in calculated working point to requested working point to drop
 	int score_bins;
 	float score_resolution;
+	bool fix_label_to_binary;
 	Incident_Stats inc_stats; //the incedince data if provided for general population
 	ROC_Params() {
 		max_diff_working_point = (float)0.05;
@@ -99,12 +106,13 @@ public:
 		score_bins = 0;
 		score_resolution = 0;
 		incidence_fix = 0;
+		fix_label_to_binary = true;
 	}
 	ROC_Params(const string &init_string); //in format "paramter_name=value;..." for vector use ","
 	double incidence_fix;
 
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
-		max_diff_working_point, score_bins, inc_stats)
+		max_diff_working_point, score_bins, score_resolution, fix_label_to_binary, inc_stats)
 };
 
 #pragma region Cohort Fucntions

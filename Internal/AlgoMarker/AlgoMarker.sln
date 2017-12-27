@@ -6,10 +6,14 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AlgoMarker", "AlgoMarker\AlgoMarker.vcxproj", "{4A62A6C3-A6C3-4CA8-A9E9-E716C5C8ACBE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InternalAPITester", "InternalAPITester\InternalAPITester.vcxproj", "{50BDBEEC-B74B-4F94-8EAD-B58374C2C882}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InfraMed", "..\InfraMed\InfraMed\InfraMed.vcxproj", "{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A62A6C3-A6C3-4CA8-A9E9-E716C5C8ACBE} = {4A62A6C3-A6C3-4CA8-A9E9-E716C5C8ACBE}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllAPITester", "DllAPITester\DllAPITester.vcxproj", "{E3165CD7-79FF-4648-B410-6DE690971F44}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A62A6C3-A6C3-4CA8-A9E9-E716C5C8ACBE} = {4A62A6C3-A6C3-4CA8-A9E9-E716C5C8ACBE}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,16 +49,6 @@ Global
 		{50BDBEEC-B74B-4F94-8EAD-B58374C2C882}.ReleaseDLL|x64.Build.0 = ReleaseDLL|x64
 		{50BDBEEC-B74B-4F94-8EAD-B58374C2C882}.ReleaseDLL|x86.ActiveCfg = ReleaseDLL|Win32
 		{50BDBEEC-B74B-4F94-8EAD-B58374C2C882}.ReleaseDLL|x86.Build.0 = ReleaseDLL|Win32
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Debug|x64.ActiveCfg = Debug|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Debug|x64.Build.0 = Debug|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Debug|x86.ActiveCfg = Debug|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Release|x64.ActiveCfg = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Release|x64.Build.0 = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.Release|x86.ActiveCfg = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.ReleaseDLL|x64.ActiveCfg = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.ReleaseDLL|x64.Build.0 = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.ReleaseDLL|x86.ActiveCfg = Release|x64
-		{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}.ReleaseDLL|x86.Build.0 = Release|x64
 		{E3165CD7-79FF-4648-B410-6DE690971F44}.Debug|x64.ActiveCfg = Debug|x64
 		{E3165CD7-79FF-4648-B410-6DE690971F44}.Debug|x64.Build.0 = Debug|x64
 		{E3165CD7-79FF-4648-B410-6DE690971F44}.Debug|x86.ActiveCfg = Debug|Win32

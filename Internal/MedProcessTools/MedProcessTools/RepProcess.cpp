@@ -25,8 +25,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_LAST;
 }
 
+// Create processor from params string (type must be given within string)
 //.......................................................................................
-// create from params : must have type parameter
 RepProcessor *RepProcessor::create_processor(string &params)
 {
 	string rp_type;
@@ -34,19 +34,21 @@ RepProcessor *RepProcessor::create_processor(string &params)
 	return (make_processor(rp_type, params));
 }
 
-// Initialization
+// Initialization : given processor name
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(string processor_name) {
 
 	return make_processor(rep_processor_name_to_type(processor_name));
 }
 
+// Initialization : given processor name and intialization string
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(string processor_name, string init_string) {
 
 	return make_processor(rep_processor_name_to_type(processor_name), init_string);
 }
 
+// Initialization : given processor type
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 
@@ -65,6 +67,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 
 }
 
+// Initialization : given processor type and intialization string
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, string init_string) {
 
@@ -74,7 +77,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 	return newRepProcessor;
 }
 
-// Applying
+// Apply processing on a single PidDynamicRec at a set of time-points given by samples
 //.......................................................................................
 int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 
@@ -85,6 +88,8 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 	return apply(rec, time_points);
 }
 
+// Apply processing on a single PidDynamicRec at a set of time-points given by time-points,
+// only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
 int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
 
@@ -96,6 +101,8 @@ int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int
 	return 0;
 }
 
+// Apply processing on a single PidDynamicRec at a set of time-points given by samples,
+// only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
 int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds) {
 
@@ -106,7 +113,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& 
 	return apply(rec, time_points, neededSignalIds);
 }
 
-// Required signals
+// Fill req_signal_ids from req_signals
 //.......................................................................................
 void RepProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 
@@ -116,6 +123,7 @@ void RepProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 		req_signal_ids[i] = dict.id(req_signals[i]);
 }
 
+// Append req_signal_ids to vector (fill req_signal_ids from req_signals if empty)
 //.......................................................................................
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict) {
 
@@ -126,12 +134,14 @@ void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, MedDic
 		signalIds.insert(signalId);
 }
 
+// Append req_signals to vector
+//.......................................................................................
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames) {
 	for (auto sig : req_signals)
 		signalNames.insert(sig);
 }
 
-// Affected signals
+// Affected signals - set aff_signal_ids from aff_signals (id->name)
 //.......................................................................................
 void RepProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 
@@ -205,7 +215,7 @@ int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<Rep
 
 	vector<int> rc(processors.size(), 0);
 
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
 		rc[j] = processors[j]->Learn(rep, ids, prev_processors);
 	}
@@ -221,7 +231,7 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 	vector<int> rc(processors.size(), 0);
 
 	// ??? chances are this next parallelization is not needed, as we parallel before on recs...
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points);
 	}
@@ -236,7 +246,7 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 	vector<int> rc(processors.size(), 0);
 
 	// ??? chances are this next parallelization is not needed, as we parallel before on recs...
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points, neededSignalIds);
 	}
@@ -427,11 +437,13 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 		for (int i = 0; i < len; i++) {
 			int itime = rec.usv.Time(i, time_channel);
 			float ival = rec.usv.Val(i, val_channel);
-
+			//printf("removing: %d %f\n", itime, ival);
 			if (itime > time_points[iver])	break;
 
-			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
+				
 				remove[nRemove++] = i;
+			}
 			else if (params.doTrim) {
 				if (ival < trimMin)
 					change[nChange++] = pair<int, float>(i, trimMin);
@@ -652,7 +664,7 @@ void learnDistributionBorders(double& borderHi, double& borderLo, vector<float> 
 	}
 	double mean = sum / (stop - start);
 	double var = sumsq / (stop - start) - mean*mean;
-	printf("sum %f sumsq %f  stop %d start %d\n", sum, sumsq, stop, start);
+	//printf("sum %f sumsq %f  stop %d start %d\n", sum, sumsq, stop, start);
 	var = var / varianceFactor;
 	mean = mean - meanShift*sqrt(var);
 	borderHi = mean + sdNums*sqrt(var);
@@ -716,32 +728,63 @@ void RepConfiguredOutlierCleaner::print()
 int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 {
 	init_defaults();
+	set<string> rulesStrings;
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		if (field == "signals")boost::split(aff_signals, entry.second, boost::is_any_of(",")); // build list of  affected signals 
+		if (field == "signals") {
+			boost::split(aff_signals, entry.second, boost::is_any_of(",")); // build list of  affected signals 
+			for (auto sig : aff_signals)  // all affected are of course required
+				req_signals.push_back(sig);
+		}
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		for (auto sig : aff_signals)  // all affected are of course required
-			req_signals.push_back(sig);
+		else if (field == "addRequiredSignals")addRequiredSignals = stoi(entry.second);
+		else if (field == "consideredRules") {
+			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
+			for (auto& rule : rulesStrings) {
+				int ruleNum = stoi(rule);
+				consideredRules.push_back(ruleNum);
+				if (ruleNum == 0)break;
+			}
+		}
 
 
 	}
+	for (auto& rule : rules2Signals)
+		if (std::find(consideredRules.begin(), consideredRules.end(), 0) != consideredRules.end() ||
+			std::find(consideredRules.begin(), consideredRules.end(), rule.first) != consideredRules.end())
+			continue;// rule remains
+		else rules2Signals.erase(rule.first);// rule removed
+
+
+
 	// add required signals according to rules that apply to affected signals
-	for (auto rule : rules2Signals)
-		for (auto sig : aff_signals)
+	for (auto& rule : rules2Signals)
+		for (auto& sig : aff_signals)
 			if (std::find(rule.second.begin(), rule.second.end(), sig) != rule.second.end()) {
 				rulesToApply.push_back(rule.first);
-				for (auto reqSig : rule.second) {
+				bool loopBreak = false;
+				for (auto& reqSig : rule.second) {
 					bool found = false;
-					for (auto existReqSig : req_signals)
+					for (auto& existReqSig : req_signals)
 						if (reqSig == existReqSig) {
 							found = true;
 							break;  //already there
 						}
-					if (!found)req_signals.push_back(reqSig);    //add required signal
+					if (!found)
+						if (addRequiredSignals)
+							req_signals.push_back(reqSig);    //add required signal
+						else {
+							rulesToApply.pop_back();//We were asked not to load additional signals so ignore this rule
+							loopBreak = true;
+							break;
+						}
 				}
+				if (loopBreak)break;
 			}
+
+
 
 	return MedValueCleaner::init(mapper);
 }
@@ -766,11 +809,12 @@ int RepRuleBasedOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_poin
 		// hence we need to clean version jver, and then make sure all these versions point to it
 
 		// Clean 
-		for (auto reqSigId : reqSignalIds)
+		for (auto reqSigId : reqSignalIds) {
 			rec.uget(reqSigId, jver, usvs[reqSigId]);
-
+			removePoints[reqSigId] = {};
+		}
 		//Now loop on rules
-
+		//printf("removePointsSize:%d\n", removePoints.size());
 
 		for (auto rule : rulesToApply) {
 			vector <int> mySids;
@@ -778,12 +822,17 @@ int RepRuleBasedOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_poin
 			vector <bool>affected;
 
 			// build set of the participating signals
-			for (auto sname : rules2Signals[rule]) {
+			
+			for (auto& sname : rules2Signals[rule]) {
 				int thisSid = myDict.id(sname);
 				mySids.push_back(thisSid);
 				affected.push_back(affSignalIds.find(thisSid) != affSignalIds.end());
 				ruleUsvs.push_back(usvs[thisSid]);
 			}
+			bool signalEmpty = false;
+			for (auto& thisUsv : ruleUsvs) // look for empty signals and skip the rule
+				if (thisUsv.len == 0)signalEmpty = true;
+			if (signalEmpty) continue; //skip this rule. one of the signals is empty (maybe was cleaned in earlier stage ) 
 
 			// loop and find times where you have all signals
 			vector <int>sPointer(mySids.size(), 0);
@@ -791,11 +840,12 @@ int RepRuleBasedOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_poin
 			for (sPointer[0] = 0; sPointer[0] < ruleUsvs[0].len; sPointer[0]++) {
 				//printf("start loop %d %d \n", sPointer[0], ruleUsvs[0].len);
 				thisTime = ruleUsvs[0].Time(sPointer[0], time_channel);
+				if (thisTime > time_points[iver])break;
 				bool ok = true;
 				for (int i = 1; i < mySids.size(); i++) {
 					while (ruleUsvs[i].Time(sPointer[i], time_channel) < thisTime && sPointer[i] < ruleUsvs[i].len - 1)sPointer[i]++;
 					//printf("before ok_check: %d %d %d %d %d %d\n", i, sPointer[0], sPointer[1], sPointer[2],thisTime, ruleUsvs[i].Time(sPointer[i], time_channel));
-					if (ruleUsvs[i].Time(sPointer[i], time_channel) != thisTime) {
+					if (ruleUsvs[i].Time(sPointer[i], time_channel) != thisTime ) {
 						//printf("before ok_0: %d %d %d %d %d\n", rule, sPointer[0], sPointer[1], sPointer[2]);
 						ok = 0;
 						break;
@@ -814,10 +864,17 @@ int RepRuleBasedOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_poin
 					// check rule and mark for removement
 					//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
 					bool ruleFlagged = applyRule(rule, ruleUsvs, sPointer);
-					if (ruleFlagged)
+					/*
+					printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
+					for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
+					printf("\n");
+					*/
+					if (ruleFlagged) {
+						
 						for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
 							if (affected[sIndex])
 								removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
+					}
 				}
 
 
@@ -833,6 +890,7 @@ int RepRuleBasedOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_poin
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
 			vector <pair<int, float>>noChange;
+			//printf("before update: %d\n", toRemove.size());
 			if (rec.update(sig, jver, val_channel, noChange, toRemove) < 0)
 				return -1;
 		}
@@ -853,57 +911,92 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 // apply the rule and return true if data is consistent with the rule
 //ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 {
-#define TOLERANCE (0.05)
+#define TOLERANCE (0.11)
 	float left, right; // sides of the equality or inequality of the rule
 	float debug[10];
 	switch (rule) {
-	case 1:
+	case 1://BMI=Weight/Height^2*1e4
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) / ruleUsvs[2].Val(sPointer[2]) * 1e4;
 		//printf("inputs %f %f\n", ruleUsvs[1].Val(sPointer[1]), ruleUsvs[2].Val(sPointer[2]));
 		return (abs(left / right - 1) > TOLERANCE);
 
-	case 2:
-	case 3:
-	case 4:
-	case 6:
-	case 8:
-	case 11:
-	case 12:
-	case 13:
-	case 15:
-	case 18:
+	case 2://MCH=Hemoglobin/RBC*10
+	case 3://MCV=Hematocrit/RBC*10
+		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0]);
+		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10;
+		return(abs(left / right - 1) > TOLERANCE);
+
+	case 4://MCHC-M=MCH/MCV*100
+		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0]);
+		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 100;
+		return(abs(left / right - 1) > TOLERANCE);
+
+	case 11://HDL_over_nonHDL=HDL/NonHDLCholesterol
+	case 12://HDL_over_Cholesterol=HDL/Cholesterol
+		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0]);
+		right =round( ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/10.; //resolution in THIN is 0.1
+		return(abs(left / right - 1) > TOLERANCE);
+
+	case 6://MPV=Platelets_Hematocrit/Platelets
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]);
 		return(abs(left / right - 1) > TOLERANCE);
-	case 5:
+
+	case 8://UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
+		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0]);
+		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/10;//resolution in THIN is 0.1
+		return(abs(left / right - 1) > TOLERANCE);
+
+	case 13://HDL_over_LDL=HDL/LDL
+	case 15://Cholesterol_over_HDL=Cholesterol/HDL
+	case 18://LDL_over_HDL=LDL/HDL
+		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0]);
+		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]);
+		return(abs(left / right - 1) > TOLERANCE);
+
+	case 5://Eosinophils#+Monocytes#+Basophils#+Lymphocytes#+Neutrophils#<=WBC
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]) + ruleUsvs[2].Val(sPointer[2]) + ruleUsvs[3].Val(sPointer[3]) + ruleUsvs[4].Val(sPointer[4]);
 		right = ruleUsvs[5].Val(sPointer[5]);
 		return (left*(1 - TOLERANCE) >= right);
-	case 7:
-	case 19:
-	case 20:
-	case 21:
-	case 22:
+	
+	case 19://Albumin<=Protein_Total	
+	case 21://NRBC<=RBC
+	case 22://CHADS2<=CHADS2_VASC
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]);
 		return(left*(1 - TOLERANCE) >= right);
-	case 9:
+
+	case 7://UrineAlbumin <= UrineTotalProtein
+	case 20://FreeT4<=T4
+		left = ruleUsvs[0].Val(sPointer[0]);
+		right = ruleUsvs[1].Val(sPointer[1]);
+		return(left*(1 - TOLERANCE) >= right*1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
+
+	case 9://LDL+HDL<=Cholesterol
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]);
 		right = ruleUsvs[2].Val(sPointer[2]);
-		return (left*(1 - TOLERANCE) >= right);
-	case 10:
+		return (left*(1 - TOLERANCE) > right);
+
+	case 10://NonHDLCholesterol + HDL = Cholesterol
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]);
 		right = ruleUsvs[2].Val(sPointer[2]);
-		return (left*(1 - TOLERANCE) >= right);
-	case 14:
-	case 17:
+		return (abs(left / right - 1) > TOLERANCE);
+
+	case 14://HDL_over_LDL=1/LDL_over_HDL
+	case 17://Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
 		if (ruleUsvs[2].Val(sPointer[1]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = 1. / ruleUsvs[1].Val(sPointer[1]);
 		return (abs(left / right - 1) > TOLERANCE);
+
 	default: assert(0); return -1; // return is never executed but eliminates warning
 	}
 }
@@ -1113,107 +1206,112 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	}
 
 
-	// (De)Serialization
-	//.......................................................................................
-	size_t RepNbrsOutlierCleaner::get_size() {
+// (De)Serialization
+//.......................................................................................
+size_t RepNbrsOutlierCleaner::get_size() {
 
-		size_t size = 0;
+	size_t size = 0;
 
-		size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-		size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
-		size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
+	size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+	size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
-		return size;
-	}
+	return size;
+}
 
-	extern char signalName_c[MAX_NAME_LEN + 1];
+extern char signalName_c[MAX_NAME_LEN + 1];
 
-	//.......................................................................................
-	size_t RepNbrsOutlierCleaner::serialize(unsigned char *blob) {
+//.......................................................................................
+size_t RepNbrsOutlierCleaner::serialize(unsigned char *blob) {
 
-		size_t ptr = 0;
+	size_t ptr = 0;
 
-		ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-		ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-		ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
+	ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+	ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
-		return ptr;
-	}
+	return ptr;
+}
 
-	//.......................................................................................
-	size_t RepNbrsOutlierCleaner::deserialize(unsigned char *blob) {
+//.......................................................................................
+size_t RepNbrsOutlierCleaner::deserialize(unsigned char *blob) {
 
-		size_t ptr = 0;
+	size_t ptr = 0;
 
-		ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-		ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-		ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
+	ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+	ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+	ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
-		return ptr;
-	}
+	return ptr;
+}
 
-	//.......................................................................................
-	void RepNbrsOutlierCleaner::print()
-	{
-		MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
-			signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin, nbrsMax, nbrsMin);
-	}
+//.......................................................................................
+void RepNbrsOutlierCleaner::print()
+{
+	MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
+		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin,nbrsMax, nbrsMin);
+}
 
-	//=======================================================================================
-	// Utility Functions
-	//=======================================================================================
-	//.......................................................................................
-	// Get values of a signal from a set of ids
-	int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors)
-	{
-		vector<int> neededSignalIds = { signalId };
-		PidDynamicRec rec;
-		vector<int> req_signal_ids(1, signalId);
+//=======================================================================================
+// Utility Functions
+//=======================================================================================
+//.......................................................................................
+// Get values of a signal from a set of ids
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors) 
+{
 
-		UniversalSigVec usv;
+	vector<int> neededSignalIds = { signalId };
+	PidDynamicRec rec;
+	vector<int> req_signal_ids(1, signalId);
 
-		for (int id : ids) {
+	UniversalSigVec usv;
 
-			// Get signal
-			rep.uget(id, signalId, usv);
+	for (int id : ids) {
 
-			if (prev_processors.size()) {
+		// Get signal
+		rep.uget(id, signalId, usv);
+		
+		// Nothing to do if empty ...
+		if (usv.len == 0)
+			continue;
 
-				// Get all time points
-				vector<int> time_points(usv.len);
-				for (int i = 0; i < usv.len; i++)
-					time_points[i] = usv.Time(i, time_channel);
+		if (prev_processors.size()) {
 
-				// Init Dynamic Rec
-				rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
+			// Get all time points
+			vector<int> time_points(usv.len);
+			for (int i = 0; i < usv.len; i++)
+				time_points[i] = usv.Time(i, time_channel);
 
-				// Clean at all time-points
-				for (auto& processor : prev_processors)
-					processor->apply(rec, time_points, neededSignalIds);
+			// Init Dynamic Rec
+			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
+			
+			// Clean at all time-points
+			for (auto& processor : prev_processors)
+				processor->apply(rec, time_points, neededSignalIds);
 
-				// Collect 
-				for (int i = 0; i < usv.len; i++) {
-					rec.uget(signalId, i, rec.usv);
-					float ival = rec.usv.Val(i, val_channel);
-					if (ival >= range_min && ival <= range_max)
-						values.push_back(ival);
-				}
-			}
-			else {
-				// Collect 
-				for (int i = 0; i < usv.len; i++) {
-					float ival = usv.Val(i, val_channel);
-					if (ival >= range_min && ival <= range_max)
-						values.push_back(ival);
-				}
+			// Collect 
+			for (int i = 0; i < usv.len; i++) {
+				rec.uget(signalId, i, rec.usv);
+				float ival = rec.usv.Val(i, val_channel);
+				if (ival >= range_min && ival <= range_max)
+					values.push_back(ival);
 			}
 		}
-
-		return 0;
+		else {
+			// Collect 
+			for (int i = 0; i < usv.len; i++) {
+				float ival = usv.Val(i, val_channel);
+				if (ival >= range_min && ival <= range_max)
+					values.push_back(ival);
+			}
+		}
 	}
+	
+	return 0;
+}
 
-	//.......................................................................................
-	int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) {
-		vector<RepProcessor *> temp;
-		return get_values(rep, ids, signalId, time_channel, val_channel, range_min, range_max, values, temp);
-	}
+//.......................................................................................
+int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) {
+	vector<RepProcessor *> temp;
+	return get_values(rep, ids, signalId, time_channel, val_channel, range_min, range_max, values, temp); 
+}

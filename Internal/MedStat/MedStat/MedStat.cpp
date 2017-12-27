@@ -113,6 +113,38 @@ void get_common(vector<float>& vals, float &common) {
 }
 
 //...............................................................................................................................
+void get_histogram(vector<float>& vals, vector<pair<float, float> >& hist) {
+
+	if (vals.size() == 0)
+		return;
+
+	sort(vals.begin(), vals.end());
+
+	for (unsigned int i = 1; i < vals.size(); i++) {
+		if (vals[i] != vals[i - 1])
+			hist.push_back({ vals[i - 1] , ((float)i) / vals.size() });
+	}
+		
+	hist.push_back({ vals.back() , 1.0 });
+}
+
+//...............................................................................................................................
+float sample_from_histogram(vector<pair<float, float> >& hist) {
+
+	// Generate a random number
+	float r = globalRNG::rand() / (globalRNG::max() + 1.0);
+
+	// Sample
+	for (int i = 0; i < hist.size(); i++) {
+		if (r < hist[i].second)
+			return hist[i].first;
+	}
+
+	// Handle numeric issues
+	return hist.back().first;
+}
+
+//...............................................................................................................................
 void get_median(vector<float>& vals, float &median) {
 
 	vector<float> tempValues = vals;

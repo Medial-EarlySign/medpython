@@ -112,7 +112,7 @@ int MedBP::Learn(float *_x, float *_y, float *_w/*ignored*/, int _nsamples, int 
 {
 	int (*size2)[2];
 	int (*skip2)[2];
-	double thisError;
+	double thisError = 0;
 	int *xd,*yd,*zd;
 	int *shared;
 	double **x, **y;

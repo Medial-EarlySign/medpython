@@ -4,6 +4,7 @@
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
+#include "InputTesters.h"
 
 //===============================================================================
 // MedAlgoMarkerInternal - a mid-way API class : hiding all details of 
@@ -183,3 +184,4 @@ public:
 	//========================================================
 	const char *get_name()	{ return name.c_str();	}
 };
+

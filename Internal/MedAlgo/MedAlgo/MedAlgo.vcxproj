@@ -85,6 +85,7 @@
     <ClInclude Include="MedBooster.h" />
     <ClInclude Include="MedDeepBit.h" />
     <ClInclude Include="MedLightGBM.h" />
+    <ClInclude Include="MedVW.h" />
     <ClInclude Include="MedXGB.h" />
     <ClInclude Include="PredictiveModel.h" />
     <ClInclude Include="SGD.h" />
@@ -107,6 +108,7 @@
     <ClCompile Include="MedQRF.cpp" />
     <ClCompile Include="MedSpecificGroupModels.cpp" />
     <ClCompile Include="MedSvm.cpp" />
+    <ClCompile Include="MedVW.cpp" />
     <ClCompile Include="MedXGB.cpp" />
     <ClCompile Include="MedLasso.cpp" />
     <ClCompile Include="PredictiveModel.cpp" />

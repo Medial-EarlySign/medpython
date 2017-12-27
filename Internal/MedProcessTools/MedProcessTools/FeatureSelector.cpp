@@ -310,7 +310,7 @@ int MRMRFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) 
 	vector<int> selectFlags(nFeatures, 0);
 
 	for (int iSelect = 0; iSelect < numToSelect; iSelect++) {
-		float optScore;
+		float optScore = missing_value;
 		int optFeature = -1;
 		for (int i = 0; i < nFeatures; i++) {
 			if (selectFlags[i] == 0) {
@@ -630,7 +630,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			}
 		}
 
-		MLOG("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1],nStuck);
+		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1],nStuck);
 
 		if (nthreads == 1) { // Special care
 			if (nSelected[0] == numToSelect) {
@@ -655,7 +655,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		else {
 			for (int j = 0; j < nthreads; j++)
-				fprintf(stderr, "N[%.12f] = %d\n", lambdas[j], nSelected[j]);
+				MLOG("N[%.12f] = %d\n", lambdas[j], nSelected[j]);
 
 //			float ratio;
 			if (nSelected[nthreads - 1] > numToSelect) { // MaxLambda is still too low
@@ -687,7 +687,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			if (nStuck == 3) {
 
 				int minDiff = nFeatures;
-				int optimalI;
+				int optimalI = 0;
 				for (int i = 0; i < nthreads; i++) {
 					if (abs(nSelected[i] - numToSelect) < minDiff) {
 						minDiff = abs(nSelected[i] - numToSelect);
@@ -773,10 +773,10 @@ int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) 
 			counters[val] ++;
 
 		int maxCount = 0;
-		float maxCountValue;
+		float maxCountValue = missing_value;
 		for (auto rec : counters) {
 			if (rec.second > maxCount) {
-				maxCount += rec.second;
+				maxCount = rec.second;
 				maxCountValue = rec.first;
 			}
 		}

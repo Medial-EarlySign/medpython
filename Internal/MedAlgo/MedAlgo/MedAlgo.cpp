@@ -10,6 +10,10 @@
 #include "MedLightGBM.h"
 #include "MedLinearModel.h"
 
+#if NEW_COMPLIER
+#include "MedVW.h"
+#endif
+
 #include <thread>
 
 #define LOCAL_SECTION LOG_MEDALGO
@@ -34,7 +38,8 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_SVM , "svm" },
 	{ MODEL_LIGHTGBM , "lightgbm" },
 	{ MODEL_LINEAR_SGD , "linear_sgd" },
-	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" }
+	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" },
+	{MODEL_VW, "vw"}
 };
 //=======================================================================================
 // MedPredictor
@@ -96,6 +101,10 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedSpecificGroupModels;
 	else if (model_type == MODEL_SVM)
 		return new MedSvm;
+#if NEW_COMPLIER
+	else if (model_type == MODEL_VW)
+		return new MedVW;
+#endif
 	else
 		return NULL;
 
@@ -104,12 +113,14 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type, string
 
 	MedPredictor *newPred = make_predictor(model_type);
 	newPred->init_from_string(init_string);
+
 	return newPred;
 }
 //.......................................................................................
 int MedPredictor::init_from_string(string text) {
 
-	cerr << "MedPredictor init from string (classifier type is " << classifier_type << " )\n";
+	MLOG("MedPredictor init from string (classifier type is %d)\n", classifier_type);
+
 	// parse text of the format "Name = Value ; Name = Value ; ..."
 
 	if (classifier_type == MODEL_MIC_NET) {
@@ -134,7 +145,12 @@ int MedPredictor::init_from_string(string text) {
 		MedLightGBM *med_light = (MedLightGBM *)this;
 		return med_light->init_from_string(text);
 	}
-
+#if NEW_COMPLIER
+	if (classifier_type == MODEL_VW) {
+		MedVW *vw = (MedVW *)this;
+		return vw->init_from_string(text);
+	}
+#endif
 	// remove white spaces
 	text.erase(remove_if(text.begin(), text.end(), ::isspace), text.end());
 
@@ -392,9 +408,10 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 
 //.......................................................................................
 int MedPredictor::predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs) {
-	if (!model_features.empty() && model_features.size() != n_ftrs) {
-		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-			(int)model_features.size(), (int)x.size());
+	if (!model_features.empty()) {
+		if (model_features.size() != n_ftrs)
+			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+				(int)model_features.size(), (int)x.size());
 	}
 	else if (features_count > 0 && features_count != n_ftrs)
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
