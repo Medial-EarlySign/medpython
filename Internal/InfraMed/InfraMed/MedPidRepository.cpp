@@ -771,7 +771,6 @@ int PidDynamicRec::change(int sid, int v_in, int idx, void *new_elem, int v_out)
 
 //..................................................................................................................
 int PidDynamicRec::update(int sid, int v_in, vector<pair<int, void *>>& changes, vector<int>& removes) {
-
 	for (unsigned int iChange = 0; iChange < changes.size(); iChange++) {
 		//if (change(sid, v_in, changes[iChange].first, &(changes[iChange].second)) < 0)
 		if (change(sid, v_in, changes[iChange].first, changes[iChange].second) < 0)
@@ -786,9 +785,9 @@ int PidDynamicRec::update(int sid, int v_in, vector<pair<int, void *>>& changes,
 
 //..................................................................................................................
 int PidDynamicRec::update(int sid, int v_in, int val_channel, vector<pair<int, float>>& changes, vector<int>& removes) {
-
 	// first we make sure we get our copy if we have changes
 	if (changes.size() > 0 || removes.size() > 0) {
+
 		if (set_version_off_orig(sid, v_in) < 0)
 			return -1;
 

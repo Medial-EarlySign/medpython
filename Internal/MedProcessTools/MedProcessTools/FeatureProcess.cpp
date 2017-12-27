@@ -178,7 +178,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		int rc = processors[j]->Learn(features, ids);
-//#pragma omp critical
+#pragma omp critical
 		if (rc < 0) RC = -1;
 	}
 
@@ -193,7 +193,7 @@ int MultiFeatureProcessor::Apply(MedFeatures& features, unordered_set<int>& ids)
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		int rc = processors[j]->Apply(features, ids);
-//#pragma omp critical
+#pragma omp critical
 		if (rc < 0) RC = -1;
 	}
 
