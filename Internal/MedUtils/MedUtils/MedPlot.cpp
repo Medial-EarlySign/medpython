@@ -442,7 +442,7 @@ void down_sample_graph(map<float, float> &points, int points_count) {
 }
 
 void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>> &y, const vector<string> &modelNames,
-	string baseOut) {
+	string baseOut, bool print_y) {
 	vector<float> pred_threshold;
 	vector<float> true_rate;
 	vector<float> false_rate;
@@ -502,12 +502,13 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 	createHtmlGraph(baseOut + separator() + "PPV.html", allPPV, "PPV curve", "False Positive Rate",
 		"Positive Predictive Value", data_titles);
 
-	for (size_t i = 0; i < y.size(); ++i) {
-		allData.clear();
-		allData.push_back(BuildHist(y[i]));
-		createHtmlGraph(baseOut + separator() + "y_labels_" + modelNames[i] + ".html", allData, "Y Labels", "Y",
-			"Count", {}, 0, "pie");
-	}
+	if (print_y)
+		for (size_t i = 0; i < y.size(); ++i) {
+			allData.clear();
+			allData.push_back(BuildHist(y[i]));
+			createHtmlGraph(baseOut + separator() + "y_labels_" + modelNames[i] + ".html", allData, "Y Labels", "Y",
+				"Count", {}, 0, "pie");
+		}
 }
 
 void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
@@ -531,5 +532,16 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, con
 			}
 	}
 
-	plotAUC(all_preds_filtered, all_y, modelNames, baseOut);
+	plotAUC(all_preds_filtered, all_y, modelNames, baseOut, false);
+	vector<float> filty;
+	filty.reserve((int)y.size());
+	for (size_t i = 0; i < y.size(); ++i)
+		if (indexes[i])
+			filty.push_back(y[i]);
+
+	vector<map<float, float>> allData;
+	allData.push_back(BuildHist(filty));
+	createHtmlGraph(baseOut + separator() + "y_labels.html", allData, "Y Labels", "Y",
+		"Count", {}, 0, "pie");
+
 }
