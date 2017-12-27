@@ -94,7 +94,7 @@ public:
 
 	// Learn processing model on a subset of ids. Apply set of preceesing processors on DynamicPidRec before learning
 	// Should be implemented for inheriting classes that require learning
-	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
+	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {  return 0; };
 
 	// Envelope learning functions
 	// Learn on subset of ids
@@ -397,9 +397,7 @@ public:
 	
 	
 	// Learn cleaning model  : no learning for this cleaner. only apply
-	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor) {
-		return 0;
-	};
+	
 	//set signals
 	void set_signal_ids(MedDictionarySections& dict) { myDict = dict; } // keep the dict. We will set ids later.
 
