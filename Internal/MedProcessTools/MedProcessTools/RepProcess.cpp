@@ -911,7 +911,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 // apply the rule and return true if data is consistent with the rule
 //ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 {
-#define TOLERANCE (0.11)
+#define TOLERANCE (0.1)
 	float left, right; // sides of the equality or inequality of the rule
 	float debug[10];
 	switch (rule) {
