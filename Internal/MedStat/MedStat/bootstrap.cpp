@@ -913,7 +913,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	for (size_t i = 1; i < true_rate.size(); ++i)
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
-	bool use_wp = unique_scores.size() > max_qunt_vals || params->use_score_working_points; //change all working points
+	bool use_wp = unique_scores.size() > max_qunt_vals && !params->use_score_working_points; //change all working points
 	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
 	int i = 0;
 
