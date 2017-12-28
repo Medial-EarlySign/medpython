@@ -289,6 +289,11 @@ RowFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_
 
 }
 
+void MedLightGBM::calc_feature_importance(vector<float> &features_importance_scores,
+	const string &general_params) {
+	MedPredictor::calc_feature_importance(features_importance_scores, general_params);
+}
+
 //===============================================================================================
 // MedLightGBM
 //===============================================================================================
