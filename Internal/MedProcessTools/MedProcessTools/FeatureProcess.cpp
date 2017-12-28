@@ -33,6 +33,10 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESSOR_LASSO_SELECTOR;
 	else if (processor_name == "remove_deg")
 		return FTR_PROCESS_REMOVE_DGNRT_FTRS;
+	else if (processor_name == "tags_selector")
+		return FTR_PROCESSOR_TAGS_SELECTOR;
+	else if (processor_name == "pca")
+		return FTR_PROCESS_ENCODER_PCA;
 	else
 		return FTR_PROCESS_LAST;
 }
@@ -74,6 +78,10 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new LassoSelector;
 	else if (processor_type == FTR_PROCESS_REMOVE_DGNRT_FTRS)
 		return new DgnrtFeatureRemvoer;
+	else if (processor_type == FTR_PROCESS_ENCODER_PCA)
+		return new FeaturePCA;
+	else if (processor_type == FTR_PROCESSOR_TAGS_SELECTOR)
+		return new TagFeatureSelector;
 	else
 		return NULL;
 
@@ -170,7 +178,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		int rc = processors[j]->Learn(features, ids);
-//#pragma omp critical
+#pragma omp critical
 		if (rc < 0) RC = -1;
 	}
 
@@ -185,7 +193,7 @@ int MultiFeatureProcessor::Apply(MedFeatures& features, unordered_set<int>& ids)
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		int rc = processors[j]->Apply(features, ids);
-//#pragma omp critical
+#pragma omp critical
 		if (rc < 0) RC = -1;
 	}
 
@@ -510,10 +518,20 @@ size_t FeatureNormalizer::deserialize(unsigned char *blob) {
 //=======================================================================================
 void FeatureImputer::print()
 {
-	MLOG("Imputer: Feat: %s nMoments: %d :: ", feature_name.c_str(), moments.size());
-	for (auto moment : moments)
-		MLOG("%f ", moment);
-	MLOG("\n");
+	if (moment_type == IMPUTE_MMNT_SAMPLE) {
+		MLOG("Imputer: Feat: %s nHistograms: %d :: ", feature_name.c_str(), histograms.size());
+		for (unsigned int i = 0; i < histograms.size(); i++) {
+			for (auto& pair : histograms[i])
+				MLOG("%d %f L %f", i, pair.first, pair.second);
+		}
+		MLOG("\n");
+	}
+	else {
+		MLOG("Imputer: Feat: %s nMoments: %d :: ", feature_name.c_str(), moments.size());
+		for (auto moment : moments)
+			MLOG("%f ", moment);
+		MLOG("\n");
+	}
 }
 
 // Learn
@@ -560,11 +578,20 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		//MLOG("collected %d %d\n", j, stratifiedValues[j].size());
 
 	// Get moments
-	moments.resize(stratifiedValues.size());
+	if (moment_type == IMPUTE_MMNT_SAMPLE)
+		histograms.resize(stratifiedValues.size());
+	else
+		moments.resize(stratifiedValues.size());
+
 	strata_sizes.resize(stratifiedValues.size());
+	int too_small_stratas = 0;
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
 		strata_sizes[i] = (int) stratifiedValues[i].size();
-		if (moment_type == IMPUTE_MMNT_MEAN)
+		if (strata_sizes[i] < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+			too_small_stratas++;
+			moments[i] = missing_value;
+		}
+		else if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
 		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
 			if (stratifiedValues[i].size() > 0)
@@ -574,17 +601,27 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		else if (moment_type == IMPUTE_MMNT_COMMON)
 			get_common(stratifiedValues[i], moments[i]);
+		else if (moment_type == IMPUTE_MMNT_SAMPLE)
+			get_histogram(stratifiedValues[i], histograms[i]);
 		else {
 			MERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 		}
 	}
-	if (moment_type == IMPUTE_MMNT_MEAN)
+	if (too_small_stratas > 0)
+		MLOG("NOTE: featureImputer found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
+			MIN_SAMPLES_IN_STRATA_FOR_LEARNING, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+	if (all_existing_values.size() < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+		MLOG("NOTE: featureImputer found only %d < %d samples over all for [%s], will not impute it at all\n",
+			all_existing_values.size(), MIN_SAMPLES_IN_STRATA_FOR_LEARNING, feature_name.c_str());
+	} else if (moment_type == IMPUTE_MMNT_MEAN)
 		get_mean(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_MEDIAN)
 		//sort_and_get_median(all_existing_values, default_moment);
 		get_median(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_COMMON)
 		get_common(all_existing_values, default_moment);
+	else if (moment_type == IMPUTE_MMNT_SAMPLE)
+		get_histogram(all_existing_values, default_histogram);
 	//for (int j = 0; j < moments.size(); j++)
 		//MLOG("moment %d = [%f]\n", j, moments[j]);
 
@@ -623,10 +660,19 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 			for (int j = 0; j < imputerStrata.nStratas(); j++) {
 				index += imputerStrata.factors[j] * imputerStrata.stratas[j].getIndex((*strataData[j])[i], missing_value);
 			}
-			if (strata_sizes[index] == 0)
-				data[i] = default_moment;
-			else 
-				data[i] = moments[index];
+
+			if (moment_type == IMPUTE_MMNT_SAMPLE) {
+				if (strata_sizes[index] == 0)
+					data[i] = sample_from_histogram(default_histogram);
+				else
+					data[i] = sample_from_histogram(histograms[index]);
+			}
+			else {
+				if (strata_sizes[index] == 0)
+					data[i] = default_moment;
+				else
+					data[i] = moments[index];
+			}
 		}
 	}
 
@@ -666,6 +712,8 @@ imputeMomentTypes FeatureImputer::getMomentType(string& entry) {
 		return IMPUTE_MMNT_MEDIAN;
 	else if (entry == "2" || entry == "common")
 		return IMPUTE_MMNT_COMMON;
+	else if (entry == "3" || entry == "sample")
+		return IMPUTE_MMNT_SAMPLE;
 	else
 		return IMPUTE_MMNT_LAST;
 }
@@ -686,17 +734,17 @@ void FeatureImputer::addStrata(string& init_string) {
 // (De)Serialization
 //.......................................................................................
 size_t FeatureImputer::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, strata_sizes, default_moment);
+	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
 }
 
 //.......................................................................................
 size_t FeatureImputer::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, strata_sizes, default_moment);
+	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
 }
 
 //.......................................................................................
 size_t FeatureImputer::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, strata_sizes, default_moment);
+	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
 }
 
 

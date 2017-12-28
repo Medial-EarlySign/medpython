@@ -11,10 +11,13 @@ class MedBootstrap : public SerializableObject {
 public:
 	ROC_Params roc_Params;
 	map<string, vector<Filter_Param>> filter_cohort;
+	map<string, FilterCohortFunc> additional_cohorts; //not Serializable! additional cohorts given by function
 	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
 	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
 	bool sample_patient_label; //if true will treat patient+label as the "id" for the sampling
+	int sample_seed; //if 0 will use random_device
 	int loopCnt; //the bootstrap count
+	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  //not Serializable! the measurements with the params
 
 	void add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges);
 	void add_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges);
@@ -46,7 +49,7 @@ public:
 	void change_sample_autosim(MedSamples &samples, int min_time, int max_time, MedSamples &new_samples);
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
 
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, loopCnt, roc_Params, filter_cohort);
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort);
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
@@ -63,9 +66,9 @@ public:
 	MedBootstrap bootstrap_params;
 	map<string, map<string, float>> bootstrap_results;
 
-	void bootstrap(MedFeatures &features);
-	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info);
-	void bootstrap(MedSamples &samples, const string &rep_path);
+	void bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	void bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 
 	void find_working_points(const map<string, float> &bootstrap_cohort,
 		vector<float> &sens_points, vector<float> &pr_points);

@@ -10,6 +10,7 @@ class MedLinearModel : public MedPredictor, public PredictiveModel
 {
 public:
 	MedLinearModel(int numOdSignals);
+	int init(map<string, string>& mapper);
 	subGradientFunction getSubGradients();
 	subGradientFunction  getSubGradientsAUC();
 	subGradientFunction  getSubGradientsSvm();

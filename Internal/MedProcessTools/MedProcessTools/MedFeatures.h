@@ -88,7 +88,6 @@ public:
 	// Get subset of data (+attributes) as matrix: Only features in 'names' and rows in 'idx'
 	void get_as_matrix(MedMat<float>& mat, const vector<string>& names, vector<int> &idx);
 
-
 	// Append samples at end of samples vector
 	void append_samples(MedIdSamples& in_samples);
 	// Insert samples at position idex, assuming samples vector is properly allocated
@@ -105,6 +104,10 @@ public:
 	unsigned int get_crc();
 	// MLOG data in csv format
 	void print_csv();
+	// Get the corresponding MedSamples object .  Assuming samples are ordered in features (all id's samples are consecutive)
+	void get_samples(MedSamples& outSamples);
+	// Find the max serial_id_cnt
+	int get_max_serial_id_cnt();
 
 	// Write features (samples + weights + data) as csv with a header line
 	int write_as_csv_mat(const string &csv_fname);

@@ -10,6 +10,10 @@
 #include "MedLightGBM.h"
 #include "MedLinearModel.h"
 
+#if NEW_COMPLIER
+#include "MedVW.h"
+#endif
+
 #include <thread>
 
 #define LOCAL_SECTION LOG_MEDALGO
@@ -34,7 +38,8 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_SVM , "svm" },
 	{ MODEL_LIGHTGBM , "lightgbm" },
 	{ MODEL_LINEAR_SGD , "linear_sgd" },
-	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" }
+	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" },
+	{MODEL_VW, "vw"}
 };
 //=======================================================================================
 // MedPredictor
@@ -96,6 +101,10 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedSpecificGroupModels;
 	else if (model_type == MODEL_SVM)
 		return new MedSvm;
+#if NEW_COMPLIER
+	else if (model_type == MODEL_VW)
+		return new MedVW;
+#endif
 	else
 		return NULL;
 
@@ -136,7 +145,12 @@ int MedPredictor::init_from_string(string text) {
 		MedLightGBM *med_light = (MedLightGBM *)this;
 		return med_light->init_from_string(text);
 	}
-
+#if NEW_COMPLIER
+	if (classifier_type == MODEL_VW) {
+		MedVW *vw = (MedVW *)this;
+		return vw->init_from_string(text);
+	}
+#endif
 	// remove white spaces
 	text.erase(remove_if(text.begin(), text.end(), ::isspace), text.end());
 

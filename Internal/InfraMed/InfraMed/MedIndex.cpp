@@ -1121,7 +1121,7 @@ int MedIndex::read_index_table_and_data(int sid, string &idx_fname, string &data
 {
 	string prefix = "MedIndex::read_index_table_and_data() : sid : " + to_string(sid) + " :: ";
 
-#pragma omp critical
+//#pragma omp critical
 	{
 		if (index_table.size() == 0)
 			index_table.resize(MAX_SID_NUMBER);
@@ -1144,7 +1144,7 @@ int MedIndex::read_index_table_and_data(int sid, string &idx_fname, string &data
 		return -1;
 	}
 
-#pragma omp critical
+//#pragma omp critical
 	{
 		if (sid_in.find(sid) == sid_in.end()) {
 			//MLOG("Inserting sid %d to sid_in\n", sid);

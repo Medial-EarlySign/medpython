@@ -26,6 +26,7 @@ typedef enum {
 	REP_PROCESS_BASIC_OUTLIER_CLEANER,
 	REP_PROCESS_NBRS_OUTLIER_CLEANER,
 	REP_PROCESS_CONFIGURED_OUTLIER_CLEANER,
+	REP_PROCESS_RULEBASED_OUTLIER_CLEANER,
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -93,7 +94,7 @@ public:
 
 	// Learn processing model on a subset of ids. Apply set of preceesing processors on DynamicPidRec before learning
 	// Should be implemented for inheriting classes that require learning
-	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { fprintf(stderr, "Not Learning Anything\n");  return 0; };
+	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {  return 0; };
 
 	// Envelope learning functions
 	// Learn on subset of ids
@@ -208,7 +209,7 @@ public:
 	};
 
 	// Set Signal
-	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
+	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName;  }
 
 	// Signal Id
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -294,6 +295,124 @@ void learnDistributionBorders(double& borderHi, double& borderLo,vector<float> f
 // a function that takes sorted vector of filtered values and estimates the +- 7 sd borders based on the center of distribution
 // predefined calibration constants are used for estimation of the borders. 
 
+
+//.......................................................................................
+//.......................................................................................
+// A cleaner that is based on rules that describe relations of signal values to each other.
+// This is a static cleaner ( no learning involved).
+//.......................................................................................
+//.......................................................................................
+/****************************************************************************
+Rules:
+Rule1: BMI = Weight / Height ^ 2 * 1e4
+Rule2:MCH = Hemoglobin / RBC
+Rule3:MCV = Hematocrit / RBC
+Rule4:MCHC - M = MCH / MCV
+Rule5:Eosinophils# + Monocytes# + Basophils# + Lymphocytes# + Neutrophils# <= WBC
+Rule6:MPV = Platelets_Hematocrit / Platelets
+Rule7:UrineAlbumin <= UrineTotalProtein
+Rule8:UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
+Rule9:LDL + HDL <= Cholesterol
+Rule10:NonHDLCholesterol + HDL = Cholesterol
+Rule11:HDL_over_nonHDL = HDL / NonHDLCholesterol
+Rule12:HDL_over_Cholesterol = HDL / Cholesterol
+Rule13:HDL_over_LDL = HDL / LDL
+Rule14:HDL_over_LDL = 1 / LDL_over_HDL
+Rule15:Cholesterol_over_HDL = Cholesterol / HDL
+Rule16:Cholesterol_over_HDL = 1 / HDL / Cholesterol
+Rule17:Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
+Rule18:LDL_over_HDL = LDL / HDL
+Rule19:Albumin <= Protein_Total
+Rule20:FreeT4 <= T4
+Rule21:NRBC <= RBC
+Rule22:CHADS2_VASC >= CHADS2_VASC
+
+******************************************************************************/
+
+class RepRuleBasedOutlierCleaner : public RepProcessor, public MedValueCleaner {
+	// get multiple signals and clean them according to consistency  with other signals from same date
+public:
+
+	
+	// Signals to clean
+	vector <string> signalNames;
+	vector <int> signalIds;
+	int time_channel = 0;
+	int val_channel = 0;
+	MedDictionarySections myDict; // keeping it will enable us to get ids at apply stage
+	bool addRequiredSignals=false; // a flag stating if we want to load signals that are not in the cleaned signal list 
+								   // because they share a rule with the cleaned signals (set it in jason)
+	vector<int> consideredRules;// only rules in this list will be considered in this cleaner (read list from jason)
+	                            // rule number 0 means apply all rules. Empty vector: do nothing in this cleaner.
+	
+	map <int, vector<string>>rules2Signals = { // static map from rule to participating signals
+	{1,{"BMI","Weight","Height"}},
+	{2,{"MCH", "Hemoglobin","RBC"}},
+	{3,{"MCV","Hematocrit","RBC"} },
+	{4,{"MCHC-M","MCH","MCV"}},
+	{5,{"Eosinophils#","Monocytes#","Basophils#","Lymphocytes#","Neutrophils#","WBC" }},
+	{6,{ "MPV","Platelets_Hematocrit","Platelets" }},
+	{7,{"UrineAlbumin","UrineTotalProtein" }},
+	{8,{"UrineAlbumin_over_Creatinine","UrineAlbumin","UrineCreatinine" }},
+	{9,{"LDL","HDL","Cholesterol"}},
+	{10,{"NonHDLCholesterol","HDL","Cholesterol"}},
+	{11,{"HDL_over_nonHDL","HDL","NonHDLCholesterol"}},
+	{12,{"HDL_over_Cholesterol","HDL","Cholesterol"}},
+	{13,{"HDL_over_LDL","HDL","LDL"}},
+	{14,{"HDL_over_LDL","LDL_over_HDL"}},
+	{15,{"Cholesterol_over_HDL","Cholesterol","HDL"}},
+	{17,{"Cholesterol_over_HDL","HDL_over_Cholestrol"}}, //rule 16 canceled
+	{18,{"LDL_over_HDL","LDL","HDL"}},
+	{19,{"Albumin","Protein_Total"}},
+	{20,{"FreeT4","T4"}},
+	{21,{"NRBC","RBC"}},
+	{22,{"CHADS2","CHADS2_VASC"}}
+	};
+
+	vector <int> rulesToApply;
+
+	// Constructors 
+	RepRuleBasedOutlierCleaner() : RepProcessor() {init_defaults(); }
+	
+	void init_defaults() {
+		processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
+		
+		params.take_log = 0;
+		params.doRemove = true;
+		
+		params.type = VAL_CLNR_ITERATIVE;
+		params.missing_value = MED_MAT_MISSING_VALUE;
+	};
+	
+
+
+
+	// Init
+	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
+	virtual int init(map<string, string>& mapper);
+
+
+
+	
+	
+	
+	// Learn cleaning model  : no learning for this cleaner. only apply
+	
+	//set signals
+	void set_signal_ids(MedDictionarySections& dict) { myDict = dict; } // keep the dict. We will set ids later.
+
+	// Apply cleaning model 
+	int apply(PidDynamicRec& rec, vector<int>& time_points);
+
+	// Serialization  -static not needed
+	//print 
+private:
+	bool  applyRule(int rule, vector <UniversalSigVec> ruleUsvs,vector <int >sPointer); // apply the rule and return true if data is consistent with the rule
+	//ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
+};
+
+
+
 //.......................................................................................
 //.......................................................................................
 // A cleaner that looks at the neighbourhood of a certain signal value
@@ -319,8 +438,8 @@ public:
 	// Constructors
 	RepNbrsOutlierCleaner() : RepProcessor() { init_defaults(); }
 	RepNbrsOutlierCleaner(const string& _signalName) : RepProcessor() { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); }
-	RepNbrsOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() {init_defaults(); signalId = -1; signalName = _signalName; init_lists();}
-	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params);}
+	RepNbrsOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); }
+	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
 
 	void init_defaults() {
 		processor_type = REP_PROCESS_NBRS_OUTLIER_CLEANER;
@@ -333,7 +452,7 @@ public:
 	};
 
 	// Set Signal
-	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists();}
+	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	// Signal Id
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -358,7 +477,6 @@ public:
 
 	void print();
 };
-
 //.......................................................................................
 //.......................................................................................
 // Utility Functions

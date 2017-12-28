@@ -1,6 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <boost/algorithm/string/join.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
@@ -503,8 +505,8 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_LATEST:	name += "latest"; break;
 	case FTR_RANGE_MIN:		name += "min"; break;
 	case FTR_RANGE_MAX:		name += "max"; break;
-	case FTR_RANGE_EVER:	name += "ever_" + to_string(signalValue); break;
-
+	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
+	case FTR_RANGE_TIME_DIFF: name += "time_diff_" +to_string(check_first)+ sets[0]; break;
 	default: name += "ERROR";
 	}
 
@@ -528,9 +530,10 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "val") signalValue = stoi(entry.second);
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "check_first") check_first = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 	}
@@ -543,12 +546,25 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
+
+	if (type == FTR_RANGE_EVER || type== FTR_RANGE_TIME_DIFF) {
+		if (lut.size() == 0) {
+			int section_id = dict.section_id(signalName);
+			dict.prep_sets_lookup_table(section_id, sets, lut);
+		}
+	}
+	else
+		lut.clear();
+	return;
+}
+
 // Init
 //.......................................................................................
 void RangeFeatGenerator::init_defaults() {
 	generator_type = FTR_GEN_RANGE;
 	signalId = -1;
-	signalValue = -1;
+	sets.clear();
 	time_unit_sig = MedTime::Undefined;
 	time_unit_win = med_rep_type.windowTimeUnit;
 	string _signalName = "";
@@ -565,6 +581,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "max")			return FTR_RANGE_MAX;
 	if (name == "min")			return FTR_RANGE_MIN;
 	if (name == "ever")			return FTR_RANGE_EVER;
+	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
 
 	return (RangeFeatureTypes)stoi(name);
 }
@@ -595,6 +612,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_MIN:	return uget_range_min(rec.usv, time);
 	case FTR_RANGE_MAX:		return uget_range_max(rec.usv, time);
 	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, time);
+	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, time);
 
 	default:	return missing_val;
 	}
@@ -1071,11 +1089,66 @@ float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int time)
 			break;
 		else if (toTime < min_time)
 			continue;
-		else if ((fromTime >= min_time || toTime <= max_time) && (int)usv.Val(i, val_channel) == signalValue)
-			return 1.0;
+		else if (lut[(int)usv.Val(i, val_channel)]) 	return 1;
 	}
 	return 0.0;
 }
+
+//.......................................................................................
+// returns time diff if the range ever (up to time) had the value signalValue
+float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	int no_lut_ind = 0;
+	int time_diff=missing_val;
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+		if (fromTime > max_time)
+			break;
+		else if (toTime < min_time)
+			continue;
+		else if (lut[(int)usv.Val(i, val_channel)]) {
+			if (check_first == 1) {
+				//in case of first range
+				int max_time = fromTime;
+				if (win_from > max_time) max_time = win_from;
+				
+				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time);
+				//fprintf(stderr, "max_time: %i time :%i from_time:%i win_from:%i time_diff:%i\n", max_time, time, fromTime, win_from, time_diff);
+				return time_diff;
+			}
+			else {
+				//in case of last range
+				int time_to_diff = toTime;
+				if (win_to < toTime) time_to_diff = win_to;
+				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, time_to_diff);
+			}
+		}
+		else
+			no_lut_ind = 1;
+	}
+
+	//in case of last range
+	if (check_first == 0 && time_diff != missing_val)
+		return time_diff;
+
+	//in case of range exists but no lut
+	if (no_lut_ind == 1) {
+			time_diff = -1* win_to;
+		return time_diff;
+	}
+	//in case of no range in the time window
+	else {
+		return missing_val;
+	}
+}
+
+
+
+
 
 //................................................................................................................
 // Helper function for time conversion
