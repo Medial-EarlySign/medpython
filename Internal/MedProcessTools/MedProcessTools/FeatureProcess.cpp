@@ -581,7 +581,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	if (moment_type == IMPUTE_MMNT_MEAN)
 		get_mean(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_MEDIAN)
-		sort_and_get_median(all_existing_values, default_moment);
+		//sort_and_get_median(all_existing_values, default_moment);
+		get_median(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_COMMON)
 		get_common(all_existing_values, default_moment);
 	//for (int j = 0; j < moments.size(); j++)
