@@ -168,7 +168,7 @@ size_t RepProcessor::processor_serialize(unsigned char *blob) {
 //=======================================================================================
 // RepMultiProcessor
 //=======================================================================================
-// Required Signals
+// Required Signals ids : Fill the member vector - req_signal_ids
 //.......................................................................................
 void RepMultiProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 
@@ -180,7 +180,7 @@ void RepMultiProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 	}
 }
 
-// Affected Signals
+// Affected Signals : Fill the member vector aff_signal_ids
 //.......................................................................................
 void RepMultiProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 
@@ -195,7 +195,7 @@ void RepMultiProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 	}
 }
 
-// Signal ids
+// Set signal-ids for all linked signals
 //.......................................................................................
 void RepMultiProcessor::set_signal_ids(MedDictionarySections& dict) {
 
@@ -204,12 +204,14 @@ void RepMultiProcessor::set_signal_ids(MedDictionarySections& dict) {
 
 }
 
+// Required Signals names : Fill the unordered set signalNames
+//.......................................................................................
 void RepMultiProcessor::get_required_signal_names(unordered_set<string>& signalNames) {
 	for (auto& processor : processors)
 		processor->get_required_signal_names(signalNames);
 }
 
-// Learning
+// Learn processors
 //.......................................................................................
 int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
 
@@ -224,7 +226,7 @@ int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<Rep
 	return 0;
 }
 
-// Apply
+// Apply processors
 //.......................................................................................
 int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
@@ -240,6 +242,7 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 	return 0;
 }
 
+// Apply processors that affect any of the needed signals
 //.......................................................................................
 int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
 
@@ -267,6 +270,7 @@ void  RepMultiProcessor::add_processors_set(RepProcessorTypes type, vector<strin
 
 }
 
+// Add processors with initialization string
 //.......................................................................................
 void  RepMultiProcessor::add_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string) {
 
@@ -326,6 +330,7 @@ size_t RepMultiProcessor::deserialize(unsigned char *blob) {
 //=======================================================================================
 // BasicOutlierCleaner
 //=======================================================================================
+// Fill req- and aff-signals vectors
 //.......................................................................................
 void RepBasicOutlierCleaner::init_lists() {
 
@@ -333,10 +338,11 @@ void RepBasicOutlierCleaner::init_lists() {
 	aff_signals.insert(signalName);
 }
 
+// Init from map
 //.......................................................................................
-int RepBasicOutlierCleaner::init(map<string, string>& mapper)
-{
-	init_defaults();
+int RepBasicOutlierCleaner::init(map<string, string>& mapper) 
+{ 
+	init_defaults(); 
 
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -349,7 +355,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 	return MedValueCleaner::init(mapper);
 }
 
-// Learn bounds
+ // Learn cleaning boundaries
 //.......................................................................................
 int RepBasicOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
@@ -363,6 +369,7 @@ int RepBasicOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vecto
 	}
 }
 
+// Learning : learn cleaning boundaries using MedValueCleaner's iterative approximation of moments
 //.......................................................................................
 int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
@@ -376,11 +383,13 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 	vector<float> values;
 	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
-	int rc = get_iterative_min_max(values);
-	//print();
+	// Iterative approximation of moments
+	int rc =  get_iterative_min_max(values);
+
 	return rc;
 }
 
+// Learning : learn cleaning boundaries using MedValueCleaner's quantile approximation of moments
 //.......................................................................................
 int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
@@ -394,10 +403,11 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 	vector<float> values;
 	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
+	// Quantile approximation of moments
 	return get_quantile_min_max(values);
 }
 
-// Clean
+// Apply cleaning model
 //.......................................................................................
 int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
@@ -407,6 +417,7 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 		return -1;
 	}
 
+	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
@@ -437,13 +448,13 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 		for (int i = 0; i < len; i++) {
 			int itime = rec.usv.Time(i, time_channel);
 			float ival = rec.usv.Val(i, val_channel);
-			//printf("removing: %d %f\n", itime, ival);
+
+			// No need to clean past the latest relevant time-point
 			if (itime > time_points[iver])	break;
 
-			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
-				
+			// Identify values to change or remove
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
 				remove[nRemove++] = i;
-			}
 			else if (params.doTrim) {
 				if (ival < trimMin)
 					change[nChange++] = pair<int, float>(i, trimMin);
@@ -453,13 +464,13 @@ int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points)
 		}
 
 		// Apply removals + changes
-
 		change.resize(nChange);
 		remove.resize(nRemove);
 
 		if (rec.update(signalId, jver, val_channel, change, remove) < 0)
 			return -1;
 
+		// Point versions jver+1..iver to jver
 		while (iver > jver) {
 			rec.point_version_to(signalId, jver, iver);
 			iver--;

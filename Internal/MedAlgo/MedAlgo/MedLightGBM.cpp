@@ -167,126 +167,140 @@ namespace LightGBM {
 	}
 
 
-//-------------------------------------------------------------------------------------------------
-void MemApp::Predict(float *x, int nrows, int ncols, float *&preds)
-{
-	auto get_row_fun = RowPairFunctionFromDenseMatric(x, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
+	//-------------------------------------------------------------------------------------------------
+	void MemApp::Predict(float *x, int nrows, int ncols, float *&preds)
+	{
+		auto get_row_fun = RowPairFunctionFromDenseMatric(x, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
 
-// create boosting
-	Predictor predictor(boosting_.get(), config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score, config_.io_config.is_predict_leaf_index,
-		config_.io_config.pred_early_stop, config_.io_config.pred_early_stop_freq, config_.io_config.pred_early_stop_margin);
-	int64_t num_preb_in_one_row = boosting_->NumPredictOneRow(config_.io_config.num_iteration_predict, config_.io_config.is_predict_leaf_index);
-	auto pred_fun = predictor.GetPredictFunction();
+		// create boosting
+		Predictor predictor(boosting_.get(), config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score, config_.io_config.is_predict_leaf_index,
+			config_.io_config.pred_early_stop, config_.io_config.pred_early_stop_freq, config_.io_config.pred_early_stop_margin);
+		int64_t num_preb_in_one_row = boosting_->NumPredictOneRow(config_.io_config.num_iteration_predict, config_.io_config.is_predict_leaf_index);
+		auto pred_fun = predictor.GetPredictFunction();
 
-	//string str;
-	//serialize_to_string(str);
+		//string str;
+		//serialize_to_string(str);
 
-	int64_t len_res = nrows * num_preb_in_one_row;
-	//MLOG("[MedLightGBM] predict: nrows %d , num_pred %d , len_res %d\n", nrows, num_preb_in_one_row, len_res);
-	//MLOG("[MedLightGBM] predict: num_iter %d , is_raw %d , is_leaf %d\n", 
-	//	config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score ? 1 : 0, config_.io_config.is_predict_leaf_index ? 1:0);
-	vector<double> out_result_vec(len_res);
-	double *out_result = &out_result_vec[0];
-	if (preds == NULL) preds = new float[len_res];
+		int64_t len_res = nrows * num_preb_in_one_row;
+		//MLOG("[MedLightGBM] predict: nrows %d , num_pred %d , len_res %d\n", nrows, num_preb_in_one_row, len_res);
+		//MLOG("[MedLightGBM] predict: num_iter %d , is_raw %d , is_leaf %d\n", 
+		//	config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score ? 1 : 0, config_.io_config.is_predict_leaf_index ? 1:0);
+		vector<double> out_result_vec(len_res);
+		double *out_result = &out_result_vec[0];
+		if (preds == NULL) preds = new float[len_res];
 
-	OMP_INIT_EX();
+		OMP_INIT_EX();
 #pragma omp parallel for schedule(static)
-	for (int i = 0; i < nrows; ++i) {
-		OMP_LOOP_EX_BEGIN();
-		auto one_row = get_row_fun(i);
-		auto pred_wrt_ptr = out_result + static_cast<size_t>(num_preb_in_one_row) * i;
-		pred_fun(one_row, pred_wrt_ptr);
-		OMP_LOOP_EX_END();
+		for (int i = 0; i < nrows; ++i) {
+			OMP_LOOP_EX_BEGIN();
+			auto one_row = get_row_fun(i);
+			auto pred_wrt_ptr = out_result + static_cast<size_t>(num_preb_in_one_row) * i;
+			pred_fun(one_row, pred_wrt_ptr);
+			OMP_LOOP_EX_END();
+		}
+		OMP_THROW_EX();
+
+		for (int64_t i = 0; i < len_res; i++) preds[i] = (float)out_result[i];
 	}
-	OMP_THROW_EX();
 
-	for (int64_t i=0; i<len_res; i++) preds[i] = (float)out_result[i];
-}
-
-//-----------------------------------------------------------------------------------------------------------
-//----- start of some help functions
-//-----------------------------------------------------------------------------------------------------------
-std::function<std::vector<std::pair<int, double>>(int row_idx)>
-RowPairFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major) {
-	auto inner_function = RowFunctionFromDenseMatric(data, num_row, num_col, data_type, is_row_major);
-	if (inner_function != nullptr) {
-		return [inner_function](int row_idx) {
-			auto raw_values = inner_function(row_idx);
-			std::vector<std::pair<int, double>> ret;
-			for (int i = 0; i < static_cast<int>(raw_values.size()); ++i) {
-				if (std::fabs(raw_values[i]) > 1e-15) {
-					ret.emplace_back(i, raw_values[i]);
+	//-----------------------------------------------------------------------------------------------------------
+	//----- start of some help functions
+	//-----------------------------------------------------------------------------------------------------------
+	std::function<std::vector<std::pair<int, double>>(int row_idx)>
+		RowPairFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major) {
+		auto inner_function = RowFunctionFromDenseMatric(data, num_row, num_col, data_type, is_row_major);
+		if (inner_function != nullptr) {
+			return [inner_function](int row_idx) {
+				auto raw_values = inner_function(row_idx);
+				std::vector<std::pair<int, double>> ret;
+				for (int i = 0; i < static_cast<int>(raw_values.size()); ++i) {
+					if (std::fabs(raw_values[i]) > 1e-15) {
+						ret.emplace_back(i, raw_values[i]);
+					}
 				}
+				return ret;
+			};
+		}
+		return nullptr;
+	}
+
+	std::function<std::vector<double>(int row_idx)>
+		RowFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major) {
+		if (data_type == C_API_DTYPE_FLOAT32) {
+			const float* data_ptr = reinterpret_cast<const float*>(data);
+			if (is_row_major) {
+				return [data_ptr, num_col, num_row](int row_idx) {
+					std::vector<double> ret(num_col);
+					auto tmp_ptr = data_ptr + static_cast<size_t>(num_col) * row_idx;
+					for (int i = 0; i < num_col; ++i) {
+						ret[i] = static_cast<double>(*(tmp_ptr + i));
+						if (std::isnan(ret[i])) {
+							ret[i] = 0.0f;
+						}
+					}
+					return ret;
+				};
 			}
-			return ret;
-		};
+			else {
+				return [data_ptr, num_col, num_row](int row_idx) {
+					std::vector<double> ret(num_col);
+					for (int i = 0; i < num_col; ++i) {
+						ret[i] = static_cast<double>(*(data_ptr + static_cast<size_t>(num_row) * i + row_idx));
+						if (std::isnan(ret[i])) {
+							ret[i] = 0.0f;
+						}
+					}
+					return ret;
+				};
+			}
+		}
+		else if (data_type == C_API_DTYPE_FLOAT64) {
+			const double* data_ptr = reinterpret_cast<const double*>(data);
+			if (is_row_major) {
+				return [data_ptr, num_col, num_row](int row_idx) {
+					std::vector<double> ret(num_col);
+					auto tmp_ptr = data_ptr + static_cast<size_t>(num_col) * row_idx;
+					for (int i = 0; i < num_col; ++i) {
+						ret[i] = static_cast<double>(*(tmp_ptr + i));
+						if (std::isnan(ret[i])) {
+							ret[i] = 0.0f;
+						}
+					}
+					return ret;
+				};
+			}
+			else {
+				return [data_ptr, num_col, num_row](int row_idx) {
+					std::vector<double> ret(num_col);
+					for (int i = 0; i < num_col; ++i) {
+						ret[i] = static_cast<double>(*(data_ptr + static_cast<size_t>(num_row) * i + row_idx));
+						if (std::isnan(ret[i])) {
+							ret[i] = 0.0f;
+						}
+					}
+					return ret;
+				};
+			}
+		}
+		throw std::runtime_error("unknown data type in RowFunctionFromDenseMatric");
 	}
-	return nullptr;
+
+	void  MemApp::calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params, int max_feature_idx_) {
+
+		GBDT_Accessor booster_access(boosting_.get());
+		features_importance_scores = booster_access.FeatureImportanceTrick();
+	}
+
 }
 
-std::function<std::vector<double>(int row_idx)>
-RowFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major) {
-	if (data_type == C_API_DTYPE_FLOAT32) {
-		const float* data_ptr = reinterpret_cast<const float*>(data);
-		if (is_row_major) {
-			return [data_ptr, num_col, num_row](int row_idx) {
-				std::vector<double> ret(num_col);
-				auto tmp_ptr = data_ptr + static_cast<size_t>(num_col) * row_idx;
-				for (int i = 0; i < num_col; ++i) {
-					ret[i] = static_cast<double>(*(tmp_ptr + i));
-					if (std::isnan(ret[i])) {
-						ret[i] = 0.0f;
-					}
-				}
-				return ret;
-			};
-		}
-		else {
-			return [data_ptr, num_col, num_row](int row_idx) {
-				std::vector<double> ret(num_col);
-				for (int i = 0; i < num_col; ++i) {
-					ret[i] = static_cast<double>(*(data_ptr + static_cast<size_t>(num_row) * i + row_idx));
-					if (std::isnan(ret[i])) {
-						ret[i] = 0.0f;
-					}
-				}
-				return ret;
-			};
-		}
-	}
-	else if (data_type == C_API_DTYPE_FLOAT64) {
-		const double* data_ptr = reinterpret_cast<const double*>(data);
-		if (is_row_major) {
-			return [data_ptr, num_col, num_row](int row_idx) {
-				std::vector<double> ret(num_col);
-				auto tmp_ptr = data_ptr + static_cast<size_t>(num_col) * row_idx;
-				for (int i = 0; i < num_col; ++i) {
-					ret[i] = static_cast<double>(*(tmp_ptr + i));
-					if (std::isnan(ret[i])) {
-						ret[i] = 0.0f;
-					}
-				}
-				return ret;
-			};
-		}
-		else {
-			return [data_ptr, num_col, num_row](int row_idx) {
-				std::vector<double> ret(num_col);
-				for (int i = 0; i < num_col; ++i) {
-					ret[i] = static_cast<double>(*(data_ptr + static_cast<size_t>(num_row) * i + row_idx));
-					if (std::isnan(ret[i])) {
-						ret[i] = 0.0f;
-					}
-				}
-				return ret;
-			};
-		}
-	}
-	throw std::runtime_error("unknown data type in RowFunctionFromDenseMatric");
-}
+void MedLightGBM::calc_feature_importance(vector<float> &features_importance_scores,
+	const string &general_params) {
+	if (!_mark_learn_done)
+		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 
-
-
+	mem_app.calc_feature_importance(features_importance_scores, general_params,
+		(model_features.empty() ? features_count : (int)model_features.size()));
 }
 
 //===============================================================================================

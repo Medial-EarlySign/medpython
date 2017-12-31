@@ -151,7 +151,7 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 }
 
-// Extract a single vector of concatanated predictions
+// Extract a single vector of concatanated (vectors of) predictions
 //.......................................................................................
 void MedSamples::get_preds(vector<float>& preds) {
 	for (auto& idSample : idSamples) 
@@ -308,6 +308,7 @@ void MedSamples::sort_by_id_date() {
 		sort(pat.samples.begin(), pat.samples.end(), comp_sample_id_time);
 }
 
+// Make sure that : (1) every pid has one idSample at most and (2) everything is sorted
 //.......................................................................................
 void MedSamples::normalize() {
 	
@@ -403,7 +404,6 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 	return 0;
 }
 
-
 //.......................................................................................
 int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred)
 {
@@ -422,6 +422,7 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, flo
 	return 0;
 }
 
+// Get all MedSamples as a single vector
 //.......................................................................................
 void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 {
