@@ -1209,6 +1209,7 @@ int ModelFeatGenerator::init(MedModel *_model) {
 	model->get_required_signal_names(required);
 	for (string signal : required)
 		req_signals.push_back(signal);
+	return 0;
 }
 
 

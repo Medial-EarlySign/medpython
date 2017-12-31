@@ -29,6 +29,7 @@ typedef enum {
 	FTR_PROCESSOR_MRMR_SELECTOR,
 	FTR_PROCESSOR_LASSO_SELECTOR,
 	FTR_PROCESSOR_TAGS_SELECTOR,
+	FTR_PROCESSOR_IMPORTANCE_SELECTOR,
 	FTR_PROCESS_REMOVE_DGNRT_FTRS,
 	FTR_PROCESS_ITERATIVE_IMPUTER,
 	FTR_PROCESS_ENCODER_PCA, //can be PCA, AutoEncoder or other..
@@ -656,6 +657,38 @@ public:
 	ADD_SERIALIZATION_FUNCS(selected_tags, selected)
 };
 
+
+//.......................................................................................
+//.......................................................................................
+// ImportanceFeatureSelector - selector which uses feature importance method for sepcific 
+// model to rank the feature importance and select them
+//.......................................................................................
+//.......................................................................................
+class ImportanceFeatureSelector : public FeatureSelector {
+public:
+	string predictor;
+	string predictor_params;
+	string importance_params;
+	float minStat;
+	bool verbose; //print all feature importance
+	// Constructor
+	ImportanceFeatureSelector() : FeatureSelector() { }
+
+	// Find set of selected features
+	virtual int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_IMPORTANCE_SELECTOR; };
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<ImportanceFeatureSelector *>(processor)); }
+
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(predictor, predictor_params, importance_params, minStat, selected)
+};
+
 //.......................................................................................
 //.......................................................................................
 // FeatureEncoder - General class for encoding features - PCA, autoencoder...
@@ -733,5 +766,6 @@ MEDSERIALIZE_SUPPORT(MRMRFeatureSelector)
 MEDSERIALIZE_SUPPORT(FeaturePCAParams)
 MEDSERIALIZE_SUPPORT(FeaturePCA)
 MEDSERIALIZE_SUPPORT(TagFeatureSelector)
+MEDSERIALIZE_SUPPORT(ImportanceFeatureSelector)
 
 #endif

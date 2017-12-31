@@ -842,3 +842,69 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	}
 	return 0;
 }
+
+int ImportanceFeatureSelector::init(map<string, string>& mapper) {
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "predictor") predictor = entry.second;
+		else if (field == "predictor_params") predictor_params = entry.second;
+		else if (field == "importance_params") importance_params = entry.second;
+		else if (field == "minStat") minStat = stof(entry.second);
+		else if (field == "verbose") verbose = stoi(entry.second) > 0;
+		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
+	}
+
+	return 0;
+}
+
+int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+	MedPredictor *model = MedPredictor::make_predictor(predictor, predictor_params);
+	vector<float> feat_importance;
+	model->learn(features);
+
+	model->calc_feature_importance(feat_importance, importance_params);
+
+	vector<pair<string, float>> features_scores((int)feat_importance.size());
+	map<string, vector<float>>::iterator it = features.data.begin();
+	for (size_t i = 0; i < feat_importance.size(); ++i)
+	{
+		features_scores[i].first = it->first;
+		features_scores[i].second = feat_importance[i];
+		++it;
+	}
+	//sort features by scores:
+	sort(features_scores.begin(), features_scores.end(), [](const pair<string, float> &v1, const pair<string, float> &v2)
+	{return (v1.second > v2.second); });
+	if (verbose) {
+		it = features.data.begin();
+		for (size_t i = 0; i < features_scores.size(); ++i)
+		{
+			MLOG("FEATURE %s : %2.3f\n", features_scores[i].first.c_str(), features_scores[i].second);
+			++it;
+		}
+	}
+
+	if (numToSelect == 0) {
+		// Select according to minimum value of stat
+		for (auto& rec : features_scores) {
+			if (rec.second < minStat)
+				break;
+			selected.push_back(rec.first);
+		}
+	}
+	else {
+		// Select according to number
+		int n = (features_scores.size() > numToSelect) ? numToSelect : (int)features_scores.size();
+		selected.resize(n);
+		for (int i = 0; i < n; i++)
+			selected[i] = features_scores[i].first;
+	}
+
+	return 0;
+}
