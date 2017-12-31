@@ -178,7 +178,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		int rc = processors[j]->Learn(features, ids);
-//#pragma omp critical
+#pragma omp critical
 		if (rc < 0) RC = -1;
 	}
 
@@ -193,7 +193,7 @@ int MultiFeatureProcessor::Apply(MedFeatures& features, unordered_set<int>& ids)
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<processors.size(); j++) {
 		int rc = processors[j]->Apply(features, ids);
-//#pragma omp critical
+#pragma omp critical
 		if (rc < 0) RC = -1;
 	}
 
@@ -616,7 +616,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	} else if (moment_type == IMPUTE_MMNT_MEAN)
 		get_mean(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_MEDIAN)
-		sort_and_get_median(all_existing_values, default_moment);
+		//sort_and_get_median(all_existing_values, default_moment);
+		get_median(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_COMMON)
 		get_common(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_SAMPLE)

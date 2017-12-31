@@ -56,11 +56,16 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 
 	virtual void print(FILE *fp, const string& prefix);
+
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params);
+
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
-
+private:
+	bool _mark_learn_done;
 };
 
 //=================================================================

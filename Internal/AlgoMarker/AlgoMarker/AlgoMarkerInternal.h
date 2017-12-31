@@ -50,6 +50,7 @@ public:
 			med_rep_type.setRepositoryType(REP_TYPE_GP);
 		else
 			med_rep_type.setRepositoryType(REP_TYPE_HOSPITAL);
+		return 0;
 	}
 
 	// init pids

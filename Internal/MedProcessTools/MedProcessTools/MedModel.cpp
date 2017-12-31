@@ -283,13 +283,15 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 			// Apply rep-cleaning
 
-			for (auto& processor : rep_processors)
+			for (auto& processor : rep_processors) 
 				if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
+
+			
 
 			// Generate Features
 			for (auto& generator : _generators)
-				if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-			//#pragma omp critical 
+				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
+			#pragma omp critical 
 			if (rc < 0) RC = -1;
 		}
 		catch (int &i_e) {
@@ -522,6 +524,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				all_attr_values.push_back(current_attr_values);
 			}			
 		}
+		
 		vector<string> all_combinations;
 		concatAllCombinations(all_attr_values, 0, "", all_combinations);
 		for (string c : all_combinations) {

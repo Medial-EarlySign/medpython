@@ -172,6 +172,9 @@ public:
 
 	//virtual void print(FILE *fp, const string& prefix);
 
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params);
+
 
 	int n_preds_per_sample() { return mem_app.n_preds_per_sample(); }
 

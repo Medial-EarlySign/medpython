@@ -1,23 +1,29 @@
 #include "FeatureProcess.h"
 #include <algorithm>
 #include <random>
+#include <ctime>
 
 #define LOCAL_SECTION LOG_FEATCLEANER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 int FeatureEncoder::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// learn encoder...
+	time_t start = time(NULL);
 	if (_learn(features, ids) < 0)
 		return -1;
-	MLOG("Learn Feature Encoder: Generated %d features\n", (int)names.size());
+	MLOG("Learn Feature Encoder: Generated %d features. took %d seconds\n",
+		(int)names.size(), (int)(difftime(time(NULL), start)));
 
 	return 0;
 }
 
 int FeatureEncoder::Apply(MedFeatures& features, unordered_set<int>& ids) {
+	time_t start = time(NULL);
 	if (_apply(features, ids) < 0)
 		return -1;
-	MLOG("Apply Feature Encoder: Generated %d features\n", (int)names.size());
+	MLOG("Apply Feature Encoder: Generated %d features. took %d seconds\n",
+		(int)names.size(), (int)(difftime(time(NULL), start)));
+
 	return 0;
 }
 
@@ -42,13 +48,13 @@ int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		uniform_int_distribution<> random_index(0, init_mat.nrows - 1);
 		vector<bool> seen_index(init_mat.nrows);
 		subsample_mat.resize(params.subsample_count, init_mat.ncols);
-		for (size_t i = 0; i < subsample_mat.nrows; ++i)
+		for (int i = 0; i < subsample_mat.nrows; ++i)
 		{
 			int sel = random_index(gen);
 			while (seen_index[sel])
 				sel = random_index(gen);
 			seen_index[sel] = true;
-			for (size_t j = 0; j < init_mat.ncols; ++j)
+			for (int j = 0; j < init_mat.ncols; ++j)
 				subsample_mat(i, j) = init_mat(sel, j);
 		}
 

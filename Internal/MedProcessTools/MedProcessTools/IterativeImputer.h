@@ -1,4 +1,6 @@
-#pragma once
+//#pragma once
+#ifndef _ITERATIVEIMPUTER_H_
+#define _ITERATIVEIMPUTER_H_
 #include "MedProcessTools/MedProcessTools/FeatureProcess.h"
 #include <unordered_set>
 
@@ -163,3 +165,4 @@ public:
 MEDSERIALIZE_SUPPORT(IterativeImputerParams);
 MEDSERIALIZE_SUPPORT(feature_info);
 MEDSERIALIZE_SUPPORT(FeatureIterativeImputer);
+#endif

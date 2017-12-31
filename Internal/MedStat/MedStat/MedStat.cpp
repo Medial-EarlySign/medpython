@@ -145,20 +145,6 @@ float sample_from_histogram(vector<pair<float, float> >& hist) {
 }
 
 //...............................................................................................................................
-void get_median(vector<float>& vals, float &median) {
-
-	vector<float> tempValues = vals;
-	sort_and_get_median(tempValues, median);
-}
-
-//...............................................................................................................................
-void sort_and_get_median(vector<float>& vals, float &median) {
-
-	sort(vals.begin(), vals.end());
-	median = vals[vals.size() / 2];
-}
-
-//...............................................................................................................................
 void get_mean_and_std(vector<float> &vals, float &mean, float &std)
 {
 	if (vals.size() == 0) {
