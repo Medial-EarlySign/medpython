@@ -817,3 +817,5 @@ template <class T> void MedMat<T>::print_row(FILE *fout, const string &prefix, c
 		fprintf(fout, format.c_str(), get(i_row, i));
 	fprintf(fout, "\n");
 }
+
+
