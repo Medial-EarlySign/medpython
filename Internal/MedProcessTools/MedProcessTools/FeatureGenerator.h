@@ -15,6 +15,9 @@
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
+// For ModelFeatureGenerator
+class MedModel;
+
 // TBD : Add wrapper for management of features list (read/write to file, etc.)
 
 //.......................................................................................
@@ -33,6 +36,7 @@ typedef enum {
 	FTR_GEN_RANGE,
 	FTR_GEN_DRG_INTAKE,
 	FTR_GEN_ALCOHOL,
+	FTR_GEN_MODEL,
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -62,8 +66,8 @@ public:
 	// Naming
 	virtual void set_names() {names.clear(); }
 
-	// Initialize
-	virtual void init(MedFeatures &features);
+	// Prepare for feature generation
+	virtual void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
 
 	// Constructor/Destructor
 	FeatureGenerator() { learn_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS; pred_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS;  missing_val = MED_MAT_MISSING_VALUE; serial_id = ++MedFeatures::global_serial_id_cnt; };
@@ -493,7 +497,43 @@ public:
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first)
 };
 
-MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
+//.......................................................................................
+//.......................................................................................
+// ModelFeatGenerator : Use a model to generate predictions to be used as features
+//.......................................................................................
+//.......................................................................................
+
+class ModelFeatGenerator : public FeatureGenerator {
+public:
+
+	string modelFile = ""; //  File for serialized model
+	MedModel *model = NULL; // model
+	string modelName = "";
+	int n_preds = 1;
+	
+	// A container for the predictions
+	vector<float> preds;
+
+	// Naming 
+	void set_names();
+
+	// Initialization
+	int init(map<string, string>& mapper);
+	int init(MedModel *_model);
+
+	// Do the actual prediction prior to feature generation ...
+	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);
+
+	// generate a new feature
+	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// (De)Serialize
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+
+};
+
 
 //=======================================
 // Helpers
@@ -509,5 +549,6 @@ MEDSERIALIZE_SUPPORT(BasicFeatGenerator)
 MEDSERIALIZE_SUPPORT(AgeGenerator)
 MEDSERIALIZE_SUPPORT(GenderGenerator)
 MEDSERIALIZE_SUPPORT(BinnedLmEstimates)
+MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
 
 #endif

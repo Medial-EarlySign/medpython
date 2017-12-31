@@ -196,6 +196,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 
 	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+	
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
 		MERR("Predictor failed\n");
@@ -247,9 +248,10 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
 
-	// init features attributes
+	// prepare for generation
 	for (auto& generator : _generators)
-		generator->init(features);
+		generator->prepare(features,rep,*samples);
+
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
 	//	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
@@ -269,6 +271,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	// Loop on ids
 	int RC = 0;
 	int thrown = 0;
+
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<samples->idSamples.size(); j++) {
 		try {
@@ -350,8 +353,7 @@ void MedModel::set_required_signals(MedDictionarySections& dict) {
 	for (RepProcessor *processor : rep_processors)
 		processor->get_required_signal_ids(required_signals,dict);
 
-	int ii = 0;
-	for (FeatureGenerator *generator : generators) 
+	for (FeatureGenerator *generator : generators)
 		generator->get_required_signal_ids(required_signals, dict);
 
 }
@@ -690,9 +692,8 @@ void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& si
 //.......................................................................................
 void MedModel::set_affected_signals(MedDictionarySections& dict) {
 
-	for (RepProcessor *processor : rep_processors)
+	for (RepProcessor *processor : rep_processors) 
 		processor->set_affected_signal_ids(dict);
-
 }
 
 // All signal ids

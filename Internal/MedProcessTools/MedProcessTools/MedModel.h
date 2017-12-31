@@ -159,4 +159,9 @@ public:
 
 };
 
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(MedModel)
+
 #endif

@@ -134,13 +134,13 @@ void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names,
 	}
 }
 
-// Append samples at end of samples vector
+// Append samples at end of samples vector (used for generating samples set before generating features)
 //.......................................................................................
 void MedFeatures::append_samples(MedIdSamples& in_samples) {
 	samples.insert(samples.end(), in_samples.samples.begin(), in_samples.samples.end());
 }
 
-// Insert samples at position idex, assuming samples vector is properly allocated
+// Insert samples at position idex, assuming samples vector is properly allocated  (used for generating samples set before generating features)
 //.......................................................................................
 void MedFeatures::insert_samples(MedIdSamples& in_samples, int index) {
 

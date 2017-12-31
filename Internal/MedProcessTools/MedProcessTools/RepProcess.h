@@ -128,40 +128,42 @@ RepProcessorTypes rep_processor_name_to_type(const string& procesor_name);
 
 //.......................................................................................
 //.......................................................................................
-// A Processor which contains a vector of simpler processors
-// Useful for applying same cleaners on a set of signals, for example
+// A Processor which contains a vector of simpler processors that can be learned/applied
+// in parallel. Useful for applying same cleaners on a set of signals, for example
 //.......................................................................................
 //.......................................................................................
 
 class RepMultiProcessor : public RepProcessor {
 public:
-	// Cleaners
+	// Set of processors
 	vector<RepProcessor *> processors;
 
 	// Constructor/Destructor
 	RepMultiProcessor() { processor_type = REP_PROCESS_MULTI; };
 	~RepMultiProcessor() {};
 
-	// Add processors
+	// Add processors (with initialization string)
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals);
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string);
 
-	// Required Signals
+	// Required Signals ids : Fill the member vector - req_signal_ids
 	void set_required_signal_ids(MedDictionarySections& dict);
 
+	// Required Signals names : Fill the unordered set signalNames
 	void get_required_signal_names(unordered_set<string>& signalNames);
 
-	// Affected Signals
+	// Affected Signals : Fill the member vector aff_signal_ids
 	void set_affected_signal_ids(MedDictionarySections& dict);
 
-	// Other signal ids
+	// Set signal-ids for all linked signals
 	void set_signal_ids(MedDictionarySections& dict);
 
-	// Learn cleaning model
+	// Learn processors
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
 
-	// Apply cleaning model
+	// Apply processors
 	int apply(PidDynamicRec& rec, vector<int>& time_points);
+	// Apply processors that affect any of the needed signals
 	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignals);
 
 	// serialization
@@ -169,6 +171,7 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
+	// Print processors information
 	void print() { for (auto& processor : processors) processor->print(); }
 };
 
@@ -197,6 +200,7 @@ public:
 	RepBasicOutlierCleaner(const string& _signalName, string init_string) : RepProcessor() { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); }
 	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) : RepProcessor() {signalId = -1; signalName = _signalName; init_lists() ; MedValueCleaner::init(_params);}
 
+	// Init to default values
 	void init_defaults() {
 		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
 		params.trimming_sd_num = DEF_REP_TRIMMING_SD_NUM; params.removing_sd_num = DEF_REP_REMOVING_SD_NUM; params.nbrs_sd_num = 0;
@@ -207,20 +211,24 @@ public:
 		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
-	// Set Signal
+	// Set signal name and fill aff/req signals 
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
-	// Signal Id
+	// set signal id
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
-	// Init
+	// Init from params
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	virtual int init(map<string, string>& mapper); 
+	// Init from map
+	virtual int init(map<string, string>& mapper);
+	// Fill req- and aff-signals vectors
 	void init_lists();
 
-	// Learn cleaning model
+	// Learn cleaning boundaries
 	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	// Learning : learn cleaning boundaries using MedValueCleaner's iterative approximation of moments
 	int iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	// Learning : learn cleaning boundaries using MedValueCleaner's quantile approximation of moments
 	int quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
 
 	// Apply cleaning model
