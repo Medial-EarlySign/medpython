@@ -432,3 +432,25 @@ void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 		}
 	}
 }
+
+//.......................................................................................
+void MedSamples::dilute(float prob)
+{
+	if (prob >= 1)
+		return;
+
+	vector<MedIdSamples> NewidSamples;
+
+	for (auto &id : idSamples) {
+		MedIdSamples mid;
+		mid.id = id.id;
+		mid.split = id.split;
+		for (auto &s : id.samples)
+			if (rand_1() < prob)
+				mid.samples.push_back(s);
+		if (mid.samples.size() > 0)
+			NewidSamples.push_back(mid);
+	}
+
+	idSamples = NewidSamples;
+}

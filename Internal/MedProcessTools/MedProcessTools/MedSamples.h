@@ -153,6 +153,10 @@ public:
 	// Count samples
 	int nSamples();
 
+
+	// dilute : given a probability dilution prob, dilute current samples
+	void dilute(float prob);
+
 	// API's for online insertions : main use case is a single time point for prediction per pid
 	int insertRec(int pid, int time, float outcome, int outcomeTime);
 	int insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
