@@ -72,3 +72,5 @@ Internal/MedProcessTools/MedProcessTools/x64/DLL-Release/
 *.samples
 Internal/AlgoMarker/samples.debug
 *.vspx
+
+documentation_creation.log
