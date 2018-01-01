@@ -62,12 +62,26 @@ public:
 	// Learn cleaning model
 	virtual int Learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
 
+	/// <summary>
+	/// PostProcess of MedFeatures - on all ids. stores information to post process
+	/// new features. calls virtual function "Learn" for the specific implementation
+	/// </summary>
+	/// <returns>
+	/// 0 if succesfull, otherwise errorcode -1
+	/// </returns>
 	int learn(MedFeatures& features);
 	int learn(MedFeatures& features, unordered_set<int>& ids) { return Learn(features, ids); }
 
 	// Apply cleaning model
 	virtual int Apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
 
+	/// <summary>
+	/// PostProcess of MedFeatures - on all ids. apply the post process on the
+	/// new features. calls virtaul function "Apply" for the specific implementation
+	/// </summary>
+	/// <returns>
+	/// 0 if succesfull, otherwise errorcode -1
+	/// </returns>
 	int apply(MedFeatures& features);
 	int apply(MedFeatures& features, unordered_set<int>& ids) { return Apply(features, ids); }
 

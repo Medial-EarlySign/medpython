@@ -19,13 +19,13 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 		return -1;
 	try {
 		if (pos["id"] != -1)
-			id = stoi(fields[pos["id"]]);
+			id = (int)stod(fields[pos["id"]]);
 		if (pos["date"] != -1)
-			time = stoi(fields[pos["date"]]);
+			time = (int)stod(fields[pos["date"]]);
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
-			outcomeTime = stoi(fields[pos["outcome_date"]]);
+			outcomeTime = (int)stod(fields[pos["outcome_date"]]);
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
 		if (pos["pred"] != -1 && fields.size() > pos["pred"])
