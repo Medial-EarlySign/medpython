@@ -1809,7 +1809,7 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
 			float age = stof(tokens[2]);
 			if (age < min_age || age> max_age) {
-				MWARN("Warning:: skip age because out of range in line \"%s\"", line.c_str());
+				MWARN("Warning:: skip age because out of range in line \"%s\"\n", line.c_str());
 				continue;
 			}
 			int age_bin = (int)floor((age - min_age) / age_bin_years);
