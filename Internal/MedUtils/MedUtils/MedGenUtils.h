@@ -45,6 +45,11 @@ template <class T> void get_vec_from_vecvec(vector<vector<T>> &v_in, vector<T> &
 // gets number of different values in a vector
 template <class T> int get_vec_ndiff_vals(vector<T> &v);
 
+// generate an arithmetic sequence start:step:finish. if step <= 0 returns -1 otherwise 0,
+// and fills seq with the sequence
+// isForward - go from start to finish or backward from finish
+template<typename T> int sequence(T start, T finish, T step, vector<T>& seq, bool isForward = true);
+
 // gets a (sorted) partition on the values in a vector and gets the matching categorized vec
 void categorize_vec(vector<float> &in, vector<float> &bounds, vector<float> &out);
 
@@ -105,6 +110,12 @@ inline float rand_range(float from, float to) { return from + rand_1()*(to-from)
 //================================================================
 int initialization_text_to_map(const string& text, map<string, string>& init_map);
 
+//===========================
+// Opertaing System Utilities
+//===========================
+
+//is the OS Windows
+bool is_windows_os(void);
 
 // templated functions in _imp file
 #include "MedGenUtils_imp.h"

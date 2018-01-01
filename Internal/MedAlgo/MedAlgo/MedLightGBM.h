@@ -54,13 +54,13 @@ namespace LightGBM {
 
 		// string serializations
 		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0; }
-		int deserialize_from_string(string &str) { 
+		int deserialize_from_string(string &str) {
 			std::unique_ptr<Boosting> ret;
 			string type = config_.boosting_type;
 			if (type == std::string("gbdt")) ret.reset(new GBDT());
 			else if (type == std::string("dart")) ret.reset(new DART());
 			else if (type == std::string("goss")) ret.reset(new GOSS());
-			else { fprintf(stderr,"deserialize MedLightGBM ERROR: unknown boosting type %s\n", type.c_str()); return -1; }
+			else { fprintf(stderr, "deserialize MedLightGBM ERROR: unknown boosting type %s\n", type.c_str()); return -1; }
 			if (!ret.get()->LoadModelFromString(str)) return -1;
 			boosting_.reset(ret.release());
 			return 0;
@@ -84,7 +84,34 @@ namespace LightGBM {
 			return num_preb_in_one_row;
 		}
 
+		void calc_feature_importance(vector<float> &features_importance_scores,
+			const string &general_params, int max_feature_idx_);
+
 	};
+
+	class GBDT_Accessor : public GBDT {
+	public:
+		GBDT_Accessor(LightGBM::Boosting *booster) {
+			string mdl = booster->SaveModelToString(-1);
+			LoadModelFromString(mdl);
+		}
+
+		vector<float> FeatureImportanceTrick() {
+			vector<pair<size_t, string>> res = FeatureImportance();
+
+			vector<float> final_res(MaxFeatureIdx() + 1);
+			for (size_t i = 0; i < res.size(); ++i) {
+				int index = stoi(boost::replace_all_copy(res[i].second, "Column_", ""));
+				if (index >= final_res.size() || index < 0)
+					throw out_of_range("index is out of range: " + to_string(index) + " max=" +
+						to_string(final_res.size()));
+				final_res[index] = (float)res[i].first;
+			}
+
+			return final_res;
+		}
+	};
+
 };
 
 
@@ -129,7 +156,7 @@ struct MedLightGBMParams : public SerializableObject {
 class MedLightGBM : public MedPredictor {
 public:
 	MedLightGBMParams params;
-	
+
 	LightGBM::MemApp mem_app;
 
 	int init(map<string, string>& initialization_map) { return mem_app.init(initialization_map); }
@@ -145,14 +172,15 @@ public:
 
 
 	// Function
-	MedLightGBM() { 
-		classifier_type = MODEL_LIGHTGBM; 
+	MedLightGBM() {
+		classifier_type = MODEL_LIGHTGBM;
 		normalize_for_learn = false; //true;
 		normalize_for_predict = false; //true;
 		normalize_y_for_learn = false;
 		transpose_for_learn = false;
 		transpose_for_predict = false;
-		init_from_string(""); 
+		init_from_string("");
+		_mark_learn_done = false;
 	};
 	~MedLightGBM() {};
 
@@ -161,6 +189,7 @@ public:
 		fprintf(stderr, "Starting a LightGBM train session...\n");
 		mem_app.InitTrain(x, y, w, nsamples, nftrs);
 		mem_app.Train();
+		_mark_learn_done = true;
 		return 0;
 	}
 	int Learn(float *x, float *y, int nsamples, int nftrs) { return Learn(x, y, NULL, nsamples, nftrs); }
@@ -172,6 +201,9 @@ public:
 
 	//virtual void print(FILE *fp, const string& prefix);
 
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params);
+
 
 	int n_preds_per_sample() { return mem_app.n_preds_per_sample(); }
 
@@ -180,6 +212,8 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
+private:
+	bool _mark_learn_done;
 };
 
 

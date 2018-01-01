@@ -171,6 +171,16 @@ public:
 	int predict(MedFeaturesData& data);
 	int predict(MedFeatures& features);
 
+	//Feature Importance - asume called after learn
+	virtual void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params) {
+		string model_name = "model_id=" + to_string(classifier_type);
+		if (predictor_type_to_name.find(classifier_type) != predictor_type_to_name.end())
+			model_name = predictor_type_to_name[classifier_type];
+		throw logic_error("ERROR:: operation calc_feature_importance "
+			"isn't supported for " + model_name + " yet.");
+	};
+
 	//caliberation for probability using training:
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000,
@@ -487,8 +497,10 @@ public:
 
 	// Print
 	void print(FILE *fp, const string& prefix);
-
 	void printTrees(const vector<string> &modelSignalNames, const string &outputPath);
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params);
+
 	// Predictions per sample
 	int n_preds_per_sample();
 

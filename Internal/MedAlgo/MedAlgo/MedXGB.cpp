@@ -7,7 +7,7 @@
 #include <boost/lexical_cast.hpp>
 #include <xgboost/learner.h>
 #include <dmlc/timer.h>
-#include "xgboost/c_api.h"
+#include <xgboost/c_api.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -152,6 +152,7 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	if (this->my_learner != NULL)
 		delete this->my_learner;
 	this->my_learner = learner;
+	_mark_learn_done = true;
 	return 0;
 }
 
@@ -171,6 +172,92 @@ size_t MedXGB::get_size() {
 
 void MedXGB::print(FILE *fp, const string& prefix) {
 	fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
+}
+
+bool split_token(const string &str, const string &search, bool first
+	, string &result) {
+	if (str.find(search) == string::npos)
+		return false;
+	result = first ? str.substr(0, str.find(search)) : str.substr(str.find(search) + search.size());
+	return true;
+}
+
+/*
+Importance type can be defined as:
+'weight' - the number of times a feature is used to split the data across all trees.
+'gain' - the average gain of the feature when it is used in trees
+'cover' - the average coverage of the feature when it is used in trees
+*/
+void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
+	const string &general_params) {
+	if (!_mark_learn_done)
+		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
+	map<string, string> params;
+	unordered_set<string> legal_types = { "weight", "gain","cover" };
+	initialization_text_to_map(general_params, params);
+	string importance_type = "weight";
+	for (auto it = params.begin(); it != params.end(); ++it)
+	{
+		if (it->first == "importance_type")
+			importance_type = it->second;
+		else
+			MTHROW_AND_ERR("Unsupported calc_feature_importance param \"%s\"\n", it->first.c_str());
+	}
+
+	if (legal_types.find(importance_type) == legal_types.end())
+		MTHROW_AND_ERR("Ilegal importance_type value \"%s\" "
+			"- should by one of [weight, gain, cover]\n", importance_type.c_str());
+
+	int with_stats = importance_type != "weight"; //if weight than 0
+
+	xgboost::FeatureMap fmap;
+	vector<string> vec_trees = my_learner->Dump2Text(fmap, with_stats != 0);
+
+	vector<string> arr;
+	string mid_token, fids;
+	int fid;
+	float g;
+	vector<float> fCnt;
+	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
+	if (importance_type != "weight")
+		fCnt.resize((int)features_importance_scores.size());
+	string search_str = importance_type + "=";
+	for (string &tree : vec_trees)
+	{
+		vector<string> lines;
+		boost::split(lines, tree, boost::is_any_of("\n"));
+		for (string &line : lines)
+		{
+			arr.clear();
+			boost::split(arr, line, boost::is_any_of("["));
+			if (arr.size() == 1)
+				continue;
+			if (!split_token(arr[1], "]", true, mid_token))
+				MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
+
+			if (!split_token(mid_token, "<", true, fids))
+				MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
+			fid = stoi(fids.substr(1));
+
+			if (importance_type == "weight")
+				features_importance_scores[fid] += 1;
+			else {
+				fCnt[fid] += 1;
+				split_token(arr[1], "]", false, mid_token);
+				if (!split_token(mid_token, search_str, false, fids))
+					MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
+				if (!split_token(fids, ",", true, mid_token))
+					MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
+				g = stof(mid_token);
+				features_importance_scores[fid] += g;
+			}
+		}
+	}
+
+	if (importance_type != "weight")
+		for (size_t i = 0; i < features_importance_scores.size(); ++i)
+			if (fCnt[i])
+				features_importance_scores[i] /= fCnt[i];
 }
 
 size_t MedXGB::serialize(unsigned char *blob) {
@@ -218,6 +305,7 @@ void MedXGB::init_defaults()
 	normalize_for_predict = false;
 	normalize_y_for_learn = false;
 
+	_mark_learn_done = false;
 }
 
 int MedXGB::init(map<string, string>& mapper) {

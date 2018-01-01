@@ -196,6 +196,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 
 	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+	
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
 		MERR("Predictor failed\n");
@@ -247,9 +248,10 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
 
-	// init features attributes
+	// prepare for generation
 	for (auto& generator : _generators)
-		generator->init(features);
+		generator->prepare(features,rep,*samples);
+
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
 	//	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
@@ -269,6 +271,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	// Loop on ids
 	int RC = 0;
 	int thrown = 0;
+
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<samples->idSamples.size(); j++) {
 		try {
@@ -280,13 +283,15 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 			// Apply rep-cleaning
 
-			for (auto& processor : rep_processors)
+			for (auto& processor : rep_processors) 
 				if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
+
+			
 
 			// Generate Features
 			for (auto& generator : _generators)
-				if (generator->generate(idRec[n_th], features) < 0) rc = -1;
-			//#pragma omp critical 
+				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
+			#pragma omp critical 
 			if (rc < 0) RC = -1;
 		}
 		catch (int &i_e) {
@@ -350,8 +355,7 @@ void MedModel::set_required_signals(MedDictionarySections& dict) {
 	for (RepProcessor *processor : rep_processors)
 		processor->get_required_signal_ids(required_signals,dict);
 
-	int ii = 0;
-	for (FeatureGenerator *generator : generators) 
+	for (FeatureGenerator *generator : generators)
 		generator->get_required_signal_ids(required_signals, dict);
 
 }
@@ -520,6 +524,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				all_attr_values.push_back(current_attr_values);
 			}			
 		}
+		
 		vector<string> all_combinations;
 		concatAllCombinations(all_attr_values, 0, "", all_combinations);
 		for (string c : all_combinations) {
@@ -690,9 +695,8 @@ void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& si
 //.......................................................................................
 void MedModel::set_affected_signals(MedDictionarySections& dict) {
 
-	for (RepProcessor *processor : rep_processors)
+	for (RepProcessor *processor : rep_processors) 
 		processor->set_affected_signal_ids(dict);
-
 }
 
 // All signal ids

@@ -8,6 +8,8 @@
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 
+#include "MedProcessTools/MedProcessTools/MedModel.h"
+
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -33,12 +35,14 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_RANGE;
 	else if (generator_name == "drugIntake")
 		return FTR_GEN_DRG_INTAKE;
+	else if (generator_name == "model")
+		return FTR_GEN_MODEL;
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
 }
 
-// Initialize features
+// Prepare for feature Generation
 //.......................................................................................
-void FeatureGenerator::init(MedFeatures &features) {
+void FeatureGenerator::prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples) {
 
 	if (!iGenerateWeights) {
 		//MLOG("FeatureGenerator::init _features\n");
@@ -102,6 +106,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new RangeFeatGenerator;
 	else if (generator_type == FTR_GEN_DRG_INTAKE)
 		return new DrugIntakeGenerator;
+	else if (generator_type == FTR_GEN_MODEL)
+		return new ModelFeatGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
@@ -1145,10 +1151,120 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 		return missing_val;
 	}
 }
+// ComorbidityGenerator
+//=======================================================================================
+
+//................................................................................................................
+void ModelFeatGenerator::set_names() {
+
+	names.clear();
+
+	string name;
+	if (modelName != "")
+		name = modelName;
+	else if (modelFile != "")
+		name = modelFile;
+	else
+		name = "ModelPred";
+
+	for (int i = 0; i < n_preds; i++)
+		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name + "." + to_string(i+1));
+
+}
+
+// Init from map
+//.......................................................................................
+int ModelFeatGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+
+		if (field == "name") modelName = entry.second;
+		else if (field == "file") modelFile = entry.second;
+		else if (field == "n_preds") n_preds = stoi(entry.second);
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+	}
+
+	// set names
+	set_names();
+
+	// Read Model and get required signal
+	MedModel *_model = new MedModel ;
+	if (_model->read_from_file(modelFile) != 0)
+		MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
+
+	init(_model);
+	return 0;
+}
+
+// Copy Model and get required signal
+//.......................................................................................
+int ModelFeatGenerator::init(MedModel *_model) {
+
+	generator_type = FTR_GEN_MODEL;
+	model = _model;
+
+	unordered_set<string> required;
+	model->get_required_signal_names(required);
+	for (string signal : required)
+		req_signals.push_back(signal);
+	return 0;
+}
 
 
+// Do the actual prediction prior to feature generation ...
+//.......................................................................................
+void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
+
+	// Predict
+	model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS,MED_MDL_APPLY_PREDICTOR);
+
+	// Extract predictions
+	if (model->features.samples[0].prediction.size() < n_preds)
+		MTHROW_AND_ERR("Cannot generate feature %s\n", names[model->features.samples[0].prediction.size()].c_str());
+
+	preds.resize(n_preds*model->features.samples.size());
+	for (int i = 0; i < model->features.samples.size(); i++) {
+		for (int j = 0; j < n_preds; j++)
+			preds[i*n_preds + j] = model->features.samples[i].prediction[j];
+	}
+
+	FeatureGenerator::prepare(features, rep, samples);
+}
+
+// Put relevant predictions in place
+//.......................................................................................
+int ModelFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 
+	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
+	for (int i = 0; i < num; i++)
+		p_feat[i] = preds[index*n_preds + i];
+
+	return 0;
+
+}
+
+// (De)Serialize
+//.......................................................................................
+size_t ModelFeatGenerator::get_size() {
+	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+	return size + model->get_size();
+}
+
+size_t ModelFeatGenerator::serialize(unsigned char *blob) {
+	size_t ptr = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+	ptr += model->serialize(blob + ptr);
+	return ptr;
+}
+
+size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
+	size_t ptr = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+	model = new MedModel;
+	ptr += model->deserialize(blob + ptr);
+	return ptr;
+}
 
 //................................................................................................................
 // Helper function for time conversion
