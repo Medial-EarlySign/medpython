@@ -11,6 +11,11 @@
 
 using namespace std;
 
+/**
+* @file
+* This is the infrastracture of bootstrap
+*/
+
 static MedTime med_time;
 
 /**
@@ -87,9 +92,38 @@ private:
 };
 
 #pragma region Measurements Fucntions
+/// <summary>
+/// A Function to calculate only NPOS,NNEG (already calculated in calc_roc_measures_with_inc). \n
+/// Implements MeasurementFunctions signature function
+/// </summary>
+/// <returns>
+/// A map from each measurement name("NPOS" or "NNEG") to it's value
+/// </returns>
 map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params);
+/// <summary>
+/// A Function to calculate only AUC (already calculated in calc_roc_measures_with_inc). \n
+/// Implements MeasurementFunctions signature function
+/// </summary>
+/// <returns>
+/// A map from measurement name "AUC" to it's value
+/// </returns>
 map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params);
+/// <summary>
+/// A Function to calculate all roc measurements- AUC, Sensitivity, speceficity 
+/// positive rate, ppv...\n
+/// Implements MeasurementFunctions signature function
+/// </summary>
+/// <returns>
+/// A map from each measurement name to it's value
+/// </returns>
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params); //with PPV and PR
+/// <summary>
+/// A Function to calculate calc_kandel_tau
+/// Implements MeasurementFunctions signature function
+/// </summary>
+/// <returns>
+/// A map from measurement name "Kendell-Tau" to it's value
+/// </returns>
 map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params);
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
