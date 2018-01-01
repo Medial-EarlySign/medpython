@@ -258,7 +258,7 @@ int MedPredictor::learn(vector<float> &x, vector<float> &y, vector<float> &w, in
 int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 	if (!model_features.empty()) {//test names of entered matrix:
 		if (model_features.size() != x.ncols)
-			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			MTHROW_AND_ERR("(1) Learned Feature model size was %d, request feature size for predict was %d\n",
 				(int)model_features.size(), (int)x.ncols);
 
 		if (!x.signals.empty()) //can compare names
@@ -268,7 +268,7 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 						(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
 	else if (features_count > 0 && features_count != x.ncols)
-		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+		MTHROW_AND_ERR("(2) Learned Feature model size was %d, request feature size for predict was %d\n",
 			features_count, (int)x.ncols);
 
 	int nsamples, nftrs;
