@@ -1336,7 +1336,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			if (true_rate[i] > 0 || false_rate[i] > 0) {
 				if (params->incidence_fix > 0)
 					ppv = float((true_rate[i] * params->incidence_fix) /
-						(params->incidence_fix*(true_rate[i] * params->incidence_fix) +
+						(params->incidence_fix*(true_rate[i]) +
 							(false_rate[i] * (1 - params->incidence_fix))));
 				else
 					ppv = float((true_rate[i] * t_sum) /
