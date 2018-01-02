@@ -206,7 +206,10 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (end_stage <= MED_MDL_INSERT_PREDS)
 		return 0;
 
-	samples.insert_preds(features);
+	if (samples.insert_preds(features) != 0) {
+		MERR("Insertion of predictions to samples failed\n");
+		return -1;
+	}
 
 	return 0;
 }

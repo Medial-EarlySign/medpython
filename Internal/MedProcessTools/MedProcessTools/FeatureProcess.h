@@ -332,8 +332,6 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
-// ihadanny 20171205 - this should be changed to a configurable value
-#define MIN_SAMPLES_IN_STRATA_FOR_LEARNING 50
 
 class FeatureImputer : public FeatureProcessor {
 public:
@@ -343,6 +341,9 @@ public:
 
 	// Strata for setting moment
 	featureSetStrata imputerStrata;
+
+	// minimum samples required for learning
+	int min_samples = 50;
 
 	// Moment
 	imputeMomentTypes moment_type;
@@ -411,7 +412,7 @@ public:
 	vector<string> selected;
 
 	// Target number to select (if 0, ignored)
-	int numToSelect;
+	int numToSelect = 0 ;
 
 	// Constructor
 	FeatureSelector() : FeatureProcessor() {}
@@ -552,7 +553,7 @@ public:
 
 	// Init
 	int init(map<string, string>& mapper);
-	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_UNIVARIATE_SELECTOR;  params.method = UNIV_SLCT_PRSN; numToSelect = 0; params.minStat = 0.05F; };
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_UNIVARIATE_SELECTOR;  params.method = UNIV_SLCT_PRSN;  params.minStat = 0.05F; };
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<UnivariateFeatureSelector *>(processor)); }

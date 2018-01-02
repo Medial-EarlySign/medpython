@@ -100,7 +100,7 @@ public:
 	bool normalize_for_predict;
 
 	vector<string> model_features; //the model features used in Learn, to validate when caling predict
-	int features_count;
+	int features_count = 0;
 
 	// Each wrapped algorithm needs to implement the following:
 	//.........................................................

@@ -13,14 +13,9 @@
 #define DEFAULT_REP_CLNR_NTHREADS 8
 
 //.......................................................................................
+/** Define types of repository processors
+*/
 //.......................................................................................
-// RepProcessor is the parent class for processing a MedRepository or PidDynamicRec
-// Basic functionalities:
-//		learn : learn the processoring parameters from a given list of ids and a rpository 
-//		apply : process a dynamic PidDynamicRec
-//.......................................................................................
-//.......................................................................................
-// Define types of repository processors
 typedef enum {
 	REP_PROCESS_MULTI,
 	REP_PROCESS_BASIC_OUTLIER_CLEANER,
@@ -30,70 +25,71 @@ typedef enum {
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
+//.......................................................................................
+/** RepProcessor is the parent class for processing a MedRepository or PidDynamicRec <br>
+* Basic functionalities: <br>
+*		learn : learn the processoring parameters from a given list of ids and a rpository <br>
+*		apply : process a dynamic PidDynamicRec
+*/
+//.......................................................................................
 class RepProcessor : public SerializableObject {
 public:
 
 	// Type
-	RepProcessorTypes processor_type;
+	RepProcessorTypes processor_type; ///< type of repository processor
 
-	// Threading (learn/apply) - 
-	int learn_nthreads, apply_nthreads;
+	vector<string> req_signals; ///< names of signals required for processsing
+	vector<int> req_signal_ids; ///< ids of signals required for processing
 
-	// Required Signals (and their ids) for processing
-	vector<string> req_signals;
-	vector<int> req_signal_ids;
+	unordered_set<string> aff_signals; ///< names of signals affected by processing
+	unordered_set<int> aff_signal_ids; ///< ids of signals affected by processing
 
-	// Signals (and their ids) affected by processing 
-	unordered_set<string> aff_signals;
-	unordered_set<int> aff_signal_ids;
-
-	// Constructor/Destructor
-	RepProcessor() { learn_nthreads = DEFAULT_REP_CLNR_NTHREADS; apply_nthreads = DEFAULT_REP_CLNR_NTHREADS; };
-	~RepProcessor() {};
-
-	// Init from name or type. optinally with a parameters string
+	// create a new rep_processor
+	/// <summary> create a new repository processor from name </summary>
 	static RepProcessor *make_processor(string name);
+	/// <summary> create a new repository processor from name and a parameters string</summary>
 	static RepProcessor *make_processor(string type, string params);
+	/// <summary> create a new repository processor from type </summary>
 	static RepProcessor *make_processor(RepProcessorTypes type);
+	/// <summary> create a new repository processor from type and a parameters string</summary>
 	static RepProcessor *make_processor(RepProcessorTypes type, string params);
 
-	// Create processor from params string (type must be given within string)
+	/// <summary> create a new repository processor from parameters string which contains rp_type </summary>
 	static RepProcessor *create_processor(string &params);
 
-	// initialize : from object/string/defaults.
-	// Should be implemented for inheriting classes that have parameters
+	/// <summary> initialize from a params object :  Should be implemented for inheriting classes that have parameters </summary>
 	virtual int init(void *params) { return 0; };
+	/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
 	virtual int init(map<string, string>& mapper) { return 0; };
+	/// <summary> initialize to default values :  Should be implemented for inheriting classes that have parameters </summary>
 	virtual void init_defaults() {};
 
-	// Set signalName
-	// Should be implemented for inheriting classes that have signalName
+	/// <summary> set signal-name :  Should be implemented for inheriting classes that have signalName </summary>
 	virtual void set_signal(const string& _signalName) { return; };
 
-	// Set signalId
-	// Should be implemented for inheriting classes that have signalId
+	/// <summary> set signal-name :  Should be implemented for inheriting classes that have signalId  </summary>
 	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
 	// Required Signals functions : get all signals that are required by the processor
-	// Append required signal names to vector : parent function just uses req_signals
+	/// <summary> Append required signal names to vector : parent function just uses req_signals  </summary>
 	virtual void get_required_signal_names(unordered_set<string>& signalNames);
-	// Fill req_signal_ids : parent function just fills from req_signals
+	/// <summary> Fill req_signal_ids : parent function just fills from req_signals </summary>
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
-	// Append required signal ids to vector. call set_required_signal_ids if req_signal_ids empty
+	/// <summary> Append required signal ids to vector. call set_required_signal_ids if req_signal_ids empty </summary>
 	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
 	
 	// Affected Signals functions;
-	// Fill aff_signal_ids : parent function just fills from aff_signals
+	/// <summary> Fill aff_signal_ids : parent function just fills from aff_signals </summary>
 	virtual void set_affected_signal_ids(MedDictionarySections& dict);
-	// Check if a signal is affected by processor
+	/// <summary>  Check if a signal is affected by processor </summray>
+	/// <returns> true if affected, false if not </returns>
 	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
 
-	// Init required tables
-	// Should be implemented for inheriting classes that have such tables
+	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
 	virtual void init_tables(MedDictionarySections& dict) { return; }
 
-	// Learn processing model on a subset of ids. Apply set of preceesing processors on DynamicPidRec before learning
-	// Should be implemented for inheriting classes that require learning
+	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning : 
+	// Should be implemented for inheriting classes that require learning </summary>
 	virtual int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {  return 0; };
 
 	// Envelope learning functions

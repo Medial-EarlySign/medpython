@@ -34,7 +34,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	}
 	catch (std::invalid_argument e) {
 		MLOG("could not parse [%s]\n", s.c_str());
-		throw e;
+		return -1;
 	}
 }
 
@@ -94,14 +94,14 @@ int MedSample::parse_from_string(string &s)
 
 // Write to string in new format
 //.......................................................................................
-int MedSample::write_to_string(string &s)
+void MedSample::write_to_string(string &s)
 {
 	s = "";
 	s += "SAMPLE\t" + to_string(id) + "\t" + to_string(time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
 	s += "\t" + to_string(split);
 	for (auto p : prediction)
 		s += "\t" + to_string(p);
-	return 0;
+	return;
 }
 
 // printing all samples with prefix appearing in the begining of each line
@@ -120,13 +120,11 @@ void MedSample::print(const string prefix) {
 //=======================================================================================
 // Extract predictions from MedFeatures and insert to corresponding samples
 // Samples in MedFeatures are assumed to be of the same size and order as in MedSamples
+// Return -1 if samples and features do not match in length, 0 upon success
 //.......................................................................................
 int MedSamples::insert_preds(MedFeatures& features) {
 
-	size_t size = 0;
-	for (MedIdSamples& idSampels : idSamples)
-		size += idSampels.samples.size();
-
+	size_t size = (size_t)nSamples();
 	if (features.samples.size() != size) {
 		MERR("Size mismatch between features and samples (%d vs %d)\n",features.samples.size(),size);
 		return -1;
@@ -221,7 +219,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 
 // read from text file.
 // If the line starting with EVENT_FIELDS (followed by tabe-delimeted field names : id,date,outcome,outcome_date,split,pred) appears before the data lines, it is used to determine
-// fields positions, otherwise - old or new formats are used.
+// fields positions, otherwise - old or new formats are used. Return -1 upon failure to open file
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {
@@ -299,6 +297,48 @@ int MedSamples::read_from_file(const string &fname)
 	return 0;
 }
 
+// write to text file in new format. Return -1 upon failure to open file
+//.......................................................................................
+int MedSamples::write_to_file(const string &fname)
+{
+	ofstream of(fname);
+
+	MLOG("MedSamples: writing to %s\n", fname.c_str());
+	if (!of) {
+		MERR("MedSamples: can't open file %s for writing\n", fname.c_str());
+		return -1;
+	}
+	int samples = 0;
+	int buffer_write = 100000;
+
+	//of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeLength" <<
+	//	'\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
+	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
+
+	int line = 0;
+	for (auto &s : idSamples) {
+		for (auto ss : s.samples) {
+			samples++;
+			string sout;
+			ss.write_to_string(sout);
+			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
+			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
+			if (line >= buffer_write) {
+				of << sout << endl;
+				line = 0;
+			}
+			else {
+				of << sout << "\n"; //no flush of buffer - much faster when writing large files
+				++line;
+			}
+		}
+	}
+
+	MLOG("wrote [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
+	of.close(); //will flush buffer if needed
+	return 0;
+}
+
 // Sort by id and then date
 //.......................................................................................
 void MedSamples::sort_by_id_date() {
@@ -333,48 +373,6 @@ void MedSamples::normalize() {
 	}
 }
 
-// write to text file in new format
-//.......................................................................................
-int MedSamples::write_to_file(const string &fname)
-{
-	ofstream of(fname);
-
-	MLOG("MedSamples: writing to %s\n", fname.c_str());
-	if (!of) {
-		MERR("MedSamples: can't open file %s for writing\n", fname.c_str());
-		return -1;
-	}
-	int samples = 0;
-	int buffer_write = 100000;
-		
-	//of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeLength" <<
-	//	'\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
-	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
-
-	int line = 0;
-	for (auto &s: idSamples) {
-		for (auto ss : s.samples) {
-			samples++;
-			string sout;
-			ss.write_to_string(sout);
-			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
-			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
-			if (line >= buffer_write) {
-				of << sout << endl;
-				line = 0;
-			}
-			else {
-				of << sout << "\n"; //no flush of buffer - much faster when writing large files
-				++line;
-			}
-		}
-	}
-
-	MLOG("wrote [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
-	of.close(); //will flush buffer if needed
-	return 0;
-}
-
 // Count samples
 //.......................................................................................
 int MedSamples::nSamples()
@@ -388,7 +386,7 @@ int MedSamples::nSamples()
 
 // API's for online insertions : main use case is a single time point for prediction per pid
 //.......................................................................................
-int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime) 
+void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime) 
 {
 	MedIdSamples sample;
 
@@ -401,11 +399,11 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 	s.outcomeTime = outcomeTime;
 	sample.samples.push_back(s);
 	idSamples.push_back(sample);
-	return 0;
+	return;
 }
 
 //.......................................................................................
-int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred)
+void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred)
 {
 	MedIdSamples sample;
 
@@ -419,7 +417,7 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, flo
 	s.prediction.push_back(pred);
 	sample.samples.push_back(s);
 	idSamples.push_back(sample);
-	return 0;
+	return;
 }
 
 // Get all MedSamples as a single vector

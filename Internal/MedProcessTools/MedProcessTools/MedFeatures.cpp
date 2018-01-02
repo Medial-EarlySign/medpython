@@ -211,6 +211,7 @@ void MedFeatures::print_csv()
 }
 
 // Write features (samples + weights + data) as csv with a header line
+// Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
 int MedFeatures::write_as_csv_mat(const string &csv_fname)
 {
@@ -272,6 +273,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 }
 
 // Read features (samples + weights + data) from a csv file with a header line
+// Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
 int MedFeatures::read_from_csv_mat(const string &csv_fname)
 {
@@ -285,7 +287,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 	inf.open(csv_fname, ios::in);
 	if (!inf) {
 		cerr << "can not open file\n";
-		throw exception();
+		return -1;
 	}
 	
 	int ncols = -1;
@@ -344,6 +346,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 }
 
 // Filter data (and attributes) to include only selected features
+// Return -1 if any of the selected features is not present. 0 upon success.
 //.......................................................................................
 int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 

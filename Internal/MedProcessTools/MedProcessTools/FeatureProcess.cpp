@@ -587,7 +587,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	int too_small_stratas = 0;
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
 		strata_sizes[i] = (int) stratifiedValues[i].size();
-		if (strata_sizes[i] < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+		if (strata_sizes[i] < min_samples) {
 			too_small_stratas++;
 			moments[i] = missing_value;
 		}
@@ -609,10 +609,10 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	}
 	if (too_small_stratas > 0)
 		MLOG("NOTE: featureImputer found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
-			MIN_SAMPLES_IN_STRATA_FOR_LEARNING, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-	if (all_existing_values.size() < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+			min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+	if (all_existing_values.size() < min_samples) {
 		MLOG("NOTE: featureImputer found only %d < %d samples over all for [%s], will not impute it at all\n",
-			all_existing_values.size(), MIN_SAMPLES_IN_STRATA_FOR_LEARNING, feature_name.c_str());
+			all_existing_values.size(), min_samples, feature_name.c_str());
 	} else if (moment_type == IMPUTE_MMNT_MEAN)
 		get_mean(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_MEDIAN)
@@ -690,6 +690,7 @@ int FeatureImputer::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "moment_type") moment_type = getMomentType(entry.second); 
+		else if (field == "min_samples") min_samples = stoi(entry.second);
 		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
