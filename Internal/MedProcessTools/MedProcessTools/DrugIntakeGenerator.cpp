@@ -140,7 +140,7 @@ int DrugIntakeGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [DrugIntakeGenerator::init]
 		if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
@@ -151,6 +151,7 @@ int DrugIntakeGenerator::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for DrugIntakeGenerator\n", field.c_str());
+		//! [DrugIntakeGenerator::init]
 	}
 
 	names.clear();

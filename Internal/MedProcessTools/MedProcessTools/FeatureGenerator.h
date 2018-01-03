@@ -1,7 +1,3 @@
-/** @file
-* FeatureGenerator : creating features from raw signals
-*/
-
 #ifndef _FTR_GENERATOR_H_
 #define _FTR_GENERATOR_H_
 
@@ -38,7 +34,9 @@ typedef enum {
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
-/// A virtual feature generation class
+/** @file
+* FeatureGenerator : creating features from raw signals
+*/
 class FeatureGenerator : public SerializableObject {
 public:
 
@@ -178,6 +176,26 @@ typedef enum {
 * A Basic Stats Generator for calcing simple statics on time window
 */
 class BasicFeatGenerator : public FeatureGenerator {
+private:
+	// actual generators
+	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
+	float uget_first(UniversalSigVec &usv, int time_point);
+	float uget_last2(UniversalSigVec &usv, int time_point);
+	float uget_avg(UniversalSigVec &usv, int time_point);
+	float uget_max(UniversalSigVec &usv, int time_point);
+	float uget_min(UniversalSigVec &usv, int time_point);
+	float uget_std(UniversalSigVec &usv, int time_point);
+	float uget_last_delta(UniversalSigVec &usv, int time_point);
+	float uget_last_time(UniversalSigVec &usv, int time_point);
+	float uget_last2_time(UniversalSigVec &usv, int time_point);
+	float uget_slope(UniversalSigVec &usv, int time_point);
+	float uget_win_delta(UniversalSigVec &usv, int time_point);
+	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
+	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
+
 public:
 	// Feature Descrption
 	string signalName;
@@ -212,7 +230,8 @@ public:
 
 	BasicFeatureTypes name_to_type(const string &name);
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp BasicFeatGenerator::init
 	int init(map<string, string>& mapper);
 	void init_defaults();
 
@@ -231,25 +250,6 @@ public:
 
 	/// Init required tables
 	void init_tables(MedDictionarySections& dict);
-
-	// actual generators
-	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
-	float uget_first(UniversalSigVec &usv, int time_point);
-	float uget_last2(UniversalSigVec &usv, int time_point);
-	float uget_avg(UniversalSigVec &usv, int time_point);
-	float uget_max(UniversalSigVec &usv, int time_point);
-	float uget_min(UniversalSigVec &usv, int time_point);
-	float uget_std(UniversalSigVec &usv, int time_point);
-	float uget_last_delta(UniversalSigVec &usv, int time_point);
-	float uget_last_time(UniversalSigVec &usv, int time_point);
-	float uget_last2_time(UniversalSigVec &usv, int time_point);
-	float uget_slope(UniversalSigVec &usv, int time_point);
-	float uget_win_delta(UniversalSigVec &usv, int time_point);
-	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
-	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
-	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
-	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
-	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
@@ -388,8 +388,9 @@ public:
 	void set(string& _signalName);
 	void set(string& _signalName, BinnedLmEstimatesParams* _params);
 
-	// Init
 	void init_defaults();
+	/// The parsed fields from init command.
+	/// @snippet BinnedLmEstimates.cpp BinnedLmEstimates::init
 	int init(map<string, string>& mapper);
 
 	// Copy
@@ -468,7 +469,8 @@ public:
 	// Naming 
 	void set_names();
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp RangeFeatGenerator::init
 	int init(map<string, string>& mapper);
 	void init_defaults();
 	RangeFeatureTypes name_to_type(const string &name);
@@ -516,7 +518,8 @@ public:
 	/// Naming 
 	void set_names();
 
-	// Initialization
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp ModelFeatGenerator::init
 	int init(map<string, string>& mapper);
 	int init(MedModel *_model);
 

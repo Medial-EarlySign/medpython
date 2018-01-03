@@ -414,6 +414,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [BasicFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -430,6 +431,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
+		//! [BasicFeatGenerator::init]
 	}
 
 	// names for BasicFeatGenerator are set as a first step in the Learn call as we must have access to the MedRepository
@@ -529,7 +531,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		
+		//! [RangeFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -542,6 +544,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "check_first") check_first = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+		//! [RangeFeatGenerator::init]
 	}
 
 	// set names and required signals
@@ -1178,12 +1181,13 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [ModelFeatGenerator::init]
 		if (field == "name") modelName = entry.second;
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "n_preds") n_preds = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+		//! [ModelFeatGenerator::init]
 	}
 
 	// set names

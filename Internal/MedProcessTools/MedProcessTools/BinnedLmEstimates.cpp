@@ -114,7 +114,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [BinnedLmEstimates::init]
 		if (field == "bin_bounds") {
 			if (init_dvec(entry.second, params.bin_bounds) == -1) {
 				fprintf(stderr, "Cannot initialize bin_bounds for LM\n");
@@ -139,6 +139,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
+		//! [BinnedLmEstimates::init]
 	}
 
 	names.clear();
