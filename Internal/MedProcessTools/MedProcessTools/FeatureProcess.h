@@ -12,24 +12,27 @@
 
 #define DEFAULT_FEAT_CLNR_NTHREADS 24
 
+/** @enum
+* Rep Processors types enum
+*/
 typedef enum {
-	FTR_PROCESS_MULTI,
-	FTR_PROCESS_BASIC_OUTLIER_CLEANER,
-	FTR_PROCESS_NORMALIZER,
-	FTR_PROCESS_IMPUTER,
-	FTR_PROCESS_DO_CALC,
-	FTR_PROCESS_UNIVARIATE_SELECTOR,
-	FTR_PROCESSOR_MRMR_SELECTOR,
-	FTR_PROCESSOR_LASSO_SELECTOR,
-	FTR_PROCESSOR_TAGS_SELECTOR,
-	FTR_PROCESSOR_IMPORTANCE_SELECTOR,
-	FTR_PROCESS_REMOVE_DGNRT_FTRS,
-	FTR_PROCESS_ITERATIVE_IMPUTER,
-	FTR_PROCESS_ENCODER_PCA, //can be PCA, AutoEncoder or other..
+	FTR_PROCESS_MULTI, ///<"multi_processor" or "multi" to create MultiFeatureProcessor
+	FTR_PROCESS_BASIC_OUTLIER_CLEANER, ///<"basic_outlier_cleaner" or "basic_cleaner" to create FeatureBasicOutlierCleaner
+	FTR_PROCESS_NORMALIZER, ///<"normalizer" to create FeatureNormalizer
+	FTR_PROCESS_IMPUTER, ///<"imputer" to create FeatureImputer
+	FTR_PROCESS_DO_CALC, ///<"do_calc" to create DoCalcFeatProcessor
+	FTR_PROCESS_UNIVARIATE_SELECTOR, ///<"univariate_selector" to create UnivariateFeatureSelector
+	FTR_PROCESSOR_MRMR_SELECTOR, ///<"mrmr" or "mrmr_selector" to create MRMRFeatureSelector
+	FTR_PROCESSOR_LASSO_SELECTOR, ///<"lasso" to create LassoSelector
+	FTR_PROCESSOR_TAGS_SELECTOR, ///<"tags_selector" to create TagFeatureSelector
+	FTR_PROCESSOR_IMPORTANCE_SELECTOR, ///<"importance_selector" to create ImportanceFeatureSelector
+	FTR_PROCESS_REMOVE_DGNRT_FTRS, ///<"remove_deg" to create DgnrtFeatureRemvoer
+	FTR_PROCESS_ITERATIVE_IMPUTER, ///<"iterative_imputer" to create IterativeImputer
+	FTR_PROCESS_ENCODER_PCA, ///<"pca" to create FeaturePCA
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
-/**
+/** @file
 * A virtual class of processes on MedFeatures;
 * E.g. Cleaning
 */
