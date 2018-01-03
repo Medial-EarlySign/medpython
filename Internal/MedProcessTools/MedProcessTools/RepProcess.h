@@ -244,7 +244,7 @@ public:
 //.......................................................................................
 
 typedef struct {
-	double logicalLow, logicalHigh, confirmedLow, confirmedHigh;
+	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
     string distLow,distHigh; //"none" "norm" or "log" 
 }confRecord;
 
@@ -291,7 +291,7 @@ public:
 	void print();
 };
 
-void learnDistributionBorders(double& borderHi, double& borderLo,vector<float> filteredValues);
+void learnDistributionBorders(float& borderHi, float& borderLo,vector<float> filteredValues);
 // a function that takes sorted vector of filtered values and estimates the +- 7 sd borders based on the center of distribution
 // predefined calibration constants are used for estimation of the borders. 
 
