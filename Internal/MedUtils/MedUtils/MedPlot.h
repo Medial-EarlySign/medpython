@@ -5,29 +5,30 @@
 #include <vector>
 #include <string>
 
-/* @file A Library to plot graphs in HTML using plotly.js
-* Example Code:
-* vector<map<float, float>> data(2); //plot 2 series of two lines
-*
-* //create data for lines:
-* int numPnt = 1000;
-* float m1 = 2;
-* float n1 = 3;
-* float m2 = -4;
-* float n2 = 9;
-* for (int i = 0; i < numPnt; ++i)
-* {
-* float x = (i - numPnt / 2) / float(100.0);
-* float y = m1 * (i - numPnt / 2) / 100 + n1;
-* data[0][x] = y;
-*
-* y = m2 * (i - numPnt / 2) / 100 + n2;
-* data[1][x] = y;
-* }
-* //end creation of data, now  plot:
-*
-* vector<string> seriesNames = {"line_1", "line_2"};
-* createHtmlGraph("test.html", data, "Graph Title", "x", "y", seriesNames);
+/** @file 
+* A Library to plot graphs in HTML using plotly.js \n
+* Example Code: \n
+* vector<map<float, float>> data(2); //plot 2 series of two lines \n
+* \n
+* //create data for lines: \n
+* int numPnt = 1000; \n
+* float m1 = 2;\n
+* float n1 = 3;\n
+* float m2 = -4;\n
+* float n2 = 9;\n
+* for (int i = 0; i < numPnt; ++i)\n
+* {\n
+* float x = (i - numPnt / 2) / float(100.0);\n
+* float y = m1 * (i - numPnt / 2) / 100 + n1;\n
+* data[0][x] = y;\n
+*\n
+* y = m2 * (i - numPnt / 2) / 100 + n2;\n
+* data[1][x] = y;\n
+* }\n
+* //end creation of data, now  plot:\n
+* \n
+* vector<string> seriesNames = {"line_1", "line_2"};\n
+* createHtmlGraph("test.html", data, "Graph Title", "x", "y", seriesNames);\n
 */
 
 using namespace std;
@@ -70,6 +71,9 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 void createHtmlGraph(string outPath, vector<map<float, float>> data, string title = "", string xName = "", string yName = "",
 	vector<string> seriesNames = vector<string>(), int refreshTime = 0, string chart_type = "scatter");
 
+/// <summary>
+/// Plot of 3D graph data
+/// </summary>
 void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatmap = true, string title = "", string xName = "x", string yName = "y", string zName = "z");
 
 /// <summary>
@@ -88,8 +92,19 @@ string createCsvFile(map<float, float> data);
 /// </returns>
 string createCsvFile(vector<vector<float>> &data, const vector<string> &headers);
 
+/// <summary>
+/// Down sampling the number of points in the graph to points_count if has more
+/// points in the data. the interpulation is linear.
+/// </summary>
 void down_sample_graph(map<float, float> &points, int points_count = 10000);
 extern vector<bool> empty_bool_arr;
+/// <summary>
+/// calculates true_rate, false_rate, ppv based on labels(y) and predictions scores(preds)
+/// indexes is used for filtering samples
+/// </summary>
+/// <returns>
+/// updates true_rate, false_rate, ppv
+/// </returns>
 void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
 	vector<bool> &indexes = empty_bool_arr);
