@@ -12,6 +12,7 @@
 #include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
 #include <MedTime/MedTime/MedTime.h>
 #include "InfraMed/InfraMed/MedRepositoryType.h"
+#include "MedUtils/MedUtils/MedMat.h"
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
@@ -511,7 +512,8 @@ public:
 	string modelName = "";
 	int n_preds = 1;
 	
-	// A container for the predictions
+	// A container for the samples + predictions
+	vector<MedSample> samples;
 	vector<float> preds;
 
 	// Naming 

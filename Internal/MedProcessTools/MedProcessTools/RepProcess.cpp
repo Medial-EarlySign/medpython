@@ -213,13 +213,13 @@ void RepMultiProcessor::get_required_signal_names(unordered_set<string>& signalN
 
 // Learn processors
 //.......................................................................................
-int RepMultiProcessor::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
+int RepMultiProcessor::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
 
 	vector<int> rc(processors.size(), 0);
 
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		rc[j] = processors[j]->Learn(rep, ids, prev_processors);
+		rc[j] = processors[j]->learn(rep, ids, prev_processors);
 	}
 
 	for (int r : rc) if (r < 0) return -1;
@@ -357,7 +357,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
  // Learn cleaning boundaries
 //.......................................................................................
-int RepBasicOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepBasicOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	if (params.type == VAL_CLNR_ITERATIVE)
 		return iterativeLearn(rep, ids, prev_cleaners);
@@ -587,7 +587,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 // Learn bounds
 //.......................................................................................
-int RepConfiguredOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepConfiguredOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 	if (outlierParams.find(signalName) == outlierParams.end()) {
 		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n",signalName.c_str());
 		return -1;
@@ -1042,7 +1042,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 
 	// Learn bounds
 	//.......................................................................................
-	int RepNbrsOutlierCleaner::Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+	int RepNbrsOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 		if (params.type == VAL_CLNR_ITERATIVE)
 			return iterativeLearn(rep, ids, prev_cleaners);

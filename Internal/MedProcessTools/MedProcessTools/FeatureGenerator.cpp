@@ -1151,7 +1151,8 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 		return missing_val;
 	}
 }
-// ComorbidityGenerator
+
+// ModelFeatureGenerator
 //=======================================================================================
 
 //................................................................................................................
@@ -1183,7 +1184,7 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "n_preds") n_preds = stoi(entry.second);
 		else if (field != "fg_type")
-			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+			MLOG("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
 	}
 
 	// set names
@@ -1209,6 +1210,8 @@ int ModelFeatGenerator::init(MedModel *_model) {
 	model->get_required_signal_names(required);
 	for (string signal : required)
 		req_signals.push_back(signal);
+
+	set_names();
 }
 
 
