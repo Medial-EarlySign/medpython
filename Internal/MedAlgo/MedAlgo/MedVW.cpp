@@ -10,8 +10,7 @@
 #include "External/vowpal_wabbit/vowpalwabbit/parse_regressor.h"
 
 void MedVW::init_defaults() {
-	transpose_for_learn = false;
-	transpose_for_predict = false;
+	transpose_for_learn = false;transpose_for_predict = false;
 	normalize_for_learn = false;
 	normalize_y_for_learn = false;
 	normalize_for_predict = false;
@@ -80,16 +79,18 @@ int MedVW::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 	return 0;
 }
 
-void MedVW::save_model(const string &path) {
+int MedVW::write_to_file(const string &path) {
 	_v->save_per_pass = false;
 	save_predictor(*_v, path, 0);
+	return 0;
 }
 
-void MedVW::load_model(const string &path) {
+int MedVW::read_from_file(const string &path) {
 	_v->l = NULL;
 	io_buf buf;
 	buf.open_file(path.c_str(), _v->stdin_off, io_buf::READ);
 	save_load_header(*_v, buf, true, false);
+	return 0;
 }
 
 size_t MedVW::get_size() {

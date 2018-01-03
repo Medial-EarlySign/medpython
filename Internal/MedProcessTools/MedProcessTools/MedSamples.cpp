@@ -19,13 +19,13 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 		return -1;
 	try {
 		if (pos["id"] != -1)
-			id = stoi(fields[pos["id"]]);
+			id = (int)stod(fields[pos["id"]]);
 		if (pos["date"] != -1)
-			time = stoi(fields[pos["date"]]);
+			time = (int)stod(fields[pos["date"]]);
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
-			outcomeTime = stoi(fields[pos["outcome_date"]]);
+			outcomeTime = (int)stod(fields[pos["outcome_date"]]);
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
 		if (pos["pred"] != -1 && fields.size() > pos["pred"])
@@ -151,7 +151,7 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 }
 
-// Extract a single vector of concatanated predictions
+// Extract a single vector of concatanated (vectors of) predictions
 //.......................................................................................
 void MedSamples::get_preds(vector<float>& preds) {
 	for (auto& idSample : idSamples) 
@@ -308,6 +308,7 @@ void MedSamples::sort_by_id_date() {
 		sort(pat.samples.begin(), pat.samples.end(), comp_sample_id_time);
 }
 
+// Make sure that : (1) every pid has one idSample at most and (2) everything is sorted
 //.......................................................................................
 void MedSamples::normalize() {
 	
@@ -403,7 +404,6 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 	return 0;
 }
 
-
 //.......................................................................................
 int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred)
 {
@@ -422,6 +422,7 @@ int MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, flo
 	return 0;
 }
 
+// Get all MedSamples as a single vector
 //.......................................................................................
 void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 {
@@ -431,4 +432,26 @@ void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 			vec_samples.push_back(samp);
 		}
 	}
+}
+
+//.......................................................................................
+void MedSamples::dilute(float prob)
+{
+	if (prob >= 1)
+		return;
+
+	vector<MedIdSamples> NewidSamples;
+
+	for (auto &id : idSamples) {
+		MedIdSamples mid;
+		mid.id = id.id;
+		mid.split = id.split;
+		for (auto &s : id.samples)
+			if (rand_1() < prob)
+				mid.samples.push_back(s);
+		if (mid.samples.size() > 0)
+			NewidSamples.push_back(mid);
+	}
+
+	idSamples = NewidSamples;
 }

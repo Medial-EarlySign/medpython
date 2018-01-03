@@ -141,17 +141,23 @@ public:
 	void get_preds(vector<float>& preds);
 	// Extract a vector of all outcomes
 	void get_y(vector<float>& y);
-	// gets a list of all categories (different values) appearing in the outcome
+	// Get a list of all categories (different values) appearing in the outcome
 	void get_categs(vector<float> &categs); 
+	// Get all MedSamples as a single vector
 	void export_to_sample_vec(vector<MedSample> &vec_samples);
 
 	// Sort by id and then date
 	void sort_by_id_date(); 
-	void normalize(); // normalization means making sure that (1) : every pid has one idSample at most and (2) everything is sorted
+	// Make sure that : (1) every pid has one idSample at most and (2) everything is sorted
+	void normalize(); 
 
 
 	// Count samples
 	int nSamples();
+
+
+	// dilute : given a probability dilution prob, dilute current samples
+	void dilute(float prob);
 
 	// API's for online insertions : main use case is a single time point for prediction per pid
 	int insertRec(int pid, int time, float outcome, int outcomeTime);
