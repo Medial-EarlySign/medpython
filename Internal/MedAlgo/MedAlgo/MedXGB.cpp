@@ -313,6 +313,7 @@ int MedXGB::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedXGB::init]
 		if (field == "booster") params.booster = entry.second;
 		else if (field == "objective") params.objective = entry.second;
 		else if (field == "eval_metric") params.eval_metric = entry.second;
@@ -333,6 +334,7 @@ int MedXGB::init(map<string, string>& mapper) {
 		else if (field == "alpha") params.alpha = stof(entry.second);
 		else if (field == "seed") params.seed = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
+		//! [MedXGB::init]
 	}
 
 	return 0;

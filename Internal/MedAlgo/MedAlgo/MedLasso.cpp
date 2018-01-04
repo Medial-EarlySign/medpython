@@ -22,9 +22,11 @@ int MedLasso::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedLasso::init]
 		if (field == "lambda") params.lambda = stod(entry.second);
 		else if (field == "num_iterations") params.num_iterations = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for Lasso\n", field.c_str());
+		//! [MedLasso::init]
 	}
 
 	return 0;

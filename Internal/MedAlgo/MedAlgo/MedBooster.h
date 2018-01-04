@@ -54,12 +54,15 @@ class MedBooster : public MedPredictor {
 		MedBooster(void *_params) { params = *(MedBoosterParams *)_params; }
 		MedBooster(MedBoosterParams& _params) { params = _params; }
 		int init(void *_params) { params = *(MedBoosterParams *)_params; return 0; }
+		
+		/// The parsed fields from init command.
+		/// @snippet MedBooster.cpp MedBoosterParams::init_from_string
 		int init_from_string(string initialization_text) {
 			cerr << "MedBooster init_from_string ! :: " << initialization_text << "\n";
 			params.init_from_string(initialization_text);
 			return 0;
 		}
-
+		///MedBooster:: init map :: not supported, only init_from_string supported 
 		int init(map<string, string>& mapper) {
 			cerr << "MedBooster:: init map :: not supported, only init_from_string supported....\n";
 			return -1;

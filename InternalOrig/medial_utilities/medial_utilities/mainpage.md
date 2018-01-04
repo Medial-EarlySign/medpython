@@ -7,7 +7,8 @@ you can also use the search box to find your file/function
  * MedRepository or MedPidRepository - the main object to fetch data from our repositories
 
  @subsection MedAlgo MedAlgo
- * MedPredictor - basic predictor interface. you may see all derived classes and models in the link
+ * MedPredictor - basic predictor interface. you may see all derived classes and models in the link.\n
+    to see all options for json file please reffer to  ::MedPredictorTypes
 
  @subsection MedProcessTools MedProcessTools
  * MedModel - medial pipeline model for running all process. Pipeline objects:
