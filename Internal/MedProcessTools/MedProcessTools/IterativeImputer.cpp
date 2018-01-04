@@ -60,7 +60,7 @@ int IterativeImputerParams::init(map<string, string>& mapper)
 	features_to_impute.clear();
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [IterativeImputerParams::init]
 		if (field == "regressor") regressor = entry.second;
 		else if (field == "regressor_params") regressor_params = entry.second;
 		else if (field == "multi_categ_classifier") multi_categ_classifier = entry.second;
@@ -82,6 +82,7 @@ int IterativeImputerParams::init(map<string, string>& mapper)
 			boost::split(f, entry.second, boost::is_any_of(",:"));
 			features_to_impute.insert(features_to_impute.end(), f.begin(), f.end());
 		}
+		//! [IterativeImputerParams::init]
 	}
 
 	return 0;

@@ -134,7 +134,7 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [UnivariateFeatureSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "method") params.method = params.get_method(entry.second);
@@ -146,6 +146,7 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "max_samples") params.max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [UnivariateFeatureSelector::init]
 	}
 
 	return 0;
@@ -357,7 +358,7 @@ int MRMRFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [MRMRFeatureSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "method") params.method = params.get_method(entry.second);
@@ -370,6 +371,7 @@ int MRMRFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "max_samples") params.max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [MRMRFeatureSelector::init]
 	}
 
 	return 0;
@@ -739,7 +741,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [LassoSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "initMaxLambda") initMaxLambda = stof(entry.second);
@@ -747,6 +749,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [LassoSelector::init]
 	}
 
 	return 0;
@@ -799,11 +802,12 @@ int DgnrtFeatureRemvoer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [DgnrtFeatureRemvoer::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		if (field == "percentage") percentage = stof(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [DgnrtFeatureRemvoer::init]
 	}
 
 	assert(percentage >= 0 && percentage <= 1.0);
@@ -816,11 +820,12 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [TagFeatureSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		if (field == "selected_tags") boost::split(selected_tags, entry.second, boost::is_any_of(","));
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
+		//! [TagFeatureSelector::init]
 	}
 
 	return 0;
@@ -848,7 +853,7 @@ int ImportanceFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [ImportanceFeatureSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "predictor") predictor = entry.second;
 		else if (field == "predictor_params") predictor_params = entry.second;
@@ -858,6 +863,7 @@ int ImportanceFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
+		//! [ImportanceFeatureSelector::init]
 	}
 
 	return 0;

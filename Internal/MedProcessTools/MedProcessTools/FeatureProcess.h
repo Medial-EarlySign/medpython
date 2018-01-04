@@ -134,7 +134,8 @@ public:
 	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; };
 	~MultiFeatureProcessor() {};
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureProcess.cpp MultiFeatureProcessor::init
 	int init(map<string, string>& mapper);
 
 	// Copy
@@ -191,6 +192,8 @@ public:
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
+	/// The parsed fields from init command.
+	/// @snippet MedValueCleaner.cpp MedValueCleaner::init
 	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
 
 	// Copy
@@ -245,7 +248,8 @@ public:
 	// Apply cleaning model
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureProcess.cpp FeatureNormalizer::init
 	int init(map<string, string>& mapper);
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER; };
 
@@ -383,7 +387,8 @@ public:
 	void addStrata(featureStrata& strata) { imputerStrata.stratas.push_back(strata); }
 	void addStrata(string& name, float resolution, float min, float max) { imputerStrata.stratas.push_back(featureStrata(name, resolution, min, max)); }
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureProcess.cpp FeatureImputer::init
 	int init(map<string, string>& mapper);
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; moment_type = IMPUTE_MMNT_MEAN;  processor_type = FTR_PROCESS_IMPUTER; };
 	imputeMomentTypes getMomentType(string& entry);
@@ -445,13 +450,16 @@ private:
 * To Use this selector specify <b>"lasso"</b> in the fp_type
 */
 class LassoSelector : public FeatureSelector {
-	// Initial lambda
+public:
+	/// The parsed fields from init command.
+	/// @snippet FeatureSelector.cpp LassoSelector::init
+	int init(map<string, string>& mapper);
+
+	/// Initial lambda
 	float initMaxLambda = (float)0.005;
 
 	int nthreads = 12;
 
-	// Init
-	int init(map<string, string>& mapper);
 	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_LASSO_SELECTOR; };
 
 	// Copy
@@ -479,7 +487,8 @@ public:
 	// Constructor
 	DgnrtFeatureRemvoer() : FeatureSelector() { }
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureSelector.cpp DgnrtFeatureRemvoer::init
 	int init(map<string, string>& mapper);
 	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_REMOVE_DGNRT_FTRS; };
 
@@ -558,7 +567,8 @@ public:
 	// Constructor
 	UnivariateFeatureSelector() : FeatureSelector() { init_defaults(); }
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureSelector.cpp UnivariateFeatureSelector::init
 	int init(map<string, string>& mapper);
 	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_UNIVARIATE_SELECTOR;  params.method = UNIV_SLCT_PRSN;  params.minStat = 0.05F; };
 
@@ -598,7 +608,8 @@ public:
 	// Constructor
 	MRMRFeatureSelector() : FeatureSelector() { init_defaults(); }
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureSelector.cpp MRMRFeatureSelector::init
 	int init(map<string, string>& mapper);
 	virtual void init_defaults();
 	MRMRPenaltyMethod get_penalty_method(string _method);
@@ -650,7 +661,8 @@ public:
 	// Constructor
 	TagFeatureSelector() : FeatureSelector() { }
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureSelector.cpp TagFeatureSelector::init
 	int init(map<string, string>& mapper);
 	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_TAGS_SELECTOR; };
 
@@ -679,7 +691,8 @@ public:
 	// Constructor
 	ImportanceFeatureSelector() : FeatureSelector() { }
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureSelector.cpp ImportanceFeatureSelector::init
 	int init(map<string, string>& mapper);
 	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_IMPORTANCE_SELECTOR; };
 
@@ -745,7 +758,9 @@ public:
 	// Constructor
 	FeaturePCA() : FeatureEncoder() { init_defaults(); }
 
-	int init(map<string, string>& mapper); ///< look for params
+	/// The parsed fields from init command.
+	/// @snippet FeatureEncoder.cpp FeaturePCA::init
+	int init(map<string, string>& mapper);
 	virtual void init_defaults() { processor_type = FTR_PROCESS_ENCODER_PCA;  params.pca_cutoff = 0; params.pca_top = 100; };
 
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeaturePCA *>(processor)); }

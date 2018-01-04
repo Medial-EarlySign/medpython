@@ -272,8 +272,9 @@ int MultiFeatureProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [MultiFeatureProcessor::init]
 		if (field == "tag") tag = entry.second;
+		//! [MultiFeatureProcessor::init]
 	}
 
 	return 0;
@@ -487,13 +488,14 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [FeatureNormalizer::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
+		//! [FeatureNormalizer::init]
 	}
 
 	return 0;
@@ -694,9 +696,10 @@ int FeatureImputer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
 		if (field == "moment_type") moment_type = getMomentType(entry.second); 
 		else if (field == "min_samples") min_samples = stoi(entry.second);
+		//! [FeatureImputer::init]
+		if (field == "moment_type") moment_type = getMomentType(entry.second);
 		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
@@ -704,6 +707,7 @@ int FeatureImputer::init(map<string, string>& mapper) {
 		}
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
+		//! [FeatureImputer::init]
 	}
 
 	return 0;

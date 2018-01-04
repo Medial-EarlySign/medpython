@@ -32,7 +32,8 @@ public:
 
 	void init_defaults();
 
-	// init_from_string
+	/// The parsed fields from init command.
+	/// @snippet DoCalcFeatProcessor.cpp DoCalcFeatProcessor::init
 	int init(map<string, string>& mapper);
 
 	virtual int Apply(MedFeatures& features, unordered_set<int>& ids);

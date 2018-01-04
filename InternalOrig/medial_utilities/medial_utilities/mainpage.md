@@ -10,15 +10,15 @@ you can also use the search box to find your file/function
  * MedPredictor - basic predictor interface. you may see all derived classes and models in the link
 
  @subsection MedProcessTools MedProcessTools
- * MedModel - medial pipeline model for running all process
- * RepProcessor - processing repository
- * FeatureGenerator - generating features from repository
- * FeatureProcessor - processing features from already generated/processed features
+ * MedModel - medial pipeline model for running all process. Pipeline objects:
+    * RepProcessor - processing repository. to see all options for json file please reffer to ::RepProcessorTypes
+    * FeatureGenerator - generating features from repository. to see all options for json file please reffer to ::FeatureGeneratorTypes
+    * FeatureProcessor - processing features from already generated/processed features. to see all options for json file please reffer to ::FeatureProcessorTypes
  * MedSamples - an object that stores our samples - with patient id, prediction time, label and more..
  * MedFeatures - an object that stores our matrix for all samples in MedSamples
 
   @subsection MedStats MedStats
- * MedBootstrapResult - the main object to run bootstrap on our data, it contains
+ * MedBootstrapResult - the main object to run bootstrap on our data adn store the results, it contains the MedBootstrap as configuration for the bootstrap
  * bootstrap.h - the internal bootstrap infrastracture for more general use
 
  @subsection MedTime MedTime

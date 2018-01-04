@@ -22,15 +22,15 @@ class MedModel;
 */
 typedef enum {
 	FTR_GEN_NOT_SET,
-	FTR_GEN_BASIC, /**< "basic" - creating basic statistics on time windows */
-	FTR_GEN_AGE, /**< "age" - creating age feature */
-	FTR_GEN_GENDER, ///< "gender" - creating gender feature
-	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points
-	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature
-	FTR_GEN_RANGE, ///< "drugIntake" - creating drugs feature
-	FTR_GEN_DRG_INTAKE, ///< "range"
-	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature
-	FTR_GEN_MODEL, ///< "model"
+	FTR_GEN_BASIC, ///< "basic" - creates basic statistic on time windows - BasicFeatGenerator 
+	FTR_GEN_AGE, ///< "age" - creating age feature - AgeGenerator 
+	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator
+	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
+	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
+	FTR_GEN_RANGE, ///< "drugIntake" - creating drugs feature - DrugIntakeGenerator
+	FTR_GEN_DRG_INTAKE, ///< "range" - creating RangeFeatGenerator
+	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
+	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
