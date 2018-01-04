@@ -19,13 +19,13 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 		return -1;
 	try {
 		if (pos["id"] != -1)
-			id = stoi(fields[pos["id"]]);
+			id = (int)stod(fields[pos["id"]]);
 		if (pos["date"] != -1)
-			time = stoi(fields[pos["date"]]);
+			time = (int)stod(fields[pos["date"]]);
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
-			outcomeTime = stoi(fields[pos["outcome_date"]]);
+			outcomeTime = (int)stod(fields[pos["outcome_date"]]);
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
 		if (pos["pred"] != -1 && fields.size() > pos["pred"])
@@ -114,6 +114,35 @@ void MedSample::print(const string prefix) {
 	MLOG("\n");
 }
 
+//=======================================================================================
+// MedIdSamples
+//=======================================================================================
+// Comparison function : mode 0 requires equal id/time, mode 1 requires equal outcome info, mode 2 also compares split and prediction
+//.......................................................................................
+bool MedIdSamples::same_as(MedIdSamples &other, int mode) {
+	if (other.samples.size() != samples.size())
+		return false;
+
+	for (unsigned int i = 0; i < samples.size(); i++) {
+
+		if (samples[i].id != other.samples[i].id || samples[i].time != other.samples[i].time)
+			return false;
+
+		if (mode > 0 && (samples[i].outcome != other.samples[i].outcome && samples[i].outcomeTime != other.samples[i].outcomeTime))
+			return false;
+
+		if (mode > 1) {
+			if (samples[i].split != other.samples[i].split || samples[i].prediction.size() != other.samples[i].prediction.size())
+				return false;
+			for (unsigned int j = 0; j < samples[i].prediction.size(); j++) {
+				if (samples[i].prediction[j] != other.samples[i].prediction[j])
+					return false;
+			}
+		}
+	}
+
+	return true;
+}
 
 //=======================================================================================
 // MedSamples
@@ -430,4 +459,40 @@ void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 			vec_samples.push_back(samp);
 		}
 	}
+}
+
+//.......................................................................................
+void MedSamples::dilute(float prob)
+{
+	if (prob >= 1)
+		return;
+
+	vector<MedIdSamples> NewidSamples;
+
+	for (auto &id : idSamples) {
+		MedIdSamples mid;
+		mid.id = id.id;
+		mid.split = id.split;
+		for (auto &s : id.samples)
+			if (rand_1() < prob)
+				mid.samples.push_back(s);
+		if (mid.samples.size() > 0)
+			NewidSamples.push_back(mid);
+	}
+
+	idSamples = NewidSamples;
+}
+
+// Comparison function : mode 0 requires equal id/time, mode 1 requires equal outcome info, mode 2 also compares split and prediction
+//.......................................................................................
+bool MedSamples::same_as(MedSamples &other, int mode) {
+	if (other.idSamples.size() != idSamples.size())
+		return false;
+
+	for (unsigned int i = 0; i < idSamples.size(); i++) {
+		if (! idSamples[i].same_as(other.idSamples[i],mode))
+			return false;
+	}
+
+	return true;
 }

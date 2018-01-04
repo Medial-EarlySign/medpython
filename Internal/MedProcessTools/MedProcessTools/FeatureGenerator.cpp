@@ -414,6 +414,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [BasicFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -430,6 +431,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
+		//! [BasicFeatGenerator::init]
 	}
 
 	// names for BasicFeatGenerator are set as a first step in the Learn call as we must have access to the MedRepository
@@ -529,7 +531,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		
+		//! [RangeFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -542,6 +544,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "check_first") check_first = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+		//! [RangeFeatGenerator::init]
 	}
 
 	// set names and required signals
@@ -1179,12 +1182,13 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [ModelFeatGenerator::init]
 		if (field == "name") modelName = entry.second;
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "n_preds") n_preds = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
+		//! [ModelFeatGenerator::init]
 	}
 
 	// set names
@@ -1195,13 +1199,13 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 	if (_model->read_from_file(modelFile) != 0)
 		MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
 
-	init(_model);
+	init_from_model(_model);
 	return 0;
 }
 
 // Copy Model and get required signal
 //.......................................................................................
-int ModelFeatGenerator::init(MedModel *_model) {
+int ModelFeatGenerator::init_from_model(MedModel *_model) {
 
 	generator_type = FTR_GEN_MODEL;
 	model = _model;
@@ -1210,26 +1214,53 @@ int ModelFeatGenerator::init(MedModel *_model) {
 	model->get_required_signal_names(required);
 	for (string signal : required)
 		req_signals.push_back(signal);
-
+	
 	set_names();
+	return 0;
 }
 
+/// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
+//.......................................................................................
+void ModelFeatGenerator::load(MedSamples& inSamples, MedSamples& modelSamples) {
 
-// Do the actual prediction prior to feature generation ...
+	// Sanity check ...
+	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples,0))
+		MTHROW_AND_ERR("inSamples is not identical to model samples in ModelFeatGenerator::load\n");
+
+	preds.resize(inSamples.nSamples()*n_preds);
+
+	int idx = 0;
+	for (auto& idSamples : inSamples.idSamples) {
+		for (auto& sample : idSamples.samples) {
+			if (sample.prediction.size() < n_preds)
+				MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds);
+
+			for (int i = 0; i < n_preds; i++)
+				preds[idx++] = sample.prediction[i];
+		}
+	}
+
+	set_names();
+
+}
+
+// Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
 
-	// Predict
-	model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS,MED_MDL_APPLY_PREDICTOR);
+	if (preds.empty()) {
+		// Predict
+		model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR);
 
-	// Extract predictions
-	if (model->features.samples[0].prediction.size() < n_preds)
-		MTHROW_AND_ERR("Cannot generate feature %s\n", names[model->features.samples[0].prediction.size()].c_str());
+		// Extract predictions
+		if (model->features.samples[0].prediction.size() < n_preds)
+			MTHROW_AND_ERR("Cannot generate feature %s\n", names[model->features.samples[0].prediction.size()].c_str());
 
-	preds.resize(n_preds*model->features.samples.size());
-	for (int i = 0; i < model->features.samples.size(); i++) {
-		for (int j = 0; j < n_preds; j++)
-			preds[i*n_preds + j] = model->features.samples[i].prediction[j];
+		preds.resize(n_preds*model->features.samples.size());
+		for (int i = 0; i < model->features.samples.size(); i++) {
+			for (int j = 0; j < n_preds; j++)
+				preds[i*n_preds + j] = model->features.samples[i].prediction[j];
+		}
 	}
 
 	FeatureGenerator::prepare(features, rep, samples);

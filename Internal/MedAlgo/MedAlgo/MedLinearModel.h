@@ -6,31 +6,35 @@
 
 using namespace std;
 
+/**
+* Linear Model with customizable SGD support
+*/
 class MedLinearModel : public MedPredictor, public PredictiveModel
 {
 public:
 	MedLinearModel(int numOdSignals);
 	int init(map<string, string>& mapper);
-	subGradientFunction getSubGradients();
-	subGradientFunction  getSubGradientsAUC();
-	subGradientFunction  getSubGradientsSvm();
+	subGradientFunction getSubGradients(); ///<Subgradient of RMSE loss function
+	subGradientFunction  getSubGradientsAUC(); ///<Subgradient of smooth auc loss function
+	subGradientFunction  getSubGradientsSvm(); ///<Subgradient of svm loss function
 	double predict(const vector<float> &input);
 	void predict(const vector<vector<float>> &inputs, vector<double> &preds);
 	PredictiveModel *clone();
 
 	void print(const vector<string> &signalNames);
-	void set_normalization(const vector<float> &meanShift, const vector<float> &factors);
-	void apply_normalization(vector<vector<float>> &input);
+	void set_normalization(const vector<float> &meanShift, const vector<float> &factors); ///<Normalization
+	void apply_normalization(vector<vector<float>> &input); ///<apply Normalization
 	void get_normalization(vector<float> &meanShift, vector<float> &factors);
 	
 	//Set Loss Fucntions to learn:
-	double(*loss_function)(const vector<double> &got, const vector<float> &y);
+	double(*loss_function)(const vector<double> &got, const vector<float> &y);///<The custom loss_function
+	///The custom loss_function step for sgd
 	double(*loss_function_step)(const vector<double> &, const vector<float> &, const vector<double> &);
-	int sample_count;
-	int tot_steps;
-	double learning_rate;
-	float block_num;
-	bool norm_l1;
+	int sample_count; ///<The sample count of sgd
+	int tot_steps; ///<The total iteration count of sgd
+	double learning_rate; ///<The learning rate  of sgd
+	float block_num; ///<The blocking norm for parameter search in sgd
+	bool norm_l1; ///<The blocking norm should be n1 or n2?
 
 	//MedPredictor Api:
 	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);

@@ -16,26 +16,26 @@
 /** Define types of repository processors
 */
 //.......................................................................................
+/// Define types of repository processors
 typedef enum {
-	REP_PROCESS_MULTI,
-	REP_PROCESS_BASIC_OUTLIER_CLEANER,
-	REP_PROCESS_NBRS_OUTLIER_CLEANER,
-	REP_PROCESS_CONFIGURED_OUTLIER_CLEANER,
-	REP_PROCESS_RULEBASED_OUTLIER_CLEANER,
+	REP_PROCESS_MULTI, ///<"multi_processor" or "multi" to activate RepMultiProcessor
+	REP_PROCESS_BASIC_OUTLIER_CLEANER,///<"basic_outlier_cleaner" or "basic_cln" to activate RepBasicOutlierCleaner
+	REP_PROCESS_NBRS_OUTLIER_CLEANER,///<"nbrs_outlier_cleaner" or "nbrs_cln" to activate RepNbrsOutlierCleaner
+	REP_PROCESS_CONFIGURED_OUTLIER_CLEANER,///<"configured_outlier_cleaner" or "conf_cln" to activate RepConfiguredOutlierCleaner
+	REP_PROCESS_RULEBASED_OUTLIER_CLEANER,///<"rulebased_outlier_cleaner" or "rule_cln" to activate RepRuleBasedOutlierCleaner
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
-//.......................................................................................
-/** RepProcessor is the parent class for processing a MedRepository or PidDynamicRec <br>
-* Basic functionalities: <br>
-*		learn : learn the processoring parameters from a given list of ids and a rpository <br>
-*		apply : process a dynamic PidDynamicRec
+/** @file
+* RepProcessor is the parent class for processing a MedRepository or PidDynamicRec\n
+* Basic functionalities:\n
+*		learn : learn the processoring parameters from a given list of ids and a rpository \n
+*		apply : process a dynamic PidDynamicRec\n
 */
-//.......................................................................................
 class RepProcessor : public SerializableObject {
 public:
 
-	// Type
+
 	RepProcessorTypes processor_type; ///< type of repository processor
 
 	vector<string> req_signals; ///< names of signals required for processsing
@@ -156,7 +156,7 @@ public:
 	/// <summary> Apply processors that affect any of the needed signals </summary>
 	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignals);
 
-	// serialization
+	/// serialization
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
@@ -164,7 +164,6 @@ public:
 	/// <summary> Print processors information </summary>
 	void print() { for (auto& processor : processors) processor->print(); }
 };
-
 
 #define DEF_REP_TRIMMING_SD_NUM 7
 #define DEF_REP_REMOVING_SD_NUM 14
@@ -226,7 +225,7 @@ public:
 	/// <summary> Apply cleaning model </summary>
 	int apply(PidDynamicRec& rec, vector<int>& time_points);
 
-	// Serialization
+	/// Serialization
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
@@ -235,7 +234,6 @@ public:
 	void print();
 };
 
-//.......................................................................................
 /** Parameters for configured outliers cleaner
 */
 //.......................................................................................
@@ -323,18 +321,18 @@ class RepRuleBasedOutlierCleaner : public RepProcessor, public MedValueCleaner {
 public:
 
 	
-	// Signals to clean
+	/// Signals to clean
 	vector <string> signalNames;
 	vector <int> signalIds;
 	int time_channel = 0;
 	int val_channel = 0;
-	MedDictionarySections myDict; // keeping it will enable us to get ids at apply stage
-	bool addRequiredSignals=false; // a flag stating if we want to load signals that are not in the cleaned signal list 
-								   // because they share a rule with the cleaned signals (set it in jason)
-	vector<int> consideredRules;// only rules in this list will be considered in this cleaner (read list from jason)
-	                            // rule number 0 means apply all rules. Empty vector: do nothing in this cleaner.
+	MedDictionarySections myDict; ///< keeping it will enable us to get ids at apply stage
+	bool addRequiredSignals=false; ///< a flag stating if we want to load signals that are not in the cleaned signal list 
+								   /// because they share a rule with the cleaned signals (set it in jason)
+	vector<int> consideredRules;///< only rules in this list will be considered in this cleaner (read list from jason)
+	                            /// rule number 0 means apply all rules. Empty vector: do nothing in this cleaner.
 	
-	map <int, vector<string>>rules2Signals = { // static map from rule to participating signals
+	map <int, vector<string>>rules2Signals = { ///< static map from rule to participating signals
 	{1,{"BMI","Weight","Height"}},
 	{2,{"MCH", "Hemoglobin","RBC"}},
 	{3,{"MCV","Hematocrit","RBC"} },
@@ -387,17 +385,17 @@ public:
 	
 	// Learn cleaning model  : no learning for this cleaner. only apply
 	
-	//set signals
+	///set signals
 	void set_signal_ids(MedDictionarySections& dict) { myDict = dict; } // keep the dict. We will set ids later.
 
-	// Apply cleaning model 
+	/// Apply cleaning model 
 	int apply(PidDynamicRec& rec, vector<int>& time_points);
 
 	// Serialization  -static not needed
 	//print 
 private:
 	bool  applyRule(int rule, vector <UniversalSigVec> ruleUsvs,vector <int >sPointer); // apply the rule and return true if data is consistent with the rule
-	//ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
+	///<ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 };
 
 #define DEF_REP_NBRS_NBRS_SD_NUM 5

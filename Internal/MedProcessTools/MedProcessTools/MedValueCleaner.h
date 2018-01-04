@@ -1,13 +1,14 @@
-// A parent class for single-value cleaners
-
 #ifndef _MED_VALUE_CLEANER_H_
 #define _MED_VALUE_CLEANER_H_
 
 #define NUMERICAL_CORRECTION_EPS 1e-8
 
+/* @enum
+* Basic Cleaner types
+*/
 typedef enum {
-	VAL_CLNR_ITERATIVE,
-	VAL_CLNR_QUANTILE,
+	VAL_CLNR_ITERATIVE, ///<"iterative"
+	VAL_CLNR_QUANTILE, ///<"quantile"
 	VAL_CLNR_LAST,
 } ValueCleanerType;
 
@@ -31,37 +32,42 @@ public:
 	bool doTrim;
 	bool doRemove;
 
-	// Utility : maximum number of samples to take for moments calculations
+	/// Utility : maximum number of samples to take for moments calculations
 	int max_samples = 10000;
 
 };
 
+/** @file
+*  A parent class for single-value cleaners
+*/
 class MedValueCleaner {
 public:
 
-	// Learning parameters
+	/// Learning parameters
 	ValueCleanerParams params;
 
-	// Thresholds for trimming
+	/// Thresholds for trimming
 	float trimMax, trimMin;
 
-	// Thresholds for removing
+	/// Thresholds for removing
 	float removeMax, removeMin;
 
-	// Thresholds for neighbors
+	/// Thresholds for neighbors
 	float nbrsMax, nbrsMin;
 
 	// Functions
-	// Learning 
+	/// Learning 
 	int get_quantile_min_max(vector<float>& values);
 	int get_iterative_min_max(vector<float>& values);
 
 	// Init
 	virtual void init_defaults() { return; }
 	int init(void *params);
+	/// The parsed fields from init command.
+	/// @snippet MedValueCleaner.cpp MedValueCleaner::init
 	int init(map<string, string>& mapper);
 	
-	// Get Type
+	/// Get Type
 	ValueCleanerType get_cleaner_type(string name);
 };
 

@@ -592,4 +592,6 @@ int MedLinearModel::init(map<string, string>& mapper) {
 		else
 			throw invalid_argument("Unknown parameter \"" + it->first + "\"");
 	}
+
+	return 0;
 }

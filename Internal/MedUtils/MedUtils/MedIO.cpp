@@ -116,18 +116,27 @@ int fix_path(const string& in, string& out) {
 
 #ifndef _WIN32
 	// on Linux, handle first the Windows native format: \\\\server\\Work\..  
-	if (in.length() >= 2 && in.substr(0, 2) == "\\\\") {
-		// just switching '\' to '/'; works, but adjacent slashes should be unified
-		out = in;
-		char revSlash = '\\';
-		char fwdSlash = '/';
-		std::replace(out.begin(), out.end(), revSlash, fwdSlash);
-		fprintf(stderr, "Converted path \'%s\' to \'%s\'\n", in.c_str(), out.c_str());
-		fflush(stderr);
 
-		return 0;
+	if (in.length() >= 2) {
+		// just switching '\' to '/'; works, but adjacent slashes should be unified
+		if (in.substr(0, 2) == "\\\\") {
+			out = in;
+			char revSlash = '\\';
+			char fwdSlash = '/';
+			std::replace(out.begin(), out.end(), revSlash, fwdSlash);
+			fprintf(stderr, "Converted path \'%s\' to \'%s\'\n", in.c_str(), out.c_str());
+			fflush(stderr);
+			return 0;
+		}	
+		// If Windows form is "D:\\..\\" transform to Linux
+		if (in.substr(1, 2) == ":\\") {
+			string drive(in.substr(0, 1));
+			out = "/server/" + folders[drive] + boost::replace_all_copy(in.substr(2), "\\", "/");
+			return 0;
+		}
 	}
 #else
+
 	if (boost::starts_with(in, "/nas1") || boost::starts_with(in, "/server")) {
 		string rest = boost::replace_first_copy(in, "/nas1", "");
 		boost::replace_all(rest, "/server", "");

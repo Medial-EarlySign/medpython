@@ -558,6 +558,7 @@ class SignalInfo {
 		int time_unit;
 		int n_time_channels;
 		int n_val_channels;
+		int virtual_sig = 0; // flag to tell if the signal was defined in the signals files OR if it was defined as a virtual signal
 
 		SignalInfo() { fno = -1; };
 };
@@ -594,6 +595,9 @@ class MedSignals {
 		int fno(const string &sig_name);
 		int fno(int sid);
 
+		// this option allows adding new signals definitions to the class, that were not defined in the files.
+		// this is useful when using repositories to calculate new features, etc.
+		int insert_virtual_signal(const string &sig_name, int type);
 	private:
 
 };

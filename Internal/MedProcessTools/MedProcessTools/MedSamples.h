@@ -90,6 +90,10 @@ public:
 	/// <summary> Set split and export to all MedSample entries. </summary> 
 	void set_split(int _split) { split = _split; for (auto& s : samples) s.split = _split; }
 
+	/// <summary> Comparison function : mode 0 requires equal id/time, mode 1 requires equal outcome info, mode 2 also compares split and prediction </summary>
+	/// <returns> true if equal , false otherwise </returns>
+	bool same_as(MedIdSamples &other, int mode);
+
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(id, split, samples)
 
@@ -163,9 +167,16 @@ public:
 	/// <summary> Make sure that : (1) every pid has one idSample at most and (2) everything is sorted </summary>
 	void normalize(); 
 
+	/// <summary> Comparison function : mode 0 requires equal id/time, mode 1 requires equal outcome info, mode 2 also compares split and prediction </summary>
+	/// <returns> true if equal , false otherwise </returns>
+	bool same_as(MedSamples &other, int mode);
 
 	/// <summary> Return number of samples </summary>
 	int nSamples();
+
+
+	// <summary> given a probability dilution prob, dilute current samples </summary>
+	void dilute(float prob);
 
 	/// <summary>  API's for online insertions : main use case is a single time point for prediction per pid </summary>
 	void insertRec(int pid, int time, float outcome, int outcomeTime);

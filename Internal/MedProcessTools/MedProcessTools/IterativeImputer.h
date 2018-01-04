@@ -79,6 +79,16 @@ public:
 	ADD_SERIALIZATION_FUNCS(name, full_name, n_diff_vals, is_categorial, min, max, resolution, predictor_type, inds_for_pred);
 };
 
+/// \n
+/// IterativeImputer\n
+///\n
+/// A general strong imputer that does the following:\n
+/// (1) Runs a simple stratified imputer\n
+/// (2) Runs iterations completing values (from the least missing to the max missing) where:\n
+///     (a) continuous values are calculated using a regressor\n
+///     (b) categorial values (less than some bound) are calculated using a multi category classifier\n
+/// (3) Repeats the process several times until it converges or until max_iters is reached.\n
+///
 class IterativeImputer : public SerializableObject {
 public:
 

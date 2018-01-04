@@ -552,14 +552,14 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 			infile.close();
 			return -1;
 		}
-		thisRecord.confirmedLow = thisRecord.logicalLow = atof(f[1].c_str());
-		thisRecord.confirmedHigh = thisRecord.logicalHigh = atof(f[2].c_str());
+		thisRecord.confirmedLow = thisRecord.logicalLow = (float)atof(f[1].c_str());
+		thisRecord.confirmedHigh = thisRecord.logicalHigh = (float)atof(f[2].c_str());
 
 
 		thisRecord.distLow = f[4];
 		thisRecord.distHigh = f[6];
-		if (thisRecord.distLow != "none")thisRecord.confirmedLow = atof(f[3].c_str());
-		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = atof(f[5].c_str());
+		if (thisRecord.distLow != "none")thisRecord.confirmedLow = (float)atof(f[3].c_str());
+		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = (float)atof(f[5].c_str());
 		outlierParams[f[0]] = thisRecord;
 	}
 	infile.close();
@@ -587,9 +587,11 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 // Learn bounds
 //.......................................................................................
+// Learn bounds
+//.......................................................................................
 int RepConfiguredOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 	if (outlierParams.find(signalName) == outlierParams.end()) {
-		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n",signalName.c_str());
+		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n", signalName.c_str());
 		return -1;
 	}
 	trimMax = 1e+98;
@@ -624,10 +626,10 @@ int RepConfiguredOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, 
 				learnDistributionBorders(borderHi, borderLo, filteredValues);
 			if (thisDistHi == "lognorm" || thisDistLo == "lognorm") {
 				/*	ofstream dFile;
-					dFile.open("DFILE");
-					for (auto& el : filteredValues)dFile << el << "\n";
-					dFile.close();
-					*/
+				dFile.open("DFILE");
+				for (auto& el : filteredValues)dFile << el << "\n";
+				dFile.close();
+				*/
 
 
 				for (auto& el : filteredValues)
@@ -647,7 +649,7 @@ int RepConfiguredOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, 
 		}
 
 	}
-	
+
 	else {
 		MERR("Unknown cleaning method %s\n", cleanMethod.c_str());
 		return -1;
@@ -684,8 +686,6 @@ void learnDistributionBorders(double& borderHi, double& borderLo, vector<float> 
 
 
 }
-
-
 //.......................................................................................
 size_t RepConfiguredOutlierCleaner::get_size() {
 
@@ -750,7 +750,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		}
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "addRequiredSignals")addRequiredSignals = stoi(entry.second);
+		else if (field == "addRequiredSignals")addRequiredSignals = stoi(entry.second)!=0;
 		else if (field == "consideredRules") {
 			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
 			for (auto& rule : rulesStrings) {
@@ -924,12 +924,12 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 {
 #define TOLERANCE (0.1)
 	float left, right; // sides of the equality or inequality of the rule
-	float debug[10];
+
 	switch (rule) {
 	case 1://BMI=Weight/Height^2*1e4
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) / ruleUsvs[2].Val(sPointer[2]) * 1e4;
+		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) / ruleUsvs[2].Val(sPointer[2]) * (float)1e4;
 		//printf("inputs %f %f\n", ruleUsvs[1].Val(sPointer[1]), ruleUsvs[2].Val(sPointer[2]));
 		return (abs(left / right - 1) > TOLERANCE);
 
@@ -950,7 +950,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 12://HDL_over_Cholesterol=HDL/Cholesterol
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right =round( ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/10.; //resolution in THIN is 0.1
+		right =round( ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/(float)10.; //resolution in THIN is 0.1
 		return(abs(left / right - 1) > TOLERANCE);
 
 	case 6://MPV=Platelets_Hematocrit/Platelets
@@ -1005,10 +1005,10 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 17://Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
 		if (ruleUsvs[2].Val(sPointer[1]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right = 1. / ruleUsvs[1].Val(sPointer[1]);
+		right =(float) 1. / ruleUsvs[1].Val(sPointer[1]);
 		return (abs(left / right - 1) > TOLERANCE);
 
-	default: assert(0); return -1; // return is never executed but eliminates warning
+	default: assert(0); return false; // return is never executed but eliminates warning
 	}
 }
 	//=======================================================================================

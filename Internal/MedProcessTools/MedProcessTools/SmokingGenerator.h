@@ -3,6 +3,9 @@
 
 void generateSmokingRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal);
 
+/** @file
+* Generation of Smoking use
+*/
 class SmokingGenerator : public FeatureGenerator {
 public:
 
@@ -17,6 +20,8 @@ public:
 	
 	~SmokingGenerator() {};
 
+	/// The parsed fields from init command.
+	/// @snippet SmokingGenerator.cpp SmokingGenerator::init
 	virtual int init(map<string, string>& mapper);
 
 	// Name
