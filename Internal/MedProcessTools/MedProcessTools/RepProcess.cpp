@@ -91,7 +91,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 // Apply processing on a single PidDynamicRec at a set of time-points given by time-points,
 // only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
-int RepProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
+int RepProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
 
 	for (int signalId : neededSignalIds) {
 		if (is_signal_affected(signalId))
@@ -213,7 +213,7 @@ void RepMultiProcessor::get_required_signal_names(unordered_set<string>& signalN
 
 // Learn processors
 //.......................................................................................
-int RepMultiProcessor::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
+int RepMultiProcessor::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
 
 	vector<int> rc(processors.size(), 0);
 
@@ -228,7 +228,7 @@ int RepMultiProcessor::learn(MedPidRepository& rep, vector<int>& ids, vector<Rep
 
 // Apply processors
 //.......................................................................................
-int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
+int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	vector<int> rc(processors.size(), 0);
 
@@ -244,7 +244,7 @@ int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 // Apply processors that affect any of the needed signals
 //.......................................................................................
-int RepMultiProcessor::apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
+int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) {
 
 	vector<int> rc(processors.size(), 0);
 
@@ -359,7 +359,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
  // Learn cleaning boundaries
 //.......................................................................................
-int RepBasicOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepBasicOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
 	if (params.type == VAL_CLNR_ITERATIVE)
 		return iterativeLearn(rep, ids, prev_cleaners);
@@ -411,7 +411,7 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 
 // Apply cleaning model
 //.......................................................................................
-int  RepBasicOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
+int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -593,7 +593,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 //.......................................................................................
 // Learn bounds
 //.......................................................................................
-int RepConfiguredOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 	if (outlierParams.find(signalName) == outlierParams.end()) {
 		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n", signalName.c_str());
 		return -1;
@@ -804,7 +804,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 
 	return MedValueCleaner::init(mapper);
 }
-int RepRuleBasedOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
+int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
 	
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
@@ -1016,224 +1016,224 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	default: assert(0); return false; // return is never executed but eliminates warning
 	}
 }
-	//=======================================================================================
-	// NbrsOutlierCleaner
-	//=======================================================================================
-	void RepNbrsOutlierCleaner::init_lists() {
+//=======================================================================================
+// NbrsOutlierCleaner
+//=======================================================================================
+void RepNbrsOutlierCleaner::init_lists() {
 
-		req_signals.push_back(signalName);
-		aff_signals.insert(signalName);
+	req_signals.push_back(signalName);
+	aff_signals.insert(signalName);
+}
+
+
+//.......................................................................................
+//.......................................................................................
+int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
+{
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepNbrsOutlierCleaner::init]
+		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
+		else if (field == "time_channel") time_channel = stoi(entry.second);
+		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
+		//! [RepNbrsOutlierCleaner::init]
 	}
 
+	return MedValueCleaner::init(mapper);
+}
 
-	//.......................................................................................
-	//.......................................................................................
-	int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
-	{
-		init_defaults();
+// Learn bounds
+//.......................................................................................
+int RepNbrsOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
 
-		for (auto entry : mapper) {
-			string field = entry.first;
-			//! [RepNbrsOutlierCleaner::init]
-			if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
-			else if (field == "time_channel") time_channel = stoi(entry.second);
-			else if (field == "val_channel") val_channel = stoi(entry.second);
-			else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
-			else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
-			//! [RepNbrsOutlierCleaner::init]
-		}
+	if (params.type == VAL_CLNR_ITERATIVE)
+		return iterativeLearn(rep, ids, prev_cleaners);
+	else if (params.type == VAL_CLNR_QUANTILE)
+		return quantileLearn(rep, ids, prev_cleaners);
+	else {
+		MERR("Unknown cleaning type %d\n", params.type);
+		return -1;
+	}
+}
 
-		return MedValueCleaner::init(mapper);
+//.......................................................................................
+int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
 	}
 
-	// Learn bounds
-	//.......................................................................................
-	int RepNbrsOutlierCleaner::learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+	// Get all values
+	vector<float> values;
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
-		if (params.type == VAL_CLNR_ITERATIVE)
-			return iterativeLearn(rep, ids, prev_cleaners);
-		else if (params.type == VAL_CLNR_QUANTILE)
-			return quantileLearn(rep, ids, prev_cleaners);
-		else {
-			MERR("Unknown cleaning type %d\n", params.type);
-			return -1;
-		}
+	int rc = get_iterative_min_max(values);
+	return rc;
+}
+
+//.......................................................................................
+int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
 	}
 
-	//.......................................................................................
-	int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+	// Get all values
+	vector<float> values;
+	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
-		// Sanity check
-		if (signalId == -1) {
-			MERR("Uninitialized signalId\n");
-			return -1;
-		}
+	return get_quantile_min_max(values);
+}
 
-		// Get all values
-		vector<float> values;
-		get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
+// Clean
+//.......................................................................................
+int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
 
-		int rc = get_iterative_min_max(values);
-		return rc;
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
 	}
 
-	//.......................................................................................
-	int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
-
-		// Sanity check
-		if (signalId == -1) {
-			MERR("Uninitialized signalId\n");
-			return -1;
-		}
-
-		// Get all values
-		vector<float> values;
-		get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
-
-		return get_quantile_min_max(values);
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
 	}
 
-	// Clean
-	//.......................................................................................
-	int  RepNbrsOutlierCleaner::apply(PidDynamicRec& rec, vector<int>& time_points) {
+	int len;
+	for (int iver = 0; iver < time_points.size(); iver++) {
 
-		// Sanity check
-		if (signalId == -1) {
-			MERR("Uninitialized signalId\n");
-			return -1;
-		}
+		rec.uget(signalId, iver, rec.usv);
 
-		if (time_points.size() != rec.get_n_versions()) {
-			MERR("nversions mismatch\n");
-			return -1;
-		}
+		len = rec.usv.len;
+		vector<int> remove(len);
+		vector<pair<int, float>> change(len);
+		int nRemove = 0, nChange = 0;
 
-		int len;
-		for (int iver = 0; iver < time_points.size(); iver++) {
+		// Clean 
+		int verLen = len;
+		vector<int> candidates(len, 0);
+		vector<int> removed(len, 0);
 
-			rec.uget(signalId, iver, rec.usv);
+		for (int i = 0; i < len; i++) {
+			int itime = rec.usv.Time(i, time_channel);
 
-			len = rec.usv.len;
-			vector<int> remove(len);
-			vector<pair<int, float>> change(len);
-			int nRemove = 0, nChange = 0;
-
-			// Clean 
-			int verLen = len;
-			vector<int> candidates(len, 0);
-			vector<int> removed(len, 0);
-
-			for (int i = 0; i < len; i++) {
-				int itime = rec.usv.Time(i, time_channel);
-
-				if (itime > time_points[iver]) {
-					verLen = i;
-					break;
-				}
-
-				float ival = rec.usv.Val(i, val_channel);
-
-				// Remove ?
-				if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
-					remove[nRemove++] = i;
-					removed[i] = 1;
-				}
-				else if (params.doTrim) {
-					if (ival < trimMin - NUMERICAL_CORRECTION_EPS) {
-						candidates[i] = -1;
-					}
-					else if (ival > trimMax + NUMERICAL_CORRECTION_EPS) {
-						candidates[i] = 1;
-					}
-				}
+			if (itime > time_points[iver]) {
+				verLen = i;
+				break;
 			}
 
-			// Check candidates
-			for (int i = 0; i < verLen; i++) {
-				if (candidates[i] != 0) {
-					int dir = candidates[i];
+			float ival = rec.usv.Val(i, val_channel);
 
-					// Get weighted values from neighbours
-					double sum = 0, norm = 0;
-					double priorSum = 0, priorNorm = 0;
-					double postSum = 0, postNorm = 0;
+			// Remove ?
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
+				remove[nRemove++] = i;
+				removed[i] = 1;
+			}
+			else if (params.doTrim) {
+				if (ival < trimMin - NUMERICAL_CORRECTION_EPS) {
+					candidates[i] = -1;
+				}
+				else if (ival > trimMax + NUMERICAL_CORRECTION_EPS) {
+					candidates[i] = 1;
+				}
+			}
+		}
 
-					int time_i = rec.usv.TimeU(i, nbr_time_unit);
+		// Check candidates
+		for (int i = 0; i < verLen; i++) {
+			if (candidates[i] != 0) {
+				int dir = candidates[i];
 
-					for (int j = 0; j < verLen; j++) {
+				// Get weighted values from neighbours
+				double sum = 0, norm = 0;
+				double priorSum = 0, priorNorm = 0;
+				double postSum = 0, postNorm = 0;
 
-						if (j != i && !removed[j]) {
-							int diff = abs(rec.usv.TimeU(j, nbr_time_unit) - time_i) / nbr_time_width;
-							double w = 1.0 / (diff + 1);
+				int time_i = rec.usv.TimeU(i, nbr_time_unit);
 
-							float jval = rec.usv.Val(j, val_channel);
+				for (int j = 0; j < verLen; j++) {
 
-							sum += w * jval;
-							norm += w;
+					if (j != i && !removed[j]) {
+						int diff = abs(rec.usv.TimeU(j, nbr_time_unit) - time_i) / nbr_time_width;
+						double w = 1.0 / (diff + 1);
 
-							if (j > i) {
-								postSum += w * jval;
-								postNorm += w;
-							}
-							else {
-								priorSum += w * jval;
-								priorNorm += w;
-							}
+						float jval = rec.usv.Val(j, val_channel);
+
+						sum += w * jval;
+						norm += w;
+
+						if (j > i) {
+							postSum += w * jval;
+							postNorm += w;
+						}
+						else {
+							priorSum += w * jval;
+							priorNorm += w;
 						}
 					}
+				}
 
-					// Check it up
-					int found_nbr = 0;
-					if (norm > 0) {
-						double win_val = sum / norm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
+				// Check it up
+				int found_nbr = 0;
+				if (norm > 0) {
+					double win_val = sum / norm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
 
-					if (!found_nbr && priorNorm > 0) {
-						double win_val = priorSum / priorNorm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
+				if (!found_nbr && priorNorm > 0) {
+					double win_val = priorSum / priorNorm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
 
-					if (!found_nbr && postNorm > 0) {
-						double win_val = postSum / postNorm;
-						if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
-							found_nbr = 1;
-					}
+				if (!found_nbr && postNorm > 0) {
+					double win_val = postSum / postNorm;
+					if ((dir == 1 && win_val > nbrsMax) || (dir == -1 && win_val < nbrsMin))
+						found_nbr = 1;
+				}
 
-					// Should we clip ?
-					if (!found_nbr) {
-						float cval = (dir == 1) ? trimMax : trimMin;
-						change[nChange++] = pair<int, float>(i, cval);
-					}
+				// Should we clip ?
+				if (!found_nbr) {
+					float cval = (dir == 1) ? trimMax : trimMin;
+					change[nChange++] = pair<int, float>(i, cval);
 				}
 			}
-
-
-			// Apply removals + changes
-			change.resize(nChange);
-			remove.resize(nRemove);
-			if (rec.update(signalId, iver, val_channel, change, remove) < 0)
-				return -1;
 		}
 
-		return 0;
 
+		// Apply removals + changes
+		change.resize(nChange);
+		remove.resize(nRemove);
+		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
+			return -1;
 	}
+
+	return 0;
+
+}
 
 
 // (De)Serialization
 //.......................................................................................
 size_t RepNbrsOutlierCleaner::get_size() {
 
-	size_t size = 0;
+size_t size = 0;
 
-	size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-	size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
+size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
+size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
-	return size;
+return size;
 }
 
 extern char signalName_c[MAX_NAME_LEN + 1];
@@ -1241,32 +1241,32 @@ extern char signalName_c[MAX_NAME_LEN + 1];
 //.......................................................................................
 size_t RepNbrsOutlierCleaner::serialize(unsigned char *blob) {
 
-	size_t ptr = 0;
+size_t ptr = 0;
 
-	ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-	ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
+ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
-	return ptr;
+return ptr;
 }
 
 //.......................................................................................
 size_t RepNbrsOutlierCleaner::deserialize(unsigned char *blob) {
 
-	size_t ptr = 0;
+size_t ptr = 0;
 
-	ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-	ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
+ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
+ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
+ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
 
-	return ptr;
+return ptr;
 }
 
 //.......................................................................................
 void RepNbrsOutlierCleaner::print()
 {
-	MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
-		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin,nbrsMax, nbrsMin);
+MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
+	signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin,nbrsMax, nbrsMin);
 }
 
 //=======================================================================================

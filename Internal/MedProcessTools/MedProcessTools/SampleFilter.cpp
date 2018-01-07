@@ -126,7 +126,7 @@ int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 //=======================================================================================
 // Filter
 //.......................................................................................
-int BasicTrainFilter::filter(MedSamples& inSamples,MedSamples& outSamples) {
+int BasicTrainFilter::_filter(MedSamples& inSamples,MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -154,7 +154,7 @@ int BasicTrainFilter::filter(MedSamples& inSamples,MedSamples& outSamples) {
 //=======================================================================================
 // Filter
 //.......................................................................................
-int BasicTestFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
+int BasicTestFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 	// Take them all
 	outSamples = inSamples;
@@ -169,7 +169,7 @@ int BasicTestFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
 //=======================================================================================
 // Filter
 //.......................................................................................
-int OutlierSampleFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
+int OutlierSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -192,7 +192,7 @@ int OutlierSampleFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 // Learning : check outlier-detection method and call appropriate learner (iterative/quantile)
 //.......................................................................................
-int OutlierSampleFilter::learn(MedSamples& samples) {
+int OutlierSampleFilter::_learn(MedSamples& samples) {
 
 	if (params.type == VAL_CLNR_ITERATIVE)
 		return iterativeLearn(samples);
@@ -371,7 +371,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 // removing cases and controls (eventToControlPriceRatio). Adjust ratio to maximal allowed 
 // ratio (matchMaxRatio) and then sample randomly from each bin.
 //.......................................................................................
-int MatchingSampleFilter::filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
+int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -470,7 +470,7 @@ int MatchingSampleFilter::filter(MedRepository& rep, MedSamples& inSamples, MedS
 
 // Filter without repository (return -1 if repository is required)
 //.......................................................................................
-int MatchingSampleFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
+int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 	if (isRepRequired()) {
 		MERR("Cannot perform required matching without repository\n");
@@ -775,7 +775,7 @@ void RequiredSignalFilter::init_defaults() {
 
 // Filter
 //.......................................................................................
-int RequiredSignalFilter::filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
+int RequiredSignalFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -818,7 +818,7 @@ int RequiredSignalFilter::filter(MedRepository& rep, MedSamples& inSamples, MedS
 
 // Filter without repository : Return an error
 //.......................................................................................
-int RequiredSignalFilter::filter(MedSamples& inSamples, MedSamples& outSamples) { 
+int RequiredSignalFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) { 
 	MERR("A repository is required for Required-Signal Filter\n"); 
 	return -1; 
 }
@@ -968,7 +968,7 @@ void BasicSampleFilter::get_required_signals(vector<string> &reqs)
 
 // Filter with repository
 //.......................................................................................
-int BasicSampleFilter::filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples)
+int BasicSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples)
 {
 	// assumes rep is already loaded with relevant signals
 
@@ -1011,7 +1011,7 @@ int BasicSampleFilter::filter(MedRepository& rep, MedSamples& inSamples, MedSamp
 // Filter without repository
 // relevant only if bfilters is empty. Otherwise, return -1
 //.......................................................................................
-int BasicSampleFilter::filter(MedSamples& inSamples, MedSamples& outSamples)
+int BasicSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 {
 
 	if (bfilters.empty()) {

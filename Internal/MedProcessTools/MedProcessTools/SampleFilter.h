@@ -53,6 +53,7 @@ public:
 	///  create a new sample filter from type and a parameters string </summary>
 	static SampleFilter *make_filter(SampleFilterTypes type, string params); 
 
+	// Initialization
 	/// <summary> initialize from a params object :  Should be implemented for inheriting classes that have parameters </summary>
 	virtual int init(void *params) { return 0; }; 
 	/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
@@ -60,19 +61,31 @@ public:
 	/// <summary> initialize to default values :  Should be implemented for inheriting classes that have parameters </summary>
 	virtual void init_defaults() {}; 
 
+	// Learning : Actually learn 
 	/// <summary> learn with repository : Should be implemented for inheriting classes that learn parameters using Repository information </summary>
-	virtual int learn(MedRepository& rep, MedSamples& samples) { return learn(samples); } 
-
+	virtual int _learn(MedRepository& rep, MedSamples& samples) { return _learn(samples); } 
 	/// <summary> learn without repository : Should be implemented for inheriting classes that learn parameters</summary>
-	virtual int learn(MedSamples& samples) { return 0; }
+	virtual int _learn(MedSamples& samples) { return 0; }
 
+	// Learning : Envelopes (Here because of probelsm with overload + inheritance)
+	/// <summary> learn with repository  </summary>
+	virtual int learn(MedRepository& rep, MedSamples& samples) { return _learn(rep,samples); }
+	/// <summary> learn without repository </summary>
+	virtual int learn(MedSamples& samples) { return _learn(samples); }
+
+	// Filtering
 	/// <summary> filter with repository : Should be implemented for inheriting classes that filter using Repository information </summary>
-	virtual int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {return filter(inSamples,outSamples) ;}
+	virtual int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {return _filter(inSamples,outSamples) ;}
+	/// <summary> _filter without repository : Should be implemented for all inheriting classes </summary>
+	virtual int _filter(MedSamples& inSamples, MedSamples& outSamples) = 0;
+
+	// Filtering : Envelopes (Here because of probelsm with overload + inheritance)
+	/// <summary> filter with repository </summary>
+	virtual int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) { return _filter(inSamples, outSamples); }
 	/// <summary> in-place filtering with repository </summary>
 	int filter(MedRepository& rep, MedSamples& samples);
-
 	/// <summary> filter without repository : Should be implemented for all inheriting classes </summary>
-	virtual int filter(MedSamples& inSamples, MedSamples& outSamples) = 0;
+	virtual int filter(MedSamples& inSamples, MedSamples& outSamples) { return _filter(inSamples, outSamples); }
 	/// <summary> in-place filtering without repository </summary>
 	int filter(MedSamples& samples);
 
@@ -102,7 +115,7 @@ public:
 	BasicTrainFilter() { filter_type = SMPL_FILTER_TRN; };
 
 	/// <summary> Filter without repository </summary>
-	int filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 };
 
 //.......................................................................................
@@ -118,7 +131,7 @@ public:
 	~BasicTestFilter() {};
 
 	/// <summary> Filter without repository </summary>
-	int filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 };
 
 #define SMPL_FLTR_TRIMMING_SD_NUM 7
@@ -135,17 +148,17 @@ public:
 	/// <summary> constructor </summary>
 	OutlierSampleFilter() : SampleFilter() { init_defaults(); };
 
-	/// <summary> Filter without repository </summary>
-	int filter(MedSamples& inSamples, MedSamples& outSamples);
-
 	/// <summary> Learning : check outlier-detection method and call appropriate learner (iterative/quantile) </summary>
-	int learn(MedSamples& samples);
+	int _learn(MedSamples& samples);
 	/// <summary> Learning : learn outliers using MedValueCleaner's iterative approximation of moments </summary>
 	int iterativeLearn(MedSamples& samples);
 	/// <summary> Learning : learn outliers using MedValueCleaner's quantile appeoximation of moments </summary>
 	int quantileLearn(MedSamples& samples);
 	/// <summary> Helper for learning - extract all outcomes from samples  </summary>
 	void get_values(MedSamples& samples, vector<float>& values);
+
+	/// <summary> Filter without repository </summary>
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	/// <summary> init from map </summary>
 	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); }
@@ -261,10 +274,10 @@ public:
 	void get_required_signals(vector<string>& req_sigs);
 
 	/// <summary> Filter with repository </summary>
-	int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
 	/// <summary> Filter without repository </summary>
 	/// <returns>  -1 if repository is required, 0 othereise </returns>
-	int filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	/// <summary> Utility for Matching optimization : find optimal case/control ratio. </summary>
 	/// <summary> the price of giving up 1 control is 1.0, the price of giving up 1 event is w </summary>
@@ -298,10 +311,10 @@ public:
 
 	// Filter
 	/// <summary> Filter with repository </summary>
-	int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
 	/// <summary> Filter without repository </summary>
 	/// <returns>  -1 if repository is required, 0 othereise </returns>
-	int filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	// Serialization
 	size_t get_size();
@@ -360,12 +373,11 @@ public:
 	void get_required_signals(vector<string>& req_sigs);
 
 	// Filter
-	// Filter
 	/// <summary> Filter with repository </summary>
-	int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
 	/// <summary> Filter without repository </summary>
 	/// <returns>  -1 if repository is required, 0 othereise (when bfilters is empty) </returns>
-	int filter(MedSamples& inSamples, MedSamples& outSamples);
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	ADD_SERIALIZATION_FUNCS(min_sample_time, max_sample_time, bfilters, winsTimeUnit)
 };
