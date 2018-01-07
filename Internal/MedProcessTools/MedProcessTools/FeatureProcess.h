@@ -422,7 +422,7 @@ public:
 	/// Missing Value
 	float missing_value;
 
-	/// Reauired Features
+	/// Required Features
 	unordered_set<string> required;
 
 	/// Selected Features (ordered)
@@ -432,7 +432,7 @@ public:
 	int numToSelect = 0 ;
 
 	// Constructor
-	FeatureSelector() : FeatureProcessor() {}
+	FeatureSelector() : FeatureProcessor() { missing_value = MED_MAT_MISSING_VALUE; numToSelect = 0; }
 
 	/// Find set of selected features- Calls _learn function, and may be overrided directly
 	virtual int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -490,7 +490,7 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet FeatureSelector.cpp DgnrtFeatureRemvoer::init
 	int init(map<string, string>& mapper);
-	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_REMOVE_DGNRT_FTRS; };
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESS_REMOVE_DGNRT_FTRS; numToSelect = 0; };
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DgnrtFeatureRemvoer *>(processor)); }

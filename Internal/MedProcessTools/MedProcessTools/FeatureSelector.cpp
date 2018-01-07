@@ -53,8 +53,8 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Log
-	for (string& feature : selected)
-		MLOG("Feature Selection: Selected %s\n", feature.c_str());
+	//for (string& feature : selected)
+		//MLOG("Feature Selection: Selected %s\n", feature.c_str());
 
 	return 0;
 }
@@ -766,7 +766,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	selected.clear();
-
+	MLOG("DgnrtFeatureRemvoer::_learn\n");
 	for (auto& rec : features.data) {
 		string name = rec.first;
 		vector<float>& data = rec.second;
