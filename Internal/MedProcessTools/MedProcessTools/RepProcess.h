@@ -113,7 +113,7 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points</summary>
 	int apply(PidDynamicRec& rec, vector<int>& time_points) {return _apply(rec, time_points);}
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points only if required : if any of the signals in neededSignalIds is actually affected by processor </summary>
-	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) { return apply(rec, time_points, neededSignalIds); }
+	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) { return _apply(rec, time_points, neededSignalIds); }
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples </summary>
 	int apply(PidDynamicRec& rec, MedIdSamples& samples);
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required </summary>
@@ -250,7 +250,7 @@ public:
 */
 //.......................................................................................
 typedef struct {
-	double logicalLow, logicalHigh, confirmedLow, confirmedHigh;
+	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
     string distLow,distHigh; //"none" "norm" or "log" 
 } confRecord;
 
@@ -296,7 +296,7 @@ public:
 	void print();
 };
 
-void learnDistributionBorders(double& borderHi, double& borderLo,vector<float> filteredValues);
+void learnDistributionBorders(float& borderHi, float& borderLo,vector<float> filteredValues);
 // a function that takes sorted vector of filtered values and estimates the +- 7 sd borders based on the center of distribution
 // predefined calibration constants are used for estimation of the borders. 
 

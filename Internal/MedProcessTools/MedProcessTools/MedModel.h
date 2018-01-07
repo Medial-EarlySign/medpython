@@ -122,6 +122,7 @@ public:
 	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);	// fp_type and feature name are must have parameters
 	void add_process_to_set(int i_set, int duplicate, const string &init_string); // will auto detect type by which type param is used (rp_type, fg_type OR fp_type)
 																				  // and will call the relavant function
+	void add_process_to_set(int i_set, const string &init_string) { add_process_to_set(i_set, 0, init_string); }
 
 
 	// Add Predictor

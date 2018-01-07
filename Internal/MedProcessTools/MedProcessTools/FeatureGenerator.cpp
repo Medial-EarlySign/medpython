@@ -1111,7 +1111,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	int no_lut_ind = 0;
-	int time_diff=missing_val;
+	float time_diff= missing_val;
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
 		int toTime = usv.Time(i, 1);
@@ -1125,7 +1125,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 				int max_time = fromTime;
 				if (win_from > max_time) max_time = win_from;
 				
-				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time);
+				time_diff = (float) time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time);
 				//fprintf(stderr, "max_time: %i time :%i from_time:%i win_from:%i time_diff:%i\n", max_time, time, fromTime, win_from, time_diff);
 				return time_diff;
 			}
@@ -1133,7 +1133,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 				//in case of last range
 				int time_to_diff = toTime;
 				if (win_to < toTime) time_to_diff = win_to;
-				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, time_to_diff);
+				time_diff = (float) +  time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, time_to_diff);
 			}
 		}
 		else
@@ -1146,7 +1146,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 
 	//in case of range exists but no lut
 	if (no_lut_ind == 1) {
-			time_diff = -1* win_to;
+			time_diff = -1.0F* win_to;
 		return time_diff;
 	}
 	//in case of no range in the time window

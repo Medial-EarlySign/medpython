@@ -598,8 +598,9 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids,
 		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n", signalName.c_str());
 		return -1;
 	}
-	trimMax = 1e+98;
-	trimMin = -1e+98;
+
+	trimMax = 1e30F;
+	trimMin = -1e+30F;
 
 	if (cleanMethod == "logical") {
 		removeMax = outlierParams[signalName].logicalHigh;
@@ -622,7 +623,7 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids,
 
 			vector<float> values, filteredValues;
 
-			double borderHi, borderLo, logBorderHi, logBorderLo;
+			float borderHi, borderLo, logBorderHi, logBorderLo;
 			get_values(rep, ids, signalId, time_channel, val_channel, removeMin, removeMax, values, prev_cleaners);
 			for (auto& el : values)if (el != 0)filteredValues.push_back(el);
 			sort(filteredValues.begin(), filteredValues.end());
@@ -643,10 +644,10 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids,
 					learnDistributionBorders(logBorderHi, logBorderLo, filteredValues);
 			}
 			if (thisDistHi == "norm")removeMax = borderHi;
-			else if (thisDistHi == "lognorm")removeMax = exp(logBorderHi);
+			else if (thisDistHi == "lognorm")removeMax = expf(logBorderHi);
 			else if (thisDistHi == "manual")removeMax = outlierParams[signalName].confirmedHigh;
 			if (thisDistLo == "norm")removeMin = borderLo;
-			else if (thisDistLo == "lognorm")removeMin = exp(logBorderLo);
+			else if (thisDistLo == "lognorm")removeMin = expf(logBorderLo);
 			else if (thisDistLo == "manual")removeMin = outlierParams[signalName].confirmedLow;
 
 			return(0);
@@ -661,19 +662,19 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids,
 }
 
 
-void learnDistributionBorders(double& borderHi, double& borderLo, vector<float> filteredValues)
+void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> filteredValues)
 // a function that takes sorted vector of filtered values and estimates the +- 7 sd borders based on the center of distribution
 // predefined calibration constants are used for estimation of the borders. 
 {
 	double sum = 0;
 	double sumsq = 0;
-	const float margin[] = { (float) 0.01, (float)0.99 };// avoid tails of distribution
-	const float varianceFactor = 0.8585;
+	const float margin[] = { 0.01F, 0.99F };// avoid tails of distribution
+	const float varianceFactor = 0.8585F;
 	const float meanShift = 0; // has value when margins are asymetric
 	const float sdNums = 7; // how many standard deviation on each side of the mean.
 
-	int start = round(filteredValues.size()*margin[0]);
-	int stop = round(filteredValues.size()*margin[1]);
+	int start = (int) round(filteredValues.size()*margin[0]);
+	int stop = (int) round(filteredValues.size()*margin[1]);
 	for (vector<float>::iterator el = filteredValues.begin() + start; el < filteredValues.begin() + stop; el++) {
 
 		sum += *el;
@@ -684,8 +685,8 @@ void learnDistributionBorders(double& borderHi, double& borderLo, vector<float> 
 	//printf("sum %f sumsq %f  stop %d start %d\n", sum, sumsq, stop, start);
 	var = var / varianceFactor;
 	mean = mean - meanShift*sqrt(var);
-	borderHi = mean + sdNums*sqrt(var);
-	borderLo = mean - sdNums*sqrt(var);
+	borderHi = (float) (mean + sdNums*sqrt(var));
+	borderLo = (float) (mean - sdNums*sqrt(var));
 
 
 
