@@ -159,6 +159,7 @@ public:
 
 	LightGBM::MemApp mem_app;
 
+	/// please reffer to KeyAliasTransform in LightGBM::ParameterAlias
 	int init(map<string, string>& initialization_map) { return mem_app.init(initialization_map); }
 
 	int init_from_string(string init_str) {

@@ -579,6 +579,7 @@ int MedLinearModel::Learn(float *x, float *y, float *w, int nsamples, int nftrs)
 int MedLinearModel::init(map<string, string>& mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
+		//! [MedLinearModel::init]
 		if (it->first == "sample_count")
 			sample_count = stoi(it->second);
 		else if (it->first == "tot_steps")
@@ -591,6 +592,7 @@ int MedLinearModel::init(map<string, string>& mapper) {
 			block_num = stoi(it->second) > 0;
 		else
 			throw invalid_argument("Unknown parameter \"" + it->first + "\"");
+		//! [MedLinearModel::init]
 	}
 
 	return 0;

@@ -181,7 +181,6 @@ public:
 	int time_channel = 0; ///< time channel to consider in cleaning
 	int val_channel = 0; ///< value cahnnel to consider in cleaning
 
-
 	/// <summary> default constructor </summary>
 	RepBasicOutlierCleaner() { init_defaults(); }
 	/// <summary> default constructor + setting signal name </summary>
@@ -191,10 +190,6 @@ public:
 	/// <summary> default constructor + setting signal name + initialize from parameters </summary>
 	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) {signalId = -1; signalName = _signalName; init_lists() ; MedValueCleaner::init(_params);}
 
-	/// <summary> init from params structure </summary>
-	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	/// <summary> init from map </summary>
-	virtual int init(map<string, string>& mapper);
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
 		processor_type = REP_PROCESS_BASIC_OUTLIER_CLEANER;
@@ -213,6 +208,11 @@ public:
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	/// <summary> Fill required- and affected-signals vectors </summary>
+	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
+	/// The parsed fields from init command.
+	/// @snippet RepProcess.cpp RepBasicOutlierCleaner::init
+	virtual int init(map<string, string>& mapper);
+	/// Fill req- and aff-signals vectors
 	void init_lists();
 
 	/// <summary> learn cleaning boundaries </summary>
@@ -255,8 +255,6 @@ public:
 	string cleanMethod; ///< cleaning method :  "logical" "confirmed" or "learned"
 	map<string,confRecord> outlierParams; ///< a map from signal name to outliers parameters
 
-	/// <summary> init from map </summary>
-	virtual int init(map<string, string>& mapper);
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
 		processor_type = REP_PROCESS_CONFIGURED_OUTLIER_CLEANER;
@@ -267,10 +265,21 @@ public:
 		params.type = VAL_CLNR_ITERATIVE;
 		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
-		
+
 	/// <summary> learn cleaning boundaries </summary>
 	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
 		
+	/// The parsed fields from init command.
+	/// @snippet RepProcess.cpp RepConfiguredOutlierCleaner::init
+	int init(map<string, string>& mapper);
+	
+	/// Learn cleaning model
+	int Learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	
+
+	// Apply cleaning model -inheritted
+	
+
 	// Serialization
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
@@ -284,38 +293,34 @@ void learnDistributionBorders(double& borderHi, double& borderLo,vector<float> f
 // predefined calibration constants are used for estimation of the borders. 
 
 
-//.......................................................................................
-/** RepRuleBasedOutlierCleaner is a cleaner that is based on rules that describe relations of signal values to each other.
-* This is a static cleaner ( no learning involved).
+/**
+* A cleaner that is based on rules that describe relations of signal values to each other.\n
+* This is a static cleaner ( no learning involved).\n
+\n
+Rules:\n
+Rule1: BMI = Weight / Height ^ 2 * 1e4\n
+Rule2:MCH = Hemoglobin / RBC\n
+Rule3:MCV = Hematocrit / RBC\n
+Rule4:MCHC - M = MCH / MCV\n
+Rule5:Eosinophils# + Monocytes# + Basophils# + Lymphocytes# + Neutrophils# <= WBC\n
+Rule6:MPV = Platelets_Hematocrit / Platelets\n
+Rule7:UrineAlbumin <= UrineTotalProtein\n
+Rule8:UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine\n
+Rule9:LDL + HDL <= Cholesterol\n
+Rule10:NonHDLCholesterol + HDL = Cholesterol\n
+Rule11:HDL_over_nonHDL = HDL / NonHDLCholesterol\n
+Rule12:HDL_over_Cholesterol = HDL / Cholesterol\n
+Rule13:HDL_over_LDL = HDL / LDL\n
+Rule14:HDL_over_LDL = 1 / LDL_over_HDL\n
+Rule15:Cholesterol_over_HDL = Cholesterol / HDL\n
+Rule16:Cholesterol_over_HDL = 1 / HDL / Cholesterol\n
+Rule17:Cholesterol_over_HDL = 1 / HDL_over_Cholestrol\n
+Rule18:LDL_over_HDL = LDL / HDL\n
+Rule19:Albumin <= Protein_Total\n
+Rule20:FreeT4 <= T4\n
+Rule21:NRBC <= RBC\n
+Rule22:CHADS2_VASC >= CHADS2_VASC\n
 */
-//.......................................................................................
-/****************************************************************************
-Rules:
-Rule1: BMI = Weight / Height ^ 2 * 1e4
-Rule2:MCH = Hemoglobin / RBC
-Rule3:MCV = Hematocrit / RBC
-Rule4:MCHC - M = MCH / MCV
-Rule5:Eosinophils# + Monocytes# + Basophils# + Lymphocytes# + Neutrophils# <= WBC
-Rule6:MPV = Platelets_Hematocrit / Platelets
-Rule7:UrineAlbumin <= UrineTotalProtein
-Rule8:UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
-Rule9:LDL + HDL <= Cholesterol
-Rule10:NonHDLCholesterol + HDL = Cholesterol
-Rule11:HDL_over_nonHDL = HDL / NonHDLCholesterol
-Rule12:HDL_over_Cholesterol = HDL / Cholesterol
-Rule13:HDL_over_LDL = HDL / LDL
-Rule14:HDL_over_LDL = 1 / LDL_over_HDL
-Rule15:Cholesterol_over_HDL = Cholesterol / HDL
-Rule16:Cholesterol_over_HDL = 1 / HDL / Cholesterol
-Rule17:Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
-Rule18:LDL_over_HDL = LDL / HDL
-Rule19:Albumin <= Protein_Total
-Rule20:FreeT4 <= T4
-Rule21:NRBC <= RBC
-Rule22:CHADS2_VASC >= CHADS2_VASC
-
-******************************************************************************/
-
 class RepRuleBasedOutlierCleaner : public RepProcessor, public MedValueCleaner {
 	// get multiple signals and clean them according to consistency  with other signals from same date
 public:
@@ -332,7 +337,8 @@ public:
 	vector<int> consideredRules;///< only rules in this list will be considered in this cleaner (read list from jason)
 	                            /// rule number 0 means apply all rules. Empty vector: do nothing in this cleaner.
 	
-	map <int, vector<string>>rules2Signals = { ///< static map from rule to participating signals
+	/// static map from rule to participating signals
+	map <int, vector<string>>rules2Signals = { 
 	{1,{"BMI","Weight","Height"}},
 	{2,{"MCH", "Hemoglobin","RBC"}},
 	{3,{"MCV","Hematocrit","RBC"} },
@@ -376,11 +382,10 @@ public:
 
 	// Init
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	virtual int init(map<string, string>& mapper);
 
-
-
-	
+	/// The parsed fields from init command.
+	/// @snippet RepProcess.cpp RepRuleBasedOutlierCleaner::init
+	int init(map<string, string>& mapper);
 	
 	
 	// Learn cleaning model  : no learning for this cleaner. only apply
@@ -394,8 +399,10 @@ public:
 	// Serialization  -static not needed
 	//print 
 private:
-	bool  applyRule(int rule, vector <UniversalSigVec> ruleUsvs,vector <int >sPointer); // apply the rule and return true if data is consistent with the rule
-	///<ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
+	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
+	/// apply the rule and return true if data is consistent with the rule
+	bool  applyRule(int rule, vector <UniversalSigVec> ruleUsvs,vector <int >sPointer); 
+	
 };
 
 #define DEF_REP_NBRS_NBRS_SD_NUM 5
@@ -426,10 +433,6 @@ public:
 	/// <summary> default constructor + setting signal name + initialize from parameters </summary>
 	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
 
-	/// <summary> init from params structure </summary>
-	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
-	/// <summary> init from map </summary>
-	virtual int init(map<string, string>& mapper);
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
 		processor_type = REP_PROCESS_NBRS_OUTLIER_CLEANER;
@@ -447,7 +450,13 @@ public:
 	/// <summary> Set signal id </summary>
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
+
 	/// <summary> Fill required- and affected-signals vectors </summary>
+	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
+	/// The parsed fields from init command.
+	/// @snippet RepProcess.cpp RepNbrsOutlierCleaner::init
+	int init(map<string, string>& mapper); 
+	// { init_defaults();  return MedValueCleaner::init(mapper); };
 	void init_lists();
 
 	/// <summary> learn cleaning boundaries </summary>

@@ -10,11 +10,11 @@
 class IterativeImputerParams : public SerializableObject {
 public:
 	// params
-	vector<string> features_to_impute ={}; // if empty : impute all
+	vector<string> features_to_impute = {}; // if empty : impute all
 	string regressor = "qrf";
 	string regressor_params = "type=regression;ntrees=30;min_node=100;spread=0.1;learn_nthreads=40;predict_nthreads=40";
-//	string regressor = "linear_model";
-//	string regressor_params = "rfactor=0.9";
+	//	string regressor = "linear_model";
+	//	string regressor_params = "rfactor=0.9";
 	string multi_categ_classifier = "qrf";
 	string multi_categ_classifier_params = "type=categorical_entropy;ntrees=30;min_node=10;learn_nthreads=40;predict_nthreads=40";
 	string add_ncateg_var_name = "n_categ"; // for algorithms that need it
@@ -37,7 +37,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	ADD_SERIALIZATION_FUNCS(features_to_impute, regressor, regressor_params, multi_categ_classifier, multi_categ_classifier_params, add_ncateg_var_name,
-		round1_strata, do_round1, round1_moment, categorial_bound, max_iterations, p_validation, min_vals_for_training, missing_value, 
+		round1_strata, do_round1, round1_moment, categorial_bound, max_iterations, p_validation, min_vals_for_training, missing_value,
 		round_to_resolution, verbose, missing_bound);
 
 };
@@ -50,7 +50,7 @@ public:
 	int n_diff_vals = 0;
 	int is_categorial = 0;
 	float min = (float)1e10;
-	float max=(float)-1e10;
+	float max = (float)-1e10;
 	float resolution = 0;
 	int predictor_type = 0;
 	vector<int> inds_for_pred;
@@ -73,7 +73,7 @@ public:
 
 	void print() {
 		fprintf(stderr, "Feature Info :: %s :: %s :: data_len %d : n_missing %d ( %5.2f ): n_with %d ( non zero %d ): n_diff_vals %d : categorial %d : min %f : max %f : resolution %f\n",
-			name.c_str(), full_name.c_str(), data_len, n_missing, (float)100*n_missing/(float)data_len, n_with_values, n_with_non_zero_values, n_diff_vals, is_categorial, min, max, resolution);
+			name.c_str(), full_name.c_str(), data_len, n_missing, (float)100 * n_missing / (float)data_len, n_with_values, n_with_non_zero_values, n_diff_vals, is_categorial, min, max, resolution);
 	}
 
 	ADD_SERIALIZATION_FUNCS(name, full_name, n_diff_vals, is_categorial, min, max, resolution, predictor_type, inds_for_pred);
@@ -111,6 +111,8 @@ public:
 	vector<int> predictors_order;
 	vector<vector<MedPredictor *>> predictors; // predictors[i][j] = the predictor at iteration i , for feature j
 
+	/// The parsed fields from init command.
+	/// @snippet IterativeImputer.cpp IterativeImputerParams::init
 	int init(map<string, string>& mapper) { return params.init(mapper); }
 
 	int init_internals(MedFeatures &mfd);
@@ -152,7 +154,8 @@ public:
 	// Constructor
 	FeatureIterativeImputer() { processor_type = FTR_PROCESS_ITERATIVE_IMPUTER; }
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet IterativeImputer.cpp IterativeImputerParams::init
 	int init(map<string, string>& mapper) { return imputer.init(mapper); }
 
 	// Learn imputing model

@@ -31,6 +31,7 @@ int MedSvm::init(map<string, string>& mapper) {
 
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
+		//! [MedSvm::init]
 		if (it->first == "C") params.C = stod(it->second);
 		else if (it->first == "cache_size")  params.cache_size = stod(it->second);
 		else if (it->first == "coef0")  params.coef0 = stod(it->second);
@@ -47,6 +48,7 @@ int MedSvm::init(map<string, string>& mapper) {
 		//else if (it->first == "weight") params->weight = stod(it->second);
 		//else if (it->first == "weight_label")  params->p = stod(it->second);
 		else MLOG("Unknown parameter \'%s\' for QRF\n", it->first.c_str());
+		//! [MedSvm::init]
 	}
 
 	return 0;

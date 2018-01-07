@@ -977,6 +977,7 @@ int micNetParams::init_from_string(const string &init_str)
 	for (int i=0; i<fields.size(); i++) {
 
 		//cerr << "parsing i " << i << " f[i] " << fields[i] << " f[i+1] " << fields[i+1] << "\n";
+		//! [micNetParams::init_from_string]
 		if (fields[i] == "A") def_A = stof(fields[++i]);
 		if (fields[i] == "B") def_B = stof(fields[++i]);
 		if (fields[i] == "lambda") def_lambda = stof(fields[++i]);
@@ -1039,7 +1040,7 @@ int micNetParams::init_from_string(const string &init_str)
 			for (int j=0; j<f.size(); j++)
 				samp_ratio.push_back(stof(f[j]));
 		}
-
+		//! [micNetParams::init_from_string]
 		//if (fields[i] == "nodes") {
 
 		//	string s = fields[++i];

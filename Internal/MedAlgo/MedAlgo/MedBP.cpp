@@ -52,11 +52,13 @@ int MedBP::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedBP::init]
 		if (field == "numLayers") params.numLayers = stoi(entry.second);
 		else if (field == "numIterations") params.numIterations = stoi(entry.second);
 		else if (field == "alpha") params.alpha = stod(entry.second);
 		else if (field == "beta") params.beta = stod(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for BP\n", field.c_str());
+		//! [MedBP::init]
 	}
 
 	return 0;

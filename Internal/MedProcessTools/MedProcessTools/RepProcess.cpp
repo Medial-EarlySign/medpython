@@ -346,9 +346,11 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [RepBasicOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
+		//! [RepBasicOutlierCleaner::init]
 	}
 
 	init_lists();
@@ -572,6 +574,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [RepConfiguredOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
@@ -579,6 +582,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 			confFileName = entry.second; if (int res = readConfFile(confFileName, outlierParams))return(res);
 		}
 		else if (field == "clean_method")cleanMethod = entry.second;
+		//! [RepConfiguredOutlierCleaner::init]
 	}
 
 	init_lists();
@@ -743,6 +747,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [RepRuleBasedOutlierCleaner::init]
 		if (field == "signals") {
 			boost::split(aff_signals, entry.second, boost::is_any_of(",")); // build list of  affected signals 
 			for (auto sig : aff_signals)  // all affected are of course required
@@ -759,7 +764,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 				if (ruleNum == 0)break;
 			}
 		}
-
+		//! [RepRuleBasedOutlierCleaner::init]
 
 	}
 	for (auto& rule : rules2Signals)
@@ -1029,12 +1034,13 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 
 		for (auto entry : mapper) {
 			string field = entry.first;
+			//! [RepNbrsOutlierCleaner::init]
 			if (field == "signal") { signalName = entry.second; req_signals.push_back(signalName); }
 			else if (field == "time_channel") time_channel = stoi(entry.second);
 			else if (field == "val_channel") val_channel = stoi(entry.second);
 			else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
 			else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
-
+			//! [RepNbrsOutlierCleaner::init]
 		}
 
 		return MedValueCleaner::init(mapper);
