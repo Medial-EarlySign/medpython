@@ -1,9 +1,15 @@
-//
-// MedAlgo - APIs to different algorithms: Linear Models, RF, GBM, KNN, and more
-//
+/// @file
+/// MedAlgo - APIs to different algorithms: Linear Models, RF, GBM, KNN, and more
+///
 
 #ifndef __MED_ALGO_H__
 #define __MED_ALGO_H__
+
+#if __GNUC__  >= 5 || defined(_MSC_VER)
+#define NEW_COMPLIER true
+#else
+#define NEW_COMPLIER false
+#endif
 
 #include "Logger/Logger/Logger.h"
 #include "MedUtils/MedUtils/MedUtils.h"
@@ -26,7 +32,7 @@ class MedFeatures;
 
 #pragma warning(disable: 4297) //disable annoying " function assumed not to throw an exception but does "
 
-// ToDo:: move defalts from classifiers in here (NITERS etc...)
+/// @todo move defalts from classifiers in here (NITERS etc...)
 //#include "classifiers/classifiers/classifiers.h"
 #define NITER 200
 #define EITER 0.00001
@@ -52,48 +58,57 @@ using namespace std;
 
 // Holder for 
 
-// Model Types
+/// @enum
+/// Model Types options
 typedef enum {
-	MODEL_LINEAR_MODEL = 0, // Linear Model
-	MODEL_QRF = 1, // Q-Random-Forest
-	MODEL_GBM = 2, // Gradient Boosting Model
-	MODEL_KNN = 3, // K Nearest Neighbour
-	MODEL_BP = 4, // Neural Network Back Propagation
-	MODEL_MARS = 5, // Multivariate Adaptive Regression Splines
-	MODEL_GD_LINEAR = 6, // Gradient Descent/Full solution ridge
-	MODEL_MULTI_CLASS = 7, // general one vs. all multi class extention
-	MODEL_XGB = 8, // XGBoost
-	MODEL_LASSO = 9, //Lasso model
-	MODEL_MIC_NET = 10, //Home brew Neural Net implementation (Allows deep learning)
-	MODEL_BOOSTER = 11, //general booster (meta algorithm)
-	MODEL_DEEP_BIT = 12, //general booster (meta algorithm)
-	MODEL_LIGHTGBM = 13, // the celebrated LightGBM algorithm
-	MODEL_SPECIFIC_GROUPS_MODELS = 14,
-	MODEL_SVM = 15,
-	MODEL_LINEAR_SGD = 16,
+	MODEL_LINEAR_MODEL = 0, ///< Linear %Model - creates MedLM
+	MODEL_QRF = 1, ///< Q-Random-Forest - creates MedQRF
+	MODEL_GBM = 2, ///< Gradient Boosting %Model - creates MedGBM
+	MODEL_KNN = 3, ///< K Nearest Neighbour - creates MedKNN
+	MODEL_BP = 4, ///< Neural Network Back Propagation - creates MedBP
+	MODEL_MARS = 5, ///< Multivariate Adaptive Regression Splines - creates MedMars
+	MODEL_GD_LINEAR = 6, ///< Gradient Descent/Full solution ridge - creates MedGDLM
+	MODEL_MULTI_CLASS = 7, ///< general one vs. all multi class extention - creates MedMultiClass
+	MODEL_XGB = 8, ///< XGBoost - creates MedXGB
+	MODEL_LASSO = 9, ///<Lasso model - creates MedLasso
+	MODEL_MIC_NET = 10, ///<Home brew Neural Net implementation (Allows deep learning) - creates MedMicNet
+	MODEL_BOOSTER = 11, ///<general booster (meta algorithm) - creates MedBooster
+	MODEL_DEEP_BIT = 12, ///<general booster (meta algorithm) - creates MedDeepBit
+	MODEL_LIGHTGBM = 13, ///< the celebrated LightGBM algorithm - creates MedLightGBM
+	MODEL_SPECIFIC_GROUPS_MODELS = 14, ///<spliting model by specif value (for example age-range) and train diffretn model for each bin - creates MedSpecificGroupModels
+	MODEL_SVM = 15, ///< Svm model - creates MedSvm 
+	MODEL_LINEAR_SGD = 16, ///< linear model using our customized SGD - creates MedLinearModel
+	MODEL_VW = 17, ///< %VowpalWabbit yahoo reasearch library - creates MedVW
 	MODEL_LAST
 } MedPredictorTypes;
 
+///Maping from predictor enum type ::MedPredictorTypes to model name in string
 extern unordered_map<int, string> predictor_type_to_name;
+///Maping from model name in string to enum ::MedPredictorTypes 
 MedPredictorTypes predictor_name_to_type(const string& model_name);
 
+/**
+* Base Interface for predictor
+*/
 class MedPredictor : public SerializableObject {
 public:
-	MedPredictorTypes classifier_type;
+	MedPredictorTypes classifier_type; ///<The Predicotr enum type
 
 	// General constructor
 	MedPredictor() {}
 	virtual ~MedPredictor() {};
 
-	bool transpose_for_learn;
-	bool normalize_for_learn;
-	bool normalize_y_for_learn;
+	bool transpose_for_learn; ///<True if need to transpose before learn
+	bool normalize_for_learn; ///<True if need to normalize before learn
+	bool normalize_y_for_learn; ///<True if need to normalize labels before learn
 
-	bool transpose_for_predict;
-	bool normalize_for_predict;
+	bool transpose_for_predict; ///<True if need to transpose before predict
+	bool normalize_for_predict; ///<True if need to normalize before predict
 
-	vector<string> model_features; //the model features used in Learn, to validate when caling predict
-	int features_count;
+	vector<string> model_features; ///<The model features used in Learn, to validate when caling predict
+	///The model features count used in Learn, to validate when caling predict. 
+	///used if model_features is empty because feature names aren't availabe during learn
+	int features_count = 0; 
 
 	// Each wrapped algorithm needs to implement the following:
 	//.........................................................
@@ -104,14 +119,14 @@ public:
 	virtual void init_defaults() {};
 
 
-	// Learn
-	// should be implemented for each model. This API always assumes the data is already normalized/transposed as needed, 
-	// and never changes data in x,y,w. method should support calling with w=NULL.
+	/// Learn
+	/// should be implemented for each model. This API always assumes the data is already normalized/transposed as needed, 
+	/// and never changes data in x,y,w. method should support calling with w=NULL.
 	virtual int Learn(float *x, float *y, float *w, int n_samples, int n_ftrs) { return 0; };
 
-	// Predict
-	// should be implemented for each model. This API assumes x is normalized/transposed if needed.
-	// preds should either be pre-allocated or NULL - in which case the predictor should allocate it to the right size.
+	/// Predict
+	/// should be implemented for each model. This API assumes x is normalized/transposed if needed.
+	/// preds should either be pre-allocated or NULL - in which case the predictor should allocate it to the right size.
 	virtual int Predict(float *x, float *&preds, int n_samples, int n_ftrs) { return 0; }
 
 	virtual size_t get_size() { return 0; }
@@ -121,7 +136,7 @@ public:
 	// Print
 	virtual void print(FILE *fp, const string& prefix);
 
-	// Number of predictions per sample. typically 1 - but some models return several per sample (for example a probability vector)
+	/// Number of predictions per sample. typically 1 - but some models return several per sample (for example a probability vector)
 	virtual int n_preds_per_sample() { return 1; };
 
 	virtual int denormalize_model(float *f_avg, float *f_std, float label_avg, float label_std) { return 0; };
@@ -129,22 +144,26 @@ public:
 	// methods relying on virtual methods, and applicable to all predictors: (one can still reimplement in derived class if needed)
 	//..............................................................................................................................
 
-	// simple no weights call
+	/// simple no weights call
 	int learn(float *x, float *y, int nsamples, int nftrs) { return Learn(x, y, NULL, nsamples, nftrs); }
 
 	// simple c++ style learn
 
-	// MedMat x,y : will transpose/normalize x,y if needed by algorithm
-	// The convention is that untransposed mats are always samples x features, and transposed are features x samples
+	/// MedMat x,y : will transpose/normalize x,y if needed by algorithm
+	/// The convention is that untransposed mats are always samples x features, and transposed are features x samples
 	int learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts);
+	/// MedMat x,y : will transpose/normalize x,y if needed by algorithm
+	/// The convention is that untransposed mats are always samples x features, and transposed are features x samples
 	int learn(MedMat<float> &x, MedMat<float> &y) { vector<float> w; return(learn(x, y, w)); }
 
-	// MedMat x, vector y: will transpose normalize x if needed (y assumed to be normalized)
+	/// MedMat x, vector y: will transpose normalize x if needed (y assumed to be normalized)
 	int learn(MedMat<float> &x, vector<float> &y, vector<float> &wgts);
+	/// MedMat x, vector y: will transpose normalize x if needed (y assumed to be normalized)
 	int learn(MedMat<float> &x, vector<float> &y) { vector<float> w; return(learn(x, y, w)); }
 
-	// vector x,y: transpose/normalizations not done.
+	/// vector x,y: transpose/normalizations not done.
 	int learn(vector<float> &x, vector<float> &y, vector<float> &wgts, int n_samples, int n_ftrs);
+	/// vector x,y: transpose/normalizations not done.
 	int learn(vector<float> &x, vector<float> &y, int n_samples, int n_ftrs) { vector<float> w; return learn(x, y, w, n_samples, n_ftrs); }
 
 	// simple c++ style predict
@@ -164,7 +183,17 @@ public:
 	int predict(MedFeaturesData& data);
 	int predict(MedFeatures& features);
 
-	//caliberation for probability using training:
+	///Feature Importance - assume called after learn
+	virtual void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params) {
+		string model_name = "model_id=" + to_string(classifier_type);
+		if (predictor_type_to_name.find(classifier_type) != predictor_type_to_name.end())
+			model_name = predictor_type_to_name[classifier_type];
+		throw logic_error("ERROR:: operation calc_feature_importance "
+			"isn't supported for " + model_name + " yet.");
+	};
+
+	///caliberation for probability using training:
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000,
 		float min_score_jump = 0.001, float min_prob_jump = 0.005);
@@ -209,7 +238,7 @@ struct MedLMParams {
 	int niter;
 
 
-	// A simple way to check a single column , default is -1, but if >=0 the algorithm will simply return this column as prediction
+	/// A simple way to check a single column , default is -1, but if >=0 the algorithm will simply return this column as prediction
 	int get_col = -1;
 
 	// Optional params
@@ -230,7 +259,7 @@ public:
 	float b0;
 	float err;
 
-	// Parameters
+	/// Parameters
 	MedLMParams params;
 
 	// Function
@@ -238,6 +267,8 @@ public:
 	MedLM(void *params);
 	MedLM(MedLMParams& params);
 	int init(void *params);
+	/// The parsed fields from init command.
+	/// @snippet MedLM.cpp MedLM::init
 	virtual int init(map<string, string>& mapper);
 	void init_defaults();
 
@@ -287,7 +318,7 @@ public:
 	vector<float> b;
 	float b0;
 
-	// Parameters
+	/// Parameters
 	MedLassoParams params;
 
 	// Work variables
@@ -300,7 +331,9 @@ public:
 	MedLasso(void *params);
 	MedLasso(MedLassoParams& params);
 	int init(void *params);
-	virtual int init(map<string, string>& mapper);
+	/// The parsed fields from init command.
+	/// @snippet MedLasso.cpp MedLasso::init
+	int init(map<string, string>& mapper);
 	void init_defaults();
 
 	//int learn(MedMat<float> &x, MedMat<float> &y) {return (MedPredictor::learn(x,y));}; 	// Special case - un-normalized Y
@@ -322,8 +355,9 @@ public:
 
 	void print(FILE *fp, const string& prefix);
 };
-// Least Square direct iterations solution
+/// Least Square direct iterations solution
 int learn_lm(float *x, float *_y, float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs);
+/// Least Square direct iterations solution
 int learn_lm(float *x, float *_y, float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs, float *sumxx);
 
 //==============================================================================================
@@ -333,10 +367,10 @@ struct MedGDLMParams : public SerializableObject {
 
 	// Required params
 	int max_iter;
-	float stop_at_err; // stop criteria
+	float stop_at_err; ///< stop criteria
 	int max_times_err_grows;
-	string method; // gd or sgd
-	int batch_size;	// for sgd
+	string method; ///< gd or sgd
+	int batch_size;	///< for sgd
 	float rate;
 	float rate_decay;
 	float momentum;
@@ -345,11 +379,11 @@ struct MedGDLMParams : public SerializableObject {
 	int print_model;
 
 	// Optional params
-	float l_ridge; // lambda for ridge
-	float l_lasso; // labmda for lasso
+	float l_ridge; ///< lambda for ridge
+	float l_lasso; ///< labmda for lasso
 
-	int nthreads;  // 0 -> auto choose, >0 - user set.
-	int err_freq;  // the frequency in which the stopping err on loss will be tested, reccomended > 10
+	int nthreads;  ///< 0 -> auto choose, >0 - user set.
+	int err_freq;  ///< the frequency in which the stopping err on loss will be tested, reccomended > 10
 
 	MedGDLMParams() {
 		max_iter = 500; stop_at_err = (float)1e-4; max_times_err_grows = 20; method = "logistic_sgd"; batch_size = 512; rate = (float)0.01; rate_decay = (float)1.0; momentum = (float)0.95; last_is_bias = 0;
@@ -373,6 +407,8 @@ public:
 	MedGDLM();
 	MedGDLM(void *params);
 	MedGDLM(MedGDLMParams& params);
+	/// The parsed fields from init command.
+	/// @snippet MedGDLM.cpp MedGDLM::init
 	int init(map<string, string>& mapper); ;
 	int init(void *params);
 	void init_defaults();
@@ -385,7 +421,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
 
-	int version() { return  1; }; //increase when changing binary serizlization
+	int version() { return  1; }; ///<increase when changing binary serizlization
 	//version 1: Added version, model_features, features_count to serialization
 	ADD_SERIALIZATION_FUNCS(params, n_ftrs, b, b0, model_features, features_count);
 
@@ -424,17 +460,17 @@ struct MedQRFParams {
 	QRF_TreeType type;
 
 	// Optional
-	int max_samp; // if > 0 & sampsize is NULL : the maximal sampsize we will take from each category
-	float samp_factor; // if > 0 & sampsize if NULL : the maximal factor of samples between the 2 largest categories
-	vector<int> samp_vec; // to be used when sampsize is NULL and max_samp,samp_vector > 0
+	int max_samp; ///<M if > 0 & sampsize is NULL : the maximal sampsize we will take from each category
+	float samp_factor; ///< if > 0 & sampsize if NULL : the maximal factor of samples between the 2 largest categories
+	vector<int> samp_vec; ///< to be used when sampsize is NULL and max_samp,samp_vector > 0
 	int *sampsize;
 	int ntry;
 	int get_only_this_categ;
-	int max_depth; //maximial depth of tree branches - if 0 no limit
+	int max_depth; ///<maximial depth of tree branches - if 0 no limit
 
 	// Regression
 	float spread;
-	bool keep_all_values; // For quantile regression
+	bool keep_all_values; ///< For quantile regression
 
 	// categorical
 	int min_node;
@@ -444,15 +480,15 @@ struct MedQRFParams {
 
 	// For Prediction
 	int get_count;
-	vector<float> quantiles; // For quantile regression
+	vector<float> quantiles; ///< For quantile regression
 };
 
 class MedQRF : public MedPredictor {
 public:
-	// Model 
+	/// Model 
 	QRF_Forest qf;
 
-	// Parameters
+	/// Parameters
 	MedQRFParams params;
 
 	// Function
@@ -460,6 +496,8 @@ public:
 	MedQRF(void *params);
 	MedQRF(MedQRFParams& params);
 	int init(void *params);
+	/// The parsed fields from init command.
+	/// @snippet MedQRF.cpp MedQRF::init
 	virtual int init(map<string, string>& mapper);
 	//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 	void init_defaults();
@@ -480,8 +518,10 @@ public:
 
 	// Print
 	void print(FILE *fp, const string& prefix);
-
 	void printTrees(const vector<string> &modelSignalNames, const string &outputPath);
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params);
+
 	// Predictions per sample
 	int n_preds_per_sample();
 
@@ -502,7 +542,7 @@ public:
 	// Model 
 	micNet mic;
 
-	// Parameters
+	/// Parameters
 	MedMicNetParams mic_params;
 
 	// Function
@@ -510,6 +550,8 @@ public:
 	MedMicNet(void *params) { mic_params = *(MedMicNetParams *)params; mic.init_from_string(mic_params.init_string); }
 	MedMicNet(MedMicNetParams& params) { mic_params = params; mic.init_from_string(mic_params.init_string); }
 	int init(void *params) { mic_params = *(MedMicNetParams *)params; return mic.init_from_string(mic_params.init_string); }
+	/// The parsed fields from init command.
+	/// @snippet micNet.cpp micNetParams::init_from_string
 	int init_from_string(string initialization_text) {
 		cerr << "MedMicNet init_from_string ! :: " << initialization_text << "\n";
 		mic_params.init_string = initialization_text;
@@ -517,6 +559,7 @@ public:
 		return mic.init_net(initialization_text);
 	}
 
+	///MedMicNet:: init map :: not supported, only init_from_string supported 
 	int init(map<string, string>& mapper) {
 		cerr << "MedMicNet:: init map :: not supported, only init_from_string supported....\n";
 		return -1;
@@ -575,8 +618,8 @@ public:
 struct MedMarsParams {
 
 	// Required
-	int MaxTerms;	// Maximal number of Terms in final model
-	int MaxDegree;	// Model max linear degree : 1 - linear, 2 - square, 3 - cubic, etc...
+	int MaxTerms;	///< Maximal number of Terms in final model
+	int MaxDegree;	///< Model max linear degree : 1 - linear, 2 - square, 3 - cubic, etc...
 	double Penalty;
 	double Thresh;
 	int MinSpan;
@@ -585,7 +628,7 @@ struct MedMarsParams {
 	double FastBeta;
 	double NewVarPenalty;
 	bool UseBetaCache;
-	double Trace;	// debug prints during algorithm run (recommended): 0: no prints , 3: print all (recommended)
+	double Trace;	///< debug prints during algorithm run (recommended): 0: no prints , 3: print all (recommended)
 };
 
 class MedMars : public MedPredictor {
@@ -594,10 +637,10 @@ public:
 	int nMaxTerms;
 	int nTerms;
 	int nPreds;
-	bool *BestSet;			// size: nMaxTerms
-	vector<int> Dirs;		// size: nMaxTerms*nPreds
-	vector<double> Cuts;	// size: nMaxTerms*nPreds
-	vector<double> Betas;	// size: nMaxTerms
+	bool *BestSet;			///< size: nMaxTerms
+	vector<int> Dirs;		///< size: nMaxTerms*nPreds
+	vector<double> Cuts;	///< size: nMaxTerms*nPreds
+	vector<double> Betas;	///< size: nMaxTerms
 
 	// Model Inner quality measures
 	double BestGcv;
@@ -612,6 +655,8 @@ public:
 	MedMars(void *params);
 	MedMars(MedMarsParams& params);
 	int init(void *params);
+	/// The parsed fields from init command.
+	/// @snippet MedMars.cpp MedMars::init
 	virtual int init(map<string, string>& mapper);
 	void init_defaults();
 
@@ -649,19 +694,19 @@ typedef gbm_parameters MedGBMParams;
 
 class MedGBM : public MedPredictor {
 public:
-	// Loss function
+	/// Loss function
 	GBM_LossFunctions loss_function;
 
-	// Alpha for quantile loss function
+	/// Alpha for quantile loss function
 	double alpha_quantile;
 
-	// Model 
+	/// Model 
 	full_gbm_learn_info_t gbm_model;
 
-	// Parameters
+	/// Parameters
 	MedGBMParams params;
 
-	// Predicting on subset of trees
+	/// Predicting on subset of trees
 	int predict_ntrees;
 
 	// Function
@@ -669,6 +714,8 @@ public:
 	MedGBM(void *params);
 	MedGBM(MedGBMParams& params);
 	int init(void *params);
+	/// The parsed fields from init command.
+	/// @snippet MedGBM.cpp MedGBM::init
 	virtual int init(map<string, string>& mapper); ;
 	void init_defaults();
 	GBM_LossFunctions get_loss_function(string name);
@@ -732,6 +779,8 @@ public:
 	MedKNN();
 	MedKNN(void *params);
 	MedKNN(MedKNNParams& params);
+	/// The parsed fields from init command.
+	/// @snippet MedKNN.cpp MedKNN::init
 	virtual int init(map<string, string>& mapper); ;
 	int init(void *params);
 	~MedKNN();
@@ -785,8 +834,8 @@ struct MedBPParams {
 	int numLayers;
 
 	int numIterations;
-	double alpha; // learning rate
-	double beta;// parameter of logistic function
+	double alpha; ///< learning rate
+	double beta;///< parameter of logistic function
 };
 
 class MedBP : public MedPredictor {
@@ -805,6 +854,8 @@ public:
 	MedBP(void *params);
 	MedBP(MedBPParams& params);
 	int init(void *params);
+	/// The parsed fields from init command.
+	/// @snippet MedBP.cpp MedBP::init
 	virtual int init(map<string, string>& mapper);
 	~MedBP();
 
@@ -891,15 +942,15 @@ int KMeans(float *x, int nrows, int ncols, int K, int max_iter, float *centers, 
 
 // PCA
 
-// given a matrix, returns the base PCA matrix and the cummulative relative variance explained by them.
-// it is highly recommended to normalize the input matrix x before calling.
+/// given a matrix, returns the base PCA matrix and the cummulative relative variance explained by them.
+/// it is highly recommended to normalize the input matrix x before calling.
 int MedPCA(MedMat<float> &x, MedMat<float> &pca_base, vector<float> &varsum);
 
-// returns the projection of the pca base on the first dim dimensions.
+/// returns the projection of the pca base on the first dim dimensions.
 int MedPCA_project(MedMat<float> &x, MedMat<float> &pca_base, int dim, MedMat<float> &projected);
 
-//wrapper for MedPredictor for certian groups - routes the input to correct model group.
-//for example may be used to train specific model for each age group
+///wrapper for MedPredictor for certian groups - routes the input to correct model group.
+///for example may be used to train specific model for each age group
 class MedSpecificGroupModels : public MedPredictor {
 public:
 	// Model
@@ -952,6 +1003,8 @@ public:
 
 	void init_defaults();
 	int init(void *params);
+	/// The parsed fields from init command.
+	/// @snippet MedSvm.cpp MedSvm::init
 	virtual int init(map<string, string>& mapper);
 	int init(struct svm_parameter &params);
 

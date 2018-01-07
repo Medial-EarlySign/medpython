@@ -10,6 +10,10 @@
 #include "MedLightGBM.h"
 #include "MedLinearModel.h"
 
+#if NEW_COMPLIER
+#include "MedVW.h"
+#endif
+
 #include <thread>
 
 #define LOCAL_SECTION LOG_MEDALGO
@@ -34,7 +38,8 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_SVM , "svm" },
 	{ MODEL_LIGHTGBM , "lightgbm" },
 	{ MODEL_LINEAR_SGD , "linear_sgd" },
-	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" }
+	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" },
+	{MODEL_VW, "vw"}
 };
 //=======================================================================================
 // MedPredictor
@@ -96,6 +101,10 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedSpecificGroupModels;
 	else if (model_type == MODEL_SVM)
 		return new MedSvm;
+#if NEW_COMPLIER
+	else if (model_type == MODEL_VW)
+		return new MedVW;
+#endif
 	else
 		return NULL;
 
@@ -136,7 +145,12 @@ int MedPredictor::init_from_string(string text) {
 		MedLightGBM *med_light = (MedLightGBM *)this;
 		return med_light->init_from_string(text);
 	}
-
+#if NEW_COMPLIER
+	if (classifier_type == MODEL_VW) {
+		MedVW *vw = (MedVW *)this;
+		return vw->init_from_string(text);
+	}
+#endif
 	// remove white spaces
 	text.erase(remove_if(text.begin(), text.end(), ::isspace), text.end());
 
@@ -244,7 +258,7 @@ int MedPredictor::learn(vector<float> &x, vector<float> &y, vector<float> &w, in
 int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 	if (!model_features.empty()) {//test names of entered matrix:
 		if (model_features.size() != x.ncols)
-			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+			MTHROW_AND_ERR("(1) Learned Feature model size was %d, request feature size for predict was %d\n",
 				(int)model_features.size(), (int)x.ncols);
 
 		if (!x.signals.empty()) //can compare names
@@ -254,7 +268,7 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 						(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
 	else if (features_count > 0 && features_count != x.ncols)
-		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
+		MTHROW_AND_ERR("(2) Learned Feature model size was %d, request feature size for predict was %d\n",
 			features_count, (int)x.ncols);
 
 	int nsamples, nftrs;

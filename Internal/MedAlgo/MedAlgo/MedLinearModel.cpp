@@ -322,7 +322,8 @@ double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y
 	return res + REG_LAMBDA * reg;
 }
 
-MedLinearModel::MedLinearModel(int numOdSignals) : PredictiveModel("LinearModel(" + to_string(numOdSignals) + ")") {
+MedLinearModel::MedLinearModel(int numOdSignals) :
+	PredictiveModel("LinearModel(" + to_string(numOdSignals) + ")"), MedPredictor() {
 	model_params = vector<double>(numOdSignals + 1); //for bias
 	mark_learn_finish = false;
 	loss_function = _linear_loss_target_auc; //default target function, can be changed programitaclly
@@ -331,6 +332,7 @@ MedLinearModel::MedLinearModel(int numOdSignals) : PredictiveModel("LinearModel(
 	transpose_for_learn = false;
 	normalize_y_for_learn = false;
 	transpose_for_predict = false;
+	features_count = 0;
 
 	normalize_for_learn = false; //doing internal and not with MedMat to save normalization params for predict
 	normalize_for_predict = false;
@@ -385,12 +387,19 @@ void MedLinearModel::apply_normalization(vector<vector<float>> &input) {
 }
 
 PredictiveModel *MedLinearModel::clone() {
-	PredictiveModel *copy = new MedLinearModel((int)model_params.size() - 1);
+	MedLinearModel *copy = new MedLinearModel((int)model_params.size() - 1);
 	random_device rd;
 	mt19937 gen(rd());
 	uniform_real_distribution<> rand_gen;
 	for (size_t i = 0; i < copy->model_params.size(); ++i)
 		copy->model_params[i] = rand_gen(gen);
+	copy->loss_function = loss_function;
+	copy->loss_function_step = loss_function_step;
+	copy->sample_count = sample_count;
+	copy->tot_steps = tot_steps;
+	copy->learning_rate = learning_rate;
+	copy->block_num = block_num;
+	copy->norm_l1 = norm_l1;
 
 	//dont copy values of params and normalization - not need for now
 	return copy;
@@ -541,7 +550,7 @@ void _normalizeSignalToAvg(vector<vector<float>> &xData, vector<float> &meanShif
 int MedLinearModel::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	vector<float> avg_diff, factors;
-	vector<float> yData(y, y + nsamples - 1);
+	vector<float> yData(y, y + nsamples);
 	vector<vector<float>> xData(nftrs);
 	for (size_t i = 0; i < nftrs; ++i)
 	{
@@ -563,6 +572,28 @@ int MedLinearModel::Learn(float *x, float *y, float *w, int nsamples, int nftrs)
 	mark_learn_finish = false;
 	_learnModel(learner, xData, yData, minCat, tot_steps, 10, learning_rate, sample_count);
 	mark_learn_finish = true;
+
+	return 0;
+}
+
+int MedLinearModel::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [MedLinearModel::init]
+		if (it->first == "sample_count")
+			sample_count = stoi(it->second);
+		else if (it->first == "tot_steps")
+			tot_steps = stoi(it->second);
+		else if (it->first == "learning_rate")
+			learning_rate = stod(it->second);
+		else if (it->first == "block_num")
+			block_num = stof(it->second);
+		else if (it->first == "norm_l1")
+			block_num = stoi(it->second) > 0;
+		else
+			throw invalid_argument("Unknown parameter \"" + it->first + "\"");
+		//! [MedLinearModel::init]
+	}
 
 	return 0;
 }

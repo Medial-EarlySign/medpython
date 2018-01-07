@@ -134,13 +134,13 @@ void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names,
 	}
 }
 
-// Append samples at end of samples vector
+// Append samples at end of samples vector (used for generating samples set before generating features)
 //.......................................................................................
 void MedFeatures::append_samples(MedIdSamples& in_samples) {
 	samples.insert(samples.end(), in_samples.samples.begin(), in_samples.samples.end());
 }
 
-// Insert samples at position idex, assuming samples vector is properly allocated
+// Insert samples at position idex, assuming samples vector is properly allocated  (used for generating samples set before generating features)
 //.......................................................................................
 void MedFeatures::insert_samples(MedIdSamples& in_samples, int index) {
 
@@ -211,6 +211,7 @@ void MedFeatures::print_csv()
 }
 
 // Write features (samples + weights + data) as csv with a header line
+// Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
 int MedFeatures::write_as_csv_mat(const string &csv_fname)
 {
@@ -272,6 +273,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 }
 
 // Read features (samples + weights + data) from a csv file with a header line
+// Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
 int MedFeatures::read_from_csv_mat(const string &csv_fname)
 {
@@ -285,7 +287,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 	inf.open(csv_fname, ios::in);
 	if (!inf) {
 		cerr << "can not open file\n";
-		throw exception();
+		return -1;
 	}
 	
 	int ncols = -1;
@@ -321,6 +323,8 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 				throw runtime_error(msg.c_str());
 			}
 
+			idx++;
+
 			if (weighted)
 				weights.push_back(stof(fields[idx++]));
 
@@ -342,6 +346,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 }
 
 // Filter data (and attributes) to include only selected features
+// Return -1 if any of the selected features is not present. 0 upon success.
 //.......................................................................................
 int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 
@@ -367,6 +372,41 @@ int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 	}
 
 	return 0;
+}
+
+// Get the corresponding MedSamples object .  Assuming samples are ordered in features (all id's samples are consecutive)
+//.......................................................................................
+void MedFeatures::get_samples(MedSamples& outSamples) {
+
+	for (auto& sample : samples) {
+		if (outSamples.idSamples.size() && outSamples.idSamples.back().id == sample.id)
+			outSamples.idSamples.back().samples.push_back(sample);
+		else {
+			MedIdSamples newIdSample;
+			newIdSample.id = sample.id;
+			newIdSample.split = sample.split;
+			newIdSample.samples.push_back(sample);
+			outSamples.idSamples.push_back(newIdSample);
+		}
+	}
+
+}
+
+// Find the max serial_id_cnt
+//.......................................................................................
+int MedFeatures::get_max_serial_id_cnt() {
+
+	int max = 0;
+	for (auto& rec : data) {
+		string name = rec.first;
+		if (name.substr(0, 4) == "FTR_") {
+			int n = stoi(name.substr(4, name.length()));
+			if (n > max)
+				max = n;
+		}
+	}
+
+	return max; 
 }
 
 // (De)Serialization

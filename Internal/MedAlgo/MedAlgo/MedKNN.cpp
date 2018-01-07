@@ -66,10 +66,12 @@ int MedKNN::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedKNN::init]
 		if (field == "k") params.k = stoi(entry.second);
 		else if (field == "knnAv") params.knnAv = get_knn_averaging(entry.second);
 		else if (field == "knnMetr") params.knnMetr = get_knn_metric(entry.second); 
 		else MLOG("Unknonw parameter \'%s\' for Lasso\n", field.c_str());
+		//! [MedKNN::init]
 	}
 
 	return 0;

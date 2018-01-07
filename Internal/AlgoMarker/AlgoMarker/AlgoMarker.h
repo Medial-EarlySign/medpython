@@ -41,7 +41,8 @@
 
 typedef enum {
 	AM_TYPE_UNDEFINED = 0,
-	AM_TYPE_MEDIAL_INFRA = 1
+	AM_TYPE_MEDIAL_INFRA = 1,
+	AM_TYPE_SIMPLE_EXAMPLE_EGFR = 2,
 } AlgoMarkerType;
 
 
@@ -53,9 +54,12 @@ public:
 	int pid = -1;
 	long long timestamp = -1;
 
-	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp; }
+	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp;}
 	
 	void clear() { pid = -1; timestamp = -1; }
+
+	// auto time convertor helper function
+	static int auto_time_convert(long long ts, int to_format);
 };
 
 //-------------------------------------------------------------------------------
@@ -67,6 +71,7 @@ extern "C" class DLL_WORK_MODE AMMessages {
 	vector<string> args_strs;
 
 	vector<char *> args; // for easier c c# export. pointing to strings , so no need to free.
+	int need_to_update_args = 0;
 
   public:
 
@@ -113,6 +118,8 @@ private:
 
 	AMPoint point;
 
+	AMMessages msgs;
+
 public:
 
 	// get things
@@ -125,7 +132,8 @@ public:
 		scores[idx].get_score(_score, _score_type);
 		return AM_OK_RC;
 	}
-	AMMessages *get_msgs(int idx) { if (idx < 0 || idx >= scores.size()) return NULL; return scores[idx].get_msgs(); }
+	AMMessages *get_score_msgs(int idx) { if (idx < 0 || idx >= scores.size()) return NULL; return scores[idx].get_msgs(); }
+	AMMessages *get_msgs() { return &msgs; }
 
 	// set things
 	void set_patient_id(int _patient_id) { point.pid = _patient_id; }
@@ -160,6 +168,9 @@ private:
 	// In here we report messages not specific to a single Response
 	AMMessages shared_msgs;
 public:
+
+	AMResponses() { clear(); }
+	~AMResponses() { clear(); }
 
 	// get things
 	int get_n_responses() { return (int)responses.size(); }
@@ -231,6 +242,7 @@ private:
 	string name = "";
 	string config_fname = "";
 	vector<string> supported_score_types;
+	int time_unit = MedTime::Date; // typically Date (for outpatient) or Minutes (for in patients)
 
 public:
 
@@ -241,7 +253,7 @@ public:
 	virtual int Unload() { return 0; }
 	virtual int ClearData() { return 0; }
 	virtual int AddData(int patient_id, const char *signalName,  int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
-	virtual int Calculate(AMRequest *request, AMResponses **responses) { return 0; }
+	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
 	// check supported score types in the supported_score_types vector
 	int IsScoreTypeSupported(const char *_stype);
@@ -250,12 +262,14 @@ public:
 	int get_type() { return (int)type; }
 	char *get_name() { return  (char *)name.c_str(); }
 	char *get_config() { return (char *)config_fname.c_str(); }
+	int get_time_unit() { return time_unit; }
 
 	// set things
 	void set_type(int _type) { type = (AlgoMarkerType)_type; }
 	void set_name(const char *_name) { name = string(_name); }
 	void set_config(const char *_config_f) { config_fname = string(_config_f); }
 	void add_supported_stype(const char *stype) { supported_score_types.push_back(string(stype)); }
+	void set_time_unit(int tu) { time_unit = tu; }
 
 	// get a new AlgoMarker
 	static AlgoMarker *make_algomarker(AlgoMarkerType am_type);
@@ -270,12 +284,13 @@ extern "C" class DLL_WORK_MODE MedialInfraAlgoMarker : public AlgoMarker {
 
 private:
 	MedAlgoMarkerInternal ma;
+	InputSanityTester ist;
 
 	// some configs
 	string type_in_config_file = "";
 	string rep_fname = "";
 	string model_fname = "";
-	//string input_tests_filters = "";
+	string input_tester_config_file = "";
 
 	int read_config(string conf_f);
 
@@ -289,7 +304,31 @@ public:
 	int Unload();
 	int ClearData();
 	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
-	int Calculate(AMRequest *request, AMResponses **responses);
+	int Calculate(AMRequest *request, AMResponses *responses);
+
+};
+
+//===============================================================================
+// SimpleExampleEGFRAlgoMarker - the simplest example for a different AM
+//===============================================================================
+extern "C" class DLL_WORK_MODE SimpleExampleEGFRAlgoMarker : public AlgoMarker {
+
+private:
+
+	// inputs for egfr
+	float age = -1, gender = -1, creatinine = -1;
+	int ethnicity = 0;
+
+	int pid = -1; // this example AM supports only a single pid at a time and no batches
+
+public:
+	SimpleExampleEGFRAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); this->set_name("SimpleEGFR"); }
+
+	int Load(const char *config_f) { ClearData(); return AM_OK_RC; }
+	int Unload() { return AM_OK_RC; }
+	int ClearData() { age = -1; gender = -1; creatinine = -1; return AM_OK_RC; }
+	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
+	int Calculate(AMRequest *request, AMResponses *responses);
 
 };
 
@@ -301,7 +340,7 @@ public:
 // all return codes are defined in AlgoMarkerErr.h
 
 // create a new AlgoMarker of type am_type and init its name
-extern "C" DLL_WORK_MODE int AM_API_Create(int am_type, const char *name, AlgoMarker **new_am);
+extern "C" DLL_WORK_MODE int AM_API_Create(int am_type, AlgoMarker **new_am);
 
 // loading AlgoMarker and making it ready to get Requests
 extern "C" DLL_WORK_MODE int AM_API_Load(AlgoMarker* pAlgoMarker, const char *config_fname);
@@ -317,21 +356,44 @@ extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient
 // Null RC means failure
 extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 
-// Get scores for a ready request
-extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses **responses);
+// Create a new empty responses object
+extern "C" DLL_WORK_MODE int AM_API_CreateResponses(AMResponses **new_responses);
 
-// exploring responses
+// Get scores for a ready request
+extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
+
+// get Responses num
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
+
+// get messages shared for all responses
 extern "C" DLL_WORK_MODE int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
+
+// get a response at a specific index
 extern "C" DLL_WORK_MODE int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp);
 
-extern "C" DLL_WORK_MODE int AM_API_GetResponse(AMResponses *responses, int index, AMResponse **response);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, int *pid, long long *timestamp, float *scores, char **_score_type);
-extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
+// get the request id that was used to create a responses object
+extern "C" DLL_WORK_MODE int AM_API_GetResponsesRequestId(AMResponses *responses, char **requestId);
 
-extern "C" DLL_WORK_MODE int AM_API_GetResponseRequestId(AMResponses *responses, char **requestId);
+// get a score from responses given the response index and the type of the score
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
+
+// get a response at a certain index in responses
+extern "C" DLL_WORK_MODE int AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response);
+
+// get number of different scores in a response
+extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
+
+// get response score at a given score_index, returns pid, ts, score, and score_type
+extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *score, char **_score_type);
+
+// get messages for a response : messages that are score independent (such as raw eligibility tests)
+extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
+
+// get score messages for a specific score index
+extern "C" DLL_WORK_MODE int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
+
+// get pid and timepoint of a response 
+extern "C" DLL_WORK_MODE int AM_API_GetResponsePoint(AMResponse *response, int *pid, long long *timestamp);
 
 // get the name of an algomarker
 extern "C" DLL_WORK_MODE int AM_API_GetName(AlgoMarker *pAlgoMArker, char **name);

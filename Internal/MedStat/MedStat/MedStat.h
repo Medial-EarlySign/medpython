@@ -22,6 +22,7 @@
 
 #include "string.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include "medial_utilities/medial_utilities/globalRNG.h"
 
 
 #define MED_CLEANER_MAX_Z 15
@@ -43,9 +44,25 @@ float get_best_rounding(vector<float> &vals, vector<float>& res, vector<int> &co
 
 // Moments
 void get_mean(vector<float> &vals, float &mean);
-void get_median(vector<float>& vals, float &median);
-void sort_and_get_median(vector<float> &vals, float &median);
+
+template <typename T> void sort_and_get_median(vector<T>& vals, T &median) {
+	if (vals.size() == 0)
+		median = T();
+	else {
+		nth_element(vals.begin(), vals.begin() + vals.size() / 2, vals.end());
+		median = vals[vals.size() / 2];
+	}
+}
+
+template <typename T> void get_median(const vector<T>& vals, T &median) {
+	vector<T> tempValues = vals;
+	sort_and_get_median(tempValues, median);
+}
+
+
 void get_common(vector<float> &vals, float &common);
+void get_histogram(vector<float>& vals, vector<pair<float, float> >& hist);
+float sample_from_histogram(vector<pair<float, float> >& hist);
 
 void get_mean_and_std(vector<float> &vals, float &mean, float &std);
 void get_mean_and_std(vector<float> &vals, float &mean, float &std, float missing_val);

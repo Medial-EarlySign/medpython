@@ -36,6 +36,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "algo marker configuration file")
 			("direct_test" , "split to a dedicated debug routine")
+			("egfr_test" , "split to a debug routine for the simple egfr algomarker")
 			;
 
 
@@ -109,7 +110,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 			}
 		}
 
-
+	MLOG("After AddData for all batch\n");
 	// finish rep loading 
 	char *stypes[] ={ "Raw" };
 	vector<int> _pids;
@@ -118,7 +119,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	samples.export_to_sample_vec(_vsamp);
 	for (auto &s : _vsamp) {
 		_pids.push_back(s.id);
-		_timestamps.push_back(s.time);
+		_timestamps.push_back((long long)s.time*10000 + 1010);
 	}
 
 	//MLOG("Before CreateRequest\n");
@@ -130,8 +131,9 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	AMResponses *resp;
 
 	// calculate scores
-	//MLOG("Before Calculate\n");
-	int calc_rc = AM_API_Calculate(am, req, &resp);
+	MLOG("Before Calculate\n");
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(am, req, resp);
 	//MLOG("After Calculate: rc = %d\n", calc_rc);
 
 	// go over reponses and pack them to a MesSample vector
@@ -146,27 +148,67 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	AMResponse *response;
 	for (int i=0; i<n_resp; i++) {
 		//MLOG("Getting response no. %d\n", i);
-		int resp_rc = AM_API_GetResponse(resp, i, &response);
-		resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
+		int resp_rc = AM_API_GetResponseAtIndex(resp, i, &response);
+		int n_scores;
+		AM_API_GetResponseScoresNum(response, &n_scores);
 		//int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_types);
 		//MLOG("resp_rc = %d\n", resp_rc);
 		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 		
+		AM_API_GetResponsePoint(response, &pid, &ts);
 		MedSample s;
 		s.id = pid;
-		s.time = (int)ts;
-		if (resp_rc == AM_OK_RC)
+		s.time = (int)(ts/10000);
+		if (resp_rc == AM_OK_RC && n_scores > 0) {
+			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 			s.prediction.push_back(_scr);
+		}
+		else {
+			s.prediction.push_back((float)AM_UNDEFINED_VALUE);
+		}
 		res.push_back(s);
 	}
 
 
+
+	// print error messages
+
+	// AM level
+	int n_msgs, *msg_codes;
+	char **msgs_errs;
+	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+	for (int i=0; i<n_msgs; i++) {
+		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
+	}
+
+	n_resp = AM_API_GetResponsesNum(resp);
+	for (int i=0; i<n_resp; i++) {
+		AMResponse *r;
+		AM_API_GetResponseAtIndex(resp, i, &r);
+		int n_scores;
+		AM_API_GetResponseScoresNum(r, &n_scores);
+
+		AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
+		for (int k=0; k<n_msgs; k++) {
+			MLOG("Response %d : Message %d : code %d : err: %s\n", i, k, msg_codes[k], msgs_errs[k]);
+		}
+
+		for (int j=0; j<n_scores; j++) {
+			AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
+			for (int k=0; k<n_msgs; k++) {
+				MLOG("Response %d : score %d : Message %d : code %d : err: %s\n", i, j, k, msg_codes[k], msgs_errs[k]);
+			}
+		}
+	}
+
 	AM_API_DisposeRequest(req);
 	AM_API_DisposeResponses(resp);
 
-	MLOG("Finished getting preds from algomarker");
+	MLOG("Finished getting preds from algomarker\n");
 	return 0;
 }
+
+
 
 //=============================================================================================================================
 int debug_me(po::variables_map &vm)
@@ -175,7 +217,7 @@ int debug_me(po::variables_map &vm)
 	// init AM
 	AlgoMarker *test_am;
 
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, "Pre2D", &test_am) != AM_OK_RC) {
+	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		return -1;
 	}
@@ -212,7 +254,8 @@ int debug_me(po::variables_map &vm)
 
 	// calculate scores
 	MLOG("Before Calculate\n");
-	int calc_rc = AM_API_Calculate(test_am, req, &resp);
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(test_am, req, resp);
 	
 
 	// Shared messages
@@ -242,10 +285,22 @@ int debug_me(po::variables_map &vm)
 	for (int i=0; i<n_resp; i++) {
 		MLOG("Getting response no. %d\n", i);
 
-		AM_API_GetResponse(resp, i, &response);
-		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &pid, &ts, &_scr, &_scr_type);
+		AM_API_GetResponseAtIndex(resp, i, &response);
+		AM_API_GetResponsePoint(response, &pid, &ts);
+		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 		MLOG("resp_rc = %d\n", resp_rc);
 		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
+	}
+
+
+	// print error messages
+
+	// AM level
+	int n_msgs, *msg_codes;
+	char **msgs_errs;
+	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+	for (int i=0; i<n_msgs; i++) {
+		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
 	}
 
 
@@ -255,6 +310,105 @@ int debug_me(po::variables_map &vm)
 	AM_API_DisposeAlgoMarker(test_am);
 
 	MLOG("Finished debug_me() test\n");
+
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int simple_egfr_test()
+{
+	// init AM
+	AlgoMarker *test_am;
+
+	if (AM_API_Create((int)AM_TYPE_SIMPLE_EXAMPLE_EGFR, &test_am) != AM_OK_RC) {
+		MERR("ERROR: Failed creating test algomarker\n");
+		return -1;
+	}
+
+	MLOG("Name is %s\n", test_am->get_name());
+
+	int load_rc;
+	if ((load_rc = AM_API_Load(test_am, "AUTO") != AM_OK_RC)) {
+		MERR("ERROR: Failed loading algomarker %s  , rc: %d\n", test_am->get_name(), load_rc);
+		return -1;
+	}
+	MLOG("Algomarker %s was loaded\n", test_am->get_name());
+
+
+	// Load Data
+	vector<long long> times ={ 20160101 };
+	vector<float> vals ={ 2.0 };
+	AM_API_AddData(test_am, 1, "Creatinine", (int)times.size(), &times[0], (int)vals.size(), &vals[0]);
+	/*vector<float>*/ vals ={ 55 };
+	AM_API_AddData(test_am, 1, "Age", 0, NULL, (int)vals.size(), &vals[0]);
+	/*vector<float>*/ vals ={ 1 };
+	AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
+
+	// Calculate
+	char *stypes[] ={ "Raw" };
+	vector<int> _pids ={ 1 };
+	vector<long long> _timestamps ={ 20160101 };
+	AMRequest *req;
+	MLOG("Creating Request\n");
+	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
+	if (req == NULL)
+		MLOG("ERROR: Got a NULL request !!\n");
+	AMResponses *resp;
+
+	// calculate scores
+	MLOG("Before Calculate\n");
+	AM_API_CreateResponses(&resp);
+	int calc_rc = AM_API_Calculate(test_am, req, resp);
+
+
+	// Shared messages
+	int n_shared_msgs;
+	int *shared_codes;
+	char **shared_args;
+	AM_API_GetSharedMessages(resp, &n_shared_msgs, &shared_codes, &shared_args);
+	MLOG("Shared Messages: %d\n", n_shared_msgs);
+	for (int i=0; i<n_shared_msgs; i++) {
+		MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
+	}
+
+	// print result
+	int n_resp = AM_API_GetResponsesNum(resp);
+	MLOG("Got %d responses\n", n_resp);
+	int n_scr = 0;
+	float _scr;
+	int pid;
+	long long ts;
+	char *_scr_type;
+	AMResponse *response;
+	for (int i=0; i<n_resp; i++) {
+		MLOG("Getting response no. %d\n", i);
+
+		AM_API_GetResponseAtIndex(resp, i, &response);
+		AM_API_GetResponsePoint(response, &pid, &ts);
+		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+		MLOG("_scr %f _scr_type %s\n", _scr, _scr_type);
+		MLOG("resp_rc = %d\n", resp_rc);
+		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
+	}
+
+
+	// print error messages
+
+	// AM level
+	int n_msgs, *msg_codes;
+	char **msgs_errs;
+	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+	for (int i=0; i<n_msgs; i++) {
+		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
+	}
+
+
+	// Dispose
+	AM_API_DisposeRequest(req);
+	AM_API_DisposeResponses(resp);
+	AM_API_DisposeAlgoMarker(test_am);
+
+	MLOG("Finished egfr_test()\n");
 
 	return 0;
 }
@@ -277,6 +431,9 @@ int main(int argc, char *argv[])
 
 	if (vm.count("direct_test"))
 		return debug_me(vm);
+
+	if (vm.count("egfr_test"))
+		return simple_egfr_test();
 
 	// read model file
 	MedModel model;
@@ -334,7 +491,7 @@ int main(int argc, char *argv[])
 	//===============================================================================
 	AlgoMarker *test_am;
 
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, "Pre2D", &test_am) != AM_OK_RC) {
+	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		return -1;
 	}
@@ -354,21 +511,33 @@ int main(int argc, char *argv[])
 	}
 
 	// test results
-	int nbad = 0;
+	int nbad = 0, n_miss = 0, n_similar = 0;
 	if (res1.size() != res2.size()) {
 		MLOG("ERROR:: Didn't get the same number of tests ... %d vs %d\n", res1.size(), res2.size());
 	}
 
 	MLOG("Comparing %d scores\n", res1.size());
 	for (int i=0; i<res1.size(); i++) {
-		if (res1[i].prediction[0] != res2[i].prediction[0]) {
+
+		if (res2[i].prediction[0] == (float)AM_UNDEFINED_VALUE) {
+			n_miss++;
+		} else if (res1[i].prediction[0] != res2[i].prediction[0]) {
 			MLOG("ERROR !!!: #Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 			nbad++;
 		}
+		else
+			n_similar++;
+
 	}
 
-	MLOG(">>>>>TEST1: test DLL API batch: ");
+
+	MLOG(">>>>>TEST1: test DLL API batch: total %d : n_similar %d : n_bad %d : n_miss %d\n", res1.size(), n_similar, nbad, n_miss);
 	if (nbad == 0) MLOG("PASSED\n"); else MLOG("FAILED\n");
 
 }
 
+//
+// keep command line:
+//
+// typical test:
+// Linux/Release/DllAPITester --model /nas1/Work/Users/Avi/Diabetes/order/pre2d/runs/partial/pre2d_partial_S6.model --samples test_100k.samples --amconfig /nas1/Work/Users/Avi/AlgoMarkers/pre2d/pre2d.amconfig

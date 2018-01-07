@@ -69,6 +69,7 @@ int MedGDLM::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedGDLM::init]
 		if (field == "max_iter") params.max_iter = stoi(entry.second);
 		else if (field == "stop_at_err") params.stop_at_err = stof(entry.second);
 		else if (field == "max_times_err_grows") params.max_times_err_grows = stoi(entry.second);
@@ -84,6 +85,7 @@ int MedGDLM::init(map<string, string>& mapper) {
 		else if (field == "err_freq") params.err_freq = stoi(entry.second);
 		else if (field == "print") params.print_model = stoi(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for GDLM\n", field.c_str());
+		//! [MedGDLM::init]
 	}
 
 	return 0;

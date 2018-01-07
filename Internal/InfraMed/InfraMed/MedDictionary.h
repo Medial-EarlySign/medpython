@@ -103,7 +103,7 @@ class DLLEXTERN MedDictionarySections {
 	MedDictionary *curr_dict() { return &dicts[curr_section]; }
 	MedDictionary *dict(int section_id) { return &dicts[section_id]; }
 
-	int section_id(const string name) { if (SectionName2Id.find(name) == SectionName2Id.end()) return 0; else return SectionName2Id[name]; }
+	int section_id(const string &name) { if (SectionName2Id.find(name) == SectionName2Id.end()) return 0; else return SectionName2Id[name]; }
 
 	// use MedDictionary functions for a specific section id
 	int id(int section_id, const string &name)							{ return dicts[section_id].id(name); }

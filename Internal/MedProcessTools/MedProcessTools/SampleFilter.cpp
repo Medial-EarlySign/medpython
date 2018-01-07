@@ -126,7 +126,7 @@ int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 //=======================================================================================
 // Filter
 //.......................................................................................
-int BasicTrainFilter::_filter(MedSamples& inSamples,MedSamples& outSamples) {
+int BasicTrainFilter::filter(MedSamples& inSamples,MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -154,7 +154,7 @@ int BasicTrainFilter::_filter(MedSamples& inSamples,MedSamples& outSamples) {
 //=======================================================================================
 // Filter
 //.......................................................................................
-int BasicTestFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
+int BasicTestFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 	// Take them all
 	outSamples = inSamples;
@@ -169,7 +169,7 @@ int BasicTestFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
 //=======================================================================================
 // Filter
 //.......................................................................................
-int OutlierSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
+int OutlierSampleFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -192,7 +192,7 @@ int OutlierSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) 
 
 // Learning : check outlier-detection method and call appropriate learner (iterative/quantile)
 //.......................................................................................
-int OutlierSampleFilter::_learn(MedSamples& samples) {
+int OutlierSampleFilter::learn(MedSamples& samples) {
 
 	if (params.type == VAL_CLNR_ITERATIVE)
 		return iterativeLearn(samples);
@@ -371,7 +371,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 // removing cases and controls (eventToControlPriceRatio). Adjust ratio to maximal allowed 
 // ratio (matchMaxRatio) and then sample randomly from each bin.
 //.......................................................................................
-int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
+int MatchingSampleFilter::filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -470,7 +470,7 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 
 // Filter without repository (return -1 if repository is required)
 //.......................................................................................
-int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
+int MatchingSampleFilter::filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 	if (isRepRequired()) {
 		MERR("Cannot perform required matching without repository\n");
@@ -478,7 +478,7 @@ int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 	}
 	else {
 		MedRepository dummyRep;
-		return _filter(dummyRep, inSamples, outSamples);
+		return filter(dummyRep, inSamples, outSamples);
 	}
 }
 
@@ -625,6 +625,10 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 			signature += tempSignature + ":";  
 		}
 	}
+	else {
+		MERR("Unknown matching type %d\n", stratum.match_type);
+		return -1;
+	}
 
 	return 0;
 }
@@ -685,7 +689,7 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 
 //Get all signals required  for matching
 //.......................................................................................
-int MatchingSampleFilter::get_required_signals(vector<string> req_sigs)
+void MatchingSampleFilter::get_required_signals(vector<string>& req_sigs)
 {
 	req_sigs.clear();
 	if (isAgeRequired()) {
@@ -695,10 +699,12 @@ int MatchingSampleFilter::get_required_signals(vector<string> req_sigs)
 			req_sigs.push_back("BYEAR");
 	}
 
-	for (auto &s : matchingStrata)
-		req_sigs.push_back(s.signalName);
+	for (auto &s : matchingStrata) {
+		if (s.signalName != "")
+			req_sigs.push_back(s.signalName);
+	}
 
-	return 0;
+	return ;
 
 }
 
@@ -769,7 +775,7 @@ void RequiredSignalFilter::init_defaults() {
 
 // Filter
 //.......................................................................................
-int RequiredSignalFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
+int RequiredSignalFilter::filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -812,7 +818,7 @@ int RequiredSignalFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 
 // Filter without repository : Return an error
 //.......................................................................................
-int RequiredSignalFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) { 
+int RequiredSignalFilter::filter(MedSamples& inSamples, MedSamples& outSamples) { 
 	MERR("A repository is required for Required-Signal Filter\n"); 
 	return -1; 
 }
@@ -948,7 +954,7 @@ int BasicSampleFilter::init(map<string, string>& mapper)
 }
 
 //.......................................................................................
-int BasicSampleFilter::get_req_signals(vector<string> &reqs)
+void BasicSampleFilter::get_required_signals(vector<string> &reqs)
 {
 	if (req_sigs.size() == 0) {
 		req_sigs.clear();
@@ -957,12 +963,12 @@ int BasicSampleFilter::get_req_signals(vector<string> &reqs)
 	}
 
 	reqs = req_sigs;
-	return 0;
+	return;
 }
 
 // Filter with repository
 //.......................................................................................
-int BasicSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples)
+int BasicSampleFilter::filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples)
 {
 	// assumes rep is already loaded with relevant signals
 
@@ -1005,12 +1011,12 @@ int BasicSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSam
 // Filter without repository
 // relevant only if bfilters is empty. Otherwise, return -1
 //.......................................................................................
-int BasicSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
+int BasicSampleFilter::filter(MedSamples& inSamples, MedSamples& outSamples)
 {
 
 	if (bfilters.empty()) {
 		MedRepository dummy;
-		return (_filter(dummy, inSamples, outSamples));
+		return filter(dummy, inSamples, outSamples);
 	}
 	else {
 		MERR("A repository is required for Required-Signal Filter\n");
@@ -1049,7 +1055,7 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 //.......................................................................................
 int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &nvals, int &noutliers)
 {
-	MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+	//MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
 	if (sig_id < 0)
 		sig_id = rep.sigs.sid(sig_name);
 	if (sig_id < 0)
@@ -1059,7 +1065,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 
 	rep.uget(sample.id, sig_id, usv);
 	//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
-	MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
+	//MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
 
 	nvals = 0;
 	noutliers = 0;
@@ -1088,14 +1094,14 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			int i_time = usv.Time(i, time_channel);
 			int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
 			int dtime = ref_time - i_time_converted;
-			MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+			//MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
 			if (dtime < win_from) break;
 			if (dtime <= win_to) {
 				nvals++;
 				// in relevant time window, checking the value range
 				float i_val = usv.Val(i, val_channel);
 				if (i_val < min_val || i_val > max_val) noutliers++;
-				MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
+				//MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
 			}
 
 		}

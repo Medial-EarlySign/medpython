@@ -6,47 +6,192 @@
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
-
+/** 
+* Bootstrap wrapper for Medila Infrastructure objects, simplify the parameters
+* and the input, output process. \n
+* for more control and lower level interface please refer to bootstrap.h 
+*/
 class MedBootstrap : public SerializableObject {
 public:
-	ROC_Params roc_Params;
-	map<string, vector<Filter_Param>> filter_cohort;
-	float sample_ratio; //the sample ratio of the patients out of all patients in each bootstrap
-	int sample_per_pid; //how many samples to take for each patients. 0 - means no sampling take all sample for patient
-	bool sample_patient_label; //if true will treat patient+label as the "id" for the sampling
-	int loopCnt; //the bootstrap count
+	ROC_Params roc_Params; ///< Controling the roc parameters: sensitivity, specificity...
+	map<string, vector<Filter_Param>> filter_cohort; ///< the cohorts definitions. name to parameters range to intersect
+	map<string, FilterCohortFunc> additional_cohorts; ///< not Serializable! additional cohorts given by function
+	float sample_ratio; ///<the sample ratio of the patients out of all patients in each bootstrap
+	int sample_per_pid; ///<how many samples to take for each patients. 0 - means no sampling take all sample for patient
+	bool sample_patient_label; ///<if true will treat patient+label as the "id" for the sampling
+	int sample_seed; ///<if 0 will use random_device
+	int loopCnt; ///<the bootstrap count
+	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
-	void add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges);
-	void add_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges);
-	
+	/// <summary>
+	/// a function which reads cohorts file and stores it in filter_cohort.
+	/// The file format may be in 2 options:
+	///   -# COHORT_NAME[TAB]PARAMETERS_DEF - cohort name is string representing cohort \n
+	///      name. PARAMETER_DEF is in format: "PARAMETER_NAME:MIN_RANGE,MAX_RANGE;..." \n
+	///      the format can repeat itself with ";" between each parameter. the cohort \n
+	///      will consist of intersection between all parameters ranges with "and" condition. \n
+	///      there is single tab betwwen the name and the defenition. \n
+	///      Example Line: \n
+	///      1 year back & age 40-80	Time-Window:0,365;Age:40,80 \n
+	///      will create cohort called "1 year back & age 40-80" and will filter out records \n
+	///      with (Time-Window>=0 and Time-Window<=365) and (Age>=40 and Age<=80) \n
+	///   -# MULTI[TAB]PARAMETERS_DEF[TAB]...PARAMETERS_DEF[TAB] - this definition with \n
+	///      line starting with MULTI keyword will create all the cartesain options for each \n
+	///      parameter definition with the each parameter definition in the next TABs. \n
+	///      PARAMETERS_DEF - is same as option 1 format. \n
+	///      Example Line: \n
+	///      MULTI Time-Window:0,30;Time-Window:30,180	Age:40,60;Age:60,80;Age:40,80	Gender:1,1;Gender:2,2 \n
+	///      will create 2*3*2=12 cohorts for each Time-Window, Age, and Gender option \n
+	/// </summary>
 	void parse_cohort_file(const string &cohorts_path);
 
+	/// <summary>
+	/// defualt Ctor. look for ROC_Params defaults. cohorts consists of 1 cohort called "All" with
+	/// not filtering
+	/// </summary>
 	MedBootstrap();
-	//init_string format: paramter_name=value;... roc_Params is the init_string of roc_Params
-	//filter_cohort - it's a file where each line is new cohort. "cohort_name TAB paramter_name:min_range,max_range;..."
+	/// <summary>
+	/// Initialization string with format "parameter_name=value;..."
+	/// each paramter_name is same as the class name field. filter_cohort is path to file
+	/// roc_Params is the init string for ROC_PARAMS
+	/// </summary>
 	MedBootstrap(const string &init_string);
 
+	/// <summary>
+	/// cleans the initiale "FTR_" from the feature names in MedFeatures created by the infra pipeline
+	/// </summary>
 	void clean_feature_name_prefix(map<string, vector<float>> &features);
 
-	//if results_per_split is NULL (not provided) will not calculate results by each split. the return value is on all values without splits
+	/// <summary>
+	///prepares the required vectors for bootstrap from MedFeatures &features
+	/// </summary>
+	/// <returns>
+	/// updates - preds, y, pids, final_additional_info with the information from MedFeatures.
+	/// if splits_inds is provided (and not NULL) it will fill a mapping from split_index to the 
+	/// indexes in the samples vector correspond to each split value
+	/// </returns>
 	void prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
 		map<string, vector<float>> &final_additional_info, unordered_map<int, vector<int>> *splits_inds = NULL);
+	/// <summary>
+	///prepares the required vectors for bootstrap from samples, additional_info
+	/// </summary>
+	/// <returns>
+	/// updates - preds, y, pids, final_additional_info with the information from samples, additional_info.
+	/// if splits_inds is provided (and not NULL) it will fill a mapping from split_index to the 
+	/// indexes in the samples vector correspond to each split value
+	/// </returns>
 	void prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids,
 		unordered_map<int, vector<int>> *splits_inds = NULL);
+	/// <summary>
+	/// Will run the bootstraping process on all cohorts and measurements.
+	/// MedFeatures need to contains also the information for the cohorts defenitions.
+	/// for example: if there is Age:40-80, MedFeatures should contain Age Feature
+	/// </summary>
+	/// <returns>
+	/// the bootstrap results in map from cohort_name to all cohort measurements(a map).
+	/// Each measurement is key,value in the map from measurement name to it's value
+	/// if splits_inds is not NULL and mapping from each split value to it's coresponding
+	/// indexes in the samples are provided - it will return also results for each split
+	/// the higest level in the map is the split value
+	/// </returns>
 	map<string, map<string, float>> bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL); 
+	/// <summary>
+	/// Will run the bootstraping process on all cohorts and measurements.
+	/// the input is samples, additional_info. additional_info is provided for filtering 
+	/// and creating the cohorts. for example - Age:40-80 and Males
+	/// </summary>
+	/// <returns>
+	/// the bootstrap results in map from cohort_name to all cohort measurements(a map).
+	/// Each measurement is key,value in the map from measurement name to it's value
+	/// if splits_inds is not NULL and mapping from each split value to it's coresponding
+	/// indexes in the samples are provided - it will return also results for each split
+	/// the higest level in the map is the split value
+	/// </returns>
 	map<string, map<string, float>> bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	/// <summary>
+	/// Will run the bootstraping process on all cohorts and measurements.
+	/// the input is samples, and rep_path. The rep_path is path to the repository which 
+	/// adds Age,Gender signals for creating the cohorts definitions. it's simple overload
+	/// for convention
+	/// </summary>
+	/// <returns>
+	/// the bootstrap results in map from cohort_name to all cohort measurements(a map).
+	/// Each measurement is key,value in the map from measurement name to it's value
+	/// if splits_inds is not NULL and mapping from each split value to it's coresponding
+	/// indexes in the samples are provided - it will return also results for each split
+	/// the higest level in the map is the split value
+	/// </returns>
 	map<string, map<string, float>> bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	/// <summary>
+	/// Will run the bootstraping process on all cohorts and measurements.
+	/// the input is samples, and rep. The rep is the repository which 
+	/// adds Age,Gender signals for creating the cohorts definitions. it's simple overload
+	/// for convention
+	/// </summary>
+	/// <returns>
+	/// the bootstrap results in map from cohort_name to all cohort measurements(a map).
+	/// Each measurement is key,value in the map from measurement name to it's value
+	/// if splits_inds is not NULL and mapping from each split value to it's coresponding
+	/// indexes in the samples are provided - it will return also results for each split
+	/// the higest level in the map is the split value
+	/// </returns>
 	map<string, map<string, float>> bootstrap(MedSamples &samples, MedPidRepository &rep, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 
+	/// <summary>
+	/// censors samples from samples based on time_range provided in pid_censor_dates.
+	/// the format is map from pid to max_date the after that date the sample is filtered.
+	/// </summary>
+	/// <returns>
+	/// update samples
+	/// </returns>
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples);
+	/// <summary>
+	/// censors samples from features based on time_range provided in pid_censor_dates.
+	/// the format is map from pid to max_date the after that date the sample is filtered.
+	/// </summary>
+	/// <returns>
+	/// update features
+	/// </returns>
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features);
+	/// <summary>
+	/// censors samples from features based on time_range provided in pids,censor_dates.
+	/// pids and censor_dates are same sizes.
+	/// for each pid and the coresponding date in censor_dates, filtering pid's samples after
+	/// that date.
+	/// </summary>
+	/// <returns>
+	/// update features
+	/// </returns>
 	void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedFeatures &features);
+	/// <summary>
+	/// censors samples from samples based on time_range provided in pids,censor_dates.
+	/// pids and censor_dates are same sizes.
+	/// for each pid and the coresponding date in censor_dates, filtering pid's samples after
+	/// that date.
+	/// </summary>
+	/// <returns>
+	/// update samples
+	/// </returns>
 	void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedSamples &samples);
 
+	/// <summary>
+	/// changing the samples to be auto-simulations - taking max score in the time window for each
+	/// pid
+	/// </summary>
+	/// <returns>
+	/// updates new_samples from samples
+	/// </returns>
 	void change_sample_autosim(MedSamples &samples, int min_time, int max_time, MedSamples &new_samples);
+	/// <summary>
+	/// changing the samples to be auto-simulations - taking max score in the time window for each
+	/// pid
+	/// </summary>
+	/// <returns>
+	/// updates new_features from features
+	/// </returns>
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
 
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, loopCnt, roc_Params, filter_cohort);
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort);
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
@@ -56,24 +201,73 @@ private:
 		const unordered_map<int, vector<int>> &splits_inds,
 		map<int, map<string, map<string, float>>> &results_per_split);
 	bool use_time_window();
+	void add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges);
+	void add_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges);
 };
 
+/**
+* A wrapper class which contains the MedBootstrap object and the results for later
+* quering the scores for preformance details
+*/
 class MedBootstrapResult : public SerializableObject {
 public:
-	MedBootstrap bootstrap_params;
+	MedBootstrap bootstrap_params; ///<The boostrap parameters
+	///The bootstrap results. map from cohort_name to all cohort measurements(a map). 
+	///each measurement is key,value in the map from measurement name to it's value
 	map<string, map<string, float>> bootstrap_results;
 
-	void bootstrap(MedFeatures &features);
-	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info);
-	void bootstrap(MedSamples &samples, const string &rep_path);
+	/// <summary>
+	/// run the bootstrap - look at MedBootstrap.bootstrap documentition and stores
+	/// the results in bootstrap_results
+	/// </summary>
+	void bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	/// <summary>
+	/// run the bootstrap - look at MedBootstrap.bootstrap documentition and stores
+	/// the results in bootstrap_results
+	/// </summary>
+	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	/// <summary>
+	/// run the bootstrap - look at MedBootstrap.bootstrap documentition and stores
+	/// the results in bootstrap_results
+	/// </summary>
+	void bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 
+	/// <summary>
+	/// searches for the sensitivty(sens) and positive rate(pr) in the sepcific bootstrap_cohort results
+	/// which is map from measure name to it's value. the bootstrap_cohort results is in binary/categorial
+	/// (which working points are defined @SCORE)
+	/// </summary>
+	/// <returns>
+	/// updates sens_points, pr_points vectors for SCORE defined working points bootstrap
+	/// </returns>
 	void find_working_points(const map<string, float> &bootstrap_cohort,
 		vector<float> &sens_points, vector<float> &pr_points);
 
+	/// <summary>
+	/// searches for sepcific score value the corresonding measurments in that working
+	/// point based on the bootstrap result.
+	/// you need to run or load object with bootstrap_results which is not empty.
+	/// @param score the score that defines the working point
+	/// @param string_cohort the cohort name to search for the measurments with
+	/// @param max_search_range max interval for searching working points measurements
+	/// in the bootstrap. if the working point in the bootstrap results are too far away
+	/// from the score working point it will not return any result
+	/// </summary>
+	/// <returns>
+	/// updates score_measurements with the bootstrap corresponding measurements
+	/// </returns>
 	void explore_score(float score, map<string, float> &score_measurements,
 		const string &string_cohort = "All", float max_search_range = 0.1);
 
+	/// <summary>
+	/// writes the results to file with TAB delimeted manner. you can also
+	/// pivot the format
+	/// </summary>
 	void write_results_to_text_file(const string &path, bool pivot_format = true);
+	/// <summary>
+	/// reads the results from file with TAB delimeted manner. you can also
+	/// read pivot format
+	/// </summary>
 	void read_results_to_text_file(const string &path, bool pivot_format = true);
 
 	ADD_SERIALIZATION_FUNCS(bootstrap_params, bootstrap_results)

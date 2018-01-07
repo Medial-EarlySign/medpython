@@ -190,3 +190,12 @@ int initialization_text_to_map(const string& text, map<string, string>& init_map
 
 	return 0;
 }
+
+bool is_windows_os(void) 
+{
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
+	return true;
+#else
+	return false;
+#endif
+}

@@ -134,7 +134,7 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [UnivariateFeatureSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "method") params.method = params.get_method(entry.second);
@@ -146,6 +146,7 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "max_samples") params.max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [UnivariateFeatureSelector::init]
 	}
 
 	return 0;
@@ -166,7 +167,7 @@ int UnivariateFeatureSelector::getAbsPearsonCorrs(MedFeatures& features, unorder
 	stats.resize(nFeatures);
 
 #pragma omp parallel for 
-	for (int i = 0; i <nFeatures; i++) {
+	for (int i = 0; i < nFeatures; i++) {
 		int n;
 		vector<float> values;
 		get_all_values(features, names[i], ids, values, params.max_samples);
@@ -357,7 +358,7 @@ int MRMRFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [MRMRFeatureSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "method") params.method = params.get_method(entry.second);
@@ -370,6 +371,7 @@ int MRMRFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "max_samples") params.max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [MRMRFeatureSelector::init]
 	}
 
 	return 0;
@@ -562,7 +564,7 @@ int MRMRFeatureSelector::fillDistCorrsMatrix(MedFeatures& features, unordered_se
 //.......................................................................................
 int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
-	vector<string> names; 
+	vector<string> names;
 	features.get_feature_names(names);
 	int nFeatures = (int)names.size();
 
@@ -571,23 +573,23 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Labels
 	MedMat<float> y((int)features.samples.size(), 1);
-	for (int i = 0; i < y.nrows; i++) 
+	for (int i = 0; i < y.nrows; i++)
 		y(i, 0) = features.samples[i].outcome;
-//	y.normalize();
+	//	y.normalize();
 
-	// Matrix
+		// Matrix
 	MedMat<float> x;
 	features.get_as_matrix(x);
 	x.missing_value = missing_value;
 	vector<float> avg, std;
-	x.get_cols_avg_std(avg, std); 
-	x.normalize(avg, std, 1); 
+	x.get_cols_avg_std(avg, std);
+	x.normalize(avg, std, 1);
 
 	// Initialize
 	int found = 0;
 	vector<double> lambdas(nthreads);
 	float minLambda = 0.0, maxLambda = initMaxLambda;
-//	vector<MedLasso> predictors(nthreads);
+	//	vector<MedLasso> predictors(nthreads);
 	vector<MedGDLM> predictors(nthreads);
 	vector<int> nSelected(nthreads);
 	vector<float> w(x.nrows, 1.0);
@@ -597,7 +599,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	float lowerBoundLambda = 0.0, upperBoundLambda = -1.0;
 
 	// Prevent being stuck ...
-	int nStuck = 0; 
+	int nStuck = 0;
 	int prevMaxN = -1, prevMinN = -1;
 
 	// Search
@@ -609,17 +611,17 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			for (int i = 0; i < nthreads; i++)
 				lambdas[i] = minLambda + step *i;
 		}
-	
+
 		for (int i = 0; i < nthreads; i++) {
 			predictors[i].init_from_string("method = logistic_sgd; last_is_bias = 0; stop_at_err = 1e-4; batch_size = 2048; momentum = 0.95; rate = 0.01; rate_decay = 1; l_ridge = 0; l_lasso = " + to_string(lambdas[i]) + "; err_freq = 10; nthreads = 12");
 			predictors[i].params.l_lasso = (float)lambdas[i];
-//			predictors[i].params.lambda = lambdas[i];
-//			predictors[i].initialize_vars(x.data_ptr(), y.data_ptr(), &(w[0]), predictors[i].b, x.nrows, x.ncols);
+			//			predictors[i].params.lambda = lambdas[i];
+			//			predictors[i].initialize_vars(x.data_ptr(), y.data_ptr(), &(w[0]), predictors[i].b, x.nrows, x.ncols);
 		}
 
 #pragma omp parallel for 
 		for (int i = 0; i < nthreads; i++) {
-//			predictors[i].lasso_regression(predictors[i].b, x.nrows, x.ncols, lambdas[i], predictors[i].params.num_iterations);
+			//			predictors[i].lasso_regression(predictors[i].b, x.nrows, x.ncols, lambdas[i], predictors[i].params.num_iterations);
 			predictors[i].learn(x, y);
 
 			// Identify non-zero parameters
@@ -630,7 +632,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			}
 		}
 
-		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1],nStuck);
+		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1], nStuck);
 
 		if (nthreads == 1) { // Special care
 			if (nSelected[0] == numToSelect) {
@@ -639,7 +641,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 					if (predictors[0].b[j] != 0)
 						selected.push_back(names[j]);
 				}
-			} 
+			}
 			else if (nSelected[0] > numToSelect) {
 				lowerBoundLambda = maxLambda;
 				if (upperBoundLambda != -1.0)
@@ -657,7 +659,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			for (int j = 0; j < nthreads; j++)
 				MLOG("N[%.12f] = %d\n", lambdas[j], nSelected[j]);
 
-//			float ratio;
+			//			float ratio;
 			if (nSelected[nthreads - 1] > numToSelect) { // MaxLambda is still too low
 				minLambda = maxLambda;
 				maxLambda *= 2.0;
@@ -696,7 +698,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 				}
 
 				found = 1;
-				MLOG("Stuck at same N range for 3 steps. That's enough for now ... Actual NSelected = %d\n",nSelected[optimalI]);
+				MLOG("Stuck at same N range for 3 steps. That's enough for now ... Actual NSelected = %d\n", nSelected[optimalI]);
 				for (int j = 0; j < nFeatures; j++) {
 					if (predictors[optimalI].b[j] != 0)
 						selected.push_back(names[j]);
@@ -708,7 +710,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			prevMaxN = nSelected[0];
 			prevMinN = nSelected[nthreads - 1];
 		}
-		
+
 
 		if (!found)
 			MLOG("Lasso Feature Selection: about to try lambdas [%f,%f]\n", minLambda, maxLambda);
@@ -739,7 +741,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [LassoSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "initMaxLambda") initMaxLambda = stof(entry.second);
@@ -747,6 +749,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [LassoSelector::init]
 	}
 
 	return 0;
@@ -799,14 +802,115 @@ int DgnrtFeatureRemvoer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [DgnrtFeatureRemvoer::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		if (field == "percentage") percentage = stof(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
+		//! [DgnrtFeatureRemvoer::init]
 	}
 
 	assert(percentage >= 0 && percentage <= 1.0);
 	return 0;
 
+}
+
+int TagFeatureSelector::init(map<string, string>& mapper) {
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [TagFeatureSelector::init]
+		if (field == "missing_value") missing_value = stof(entry.second);
+		if (field == "selected_tags") boost::split(selected_tags, entry.second, boost::is_any_of(","));
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
+		//! [TagFeatureSelector::init]
+	}
+
+	return 0;
+}
+
+int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+	selected.clear();
+	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
+	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
+		bool found_match = false;
+		auto start_it = it->second.begin();
+		while (!found_match && start_it != it->second.end()) {
+			if (s.find(*start_it) != s.end())
+				found_match = true;
+			++start_it;
+		}
+		if (found_match)
+			selected.push_back(it->first);
+	}
+	return 0;
+}
+
+int ImportanceFeatureSelector::init(map<string, string>& mapper) {
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [ImportanceFeatureSelector::init]
+		if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "predictor") predictor = entry.second;
+		else if (field == "predictor_params") predictor_params = entry.second;
+		else if (field == "importance_params") importance_params = entry.second;
+		else if (field == "minStat") minStat = stof(entry.second);
+		else if (field == "verbose") verbose = stoi(entry.second) > 0;
+		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
+		//! [ImportanceFeatureSelector::init]
+	}
+
+	return 0;
+}
+
+int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+	MedPredictor *model = MedPredictor::make_predictor(predictor, predictor_params);
+	vector<float> feat_importance;
+	model->learn(features);
+
+	model->calc_feature_importance(feat_importance, importance_params);
+
+	vector<pair<string, float>> features_scores((int)feat_importance.size());
+	map<string, vector<float>>::iterator it = features.data.begin();
+	for (size_t i = 0; i < feat_importance.size(); ++i)
+	{
+		features_scores[i].first = it->first;
+		features_scores[i].second = feat_importance[i];
+		++it;
+	}
+	//sort features by scores:
+	sort(features_scores.begin(), features_scores.end(), [](const pair<string, float> &v1, const pair<string, float> &v2)
+	{return (v1.second > v2.second); });
+	if (verbose) {
+		it = features.data.begin();
+		for (size_t i = 0; i < features_scores.size(); ++i)
+		{
+			MLOG("FEATURE %s : %2.3f\n", features_scores[i].first.c_str(), features_scores[i].second);
+			++it;
+		}
+	}
+
+	if (numToSelect == 0) {
+		// Select according to minimum value of stat
+		for (auto& rec : features_scores) {
+			if (rec.second < minStat)
+				break;
+			selected.push_back(rec.first);
+		}
+	}
+	else {
+		// Select according to number
+		int n = (features_scores.size() > numToSelect) ? numToSelect : (int)features_scores.size();
+		selected.resize(n);
+		for (int i = 0; i < n; i++)
+			selected[i] = features_scores[i].first;
+	}
+
+	return 0;
 }

@@ -54,6 +54,7 @@
 #include <vector>
 #include <immintrin.h>
 #include <nmmintrin.h>
+#include <cstring>
 
 using namespace std;
 
@@ -340,20 +341,19 @@ template <class T> class MedSparseVec {
 		def_val = ((T *)curr)[0]; curr += sizeof(T);
 		unsigned int len_counts = ((unsigned int *)curr)[0]; curr += sizeof(unsigned int);
 		counts.resize(len_counts);
-		for (unsigned int i=0; i<len_counts; i++) {
-			counts[i] = ((unsigned int *)curr)[0]; curr += sizeof(unsigned int);
-		}
+		memcpy(&counts[0], curr, len_counts*sizeof(unsigned int));
+		curr += sizeof(unsigned int) * len_counts;
+
 		unsigned int len_is_in_bit = ((unsigned int *)curr)[0]; curr += sizeof(unsigned int);
 		is_in_bit.resize(len_is_in_bit);
-		for (unsigned int i=0; i<len_is_in_bit; i++) {
-			is_in_bit[i] = ((unsigned long long *)curr)[0]; curr += sizeof(unsigned long long);
-		}
+		memcpy(&is_in_bit[0], curr, len_is_in_bit*sizeof(unsigned long long));
+		curr += sizeof(unsigned long long)*len_is_in_bit;
+
 		unsigned int len_data = ((unsigned int *)curr)[0]; curr += sizeof(unsigned int);
 		data.resize(len_data);
-		for (unsigned int i=0; i<len_data; i++) {
-			data[i] = ((T *)curr)[0]; curr += sizeof(T);
-		}
-
+		memcpy(&data[0], curr, len_data*sizeof(T));
+		curr += sizeof(T) * len_data;
+		
 		size_t len = curr - blob;
 		if (len != serialize_len) {
 			fprintf(stderr, "ERROR: Sparse Vec serialize len not matching decalred one: %lld != %lld\n", len, serialize_len);

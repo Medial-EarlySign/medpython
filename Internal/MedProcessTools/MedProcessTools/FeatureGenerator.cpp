@@ -8,6 +8,8 @@
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 
+#include "MedProcessTools/MedProcessTools/MedModel.h"
+
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -33,12 +35,14 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_RANGE;
 	else if (generator_name == "drugIntake")
 		return FTR_GEN_DRG_INTAKE;
+	else if (generator_name == "model")
+		return FTR_GEN_MODEL;
 	else MTHROW_AND_ERR("unknown generator name [%s]",generator_name.c_str());
 }
 
-// Initialize features
+// Prepare for feature Generation
 //.......................................................................................
-void FeatureGenerator::init(MedFeatures &features) {
+void FeatureGenerator::prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples) {
 
 	if (!iGenerateWeights) {
 		//MLOG("FeatureGenerator::init _features\n");
@@ -102,6 +106,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new RangeFeatGenerator;
 	else if (generator_type == FTR_GEN_DRG_INTAKE)
 		return new DrugIntakeGenerator;
+	else if (generator_type == FTR_GEN_MODEL)
+		return new ModelFeatGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
@@ -408,6 +414,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [BasicFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -424,6 +431,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
+		//! [BasicFeatGenerator::init]
 	}
 
 	// names for BasicFeatGenerator are set as a first step in the Learn call as we must have access to the MedRepository
@@ -506,7 +514,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_MIN:		name += "min"; break;
 	case FTR_RANGE_MAX:		name += "max"; break;
 	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
-
+	case FTR_RANGE_TIME_DIFF: name += "time_diff_" +to_string(check_first)+ sets[0]; break;
 	default: name += "ERROR";
 	}
 
@@ -523,7 +531,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		
+		//! [RangeFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -533,8 +541,10 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "check_first") check_first = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+		//! [RangeFeatGenerator::init]
 	}
 
 	// set names and required signals
@@ -547,7 +557,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_RANGE_EVER) {
+	if (type == FTR_RANGE_EVER || type== FTR_RANGE_TIME_DIFF) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
 			dict.prep_sets_lookup_table(section_id, sets, lut);
@@ -580,6 +590,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "max")			return FTR_RANGE_MAX;
 	if (name == "min")			return FTR_RANGE_MIN;
 	if (name == "ever")			return FTR_RANGE_EVER;
+	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
 
 	return (RangeFeatureTypes)stoi(name);
 }
@@ -610,6 +621,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_MIN:	return uget_range_min(rec.usv, time);
 	case FTR_RANGE_MAX:		return uget_range_max(rec.usv, time);
 	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, time);
+	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, time);
 
 	default:	return missing_val;
 	}
@@ -1089,6 +1101,202 @@ float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int time)
 		else if (lut[(int)usv.Val(i, val_channel)]) 	return 1;
 	}
 	return 0.0;
+}
+
+//.......................................................................................
+// returns time diff if the range ever (up to time) had the value signalValue
+float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	int no_lut_ind = 0;
+	int time_diff=missing_val;
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+		if (fromTime > max_time)
+			break;
+		else if (toTime < min_time)
+			continue;
+		else if (lut[(int)usv.Val(i, val_channel)]) {
+			if (check_first == 1) {
+				//in case of first range
+				int max_time = fromTime;
+				if (win_from > max_time) max_time = win_from;
+				
+				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time);
+				//fprintf(stderr, "max_time: %i time :%i from_time:%i win_from:%i time_diff:%i\n", max_time, time, fromTime, win_from, time_diff);
+				return time_diff;
+			}
+			else {
+				//in case of last range
+				int time_to_diff = toTime;
+				if (win_to < toTime) time_to_diff = win_to;
+				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, time_to_diff);
+			}
+		}
+		else
+			no_lut_ind = 1;
+	}
+
+	//in case of last range
+	if (check_first == 0 && time_diff != missing_val)
+		return time_diff;
+
+	//in case of range exists but no lut
+	if (no_lut_ind == 1) {
+			time_diff = -1* win_to;
+		return time_diff;
+	}
+	//in case of no range in the time window
+	else {
+		return missing_val;
+	}
+}
+
+// ModelFeatureGenerator
+//=======================================================================================
+
+//................................................................................................................
+void ModelFeatGenerator::set_names() {
+
+	names.clear();
+
+	string name;
+	if (modelName != "")
+		name = modelName;
+	else if (modelFile != "")
+		name = modelFile;
+	else
+		name = "ModelPred";
+
+	for (int i = 0; i < n_preds; i++)
+		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name + "." + to_string(i+1));
+
+}
+
+// Init from map
+//.......................................................................................
+int ModelFeatGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [ModelFeatGenerator::init]
+		if (field == "name") modelName = entry.second;
+		else if (field == "file") modelFile = entry.second;
+		else if (field == "n_preds") n_preds = stoi(entry.second);
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
+		//! [ModelFeatGenerator::init]
+	}
+
+	// set names
+	set_names();
+
+	// Read Model and get required signal
+	MedModel *_model = new MedModel ;
+	if (_model->read_from_file(modelFile) != 0)
+		MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
+
+	init_from_model(_model);
+	return 0;
+}
+
+// Copy Model and get required signal
+//.......................................................................................
+int ModelFeatGenerator::init_from_model(MedModel *_model) {
+
+	generator_type = FTR_GEN_MODEL;
+	model = _model;
+
+	unordered_set<string> required;
+	model->get_required_signal_names(required);
+	for (string signal : required)
+		req_signals.push_back(signal);
+	
+	set_names();
+	return 0;
+}
+
+/// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
+//.......................................................................................
+void ModelFeatGenerator::load(MedSamples& inSamples, MedSamples& modelSamples) {
+
+	// Sanity check ...
+	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples,0))
+		MTHROW_AND_ERR("inSamples is not identical to model samples in ModelFeatGenerator::load\n");
+
+	preds.resize(inSamples.nSamples()*n_preds);
+
+	int idx = 0;
+	for (auto& idSamples : inSamples.idSamples) {
+		for (auto& sample : idSamples.samples) {
+			if (sample.prediction.size() < n_preds)
+				MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds);
+
+			for (int i = 0; i < n_preds; i++)
+				preds[idx++] = sample.prediction[i];
+		}
+	}
+
+	set_names();
+
+}
+
+// Do the actual prediction prior to feature generation , only if vector is empty
+//.......................................................................................
+void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
+
+	if (preds.empty()) {
+		// Predict
+		model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR);
+
+		// Extract predictions
+		if (model->features.samples[0].prediction.size() < n_preds)
+			MTHROW_AND_ERR("Cannot generate feature %s\n", names[model->features.samples[0].prediction.size()].c_str());
+
+		preds.resize(n_preds*model->features.samples.size());
+		for (int i = 0; i < model->features.samples.size(); i++) {
+			for (int j = 0; j < n_preds; j++)
+				preds[i*n_preds + j] = model->features.samples[i].prediction[j];
+		}
+	}
+
+	FeatureGenerator::prepare(features, rep, samples);
+}
+
+// Put relevant predictions in place
+//.......................................................................................
+int ModelFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+
+
+	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
+	for (int i = 0; i < num; i++)
+		p_feat[i] = preds[index*n_preds + i];
+
+	return 0;
+
+}
+
+// (De)Serialize
+//.......................................................................................
+size_t ModelFeatGenerator::get_size() {
+	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+	return size + model->get_size();
+}
+
+size_t ModelFeatGenerator::serialize(unsigned char *blob) {
+	size_t ptr = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+	ptr += model->serialize(blob + ptr);
+	return ptr;
+}
+
+size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
+	size_t ptr = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+	model = new MedModel;
+	ptr += model->deserialize(blob + ptr);
+	return ptr;
 }
 
 //................................................................................................................

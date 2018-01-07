@@ -156,6 +156,28 @@ class MedMat : public SerializableObject {
 		void get_cols_avg_std(vector<T>& _avg, vector<T>& _std);
 
 		void print_row(FILE *fout, const string &prefix, const string &format, int i_row);
+
+		//return true iff the matrix contains only valid floating point vals (not nan/infinite)
+		//if the type of the matrix is not floating point, always returns true
+		//if output = true, output the first invalid entry encountered to cerr
+		bool is_valid(bool output = false) {
+			if (std::is_floating_point<T>::value == false)
+				return true;
+
+			for (int i = 0; i < nrows; i++) {
+				for (int j = 0; j < ncols; j++) {
+					double x = (double)(m[i*ncols + j]);
+					if (!isfinite(x)) {
+						if (output)
+							cerr << "invalid element(" << i << ", " << j << ") = " << x << endl;
+
+						return false;
+					}
+				}
+			}
+
+			return true;			
+		}		
 };
 
 // a few related util functions

@@ -45,4 +45,53 @@ template <class T> int get_vec_ndiff_vals(vector<T> &v)
 	return ((int)m.size());
 }
 
+//................................................................................................
+// generates an arithmetic sequence
+template<typename T> int sequence(T start, T finish, T step, vector<T>& seq, bool isForward) {
+
+	if (step <= 0)
+		return -1;
+
+	seq.clear();
+	seq.reserve(1 + (size_t)((finish - start) / step));
+
+	if (isForward) {
+		T cur = start;
+
+		while (cur <= finish) {
+			seq.push_back(cur);
+			cur += step;
+		}
+	}
+	else {//backward
+		T cur = finish;
+
+		while (cur >= start) {
+			seq.push_back(cur);
+			cur -= step;
+		}
+
+		reverse(seq.begin(), seq.end());
+	}
+
+	seq.shrink_to_fit();
+	return 0;
+}
+
+//................................................................................................
+//comparators for pairs - by first and by second elements
+
+template<typename S, typename T> struct ComparePairBySecond {
+	bool operator()(const pair<S, T>& left, const pair<S, T>& right) {
+		return (left.second < right.second);
+	};
+};
+
+template<typename S, typename T> struct ComparePairByFirst {
+	bool operator()(const pair<S, T>& left, const pair<S, T>& right) {
+		return (left.first < right.first);
+	};
+};
+
+
 

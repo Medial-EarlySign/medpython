@@ -33,7 +33,7 @@ typedef enum {
 //.......................................................................................
 class MedModel : public SerializableObject {
 public:
-	
+	int version() { return 1; }
 	// remember learning set
 	int serialize_learning_set = 0;
 
@@ -158,5 +158,10 @@ public:
 	int apply_feature_processors(MedFeatures &features);
 
 };
+
+//=======================================
+// Joining the MedSerialze wagon
+//=======================================
+MEDSERIALIZE_SUPPORT(MedModel)
 
 #endif

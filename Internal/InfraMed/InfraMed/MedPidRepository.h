@@ -157,7 +157,11 @@ public:
 
 	// test if two versions point to the same place in memory
 	int versions_are_the_same(int sid, int v1, int v2) { return ((int)((*get_poslen(sid, v1)) == (*get_poslen(sid, v2)))); }
-
+	int versions_are_the_same(set<int> sids, int v1, int v2) { 
+		for (int sid : sids)
+			if (!versions_are_the_same(sid, v1, v2))return(0);
+		return(1);
+	}
 	// a few debug helpers
 	int print_ver(int sid, int ver);
 	int print_all_vers(int sid);
