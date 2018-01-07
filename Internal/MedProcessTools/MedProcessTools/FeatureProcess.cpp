@@ -591,10 +591,14 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	strata_sizes.resize(stratifiedValues.size());
 	int too_small_stratas = 0;
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
+
 		strata_sizes[i] = (int) stratifiedValues[i].size();
-		if (strata_sizes[i] < min_samples) {
+		if (strata_sizes[i] < min_samples) { // Not enough values to make valid imputation
 			too_small_stratas++;
-			moments[i] = missing_value;
+			if (moment_type == IMPUTE_MMNT_SAMPLE)
+				histograms[i].push_back({ missing_value,1.0 });
+			else
+				moments[i] = missing_value;
 		}
 		else if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
@@ -606,8 +610,9 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		else if (moment_type == IMPUTE_MMNT_COMMON)
 			get_common(stratifiedValues[i], moments[i]);
-		else if (moment_type == IMPUTE_MMNT_SAMPLE)
+		else if (moment_type == IMPUTE_MMNT_SAMPLE) {
 			get_histogram(stratifiedValues[i], histograms[i]);
+		}
 		else {
 			MERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 		}
