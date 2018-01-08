@@ -112,11 +112,12 @@ int SampleFilter::filter(MedSamples& samples) {
 int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 
 	MedSamples out_samples;
+
 	int rc = filter(rep, samples, out_samples);
 
 	if (rc == 0)	
 		samples = out_samples;
-	
+
 	return rc;
 }
 
@@ -477,6 +478,7 @@ int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 		return -1;
 	}
 	else {
+
 		MedRepository dummyRep;
 		return filter(dummyRep, inSamples, outSamples);
 	}

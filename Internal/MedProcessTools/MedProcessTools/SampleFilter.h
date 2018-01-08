@@ -81,7 +81,7 @@ public:
 
 	// Filtering : Envelopes (Here because of probelsm with overload + inheritance)
 	/// <summary> filter with repository </summary>
-	virtual int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) { return _filter(inSamples, outSamples); }
+	virtual int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) { return _filter(rep, inSamples, outSamples); }
 	/// <summary> in-place filtering with repository </summary>
 	int filter(MedRepository& rep, MedSamples& samples);
 	/// <summary> filter without repository : Should be implemented for all inheriting classes </summary>

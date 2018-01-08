@@ -112,7 +112,7 @@ int initialization_text_to_map(const string& text, map<string, string>& init_map
 
 		while (j<end_pos.size()) {
 			if (i<(int)start_pos.size() && start_pos[i] < end_pos[j]) {
-				if (stack_first < 0) stack_first = start_pos[i];
+				if (stack_first < 0) stack_first = (int) start_pos[i];
 				stack++;
 				i++;
 			}
