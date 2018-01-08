@@ -1,5 +1,5 @@
 {
-  "model_json_version": "2"
+  "model_json_version": "2",
   "serialize_learning_set": "0",
   "model_actions": [
     {
@@ -7,7 +7,7 @@
       "rp_type": "basic_cln",
       "type": "quantile",
       "range": "range_min=4.000;range_max=5000.000",
-      "signal": [ "ALKP", "Cl" ]
+      "signal": "ALKP"
     },
     {
       "action_type": "rp_set",
@@ -22,7 +22,7 @@
           "rp_type": "basic_cln",
           "type": "quantile",
           "range": "range_min=0.100;range_max=6500.000",
-          "signal": "ALKP"
+          "signal": "Hemoglobin"
         }
       ]
     },
@@ -49,19 +49,11 @@
       "action_type": "fp_set",
       "members": [
         {
-          "fp_type": "basic_cleaner",
-          "tag": "numeric" // clean only the numeric features
-        }
-      ]
-    },
-    {
-      "action_type": "fp_set",
-      "members": [
-        {
           "fp_type": "imputer",
           "strata": "Age,40,70,10:Gender,1,2,1",
           "moment_type": "0",
-          "tag": "numeric" // impute the numeric features with mean
+          "tag": "numeric", // impute the numeric features with mean
+          "duplicate":  "y"
         },
         {
           "fp_type": "remove_deg",

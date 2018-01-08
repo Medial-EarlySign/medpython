@@ -12,6 +12,9 @@
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
+#include <boost/property_tree/ptree.hpp>
+
+using namespace boost::property_tree;
 
 // MedModel learn/apply stages
 typedef enum {
@@ -36,7 +39,7 @@ public:
 	int version() { return 1; }
 	// remember learning set
 	int serialize_learning_set = 0;
-
+	int model_json_version = 1;
 	// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
 
@@ -116,6 +119,7 @@ public:
 	// general adders for easier handling of config files/lines
 	// the idea is to add to a specific set and let the adder create a multi if needed
 	void init_from_json_file(const string& fname) { vector<string> dummy;  init_from_json_file_with_alterations(fname, dummy); }
+	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
@@ -158,6 +162,14 @@ public:
 	int learn_feature_processors(MedFeatures &features);
 	int apply_feature_processors(MedFeatures &features);
 
+private:
+	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);
+	string parse_key_val(string key, string val);
+	void fill_list_from_file(const string& fname, vector<string>& list);
+	string make_absolute_path(const string& main_file, const string& small_file);
+	void alter_json(string &json_contents, vector<string>& alterations);
+	string file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "");
+	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
 };
 
 //=======================================

@@ -78,6 +78,9 @@
     <ClCompile Include="FeatureEncoder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MedModelInitFromJson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -146,6 +149,9 @@
       <Filter>Config_Examples</Filter>
     </None>
     <None Include="..\Config_Examples\chads2_config.json">
+      <Filter>Config_Examples</Filter>
+    </None>
+    <None Include="..\Config_Examples\model_json_version2_example.json">
       <Filter>Config_Examples</Filter>
     </None>
   </ItemGroup>
