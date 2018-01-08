@@ -467,6 +467,7 @@ string MedModel::file_to_string(int recursion_level, const string& main_file, ve
 }
 
 void MedModel::init_from_json_file_with_alterations_version_1(const string &fname, vector<string>& alterations) {
+	MWARN("USING DEPRECATED MODEL JSON VERSION 1, PLEASE UPGRADE TO model_json_version: 2\n");
 	string json_contents = file_to_string(0, fname, alterations);
 	istringstream no_comments_stream(json_contents);
 
