@@ -155,6 +155,11 @@ public:
 	int update(int sid, int v_in, vector<pair<int, void *>>& changes, vector<int>& removes); // Apply changes and removals
 	int update(int sid, int v_in, int val_channel, vector<pair<int, float>>& changes, vector<int>& removes); // Apply val changes and removals, unified variant
 
+	// an API to push a data vector universal signal style , given all its value and time channels
+	// when there are several channels (for time or values) , they should be placed one after the other for each member
+	// so for example a *_times may have : t_0_ch0, t_0_ch1, t_1_ch0, t_1_ch1, ...
+	int set_version_universal_data(int sid, int version, int *_times, float *_vals, int len);
+
 	// test if two versions point to the same place in memory
 	int versions_are_the_same(int sid, int v1, int v2) { return ((int)((*get_poslen(sid, v1)) == (*get_poslen(sid, v2)))); }
 	int versions_are_the_same(set<int> sids, int v1, int v2) { 
