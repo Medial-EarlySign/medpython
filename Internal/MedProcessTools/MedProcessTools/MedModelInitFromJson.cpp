@@ -88,19 +88,18 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 	this->serialize_learning_set = stoi(ser);
 	int rp_set = 0, fp_set = 0;
 	for (auto &p : pt.get_child("model_actions")) {
-		vector<vector<string>> all_action_attrs;
-		vector<string> all_combinations;
+		vector<vector<string>> all_action_attrs;	
 		auto& action = p.second;
 		string action_type = action.get<string>("action_type").c_str();
 		if (action_type == "rp_set" || action_type == "fp_set") {
 			int process_set;
 			if (action_type == "rp_set") process_set = rp_set++;
-			else process_set = fp_set++;
-			
+			else process_set = fp_set++;			
 			int num_actions = 0;
 			for (auto &member : action.get_child("members")) {
 				int duplicate = 0;
 				parse_action(member.second, all_action_attrs, duplicate, pt, fname);
+				vector<string> all_combinations;
 				concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 				for (string c : all_combinations)
 					add_process_to_set(process_set, duplicate, c);
@@ -126,6 +125,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 			parse_action(action, all_action_attrs, duplicate, pt, fname);
 			if (duplicate == 1)
 				MTHROW_AND_ERR("duplicate action requested and not inside an action set!");
+			vector<string> all_combinations;
 			concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 			if (all_combinations.size() > 1 && (action_type == "rep_processor" || action_type == "feat_processor"))
 				MTHROW_AND_ERR("action_type [%s] got multiple values for some properties. This implies parse-time duplication which is possible only inside a set! first instance is [%s]\n",

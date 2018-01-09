@@ -422,8 +422,7 @@ void MedModel::set_required_signals(MedDictionarySections& dict) {
 }
 
 void MedModel::concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
-{
-	result.clear();
+{	
 	if (vecIndex >= allVecs.size())
 	{
 		result.push_back(strSoFar.substr(0, strSoFar.length() - 1));
