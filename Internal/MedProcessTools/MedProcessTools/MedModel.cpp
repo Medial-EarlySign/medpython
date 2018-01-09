@@ -19,6 +19,64 @@
 
 using namespace boost::property_tree;
 
+
+bool clean_redundant_rep_processors_helper(vector<RepProcessor *> &onlySimples, const unordered_set<string> &needed_sigs) {
+	vector<RepProcessor *> afterFiltr;
+	int original_size = (int)onlySimples.size();
+	for (RepProcessor *rp : onlySimples) {
+		vector<string> sigs = rp->req_signals;
+		bool has_match = false;
+		for (string sig : sigs) {
+			if (needed_sigs.find(sig) != needed_sigs.end()) {
+				has_match = true;
+				break;
+			}
+		}
+		if (has_match) {
+			afterFiltr.push_back(rp);
+		}
+	}
+	onlySimples = afterFiltr;
+	return afterFiltr.size() != original_size;
+}
+
+bool MedModel::clean_redundant_rep_processors() {
+	unordered_set<string> need_s;
+	for (FeatureGenerator *generator : this->generators)
+		generator->get_required_signal_names(need_s);
+
+	vector<RepProcessor *> afterFiltr;
+	bool has_cln = false;
+	for (RepProcessor *rp : this->rep_processors) {
+		vector<RepProcessor *> to_process;
+		bool cleaned;
+		if (rp->processor_type == REP_PROCESS_MULTI) {
+			RepMultiProcessor *rpc = (RepMultiProcessor *)rp;
+			to_process = rpc->processors;
+			cleaned = clean_redundant_rep_processors_helper(to_process, need_s);
+			rpc->processors = to_process;
+			if (!to_process.empty())
+				afterFiltr.push_back(rpc);
+		}
+		else {
+			to_process.push_back(rp);
+			cleaned = clean_redundant_rep_processors_helper(to_process, need_s);
+
+			if (!cleaned) {
+				afterFiltr.push_back(rp);
+			}
+
+		}
+		has_cln = has_cln | cleaned;
+	}
+
+	this->rep_processors = afterFiltr;
+	if (has_cln)
+		MWARN("cleaned redundant rep_processors (which were not used by any feat_generator)\n");
+
+	return has_cln;
+}
+
 //=======================================================================================
 // MedModel
 //=======================================================================================
