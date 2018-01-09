@@ -610,6 +610,10 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			SDateVal2 *v = (SDateVal2 *)data;
 			MOUT(" %d %d %d ", v[i].date, val=(int)v[i].val, v[i].val2);
 		}
+		else if (sigs.type(sid) == T_DateRangeVal) {
+			SDateRangeVal *v = (SDateRangeVal *)data;
+			MOUT(" %d %d %d :", v[i].date_start, v[i].date_end, val = (int)v[i].val);
+		}
 		else if (sigs.type(sid) == T_CompactDateVal) {
 			SCompactDateVal *v = (SCompactDateVal *)data;
 			MOUT(" %d %d ", compact_date_to_date(v[i].compact_date), val= (int)v[i].val);

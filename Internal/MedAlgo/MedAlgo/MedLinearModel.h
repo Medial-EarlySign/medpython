@@ -13,6 +13,8 @@ class MedLinearModel : public MedPredictor, public PredictiveModel
 {
 public:
 	MedLinearModel(int numOdSignals);
+	/// The parsed fields from init command.
+	/// @snippet MedLinearModel.cpp MedLinearModel::init
 	int init(map<string, string>& mapper);
 	subGradientFunction getSubGradients(); ///<Subgradient of RMSE loss function
 	subGradientFunction  getSubGradientsAUC(); ///<Subgradient of smooth auc loss function

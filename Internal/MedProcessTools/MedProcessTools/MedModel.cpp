@@ -206,7 +206,10 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (end_stage <= MED_MDL_INSERT_PREDS)
 		return 0;
 
-	samples.insert_preds(features);
+	if (samples.insert_preds(features) != 0) {
+		MERR("Insertion of predictions to samples failed\n");
+		return -1;
+	}
 
 	return 0;
 }
@@ -360,8 +363,9 @@ void MedModel::set_required_signals(MedDictionarySections& dict) {
 
 }
 
-void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
+void MedModel::concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
 {
+	result.clear();
 	if (vecIndex >= allVecs.size())
 	{
 		result.push_back(strSoFar.substr(0, strSoFar.length() - 1));
@@ -370,7 +374,7 @@ void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecInd
 	for (size_t i = 0; i < allVecs[vecIndex].size(); i++)
 		concatAllCombinations(allVecs, vecIndex + 1, strSoFar + allVecs[vecIndex][i] + ";", result);
 }
-string parse_key_val(string key, string val) {
+string MedModel::parse_key_val(string key, string val) {
 	if (val.length() > 0 && val[0] != '{' && val.find('=') != string::npos) {
 		if (val.find(';') == string::npos)
 			MLOG("found as-is literal string [%s]\n", val.c_str());
@@ -378,7 +382,7 @@ string parse_key_val(string key, string val) {
 	}
 	else return key + "=" + val;
 }
-void fill_list_from_file(const string& fname, vector<string>& list) {
+void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open file %s for read\n", fname.c_str());
@@ -400,7 +404,7 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	inf.close();
 
 }
-string make_absolute_path(const string& main_file, const string& small_file) {
+string MedModel::make_absolute_path(const string& main_file, const string& small_file) {
 	boost::filesystem::path p(main_file);
 	string main_file_path = p.parent_path().string();
 	if (
@@ -412,7 +416,7 @@ string make_absolute_path(const string& main_file, const string& small_file) {
 	MLOG("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
-void alter_json(string &json_contents, vector<string>& alterations) {
+void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 
 	if (alterations.size() == 0) return;
 
@@ -428,7 +432,7 @@ void alter_json(string &json_contents, vector<string>& alterations) {
 		boost::replace_all(json_contents, fields[0], fields[1]);
 	}
 }
-string file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "") {
+string MedModel::file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
 	if (recursion_level > 3)
 		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
 	string fname;
@@ -462,7 +466,8 @@ string file_to_string(int recursion_level, const string& main_file, vector<strin
 	return out_string;
 }
 
-void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
+void MedModel::init_from_json_file_with_alterations_version_1(const string &fname, vector<string>& alterations) {
+	MWARN("USING DEPRECATED MODEL JSON VERSION 1, PLEASE UPGRADE TO model_json_version: 2\n");
 	string json_contents = file_to_string(0, fname, alterations);
 	istringstream no_comments_stream(json_contents);
 

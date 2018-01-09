@@ -10,20 +10,23 @@
 #define DEFAULT_SMPL_FLTR_NTHREADS 8
 
 //.......................................................................................
+/**  SampleFilter is the parent class for creating a list of samples to work on from a
+*		another list and/or a repository <br>
+* Basic functionalities: <br>
+*		learn : learn the filtering parameters from a given MedSamples + optional
+*				MedRepository (this method can be empty) <br>
+*		filter : generate a new MedSample from a given MedSamples + optional MedRepository
+*				This method must be implemented for each inheriting class <br>
+*		Variants for learn and filter : <br>
+*			- no repository required <br>
+*			- in-place filtering <br>
+*/
 //.......................................................................................
-// SampleFilter is the parent class for creating a list of samples to work on from a 
-//		another list and/or a repository
-// Basic functionalities:
-//		learn : learn the filtering parameters from a given MedSamples + optional
-//				MedRepository (this method can be empty)
-//		filter : generate a new MedSample from a given MedSamples + optional MedRepository
-//				This method must be implemented for each inheriting class
-//		Variants for learn and filter :
-//				- no repository required
-//				- in-place filtering
+
 //.......................................................................................
+/** Define types of sample filte </summary>
+*/
 //.......................................................................................
-// Define types of sample filter
 typedef enum {
 	SMPL_FILTER_TRN,
 	SMPL_FILTER_TST,
@@ -37,121 +40,129 @@ typedef enum {
 class SampleFilter : public SerializableObject {
 public:
 
-	// Threading 
-	int nthreads;
-
 	// Type
-	SampleFilterTypes filter_type;
+	SampleFilterTypes filter_type; ///< The type of the filter
 
-	// Constructor/Destructor
-	SampleFilter() { nthreads = DEFAULT_SMPL_FLTR_NTHREADS; };
-	~SampleFilter() {};
+	// create a new sample filter
+	/// <summary> create a new sample filter from name </summary>
+	static SampleFilter *make_filter(string name); 
+	/// <summary> create a new sample filter from type </summary>
+	static SampleFilter *make_filter(SampleFilterTypes type); 
+	/// <summary> create a new sample filter from name and a parameters string</summary>
+	static SampleFilter *make_filter(string name, string params); 
+	///  create a new sample filter from type and a parameters string </summary>
+	static SampleFilter *make_filter(SampleFilterTypes type, string params); 
 
-	// Init from name or type. optinally with a parameters string
-	static SampleFilter *make_filter(string name);
-	static SampleFilter *make_filter(SampleFilterTypes type);
-	static SampleFilter *make_filter(string name, string params);
-	static SampleFilter *make_filter(SampleFilterTypes type, string params);
+	// Initialization
+	/// <summary> initialize from a params object :  Should be implemented for inheriting classes that have parameters </summary>
+	virtual int init(void *params) { return 0; }; 
+	/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
+	virtual int init(map<string, string>& mapper) { return 0; }; 
+	/// <summary> initialize to default values :  Should be implemented for inheriting classes that have parameters </summary>
+	virtual void init_defaults() {}; 
 
-	// initialize : from object/string/defaults.
-	// Should be implemented for inheriting classes that have parameters
-	virtual int init(void *params) { return 0; };
-	virtual int init(map<string, string>& mapper) { return 0; };
-	virtual void init_defaults() {};
-
-	// Learn with Repository
-	// _learn should be implemented for inheriting classes that learn parameters
-	virtual int _learn(MedRepository& rep, MedSamples& samples) { return _learn(samples); }
-	int learn(MedRepository& rep, MedSamples& samples) { return _learn(rep, samples); }
-
-	// Learn without Repository
-	// _learn should be implemented for inheriting classes that learn parameters
+	// Learning : Actually learn 
+	/// <summary> learn with repository : Should be implemented for inheriting classes that learn parameters using Repository information </summary>
+	virtual int _learn(MedRepository& rep, MedSamples& samples) { return _learn(samples); } 
+	/// <summary> learn without repository : Should be implemented for inheriting classes that learn parameters</summary>
 	virtual int _learn(MedSamples& samples) { return 0; }
-	int learn(MedSamples& samples) { return _learn(samples); }
 
-	// Filter with Repository
-	// _filter must be implemented for inheriting classes that use repository for filtering
+	// Learning : Envelopes (Here because of probelsm with overload + inheritance)
+	/// <summary> learn with repository  </summary>
+	virtual int learn(MedRepository& rep, MedSamples& samples) { return _learn(rep,samples); }
+	/// <summary> learn without repository </summary>
+	virtual int learn(MedSamples& samples) { return _learn(samples); }
+
+	// Filtering
+	/// <summary> filter with repository : Should be implemented for inheriting classes that filter using Repository information </summary>
 	virtual int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {return _filter(inSamples,outSamples) ;}
-	int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) { return _filter(rep, inSamples, outSamples); }
-	int filter(MedRepository& rep, MedSamples& samples);
+	/// <summary> _filter without repository : Should be implemented for all inheriting classes </summary>
+	virtual int _filter(MedSamples& inSamples, MedSamples& outSamples) = 0;
 
-	// Filter without Repository
-	// _filter must be implemented for all inheriting classes
-	virtual int _filter(MedSamples& inSamples, MedSamples& outSamples) { return 0; }
-	int filter(MedSamples& inSamples, MedSamples& outSamples) { return _filter(inSamples, outSamples); }
+	// Filtering : Envelopes (Here because of probelsm with overload + inheritance)
+	/// <summary> filter with repository </summary>
+	virtual int filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) { return _filter(rep, inSamples, outSamples); }
+	/// <summary> in-place filtering with repository </summary>
+	int filter(MedRepository& rep, MedSamples& samples);
+	/// <summary> filter without repository : Should be implemented for all inheriting classes </summary>
+	virtual int filter(MedSamples& inSamples, MedSamples& outSamples) { return _filter(inSamples, outSamples); }
+	/// <summary> in-place filtering without repository </summary>
 	int filter(MedSamples& samples);
 
+	/// <summary>  Get all signals required for filtering : Should be implemented for inheriting classes that filter using Repository information </summary>
+	virtual void get_required_signals(vector<string>& req_sigs) { return; }
+
 	// Serialization (including type)
+	/// <summary> get size of filter + filter_type </summary>
 	size_t get_filter_size();
+	/// <summary> seialize filter + filter_type </summary>
 	size_t filter_serialize(unsigned char *blob);
 };
 
 // Utilities
+/// <summary> get SampleFilterType from name </summary>
 SampleFilterTypes sample_filter_name_to_type(const string& filter_name);
 
 //.......................................................................................
-//.......................................................................................
-// Training set filter
-//	- take all controls samples (outcome=0) and all cases before outcomeTime
-//.......................................................................................
+/** Training set filter
+*	 take all controls samples (outcome=0) and all cases before outcomeTime
+*/
 //.......................................................................................
 class BasicTrainFilter : public SampleFilter {
 public:
 
-	BasicTrainFilter() : SampleFilter() { filter_type = SMPL_FILTER_TRN; };
-	~BasicTrainFilter() {};
+	/// <summary> constructor </summary>
+	BasicTrainFilter() { filter_type = SMPL_FILTER_TRN; };
 
-	// Filter
+	/// <summary> Filter without repository </summary>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 };
 
 //.......................................................................................
-//.......................................................................................
-// Test set filter
-//	- dummy filter - take everything
-//.......................................................................................
+/** Test set filter
+*	- dummy filter - take everything
+*/
 //.......................................................................................
 class BasicTestFilter : public SampleFilter {
 public:
 
-	BasicTestFilter() : SampleFilter() { filter_type = SMPL_FILTER_TST; };
+	/// <summary> constructor </summary>
+	BasicTestFilter() { filter_type = SMPL_FILTER_TST; };
 	~BasicTestFilter() {};
 
-	// Filter
+	/// <summary> Filter without repository </summary>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 };
 
-//.......................................................................................
-//.......................................................................................
-// Outliers filter
-//	- A filter that remove samples with outlier-outcomes (suitable for regression)
-//	  Outliers detection is done using MedValueCleaner's methods (through inheritance)
-//.......................................................................................
-//.......................................................................................
 #define SMPL_FLTR_TRIMMING_SD_NUM 7
 #define SMPL_FLTR_REMOVING_SD_NUM 7
-
+//.......................................................................................
+/** Outliers filter
+*	- A filter that remove samples with outlier-outcomes (suitable for regression) <br>
+*	  Outliers detection is done using MedValueCleaner's methods (through inheritance)
+*/
+//.......................................................................................
 class OutlierSampleFilter : public SampleFilter, public MedValueCleaner {
 public:
 
+	/// <summary> constructor </summary>
 	OutlierSampleFilter() : SampleFilter() { init_defaults(); };
-	~OutlierSampleFilter() {};
 
-	// Filter
-	int _filter(MedSamples& inSamples, MedSamples& outSamples);
-
-	// Learning : check outlier-detection method and call appropriate learner (iterative/quantile)
+	/// <summary> Learning : check outlier-detection method and call appropriate learner (iterative/quantile) </summary>
 	int _learn(MedSamples& samples);
-	// Learning : learn outliers using MedValueCleaner's iterative approximation of moments
+	/// <summary> Learning : learn outliers using MedValueCleaner's iterative approximation of moments </summary>
 	int iterativeLearn(MedSamples& samples);
-	// Learning : learn outliers using MedValueCleaner's quantile appeoximation of moments
+	/// <summary> Learning : learn outliers using MedValueCleaner's quantile appeoximation of moments </summary>
 	int quantileLearn(MedSamples& samples);
-	// Helper for learning - extract all outcomes from samples.
+	/// <summary> Helper for learning - extract all outcomes from samples  </summary>
 	void get_values(MedSamples& samples, vector<float>& values);
 
-	// Init from map
+	/// <summary> Filter without repository </summary>
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
+
+	/// <summary> init from map </summary>
 	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); }
-	// Init defualts
+	/// <summary> init to defaults </summary>
 	void init_defaults() {
 		filter_type = SMPL_FILTER_OUTLIERS;
 		params.trimming_sd_num = SMPL_FLTR_TRIMMING_SD_NUM; params.removing_sd_num = SMPL_FLTR_REMOVING_SD_NUM;
@@ -169,45 +180,35 @@ public:
 };
 
 //.......................................................................................
+/** Define types of matching criteria </summary>
+*/
 //.......................................................................................
-// Matching filter 
-//	- match cases and controls according to a set of matching strata
-//  - matching creiterion can be
-//		- value of signal within window
-//		- age 
-//		- sample time
-//
-//	- Each sample is assigned to a bin according to the vector of strata.
-//	  The optimal case/control sampling ratio is then found, when each control that is
-//	  removed costs 1 point and each case costs eventToControlPriceRatio points. The 
-//	  maximal control to case ratio is set by matchMaxRatio. One ratio is decided, sampling
-//	  is perfored randomly within each bin.
-//.......................................................................................
-//.......................................................................................
-
 typedef enum {
-	SMPL_MATCH_SIGNAL, // Match by value of signal
-	SMPL_MATCH_AGE,	   // Match by age
-	SMPL_MATCH_TIME,   // Match by time
+	SMPL_MATCH_SIGNAL, ///< Match by value of signal
+	SMPL_MATCH_AGE,	   ///<  Match by age
+	SMPL_MATCH_TIME,   ///<  Match by time
 	SMPL_MATCH_LAST
 } SampleMatchingType;
 
+//.......................................................................................
+/** MatchingParams defines a specific matching criterion
+*/
+//.......................................................................................
 class matchingParams {
 public:
 
-	// Match by ?
-	SampleMatchingType match_type;
+	SampleMatchingType match_type; ///< matching criterion
 
 	// Matching details
-	string signalName; // For matching by signal
-	int timeWindow, windowTimeUnit ; // For matching by signal
-	int matchingTimeUnit; // For matching by time
-	float resolution ;
+	string signalName; ///< signal name for matching by signal
+	int timeWindow, windowTimeUnit ; ///< time-window info For matching by signal
+	int matchingTimeUnit; ///< time-unit for matching by time
+	float resolution ; ///< binnning resolution
 
-	// Helpers (for matching by signal)
-	int signalId;
-	bool isTimeDependent; // is the signal time-dependent (e.g. hemoglobin) or not (e.g. byear)
-	int signalTimeUnit;
+	/// Helpers (for matching by signal)
+	int signalId; ///< matching signal id
+	bool isTimeDependent; ///< flag: is the signal time-dependent (e.g. hemoglobin) or not (e.g. byear)
+	int signalTimeUnit; ///< matching signal time-unit
 
 	// Serialization
 	size_t get_size();
@@ -215,51 +216,71 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
+//.......................................................................................
+/** Matching filter <br>
+*	- match cases and controls according to a set of matching strata <br>
+*   - matching creiterion can be <br>
+*		- value of signal within window <br>
+*		- age  <br>
+*		- sample time <br>
+* <br>
+*	- Each sample is assigned to a bin according to the vector of strata.
+*	  The optimal case/control sampling ratio is then found, when each control that is
+*	  removed costs 1 point and each case costs eventToControlPriceRatio points. The
+*	  maximal control to case ratio is set by matchMaxRatio. One ratio is decided, sampling
+*	  is perfored randomly within each bin.
+*/
+//.......................................................................................
 class MatchingSampleFilter : public SampleFilter {
 public:
 
-	vector<matchingParams> matchingStrata; // Matching parameters
+	vector<matchingParams> matchingStrata; ///< Matching parameters
 
-	float eventToControlPriceRatio = 100.0; // Cost of removing case relative to removing control
-	float matchMaxRatio = 10.0; // Maximal control/case ratio
-	int verbose = 0; // control level of debug printing
+	float eventToControlPriceRatio = 100.0; ///< Cost of removing case relative to removing control
+	float matchMaxRatio = 10.0; ///< Maximal control/case ratio
+	int verbose = 0; ///< control level of debug printing
 
 	// helpers
-	int samplesTimeUnit; // Time unit of samples
-	int byearId, ageId; // signal-id for byear (if given) or age (if directly given)
+	int samplesTimeUnit; ///< Time unit of samples
+	int byearId, ageId; ///< signal-id for byear (if given) or age (if directly given)
 
-	// Constructor/Destructor
+	/// <summary> Constructor </summary>
 	MatchingSampleFilter() { init_defaults(); };
-	~MatchingSampleFilter() {};
 
 	// Initialization
+	/// <summary> init from map </summary>
 	int init(map<string, string>& mapper);
+	/// <summary> init to defaults </summary>
 	void init_defaults() { filter_type = SMPL_FILTER_MATCH; };
 
-	// Add a matching stratum defined by a string
+	/// <summary> Add a matching stratum defined by a string </summary>
 	int addMatchingStrata(string& init_string);
 
 	// Utilities
-	// Check if repository is needed for matching (strata includes signal/age)
+	/// <summary> Check if repository is needed for matching (e.g. strata includes signal/age) </summary>
 	bool isRepRequired();
-	// Check if age is needed for matching
+	/// <summary> Check if age is needed for matching </summary>
 	bool isAgeRequired();
-	// Indexing of a single sample according to strata
+	/// <summary> Indexing of a single sample according to strata </summary>
+	/// <returns> 0 upon success, -1 upon finding an illegal strata definition </returns>
 	int getSampleSignature(MedSample& sample, MedRepository& rep, string& signature);
-	// add indexing of a single sample according to a single stratum to sample's index
+	/// <summary> add indexing of a single sample according to a single stratum to sample's index </summary>
+	/// <returns> 0 upon success, -1 upon finding an illegal strata definition </returns>
 	int addToSampleSignature(MedSample& sample, matchingParams& stratum, MedRepository& rep, string& signature);
-	// initialize values of requried helpers
+	/// <summary> initialize values of requried helpers </summary>
+	/// <returns> 0 upon success, -1 if any of the required signals does not appear in the dictionary </returns>
 	int initHelpers(MedSamples& inSamples, MedRepository& rep);
-	// Get all signals required  for matching
-	int get_required_signals(vector<string> req_sigs);
+	/// <summary>  Get all signals required for matching </summary>
+	void get_required_signals(vector<string>& req_sigs);
 
-	// Filter with repository
+	/// <summary> Filter with repository </summary>
 	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
-	// Filter without repository (return -1 if repository is required)
+	/// <summary> Filter without repository </summary>
+	/// <returns>  -1 if repository is required, 0 othereise </returns>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
-	// Utility for Matching optimization : find optimal case/control ratio. 
-	// the price of giving up 1 control is 1.0, the price of giving up 1 event is w 
+	/// <summary> Utility for Matching optimization : find optimal case/control ratio. </summary>
+	/// <summary> the price of giving up 1 control is 1.0, the price of giving up 1 event is w </summary>
 	float get_pairing_ratio(map<string, pair<int, int>> cnts, float w);
 
 	// Serialization
@@ -268,32 +289,32 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
-
 //.......................................................................................
+/** Required Signal Filter <br>
+*	- Keep only samples with a required signal appearing in a time-window. <br>
+*	- OBSOLETE - REPLACED BY BasicSampleFilter. KEPT HERE FOR BACKWARD COMPETABILITY
+*/
 //.......................................................................................
-// Required Signal Filter 
-//	- Keep only samples with a required signal appearing in a time-window.
-//	- OBSOLETE - REPLACED BY BasicSampleFilter. KEPT HERE FOR BACKWARD COMPETABILITY
-//.......................................................................................
-//.......................................................................................
-
 class RequiredSignalFilter : public SampleFilter {
 public:
 
-	string signalName; // Required signal
-	int timeWindow, windowTimeUnit; // Time before sample-time
+	string signalName; ///< Required signal
+	int timeWindow, windowTimeUnit; ///< Time before sample-time (and time-unit)
 
-									// Constructor/Destructor
+	/// <summary> Constructor </summary>
 	RequiredSignalFilter() { init_defaults(); };
-	~RequiredSignalFilter() {};
 
+	/// <summary> init from map </summary>
 	int init(map<string, string>& mapper);
+	/// <summary> init to defaults </summary>
 	void init_defaults();
 
 	// Filter
+	/// <summary> Filter with repository </summary>
 	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	/// <summary> Filter without repository </summary>
+	/// <returns>  -1 if repository is required, 0 othereise </returns>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
-
 
 	// Serialization
 	size_t get_size();
@@ -301,105 +322,100 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
-
 //.......................................................................................
+/** BasicFilteringParams defines filtering parameters for BasicFilter with helpers
+*/
 //.......................................................................................
-// A general filter to allow the following basics:
-// (1) min and max time of outcomeTime
-// (2) option to allow for a signal to be in some given range (if there is a sample in some given window)
-// (3) option to force N samples of a specific signal within the given range (in the given time window)
-//.......................................................................................
-//.......................................................................................
-
-// Parameters for BasicFilter
 struct BasicFilteringParams : public SerializableObject {
-	// Name of signal to filter by
-	string sig_name;
-	// Time window for deciding on filtering
-	int win_from = 0;
-	int win_to = (int)(1<<30);
-	// Allowed values range for signal
-	float min_val = -1e10;
-	float max_val = 1e10;
-	// Required number of instances of signal within time window
-	int min_Nvals = 1;
-	// Signal parameters
-	int time_channel = 0;
-	int val_channel = 0;
+	string sig_name; ///< Name of signal to filter by	
+	int win_from = 0; ///< Time window for deciding on filtering - start
+	int win_to = (int)(1<<30); ///< Time window for deciding on filtering - end
+	float min_val = -1e10; ///< Allowed values range for signal - minimum
+	float max_val = 1e10;///< Allowed values range for signal - maximum
+	int min_Nvals = 1; ;///< Required number of instances of signal within time window
+	int time_channel = 0; ///< signal time-channel to consider
+	int val_channel = 0; ///< signal value channel to consider
 
-	// Initialization from string
+	/// <summary> Initialization from string </summary>
 	int init_from_string(const string &init_str);
-	// Test filtering criteria. Return 1 if passing and 0 otherwise
+	/// <summary> Test filtering criteria </summary>
+	/// <returns> 1 if passing and 0 otherwise </returns>
 	int test_filter(MedSample &sample, MedRepository &rep, int win_time_unit);
 
-	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals);
+	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals)
 
 private:
-	int sig_id = -1; // uninitialized until first usage
+	int sig_id = -1; ///< signal-id : uninitialized until first usage
 };				
 
-
+//...........................................................................................................
+/** BasicSimpleFilter is a general filter to allow the following basics: <br>
+* (1) min and max time of outcomeTime <br>
+* (2) option to allow for a signal to be in some given range (if there is a sample in some given window) <br>
+* (3) option to force N samples of a specific signal within the given range (in the given time window) <br>
+*/
+//...........................................................................................................
 class BasicSampleFilter : public SampleFilter {
 public:
 
 	// filtering parameters
-	int min_sample_time = 0;
-	int max_sample_time = (int)(1<<30); // these should always be given in the samples' time-unit
-	vector<BasicFilteringParams> bfilters;
-	int winsTimeUnit = MedTime::Days;
+	int min_sample_time = 0; ///< minimal allowed time (should always be given in the samples' time-unit)
+	int max_sample_time = (int)(1<<30); ///< maximal allowed time (should always be given in the samples' time-unit)
+	vector<BasicFilteringParams> bfilters; ///< vector of filters to apply
+	int winsTimeUnit = MedTime::Days; ///< time unit to be used 
 
 	// next is initialized with init string
-	vector<string> req_sigs; // useful to load the repository needed for this filter
+	vector<string> req_sigs; ///< useful to load the repository needed for this filter
 
-	// init from mapped string
+	///<summary> init from mapped string </summary>
 	int init(map<string, string>& mapper);
-
-	int get_req_signals(vector<string> &reqs);
+	/// <summary>  Get all signals required for filtering </summary>
+	void get_required_signals(vector<string>& req_sigs);
 
 	// Filter
+	/// <summary> Filter with repository </summary>
 	int _filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
-	int _filter(MedSamples& inSamples, MedSamples& outSamples); // relevant only if bfilters is empty
+	/// <summary> Filter without repository </summary>
+	/// <returns>  -1 if repository is required, 0 othereise (when bfilters is empty) </returns>
+	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
-	ADD_SERIALIZATION_FUNCS(min_sample_time, max_sample_time, bfilters, winsTimeUnit);
+	ADD_SERIALIZATION_FUNCS(min_sample_time, max_sample_time, bfilters, winsTimeUnit)
 };
 
-//
-// Sanity Simple Filter helps making sanity tests on input data
-//
-// The basic tests optional are:
-// (1) test that the signal actually exist in name (in the signals list in the repository)
-// (2) within a given window: minimal number of tests
-// (3) within a given window: maximal number of outliers
-// (4) count outliers within a given window
-// 
-struct SanitySimpleFilter : public SerializableObject {
-	// Name of signal to filter by
-	string sig_name;
-	// Time window for deciding on filtering
-	int win_from = 0;
-	int win_to = (int)(1<<30);
-	// Allowed values range for signal
-	float min_val = -1e10;
-	float max_val = 1e10;
-	// Required number of instances of signal within time window
-	int min_Nvals = 0;
-	int max_Nvals = -1; // -1 signs to not test this
-
-	int max_outliers = -1; // -1 means don't do the max_outliers test
-
-	int win_time_unit = MedTime::Days;
-
-	// Signal parameters
-	int time_channel = 0;
-	int val_channel = 0;
+//...........................................................................................................
+/** SanitySimpleFilter helps making sanity tests on input data <br>
+* <br>
+* The basic tests optional are: <br>
+* (1) test that the signal actually exist in name (in the signals list in the repository) <br>
+* (2) within a given window: minimal number of tests <br>
+* (3) within a given window: maximal number of outliers <br>
+* (4) count outliers within a given window <br>
+*/
+//...........................................................................................................
+class SanitySimpleFilter : public SerializableObject {
+public:
+	string sig_name; ///< Name of signal to filter by	
+	int win_from = 0; ///< Time window for deciding on filtering - start
+	int win_to = (int)(1 << 30); ///< Time window for deciding on filtering - end
+	float min_val = -1e10; ///< Allowed values range for signal - minimum
+	float max_val = 1e10;///< Allowed values range for signal - maximum
+	int min_Nvals = 1; ;///< Required number of instances of signal within time window
+	int max_Nvals = 1; ;///< Maximal allowed number of instances of signal within time window
+	int time_channel = 0; ///< signal time-channel to consider
+	int val_channel = 0; ///< signal value channel to consider
+	int max_outliers = -1; ///< maximla allowed number of outliers. -1 means don't do the max_outliers test
+	int win_time_unit = MedTime::Days; ///< time unit to be used 
 
 
-	// Initialization from string
+	///<summary> init from mapped string </summary>
 	int init_from_string(const string &init_str);
-	// Test filtering criteria. Return 1 if passing and 0 otherwise
+	///<summary> Test filtering criteria </summary>
+	///<returns> 1 if passing and 0 otherwise </returns>
 	int test_filter(MedSample &sample, MedRepository &rep) {
 		int nvals, noutliers; return test_filter(sample, rep, nvals, noutliers);
 	}
+	///<summary> Test filtering criteria </summary>
+	///<returns> 1 if passing and 0 otherwise </returns>
 	int test_filter(MedSample &sample, MedRepository &rep, int &nvals, int &noutliers);
 
 	// test_filter return codes
@@ -410,12 +426,10 @@ struct SanitySimpleFilter : public SerializableObject {
 	const static int Failed_Max_Nvals = 4;
 	const static int Failed_Outliers = 5;
 
-
-
-	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals, max_Nvals, max_outliers, win_time_unit);
+	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals, max_Nvals, max_outliers, win_time_unit)
 
 private:
-	int sig_id = -1; // uninitialized until first usage
+	int sig_id = -1; ///< signal-id : uninitialized until first usage
 };
 
 //=======================================
@@ -424,5 +438,8 @@ private:
 MEDSERIALIZE_SUPPORT(SanitySimpleFilter);
 MEDSERIALIZE_SUPPORT(BasicFilteringParams);
 MEDSERIALIZE_SUPPORT(BasicSampleFilter);
+MEDSERIALIZE_SUPPORT(MatchingSampleFilter);
+MEDSERIALIZE_SUPPORT(BasicTrainFilter);
+MEDSERIALIZE_SUPPORT(BasicTestFilter);
 
 #endif

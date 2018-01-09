@@ -132,7 +132,7 @@ void get_histogram(vector<float>& vals, vector<pair<float, float> >& hist) {
 float sample_from_histogram(vector<pair<float, float> >& hist) {
 
 	// Generate a random number
-	float r = globalRNG::rand() / (globalRNG::max() + 1.0);
+	float r = (float)(globalRNG::rand() / (globalRNG::max() + 1.0));
 
 	// Sample
 	for (int i = 0; i < hist.size(); i++) {

@@ -157,6 +157,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedValueCleaner::init]
 		if (field == "type") params.type = get_cleaner_type(entry.second);
 		else if (field == "take_log") params.take_log = stoi(entry.second);
 		else if (field == "missing_value") params.missing_value = stof(entry.second);
@@ -179,6 +180,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 			field != "conf_file"&& field != "clean_method"&& field != "signals"&&
 			field != "addRequiredSignals"&&field != "consideredRules")
 			MLOG("Unknonw parameter \'%s\' for MedValueCleaner\n", field.c_str());
+		//! [MedValueCleaner::init]
 
 	}
 

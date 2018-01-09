@@ -112,11 +112,12 @@ int SampleFilter::filter(MedSamples& samples) {
 int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 
 	MedSamples out_samples;
+
 	int rc = filter(rep, samples, out_samples);
 
 	if (rc == 0)	
 		samples = out_samples;
-	
+
 	return rc;
 }
 
@@ -477,8 +478,9 @@ int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 		return -1;
 	}
 	else {
+
 		MedRepository dummyRep;
-		return _filter(dummyRep, inSamples, outSamples);
+		return filter(dummyRep, inSamples, outSamples);
 	}
 }
 
@@ -625,6 +627,10 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 			signature += tempSignature + ":";  
 		}
 	}
+	else {
+		MERR("Unknown matching type %d\n", stratum.match_type);
+		return -1;
+	}
 
 	return 0;
 }
@@ -685,7 +691,7 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 
 //Get all signals required  for matching
 //.......................................................................................
-int MatchingSampleFilter::get_required_signals(vector<string> req_sigs)
+void MatchingSampleFilter::get_required_signals(vector<string>& req_sigs)
 {
 	req_sigs.clear();
 	if (isAgeRequired()) {
@@ -695,10 +701,12 @@ int MatchingSampleFilter::get_required_signals(vector<string> req_sigs)
 			req_sigs.push_back("BYEAR");
 	}
 
-	for (auto &s : matchingStrata)
-		req_sigs.push_back(s.signalName);
+	for (auto &s : matchingStrata) {
+		if (s.signalName != "")
+			req_sigs.push_back(s.signalName);
+	}
 
-	return 0;
+	return ;
 
 }
 
@@ -948,7 +956,7 @@ int BasicSampleFilter::init(map<string, string>& mapper)
 }
 
 //.......................................................................................
-int BasicSampleFilter::get_req_signals(vector<string> &reqs)
+void BasicSampleFilter::get_required_signals(vector<string> &reqs)
 {
 	if (req_sigs.size() == 0) {
 		req_sigs.clear();
@@ -957,7 +965,7 @@ int BasicSampleFilter::get_req_signals(vector<string> &reqs)
 	}
 
 	reqs = req_sigs;
-	return 0;
+	return;
 }
 
 // Filter with repository
@@ -1010,7 +1018,7 @@ int BasicSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 
 	if (bfilters.empty()) {
 		MedRepository dummy;
-		return (_filter(dummy, inSamples, outSamples));
+		return filter(dummy, inSamples, outSamples);
 	}
 	else {
 		MERR("A repository is required for Required-Signal Filter\n");

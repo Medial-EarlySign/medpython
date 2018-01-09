@@ -1729,7 +1729,7 @@ int QRF_Forest::transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, in
 //					qn.values[k] = qrf.yr[trees[i].sample_ids[k + trees[i].nodes[j].from_sample]];
 				qn.values.assign(sorted_values.size(), 0); 
 				qn.tot_n_values = trees[i].nodes[j].to_sample + 1 - trees[i].nodes[j].from_sample;
-				for (unsigned int k = 0; k < qn.tot_n_values; k++) 
+				for (int k = 0; k < qn.tot_n_values; k++) 
 					qn.values[all_values[qrf.yr[trees[i].sample_ids[k + trees[i].nodes[j].from_sample]]]]++;
 			}
 			else

@@ -86,6 +86,7 @@
     <ClCompile Include="IterativeImputer.cpp" />
     <ClCompile Include="MedFeatures.cpp" />
     <ClCompile Include="MedModel.cpp" />
+    <ClCompile Include="MedModelInitFromJson.cpp" />
     <ClCompile Include="MedProcessUtils.cpp" />
     <ClCompile Include="MedSamples.cpp" />
     <ClCompile Include="MedValueCleaner.cpp" />
@@ -118,6 +119,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Config_Examples\chads2_config.json" />
+    <None Include="..\Config_Examples\model_json_version2_example.json" />
     <None Include="..\Config_Examples\fragile_config.json" />
     <None Include="..\Config_Examples\signal_json_ranges.json" />
   </ItemGroup>

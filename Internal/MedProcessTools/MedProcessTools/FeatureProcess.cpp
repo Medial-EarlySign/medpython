@@ -272,8 +272,9 @@ int MultiFeatureProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [MultiFeatureProcessor::init]
 		if (field == "tag") tag = entry.second;
+		//! [MultiFeatureProcessor::init]
 	}
 
 	return 0;
@@ -487,13 +488,14 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [FeatureNormalizer::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
+		//! [FeatureNormalizer::init]
 	}
 
 	return 0;
@@ -591,10 +593,14 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	strata_sizes.resize(stratifiedValues.size());
 	int too_small_stratas = 0;
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
-		strata_sizes[i] = (int)stratifiedValues[i].size();
-		if (strata_sizes[i] < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+
+		strata_sizes[i] = (int) stratifiedValues[i].size();
+		if (strata_sizes[i] < min_samples) { // Not enough values to make valid imputation
 			too_small_stratas++;
-			moments[i] = missing_value;
+			if (moment_type == IMPUTE_MMNT_SAMPLE)
+				histograms[i].push_back({ missing_value,1.0 });
+			else
+				moments[i] = missing_value;
 		}
 		else if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
@@ -606,18 +612,19 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		else if (moment_type == IMPUTE_MMNT_COMMON)
 			get_common(stratifiedValues[i], moments[i]);
-		else if (moment_type == IMPUTE_MMNT_SAMPLE)
+		else if (moment_type == IMPUTE_MMNT_SAMPLE) {
 			get_histogram(stratifiedValues[i], histograms[i]);
+		}
 		else {
 			MERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 		}
 	}
 	if (too_small_stratas > 0)
 		MLOG("NOTE: featureImputer found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
-			MIN_SAMPLES_IN_STRATA_FOR_LEARNING, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-	if (all_existing_values.size() < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+			min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+	if (all_existing_values.size() < min_samples) {
 		MLOG("NOTE: featureImputer found only %d < %d samples over all for [%s], will not impute it at all\n",
-			all_existing_values.size(), MIN_SAMPLES_IN_STRATA_FOR_LEARNING, feature_name.c_str());
+			all_existing_values.size(), min_samples, feature_name.c_str());
 	}
 	else if (moment_type == IMPUTE_MMNT_MEAN)
 		get_mean(all_existing_values, default_moment);
@@ -694,7 +701,9 @@ int FeatureImputer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		if (field == "moment_type") moment_type = getMomentType(entry.second); 
+		else if (field == "min_samples") min_samples = stoi(entry.second);
+		//! [FeatureImputer::init]
 		if (field == "moment_type") moment_type = getMomentType(entry.second);
 		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field == "strata") {
@@ -703,6 +712,7 @@ int FeatureImputer::init(map<string, string>& mapper) {
 		}
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
+		//! [FeatureImputer::init]
 	}
 
 	return 0;

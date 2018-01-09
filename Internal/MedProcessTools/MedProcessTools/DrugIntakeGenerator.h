@@ -22,7 +22,8 @@ public:
 	DrugIntakeGenerator() : FeatureGenerator() { init_defaults(); };
 	~DrugIntakeGenerator() {};
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet DrugIntakeGenerator.cpp DrugIntakeGenerator::init
 	int init(map<string, string>& mapper);
 	void init_defaults();
 

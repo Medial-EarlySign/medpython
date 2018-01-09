@@ -414,6 +414,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [BasicFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -430,6 +431,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
+		//! [BasicFeatGenerator::init]
 	}
 
 	// names for BasicFeatGenerator are set as a first step in the Learn call as we must have access to the MedRepository
@@ -529,7 +531,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		
+		//! [RangeFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
@@ -542,6 +544,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "check_first") check_first = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+		//! [RangeFeatGenerator::init]
 	}
 
 	// set names and required signals
@@ -1108,7 +1111,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	int no_lut_ind = 0;
-	int time_diff=missing_val;
+	float time_diff= missing_val;
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
 		int toTime = usv.Time(i, 1);
@@ -1122,7 +1125,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 				int max_time = fromTime;
 				if (win_from > max_time) max_time = win_from;
 				
-				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time);
+				time_diff = (float) time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time);
 				//fprintf(stderr, "max_time: %i time :%i from_time:%i win_from:%i time_diff:%i\n", max_time, time, fromTime, win_from, time_diff);
 				return time_diff;
 			}
@@ -1130,7 +1133,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 				//in case of last range
 				int time_to_diff = toTime;
 				if (win_to < toTime) time_to_diff = win_to;
-				time_diff = time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, time_to_diff);
+				time_diff = (float) +  time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, time_to_diff);
 			}
 		}
 		else
@@ -1143,7 +1146,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 
 	//in case of range exists but no lut
 	if (no_lut_ind == 1) {
-			time_diff = -1* win_to;
+			time_diff = -1.0F* win_to;
 		return time_diff;
 	}
 	//in case of no range in the time window
@@ -1151,7 +1154,8 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 		return missing_val;
 	}
 }
-// ComorbidityGenerator
+
+// ModelFeatureGenerator
 //=======================================================================================
 
 //................................................................................................................
@@ -1178,12 +1182,13 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [ModelFeatGenerator::init]
 		if (field == "name") modelName = entry.second;
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "n_preds") n_preds = stoi(entry.second);
 		else if (field != "fg_type")
-			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+			MLOG("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
+		//! [ModelFeatGenerator::init]
 	}
 
 	// set names
@@ -1194,13 +1199,13 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 	if (_model->read_from_file(modelFile) != 0)
 		MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
 
-	init(_model);
+	init_from_model(_model);
 	return 0;
 }
 
 // Copy Model and get required signal
 //.......................................................................................
-int ModelFeatGenerator::init(MedModel *_model) {
+int ModelFeatGenerator::init_from_model(MedModel *_model) {
 
 	generator_type = FTR_GEN_MODEL;
 	model = _model;
@@ -1209,25 +1214,53 @@ int ModelFeatGenerator::init(MedModel *_model) {
 	model->get_required_signal_names(required);
 	for (string signal : required)
 		req_signals.push_back(signal);
+	
+	set_names();
 	return 0;
 }
 
+/// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
+//.......................................................................................
+void ModelFeatGenerator::load(MedSamples& inSamples, MedSamples& modelSamples) {
 
-// Do the actual prediction prior to feature generation ...
+	// Sanity check ...
+	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples,0))
+		MTHROW_AND_ERR("inSamples is not identical to model samples in ModelFeatGenerator::load\n");
+
+	preds.resize(inSamples.nSamples()*n_preds);
+
+	int idx = 0;
+	for (auto& idSamples : inSamples.idSamples) {
+		for (auto& sample : idSamples.samples) {
+			if (sample.prediction.size() < n_preds)
+				MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds);
+
+			for (int i = 0; i < n_preds; i++)
+				preds[idx++] = sample.prediction[i];
+		}
+	}
+
+	set_names();
+
+}
+
+// Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
 
-	// Predict
-	model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS,MED_MDL_APPLY_PREDICTOR);
+	if (preds.empty()) {
+		// Predict
+		model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR);
 
-	// Extract predictions
-	if (model->features.samples[0].prediction.size() < n_preds)
-		MTHROW_AND_ERR("Cannot generate feature %s\n", names[model->features.samples[0].prediction.size()].c_str());
+		// Extract predictions
+		if (model->features.samples[0].prediction.size() < n_preds)
+			MTHROW_AND_ERR("Cannot generate feature %s\n", names[model->features.samples[0].prediction.size()].c_str());
 
-	preds.resize(n_preds*model->features.samples.size());
-	for (int i = 0; i < model->features.samples.size(); i++) {
-		for (int j = 0; j < n_preds; j++)
-			preds[i*n_preds + j] = model->features.samples[i].prediction[j];
+		preds.resize(n_preds*model->features.samples.size());
+		for (int i = 0; i < model->features.samples.size(); i++) {
+			for (int j = 0; j < n_preds; j++)
+				preds[i*n_preds + j] = model->features.samples[i].prediction[j];
+		}
 	}
 
 	FeatureGenerator::prepare(features, rep, samples);

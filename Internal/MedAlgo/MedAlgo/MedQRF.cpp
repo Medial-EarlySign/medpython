@@ -128,6 +128,7 @@ int MedQRF::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedQRF::init]
 		if (field == "ntrees") params.ntrees = stoi(entry.second);
 		else if (field == "maxq") params.maxq = stoi(entry.second);
 		else if (field == "type") params.type = get_tree_type(entry.second);
@@ -163,6 +164,7 @@ int MedQRF::init(map<string, string>& mapper) {
 			}
 		}
 		else MLOG("Unknown parameter \'%s\' for QRF\n", field.c_str());
+		//! [MedQRF::init]
 
 	}
 
