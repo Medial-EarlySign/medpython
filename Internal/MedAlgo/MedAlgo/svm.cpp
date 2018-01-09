@@ -2654,7 +2654,7 @@ int svm_save_model(const char *model_file_name, const svm_model *model)
 
 	char *old_locale = setlocale(LC_ALL, NULL);
 	if (old_locale) {
-		old_locale = strdup(old_locale);
+		old_locale = _strdup(old_locale);
 	}
 	setlocale(LC_ALL, "C");
 
@@ -2894,7 +2894,7 @@ svm_model *svm_load_model(const char *model_file_name)
 
 	char *old_locale = setlocale(LC_ALL, NULL);
 	if (old_locale) {
-		old_locale = strdup(old_locale);
+		old_locale = _strdup(old_locale);
 	}
 	setlocale(LC_ALL, "C");
 

@@ -103,7 +103,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 				for (string c : all_combinations)
 					add_process_to_set(process_set, duplicate, c);
-				num_actions += all_combinations.size();
+				num_actions += (int)(all_combinations.size());
 			}
 			MLOG("added %d actions to [%s] set %d\n", num_actions, action_type.c_str(), process_set);
 		}
