@@ -55,7 +55,7 @@ public:
 	double convert_times_D(int from_type, int to_type, double in_time);
 
 	/// <summary>
-	/// init of time table 
+	/// init of time table
 	/// </summary>
 	void init_time_tables();
 
