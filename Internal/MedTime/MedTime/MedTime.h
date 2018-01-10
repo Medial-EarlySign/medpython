@@ -75,6 +75,7 @@ public:
 	int convert_minutes(int to_type, int in_time);
 	int add_subtruct_days(int in_time, int delta_days);
 
+	///Convert string to type
 	int string_to_type(const string &str);
 
 };
