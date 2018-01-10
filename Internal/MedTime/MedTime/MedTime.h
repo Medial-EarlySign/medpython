@@ -57,6 +57,14 @@ public:
 
 	void init_time_tables();
 
+	/// <summary>
+	/// Converts time formats from date format as input. 
+	/// usefull for converting dates to days from 1900 for example to
+	/// calculate days diff.
+	/// </summary>
+	/// <returns>
+	/// returns the time in new format
+	/// </returns>
 	int convert_date(int to_type, int in_time);
 	int convert_years(int to_type, int in_time);
 	int convert_months(int to_type, int in_time);
