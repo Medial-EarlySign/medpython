@@ -42,6 +42,13 @@ public:
 	// when times are given/returned in int they are rounded to the floor
 	// then times are given/returned in double they are in fractions of the given/requested unit
 
+	/// <summary>
+	/// Converts time formats. usefull for converting dates to days from 1900 for example to
+	/// calculate days diff.
+	/// </summary>
+	/// <returns>
+	/// returns the time in new format
+	/// </returns>
 	int convert_times(int from_type, int to_type, int in_time);
 	int convert_times(int from_type, int to_type, double in_time);
 	double convert_times_D(int from_type, int to_type, int in_time);
