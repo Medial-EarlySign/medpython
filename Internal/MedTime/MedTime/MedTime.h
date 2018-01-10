@@ -77,6 +77,9 @@ public:
 
 };
 
+/// <summary>
+/// global time converter.
+/// </summary>
 extern MedTime med_time_converter;
 
 
