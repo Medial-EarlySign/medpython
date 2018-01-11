@@ -84,7 +84,11 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 		}
 		else if (calc_type == "min_chads2_vasc" || calc_type == "max_chads_vasc2") {
 			raw_source_feature_names = { "Age", "DM_Registry", "HT_Registry", "strokeIndicator", "chfIndicator","Gender","vascIndicator" };
-		} 
+		}
+		else if (calc_type == "framingham_chd") {
+			raw_source_feature_names = { "Gender","Age", "DM_Registry", "Current_Smoker", "BP.last.win_0_1095", "BP.last.win_0_1095.t0v1","Cholesterol.last.win_0_1095","LDL.last.win_0_1095"};
+		}
+
 	}
 
 	// Set name
@@ -122,10 +126,11 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 		p_sources.push_back(&(features.data[source][0]));
 	}
 
-
 	// Do your stuff
 	if (calc_type == "sum")
 		sum(p_sources, p_out, samples_size);
+	else if (calc_type == "framingham_chd")
+		framingham_chd(p_sources, p_out, samples_size);
 	else if (calc_type == "min_chads2")
 		chads2(p_sources, p_out, samples_size, 0, 0);
 	else if (calc_type == "max_chads2")
@@ -286,6 +291,70 @@ void DoCalcFeatProcessor::has_bled(vector<float*> p_sources, float *p_out, int n
 	return;
 
 }
+
+
+void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out, int n_samples) {
+	// www.framinghamheartstudy.org/risk-functions/cardiovascular-disease/10-year-risk.php
+	for (int i = 0; i < n_samples; i++) {
+		float res = 0.0;
+		float res1 = 0.0;
+
+		float gender = p_sources[0][i];
+		float Age = p_sources[1][i];
+		float DM_Registry = p_sources[2][i];
+		float Current_Smoker = p_sources[3][i];
+		float BP_dia = p_sources[4][i];
+		float BP_sys = p_sources[5][i];
+		float chol = p_sources[6][i];
+		float hdl = p_sources[7][i];
+		float BP_drug = p_sources[8][i];
+
+		if (DM_Registry== missing_value || Current_Smoker == missing_value || BP_dia == missing_value || BP_sys == missing_value || chol == missing_value || hdl == missing_value)
+			MTHROW_AND_ERR("CalcFeatGenerator framingham_chd found missing value need to use imputer");
+		//Men
+
+		if (1 == 1) {
+			float sum_beta = 0.0;
+			if (gender == 1) {
+				sum_beta += log(Age)*3.06117;
+				sum_beta += log(chol)*1.12370;
+				sum_beta += log(hdl)*-0.93263;
+				
+				if (BP_drug==0) 
+					sum_beta += log(BP_sys)*1.93303;
+				else 
+					sum_beta += log(BP_sys)*1.99881;
+
+				sum_beta += Current_Smoker*0.65451;
+				sum_beta += DM_Registry*0.57367;
+				res = 1 - pow(0.88936, exp(sum_beta - 23.9802));
+
+			}
+			//Women
+			else {
+				sum_beta += log(Age)*2.32888;
+				sum_beta += log(chol)*1.20904;
+				sum_beta += log(hdl)*-0.70833;
+				
+				if (BP_drug == 0)
+					sum_beta += log(BP_sys)*2.76157;
+				else 
+					sum_beta += log(BP_sys)*2.82263;
+
+				sum_beta += Current_Smoker*0.52873;
+				sum_beta += DM_Registry*0.69154;
+				res = 1 - pow(0.95012, exp(sum_beta - 26.1931));
+			}
+		}
+
+
+		p_out[i] = res;
+	}
+}
+
+
+
+
 
 void DoCalcFeatProcessor::fragile(vector<float*> p_sources, float *p_out, int n_samples) {
 	for (int i = 0; i < n_samples; i++) {

@@ -42,14 +42,31 @@ public:
 	// when times are given/returned in int they are rounded to the floor
 	// then times are given/returned in double they are in fractions of the given/requested unit
 
+	/// <summary>
+	/// Converts time formats. usefull for converting dates to days from 1900 for example to
+	/// calculate days diff.
+	/// </summary>
+	/// <returns>
+	/// returns the time in new format
+	/// </returns>
 	int convert_times(int from_type, int to_type, int in_time);
 	int convert_times(int from_type, int to_type, double in_time);
 	double convert_times_D(int from_type, int to_type, int in_time);
 	double convert_times_D(int from_type, int to_type, double in_time);
 
-
+	/// <summary>
+	/// init of time table
+	/// </summary>
 	void init_time_tables();
 
+	/// <summary>
+	/// Converts time formats from date format as input. 
+	/// usefull for converting dates to days from 1900 for example to
+	/// calculate days diff.
+	/// </summary>
+	/// <returns>
+	/// returns the time in new format
+	/// </returns>
 	int convert_date(int to_type, int in_time);
 	int convert_years(int to_type, int in_time);
 	int convert_months(int to_type, int in_time);
@@ -58,10 +75,14 @@ public:
 	int convert_minutes(int to_type, int in_time);
 	int add_subtruct_days(int in_time, int delta_days);
 
+	///Convert string to type
 	int string_to_type(const string &str);
 
 };
 
+/// <summary>
+/// global time converter.
+/// </summary>
 extern MedTime med_time_converter;
 
 
