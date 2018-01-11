@@ -61,6 +61,9 @@ public:
 	// All required signals
 	unordered_set<int> required_signals;
 
+	// all collected virtual signals (name to type)
+	map<string, int> virtual_signals;
+
 	// Constructor/Destructor
 	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
 	~MedModel() { clear(); };
