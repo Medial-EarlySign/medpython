@@ -1,6 +1,17 @@
 /// @file
 /// Logger.h - allowing logs with more control
 ///
+/// next are codes for libraries sections using Logger\n
+/// Application codes should use LOG_APP as the LOCAL_SECTION code\n
+/// each c file using the logger should contain at top something like:\n
+/// #include "Logger/Logger/Logger.h"\n
+/// #define LOCAL_SECTION LOG_APP\n
+/// #define LOCAL_LEVEL	LOG_DEF_LEVEL\n
+/// extern MedLogger global_logger;\n
+///\n
+/// specific sections should use the section code instead of LOG_APP . \n
+/// LOCAL_LEVEL can be changed to something else to allow more or less verbal logs.\n
+///\n
 
 #ifndef __LOGGER__H__
 #define __LOGGER__H__
@@ -16,18 +27,6 @@
 #include <sstream>
 
 using namespace std;
-
-/// next are codes for libraries sections using Logger\n
-/// Application codes should use LOG_APP as the LOCAL_SECTION code\n
-/// each c file using the logger should contain at top something like:\n
-/// #include "Logger/Logger/Logger.h"\n
-/// #define LOCAL_SECTION LOG_APP\n
-/// #define LOCAL_LEVEL	LOG_DEF_LEVEL\n
-/// extern MedLogger global_logger;\n
-///\n
-/// specific sections should use the section code instead of LOG_APP . \n
-/// LOCAL_LEVEL can be changed to something else to allow more or less verbal logs.\n
-///\n
 
 /// user apps section
 #define LOG_APP		 0
