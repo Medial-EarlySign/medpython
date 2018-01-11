@@ -86,6 +86,7 @@ int MedDeepBit::init(map<string, string>& mapper) {
 	init_defaults();
 	for (auto& entry : mapper) {
 		string field = entry.first;
+		//! [MedDeepBit::init]
 		if (field == "max_depth") params.max_depth = stoi(entry.second);
 		else if (field == "num_iterations") params.num_iterations = stoi(entry.second);
 		else if (field == "num_ftrs_per_round") params.num_ftrs_per_round = stoi(entry.second);
@@ -103,6 +104,7 @@ int MedDeepBit::init(map<string, string>& mapper) {
 		else if (field == "min_cor_bin_ftr") params.min_cor_bin_ftr = stof(entry.second);
 
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
+		//! [MedDeepBit::init]
 	}
 	return 0;
 }

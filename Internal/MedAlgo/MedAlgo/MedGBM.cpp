@@ -50,6 +50,7 @@ int MedGBM::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedGBM::init]
 		if (field == "bag_p") params.bag_p = stod(entry.second);
 		else if (field == "depth") params.depth = stoi(entry.second);
 		else if (field == "min_obs_in_node") params.min_obs_in_node = stoi(entry.second);
@@ -59,6 +60,7 @@ int MedGBM::init(map<string, string>& mapper) {
 		else if (field == "loss_function") loss_function = get_loss_function(entry.second);
 		else if (field == "alpha_quantile") alpha_quantile = stod(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for GBM\n", field.c_str());
+		//! [MedGBM::init]
 	}
 
 	return 0;

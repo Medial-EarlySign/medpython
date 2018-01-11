@@ -65,7 +65,7 @@ int MedLM::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [MedLM::init]
 		if (field == "eiter") params.eiter = stof(entry.second);
 		else if (field == "niter") params.niter = stoi(entry.second);
 		else if (field == "rfactor") params.rfactor = stof(entry.second);
@@ -89,6 +89,7 @@ int MedLM::init(map<string, string>& mapper) {
 			}
 		}
 		else MLOG("Unknonw parameter \'%s\' for LM\n", field.c_str());
+		//! [MedLM::init]
 	}
 	return 0;
 }

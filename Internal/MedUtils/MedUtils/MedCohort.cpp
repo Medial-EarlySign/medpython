@@ -44,13 +44,12 @@ int CohortRec::init(map<string, string>& map)
 
 // Represent a cohort as a tab-delimited string
 //-------------------------------------------------------------------------------------
-int CohortRec::get_string(string &to_str)
+void CohortRec::get_string(string &to_str)
 {
 	to_str = to_string(pid) + "\t" + to_string(from) + "\t" + to_string(to) + "\t" + to_string(outcome_date) + "\t" + to_string(outcome);
-	return 0;
 }
 
-// Get a cohort from a tab-delimited string
+// Get a cohort from a tab-delimited string. Return -1 if wrong number of fields, 0 upon success
 //-------------------------------------------------------------------------------------
 int CohortRec::from_string(string &from_str)
 {
@@ -135,7 +134,7 @@ int IncidenceParams::init(map<string, string>& map)
 //=====================================================================================
 // MedCohort
 //=====================================================================================
-// Read from tab-delimeted file
+// Read from tab-delimeted file. Return -1 if fail to open file
 //-------------------------------------------------------------------------------------
 int MedCohort::read_from_file(string fname)
 {
@@ -170,7 +169,7 @@ int MedCohort::read_from_file(string fname)
 	return 0;
 }
 
-// Write to tab-delimeted file
+// Write to tab-delimeted file. Return -1 if fail to open file
 //-------------------------------------------------------------------------------------
 int MedCohort::write_to_file(string fname)
 {
@@ -195,16 +194,16 @@ int MedCohort::write_to_file(string fname)
 
 // Get all pids
 //-------------------------------------------------------------------------------------
-int MedCohort::get_pids(vector<int> &pids)
+void MedCohort::get_pids(vector<int> &pids)
 {
 	pids.clear();
 	for (auto &cr : recs) pids.push_back(cr.pid);
-	return 0;
 }
 
 // Generate an incidence file from cohort + incidence-params
 // Check all patient-years within cohort that fit to IncidenceParams and count positive outcomes within i_params.incidence_years_window
 // Outcome - incidence per age-bin - is written to file
+// Return 0 upon success. -1 upon failre to read repository
 //-------------------------------------------------------------------------------------
 int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 {
@@ -244,10 +243,24 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 
 	vector<int> all_cnts ={ 0,0 };
 
+	//
+	// To Estimate the annual statistics for the given time window we do the following:
+	// We try to estimate the incidence at each 1.1.YYYY and then to weight average over all different years.
+	// To do that we look at a cohort record that has a from_date and to_date , where in outcome==0 (controls) the to_date
+	// is the last KNOWN date to be 0, and in cases (outcome!=0) it is the first date of conversion from case to control.
+	//
+	// Therefore:
+	// (1) If the 1.1.YYYY is contained in the 0 period we count it as a 0 sample.
+	// (2) If the 1.1.YYYY is contained in the 0 period AND the outcomedate for 1 is IN YYYY (or after if measuring longer periods) we count it as 1.
+	//
+
+
 	for (auto &crec : recs) {
 		int fyear = crec.from / 10000;
-		int to_date = crec.to;
+		if ((crec.from % 10000) > 0101) fyear++;
+		int to_date = crec.to; 
 		if (crec.outcome != 0) to_date = crec.outcome_date;
+		else to_date -= i_params.incidence_years_window*10000;
 		int tyear = to_date / 10000;
 		int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
 		int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
@@ -314,8 +327,11 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 
 	//New Format:
 	ofstream of_new(out_file + ".new_format");
-	if (!of_new.good())
-		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (out_file + ".new_format").c_str());
+	if (!of_new.good()) {
+		MERR("IO Error: can't write \"%s\"\n", (out_file + ".new_format").c_str());
+		return -1;
+	}
+
 	of_new << "AGE_BIN" << "\t" << i_params.age_bin << "\n";
 	of_new << "AGE_MIN" << "\t" << i_params.from_age << "\n";
 	of_new << "AGE_MAX" << "\t" << i_params.to_age << "\n";
@@ -354,6 +370,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 // Generate a samples file from cohort + sampling-params
 // Generate samples within cohort times that fit SampleingParams criteria and windows.
 // Sample dates are selected randomly for each window of s_params.jump_days in the legal period, and written to file
+// Return 0 upon success. -1 upon failre to read repository
 //-------------------------------------------------------------------------------------
 int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_file)
 {

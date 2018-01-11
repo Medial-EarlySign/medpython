@@ -3,6 +3,9 @@
 
 void generateAlcoholRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal);
 
+/** @file
+* Generation of Alcohol use
+*/
 class AlcoholGenerator : public FeatureGenerator {
 public:
 	// source_feature_names as specified by the user, will be resolved to decorated names
@@ -13,7 +16,11 @@ public:
 	AlcoholGenerator() : FeatureGenerator() { generator_type = FTR_GEN_ALCOHOL; req_signals.push_back("Alcohol_quantity"); req_signals.push_back("BYEAR");	}
 	~AlcoholGenerator() {};
 
+
+	/// The parsed fields from init command.
+	/// @snippet AlcoholGenerator.cpp AlcoholGenerator::init
 	virtual int init(map<string, string>& mapper);
+	
 
 	// Name
 	void set_names();

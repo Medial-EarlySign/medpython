@@ -26,6 +26,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [SmokingGenerator::init]
 		if (field == "smoking_features")
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "smoking_method")
@@ -38,6 +39,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 			iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for SmokingGenerator\n", field.c_str());
+		//! [SmokingGenerator::init]
 
 	}
 	set_names();

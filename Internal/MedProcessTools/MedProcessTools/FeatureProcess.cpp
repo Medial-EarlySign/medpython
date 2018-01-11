@@ -11,7 +11,7 @@
 // Feature Processors
 //=======================================================================================
 // Processor types
-FeatureProcessorTypes feature_processor_name_to_type(const string& processor_name) 
+FeatureProcessorTypes feature_processor_name_to_type(const string& processor_name)
 {
 	if (processor_name == "multi_processor" || processor_name == "multi")
 		return FTR_PROCESS_MULTI;
@@ -35,6 +35,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_REMOVE_DGNRT_FTRS;
 	else if (processor_name == "tags_selector")
 		return FTR_PROCESSOR_TAGS_SELECTOR;
+	else if (processor_name == "importance_selector")
+		return FTR_PROCESSOR_IMPORTANCE_SELECTOR;
 	else if (processor_name == "pca")
 		return FTR_PROCESS_ENCODER_PCA;
 	else
@@ -52,7 +54,7 @@ FeatureProcessor* FeatureProcessor::make_processor(string processor_name) {
 FeatureProcessor * FeatureProcessor::make_processor(string processor_name, string init_string) {
 
 	FeatureProcessorTypes type = feature_processor_name_to_type(processor_name);
-	return make_processor(type , init_string);
+	return make_processor(type, init_string);
 }
 
 //.......................................................................................
@@ -82,6 +84,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new FeaturePCA;
 	else if (processor_type == FTR_PROCESSOR_TAGS_SELECTOR)
 		return new TagFeatureSelector;
+	else if (processor_type == FTR_PROCESSOR_IMPORTANCE_SELECTOR)
+		return new ImportanceFeatureSelector;
 	else
 		return NULL;
 
@@ -176,7 +180,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 	if (processors.size() == 1) omp_set_nested(2);
 
 #pragma omp parallel for schedule(dynamic)
-	for (int j = 0; j<processors.size(); j++) {
+	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->Learn(features, ids);
 #pragma omp critical
 		if (rc < 0) RC = -1;
@@ -191,7 +195,7 @@ int MultiFeatureProcessor::Apply(MedFeatures& features, unordered_set<int>& ids)
 
 	int RC = 0;
 #pragma omp parallel for schedule(dynamic)
-	for (int j = 0; j<processors.size(); j++) {
+	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->Apply(features, ids);
 #pragma omp critical
 		if (rc < 0) RC = -1;
@@ -213,7 +217,7 @@ void MultiFeatureProcessor::get_feature_names(vector<string>& all_feature_names)
 // Add processors
 //.......................................................................................
 void  MultiFeatureProcessor::add_processors_set(FeatureProcessorTypes type, vector<string>& features) {
-	
+
 	for (string& feature : features) {
 		FeatureProcessor *processor = FeatureProcessor::make_processor(type);
 		processor->set_feature_name(feature);
@@ -222,7 +226,7 @@ void  MultiFeatureProcessor::add_processors_set(FeatureProcessorTypes type, vect
 }
 
 void  MultiFeatureProcessor::add_processors_set(FeatureProcessorTypes type, vector<string>& features, string init_string) {
-	
+
 	for (string& feature : features) {
 		FeatureProcessor *processor = FeatureProcessor::make_processor(type, init_string);
 		processor->set_feature_name(feature);
@@ -268,8 +272,9 @@ int MultiFeatureProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [MultiFeatureProcessor::init]
 		if (field == "tag") tag = entry.second;
+		//! [MultiFeatureProcessor::init]
 	}
 
 	return 0;
@@ -460,8 +465,9 @@ int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 				data[i] -= mean;
 				if (normalizeSd)
 					data[i] /= sd;
-			} else if (fillMissing)
-					data[i] = 0;
+			}
+			else if (fillMissing)
+				data[i] = 0;
 		}
 		if (!isfinite(data[i]))
 			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);
@@ -482,13 +488,14 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [FeatureNormalizer::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
-				MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
+			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
+		//! [FeatureNormalizer::init]
 	}
 
 	return 0;
@@ -559,9 +566,9 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Collect
 	imputerStrata.getFactors();
-//	for (int i = 0; i < imputerStrata.nStratas(); i++)
-//		MLOG("starta [%s] factor [%d]\n", imputerStrata.stratas[i].name.c_str(), imputerStrata.factors[i]);
-//	MLOG("total stratas [%d]\n", imputerStrata.nValues());
+	//	for (int i = 0; i < imputerStrata.nStratas(); i++)
+	//		MLOG("starta [%s] factor [%d]\n", imputerStrata.stratas[i].name.c_str(), imputerStrata.factors[i]);
+	//	MLOG("total stratas [%d]\n", imputerStrata.nValues());
 
 	vector<vector<float> > stratifiedValues(imputerStrata.nValues());
 	vector<float> all_existing_values;
@@ -586,10 +593,14 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	strata_sizes.resize(stratifiedValues.size());
 	int too_small_stratas = 0;
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
+
 		strata_sizes[i] = (int) stratifiedValues[i].size();
-		if (strata_sizes[i] < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+		if (strata_sizes[i] < min_samples) { // Not enough values to make valid imputation
 			too_small_stratas++;
-			moments[i] = missing_value;
+			if (moment_type == IMPUTE_MMNT_SAMPLE)
+				histograms[i].push_back({ missing_value,(float)1.0 });
+			else
+				moments[i] = missing_value;
 		}
 		else if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(stratifiedValues[i], moments[i]);
@@ -601,22 +612,25 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		else if (moment_type == IMPUTE_MMNT_COMMON)
 			get_common(stratifiedValues[i], moments[i]);
-		else if (moment_type == IMPUTE_MMNT_SAMPLE)
+		else if (moment_type == IMPUTE_MMNT_SAMPLE) {
 			get_histogram(stratifiedValues[i], histograms[i]);
+		}
 		else {
 			MERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 		}
 	}
 	if (too_small_stratas > 0)
 		MLOG("NOTE: featureImputer found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
-			MIN_SAMPLES_IN_STRATA_FOR_LEARNING, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-	if (all_existing_values.size() < MIN_SAMPLES_IN_STRATA_FOR_LEARNING) {
+			min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+	if (all_existing_values.size() < min_samples) {
 		MLOG("NOTE: featureImputer found only %d < %d samples over all for [%s], will not impute it at all\n",
-			all_existing_values.size(), MIN_SAMPLES_IN_STRATA_FOR_LEARNING, feature_name.c_str());
-	} else if (moment_type == IMPUTE_MMNT_MEAN)
+			all_existing_values.size(), min_samples, feature_name.c_str());
+	}
+	else if (moment_type == IMPUTE_MMNT_MEAN)
 		get_mean(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_MEDIAN)
-		sort_and_get_median(all_existing_values, default_moment);
+		//sort_and_get_median(all_existing_values, default_moment);
+		get_median(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_COMMON)
 		get_common(all_existing_values, default_moment);
 	else if (moment_type == IMPUTE_MMNT_SAMPLE)
@@ -687,15 +701,18 @@ int FeatureImputer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
 		if (field == "moment_type") moment_type = getMomentType(entry.second); 
+		else if (field == "min_samples") min_samples = stoi(entry.second);
+		//! [FeatureImputer::init]
+		if (field == "moment_type") moment_type = getMomentType(entry.second);
 		else if (field == "max_samples") max_samples = stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addStrata(stratum);
 		}
 		else if (field != "names" && field != "fp_type" && field != "tag")
-				MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
+			MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
+		//! [FeatureImputer::init]
 	}
 
 	return 0;
@@ -790,12 +807,13 @@ void get_all_values(MedFeatures& features, string& signalName, unordered_set<int
 		int jump = 1;
 		int size = (int)features.data[signalName].size();
 		if (max_sample > 0 && max_sample < size)
-			jump = size/max_sample;
-		
-		for (int i=0; i<size; i+=jump)
+			jump = size / max_sample;
+
+		for (int i = 0; i < size; i += jump)
 			values.push_back(features.data[signalName][i]);
 
-	} else {
+	}
+	else {
 		for (unsigned int i = 0; i < features.samples.size(); i++) {
 			if (ids.find(features.samples[i].id) != ids.end())
 				values.push_back(features.data[signalName][i]);
@@ -814,7 +832,7 @@ void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<flo
 		if (max_sample > 0 && max_sample < size)
 			jump = size / max_sample;
 
-		for (int i = 0; i<size; i += jump)
+		for (int i = 0; i < size; i += jump)
 			values.push_back(features.samples[i].outcome);
 		//values = features.data[signalName];
 
@@ -830,7 +848,7 @@ void get_all_outcomes(MedFeatures& features, unordered_set<int>& ids, vector<flo
 //.......................................................................................
 void smearBins(vector<int>& bins, int nBins, int reqNbins) {
 
-	float f = (float)nBins/(float)reqNbins;
+	float f = (float)nBins / (float)reqNbins;
 	vector<vector<int> > newBins(nBins);
 	for (int iBin = 0; iBin < reqNbins; iBin++) {
 		int OrigBin = (int)(iBin * f);

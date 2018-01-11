@@ -128,6 +128,7 @@ int MedQRF::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [MedQRF::init]
 		if (field == "ntrees") params.ntrees = stoi(entry.second);
 		else if (field == "maxq") params.maxq = stoi(entry.second);
 		else if (field == "type") params.type = get_tree_type(entry.second);
@@ -163,6 +164,7 @@ int MedQRF::init(map<string, string>& mapper) {
 			}
 		}
 		else MLOG("Unknown parameter \'%s\' for QRF\n", field.c_str());
+		//! [MedQRF::init]
 
 	}
 
@@ -496,4 +498,16 @@ int MedQRF::n_preds_per_sample()
 	if (params.get_only_this_categ >= 0 && params.get_only_this_categ < params.n_categ)
 		return 1;
 	return (max(1, qf.n_categ));
+}
+
+void MedQRF::calc_feature_importance(vector<float> &features_importance_scores,
+	const string &general_params) {
+	if (qf.qtrees.empty())
+		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
+	vector<pair<short, double>> res;
+	qf.variableImportance(res, model_features.empty() ? features_count : (int)model_features.size());
+
+	features_importance_scores.resize((int)res.size());
+	for (size_t i = 0; i < res.size(); ++i)
+		features_importance_scores[res[i].first] = (float)res[i].second;
 }

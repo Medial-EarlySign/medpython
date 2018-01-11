@@ -12,7 +12,9 @@
 #include <algorithm>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <mutex>
 
+mutex insert_signal_mutex;
 
 #define LOCAL_SECTION LOG_SIG
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -148,6 +150,7 @@ int MedSignals::read(string path, vector<string> &sfnames)
 //-----------------------------------------------------------------------------------------------
 int MedSignals::read(const string &fname)
 {
+	lock_guard<mutex> guard(insert_signal_mutex);
 
 	ifstream inf(fname);
 
@@ -321,6 +324,54 @@ int MedSignals::fno(int sid)
 		return -1;
 	return Sid2Info[sid].fno;
 }
+
+
+//-----------------------------------------------------------------------------------------------
+int MedSignals::insert_virtual_signal(const string &sig_name, int type)
+{
+	// lock to allow concurrency
+	lock_guard<mutex> guard(insert_signal_mutex);
+
+	if (Name2Sid.find(sig_name) != Name2Sid.end()) {
+		MERR("MedSignals: ERROR: Can't insert %s as virtual , it already exists\n", sig_name.c_str());
+		return -1;
+	}
+
+	if (type<0 || type>(int)T_Last) {
+		MERR("MedSignals: ERROR: Can't insert virtual signal %s : type %d not recognized\n", sig_name.c_str(), type);
+		return -1;
+	}
+
+	// get_max_sid used currently, we will enter our sig_name as this + 1
+	int max_sid = Sid2Name.rbegin()->first;
+	int new_sid = max_sid + 1;
+
+	// take care of all basic tables: Name2Sid , Sid2Name, signal_names, signal_ids, Sid2Info
+	Name2Sid[sig_name] = new_sid;
+	Sid2Name[new_sid] = sig_name;
+	signals_names.push_back(sig_name);
+	signals_ids.push_back(new_sid);
+
+
+	SignalInfo info;
+	info.sid = new_sid;
+	info.name = sig_name;
+	info.type = type;
+	info.bytes_len = MedRep::get_type_size((SigType)type);
+	info.description = "Virtual Signal";
+	info.virtual_sig = 1;
+	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
+	MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
+	Sid2Info[new_sid] = info;
+
+	// take care of sid2serial
+	sid2serial.resize(new_sid+1, -1); // resize to include current new_sid
+	sid2serial[new_sid] = (int)signals_ids.size()-1; // -1 since serials start at 0
+
+
+	return new_sid; // returning the new sid (always positive) as the rc
+}
+
 
 //================================================================================================
 // UniversalSigVec

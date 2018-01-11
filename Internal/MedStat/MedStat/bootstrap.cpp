@@ -913,7 +913,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	for (size_t i = 1; i < true_rate.size(); ++i)
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
-	bool use_wp = unique_scores.size() > max_qunt_vals || params->use_score_working_points; //change all working points
+	bool use_wp = unique_scores.size() > max_qunt_vals && !params->use_score_working_points; //change all working points
 	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
 	int i = 0;
 
@@ -1336,7 +1336,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			if (true_rate[i] > 0 || false_rate[i] > 0) {
 				if (params->incidence_fix > 0)
 					ppv = float((true_rate[i] * params->incidence_fix) /
-						(params->incidence_fix*(true_rate[i] * params->incidence_fix) +
+						(params->incidence_fix*(true_rate[i]) +
 							(false_rate[i] * (1 - params->incidence_fix))));
 				else
 					ppv = float((true_rate[i] * t_sum) /
@@ -1809,7 +1809,7 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
 			float age = stof(tokens[2]);
 			if (age < min_age || age> max_age) {
-				MWARN("Warning:: skip age because out of range in line \"%s\"", line.c_str());
+				MWARN("Warning:: skip age because out of range in line \"%s\"\n", line.c_str());
 				continue;
 			}
 			int age_bin = (int)floor((age - min_age) / age_bin_years);

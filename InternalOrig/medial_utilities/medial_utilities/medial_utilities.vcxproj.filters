@@ -45,4 +45,7 @@
   <ItemGroup>
     <Text Include="ReadMe.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="mainpage.md" />
+  </ItemGroup>
 </Project>

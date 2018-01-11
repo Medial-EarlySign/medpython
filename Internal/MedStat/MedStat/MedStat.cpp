@@ -125,14 +125,14 @@ void get_histogram(vector<float>& vals, vector<pair<float, float> >& hist) {
 			hist.push_back({ vals[i - 1] , ((float)i) / vals.size() });
 	}
 		
-	hist.push_back({ vals.back() , 1.0 });
+	hist.push_back({ vals.back() , (float)1.0 });
 }
 
 //...............................................................................................................................
 float sample_from_histogram(vector<pair<float, float> >& hist) {
 
 	// Generate a random number
-	float r = globalRNG::rand() / (globalRNG::max() + 1.0);
+	float r = (float)(globalRNG::rand() / (globalRNG::max() + 1.0));
 
 	// Sample
 	for (int i = 0; i < hist.size(); i++) {
@@ -142,20 +142,6 @@ float sample_from_histogram(vector<pair<float, float> >& hist) {
 
 	// Handle numeric issues
 	return hist.back().first;
-}
-
-//...............................................................................................................................
-void get_median(vector<float>& vals, float &median) {
-
-	vector<float> tempValues = vals;
-	sort_and_get_median(tempValues, median);
-}
-
-//...............................................................................................................................
-void sort_and_get_median(vector<float>& vals, float &median) {
-
-	sort(vals.begin(), vals.end());
-	median = vals[vals.size() / 2];
 }
 
 //...............................................................................................................................

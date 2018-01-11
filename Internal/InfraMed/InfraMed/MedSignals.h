@@ -455,6 +455,7 @@ public:
 	static inline int Time_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Time(chan); }
 	static inline float Val_ch_vec(int idx, int chan, void *data) { return ((T *)data)[idx].Val(chan); }
 	static inline void SetVal_ch_vec(int idx, int chan, float _val, void *data) { ((T *)data)[idx].SetVal(chan, _val); }
+	static inline void Set(int idx, int *_times, float *_vals, void *data) { ((T *)data)[idx].Set(_times, _vals); }
 	static inline size_t size() { return sizeof(T); }
 };
 
@@ -478,6 +479,10 @@ public:
 	// value channels float
 	float (*Val_ch_vec)(int, int, void *);
 	void (*SetVal_ch_vec)(int, int, float, void *);
+
+	// Set() - setting a specific index in data, given all its time channels and val channels
+	// channels are given as an array (of the proper length) or NULL for 0 length channels.
+	void (*Set)(int, int *, float *, void *);
 
 	size_t (*size)();
 
@@ -521,6 +526,7 @@ public:
 		Time_ch_vec = &UnifiedSignalsAPIs<S>::Time_ch_vec;
 		Val_ch_vec = &UnifiedSignalsAPIs<S>::Val_ch_vec;
 		SetVal_ch_vec = &UnifiedSignalsAPIs<S>::SetVal_ch_vec;
+		Set = &UnifiedSignalsAPIs<S>::Set;
 		size = &UnifiedSignalsAPIs<S>::size;
 	}
 
@@ -558,6 +564,7 @@ class SignalInfo {
 		int time_unit;
 		int n_time_channels;
 		int n_val_channels;
+		int virtual_sig = 0; // flag to tell if the signal was defined in the signals files OR if it was defined as a virtual signal
 
 		SignalInfo() { fno = -1; };
 };
@@ -594,6 +601,9 @@ class MedSignals {
 		int fno(const string &sig_name);
 		int fno(int sid);
 
+		// this option allows adding new signals definitions to the class, that were not defined in the files.
+		// this is useful when using repositories to calculate new features, etc.
+		int insert_virtual_signal(const string &sig_name, int type);
 	private:
 
 };

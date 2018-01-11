@@ -1,6 +1,9 @@
 #include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 
+/**
+* calculate drug coverage of prescription time in defined the time window. a value between 0 to 1.
+*/
 class DrugIntakeGenerator : public FeatureGenerator {
 public:
 
@@ -9,20 +12,22 @@ public:
 	int signalId;
 
 	// parameters (should be serialized)
-	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from. both are AFTER 
-	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
-	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
-	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
-	string in_set_name = "";					// set name (if not given - take list of members)
+	int win_from = 0; ///< time window for feature: from is the minimal time before prediciton time
+	int win_to = 360000;			///< time window for feature: from is the maximal time before prediciton time
+	int time_unit_win = MedTime::Undefined;			///< the time unit in which the windows are given. Default: Undefined
+	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
+	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	string in_set_name = "";					///< set name (if not given - take list of members)
 
 	// helpers
-	vector<unsigned char> lut;							// to be used when generating FTR_CATEGORY_SET_*
+	vector<unsigned char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
 
 	// Constructor/Destructor
 	DrugIntakeGenerator() : FeatureGenerator() { init_defaults(); };
 	~DrugIntakeGenerator() {};
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet DrugIntakeGenerator.cpp DrugIntakeGenerator::init
 	int init(map<string, string>& mapper);
 	void init_defaults();
 

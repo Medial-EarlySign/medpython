@@ -1,13 +1,13 @@
-//
-// IterativeImputer
-//
-// A general strong imputer that does the following:
-// (1) Runs a simple stratified imputer
-// (2) Runs iterations completing values (from the least missing to the max missing) where:
-//     (a) continuous values are calculated using a regressor
-//     (b) categorial values (less than some bound) are calculated using a multi category classifier
-// (3) Repeats the process several times until it converges or until max_iters is reached.
-//
+/// \n
+/// IterativeImputer\n
+///\n
+/// A general strong imputer that does the following:\n
+/// (1) Runs a simple stratified imputer\n
+/// (2) Runs iterations completing values (from the least missing to the max missing) where:\n
+///     (a) continuous values are calculated using a regressor\n
+///     (b) categorial values (less than some bound) are calculated using a multi category classifier\n
+/// (3) Repeats the process several times until it converges or until max_iters is reached.\n
+///
 #include "IterativeImputer.h"
 #include <regex>
 #include <unordered_set>
@@ -60,7 +60,7 @@ int IterativeImputerParams::init(map<string, string>& mapper)
 	features_to_impute.clear();
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [IterativeImputerParams::init]
 		if (field == "regressor") regressor = entry.second;
 		else if (field == "regressor_params") regressor_params = entry.second;
 		else if (field == "multi_categ_classifier") multi_categ_classifier = entry.second;
@@ -82,6 +82,7 @@ int IterativeImputerParams::init(map<string, string>& mapper)
 			boost::split(f, entry.second, boost::is_any_of(",:"));
 			features_to_impute.insert(features_to_impute.end(), f.begin(), f.end());
 		}
+		//! [IterativeImputerParams::init]
 	}
 
 	return 0;

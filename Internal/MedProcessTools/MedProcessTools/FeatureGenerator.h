@@ -1,6 +1,3 @@
-// FeatureProcess : Apply processing on features
-// E.g. - Cleaning, Normalizing
-
 #ifndef _FTR_GENERATOR_H_
 #define _FTR_GENERATOR_H_
 
@@ -15,55 +12,59 @@
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
+// For ModelFeatureGenerator
+class MedModel;
+
 // TBD : Add wrapper for management of features list (read/write to file, etc.)
 
-//.......................................................................................
-//.......................................................................................
-// A virtual feature generation class
-//.......................................................................................
-//.......................................................................................
-// Types of feature generators
+/** @enum
+* Types of feature generators
+*/
 typedef enum {
 	FTR_GEN_NOT_SET,
-	FTR_GEN_BASIC,
-	FTR_GEN_AGE,
-	FTR_GEN_GENDER,
-	FTR_GEN_BINNED_LM,
-	FTR_GEN_SMOKING,
-	FTR_GEN_RANGE,
-	FTR_GEN_DRG_INTAKE,
-	FTR_GEN_ALCOHOL,
+	FTR_GEN_BASIC, ///< "basic" - creates basic statistic on time windows - BasicFeatGenerator 
+	FTR_GEN_AGE, ///< "age" - creating age feature - AgeGenerator 
+	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator
+	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
+	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
+	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
+	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
+	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
+	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
+/** @file
+* FeatureGenerator : creating features from raw signals
+*/
 class FeatureGenerator : public SerializableObject {
 public:
 
-	// Type
+	/// Type
 	FeatureGeneratorTypes generator_type;
 
 	// SerialId
 
-	// Feature name
+	/// Feature name
 	vector<string> names;
 
 	// Threading
 	int learn_nthreads, pred_nthreads;
 
-	// Missing value
+	/// Missing value
 	float missing_val;
 
-	// Tags
+	/// Tags - for defining labels or groups. may be used later for filtering for example
 	vector<string> tags;
 
-	// Feature/Weights generator
+	/// Feature/Weights generator
 	int iGenerateWeights = 0;
 
 	// Naming
 	virtual void set_names() {names.clear(); }
 
-	// Initialize
-	virtual void init(MedFeatures &features);
+	// Prepare for feature generation
+	virtual void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
 
 	// Constructor/Destructor
 	FeatureGenerator() { learn_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS; pred_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS;  missing_val = MED_MAT_MISSING_VALUE; serial_id = ++MedFeatures::global_serial_id_cnt; };
@@ -146,83 +147,36 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name);
 //.......................................................................................
 //.......................................................................................
 
+/** @enum
+* BasicFeatGenerator types for calculating stats
+*/
 typedef enum {
-	FTR_LAST_VALUE = 0,
-	FTR_FIRST_VALUE = 1,
-	FTR_LAST2_VALUE = 2,
-	FTR_AVG_VALUE = 3,
-	FTR_MAX_VALUE = 4,
-	FTR_MIN_VALUE = 5,
-	FTR_STD_VALUE = 6,
-	FTR_LAST_DELTA_VALUE = 7,
-	FTR_LAST_DAYS = 8,
-	FTR_LAST2_DAYS = 9,
-	FTR_SLOPE_VALUE = 10,
-	FTR_WIN_DELTA_VALUE = 11,
-	FTR_CATEGORY_SET = 12,
-	FTR_CATEGORY_SET_COUNT = 13,
-	FTR_CATEGORY_SET_SUM = 14,
-	FTR_NSAMPLES = 15,
-	FTR_EXISTS = 16,
+	FTR_LAST_VALUE = 0, ///<"last" - Last Value in Window
+	FTR_FIRST_VALUE = 1, ///<"first" - First Value in Window
+	FTR_LAST2_VALUE = 2, ///<"last2" - One before last value in Window
+	FTR_AVG_VALUE = 3, ///<"avg" - Mean value in Window
+	FTR_MAX_VALUE = 4, ///<"max" - Max value in Window
+	FTR_MIN_VALUE = 5, ///<"min" - Min value in Window
+	FTR_STD_VALUE = 6, ///<"std" - Standart Dev. value in Window
+	FTR_LAST_DELTA_VALUE = 7, ///<"last_delta" - Last delta. last-previous_last value
+	FTR_LAST_DAYS = 8, ///<"last_time" - time diffrence from prediction time to last time has signal
+	FTR_LAST2_DAYS = 9,///<"last_time2" - time diffrence from prediction time to one previous last time has signal
+	FTR_SLOPE_VALUE = 10, ///<"slope" - calculating the slope over the points in the window
+	FTR_WIN_DELTA_VALUE = 11, ///<"win_delta" - diffrence in value in two time windows (only if both exists, otherwise missing_value). value in [win_from,win_to] minus value in [d_win_from, d_win_to]
+	FTR_CATEGORY_SET = 12, ///<"category_set" - boolean 0/1 if the signal has the value in the given lut (which initialized by the "sets" that can be specific single definition or name of set definition. the lookup is hierarchical)
+	FTR_CATEGORY_SET_COUNT = 13,///<"category_set_count" - counts the number of appearnces of sets in the time window
+	FTR_CATEGORY_SET_SUM = 14, ///<"category_set_sum" - sums the values of appearnces of sets in the time window
+	FTR_NSAMPLES = 15, ///<"nsamples" - counts the number of times the signal apear in the time window
+	FTR_EXISTS = 16, ///<"exists" - boolean 0/1 if the signal apears in the time window
 
 	FTR_LAST
 } BasicFeatureTypes;
 
+/**
+* A Basic Stats Generator for calcing simple statics on time window
+*/
 class BasicFeatGenerator : public FeatureGenerator {
-public:
-	// Feature Descrption
-	string signalName;
-	int signalId;
-
-	// parameters (should be serialized)
-	BasicFeatureTypes type = FTR_LAST;
-	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
-	int d_win_from = 360, d_win_to = 360000;	// delta time window for the FTR_WIN_DELTA_VALUE feature
-	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
-	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
-	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
-	int sum_channel = 1;						// for FTR_CETEGORY_SET_SUM
-	vector<string> sets;						// for FTR_CATEGORY_SET_* , the list of sets 
-	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
-	string in_set_name = "";					// set name (if not given - take list of members)
-
-	// helpers
-	vector<char> lut;							// to be used when generating FTR_CATEGORY_SET_*
-
-	// Naming 
-	void set_names();
-
-	// Constructor/Destructor
-	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
-	~BasicFeatGenerator() {};
-	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1,signalName);}
-	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) { 
-		signalName = _signalName;type = _type; win_from = _time_win_from; win_to = _time_win_to;
-		set_names(); req_signals.assign(1, signalName);
-	}
-
-	BasicFeatureTypes name_to_type(const string &name);
-
-	// Init
-	int init(map<string, string>& mapper);
-	void init_defaults();
-
-	// Copy
-	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
-
-	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
-
-	// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
-	float get_value(PidDynamicRec& rec, int index, int time);
-
-	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
-
-	// Init required tables
-	void init_tables(MedDictionarySections& dict);
-
+private:
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
 	float uget_first(UniversalSigVec &usv, int time_point);
@@ -242,6 +196,64 @@ public:
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 
+public:
+	// Feature Descrption
+	string signalName;
+	int signalId;
+
+	// parameters (should be serialized)
+	BasicFeatureTypes type = FTR_LAST;
+	int win_from = 0;///< time window for feature: win_from is the minimal time before from the prediction time
+	int win_to = 360000;///< time window for feature: win_to is the maximal time before the prediction time			 
+	int d_win_from = 360; ///< delta time window for the FTR_WIN_DELTA_VALUE feature. the second time window
+	int d_win_to = 360000;	///< delta time window for the FTR_WIN_DELTA_VALUE feature. the second time window
+	int time_unit_win = MedTime::Undefined;			///< the time unit in which the windows are given. Default: Undefined
+	int time_channel = 0;						///< n >= 0 : use time channel n , default: 0.
+	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
+	int sum_channel = 1;						///< for FTR_CETEGORY_SET_SUM
+	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
+	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	string in_set_name = "";					///< set name (if not given - take list of members)
+
+	// helpers
+	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
+
+	// Naming 
+	void set_names();
+
+	// Constructor/Destructor
+	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
+	~BasicFeatGenerator() {};
+	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1,signalName);}
+	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) { 
+		signalName = _signalName;type = _type; win_from = _time_win_from; win_to = _time_win_to;
+		set_names(); req_signals.assign(1, signalName);
+	}
+
+	/// Converts a name to type - please reffer to BasicFeatureTypes
+	BasicFeatureTypes name_to_type(const string &name);
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp BasicFeatGenerator::init
+	int init(map<string, string>& mapper);
+	void init_defaults();
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
+
+	/// Learn a generator
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+
+	/// generate a new feature
+	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	float get_value(PidDynamicRec& rec, int index, int time);
+
+	/// Signal Ids
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+
+	/// Init required tables
+	void init_tables(MedDictionarySections& dict);
+
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
 							time_unit_win, time_channel, val_channel, sum_channel, signalName, sets, 
@@ -249,18 +261,16 @@ public:
 
 };
 
-//.......................................................................................
-//.......................................................................................
-// Age
-//.......................................................................................
-//.......................................................................................
+/**
+* Age Generator
+*/
 class AgeGenerator : public FeatureGenerator {
 public:
 
-	// Is Age Directly given ?
+	/// Is Age Directly given ?
 	bool directlyGiven;
 
-	// Signal Id
+	/// Signal Id
 	int signalId;
 
 	// Constructor/Destructor
@@ -296,15 +306,13 @@ public:
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights); }
 };
 
-//.......................................................................................
-//.......................................................................................
-// Gender
-//.......................................................................................
-//.......................................................................................
+/**
+* Gender
+*/
 class GenderGenerator : public FeatureGenerator {
 public:
 
-	// Gender Id
+	/// Gender Id
 	int genderId;
 
 	// Constructor/Destructor
@@ -335,12 +343,9 @@ public:
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights); }
 };
 
-//.......................................................................................
-//.......................................................................................
-// BinnedLinearModels : Apply a set of liner models to generate features
-//.......................................................................................
-//.......................................................................................
-
+/**
+* BinnedLinearModels : parameters
+*/
 struct BinnedLmEstimatesParams {
 	vector<int> bin_bounds ;
 	int min_period ;
@@ -351,13 +356,16 @@ struct BinnedLmEstimatesParams {
 
 };
 
+/**
+* BinnedLinearModels : Apply a set of liner models to generate features
+*/
 class BinnedLmEstimates : public FeatureGenerator {
 public:
 	// Feature Descrption
 	string signalName;
 	int signalId, byearId, genderId, ageId;
 
-	// Is age directly given (Hospital data) or through birth-year (Primary-care data)
+	/// Is age directly given (Hospital data) or through birth-year (Primary-care data)
 	bool ageDirectlyGiven ;
 
 	BinnedLmEstimatesParams params;
@@ -365,12 +373,12 @@ public:
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<float> means[2];
 
-	int time_unit_periods = MedTime::Undefined;		// the time unit in which the periods are given. Default: Undefined
-	int time_unit_sig = MedTime::Undefined;			// the time init in which the signal is given. Default: Undefined
-	int time_channel = 0;						// n >= 0 : use time channel n , default: 0.
-	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
+	int time_unit_periods = MedTime::Undefined;		///< the time unit in which the periods are given. Default: Undefined
+	int time_unit_sig = MedTime::Undefined;			///< the time init in which the signal is given. Default: Undefined
+	int time_channel = 0;						///< n >= 0 : use time channel n , default: 0.
+	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
 
-	// Naming 
+	/// Naming 
 	void set_names();
 
 	// Constructor/Destructor
@@ -383,20 +391,21 @@ public:
 	void set(string& _signalName);
 	void set(string& _signalName, BinnedLmEstimatesParams* _params);
 
-	// Init
 	void init_defaults();
+	/// The parsed fields from init command.
+	/// @snippet BinnedLmEstimates.cpp BinnedLmEstimates::init
 	int init(map<string, string>& mapper);
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BinnedLmEstimates *>(generator)); }
 
-	// Learn a generator
+	/// Learn a generator
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
 
-	// generate new feature(s)
+	/// generate new feature(s)
 	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
-	// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
+	/// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
 	int filter_features(unordered_set<string>& validFeatures);
 
 	// Signal Ids
@@ -416,37 +425,50 @@ public:
 	void print();
 };
 
-//.......................................................................................
-//.......................................................................................
-// RangeFeatGenerator : Generate features from a range-val signal
-//.......................................................................................
-//.......................................................................................
 
+/** @enum
+* RangeFeatGenerator types
+*/
 typedef enum {
-	FTR_RANGE_CURRENT = 0,
-	FTR_RANGE_LATEST = 1,
-	FTR_RANGE_MAX = 2,
-	FTR_RANGE_MIN = 3,
-	FTR_RANGE_EVER = 4,
+	FTR_RANGE_CURRENT = 0, ///<"current" - finds the value of the time range signal that intersect with win_from. signal start_time is before this time and signal end_time is after this time point
+	FTR_RANGE_LATEST = 1, ///<"latest" - finds the last value of the time range signal, that there is intersection of time signal range with the defined time window
+	FTR_RANGE_MAX = 2, ///<"max" - finds the maximal value of the time range signal, that there is intersection of time signal range with the defined time window
+	FTR_RANGE_MIN = 3, ///<"min" - finds the minimal value of the time range signal, that there is intersection of time signal range with the defined time window
+	FTR_RANGE_EVER = 4,///<"ever" - boolean 0/1 - finds if there is intersection between signal time window and the defined time window with specific lut value. uses set.
+	///"time_diff" - returns time diffrences between first intersection(if check_first is True) between signal time window and the defined time window with specific lut value. uses set.
+	///if check_first is false returns the time diffrences between last intersection between signal time window and the defined time window. prediction time minus the last intersecting signal end time window.
+	///if the last intersction if time ranges has no match to sets value and check_first is false will return -win_to value, otherwise missing value
 	FTR_RANGE_TIME_DIFF = 5,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
+/**
+* RangeFeatGenerator : Generate features for a time range with value signal (for example drug)
+*/
 class RangeFeatGenerator : public FeatureGenerator {
+private:
+	// actual generators
+	float uget_range_current(UniversalSigVec &usv, int time_point);
+	float uget_range_latest(UniversalSigVec &usv, int time_point);
+	float uget_range_min(UniversalSigVec &usv, int time_point);
+	float uget_range_max(UniversalSigVec &usv, int time_point);
+	float uget_range_ever(UniversalSigVec &usv, int time_point);
+	float uget_range_time_diff(UniversalSigVec &usv, int time_point);
 public:
 
-	string signalName; // Signal to consider
+	string signalName; ///< Signal to consider
 	int signalId; 
-	vector<string> sets;						// FTR_RANGE_EVER checks if the signal ever was in one of these sets/defs from the respective dict
-	RangeFeatureTypes type; // Type of comorbidity index to generate
-	int win_from = 0, win_to = 360000;			// time window for feature: date-win_to <= t < date-win_from
-	int time_unit_win = MedTime::Undefined;			// the time unit in which the windows are given. Default: Undefined
-	int time_unit_sig = MedTime::Undefined;		// the time init in which the signal is given. (set correctly from Repository in learn and Generate)
-	int val_channel = 0;						// n >= 0 : use val channel n , default : 0.
-	int check_first = 1;						// if 1 choose first occurance of check_val otherwise choose last
+	vector<string> sets;						///< FTR_RANGE_EVER checks if the signal ever was in one of these sets/defs from the respective dict
+	RangeFeatureTypes type; ///< Type of comorbidity index to generate
+	int win_from = 0; ///< time window for feature: from is the minimal time before prediciton time
+	int win_to = 360000;			///< time window for feature: to is the maximal time before prediciton time
+	int time_unit_win = MedTime::Undefined;			///< the time unit in which the windows are given. Default: Undefined
+	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
+	int check_first = 1;						///< if 1 choose first occurance of check_val otherwise choose last
 
 
-	vector<char> lut;							// to be used when generating FTR_RANGE_EVER
+	vector<char> lut;							///< to be used when generating FTR_RANGE_EVER
 
 
 
@@ -462,10 +484,11 @@ public:
 	// Naming 
 	void set_names();
 
-	// Init
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp RangeFeatGenerator::init
 	int init(map<string, string>& mapper);
 	void init_defaults();
-	RangeFeatureTypes name_to_type(const string &name);
+	RangeFeatureTypes name_to_type(const string &name); ///< please reffer to RangeFeatureTypes to understand the options
 	void init_tables(MedDictionarySections& dict);
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<RangeFeatGenerator *>(generator)); }
@@ -480,26 +503,57 @@ public:
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
-	// actual generators
-	float uget_range_current(UniversalSigVec &usv, int time_point);
-	float uget_range_latest(UniversalSigVec &usv, int time_point);
-	float uget_range_min(UniversalSigVec &usv, int time_point);
-	float uget_range_max(UniversalSigVec &usv, int time_point);
-	float uget_range_ever(UniversalSigVec &usv, int time_point);
-	float uget_range_time_diff(UniversalSigVec &usv, int time_point);
+	
 	// Serialization
 	// Serialization
 	virtual int version() { return  1; };	// ihadanny 20171206 - added sets
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first)
 };
 
-MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
+/**
+* Use a model to generate predictions to be used as features
+*/
+class ModelFeatGenerator : public FeatureGenerator {
+public:
+
+	string modelFile = ""; ///<  File for serialized model
+	MedModel *model = NULL; ///< model
+	string modelName = "";
+	int n_preds = 1;
+	
+	/// A container for the predictions
+	vector<float> preds;
+
+	/// Naming 
+	void set_names();
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp ModelFeatGenerator::init
+	int init(map<string, string>& mapper);
+	int init_from_model(MedModel *_model);
+
+	/// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
+	void load(MedSamples& inSamples, MedSamples& modelSamples);
+
+	/// Do the actual prediction prior to feature generation ...
+	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);
+
+	/// generate a new feature
+	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// (De)Serialize
+	size_t get_size();
+	size_t serialize(unsigned char *blob);
+	size_t deserialize(unsigned char *blob);
+
+};
+
 
 //=======================================
 // Helpers
 //=======================================
 
-// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
+/// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
 void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
 
 //=======================================
@@ -509,5 +563,6 @@ MEDSERIALIZE_SUPPORT(BasicFeatGenerator)
 MEDSERIALIZE_SUPPORT(AgeGenerator)
 MEDSERIALIZE_SUPPORT(GenderGenerator)
 MEDSERIALIZE_SUPPORT(BinnedLmEstimates)
+MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
 
 #endif

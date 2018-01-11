@@ -42,17 +42,18 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [AlcoholGenerator::init]
 		if (field == "alcohol_features")
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for AlcoholGenerator\n", field.c_str());
+		//! [AlcoholGenerator::init]
 	}
 	set_names();
 	return 0;
 }
-
 
 
 

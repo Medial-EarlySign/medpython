@@ -19,6 +19,64 @@
 
 using namespace boost::property_tree;
 
+
+bool clean_redundant_rep_processors_helper(vector<RepProcessor *> &onlySimples, const unordered_set<string> &needed_sigs) {
+	vector<RepProcessor *> afterFiltr;
+	int original_size = (int)onlySimples.size();
+	for (RepProcessor *rp : onlySimples) {
+		vector<string> sigs = rp->req_signals;
+		bool has_match = false;
+		for (string sig : sigs) {
+			if (needed_sigs.find(sig) != needed_sigs.end()) {
+				has_match = true;
+				break;
+			}
+		}
+		if (has_match) {
+			afterFiltr.push_back(rp);
+		}
+	}
+	onlySimples = afterFiltr;
+	return afterFiltr.size() != original_size;
+}
+
+bool MedModel::clean_redundant_rep_processors() {
+	unordered_set<string> need_s;
+	for (FeatureGenerator *generator : this->generators)
+		generator->get_required_signal_names(need_s);
+
+	vector<RepProcessor *> afterFiltr;
+	bool has_cln = false;
+	for (RepProcessor *rp : this->rep_processors) {
+		vector<RepProcessor *> to_process;
+		bool cleaned;
+		if (rp->processor_type == REP_PROCESS_MULTI) {
+			RepMultiProcessor *rpc = (RepMultiProcessor *)rp;
+			to_process = rpc->processors;
+			cleaned = clean_redundant_rep_processors_helper(to_process, need_s);
+			rpc->processors = to_process;
+			if (!to_process.empty())
+				afterFiltr.push_back(rpc);
+		}
+		else {
+			to_process.push_back(rp);
+			cleaned = clean_redundant_rep_processors_helper(to_process, need_s);
+
+			if (!cleaned) {
+				afterFiltr.push_back(rp);
+			}
+
+		}
+		has_cln = has_cln | cleaned;
+	}
+
+	this->rep_processors = afterFiltr;
+	if (has_cln)
+		MWARN("cleaned redundant rep_processors (which were not used by any feat_generator)\n");
+
+	return has_cln;
+}
+
 //=======================================================================================
 // MedModel
 //=======================================================================================
@@ -196,6 +254,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 
 	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+	
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
 		MERR("Predictor failed\n");
@@ -205,7 +264,10 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (end_stage <= MED_MDL_INSERT_PREDS)
 		return 0;
 
-	samples.insert_preds(features);
+	if (samples.insert_preds(features) != 0) {
+		MERR("Insertion of predictions to samples failed\n");
+		return -1;
+	}
 
 	return 0;
 }
@@ -247,9 +309,10 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	for (int signalId : required_signals)
 		req_signals.push_back(signalId);
 
-	// init features attributes
+	// prepare for generation
 	for (auto& generator : _generators)
-		generator->init(features);
+		generator->prepare(features,rep,*samples);
+
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
 	//	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
@@ -269,6 +332,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	// Loop on ids
 	int RC = 0;
 	int thrown = 0;
+
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j<samples->idSamples.size(); j++) {
 		try {
@@ -352,14 +416,13 @@ void MedModel::set_required_signals(MedDictionarySections& dict) {
 	for (RepProcessor *processor : rep_processors)
 		processor->get_required_signal_ids(required_signals,dict);
 
-	int ii = 0;
-	for (FeatureGenerator *generator : generators) 
+	for (FeatureGenerator *generator : generators)
 		generator->get_required_signal_ids(required_signals, dict);
 
 }
 
-void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
-{
+void MedModel::concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
+{	
 	if (vecIndex >= allVecs.size())
 	{
 		result.push_back(strSoFar.substr(0, strSoFar.length() - 1));
@@ -368,7 +431,7 @@ void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecInd
 	for (size_t i = 0; i < allVecs[vecIndex].size(); i++)
 		concatAllCombinations(allVecs, vecIndex + 1, strSoFar + allVecs[vecIndex][i] + ";", result);
 }
-string parse_key_val(string key, string val) {
+string MedModel::parse_key_val(string key, string val) {
 	if (val.length() > 0 && val[0] != '{' && val.find('=') != string::npos) {
 		if (val.find(';') == string::npos)
 			MLOG("found as-is literal string [%s]\n", val.c_str());
@@ -376,7 +439,7 @@ string parse_key_val(string key, string val) {
 	}
 	else return key + "=" + val;
 }
-void fill_list_from_file(const string& fname, vector<string>& list) {
+void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open file %s for read\n", fname.c_str());
@@ -398,7 +461,7 @@ void fill_list_from_file(const string& fname, vector<string>& list) {
 	inf.close();
 
 }
-string make_absolute_path(const string& main_file, const string& small_file) {
+string MedModel::make_absolute_path(const string& main_file, const string& small_file) {
 	boost::filesystem::path p(main_file);
 	string main_file_path = p.parent_path().string();
 	if (
@@ -410,7 +473,7 @@ string make_absolute_path(const string& main_file, const string& small_file) {
 	MLOG("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
-void alter_json(string &json_contents, vector<string>& alterations) {
+void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 
 	if (alterations.size() == 0) return;
 
@@ -426,7 +489,7 @@ void alter_json(string &json_contents, vector<string>& alterations) {
 		boost::replace_all(json_contents, fields[0], fields[1]);
 	}
 }
-string file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "") {
+string MedModel::file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
 	if (recursion_level > 3)
 		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
 	string fname;
@@ -460,7 +523,8 @@ string file_to_string(int recursion_level, const string& main_file, vector<strin
 	return out_string;
 }
 
-void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
+void MedModel::init_from_json_file_with_alterations_version_1(const string &fname, vector<string>& alterations) {
+	MWARN("USING DEPRECATED MODEL JSON VERSION 1, PLEASE UPGRADE TO model_json_version: 2\n");
 	string json_contents = file_to_string(0, fname, alterations);
 	istringstream no_comments_stream(json_contents);
 
@@ -526,7 +590,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 		vector<string> all_combinations;
 		concatAllCombinations(all_attr_values, 0, "", all_combinations);
 		for (string c : all_combinations) {
-			MLOG("MedModel::init [%s]\n", c.c_str());
+			//MLOG("MedModel::init [%s]\n", c.c_str());
 			add_process_to_set(process_set, duplicate, c);
 		}
 	}
@@ -693,9 +757,8 @@ void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& si
 //.......................................................................................
 void MedModel::set_affected_signals(MedDictionarySections& dict) {
 
-	for (RepProcessor *processor : rep_processors)
+	for (RepProcessor *processor : rep_processors) 
 		processor->set_affected_signal_ids(dict);
-
 }
 
 // All signal ids

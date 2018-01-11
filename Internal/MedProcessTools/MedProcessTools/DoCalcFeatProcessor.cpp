@@ -32,6 +32,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [DoCalcFeatProcessor::init]
 		if (field == "name")
 			raw_target_feature_name = entry.second;
 		else if (field == "calc_type")
@@ -47,6 +48,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 		}
 		else if (field != "fp_type")
 			MLOG("Unknown parameter \'%s\' for DoCalcFeatProcessor\n", field.c_str());
+		//! [DoCalcFeatProcessor::init]
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
 		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());

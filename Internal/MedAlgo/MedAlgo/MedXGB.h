@@ -44,6 +44,8 @@ public:
 	MedXGBParams params;
 	void init_defaults();
 	virtual int init(void *classifier_params) { this->params = *((MedXGBParams*)classifier_params); return 0; };
+	/// The parsed fields from init command.
+	/// @snippet MedXGB.cpp MedXGB::init
 	virtual int init(map<string, string>& initialization_map);
 
 	// Function
@@ -56,11 +58,16 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 
 	virtual void print(FILE *fp, const string& prefix);
+
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params);
+
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
-
+private:
+	bool _mark_learn_done;
 };
 
 //=================================================================

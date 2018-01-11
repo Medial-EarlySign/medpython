@@ -62,7 +62,7 @@ int MedMars::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-
+		//! [MedMars::init]
 		if (field == "MaxTerms") params.MaxTerms = stoi(entry.second);
 		else if (field == "MaxDegree") params.MaxDegree = stoi(entry.second);
 		else if (field == "Penalty") params.Penalty = stod(entry.second);
@@ -75,7 +75,7 @@ int MedMars::init(map<string, string>& mapper) {
 		else if (field == "UseBetaCache") params.UseBetaCache = (bool)(stoi(entry.second) != 0);
 		else if (field == "Trace") params.Trace = stod(entry.second);
 		else MLOG("Unknonw parameter \'%s\' for Mars\n", field.c_str());
-
+		//! [MedMars::init]
 	}
 	return 0;
 }

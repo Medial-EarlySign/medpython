@@ -2,31 +2,28 @@
 #include "FeatureProcess.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 
-//.......................................................................................
-//.......................................................................................
-// User defined calculations on other features.
-// NOTE: it is the user responsibility to put these generators after their source features generators
-//.......................................................................................
-//.......................................................................................
-
+/**
+* User defined calculations on other features.\n
+* NOTE: it is the user responsibility to put these generators after their source features generators\n
+*/
 class DoCalcFeatProcessor : public FeatureProcessor {
 public:
 	int serial_id;
-	// target_feature_name as specified by the user, will be decorated for uniqueness and extra information
+	/// target_feature_name as specified by the user, will be decorated for uniqueness and extra information
 	string raw_target_feature_name = "";
 
-	// source_feature_names as specified by the user, will be resolved to decorated names
+	/// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_source_feature_names;
 
 	vector<string> source_feature_names;
 
-	// user function selector (e.g. sum, ratio)
+	/// user function selector (e.g. sum, ratio)
 	string calc_type;
 
-	// when a source_feature == missing_value, the calculation would also be missing_value
+	/// when a source_feature == missing_value, the calculation would also be missing_value
 	float missing_value;
 
-	// for sum
+	/// for sum
 	vector<float> weights;
 
 	// Functions
@@ -35,7 +32,8 @@ public:
 
 	void init_defaults();
 
-	// init_from_string
+	/// The parsed fields from init command.
+	/// @snippet DoCalcFeatProcessor.cpp DoCalcFeatProcessor::init
 	int init(map<string, string>& mapper);
 
 	virtual int Apply(MedFeatures& features, unordered_set<int>& ids);
@@ -56,7 +54,7 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights)
 
-	// Naming
+	/// Naming
 	void set_feature_name(const string& feature_name);
 
 private:

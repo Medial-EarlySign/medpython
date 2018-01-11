@@ -117,8 +117,7 @@ public:
 	// insert prediction points
 	int insert_samples(int *pids, int *times, int n_samples) {
 		for (int i=0; i<n_samples; i++)
-			if (samples.insertRec(pids[i], times[i]) < 0)
-				return -1;
+			samples.insertRec(pids[i], times[i]);
 		return 0;
 	}
 

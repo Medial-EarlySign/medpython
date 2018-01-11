@@ -26,6 +26,7 @@ using namespace boost;
 void MedBoosterParams::init_from_string(const string &init_str)
 {
 	vector<string> fields;
+	//! [MedBoosterParams::init_from_string]
 	boost::split(fields, init_str, boost::is_any_of("@"));
 
 	for (int i=0; i<fields.size(); i++) {
@@ -47,7 +48,7 @@ void MedBoosterParams::init_from_string(const string &init_str)
 		if (fields[i] == "internal_params") {
 			internal_booster_params = fields[++i];
 		}
-
+		//! [MedBoosterParams::init_from_string]
 	}
 
 }
