@@ -267,9 +267,9 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
 
 	/// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	int version() { return 1; }
+	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove, 
+		trimMax, trimMin, removeMax, removeMin)
 
 	/// <summary> Print processors information </summary>
 	void print();
@@ -317,10 +317,10 @@ public:
 	// Apply cleaning model -inheritted
 	
 
-	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	/// Serialization
+	int version() { return 1; }
+	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
+		trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParams)
 
 	void print();
 };
@@ -507,9 +507,9 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	int version() { return 1; }
+	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
+		trimMax, trimMin, removeMax, removeMin, nbr_time_unit, nbr_time_width, nbrsMax, nbrsMin)
 
 	/// <summary> Print processors information </summary>
 	void print();

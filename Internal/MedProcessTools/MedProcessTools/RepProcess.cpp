@@ -106,7 +106,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds) {
 
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId))
+		if (is_signal_affected(signalId)) 
 			return apply(rec, time_points);
 	}
 
@@ -551,43 +551,6 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 }
 
-// (De)Serialization
-//.......................................................................................
-size_t RepBasicOutlierCleaner::get_size() {
-
-	size_t size = 0;
-
-	size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel);
-	size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin);
-
-	return size;
-}
-
-//.......................................................................................
-size_t RepBasicOutlierCleaner::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
-	ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
-
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t RepBasicOutlierCleaner::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
-	ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
-
-
-	return ptr;
-}
-
 //.......................................................................................
 void RepBasicOutlierCleaner::print()
 {
@@ -754,45 +717,6 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 
 
 
-}
-
-//.......................................................................................
-size_t RepConfiguredOutlierCleaner::get_size() {
-
-	size_t size = 0;
-
-	size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel);
-	size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin);
-	size += MedSerialize::get_size(confFileName, cleanMethod, outlierParams);
-
-	return size;
-}
-
-//.......................................................................................
-size_t RepConfiguredOutlierCleaner::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
-	ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
-	ptr += MedSerialize::serialize(blob + ptr, confFileName, cleanMethod, outlierParams);
-
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t RepConfiguredOutlierCleaner::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel);
-	ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-	ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin);
-	ptr += MedSerialize::deserialize(blob + ptr, confFileName, cleanMethod, outlierParams);
-
-
-	return ptr;
 }
 
 //.......................................................................................
@@ -1288,44 +1212,6 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points)
 
 	return 0;
 
-}
-
-
-// (De)Serialization
-//.......................................................................................
-size_t RepNbrsOutlierCleaner::get_size() {
-
-size_t size = 0;
-
-size += MedSerialize::get_size(processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-size += MedSerialize::get_size(params.take_log, params.missing_value, params.doTrim, params.doRemove);
-size += MedSerialize::get_size(trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
-
-return size;
-}
-
-//.......................................................................................
-size_t RepNbrsOutlierCleaner::serialize(unsigned char *blob) {
-
-size_t ptr = 0;
-
-ptr += MedSerialize::serialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-ptr += MedSerialize::serialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-ptr += MedSerialize::serialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
-
-return ptr;
-}
-
-//.......................................................................................
-size_t RepNbrsOutlierCleaner::deserialize(unsigned char *blob) {
-
-size_t ptr = 0;
-
-ptr += MedSerialize::deserialize(blob + ptr, processor_type, signalName, time_channel, val_channel, nbr_time_unit, nbr_time_width);
-ptr += MedSerialize::deserialize(blob + ptr, params.take_log, params.missing_value, params.doTrim, params.doRemove);
-ptr += MedSerialize::deserialize(blob + ptr, trimMax, trimMin, removeMax, removeMin, nbrsMax, nbrsMin);
-
-return ptr;
 }
 
 //.......................................................................................

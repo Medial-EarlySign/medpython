@@ -291,7 +291,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 	// Get Required signals per processor (set)
 	vector<unordered_set<int> > current_req_signal_ids(rep_processors.size());
-	for (unsigned int i = 0; i < rep_processors.size(); i++) 
+	for (unsigned int i = 0; i < rep_processors.size(); i++)
 		get_all_required_signal_ids(current_req_signal_ids[i], rep_processors, i, generators);
 
 	// Loop on ids
