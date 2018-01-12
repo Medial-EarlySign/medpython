@@ -218,9 +218,13 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			// BYear/Age
 			prepare_for_age(rec, ageUsv, age, byear);
 
-			// Apply
-			for (auto& processor : processors)
-				processor->apply(rec, time_points, req_signal_ids);
+			// Apply Processors
+			for (unsigned int i = 0; i < processors.size(); i++) {
+				unordered_set<int> current_req_signal_ids;
+				vector<FeatureGenerator *> generator = { this };
+				get_all_required_signal_ids(current_req_signal_ids, processors, i, generator);
+				processors[i]->conditional_apply(rec, time_points, current_req_signal_ids);
+			}				
 
 			// Collect values and ages
 			rec.uget(signalId, 0, usv);

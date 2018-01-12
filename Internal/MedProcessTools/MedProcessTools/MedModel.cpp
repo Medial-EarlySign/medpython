@@ -36,9 +36,17 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Set of signals
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
-		init_signal_ids(rep.dict);
+		init_all(rep.dict);
 
-		for (int signalId : required_signals) {
+		// Required signals
+		required_signal_names.clear();
+		required_signal_ids.clear();
+		
+		get_required_signal_names(required_signal_names);
+		for (string signal : required_signal_names)
+			required_signal_ids.insert(rep.dict.id(signal));
+
+		for (int signalId : required_signal_ids) {
 			if (rep.index.index_table[signalId].is_loaded != 1)
 				MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
 					signalId, rep.dict.name(signalId).c_str());;
@@ -51,7 +59,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	vector<int> ids;
 	LearningSet->get_ids(ids);
 
-	// Learn RepCleaners
+	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
 		timer.start();
 		if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
@@ -163,16 +171,26 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
-	// Set of signals
-	init_signal_ids(rep.dict);
-
-	vector<int> req_signals;
-	for (int signalId : required_signals)
-		req_signals.push_back(signalId);
-
-	// Generate features
-	//MedFeatures features(samples.time_unit);
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+
+		// Initialize
+		init_all(rep.dict);
+
+		// Required signals
+		required_signal_names.clear();
+		required_signal_ids.clear();
+
+		get_required_signal_names(required_signal_names);
+		for (string signal : required_signal_names)
+			required_signal_ids.insert(rep.dict.id(signal));
+
+		for (int signalId : required_signal_ids) {
+			if (rep.index.index_table[signalId].is_loaded != 1)
+				MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
+					signalId, rep.dict.name(signalId).c_str());;
+		}
+
+		// Generate features
 		features.clear();
 		features.set_time_unit(samples.time_unit);
 		if (verbosity > 0) MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
@@ -248,7 +266,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 {
 
 	vector<int> req_signals;
-	for (int signalId : required_signals)
+	for (int signalId : required_signal_ids)
 		req_signals.push_back(signalId);
 
 	// prepare for generation
@@ -271,6 +289,11 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		}
 	}
 
+	// Get Required signals per processor (set)
+	vector<unordered_set<int> > current_req_signal_ids(rep_processors.size());
+	for (unsigned int i = 0; i < rep_processors.size(); i++) 
+		get_all_required_signal_ids(current_req_signal_ids[i], rep_processors, i, generators);
+
 	// Loop on ids
 	int RC = 0;
 	int thrown = 0;
@@ -286,10 +309,8 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 			// Apply rep-cleaning
 
-			for (auto& processor : rep_processors) 
-				if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
-
-			
+			for (unsigned int i = 0; i < rep_processors.size(); i++)
+				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
 
 			// Generate Features
 			for (auto& generator : _generators)
@@ -341,25 +362,27 @@ int MedModel::apply_feature_processors(MedFeatures &features)
 int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
 
 	vector<RepProcessor *> temp_processors;
-	for (RepProcessor *processor : rep_processors) {
-		if (processor->learn(rep, ids, temp_processors) < 0) return -1;
-		temp_processors.push_back(processor);
+	for (unsigned int i = 0; i < rep_processors.size(); i++) {
+		unordered_set<int> current_req_signal_ids;
+		get_all_required_signal_ids(current_req_signal_ids, rep_processors, i, generators);
+		if (rep_processors[i]->conditional_learn(rep, ids, temp_processors, current_req_signal_ids) < 0) return -1;
+		temp_processors.push_back(rep_processors[i]);
 	}
 
 	return 0;
 }
 
-// Required Signals
+// Set ids of required signals
 //.......................................................................................
-void MedModel::set_required_signals(MedDictionarySections& dict) {
+void MedModel::set_required_signal_ids(MedDictionarySections& dict) {
 
-	required_signals.clear();
+	required_signal_ids.clear();
 
 	for (RepProcessor *processor : rep_processors)
-		processor->get_required_signal_ids(required_signals,dict);
+		processor->set_required_signal_ids(dict);
 
 	for (FeatureGenerator *generator : generators)
-		generator->get_required_signal_ids(required_signals, dict);
+		generator->set_required_signal_ids(dict);
 
 }
 
@@ -696,38 +719,42 @@ void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& si
 
 // Affected Signals
 //.......................................................................................
-void MedModel::set_affected_signals(MedDictionarySections& dict) {
+void MedModel::set_affected_signal_ids(MedDictionarySections& dict) {
 
 	for (RepProcessor *processor : rep_processors) 
 		processor->set_affected_signal_ids(dict);
 }
 
-// All signal ids
+// initialization :  find signal ids, init tables
 //.......................................................................................
-void MedModel::init_signal_ids(MedDictionarySections& dict) {
+void MedModel::init_all(MedDictionarySections& dict) {
 
-	set_affected_signals(dict);
-	set_required_signals(dict);
+	// signal ids
+	set_affected_signal_ids(dict);
+	set_required_signal_ids(dict);
 
-	for (RepProcessor *processor : rep_processors) {
-		processor->set_signal_ids(dict);
-		processor->init_tables(dict);
-	}
-
-	for (FeatureGenerator *generator : generators) {
-		generator->set_signal_ids(dict);
-		generator->init_tables(dict);
-	}
-}
-
-void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	for (RepProcessor *processor : rep_processors)
-		processor->get_required_signal_names(signalNames);
+		processor->set_signal_ids(dict);
+
+	for (FeatureGenerator *generator : generators) 
+		generator->set_signal_ids(dict);
+
+	// tables
+	for (RepProcessor *processor : rep_processors)
+		processor->init_tables(dict);
 
 	for (FeatureGenerator *generator : generators)
-		generator->get_required_signal_names(signalNames);
-
+		generator->init_tables(dict);
 }
+
+// Create a required signal names by back propograting : First find what's required by
+// the feature generators, and then find add signals required by the rep_porcessors that
+// are required ....
+//.......................................................................................
+void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
+}
+
 //.......................................................................................
 void  MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string) {
 

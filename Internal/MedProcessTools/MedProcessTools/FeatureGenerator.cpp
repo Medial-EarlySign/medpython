@@ -202,7 +202,7 @@ size_t FeatureGenerator::generator_serialize(unsigned char *blob) {
 	return ptr;
 }
 
-// Required signals
+// Set required signal ids
 //.......................................................................................
 void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
 
@@ -212,20 +212,20 @@ void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
 		req_signal_ids[i] = dict.id(req_signals[i]);
 }
 
+
+// Get Required Signals
 //.......................................................................................
-void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict) {
-
-	if (req_signal_ids.empty())
-		set_required_signal_ids(dict);
-
-	for (int signalId : req_signal_ids)
-		signalIds.insert(signalId);
-}
-
 void FeatureGenerator::get_required_signal_names(unordered_set<string>& signalNames) {
 	for (auto sig : req_signals)
 		signalNames.insert(sig);
 }
+
+//.......................................................................................
+void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds) {
+	for (auto sig : req_signal_ids)
+		signalIds.insert(sig);
+}
+
 
 //.......................................................................................
 // Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)

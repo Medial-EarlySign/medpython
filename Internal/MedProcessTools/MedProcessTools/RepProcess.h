@@ -38,8 +38,8 @@ public:
 
 	RepProcessorTypes processor_type; ///< type of repository processor
 
-	vector<string> req_signals; ///< names of signals required for processsing
-	vector<int> req_signal_ids; ///< ids of signals required for processing
+	unordered_set<string> req_signals; ///< names of signals required for processsing
+	unordered_set<int> req_signal_ids; ///< ids of signals required for processing
 
 	unordered_set<string> aff_signals; ///< names of signals affected by processing
 	unordered_set<int> aff_signal_ids; ///< ids of signals affected by processing
@@ -71,19 +71,29 @@ public:
 	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
 
 	// Required Signals functions : get all signals that are required by the processor
-	/// <summary> Append required signal names to vector : parent function just uses req_signals  </summary>
+	/// <summary> Append required signal names to set : parent function just uses req_signals  </summary>
 	virtual void get_required_signal_names(unordered_set<string>& signalNames);
+	// Required Signals functions : get all signals that are required by the processor
+	/// <summary> Append required signal names to set only if processor is actually required to produce any of preReqSignals : parent function just uses req_signals  </summary>
+	virtual void get_required_signal_names(unordered_set<string>& signalNames, unordered_set<string> preReqSignals);
+	
 	/// <summary> Fill req_signal_ids : parent function just fills from req_signals </summary>
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
-	/// <summary> Append required signal ids to vector. call set_required_signal_ids if req_signal_ids empty </summary>
-	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
 	
+	// Required Signals functions : get all signals that are required by the processor
+	/// <summary> Append required signal names to set : parent function just uses req_signals  </summary>
+	virtual void get_required_signal_ids(unordered_set<int>& signalIds);
+	// Required Signals functions : get all signals that are required by the processor
+	/// <summary> Append required signal names to set only if processor is actually required to produce any of preReqSignals : parent function just uses req_signals  </summary>
+	virtual void get_required_signal_ids(unordered_set<int>& signalIds, unordered_set<int> preReqSignals);
+
 	// Affected Signals functions;
 	/// <summary> Fill aff_signal_ids : parent function just fills from aff_signals </summary>
 	virtual void set_affected_signal_ids(MedDictionarySections& dict);
 	/// <summary>  Check if a signal is affected by processor </summray>
 	/// <returns> true if affected, false if not </returns>
 	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
+	bool is_signal_affected(string& signalName) { return (aff_signals.find(signalName) != aff_signals.end()); }
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
 	virtual void init_tables(MedDictionarySections& dict) { return; }
@@ -92,7 +102,14 @@ public:
 	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning : 
 	// Should be implemented for inheriting classes that require learning </summary>
 	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {  return 0; };
-	
+	/// <summary> learn processing model on a subset of ids only if required. Apply set of preceeding processors on DynamicPidRec before learning : 
+	// May be implemented for inheriting classes that require learning </summary>
+	virtual int _conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) ;
+
+	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning : 
+	// Should be implemented for inheriting classes that require learning </summary>
+//	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return 0; };
+
 	// Learning envelopes - Here because of issues with overloading and inheritance
 	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning </summary>
 	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return _learn(rep,ids,prev_processors); };
@@ -102,22 +119,25 @@ public:
 	int learn(MedPidRepository& rep, vector<int>& ids) { vector<RepProcessor *> temp;  return _learn(rep, ids, temp); }
 	/// <summary> learn on all ids in repository without preceesing processors  </summary>
 	int learn(MedPidRepository& rep) { vector<RepProcessor *> temp; return learn(rep, temp); }
+	/// <summary> learn processing model on a subset of ids only if required. Apply set of preceeding processors on DynamicPidRec before learning </summary>
+	int conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) 
+		{ return _conditional_learn(rep, ids, prev_processors, neededSignalIds); }
 
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	virtual int _apply(PidDynamicRec& rec, vector<int>& time_points) = 0;
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points only if required : May be implemented for inheriting classes </summary>
-	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds);
+	virtual int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds);
 
 	// Applying envelopes - Here because of issues with overloading and inheritance
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points</summary>
 	int apply(PidDynamicRec& rec, vector<int>& time_points) {return _apply(rec, time_points);}
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points only if required : if any of the signals in neededSignalIds is actually affected by processor </summary>
-	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignalIds) { return _apply(rec, time_points, neededSignalIds); }
+	int conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds) { return _conditional_apply(rec, time_points, neededSignalIds); }
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples </summary>
 	int apply(PidDynamicRec& rec, MedIdSamples& samples);
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required </summary>
-	int apply(PidDynamicRec& rec, MedIdSamples& samples, vector<int>& neededSignalIds);	
+	int conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, unordered_set<int>& neededSignalIds);
 
 	// Serialization (including type)
 	/// <summary> get size of processor + processor_type </summary>
@@ -151,10 +171,18 @@ public:
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string);
 	/// <summary> Required Signals ids : Fill the member vector - req_signal_ids </summary>
 	void set_required_signal_ids(MedDictionarySections& dict); 
-	/// <summary> Required Signals names : Fill the unordered set signalNames </summary>
-	void get_required_signal_names(unordered_set<string>& signalNames); 
 
-	/// <summary> Affected Signals : Fill the member vector aff_signal_ids </summary>
+	/// <summary> Required Signals names : Fill the unordered set signalNames </summary>
+	void get_required_signal_names(unordered_set<string>& signalNames);
+	/// <summary> Append required signal names to set only if processor is actually required to produce any of preReqSignals </summary>
+	virtual void get_required_signal_names(unordered_set<string>& signalNames, unordered_set<string> preReqSignals);
+
+	/// <summary> Required Signals ids : Fill the unordered set signalNames </summary>
+	void get_required_signal_ids(unordered_set<int>& signalIds);
+	/// <summary> Append required signal names to set only if processor is actually required to produce any of preReqSignals </summary>
+	virtual void get_required_signal_ids(unordered_set<int>& signalIds, unordered_set<int> preReqSignals);
+
+	/// <summary> Affected Signals : Fill the member set aff_signal_ids </summary>
 	void set_affected_signal_ids(MedDictionarySections& dict); 
 
 	/// <summary> Set signal-ids for all linked signals </summary>
@@ -162,11 +190,12 @@ public:
 
 	/// <summary> learn processors </summary>
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
-
+	int _conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds);
+	
 	/// <summary> Apply processors </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
 	/// <summary> Apply processors that affect any of the needed signals </summary>
-	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<int>& neededSignals);
+	int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignals);
 
 	/// serialization
 	size_t get_size();
@@ -213,13 +242,13 @@ public:
 		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
-	/// <summary> Set signal name and fill affected and required signals lists </summary> 
+	/// <summary> Set signal name and fill affected and required signals sets </summary> 
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
-	/// <summary> Fill required- and affected-signals vectors </summary>
+	/// <summary> Fill required- and affected-signals sets </summary>
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepBasicOutlierCleaner::init
@@ -452,14 +481,14 @@ public:
 		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
-	/// <summary> Set signal name and fill affected and required signals lists </summary> 
+	/// <summary> Set signal name and fill affected and required signals sets </summary> 
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 
-	/// <summary> Fill required- and affected-signals vectors </summary>
+	/// <summary> Fill required- and affected-signals sets </summary>
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepNbrsOutlierCleaner::init

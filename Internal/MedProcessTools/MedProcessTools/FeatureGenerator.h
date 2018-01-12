@@ -73,9 +73,9 @@ public:
 	// Required Signals
 	vector<string> req_signals;
 	vector<int> req_signal_ids; 
-	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
 	void get_required_signal_names(unordered_set<string>& signalNames);
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_ids(unordered_set<int>& signalIds);
 
 	// Signal Ids
 	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
@@ -554,6 +554,6 @@ MEDSERIALIZE_SUPPORT(BasicFeatGenerator)
 MEDSERIALIZE_SUPPORT(AgeGenerator)
 MEDSERIALIZE_SUPPORT(GenderGenerator)
 MEDSERIALIZE_SUPPORT(BinnedLmEstimates)
-MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
+MEDSERIALIZE_SUPPORT(RangeFeatGenerator)
 
 #endif
