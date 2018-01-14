@@ -21,6 +21,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CONFIGURED_OUTLIER_CLEANER;
 	else if (processor_name == "rulebased_outlier_cleaner" || processor_name == "rule_cln")
 		return REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
+	else if (processor_name == "calc_signals" || processor_name == "calculator")
+		return REP_PROCESS_CALC_SIGNALS;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -62,6 +64,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepConfiguredOutlierCleaner;
 	else if (processor_type == REP_PROCESS_RULEBASED_OUTLIER_CLEANER)
 		return new RepRuleBasedOutlierCleaner;
+	else if (processor_type == REP_PROCESS_CALC_SIGNALS)
+		return new RepCalcSimpleSignals;
 	else
 		return NULL;
 
@@ -1256,6 +1260,113 @@ MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRe
 }
 
 //=======================================================================================
+// RepCalcSimpleSignals - calculators with no learning stage, can be parametric.
+//=======================================================================================
+//.......................................................................................
+int RepCalcSimpleSignals::init(map<string, string>& mapper)
+{
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "calculator") calculator = entry.second;
+		else if (field == "coeffs") {
+			vector<string> fields;
+			boost::split(fields, entry.second, boost::is_any_of(",:"));
+			coeff.clear();
+			for (auto &f : fields) coeff.push_back(stof(f));
+		}
+		else if (field == "names") {
+			boost::split(V_names, entry.second, boost::is_any_of(",:"));
+		}
+	}
+
+	calc_type = get_calculator_type(calculator);
+
+	if (calc_type != CALC_TYPE_UNDEF) {
+
+		// add required signals dependent on the actual calculator we run
+		for (string req_s : calc2req_sigs.find(calculator)->second)
+			req_signals.insert(req_s);
+
+		// add coefficients if needed
+		if (coeff.size() == 0)
+			coeff = calc2coeffs.find(calculator)->second;
+		size_t c_size = calc2coeffs.find(calculator)->second.size();
+		if (coeff.size() != c_size) {
+			MERR("RepCalcSigs: ERROR: calculator %s , expecting %d coefficients and got only %d\n", calculator.c_str(), c_size, coeff.size());
+			return -1;
+		}
+
+		// add V_names
+		if (V_names.size() == 0) {
+			for (auto &vsig : calc2virtual.find(calculator)->second)
+				V_names.push_back(vsig.first);
+		}
+		size_t v_size = calc2virtual.find(calculator)->second.size();
+		if (V_names.size() != v_size) {
+			MERR("RepCalcSigs: ERROR: calculator %s , expecting %d virtual names and got only %d\n", calculator.c_str(), v_size, V_names.size());
+			return -1;
+		}
+
+		// add V_types
+		for (auto &vsig : calc2virtual.find(calculator)->second)
+			V_types.push_back(vsig.second);
+
+		// add names to required, affected and virtual_signals
+		for (int i=0; i<V_names.size(); i++) {
+			req_signals.insert(V_names[i]);
+			aff_signals.insert(V_names[i]);
+			virtual_signals.push_back({ V_names[i], V_types[i] });
+		}
+
+		return 0;
+	}
+
+	MERR("RepCalcSigs: ERROR: calculator %s not defined\n", calculator.c_str());
+	return -1;
+}
+
+//.......................................................................................
+void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
+{
+	for (auto &vsig : calc2virtual.find(calculator)->second)
+		_virtual_signals[vsig.first] = vsig.second;
+}
+
+//.......................................................................................
+int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
+{
+	if (calc2type.find(calc_name) != calc2type.end())
+		return calc2type.find(calc_name)->second;
+	return CALC_TYPE_UNDEF;
+}
+
+//.......................................................................................
+int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
+{
+	// first ... we make sure that the ids are ready
+	if (V_ids.size() == 0) {
+
+		V_ids.clear();
+		sigs_ids.clear();
+
+		for (auto &vsig : V_names)
+			V_ids.push_back(rec.my_base_rep->sigs.sid(vsig));
+
+		for (auto &rsig : req_signals)
+			sigs_ids.push_back(rec.my_base_rep->sigs.sid(rsig));
+
+	}
+
+
+	switch (calc_type) {
+
+	case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
+
+	}
+	return -1;
+}
+
+//=======================================================================================
 // Utility Functions
 //=======================================================================================
 //.......................................................................................
@@ -1273,7 +1384,7 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 	vector<FeatureGenerator *> noGenerators;
 	for (size_t i = 0; i < prev_processors.size(); i++) {
 		current_required_signal_ids[i] = { signalId };
-		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, i, noGenerators);
+		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, (int) i, noGenerators);
 	}
 
 	for (int id : ids) {

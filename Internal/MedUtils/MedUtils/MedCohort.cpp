@@ -243,10 +243,24 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 
 	vector<int> all_cnts ={ 0,0 };
 
+	//
+	// To Estimate the annual statistics for the given time window we do the following:
+	// We try to estimate the incidence at each 1.1.YYYY and then to weight average over all different years.
+	// To do that we look at a cohort record that has a from_date and to_date , where in outcome==0 (controls) the to_date
+	// is the last KNOWN date to be 0, and in cases (outcome!=0) it is the first date of conversion from case to control.
+	//
+	// Therefore:
+	// (1) If the 1.1.YYYY is contained in the 0 period we count it as a 0 sample.
+	// (2) If the 1.1.YYYY is contained in the 0 period AND the outcomedate for 1 is IN YYYY (or after if measuring longer periods) we count it as 1.
+	//
+
+
 	for (auto &crec : recs) {
 		int fyear = crec.from / 10000;
-		int to_date = crec.to;
+		if ((crec.from % 10000) > 0101) fyear++;
+		int to_date = crec.to; 
 		if (crec.outcome != 0) to_date = crec.outcome_date;
+		else to_date -= i_params.incidence_years_window*10000;
 		int tyear = to_date / 10000;
 		int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
 		int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);

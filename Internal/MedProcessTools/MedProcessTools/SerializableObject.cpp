@@ -19,36 +19,29 @@ int SerializableObject::read_from_file(const string &fname) {
 	int attempts = 0;
 	unsigned char *blob;
 	unsigned long long final_size;
-	for (;;) {
-		try {
-			if (read_binary_data_alloc(fname, blob, final_size) < 0) {
-				MERR("Error reading model from file %s\n", fname.c_str());
-				return -1;
-			}
 
-			boost::crc_32_type checksum_agent;
-			checksum_agent.process_bytes(blob, final_size);
-			MLOG("read_from_file [%s] with crc32 [%d] and size [%ld]\n", fname.c_str(), checksum_agent.checksum(),final_size);
-
-			int vers = *((int*)blob);
-			if (vers != version())
-				MTHROW_AND_ERR("deserialization error. code version %d. requested file version %d\n",
-					version(), vers);
-			unsigned char *blob_without_version = blob + sizeof(int);
-
-			size_t serSize = deserialize(blob_without_version);
-			if (serSize + sizeof(int) != final_size)
-				MTHROW_AND_ERR("final_size=%lld, serSize=%d\n", final_size, (int)serSize);
-			if (final_size > 0) delete[] blob;
-			return 0;
-		}
-		catch (exception e) {
-			if (attempts++ >= 10)
-				throw e;
-			MWARN("[%d] attempt to read [%s] failed with [%s], retyring...\n", attempts, fname.c_str(), e.what());
-			std::this_thread::sleep_for(chrono::seconds(10));
-		}
+	if (read_binary_data_alloc(fname, blob, final_size) < 0) {
+		MTHROW_AND_ERR("Error reading model from file %s\n", fname.c_str());
+		return -1;
 	}
+
+	boost::crc_32_type checksum_agent;
+	checksum_agent.process_bytes(blob, final_size);
+	MLOG("read_from_file [%s] with crc32 [%d] and size [%ld]\n", fname.c_str(), checksum_agent.checksum(), final_size);
+
+	int vers = *((int*)blob);
+	if (vers != version())
+		MTHROW_AND_ERR("deserialization error. code version %d. requested file version %d\n",
+			version(), vers);
+	unsigned char *blob_without_version = blob + sizeof(int);
+
+	size_t serSize = deserialize(blob_without_version);
+	if (serSize + sizeof(int) != final_size)
+		MTHROW_AND_ERR("final_size=%lld, serSize=%d\n", final_size, (int)serSize);
+	if (final_size > 0) delete[] blob;
+	return 0;
+
+
 }
 
 // serialize model and write to file

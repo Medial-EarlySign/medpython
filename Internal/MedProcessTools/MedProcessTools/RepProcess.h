@@ -23,6 +23,7 @@ typedef enum {
 	REP_PROCESS_NBRS_OUTLIER_CLEANER,///<"nbrs_outlier_cleaner" or "nbrs_cln" to activate RepNbrsOutlierCleaner
 	REP_PROCESS_CONFIGURED_OUTLIER_CLEANER,///<"configured_outlier_cleaner" or "conf_cln" to activate RepConfiguredOutlierCleaner
 	REP_PROCESS_RULEBASED_OUTLIER_CLEANER,///<"rulebased_outlier_cleaner" or "rule_cln" to activate RepRuleBasedOutlierCleaner
+	REP_PROCESS_CALC_SIGNALS,///<"calc_signals" or "calculator" to activate RepCalcSimpleSignals
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -43,6 +44,15 @@ public:
 
 	unordered_set<string> aff_signals; ///< names of signals affected by processing
 	unordered_set<int> aff_signal_ids; ///< ids of signals affected by processing
+
+	/// <summary> 
+	/// virtual signals are created only in rep processors but can be used by any rep processor that comes after
+	/// or any feture generator as a regular signal.
+	/// a virtual signal can be defined as one only once - in the rep processor that actually creates it.
+	/// The other rep processors and feature generators using it are simply blind to the fact that it is virtual 
+	/// and use it by name as a regular signal.
+	/// </summary>
+	vector<pair<string, int>> virtual_signals; ///< list of all virtual signals CREATED by this rep processor
 
 	// create a new rep_processor
 	/// <summary> create a new repository processor from name </summary>
@@ -79,6 +89,9 @@ public:
 	
 	/// <summary> Fill req_signal_ids : parent function just fills from req_signals </summary>
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
+
+	/// <summary> rep processors CREATING virtual signals need to implement this: adding their signals to the pile </summary>
+	virtual void add_virtual_signals(map<string, int> &_virtual_signals) { return; };
 	
 	// Required Signals functions : get all signals that are required by the processor
 	/// <summary> Append required signal names to set : parent function just uses req_signals  </summary>
@@ -524,6 +537,103 @@ public:
 	/// <summary> Print processors information </summary>
 	void print();
 };
+
+
+typedef enum {
+	CALC_TYPE_UNDEF, ///< undefined signal, nothing to do or error
+	CALC_TYPE_EGFR ///< calculates eGFR CKD_EPI signal in each point we have Creatinine , depends on Creatinine, GENDER, BYEAR
+
+} RepCalcSimpleSignalsType;
+
+//.......................................................................................
+/** RepCalcSimpleSignals is a rep processor containing several calculators to calculate new
+    signals. It supports an internal list of calculators, and the user can select one of them.
+
+	Each calculator can create one or more new virtual signals. Each of these has a specific type.
+	The user can configure the virtual signal names, and can also pass a list of float parameters to
+	the calculator, making it parametric.
+
+	When adding a new calculator make sure to :
+	(1) fill in the calc2defs map (as explained below), to define the calculator name, type, req signals, 
+		default virual names and their types, and default parameters.
+	(2) add the new calculator type to the enum
+	(3) write the matching _apply function for the specific calculator and make sure the general _apply calls it .
+
+	NOTE: in RepCalcSimpleSignals there is NO learning. Calculated signals that have a learning stage should
+	      be implmented in a separate class that will also have space to keep the learning process results.
+
+	supported signals calculated (this will be also the virtual signal name):
+
+	calc_eGFR : calculating EGFR (CKD_EPI formula) at each point in which Creatinine is available
+
+*/
+//.......................................................................................
+class RepCalcSimpleSignals : public RepProcessor {
+
+	public:
+		vector<string> V_names; ///< names of signals created by the calculator (a calculator can create more than a single signal at a time)
+		vector<int> V_types; ///< matching signal types for V_names
+
+		string calculator; ///< calculator asked for by user
+		int calc_type;	///> type of calculator (one of the allowed enum values)
+
+		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
+
+		/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
+		int init(map<string, string>& mapper);
+
+		void add_virtual_signals(map<string, int> &_virtual_signals);
+
+		// Learning
+		/// <summary> In this class there's never learning - we return 0 immediately </summary>
+		int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return 0; };
+
+		// Applying
+		/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+		int _apply(PidDynamicRec& rec, vector<int>& time_points);
+
+		// Utils
+		/// <summary> translate a calculator name to RepCalcSignalsType </summary>
+		int get_calculator_type(const string &calc_name);
+
+		// calculators implementations + helpers
+		static float get_age(int byear, int date);
+		int _apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time_points);
+		static float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity = 0);
+
+
+	private:
+
+		// definitions and defaults for each calculator - all must be filled in for a new calculator
+
+		/// from a calculator name to a calculator enum type
+		const map<string, int> calc2type = { 
+			{"calc_eGFR", CALC_TYPE_EGFR} 
+		};
+
+		/// from a calculator name to the list of required signals
+		const map<string, vector<string>> calc2req_sigs = { 
+			{"calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}} 
+		};
+
+		/// from a calculator name to a list of pairs of virtual names and their types created by the calculator
+		/// the virtual names can be changed by the user (but have to be given in the SAME order as here)
+		const map<string, vector<pair<string, int>>> calc2virtual = {
+			{"calc_eGFR" , { {"calc_eGFR", T_DateVal} } }
+		};
+
+		/// from a calculator name to the default coefficients (parameters) of it. Can of course be empty for a non parametric calculator.
+		const map<string, vector<float>> calc2coeffs ={
+			{"calc_eGFR" , {}}
+		};
+
+		vector<int> V_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
+		vector<int> sigs_ids; /// <ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
+
+		vector<UniversalSigVec> usv; /// here for efficiency and less init() calls
+
+};
+
 
 //.......................................................................................
 //.......................................................................................

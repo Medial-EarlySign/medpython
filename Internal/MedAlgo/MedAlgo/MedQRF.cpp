@@ -505,9 +505,9 @@ void MedQRF::calc_feature_importance(vector<float> &features_importance_scores,
 	if (qf.qtrees.empty())
 		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 	vector<pair<short, double>> res;
-	qf.variableImportance(res, model_features.empty() ? features_count : model_features.size());
+	qf.variableImportance(res, model_features.empty() ? features_count : (int)model_features.size());
 
 	features_importance_scores.resize((int)res.size());
 	for (size_t i = 0; i < res.size(); ++i)
-		features_importance_scores[res[i].first] = res[i].second;
+		features_importance_scores[res[i].first] = (float)res[i].second;
 }

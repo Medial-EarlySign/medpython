@@ -90,7 +90,7 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(MR_LIBS)\$(Platform)\$(Configuration)\;$(BOOST_HOME)\stage\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MR_LIBS)\$(Platform)\$(Configuration)\;$(BOOST_HOME)\stage\lib\;$(MR_SHARED_LIBS)\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>MedProcessTools.lib;micNet.lib;Logger.lib;InfraMed.lib;MedTime.lib;MedUtils.lib;MedStat.lib;MedFeat.lib;tsne.lib;QRF.lib;Mars.lib;gbm.lib;MedAlgo.lib;zlib.lib;rabit.lib;dmlc.lib;xgboost.lib</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
