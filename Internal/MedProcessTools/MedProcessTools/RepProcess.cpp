@@ -89,6 +89,20 @@ int RepProcessor::_conditional_learn(MedPidRepository& rep, vector<int>& ids, ve
 	return 0;
 }
 
+// Check if processor can be filtered
+//...................................
+bool RepProcessor::filter(unordered_set<string>& neededSignals) {
+
+	for (string signal : neededSignals) {
+		if (is_signal_affected(signal))
+			return false;
+	}
+
+	MLOG("Filtering out processor of type %d\n", processor_type);
+	return true;
+
+}
+
 // Apply processing on a single PidDynamicRec at a set of time-points given by samples
 //.......................................................................................
 int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
@@ -221,6 +235,26 @@ void RepMultiProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 
 		for (int signalId : processor->aff_signal_ids)
 			aff_signal_ids.insert(signalId);
+	}
+}
+
+// Check if processor can be filtered
+//...................................
+bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
+
+	vector<RepProcessor *> filtered;
+	for (auto& processor : processors) {
+		if (!processor->filter(neededSignals))
+			filtered.push_back(processor);
+	}
+
+	if (filtered.empty()) {
+		MLOG("Filtering out processor of type %d\n", processor_type);
+		return true;
+	}
+	else {
+		processors = filtered;
+		return false;
 	}
 }
 

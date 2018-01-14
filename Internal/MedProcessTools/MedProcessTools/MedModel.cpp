@@ -34,6 +34,9 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		return -1;
 	}
 
+	// Filter unneeded repository processors
+	filter_rep_processors();
+
 	// Set of signals
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		init_all(rep.dict);
@@ -357,8 +360,8 @@ int MedModel::apply_feature_processors(MedFeatures &features)
 	return 0;
 }
 
+// Learn rep-processors iteratively, must be serial...
 //.......................................................................................
-// Learn rep-cleaning iteratively, must be serial...
 int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
 
 	vector<RepProcessor *> temp_processors;
@@ -370,6 +373,21 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
 	}
 
 	return 0;
+}
+
+// Filter rep-processors that are not used, iteratively
+//.......................................................................................
+void MedModel::filter_rep_processors() {
+
+	vector<RepProcessor *> filtered_processors;
+	for (unsigned int i = 0; i < rep_processors.size(); i++) {
+		unordered_set<string> current_req_signal_names;
+		get_all_required_signal_names(current_req_signal_names, rep_processors, i, generators);
+		if (! rep_processors[i]->filter(current_req_signal_names))
+			filtered_processors.push_back(rep_processors[i]);
+	}
+
+	rep_processors = filtered_processors;
 }
 
 // Set ids of required signals

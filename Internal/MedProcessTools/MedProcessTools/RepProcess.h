@@ -92,8 +92,13 @@ public:
 	virtual void set_affected_signal_ids(MedDictionarySections& dict);
 	/// <summary>  Check if a signal is affected by processor </summray>
 	/// <returns> true if affected, false if not </returns>
-	bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
-	bool is_signal_affected(string& signalName) { return (aff_signals.find(signalName) != aff_signals.end()); }
+	inline bool is_signal_affected(int signalId) {return (aff_signal_ids.find(signalId) != aff_signal_ids.end());}
+	inline bool is_signal_affected(string& signalName) { return (aff_signals.find(signalName) != aff_signals.end()); }
+
+	// check filtering
+	/// <summary> Check if processor (and 'sub'-processors within) should be applied according to set of required signals  </summray>
+	/// <returns> true if processor is not required and can be filtered, false otherwise </returns>
+	virtual bool filter(unordered_set<string>& reqSignals);
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
 	virtual void init_tables(MedDictionarySections& dict) { return; }
@@ -184,6 +189,11 @@ public:
 
 	/// <summary> Affected Signals : Fill the member set aff_signal_ids </summary>
 	void set_affected_signal_ids(MedDictionarySections& dict); 
+
+	// check filtering
+	/// <summary> Check if processor (and 'sub'-processors within) should be applied according to set of required signals  </summray>
+	/// <returns> true if processor is not required and can be filtered, false otherwise </returns>
+	bool filter(unordered_set<string>& reqSignals);
 
 	/// <summary> Set signal-ids for all linked signals </summary>
 	void set_signal_ids(MedDictionarySections& dict); 
