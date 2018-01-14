@@ -282,13 +282,20 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 
+	// Resize data vectors and collect pointers
 	int samples_size = (int)features.samples.size();
 	for (auto &generator : _generators) {
-		if (generator->iGenerateWeights)
+		generator->p_data.clear();
+		if (generator->iGenerateWeights) {
 			features.weights.resize(samples_size, 0);
+			if (generator->names.size() != 1)
+				MTHROW_AND_ERR("Cannot generate weights using a multi-feature generator (type %d generates %d features)\n", generator->generator_type, (int) generator->names.size());
+			generator->p_data.push_back(&(features.weights[0]));
+		}
 		else {
 			for (string& name : generator->names)
 				features.data[name].resize(samples_size, 0);
+			generator->get_p_data(features);
 		}
 	}
 

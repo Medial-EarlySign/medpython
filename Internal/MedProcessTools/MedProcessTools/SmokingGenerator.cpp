@@ -48,7 +48,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 
 
 
-int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	int missing = MED_MAT_MISSING_VALUE;
 
@@ -554,131 +554,61 @@ int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int in
 
 		//************************************************** Add to matrix  *********************************************
 
-		for (int j = 0; j < names.size(); j++) {
-			float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[names[j]][index]);
-			if (algorithm::ends_with(names[j], "Current_Smoker"))
-				p_feat[i] = (float)__current_smoker;
-			else if (algorithm::ends_with(names[j], "Ex_Smoker"))
-				p_feat[i] = (float)__ex_smoker;
-			else if (algorithm::ends_with(names[j], "Smok_Years_Since_Quitting"))
-				p_feat[i] = (float)__years_since_quitting;
-			else if (algorithm::ends_with(names[j], "Smoking_Years"))
-				p_feat[i] = (float)__smoking_years;
-			else if (algorithm::ends_with(names[j], "Smok_Pack_Years"))
-				p_feat[i] = (float)__pack_years;
-			else if (algorithm::ends_with(names[j], "PLM_Smoking_Level"))
-				p_feat[i] = (float)plm_smoking_level;
-			else if (algorithm::ends_with(names[j], "Never_Smoker"))
-				p_feat[i] = (float)__never_smoker;
-			else if (algorithm::ends_with(names[j], "Unknown_Smoker"))
-				p_feat[i] = (float)__unknown_smoker;
-			else if (algorithm::ends_with(names[j], "Smoking_Quantity"))
-				p_feat[i] = (float)__smoking_quantity;
-			else MTHROW_AND_ERR("unknown feature name [%s]", names[j].c_str());
-		}
-
-
+		// Current_Smoker
+		if (p_data[SMX_CURRENT_SMOKER] != NULL) p_data[SMX_CURRENT_SMOKER][index + i] = (float)__current_smoker;
+		// Ex_Smoker
+		if (p_data[SMX_EX_SMOKER] != NULL) p_data[SMX_EX_SMOKER][index + i] = (float)__ex_smoker;
+		// Smok_Years_Since_Quitting
+		if (p_data[SMX_YEARS_SINCE_QUITTING] != NULL) p_data[SMX_YEARS_SINCE_QUITTING][index + i] = (float)__years_since_quitting;
+		// Smoking_Years
+		if (p_data[SMX_SMOKING_YEARS] != NULL) p_data[SMX_SMOKING_YEARS][index + i] = (float)__smoking_years;
+		// Smok_Pack_Years
+		if (p_data[SMX_SMOK_PACK_YEARS] != NULL) p_data[SMX_SMOK_PACK_YEARS][index + i] = (float)__pack_years;
+		// PLM_Smoking_Level
+		if (p_data[SMX_PLM_SMOKING_LEVEL] != NULL) p_data[SMX_PLM_SMOKING_LEVEL][index + i] = (float)plm_smoking_level;
+		// Never_Smoker
+		if (p_data[SMX_NEVER_SMOKER] != NULL) p_data[SMX_SMOKING_YEARS][index + i] = (float)__never_smoker;
+		// Unknown_Smoker
+		if (p_data[SMX_UNKNOWN_SMOKER] != NULL) p_data[SMX_UNKNOWN_SMOKER][index + i] = (float)__unknown_smoker;
+		// Smoking_Quantity
+		if (p_data[SMX_SMOKING_QUANTITY] != NULL) p_data[SMX_PLM_SMOKING_LEVEL][index + i] = (float)__smoking_quantity;
 	}
 	return 0;
 }
 
+// Get pointers to data vectors
+//.......................................................................................
+void SmokingGenerator::get_p_data(MedFeatures& features) {
 
+	p_data.resize(SMX_LAST, NULL);
 
-/*
-int SmokingGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
-
-	int missing = MED_MAT_MISSING_VALUE;
-
-	for (int i = 0; i < num; i++) {
-		int current_smoker, ex_smoker;
-		int years_since_quitting, smoking_years;
-		float pack_years;
-
-		int len;
-		bool never_smoked = true;
-
-		string sname = "SMOKING_ENRICHED";
-		SValShort4 *smx_status = (SValShort4 *)rec.get(sname, i, len);
-		if (len > 0)
-			never_smoked = (smx_status[0].val1 == -1); // never smoked is -1, -1, 0, 0
-		assert(len <= 1);
-
-		if (len == 0) { // No Data
-			current_smoker = ex_smoker = (int)missing;
-			years_since_quitting = smoking_years = (int)missing;
-			pack_years = (float)missing;
-		}
-		else if (never_smoked) { // Non Smoker
-			current_smoker = ex_smoker = 0;
-			years_since_quitting = 100;
-			smoking_years = 0;
-			pack_years = 0.0;
-		}
-		else { // (Ex)Smoker
-			int start_year = smx_status[0].val1;
-			int end_year = smx_status[0].val2;
-			int target_year = (int)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000);
-			if (target_year < end_year) {
-				// still in smoking period
-				smoking_years = target_year - start_year;
-				years_since_quitting = 0;
-				current_smoker = 1;
-			}
-			else {
-				// maybe done smoking
-				current_smoker = smx_status[0].val4;
-				smoking_years = end_year - start_year; // we are merciful
-				if (!current_smoker)
-					years_since_quitting = target_year - end_year;
-				else
-					years_since_quitting = 0;
-			}
-			pack_years = ((float)smx_status[0].val3 / 20) * smoking_years;
-			ex_smoker = 1 - current_smoker;
-		}
-		int plm_smoking_level = missing;
-
-		if (current_smoker == missing)
-			plm_smoking_level = missing;
-		else if (never_smoked)
-			plm_smoking_level = 0;
-		else if (ex_smoker == 1) {
-			if (years_since_quitting > 5)
-				plm_smoking_level = 1;
-			else if (years_since_quitting <= 5)
-				plm_smoking_level = 2;
-		}
-		else if (current_smoker == 1) {
-			float packs_per_day = pack_years / smoking_years;
-			if (packs_per_day <= 0.25)
-				plm_smoking_level = 3;
-			else if (packs_per_day > 0.25 && packs_per_day <= 0.5)
-				plm_smoking_level = 4;
-			else if (packs_per_day > 0.5 && packs_per_day <= 1)
-				plm_smoking_level = 5;
-			else if (packs_per_day > 1)
-				plm_smoking_level = 6;
-		}
-		for (int j = 0; j < names.size(); j++) {
-			float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[names[j]][index]);
-
-			if (algorithm::ends_with(names[j], "Current_Smoker"))
-				p_feat[i] = (float)current_smoker;
-			else if (algorithm::ends_with(names[j], "Ex_Smoker"))
-				p_feat[i] = (float)ex_smoker;
-			else if (algorithm::ends_with(names[j], "Smok_Years_Since_Quitting"))
-				p_feat[i] = (float)years_since_quitting;
-			else if (algorithm::ends_with(names[j], "Smoking_Years"))
-				p_feat[i] = (float)smoking_years;
-			else if (algorithm::ends_with(names[j], "Smok_Pack_Years"))
-				p_feat[i] = (float)pack_years;
-			else if (algorithm::ends_with(names[j], "PLM_Smoking_Level"))
-				p_feat[i] = (float)plm_smoking_level;
-			else MTHROW_AND_ERR("unknown feature name [%s]", names[j].c_str());
-		}
+	if (iGenerateWeights) {
+		if (names.size() != 1)
+			MTHROW_AND_ERR("Cannot generate weights using a multi-feature generator (type %d generates %d features)\n", generator_type, (int)names.size())
+		else
+			p_data[0] = &(features.weights[0]);
 	}
 
-	return 0;
+	for (string &name : names) {
+		if (algorithm::ends_with(name, "Current_Smoker"))
+			p_data[SMX_CURRENT_SMOKER] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "Ex_Smoker"))
+			p_data[SMX_EX_SMOKER] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "Smok_Years_Since_Quitting"))
+			p_data[SMX_YEARS_SINCE_QUITTING] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "Smoking_Years"))
+			p_data[SMX_SMOKING_YEARS] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "Smok_Pack_Years"))
+			p_data[SMX_SMOK_PACK_YEARS] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "PLM_Smoking_Level"))
+			p_data[SMX_PLM_SMOKING_LEVEL] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "Never_Smoker"))
+			p_data[SMX_NEVER_SMOKER] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "Unknown_Smoker"))
+			p_data[SMX_UNKNOWN_SMOKER] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "Smoking_Quantity"))
+			p_data[SMX_SMOKING_QUANTITY] = &(features.data[name][0]);
+		else
+			MTHROW_AND_ERR("unknown feature name [%s]", name.c_str());
+	}
 }
-*/
-

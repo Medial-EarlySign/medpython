@@ -157,7 +157,6 @@ public:
 	int quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids);
 	int learn_rep_processors(MedPidRepository& rep, vector<int>& ids);
 	void filter_rep_processors();
-	void filter_rep_processors(MedPidRepository& rep, vector<int>& ids);
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
 	int generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features);
 	int generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features) { return generate_features(rep, samples, generators, features); }
