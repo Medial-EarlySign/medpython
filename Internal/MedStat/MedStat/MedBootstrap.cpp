@@ -310,6 +310,8 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 	{
 		pids[i] = features.samples[i].id;
 		y[i] = features.samples[i].outcome;
+		if (features.samples[i].prediction.empty())
+			MTHROW_AND_ERR("MedFeautres Prediciton is empty. need to run on MedFeatures with predictions\n");
 		preds[i] = features.samples[i].prediction[0];
 		if (uses_time_window) {
 			int diff_days = (tm.convert_date(MedTime::Days, features.samples[i].outcomeTime)
