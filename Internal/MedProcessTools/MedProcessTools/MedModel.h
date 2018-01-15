@@ -144,6 +144,7 @@ public:
 	void set_affected_signals(MedDictionarySections& dict);
 	void init_signal_ids(MedDictionarySections& dict);
 	void get_required_signal_names(unordered_set<string>& signalNames);
+	int collect_and_add_virtual_signals(MedRepository &rep);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
