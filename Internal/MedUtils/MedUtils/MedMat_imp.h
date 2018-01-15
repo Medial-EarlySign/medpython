@@ -570,7 +570,7 @@ template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int ti
 			if (titles_line_flag) {
 				assert(fields[0].compare("pid") == 0);
 				assert(fields[1].compare("date") == 0);
-				assert(fields[2].compare("time") == 0);
+				assert(fields[2].compare("outcomeTime") == 0);
 				assert(fields[3].compare("split") == 0);
 				assert(fields[4].compare("weight") == 0);
 				for (int i = METADATA_COLUMNS_PREFIX; i < fields.size() - METADATA_COLUMNS_SUFFIX; i++)
