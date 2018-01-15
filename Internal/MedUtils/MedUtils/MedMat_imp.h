@@ -216,7 +216,7 @@ template <class T> void MedMat<T>::reorder_by_col(vector<int> &col_order)
 }
 
 //...........................................................................................
-template <class T> void MedMat<T>::get_row(int i_row, vector<T> &rowv)
+template <class T> void MedMat<T>::get_row(int i_row, vector<T> &rowv) const
 {
 	rowv.resize(ncols);
 	if (ncols > 0 && nrows > 0)
@@ -224,7 +224,7 @@ template <class T> void MedMat<T>::get_row(int i_row, vector<T> &rowv)
 }
 
 //...........................................................................................
-template <class T> void MedMat<T>::get_col(int i_col, vector<T> &colv)
+template <class T> void MedMat<T>::get_col(int i_col, vector<T> &colv) const
 {
 	colv.resize(nrows);
 	if (ncols > 0 && nrows > 0) {
