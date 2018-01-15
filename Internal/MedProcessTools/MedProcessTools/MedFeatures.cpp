@@ -151,9 +151,9 @@ void MedFeatures::set_as_matrix(const MedMat<float>& mat) {
 
 	// Normalization flag
 	for (const string& name : namesToTake)
-		attributes[name].normalized = mat.normalized_flag;
+		attributes[name].normalized = mat.normalized_flag > 0;
 	for (const string& name : namesToTake)
-		attributes[name].imputed = mat.normalized_flag;
+		attributes[name].imputed = mat.normalized_flag > 0;
 
 	weights.reserve((int)mat.recordsMetadata.size());
 	bool no_zero_weight = false;
@@ -334,6 +334,8 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 	string curr_line;
 	vector<string> names;
 	int weighted = 0;
+	int max_pred = -1;
+	vector<int> field_ind_to_pred_index;
 	while (getline(inf, curr_line)) {
 		boost::trim(curr_line);
 		vector<string> fields;
@@ -350,10 +352,21 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			assert(fields[idx++].compare("outcome_time") == 0);
 			assert(fields[idx++].compare("split") == 0);
 
+
 			for (int i = idx; i < fields.size(); i++) {
-				data[fields[i]] = vector<float>();
-				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
-				names.push_back(fields[i]);
+				if (!boost::starts_with(fields[i], "pred_")) {
+					data[fields[i]] = vector<float>();
+					attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
+					names.push_back(fields[i]);
+				}
+				else {
+					int candi = stoi(boost::replace_all_copy(fields[i], "pred_", ""));
+					if (candi > max_pred) {
+						max_pred = candi;
+						field_ind_to_pred_index.resize(max_pred + 1, -1);
+						field_ind_to_pred_index[max_pred] = i;
+					}
+				}
 			}
 			ncols = (int)fields.size();
 		}
@@ -374,6 +387,11 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			newSample.outcome = stof(fields[idx++]);
 			newSample.outcomeTime = stoi(fields[idx++]);
 			newSample.split = stoi(fields[idx++]);
+			newSample.prediction.resize(max_pred + 1);
+			for (size_t i = 0; i <= max_pred; ++i)
+				if (field_ind_to_pred_index[i] >= 0)
+					newSample.prediction[i] = stof(fields[field_ind_to_pred_index[i]]);
+
 			samples.push_back(newSample);
 
 			for (int i = 0; i < names.size(); i++)
