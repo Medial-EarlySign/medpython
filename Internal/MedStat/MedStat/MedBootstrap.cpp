@@ -7,6 +7,44 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
+void MedBootstrap::get_cohort_from_arg(const string &single_cohort) {
+	string cohort_line_with_name = single_cohort + "\t" + single_cohort; 
+	parse_cohort_line(cohort_line_with_name);
+}
+
+void MedBootstrap::parse_cohort_line(const string &line) {
+	if (line.find('\t') == string::npos)
+		MTHROW_AND_ERR("line is in wrong format:\n%s\n",
+			line.c_str());
+	
+	string cohort_name = line.substr(0, line.find('\t'));
+	string cohort_definition = line.substr(line.find('\t') + 1);
+	if (cohort_name != "MULTI") {
+		vector<string> params;
+		boost::split(params, cohort_definition, boost::is_any_of(";"));
+		vector<Filter_Param> convert_params((int)params.size());
+		for (size_t i = 0; i < params.size(); ++i)
+			convert_params[i] = Filter_Param(params[i]);
+		filter_cohort[cohort_name] = convert_params;
+	}
+	else {
+		vector<string> tokens_p;
+		boost::split(tokens_p, cohort_definition, boost::is_any_of("\t"));
+		vector<vector<Filter_Param>> multi_line;
+		for (size_t i = 0; i < tokens_p.size(); ++i)
+		{
+			vector<string> params;
+			boost::split(params, tokens_p[i], boost::is_any_of(";"));
+			vector<Filter_Param> convert_params((int)params.size());
+			for (size_t k = 0; k < params.size(); ++k)
+				convert_params[k] = Filter_Param(params[k]);
+			multi_line.push_back(convert_params);
+		}
+
+		add_filter_cohorts(multi_line);
+	}
+}
+
 void MedBootstrap::parse_cohort_file(const string &cohorts_path) {
 	ifstream of(cohorts_path);
 	if (!of.good())
@@ -15,35 +53,7 @@ void MedBootstrap::parse_cohort_file(const string &cohorts_path) {
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))
 			continue;
-		if (line.find('\t') == string::npos)
-			MTHROW_AND_ERR("filter_cohort file \"%s\" is in wing format. line=\"%s\"\n",
-				cohorts_path.c_str(), line.c_str());
-		string cohort_name = line.substr(0, line.find('\t'));
-		string cohort_definition = line.substr(line.find('\t') + 1);
-		if (cohort_name != "MULTI") {
-			vector<string> params;
-			boost::split(params, cohort_definition, boost::is_any_of(";"));
-			vector<Filter_Param> convert_params((int)params.size());
-			for (size_t i = 0; i < params.size(); ++i)
-				convert_params[i] = Filter_Param(params[i]);
-			filter_cohort[cohort_name] = convert_params;
-		}
-		else {
-			vector<string> tokens_p;
-			boost::split(tokens_p, cohort_definition, boost::is_any_of("\t"));
-			vector<vector<Filter_Param>> multi_line;
-			for (size_t i = 0; i < tokens_p.size(); ++i)
-			{
-				vector<string> params;
-				boost::split(params, tokens_p[i], boost::is_any_of(";"));
-				vector<Filter_Param> convert_params((int)params.size());
-				for (size_t k = 0; k < params.size(); ++k)
-					convert_params[k] = Filter_Param(params[k]);
-				multi_line.push_back(convert_params);
-			}
-
-			add_filter_cohorts(multi_line);
-		}
+		parse_cohort_line(line);
 	}
 	of.close();
 }
