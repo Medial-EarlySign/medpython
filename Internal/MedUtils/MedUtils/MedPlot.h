@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-/** @file 
+/** @file
 * A Library to plot graphs in HTML using plotly.js \n
 * Example Code: \n
 * vector<map<float, float>> data(2); //plot 2 series of two lines \n
@@ -78,14 +78,17 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 /// <summary>
 /// Plot of 3D graph data
 /// @param outPath The output file (recomanded html)
-/// @param vec3d the 3d vector, first dim is of size 3. x,y,z
+/// @param vec3d the 3d vector, first dim is vector of all series each sereis in
+/// diffrent color. second dim is of size 3 for x,y,z axis data and thirds dim is the data in each axis
+/// @param seriesNames same size vector to data with coresponding labels to each data 
 /// @param heatmap - if true will print heatmap, else 3d graph
 /// @param title - graph title
 /// @param xName - the x axis name
 /// @param yName - the y axis name
 /// @param zName - the z axis name
 /// </summary>
-void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatmap = true, string title = "", string xName = "x", string yName = "y", string zName = "z");
+void createHtml3D(string outPath, const vector<vector<vector<float>>> &vec3d, const vector<string> &seriesNames,
+	bool heatmap = true, string title = "", string xName = "x", string yName = "y", string zName = "z");
 
 /// <summary>
 /// returns a csv string content of all features with header name for each feature to save in csv format
