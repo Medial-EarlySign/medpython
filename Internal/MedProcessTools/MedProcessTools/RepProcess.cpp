@@ -215,6 +215,13 @@ void RepMultiProcessor::get_required_signal_names(unordered_set<string>& signalN
 		processor->get_required_signal_names(signalNames);
 }
 
+//.......................................................................................
+void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals)
+{
+	for (auto& processor : processors)
+		processor->add_virtual_signals(_virtual_signals);
+}
+
 // Learn processors
 //.......................................................................................
 int RepMultiProcessor::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
@@ -1343,8 +1350,10 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 //.......................................................................................
 void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
 {
-	for (auto &vsig : calc2virtual.find(calculator)->second)
-		_virtual_signals[vsig.first] = vsig.second;
+	for (int i=0; i<V_names.size(); i++)
+		_virtual_signals[V_names[i]] = V_types[i];
+	//for (auto &vsig : calc2virtual.find(calculator)->second)
+	//	_virtual_signals[vsig.first] = vsig.second;
 }
 
 //.......................................................................................
@@ -1359,6 +1368,7 @@ int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
 int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 {
 	// first ... we make sure that the ids are ready
+#pragma omp critical
 	if (V_ids.size() == 0) {
 
 		V_ids.clear();
@@ -1378,6 +1388,7 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
 
 	}
+
 	return -1;
 }
 

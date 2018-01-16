@@ -356,16 +356,18 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 			// Generate DynamicRec with all relevant signals
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
-			// Apply rep-cleaning
 
-			for (auto& processor : rep_processors) 
+
+			// Apply rep processors
+			for (auto& processor : rep_processors)
 				if (processor->apply(idRec[n_th], pid_samples) < 0) rc = -1;
 
-			
 
 			// Generate Features
 			for (auto& generator : _generators)
 				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
+
+
 			#pragma omp critical 
 			if (rc < 0) RC = -1;
 		}

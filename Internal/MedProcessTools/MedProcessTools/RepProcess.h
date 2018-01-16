@@ -165,7 +165,9 @@ public:
 	/// <summary> Required Signals ids : Fill the member vector - req_signal_ids </summary>
 	void set_required_signal_ids(MedDictionarySections& dict); 
 	/// <summary> Required Signals names : Fill the unordered set signalNames </summary>
-	void get_required_signal_names(unordered_set<string>& signalNames); 
+	void get_required_signal_names(unordered_set<string>& signalNames);
+	/// <summary> Reporting back virtual signals if there are any </summary>
+	void add_virtual_signals(map<string, int> &_virtual_signals);
 
 	/// <summary> Affected Signals : Fill the member vector aff_signal_ids </summary>
 	void set_affected_signal_ids(MedDictionarySections& dict); 
@@ -540,10 +542,13 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
 
+		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
+
 		/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
 		int init(map<string, string>& mapper);
 
 		void add_virtual_signals(map<string, int> &_virtual_signals);
+
 
 		// Learning
 		/// <summary> In this class there's never learning - we return 0 immediately </summary>
@@ -590,8 +595,6 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		vector<int> V_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
 		vector<int> sigs_ids; /// <ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
-
-		vector<UniversalSigVec> usv; /// here for efficiency and less init() calls
 
 };
 
