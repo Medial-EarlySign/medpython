@@ -598,7 +598,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		if (strata_sizes[i] < min_samples) { // Not enough values to make valid imputation
 			too_small_stratas++;
 			if (moment_type == IMPUTE_MMNT_SAMPLE)
-				histograms[i].push_back({ missing_value,1.0 });
+				histograms[i].push_back({ missing_value,(float)1.0 });
 			else
 				moments[i] = missing_value;
 		}
@@ -809,8 +809,9 @@ void get_all_values(MedFeatures& features, string& signalName, unordered_set<int
 		if (max_sample > 0 && max_sample < size)
 			jump = size / max_sample;
 
+		vector<float>& dataVec = features.data[signalName];
 		for (int i = 0; i < size; i += jump)
-			values.push_back(features.data[signalName][i]);
+			values.push_back(dataVec[i]);
 
 	}
 	else {

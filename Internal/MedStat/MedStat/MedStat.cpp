@@ -125,7 +125,7 @@ void get_histogram(vector<float>& vals, vector<pair<float, float> >& hist) {
 			hist.push_back({ vals[i - 1] , ((float)i) / vals.size() });
 	}
 		
-	hist.push_back({ vals.back() , 1.0 });
+	hist.push_back({ vals.back() , (float)1.0 });
 }
 
 //...............................................................................................................................

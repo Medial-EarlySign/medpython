@@ -586,13 +586,14 @@ int PidDynamicRec::set_version_data(int sid, int version, void *datap, int len)
 
 	if (((unsigned int)pl->pos < data_len) || (len < pl->len)) {
 		// need to create a new place for this version
+		//MLOG("In here : pos %d len %d curr_len %d data_len %d len %d size %d data_size %d\n", pl->pos, pl->len, curr_len, data_len, len, size, data_size);
 		if (curr_len + size > data_size)
 			resize_data(2*(data_size + size));
 		PosLen new_pl;
 		new_pl.pos = curr_len;
 		new_pl.len = len;
 		curr_len += size;
-
+		//MLOG("In here : NEW pos %d len %d curr_len %d data_len %d len %d size %d version %d\n", new_pl.pos, new_pl.len, curr_len, data_len, len, size, version);
 		memcpy((char *)&data[new_pl.pos], (char *)datap, size);
 		set_poslen(sid, version, new_pl);
 	}
@@ -603,6 +604,38 @@ int PidDynamicRec::set_version_data(int sid, int version, void *datap, int len)
 		new_pl.len = len;
 		set_poslen(sid, version, new_pl);
 	}
+	return 0;
+}
+
+
+//..................................................................................................................
+int PidDynamicRec::set_version_universal_data(int sid, int version, int *_times, float *_vals, int len)
+{
+	UniversalSigVec usv;
+
+	SignalInfo &info = this->my_base_rep->sigs.Sid2Info[sid];
+
+	usv.init((int)(info.type));
+
+	vector<char> packed_data(len*info.bytes_len);
+
+	usv.data = &packed_data[0];
+	usv.len = len;
+
+	float *_curr_vals = _vals;
+	int *_curr_times = _times;
+	int inc_time = (int)sizeof(int) * info.n_time_channels;
+	int inc_float = (int)sizeof(float) * info.n_val_channels;
+
+	for (int i=0; i<len; i++) {
+
+		usv.Set(i, _curr_times, _curr_vals, usv.data);
+
+		_curr_times += inc_time;
+		_curr_vals += inc_float;
+
+	}
+
 	return 0;
 }
 
@@ -874,6 +907,14 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 			pl.len = len;
 			sv.insert(sid_serial, pl); 
 			data_len += slen;
+		}
+		else {
+			int sid_serial = my_base_rep->sigs.sid2serial[sid];
+			int slen = 0;
+			PosLen pl;
+			pl.pos = 0;
+			pl.len = 0;
+			sv.insert(sid_serial, pl);
 		}
 	}
 	//curr_len = data_len;

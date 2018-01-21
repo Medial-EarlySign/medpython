@@ -1,6 +1,17 @@
-//
-// Logger.h - allowing logs with more control
-//
+/// @file
+/// Logger.h - allowing logs with more control
+///
+/// next are codes for libraries sections using Logger\n
+/// Application codes should use LOG_APP as the LOCAL_SECTION code\n
+/// each c file using the logger should contain at top something like:\n
+/// #include "Logger/Logger/Logger.h"\n
+/// #define LOCAL_SECTION LOG_APP\n
+/// #define LOCAL_LEVEL	LOG_DEF_LEVEL\n
+/// extern MedLogger global_logger;\n
+///\n
+/// specific sections should use the section code instead of LOG_APP . \n
+/// LOCAL_LEVEL can be changed to something else to allow more or less verbal logs.\n
+///\n
 
 #ifndef __LOGGER__H__
 #define __LOGGER__H__
@@ -17,21 +28,9 @@
 
 using namespace std;
 
-// next are codes for libraries sections using Logger
-// Application codes should use LOG_APP as the LOCAL_SECTION code
-// each c file using the logger should contain at top something like:
-// #include "Logger/Logger/Logger.h"
-// #define LOCAL_SECTION LOG_APP
-// #define LOCAL_LEVEL	LOG_DEF_LEVEL
-// extern MedLogger global_logger;
-//
-// specific sections should use the section code instead of LOG_APP . 
-// LOCAL_LEVEL can be changed to something else to allow more or less verbal logs.
-//
-
-// user apps section
+/// user apps section
 #define LOG_APP		 0
-// general default section
+/// general default section
 #define LOG_DEF		 1
 // InfraMed sections
 #define LOG_INFRA	 2
@@ -77,9 +76,9 @@ using namespace std;
 #define MAX_LOG_SECTION	25
 
 
-// logs get printed if their given level (which can be different for different code sections)
-// is > log level in levels.
-// this means that min level never be printed, and max level is always printed
+/// logs get printed if their given level (which can be different for different code sections)\n
+/// is > log level in levels.\n
+/// this means that min level never be printed, and max level is always printed\n
 
 #define NO_LOG_LEVEL		0
 #define MIN_LOG_LEVEL		0
@@ -118,19 +117,19 @@ class MedLogger {
 
 extern MedLogger global_logger;
 
-// LOG() - all print options : section and level
+/// LOG() - all print options : section and level
 #define MEDLOG(Section,Level,fmt,...) global_logger.log(Section,Level,fmt, ##__VA_ARGS__)
-// MDBG() - use LOCAL_SECTION, Level is given
+/// MDBG() - use LOCAL_SECTION, Level is given
 #define MDBG(Level,fmt,...)  global_logger.log(LOCAL_SECTION,Level,fmt, ##__VA_ARGS__)
-// MLOG() - use LOCAL_SECTION and LOCAL_LEVEL
+/// MLOG() - use LOCAL_SECTION and LOCAL_LEVEL
 #define MLOG(fmt,...) global_logger.log(LOCAL_SECTION, LOCAL_LEVEL, fmt, ##__VA_ARGS__)
-// MLOG_V() - use LOCAL_SECTION and VERBOSE_LOG_LEVEL
+/// MLOG_V() - use LOCAL_SECTION and VERBOSE_LOG_LEVEL
 #define MLOG_V(fmt,...) global_logger.log(LOCAL_SECTION, VERBOSE_LOG_LEVEL, fmt, ##__VA_ARGS__)
-// MLOG_D() - use LOCAL_SECTION and DEBUG_LOG_LEVEL
+/// MLOG_D() - use LOCAL_SECTION and DEBUG_LOG_LEVEL
 #define MLOG_D(fmt,...) global_logger.log(LOCAL_SECTION, DEBUG_LOG_LEVEL, fmt, ##__VA_ARGS__)
-// MERR() - use LOCAL_SECTION , always print
+/// MERR() - use LOCAL_SECTION , always print
 #define MERR(fmt,...) global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL, fmt, ##__VA_ARGS__)
-// MWARN - use LOCAL_SECTION and one less than MAX level (used for MERR), so that we can easily skip them
+/// MWARN - use LOCAL_SECTION and one less than MAX level (used for MERR), so that we can easily skip them
 #define MWARN(fmt,...) global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL-1, fmt, ##__VA_ARGS__)
 
 #define MOUT(fmt,...) global_logger.out(fmt, ##__VA_ARGS__)
@@ -138,9 +137,9 @@ extern MedLogger global_logger;
 #define MTHROW_AND_ERR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL, buff); throw runtime_error(string(buff));}
 
 
-//==================================================================
-// MEDTIMER - a very simple class to allow very easy time measures
-//==================================================================
+/**
+* MedTimer - a very simple class to allow very easy time measures
+*/
 class MedTimer {
 	public:
 		string name;

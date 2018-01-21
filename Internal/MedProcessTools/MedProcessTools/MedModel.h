@@ -58,8 +58,12 @@ public:
 	// Safe Mode for train/test intersection
 	int safe_mode = 0;
 
-	// All required signals
-	unordered_set<int> required_signals;
+	// All required signal names + ids
+	unordered_set<string> required_signal_names;
+	unordered_set<int> required_signal_ids;
+
+	// all collected virtual signals (name to type)
+	map<string, int> virtual_signals;
 
 	// Constructor/Destructor
 	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
@@ -137,10 +141,14 @@ public:
 	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name,init_string); }
 
 	// signal ids
-	void set_required_signals(MedDictionarySections& dict);
-	void set_affected_signals(MedDictionarySections& dict);
-	void init_signal_ids(MedDictionarySections& dict);
+	void set_required_signal_ids(MedDictionarySections& dict);
+	void set_affected_signal_ids(MedDictionarySections& dict);
+
+	// Required signals propograion
 	void get_required_signal_names(unordered_set<string>& signalNames);
+
+	// Initialization : signal ids and tables
+	void init_all(MedDictionarySections& dict);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
@@ -155,6 +163,7 @@ public:
 		
 	int quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids);
 	int learn_rep_processors(MedPidRepository& rep, vector<int>& ids);
+	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
 	int generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features);
 	int generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features) { return generate_features(rep, samples, generators, features); }
