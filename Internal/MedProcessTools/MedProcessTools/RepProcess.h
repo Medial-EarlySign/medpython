@@ -373,13 +373,13 @@ Rule12:HDL_over_Cholesterol = HDL / Cholesterol\n
 Rule13:HDL_over_LDL = HDL / LDL\n
 Rule14:HDL_over_LDL = 1 / LDL_over_HDL\n
 Rule15:Cholesterol_over_HDL = Cholesterol / HDL\n
-Rule16:Cholesterol_over_HDL = 1 / HDL / Cholesterol\n
+Rule16:---------------------\n
 Rule17:Cholesterol_over_HDL = 1 / HDL_over_Cholestrol\n
 Rule18:LDL_over_HDL = LDL / HDL\n
 Rule19:Albumin <= Protein_Total\n
 Rule20:FreeT4 <= T4\n
 Rule21:NRBC <= RBC\n
-Rule22:CHADS2_VASC >= CHADS2_VASC\n
+Rule22:CHADS2_VASC >= CHADS2\n
 */
 class RepRuleBasedOutlierCleaner : public RepProcessor, public MedValueCleaner {
 	// get multiple signals and clean them according to consistency  with other signals from same date
