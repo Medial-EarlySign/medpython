@@ -395,6 +395,9 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 	// Get all values
 	vector<float> values;
 	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
+	//MLOG("basic Iterative clean Learn: signalName %s signalId %d :: got %d values()\n", signalName.c_str(), signalId, values.size());
+
+
 
 	// Iterative approximation of moments
 	int rc =  get_iterative_min_max(values);
@@ -423,6 +426,8 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 // Apply cleaning model
 //.......................................................................................
 int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
+
+	//MLOG("basic cleaner _apply: signalName %s signalId %d\n", signalName.c_str(), signalId);
 
 	// Sanity check
 	if (signalId == -1) {
@@ -1290,6 +1295,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	for (auto entry : mapper) {
 		string field = entry.first;
 		if (field == "calculator") calculator = entry.second;
+		else if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "coeffs") {
 			vector<string> fields;
 			boost::split(fields, entry.second, boost::is_any_of(",:"));
@@ -1306,6 +1312,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	if (calc_type != CALC_TYPE_UNDEF) {
 
 		// add required signals dependent on the actual calculator we run
+		req_signals.clear();
 		for (string req_s : calc2req_sigs.find(calculator)->second)
 			req_signals.push_back(req_s);
 
@@ -1334,6 +1341,8 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 			V_types.push_back(vsig.second);
 
 		// add names to required, affected and virtual_signals
+		aff_signals.clear();
+		virtual_signals.clear();
 		for (int i=0; i<V_names.size(); i++) {
 			req_signals.push_back(V_names[i]);
 			aff_signals.insert(V_names[i]);
@@ -1345,6 +1354,16 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 
 	MERR("RepCalcSigs: ERROR: calculator %s not defined\n", calculator.c_str());
 	return -1;
+}
+
+//.......................................................................................
+void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict)
+{
+	for (auto &vsig : V_names)
+		V_ids.push_back(dict.id(vsig));
+	for (auto &rsig : req_signals)
+		sigs_ids.push_back(dict.id(rsig));
+
 }
 
 //.......................................................................................
@@ -1367,25 +1386,9 @@ int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
 //.......................................................................................
 int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 {
-	// first ... we make sure that the ids are ready
-#pragma omp critical
-	if (V_ids.size() == 0) {
-
-		V_ids.clear();
-		sigs_ids.clear();
-
-		for (auto &vsig : V_names)
-			V_ids.push_back(rec.my_base_rep->sigs.sid(vsig));
-
-		for (auto &rsig : req_signals)
-			sigs_ids.push_back(rec.my_base_rep->sigs.sid(rsig));
-
-	}
-
-
 	switch (calc_type) {
 
-	case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
+		case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
 
 	}
 
@@ -1405,6 +1408,13 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 	vector<int> req_signal_ids(1, signalId);
 
 	UniversalSigVec usv;
+
+	if (rep.sigs.Sid2Info[signalId].virtual_sig) {
+		MERR("ERROR: signal %d,%s is virtual, and currently not supported in get_values....Avoid using basic_cleaners on virtual signals at the moment.\n ",
+			signalId, rep.sigs.name(signalId).c_str());
+		throw(string("get_values on virtual signal"));
+	}
+
 
 	for (int id : ids) {
 

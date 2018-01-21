@@ -832,7 +832,7 @@ int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 
 	// adding to rep
 	for (auto &vsig : virtual_signals) {
-		MLOG("Attempting to add virtual signal %s type %d\n", vsig.first.c_str(), vsig.second);
+		//MLOG("Attempting to add virtual signal %s type %d (%d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		if (rep.sigs.sid(vsig.first) < 0) {
 			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
 			if (verbosity > 0)
@@ -843,8 +843,10 @@ int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
 		}
 		else {
-			MERR("Failed defining virtual signal %s (type %d)...\n", vsig.first.c_str(), vsig.second);
-			return -1;
+			if (rep.sigs.sid(vsig.first) < 100) {
+				MERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
+				return -1;
+			}
 		}
 	}
 

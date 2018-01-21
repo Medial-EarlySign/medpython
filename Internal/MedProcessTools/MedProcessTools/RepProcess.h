@@ -175,6 +175,10 @@ public:
 	/// <summary> Set signal-ids for all linked signals </summary>
 	void set_signal_ids(MedDictionarySections& dict); 
 
+	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
+	void init_tables(MedDictionarySections& dict) { for (RepProcessor * proc : processors) { proc->init_tables(dict); } }
+
+
 	/// <summary> learn processors </summary>
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
 
@@ -540,6 +544,8 @@ class RepCalcSimpleSignals : public RepProcessor {
 		string calculator; ///< calculator asked for by user
 		int calc_type;	///> type of calculator (one of the allowed enum values)
 
+		float missing_value = (float)MED_MAT_MISSING_VALUE;
+
 		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
 
 		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
@@ -547,12 +553,15 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
 		int init(map<string, string>& mapper);
 
+		// making sure V_ids and sigs_ids are initialized
+		void init_tables(MedDictionarySections& dict);
+
 		void add_virtual_signals(map<string, int> &_virtual_signals);
 
 
 		// Learning
 		/// <summary> In this class there's never learning - we return 0 immediately </summary>
-		int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return 0; };
+		int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict); return 0; };
 
 		// Applying
 		/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
@@ -566,6 +575,9 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static float get_age(int byear, int date);
 		int _apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time_points);
 		static float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity = 0);
+
+		// serialization
+		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, V_names, V_types, req_signals, aff_signals);
 
 
 	private:
@@ -618,5 +630,6 @@ MEDSERIALIZE_SUPPORT(RepBasicOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepRuleBasedOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepConfiguredOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepNbrsOutlierCleaner)
+MEDSERIALIZE_SUPPORT(RepCalcSimpleSignals)
 
 #endif

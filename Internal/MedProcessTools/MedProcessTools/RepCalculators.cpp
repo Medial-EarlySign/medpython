@@ -20,6 +20,9 @@ float RepCalcSimpleSignals::calc_egfr_ckd_epi(float creatinine, int gender, floa
 {
 	double eGFR_CKD_EPI = pow(0.993, (double)age);
 
+	if (creatinine <= 0)
+		return -1;
+
 	if (ethnicity == 1)
 		eGFR_CKD_EPI *= 1.159;
 
@@ -57,12 +60,11 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 	int BYEAR_sid = sigs_ids[2];
 
 	if (rec.usvs.size() < 3) rec.usvs.resize(3);
-	//vector<UniversalSigVec> usv(3);
 
 	rec.uget(Creatinine_sid, 0, rec.usvs[0]); // getting Creatinine into usv[0]
 
 	if (rec.usvs[0].len > 0) {
-		
+
 		rec.uget(GENDER_sid, 0, rec.usvs[1]); // getting GENDER into usv[1]
 		rec.uget(BYEAR_sid, 0, rec.usvs[2]); // getting BYEAR into usv[2]
 
@@ -79,6 +81,7 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 			float creatinine = rec.usvs[0].Val(i);
 			v_times[i] = rec.usvs[0].Time(i);
 			v_vals[i] = RepCalcSimpleSignals::calc_egfr_ckd_epi(creatinine, gender, age, ethnicity);
+			if (v_vals[i] < 0) v_vals[i] = missing_value;
 		}
 
 		// pushing virtual data into rec (into orig version)
@@ -88,6 +91,5 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 		for (int ver=1; ver<rec.get_n_versions(); ver++)
 			rec.point_version_to(v_eGFR_sid, 0, ver);
 	}
-
 	return 0;
 }
