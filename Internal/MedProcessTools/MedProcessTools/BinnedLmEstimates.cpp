@@ -218,9 +218,13 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			// BYear/Age
 			prepare_for_age(rec, ageUsv, age, byear);
 
-			// Apply
-			for (auto& processor : processors)
-				processor->apply(rec, time_points, req_signal_ids);
+			// Apply Processors
+			for (unsigned int i = 0; i < processors.size(); i++) {
+				unordered_set<int> current_req_signal_ids;
+				vector<FeatureGenerator *> generator = { this };
+				get_all_required_signal_ids(current_req_signal_ids, processors, i, generator);
+				processors[i]->conditional_apply(rec, time_points, current_req_signal_ids);
+			}				
 
 			// Collect values and ages
 			rec.uget(signalId, 0, usv);
@@ -433,7 +437,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 // generate new feature(s)
 //.......................................................................................
-int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {
@@ -478,7 +482,7 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 			float type_sum = 0;
 			int type_num = 0;
 
-			float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[ipoint]][index]);
+			float *p_feat = p_data[ipoint] + index ;
 			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, last_time - params.estimation_points[ipoint]);
 
 			for (int j = 0; j < rec.usv.len; j++) {
@@ -541,6 +545,25 @@ int BinnedLmEstimates::Generate(PidDynamicRec& rec, MedFeatures& features, int i
 	}
 
 	return 0;
+}
+
+// Get pointers to data vectors
+//.......................................................................................
+void BinnedLmEstimates::get_p_data(MedFeatures &features) {
+
+	p_data.clear();
+
+	if (iGenerateWeights) {
+		if (names.size() != 1)
+			MTHROW_AND_ERR("Cannot generate weights using a multi-feature generator (type %d generates %d features)\n", generator_type, (int)names.size())
+		else
+			p_data[0] = &(features.weights[0]);
+	} else {
+		for (unsigned int ipoint = 0; ipoint < params.estimation_points.size(); ipoint++)
+			p_data.push_back(&(features.data[names[ipoint]][0]));
+	}
+
+	return;
 }
 
 // (De)Serialization

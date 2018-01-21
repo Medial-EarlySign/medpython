@@ -1,7 +1,18 @@
 #pragma once
 #include "FeatureGenerator.h"
 
-void generateSmokingRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal);
+typedef enum {
+	SMX_CURRENT_SMOKER,
+	SMX_EX_SMOKER,
+	SMX_YEARS_SINCE_QUITTING,
+	SMX_SMOKING_YEARS,
+	SMX_SMOK_PACK_YEARS,
+	SMX_PLM_SMOKING_LEVEL,
+	SMX_NEVER_SMOKER,
+	SMX_UNKNOWN_SMOKER,
+	SMX_SMOKING_QUANTITY,
+	SMX_LAST
+} SmokingGeneratorFields ;
 
 /** @file
 * Generation of Smoking use
@@ -34,7 +45,10 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
 	// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// get pointers to data
+	void get_p_data(MedFeatures& features);
 
 	// Signal Ids
 	//void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
@@ -48,4 +62,4 @@ public:
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind); }
 };
 
-MEDSERIALIZE_SUPPORT(SmokingGenerator);
+MEDSERIALIZE_SUPPORT(SmokingGenerator)

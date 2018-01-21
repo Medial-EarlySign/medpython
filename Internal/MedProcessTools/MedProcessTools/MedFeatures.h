@@ -81,6 +81,9 @@ public:
 	/// <summary> Get subset of data (+attributes) as a MetMat: Only features in 'names' and rows in 'idx' </summary>
 	void get_as_matrix(MedMat<float>& mat, const vector<string>& names, vector<int> &idx);
 
+	/// <summary> Set data (+attributes) from MedMat </summary>
+	void set_as_matrix(const MedMat<float>& mat);
+
 	/// <summary> Append samples at end of samples vector (used for generating samples set before generating features) </summary>
 	void append_samples(MedIdSamples& in_samples);
 	/// <summary> Insert samples at position idex, assuming samples vector is properly allocated (used for generating samples set before generating features) </summary>

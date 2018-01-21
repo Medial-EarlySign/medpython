@@ -143,8 +143,8 @@ class MedMat : public SerializableObject {
 		template <class S> void add_cols(vector<S> &m_add);
 
 		// get a row or a column to a vector
-		void get_row(int i_row, vector<T> &rowv);
-		void get_col(int i_col, vector<T> &colv);
+		void get_row(int i_row, vector<T> &rowv) const;
+		void get_col(int i_col, vector<T> &colv) const;
 
 		// normalization (norm_type = 1 for cols (default), 2 for rows)
 		void normalize(int norm_type, float *wgts);

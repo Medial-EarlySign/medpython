@@ -3,6 +3,21 @@
 
 void generateAlcoholRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal);
 
+typedef enum {
+	ALC_CURRENT_DRINKER,
+	ALC_EX_DRINKER,
+	ALC_DRINKER_YEARS_SINCE_QUITTING,
+	ALC_DRINKING_YEARS,
+	ALC_DRINKING_UNIT_YEARS,
+	ALC_PLM_DRINKING_LEVEL,
+	ALC_NEVER_DRINKER,
+	ALC_UNKNOWN_DRINKER,
+	ALC_DRINKER_QUANTITY,
+	ALC_CURRENT_ALCOHOLIC,
+	ALC_EX_ALCOHOLIC,
+	ALC_LAST
+} AlcoholGeneratorFields;
+
 /** @file
 * Generation of Alcohol use
 */
@@ -32,7 +47,10 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
 	// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// get pointers to data
+	void get_p_data(MedFeatures& features);
 
 	// Signal Ids
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("Alcohol_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
@@ -44,4 +62,4 @@ public:
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, future_ind); }
 };
 
-MEDSERIALIZE_SUPPORT(AlcoholGenerator);
+MEDSERIALIZE_SUPPORT(AlcoholGenerator)

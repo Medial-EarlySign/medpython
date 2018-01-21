@@ -225,13 +225,19 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	myfile.close();
 }
 
-void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatmap, string title, string xName, string yName, string zName) {
-	if (vec3d.size() != 3) {
-		throw invalid_argument("please pass 3 signal vectors as input");
-	}
+void createHtml3D(string outPath, const vector<vector<vector<float>>> &vec3d,
+	const vector<string> &seriesNames, bool heatmap, string title, string xName, string yName, string zName) {
+	if (vec3d.empty())
+		throw invalid_argument("please pass at least one graph data");
+	if (vec3d.size() != seriesNames.size())
+		throw invalid_argument("seriesNames size and vec3d first dim should be same size");
+	for (const vector<vector<float>> &v : vec3d)
+		if (v.size() != 3)
+			throw invalid_argument("please pass 3 signal vectors as input");
+
 	vector<string> ind2axis = { "x", "y", "z" };
 
-	ifstream jsFile;
+	/*ifstream jsFile;
 	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
 	if (!jsFile.is_open()) {
 		throw logic_error("Unable to open js file");
@@ -250,7 +256,7 @@ void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatm
 	if (!jsOut.good())
 		cerr << "IO Error: can't write " << outDir + "plotly-latest.min.js" << endl;
 	jsOut << jsData;
-	jsOut.close();
+	jsOut.close();*/
 
 	ifstream file(BaseResourcePath + separator() + "Graph_HTML.txt");
 	if (!file.is_open()) {
@@ -273,31 +279,28 @@ void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatm
 		type = "heatmap";
 
 	string rep = "";
-	rep += "var series" + to_string(0) + " = {\n type: '" + type + "', \n mode: 'markers'";
-	for (size_t i = 0; i < vec3d.size(); ++i) {
-		rep += ",\n" + ind2axis[i] + ": [";
-		rep += float2Str(vec3d[i][0]);
-		for (size_t j = 1; j < vec3d[i].size(); ++j)
-		{
-			rep += ", " + float2Str(vec3d[i][j]);
+	for (size_t graph_id = 0; graph_id < vec3d.size(); ++graph_id)
+	{
+		rep += "var series" + to_string(graph_id) + " = {\n type: '" + type + "', \n mode: 'markers'";
+		for (size_t i = 0; i < vec3d[graph_id].size(); ++i) {
+			rep += ",\n" + ind2axis[i] + ": [";
+			rep += float2Str(vec3d[graph_id][i][0]);
+			for (size_t j = 1; j < vec3d[graph_id][i].size(); ++j)
+				rep += ", " + float2Str(vec3d[graph_id][i][j]);
+			rep += "]";
 		}
-
-		rep += "]";
+		rep += "\n";
+		rep += ", name: '";
+		rep += seriesNames[graph_id];
+		rep += "' \n";
+		rep += "};\n";
 	}
-	rep += "\n";
-	rep += ", name: '";
-	rep += "series0";
-	rep += "' \n";
-	rep += "};\n";
 
 	rep += "var data = [";
-	for (size_t i = 0; i < 1; ++i)
-	{
+	for (size_t i = 0; i < vec3d.size(); ++i)
 		rep += " series" + to_string(i) + ", ";
-	}
 	rep = rep.substr(0, rep.size() - 2);
 	rep += " ]; \n";
-
 	rep += "var layout = { \n  title:'";
 	rep += title;
 	if (!heatmap)
@@ -315,6 +318,7 @@ void createHtml3D(string outPath, const vector<vector<float>> &vec3d, bool heatm
 		rep += "'}, \n height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);
+	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
 
 	ofstream myfile;
 	myfile.open(outPath);

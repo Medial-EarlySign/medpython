@@ -24,6 +24,18 @@ public:
 	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
 	/// <summary>
+	/// parsing specific line. please refer to parse_cohort_file for full spec
+	/// </summary>
+	void parse_cohort_line(const string &line);
+
+	/// <summary>
+	/// A function which reads a single cohort definition from the command line and parses it. \n
+	/// Please refer to parse_cohort_file for full spec.
+	/// </summary>
+	void get_cohort_from_arg(const string &single_cohort);
+	
+
+	/// <summary>
 	/// a function which reads cohorts file and stores it in filter_cohort.
 	/// The file format may be in 2 options:
 	///   -# COHORT_NAME[TAB]PARAMETERS_DEF - cohort name is string representing cohort \n

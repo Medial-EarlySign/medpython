@@ -809,8 +809,9 @@ void get_all_values(MedFeatures& features, string& signalName, unordered_set<int
 		if (max_sample > 0 && max_sample < size)
 			jump = size / max_sample;
 
+		vector<float>& dataVec = features.data[signalName];
 		for (int i = 0; i < size; i += jump)
-			values.push_back(features.data[signalName][i]);
+			values.push_back(dataVec[i]);
 
 	}
 	else {
