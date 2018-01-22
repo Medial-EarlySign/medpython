@@ -123,6 +123,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 //.......................................................................................
 int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds) {
 
+
 	for (int signalId : neededSignalIds) {
 		if (is_signal_affected(signalId)) 
 			return apply(rec, time_points);
@@ -164,11 +165,13 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames)
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames, unordered_set<string> preReqSignalNames) {
 	
 	for (string signal : preReqSignalNames) {
-		if (is_signal_affected(signal))
+		if (is_signal_affected(signal)) {
 			get_required_signal_names(signalNames);
 			return;
 		}
 	}
+
+}
 
 //.......................................................................................
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
@@ -194,6 +197,22 @@ void RepProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 	for (string signalName : aff_signals)
 		aff_signal_ids.insert(dict.id(signalName));
 }
+
+
+//.......................................................................................
+void RepProcessor::dprint(const string &pref, int rp_flag)
+{
+	if (rp_flag > 0) {
+		MLOG("%s :: RP type %d : required(%d): ", pref.c_str(), processor_type, req_signals.size());
+		if (rp_flag > 1) for (auto &rsig : req_signals) MLOG("%s,", rsig.c_str());
+		MLOG(" affected(%d): ", aff_signals.size());
+		if (rp_flag > 1) for (auto &asig : aff_signals) MLOG("%s, ", asig.c_str());
+		MLOG(" virtual(%d): ", virtual_signals.size());
+		if (rp_flag > 1) for (auto &vsig : virtual_signals) MLOG("%s ", vsig.first.c_str());
+		MLOG("\n");
+	}
+}
+
 
 // (De)Serialize
 //.......................................................................................
@@ -438,6 +457,17 @@ size_t RepMultiProcessor::deserialize(unsigned char *blob) {
 	return ptr;
 }
 
+//.......................................................................................
+void RepMultiProcessor::dprint(const string &pref, int rp_flag)
+{
+	if (rp_flag > 0) {
+		MLOG("%s :: RP MULTI(%d) -->\n", pref.c_str(), processors.size());
+		for (auto& proc : processors) {
+			proc->dprint(pref+"->Multi", rp_flag);
+		}
+	}
+}
+
 //=======================================================================================
 // BasicOutlierCleaner
 //=======================================================================================
@@ -603,8 +633,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 //.......................................................................................
 void RepBasicOutlierCleaner::print()
 {
-	MLOG("BasicOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
-		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+	MLOG("BasicOutlierCleaner: signal: %d %s : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
+		signalId, signalName.c_str(), params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
 
 
@@ -1340,12 +1370,20 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	return -1;
 }
 
+mutex RepCalcSimpleSignals_init_tables_mutex;
 //.......................................................................................
 void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict)
 {
+	lock_guard<mutex> guard(RepCalcSimpleSignals_init_tables_mutex);
+
+	V_ids.clear();
+	sigs_ids.clear();
 	for (auto &vsig : V_names)
 		V_ids.push_back(dict.id(vsig));
-	for (auto &rsig : req_signals)
+	// In the next loop it is VERY important to go over items in the ORDER they are given in calc2req
+	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
+	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
+	for (auto &rsig : calc2req_sigs.find(calculator)->second) 
 		sigs_ids.push_back(dict.id(rsig));
 
 }

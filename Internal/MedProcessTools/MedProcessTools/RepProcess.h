@@ -157,6 +157,13 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required </summary>
 	int conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, unordered_set<int>& neededSignalIds);
 
+
+	// debug prints
+	/// used for debug prints, each inheriting class can overload this one to get a more precise debug print. rp_flag can be used to transfer verbosity levels.
+	/// the default print just prints the basic type, etc.
+	virtual void dprint(const string &pref, int rp_flag);
+
+
 	// Serialization (including type)
 	/// <summary> get size of processor + processor_type </summary>
 	size_t get_processor_size();
@@ -225,6 +232,9 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
 	/// <summary> Apply processors that affect any of the needed signals </summary>
 	int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignals);
+
+	/// debug prints
+	void dprint(const string &pref, int rp_flag);
 
 	/// serialization
 	size_t get_size();
@@ -616,7 +626,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity = 0);
 
 		// serialization
-		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, V_names, V_types, req_signals, aff_signals);
+		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, V_names, V_types, req_signals, aff_signals, virtual_signals);
 
 
 	private:

@@ -133,6 +133,11 @@ public:
 
 	virtual void print() { fprintf(stderr, "Print Not Implemented for feature\n"); }
 
+
+	// debug print for a feature generator. fg_flag can 
+	void dprint(const string &pref, int fg_flag);
+
+
 	int serial_id;		// serial id of feature
 };
 

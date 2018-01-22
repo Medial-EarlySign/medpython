@@ -54,14 +54,16 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 
 	int v_eGFR_sid = V_ids[0];
 
-	// next are in the same order of required signals in the calc2req_sigs map
+	// next must be in the same order of required signals in the calc2req_sigs map
 	int Creatinine_sid = sigs_ids[0];
 	int GENDER_sid = sigs_ids[1];
 	int BYEAR_sid = sigs_ids[2];
 
+
 	if (rec.usvs.size() < 3) rec.usvs.resize(3);
 
 	rec.uget(Creatinine_sid, 0, rec.usvs[0]); // getting Creatinine into usv[0]
+	//MLOG("###>>>> pid %d Creatinine %d , %s :: len %d\n", rec.pid, Creatinine_sid, rec.my_base_rep->sigs.name(Creatinine_sid).c_str(), rec.usvs[0].len);
 
 	if (rec.usvs[0].len > 0) {
 
@@ -81,6 +83,7 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 			float creatinine = rec.usvs[0].Val(i);
 			v_times[i] = rec.usvs[0].Time(i);
 			v_vals[i] = RepCalcSimpleSignals::calc_egfr_ckd_epi(creatinine, gender, age, ethnicity);
+			//MLOG("pid %d time %d i %d creatinine %f gender %d age %f ethnicity %d\n", rec.pid, v_times[i], i, creatinine, gender, age, ethnicity);
 			if (v_vals[i] < 0) v_vals[i] = missing_value;
 		}
 

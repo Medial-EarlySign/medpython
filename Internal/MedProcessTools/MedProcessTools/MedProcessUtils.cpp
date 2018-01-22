@@ -93,7 +93,7 @@ void get_all_required_signal_names(unordered_set<string>& signalNames, vector<Re
 		generator->get_required_signal_names(signalNames);
 
 	// Collect from processors itertively
-	for (size_t i = rep_processors.size() - 1; i > position; i--)
+	for (int i = (int)rep_processors.size() - 1; i > position; i--)
 		rep_processors[i]->get_required_signal_names(signalNames, signalNames);
 }
 

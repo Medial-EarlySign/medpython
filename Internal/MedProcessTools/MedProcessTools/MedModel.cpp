@@ -40,6 +40,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		MERR("FAILED collect_and_add_virtual_signals\n");
 		return -1;
 	}
+
 	// Filter unneeded repository processors
 	filter_rep_processors();
 
@@ -67,6 +68,8 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	// Set of ids
 	vector<int> ids;
 	LearningSet->get_ids(ids);
+
+//	dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
@@ -186,6 +189,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
+//	dprint_process("==> In Apply (1) <==", 2, 0, 0);
 
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
@@ -205,6 +209,9 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 				MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
 					signalId, rep.dict.name(signalId).c_str());;
 		}
+
+//		dprint_process("==> In Apply (2) <==", 2, 0, 0);
+
 
 		// Generate features
 		features.clear();
@@ -796,6 +803,7 @@ void MedModel::init_all(MedDictionarySections& dict) {
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
 
+
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
 		MLOG("adding virtual signals from rep type %d\n", processor->processor_type);
@@ -1065,4 +1073,16 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	ptr += LearningSet->deserialize(blob + ptr);
 
 	return ptr;
+}
+
+//.......................................................................................
+void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag)
+{
+	MLOG("%s : MedModel with rp(%d) fg(%d) fp(%d)\n", pref.c_str(), rep_processors.size(), generators.size(), feature_processors.size());
+	MLOG("%s : MedModel with required_signal_names(%d) : ", pref.c_str(), required_signal_names.size());
+	for (auto& s : required_signal_names) MLOG("%s,", s.c_str());
+	MLOG("\n");
+	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
+	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
+	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
 }
