@@ -633,8 +633,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 //.......................................................................................
 void RepBasicOutlierCleaner::print()
 {
-	MLOG("BasicOutlierCleaner: signal: %d %s : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
-		signalId, signalName.c_str(), params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+	MLOG("BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
+		signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
 
 

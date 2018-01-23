@@ -1078,6 +1078,13 @@ size_t MedModel::deserialize(unsigned char *blob) {
 //.......................................................................................
 void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag)
 {
+	unordered_set<string> sigs;
+
+	get_required_signal_names(sigs);
+
+	MLOG("%s : Required Signals: ", pref.c_str());
+	for (auto& rsig : sigs) MLOG("%s ", rsig.c_str());
+	MLOG("\n");
 	MLOG("%s : MedModel with rp(%d) fg(%d) fp(%d)\n", pref.c_str(), rep_processors.size(), generators.size(), feature_processors.size());
 	MLOG("%s : MedModel with required_signal_names(%d) : ", pref.c_str(), required_signal_names.size());
 	for (auto& s : required_signal_names) MLOG("%s,", s.c_str());
