@@ -78,7 +78,7 @@ int copy_file_IM(const string& in_file, const string& out_file) {
 	ofstream dst(out_file,ios::binary) ;
 
 	if (! (src.is_open() && dst.is_open()))
-		return -1 ;
+		MTHROW_AND_ERR("failed to copy [%s] to [%s]\n", in_file.c_str(), out_file.c_str());
 
 	dst << src.rdbuf() ;
 
