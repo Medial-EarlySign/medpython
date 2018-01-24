@@ -162,8 +162,8 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 		
-	int quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids);
-	int learn_rep_processors(MedPidRepository& rep, vector<int>& ids);
+	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
+	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
 	int generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features);

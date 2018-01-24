@@ -36,7 +36,6 @@ typedef enum {
 class RepProcessor : public SerializableObject {
 public:
 
-
 	RepProcessorTypes processor_type; ///< type of repository processor
 
 	unordered_set<string> req_signals; ///< names of signals required for processsing
@@ -117,29 +116,24 @@ public:
 	virtual void init_tables(MedDictionarySections& dict) { return; }
 
 	// Learning
-	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning : 
+	/// <summary> learn processing model on a subset of samples. Apply set of preceeding processors on DynamicPidRec before learning : 
 	// Should be implemented for inheriting classes that require learning </summary>
-	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {  return 0; };
-	/// <summary> learn processing model on a subset of ids only if required. Apply set of preceeding processors on DynamicPidRec before learning : 
+	virtual int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) {  return 0; };
+	/// <summary> learn processing model on a subset of samples only if required. Apply set of preceeding processors on DynamicPidRec before learning : 
 	// May be implemented for inheriting classes that require learning </summary>
-	virtual int _conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) ;
-
-	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning : 
-	// Should be implemented for inheriting classes that require learning </summary>
-//	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return 0; };
+	virtual int _conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) ;
 
 	// Learning envelopes - Here because of issues with overloading and inheritance
 	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning </summary>
-	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return _learn(rep,ids,prev_processors); };
-	/// <summary> learn on all ids in repository </summary>
-	int learn(MedPidRepository& rep, vector<RepProcessor *>& prev_processors) { return _learn(rep, rep.pids, prev_processors); }
-	/// <summary> learn on subset of ids without preceesing processors  </summary>
-	int learn(MedPidRepository& rep, vector<int>& ids) { vector<RepProcessor *> temp;  return _learn(rep, ids, temp); }
-	/// <summary> learn on all ids in repository without preceesing processors  </summary>
-	int learn(MedPidRepository& rep) { vector<RepProcessor *> temp; return learn(rep, temp); }
-	/// <summary> learn processing model on a subset of ids only if required. Apply set of preceeding processors on DynamicPidRec before learning </summary>
-	int conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) 
-		{ return _conditional_learn(rep, ids, prev_processors, neededSignalIds); }
+	int learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { return _learn(rep,samples,prev_processors); };
+	/// <summary> learn on subset of samples without preceesing processors  </summary>
+	int learn(MedPidRepository& rep, MedSamples& samples) { vector<RepProcessor *> temp;  return _learn(rep, samples, temp); }
+	/// <summary> learn processing model on a subset of samples only if required. Apply set of preceeding processors on DynamicPidRec before learning : 
+	virtual int conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
+		return _conditional_learn(rep, samples, prev_processors, neededSignalIds); 
+	}
+	/// <summary> learn processing model on a subset of ids only if required without preceesing processors </summary>
+	int conditional_learn(MedPidRepository& rep, MedSamples& samples, unordered_set<int>& neededSignalIds) { vector<RepProcessor *> temp;  return _conditional_learn(rep, samples, temp, neededSignalIds); }
 
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
@@ -225,8 +219,8 @@ public:
 
 
 	/// <summary> learn processors </summary>
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
-	int _conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds);
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors);
+	int _conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds);
 	
 	/// <summary> Apply processors </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
@@ -296,11 +290,11 @@ public:
 	void init_lists();
 
 	/// <summary> learn cleaning boundaries </summary>
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 	/// <summary> Learning : learn cleaning boundaries using MedValueCleaner's iterative approximation of moments </summary>
-	int iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	int iterativeLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 	/// <summary> Learning : learn cleaning boundaries using MedValueCleaner's quantile approximation of moments </summary>
-	int quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	int quantileLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 
 	/// <summary> Apply cleaning model </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
@@ -347,7 +341,7 @@ public:
 	};
 
 	/// <summary> learn cleaning boundaries </summary>
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 		
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepConfiguredOutlierCleaner::init
@@ -536,11 +530,11 @@ public:
 	void init_lists();
 
 	/// <summary> learn cleaning boundaries </summary>
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 	/// <summary> Learning : learn cleaning boundaries using MedValueCleaner's iterative approximation of moments </summary>
-	int iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	int iterativeLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 	/// <summary> Learning : learn cleaning boundaries using MedValueCleaner's quantile approximation of moments </summary>
-	int quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processor);
+	int quantileLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 
 	/// <summary> Apply cleaning model </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
@@ -610,7 +604,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		// Learning
 		/// <summary> In this class there's never learning - we return 0 immediately </summary>
-		int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict); return 0; };
+		int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict); return 0; };
 
 		// Applying
 		/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
@@ -626,7 +620,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity = 0);
 
 		// serialization
-		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, V_names, V_types, req_signals, aff_signals, virtual_signals);
+		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, V_names, V_types, req_signals, aff_signals, virtual_signals)
 
 
 	private:
@@ -666,10 +660,11 @@ class RepCalcSimpleSignals : public RepProcessor {
 //.......................................................................................
 //.......................................................................................
 
-/// <summary> Get values of a signal from a set of ids applying a set of preceeding cleaners </summary>
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_cleaners);
-/// <summary> Get values of a signal from a set of ids </summary>
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) ;
+/// <summary> Get values of a signal from a set of samples applying a set of preceeding cleaners </summary>
+int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values,
+	vector<RepProcessor *>& prev_cleaners);
+/// <summary> Get values of a signal from a set of samples </summary>
+int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) ;
 
 //=======================================
 // Joining the MedSerialze wagon
