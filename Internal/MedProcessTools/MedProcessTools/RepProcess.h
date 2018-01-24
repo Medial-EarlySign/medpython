@@ -157,6 +157,13 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required </summary>
 	int conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, unordered_set<int>& neededSignalIds);
 
+
+	// debug prints
+	/// used for debug prints, each inheriting class can overload this one to get a more precise debug print. rp_flag can be used to transfer verbosity levels.
+	/// the default print just prints the basic type, etc.
+	virtual void dprint(const string &pref, int rp_flag);
+
+
 	// Serialization (including type)
 	/// <summary> get size of processor + processor_type </summary>
 	size_t get_processor_size();
@@ -189,6 +196,8 @@ public:
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string);
 	/// <summary> Required Signals ids : Fill the member vector - req_signal_ids </summary>
 	void set_required_signal_ids(MedDictionarySections& dict); 
+	/// <summary> Reporting back virtual signals if there are any </summary>
+	void add_virtual_signals(map<string, int> &_virtual_signals);
 
 	/// <summary> Required Signals names : Fill the unordered set signalNames </summary>
 	void get_required_signal_names(unordered_set<string>& signalNames);
@@ -211,6 +220,10 @@ public:
 	/// <summary> Set signal-ids for all linked signals </summary>
 	void set_signal_ids(MedDictionarySections& dict); 
 
+	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
+	void init_tables(MedDictionarySections& dict) { for (RepProcessor * proc : processors) { proc->init_tables(dict); } }
+
+
 	/// <summary> learn processors </summary>
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors);
 	int _conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds);
@@ -219,6 +232,9 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points);
 	/// <summary> Apply processors that affect any of the needed signals </summary>
 	int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignals);
+
+	/// debug prints
+	void dprint(const string &pref, int rp_flag);
 
 	/// serialization
 	size_t get_size();
@@ -373,13 +389,13 @@ Rule12:HDL_over_Cholesterol = HDL / Cholesterol\n
 Rule13:HDL_over_LDL = HDL / LDL\n
 Rule14:HDL_over_LDL = 1 / LDL_over_HDL\n
 Rule15:Cholesterol_over_HDL = Cholesterol / HDL\n
-Rule16:Cholesterol_over_HDL = 1 / HDL / Cholesterol\n
+Rule16:---------------------\n
 Rule17:Cholesterol_over_HDL = 1 / HDL_over_Cholestrol\n
 Rule18:LDL_over_HDL = LDL / HDL\n
 Rule19:Albumin <= Protein_Total\n
 Rule20:FreeT4 <= T4\n
 Rule21:NRBC <= RBC\n
-Rule22:CHADS2_VASC >= CHADS2_VASC\n
+Rule22:CHADS2_VASC >= CHADS2\n
 */
 class RepRuleBasedOutlierCleaner : public RepProcessor, public MedValueCleaner {
 	// get multiple signals and clean them according to consistency  with other signals from same date
@@ -577,16 +593,24 @@ class RepCalcSimpleSignals : public RepProcessor {
 		string calculator; ///< calculator asked for by user
 		int calc_type;	///> type of calculator (one of the allowed enum values)
 
+		float missing_value = (float)MED_MAT_MISSING_VALUE;
+
 		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
+
+		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
 
 		/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
 		int init(map<string, string>& mapper);
 
+		// making sure V_ids and sigs_ids are initialized
+		void init_tables(MedDictionarySections& dict);
+
 		void add_virtual_signals(map<string, int> &_virtual_signals);
+
 
 		// Learning
 		/// <summary> In this class there's never learning - we return 0 immediately </summary>
-		int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { return 0; };
+		int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict); return 0; };
 
 		// Applying
 		/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
@@ -600,6 +624,9 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static float get_age(int byear, int date);
 		int _apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time_points);
 		static float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity = 0);
+
+		// serialization
+		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, V_names, V_types, req_signals, aff_signals, virtual_signals);
 
 
 	private:
@@ -630,8 +657,6 @@ class RepCalcSimpleSignals : public RepProcessor {
 		vector<int> V_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
 		vector<int> sigs_ids; /// <ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
 
-		vector<UniversalSigVec> usv; /// here for efficiency and less init() calls
-
 };
 
 
@@ -654,5 +679,6 @@ MEDSERIALIZE_SUPPORT(RepBasicOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepRuleBasedOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepConfiguredOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepNbrsOutlierCleaner)
+MEDSERIALIZE_SUPPORT(RepCalcSimpleSignals)
 
 #endif

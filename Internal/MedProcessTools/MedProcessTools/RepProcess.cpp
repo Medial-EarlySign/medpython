@@ -123,6 +123,7 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 //.......................................................................................
 int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds) {
 
+
 	for (int signalId : neededSignalIds) {
 		if (is_signal_affected(signalId)) 
 			return apply(rec, time_points);
@@ -164,11 +165,13 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames)
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames, unordered_set<string> preReqSignalNames) {
 	
 	for (string signal : preReqSignalNames) {
-		if (is_signal_affected(signal))
+		if (is_signal_affected(signal)) {
 			get_required_signal_names(signalNames);
 			return;
 		}
 	}
+
+}
 
 //.......................................................................................
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
@@ -194,6 +197,22 @@ void RepProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 	for (string signalName : aff_signals)
 		aff_signal_ids.insert(dict.id(signalName));
 }
+
+
+//.......................................................................................
+void RepProcessor::dprint(const string &pref, int rp_flag)
+{
+	if (rp_flag > 0) {
+		MLOG("%s :: RP type %d : required(%d): ", pref.c_str(), processor_type, req_signals.size());
+		if (rp_flag > 1) for (auto &rsig : req_signals) MLOG("%s,", rsig.c_str());
+		MLOG(" affected(%d): ", aff_signals.size());
+		if (rp_flag > 1) for (auto &asig : aff_signals) MLOG("%s, ", asig.c_str());
+		MLOG(" virtual(%d): ", virtual_signals.size());
+		if (rp_flag > 1) for (auto &vsig : virtual_signals) MLOG("%s ", vsig.first.c_str());
+		MLOG("\n");
+	}
+}
+
 
 // (De)Serialize
 //.......................................................................................
@@ -292,6 +311,12 @@ void RepMultiProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 	for (auto& processor : processors)
 		processor->get_required_signal_ids(signalIds);
 }
+void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals)
+{
+	for (auto& processor : processors)
+		processor->add_virtual_signals(_virtual_signals);
+}
+
 
 // Add req_signals to set only if processor is required for any of preReqSignalNames
 // Note that preReq is copied so it is not affected by enlarging signalNames
@@ -432,6 +457,17 @@ size_t RepMultiProcessor::deserialize(unsigned char *blob) {
 	return ptr;
 }
 
+//.......................................................................................
+void RepMultiProcessor::dprint(const string &pref, int rp_flag)
+{
+	if (rp_flag > 0) {
+		MLOG("%s :: RP MULTI(%d) -->\n", pref.c_str(), processors.size());
+		for (auto& proc : processors) {
+			proc->dprint(pref+"->Multi", rp_flag);
+		}
+	}
+}
+
 //=======================================================================================
 // BasicOutlierCleaner
 //=======================================================================================
@@ -489,6 +525,9 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 	// Get all values
 	vector<float> values;
 	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
+	//MLOG("basic Iterative clean Learn: signalName %s signalId %d :: got %d values()\n", signalName.c_str(), signalId, values.size());
+
+
 
 	// Iterative approximation of moments
 	int rc =  get_iterative_min_max(values);
@@ -517,6 +556,8 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 // Apply cleaning model
 //.......................................................................................
 int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
+
+	//MLOG("basic cleaner _apply: signalName %s signalId %d\n", signalName.c_str(), signalId);
 
 	// Sanity check
 	if (signalId == -1) {
@@ -592,8 +633,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 //.......................................................................................
 void RepBasicOutlierCleaner::print()
 {
-	MLOG("BasicOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
-		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+	MLOG("BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
+		signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
 
 
@@ -1268,6 +1309,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	for (auto entry : mapper) {
 		string field = entry.first;
 		if (field == "calculator") calculator = entry.second;
+		else if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "coeffs") {
 			vector<string> fields;
 			boost::split(fields, entry.second, boost::is_any_of(",:"));
@@ -1284,6 +1326,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	if (calc_type != CALC_TYPE_UNDEF) {
 
 		// add required signals dependent on the actual calculator we run
+		req_signals.clear();
 		for (string req_s : calc2req_sigs.find(calculator)->second)
 			req_signals.insert(req_s);
 
@@ -1312,6 +1355,8 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 			V_types.push_back(vsig.second);
 
 		// add names to required, affected and virtual_signals
+		aff_signals.clear();
+		virtual_signals.clear();
 		for (int i=0; i<V_names.size(); i++) {
 			req_signals.insert(V_names[i]);
 			aff_signals.insert(V_names[i]);
@@ -1325,11 +1370,31 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	return -1;
 }
 
+mutex RepCalcSimpleSignals_init_tables_mutex;
+//.......................................................................................
+void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict)
+{
+	lock_guard<mutex> guard(RepCalcSimpleSignals_init_tables_mutex);
+
+	V_ids.clear();
+	sigs_ids.clear();
+	for (auto &vsig : V_names)
+		V_ids.push_back(dict.id(vsig));
+	// In the next loop it is VERY important to go over items in the ORDER they are given in calc2req
+	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
+	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
+	for (auto &rsig : calc2req_sigs.find(calculator)->second) 
+		sigs_ids.push_back(dict.id(rsig));
+
+}
+
 //.......................................................................................
 void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
 {
-	for (auto &vsig : calc2virtual.find(calculator)->second)
-		_virtual_signals[vsig.first] = vsig.second;
+	for (int i=0; i<V_names.size(); i++)
+		_virtual_signals[V_names[i]] = V_types[i];
+	//for (auto &vsig : calc2virtual.find(calculator)->second)
+	//	_virtual_signals[vsig.first] = vsig.second;
 }
 
 //.......................................................................................
@@ -1343,26 +1408,12 @@ int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
 //.......................................................................................
 int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 {
-	// first ... we make sure that the ids are ready
-	if (V_ids.size() == 0) {
-
-		V_ids.clear();
-		sigs_ids.clear();
-
-		for (auto &vsig : V_names)
-			V_ids.push_back(rec.my_base_rep->sigs.sid(vsig));
-
-		for (auto &rsig : req_signals)
-			sigs_ids.push_back(rec.my_base_rep->sigs.sid(rsig));
-
-	}
-
-
 	switch (calc_type) {
 
-	case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
+		case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
 
 	}
+
 	return -1;
 }
 
@@ -1378,6 +1429,13 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 	vector<int> req_signal_ids(1, signalId);
 
 	UniversalSigVec usv;
+
+	if (rep.sigs.Sid2Info[signalId].virtual_sig) {
+		MERR("ERROR: signal %d,%s is virtual, and currently not supported in get_values....Avoid using basic_cleaners on virtual signals at the moment.\n ",
+			signalId, rep.sigs.name(signalId).c_str());
+		throw(string("get_values on virtual signal"));
+	}
+
 
 	// Get required signals iteratively
 	vector<unordered_set<int> > current_required_signal_ids(prev_processors.size());

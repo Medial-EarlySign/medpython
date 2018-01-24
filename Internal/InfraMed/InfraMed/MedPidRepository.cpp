@@ -624,17 +624,19 @@ int PidDynamicRec::set_version_universal_data(int sid, int version, int *_times,
 
 	float *_curr_vals = _vals;
 	int *_curr_times = _times;
-	int inc_time = (int)sizeof(int) * info.n_time_channels;
-	int inc_float = (int)sizeof(float) * info.n_val_channels;
+	int inc_time = info.n_time_channels;
+	int inc_vals = info.n_val_channels;
 
 	for (int i=0; i<len; i++) {
 
 		usv.Set(i, _curr_times, _curr_vals, usv.data);
 
 		_curr_times += inc_time;
-		_curr_vals += inc_float;
+		_curr_vals += inc_vals;
 
 	}
+
+	return set_version_data(sid, version, usv.data, usv.len);
 
 	return 0;
 }

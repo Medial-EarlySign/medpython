@@ -184,6 +184,8 @@ public:
 	int init_from_rep(MedRepository *rep, int pid, vector<int> &sids_to_use, vector<int> &time_points);
 
 
+	vector<UniversalSigVec> usvs; /// for efficient usage of a record we may want to keep several usvs initialized and save init time.
+
 private:
 	int n_versions;
 	unsigned int curr_len;

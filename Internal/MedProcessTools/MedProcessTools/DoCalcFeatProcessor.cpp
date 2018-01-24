@@ -296,8 +296,8 @@ void DoCalcFeatProcessor::has_bled(vector<float*> p_sources, float *p_out, int n
 void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out, int n_samples) {
 	// www.framinghamheartstudy.org/risk-functions/cardiovascular-disease/10-year-risk.php
 	for (int i = 0; i < n_samples; i++) {
-		float res = 0.0;
-		float res1 = 0.0;
+		double res = 0.0;
+		double res1 = 0.0;
 
 		float gender = p_sources[0][i];
 		float Age = p_sources[1][i];
@@ -314,7 +314,7 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 		//Men
 
 		if (1 == 1) {
-			float sum_beta = 0.0;
+			double sum_beta = 0.0;
 			if (gender == 1) {
 				sum_beta += log(Age)*3.06117F;
 				sum_beta += log(chol)*1.12370F;
@@ -348,7 +348,7 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 		}
 
 
-		p_out[i] = res;
+		p_out[i] = (float)res;
 	}
 }
 

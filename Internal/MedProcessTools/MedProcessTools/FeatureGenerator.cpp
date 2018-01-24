@@ -270,6 +270,22 @@ inline bool isInteger(const std::string & s)
 	return (*p == 0);
 }
 
+
+//.......................................................................................
+void FeatureGenerator::dprint(const string &pref, int fg_flag)
+{
+	if (fg_flag > 0) {
+		MLOG("%s :: FG type %d : serial_id %d : ", pref.c_str(), generator_type, serial_id);
+		MLOG("names(%d) : ", names.size());
+		if (fg_flag > 1) for (auto &name: names) MLOG("%s,", name.c_str());
+		MLOG(" tags(%d) : ", tags.size());
+		if (fg_flag > 1) for (auto &t : tags) MLOG("%s,", t.c_str());
+		MLOG(" req_signals(%d) : ", req_signals.size());
+		if (fg_flag > 1) for (auto &rsig : req_signals) MLOG("%s,", rsig.c_str());
+		MLOG("\n");
+	}
+}
+
 //=======================================================================================
 // Single signal features that do not require learning(e.g. last hemoglobin)
 //=======================================================================================

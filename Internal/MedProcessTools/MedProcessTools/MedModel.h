@@ -146,6 +146,7 @@ public:
 
 	// Required signals propograion
 	void get_required_signal_names(unordered_set<string>& signalNames);
+	int collect_and_add_virtual_signals(MedRepository &rep);
 
 	// Initialization : signal ids and tables
 	void init_all(MedDictionarySections& dict);
@@ -170,6 +171,10 @@ public:
 	int learn_and_apply_feature_processors(MedFeatures &features);
 	int learn_feature_processors(MedFeatures &features);
 	int apply_feature_processors(MedFeatures &features);
+
+
+	// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
+	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag);
 
 private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);

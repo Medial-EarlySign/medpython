@@ -35,6 +35,12 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		return -1;
 	}
 
+	// init virtual signals
+	if (collect_and_add_virtual_signals(rep) < 0) {
+		MERR("FAILED collect_and_add_virtual_signals\n");
+		return -1;
+	}
+
 	// Filter unneeded repository processors
 	filter_rep_processors();
 
@@ -62,6 +68,8 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	// Set of ids
 	vector<int> ids;
 	LearningSet->get_ids(ids);
+
+//	dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
@@ -175,6 +183,14 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
+	// init virtual signals
+	if (collect_and_add_virtual_signals(rep) < 0) {
+		MERR("FAILED collect_and_add_virtual_signals\n");
+		return -1;
+	}
+
+//	dprint_process("==> In Apply (1) <==", 2, 0, 0);
+
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
 		// Initialize
@@ -193,6 +209,9 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 				MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
 					signalId, rep.dict.name(signalId).c_str());;
 		}
+
+//		dprint_process("==> In Apply (2) <==", 2, 0, 0);
+
 
 		// Generate features
 		features.clear();
@@ -273,6 +292,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	for (int signalId : required_signal_ids)
 		req_signals.push_back(signalId);
 
+
 	// prepare for generation
 	for (auto& generator : _generators)
 		generator->prepare(features,rep,*samples);
@@ -326,6 +346,8 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			// Generate Features
 			for (auto& generator : _generators)
 				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
+
+
 			#pragma omp critical 
 			if (rc < 0) RC = -1;
 		}
@@ -780,6 +802,55 @@ void MedModel::init_all(MedDictionarySections& dict) {
 //.......................................................................................
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
+
+
+	// collect virtuals
+	for (RepProcessor *processor : rep_processors) {
+		MLOG("adding virtual signals from rep type %d\n", processor->processor_type);
+		processor->add_virtual_signals(virtual_signals);
+	}
+
+	MLOG("In get_required_signal_names %d signalNames %d virtual\n", signalNames.size(), virtual_signals.size());
+
+	// Erasing virtual signals !
+	for (auto &vsig : virtual_signals) {
+		MLOG("check virtual %s\n", vsig.first.c_str());
+		if (signalNames.find(vsig.first) != signalNames.end())
+			signalNames.erase(vsig.first);
+	}
+
+	MLOG("In get_required_signal_names %d signalNames %d virtual\n", signalNames.size(), virtual_signals.size());
+
+}
+
+//.......................................................................................
+int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
+{
+	// collecting
+	for (RepProcessor *processor : rep_processors)
+		processor->add_virtual_signals(virtual_signals);
+
+	// adding to rep
+	for (auto &vsig : virtual_signals) {
+		//MLOG("Attempting to add virtual signal %s type %d (%d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
+		if (rep.sigs.sid(vsig.first) < 0) {
+			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
+			if (verbosity > 0)
+				MLOG("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
+			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
+			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
+			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
+		}
+		else {
+			if (rep.sigs.sid(vsig.first) < 100) {
+				MERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
+				return -1;
+			}
+		}
+	}
+
+	return 0;
 }
 
 //.......................................................................................
@@ -1002,4 +1073,23 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	ptr += LearningSet->deserialize(blob + ptr);
 
 	return ptr;
+}
+
+//.......................................................................................
+void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag)
+{
+	unordered_set<string> sigs;
+
+	get_required_signal_names(sigs);
+
+	MLOG("%s : Required Signals: ", pref.c_str());
+	for (auto& rsig : sigs) MLOG("%s ", rsig.c_str());
+	MLOG("\n");
+	MLOG("%s : MedModel with rp(%d) fg(%d) fp(%d)\n", pref.c_str(), rep_processors.size(), generators.size(), feature_processors.size());
+	MLOG("%s : MedModel with required_signal_names(%d) : ", pref.c_str(), required_signal_names.size());
+	for (auto& s : required_signal_names) MLOG("%s,", s.c_str());
+	MLOG("\n");
+	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
+	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
+	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
 }
