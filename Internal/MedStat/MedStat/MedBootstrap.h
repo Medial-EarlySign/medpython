@@ -21,6 +21,9 @@ public:
 	bool sample_patient_label; ///<if true will treat patient+label as the "id" for the sampling
 	int sample_seed; ///<if 0 will use random_device
 	int loopCnt; ///<the bootstrap count
+	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
+	///, treat them as controls
+	bool simTimeWindow; 
 	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
 	/// <summary>
@@ -203,7 +206,7 @@ public:
 	/// </returns>
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
 
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort);
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow);
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
