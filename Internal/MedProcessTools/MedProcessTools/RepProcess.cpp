@@ -1426,7 +1426,12 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 {
 
 	PidDynamicRec rec;
-	vector<int> req_signal_ids(1, signalId);
+	unordered_set<int> req_signal_ids = { signalId };
+	vector<FeatureGenerator *> generators;
+	get_all_required_signal_ids(req_signal_ids, prev_processors, -1, generators);
+	vector<int> req_signal_ids_v;
+	for (int signalId : req_signal_ids) 
+		req_signal_ids_v.push_back(signalId);
 
 	UniversalSigVec usv;
 
@@ -1438,6 +1443,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, (int) i, noGenerators);
 	}
 
+	bool signalIsVirtual = rep.sigs.Sid2Info[signalId].virtual_sig;
 
 	for (MedIdSamples& idSamples : samples.idSamples) {
 
@@ -1445,7 +1451,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 	
 		vector<int> time_points;
 		// Special care for virtual signals - use samples 
-		if (rep.sigs.Sid2Info[signalId].virtual_sig) {
+		if (signalIsVirtual) {
 			time_points.resize(idSamples.samples.size());
 			for (size_t i = 0; i < time_points.size(); i++)
 				time_points[i] = idSamples.samples[i].time;
@@ -1466,15 +1472,29 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 		if (prev_processors.size()) {
 
 			// Init Dynamic Rec
-			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
-			
-			// Clean at all time-points
+			rec.init_from_rep(std::addressof(rep), id, req_signal_ids_v, (int)time_points.size());
+
+			// Process at all time-points
 			for (size_t i = 0; i < prev_processors.size(); i++)
 				prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i]);
+		
+			// If virtual - we need to get the signal now
+			if (signalIsVirtual)
+				rec.uget(signalId, 0, usv);
 
-			// Collect 
+			// Collect
+			int iVersion = 0;
+			rec.uget(signalId, iVersion, rec.usv);
+
 			for (int i = 0; i < usv.len; i++) {
-				rec.uget(signalId, i, rec.usv);
+				// Get a new version if we past the current one
+				if (usv.Time(i) > time_points[iVersion]) {
+					iVersion++;
+					if (iVersion == rec.get_n_versions())
+						break;
+					rec.uget(signalId, iVersion, rec.usv);
+				}
+
 				float ival = rec.usv.Val(i, val_channel);
 				if (ival >= range_min && ival <= range_max)
 					values.push_back(ival);
