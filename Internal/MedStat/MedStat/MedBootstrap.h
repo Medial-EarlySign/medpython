@@ -157,7 +157,7 @@ public:
 	/// the format is map from pid to max_date the after that date the sample is filtered.
 	/// </summary>
 	/// <returns>
-	/// update samples
+	/// update samples - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples);
 	/// <summary>
@@ -165,7 +165,7 @@ public:
 	/// the format is map from pid to max_date the after that date the sample is filtered.
 	/// </summary>
 	/// <returns>
-	/// update features
+	/// update features - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features);
 	/// <summary>
@@ -175,7 +175,7 @@ public:
 	/// that date.
 	/// </summary>
 	/// <returns>
-	/// update features
+	/// update features - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedFeatures &features);
 	/// <summary>
@@ -185,7 +185,7 @@ public:
 	/// that date.
 	/// </summary>
 	/// <returns>
-	/// update samples
+	/// update samples - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedSamples &samples);
 
