@@ -21,6 +21,9 @@ public:
 	bool sample_patient_label; ///<if true will treat patient+label as the "id" for the sampling
 	int sample_seed; ///<if 0 will use random_device
 	int loopCnt; ///<the bootstrap count
+	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
+	///, treat them as controls
+	bool simTimeWindow; 
 	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
 	/// <summary>
@@ -154,7 +157,7 @@ public:
 	/// the format is map from pid to max_date the after that date the sample is filtered.
 	/// </summary>
 	/// <returns>
-	/// update samples
+	/// update samples - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedSamples &samples);
 	/// <summary>
@@ -162,7 +165,7 @@ public:
 	/// the format is map from pid to max_date the after that date the sample is filtered.
 	/// </summary>
 	/// <returns>
-	/// update features
+	/// update features - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const unordered_map<int, int> &pid_censor_dates, MedFeatures &features);
 	/// <summary>
@@ -172,7 +175,7 @@ public:
 	/// that date.
 	/// </summary>
 	/// <returns>
-	/// update features
+	/// update features - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedFeatures &features);
 	/// <summary>
@@ -182,7 +185,7 @@ public:
 	/// that date.
 	/// </summary>
 	/// <returns>
-	/// update samples
+	/// update samples - changes outcomeDate for controls to censor date.
 	/// </returns>
 	void apply_censor(const vector<int> &pids, const vector<int> &censor_dates, MedSamples &samples);
 
@@ -203,7 +206,7 @@ public:
 	/// </returns>
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
 
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort);
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow);
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,

@@ -659,7 +659,10 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 //------------------------------------------------
 int MedConvert::create_repository_config()
 {
-
+	if (repository_config_fname == "") {
+		MWARN("No repository_config (CONFIG) file specified not creating it");
+		return 1;
+	}
 	// Open output file
 	repository_config_f.open(repository_config_fname,ios::out) ;
 	if (!repository_config_f) {

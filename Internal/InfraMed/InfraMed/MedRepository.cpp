@@ -626,7 +626,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		if (dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end())
 			for (int j=0; j<dict.dict(section_id)->Id2Names[val].size(); j++) {
 				string st = dict.dict(section_id)->Id2Names[val][j];
-				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0 || dict.dict(section_id)->Id2Names[val].size()==1)
+				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0 || dict.dict(section_id)->Id2Names[val].size()<=3)
 					MOUT("|%s", st.c_str());
 			}
 //		if (sid != drug_sid)
