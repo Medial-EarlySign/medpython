@@ -4,7 +4,8 @@ you can also use the search box to find your file/function
  @section internal Internal Libs
  
  @subsection InfraMed InfraMed
- * MedRepository or MedPidRepository - the main object to fetch data from our repositories
+ * MedPidRepository - the main object to fetch data from our repositories. Most times we only use the 
+   the basic interface of MedRepository which this class inherited
 
  @subsection MedAlgo MedAlgo
  * MedPredictor - basic predictor interface. you may see all derived classes and models in the link.\n

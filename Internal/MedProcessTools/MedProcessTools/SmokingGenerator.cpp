@@ -571,7 +571,7 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 		// Unknown_Smoker
 		if (p_data[SMX_UNKNOWN_SMOKER] != NULL) p_data[SMX_UNKNOWN_SMOKER][index + i] = (float)__unknown_smoker;
 		// Smoking_Quantity
-		if (p_data[SMX_SMOKING_QUANTITY] != NULL) p_data[SMX_PLM_SMOKING_LEVEL][index + i] = (float)__smoking_quantity;
+		if (p_data[SMX_SMOKING_QUANTITY] != NULL) p_data[SMX_SMOKING_QUANTITY][index + i] = (float)__smoking_quantity;
 	}
 	return 0;
 }

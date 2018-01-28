@@ -1,4 +1,4 @@
-// A model = repCleaner + featureGenerator + featureCleaner + MedPredictor
+/// @file
 
 #ifndef _MED_MODEL_H_
 #define _MED_MODEL_H_
@@ -16,53 +16,49 @@
 
 using namespace boost::property_tree;
 
-// MedModel learn/apply stages
+/// MedModel learn/apply stages
 typedef enum {
-	MED_MDL_LEARN_REP_PROCESSORS,
-	MED_MDL_LEARN_FTR_GENERATORS,
-	MED_MDL_APPLY_FTR_GENERATORS,
-	MED_MDL_LEARN_FTR_PROCESSORS,
-	MED_MDL_APPLY_FTR_PROCESSORS,
-	MED_MDL_LEARN_PREDICTOR,
-	MED_MDL_APPLY_PREDICTOR,
-	MED_MDL_INSERT_PREDS,
-	MED_MDL_END
+	MED_MDL_LEARN_REP_PROCESSORS, ///<Start from learning rep processors
+	MED_MDL_LEARN_FTR_GENERATORS, ///<Start from learning feature generators
+	MED_MDL_APPLY_FTR_GENERATORS, ///<Start from apply feature generators (already learned)
+	MED_MDL_LEARN_FTR_PROCESSORS, ///<Start from learning feature processors
+	MED_MDL_APPLY_FTR_PROCESSORS, ///<Start from apply feature processors (already learned)
+	MED_MDL_LEARN_PREDICTOR, ///<We have the matrix - learn predcitor
+	MED_MDL_APPLY_PREDICTOR, ///<We have trained predcitor, do predict
+	MED_MDL_INSERT_PREDS, ///<We have did predict - save results
+	MED_MDL_END ///<All Done
 } MedModelStage;
 
-//.......................................................................................
-//.......................................................................................
-// A model = repCleaner + featureGenerator + featureCleaner + MedPredictor
-//.......................................................................................
-//.......................................................................................
+/// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel : public SerializableObject {
 public:
 	int version() { return 1; }
-	// remember learning set
+	/// remember learning set
 	int serialize_learning_set = 0;
-	int model_json_version = 1;
-	// Repostiroy-level cleaners; to be applied sequentially 
+	int model_json_version = 1; ///< the json version
+	/// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
 
-	// Feature Generators 
+	/// Feature Generators 
 	vector<FeatureGenerator *> generators;
 
-	// Features-level cleaners; to be applied sequentially 
+	/// Features-level cleaners; to be applied sequentially 
 	vector<FeatureProcessor *> feature_processors;
 
-	// Predictor
+	/// Predictor
 	MedPredictor *predictor;
 
-	// Learning samples
+	/// Learning samples
 	MedSamples *LearningSet;
 
-	// Safe Mode for train/test intersection
+	/// Safe Mode for train/test intersection
 	int safe_mode = 0;
 
-	// All required signal names + ids
+	/// All required signal names + ids
 	unordered_set<string> required_signal_names;
 	unordered_set<int> required_signal_ids;
 
-	// all collected virtual signals (name to type)
+	/// all collected virtual signals (name to type)
 	map<string, int> virtual_signals;
 
 	// Constructor/Destructor
@@ -71,9 +67,9 @@ public:
 
 	void clear() {}; 
 
-	MedFeatures features;	// no need to serialize
+	MedFeatures features;	///< the created matrix - no need to serialize
 
-	int verbosity = 1; // verbosity 0 -> much less printouts in predict
+	int verbosity = 1; ///< verbosity 0 -> much less printouts in predict
 
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
@@ -148,7 +144,7 @@ public:
 	void get_required_signal_names(unordered_set<string>& signalNames);
 	int collect_and_add_virtual_signals(MedRepository &rep);
 
-	// Initialization : signal ids and tables
+	/// Initialization : signal ids and tables
 	void init_all(MedDictionarySections& dict);
 
 	// Apply
@@ -173,7 +169,7 @@ public:
 	int apply_feature_processors(MedFeatures &features);
 
 
-	// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
+	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag);
 
 private:

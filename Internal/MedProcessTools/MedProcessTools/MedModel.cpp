@@ -915,7 +915,16 @@ void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>
 void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals, string init_string) {
 
 	for (string& signal : signals) {
-		FeatureGenerator *generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
+		FeatureGenerator *generator;
+		if (signal != "")
+			generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
+		else
+			generator = FeatureGenerator::make_generator(type, init_string);
+		add_feature_generator(generator);
+	}
+
+	if (signals.size() == 0) {
+		FeatureGenerator *generator = FeatureGenerator::make_generator(type, init_string);
 		add_feature_generator(generator);
 	}
 }
