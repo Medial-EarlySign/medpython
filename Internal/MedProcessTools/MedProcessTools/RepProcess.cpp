@@ -572,20 +572,12 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 	}
 
 	int len;
-	int iver = (int)time_points.size() - 1;
 
-	while (iver >= 0) {
-		// Check all versions that points to the same location
-		int jver = iver - 1;
-		while (jver >= 0 && rec.versions_are_the_same(signalId, iver, jver))
-			jver--;
-		jver++;
-
-		// we now know that versions [jver ... iver] are all pointing to the same version
-		// hence we need to clean version jver, and then make sure all these versions point to it
+	versionIterator vit(rec, signalId);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 
 		// Clean 
-		rec.uget(signalId, jver, rec.usv); // get into the internal usv obeject - this statistically saves init time
+		rec.uget(signalId, iver, rec.usv); // get into the internal usv obeject - this statistically saves init time
 
 		len = rec.usv.len;
 		vector<int> remove(len);
@@ -601,29 +593,28 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 			if (itime > time_points[iver])	break;
 
 			// Identify values to change or remove
-			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
+//				MLOG("pid %d ver %d time %d %s %f removed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 				remove[nRemove++] = i;
+			}
 			else if (params.doTrim) {
-				if (ival < trimMin)
+				if (ival < trimMin) {
+//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMin);
-				else if (ival > trimMax)
+				}
+				else if (ival > trimMax) {
+//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMax);
+				}
 			}
 		}
 
 		// Apply removals + changes
 		change.resize(nChange);
 		remove.resize(nRemove);
-
-		if (rec.update(signalId, jver, val_channel, change, remove) < 0)
+		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
 			return -1;
 
-		// Point versions jver+1..iver to jver
-		while (iver > jver) {
-			rec.point_version_to(signalId, jver, iver);
-			iver--;
-		}
-		iver--;
 	}
 
 	return 0;
@@ -882,21 +873,21 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 	set <int> reqSignalIds, affSignalIds;
 	for (auto reqSig : req_signals)reqSignalIds.insert(myDict.id(reqSig));
 	for (auto affSig : aff_signals)affSignalIds.insert(myDict.id(affSig));
-	int iver = (int)time_points.size() - 1;
-	while (iver >= 0) {
-		// Check all versions that points to the same location
-		map <int, set<int>> removePoints; // from sid to indices to be removed
-		int jver = iver - 1;
-		while (jver >= 0 && rec.versions_are_the_same(reqSignalIds, iver, jver))
-			jver--;
-		jver++;
+	
+	// Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
 
-		// we now know that versions [jver ... iver] are all pointing to the same version
-		// hence we need to clean version jver, and then make sure all these versions point to it
+	versionIterator vit(rec, reqSignalIds);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+
+		map <int, set<int>> removePoints; // from sid to indices to be removed
 
 		// Clean 
 		for (auto reqSigId : reqSignalIds) {
-			rec.uget(reqSigId, jver, usvs[reqSigId]);
+			rec.uget(reqSigId, iver, usvs[reqSigId]);
 			removePoints[reqSigId] = {};
 		}
 		//Now loop on rules
@@ -971,22 +962,12 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 
 		// Apply removals
-
-
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
 			vector <pair<int, float>>noChange;
-			//printf("before update: %d\n", toRemove.size());
-			if (rec.update(sig, jver, val_channel, noChange, toRemove) < 0)
+			if (rec.update(sig, iver, val_channel, noChange, toRemove) < 0)
 				return -1;
 		}
-		while (iver > jver) {
-			for (auto sig : affSignalIds)
-				rec.point_version_to(sig, jver, iver);
-			iver--;
-		}
-		iver--;
-
 	}
 
 	return 0;
@@ -1180,7 +1161,8 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	}
 
 	int len;
-	for (int iver = 0; iver < time_points.size(); iver++) {
+	versionIterator vit(rec, signalId);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
 
 		rec.uget(signalId, iver, rec.usv);
 

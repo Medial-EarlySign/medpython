@@ -49,8 +49,12 @@ float RepCalcSimpleSignals::calc_egfr_ckd_epi(float creatinine, int gender, floa
 //.......................................................................................
 int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time_points)
 {
-	// we ignore time_points in this case, as we simply calculate the eGFR for
-	// each time point in which we did a Creatinine test
+
+	// Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
 
 	int v_eGFR_sid = V_ids[0];
 
@@ -58,41 +62,55 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 	int Creatinine_sid = sigs_ids[0];
 	int GENDER_sid = sigs_ids[1];
 	int BYEAR_sid = sigs_ids[2];
-
-
+	
 	if (rec.usvs.size() < 3) rec.usvs.resize(3);
+	
+	// Loop on versions of Creatinine
+	set<int> iteratorSignalIds = { Creatinine_sid,v_eGFR_sid };
+	versionIterator vit(rec, iteratorSignalIds);
+	int gender = -1, byear = -1;
+	int ethnicity = 0; // currently assuming 0, not having a signal for it
 
-	rec.uget(Creatinine_sid, 0, rec.usvs[0]); // getting Creatinine into usv[0]
-//	MLOG("###>>>> pid %d Creatinine %d , %s :: len %d\n", rec.pid, Creatinine_sid, rec.my_base_rep->sigs.name(Creatinine_sid).c_str(), rec.usvs[0].len);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 
-	if (rec.usvs[0].len > 0) {
+		rec.uget(Creatinine_sid, iver, rec.usvs[0]); // getting Creatinine into usv[0]
+	//	MLOG("###>>>> pid %d version %d Creatinine %d , %s :: len %d\n", rec.pid, iver, Creatinine_sid, rec.my_base_rep->sigs.name(Creatinine_sid).c_str(), rec.usvs[0].len);
 
-		rec.uget(GENDER_sid, 0, rec.usvs[1]); // getting GENDER into usv[1]
-		rec.uget(BYEAR_sid, 0, rec.usvs[2]); // getting BYEAR into usv[2]
+		int idx = 0;
+		if (rec.usvs[0].len) {
 
-		int gender = (int)rec.usvs[1].Val(0);
-		int byear = (int)rec.usvs[2].Val(0);
-		int ethnicity = 0; // currently assuming 0, not having a signal for it
+			if (gender == -1) { // Assuming that birth-year and gender are version-independent
 
-		vector<float> v_vals(rec.usvs[0].len);
-		vector<int> v_times(rec.usvs[0].len);
+				rec.uget(GENDER_sid, iver, rec.usvs[1]); // getting GENDER into usv[1]
+				rec.uget(BYEAR_sid, iver, rec.usvs[2]); // getting BYEAR into usv[2]
 
-		// calculating for each creatinine point
-		for (int i=0; i<rec.usvs[0].len; i++) {
-			float age = RepCalcSimpleSignals::get_age(byear, rec.usvs[0].Time(i));
-			float creatinine = rec.usvs[0].Val(i);
-			v_times[i] = rec.usvs[0].Time(i);
-			v_vals[i] = RepCalcSimpleSignals::calc_egfr_ckd_epi(creatinine, gender, age, ethnicity);
-			//MLOG("pid %d time %d i %d creatinine %f gender %d age %f ethnicity %d\n", rec.pid, v_times[i], i, creatinine, gender, age, ethnicity);
-			if (v_vals[i] < 0) v_vals[i] = missing_value;
+				gender = (int)rec.usvs[1].Val(0);
+				byear = (int)rec.usvs[2].Val(0);
+			}
+
+			vector<float> v_vals(rec.usvs[0].len);
+			vector<int> v_times(rec.usvs[0].len);
+
+			// calculating for each creatinine point up to the relevant time-point
+			for (int i = 0; i<rec.usvs[0].len; i++) {
+				if (rec.usvs[0].Time(i) > time_points[iver])
+					break;
+
+				float age = RepCalcSimpleSignals::get_age(byear, rec.usvs[0].Time(i));
+				float creatinine = rec.usvs[0].Val(i);
+				v_times[idx] = rec.usvs[0].Time(i);
+				v_vals[idx] = RepCalcSimpleSignals::calc_egfr_ckd_epi(creatinine, gender, age, ethnicity);
+//				MLOG("pid %d ver %d time %d i %d creatinine %f gender %d age %f ethnicity %d : efgr = %f\n", rec.pid, iver, v_times[i], i, creatinine, gender, age, ethnicity, v_vals[i]);
+
+				// Insert only legal values
+				if (v_vals[i] >= 0)
+					idx++;
+			}
+
+			// pushing virtual data into rec (into orig version)
+			rec.set_version_universal_data(v_eGFR_sid, iver, &v_times[0], &v_vals[0], idx);
 		}
-
-		// pushing virtual data into rec (into orig version)
-		rec.set_version_universal_data(v_eGFR_sid, 0, &v_times[0], &v_vals[0], rec.usvs[0].len);
-
-		// pointing all versions to the 0 one
-		for (int ver=1; ver<rec.get_n_versions(); ver++)
-			rec.point_version_to(v_eGFR_sid, 0, ver);
 	}
+
 	return 0;
 }
