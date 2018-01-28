@@ -25,6 +25,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_AGE;
 	else if (generator_name == "gender")
 		return FTR_GEN_GENDER;
+	else if (generator_name == "singleton")
+		return FTR_GEN_SINGLETON;
 	else if (generator_name == "binnedLmEstimates" || generator_name == "binnedLm"  || generator_name == "binnedLM")
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
@@ -111,6 +113,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new AgeGenerator;
 	else if (generator_type == FTR_GEN_GENDER)
 		return new GenderGenerator;
+	else if (generator_type == FTR_GEN_SINGLETON)
+		return new SingletonGenerator;
 	else if (generator_type == FTR_GEN_BINNED_LM)
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
@@ -515,13 +519,89 @@ int GenderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int in
 	}
 
 	rec.uget(genderId, 0);
-	if (rec.usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
+	if (rec.usv.len == 0) throw MED_EXCEPTION_NO_GENDER_GIVEN;
 	int gender = (int)(rec.usv.Val(0));
 
 	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = (float)gender;
 	
+	return 0;
+}
+
+
+// Init
+//.......................................................................................
+int GenderGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [SingletonGenerator::init]
+		 if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
+		//! [SingletonGenerator::init]
+	}
+
+	// naming and required signals
+
+	names.clear();
+	set_names();
+
+	req_signals.assign(1, med_rep_type.genderSignalName);
+
+	return 0;
+}
+
+
+//=======================================================================================
+// Singleton
+//=======================================================================================
+int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
+
+	rec.uget(signalId, 0);
+	float value;
+	if (rec.usv.len == 0)
+		value = missing_val;
+	else
+		value = (int)(rec.usv.Val(0));
+
+	float *p_feat = p_data[0] + index;
+	for (int i = 0; i < num; i++)
+		p_feat[i] = value;
+
+	return 0;
+}
+
+// Init
+//.......................................................................................
+int SingletonGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [SingletonGenerator::init]
+		if (field == "signalName" || field == "signal") signalName = entry.second;
+		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
+		//! [SingletonGenerator::init]
+	}
+
+	// naming and required signals
+
+	names.clear();
+	set_names();
+
+	req_signals.assign(1, signalName);
+
 	return 0;
 }
 
