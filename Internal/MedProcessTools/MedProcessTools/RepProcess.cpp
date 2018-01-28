@@ -83,11 +83,11 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 
 // Learn processing parameters only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
-int RepProcessor::_conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
+int RepProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
 
 	for (int signalId : neededSignalIds) {
 		if (is_signal_affected(signalId))
-			return _learn(rep, ids, prev_processors);
+			return _learn(rep, samples, prev_processors);
 	}
 
 	return 0;
@@ -328,13 +328,13 @@ void RepMultiProcessor::get_required_signal_ids(unordered_set<int>& signalIds, u
 
 // Learn processors
 //.......................................................................................
-int RepMultiProcessor::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors) {
+int RepMultiProcessor::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) {
 
 	vector<int> rc(processors.size(), 0);
 
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		rc[j] = processors[j]->learn(rep, ids, prev_processors);
+		rc[j] = processors[j]->learn(rep, samples, prev_processors);
 	}
 
 	for (int r : rc) if (r < 0) return -1;
@@ -343,13 +343,13 @@ int RepMultiProcessor::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 // Learn processing parameters only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
-int RepMultiProcessor::_conditional_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
+int RepMultiProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
 
 	vector<int> rc(processors.size(), 0);
 
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		rc[j] = processors[j]->conditional_learn(rep, ids, prev_processors,neededSignalIds);
+		rc[j] = processors[j]->conditional_learn(rep, samples, prev_processors,neededSignalIds);
 	}
 
 	for (int r : rc) if (r < 0) return -1;
@@ -500,12 +500,12 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
  // Learn cleaning boundaries
 //.......................................................................................
-int RepBasicOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepBasicOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 
 	if (params.type == VAL_CLNR_ITERATIVE)
-		return iterativeLearn(rep, ids, prev_cleaners);
+		return iterativeLearn(rep, samples, prev_cleaners);
 	else if (params.type == VAL_CLNR_QUANTILE)
-		return quantileLearn(rep, ids, prev_cleaners);
+		return quantileLearn(rep, samples, prev_cleaners);
 	else {
 		MERR("Unknown cleaning type %d\n", params.type);
 		return -1;
@@ -514,7 +514,7 @@ int RepBasicOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vect
 
 // Learning : learn cleaning boundaries using MedValueCleaner's iterative approximation of moments
 //.......................................................................................
-int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -524,7 +524,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
+	get_values(rep, samples, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 	//MLOG("basic Iterative clean Learn: signalName %s signalId %d :: got %d values()\n", signalName.c_str(), signalId, values.size());
 
 
@@ -537,7 +537,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& i
 
 // Learning : learn cleaning boundaries using MedValueCleaner's quantile approximation of moments
 //.......................................................................................
-int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -547,7 +547,7 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& id
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
+	get_values(rep, samples, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	// Quantile approximation of moments
 	return get_quantile_min_max(values);
@@ -700,7 +700,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 // Learn bounds
 //.......................................................................................
-int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 	if (outlierParams.find(signalName) == outlierParams.end()) {
 		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n", signalName.c_str());
 		return -1;
@@ -731,7 +731,7 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids,
 			vector<float> values, filteredValues;
 
 			float borderHi, borderLo, logBorderHi, logBorderLo;
-			get_values(rep, ids, signalId, time_channel, val_channel, removeMin, removeMax, values, prev_cleaners);
+			get_values(rep, samples, signalId, time_channel, val_channel, removeMin, removeMax, values, prev_cleaners);
 			for (auto& el : values)if (el != 0)filteredValues.push_back(el);
 			sort(filteredValues.begin(), filteredValues.end());
 			if (thisDistHi == "norm" || thisDistLo == "norm")
@@ -1119,12 +1119,12 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 
 // Learn bounds
 //.......................................................................................
-int RepNbrsOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepNbrsOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 
 	if (params.type == VAL_CLNR_ITERATIVE)
-		return iterativeLearn(rep, ids, prev_cleaners);
+		return iterativeLearn(rep, samples, prev_cleaners);
 	else if (params.type == VAL_CLNR_QUANTILE)
-		return quantileLearn(rep, ids, prev_cleaners);
+		return quantileLearn(rep, samples, prev_cleaners);
 	else {
 		MERR("Unknown cleaning type %d\n", params.type);
 		return -1;
@@ -1132,7 +1132,7 @@ int RepNbrsOutlierCleaner::_learn(MedPidRepository& rep, vector<int>& ids, vecto
 }
 
 //.......................................................................................
-int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -1142,14 +1142,14 @@ int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, vector<int>& id
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
+	get_values(rep, samples, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	int rc = get_iterative_min_max(values);
 	return rc;
 }
 
 //.......................................................................................
-int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *>& prev_cleaners) {
+int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -1159,7 +1159,7 @@ int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, vector<int>& ids
 
 	// Get all values
 	vector<float> values;
-	get_values(rep, ids, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
+	get_values(rep, samples, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
 	return get_quantile_min_max(values);
 }
@@ -1422,20 +1422,13 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 //=======================================================================================
 //.......................................................................................
 // Get values of a signal from a set of ids
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors) 
+int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors)
 {
 
 	PidDynamicRec rec;
 	vector<int> req_signal_ids(1, signalId);
 
 	UniversalSigVec usv;
-
-	if (rep.sigs.Sid2Info[signalId].virtual_sig) {
-		MERR("ERROR: signal %d,%s is virtual, and currently not supported in get_values....Avoid using basic_cleaners on virtual signals at the moment.\n ",
-			signalId, rep.sigs.name(signalId).c_str());
-		throw(string("get_values on virtual signal"));
-	}
-
 
 	// Get required signals iteratively
 	vector<unordered_set<int> > current_required_signal_ids(prev_processors.size());
@@ -1445,21 +1438,32 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, (int) i, noGenerators);
 	}
 
-	for (int id : ids) {
 
-		// Get signal
-		rep.uget(id, signalId, usv);
-		
+	for (MedIdSamples& idSamples : samples.idSamples) {
+
+		int id = idSamples.id;
+	
+		vector<int> time_points;
+		// Special care for virtual signals - use samples 
+		if (rep.sigs.Sid2Info[signalId].virtual_sig) {
+			time_points.resize(idSamples.samples.size());
+			for (size_t i = 0; i < time_points.size(); i++)
+				time_points[i] = idSamples.samples[i].time;
+		}
+		else {
+			// Get signal
+			rep.uget(id, signalId, usv);
+
+			time_points.resize(usv.len);
+			for (int i = 0; i < usv.len; i++)
+				time_points[i] = usv.Time(i, time_channel);
+		}
+
 		// Nothing to do if empty ...
-		if (usv.len == 0)
+		if (time_points.empty())
 			continue;
 
 		if (prev_processors.size()) {
-
-			// Get all time points
-			vector<int> time_points(usv.len);
-			for (int i = 0; i < usv.len; i++)
-				time_points[i] = usv.Time(i, time_channel);
 
 			// Init Dynamic Rec
 			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
@@ -1490,7 +1494,7 @@ int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_chan
 }
 
 //.......................................................................................
-int get_values(MedRepository& rep, vector<int>& ids, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) {
+int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) {
 	vector<RepProcessor *> temp;
-	return get_values(rep, ids, signalId, time_channel, val_channel, range_min, range_max, values, temp); 
+	return get_values(rep, samples, signalId, time_channel, val_channel, range_min, range_max, values, temp);
 }

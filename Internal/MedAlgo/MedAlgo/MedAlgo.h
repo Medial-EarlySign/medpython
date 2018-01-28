@@ -421,7 +421,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
 
-	int version() { return  1; }; ///<increase when changing binary serizlization
+	int version() { return  1; }; //increase when changing binary serizlization
 	//version 1: Added version, model_features, features_count to serialization
 	ADD_SERIALIZATION_FUNCS(params, n_ftrs, b, b0, model_features, features_count);
 
