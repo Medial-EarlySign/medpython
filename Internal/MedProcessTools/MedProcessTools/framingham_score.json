@@ -1,0 +1,28 @@
+{
+	// framingham_chd
+	"processes" : {		
+	
+		"process": {"process_set": "0","rp_type": "basic_cln","take_log": "0","range": "range_min=0.001;range_max=100000","signal": "ref:signals"}
+		,"process": {"process_set": "0","rp_type": "basic_cln","take_log": "0","range": "range_min=0.001;range_max=100000","signal": "ref:double_signals"}
+	
+	
+		,"process": {"process_set": "0",	"fg_type": "age"}
+		,"process": {"process_set": "0","fg_type": "gender"}
+		,"process": {"process_set": "0","fg_type": "range","type": "ever","window": "win_from=0;win_to=100000","time_unit": "Days","signal": "DM_Registry","sets": "DM_Registry_Diabetic","tags": "categorical"}
+		,"process": {"process_set": "0","fg_type": "smoking","smoking_method":"Smoking_quantity","smoking_features": "Current_Smoker"}			
+		,"process": {"process_set": "0","fg_type": "basic","type": ["last"],"window": ["win_from=0;win_to=1095"],"time_unit": "Days","val_channel": ["0"],"signal": "ref:double_signals"}	
+		,"process": {"process_set": "0","fg_type": "basic","type": ["last"],"window": ["win_from=0;win_to=1096"],"time_unit": "Days","val_channel": ["1"],"signal": "ref:double_signals"}	
+		,"process": {"process_set": "0","fg_type": "basic","type": ["last"],"window": ["win_from=0;win_to=1095"],"time_unit": "Days","signal": "ref:signals"}		
+
+		,"process": {"process_set": "0","fg_type": "basic","type": ["category_set"],"window": ["win_from=0;win_to=1095"],"time_unit": "Days","signal": "Drug","sets": "ref:drug_set"} 
+		
+		,"process": {"process_set": "0","fp_type": "basic_cleaner"}		
+		,"process": {"process_set": "1","fp_type": "imputer","strata": "Age,40,80,10","moment_type": "0"}					
+		,"process": {"process_set": "2", "fp_type": "do_calc","calc_type":"framingham_chd","source_feature_names":"Gender,Age,DM_Registry,Current_Smoker, BP.last.win_0_1095,BP.last.win_0_1096.t0v1,Cholesterol.last.win_0_1095,HDL.last.win_0_1095,Drug.category_set_ATC_C08C_____ATC_C07B_____ATC_C07C_____ATC_C07D_____ATC_C07F_____ATC_C07A_G___ATC_C09B_____ATC_C09D_____ATC_C02D_A01.win_0_1095","name":"framingham_chd","duplicate":"no"}
+	}
+
+	,"signals": ["LDL","Cholesterol","HDL"]
+	,"double_signals": ["BP"]	
+	,"drug_set":["ATC_C08C____,ATC_C07B____,ATC_C07C____,ATC_C07D____,ATC_C07F____,ATC_C07A_G__,ATC_C09B____,ATC_C09D____,ATC_C02D_A01"]
+}
+
