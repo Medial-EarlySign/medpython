@@ -74,7 +74,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
 		timer.start();
-		if (learn_rep_processors(rep, ids) < 0) { //??? why are rep processors initialized for ALL time points in an id??
+		if (learn_rep_processors(rep, *LearningSet) < 0) { //??? why are rep processors initialized for ALL time points in an id??
 			MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
 			return -1;
 		}
@@ -257,13 +257,13 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 
 //.......................................................................................
 // Learn rep-cleaning
-int MedModel::quick_learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
+int MedModel::quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples) {
 
 	vector<int> rc(rep_processors.size(), 0);
 
 #pragma omp parallel for schedule(dynamic)
 	for (int i=0; i<rep_processors.size(); i++)
-		rc[i] = rep_processors[i]->learn(rep,ids);
+		rc[i] = rep_processors[i]->learn(rep, samples);
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
@@ -338,8 +338,8 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 			// Generate DynamicRec with all relevant signals
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
+			
 			// Apply rep-cleaning
-
 			for (unsigned int i = 0; i < rep_processors.size(); i++)
 				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
 
@@ -392,13 +392,13 @@ int MedModel::apply_feature_processors(MedFeatures &features)
 
 // Learn rep-processors iteratively, must be serial...
 //.......................................................................................
-int MedModel::learn_rep_processors(MedPidRepository& rep, vector<int>& ids) {
+int MedModel::learn_rep_processors(MedPidRepository& rep, MedSamples& samples) {
 
 	vector<RepProcessor *> temp_processors;
 	for (unsigned int i = 0; i < rep_processors.size(); i++) {
 		unordered_set<int> current_req_signal_ids;
 		get_all_required_signal_ids(current_req_signal_ids, rep_processors, i, generators);
-		if (rep_processors[i]->conditional_learn(rep, ids, temp_processors, current_req_signal_ids) < 0) return -1;
+		if (rep_processors[i]->conditional_learn(rep, samples, temp_processors, current_req_signal_ids) < 0) return -1;
 		temp_processors.push_back(rep_processors[i]);
 	}
 
@@ -915,7 +915,16 @@ void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>
 void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals, string init_string) {
 
 	for (string& signal : signals) {
-		FeatureGenerator *generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
+		FeatureGenerator *generator;
+		if (signal != "")
+			generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
+		else
+			generator = FeatureGenerator::make_generator(type, init_string);
+		add_feature_generator(generator);
+	}
+
+	if (signals.size() == 0) {
+		FeatureGenerator *generator = FeatureGenerator::make_generator(type, init_string);
 		add_feature_generator(generator);
 	}
 }

@@ -26,7 +26,7 @@ SampleFilterTypes sample_filter_name_to_type(const string& filter_name) {
 	else if (filter_name == "required")
 		return SMPL_FILTER_REQ_SIGNAL;
 	else if (filter_name == "basic")
-		return SMPL_FILTER_REQ_SIGNAL;
+		return SMPL_FILTER_BASIC;
 	else
 		return SMPL_FILTER_LAST;
 }
@@ -882,8 +882,14 @@ int BasicFilteringParams::init_from_string(const string &init_str)
 int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int win_time_unit)
 {
 	//MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
-	if (sig_id < 0)
-		sig_id = rep.sigs.sid(sig_name);
+	if (sig_id < 0) {
+		if (sig_name == "Age" && !med_rep_type.ageDirectlyGiven) {
+			use_byear = 1;
+			sig_id = rep.sigs.sid("BYEAR");
+		}
+		else
+			sig_id = rep.sigs.sid(sig_name);
+	}
 
 	UniversalSigVec usv;
 
@@ -894,6 +900,16 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 	if (usv.len == 0 && min_Nvals > 0) return 0;
 	if (min_Nvals <= 0) return 1;
 
+	// Special handling of age through byear
+	if (use_byear) {
+		int year = 1900 + med_time_converter.convert_times(med_rep_type.basicTimeUnit, MedTime::Years, sample.time);
+		int age = year - (int)usv.Val(0);
+		if (age < min_val || age > max_val)
+			return 0;
+		return 1;
+	}
+
+	// Otherwise ...
 	if (usv.n_time_channels() == 0) {
 		// timeless signal - checking the first
 		//MLOG("id %d val %f\n", sample.id, usv.Val(0));
@@ -947,11 +963,15 @@ int BasicSampleFilter::init(map<string, string>& mapper)
 				BasicFilteringParams bfp;
 				bfp.init_from_string(f);
 				bfilters.push_back(bfp);
-				req_sigs.push_back(bfp.sig_name);
+				if (bfp.sig_name == "Age" && !med_rep_type.ageDirectlyGiven)
+					req_sigs.push_back("BYEAR");
+				else
+					req_sigs.push_back(bfp.sig_name);
 			}
 		}
 		
 	}
+
 	return 0;
 }
 
@@ -960,8 +980,12 @@ void BasicSampleFilter::get_required_signals(vector<string> &reqs)
 {
 	if (req_sigs.size() == 0) {
 		req_sigs.clear();
-		for (auto &bf : bfilters)
-			req_sigs.push_back(bf.sig_name);
+		for (auto &bf : bfilters) {
+			if (bf.sig_name == "Age" && !med_rep_type.ageDirectlyGiven)
+				req_sigs.push_back("BYEAR");
+			else
+				req_sigs.push_back(bf.sig_name);
+		}
 	}
 
 	reqs = req_sigs;

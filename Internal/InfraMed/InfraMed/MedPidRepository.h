@@ -195,5 +195,32 @@ private:
 };
 
 
+//
+// Dynamic Version iterator allows backword iteration over versions in two manners -
+// 1. For version-dependent operations - iterate over all versions
+// 2. For verion-independent operations - iterate only over versions that are already different
+//
+// Methods are -
+// constructors
+// init : Get first version to work on
+// next : Get next version to work on
+// next_different : Get next version that points to different data
+//
+
+class versionIterator {
+
+	PidDynamicRec *my_rec;
+	int iVersion, jVersion;
+	set<int> signalIds;
+
+public:
+	versionIterator(PidDynamicRec& _rec, int signalId) { my_rec = &_rec; signalIds = { signalId }; }
+	versionIterator(PidDynamicRec& _rec, set<int>& _signalIds) { my_rec = &_rec; signalIds = _signalIds; }
+
+	int init();
+	int next() { return (--iVersion); }
+	int next_different();
+};
+
 #endif
 

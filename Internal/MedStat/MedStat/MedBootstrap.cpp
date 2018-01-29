@@ -8,7 +8,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
 void MedBootstrap::get_cohort_from_arg(const string &single_cohort) {
-	string cohort_line_with_name = single_cohort + "\t" + single_cohort; 
+	string cohort_line_with_name = single_cohort + "\t" + single_cohort;
 	parse_cohort_line(cohort_line_with_name);
 }
 
@@ -16,7 +16,7 @@ void MedBootstrap::parse_cohort_line(const string &line) {
 	if (line.find('\t') == string::npos)
 		MTHROW_AND_ERR("line is in wrong format:\n%s\n",
 			line.c_str());
-	
+
 	string cohort_name = line.substr(0, line.find('\t'));
 	string cohort_definition = line.substr(line.find('\t') + 1);
 	if (cohort_name != "MULTI") {
@@ -66,6 +66,7 @@ MedBootstrap::MedBootstrap()
 	sample_seed = 0;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
+	simTimeWindow = false;
 }
 
 MedBootstrap::MedBootstrap(const string &init_string) {
@@ -75,6 +76,7 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	sample_seed = 0;
 	loopCnt = 500;
 	filter_cohort["All"] = {};
+	simTimeWindow = false;
 
 	//now read init_string to override default:
 	vector<string> tokens;
@@ -106,10 +108,26 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 			filter_cohort.clear();
 			parse_cohort_file(param_value);
 		}
+		else if (param_name == "simTimeWindow")
+			simTimeWindow = stoi(param_value) > 0;
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
 	}
 }
+
+template<class T> bool has_element(const vector<T> &vec, const T &val) {
+	for (size_t i = 0; i < vec.size(); ++i)
+		if (vec[i] == val)
+			return true;
+	return false;
+}
+bool has_element(const vector<Filter_Param> &vec, const string &val) {
+	for (size_t i = 0; i < vec.size(); ++i)
+		if (vec[i].param_name == val)
+			return true;
+	return false;
+}
+
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info) {
@@ -137,19 +155,81 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 			cohorts[it->first] = it->second;
 		else
 			MWARN("Cohort \"%s\" name already exists - skip additional\n");
-
-	vector<int> new_ids((int)pids.size());
+	const vector<int> *rep_ids = &pids;
+	vector<int> new_ids;
 	if (sample_patient_label)
 	{
+		new_ids.resize((int)pids.size());
 		for (size_t i = 0; i < pids.size(); ++i)
 			new_ids[i] = pids[i] * 10 + (int)y[i];
-		return booststrap_analyze(preds, y, new_ids, additional_info, cohorts,
-			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt);
+		rep_ids = &new_ids;
 	}
-	return booststrap_analyze(preds, y, pids, additional_info, cohorts,
-		measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-		preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+
+	if (!simTimeWindow) {
+		return booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
+			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
+			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+	}
+	else {
+		//split by each time window after editing each time window samples:
+		string search_term = "Time-Window";
+		cohorts.clear();
+		cohort_params.clear();
+		map<string, map<string, float>> all_results;
+		for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
+			if (!has_element(it->second, search_term)) {
+				cohorts[it->first] = filter_range_params;
+				cohort_params[it->first] = (void *)&it->second;
+			}
+		}
+		for (auto it = additional_cohorts.begin(); it != additional_cohorts.end(); ++it)
+			if (cohorts.find(it->first) == cohorts.end())
+				cohorts[it->first] = it->second;
+			else
+				MWARN("Cohort \"%s\" name already exists - skip additional\n");
+
+		if (!cohorts.empty())
+			all_results = booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
+				measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
+				preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+
+		//now lets add each time window result:
+		for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
+			if (has_element(it->second, search_term)) {
+				map<string, FilterCohortFunc> cohorts_t;
+				map<string, void *> cohort_params_t;
+				cohorts_t[it->first] = filter_range_params;
+				cohort_params_t[it->first] = (void *)&it->second;
+				//lets find the element:
+				Filter_Param time_filter;
+				for (size_t i = 0; i < it->second.size(); ++i)
+					if (it->second[i].param_name == search_term)
+					{
+						time_filter = it->second[i];
+						break;
+					}
+
+				//update: y_changed based on y
+				map<string, vector<float>> cp_info = additional_info; //a copy - i will change those each time
+				vector<float> y_changed(y.begin(), y.end());
+				//update: cp_info["Time-Window"] based on additional_info["Time-Window"] for cases not in time window
+				for (size_t i = 0; i < y_changed.size(); ++i)
+				{
+					if (y[i] > 0 && !filter_range_param(additional_info, (int)i, &time_filter)) {
+						y_changed[i] = 0;
+						cp_info[search_term][i] = time_filter.min_range; //wont filter because time
+					}
+				}
+
+				auto agg_res = booststrap_analyze(preds, y_changed, *rep_ids, cp_info, cohorts_t,
+					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
+					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+				all_results.insert(*agg_res.begin()); //has one key
+			}
+		}
+
+		return all_results;
+	}
 }
 
 bool MedBootstrap::use_time_window() {
@@ -187,7 +267,7 @@ void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<f
 		vector<float> split_y((int)it->second.size());
 		vector<int> split_pids((int)it->second.size());
 		map<string, vector<float>> split_data;
-		
+
 		for (auto jt = data.begin(); jt != data.end(); ++jt)
 			split_data[jt->first].resize((int)it->second.size());
 		for (size_t i = 0; i < split_preds.size(); ++i)
