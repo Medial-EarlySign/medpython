@@ -367,7 +367,7 @@ public:
 	~GenderGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id,6) + ".Gender"); }
+	void set_names() { if (names.empty()) names.push_back("Gender"); }
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<GenderGenerator *>(generator)); }
