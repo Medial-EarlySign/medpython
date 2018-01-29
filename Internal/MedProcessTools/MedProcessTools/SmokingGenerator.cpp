@@ -319,6 +319,14 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				int start_date = smoke_ranges[kk].date_start;
 				int end_date = smoke_ranges[kk].date_end;
 
+				if (start_date < date_age_may_start_smoking)
+					start_date = date_age_may_start_smoking;
+
+				if (end_date < start_date)
+					end_date = start_date;
+
+
+
 				if (test_date >= start_date) {
 
 					if (smoke_ranges[kk].val == 7 || smoke_ranges[kk].val == 3)
@@ -567,7 +575,7 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 		// PLM_Smoking_Level
 		if (p_data[SMX_PLM_SMOKING_LEVEL] != NULL) p_data[SMX_PLM_SMOKING_LEVEL][index + i] = (float)plm_smoking_level;
 		// Never_Smoker
-		if (p_data[SMX_NEVER_SMOKER] != NULL) p_data[SMX_SMOKING_YEARS][index + i] = (float)__never_smoker;
+		if (p_data[SMX_NEVER_SMOKER] != NULL) p_data[SMX_NEVER_SMOKER][index + i] = (float)__never_smoker;
 		// Unknown_Smoker
 		if (p_data[SMX_UNKNOWN_SMOKER] != NULL) p_data[SMX_UNKNOWN_SMOKER][index + i] = (float)__unknown_smoker;
 		// Smoking_Quantity
