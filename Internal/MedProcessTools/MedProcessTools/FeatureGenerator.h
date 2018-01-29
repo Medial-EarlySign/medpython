@@ -24,7 +24,8 @@ typedef enum {
 	FTR_GEN_NOT_SET,
 	FTR_GEN_BASIC, ///< "basic" - creates basic statistic on time windows - BasicFeatGenerator 
 	FTR_GEN_AGE, ///< "age" - creating age feature - AgeGenerator 
-	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator
+	FTR_GEN_SINGLETON, /// <<< "singleton" - take the value of a time-less signale
+	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator (special case of signleton)
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
 	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
@@ -42,8 +43,6 @@ public:
 
 	/// Type
 	FeatureGeneratorTypes generator_type;
-
-	// SerialId
 
 	/// Feature name
 	vector<string> names;
@@ -63,8 +62,12 @@ public:
 	// Naming
 	virtual void set_names() {names.clear(); }
 
+	// Helper - pointers to data vectors in MedFeatures (to save time in generatin)
+	vector <float *> p_data;
+
 	// Prepare for feature generation
 	virtual void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
+	virtual void get_p_data(MedFeatures& features);
 
 	// Constructor/Destructor
 	FeatureGenerator() { learn_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS; pred_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS;  missing_val = MED_MAT_MISSING_VALUE; serial_id = ++MedFeatures::global_serial_id_cnt; };
@@ -73,9 +76,10 @@ public:
 	// Required Signals
 	vector<string> req_signals;
 	vector<int> req_signal_ids; 
-	void get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict);
+
 	void get_required_signal_names(unordered_set<string>& signalNames);
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
+	void get_required_signal_ids(unordered_set<int>& signalIds);
 
 	// Signal Ids
 	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
@@ -92,15 +96,15 @@ public:
 
 	// generate feature data from repository
 	// We assume the corresponding MedSamples have been inserted to MedFeatures : either at the end or at position index
-	virtual int Generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return 0; }
-	int generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return Generate(in_rep, features, index, num); }
+	virtual int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return 0; }
+	int generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features,index, num); }
 	int generate(PidDynamicRec& in_rep, MedFeatures& features);
 	int generate(MedPidRepository& rep, int id, MedFeatures& features) ;
 	int generate(MedPidRepository& rep, int id,  MedFeatures& features, int index, int num) ;
 
 	// generate feature data from other features
-	virtual int Generate(MedFeatures& features) { return 0; }
-	int generate(MedFeatures& features) { return Generate(features); }
+	virtual int _generate(MedFeatures& features) { return 0; }
+	int generate(MedFeatures& features) { return _generate(features); }
 
 	// Init
 	// create a generator
@@ -129,6 +133,11 @@ public:
 	size_t generator_serialize(unsigned char *blob);
 
 	virtual void print() { fprintf(stderr, "Print Not Implemented for feature\n"); }
+
+
+	// debug print for a feature generator. fg_flag can 
+	void dprint(const string &pref, int fg_flag);
+
 
 	int serial_id;		// serial id of feature
 };
@@ -212,7 +221,7 @@ public:
 	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
 	int sum_channel = 1;						///< for FTR_CETEGORY_SET_SUM
 	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
-	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and _generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
 
 	// helpers
@@ -245,7 +254,7 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	/// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 	float get_value(PidDynamicRec& rec, int index, int time);
 
 	/// Signal Ids
@@ -294,7 +303,7 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
 	// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
@@ -305,6 +314,42 @@ public:
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights); }
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights); }
 };
+
+/**
+* Singleton
+*/
+class SingletonGenerator : public FeatureGenerator {
+public:
+
+	/// Signal Id
+	string signalName;
+	int signalId;
+
+	// Constructor/Destructor
+	SingletonGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = -1; req_signals.assign(1, signalName); }
+	SingletonGenerator(int _signalId) : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = _signalId; req_signals.assign(1, signalName); }
+
+	// Name
+	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName); }
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp SingletonGenerator::init
+	int init(map<string, string>& mapper);
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<SingletonGenerator *>(generator)); }
+
+	// generate a new feature
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Signal Ids
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, iGenerateWeights)
+};
+
 
 /**
 * Gender
@@ -322,16 +367,17 @@ public:
 	~GenderGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id,6) + ".Gender"); }
+	void set_names() { if (names.empty()) names.push_back("Gender"); }
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<GenderGenerator *>(generator)); }
 
-	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp SingletonGenerator::init
+	int init(map<string, string>& mapper);
 
 	// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
@@ -403,10 +449,13 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
 
 	/// generate new feature(s)
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	/// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
 	int filter_features(unordered_set<string>& validFeatures);
+
+	// get pointers to data
+	void get_p_data(MedFeatures& features);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict);
@@ -497,7 +546,7 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 	float get_value(PidDynamicRec& rec, int index, int date);
 
 	// Signal Ids
@@ -539,7 +588,7 @@ public:
 	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);
 
 	/// generate a new feature
-	int Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// (De)Serialize
 	size_t get_size();
@@ -563,6 +612,6 @@ MEDSERIALIZE_SUPPORT(BasicFeatGenerator)
 MEDSERIALIZE_SUPPORT(AgeGenerator)
 MEDSERIALIZE_SUPPORT(GenderGenerator)
 MEDSERIALIZE_SUPPORT(BinnedLmEstimates)
-MEDSERIALIZE_SUPPORT(RangeFeatGenerator);
+MEDSERIALIZE_SUPPORT(RangeFeatGenerator)
 
 #endif

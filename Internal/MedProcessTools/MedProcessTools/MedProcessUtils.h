@@ -11,6 +11,10 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <unordered_set>
+
+class RepProcessor;
+class FeatureGenerator;
 
 using namespace std;
 
@@ -19,5 +23,9 @@ int init_dvec(string& in, vector<int>& out);
 void get_single_val_from_init_string(string init_s, string attr, string &val_s);
 
 string int_to_string_digits(int i, int ndigits);
+
+// Required signals
+void get_all_required_signal_names(unordered_set<string>& signalNames, vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators);
+void get_all_required_signal_ids(unordered_set<int>& signalIds, vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators);
 
 #endif

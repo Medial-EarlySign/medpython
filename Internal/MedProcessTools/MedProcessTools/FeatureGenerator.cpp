@@ -25,6 +25,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_AGE;
 	else if (generator_name == "gender")
 		return FTR_GEN_GENDER;
+	else if (generator_name == "singleton")
+		return FTR_GEN_SINGLETON;
 	else if (generator_name == "binnedLmEstimates" || generator_name == "binnedLm"  || generator_name == "binnedLM")
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
@@ -49,7 +51,7 @@ void FeatureGenerator::prepare(MedFeatures &features, MedPidRepository& rep, Med
 		if (names.size() == 0)
 			set_names();
 
-		// Attributes
+		// Attributes and data
 		for (auto& name : names) {
 			features.attributes[name].normalized = false;
 			features.data[name].resize(0, 0);
@@ -63,6 +65,21 @@ void FeatureGenerator::prepare(MedFeatures &features, MedPidRepository& rep, Med
 	}
 	else
 		features.weights.resize(0, 0);
+}
+
+// Get pointers to data vectors
+//.......................................................................................
+void FeatureGenerator::get_p_data(MedFeatures &features) {
+
+	p_data.clear();
+	if (iGenerateWeights)
+		p_data.push_back(&(features.weights[0]));
+	else {
+		for (string& name : names)
+			p_data.push_back(&(features.data[name][0]));
+	}
+
+	return;
 }
 
 //.......................................................................................
@@ -96,6 +113,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new AgeGenerator;
 	else if (generator_type == FTR_GEN_GENDER)
 		return new GenderGenerator;
+	else if (generator_type == FTR_GEN_SINGLETON)
+		return new SingletonGenerator;
 	else if (generator_type == FTR_GEN_BINNED_LM)
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
@@ -125,7 +144,7 @@ FeatureGenerator * FeatureGenerator::make_generator(FeatureGeneratorTypes genera
 // Add at end of feature vector
 int FeatureGenerator::generate(PidDynamicRec& in_rep, MedFeatures& features) {
 	//MLOG("gen [%s]\n", this->names[0].c_str());
-	return Generate(in_rep, features, features.get_pid_pos(in_rep.pid), features.get_pid_len(in_rep.pid));
+	return _generate(in_rep, features, features.get_pid_pos(in_rep.pid), features.get_pid_len(in_rep.pid));
 }
 
 //.......................................................................................
@@ -143,6 +162,7 @@ int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& featu
 			return -1;
 		}
 		features.weights.resize(samples_size);
+		p_data[0] = &(features.weights[0]);
 	}
 	else {
 		data_size = (int)features.data[names[0]].size();
@@ -153,6 +173,8 @@ int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& featu
 		}
 		for (string& name : names)
 			features.data[name].resize(samples_size);
+
+		get_p_data(features);
 	}
 	return generate(rep, id, features, data_size, (int)(samples_size - data_size));
 }
@@ -166,7 +188,7 @@ int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& featu
 
 	rec.init_from_rep(std::addressof(rep), id, req_signal_ids, num);
 
-	return Generate(rec, features, index, num);
+	return _generate(rec, features, index, num);
 }
 
 //.......................................................................................
@@ -202,7 +224,7 @@ size_t FeatureGenerator::generator_serialize(unsigned char *blob) {
 	return ptr;
 }
 
-// Required signals
+// Set required signal ids
 //.......................................................................................
 void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
 
@@ -212,20 +234,20 @@ void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
 		req_signal_ids[i] = dict.id(req_signals[i]);
 }
 
+
+// Get Required Signals
 //.......................................................................................
-void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds, MedDictionarySections& dict) {
-
-	if (req_signal_ids.empty())
-		set_required_signal_ids(dict);
-
-	for (int signalId : req_signal_ids)
-		signalIds.insert(signalId);
-}
-
 void FeatureGenerator::get_required_signal_names(unordered_set<string>& signalNames) {
 	for (auto sig : req_signals)
 		signalNames.insert(sig);
 }
+
+//.......................................................................................
+void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds) {
+	for (auto sig : req_signal_ids)
+		signalIds.insert(sig);
+}
+
 
 //.......................................................................................
 // Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
@@ -250,6 +272,22 @@ inline bool isInteger(const std::string & s)
 	strtol(s.c_str(), &p, 10);
 
 	return (*p == 0);
+}
+
+
+//.......................................................................................
+void FeatureGenerator::dprint(const string &pref, int fg_flag)
+{
+	if (fg_flag > 0) {
+		MLOG("%s :: FG type %d : serial_id %d : ", pref.c_str(), generator_type, serial_id);
+		MLOG("names(%d) : ", names.size());
+		if (fg_flag > 1) for (auto &name: names) MLOG("%s,", name.c_str());
+		MLOG(" tags(%d) : ", tags.size());
+		if (fg_flag > 1) for (auto &t : tags) MLOG("%s,", t.c_str());
+		MLOG(" req_signals(%d) : ", req_signals.size());
+		if (fg_flag > 1) for (auto &rsig : req_signals) MLOG("%s,", rsig.c_str());
+		MLOG("\n");
+	}
 }
 
 //=======================================================================================
@@ -339,23 +377,16 @@ void BasicFeatGenerator::init_defaults() {
 
 // Generate
 //.......................................................................................
-int BasicFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
-	string& name = names[0];
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
-	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[name][index]);
-	for (int i = 0; i < num; i++) {
-		//		features.data[name][index + i] = get_value(rec, i, features.samples[i].date);
-		//if (type != FTR_NSAMPLES)
-		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time));
-		//else {
-		//	//p_feat[i] = i;
-		//	p_feat[i] = features.samples[index+i].time/10000;
-		//}
-	}
-			
+	float *p_feat = p_data[0] + index;
+	MedSample *p_samples = &(features.samples[index]);
+
+	for (int i = 0; i < num; i++) 
+		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time));
 	
 	return 0;
 }
@@ -447,7 +478,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 //=======================================================================================
 // Age
 //=======================================================================================
-int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -455,7 +486,7 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 		return -1;
 	}
 
-	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
+	float *p_feat = p_data[0] + index;
 
 	int len;
 	if (directlyGiven) {
@@ -479,7 +510,7 @@ int AgeGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index,
 //=======================================================================================
 // Gender
 //=======================================================================================
-int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int GenderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
 	if (genderId == -1) {
@@ -488,12 +519,89 @@ int GenderGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int ind
 	}
 
 	rec.uget(genderId, 0);
-	if (rec.usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
+	if (rec.usv.len == 0) throw MED_EXCEPTION_NO_GENDER_GIVEN;
 	int gender = (int)(rec.usv.Val(0));
 
-	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
+	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = (float)gender;
+	
+	return 0;
+}
+
+
+// Init
+//.......................................................................................
+int GenderGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [SingletonGenerator::init]
+		 if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
+		//! [SingletonGenerator::init]
+	}
+
+	// naming and required signals
+
+	names.clear();
+	set_names();
+
+	req_signals.assign(1, med_rep_type.genderSignalName);
+
+	return 0;
+}
+
+
+//=======================================================================================
+// Singleton
+//=======================================================================================
+int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
+
+	rec.uget(signalId, 0);
+	float value;
+	if (rec.usv.len == 0)
+		value = missing_val;
+	else
+		value = (int)(rec.usv.Val(0));
+
+	float *p_feat = p_data[0] + index;
+	for (int i = 0; i < num; i++)
+		p_feat[i] = value;
+
+	return 0;
+}
+
+// Init
+//.......................................................................................
+int SingletonGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [SingletonGenerator::init]
+		if (field == "signalName" || field == "signal") signalName = entry.second;
+		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
+		//! [SingletonGenerator::init]
+	}
+
+	// naming and required signals
+
+	names.clear();
+	set_names();
+
+	req_signals.assign(1, signalName);
+
 	return 0;
 }
 
@@ -597,15 +705,15 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 
 // Generate
 //.......................................................................................
-int RangeFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
-
-	string& name = names[0];
+int RangeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
-	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
+	float *p_feat = p_data[0] + index;
+	MedSample *p_samples = &(features.samples[index]);
+
 	for (int i = 0; i < num; i++)
-		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time));
+		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time));
 
 	return 0;
 }
@@ -1268,10 +1376,10 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 
 // Put relevant predictions in place
 //.......................................................................................
-int ModelFeatGenerator::Generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 
-	float *p_feat = (iGenerateWeights) ? &(features.weights[index]) : &(features.data[names[0]][index]);
+	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = preds[index*n_preds + i];
 

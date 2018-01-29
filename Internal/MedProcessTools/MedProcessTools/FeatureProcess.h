@@ -107,6 +107,11 @@ public:
 	// Serialization (including type)
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
+
+
+	// debug prints
+	virtual void dprint(const string &pref, int rp_flag);
+
 };
 
 // Utilities
@@ -155,6 +160,9 @@ public:
 
 	// Filter according to a subset of features
 	int filter(unordered_set<string>& features);
+
+	// debug print
+	void dprint(const string &pref, int fp_flag);
 
 	// Serialization
 	size_t get_size();

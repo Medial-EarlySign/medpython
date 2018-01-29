@@ -717,17 +717,8 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	}
 
-	map<float, string> b2Name;
-	int i = 0;
-	for (auto &feat : features.data) {
-		b2Name[predictors[0].b[i++]] = feat.first;
-	}
-
-	for (auto &b : b2Name) {
-		if (b.first != 0) {
-			MLOG("Feature %s :: B %f\n", b.second.c_str(), b.first);
-		}
-	}
+	for (auto &f : selected)
+		MLOG("Lasso Selected Feature %s \n", f.c_str());
 
 
 	return 0;
@@ -766,7 +757,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	selected.clear();
-	MLOG("DgnrtFeatureRemvoer::_learn\n");
+
 	for (auto& rec : features.data) {
 		string name = rec.first;
 		vector<float>& data = rec.second;

@@ -41,7 +41,7 @@ unsigned long long get_file_size_IM(const string &fname)
 int add_path_to_name_IM(const string &path, string &fname)
 {
 	string temp_name ;
-	if (path == "" || (fname.size() > 0 && fname[0] == '/'))	// if fname starts with '/' the user meant absolute path, leave it alone
+	if (path == "" || fname == "" || (fname.size() > 0 && fname[0] == '/'))	// if fname starts with '/' the user meant absolute path, leave it alone
 		temp_name = fname ;
 	else
 		temp_name = path + "/" + fname;
@@ -57,7 +57,7 @@ int add_path_to_name_IM(const string &path, vector<string> &fnames)
 	
 	string temp_name ;
 	for (int i=0; i<fnames.size(); i++) {
-		if (path == "" || (fnames[i].size() > 0 && fnames[i][0] == '/'))	// if fname starts with '/' the user meant absolute path, leave it alone
+		if (path == "" || fnames[i] == "" || (fnames[i].size() > 0 && fnames[i][0] == '/'))	// if fname starts with '/' the user meant absolute path, leave it alone
 			temp_name = fnames[i] ;
 		else
 			temp_name = path + "/" + fnames[i];
@@ -78,7 +78,7 @@ int copy_file_IM(const string& in_file, const string& out_file) {
 	ofstream dst(out_file,ios::binary) ;
 
 	if (! (src.is_open() && dst.is_open()))
-		return -1 ;
+		MTHROW_AND_ERR("failed to copy [%s] to [%s]\n", in_file.c_str(), out_file.c_str());
 
 	dst << src.rdbuf() ;
 

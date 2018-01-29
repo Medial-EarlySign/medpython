@@ -296,8 +296,8 @@ void DoCalcFeatProcessor::has_bled(vector<float*> p_sources, float *p_out, int n
 void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out, int n_samples) {
 	// www.framinghamheartstudy.org/risk-functions/cardiovascular-disease/10-year-risk.php
 	for (int i = 0; i < n_samples; i++) {
-		float res = 0.0;
-		float res1 = 0.0;
+		double res = 0.0;
+		double res1 = 0.0;
 
 		float gender = p_sources[0][i];
 		float Age = p_sources[1][i];
@@ -314,41 +314,41 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 		//Men
 
 		if (1 == 1) {
-			float sum_beta = 0.0;
+			double sum_beta = 0.0;
 			if (gender == 1) {
-				sum_beta += log(Age)*3.06117;
-				sum_beta += log(chol)*1.12370;
-				sum_beta += log(hdl)*-0.93263;
+				sum_beta += log(Age)*3.06117F;
+				sum_beta += log(chol)*1.12370F;
+				sum_beta += log(hdl)*-0.93263F;
 				
 				if (BP_drug==0) 
-					sum_beta += log(BP_sys)*1.93303;
+					sum_beta += log(BP_sys)*1.93303F;
 				else 
-					sum_beta += log(BP_sys)*1.99881;
+					sum_beta += log(BP_sys)*1.99881F;
 
-				sum_beta += Current_Smoker*0.65451;
-				sum_beta += DM_Registry*0.57367;
-				res = 1 - pow(0.88936, exp(sum_beta - 23.9802));
+				sum_beta += Current_Smoker*0.65451F;
+				sum_beta += DM_Registry*0.57367F;
+				res = 1 - pow(0.88936F, exp(sum_beta - 23.9802F));
 
 			}
 			//Women
 			else {
-				sum_beta += log(Age)*2.32888;
-				sum_beta += log(chol)*1.20904;
-				sum_beta += log(hdl)*-0.70833;
+				sum_beta += log(Age)*2.32888F;
+				sum_beta += log(chol)*1.20904F;
+				sum_beta += log(hdl)*-0.70833F;
 				
 				if (BP_drug == 0)
-					sum_beta += log(BP_sys)*2.76157;
+					sum_beta += log(BP_sys)*2.76157F;
 				else 
-					sum_beta += log(BP_sys)*2.82263;
+					sum_beta += log(BP_sys)*2.82263F;
 
-				sum_beta += Current_Smoker*0.52873;
-				sum_beta += DM_Registry*0.69154;
-				res = 1 - pow(0.95012, exp(sum_beta - 26.1931));
+				sum_beta += Current_Smoker*0.52873F;
+				sum_beta += DM_Registry*0.69154F;
+				res = 1 - pow(0.95012F, exp(sum_beta - 26.1931F));
 			}
 		}
 
 
-		p_out[i] = res;
+		p_out[i] = (float)res;
 	}
 }
 

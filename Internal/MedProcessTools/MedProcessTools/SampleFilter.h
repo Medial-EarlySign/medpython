@@ -90,7 +90,7 @@ public:
 	int filter(MedSamples& samples);
 
 	/// <summary>  Get all signals required for filtering : Should be implemented for inheriting classes that filter using Repository information </summary>
-	virtual void get_required_signals(vector<string>& req_sigs) { return; }
+	virtual void get_required_signals(vector<string>& req_sigs) {return; }
 
 	// Serialization (including type)
 	/// <summary> get size of filter + filter_type </summary>
@@ -346,6 +346,7 @@ struct BasicFilteringParams : public SerializableObject {
 
 private:
 	int sig_id = -1; ///< signal-id : uninitialized until first usage
+	int use_byear= 0; ///< indicator that required signal is age that should be treated differently
 };				
 
 //...........................................................................................................

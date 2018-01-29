@@ -146,11 +146,6 @@ int MedConvert::read_code_to_signal(const string &fname)
 	}
 
 	inf.close();
-
-	// now add as default all sigs name to their own
-	for (auto& sig : sigs.signals_names)
-		codes2names[sig] = sig;
-
 	return 0;
 
 }
@@ -305,12 +300,16 @@ int MedConvert::read_all(const string &config_fname)
 
 	MLOG("MedConvert: read_all: read signal files\n");
 
+	// now add as default all sigs name to their own
+	for (auto& sig : sigs.signals_names)
+		codes2names[sig] = sig;
+
 	// read signal to file
 	if (code_to_signal_fname != "" && read_code_to_signal(code_to_signal_fname) < 0) {
 		return -1;
 	}
 
-	MLOG("MedConvert: read_all: read code_to_signal file %s\n", code_to_signal_fname.c_str());
+	MLOG("MedConvert: read_all: read code_to_signal file [%s]\n", code_to_signal_fname.c_str());
 
 
 	// mode 2 and up supports loading a subset of signals ! , older modes will always try to load all
@@ -414,8 +413,8 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 	//				MLOG("working on: (fpid %d) (curr.pid %d) (file_type %d) (f[0] %s) (nfields %d) ##>%s<##\n",fpid,curr.pid,file_type,fields[0].c_str(),fields.size(),curr_line.c_str());
 				//if (fields.size() > 6) MLOG("WEIRD f[6]= ##>%s<##\n",fields[5].c_str());
 				if (((file_type == 1) && (fields.size() == 4)) || 
-					((file_type == 2) && (fields.size() >= 3 && fields.size() <= 6)) ||
-					((file_type == 3) && (fields.size() >= 3 && fields.size() <= 6))) {
+					((file_type == 2) && (fields.size() >= 3)) ||
+					((file_type == 3) && (fields.size() >= 3))) {
 
 					int line_pid = stoi(fields[0]);
 					//if (fpid == 5025392)
@@ -659,11 +658,14 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 //------------------------------------------------
 int MedConvert::create_repository_config()
 {
-
+	if (repository_config_fname == "") {
+		MWARN("No repository_config (CONFIG) file specified, not creating it\n");
+		return 1;
+	}
 	// Open output file
 	repository_config_f.open(repository_config_fname,ios::out) ;
 	if (!repository_config_f) {
-		MERR("MedConvert:: create_repository_config:: can't open output file %s\n",repository_config_fname.c_str());
+		MERR("MedConvert:: create_repository_config:: can't open output file [%s]\n",repository_config_fname.c_str());
 		return -1;
 	}
 
@@ -824,9 +826,16 @@ int MedConvert::create_indexes()
 	// print statistics for data files
 	MLOG("Statistics for %d data files\n", fstats.size());
 	for (auto& stat : fstats) {
+		float ratio = (double)(stat.n_parsed_lines + 1) / (double)(stat.n_relevant_lines + 1);
 		MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_loaded_lines %d : loaded %g\n",
 			stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_parsed_lines,
-			(double)(stat.n_parsed_lines + 1)/(double)(stat.n_relevant_lines + 1));
+			ratio);
+		if (ratio < 0.01) {
+			if (stat.n_relevant_lines > 1000) {
+				MTHROW_AND_ERR("only %d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.fname.c_str());
+			}
+			else MWARN("only %d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.fname.c_str());
+		}
 
 	}
 

@@ -184,6 +184,8 @@ public:
 	int init_from_rep(MedRepository *rep, int pid, vector<int> &sids_to_use, vector<int> &time_points);
 
 
+	vector<UniversalSigVec> usvs; /// for efficient usage of a record we may want to keep several usvs initialized and save init time.
+
 private:
 	int n_versions;
 	unsigned int curr_len;
@@ -192,6 +194,33 @@ private:
 	void set_poslen(int sid, int version, PosLen pl) { sv_vers[(unsigned int)my_base_rep->sigs.sid2serial[sid]*n_versions+version] = pl; }
 };
 
+
+//
+// Dynamic Version iterator allows backword iteration over versions in two manners -
+// 1. For version-dependent operations - iterate over all versions
+// 2. For verion-independent operations - iterate only over versions that are already different
+//
+// Methods are -
+// constructors
+// init : Get first version to work on
+// next : Get next version to work on
+// next_different : Get next version that points to different data
+//
+
+class versionIterator {
+
+	PidDynamicRec *my_rec;
+	int iVersion, jVersion;
+	set<int> signalIds;
+
+public:
+	versionIterator(PidDynamicRec& _rec, int signalId) { my_rec = &_rec; signalIds = { signalId }; }
+	versionIterator(PidDynamicRec& _rec, set<int>& _signalIds) { my_rec = &_rec; signalIds = _signalIds; }
+
+	int init();
+	int next() { return (--iVersion); }
+	int next_different();
+};
 
 #endif
 

@@ -5,6 +5,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include "Logger/Logger/Logger.h"
+#include "MedProcessTools/MedProcessTools/RepProcess.h"
+#include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
 
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -78,4 +80,32 @@ string int_to_string_digits(int i, int ndigits)
 	}
 
 	return s;
+}
+
+// Create a required signal names by back propograting : First find what's required by
+// the feature generators, and then find add signals required by the rep_porcessors that
+// are required ....
+//.......................................................................................
+void get_all_required_signal_names(unordered_set<string>& signalNames, vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators) {
+
+	// Collect from generators
+	for (auto& generator : generators)
+		generator->get_required_signal_names(signalNames);
+
+	// Collect from processors itertively
+	for (int i = (int)rep_processors.size() - 1; i > position; i--)
+		rep_processors[i]->get_required_signal_names(signalNames, signalNames);
+}
+
+void get_all_required_signal_ids(unordered_set<int>& signalIds, vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators) {
+
+
+	// Collect from generators
+	for (auto& generator : generators)
+		generator->get_required_signal_ids(signalIds);
+
+	// Collect from processors itertively
+	for (int i = rep_processors.size() - 1; i > position; i--)
+		rep_processors[i]->get_required_signal_ids(signalIds, signalIds);
+
 }
