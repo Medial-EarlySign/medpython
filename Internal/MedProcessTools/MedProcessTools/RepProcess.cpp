@@ -80,6 +80,14 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 	newRepProcessor->init_from_string(init_string);
 	return newRepProcessor;
 }
+// learn on all pids in repository, using fake samples - works only for repProcessors that ignore sample dates
+//.......................................................................................
+int RepProcessor::learn(MedPidRepository& rep) {
+	MedSamples fakeSamples;
+	for (int pid : rep.pids)
+		fakeSamples.insertRec(pid, 0);
+	this->learn(rep, fakeSamples);
+}
 
 // Learn processing parameters only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
