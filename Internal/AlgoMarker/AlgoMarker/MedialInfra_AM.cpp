@@ -176,13 +176,17 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		AMResponse *res = responses->create_point_response(_pid, _ts);
 
 		// test this point for eligibility and add errors if needed
-		InputSanityTesterResult test_res;
+		vector<InputSanityTesterResult> test_res;
 		int test_rc = ist.test_if_ok(rep, _pid, (long long)conv_times[i], test_res);
+
+		// push messages if there are any
+		AMMessages *msgs = res->get_msgs();
+		for (auto &tres : test_res) {
+			string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
+			msgs->insert_message(tres.external_rc, msg.c_str());
+		}
+
 		if (test_rc <= 0) {
-			// add message and code to response
-			AMMessages *msgs = res->get_msgs();
-			string msg = msg_prefix + test_res.err_msg + " Internal Code: " + to_string(test_res.internal_rc);
-			msgs->insert_message(test_res.external_rc, msg.c_str());
 			n_bad_scores++;
 		}
 		else {
@@ -195,7 +199,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	int _n_points = (int)eligible_pids.size();
 
-	// Calculating raw scores
+	// Calculating raw scores for eligble points
 	vector<float> raw_scores(_n_points, (float)AM_UNDEFINED_VALUE);
 	int get_preds_rc;
 	if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], &raw_scores[0], _n_points)) < 0) {
