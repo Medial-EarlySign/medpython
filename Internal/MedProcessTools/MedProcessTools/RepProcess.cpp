@@ -80,6 +80,14 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 	newRepProcessor->init_from_string(init_string);
 	return newRepProcessor;
 }
+// learn on all pids in repository, using fake samples - works only for repProcessors that ignore sample dates
+//.......................................................................................
+int RepProcessor::learn(MedPidRepository& rep) {
+	MedSamples fakeSamples;
+	for (int pid : rep.pids)
+		fakeSamples.insertRec(pid, 0);
+	this->learn(rep, fakeSamples);
+}
 
 // Learn processing parameters only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
@@ -572,20 +580,12 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 	}
 
 	int len;
-	int iver = (int)time_points.size() - 1;
 
-	while (iver >= 0) {
-		// Check all versions that points to the same location
-		int jver = iver - 1;
-		while (jver >= 0 && rec.versions_are_the_same(signalId, iver, jver))
-			jver--;
-		jver++;
-
-		// we now know that versions [jver ... iver] are all pointing to the same version
-		// hence we need to clean version jver, and then make sure all these versions point to it
+	versionIterator vit(rec, signalId);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 
 		// Clean 
-		rec.uget(signalId, jver, rec.usv); // get into the internal usv obeject - this statistically saves init time
+		rec.uget(signalId, iver, rec.usv); // get into the internal usv obeject - this statistically saves init time
 
 		len = rec.usv.len;
 		vector<int> remove(len);
@@ -601,29 +601,28 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 			if (itime > time_points[iver])	break;
 
 			// Identify values to change or remove
-			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS))
+			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
+//				MLOG("pid %d ver %d time %d %s %f removed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 				remove[nRemove++] = i;
+			}
 			else if (params.doTrim) {
-				if (ival < trimMin)
+				if (ival < trimMin) {
+//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMin);
-				else if (ival > trimMax)
+				}
+				else if (ival > trimMax) {
+//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMax);
+				}
 			}
 		}
 
 		// Apply removals + changes
 		change.resize(nChange);
 		remove.resize(nRemove);
-
-		if (rec.update(signalId, jver, val_channel, change, remove) < 0)
+		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
 			return -1;
 
-		// Point versions jver+1..iver to jver
-		while (iver > jver) {
-			rec.point_version_to(signalId, jver, iver);
-			iver--;
-		}
-		iver--;
 	}
 
 	return 0;
@@ -882,21 +881,21 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 	set <int> reqSignalIds, affSignalIds;
 	for (auto reqSig : req_signals)reqSignalIds.insert(myDict.id(reqSig));
 	for (auto affSig : aff_signals)affSignalIds.insert(myDict.id(affSig));
-	int iver = (int)time_points.size() - 1;
-	while (iver >= 0) {
-		// Check all versions that points to the same location
-		map <int, set<int>> removePoints; // from sid to indices to be removed
-		int jver = iver - 1;
-		while (jver >= 0 && rec.versions_are_the_same(reqSignalIds, iver, jver))
-			jver--;
-		jver++;
+	
+	// Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
 
-		// we now know that versions [jver ... iver] are all pointing to the same version
-		// hence we need to clean version jver, and then make sure all these versions point to it
+	versionIterator vit(rec, reqSignalIds);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+
+		map <int, set<int>> removePoints; // from sid to indices to be removed
 
 		// Clean 
 		for (auto reqSigId : reqSignalIds) {
-			rec.uget(reqSigId, jver, usvs[reqSigId]);
+			rec.uget(reqSigId, iver, usvs[reqSigId]);
 			removePoints[reqSigId] = {};
 		}
 		//Now loop on rules
@@ -971,22 +970,12 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 
 		// Apply removals
-
-
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
 			vector <pair<int, float>>noChange;
-			//printf("before update: %d\n", toRemove.size());
-			if (rec.update(sig, jver, val_channel, noChange, toRemove) < 0)
+			if (rec.update(sig, iver, val_channel, noChange, toRemove) < 0)
 				return -1;
 		}
-		while (iver > jver) {
-			for (auto sig : affSignalIds)
-				rec.point_version_to(sig, jver, iver);
-			iver--;
-		}
-		iver--;
-
 	}
 
 	return 0;
@@ -1180,7 +1169,8 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	}
 
 	int len;
-	for (int iver = 0; iver < time_points.size(); iver++) {
+	versionIterator vit(rec, signalId);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
 
 		rec.uget(signalId, iver, rec.usv);
 
@@ -1426,7 +1416,12 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 {
 
 	PidDynamicRec rec;
-	vector<int> req_signal_ids(1, signalId);
+	unordered_set<int> req_signal_ids = { signalId };
+	vector<FeatureGenerator *> generators;
+	get_all_required_signal_ids(req_signal_ids, prev_processors, -1, generators);
+	vector<int> req_signal_ids_v;
+	for (int signalId : req_signal_ids) 
+		req_signal_ids_v.push_back(signalId);
 
 	UniversalSigVec usv;
 
@@ -1438,6 +1433,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, (int) i, noGenerators);
 	}
 
+	bool signalIsVirtual = rep.sigs.Sid2Info[signalId].virtual_sig;
 
 	for (MedIdSamples& idSamples : samples.idSamples) {
 
@@ -1445,7 +1441,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 	
 		vector<int> time_points;
 		// Special care for virtual signals - use samples 
-		if (rep.sigs.Sid2Info[signalId].virtual_sig) {
+		if (signalIsVirtual) {
 			time_points.resize(idSamples.samples.size());
 			for (size_t i = 0; i < time_points.size(); i++)
 				time_points[i] = idSamples.samples[i].time;
@@ -1466,15 +1462,29 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 		if (prev_processors.size()) {
 
 			// Init Dynamic Rec
-			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, (int)time_points.size());
-			
-			// Clean at all time-points
+			rec.init_from_rep(std::addressof(rep), id, req_signal_ids_v, (int)time_points.size());
+
+			// Process at all time-points
 			for (size_t i = 0; i < prev_processors.size(); i++)
 				prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i]);
+		
+			// If virtual - we need to get the signal now
+			if (signalIsVirtual)
+				rec.uget(signalId, 0, usv);
 
-			// Collect 
+			// Collect
+			int iVersion = 0;
+			rec.uget(signalId, iVersion, rec.usv);
+
 			for (int i = 0; i < usv.len; i++) {
-				rec.uget(signalId, i, rec.usv);
+				// Get a new version if we past the current one
+				if (usv.Time(i) > time_points[iVersion]) {
+					iVersion++;
+					if (iVersion == rec.get_n_versions())
+						break;
+					rec.uget(signalId, iVersion, rec.usv);
+				}
+
 				float ival = rec.usv.Val(i, val_channel);
 				if (ival >= range_min && ival <= range_max)
 					values.push_back(ival);

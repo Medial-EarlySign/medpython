@@ -637,8 +637,6 @@ int PidDynamicRec::set_version_universal_data(int sid, int version, int *_times,
 	}
 
 	return set_version_data(sid, version, usv.data, usv.len);
-
-	return 0;
 }
 
 
@@ -937,7 +935,43 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 	// now setting the version number
 	return (set_n_versions(time_points));
 	
-	return 0;
 }
+
+//..................................................................................................................
+// VersionsIterator
+//..................................................................................................................
+int versionIterator::init() {
+
+	// Last Version
+	iVersion = my_rec->get_n_versions() - 1;
+
+	// Next Version
+	jVersion = iVersion - 1;
+	while (jVersion >= 0 && my_rec->versions_are_the_same(signalIds, iVersion, jVersion))
+		jVersion--;
+
+	return iVersion;
+}
+
+//..................................................................................................................
+int versionIterator::next_different() {
+
+	// Point data
+	for (int pVersion = iVersion - 1; pVersion > jVersion; pVersion --) {
+		for (int signalId : signalIds)
+			my_rec->point_version_to(signalId, iVersion, pVersion);
+	}
+
+	// Iterate
+	iVersion = jVersion;
+	
+	// Next Version
+	jVersion = iVersion - 1;
+	while (jVersion >= 0 && my_rec->versions_are_the_same(signalIds, iVersion, jVersion))
+		jVersion--;
+
+	return iVersion;
+};
+
 
 #endif

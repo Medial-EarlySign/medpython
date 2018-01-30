@@ -24,7 +24,8 @@ typedef enum {
 	FTR_GEN_NOT_SET,
 	FTR_GEN_BASIC, ///< "basic" - creates basic statistic on time windows - BasicFeatGenerator 
 	FTR_GEN_AGE, ///< "age" - creating age feature - AgeGenerator 
-	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator
+	FTR_GEN_SINGLETON, /// <<< "singleton" - take the value of a time-less signale
+	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator (special case of signleton)
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
 	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
@@ -315,6 +316,42 @@ public:
 };
 
 /**
+* Singleton
+*/
+class SingletonGenerator : public FeatureGenerator {
+public:
+
+	/// Signal Id
+	string signalName;
+	int signalId;
+
+	// Constructor/Destructor
+	SingletonGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = -1; req_signals.assign(1, signalName); }
+	SingletonGenerator(int _signalId) : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = _signalId; req_signals.assign(1, signalName); }
+
+	// Name
+	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName); }
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp SingletonGenerator::init
+	int init(map<string, string>& mapper);
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<SingletonGenerator *>(generator)); }
+
+	// generate a new feature
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Signal Ids
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, iGenerateWeights)
+};
+
+
+/**
 * Gender
 */
 class GenderGenerator : public FeatureGenerator {
@@ -330,13 +367,14 @@ public:
 	~GenderGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id,6) + ".Gender"); }
+	void set_names() { if (names.empty()) names.push_back("Gender"); }
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<GenderGenerator *>(generator)); }
 
-	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp SingletonGenerator::init
+	int init(map<string, string>& mapper);
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);

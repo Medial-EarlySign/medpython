@@ -25,6 +25,8 @@
 *.sdf
 *.opensdf
 *.unsuccessfulbuild
+*.VC.db
+*.VC.opendb
 ipch/
 obj/
 [Bb]in
@@ -76,3 +78,4 @@ Internal/AlgoMarker/samples.debug
 
 documentation_creation_server.log
 documentation_creation_user.log
+Internal/MedUtils/MedUtils.VC.opendb
