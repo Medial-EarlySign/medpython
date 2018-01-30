@@ -126,6 +126,8 @@ public:
 	// Learning envelopes - Here because of issues with overloading and inheritance
 	/// <summary> learn processing model on a subset of ids. Apply set of preceeding processors on DynamicPidRec before learning </summary>
 	int learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { return _learn(rep,samples,prev_processors); };
+	/// <summary> learn on all pids in repository, using fake samples - works only for repProcessors that ignore sample dates</summary>
+	int learn(MedPidRepository& rep);
 	/// <summary> learn on subset of samples without preceesing processors  </summary>
 	int learn(MedPidRepository& rep, MedSamples& samples) { vector<RepProcessor *> temp;  return _learn(rep, samples, temp); }
 	/// <summary> learn processing model on a subset of samples only if required. Apply set of preceeding processors on DynamicPidRec before learning : 
