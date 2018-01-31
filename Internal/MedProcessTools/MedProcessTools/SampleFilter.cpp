@@ -1056,9 +1056,10 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 {
 	vector<string> fields;
 
-	boost::split(fields, init_str, boost::is_any_of(":=,;"));
+	boost::split(fields, init_str, boost::is_any_of(":=;"));
 
 	for (int i=0; i<fields.size(); i++) {
+		//MLOG("INIT: %s -> %s\n", fields[i].c_str(), fields[i+1].c_str());
 		if (fields[i] == "sig") { sig_name = fields[++i]; }
 		if (fields[i] == "min_val") { min_val = stof(fields[++i]); }
 		if (fields[i] == "max_val") { max_val = stof(fields[++i]); }
@@ -1066,10 +1067,18 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 		if (fields[i] == "win_to") { win_to = stoi(fields[++i]); }
 		if (fields[i] == "min_Nvals") { min_Nvals = stoi(fields[++i]); }
 		if (fields[i] == "max_Nvals") { max_Nvals = stoi(fields[++i]); }
+		if (fields[i] == "min_left") { min_left = stoi(fields[++i]); }
 		if (fields[i] == "max_outliers") { max_outliers = stoi(fields[++i]); }
 		if (fields[i] == "time_ch") { time_channel = stoi(fields[++i]); }
 		if (fields[i] == "val_ch") { val_channel = stoi(fields[++i]); }
-		if (fields[i] == "time_unit") { win_time_unit = med_time_converter.string_to_type(fields[++i]); }
+		if (fields[i] == "win_time_unit") { win_time_unit = med_time_converter.string_to_type(fields[++i]); }
+		if (fields[i] == "samples_time_unit") { samples_time_unit = med_time_converter.string_to_type(fields[++i]); }
+		if (fields[i] == "values_in_dictionary") { values_in_dictionary = stoi(fields[++i]); }
+		if (fields[i] == "allowed_values") {
+			vector<string> svals;
+			boost:split(svals, fields[++i], boost::is_any_of(","));	
+			for (auto &s : svals) allowed_values.insert(stof(s));
+		}
 	}
 
 
@@ -1081,61 +1090,127 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 //.......................................................................................
 int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &nvals, int &noutliers)
 {
-	//MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
-	if (sig_id < 0)
-		sig_id = rep.sigs.sid(sig_name);
+	//MLOG("SanitySimpleFilter::test_filter() ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+	if (sig_id < 0) {
+		if (boost::iequals(sig_name,"Age")) {
+			sig_id = 0;
+			byear_id = rep.sigs.sid("BYEAR");
+			if (byear_id < 0) {
+				MWARN("WARNING: !!!! ===> Using SanitySimpleFilter for age but without BYEAR... Are you using a repository with an AGE signal??\n");
+			}
+		} else
+			sig_id = rep.sigs.sid(sig_name);
+	}
 	if (sig_id < 0)
 		return SanitySimpleFilter::Signal_Not_Valid;
 
-	UniversalSigVec usv;
-
-	rep.uget(sample.id, sig_id, usv);
-	//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
-	//MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
-
-	nvals = 0;
-	noutliers = 0;
-	if (usv.len == 0 && min_Nvals > 0) return SanitySimpleFilter::Failed_Min_Nvals;
-
-	if (usv.n_time_channels() == 0) {
-		// timeless signal
-
-		nvals = usv.len;
-		if (max_outliers >= 0) {
-			for (int i=0; i<usv.len; i++) {
-				if (usv.Val(i) < min_val || usv.Val(i) > max_val)
-					noutliers++;
+	// Age case
+	if (sig_id == 0) {
+		// TBD: Must make this work also for the cases in which Age is given as a signal
+		if (byear_id > 0) {
+			// calculate using byear
+			int len;
+			float y = 1900 + (float)med_time_converter.convert_times(samples_time_unit, MedTime::Years, sample.time);
+			SVal *sv = (SVal *)rep.get(sample.id, byear_id, len);
+			if (len > 0) {
+				float age = y - sv[0].val;
+				//MLOG("====> AGE : byear %f y %f time %d : age %f min_val %f max_val %f\n", sv[0].val, y, sample.time, age, min_val, max_val);
+				if (age < min_val || age > max_val)
+					return SanitySimpleFilter::Failed_Age;
 			}
-			
-		}
-
-	} else {
-
-		int ref_time = med_time_converter.convert_times(usv.time_unit(), win_time_unit, sample.time);
-
-		// go over all values
-		for (int i=0; i<usv.len; i++) {
-
-			// check if in relevant window
-			int i_time = usv.Time(i, time_channel);
-			int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
-			int dtime = ref_time - i_time_converted;
-			//MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
-			if (dtime < win_from) break;
-			if (dtime <= win_to) {
-				nvals++;
-				// in relevant time window, checking the value range
-				float i_val = usv.Val(i, val_channel);
-				if (i_val < min_val || i_val > max_val) noutliers++;
-				//MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
-			}
-
-		}
+			else
+				return SanitySimpleFilter::Failed_Age_No_Byear;
+		} else
+			return SanitySimpleFilter::Failed_Age_No_Byear;
 	}
 
-	if (nvals < min_Nvals) return SanitySimpleFilter::Failed_Min_Nvals;
-	if (max_Nvals >= 0 && nvals > max_Nvals) return SanitySimpleFilter::Failed_Max_Nvals;
-	if (max_outliers >= 0 && noutliers > max_outliers) return SanitySimpleFilter::Failed_Outliers;
+	if (sig_id > 0) {
+		// regular signal case
+		if (section_id < 0 && sig_id > 0) {
+			section_id = rep.dict.section_id(sig_name);
+		}
+
+		UniversalSigVec usv;
+
+		rep.uget(sample.id, sig_id, usv);
+		//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
+		//MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
+
+		nvals = 0;
+		noutliers = 0;
+		int n_not_in_dict = 0;
+		int n_not_allowed = 0;
+		int n_left = 0;
+		if (usv.len == 0 && min_Nvals > 0) return SanitySimpleFilter::Failed_Min_Nvals;
+
+		if (usv.n_time_channels() == 0) {
+			// timeless signal
+
+			nvals = usv.len;
+			for (int i=0; i<usv.len; i++) {
+				float i_val = usv.Val(i);
+				if (i_val < min_val || i_val > max_val)
+					noutliers++;
+				else
+					n_left++;
+				if (values_in_dictionary && section_id > 0) {
+					if (rep.dict.dicts[section_id].Id2Name.find((int)i_val) == rep.dict.dicts[section_id].Id2Name.end())
+						n_not_in_dict++;
+				}
+				if (allowed_values.size() > 0) {
+					if (allowed_values.find(i_val) == allowed_values.end())
+						n_not_allowed++;
+				}
+
+			}
+
+		}
+		else {
+
+			int ref_time = med_time_converter.convert_times(usv.time_unit(), win_time_unit, sample.time);
+
+			// go over all values
+			for (int i=0; i<usv.len; i++) {
+
+				// check if in relevant window
+				int i_time = usv.Time(i, time_channel);
+				int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
+				int dtime = ref_time - i_time_converted;
+				//MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+				if (dtime < win_from) break;
+				if (dtime <= win_to) {
+					nvals++;
+					// in relevant time window, checking the value range
+					float i_val = usv.Val(i, val_channel);
+					if (i_val < min_val || i_val > max_val) noutliers++;
+					else n_left++;
+					//MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
+
+					if (values_in_dictionary && section_id > 0) {
+						if (rep.dict.dicts[section_id].Id2Name.find((int)i_val) == rep.dict.dicts[section_id].Id2Name.end())
+							n_not_in_dict++;
+					}
+
+					if (allowed_values.size() > 0) {
+						if (allowed_values.find(i_val) == allowed_values.end())
+							n_not_allowed++;
+					}
+				}
+
+			}
+		}
+
+		//	MLOG("###>>> id %d time %d sig %s (len %d) : %f : min %d max %d maxout %d : nvals %d noutliers %d not_in_dict %d not_allowed %d\n",
+		//		sample.id, sample.time, sig_name.c_str(), usv.len, usv.Val(0), min_Nvals, max_Nvals, max_outliers, nvals, noutliers, n_not_in_dict , n_not_allowed);
+
+		if (min_Nvals >= 0 && nvals < min_Nvals) return SanitySimpleFilter::Failed_Min_Nvals;
+		if (max_Nvals >= 0 && nvals > max_Nvals) return SanitySimpleFilter::Failed_Max_Nvals;
+		if (max_outliers >= 0 && noutliers > max_outliers) return SanitySimpleFilter::Failed_Outliers;
+		if (values_in_dictionary && ((n_not_in_dict > 0) || section_id < 0)) return SanitySimpleFilter::Failed_Dictionary_Test;
+		if ((allowed_values.size() > 0) && (n_not_allowed > 0)) return SanitySimpleFilter::Failed_Allowed_Values;
+		if (min_left >=0 && n_left < min_left) return SanitySimpleFilter::Failed_Not_Enough_Non_Outliers_Left;
+	}
+
 	return SanitySimpleFilter::Passed;
 
 	return 0;

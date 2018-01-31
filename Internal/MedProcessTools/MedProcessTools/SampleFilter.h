@@ -400,12 +400,17 @@ public:
 	int win_to = (int)(1 << 30); ///< Time window for deciding on filtering - end
 	float min_val = -1e10; ///< Allowed values range for signal - minimum
 	float max_val = 1e10;///< Allowed values range for signal - maximum
-	int min_Nvals = 1; ;///< Required number of instances of signal within time window
-	int max_Nvals = 1; ;///< Maximal allowed number of instances of signal within time window
+	int min_Nvals = -1; ;///< Required number of instances of signal within time window
+	int max_Nvals = -1; ;///< Maximal allowed number of instances of signal within time window
 	int time_channel = 0; ///< signal time-channel to consider
 	int val_channel = 0; ///< signal value channel to consider
 	int max_outliers = -1; ///< maximla allowed number of outliers. -1 means don't do the max_outliers test
 	int win_time_unit = MedTime::Days; ///< time unit to be used 
+	int samples_time_unit = MedTime::Date; ///< time unit to be used 
+	unordered_set<float> allowed_values; /// list of allowed values for the signal
+	int values_in_dictionary = 0; /// flag: if 1: make sure all given values are valid - that is are in the signal dictionary.
+	int min_left = -1; /// test the min number of instances left that are not outliers
+
 
 
 	///<summary> init from mapped string </summary>
@@ -426,11 +431,19 @@ public:
 	const static int Failed_Min_Nvals = 3;
 	const static int Failed_Max_Nvals = 4;
 	const static int Failed_Outliers = 5;
+	const static int Failed_Age = 6;
+	const static int Failed_Age_No_Byear = 7;
+	const static int Failed_Allowed_Values = 8;
+	const static int Failed_Dictionary_Test = 9;
+	const static int Failed_Not_Enough_Non_Outliers_Left = 10;
 
-	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals, max_Nvals, max_outliers, win_time_unit)
+
+	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals, max_Nvals, allowed_values, values_in_dictionary, max_outliers, win_time_unit)
 
 private:
-	int sig_id = -1; ///< signal-id : uninitialized until first usage
+	int sig_id = -1; ///< signal-id : uninitialized until first usage (0 is kept for the age special case)
+	int section_id = -1; /// uninitialized section_id
+	int byear_id = -1;
 };
 
 //=======================================
