@@ -1067,6 +1067,7 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 		if (fields[i] == "win_to") { win_to = stoi(fields[++i]); }
 		if (fields[i] == "min_Nvals") { min_Nvals = stoi(fields[++i]); }
 		if (fields[i] == "max_Nvals") { max_Nvals = stoi(fields[++i]); }
+		if (fields[i] == "min_left") { min_left = stoi(fields[++i]); }
 		if (fields[i] == "max_outliers") { max_outliers = stoi(fields[++i]); }
 		if (fields[i] == "time_ch") { time_channel = stoi(fields[++i]); }
 		if (fields[i] == "val_ch") { val_channel = stoi(fields[++i]); }
@@ -1139,6 +1140,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		noutliers = 0;
 		int n_not_in_dict = 0;
 		int n_not_allowed = 0;
+		int n_left = 0;
 		if (usv.len == 0 && min_Nvals > 0) return SanitySimpleFilter::Failed_Min_Nvals;
 
 		if (usv.n_time_channels() == 0) {
@@ -1149,6 +1151,8 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 				float i_val = usv.Val(i);
 				if (i_val < min_val || i_val > max_val)
 					noutliers++;
+				else
+					n_left++;
 				if (values_in_dictionary && section_id > 0) {
 					if (rep.dict.dicts[section_id].Id2Name.find((int)i_val) == rep.dict.dicts[section_id].Id2Name.end())
 						n_not_in_dict++;
@@ -1179,6 +1183,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 					// in relevant time window, checking the value range
 					float i_val = usv.Val(i, val_channel);
 					if (i_val < min_val || i_val > max_val) noutliers++;
+					else n_left++;
 					//MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
 
 					if (values_in_dictionary && section_id > 0) {
@@ -1203,6 +1208,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (max_outliers >= 0 && noutliers > max_outliers) return SanitySimpleFilter::Failed_Outliers;
 		if (values_in_dictionary && ((n_not_in_dict > 0) || section_id < 0)) return SanitySimpleFilter::Failed_Dictionary_Test;
 		if ((allowed_values.size() > 0) && (n_not_allowed > 0)) return SanitySimpleFilter::Failed_Allowed_Values;
+		if (min_left >=0 && n_left < min_left) return SanitySimpleFilter::Failed_Not_Enough_Non_Outliers_Left;
 	}
 
 	return SanitySimpleFilter::Passed;

@@ -409,6 +409,7 @@ public:
 	int samples_time_unit = MedTime::Date; ///< time unit to be used 
 	unordered_set<float> allowed_values; /// list of allowed values for the signal
 	int values_in_dictionary = 0; /// flag: if 1: make sure all given values are valid - that is are in the signal dictionary.
+	int min_left = -1; /// test the min number of instances left that are not outliers
 
 
 
@@ -434,6 +435,7 @@ public:
 	const static int Failed_Age_No_Byear = 7;
 	const static int Failed_Allowed_Values = 8;
 	const static int Failed_Dictionary_Test = 9;
+	const static int Failed_Not_Enough_Non_Outliers_Left = 10;
 
 
 	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals, max_Nvals, allowed_values, values_in_dictionary, max_outliers, win_time_unit)
