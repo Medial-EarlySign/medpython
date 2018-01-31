@@ -1433,7 +1433,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, (int) i, noGenerators);
 	}
 
-	bool signalIsVirtual = rep.sigs.Sid2Info[signalId].virtual_sig;
+	bool signalIsVirtual = (bool)(rep.sigs.Sid2Info[signalId].virtual_sig);
 
 	for (MedIdSamples& idSamples : samples.idSamples) {
 

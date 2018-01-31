@@ -571,7 +571,7 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	if (rec.usv.len == 0)
 		value = missing_val;
 	else
-		value = (int)(rec.usv.Val(0));
+		value = (float)((int)(rec.usv.Val(0)));
 
 	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++)
