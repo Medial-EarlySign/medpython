@@ -115,6 +115,7 @@ int MedRepository::read_config(const string &fname)
 			} else if (fields[0].compare("INDEX") == 0) {
 				index_fnames.push_back(fields[1]);
 			}
+			else MLOG("Ignoring line: [%s]\n", curr_line.c_str());
 
 		}
 	}

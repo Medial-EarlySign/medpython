@@ -110,7 +110,10 @@ bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 			return false;
 	}
 
-	MLOG("Filtering out processor of type %d\n", processor_type);
+	MLOG("Filtering out processor of type %d. affected signals: ", processor_type);
+	for (string signal : aff_signals)
+		MLOG("[%s] ", signal.c_str());
+	MLOG("\n");
 	return true;
 
 }
