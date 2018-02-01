@@ -777,7 +777,7 @@ int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) 
 
 		float p = ((float)maxCount) / (float)data.size();
 		if (p >= percentage)
-			MLOG("Removing %s : %f of values is %f\n", name.c_str(), p, maxCountValue);
+			MLOG("DgnrtFeatureRemvoer::_learn removing %s : %f of values is %f\n", name.c_str(), p, maxCountValue);
 		else
 			selected.push_back(name);
 	}

@@ -24,7 +24,7 @@ typedef enum {
 	FTR_GEN_NOT_SET,
 	FTR_GEN_BASIC, ///< "basic" - creates basic statistic on time windows - BasicFeatGenerator 
 	FTR_GEN_AGE, ///< "age" - creating age feature - AgeGenerator 
-	FTR_GEN_SINGLETON, /// <<< "singleton" - take the value of a time-less signale
+	FTR_GEN_SINGLETON, ///< "singleton" - take the value of a time-less signale - SingletonGenerator
 	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator (special case of signleton)
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator

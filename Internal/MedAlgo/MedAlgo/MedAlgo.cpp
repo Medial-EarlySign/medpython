@@ -602,7 +602,7 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 
 int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob,
-	int min_bucket_size, float min_score_jump, float min_prob_jump) {
+	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order) {
 	// > min and <= max
 
 	//add mapping from model score to probabilty based on big enough bins of score
@@ -659,7 +659,8 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	//unite similar prob bins:
 	vector<int> ind_to_unite;
 	for (int i = (int)map_prob.size() - 1; i >= 1; --i)
-		if (abs(map_prob[i] - map_prob[i - 1]) < min_prob_jump) { //unite bins:
+		if (abs(map_prob[i] - map_prob[i - 1]) < min_prob_jump ||
+			(fix_prob_order && map_prob[i] > map_prob[i - 1])) { //unite bins:
 			ind_to_unite.push_back(i);
 			int new_count = bin_cnts[i] + bin_cnts[i - 1];
 			float new_prob = (map_prob[i] * bin_cnts[i] + map_prob[i - 1] * bin_cnts[i - 1]) / new_count;

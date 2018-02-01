@@ -43,6 +43,9 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 
 	}
 	set_names();
+	req_signals.clear();
+	req_signals.push_back(smoking_method);
+	req_signals.push_back("BYEAR");
 	return 0;
 }
 

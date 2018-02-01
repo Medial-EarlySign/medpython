@@ -92,12 +92,10 @@ int RepProcessor::learn(MedPidRepository& rep) {
 // Learn processing parameters only if affecting any of the signals given in neededSignalIds
 //.......................................................................................
 int RepProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
-
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId))
+		if (is_signal_affected(signalId)) 
 			return _learn(rep, samples, prev_processors);
 	}
-
 	return 0;
 }
 
@@ -110,7 +108,10 @@ bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 			return false;
 	}
 
-	MLOG("Filtering out processor of type %d\n", processor_type);
+	MLOG("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
+	for (string signal : aff_signals)
+		MLOG("[%s] ", signal.c_str());
+	MLOG("\n");
 	return true;
 
 }
@@ -280,7 +281,7 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 	}
 
 	if (filtered.empty()) {
-		MLOG("Filtering out processor of type %d\n", processor_type);
+		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
 		return true;
 	}
 	else {
@@ -557,6 +558,11 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, MedSamples& sam
 	vector<float> values;
 	get_values(rep, samples, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 
+	if (values.empty()) {
+		MWARN("RepBasicOutlierCleaner::quantileLearn WARNING signal [%d] = [%s] is empty, will not clean outliers\n", signalId,
+			this->signalName.c_str());
+		return 0;
+	}
 	// Quantile approximation of moments
 	return get_quantile_min_max(values);
 }
