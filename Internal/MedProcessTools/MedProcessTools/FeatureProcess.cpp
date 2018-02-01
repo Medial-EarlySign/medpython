@@ -633,12 +633,16 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		else MTHROW_AND_ERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 	}
 	if (all_existing_values.size() < min_samples) {
-		MLOG("FeatureImputer::Learn found only %d < %d samples over all for [%s], will not impute it at all\n",
+		MLOG("FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
 			all_existing_values.size(), min_samples, feature_name.c_str());
+		if (moment_type == IMPUTE_MMNT_SAMPLE)
+			default_histogram.push_back({ missing_value,(float)1.0 });
+		else
+			default_moment = missing_value;
 	}
 	else {
 		if (too_small_stratas > 0)
-			MLOG("FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
+			MLOG("FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
 				min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
 		if (moment_type == IMPUTE_MMNT_MEAN)
 			get_mean(all_existing_values, default_moment);
@@ -690,17 +694,20 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 			}
 
 			if (moment_type == IMPUTE_MMNT_SAMPLE) {
-				if (strata_sizes[index] == 0)
+				if (strata_sizes[index] < min_samples)
 					data[i] = sample_from_histogram(default_histogram);
 				else
 					data[i] = sample_from_histogram(histograms[index]);
 			}
 			else {
-				if (strata_sizes[index] == 0)
+				if (strata_sizes[index] < min_samples)
 					data[i] = default_moment;
 				else
 					data[i] = moments[index];
 			}
+			if (!isfinite(data[i]))
+				MTHROW_AND_ERR("[%s] imputed illegal value for row %d moment_type %d index %d strata_sizes[index] %d %f\n", 
+					resolved_feature_name.c_str(), i, moment_type, index, strata_sizes[index], default_moment);
 		}
 	}
 
