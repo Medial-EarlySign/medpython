@@ -55,6 +55,8 @@ public:
 	/// Thresholds for neighbors
 	float nbrsMax, nbrsMin;
 
+	int num_samples_after_cleaning;
+
 	// Functions
 	/// Learning 
 	int get_quantile_min_max(vector<float>& values);

@@ -373,10 +373,9 @@ int FeatureBasicOutlierCleaner::iterativeLearn(MedFeatures& features, unordered_
 	get_all_values(features, resolved_feature_name, ids, values, params.max_samples);
 
 	// Get bounds
-	if (values.size() == 0)
-		MWARN("EMPTY_VECTOR:: feature [%s] has 0 values\n", resolved_feature_name.c_str());
-
 	int rc = get_iterative_min_max(values);
+	if (num_samples_after_cleaning == 0)
+		MWARN("FeatureBasicOutlierCleaner::iterativeLearn feature [%s] tried learning cleaning params from an empty vector\n", resolved_feature_name.c_str());
 	return rc;
 }
 
@@ -567,10 +566,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 	//MLOG("train imputing for [%s]\n", resolved_feature_name.c_str());
 	for (int i = 0; i < imputerStrata.nStratas(); i++) {
-		if (features.data.find(imputerStrata.stratas[i].name) == features.data.end()) {
-			MERR("Cannot find signal %s in features data\n", imputerStrata.stratas[i].name.c_str());
-			return -1;
-		}
+		if (features.data.find(imputerStrata.stratas[i].name) == features.data.end())
+			MTHROW_AND_ERR("Cannot find signal %s in features data\n", imputerStrata.stratas[i].name.c_str());
 	}
 
 	// Get all values
@@ -633,26 +630,26 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		else if (moment_type == IMPUTE_MMNT_SAMPLE) {
 			get_histogram(stratifiedValues[i], histograms[i]);
 		}
-		else {
-			MERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
-		}
+		else MTHROW_AND_ERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 	}
-	if (too_small_stratas > 0)
-		MLOG("NOTE: featureImputer found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
-			min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
 	if (all_existing_values.size() < min_samples) {
-		MLOG("NOTE: featureImputer found only %d < %d samples over all for [%s], will not impute it at all\n",
+		MLOG("FeatureImputer::Learn found only %d < %d samples over all for [%s], will not impute it at all\n",
 			all_existing_values.size(), min_samples, feature_name.c_str());
 	}
-	else if (moment_type == IMPUTE_MMNT_MEAN)
-		get_mean(all_existing_values, default_moment);
-	else if (moment_type == IMPUTE_MMNT_MEDIAN)
-		//sort_and_get_median(all_existing_values, default_moment);
-		get_median(all_existing_values, default_moment);
-	else if (moment_type == IMPUTE_MMNT_COMMON)
-		get_common(all_existing_values, default_moment);
-	else if (moment_type == IMPUTE_MMNT_SAMPLE)
-		get_histogram(all_existing_values, default_histogram);
+	else {
+		if (too_small_stratas > 0)
+			MLOG("FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will not impute these stratas\n",
+				min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+		if (moment_type == IMPUTE_MMNT_MEAN)
+			get_mean(all_existing_values, default_moment);
+		else if (moment_type == IMPUTE_MMNT_MEDIAN)
+			//sort_and_get_median(all_existing_values, default_moment);
+			get_median(all_existing_values, default_moment);
+		else if (moment_type == IMPUTE_MMNT_COMMON)
+			get_common(all_existing_values, default_moment);
+		else if (moment_type == IMPUTE_MMNT_SAMPLE)
+			get_histogram(all_existing_values, default_histogram);
+	}
 	//for (int j = 0; j < moments.size(); j++)
 		//MLOG("moment %d = [%f]\n", j, moments[j]);
 
