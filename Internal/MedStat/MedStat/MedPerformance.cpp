@@ -508,9 +508,9 @@ int MedClassifierPerformance::compare(MedClassifierPerformance& other) {
 
 //quantize AUC calculation - calcs auc when the scores of preds are quantized
 //.........................................................................................................................................
-float get_preds_auc_q(const vector<float> &preds, const vector<float> &y) {
-	vector<float> pred_threshold;
-	map<float, vector<int>> pred_indexes;
+template<class T>float get_preds_auc_q(const vector<T> &preds, const vector<float> &y) {
+	vector<T> pred_threshold;
+	map<T, vector<int>> pred_indexes;
 	int tot_true_labels = 0;
 	for (size_t i = 0; i < preds.size(); ++i)
 	{
@@ -518,8 +518,8 @@ float get_preds_auc_q(const vector<float> &preds, const vector<float> &y) {
 		tot_true_labels += int(y[i] > 0);
 	}
 	int tot_false_labels = (int)y.size() - tot_true_labels;
-	pred_threshold = vector<float>((int)pred_indexes.size());
-	map<float, vector<int>>::iterator it = pred_indexes.begin();
+	pred_threshold.resize((int)pred_indexes.size());
+	auto it = pred_indexes.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
 	{
 		pred_threshold[i] = it->first;
@@ -535,7 +535,7 @@ float get_preds_auc_q(const vector<float> &preds, const vector<float> &y) {
 	int st_size = (int)pred_threshold.size() - 1;
 	for (int i = st_size; i >= 0; --i)
 	{
-		vector<int> indexes = pred_indexes[pred_threshold[i]];
+		vector<int> &indexes = pred_indexes[pred_threshold[i]];
 		//calc AUC status for this step:
 		for (int ind : indexes)
 		{
@@ -554,6 +554,8 @@ float get_preds_auc_q(const vector<float> &preds, const vector<float> &y) {
 	}
 	return auc;
 }
+template float get_preds_auc_q<float>(const vector<float> &preds, const vector<float> &y);
+template float get_preds_auc_q<double>(const vector<double> &preds, const vector<float> &y);
 
 // AUC
 //.........................................................................................................................................
