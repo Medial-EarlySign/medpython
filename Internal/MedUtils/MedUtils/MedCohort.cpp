@@ -123,6 +123,7 @@ int IncidenceParams::init(map<string, string>& map)
 		else if (m.first == "to_age") to_age = stoi(m.second);
 		else if (m.first == "rep") rep_fname = m.second;
 		else if (m.first == "incidence_years_window") incidence_years_window = stoi(m.second);
+		else if (m.first == "incidence_days_win") incidence_days_win = stoi(m.second);
 		else {
 			MERR("Unknown variable %s in IncidenceParams\n", m.first.c_str());
 		}
@@ -260,7 +261,15 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 		if ((crec.from % 10000) > 0101) fyear++;
 		int to_date = crec.to; 
 		if (crec.outcome != 0) to_date = crec.outcome_date;
-		else to_date -= i_params.incidence_years_window*10000;
+		else {
+			if (i_params.incidence_days_win < 0)
+				to_date -= i_params.incidence_years_window*10000;
+			else {
+				int days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
+				days -= i_params.incidence_days_win;
+				to_date = med_time_converter.convert_times(MedTime::Days, MedTime::Date, days);
+			}
+		}
 		int tyear = to_date / 10000;
 		int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
 		int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
@@ -277,12 +286,29 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 						++male_counts[bin].first;
 					else if (gender == GENDER_FEMALE)
 						++female_counts[bin].first;
-					if (year > tyear - i_params.incidence_years_window && crec.outcome) {
-						counts[bin].second++; all_cnts[1]++;
-						if (gender == GENDER_MALE)
-							++male_counts[bin].second;
-						else if (gender == GENDER_FEMALE)
-							++female_counts[bin].second;
+					if (crec.outcome != 0) {
+						// handlind cases
+						// first we will calculate if 1.1.year is indeed at most incidence_years or incindence_days BEFORE the outcome date
+
+						bool count_this_year = false;
+						if (i_params.incidence_days_win < 0) {
+							// case1 : we use years:
+							count_this_year = (year > tyear - i_params.incidence_years_window);
+						}
+						else {
+							// case2 : we use days (remember to_date now is the date of the case event)
+							int to_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
+							int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, year*10000+0101);
+							count_this_year = (to_days - curr_days <= i_params.incidence_days_win);
+						}
+
+						if (count_this_year) {
+							counts[bin].second++; all_cnts[1]++;
+							if (gender == GENDER_MALE)
+								++male_counts[bin].second;
+							else if (gender == GENDER_FEMALE)
+								++female_counts[bin].second;
+						}
 					}
 				}
 			}
