@@ -1,6 +1,7 @@
 #include "MedSamples.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "Logger/Logger/Logger.h"
+#include <boost/crc.hpp>
 
 #define LOCAL_SECTION MED_SAMPLES_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -252,6 +253,12 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {
+	unsigned char *blob;
+	unsigned long long final_size;
+
+	if (read_binary_data_alloc(fname, blob, final_size) < 0)
+		MTHROW_AND_ERR("Error reading samples from file [%s]\n", fname.c_str());
+
 	ifstream inf(fname);
 
 	MLOG("MedSamples: reading %s\n", fname.c_str());
