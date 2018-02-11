@@ -31,11 +31,18 @@ enum TQRF_Missing_Value_Method {
 	TQRF_MISSING_VALUE_NOTHING = 7
 };
 
+
+enum TQRF_Node_Working_State {
+	TQRF_Node_State_Initiated = 0,
+	TQRF_Node_State_In_Progress = 1,
+	TQRF_Node_State_Done = 2
+};
 #define TQRF_MAX_TIME_SLICE			10000000
+#define MIN_ELEMENTS_IN_TIME_SLICE	100
 
 
 //==========================================================================================================================
-class TQRF_Params : SerializableObject {
+class TQRF_Params : public SerializableObject {
 public:
 
 	//========================================================================================================================
@@ -43,9 +50,11 @@ public:
 	//========================================================================================================================
 	string init_string = "";			/// sometimes it helps to keep it for debugging
 	string samples_time_unit = "Date";
-	
+	int samples_time_unit_i; /// calculated upon init
+
 	// time slices
 	string time_slice_unit = "Days";
+	int time_slice_unit_i; /// calculated upon init
 	int time_slice_size = -1;			/// the size of the basic time slice, -1: is like infinity: a single time slice like a regular QRF
 	int n_time_slices = 1;				/// if time_slices vector is not given, one will be created using time_slice_size and this parameter. 
 	vector<int> time_slices = {};		/// if not empty: defines the borders of all the time lines. Enables a very flexible time slicing strategy
@@ -94,6 +103,7 @@ public:
 
 	// verbosity
 	int verbosity = 0;					/// for debug prints
+	int ids_to_print = 30;				/// control debug prints in certain places
 
 	//========================================================================================================================
 
@@ -109,7 +119,7 @@ public:
 //==========================================================================================================================
 // contains all the needed data for training including all quantizations (features, time slices) that are needed
 //==========================================================================================================================
-class Quantized_Feat : SerializableObject {
+class Quantized_Feat : public SerializableObject {
 
 public:
 	vector<vector<short>> qx;		/// a vector of features that mimics the input x_in features matrix, but coded into quantized values
@@ -124,12 +134,16 @@ public:
 	vector<float> y;
 	vector<int> last_time_slice;	/// when there's more than 1 time slice there may be censoring involved and the last_time_slice is the last uncensored one.
 	int n_time_slices;				/// 1 time slice is simply the regular case of a label for the whole future
+	vector<int> slice_counts[2];	/// counts of elements in slices (in case of non regression trees). slices with no variability are not interesting.
+
 	vector<int> is_categorial_feat;
 
 	int init(MedFeatures &medf, TQRF_Params &params);
 
 private:
 	int quantize_feat(int i_feat, TQRF_Params &params);
+	int init_time_slices(MedFeatures &medf, TQRF_Params &params);
+
 
 };
 
@@ -137,7 +151,7 @@ private:
 //==========================================================================================================================
 // a basic node class : currently a single node type serves all trees .... could be changed to 
 //==========================================================================================================================
-class TQRF_Node : SerializableObject {
+class TQRF_Node : public SerializableObject {
 public:
 	// Next are must for every node and are ALWAYS serialized
 	int node_idx;			/// for debugging and prints
@@ -167,6 +181,7 @@ public:
 
 
 	// following are never serialized - only for learn time
+	int state = 0; // 0 - created 1 - in process 2 - done with
 };
 
 //==========================================================================================================================
@@ -179,12 +194,29 @@ public:
 //==========================================================================================================================
 class TQRF_Split_Stat {
 
+public:
+	// categorial case
+	vector<vector<vector<int>>> counts; /// counts[t][q][c] = how many counts were in time slot t, quanta q, and category c.
+
+	// suggestion (categorial case):
+	// TQRF_Split will get a node with indexes, and then:
+	// (1) Go over all the samples in the node and for each one add +1 to the relevant counts[t][q][c]
+	// (2) Will enable going over counts and choose the best q for splitting given some params (score type, minimal size, minimal change, etc)
+	//
+	// This may allow a very elegant code for a tree in which all the hard stuff is implemented inside.
+	// 
+	// issues to think about:
+	// parallelism over nodes
+	// memory allocation - we want it single time
+	// tricks for efficient calculation of counts and the scores
+
+
 };
 
 //==========================================================================================================================
 // A tree base class
 //==========================================================================================================================
-class TQRF_Tree : SerializableObject {
+class TQRF_Tree : public SerializableObject {
 
 public:
 	int tree_type;
@@ -194,7 +226,9 @@ public:
 	vector<TQRF_Node> nodes;	// this node supports currently all possible nodes for all trees... to save ugly templated code
 	vector<int> i_feats;		// feature indexes to be used in this tree (they can be bagged as well)
 
-	void init(Quantized_Feat &qfeat, TQRF_Params &params) { _qfeat = qfeat; _params = params; }
+	TQRF_Tree() {};
+
+	void init(Quantized_Feat &qfeat, TQRF_Params &params) { _qfeat = &qfeat; _params = &params; }
 	int Train(Quantized_Feat &qfeat, TQRF_Params &params) {	init(qfeat, params); return Train(); }
 
 	int Train();
@@ -216,8 +250,8 @@ public:
 	// static TQRF_Tree* make_tree(const string &type);
 
 private:
-	Quantized_Feat &_qfeat;
-	TQRF_Params &_params;
+	Quantized_Feat *_qfeat;
+	TQRF_Params *_params;
 
 	// next used to manage nodes while building
 	int n_nodes_in_process = 0;
@@ -231,21 +265,21 @@ private:
 
 
 //==========================================================================================================================
-class TQRF_Forest : SerializableObject {
+class TQRF_Forest : public SerializableObject {
 
 public:
 
 	TQRF_Params params;
 	vector<TQRF_Tree> trees;
 
+	int init(map<string, string>& map) { return params.init(map); }
+
 	/// The basic train matrix for TQRF is MedFeatures (!!) the reason is that it contains everything in one place:
 	/// that is: the X features, the Y outcome, the weights and the samples for each row.
 	/// All of these are needed when calculating a logrank score for example
 	/// The y matrix is added since we may want to use regression with y values given for every time slice ...
-	int Train(const MedFeatures &medf, const MedMat<float> &Y);
-	int Train(const MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
-
-
+	int Train(MedFeatures &medf, const MedMat<float> &Y);
+	int Train(MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
 
 	// simple helpers
 	static int get_tree_type(const string &str);
