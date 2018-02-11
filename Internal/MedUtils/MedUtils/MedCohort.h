@@ -92,6 +92,7 @@ struct SamplingParams : SerializableObject {
 struct IncidenceParams : SerializableObject {
 	int from_year = 2007;	///< first year to consider in calculating incidence
 	int to_year = 2013;	///< last year to consider in calculating incidence
+	int start_date = 0101; /// the date in each year to start looking from (default is 0101), format is MMDD
 	int from_age = 30;	///< minimal age to consider
 	int to_age = 90;	///< maximal age to consider
 	int age_bin = 5;	///< binning of ages
