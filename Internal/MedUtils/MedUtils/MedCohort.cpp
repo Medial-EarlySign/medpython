@@ -303,7 +303,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 							else {
 								// case2 : we use days (remember to_date now is the date of the case event)
 								int to_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
-								int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, year*10000+0101);
+								int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, year*10000+101);
 								count_this_year = (to_days - curr_days <= i_params.incidence_days_win);
 							}
 
@@ -322,9 +322,11 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	else {
 
 		// general purpose code : gets a start_date, and works with incidence_days
-		int incidence_days = i_params.incidence_days_win;
-		if (i_params.incidence_years_window > 0)
-			incidence_days = i_params.incidence_years_window * 365;
+		int incidence_days = i_params.incidence_years_window * 365;
+		if (i_params.incidence_days_win > 0)
+			incidence_days = i_params.incidence_days_win;
+
+		MLOG("INCIDENCE_DAYS IS %d (in params: days %d years %d)\n", incidence_days, i_params.incidence_days_win, i_params.incidence_years_window);
 
 		for (auto &crec : recs) {
 
