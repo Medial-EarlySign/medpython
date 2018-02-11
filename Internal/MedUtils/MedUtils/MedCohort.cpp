@@ -257,13 +257,13 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	//
 
 
-	if (i_params.start_date == 0101) {
+	if (i_params.start_date == 101) {
 
 		// old code for compatability
 
 		for (auto &crec : recs) {
 			int fyear = crec.from / 10000;
-			if ((crec.from % 10000) > 0101) fyear++;
+			if ((crec.from % 10000) > 101) fyear++;
 			int to_date = crec.to;
 			if (crec.outcome != 0) to_date = crec.outcome_date;
 			else {
