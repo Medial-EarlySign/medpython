@@ -142,6 +142,7 @@ public:
 
 	// Required signals propograion
 	void get_required_signal_names(unordered_set<string>& signalNames);
+	void get_required_signal_names(vector<string>& signalNames); // same, but get as vector
 	int collect_and_add_virtual_signals(MedRepository &rep);
 
 	/// Initialization : signal ids and tables
