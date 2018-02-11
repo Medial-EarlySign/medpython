@@ -323,7 +323,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 
 		// general purpose code : gets a start_date, and works with incidence_days
 		int incidence_days = i_params.incidence_days_win;
-		if (i_params.incidence_years_window < 0)
+		if (i_params.incidence_years_window > 0)
 			incidence_days = i_params.incidence_years_window * 365;
 
 		for (auto &crec : recs) {
@@ -334,19 +334,27 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 			// Then we can simply go over them , filter some more conditions and sum
 
 			vector<int> edates, Y;
+			int to_date = crec.to;
+			if (crec.outcome != 0) to_date = crec.outcome_date;
+			else {
+				int days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
+				days -= incidence_days;
+				to_date = med_time_converter.convert_times(MedTime::Days, MedTime::Date, days);
+			}
 
 			int year = crec.from/10000;
 			int edate = 0;
-			while (edate < crec.to) {
+			while (edate < to_date) {
 				edate = year*10000 + i_params.start_date;
-				if (edate >= crec.from && edate < crec.to) {
+				if (edate >= crec.from && edate < to_date) {
 					edates.push_back(edate);
 					if (crec.outcome == 0)
 						Y.push_back(0);
 					else {
 						// have to check the window for incidence_days
-						int to_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, crec.to);
+						int to_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
 						int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, edate);
+						//MLOG("edate %d to %d to_days %d curr_days %d diff %d incidence_days %d\n", edate, crec.to, to_days, curr_days, to_days-curr_days, incidence_days);
 						if (to_days - curr_days <= incidence_days)
 							Y.push_back(1);
 						else
@@ -355,6 +363,10 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 				}
 				year++;
 			}
+
+			//MLOG("Cohort: pid %d : %d - %d : %d , %f : to_date %d : edates :", crec.pid, crec.from, crec.to, crec.outcome_date, crec.outcome, to_date);
+			//for (int i=0; i<edates.size(); i++) MLOG(" %d,%d", edates[i], Y[i]);
+			//MLOG("\n");
 
 			// go over dates, filter and count
 			int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
