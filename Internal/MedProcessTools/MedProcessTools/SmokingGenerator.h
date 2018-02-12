@@ -26,8 +26,7 @@ public:
 	string future_ind = "0";
 
 	// Constructor/Destructor
-	//SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; req_signals.assign(1, "SMOKING_ENRICHED"); }
-	SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; req_signals.push_back("Smoking_quantity");  req_signals.push_back("SMOKING_ENRICHED"); req_signals.push_back("BYEAR"); }
+	SmokingGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SMOKING; }
 	
 	~SmokingGenerator() {};
 
@@ -49,11 +48,6 @@ public:
 
 	// get pointers to data
 	void get_p_data(MedFeatures& features);
-
-	// Signal Ids
-	//void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("SMOKING_ENRICHED")); }
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("SMOKING_ENRICHED")); req_signal_ids.push_back(dict.id("Smoking_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
-	}
 
 	// Serialization
 	virtual int version() { return  1; } // ihadanny 20171128 - added the smoking_method and future_ind to the serialization 

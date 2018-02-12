@@ -92,14 +92,17 @@ struct SamplingParams : SerializableObject {
 struct IncidenceParams : SerializableObject {
 	int from_year = 2007;	///< first year to consider in calculating incidence
 	int to_year = 2013;	///< last year to consider in calculating incidence
+	int start_date = 0101; /// the date in each year to start looking from (default is 0101), format is MMDD
 	int from_age = 30;	///< minimal age to consider
 	int to_age = 90;	///< maximal age to consider
 	int age_bin = 5;	///< binning of ages
 	int incidence_years_window = 1; ///< how many years ahead do we consider an outcome?
+	int incidence_days_win = -1;  /// if -1: using incidence_years_window
 	int min_samples_in_bin = 20; ///< minimal required samples to estimate incidence per bin
 	int gender_mask = 0x3;	///< mask for gender specification (rightmost bit on for male, second for female)
 	int train_mask = 0x7;	///< mask for TRAIN-value specification (three rightmost bits for TRAIN = 1,2,3)
 	string rep_fname;	///< Repository configration file
+
 
 	/// <summary> Initialize from a map </summary>
 	int init(map<string, string>& map);

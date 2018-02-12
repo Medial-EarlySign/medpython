@@ -69,7 +69,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	vector<int> ids;
 	LearningSet->get_ids(ids);
 
-//	dprint_process("==> In Learn (1) <==", 2, 0, 0);
+	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
@@ -96,7 +96,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	}
 	if (end_stage <= MED_MDL_LEARN_FTR_GENERATORS)
 		return 0;
-
 	// Generate features
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		features.clear();
@@ -189,7 +188,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
-//	dprint_process("==> In Apply (1) <==", 2, 0, 0);
+	//dprint_process("==> In Apply (1) <==", 2, 0, 0);
 
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
@@ -210,7 +209,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 					signalId, rep.dict.name(signalId).c_str());;
 		}
 
-//		dprint_process("==> In Apply (2) <==", 2, 0, 0);
+		//dprint_process("==> In Apply (2) <==", 2, 0, 0);
 
 
 		// Generate features
@@ -810,7 +809,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 		processor->add_virtual_signals(virtual_signals);
 	}
 
-	MLOG("In get_required_signal_names %d signalNames %d virtual\n", signalNames.size(), virtual_signals.size());
+	MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
@@ -819,8 +818,16 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 			signalNames.erase(vsig.first);
 	}
 
-	MLOG("In get_required_signal_names %d signalNames %d virtual\n", signalNames.size(), virtual_signals.size());
+	MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size());
 
+}
+
+void MedModel::get_required_signal_names(vector<string>& signalNames) {
+	unordered_set<string> sigs;
+	get_required_signal_names(sigs);
+	signalNames.clear();
+	for (auto &s : sigs)
+		signalNames.push_back(s);
 }
 
 //.......................................................................................

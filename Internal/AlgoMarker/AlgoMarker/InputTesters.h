@@ -20,6 +20,9 @@ public:
 	// the type of the tester
 	int type = (int)INPUT_TESTER_TYPE_UNDEFINED;
 
+	// the tester can be defined as a warning only
+	int is_warning = 0; 
+
 	// return code and messages to return in case of not passing the test
 	int externl_rc = 0;	 // rcs -1 and 0 are reserved 
 	int internal_rc = 0; // rcs -1 and 0 are reserved 
@@ -56,6 +59,7 @@ public:
 // (2) within a given window: minimal number of tests
 // (3) within a given window: maximal number of outliers
 // (4) count outliers within a given window
+// (5) within a given window: maximal number of tests
 //
 // Does this using the object SanitySimpleFilter defined in MeProcessTools/SampleFilter.h
 //==============================================================================================================
@@ -83,7 +87,9 @@ struct InputSanityTesterResult {
 // # comment lines start with #
 // NAME <name of tester : for debug prints, etc>
 // # each filter defined using:
-// FILTER	<filter type>|<filter params>|use_for_max_outliers_flag|external_rc|internal_rc|err_msg
+// FILTER	<filter type>|<filter params>|warning_or_error|use_for_max_outliers_flag|external_rc|internal_rc|err_msg
+// warining_or_error: values are WARNING or ERROR
+// use_for_max_outliers_flag: ACC=yes or ACC=no
 // # max_overall_outliers config
 // MAX_OVERALL_OUTLIERS	<number>
 //==============================================================================================================
@@ -98,10 +104,10 @@ public:
 	~InputSanityTester() { clear(); }
 
 	int read_config(const string &f_conf);
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, InputSanityTesterResult &res); // tests and stops at first cardinal failed test
+	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &res); // tests and stops at first cardinal failed test
 
 	 // tests and stops at first cardinal failed test 
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, InputSanityTesterResult &res) {
+	int test_if_ok(MedRepository &rep, int pid, long long timestamp, vector<InputSanityTesterResult> &res) {
 		int nvals, noutliers;
 		return test_if_ok(rep, pid, timestamp, nvals, noutliers, res);
 	}

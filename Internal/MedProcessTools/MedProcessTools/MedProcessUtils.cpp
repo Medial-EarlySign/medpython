@@ -105,7 +105,7 @@ void get_all_required_signal_ids(unordered_set<int>& signalIds, vector<RepProces
 		generator->get_required_signal_ids(signalIds);
 
 	// Collect from processors itertively
-	for (int i = rep_processors.size() - 1; i > position; i--)
+	for (int i = (int)rep_processors.size() - 1; i > position; i--)
 		rep_processors[i]->get_required_signal_ids(signalIds, signalIds);
 
 }

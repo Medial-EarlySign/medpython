@@ -1,6 +1,7 @@
 #include "AlgoMarkerInternal.h"
 #include "AlgoMarkerErr.h"
 #include <Logger/Logger/Logger.h>
+#include <boost/algorithm/string.hpp>
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -40,10 +41,7 @@ int InputTesterSimple::test_if_ok(MedRepository &rep, int pid, long long timesta
 	int rc = sf.test_filter(s, rep, nvals, noutliers);
 
 	if (rc == SanitySimpleFilter::Passed) return 1;
-	if (rc == SanitySimpleFilter::Failed) return 0;
-	if (rc == SanitySimpleFilter::Failed_Max_Nvals) return 0;
-	if (rc == SanitySimpleFilter::Failed_Min_Nvals) return 0;
-	if (rc == SanitySimpleFilter::Failed_Outliers) return 0;
+	if (rc > 0) return 0;
 
 	// if we are here the test could not be performed for some reason and we fail making the test, returning -1 in this case
 
@@ -69,35 +67,58 @@ int InputSanityTester::read_config(const string &f_conf)
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("|\t"));
 
-
 			// Format of config file:
 			// # comment lines start with #
 			// TESTER_NAME <name of tester : for debug prints, etc>
 			// # each filter defined using:
-			// FILTER	<filter type>|<filter params>|use_for_max_outliers_flag|external_rc|internal_rc|err_msg
+			// FILTER	<filter type>|<filter params>|warning_or_error|use_for_max_outliers_flag|external_rc|internal_rc|err_msg
+			// warining_or_error: values are WARNING or ERROR 
+			// use_for_max_outliers_flag: ACC=yes or ACC=no
 			// # max_overall_outliers config
 			// MAX_OVERALL_OUTLIERS	<number>
 
 			if (fields[0] == "FILTER") {
 				if (fields.size() >= 2) {
 					int type = InputTester::name_to_input_tester_type(fields[1]);
-					if (type == (int)INPUT_TESTER_TYPE_UNDEFINED)
+					if (type == (int)INPUT_TESTER_TYPE_UNDEFINED) {
+						MERR("ERROR: (1) : InputSanityTester::read_config() parsing filter %s\n", curr_line.c_str());
 						return -1;
+					}
 					InputTester *i_test = InputTester::make_input_tester(type);
-					if (i_test == NULL)
+					if (i_test == NULL) {
+						MERR("ERROR: (2) : InputSanityTester::read_config() parsing filter %s\n", curr_line.c_str());
 						return -1;
+					}
 					if (fields.size() >= 3) i_test->tester_params = fields[2];
-					if (fields.size() >= 4) i_test->max_outliers_flag = stoi(fields[3]);
-					if (fields.size() >= 5) i_test->externl_rc = stoi(fields[4]);
-					if (fields.size() >= 6) i_test->internal_rc = stoi(fields[5]);
-					if (fields.size() >= 7) i_test->err_msg = fields[6];
+					if (fields.size() >= 4) {
+						if (boost::iequals(fields[3], "WARNING") || boost::iequals(fields[3], "WARN"))
+							i_test->is_warning = 1;
+						else if (boost::iequals(fields[3], "ERROR") || boost::iequals(fields[3], "ERR"))
+							i_test->is_warning = 0;
+						else
+							i_test->is_warning = 0; // default case if having format problems
+					}
+
+					if (fields.size() >= 5) {
+						if (boost::iequals(fields[4], "ACCUMULATE=1") || boost::iequals(fields[4], "ACC=1"))
+							i_test->max_outliers_flag = 1;
+						else if (boost::iequals(fields[4], "ACCUMULATE=0") || boost::iequals(fields[4], "ACC=0"))
+							i_test->max_outliers_flag = 0;
+						else
+							i_test->max_outliers_flag = 0; // default is having format problems;
+					}
+					if (fields.size() >= 6) i_test->externl_rc = stoi(fields[5]);
+					if (fields.size() >= 7) i_test->internal_rc = stoi(fields[6]);
+					if (fields.size() >= 8) i_test->err_msg = fields[7];
 
 					i_test->input_from_string(i_test->tester_params);
 
 					testers.push_back(i_test);
 				}
-				else
+				else {
+					MERR("ERROR: (3) : InputSanityTester::read_config() parsing filter %s\n", curr_line.c_str());
 					return -1;
+				}
 
 			}
 			else if (fields[0] == "TESTER_NAME") name = fields[1];
@@ -111,25 +132,29 @@ int InputSanityTester::read_config(const string &f_conf)
 
 //-------------------------------------------------------------------------------------------------------------------------
 // tests and stops at first cardinal failed test
-int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, InputSanityTesterResult &res)
+int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &Results)
 {
-	res.external_rc = 0;
-	res.internal_rc = 0;
-	res.err_msg = "";
-
 	int outliers_count = 0;
+	int n_warnings = 0;
+	int n_errors = 0;
 	for (auto &test : testers) {
+
+		InputSanityTesterResult res;
+		res.external_rc = 0;
+		res.internal_rc = 0;
+		res.err_msg = "";
 
 		int t_nvals, t_noutliers;
 		int rc = test->test_if_ok(rep, pid, timestamp, t_nvals, t_noutliers);
-		//MLOG("###>>> pid %d time %d test %s : nvals %d nout %d rc %d\n", pid, timestamp, test->tester_params.c_str(), t_nvals, t_noutliers, rc);
+//		MLOG("###>>> pid %d time %d test %s : nvals %d nout %d rc %d\n", pid, timestamp, test->tester_params.c_str(), t_nvals, t_noutliers, rc);
 		if (test->max_outliers_flag) outliers_count += t_noutliers;
 		if (rc < 0) {
 			res.external_rc = AM_ELIGIBILITY_ERROR;
 			res.internal_rc = -2;
 			res.err_msg = "Could not run filter on sample. ["+name+"]";
 
-			return -1; // Failed running the test itself
+			Results.push_back(res);
+			n_errors++;
 		}
 
 		if (rc == 0) {
@@ -139,17 +164,30 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 			res.internal_rc = test->internal_rc;
 			res.err_msg = test->err_msg + "["+name+"]";
 
-			return 0;
+			Results.push_back(res);
+
+			if (test->is_warning)
+				n_warnings++;
+			else
+				n_errors++;
 		}
 
+		// rc == 1 : nothing to do - passed the test
 	}
 
 	if (outliers_count > max_overall_outliers) {
+		InputSanityTesterResult res;
 		res.external_rc = AM_ELIGIBILITY_ERROR;
 		res.internal_rc = -3;
 		res.err_msg = "Too many outliers detected (" + to_string(outliers_count) + ") ["+name+"]";
-		return 0;
+		Results.push_back(res);
+		n_errors++;
 	}
+
+
+	// MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
+	if (n_errors > 0)
+		return 0;
 
 	return 1;
 }

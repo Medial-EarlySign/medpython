@@ -30,7 +30,9 @@ int MedValueCleaner::get_quantile_min_max(vector<float>& values) {
 	if (access_ind >= values.size()) //for example may happen if params.quantile == 0
 		access_ind = (int)values.size() - 1;
 	float upper = values[access_ind];
-	float lower = values[(int)(values.size() * params.quantile)];
+	int lower_access_ind = (int)(values.size() * params.quantile);
+	float lower = values[lower_access_ind];
+	num_samples_after_cleaning = access_ind - lower_access_ind;
 
 	if (params.take_log) {
 		if (median <= 0.0 || lower <= 0.0 || upper <= 0.0) {
@@ -79,8 +81,8 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 
 	while (need_to_clean) {
 		need_to_clean = false;
-		int n = get_moments(values, wgts, params.missing_value, mean, sd);
-		if (n == 0) {
+		num_samples_after_cleaning = get_moments(values, wgts, params.missing_value, mean, sd);
+		if (num_samples_after_cleaning == 0) {
 			MWARN("EMPTY_VECTOR:: learning cleaning parameters from an empty vector\n");
 			trimMax = 0; 
 			trimMin = 0; 
