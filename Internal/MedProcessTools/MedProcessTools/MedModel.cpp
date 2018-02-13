@@ -822,6 +822,14 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 }
 
+void MedModel::get_required_signal_names(vector<string>& signalNames) {
+	unordered_set<string> sigs;
+	get_required_signal_names(sigs);
+	signalNames.clear();
+	for (auto &s : sigs)
+		signalNames.push_back(s);
+}
+
 //.......................................................................................
 int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 {
