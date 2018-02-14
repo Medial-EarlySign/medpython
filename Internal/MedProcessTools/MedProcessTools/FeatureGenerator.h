@@ -275,7 +275,6 @@ public:
 */
 class AgeGenerator : public FeatureGenerator {
 public:
-	int version() { return 1; }
 	/// Is Age Directly given ?
 	bool directlyGiven;
 
@@ -302,12 +301,13 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) {  signalId = dict.id(signalName); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights, signalName); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights, signalName); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights, signalName); }
+	int version() { return 1; }
+	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
 	virtual int init(map<string, string>& mapper);
 };
 
