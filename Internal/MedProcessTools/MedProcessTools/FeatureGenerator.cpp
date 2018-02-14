@@ -522,6 +522,8 @@ int AgeGenerator::init(map<string, string>& mapper) {
 		string field = entry.first;
 		if (field == "signal")
 			signalName = entry.second;
+		else if (field == "tags")
+			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter [%s] for AgeGenerator\n", field.c_str());
 	}
