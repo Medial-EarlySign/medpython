@@ -536,12 +536,12 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 				if (rc.outcome != 0) {
 					// case
 					to_days = outcome_days - int(365.0f * s_params.min_case_years);
-					from_days = max(from_days, from_days - int(365.0f * s_params.max_case_years));
+					from_days = max(from_days, outcome_days - int(365.0f * s_params.max_case_years));
 				}
 				else {
 					// control
 					to_days = outcome_days - int(365.0f * s_params.min_control_years);
-					from_days = max(from_days, from_days - int(365.0f * s_params.max_control_years));
+					from_days = max(from_days, outcome_days - int(365.0f * s_params.max_control_years));
 				}
 
 				to_days = min(to_days, outcome_days - s_params.min_days_from_outcome);
