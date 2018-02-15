@@ -318,6 +318,7 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				int smoking_year = 0;
 				int pack_years = 0;
 				int any_smoke_flag = 0;
+				int any_info = 0;
 				for (int kk = 0; kk < smoke_ranges.size(); kk++) {
 					int start_date = smoke_ranges[kk].date_start;
 					int end_date = smoke_ranges[kk].date_end;
@@ -331,6 +332,7 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 
 
 					if (test_date >= start_date) {
+						any_info = 1;
 
 						if (smoke_ranges[kk].val == 7 || smoke_ranges[kk].val == 3)
 							any_smoke_flag = 1;
@@ -453,15 +455,16 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				}
 
 
-
-				__current_smoker = (int)smoke_f;
-				__ex_smoker = (int)ex_smoke_f;
-				__never_smoker = (int)never_smoke_f;
-				__unknown_smoker = (int)unknown_f;
-				__years_since_quitting = (int)years_since_q_f;
-				__smoking_years = (int)smoking_year_ff;
-				__smoking_quantity = (int)quantity_f;
-				__pack_years = pack_years_ff;
+				if (any_info == 1) {
+					__current_smoker = (int)smoke_f;
+					__ex_smoker = (int)ex_smoke_f;
+					__never_smoker = (int)never_smoke_f;
+					__unknown_smoker = (int)unknown_f;
+					__years_since_quitting = (int)years_since_q_f;
+					__smoking_years = (int)smoking_year_ff;
+					__smoking_quantity = (int)quantity_f;
+					__pack_years = pack_years_ff;
+				}
 
 				if (qa_print == 1) {
 					fprintf(stderr, "====== final : \n");

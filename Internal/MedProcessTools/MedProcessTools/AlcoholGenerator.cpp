@@ -133,6 +133,7 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				if (quan > MAX_TO_TRIM) quan = MAX_TO_TRIM;
 
 				if (qa_print == 1) fprintf(stderr, "%i %s %i \n", date, drink_desc[type].c_str(), quan);
+
 				if (j == 0 && date > date_age_may_start_drinking) {
 					int date_minus10y_n = med_time_converter.convert_times(MedTime::Date, MedTime::Days, date) - 365 * BACK_YEARS;
 					int date_minus10y = med_time_converter.convert_times(MedTime::Days, MedTime::Date, date_minus10y_n);
@@ -318,7 +319,6 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 			if (ex_drinking_quan != missing_val && drinking_quan == missing_val && drink_flag == 1)
 				drinking_quan = ex_drinking_quan;
 
-
 			if (qa_print == 1) {
 				fprintf(stderr, "====ranges: \n");
 				for (int kk = 0; kk < drink_ranges.size(); kk++) {
@@ -326,7 +326,6 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				}
 				fprintf(stderr, "\n");
 			}
-
 
 			//*********************************************** create vals for date ***********************************************
 
@@ -338,12 +337,14 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 			int drinking_year = 0;
 			int unit_years = 0;
 			int any_drink_flag = 0;
+			int any_info = 0;
 			for (int kk = 0; kk < drink_ranges.size(); kk++) {
 				int start_date = drink_ranges[kk].date_start;
 				int end_date = drink_ranges[kk].date_end;
 
 				if (test_date >= start_date) {
 
+					any_info = 1;
 					if (drink_ranges[kk].val == 7 || drink_ranges[kk].val == 3) any_drink_flag = 1;
 					if (test_date < end_date)  end_date = test_date;   //for counting years
 					int start_n = med_time_converter.convert_times(MedTime::Date, MedTime::Days, start_date);
@@ -481,14 +482,16 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 
 			//***************************************  final ***************************************
 
-			__current_drinker = drink_f;
-			__ex_drinker = ex_drink_f;
-			__never_drinker = never_drink_f;
-			__unknown_drinker = unknown_f;
-			__years_since_quitting = (int)years_since_q_f;
-			__drinker_years = drinking_year_ff;
-			__drinker_quantity = quantity_f;
-			__unit_years = unit_years_ff;
+			if (any_info == 1) {
+				__current_drinker = drink_f;
+				__ex_drinker = ex_drink_f;
+				__never_drinker = never_drink_f;
+				__unknown_drinker = unknown_f;
+				__years_since_quitting = (int)years_since_q_f;
+				__drinker_years = drinking_year_ff;
+				__drinker_quantity = quantity_f;
+				__unit_years = unit_years_ff;
+			
 
 
 			if (qa_print == 1) {
@@ -510,23 +513,24 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 			//************************************************** PLM ***********************************************
 
 
-			int current_drinker = (int)__current_drinker;
-			int drinking_level = (int)__drinker_quantity;
-			if (current_drinker == 1 && drinking_level == -1)
-				drinking_level = MED_MAT_MISSING_VALUE, plm_drinking_level = 2;
-			else if (current_drinker == 0 || drinking_level <= 0)
-				plm_drinking_level = 0;
-			else if (drinking_level >= 1 && drinking_level <= 4)
-				plm_drinking_level = 1;
-			else if (drinking_level >= 5 && drinking_level <= 17)
-				plm_drinking_level = 2;
-			else if (drinking_level >= 18 && drinking_level <= 45)
-				plm_drinking_level = 3;
-			else if (drinking_level >= 46 && drinking_level <= 65)
-				plm_drinking_level = 4;
-			else
-				plm_drinking_level = 5;
+				int current_drinker = (int)__current_drinker;
+				int drinking_level = (int)__drinker_quantity;
+				if (current_drinker == 1 && drinking_level == -1)
+					drinking_level = MED_MAT_MISSING_VALUE, plm_drinking_level = 2;
+				else if (current_drinker == 0 || drinking_level <= 0)
+					plm_drinking_level = 0;
+				else if (drinking_level >= 1 && drinking_level <= 4)
+					plm_drinking_level = 1;
+				else if (drinking_level >= 5 && drinking_level <= 17)
+					plm_drinking_level = 2;
+				else if (drinking_level >= 18 && drinking_level <= 45)
+					plm_drinking_level = 3;
+				else if (drinking_level >= 46 && drinking_level <= 65)
+					plm_drinking_level = 4;
+				else
+					plm_drinking_level = 5;
 
+			}
 			//************************************************** Add to matrix  *********************************************
 		}
 		// Current Drinker
