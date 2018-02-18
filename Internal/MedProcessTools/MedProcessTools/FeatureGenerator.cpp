@@ -227,7 +227,10 @@ size_t FeatureGenerator::generator_serialize(unsigned char *blob) {
 // Set required signal ids
 //.......................................................................................
 void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
-
+	if (req_signals.empty()) {
+		dprint("", 1);
+		MTHROW_AND_ERR("FeatureGenerator::set_required_signal_ids got empty req_signals\n");
+	}
 	req_signal_ids.resize(req_signals.size());
 
 	for (unsigned int i = 0; i < req_signals.size(); i++)
