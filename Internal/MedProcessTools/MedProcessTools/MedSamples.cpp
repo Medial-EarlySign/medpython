@@ -345,7 +345,7 @@ int MedSamples::write_to_file(const string &fname)
 		return -1;
 	}
 	int samples = 0;
-	int buffer_write = 100000;
+	int buffer_write = 0;
 
 	//of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeLength" <<
 	//	'\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
@@ -359,7 +359,7 @@ int MedSamples::write_to_file(const string &fname)
 			ss.write_to_string(sout);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
-			if (line >= buffer_write) {
+			if (buffer_write > 0 && line >= buffer_write) {
 				of << sout << endl;
 				line = 0;
 			}
