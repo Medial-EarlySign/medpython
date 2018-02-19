@@ -8,7 +8,7 @@
 #include "Logger/Logger/Logger.h"
 #include <map>
 
-using namespace::std ;
+using namespace::std;
 
 //============================================================
 // Files/IO related
@@ -24,8 +24,10 @@ int copy_files(const string &in_path, const string &out_path, vector<string>& fn
 void add_path_to_name(const string &path, string &fname);
 void add_path_to_name(const string &path, vector<string> &fnames);
 // General function for platform-independent path names.
-int fix_path(const string& in, string& out) ;
+int fix_path(const string& in, string& out);
 
+/// Fixes filename and replaces forbidden charecters with replace_char
+string fix_filename_chars(string* s, char replace_char = ' ');
 //=============================================================
 // read/write vectors and arrays
 //=============================================================
