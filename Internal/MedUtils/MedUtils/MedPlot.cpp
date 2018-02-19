@@ -379,6 +379,10 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 			++tot_obj;
 		}
 	double tot_false_labels = tot_obj - tot_true_labels;
+	if (tot_false_labels == 0 || tot_true_labels == 0) {
+		cerr << "only controls or cases are given." << endl;
+		throw logic_error("only controls or cases are given.\n");
+	}
 	pred_threshold = vector<float>((int)pred_indexes.size());
 	map<float, vector<int>>::iterator it = pred_indexes.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
