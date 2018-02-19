@@ -32,6 +32,7 @@ int TQRF_Params::init(map<string, string>& map)
 		// quantization
 		else if (f.first == "max_q") max_q = stoi(f.second);
 		//else if (f.first == "max_q_sample") max_q_sample = stoi(f.second);
+		else if (f.first == "qpoints_per_split") qpoints_per_split = stoi(f.second);
 
 		// trees and stopping criteria
 		if (f.first == "tree_type") tree_type = f.second;
@@ -95,6 +96,8 @@ int TQRF_Params::init(map<string, string>& map)
 // (3??) in case of categorial and adjacent values with a single same category - unite them. (Not relevant at the moment due to time slicing)
 // (4) if left with less than max_q values : we finished
 // (5) Otherwise: we split given the split strategy (currently - even splits. Future Idea: better subsampling of tails/information rich areas)
+//
+// Our basic convention is that missing value for each feature is mapped to q=0.
 //------------------------------------------------------------------------------------------------
 int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 {
@@ -105,8 +108,10 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 	//if (params.verbosity > 0) MLOG("Quantized_Feat::quantize_feat :: feat %d %s :: nvals %d\n", i_feat, feat_names[i_feat].c_str(), data->size());
 
 	curr_data.resize(data->size());
-	for (int i=0; i<(int)data->size(); i++)
-		curr_data[i] = { (*data)[i], i };
+	for (int i=0; i<(int)data->size(); i++) {
+		if ((*data)[i] != params.missing_val)
+		curr_data[i] ={ (*data)[i], i };
+	}
 
 
 	if (params.verbosity > 2) {
@@ -126,7 +131,7 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 	// count diff values
 	vector<pair<float, int>> v_counts;
 	float prev = curr_data[0].first;
-	int n = 0;
+	int n = 1; // 0 is kept for missing values
 	for (auto v : curr_data) {
 		if (v.first == prev)
 			n++;
@@ -145,8 +150,8 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 
 	// prepare q_to_val
 	// the convention is that if a value is in the range (q_to_val[i-1],q_to_val[i]] then its quantized value will be i
-	if (v_counts.size() <= params.max_q) {
-		q_to_val[i_feat].clear();
+	if (v_counts.size() < params.max_q) {
+		q_to_val[i_feat] = { params.missing_val }; // 0 place is special : always there to signal us the missing val cases
 		for (auto &v : v_counts)
 			q_to_val[i_feat].push_back(v.first);
 	}
@@ -154,9 +159,10 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 		// need more work to be done, we have too many different values... 
 		// our algorithm is simply trying to make the i-th qval such that there are (i+1)/max_q * len , of the elements
 		// up to some fixes that are caused due to integer numbers
-		int delta = (int)((float)curr_data.size()/(float)params.max_q);
+		int delta = (int)((float)curr_data.size()/((float)params.max_q-1));
 		int j = 0;
 		int len = (int)curr_data.size();
+		q_to_val[i_feat] ={ params.missing_val };
 		while (j < len-1) {
 			int prev_j = j;
 			j = j + delta;
@@ -176,14 +182,19 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 	}
 
 	// now q_to_val is ready and all that is left is to actually use it to create qx
-	int q_i = 0;
+	int q_i = 1; // missing values will be filled later
 	int q_size = (int)q_to_val[i_feat].size();
-	qx[i_feat].resize(curr_data.size());
+	qx[i_feat].resize(data->size());
 	for (auto &v : curr_data) {
 		if (q_i < q_size && v.first >= q_to_val[i_feat][q_i])
 			q_i++;
 		qx[i_feat][v.second] = (short)q_i;
 	}
+
+	// fill in missing vals
+	for (int i=0; i<(int)data->size(); i++)
+		if ((*data)[i] == params.missing_val)
+			qx[i_feat][i] = 0;
 
 	return 0;
 }
@@ -371,11 +382,30 @@ int TQRF_Forest::get_missing_value_method(const string &str)
 
 
 //------------------------------------------------------------------------------------------------
+void TQRF_Forest::init_tables(Quantized_Feat &qfeat)
+{
+	if (params.tree_type_i == TQRF_TREE_ENTROPY) {
+
+		// initializing a precomputed n * log(n) table for the sake of computing entropy scores
+		int max_samples = (int)qfeat.y.size()+1;
+		params.log_table.resize(max_samples);
+		params.log_table[0] = 0; // we will always use it in an nlogn manner hence the 0 rather than -inf
+		for (int i = 1; i < max_samples; i++)
+			params.log_table[i] = (double)i * log((double)i);
+
+	}
+}
+
+//------------------------------------------------------------------------------------------------
 int TQRF_Forest::Train(MedFeatures &medf, const MedMat<float> &Y)
 {
 	// first - quantifying data
 	Quantized_Feat qfeat;
 	qfeat.init(medf, params);
+
+	// additional initializations of needed lookup tables (which will be kept in params)
+	// for example: log tables for entropy scores etc...
+	init_tables(qfeat);
 
 	// creating the trees and parallelize train on each tree
 	trees.resize(params.ntrees);
@@ -385,6 +415,194 @@ int TQRF_Forest::Train(MedFeatures &medf, const MedMat<float> &Y)
 		trees[i].init(qfeat, params);
 		trees[i].Train();
 	}
+
+	return 0;
+}
+
+//================================================================================================
+// TQRF_Split_Stat family of classes
+//================================================================================================
+TQRF_Split_Stat *TQRF_Split_Stat::make_tqrf_split_stat(int tree_type)
+{
+	if (tree_type == TQRF_TREE_LOGRANK)
+		return new TQRF_Split_LogRank;
+	if (tree_type == TQRF_TREE_ENTROPY)
+		return new TQRF_Split_Entropy;
+	if (tree_type == TQRF_TREE_REGRESSION)
+		return new TQRF_Split_Regression;
+	 
+	return NULL;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+// another source for randomization and speedup is calculating the split scores not at all quantized points
+// but only on a subset of them.
+// This method selects a random set of qpoints to work on, and returns them:
+// an empty qpoints, means : test all points
+// otherwise it will contain the q values sorted.
+//--------------------------------------------------------------------------------------------------------------------
+int TQRF_Split_Stat::get_q_test_points(int feat_max_q, TQRF_Params &params, vector<int> &_qpoints)
+{
+	int n = feat_max_q - 2; // possible split points are 1,2,...,feat_max_q-2 : 
+							// 0 is not a split point: it is missing values , and feat_max_q-1 means we take it all to the left side, so there's no split
+
+
+	if (params.qpoints_per_split == 0 || params.qpoints_per_split >= n) {
+		_qpoints.clear();
+		return 0;
+	}
+
+	_qpoints.resize(n);
+	
+	for (int i=0; i<n; i++)
+		_qpoints[i] = i+1;
+
+	for (int i=0; i<params.qpoints_per_split; i++)
+		swap(_qpoints[i], _qpoints[i + rand_N(n-i)]);
+
+	_qpoints.resize(params.qpoints_per_split);
+	sort(_qpoints.begin(), _qpoints.end());
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+int TQRF_Split_Categorial::init(Quantized_Feat &qf, TQRF_Params &params)
+{
+	// initializing counts[t][q][c] , sums[t][c]
+	ncateg = qf.ncateg;
+	maxq = params.max_q;
+	nslices = qf.n_time_slices;
+
+	counts.resize(nslices, vector<vector<int>>(maxq , vector<int>(ncateg)));
+	sums.resize(nslices, vector<int>(ncateg));
+
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+// preparing counts for the current i_feat and node
+int TQRF_Split_Categorial::prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params)
+{
+	int feat_maxq = (int)qf.q_to_val[i_feat].size();
+
+	// zero counts (is it needed at all??)
+	for (int t=0; t<nslices; t++)
+		for (int q=0; q<feat_maxq; q++)
+			for (int c=0; c<ncateg; c++)
+				counts[t][q][c] = 0;
+	for (int t=0; t<nslices; t++)
+		for (int c=0; c<ncateg; c++)
+			sums[t][c] = 0;
+
+	// now going over each sample in the node (sometimes we have to sample)
+	// and adding counts for each category.
+	
+	float p_choice = 1;
+	
+	if (params.max_node_test_samples>0 && params.max_node_test_samples < node.size())
+		p_choice = (float)params.max_node_test_samples/(float)node.size();
+
+	vector<short> &feat_qvals = qf.qx[i_feat];
+	for (int i=node.from_idx; i<=node.to_idx; i++) {
+		int idx = indexes[i];
+		int q = feat_qvals[idx];
+		int c = (int)(qf.y[idx]);
+		int t = qf.last_time_slice[idx];
+
+		counts[t][q][c]++;
+		// in case c is 0 we need now to also add a ++ for all cells [0...(t-1)][q][0] . However, we will do those in one swip
+		// at the end which should be more efficient.
+		if (q > 0) sums[t][c]++; // not summing q=0 cases: missing values are seprate
+	}
+
+	// now we consider the cases of fewer qpoints 
+
+	// get qpoints
+	get_q_test_points(feat_maxq, params, qpoints);
+
+	counts_q = feat_maxq;
+	if (qpoints.size() != 0) {
+
+		// checking fewer q points - given orderes in qpoints
+		// we squeeze all q values to qpoints.size() values
+		int prev = 0;
+		for (int i=0; i<qpoints.size(); i++) {
+			if (prev > i) {
+				for (int t=0; t<nslices; t++)
+					for (int c=0; c<ncateg; c++)
+						counts[t][i][c] = counts[t][prev][c];
+			}
+
+			for (int j=prev+1; j<qpoints[i]; j++) {
+				for (int t=0; t<nslices; t++)
+					for (int c=0; c<ncateg; c++)
+						counts[t][i][c] += counts[t][j][c];
+				prev = qpoints[i];
+			}
+		}
+		counts_q = (int)qpoints.size() + 1; // +1 for q=0
+	}
+
+
+	// summing all 0 counts in one swip
+	for (int t=nslices-2; t>=0; t--) {
+		sums[t][0] += sums[t+1][0];
+		for (int q=1; q<counts_q; q++)
+			counts[t][q][0] += counts[t+1][q][0];
+	}
+
+	return 0;
+}
+
+
+int TQRF_Split_Entropy::get_best_split(TQRF_Params &params, int &best_q, float &best_score)
+{
+	// the scenario is that we have counts and sums ready and squeezed to the qpoints we want to test
+	// we need to go over each of the possible split points, and if it is valid in the sense of 
+	// number of samples left on each side (we always test this WITHOUT the missing vals) we get the score
+
+	best_q = -1;			// signing no split point found
+	best_score = -1;
+
+	vector<int> left_sums(ncateg, 0), right_sums(ncateg, 0);
+	int lsum = 0, rsum = 0;
+
+	// below is a version for a single time slice only... to begin with debugging and build code
+	// will be changed to sum over slices later
+	if (nslices != 1)
+		throw("ERROR: Running on debug version that supports only a single time slice !!!!!!\n");
+
+	for (int q=1; q<counts_q-1; q++) {
+
+		for (int c=0; c<ncateg; c++) {
+			left_sums[c] += counts[0][q][c];
+			right_sums[c] = sums[0][c] - left_sums[c];
+			lsum += left_sums[c];
+			rsum += right_sums[c];
+		}
+
+		if (lsum >= params.min_node && rsum >= params.min_node) {
+			double H = 0;
+
+			// add left and right side entropy
+			for (int c=0; c<ncateg; c++) {
+				H += params.log_table[left_sums[c]];
+				H += params.log_table[right_sums[c]];
+			}
+
+			// subtract overall sum entropy
+			H -= params.log_table[lsum];
+			H -= params.log_table[rsum];
+
+			if ((float)H > best_score) {
+				best_score = (float)H;
+				best_q = q;
+			}
+		}
+
+	}
+
+	if (qpoints.size() > 0 && best_q>0) best_q = qpoints[best_q-1];
 
 	return 0;
 }
@@ -476,6 +694,13 @@ int TQRF_Tree::get_bagged_indexes()
 		if (_params->verbosity > 0) MLOG("Tree %d :: bagging : regression : indexes %d\n", id, indexes.size());
 	}
 
+
+	// now choosing the features to be used in this tree (in case feature bagging is requested)
+	i_feats.clear();
+	for (int i=0; i<_qfeat->nfeat; i++)
+		if (rand_1() <= _params->bag_feat)
+			i_feats.push_back(i);
+
 	return 0;
 }
 
@@ -538,17 +763,131 @@ int TQRF_Tree::init_root_node()
 	root.to_idx = (int)indexes.size()-1;
 
 	root.state = TQRF_Node_State_Initiated;
+	root.depth = 0;
 
 	nodes.push_back(root);
 
 }
 
 //--------------------------------------------------------------------------------------------------------------------
+// returns the next node with state TQRF_Node_State_Initiated
+int TQRF_Tree::get_next_node(int curr_node)
+{
+	for (int i=max(curr_node+1, 0); i<nodes.size(); i++)
+		if (nodes[i].state == TQRF_Node_State_Initiated)
+			return i;
+	return -1; // none found
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+// getting a list of features to test, based on tree parameters
+int TQRF_Tree::get_feats_to_test(vector<int> &feats_to_test)
+{
+	// first we need to know how many features we need to choose
+	int n_to_choose = max(_params->ntry, (int)(_params->ntry_prob * (float)i_feats.size()));
+
+	if (n_to_choose < (int)i_feats.size())
+		n_to_choose = (int)i_feats.size();
+
+	// we now go through n_to_choose steps of random swapping on i_feats
+	feats_to_test.clear();
+	for (int i=0; i<i_feats.size(); i++) {
+		int n = (int)i_feats.size() - i - 1;
+		int j = rand_N(n) + i;
+		int f = i_feats[i];
+		i_feats[i] = i_feats[j];
+		i_feats[j] = f;
+		feats_to_test.push_back(f);
+	}
+
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+void TQRF_Tree::free_split_stats(vector<TQRF_Split_Stat *> &tqs)
+{
+	for (auto &t : tqs)
+		delete t;
+
+	tqs.clear();
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+int TQRF_Tree::init_split_stats(vector<TQRF_Split_Stat *> &tqs)
+{
+	free_split_stats(tqs);
+	tqs.resize(i_feats.size());
+
+	for (int i=0; i<tqs.size(); i++) {
+		tqs[i] = TQRF_Split_Stat::make_tqrf_split_stat(tree_type);
+		if (tqs[i] == NULL)
+			return -1;
+		tqs[i]->init((*_qfeat), (*_params));
+	}
+
+
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+// non threaded version
+// threading a specific tree is much more complex.... we have to do it over nodes.
+//--------------------------------------------------------------------------------------------------------------------
 int TQRF_Tree::Train()
 {
 
 	// creating the bag
 	get_bagged_indexes();
+
+	// initializing tree and root
+	init_root_node();
+
+	bool go_on = true;
+	int i_curr_node = -1;
+
+	vector<int> feats_to_test;
+	vector<TQRF_Split_Stat *> tqs;
+
+	init_split_stats(tqs);
+
+	while (go_on) {
+
+		if ((i_curr_node = get_next_node(i_curr_node)) < 0)
+			break; // finished work on this tree - no more nodes to work on.
+
+		// getting a list of features to test, based on tree parameters
+		get_feats_to_test(feats_to_test);
+
+		vector<pair<int,float>> best_q(feats_to_test.size());
+// optional "easy" threading right here !
+		for (int i=0; i<feats_to_test.size(); i++) {
+			tqs[i]->prep_histograms(feats_to_test[i], nodes[i_curr_node], indexes, (*_qfeat), (*_params));
+			tqs[i]->get_best_split((*_params), best_q[i].first, best_q[i].second);
+		}
+
+		// choose best choice : scores are ALWAYS for maximum
+		int i_best = -1;
+		int q_best = -1;
+		float q_best_score = (float)-1e10;
+
+		for (int i=0; i<feats_to_test.size(); i++) 
+			if (best_q[i].first > 0 && best_q[i].second > q_best_score) {
+				q_best_score = best_q[i].second;
+				q_best = best_q[i].first;
+				i_best = i;
+			}
+
+
+		if (i_best >= 0) {
+			// we indeed found a valid split
+		}
+
+//		split_node();
+
+	}
+
+	// need to free split stats
+	free_split_stats(tqs);
 
 
 	return 0;
