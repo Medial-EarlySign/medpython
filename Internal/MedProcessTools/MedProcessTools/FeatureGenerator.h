@@ -287,6 +287,7 @@ public:
 		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven;
 		if (directlyGiven) req_signals.assign(1, "Age");  else req_signals.assign(1, "BYEAR");
 	}
+	// next is weird, idea anyone???
 	AgeGenerator(int _signalId) : FeatureGenerator() {
 		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = _signalId; directlyGiven = med_rep_type.ageDirectlyGiven;
 		if (directlyGiven) req_signals.assign(1, "Age");  else req_signals.assign(1, "BYEAR");

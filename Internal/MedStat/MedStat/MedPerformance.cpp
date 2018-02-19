@@ -657,7 +657,7 @@ int cnts_to_perf(vector<int> &cnt, float &sens, float &spec, float &ppv, float &
 	sens = a / (a + c + epsilon);
 	spec = d / (b + d + epsilon);
 	ppv = a / (a + b + epsilon);
-	rr = (a / (a + b + epsilon)) / (c / (c + d + epsilon));
+	rr = (a / (a + b + epsilon)) / ((c / (c + d + epsilon)) + epsilon);
 
 	return 0;
 }
