@@ -379,7 +379,7 @@ int MedConvert::read_all(const string &config_fname)
 }
 
 //------------------------------------------------
-int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat &curr_fstat)
+int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat &curr_fstat, map<pair<string, string>, int>& missing_dict_vals)
 {
 	if (!inf.is_open())
 		return 0; // file is closed nothing to do
@@ -392,7 +392,6 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 	string vfield, vfield2 ;
 	int i;
 	int sid,vid ;
-
 	while (get_next) {
 		pos = inf.tellg();
 		if (getline(inf,curr_line)) {
@@ -611,10 +610,15 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										curr.raw_data[i].push_back(cd) ;
 										curr_fstat.n_parsed_lines++;
 
-									} else {
-										MERR("MedConvert: get_next_signal: signal string \'%s\' is missing from dictionary (sig %s) : file %s : line %s\n",
-											vfield.c_str(),sigs.name(sid).c_str(), curr_fstat.fname.c_str(), curr_line.c_str()) ;
-										return -1 ;
+									} else {										
+										pair<string, string> my_key = make_pair(sigs.name(sid), vfield);
+										if (missing_dict_vals.find(my_key) == missing_dict_vals.end()) {
+											MWARN("MedConvert::get_next_signal: signal string [%s] is missing from dictionary (sig [%s]) : file [%s] : line [%s] \n",
+												vfield.c_str(), sigs.name(sid).c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
+											missing_dict_vals[my_key] = 1;
+										}
+										else
+											missing_dict_vals[my_key]++;
 									}
 								}
 							}
@@ -645,7 +649,6 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 		} else
 			get_next = false;
 	}
-
 	if (inf.eof() || (fpid > MAX_PID_TO_TAKE)) {
 		fpid = -1;
 		inf.close();
@@ -773,7 +776,7 @@ int MedConvert::create_indexes()
 	}
 
 	int n_pids_extracted = 0;
-
+	map<pair<string, string>, int> missing_dict_vals;
 	vector<int> all_pids;  // a list of all pids in the repository to be written to file.
 	all_pids.push_back(0); // reserved place for later placing of total number of pids
 	while (n_open_in_files > 0) {
@@ -793,11 +796,13 @@ int MedConvert::create_indexes()
 		curr.raw_data.resize(serial2sid.size());
 		curr.pid = c_pid;
 		
+		
+
 		for (i=0; i<n_files_opened; i++) {
 			int fpid = c_pid;
 			if (infs[i].is_open() && pid_in_file[i] <= c_pid) {
 				//MLOG("file %d :: pid_int_file %d fpid %d\n", i, pid_in_file[i], fpid);
-				if (get_next_signal(infs[i],file_type[i],curr,fpid,fstats[i]) == -1) {
+				if (get_next_signal(infs[i],file_type[i],curr,fpid,fstats[i], missing_dict_vals) == -1) {
 					MERR("create_indexes : get_next_signal failed for file %d/%d\n",i,n_files_opened) ;
 					return -1 ;
 				}
@@ -820,6 +825,16 @@ int MedConvert::create_indexes()
 			MLOG("MedConvert: create_indexes: extracted %d pids (%d open files)\n",n_pids_extracted,n_open_in_files);
 		}
 	}
+	bool too_many_missing = false;
+	for (auto& entry : missing_dict_vals) {
+		MWARN("MedConvert: saw missing entry [%s]:[%s] %d times\n", entry.first.first.c_str(), entry.first.second.c_str(), entry.second);
+		if (safe_mode && entry.second > 50) {
+			MERR("%d > 50 missing entries is too much... refusing to create repo!\n", entry.second);
+			too_many_missing = true;
+		}
+	}
+	if (too_many_missing)
+		MTHROW_AND_ERR("too many missing values...\n");
 
 	// all files are closed, all are written correctly
 

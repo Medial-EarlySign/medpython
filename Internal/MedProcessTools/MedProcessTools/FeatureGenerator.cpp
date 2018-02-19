@@ -227,7 +227,10 @@ size_t FeatureGenerator::generator_serialize(unsigned char *blob) {
 // Set required signal ids
 //.......................................................................................
 void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict){
-
+	if (req_signals.empty()) {
+		dprint("", 1);
+		MTHROW_AND_ERR("FeatureGenerator::set_required_signal_ids got empty req_signals\n");
+	}
 	req_signal_ids.resize(req_signals.size());
 
 	for (unsigned int i = 0; i < req_signals.size(); i++)
@@ -481,10 +484,8 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
-	if (signalId == -1) {
-		MERR("Uninitialized signalId in age generation\n");
-		return -1;
-	}
+	if (signalId == -1)
+		MTHROW_AND_ERR("Uninitialized signalId in age generation\n");
 
 	float *p_feat = p_data[0] + index;
 
@@ -496,14 +497,45 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 			p_feat[i] = rec.usv.Val(0);
 	}
 	else {
-		SVal *bYearSignal = (SVal *)rec.get(signalId, len);
-		if (len != 1) { MERR("id %d , got len %d for signal %d (BYEAR)...\n", rec.pid, len, signalId); }
+		SVal *sig = (SVal *)rec.get(signalId, len);
+		if (len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, len, signalId, signalName.c_str()); }
 		if (len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
-		int byear = (int)(bYearSignal[0].val);
+		if (signalName == "BYEAR") {			
+			int byear = (int)(sig[0].val);
+			for (int i = 0; i < num; i++)
+				p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
+		}
+		else if (signalName == "BDATE") {
+			int bdate = (int)(sig[0].val);
+			for (int i = 0; i < num; i++) {
+				int time = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
+				int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
+				p_feat[i] = (float)(1.0 * days_since_birth) / 365;
 
-		for (int i = 0; i < num; i++)
-			p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index+i].time) / 10000 - byear);
+			}
+		}
+		else MTHROW_AND_ERR("Unknown age signal [%s] \n", signalName.c_str());
 	}
+	return 0;
+}
+
+int AgeGenerator::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "signal")
+			signalName = entry.second;
+		else if (field == "tags")
+			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field != "fg_type")
+			MTHROW_AND_ERR("Unknown parameter [%s] for AgeGenerator\n", field.c_str());
+	}
+	set_names();
+	
+	if (directlyGiven)
+		signalName = "Age";
+	req_signals.clear();
+	req_signals.push_back(signalName);
 	return 0;
 }
 

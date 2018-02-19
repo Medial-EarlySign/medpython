@@ -117,12 +117,14 @@ int IncidenceParams::init(map<string, string>& map)
 		else if (m.first == "min_samples_in_bin") min_samples_in_bin = stoi(m.second);
 		else if (m.first == "from_year") from_year = stoi(m.second);
 		else if (m.first == "to_year") to_year = stoi(m.second);
+		else if (m.first == "start_date") start_date = stoi(m.second);
 		else if (m.first == "gender_mask") gender_mask = stoi(m.second);
 		else if (m.first == "train_mask") train_mask = stoi(m.second);
 		else if (m.first == "from_age") from_age = stoi(m.second);
 		else if (m.first == "to_age") to_age = stoi(m.second);
 		else if (m.first == "rep") rep_fname = m.second;
 		else if (m.first == "incidence_years_window") incidence_years_window = stoi(m.second);
+		else if (m.first == "incidence_days_win") incidence_days_win = stoi(m.second);
 		else {
 			MERR("Unknown variable %s in IncidenceParams\n", m.first.c_str());
 		}
@@ -255,38 +257,154 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	//
 
 
-	for (auto &crec : recs) {
-		int fyear = crec.from / 10000;
-		if ((crec.from % 10000) > 0101) fyear++;
-		int to_date = crec.to; 
-		if (crec.outcome != 0) to_date = crec.outcome_date;
-		else to_date -= i_params.incidence_years_window*10000;
-		int tyear = to_date / 10000;
-		int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
-		int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
-		int train = (int)((((SVal *)rep.get(crec.pid, train_sid, len))[0]).val);
+	if (i_params.start_date == 101) {
 
-		if ((gender & i_params.gender_mask) && (train_to_take[train]))
-			for (int year = fyear; year <= tyear; year++) {
-				if (year >= i_params.from_year && year <= i_params.to_year) {
+		// old code for compatability
 
-					int age = year - byear;
-					int bin = i_params.age_bin*(age / i_params.age_bin);
-					counts[bin].first++; all_cnts[0]++;
-					if (gender == GENDER_MALE)
-						++male_counts[bin].first;
-					else if (gender == GENDER_FEMALE)
-						++female_counts[bin].first;
-					if (year > tyear - i_params.incidence_years_window && crec.outcome) {
-						counts[bin].second++; all_cnts[1]++;
-						if (gender == GENDER_MALE)
-							++male_counts[bin].second;
-						else if (gender == GENDER_FEMALE)
-							++female_counts[bin].second;
-					}
+		for (auto &crec : recs) {
+			int fyear = crec.from / 10000;
+			if ((crec.from % 10000) > 101) fyear++;
+			int to_date = crec.to;
+			if (crec.outcome != 0) to_date = crec.outcome_date;
+			else {
+				if (i_params.incidence_days_win < 0)
+					to_date -= i_params.incidence_years_window*10000;
+				else {
+					int days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
+					days -= i_params.incidence_days_win;
+					to_date = med_time_converter.convert_times(MedTime::Days, MedTime::Date, days);
 				}
 			}
+			int tyear = to_date / 10000;
+			int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
+			int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
+			int train = (int)((((SVal *)rep.get(crec.pid, train_sid, len))[0]).val);
+
+			if ((gender & i_params.gender_mask) && (train_to_take[train]))
+				for (int year = fyear; year <= tyear; year++) {
+					if (year >= i_params.from_year && year <= i_params.to_year) {
+
+						int age = year - byear;
+						int bin = i_params.age_bin*(age / i_params.age_bin);
+						counts[bin].first++; all_cnts[0]++;
+						if (gender == GENDER_MALE)
+							++male_counts[bin].first;
+						else if (gender == GENDER_FEMALE)
+							++female_counts[bin].first;
+						if (crec.outcome != 0) {
+							// handlind cases
+							// first we will calculate if 1.1.year is indeed at most incidence_years or incindence_days BEFORE the outcome date
+
+							bool count_this_year = false;
+							if (i_params.incidence_days_win < 0) {
+								// case1 : we use years:
+								count_this_year = (year > tyear - i_params.incidence_years_window);
+							}
+							else {
+								// case2 : we use days (remember to_date now is the date of the case event)
+								int to_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
+								int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, year*10000+101);
+								count_this_year = (to_days - curr_days <= i_params.incidence_days_win);
+							}
+
+							if (count_this_year) {
+								counts[bin].second++; all_cnts[1]++;
+								if (gender == GENDER_MALE)
+									++male_counts[bin].second;
+								else if (gender == GENDER_FEMALE)
+									++female_counts[bin].second;
+							}
+						}
+					}
+				}
+		}
 	}
+	else {
+
+		// general purpose code : gets a start_date, and works with incidence_days
+		int incidence_days = i_params.incidence_years_window * 365;
+		if (i_params.incidence_days_win > 0)
+			incidence_days = i_params.incidence_days_win;
+
+		MLOG("INCIDENCE_DAYS IS %d (in params: days %d years %d)\n", incidence_days, i_params.incidence_days_win, i_params.incidence_years_window);
+
+		for (auto &crec : recs) {
+
+			// the eligible dates are the dates of the form
+			// YYYYMMDD , where MMDD is our date and YYYYMMDD is in the range [crec.from, crec.to]
+			// We calculate the eligible dates and the relevant Y (outcome) for each
+			// Then we can simply go over them , filter some more conditions and sum
+
+			vector<int> edates, Y;
+			int to_date = crec.to;
+			if (crec.outcome != 0) to_date = crec.outcome_date;
+			else {
+				int days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
+				days -= incidence_days;
+				to_date = med_time_converter.convert_times(MedTime::Days, MedTime::Date, days);
+			}
+
+			int year = crec.from/10000;
+			int edate = 0;
+			while (edate < to_date) {
+				edate = year*10000 + i_params.start_date;
+				if (edate >= crec.from && edate < to_date) {
+					edates.push_back(edate);
+					if (crec.outcome == 0)
+						Y.push_back(0);
+					else {
+						// have to check the window for incidence_days
+						int to_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
+						int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, edate);
+						//MLOG("edate %d to %d to_days %d curr_days %d diff %d incidence_days %d\n", edate, crec.to, to_days, curr_days, to_days-curr_days, incidence_days);
+						if (to_days - curr_days <= incidence_days)
+							Y.push_back(1);
+						else
+							Y.push_back(0);
+					}
+				}
+				year++;
+			}
+
+			//MLOG("Cohort: pid %d : %d - %d : %d , %f : to_date %d : edates :", crec.pid, crec.from, crec.to, crec.outcome_date, crec.outcome, to_date);
+			//for (int i=0; i<edates.size(); i++) MLOG(" %d,%d", edates[i], Y[i]);
+			//MLOG("\n");
+
+			// go over dates, filter and count
+			int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
+			int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
+			int train = (int)((((SVal *)rep.get(crec.pid, train_sid, len))[0]).val);
+			for (int i=0; i<edates.size(); i++) {
+				int year = edates[i]/10000;
+				if ((gender & i_params.gender_mask) && (train_to_take[train]))
+					if (year >= i_params.from_year && year <= i_params.to_year) {
+
+						int age = year - byear;
+						int bin = i_params.age_bin*(age / i_params.age_bin);
+
+						// outcome 0 cases - always counted
+						counts[bin].first++; all_cnts[0]++;
+						if (gender == GENDER_MALE)
+							++male_counts[bin].first;
+						else if (gender == GENDER_FEMALE)
+							++female_counts[bin].first;
+
+
+						// outcome 1 cases
+						if (Y[i]) {
+							counts[bin].second++; all_cnts[1]++;
+							if (gender == GENDER_MALE)
+								++male_counts[bin].second;
+							else if (gender == GENDER_FEMALE)
+								++female_counts[bin].second;
+						}
+					}
+			}
+
+		}
+
+	}
+
 
 	MLOG("Total counts: 0: %d 1: %d : inc %f\n", all_cnts[0], all_cnts[1], (float)all_cnts[1] / all_cnts[0]);
 
@@ -418,12 +536,12 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 				if (rc.outcome != 0) {
 					// case
 					to_days = outcome_days - int(365.0f * s_params.min_case_years);
-					from_days = max(from_days, from_days - int(365.0f * s_params.max_case_years));
+					from_days = max(from_days, outcome_days - int(365.0f * s_params.max_case_years));
 				}
 				else {
 					// control
 					to_days = outcome_days - int(365.0f * s_params.min_control_years);
-					from_days = max(from_days, from_days - int(365.0f * s_params.max_control_years));
+					from_days = max(from_days, outcome_days - int(365.0f * s_params.max_control_years));
 				}
 
 				to_days = min(to_days, outcome_days - s_params.min_days_from_outcome);

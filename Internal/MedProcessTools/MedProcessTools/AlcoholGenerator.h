@@ -55,11 +55,11 @@ public:
 	// Signal Ids
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("Alcohol_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
 	}
-
+	virtual int version() { return  2; } // ihadanny 20170214 - added required_signals to serialization
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, future_ind); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, future_ind); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, future_ind); }
+	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, future_ind, req_signals); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, future_ind, req_signals); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, future_ind, req_signals); }
 };
 
 MEDSERIALIZE_SUPPORT(AlcoholGenerator)

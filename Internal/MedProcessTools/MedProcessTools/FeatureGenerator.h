@@ -24,7 +24,7 @@ typedef enum {
 	FTR_GEN_NOT_SET,
 	FTR_GEN_BASIC, ///< "basic" - creates basic statistic on time windows - BasicFeatGenerator 
 	FTR_GEN_AGE, ///< "age" - creating age feature - AgeGenerator 
-	FTR_GEN_SINGLETON, ///< "singleton" - take the value of a time-less signale - SingletonGenerator
+	FTR_GEN_SINGLETON, /// <<< "singleton" - take the value of a time-less signale
 	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator (special case of signleton)
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
@@ -275,21 +275,16 @@ public:
 */
 class AgeGenerator : public FeatureGenerator {
 public:
-
 	/// Is Age Directly given ?
 	bool directlyGiven;
 
+	string signalName;
 	/// Signal Id
 	int signalId;
 
 	// Constructor/Destructor
-	AgeGenerator() : FeatureGenerator() {
-		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven;
-		if (directlyGiven) req_signals.assign(1, "Age");  else req_signals.assign(1, "BYEAR");
-	}
-	AgeGenerator(int _signalId) : FeatureGenerator() {
-		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = _signalId; directlyGiven = med_rep_type.ageDirectlyGiven;
-		if (directlyGiven) req_signals.assign(1, "Age");  else req_signals.assign(1, "BYEAR");
+	AgeGenerator() {
+		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven; signalName = "BYEAR";
 	}
 	~AgeGenerator() {};
 
@@ -306,13 +301,14 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { if (directlyGiven) signalId = dict.id("Age");  else signalId = dict.id("BYEAR"); }
-	void set_required_signal_ids(MedDictionarySections& dict) {if (directlyGiven) req_signal_ids.assign(1, dict.id("Age"));  else req_signal_ids.assign(1, dict.id("BYEAR")); }
+	void set_signal_ids(MedDictionarySections& dict) {  signalId = dict.id(signalName); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights); }
+	int version() { return 1; }
+	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
+	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
+	virtual int init(map<string, string>& mapper);
 };
 
 /**
