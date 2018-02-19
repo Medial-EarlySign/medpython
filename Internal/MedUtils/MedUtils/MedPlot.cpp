@@ -1,4 +1,5 @@
 #include "MedPlot.h"
+#include "MedIO.h"
 #include <fstream>
 #include <ctime>
 #include <iostream>
@@ -378,6 +379,10 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 			++tot_obj;
 		}
 	double tot_false_labels = tot_obj - tot_true_labels;
+	if (tot_false_labels == 0 || tot_true_labels == 0) {
+		cerr << "only controls or cases are given." << endl;
+		throw logic_error("only controls or cases are given.\n");
+	}
 	pred_threshold = vector<float>((int)pred_indexes.size());
 	map<float, vector<int>>::iterator it = pred_indexes.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
@@ -489,7 +494,9 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		vector<map<float, float>> model_false_scores;
 		down_sample_graph(th_false);
 		model_false_scores.push_back(th_false);
-		createHtmlGraph(baseOut + separator() + modelNames[i] + "_False_Thresholds.html", model_false_scores,
+		string fname = modelNames[i];
+		fix_filename_chars(&fname);
+		createHtmlGraph(baseOut + separator() + fname + "_False_Thresholds.html", model_false_scores,
 			"False rate as function of thresholds", "Prediction Threshold score value", "False Positive Rate");
 	}
 	vector<string> data_titles(modelNames);
@@ -510,7 +517,9 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		for (size_t i = 0; i < y.size(); ++i) {
 			allData.clear();
 			allData.push_back(BuildHist(y[i]));
-			createHtmlGraph(baseOut + separator() + "y_labels_" + modelNames[i] + ".html", allData, "Y Labels", "Y",
+			string fname = modelNames[i];
+			fix_filename_chars(&fname);
+			createHtmlGraph(baseOut + separator() + "y_labels_" + fname + ".html", allData, "Y Labels", "Y",
 				"Count", {}, 0, "pie");
 		}
 }

@@ -127,7 +127,7 @@ int fix_path(const string& in, string& out) {
 			fprintf(stderr, "Converted path \'%s\' to \'%s\'\n", in.c_str(), out.c_str());
 			fflush(stderr);
 			return 0;
-		}	
+		}
 		// If Windows form is "D:\\..\\" transform to Linux
 		if (in.substr(1, 2) == ":\\") {
 			string drive(in.substr(0, 1));
@@ -277,3 +277,20 @@ int read_binary_data_prealloc(const string &fname, unsigned char *&data, unsigne
 	return 0;
 }
 
+string fix_filename_chars(string* s, char replace_char) {
+	string::iterator it;
+	for (it = s->begin(); it < s->end(); ++it) {
+		switch (*it) {
+		case '/':
+		case '\\':
+		case ':':
+		case '?':
+		case '"':
+		case '<':
+		case '>':
+		case '|':
+			*it = replace_char;
+		}
+	}
+	return *s;
+}

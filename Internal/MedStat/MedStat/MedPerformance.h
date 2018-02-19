@@ -149,7 +149,7 @@ double get_chi2_n_x_m(vector<int> &cnts, int n, int m);
 
 // AUC
 float get_preds_auc(vector<float> &preds, vector<float> &y);
-float get_preds_auc_q(const vector<float> &preds, const vector<float> &y);
+template<class T> float get_preds_auc_q(const vector<T> &preds, const vector<float> &y);
 
 // returns 4 counts a,b,c,d for the top 'size' percent of the data. a,b,c,d are:
 //              0    1
