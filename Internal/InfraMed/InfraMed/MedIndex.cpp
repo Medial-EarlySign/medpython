@@ -25,7 +25,7 @@ int MedBufferedFile::open(const string &fname, const int bsize)
 
 	inf = (ifstream *)new ifstream;
 	inf->open(name,ios::in | ios::binary);
-	if (!(*inf)) {
+	if (!(inf->is_open())) {
 		MERR("MedBufferedFile: open: Can't open file %s\n",name.c_str());
 		return -1;
 	}
@@ -55,12 +55,16 @@ int MedBufferedFile::open(const string &fname)
 //-----------------------------------------------------------
 void MedBufferedFile::close()
 {
-	if (inf->is_open())
-		inf->close();
-	if (buf != NULL)
-		delete [] buf;
-	if (inf != NULL)
+	if (buf != NULL) {
+		delete[] buf;
+		buf = NULL;
+	}
+	if (inf != NULL) {
+		if (inf->is_open())
+			inf->close();
 		delete inf;
+		inf = NULL;
+	}
 	buf_len = 0;
 }
 
