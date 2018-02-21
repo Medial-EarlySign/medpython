@@ -1,5 +1,6 @@
 #include "TQRF.h"
 
+
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -767,6 +768,7 @@ int TQRF_Tree::init_root_node()
 
 	nodes.push_back(root);
 
+	return 0;
 }
 
 //--------------------------------------------------------------------------------------------------------------------
@@ -774,8 +776,10 @@ int TQRF_Tree::init_root_node()
 int TQRF_Tree::get_next_node(int curr_node)
 {
 	for (int i=max(curr_node+1, 0); i<nodes.size(); i++)
-		if (nodes[i].state == TQRF_Node_State_Initiated)
+		if (nodes[i].state == TQRF_Node_State_Initiated) {
+			nodes[i].state = TQRF_Node_State_In_Progress;
 			return i;
+		}
 	return -1; // none found
 }
 
@@ -829,6 +833,157 @@ int TQRF_Tree::init_split_stats(vector<TQRF_Split_Stat *> &tqs)
 	return 0;
 }
 
+
+//--------------------------------------------------------------------------------------------------------------------
+// major stage in algorithm:
+// we finished the work on deciding if and how to split our node, and need to actually do it.
+// list of issues handled in this stage:
+// (1) close work on our node, wheather needed a split or not.
+// (2) add info from the splitting tqs into our node (distributions etc)
+// (3) split node if needed, create the new nodes.
+// (4) update indexes as needed
+// (5) decide what to do with missing values !!
+int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
+{
+	// 
+	// finish the work on current node
+	//
+	TQRF_Node &cnode = nodes[i_curr_node];
+	
+	if (i_best >= 0) {
+		
+		// We found a point to split the node
+		TQRF_Node Left, Right;
+
+		cnode.i_feat = i_best;
+		cnode.bound = _qfeat->q_to_val[i_best][q_best];
+
+		// need to calc node sizes, and general average in order to decide for missing value strategy
+		int n_missing = 0, n_left = 0, n_right = 0;
+		float sum_vals = 0;
+		for (int i=cnode.from_idx; i<=cnode.to_idx; i++) {
+			int idx = indexes[i];
+			int q = _qfeat->qx[i_best][idx];
+			if (q > 0) {
+				if (q <= q_best)
+					n_left++;
+				else
+					n_right++;
+				sum_vals += _qfeat->q_to_val[i_best][q];
+			}
+			else
+				n_missing++;
+		}
+
+		// decide missing val strategy
+		if (_params->missing_method == TQRF_MISSING_VALUE_LEFT) cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+		else if (_params->missing_method == TQRF_MISSING_VALUE_RAND_ALL) {
+			if (rand_1() < 0.5)
+				cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+			else
+				cnode.missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
+		}
+		else if (_params->missing_method == TQRF_MISSING_VALUE_LARGER_NODE || _params->missing_method == TQRF_MISSING_VALUE_MEDIAN) {
+			if (n_left >= n_right)
+				cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+			else
+				cnode.missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
+		}
+		else if (_params->missing_method == TQRF_MISSING_VALUE_MEAN) {
+			float node_avg = sum_vals / ((float)(n_right + n_left) + (float)1e-3);
+			if (node_avg <= cnode.bound)
+				cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+			else
+				cnode.missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
+		}
+		else if (_params->missing_method == TQRF_MISSING_VALUE_RAND_EACH_SAMPLE)
+			cnode.missing_direction = TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE;
+
+
+		// making the split , first we rearange indexes
+		int n_in_left = 0;
+		vector<int> left_inds, right_inds;
+		left_inds.reserve(cnode.size());
+		right_inds.reserve(cnode.size());
+		for (int i=cnode.from_idx; i<=cnode.to_idx; i++) {
+			int idx = indexes[i];
+			int q = _qfeat->qx[i_best][idx];
+			if (q > 0) {
+				if (q <= q_best)
+					left_inds.push_back(idx);
+				else
+					right_inds.push_back(idx);
+			}
+			else {
+				if (cnode.missing_direction == TQRF_MISSING_DIRECTION_LEFT) left_inds.push_back(idx);
+				else if (cnode.missing_direction == TQRF_MISSING_DIRECTION_RIGHT) right_inds.push_back(idx);
+				else  { // if (cnode.missing_direction == TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE) case ...
+					if (rand_1() < (float)0.5)
+						left_inds.push_back(idx);
+					else
+						right_inds.push_back(idx);
+				}
+			}
+		}
+		int curr_i = cnode.from_idx;
+		for (auto idx : left_inds) indexes[curr_i++] = idx;
+		for (auto idx : right_inds) indexes[curr_i++] = idx;
+		Left.from_idx = cnode.from_idx;
+		Left.to_idx = cnode.from_idx + (int)left_inds.size() - 1;
+		Right.from_idx = Left.to_idx + 1;
+		Right.to_idx = cnode.to_idx;
+
+		Left.depth = cnode.depth + 1;
+		Right.depth = cnode.depth + 1;
+
+		// we may be running in threads over nodes... hence we make sure the following part is protected
+#pragma omp critical
+		{
+			int n_nodes = (int)nodes.size();
+			
+			Left.node_idx = n_nodes;
+			Right.node_idx = n_nodes+1;
+
+			cnode.left_node = n_nodes;
+			cnode.right_node = n_nodes+1;
+			cnode.is_terminal = 0;
+			
+			nodes.push_back(Left);
+			nodes.push_back(Right);
+
+			if (_params->verbosity > 1) MLOG("TQRF: Tree %d Node %d ( s %d d %d ) : split: feat %d : q %d : qval %f : left %d (%d) , right %d (%d)\n", id, cnode.node_idx, cnode.size(), cnode.depth, i_best, q_best, cnode.bound, Left.node_idx, Left.size(), Right.node_idx, Right.size());
+		}
+	}
+
+	// we now have to finalize the work on cnode (current node) no matter if it was split or not.
+	// we need to make sure it has the needed counts etc in order to be able to give predictions
+	// plus we change its state
+
+	if (tree_type == TQRF_TREE_ENTROPY || tree_type == TQRF_TREE_LOGRANK) {
+
+		// we go over the y values for the indexes in our node and collect them for each time slice
+		cnode.time_categ_count.resize(_qfeat->n_time_slices, vector<int>(_qfeat->ncateg, 0));
+		for (int i=cnode.from_idx; i<cnode.to_idx; i++) {
+			int idx = indexes[i];
+			int c = (int)_qfeat->y[idx];
+			int t = _qfeat->last_time_slice[idx];
+			cnode.time_categ_count[t][c]++;
+		}
+		// reverse adding 0 (=control) categs
+		for (int t=_qfeat->n_time_slices-1; t>=0; t--)
+			cnode.time_categ_count[t][0] += cnode.time_categ_count[t+1][0];
+	}
+	else {
+		MTHROW_AND_ERR("TQRF::node_splitter(): tree_type %d doesn't know how to finalize nodes yet !!... sayonara...\n", tree_type);
+	}
+	if (cnode.depth >= _params->max_depth || cnode.size() <= _params->min_node)
+		cnode.is_terminal = 1;
+
+	cnode.state = TQRF_Node_State_Done;
+
+	return 0;
+}
+
 //--------------------------------------------------------------------------------------------------------------------
 // non threaded version
 // threading a specific tree is much more complex.... we have to do it over nodes.
@@ -878,9 +1033,7 @@ int TQRF_Tree::Train()
 			}
 
 
-		if (i_best >= 0) {
-			// we indeed found a valid split
-		}
+		node_splitter(i_curr_node, i_best, q_best);
 
 //		split_node();
 
