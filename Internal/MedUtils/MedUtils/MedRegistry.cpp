@@ -82,7 +82,7 @@ int get_value(MedRepository &rep, int pid, int sigCode) {
 	return gend;
 }
 
-void MedRegistry::create_registry(MedPidRepository &dataManager, const vector<int> &signalCodes) {
+void MedRegistry::create_registry(MedPidRepository &dataManager) {
 
 	MLOG_D("Creating registry...\n");
 
@@ -666,13 +666,13 @@ inline void init_list(const string &reg_path, vector<bool> &list) {
 	file.close();
 }
 
-void MedRegistryCodesList::init_lists(MedDictionarySections &dict, int dur_flag, int buffer_dur, bool takeOnlyFirst,
+void MedRegistryCodesList::init_lists(MedRepository &rep, int dur_flag, int buffer_dur, bool takeOnlyFirst,
 	const vector<string> *rc_sets, const string &skip_pid_file) {
 	if (rc_sets != NULL) {
-		int section_id = dict.section_id("RC");
-		dict.curr_section = section_id;
-		dict.default_section = section_id;
-		dict.prep_sets_lookup_table(section_id, *rc_sets, RCFlags);
+		int section_id = rep.dict.section_id("RC");
+		rep.dict.curr_section = section_id;
+		rep.dict.default_section = section_id;
+		rep.dict.prep_sets_lookup_table(section_id, *rc_sets, RCFlags);
 	}
 
 	duration_flag = dur_flag;
@@ -681,6 +681,8 @@ void MedRegistryCodesList::init_lists(MedDictionarySections &dict, int dur_flag,
 
 	if (!skip_pid_file.empty())
 		init_list(skip_pid_file, SkipPids);
+	signalCodes.clear();
+	signalCodes.push_back( rep.sigs.sid("RC") );
 }
 
 void MedRegistryCodesList::get_registry_records(int pid,

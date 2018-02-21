@@ -39,6 +39,7 @@ class MedRegistry : public SerializableObject
 {
 public:
 	vector<MedRegistryRecord> registry_records; ///< the registry record vector
+	vector<int> signalCodes; ///< The signalsCodes to fetch. make private
 
 	/// <summary>
 	/// Writes the file to text file in tab delimeted format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue
@@ -53,8 +54,11 @@ public:
 	/// Creates vector of registry using already initialized MedPidRepository with signals
 	/// in parallel manner for each patient
 	/// </summary>
-	void create_registry(MedPidRepository &dataManager, const vector<int> &signalCodes);
+	void create_registry(MedPidRepository &dataManager);
 
+	/// <summary>
+	/// calculates table statitics for interrsecting with registry of signal
+	/// </summary>
 	void calc_dependency_mem(const string &repository_path, int signalCode,
 		const string &signalHirerchyType, int ageBinValue, int time_window_from, int time_window_to,
 		MedSamplingStrategy &sampler,
@@ -86,7 +90,7 @@ public:
 	/// <summary>
 	/// The init function
 	/// </summary>
-	void init_lists(MedDictionarySections &dict, int dur_flag, int buffer_dur, bool takeOnlyFirst,
+	void init_lists(MedRepository &rep, int dur_flag, int buffer_dur, bool takeOnlyFirst,
 		const vector<string> *rc_sets = NULL, const string &skip_pid_file = "");
 private:
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
