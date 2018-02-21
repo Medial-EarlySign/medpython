@@ -66,12 +66,12 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 	if (rec.usvs.size() < 3) rec.usvs.resize(3);
 	
 	// Loop on versions of Creatinine
-	set<int> iteratorSignalIds = { Creatinine_sid,v_eGFR_sid };
+	set<int> iteratorSignalIds ={ Creatinine_sid,v_eGFR_sid };
 	versionIterator vit(rec, iteratorSignalIds);
 	int gender = -1, byear = -1;
 	int ethnicity = 0; // currently assuming 0, not having a signal for it
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	for (int iver = vit.init(); iver>=0; iver = vit.next_different()) {
 
 		rec.uget(Creatinine_sid, iver, rec.usvs[0]); // getting Creatinine into usv[0]
 	//	MLOG("###>>>> pid %d version %d Creatinine %d , %s :: len %d\n", rec.pid, iver, Creatinine_sid, rec.my_base_rep->sigs.name(Creatinine_sid).c_str(), rec.usvs[0].len);
@@ -112,5 +112,61 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 		}
 	}
 
+	
+	return 0;
+}
+
+
+//.......................................................................................
+int RepCalcSimpleSignals::_apply_calc_debug(PidDynamicRec& rec, vector<int>& time_points)
+{
+
+	// Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+
+	int v_debug_sid = V_ids[0];
+
+	// next must be in the same order of required signals in the calc2req_sigs map
+	int sid = sigs_ids[0];
+
+	UniversalSigVec usv;
+
+	// Loop on versions of Creatinine
+	set<int> iteratorSignalIds ={ sid , v_debug_sid };
+	versionIterator vit(rec, iteratorSignalIds);
+	int gender = -1, byear = -1;
+	int ethnicity = 0; // currently assuming 0, not having a signal for it
+
+	for (int iver = vit.init(); iver>=0; iver = vit.next_different()) {
+
+		rec.uget(sid, iver, usv); // getting sid into usv[0]
+		//MLOG("###>>>> calc_debug : v_sig %d : pid %d version %d sig  %d , %s :: len %d\n", v_debug_sid, rec.pid, iver, sid, rec.my_base_rep->sigs.name(sid).c_str(), usv.len);
+
+		int idx = 0;
+		if (usv.len > 1) {
+
+			vector<float> v_vals(usv.len-1);
+			vector<int> v_times(usv.len-1);
+
+			// calculating for each creatinine point up to the relevant time-point
+			for (int i = 1; i<usv.len; i++) {
+				if (rec.usvs[0].Time(i) > time_points[iver])
+					break;
+
+				v_times[idx] = usv.Time(i);
+				v_vals[idx] = usv.Val(i) - usv.Val(i-1);
+
+				idx++;
+			}
+
+			// pushing virtual data into rec (into orig version)
+			rec.set_version_universal_data(v_debug_sid, iver, &v_times[0], &v_vals[0], idx);
+		}
+	}
+
+	//rec.print_sigs({ "Creatinine","Hemoglobin","calc_eGFR","calc_debug" });
 	return 0;
 }

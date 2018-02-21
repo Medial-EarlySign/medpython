@@ -553,7 +553,8 @@ public:
 
 typedef enum {
 	CALC_TYPE_UNDEF, ///< undefined signal, nothing to do or error
-	CALC_TYPE_EGFR ///< calculates eGFR CKD_EPI signal in each point we have Creatinine , depends on Creatinine, GENDER, BYEAR
+	CALC_TYPE_EGFR, ///< calculates eGFR CKD_EPI signal in each point we have Creatinine , depends on Creatinine, GENDER, BYEAR
+	CALC_TYPE_DEBUG ///< just here to help when debugging: currently calculates delta Hemoglobin (relative to last test for each test above second)
 
 } RepCalcSimpleSignalsType;
 
@@ -619,6 +620,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		// calculators implementations + helpers
 		static float get_age(int byear, int date);
 		int _apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time_points);
+		int _apply_calc_debug(PidDynamicRec& rec, vector<int>& time_points);
 		static float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity = 0);
 
 		// serialization
@@ -631,23 +633,27 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		/// from a calculator name to a calculator enum type
 		const map<string, int> calc2type = { 
-			{"calc_eGFR", CALC_TYPE_EGFR} 
+			{"calc_eGFR", CALC_TYPE_EGFR},
+			{"calc_debug", CALC_TYPE_DEBUG}
 		};
 
 		/// from a calculator name to the list of required signals
 		const map<string, vector<string>> calc2req_sigs = { 
-			{"calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}} 
+			{ "calc_eGFR",{ "Creatinine", "GENDER", "BYEAR" } },
+			{ "calc_debug",{ "Hemoglobin" }}
 		};
 
 		/// from a calculator name to a list of pairs of virtual names and their types created by the calculator
 		/// the virtual names can be changed by the user (but have to be given in the SAME order as here)
 		const map<string, vector<pair<string, int>>> calc2virtual = {
-			{"calc_eGFR" , { {"calc_eGFR", T_DateVal} } }
+			{ "calc_eGFR" ,{ { "calc_eGFR", T_DateVal } } },
+			{ "calc_debug" ,{ { "calc_debug", T_DateVal } } }
 		};
 
 		/// from a calculator name to the default coefficients (parameters) of it. Can of course be empty for a non parametric calculator.
 		const map<string, vector<float>> calc2coeffs ={
-			{"calc_eGFR" , {}}
+			{ "calc_eGFR" ,{} },
+			{ "calc_debug" ,{}}
 		};
 
 		vector<int> V_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)

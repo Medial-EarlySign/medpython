@@ -1406,7 +1406,9 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 {
 	switch (calc_type) {
 
-		case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
+	case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
+
+	case CALC_TYPE_DEBUG: return _apply_calc_debug(rec, time_points);
 
 	}
 

@@ -290,7 +290,10 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	vector<int> req_signals;
 	for (int signalId : required_signal_ids)
 		req_signals.push_back(signalId);
-
+	for (auto &vsig : virtual_signals) {
+//		MLOG("GENERATE: vsig %s %d\n", vsig.first.c_str(), vsig.second);
+		req_signals.push_back(rep.sigs.sid(vsig.first));
+	}
 
 	// prepare for generation
 	for (auto& generator : _generators)

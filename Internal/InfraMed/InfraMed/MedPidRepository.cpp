@@ -872,6 +872,30 @@ int PidDynamicRec::print_all_vers(int sid)
 
 
 //..................................................................................................................
+int PidDynamicRec::print_all()
+{
+	for (auto sid : my_base_rep->sigs.signals_ids) {
+		int len;
+		get(sid, 0, len);
+		if (len > 0) 
+			print_ver(sid, 0);
+	}
+
+	return 0;
+}
+
+
+//..................................................................................................................
+int PidDynamicRec::print_sigs(const vector<string> &sigs)
+{
+	for (auto sig : sigs) {
+		int sid = my_base_rep->sigs.sid(sig);
+		print_ver(sid, 0);
+	}
+
+	return 0;
+}
+//..................................................................................................................
 int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids_to_use, int _n_versions)
 {
 	// clear what was before and init basics
@@ -905,7 +929,7 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 			PosLen pl;
 			pl.pos = data_len;
 			pl.len = len;
-			sv.insert(sid_serial, pl); 
+			sv.insert(sid_serial, pl);
 			data_len += slen;
 		}
 		else {
@@ -944,13 +968,9 @@ int versionIterator::init() {
 
 	// Last Version
 	iVersion = my_rec->get_n_versions() - 1;
+	jVersion = iVersion;
+	return next_different();
 
-	// Next Version
-	jVersion = iVersion - 1;
-	while (jVersion >= 0 && my_rec->versions_are_the_same(signalIds, iVersion, jVersion))
-		jVersion--;
-
-	return iVersion;
 }
 
 //..................................................................................................................

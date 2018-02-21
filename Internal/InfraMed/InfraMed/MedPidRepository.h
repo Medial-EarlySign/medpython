@@ -170,7 +170,9 @@ public:
 	// a few debug helpers
 	int print_ver(int sid, int ver);
 	int print_all_vers(int sid);
-
+	int print_all(); // print all len > 0 signals in all vers
+	int print_sigs(const vector<string> &sigs); // print some sigs we need (debugging tool)
+	
 	PidDynamicRec() { n_versions = 0; }
 
 	// next are options to init a PidDynamicRec from data that already resides in some part of a MedRepository that is already in memory.
