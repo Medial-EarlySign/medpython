@@ -19,7 +19,9 @@ float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variabl
 
 	// Define Model
 	MedModel my_model;
-	my_model.init_from_json_file_with_alterations("H:\\MR\\Libs\\Internal\\MedProcessTools\\Config_Examples\\model_json_version2_example.json", vector<string> {});
+	string init_file = vm["model_init_file"].as<string>();
+	vector<string> dummy;
+	my_model.init_from_json_file_with_alterations(init_file, dummy);
 
 	MedTimer timer;
 	timer.start();
@@ -100,7 +102,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("predictor_params", po::value<string>()->default_value(""), "predictor params")
 			("temp_file", po::value<string>(), "temporary file for serialization")
 			("direct_init", po::value<int>()->default_value(0), "temporary file for serialization")
-			("model_init_file", po::value<string>(), "init json file for entire model")
+			("model_init_file", po::value<string>()->default_value("H:\\MR\\Libs\\Internal\\MedProcessTools\\Config_Examples\\model_json_version2_example.json"), "init json file for entire model")
 			("nfolds", po::value<int>(), "number of cross-validation folds")
 			;
 
