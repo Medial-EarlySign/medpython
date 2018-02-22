@@ -297,6 +297,11 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 	int conflict_count = 0, done_count = 0;
 	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it) {
 		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
+		if (pid_to_ind.find(it->first) == pid_to_ind.end()) {
+			pid_to_ind[it->first] = (int)idSamples.size();
+			MedIdSamples pid_sample(it->first);
+			idSamples.push_back(pid_sample);
+		}
 		for (int age = start_age; age <= end_age; age += age_bin) {
 			//search for match in all regs:
 			int pred_start_date = DateAdd(all_pid_records->front()->start_date, -365 * (all_pid_records->front()->age - age)); //mark start date in age_bin to age

@@ -428,7 +428,7 @@ void getRecords(int pid, vector<UniversalSigVec> &signals, MedDictionarySections
 			continue;
 
 		vector<int> nums = func_parents(dict, s);
-		for (size_t k = 0; k < nums.size() && k < 3; ++k) //take till 3
+		for (size_t k = 1; k < nums.size() && k <= 3; ++k) //take till 3
 		{
 			if (nums[k] <= 0)
 				continue;
@@ -445,7 +445,7 @@ void getRecords(int pid, vector<UniversalSigVec> &signals, MedDictionarySections
 }
 
 /// Check if signal date intersect with registry record in time window: min_dur, duration
-bool date_intersection(int max_allowed_date, int min_allowed_date, int reg_start, int reg_end, int sig_date,
+bool date_intersection(int min_allowed_date, int max_allowed_date, int reg_start, int reg_end, int sig_date,
 	int time_window_from, int time_window_to) {
 	//Registry, Signal
 	int sig_start_date = DateAdd(sig_date, time_window_from);
@@ -456,67 +456,68 @@ bool date_intersection(int max_allowed_date, int min_allowed_date, int reg_start
 	return (sig_end_date >= reg_start) && (sig_start_date <= reg_end);
 }
 
-void update_loop(int pos, float ageBin, const MedRegistryRecord &sigRec,
-	map<float, map<float, vector<int>>> &signalToStats, map<float, map<float, int>> &val_seen_pid_pos) {
-	vector<int> cnts;
-	if ((pos == 3 && val_seen_pid_pos[sigRec.registry_value][ageBin] / 2 > 0) ||
-		(pos == 2 && val_seen_pid_pos[sigRec.registry_value][ageBin] % 2 > 0)) {
+void update_loop(int pos, int ageBin_index, float ageBin, const MedRegistryRecord &sigRec,
+	map<float, map<float, vector<int>>> &signalToStats, vector<unordered_map<float, int>> &val_seen_pid_pos) {
+	if ((pos == 3 && val_seen_pid_pos[ageBin_index][sigRec.registry_value] / 2 > 0) ||
+		(pos == 2 && val_seen_pid_pos[ageBin_index][sigRec.registry_value] % 2 > 0)) {
 		return; //continue;
 	}
-	val_seen_pid_pos[sigRec.registry_value][ageBin] += pos - 1;
-
+	val_seen_pid_pos[ageBin_index][sigRec.registry_value] += pos - 1;
 	//update cnts:
-#pragma omp critical
-	cnts = signalToStats[sigRec.registry_value][ageBin];
-	if (cnts.empty())
-		cnts.resize(4); // first time
-	++cnts[pos];
-#pragma omp critical
-	signalToStats[sigRec.registry_value][ageBin] = cnts;
-
+#pragma omp critical 
+	{
+		vector<int> *cnts = &(signalToStats[sigRec.registry_value][ageBin]);
+		if (cnts->empty())
+			cnts->resize(4); // first time
+		++(*cnts)[pos];
+	}
 }
 
-void MedRegistry::calc_dependency_mem(const string &repository_path, int signalCode,
+void MedRegistry::calc_signal_stats(const string &repository_path, int signalCode,
 	const string &signalHirerchyType, int ageBinValue, int time_window_from, int time_window_to,
 	MedSamplingStrategy &sampler,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats) {
 	MedRepository dataManager;
+	time_t start = time(NULL);
+	int duration;
 
 	vector<int> pids;
 	MedSamples incidence_samples;
-	map<string, string> sample_args = {
 
-	};
-
+	MLOG("Sampling by year for incidence stats...\n");
 	sampler.do_sample(registry_records, incidence_samples);
 	incidence_samples.get_ids(pids);
+	duration = (int)difftime(time(NULL), start);
+	MLOG("Done in %d seconds!\n", duration);
 
 	vector<int> readSignals;
 	readSignals.push_back(signalCode);
+	int curr_level = global_logger.levels[LOG_REP];
+	global_logger.levels[LOG_REP] = MAX_LOG_LEVEL;
 	dataManager.init(repository_path);
+	global_logger.levels[LOG_REP] = curr_level;
 	int genderCode = dataManager.sigs.sid("GENDER");
 	int bdateCode = dataManager.sigs.sid("BDATE");
 	readSignals.push_back(genderCode);
 	readSignals.push_back(bdateCode);
-	MLOG("Creating registry using repository %s\n", repository_path.c_str());
+	MLOG("Fetching signal %s using repository %s\n", dataManager.sigs.name(signalCode).c_str(),
+		repository_path.c_str());
 	if (dataManager.read_all(repository_path, pids, readSignals) < 0)
 		MTHROW_AND_ERR("error reading from repository %s\n", repository_path.c_str());
-	vector<int> all_pids = dataManager.pids;
+	vector<int> &all_pids = dataManager.pids;
 
-	time_t start = time(NULL);
-	int duration;
-
+	start = time(NULL);
 
 	unordered_map<int, vector<int>> registryPidToInds;
 	for (int i = 0; i < registry_records.size(); ++i)
 		registryPidToInds[registry_records[i].pid].push_back(i);
 
-	map<float, vector<int>> male_total_prevalence; //key=age
-	map<float, vector<int>> female_total_prevalence; //key=age
-	vector<map<float, unordered_set<int>>> male_pid_seen(2);
-	vector<map<float, unordered_set<int>>> female_pid_seen(2);
-	int unknown_gender = 0;
+	unordered_map<float, vector<int>> male_total_prevalence; //key=age
+	unordered_map<float, vector<int>> female_total_prevalence; //key=age
+	vector<unordered_map<float, unordered_set<int>>> male_pid_seen(2);
+	vector<unordered_map<float, unordered_set<int>>> female_pid_seen(2);
+	int unknown_gender = 0, min_age = 200, max_age = 0;
 	for (MedIdSamples idSample : incidence_samples.idSamples)
 		for (MedSample rec : idSample.samples)
 		{
@@ -528,8 +529,8 @@ void MedRegistry::calc_dependency_mem(const string &repository_path, int signalC
 				continue;
 			}
 			double curr_age = DateDiff(bdate, rec.time);
-
-			float ageBin = float(ageBinValue * round(curr_age / ageBinValue));
+			
+			float ageBin = float(ageBinValue * floor(curr_age / ageBinValue));
 			if (gend == 1) {
 				if (male_pid_seen[ind][ageBin].find(rec.id) == male_pid_seen[ind][ageBin].end()) {
 					male_pid_seen[ind][ageBin].insert(rec.id);
@@ -546,16 +547,20 @@ void MedRegistry::calc_dependency_mem(const string &repository_path, int signalC
 					++female_total_prevalence[ageBin][ind];
 				}
 			}
-
+			if (ageBin < min_age)
+				min_age = (int)ageBin;
+			if (ageBin > max_age)
+				max_age = (int)ageBin;
 		}
 
 	if (unknown_gender > 0)
 		MWARN("Has %d Unknown genders.\n", unknown_gender);
 
 	duration = (int)difftime(time(NULL), start);
-	MLOG("Done prep registry in %d seconds\n", duration);
+	MLOG("Done prep registry in %d seconds. min_age=%d, max_age=%d\n", duration, min_age, max_age);
 	start = time(NULL);
 
+	int age_bin_count = (max_age - min_age) / ageBinValue + 1;
 	time_t last_time_print = start;
 	int prog_pid = 0;
 #pragma omp parallel for schedule(dynamic,1)
@@ -579,7 +584,7 @@ void MedRegistry::calc_dependency_mem(const string &repository_path, int signalC
 		vector<MedRegistryRecord> signal_vals;
 		getRecords(pid, patientFile, dataManager.dict, signalHirerchyType, signal_vals);
 
-		map<float, map<float, int>> val_seen_pid_pos; //for value - and age bin (it's for same pid so gender doesnt change) - if i saw the value already
+		vector<unordered_map<float, int>> val_seen_pid_pos(age_bin_count); //for age bin index and value (it's for same pid so gender doesnt change) - if i saw the value already
 
 		for (MedRegistryRecord sigRec : signal_vals)
 		{
@@ -589,6 +594,7 @@ void MedRegistry::calc_dependency_mem(const string &repository_path, int signalC
 			int pos;
 			vector<int> cnts;
 			float ageBin;
+			int ageBin_index;
 			bool has_intr = false;
 			for (int indReg : *registry_inds)
 			{
@@ -597,7 +603,12 @@ void MedRegistry::calc_dependency_mem(const string &repository_path, int signalC
 					has_intr = true;//censored out - mark as done, no valid registry records for pid
 					break;
 				}
-				ageBin = float(ageBinValue * round(double(regRec.age) / ageBinValue));
+				ageBin = float(ageBinValue * floor(double(regRec.age) / ageBinValue));
+				ageBin_index = int((ageBin - min_age) / ageBinValue);
+				if (ageBin < min_age)
+					ageBin_index = 0;
+				if (ageBin > max_age)
+					ageBin_index = age_bin_count - 1;
 				pos = 2;
 
 				bool intersect = date_intersection(regRec.min_allowed_date, regRec.max_allowed_date,
@@ -608,9 +619,9 @@ void MedRegistry::calc_dependency_mem(const string &repository_path, int signalC
 					//pos += 1; //registry_value > 0 - otherwise skip this
 					pos += int(regRec.registry_value > 0);
 					if (gender == 1)
-						update_loop(pos, ageBin, sigRec, maleSignalToStats, val_seen_pid_pos);
+						update_loop(pos, ageBin_index, ageBin, sigRec, maleSignalToStats, val_seen_pid_pos);
 					else
-						update_loop(pos, ageBin, sigRec, femaleSignalToStats, val_seen_pid_pos);
+						update_loop(pos, ageBin_index, ageBin, sigRec, femaleSignalToStats, val_seen_pid_pos);
 				}
 
 			}
@@ -643,7 +654,8 @@ void MedRegistry::calc_dependency_mem(const string &repository_path, int signalC
 	}
 
 	duration = (int)difftime(time(NULL), start);
-	MLOG("Finished in %d seconds\n", (int)duration);
+	MLOG("Finished in %d seconds with %d records in males and %d records in females\n",
+		duration, (int)maleSignalToStats.size(), (int)femaleSignalToStats.size());
 
 }
 
@@ -667,7 +679,7 @@ inline void init_list(const string &reg_path, vector<bool> &list) {
 }
 
 void MedRegistryCodesList::init_lists(MedRepository &rep, int dur_flag, int buffer_dur, bool takeOnlyFirst,
-	const vector<string> *rc_sets, const string &skip_pid_file) {
+	int max_repo, const vector<string> *rc_sets, const string &skip_pid_file) {
 	if (rc_sets != NULL) {
 		int section_id = rep.dict.section_id("RC");
 		rep.dict.curr_section = section_id;
@@ -678,11 +690,12 @@ void MedRegistryCodesList::init_lists(MedRepository &rep, int dur_flag, int buff
 	duration_flag = dur_flag;
 	buffer_duration = buffer_dur;
 	take_only_first = takeOnlyFirst;
+	max_repo_date = max_repo;
 
 	if (!skip_pid_file.empty())
 		init_list(skip_pid_file, SkipPids);
 	signalCodes.clear();
-	signalCodes.push_back( rep.sigs.sid("RC") );
+	signalCodes.push_back(rep.sigs.sid("RC"));
 }
 
 void MedRegistryCodesList::get_registry_records(int pid,
@@ -692,7 +705,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	if (signal.len <= 0)
 		return;
 	int start_date = signal.Date(0);
-	for (int i = 1; i < signal.len && start_date <= 0; ++i)
+	for (int i = 1; i < signal.len && start_date < bdate; ++i)
 		start_date = signal.Date(i); //finds first legal date
 
 	int min_date = DateAdd(start_date, 365);
@@ -701,11 +714,15 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	r.pid = pid;
 	r.min_allowed_date = min_date; //at least 1 year data
 	r.start_date = min_date;
-	r.age = -1; //at least 1 year
+	r.age = DateDiff(bdate, r.start_date); 
 	r.registry_value = 0;
 
+	int last_date = start_date;
 	for (int i = 0; i < signal.len; ++i)
 	{
+		if (signal.Date(i) > max_repo_date)
+			break;
+		last_date = signal.Date(i);
 		if (signal.Val(i) > 0 && RCFlags[(int)signal.Val(i)]) {
 			//flush buffer
 			int last_date = DateAdd(signal.Date(i), -buffer_duration);
@@ -748,13 +765,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			r.min_allowed_date = start_date;
 			r.registry_value = 0;
 			r.start_date = start_date;
-			r.age = -1;
+			r.age = DateDiff(bdate, r.start_date);
 			--i; //return to previous one...
 		}
 	}
 
-	int last_date = DateAdd(signal.Date(signal.len - 1), -buffer_duration);
 	r.end_date = last_date;
+	last_date = DateAdd(last_date, -buffer_duration);
 	r.max_allowed_date = last_date;
 	if (r.end_date > r.start_date)
 		results.push_back(r);

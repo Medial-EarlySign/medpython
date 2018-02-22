@@ -58,7 +58,7 @@ public:
 	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
 	/// </summary>
-	void calc_dependency_mem(const string &repository_path, int signalCode,
+	void calc_signal_stats(const string &repository_path, int signalCode,
 		const string &signalHirerchyType, int ageBinValue, int time_window_from, int time_window_to,
 		MedSamplingStrategy &sampler,
 		map<float, map<float, vector<int>>> &maleSignalToStats,
@@ -87,12 +87,13 @@ public:
 	int duration_flag; ///< the duration for each positive to merge time ranges
 	int buffer_duration; ///< a buffer duration between positive to negative
 	bool take_only_first; ///< if True will take only first occournce
+	int max_repo_date; ///< the maximal date for the repository
 
 	/// <summary>
 	/// The init function
 	/// </summary>
 	void init_lists(MedRepository &rep, int dur_flag, int buffer_dur, bool takeOnlyFirst,
-		const vector<string> *rc_sets = NULL, const string &skip_pid_file = "");
+		int max_repo, const vector<string> *rc_sets = NULL, const string &skip_pid_file = "");
 private:
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
 };
