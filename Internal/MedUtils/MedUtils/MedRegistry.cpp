@@ -379,7 +379,7 @@ string get_readcode_code(MedDictionarySections &dict, int id, string(*filterCode
 	return res;
 }
 
-void getRecords(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
+void MedRegistry::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
 	const string &signalHirerchyType,
 	vector<MedRegistryRecord> &res) {
 	UniversalSigVec &signalVal = signals[0];
@@ -582,7 +582,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 		dataManager.uget(pid, signalCode, patientFile[0]);
 
 		vector<MedRegistryRecord> signal_vals;
-		getRecords(pid, patientFile, dataManager.dict, signalHirerchyType, signal_vals);
+		getRecords_Hir(pid, patientFile, dataManager.dict, signalHirerchyType, signal_vals);
 
 		vector<unordered_map<float, int>> val_seen_pid_pos(age_bin_count); //for age bin index and value (it's for same pid so gender doesnt change) - if i saw the value already
 
@@ -714,7 +714,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	r.pid = pid;
 	r.min_allowed_date = min_date; //at least 1 year data
 	r.start_date = min_date;
-	r.age = DateDiff(bdate, r.start_date); 
+	r.age = int(DateDiff(bdate, r.start_date)); 
 	r.registry_value = 0;
 
 	int last_date = start_date;
@@ -765,7 +765,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			r.min_allowed_date = start_date;
 			r.registry_value = 0;
 			r.start_date = start_date;
-			r.age = DateDiff(bdate, r.start_date);
+			r.age = int(DateDiff(bdate, r.start_date));
 			--i; //return to previous one...
 		}
 	}

@@ -64,6 +64,11 @@ public:
 		map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats);
 
+	///Getting signal with hirarchy options for each siganl
+	static void getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
+		const string &signalHirerchyType,
+		vector<MedRegistryRecord> &res);
+
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
 	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
