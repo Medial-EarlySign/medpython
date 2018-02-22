@@ -39,7 +39,6 @@ class MedRegistry : public SerializableObject
 {
 public:
 	vector<MedRegistryRecord> registry_records; ///< the registry record vector
-	vector<int> signalCodes; ///< The signalsCodes to fetch. make private
 
 	/// <summary>
 	/// Writes the file to text file in tab delimeted format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue
@@ -66,6 +65,8 @@ public:
 		map<float, map<float, vector<int>>> &femaleSignalToStats);
 
 	ADD_SERIALIZATION_FUNCS(registry_records)
+protected:
+	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
 private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
