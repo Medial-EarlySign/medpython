@@ -241,6 +241,11 @@ public:
 	ADD_SERIALIZATION_FUNCS(param_name, min_range, max_range)
 };
 
+struct ROC_And_Filter_Params {
+	ROC_Params *roc_params;
+	vector<Filter_Param> *filter;
+};
+
 //Infra
 ///Function which recieves Lazy_Iterator and the thread num for iterating the predictions and labels.
 /// it also recieves function_params which are additional arguments for the function (can be working points

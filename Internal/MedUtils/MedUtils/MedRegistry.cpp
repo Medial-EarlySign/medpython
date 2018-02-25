@@ -485,7 +485,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	vector<int> pids;
 	MedSamples incidence_samples;
 
-	MLOG("Sampling by year for incidence stats...\n");
+	MLOG("Sampling for incidence stats...\n");
 	sampler.do_sample(registry_records, incidence_samples);
 	incidence_samples.get_ids(pids);
 	duration = (int)difftime(time(NULL), start);
@@ -529,7 +529,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 				continue;
 			}
 			double curr_age = DateDiff(bdate, rec.time);
-			
+
 			float ageBin = float(ageBinValue * floor(curr_age / ageBinValue));
 			if (gend == 1) {
 				if (male_pid_seen[ind][ageBin].find(rec.id) == male_pid_seen[ind][ageBin].end()) {
@@ -603,12 +603,17 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					has_intr = true;//censored out - mark as done, no valid registry records for pid
 					break;
 				}
-				ageBin = float(ageBinValue * floor(double(regRec.age) / ageBinValue));
+				if (regRec.age != -1)
+					ageBin = float(ageBinValue * floor(double(regRec.age) / ageBinValue));
+				else
+					ageBin = float(ageBinValue * floor(double(DateDiff(BDate, sigRec.start_date)) / ageBinValue));
 				ageBin_index = int((ageBin - min_age) / ageBinValue);
-				if (ageBin < min_age)
+				if (ageBin < min_age || ageBin > max_age)
+					continue; //skip out of range...
+				/*if (ageBin < min_age)
 					ageBin_index = 0;
 				if (ageBin > max_age)
-					ageBin_index = age_bin_count - 1;
+					ageBin_index = age_bin_count - 1;*/
 				pos = 2;
 
 				bool intersect = date_intersection(regRec.min_allowed_date, regRec.max_allowed_date,
@@ -714,7 +719,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	r.pid = pid;
 	r.min_allowed_date = min_date; //at least 1 year data
 	r.start_date = min_date;
-	r.age = int(DateDiff(bdate, r.start_date)); 
+	r.age = int(DateDiff(bdate, r.start_date));
 	r.registry_value = 0;
 
 	int last_date = start_date;
