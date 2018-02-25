@@ -425,6 +425,101 @@ float RepCalcSimpleSignals::calc_hosp_qSOFA(float gcs, float sBp, float resp, in
 //.......................................................................................
 
 int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRec& rec, vector<int>& time_points,
+	float(*calcFunc)(const vector<pair<int, float> >&, int, const vector<float>&)) {
+
+	//Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+
+	//sid for the calculated signal
+	int v_sid = V_ids[0];
+
+	//length of calculated data
+	size_t len = time_points.size();
+
+	//handle abnormal case
+	if (len == 0)
+		return -1;
+
+	//sigs_ids is a vector containing the sids of the components in the right order
+	size_t nComponents = sigs_ids.size();
+
+	//rec should contain space for the required sids
+	if (rec.usvs.size() < nComponents)
+		rec.usvs.resize(nComponents);
+
+	// Loop on versions
+	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
+	versionIterator vit(rec, iteratorSignalIds);
+
+	auto it = calc2req_sigs.find(V_names[0]);
+	if (it == calc2req_sigs.end()) //unexpected
+		return -1;
+
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+		//componentData will hold the data of component signals after alignment to required time_points
+		//for each time point we take the most recent data or missing_data otherwise.
+		vector<vector<pair<int, float> > > componentData(nComponents);
+		vector<int> curTimes; //times of data for current component
+		vector<float> curVals; //(processed) vals of data for current component	
+
+		vector<int> iverTimes(time_points.begin(), time_points.begin() + iver + 1);
+
+		//get component data
+		for (size_t i = 0; i < nComponents; ++i) {
+			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+			curTimes.clear();
+			curVals.clear();
+
+			process_hosp_signal((it->second)[i], rec.usvs[i], curTimes, curVals);
+
+			int curLen = (int)curTimes.size();
+
+			vector<size_t> indices;
+			find_sorted_vec_in_sorted_vec(iverTimes, curTimes, indices);
+
+			//get the values from the correct indices
+			componentData[i].reserve(len);
+
+			if (curTimes.empty())
+				componentData[i].insert(componentData[i].begin(), iver + 1, pair<int, float>(beforeEverything(), badValue()));
+			else {
+				for (int j = 0; j <= iver; ++j) {
+					size_t curInd = indices[j];
+					//curInd is the place we would add time_points[j] in curTimes; 0 means at the beginning
+					if (curInd == 0)
+						componentData[i].push_back(pair<int, float>(beforeEverything(), badValue()));
+					else
+						componentData[i].push_back(pair<int, float>(curTimes[(int)curInd - 1], curVals[(int)curInd - 1]));
+				}
+			}
+		}
+
+		//we now have a matrix of data in componentData. For a given j, componentData[i][j] represent values in time_points[j]
+		vector<pair<int, float> > inValues(nComponents); //for a given time, the inputs
+		vector<float> calcValues(iver + 1); //for all times, the calculated values
+
+		for (int j = 0; j <= iver; ++j) {
+			for (int i = 0; i < nComponents; ++i)
+				inValues[i] = componentData[i][j];
+
+			float val = calcFunc(inValues, time_points[j], coeff);
+			calcValues[j] = val;
+		}
+
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
+	}
+
+	return 0;
+}
+
+
+//.......................................................................................
+/*
+int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRec& rec, vector<int>& time_points,
 	float(*calcFunc)(const vector<pair<int,float> >&, int, const vector<float>&)) {
 
 	//sid for the calculated signal
@@ -508,11 +603,17 @@ int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRe
 
 	return 0;
 }
-
+*/
 int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vector<int>& time_points) {
 
+	//Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+
 	int window = 1440; //24 hours
-	
+
 	//sid for the calculated signal
 	int v_sid = V_ids[0];
 
@@ -526,131 +627,132 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 	if (rec.usvs.size() < 1)
 		rec.usvs.resize(1);
 
-	rec.uget(sigs_ids[0], 0, rec.usvs[0]);
-	int origLen = rec.usvs[0].len;
+	// Loop on versions
+	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
+	versionIterator vit(rec, iteratorSignalIds);
 
-	//data will hold pairs of end time and val.
-	vector<pair<int, float> > data; data.reserve(origLen);
+	auto it = calc2req_sigs.find(V_names[0]);
+	if (it == calc2req_sigs.end()) //unexpected
+		return -1;
 
-	//get signal data
-	//if end time < start time, we ignore the point. end time = start time is ok
-	//negative values are turned to 0
-	for (int i = 0; i < origLen; ++i) {
-		int startTime = rec.usvs[0].Time(i, 0);
-		int endTime = rec.usvs[0].Time(i, 1);
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+		rec.uget(sigs_ids[0], iver, rec.usvs[0]);
+		int origLen = rec.usvs[0].len;
 
-		if (endTime < startTime)
+		//data will hold pairs of end time and val.
+		vector<pair<int, float> > data; data.reserve(origLen);
+
+		//get signal data
+		//if end time < start time, we ignore the point. end time = start time is ok
+		//negative values are turned to 0
+		for (int i = 0; i < origLen; ++i) {
+			int startTime = rec.usvs[0].Time(i, 0);
+			int endTime = rec.usvs[0].Time(i, 1);
+
+			if (endTime < startTime)
+				continue;
+
+			float val = max(0.0F, rec.usvs[0].Val(i, 0));
+
+			data.push_back(pair<int, float>(endTime, val));
+		}
+
+		//the raw signal is understood as sum total over a time period; however, "spikes" are allowed, namely, 
+		//a time range of size 0. In addition, overlaps are allowed. Important: only the end times are originally provided, so only cumulative
+		//quantities can be calculated.(signals with the same end time have their values summed.)
+		//we don't expect the times to be sorted, so sorting is required.
+		//Note that the first end time records an amount that accumulated since nobody knows when. 
+
+		//sort by end time
+		std::sort(data.begin(), data.end());
+
+		//skip first time (<data> may also be empty, or length 1, so loop could be ignored)
+		int index = -1;
+		for (int i = 1; i < data.size(); ++i) {
+			if (data[i].first != data[i - 1].first) {
+				index = i;
+				break;
+			}
+		}
+
+		//handle the case where all have the same, first, time (including when data.size()<=1)
+		if (index == -1) {
+			vector<float> calcValues(1, badValue());
+			// pushing virtual data into rec (into orig version)
+			rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
 			continue;
-
-		float val = max(0.0F, rec.usvs[0].Val(i, 0));
-
-		data.push_back(pair<int, float>(endTime, val));
-	}
-
-	//the raw signal is understood as sum total over a time period; however, "spikes" are allowed, namely, 
-	//a time range of size 0. In addition, overlaps are allowed. Important: only the end times are originally provided, so only cumulative
-	//quantities can be calculated.(signals with the same end time have their values summed.)
-	//we don't expect the times to be sorted, so sorting is required.
-	//Note that the first end time records an amount that accumulated since nobody knows when. 
-
-	//sort by end time
-	std::sort(data.begin(), data.end());
-
-	//skip first time (<data> may also be empty, or length 1, so loop could be ignored)
-	int index = -1;
-	for (int i = 1; i < data.size(); ++i) {
-		if (data[i].first != data[i - 1].first) {
-			index = i;
-			break;
 		}
-	}
 
-	//handle the case where all have the same, first, time (including when data.size()<=1)
-	if (index == -1) {
-		vector<float> calcValues(1, badValue());
-		// pushing virtual data into rec (into orig version)
-		rec.set_version_universal_data(v_sid, 0, &time_points[0], &calcValues[0], (int)len);
-		// pointing all versions to the 0 one
-		for (int ver = 1; ver<rec.get_n_versions(); ver++)
-			rec.point_version_to(v_sid, 0, ver);
+		//at this point, data.size()>1, index points to the second unique end time
 
-		return 0;
-	}
+		//vector to hold the cumulative amount for each end time. 
+		vector<float> cumVals; cumVals.reserve(data.size());
+		vector<int> times; times.reserve(data.size());
 
-	//at this point, data.size()>1, index points to the second unique end time
+		float curSum = data[index - 1].second;
+		cumVals.push_back(curSum); //the actual amount in the first time is immaterial
+		times.push_back(data[index - 1].first);
 
-	//vector to hold the cumulative amount for each end time. 
-	vector<float> cumVals; cumVals.reserve(data.size());
-	vector<int> times; times.reserve(data.size());
-
-	float curSum = data[index - 1].second;
-	cumVals.push_back(curSum); //the actual amount in the first time is immaterial
-	times.push_back(data[index - 1].first);
-	
-	for (int i = index; i < data.size(); ++i) {
-		curSum += data[i].second;
-		if (data[i].first != data[i - 1].first) 
-			cumVals.push_back(curSum);
+		for (int i = index; i < data.size(); ++i) {
+			curSum += data[i].second;
+			if (data[i].first != data[i - 1].first)
+				cumVals.push_back(curSum);
 			times.push_back(data[i].first);
-	}
-
-	// given two sorted vector, find where the values of <search> would fit in <in>
-	// <indices> will hold the indices: each index is the place in <in> before which the entry is placed, and in.size() if the entry is 
-	// placed after the last place
-	// returns 0 if <in> is not empty, -1 otherwise
-
-	//to estimate the cumulative amount over a window we do the following:
-	//if the first point is between points in <times>, we will interpolate the cumulative amount
-	//for the second point, we take the latest point and not interpolate so as not to have a leak.
-
-	vector<size_t> indicesWindowStart, indicesWindowEnd;
-
-	find_sorted_vec_in_sorted_vec(time_points, times, indicesWindowEnd);
-
-	//find were the beginning points of windows would be
-	//if the end is before all times, then so will the beginning be, and that window will be discarded later
-	//otherwise, <window> time before the last seen actual time
-	vector<int> timePointsMinusWindow; timePointsMinusWindow.reserve(len);
-	for (int i = 0; i < len; ++i) 
-		timePointsMinusWindow.push_back(indicesWindowEnd[i] == 0 ? -1 : times[indicesWindowEnd[i]-1] - window);
-
-	find_sorted_vec_in_sorted_vec(timePointsMinusWindow, times, indicesWindowStart);
-
-	//to hold the find calcluate values
-	vector<float> calcValues; calcValues.reserve(len);
-
-	for (int i = 0; i < indicesWindowStart.size(); ++i) {
-		if (indicesWindowStart[i] == 0)
-			calcValues.push_back(badValue());
-		else {
-			//interpolate 
-			float coef = (float)(timePointsMinusWindow[i] - times[indicesWindowStart[i]-1]) / (float)(times[indicesWindowEnd[i] - 1] - times[indicesWindowStart[i] - 1]);
-			float val = (1.0F-coef)*cumVals[indicesWindowStart[i] - 1] + coef*cumVals[indicesWindowEnd[i] - 1];
-			calcValues.push_back(val);
 		}
+
+		// given two sorted vector, find where the values of <search> would fit in <in>
+		// <indices> will hold the indices: each index is the place in <in> before which the entry is placed, and in.size() if the entry is 
+		// placed after the last place
+		// returns 0 if <in> is not empty, -1 otherwise
+
+		//to estimate the cumulative amount over a window we do the following:
+		//if the first point is between points in <times>, we will interpolate the cumulative amount
+		//for the second point, we take the latest point and not interpolate so as not to have a leak.
+
+		vector<size_t> indicesWindowStart, indicesWindowEnd;
+
+		find_sorted_vec_in_sorted_vec(time_points, times, indicesWindowEnd);
+
+		//find were the beginning points of windows would be
+		//if the end is before all times, then so will the beginning be, and that window will be discarded later
+		//otherwise, <window> time before the last seen actual time
+		vector<int> timePointsMinusWindow; timePointsMinusWindow.reserve(len);
+		for (int i = 0; i < len; ++i)
+			timePointsMinusWindow.push_back(indicesWindowEnd[i] == 0 ? -1 : times[indicesWindowEnd[i] - 1] - window);
+
+		find_sorted_vec_in_sorted_vec(timePointsMinusWindow, times, indicesWindowStart);
+
+		//to hold the find calcluate values
+		vector<float> calcValues; calcValues.reserve(len);
+
+		for (int i = 0; i < indicesWindowStart.size(); ++i) {
+			if (indicesWindowStart[i] == 0)
+				calcValues.push_back(badValue());
+			else {
+				//interpolate 
+				float coef = (float)(timePointsMinusWindow[i] - times[indicesWindowStart[i] - 1]) / (float)(times[indicesWindowEnd[i] - 1] - times[indicesWindowStart[i] - 1]);
+				float val = (1.0F - coef)*cumVals[indicesWindowStart[i] - 1] + coef*cumVals[indicesWindowEnd[i] - 1];
+				calcValues.push_back(val);
+			}
+		}
+
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
 	}
-	
-	// pushing virtual data into rec (into orig version)
-	rec.set_version_universal_data(v_sid, 0, &time_points[0], &calcValues[0], (int)len);
-	// pointing all versions to the 0 one
-	for (int ver = 1; ver<rec.get_n_versions(); ver++)
-		rec.point_version_to(v_sid, 0, ver);
 
 	return 0;
 }
-
 
 //.......................................................................................
 
 int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, 
 													 float (*calcFunc)(const vector<float>&, const vector<float>&)) {
 	
-	//----------- new - Check that we have the correct number of dynamic-versions : one per time-point
+	//Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
 	}
-	//-----------
 
 	//sid for the calculated signal
 	int v_sid = V_ids[0]; 
@@ -669,119 +771,70 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 	if (rec.usvs.size() < nComponents)
 		rec.usvs.resize(nComponents);
 
-	//componentData will hold the data of component signals after alignment to required time_points
-	//for each time point we take the most recent data or missing_data otherwise.
-	vector<vector<float> > componentData(nComponents);
-	vector<int> curTimes; //times of data for current component
-	vector<float> curVals; //(processed) vals of data for current component
+	// Loop on versions
+	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
+	versionIterator vit(rec, iteratorSignalIds);
 
 	auto it = calc2req_sigs.find(V_names[0]);
 	if (it == calc2req_sigs.end()) //unexpected
 		return -1;
 
-	//get component data
-	for (size_t i = 0; i < nComponents; ++i) {
-		rec.uget(sigs_ids[i], 0, rec.usvs[i]);
-		curTimes.clear();
-		curVals.clear();
-
-		process_hosp_signal((it->second)[i], rec.usvs[i], curTimes, curVals);
-
-		int curLen = (int)curTimes.size();
-
-		vector<size_t> indices;
-		find_sorted_vec_in_sorted_vec(time_points, curTimes, indices);
-
-		//get the values from the correct indices
-		componentData[i].reserve(len);
-
-		if (curTimes.empty()) 
-			componentData[i].insert(componentData[i].begin(), time_points.size(), badValue());
-		else {
-			for (int j = 0; j < len; ++j) {
-				size_t curInd = indices[j];
-				//curInd is the place we would add time_points[j] in curTimes; 0 means at the beginning
-				if (curInd == 0)
-					componentData[i].push_back(badValue());
-				else
-					componentData[i].push_back(curVals[(int)curInd - 1]);
-			}
-		}
-	}
-
-	//we now have a matrix of data in componentData. For a given j, componentData[i][j] represent values in time_points[j]
-	vector<float> inValues(nComponents); //for a given time, the inputs
-	vector<float> calcValues(len); //for all times, the calculated values
-
-	for (int j = 0; j < len; ++j) {
-		for (int i = 0; i < nComponents; ++i) 
-			inValues[i] = componentData[i][j];
-
-		float val = calcFunc(inValues, coeff);
-		calcValues[j] = val;
-	}
-	
-	// pushing virtual data into rec (into orig version)
-	rec.set_version_universal_data(v_sid, 0, &time_points[0], &calcValues[0], (int)len);	
-
-	// pointing all versions to the 0 one
-	for (int ver = 1; ver<rec.get_n_versions(); ver++)
-		rec.point_version_to(v_sid, 0, ver);
-
-	return 0;
-
-
-	//===========================
-	// Check that we have the correct number of dynamic-versions : one per time-point
-	if (time_points.size() != rec.get_n_versions()) {
-		MERR("nversions mismatch\n");
-		return -1;
-	}
-
-	int v_debug_sid = V_ids[0];
-
-	// next must be in the same order of required signals in the calc2req_sigs map
-	int sid = sigs_ids[0];
-
-	UniversalSigVec usv;
-
-	// Loop on versions of Creatinine
-	set<int> iteratorSignalIds = { sid , v_debug_sid };
-	versionIterator vit(rec, iteratorSignalIds);
-	int gender = -1, byear = -1;
-	int ethnicity = 0; // currently assuming 0, not having a signal for it
-
 	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+		//componentData will hold the data of component signals after alignment to required time_points
+		//for each time point we take the most recent data or missing_data otherwise.
+		vector<vector<float> > componentData(nComponents);
+		vector<int> curTimes; //times of data for current component
+		vector<float> curVals; //(processed) vals of data for current component	
 
-		rec.uget(sid, iver, usv); // getting sid into usv[0]
-								  //MLOG("###>>>> calc_debug : v_sig %d : pid %d version %d sig  %d , %s :: len %d\n", v_debug_sid, rec.pid, iver, sid, rec.my_base_rep->sigs.name(sid).c_str(), usv.len);
+		vector<int> iverTimes(time_points.begin(), time_points.begin() + iver + 1);
 
-		int idx = 0;
-		if (usv.len > 1) {
+		//get component data
+		for (size_t i = 0; i < nComponents; ++i) {
+			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+			curTimes.clear();
+			curVals.clear();
 
-			vector<float> v_vals(usv.len - 1);
-			vector<int> v_times(usv.len - 1);
+			process_hosp_signal((it->second)[i], rec.usvs[i], curTimes, curVals);
 
-			// calculating for each creatinine point up to the relevant time-point
-			for (int i = 1; i<usv.len; i++) {
-				if (rec.usvs[0].Time(i) > time_points[iver])
-					break;
+			int curLen = (int)curTimes.size();
 
-				v_times[idx] = usv.Time(i);
-				v_vals[idx] = usv.Val(i) - usv.Val(i - 1);
+			vector<size_t> indices;
+			find_sorted_vec_in_sorted_vec(iverTimes, curTimes, indices);
 
-				idx++;
+			//get the values from the correct indices
+			componentData[i].reserve(len);
+
+			if (curTimes.empty())
+				componentData[i].insert(componentData[i].begin(), iver + 1, badValue());
+			else {
+				for (int j = 0; j <= iver; ++j) {
+					size_t curInd = indices[j];
+					//curInd is the place we would add time_points[j] in curTimes; 0 means at the beginning
+					if (curInd == 0)
+						componentData[i].push_back(badValue());
+					else
+						componentData[i].push_back(curVals[(int)curInd - 1]);
+				}
 			}
-
-			// pushing virtual data into rec (into orig version)
-			rec.set_version_universal_data(v_debug_sid, iver, &v_times[0], &v_vals[0], idx);
 		}
+
+		//we now have a matrix of data in componentData. For a given j, componentData[i][j] represent values in time_points[j]
+		vector<float> inValues(nComponents); //for a given time, the inputs
+		vector<float> calcValues(iver + 1); //for all times, the calculated values
+
+		for (int j = 0; j <= iver; ++j) {
+			for (int i = 0; i < nComponents; ++i)
+				inValues[i] = componentData[i][j];
+
+			float val = calcFunc(inValues, coeff);
+			calcValues[j] = val;
+		}
+
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
 	}
 
-	//rec.print_sigs({ "Creatinine","Hemoglobin","calc_eGFR","calc_debug" });
 	return 0;
-
-		//========================
 }
 
 //.......................................................................................
