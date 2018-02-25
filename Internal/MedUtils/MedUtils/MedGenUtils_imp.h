@@ -45,6 +45,82 @@ template <class T> int get_vec_ndiff_vals(vector<T> &v)
 	return ((int)m.size());
 }
 
+// given two sorted vectors, where <in> has unique entries, find where the values of <search> would fit in <in>
+// if a searched entry is found exactily in <in> it will be considered to fit after the equal entry in <in>
+template <typename T> int find_sorted_vec_in_sorted_vec(const vector<T> &search, const vector<T> &in, vector<size_t>& indices) {
+	indices.clear();
+
+	if (in.empty())
+		return -1;
+
+	if (search.empty())
+		return 0;
+
+	indices.resize(search.size());
+
+	//at this point search.size() >= 1
+	
+	//search_start, search_end - range of indices in <search> to handle
+	int search_start = (int)(search.size()); 
+	int search_end = 0;
+
+	//handle first search entries that fit at the beginning of <in>
+	for (int j = 0; j < search.size(); ++j) {
+		if (search[j] < in[0]) {
+			indices[j] = 0;
+		}
+		else {
+			search_start = j;
+			break;
+		}
+	}
+
+	for (int j = (int)(search.size()) - 1; j >= search_start; --j) {
+		if (search[j] >= in.back()) {
+			indices[j] = in.size();
+		}
+		else {
+			search_end = j;
+			break;
+		}
+	}
+
+	//note that for search_start =< j <= search_end we have search[j] in [in[0],in.back())
+	
+	if (search_start > search_end)
+		return 0;	
+
+	int start = 0;
+
+	for (int j = search_start; j <= search_end; ++j) {
+		T e = search[j];
+
+		int end = (int)(in.size()) - 1;
+
+		//we will always have an invariant: e is in [in[start],in[end])
+
+		while (1) {			
+			if (start >= end - 1) {
+				//cout << indices.size() << " " << j << " " << start << " " << end << " " << search_start  << " " << search_end << endl;
+				indices[j] = (size_t)end;
+				break;
+			}
+
+			int mid = (start + end) / 2;
+
+			if (e >= in[mid]) {
+				start = mid;				
+			}
+			else {
+				end = mid;
+			}
+		}
+	}
+
+	return 0;
+}
+
+
 //................................................................................................
 // generates an arithmetic sequence
 template<typename T> int sequence(T start, T finish, T step, vector<T>& seq, bool isForward) {
