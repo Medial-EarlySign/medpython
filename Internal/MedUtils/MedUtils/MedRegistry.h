@@ -32,6 +32,8 @@ public:
 	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, min_allowed_date, max_allowed_date, age, registry_value)
 };
 
+static unordered_set<float> default_empty_set;
+
 /**
 * A class that holds all registry records on all patients
 */
@@ -62,7 +64,8 @@ public:
 		const string &signalHirerchyType, int ageBinValue, int time_window_from, int time_window_to,
 		MedSamplingStrategy &sampler,
 		map<float, map<float, vector<int>>> &maleSignalToStats,
-		map<float, map<float, vector<int>>> &femaleSignalToStats);
+		map<float, map<float, vector<int>>> &femaleSignalToStats,
+		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set);
 
 	///Getting signal with hirarchy options for each siganl
 	static void getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
