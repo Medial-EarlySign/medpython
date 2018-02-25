@@ -331,9 +331,13 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//initialize measurement params per cohort:
 	time_t st = time(NULL);
 	for (size_t i = 0; i < function_params.size(); ++i)
-		if (process_measurments_params != NULL && function_params[i] != NULL)
-			process_measurments_params(additional_info, y, pids, function_params[i],
+		if (process_measurments_params != NULL && function_params[i] != NULL) {
+			ROC_And_Filter_Params prm;
+			prm.roc_params = (ROC_Params *)function_params[i];
+			prm.filter = (vector<Filter_Param> *)cohort_params;
+			process_measurments_params(additional_info, y, pids, &prm,
 				filter_indexes, y_full, pids_full);
+		}
 	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 #ifdef USE_MIN_THREADS
@@ -391,9 +395,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
-			}
-		}
 	}
+	}
+}
 	else {
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = true;
@@ -1553,7 +1557,10 @@ void count_stats(int bin_counts, const vector<float> &y, const map<string, vecto
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
 	const vector<float> &y, const vector<int> &pids, void *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
-	ROC_Params *params = (ROC_Params *)function_params;
+	ROC_And_Filter_Params *pr_full = (ROC_And_Filter_Params *)function_params;
+	ROC_Params *params = pr_full->roc_params;
+	vector<Filter_Param> *cohort_filt = pr_full->filter;
+
 	if (params->inc_stats.sorted_outcome_labels.empty())
 		return; //no inc file
 	//calculating the "fixed" incidence in the cohort giving the true inc. in the general population
@@ -1575,7 +1582,17 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	vector<vector<double>> all_male_counts, all_female_counts;
 	count_stats(bin_counts, y_full, additional_info, filtered_indexes, params,
 		filtered_male_counts, filtered_female_counts);
-	count_stats(bin_counts, y_full, additional_info, {}, params,
+	//always filter Time-Window:
+	vector<int> baseline_all;
+	Filter_Param *time_win_cond = NULL;
+	for (auto i = 0; i < cohort_filt->size() && time_win_cond == NULL; ++i)
+		if ((*cohort_filt)[i].param_name == "Time-Window")
+			time_win_cond = &(*cohort_filt)[i];
+	if (time_win_cond != NULL)
+		for (size_t i = 0; i < y_full.size(); ++i)
+			if (filter_range_param(additional_info, i, time_win_cond))
+				baseline_all.push_back((int)i);
+	count_stats(bin_counts, y_full, additional_info, baseline_all, params,
 		all_male_counts, all_female_counts);
 
 	//Lets calc the ratio for the incidence in the filter:
@@ -1613,13 +1630,15 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	if (tot_controls > 0)
 		params->incidence_fix /= tot_controls;
 
-	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f mean incidence\n", params->incidence_fix);
+	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f%% mean incidence\n",
+		100 * params->incidence_fix);
 }
 
 void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additional_info,
 	const vector<float> &y, const vector<int> &pids, void *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
-	ROC_Params *params = (ROC_Params *)function_params;
+	ROC_And_Filter_Params *pr_full = (ROC_And_Filter_Params *)function_params;
+	ROC_Params *params = pr_full->roc_params;
 	if (params->inc_stats.sorted_outcome_labels.empty())
 		return; //no inc file
 				//calculating the "fixed" incidence in the cohort giving the true inc. in the general population
@@ -1667,7 +1686,8 @@ void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additiona
 	if (tot_controls > 0)
 		params->incidence_fix /= tot_controls;
 
-	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f mean incidence\n", params->incidence_fix);
+	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f%% mean incidence\n",
+		100 * params->incidence_fix);
 }
 #pragma endregion
 
