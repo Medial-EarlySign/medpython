@@ -477,7 +477,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	const string &signalHirerchyType, int ageBinValue, int time_window_from, int time_window_to,
 	MedSamplingStrategy &sampler,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
-	map<float, map<float, vector<int>>> &femaleSignalToStats) {
+	map<float, map<float, vector<int>>> &femaleSignalToStats,
+	const string &debug_file, const unordered_set<float> &debug_vals) {
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
@@ -556,6 +557,16 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	if (unknown_gender > 0)
 		MWARN("Has %d Unknown genders.\n", unknown_gender);
 
+	ofstream dbg_file;
+	if (!debug_file.empty()) {
+		dbg_file.open(debug_file);
+		if (!dbg_file.good())
+			MTHROW_AND_ERR("IOError: Cann't open debug file %s to write", debug_file.c_str());
+		dbg_file << "PID" << "\t" << "signal_date" << "\t" << "signal_value" <<
+			"\t" << "registry_start_date" << "\t" << "registry_end_date"
+			<< "\t" << "gender" << "\t" << "age_bin" << "\t" << "registry_value" << endl;
+	}
+
 	duration = (int)difftime(time(NULL), start);
 	MLOG("Done prep registry in %d seconds. min_age=%d, max_age=%d\n", duration, min_age, max_age);
 	start = time(NULL);
@@ -627,6 +638,13 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 						update_loop(pos, ageBin_index, ageBin, sigRec, maleSignalToStats, val_seen_pid_pos);
 					else
 						update_loop(pos, ageBin_index, ageBin, sigRec, femaleSignalToStats, val_seen_pid_pos);
+					if (!debug_file.empty() && debug_vals.find(sigRec.registry_value) != debug_vals.end()) {
+#pragma omp critical
+						dbg_file << pid << "\t" << sigRec.start_date << "\t" << sigRec.registry_value
+							<< "\t" << regRec.start_date << "\t" << regRec.end_date
+							<< "\t" << gender << "\t" << ageBin << "\t" << regRec.registry_value
+							<< "\n";
+					}
 				}
 
 			}
@@ -644,6 +662,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 				<< endl;
 		}
 	}
+	if (!debug_file.empty())
+		dbg_file.close();
 
 	//update values prevalence
 	for (auto it = maleSignalToStats.begin(); it != maleSignalToStats.end(); ++it)

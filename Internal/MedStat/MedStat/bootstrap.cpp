@@ -395,9 +395,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
+			}
+		}
 	}
-	}
-}
 	else {
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = true;
@@ -609,6 +609,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		pids_c.clear();
 		preds_c.clear();
 		y_c.clear();
+		filtered_indexes.clear();
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
 				pids_c.push_back(pids[j]);
@@ -1516,14 +1517,16 @@ void count_stats(int bin_counts, const vector<float> &y, const map<string, vecto
 		male_counts[i].resize(2);
 	for (size_t i = 0; i < female_counts.size(); ++i)
 		female_counts[i].resize(2);
+	int min_age = (int)params->inc_stats.min_age;
+	int max_age = (int)params->inc_stats.max_age;
 	//if filtered_indexes is empty pass on all y. otherwise traverse over indexes:
 	if (filtered_indexes.empty()) {
 		for (size_t i = 0; i < y.size(); ++i)
 		{
-			if (additional_info.at("Age")[i] < params->inc_stats.min_age ||
-				additional_info.at("Age")[i] > params->inc_stats.max_age)
+			if (additional_info.at("Age")[i] < min_age ||
+				additional_info.at("Age")[i] >= max_age + params->inc_stats.age_bin_years)
 				continue; //skip out of range or already case
-			int age_index = (int)floor((additional_info.at("Age")[i] - params->inc_stats.min_age) /
+			int age_index = (int)floor((additional_info.at("Age")[i] - min_age) /
 				params->inc_stats.age_bin_years);
 			if (age_index >= bin_counts)
 				age_index = bin_counts - 1;
@@ -1538,10 +1541,10 @@ void count_stats(int bin_counts, const vector<float> &y, const map<string, vecto
 		for (size_t ii = 0; ii < filtered_indexes.size(); ++ii)
 		{
 			int i = filtered_indexes[ii];
-			if (additional_info.at("Age")[i] < params->inc_stats.min_age ||
-				additional_info.at("Age")[i] > params->inc_stats.max_age)
+			if (additional_info.at("Age")[i] < min_age ||
+				additional_info.at("Age")[i] >= max_age + params->inc_stats.age_bin_years)
 				continue; //skip out of range or already case
-			int age_index = (int)floor((additional_info.at("Age")[i] - params->inc_stats.min_age) /
+			int age_index = (int)floor((additional_info.at("Age")[i] - min_age) /
 				params->inc_stats.age_bin_years);
 			if (age_index >= bin_counts)
 				age_index = bin_counts - 1;
@@ -1570,9 +1573,11 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	if (additional_info.find("Age") == additional_info.end() || additional_info.find("Gender") == additional_info.end())
 		MTHROW_AND_ERR("Age or Gender Signals are missings\n");
 
-	int bin_counts = (int)floor((params->inc_stats.max_age - params->inc_stats.min_age) / params->inc_stats.age_bin_years);
+	int min_age = (int)params->inc_stats.min_age;
+	int max_age = (int)params->inc_stats.max_age;
+	int bin_counts = (int)floor((max_age - min_age) / params->inc_stats.age_bin_years);
 	if (bin_counts * params->inc_stats.age_bin_years >
-		(params->inc_stats.max_age - params->inc_stats.min_age) + 0.5)
+		(max_age - min_age) + 0.5)
 		++bin_counts; //has at least 0.5 years for last bin to create it
 	if (params->inc_stats.male_labels_count_per_age.size() != bin_counts)
 		MTHROW_AND_ERR("Male vector has %d members. and need to have %d members\n",
@@ -1590,7 +1595,7 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 			time_win_cond = &(*cohort_filt)[i];
 	if (time_win_cond != NULL)
 		for (size_t i = 0; i < y_full.size(); ++i)
-			if (filter_range_param(additional_info, i, time_win_cond))
+			if (filter_range_param(additional_info, (int)i, time_win_cond))
 				baseline_all.push_back((int)i);
 	count_stats(bin_counts, y_full, additional_info, baseline_all, params,
 		all_male_counts, all_female_counts);
@@ -1918,8 +1923,9 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 		string command = tokens[0];
 		if (command == "AGE_BIN")
 			age_bin_years = stoi(tokens[1]);
-		else if (command == "AGE_MIN")
+		else if (command == "AGE_MIN") {
 			min_age = stof(tokens[1]);
+		}
 		else if (command == "AGE_MAX")
 			max_age = stof(tokens[1]);
 		else if (command == "OUTCOME_VALUE")
@@ -1928,6 +1934,9 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 			if (tokens.size() != 5)
 				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
 			float age = stof(tokens[2]);
+			min_age = float(int(min_age / age_bin_years) * age_bin_years);
+			max_age = float(int(ceil(max_age / age_bin_years)) * age_bin_years);
+
 			if (age < min_age || age> max_age) {
 				MWARN("Warning:: skip age because out of range in line \"%s\"\n", line.c_str());
 				continue;
