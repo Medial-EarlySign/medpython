@@ -228,7 +228,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 					}
 					else {
 						//insert current and update next:
-						smp.outcomeTime = reg_time;
+						smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
 						smp.outcome = reg_val;
 						idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
 						++done_count;
@@ -243,7 +243,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			}
 
 			if (reg_time != -1) {
-				smp.outcomeTime = reg_time;
+				smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
 				smp.outcome = reg_val;
 				idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
 				++done_count;
