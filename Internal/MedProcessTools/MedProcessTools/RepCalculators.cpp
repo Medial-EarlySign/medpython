@@ -454,9 +454,11 @@ int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRe
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
 	versionIterator vit(rec, iteratorSignalIds);
 
-	auto it = calc2req_sigs.find(V_names[0]);
-	if (it == calc2req_sigs.end()) //unexpected
+	auto it = calc2req_sigs.find(calculator);
+	if (it == calc2req_sigs.end()) {//unexpected
+		cout << "cannot find name " << calculator << " in calc2req_sigs" << endl;
 		return -1;
+	}
 
 	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 		//componentData will hold the data of component signals after alignment to required time_points
@@ -639,8 +641,10 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 		rec.uget(sigs_ids[0], iver, rec.usvs[0]);
 		int origLen = rec.usvs[0].len;
 
+		vector<int> iverTimes(time_points.begin(), time_points.begin() + iver + 1);
+
 		//data will hold pairs of end time and val.
-		vector<pair<int, float> > data; data.reserve(origLen);
+		vector<pair<int, float> > data; data.reserve(origLen + 1);
 
 		//get signal data
 		//if end time < start time, we ignore the point. end time = start time is ok
@@ -677,9 +681,10 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 
 		//handle the case where all have the same, first, time (including when data.size()<=1)
 		if (index == -1) {
-			vector<float> calcValues(1, badValue());
+			vector<float> calcValues(iverTimes.size(), badValue());
 			// pushing virtual data into rec (into orig version)
-			rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
+			rec.set_version_universal_data(v_sid, iver, &iverTimes[0], &calcValues[0], (int)(iver + 1));
+
 			continue;
 		}
 
@@ -689,55 +694,66 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 		vector<float> cumVals; cumVals.reserve(data.size());
 		vector<int> times; times.reserve(data.size());
 
-		float curSum = data[index - 1].second;
-		cumVals.push_back(curSum); //the actual amount in the first time is immaterial
-		times.push_back(data[index - 1].first);
+		float curSum = 0; //the actual amount in the first time is immaterial
 
-		for (int i = index; i < data.size(); ++i) {
-			curSum += data[i].second;
-			if (data[i].first != data[i - 1].first)
+		for (int i = index; i < data.size(); ++i) {		
+			if (data[i].first != data[i - 1].first) {
 				cumVals.push_back(curSum);
-			times.push_back(data[i].first);
+				times.push_back(data[i - 1].first);
+			}
+			curSum += data[i].second;
 		}
 
-		// given two sorted vector, find where the values of <search> would fit in <in>
-		// <indices> will hold the indices: each index is the place in <in> before which the entry is placed, and in.size() if the entry is 
-		// placed after the last place
-		// returns 0 if <in> is not empty, -1 otherwise
+		//handle last point 
+		cumVals.push_back(curSum);
+		times.push_back(data.back().first);
 
 		//to estimate the cumulative amount over a window we do the following:
-		//if the first point is between points in <times>, we will interpolate the cumulative amount
-		//for the second point, we take the latest point and not interpolate so as not to have a leak.
-
+		//for the second point of the window, we take the latest point and not interpolate so as not to have a leak.
+		//the first point is <window> before the point we took instead of the second. 
+		//if the first point is between points in <times>, we will interpolate the cumulative amount.		
+		
+		
 		vector<size_t> indicesWindowStart, indicesWindowEnd;
 
-		find_sorted_vec_in_sorted_vec(time_points, times, indicesWindowEnd);
+		//to estimate the end value for iverTimes[i] we will use times[indicesWindowEnd[i] - 1] if it's valid
+		find_sorted_vec_in_sorted_vec(iverTimes, times, indicesWindowEnd);
 
 		//find were the beginning points of windows would be
 		//if the end is before all times, then so will the beginning be, and that window will be discarded later
 		//otherwise, <window> time before the last seen actual time
-		vector<int> timePointsMinusWindow; timePointsMinusWindow.reserve(len);
-		for (int i = 0; i < len; ++i)
-			timePointsMinusWindow.push_back(indicesWindowEnd[i] == 0 ? -1 : times[indicesWindowEnd[i] - 1] - window);
+		vector<int> timePointsMinusWindow; timePointsMinusWindow.reserve(iverTimes.size());
+		for (int i = 0; i < iverTimes.size(); ++i)
+			timePointsMinusWindow.push_back(indicesWindowEnd[i] == 0 ? beforeEverything() : times[indicesWindowEnd[i] - 1] - window);
 
 		find_sorted_vec_in_sorted_vec(timePointsMinusWindow, times, indicesWindowStart);
 
-		//to hold the find calcluate values
-		vector<float> calcValues; calcValues.reserve(len);
+		//to hold the calcluated values
+		vector<float> calcValues; calcValues.reserve(iverTimes.size());
 
 		for (int i = 0; i < indicesWindowStart.size(); ++i) {
+			//if the window starts before all times - bad value
 			if (indicesWindowStart[i] == 0)
 				calcValues.push_back(badValue());
-			else {
+			else {//the window starts between two points 
 				//interpolate 
-				float coef = (float)(timePointsMinusWindow[i] - times[indicesWindowStart[i] - 1]) / (float)(times[indicesWindowEnd[i] - 1] - times[indicesWindowStart[i] - 1]);
-				float val = (1.0F - coef)*cumVals[indicesWindowStart[i] - 1] + coef*cumVals[indicesWindowEnd[i] - 1];
+				float coef = (float)(timePointsMinusWindow[i] - times[indicesWindowStart[i] - 1]) / 
+					(float)(times[indicesWindowStart[i]] - times[indicesWindowStart[i] - 1]);
+
+				//val is the cumulative value at the end of the window minus the interpolated val <window> before it
+				float val = cumVals[indicesWindowEnd[i] - 1] - (1.0F - coef)*cumVals[indicesWindowStart[i] - 1]
+					- coef*cumVals[indicesWindowStart[i]];
+
+				//if (!isfinite(val))
+				//	cout << "timePointsMinusWindow[i] = " << timePointsMinusWindow[i] << " times[indicesWindowStart[i] - 1] = " << times[indicesWindowStart[i] - 1] << " times[indicesWindowEnd[i] - 1] = " << times[indicesWindowEnd[i] - 1] << " times[indicesWindowStart[i] - 1] = " << times[indicesWindowStart[i] - 1] << " coef = " << coef << " cumVals[indicesWindowStart[i] - 1] = " << cumVals[indicesWindowStart[i] - 1] << " cumVals[indicesWindowEnd[i] - 1] = " << cumVals[indicesWindowEnd[i] - 1] << " val = " << val << endl;
+				
 				calcValues.push_back(val);
 			}
 		}
 
 		// pushing virtual data into rec (into orig version)
-		rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
+		rec.set_version_universal_data(v_sid, iver, &iverTimes[0], &calcValues[0], (int)(iver + 1));
+
 	}
 
 	return 0;
@@ -775,9 +791,11 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
 	versionIterator vit(rec, iteratorSignalIds);
 
-	auto it = calc2req_sigs.find(V_names[0]);
-	if (it == calc2req_sigs.end()) //unexpected
+	auto it = calc2req_sigs.find(calculator);
+	if (it == calc2req_sigs.end()) {//unexpected
+		cout << "cannot find name " << calculator << " in calc2req_sigs" << endl;
 		return -1;
+	}
 
 	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 		//componentData will hold the data of component signals after alignment to required time_points
