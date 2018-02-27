@@ -1404,11 +1404,65 @@ int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
 //.......................................................................................
 int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 {
+	//handle special calculations
+	if (calc_type == CALC_TYPE_EGFR)
+		return _apply_calc_eGFR(rec, time_points);
+
+	if (calc_type == CALC_TYPE_DEBUG)
+		return _apply_calc_debug(rec, time_points);
+
+	if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT)
+		return _apply_calc_24h_urine_output(rec, time_points);
+
+	//handle calculation that are done by first extrapolating each signal to the required 
+	//time points and then performing a pointwise calculation for the values in each time point.
+	float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
+
 	switch (calc_type) {
-
-		case CALC_TYPE_EGFR: return _apply_calc_eGFR(rec, time_points);
-
+		case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
+		case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
+		case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
+		case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
+		case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
+		case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
+		case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
+		case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
+		case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
+		case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
+		case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
+		case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
+		case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
+		case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
+		case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
+		case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
+		case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
+		case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
+		case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
+		case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
+		case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
+		case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
+		case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
+		case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;		
 	}
+
+	if (calcFunc)
+		return _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
+
+	//handle time-dependent calculations
+	//calculation are done by first extrapolating each signal to the required 
+	//time points and then performing a pointwise calculation for the values in each time point.
+	//in contrast to previous signals, here the calculation does depend on the orignal times 
+	//of the signals and their reference to the requested times
+	float(*calcTimeFunc)(const vector<pair<int, float> >&, int, const vector<float>&) = NULL;
+
+	switch (calc_type) {	
+	case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
+	case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
+	case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently;//special function
+	}
+
+	if (calcTimeFunc)
+		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc);
 
 	return -1;
 }
@@ -1439,7 +1493,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, (int) i, noGenerators);
 	}
 
-	bool signalIsVirtual = (bool)(rep.sigs.Sid2Info[signalId].virtual_sig);
+	bool signalIsVirtual = (bool)(rep.sigs.Sid2Info[signalId].virtual_sig != 0);
 
 	for (MedIdSamples& idSamples : samples.idSamples) {
 

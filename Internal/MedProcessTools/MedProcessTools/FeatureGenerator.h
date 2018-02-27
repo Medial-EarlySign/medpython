@@ -60,7 +60,7 @@ public:
 	int iGenerateWeights = 0;
 
 	// Naming
-	virtual void set_names() {names.clear(); }
+	virtual void set_names() { names.clear(); }
 
 	// Helper - pointers to data vectors in MedFeatures (to save time in generatin)
 	vector <float *> p_data;
@@ -75,7 +75,7 @@ public:
 
 	// Required Signals
 	vector<string> req_signals;
-	vector<int> req_signal_ids; 
+	vector<int> req_signal_ids;
 
 	void get_required_signal_names(unordered_set<string>& signalNames);
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
@@ -88,7 +88,7 @@ public:
 	virtual void init_tables(MedDictionarySections& dict) { return; }
 
 	// Learn a generator
-	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {return 0;}
+	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { set_names(); return _learn(rep, ids, processors); }
 	int learn(MedPidRepository& rep, vector<RepProcessor *> processors) { set_names(); return _learn(rep, rep.pids, processors); }
 	int learn(MedPidRepository& rep, vector<int>& ids) { set_names(); return _learn(rep, ids, vector<RepProcessor *>()); }
@@ -97,10 +97,10 @@ public:
 	// generate feature data from repository
 	// We assume the corresponding MedSamples have been inserted to MedFeatures : either at the end or at position index
 	virtual int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return 0; }
-	int generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features,index, num); }
+	int generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features, index, num); }
 	int generate(PidDynamicRec& in_rep, MedFeatures& features);
-	int generate(MedPidRepository& rep, int id, MedFeatures& features) ;
-	int generate(MedPidRepository& rep, int id,  MedFeatures& features, int index, int num) ;
+	int generate(MedPidRepository& rep, int id, MedFeatures& features);
+	int generate(MedPidRepository& rep, int id, MedFeatures& features, int index, int num);
 
 	// generate feature data from other features
 	virtual int _generate(MedFeatures& features) { return 0; }
@@ -116,7 +116,7 @@ public:
 	static FeatureGenerator *create_generator(string &params); // must include fg_type
 
 	virtual int init(void *generator_params) { return 0; };
-	virtual int init(map<string, string>& mapper) ;
+	virtual int init(map<string, string>& mapper);
 	virtual void init_defaults() {};
 
 	// Copy
@@ -233,9 +233,9 @@ public:
 	// Constructor/Destructor
 	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
 	~BasicFeatGenerator() {};
-	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1,signalName);}
-	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) { 
-		signalName = _signalName;type = _type; win_from = _time_win_from; win_to = _time_win_to;
+	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1, signalName); }
+	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) {
+		signalName = _signalName; type = _type; win_from = _time_win_from; win_to = _time_win_to;
 		set_names(); req_signals.assign(1, signalName);
 	}
 
@@ -264,9 +264,9 @@ public:
 	void init_tables(MedDictionarySections& dict);
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, 
-							time_unit_win, time_channel, val_channel, sum_channel, signalName, sets, 
-							names, req_signals, in_set_name)
+	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
+		time_unit_win, time_channel, val_channel, sum_channel, signalName, sets,
+		names, req_signals, in_set_name)
 
 };
 
@@ -284,7 +284,7 @@ public:
 
 	// Constructor/Destructor
 	AgeGenerator() {
-		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven; signalName = "BYEAR";
+		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven; signalName = "BYEAR"; req_signals.assign(1, directlyGiven ? "Age" : signalName);
 	}
 	~AgeGenerator() {};
 
@@ -301,7 +301,7 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) {  signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Serialization
 	int version() { return 1; }
@@ -357,8 +357,8 @@ public:
 	int genderId;
 
 	// Constructor/Destructor
-	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, med_rep_type.genderSignalName);}
-	GenderGenerator(int _genderId) : FeatureGenerator() {generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, med_rep_type.genderSignalName);}
+	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, med_rep_type.genderSignalName); }
+	GenderGenerator(int _genderId) : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, med_rep_type.genderSignalName); }
 
 	~GenderGenerator() {};
 
@@ -389,9 +389,9 @@ public:
 * BinnedLinearModels : parameters
 */
 struct BinnedLmEstimatesParams {
-	vector<int> bin_bounds ;
-	int min_period ;
-	int max_period ;
+	vector<int> bin_bounds;
+	int min_period;
+	int max_period;
 	float rfactor;
 
 	vector<int> estimation_points;
@@ -408,7 +408,7 @@ public:
 	int signalId, byearId, genderId, ageId;
 
 	/// Is age directly given (Hospital data) or through birth-year (Primary-care data)
-	bool ageDirectlyGiven ;
+	bool ageDirectlyGiven;
 
 	BinnedLmEstimatesParams params;
 	vector<MedLM> models;
@@ -502,7 +502,7 @@ private:
 public:
 
 	string signalName; ///< Signal to consider
-	int signalId; 
+	int signalId;
 	vector<string> sets;						///< FTR_RANGE_EVER checks if the signal ever was in one of these sets/defs from the respective dict
 	RangeFeatureTypes type; ///< Type of comorbidity index to generate
 	int win_from = 0; ///< time window for feature: from is the minimal time before prediciton time
@@ -548,7 +548,7 @@ public:
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
-	
+
 	// Serialization
 	// Serialization
 	virtual int version() { return  1; };	// ihadanny 20171206 - added sets
@@ -565,7 +565,7 @@ public:
 	MedModel *model = NULL; ///< model
 	string modelName = "";
 	int n_preds = 1;
-	
+
 	/// A container for the predictions
 	vector<float> preds;
 

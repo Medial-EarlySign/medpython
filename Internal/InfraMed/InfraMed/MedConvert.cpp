@@ -841,7 +841,7 @@ int MedConvert::create_indexes()
 	// print statistics for data files
 	MLOG("Statistics for %d data files\n", fstats.size());
 	for (auto& stat : fstats) {
-		float ratio = (double)(stat.n_parsed_lines + 1) / (double)(stat.n_relevant_lines + 1);
+		float ratio = (float)(stat.n_parsed_lines + 1) / (float)(stat.n_relevant_lines + 1);
 		MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_loaded_lines %d : loaded %g\n",
 			stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_parsed_lines,
 			ratio);

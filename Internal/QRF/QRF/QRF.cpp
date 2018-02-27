@@ -2513,10 +2513,10 @@ int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res,
 			for (int i = 0; i < nsamples; i++)
 				res[i] = resall[i*n_categ + get_only_this_categ];
 		else {
+			// of get_only_this_categ >= n_categ it is a sign for us to give out a full prediction vector for each sample
 			for (int i = 0; i < nsamples; i++) {
-				res[i] = 0;
 				for (int j = 0; j < n_categ; j++)
-					res[i] += resall[i*n_categ + j] * (float)j;
+					res[i*n_categ+j] += resall[i*n_categ + j];
 			}
 
 		}

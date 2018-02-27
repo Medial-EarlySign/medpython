@@ -55,15 +55,13 @@ class InMemRepData;
 
 class MedBufferedFile {
 	public:
-		string name;
+		string name = "";
 		int buf_size = 0;
 		int buf_len = 0;
 		unsigned char *buf = NULL;
 		unsigned long long buf_start_in_file = 0;
 
 		static const int default_buf_size = 128*1024;
-
-		MedBufferedFile() : buf(NULL),inf(NULL) {};
 
 		int open(const string &fname);
 		int open(const string &fname, const int bsize);

@@ -1,4 +1,5 @@
 #include "MedPlot.h"
+#include "MedIO.h"
 #include <fstream>
 #include <ctime>
 #include <iostream>
@@ -365,19 +366,21 @@ string createCsvFile(vector<vector<float>> &data, const vector<string> &headers)
 vector<bool> empty_bool_arr;
 void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
-	vector<bool> &indexes) {
+	const vector<bool> &indexes) {
 	map<float, vector<int>> pred_indexes;
 	double tot_true_labels = 0;
-	if (indexes.empty())
-		indexes.resize(y.size(), true);
 	double tot_obj = 0;
 	for (size_t i = 0; i < preds.size(); ++i)
-		if (indexes[i]) {
+		if (indexes.empty() || indexes[i]) {
 			pred_indexes[preds[i]].push_back((int)i);
 			tot_true_labels += y[i];
 			++tot_obj;
 		}
 	double tot_false_labels = tot_obj - tot_true_labels;
+	if (tot_false_labels == 0 || tot_true_labels == 0) {
+		cerr << "only controls or cases are given." << endl;
+		throw logic_error("only controls or cases are given.\n");
+	}
 	pred_threshold = vector<float>((int)pred_indexes.size());
 	map<float, vector<int>>::iterator it = pred_indexes.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
@@ -489,7 +492,9 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		vector<map<float, float>> model_false_scores;
 		down_sample_graph(th_false);
 		model_false_scores.push_back(th_false);
-		createHtmlGraph(baseOut + separator() + modelNames[i] + "_False_Thresholds.html", model_false_scores,
+		string fname = modelNames[i];
+		fix_filename_chars(&fname);
+		createHtmlGraph(baseOut + separator() + fname + "_False_Thresholds.html", model_false_scores,
 			"False rate as function of thresholds", "Prediction Threshold score value", "False Positive Rate");
 	}
 	vector<string> data_titles(modelNames);
@@ -510,15 +515,15 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		for (size_t i = 0; i < y.size(); ++i) {
 			allData.clear();
 			allData.push_back(BuildHist(y[i]));
-			createHtmlGraph(baseOut + separator() + "y_labels_" + modelNames[i] + ".html", allData, "Y Labels", "Y",
+			string fname = modelNames[i];
+			fix_filename_chars(&fname);
+			createHtmlGraph(baseOut + separator() + "y_labels_" + fname + ".html", allData, "Y Labels", "Y",
 				"Count", {}, 0, "pie");
 		}
 }
 
 void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
-	string baseOut, vector<bool> &indexes) {
-	if (indexes.empty())
-		indexes.resize(y.size(), true);
+	string baseOut, const vector<bool> &indexes) {
 	vector<vector<float>> all_y(all_preds.size());
 	vector<vector<float>> all_preds_filtered(all_preds.size());
 	for (size_t k = 0; k < all_preds.size(); ++k)
@@ -528,7 +533,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, con
 	}
 	for (size_t i = 0; i < y.size(); ++i)
 	{
-		if (indexes[i])
+		if (indexes.empty() || indexes[i])
 			for (size_t k = 0; k < all_preds.size(); ++k)
 			{
 				all_preds_filtered[k].push_back(all_preds[k][i]);
@@ -540,7 +545,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, con
 	vector<float> filty;
 	filty.reserve((int)y.size());
 	for (size_t i = 0; i < y.size(); ++i)
-		if (indexes[i])
+		if (indexes.empty() || indexes[i])
 			filty.push_back(y[i]);
 
 	vector<map<float, float>> allData;

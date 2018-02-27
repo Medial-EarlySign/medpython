@@ -37,6 +37,13 @@ enum TQRF_Node_Working_State {
 	TQRF_Node_State_In_Progress = 1,
 	TQRF_Node_State_Done = 2
 };
+
+enum TQRF_Missing_Direction {
+	TQRF_MISSING_DIRECTION_LEFT = 0,
+	TQRF_MISSING_DIRECTION_RIGHT = 1,
+	TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE = 2
+};
+
 #define TQRF_MAX_TIME_SLICE			10000000
 #define MIN_ELEMENTS_IN_TIME_SLICE	100
 
@@ -69,7 +76,7 @@ public:
 	int	ntrees = 50;					/// number of trees to learn
 	int max_depth = 100;				/// maximal depth of tree
 	int min_node_last_slice = 10;		/// stopping criteria : minimal number of samples in a node in the last time slice
-	int min_node = 5000;				/// stopping criteria : minimal number of samples in a node in the first time slice
+	int min_node = 10;					/// stopping criteria : minimal number of samples in a node in the first time slice
 
 	// feature sampling
 	int ntry = -1;						/// -1: use the ntry_prob rule, > 0 : choose this number of features.
@@ -85,6 +92,7 @@ public:
 	float bag_prob = (float)0.5;		/// random choice of samples for each tree prob
 	float bag_ratio = -1;				/// control ratio of #0 : #NonZero of labels, if < -1 , leave as is.
 	float bag_feat = (float)1.0;		/// proportion of random features chosen for each tree
+	int qpoints_per_split = 0;			/// if > 0 : will only choose this random number of points to test split points at, otherwise will test all of them
 
 	// categorial featues
 	int nvals_for_categorial = 0;			/// features with number of different values below nvals_for_categ will be assumed categorial
@@ -110,6 +118,10 @@ public:
 
 	/// initialization from string
 	int init(map<string, string>& map);
+
+	// next are non serialized helpers we keep here as they are common to ALL the forest
+	vector<double> log_table;
+
 
 	// Serialization
 	//ADD_SERIALIZATION_FUNCS(init_string, samples_time_unit, time_slice_unit, time_slice_size, time_slices, max_q, max_q_sample, tree_type, ntrees, max_depth, min_node_last_slice, min_node, )
@@ -158,9 +170,10 @@ public:
 	int i_feat = -1;				/// index of feature used in this node
 	float bound = (float)-1e10;		/// samples with <= bound go to Left , the other to Right
 	int is_terminal = 0;
-	int left_idx = -1;
-	int right_idx = -1;
+	int left_node = -1;
+	int right_node = -1;
 	int depth = -1;
+	int missing_direction = TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE;	/// 0: left , 1: right , 2: randomize each sample
 
 	// next are needed while learning , and if asked to keep samples in nodes - we keep them always for now
 	int from_idx = -1;		/// the node elements are those given in its tree indexes from place from_idx, to to_idx.
@@ -169,7 +182,7 @@ public:
 
 	int node_serialization_mask = 0x1; /// choose which of the following to serialize
 
-	// categorical : mask |= 0x1
+	// categorical : mask |= 0x1 , time_categ_count[t][c] : how many counts in this node are in timeslice t and category c
 	vector<vector<int>> time_categ_count;
 
 	// regression : mask |= 0x2
@@ -181,7 +194,12 @@ public:
 
 
 	// following are never serialized - only for learn time
-	int state = 0; // 0 - created 1 - in process 2 - done with
+	int state = TQRF_Node_State_Initiated; // 0 - created 1 - in process 2 - done with
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+class TQRF_Node_Categorial : TQRF_Node {
+
 };
 
 //==========================================================================================================================
@@ -196,7 +214,7 @@ class TQRF_Split_Stat {
 
 public:
 	// categorial case
-	vector<vector<vector<int>>> counts; /// counts[t][q][c] = how many counts were in time slot t, quanta q, and category c.
+	// vector<vector<vector<int>>> counts; /// counts[t][q][c] = how many counts were in time slot t, quanta q, and category c.
 
 	// suggestion (categorial case):
 	// TQRF_Split will get a node with indexes, and then:
@@ -211,6 +229,70 @@ public:
 	// tricks for efficient calculation of counts and the scores
 
 
+	virtual int init(Quantized_Feat &qf, TQRF_Params &params) {	return 0;};
+	virtual int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params) { return 0; };
+	virtual int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+
+	int get_q_test_points(int feat_max_q, TQRF_Params &params, vector<int> &qpoints);
+
+
+	// helper vector for qpoints
+	vector<int> qpoints;
+	
+	// the actual number of q values used (full or after qpoints squeeze if it was done)
+	int counts_q = 0;
+
+
+	static TQRF_Split_Stat *make_tqrf_split_stat(int tree_type);
+};
+
+//==========================================================================================================================
+class TQRF_Split_Categorial : public TQRF_Split_Stat {
+public:
+	// categorial case : counts[t][q][c] : time_slice , quanta, category : number of elements
+	vector<vector<vector<int>>> counts;
+
+	// sums[t][c] = number of samples in time slice t and category c summed on all q vals
+	// this is needed for a more efficient computation of scores later
+	vector<vector<int>> sums;
+
+	// next are for easy access
+	int ncateg = 0;
+	int nslices = 0;
+	int maxq = 0;
+
+
+
+	// API's
+	int init(Quantized_Feat &qf, TQRF_Params &params);
+	int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params);
+	//virtual int get_best_split(TQRF_Params &params, int &best_q, float &best_score);
+};
+
+
+//==========================================================================================================================
+class TQRF_Split_LogRank : public TQRF_Split_Categorial {
+public:
+	int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+};
+
+
+//==========================================================================================================================
+class TQRF_Split_Entropy : public TQRF_Split_Categorial {
+public:
+	int get_best_split(TQRF_Params &params, int &best_q, float &best_score);
+};
+
+
+//==========================================================================================================================
+class TQRF_Split_Regression : public TQRF_Split_Stat {
+public:
+	// categorial case
+	vector<vector<vector<pair<float,int>>>> sum_num;
+
+	int init(Quantized_Feat &qf, TQRF_Params &params) { return 0; };
+	int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params) { return 0; };
+	int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
 };
 
 //==========================================================================================================================
@@ -219,11 +301,14 @@ public:
 class TQRF_Tree : public SerializableObject {
 
 public:
+	// next are needed also for predictions, and hence should be serialized
 	int tree_type;
 	int id;						// for debug prints - a specific tree identifier
 	int keep_indexes = 0;
 	vector<int> indexes;		// indexes[i] = an index of a sample in the given Quantized_Feat
 	vector<TQRF_Node> nodes;	// this node supports currently all possible nodes for all trees... to save ugly templated code
+
+	// next variables are no-need-to-serialize helpers
 	vector<int> i_feats;		// feature indexes to be used in this tree (they can be bagged as well)
 
 	TQRF_Tree() {};
@@ -233,21 +318,27 @@ public:
 
 	int Train();
 
-	// Step(1) in Train: get indexes vector ready
+	// helpers inside Train:
+
+	// get indexes vector ready
 	int get_bagged_indexes();
 
-	// Step(2) in Train: initialize root
+	// initialize root node
 	int init_root_node();
 
-	// Step(3) : train and add new nodes as long as needed
-	int train_node(int i_node);
+	// get the next node to work on
+	int get_next_node(int curr_node);
 
-	// within train_node()
+	// get the list of features to work on
+	int	get_feats_to_test(vector<int> &feats_to_test);
 
-	// Step(3.1) : get the relevant histograms 
-	int get_feature_stat();
+	// init the vector for splits: to nfeat, right sizes, and right type + a free mem api
+	int init_split_stats(vector<TQRF_Split_Stat *> &tqs);
+	void free_split_stats(vector<TQRF_Split_Stat *> &tqs);
 
-	// static TQRF_Tree* make_tree(const string &type);
+	// close work on current node and make the split if needed
+	int node_splitter(int i_curr_node, int i_best, int q_best);
+
 
 private:
 	Quantized_Feat *_qfeat;
@@ -273,6 +364,8 @@ public:
 	vector<TQRF_Tree> trees;
 
 	int init(map<string, string>& map) { return params.init(map); }
+
+	void init_tables(Quantized_Feat &qfeat);
 
 	/// The basic train matrix for TQRF is MedFeatures (!!) the reason is that it contains everything in one place:
 	/// that is: the X features, the Y outcome, the weights and the samples for each row.

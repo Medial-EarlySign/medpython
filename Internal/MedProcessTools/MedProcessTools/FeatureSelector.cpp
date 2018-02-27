@@ -190,6 +190,8 @@ int UnivariateFeatureSelector::getAbsPearsonCorrs(MedFeatures& features, unorder
 		}
 	}
 
+	return 0;
+
 }
 
 // Utility : Caluclate Mutual Information
@@ -454,6 +456,8 @@ int MRMRFeatureSelector::fillAbsPearsonCorrsMatrix(MedFeatures& features, unorde
 			stats(index, i) = stats(i, index);
 		}
 	}
+
+	return 0;
 }
 
 // Utility : Caluclate Mutual Information

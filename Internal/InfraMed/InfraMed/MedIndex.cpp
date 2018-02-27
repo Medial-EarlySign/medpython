@@ -27,7 +27,7 @@ int MedBufferedFile::open(const string &fname, const int bsize)
 	inf = (ifstream *)new ifstream;
 	//MLOG("MedBufferedFile::open inf [%d] [%s]\n", inf, name.c_str());
 	inf->open(name,ios::in | ios::binary);
-	if (!(*inf)) {
+	if (!(inf->is_open())) {
 		MTHROW_AND_ERR("MedBufferedFile: open: Can't open file %s\n",name.c_str());
 		return -1;
 	}
