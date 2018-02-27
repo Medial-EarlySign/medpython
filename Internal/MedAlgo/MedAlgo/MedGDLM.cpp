@@ -724,7 +724,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 			diff = bf - prev_bf;
 
 			dnorm = sqrt(diff.array().square().sum() + (b0 - prev_b0)*(b0 - prev_b0))/(float)nftrs;
-			err = (prev_loss - loss)/(abs(prev_loss) + 1e-10);
+			err = (float)abs(prev_loss - loss)/(abs(prev_loss) + 1e-10);
 			prev_loss = loss;
 			
 			// printing
