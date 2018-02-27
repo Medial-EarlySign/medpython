@@ -56,10 +56,10 @@ class InMemRepData;
 class MedBufferedFile {
 	public:
 		string name;
-		int buf_size;
-		int buf_len;
-		unsigned char *buf;
-		unsigned long long buf_start_in_file;
+		int buf_size = 0;
+		int buf_len = 0;
+		unsigned char *buf = NULL;
+		unsigned long long buf_start_in_file = 0;
 
 		static const int default_buf_size = 128*1024;
 
@@ -70,7 +70,7 @@ class MedBufferedFile {
 		void close();
 		unsigned long long read(unsigned char *outb, unsigned long long pos, unsigned long long len);
 
-		ifstream *inf;
+		ifstream *inf = NULL;
 
 
 };
@@ -399,7 +399,9 @@ public:
 		~MedRepository() { 
 			//fprintf(stderr, "rep free\n"); fflush(stderr);
 			if (work_area) {
+				//fprintf(stderr, "~MedRepository before delete[] work_area %d", work_area);
 				delete[] work_area;
+				//fprintf(stderr, "~MedRepository after delete[] work_area %d", work_area);
 				work_area = NULL;
 			}
 			free_all_sigs();
