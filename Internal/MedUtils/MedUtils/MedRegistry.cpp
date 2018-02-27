@@ -721,11 +721,13 @@ void MedRegistryCodesList::init_lists(MedRepository &rep, int dur_flag, int buff
 		init_list(skip_pid_file, SkipPids);
 	signalCodes.clear();
 	signalCodes.push_back(rep.sigs.sid("RC"));
+	init_lists_called = true;
 }
 
 void MedRegistryCodesList::get_registry_records(int pid,
 	int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) {
-
+	if (!init_lists_called)
+		MTHROW_AND_ERR("Must be initialized by init_lists before use\n");
 	UniversalSigVec &signal = usv[0]; //RC signal
 	if (signal.len <= 0)
 		return;
