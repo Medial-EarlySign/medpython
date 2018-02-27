@@ -46,11 +46,16 @@
       "tags": "categorical"
     },
     {
+      "action_type": "feat_generator",
+      "fg_type": "age",
+      "tags": "categorical"
+    },
+    {
       "action_type": "fp_set",
       "members": [
         {
           "fp_type": "imputer",
-          "strata": "Age,40,70,10:Gender,1,2,1",
+          "strata": "Age,40,70,10",
           "moment_type": "0",
           "tag": "numeric", // impute the numeric features with mean
           "duplicate": "y"

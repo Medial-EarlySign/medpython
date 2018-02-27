@@ -1,0 +1,49 @@
+{
+  "model_json_version": "2",
+  "serialize_learning_set": "0",
+  "model_actions": [
+    {
+      "action_type": "feat_generator",
+      "fg_type": "basic",
+      "type": "last",
+      "window": "win_from=0;win_to=1000",
+      "signal": [ "BMI", "HbA1C" ]
+    },
+    {
+      "action_type": "fp_set",
+      "members": [
+        {
+          "action_type": "feat_processor",
+          "fp_type": "do_calc",
+          "calc_type": "threshold",
+          "source_feature_names": "BMI",
+          "parameters": ">,25",
+          "name":  "bmi_above_25"
+        },
+        {
+          "action_type": "feat_processor",
+          "fp_type": "do_calc",
+          "calc_type": "threshold",
+          "source_feature_names": "HbA1C",
+          "parameters": "<,6",
+          "name":  "hb_below_6"
+
+        }
+      ]
+    },
+    {
+      "action_type": "feat_processor",
+      "fp_type": "do_calc",
+      "calc_type": "threshold",
+      "source_feature_names": "HbA1C",
+      "parameters": ">,7",
+      "name":  "hb_above_7"
+    },
+    {
+      "action_type": "feat_processor",
+      "fp_type": "do_calc",
+      "calc_type": "and",
+      "source_feature_names": "hb_below_6,bmi_above_25"
+    }
+  ]
+}

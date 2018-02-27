@@ -1,5 +1,7 @@
 #include "DoCalcFeatProcessor.h"
 
+#include <boost/lexical_cast.hpp>
+
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -18,16 +20,6 @@ void DoCalcFeatProcessor::resolve_feature_names(MedFeatures &features) {
 	}
 }
 
-// Set single-input calculation in/out names
-void DoCalcFeatProcessor::set_feature_name(const string& feature_name) {
-
-	if (raw_target_feature_name != "")
-		MTHROW_AND_ERR("DoCalcFeatProcessor cannot set feature name for %s on %s . Already given: %s", calc_type.c_str(), feature_name.c_str(), raw_target_feature_name.c_str());
-
-	raw_source_feature_names.assign(1,feature_name);
-	this->feature_name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + calc_type + "_" + feature_name;
-}
-
 int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
@@ -39,6 +31,8 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 			calc_type = entry.second;
 		else if (field == "source_feature_names")
 			split(raw_source_feature_names, entry.second, boost::is_any_of(","));
+		else if (field == "parameters")
+			split(parameters, entry.second, boost::is_any_of(","));
 		else if (field == "weights") {
 			weights.clear();
 			vector<string> vals;
@@ -47,7 +41,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 				weights.push_back(stof(s));
 		}
 		else if (field != "fp_type")
-			MLOG("Unknown parameter \'%s\' for DoCalcFeatProcessor\n", field.c_str());
+			MLOG("Unknown parameter [%s] for DoCalcFeatProcessor\n", field.c_str());
 		//! [DoCalcFeatProcessor::init]
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
@@ -122,7 +116,8 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	// Prepare
 	vector<float*> p_sources;
 	for (string source : source_feature_names) {
-		assert(features.data.find(source) != features.data.end());
+		if (features.data.find(source) == features.data.end())
+			MTHROW_AND_ERR("could not find feature [%s]\n", source.c_str());
 		p_sources.push_back(&(features.data[source][0]));
 	}
 
@@ -143,6 +138,12 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 		fragile(p_sources, p_out, samples_size);	
 	else if (calc_type == "log")
 		_log(p_sources, p_out, samples_size);
+	else if (calc_type == "threshold")
+		do_threshold(p_sources, p_out, samples_size);
+	else if (calc_type == "and")
+		do_boolean_condition(p_sources, p_out, samples_size);
+	else if (calc_type == "or")
+		do_boolean_condition(p_sources, p_out, samples_size);
 	else
 		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
 
@@ -169,6 +170,65 @@ void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samp
 		p_out[i] = res;
 	}
 
+	return;
+}
+
+void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, int n_samples) {
+	MLOG("DoCalcFeatProcessor::do_threshold start\n");
+	if (p_sources.size() != 1)
+		MTHROW_AND_ERR("do_threshold expects 1 source_feature_names, got [%d]\n", p_sources.size());
+	float *p = p_sources[0];
+	if (parameters.size() != 2)
+		MTHROW_AND_ERR("do_threshold expects 2 parameters, got [%d]\n", parameters.size());
+	if (parameters[0] != ">" && parameters[0] != "<" && parameters[0] != ">=" && parameters[0] != "<=")
+		MTHROW_AND_ERR("do_threshold expects the first parameter to be one of [>,<,>=,<=], got [%s]\n", parameters[0].c_str());
+	float thresold;
+	try
+	{
+		thresold = boost::lexical_cast<float>(parameters[1]);
+	}
+	catch (const boost::bad_lexical_cast &exc) {
+		MTHROW_AND_ERR("do_threshold expects the second parameter to be a float threshold, got [%s]\n", parameters[1].c_str());
+	}
+
+	for (int i = 0; i < n_samples; i++) {
+		float res;
+		if (p[i] == missing_value)
+			res = missing_value;
+		else if (parameters[0] == ">")
+			res = p[i] > thresold;
+		else if (parameters[0] == "<")
+			res = p[i] < thresold;
+		else if (parameters[0] == ">=")
+			res = p[i] >= thresold;
+		else if (parameters[0] == "<=")
+			res = p[i] <= thresold;
+		else MTHROW_AND_ERR("do_threshold expects the first parameter to be one of [>,<,>=,<=], got [%s]\n", parameters[0].c_str());
+		p_out[i] = res;
+	}
+	MLOG("DoCalcFeatProcessor::do_threshold end\n");
+	return;
+}
+
+void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *p_out, int n_samples) {
+	MLOG("DoCalcFeatProcessor::do_boolean_condition start\n");
+	if (p_sources.size() != 2)
+		MTHROW_AND_ERR("[%s] expects 2 source_feature_names, got [%d]\n", calc_type.c_str(), p_sources.size());
+	if (calc_type != "and" && calc_type != "or")
+		MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
+
+	for (int i = 0; i < n_samples; i++) {
+		float res;
+		if (p_sources[0][i] == missing_value || p_sources[1][i] == missing_value)
+			res = missing_value;
+		else if (calc_type == "and")
+			res = p_sources[0][i] && p_sources[1][i];
+		else if (calc_type == "or")
+			res = p_sources[0][i] || p_sources[1][i];
+		else MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
+		p_out[i] = res;
+	}
+	MLOG("DoCalcFeatProcessor::do_boolean_condition end\n");
 	return;
 }
 
