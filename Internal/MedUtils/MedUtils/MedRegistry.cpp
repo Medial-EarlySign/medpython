@@ -730,8 +730,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	if (signal.len <= 0)
 		return;
 	int start_date = signal.Date(0);
-	for (int i = 1; i < signal.len && start_date < bdate; ++i)
+	int first_legal_index = 0;
+	for (int i = 1; i < signal.len && start_date < bdate; ++i) {
 		start_date = signal.Date(i); //finds first legal date
+		first_legal_index = i;
+	}
+	if (start_date < bdate)
+		return;
 
 	int min_date = DateAdd(start_date, 365);
 
@@ -743,7 +748,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	r.registry_value = 0;
 
 	int last_date = start_date;
-	for (int i = 0; i < signal.len; ++i)
+	for (int i = first_legal_index; i < signal.len; ++i)
 	{
 		if (signal.Date(i) > max_repo_date)
 			break;

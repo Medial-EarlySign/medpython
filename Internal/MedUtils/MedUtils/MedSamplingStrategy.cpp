@@ -191,7 +191,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			MedSample smp;
 			smp.id = it->first;
 			smp.time = pred_date;
-			int curr_index = 0;
+			int curr_index = 0, final_selected = -1;
 			float reg_val = -1;
 			int reg_time = -1;
 			//run on all matches:
@@ -212,28 +212,32 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 				if (reg_time == -1) { //first match
 					reg_val = (*all_pid_records)[curr_index]->registry_value;
 					reg_time = (*all_pid_records)[curr_index]->end_date;
+					final_selected = curr_index;
 				}
 				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
 					//if already found and conflicting:
 					if (conflict_method == "drop") {
 						reg_val = -1;
 						reg_time = -1;
+						final_selected = -1;
 						break;
 					}
 					else if (conflict_method == "max") {
 						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
 							reg_val = (*all_pid_records)[curr_index]->registry_value;
 							reg_time = (*all_pid_records)[curr_index]->end_date;
+							final_selected = curr_index;
 						}
 					}
 					else {
 						//insert current and update next:
-						smp.outcomeTime = reg_time;
+						smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
 						smp.outcome = reg_val;
 						idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
 						++done_count;
 						reg_val = (*all_pid_records)[curr_index]->registry_value;
 						reg_time = (*all_pid_records)[curr_index]->end_date;
+						final_selected = curr_index;
 					}
 					++conflict_count;
 					break;
@@ -243,7 +247,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			}
 
 			if (reg_time != -1) {
-				smp.outcomeTime = reg_time;
+				smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[final_selected]->start_date : reg_time;
 				smp.outcome = reg_val;
 				idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
 				++done_count;
