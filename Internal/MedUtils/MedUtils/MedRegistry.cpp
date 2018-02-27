@@ -721,17 +721,24 @@ void MedRegistryCodesList::init_lists(MedRepository &rep, int dur_flag, int buff
 		init_list(skip_pid_file, SkipPids);
 	signalCodes.clear();
 	signalCodes.push_back(rep.sigs.sid("RC"));
+	init_lists_called = true;
 }
 
 void MedRegistryCodesList::get_registry_records(int pid,
 	int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) {
-
+	if (!init_lists_called)
+		MTHROW_AND_ERR("Must be initialized by init_lists before use\n");
 	UniversalSigVec &signal = usv[0]; //RC signal
 	if (signal.len <= 0)
 		return;
 	int start_date = signal.Date(0);
-	for (int i = 1; i < signal.len && start_date < bdate; ++i)
+	int first_legal_index = 0;
+	for (int i = 1; i < signal.len && start_date < bdate; ++i) {
 		start_date = signal.Date(i); //finds first legal date
+		first_legal_index = i;
+	}
+	if (start_date < bdate)
+		return;
 
 	int min_date = DateAdd(start_date, 365);
 
@@ -743,7 +750,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	r.registry_value = 0;
 
 	int last_date = start_date;
-	for (int i = 0; i < signal.len; ++i)
+	for (int i = first_legal_index; i < signal.len; ++i)
 	{
 		if (signal.Date(i) > max_repo_date)
 			break;

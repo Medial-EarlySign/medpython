@@ -35,12 +35,20 @@ public:
 static unordered_set<float> default_empty_set;
 
 /**
-* A class that holds all registry records on all patients
+* A class that holds all registry records on all patients.\n
+* It has several ways to be initialized:\n
+* 1. by reading from disk - binary format or text format\n
+* 2. by creating registry using create_registry method. need to implement 
+* get_registry_records to handle single patient records.\n
+* \n
+* the class have also the ability to create contingency table with other signal:\n
+* for each Gender,Age_bin - the 4 stats number of the registry with the appearances or not appearances of
+* the signal value
 */
 class MedRegistry : public SerializableObject
 {
 public:
-	vector<MedRegistryRecord> registry_records; ///< the registry record vector
+	vector<MedRegistryRecord> registry_records; ///< the registry records vector
 
 	/// <summary>
 	/// Writes the file to text file in tab delimeted format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue
@@ -59,7 +67,22 @@ public:
 
 	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
+	/// @param repository_path the repsitory path
+	/// @param signalCode the signal code to calculate the stats of the registry with
+	/// @param signalHirerchyType the Hirerchy type: [None, RC, ATC, BNF] for signals with hirerchy
+	/// @param ageBinValue the age bin size
+	/// @param time_window_from the minimal time before the event (registry start_time). may be negative to start after event
+	/// @param time_window_to the maximal time before the event (registry start_time). may be negative to end after event start
+	/// @param sampler the sampler for how to calc the non appearance of the signal with the registry. 
+	/// You may use MedSamplingAge for example to sample each patient once in each age in the registry dates
+	/// @param debug_file If provided the output path to write detailed results of the intersection of registry and signal
+	/// @param debug_vals If not empty and has debug_file. will write the intersection(by the time window) of the registry with those values
 	/// </summary>
+	/// <returns>
+	/// @param maleSignalToStats The stats for males. the first key in the dictionary is the signal_value.
+	/// the second key is age_bin and the vector is always of size 4: [signal_not_appear&registry_is_false, signal_not_appear&registry_is_true, signal_appears&registry_is_false, signal_appears&registry_is_true]
+	/// @param femaleSignalToStats The stats for the females. same format as males
+	/// </returns>
 	void calc_signal_stats(const string &repository_path, int signalCode,
 		const string &signalHirerchyType, int ageBinValue, int time_window_from, int time_window_to,
 		MedSamplingStrategy &sampler,
@@ -85,7 +108,8 @@ float DateDiff(int refDate, int dateSample);
 int DateAdd(int refDate, int daysAdd);
 
 /**
-* A Class which creates registry based on readcode lists
+* A Class which creates registry based on readcode lists.
+*  Important: must be initialized by init_lists first
 */
 class MedRegistryCodesList : public MedRegistry {
 public:
@@ -104,6 +128,7 @@ public:
 		int max_repo, const vector<string> *rc_sets = NULL, const string &skip_pid_file = "");
 private:
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
+	bool init_lists_called;
 };
 
 MEDSERIALIZE_SUPPORT(MedRegistryRecord)

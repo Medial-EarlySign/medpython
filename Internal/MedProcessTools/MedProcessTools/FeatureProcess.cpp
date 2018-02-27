@@ -129,14 +129,14 @@ string FeatureProcessor::resolve_feature_name(MedFeatures& features, string subs
 	for (auto &candidate : features.attributes)
 		if (candidate.first.find(substr) != string::npos) {
 			if (real_feature_name != "")
-				throw runtime_error(string("source_feature_name [") + substr + "] matches both [" + real_feature_name + "] and [" + candidate.first + "]");
+				MTHROW_AND_ERR("%s\n", (string("source_feature_name [") + substr + "] matches both [" + real_feature_name + "] and [" + candidate.first + "]").c_str());
 			real_feature_name = candidate.first;
 		}
 	if (real_feature_name == "") {
 		string err = string("source_feature_name [") + substr + "] does not match any feature. Tried matching to these features:\n";
 		for (auto candidate : features.attributes)
 			err += candidate.first + "\n";
-		throw runtime_error(err);
+		MTHROW_AND_ERR("%s\n", err.c_str());
 	}
 
 	return real_feature_name;

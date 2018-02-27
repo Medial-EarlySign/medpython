@@ -17,6 +17,9 @@ public:
 
 	vector<string> source_feature_names;
 
+	/// general-purpose parameters which can be used by the calc
+	vector<string> parameters;
+
 	/// user function selector (e.g. sum, ratio)
 	string calc_type;
 
@@ -44,18 +47,18 @@ public:
 	void has_bled(vector<float*> p_sources, float *p_out, int n_samples, int max_flag);
 	void fragile(vector<float*> p_sources, float *p_out, int n_samples);
 	void framingham_chd(vector<float*> p_sources, float *p_out, int n_samples);
+	void do_boolean_condition(vector<float*> p_sources, float *p_out, int n_samples);
 
 	// Single Input Functions
 	void _log(vector<float*> p_sources, float *p_out, int n_samples);
+	void do_threshold(vector<float*> p_sources, float *p_out, int n_samples);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatProcessor *>(processor)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights)
-
-	/// Naming
-	void set_feature_name(const string& feature_name);
+	virtual int version() { return  1; } // ihadanny 20180227 - added parameters
+	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights, parameters)
 
 private:
 	virtual void resolve_feature_names(MedFeatures &features);

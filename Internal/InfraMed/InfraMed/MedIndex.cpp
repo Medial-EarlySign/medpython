@@ -21,12 +21,14 @@ extern MedLogger global_logger;
 //-----------------------------------------------------------
 int MedBufferedFile::open(const string &fname, const int bsize)
 {
+
 	name = fname;
 
 	inf = (ifstream *)new ifstream;
+	//MLOG("MedBufferedFile::open inf [%d] [%s]\n", inf, name.c_str());
 	inf->open(name,ios::in | ios::binary);
 	if (!(inf->is_open())) {
-		MERR("MedBufferedFile: open: Can't open file %s\n",name.c_str());
+		MTHROW_AND_ERR("MedBufferedFile: open: Can't open file %s\n",name.c_str());
 		return -1;
 	}
 
@@ -36,8 +38,9 @@ int MedBufferedFile::open(const string &fname, const int bsize)
 		buf_size = MedBufferedFile::default_buf_size;
 
 	buf = new unsigned char[buf_size];
+	//MLOG("MedBufferedFile::open buf [%d] [%s]\n", buf, name.c_str());
 	if (buf == NULL) {
-		MERR("MedBufferedFile: open: Can't allocate buffer of size %d for file %s\n",buf_size,name.c_str());
+		MTHROW_AND_ERR("MedBufferedFile: open: Can't allocate buffer of size %d for file %s\n",buf_size,name.c_str());
 		inf->close();
 		return -1;
 	}
@@ -54,16 +57,19 @@ int MedBufferedFile::open(const string &fname)
 
 //-----------------------------------------------------------
 void MedBufferedFile::close()
-{
+{	
 	if (buf != NULL) {
+		//MLOG("MedBufferedFile::close before buf [%d] delete [%s]\n", buf, name.c_str());
 		delete[] buf;
-		buf = NULL;
+		//MLOG("MedBufferedFile::close after buf [%d] delete [%s]\n", buf, name.c_str()); 
 	}
 	if (inf != NULL) {
+		//MLOG("MedBufferedFile::close before inf [%d] inf->is_open() [%s]\n", inf, name.c_str());
 		if (inf->is_open())
 			inf->close();
+		//MLOG("MedBufferedFile::close before inf [%d] delete [%s]\n", inf, name.c_str());
 		delete inf;
-		inf = NULL;
+		//MLOG("MedBufferedFile::close after inf [%d] delete [%s]\n", inf, name.c_str());
 	}
 	buf_len = 0;
 }
@@ -1124,7 +1130,7 @@ int MedIndex::read_index_table_and_data(int sid, string &idx_fname, string &data
 										const vector<int> &pids_to_include, unsigned char *w_area, unsigned long long &data_size)
 {
 	string prefix = "MedIndex::read_index_table_and_data() : sid : " + to_string(sid) + " :: ";
-
+	//MLOG("%s start reading index and data\n", prefix.c_str());
 //#pragma omp critical
 	{
 		if (index_table.size() == 0)
