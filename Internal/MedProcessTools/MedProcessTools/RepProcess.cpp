@@ -1445,8 +1445,10 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 		case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;		
 	}
 
-	if (calcFunc)
-		return _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
+	if (calcFunc) {
+		int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
+		return rv;
+	}
 
 	//handle time-dependent calculations
 	//calculation are done by first extrapolating each signal to the required 

@@ -55,6 +55,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 
 	}
 	fp.close();
+	MLOG("[Read %d registry records from %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
 void MedRegistry::write_text_file(const string &file_path) {
@@ -72,6 +73,7 @@ void MedRegistry::write_text_file(const string &file_path) {
 
 	fw.flush();
 	fw.close();
+	MLOG("[Wrote %d registry records to %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
 int get_value(MedRepository &rep, int pid, int sigCode) {
@@ -444,16 +446,25 @@ void MedRegistry::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedD
 	}
 }
 
-/// Check if signal date intersect with registry record in time window: min_dur, duration
+/// test that sig_start is in allowed range (means signal date is in allowed time).
+/// If looking backward - checks that end_date is in allowed range (backward search).
+/// use_whole changes the check to "contain" - which is relevents for controls to not passed reg_end_date.
+/// In cases we don't need it
 bool date_intersection(int min_allowed_date, int max_allowed_date, int reg_start, int reg_end, int sig_date,
-	int time_window_from, int time_window_to) {
+	int time_window_from, int time_window_to, bool use_whole) {
 	//Registry, Signal
 	int sig_start_date = DateAdd(sig_date, time_window_from);
 	int sig_end_date = DateAdd(sig_date, time_window_to);
-	if (sig_start_date > max_allowed_date || sig_start_date < min_allowed_date)
+	int reffer_date = sig_start_date;
+	if (time_window_from < 0) //if looking backward force end_date to be in allowed
+		reffer_date = sig_end_date;
+	if (reffer_date > max_allowed_date || reffer_date < min_allowed_date)
 		return false;
 
-	return (sig_end_date >= reg_start) && (sig_start_date <= reg_end);
+	if (time_window_from < 0)
+		return (sig_start_date <= reg_end) && (!use_whole || sig_start_date >= reg_start);
+	else
+		return (sig_end_date >= reg_start) && (!use_whole || sig_end_date <= reg_end);
 }
 
 void update_loop(int pos, int ageBin_index, float ageBin, const MedRegistryRecord &sigRec,
@@ -482,6 +493,14 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
+
+	if (time_window_from > time_window_to) {
+		MWARN("Warning: you gave time window params in wrong order [%d, %d]."
+			" switching them for you\n", time_window_from, time_window_to);
+		int tmp = time_window_to;
+		time_window_to = time_window_from;
+		time_window_from = tmp;
+	}
 
 	vector<int> pids;
 	MedSamples incidence_samples;
@@ -629,7 +648,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 				bool intersect = date_intersection(regRec.min_allowed_date, regRec.max_allowed_date,
 					regRec.start_date, regRec.end_date, sigRec.start_date,
-					time_window_from, time_window_to);
+					time_window_from, time_window_to, regRec.registry_value <= 0);
 				if (intersect) {
 					has_intr = true;
 					//pos += 1; //registry_value > 0 - otherwise skip this
