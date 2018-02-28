@@ -229,8 +229,7 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 				if (a == 0 || b == 0)
 					res = 0;
 				else res = missing_value;
-			}
-			res = a && b;
+			} else res = a && b;
 		}
 		else if (calc_type == "or") {
 			if (a == missing_value || b == missing_value) {
@@ -238,8 +237,7 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 				if (a == 1 || b == 1)
 					res = 1;
 				else res = missing_value;
-			}
-			res = a || b;	
+			} else res = a || b;	
 		}
 		else MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
 		p_out[i] = res;
