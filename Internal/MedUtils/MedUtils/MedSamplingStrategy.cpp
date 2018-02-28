@@ -16,6 +16,8 @@ int MedSamplingTimeWindow::init(map<string, string>& map) {
 			minimal_time_back = stoi(it->second);
 		else if (it->first == "maximal_time_back")
 			maximal_time_back = stoi(it->second);
+		else if (it->first == "sample_count")
+			sample_count = stoi(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -85,14 +87,17 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 			if (use_random)
 				rnd_days_diff = (int)rand_int(gen);
 
-		int sample_pred_date = DateAdd(currDate, -rnd_days_diff);
-		MedSample smp;
-		smp.id = rec.pid;
-		smp.outcome = rec.registry_value;
-		smp.outcomeTime = rec.registry_value >0 ? rec.start_date : rec.end_date;
-		smp.split = 0;
-		smp.time = sample_pred_date;
-		patient_samples.samples.push_back(smp);
+		for (size_t i = 0; i < sample_count; ++i)
+		{
+			int sample_pred_date = DateAdd(currDate, -rnd_days_diff);
+			MedSample smp;
+			smp.id = rec.pid;
+			smp.outcome = rec.registry_value;
+			smp.outcomeTime = rec.registry_value > 0 ? rec.start_date : rec.end_date;
+			smp.split = 0;
+			smp.time = sample_pred_date;
+			patient_samples.samples.push_back(smp);
+		}
 
 		if (addNew) {
 			if (!patient_samples.samples.empty())
@@ -115,7 +120,7 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	{
 		if (it->first == "start_year") {
 			start_year = stoi(it->second);
-			if (start_year <= 1900 || start_year >= 2100 )
+			if (start_year <= 1900 || start_year >= 2100)
 				MTHROW_AND_ERR("start_year must be initialize between 1900 to 2100\n");
 		}
 		else if (it->first == "end_year") {
@@ -139,7 +144,7 @@ int MedSamplingYearly::init(map<string, string>& map) {
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
-	
+
 	if (!(conflict_method == "drop" || conflict_method == "max" ||
 		conflict_method == "all"))
 		MTHROW_AND_ERR("Unsuported conflcit method - please choose: drop,all,max\n");
