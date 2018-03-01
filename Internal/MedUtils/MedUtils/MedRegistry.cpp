@@ -182,6 +182,49 @@ vector<int> get_parents_rc(MedDictionarySections &dict, const string &group) {
 
 	return res;
 }
+vector<int> get_sons_rc(MedDictionarySections &dict, const string &group) {
+	int sectionId = 1;
+	vector<int> res;
+
+	size_t pos = group.find_first_of('.');
+	if (pos == string::npos) {
+		return res; // leaf - no sons
+	}
+
+	//iterate all letters - lower & upper case:
+	char startChar = 'a';
+	char startCharU = 'A';
+	for (size_t i = 0; i < 26; ++i) {
+		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+
+		manip = group.substr(0, pos) + startCharU + group.substr(pos + 1);
+		code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+		++startChar;
+		++startCharU;
+	}
+
+	//iterate over 0-9:
+	startChar = '0';
+	for (size_t i = 0; i < 10; ++i) {
+		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+
+		++startChar;
+	}
+
+	return res;
+}
+
 
 #pragma endregion
 
@@ -271,6 +314,57 @@ vector<int> get_parents_atc(MedDictionarySections &dict, const string &group) {
 	return res;
 }
 
+vector<int> get_sons_atc(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	static vector<bool> iterTypeNum = { true, false, false, true };
+	static vector<int> indexLookup = { 1, 3, 5, 6 };
+	vector<int> res;
+	string conv = group;
+	if (conv.size() >= 12 && conv.at(0) == 'A' && conv.at(1) == 'T' && conv.at(2) == 'C' && conv.at(3) == '_')
+		conv = group.substr(4, 12);
+
+	size_t pos = conv.find_first_of('_');
+	if (pos == 4)
+		pos = conv.find_first_of('_', 5);
+	if (pos == string::npos)
+		return res; // leaf - no sons
+
+	int ind = 0;
+	while (ind < indexLookup.size() && indexLookup[ind] != pos)
+		++ind;
+	if (ind >= indexLookup.size()) {
+		cerr << "Bug in code " << group << endl;
+		throw logic_error("Bug in code");
+	}
+
+	if (iterTypeNum[ind]) {
+		//iterate over 00-99:
+		for (size_t i = 0; i < 100; ++i) {
+			string nm = to_string(i);
+			if (i < 10) {
+				nm = "0" + nm;
+			}
+			string manip = "ATC_" + conv.substr(0, pos) + nm + conv.substr(pos + 2);
+			int code = dict.id(sectionId, manip);
+			if (code > 0)
+				res.push_back(code);
+		}
+	}
+	else {
+		char startChar = 'A';
+		for (size_t i = 0; i < 26; ++i) {
+			string manip = "ATC_" + conv.substr(0, pos) + startChar + conv.substr(pos + 1);
+			int code = dict.id(sectionId, manip);
+			if (code > 0)
+				res.push_back(code);
+			++startChar;
+		}
+	}
+
+	return res;
+}
+
+
 #pragma endregion
 
 #pragma region BNF hirerachy
@@ -348,6 +442,32 @@ vector<int> get_parents_bnf(MedDictionarySections &dict, const string &group) {
 	return res;
 }
 
+vector<int> get_sons_bnf(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	vector<int> res;
+
+
+	size_t pos = group.find(".00");
+	if (pos == string::npos) {
+		return res; // leaf - no sons
+	}
+
+	//iterate over 00-99:
+	for (size_t i = 0; i < 100; ++i) {
+		string nm = to_string(i);
+		if (i < 10) {
+			nm = "0" + nm;
+		}
+		string manip = group.substr(0, pos) + "." + nm + group.substr(pos + 3);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+	}
+
+	return res;
+}
+
 #pragma endregion
 
 string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
@@ -368,6 +488,17 @@ vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySectio
 		return get_parents_atc(dict, group);
 	else if (signalHirerchyType == "BNF")
 		return get_parents_bnf(dict, group);
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+}
+vector<int> medial::signal_hierarchy::sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
+	if (signalHirerchyType == "RC")
+		return get_sons_rc(dict, group);
+	else if (signalHirerchyType == "ATC")
+		return get_sons_atc(dict, group);
+	else if (signalHirerchyType == "BNF")
+		return get_sons_bnf(dict, group);
 	else
 		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
 			signalHirerchyType.c_str());
