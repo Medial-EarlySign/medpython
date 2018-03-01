@@ -1084,7 +1084,7 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 		if (male_stats.find(signalVal) != male_stats.end())
 			dof += (int)male_stats.at(signalVal).size();
 		if (female_stats.find(signalVal) != female_stats.end())
-			dof += female_stats.at(signalVal).size();
+			dof += (int)female_stats.at(signalVal).size();
 		double pv = chisqr(dof, regScore);
 		p_values[index] = pv;
 	}
@@ -1239,10 +1239,10 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	for (int i = 0; i < indexes.size(); ++i) {
 		vector<double> vec = { p_vals[indexes[i]],
 			-lift[indexes[i]] , -scores[indexes[i]] };
-		keysSorted[i] = pair<int, vector<double>>(i, vec);
+		keysSorted[i] = pair<int, vector<double>>(indexes[i], vec);
 	}
 
-	std::sort(keysSorted.begin(), keysSorted.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
+	sort(keysSorted.begin(), keysSorted.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
 		int pos = 0;
 		while (pos < a.second.size() &&
 			a.second[pos] == b.second[pos])
@@ -1258,13 +1258,8 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	while (stop_index < keysSorted.size() && normAlpha * (stop_index + 1) >= keysSorted[stop_index].second[0])
 		++stop_index;
 
-	//this is the threshold - filter the rest:
-	int originalSize = (int)keysSorted.size();
-	for (size_t k = stop_index + 1; k < originalSize; ++k)
-		keysSorted.pop_back();
-
 	//Keep only filtered indexes
-	indexes.resize(keysSorted.size());
-	for (size_t i = 0; i < keysSorted.size(); ++i)
+	indexes.resize(stop_index);
+	for (size_t i = 0; i < stop_index; ++i)
 		indexes[i] = keysSorted[i].first;
 }
