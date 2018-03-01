@@ -1073,11 +1073,18 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 			lift[index] = 2 * posCnts[index]; //maximum lift
 		pos_ratio[index] = posCnts[index] / totCnt;
 
-		double regScore = gender_calc(male_stats.at(signalVal), smooth_balls); //Males
-		regScore += gender_calc(female_stats.at(signalVal), smooth_balls); //Females
+		double regScore = 0;
+		if (male_stats.find(signalVal) != male_stats.end())
+			regScore += gender_calc(male_stats.at(signalVal), smooth_balls); //Males
+		if (female_stats.find(signalVal) != female_stats.end())
+			regScore += gender_calc(female_stats.at(signalVal), smooth_balls); //Females
 
 		scores[index] = (float)regScore;
-		int dof = (int)male_stats.at(signalVal).size() + (int)female_stats.at(signalVal).size() - 1;
+		int dof = -1;
+		if (male_stats.find(signalVal) != male_stats.end())
+			dof += (int)male_stats.at(signalVal).size();
+		if (female_stats.find(signalVal) != female_stats.end())
+			dof += female_stats.at(signalVal).size();
 		double pv = chisqr(dof, regScore);
 		p_values[index] = pv;
 	}
