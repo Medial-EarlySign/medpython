@@ -77,7 +77,7 @@ void MedRegistry::write_text_file(const string &file_path) {
 	MLOG("[Wrote %d registry records to %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
-int get_value(MedRepository &rep, int pid, int sigCode) {
+int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	int len, gend = -1;
 	void *data = rep.get(pid, sigCode, len);
 	if (len > 0)
@@ -100,7 +100,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager) {
 		vector<UniversalSigVec> sig_vec((int)signalCodes.size());
 		for (size_t k = 0; k < sig_vec.size(); ++k)
 			dataManager.uget(dataManager.pids[i], signalCodes[k], sig_vec[k]);
-		int birth = get_value(dataManager, dataManager.pids[i], bDateCode);
+		int birth = medial::repository::get_value(dataManager, dataManager.pids[i], bDateCode);
 		vector<MedRegistryRecord> vals;
 		get_registry_records(dataManager.pids[i], birth, sig_vec, vals);
 
@@ -683,8 +683,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 		for (MedSample rec : idSample.samples)
 		{
 			int ind = rec.outcome > 0;
-			int gend = get_value(dataManager, rec.id, genderCode);
-			int bdate = get_value(dataManager, rec.id, bdateCode);
+			int gend = medial::repository::get_value(dataManager, rec.id, genderCode);
+			int bdate = medial::repository::get_value(dataManager, rec.id, bdateCode);
 			if (gend == -1) {
 				++unknown_gender;
 				continue;
@@ -747,8 +747,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 			continue; // show only stats for registry=1,0
 		}
 		//calcs on the fly pid records:
-		int gender = get_value(dataManager, pid, genderCode);
-		int BDate = get_value(dataManager, pid, bdateCode);
+		int gender = medial::repository::get_value(dataManager, pid, genderCode);
+		int BDate = medial::repository::get_value(dataManager, pid, bdateCode);
 		vector<UniversalSigVec> patientFile(1);
 		dataManager.uget(pid, signalCode, patientFile[0]);
 

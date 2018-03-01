@@ -118,6 +118,8 @@ namespace medial {
 		float DateDiff(int refDate, int dateSample);
 		///Helper function to add days to date
 		int DateAdd(int refDate, int daysAdd);
+		///fetching specifc signal code value
+		int get_value(MedRepository &rep, int pid, int sigCode);
 	}
 	namespace contingency_tables {
 		void calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
