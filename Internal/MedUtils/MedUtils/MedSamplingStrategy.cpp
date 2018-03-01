@@ -44,9 +44,9 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 			currDate = rec.max_allowed_date;
 		float year_diff_to_first_pred;
 		if (rec.min_allowed_date <= 0) //has no limit - if "max" go back until date of birth
-			year_diff_to_first_pred = DateDiff(rec.start_date, currDate) + rec.age;
+			year_diff_to_first_pred = medial::repository::DateDiff(rec.start_date, currDate) + rec.age;
 		else
-			year_diff_to_first_pred = DateDiff(rec.min_allowed_date, currDate);
+			year_diff_to_first_pred = medial::repository::DateDiff(rec.min_allowed_date, currDate);
 		if (year_diff_to_first_pred < 0 || rec.end_date <= rec.start_date || rec.end_date <= rec.min_allowed_date) {
 			++skip_end_smaller_start;
 			if (skip_end_smaller_start < 5) {
@@ -58,9 +58,9 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 		}
 		int min_pred_date; //how many years to go back
 		if (minimal_time_back + maximal_time_back > 365 * year_diff_to_first_pred) //validate we wont go back too far
-			min_pred_date = DateAdd(currDate, -int(365 * year_diff_to_first_pred));
+			min_pred_date = medial::repository::DateAdd(currDate, -int(365 * year_diff_to_first_pred));
 		else
-			min_pred_date = DateAdd(currDate, -minimal_time_back - maximal_time_back); //how many years to go back
+			min_pred_date = medial::repository::DateAdd(currDate, -minimal_time_back - maximal_time_back); //how many years to go back
 		MedIdSamples patient_samples(rec.pid);
 		if (pid_to_ind.find(rec.pid) == pid_to_ind.end()) {
 			pid_to_ind[rec.pid] = (int)samples.idSamples.size();
@@ -71,9 +71,9 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 		if (take_max) {
 			float curr_year_diff;
 			if (rec.min_allowed_date <= 0) //has no limit - if "max" go back until date of birth
-				curr_year_diff = DateDiff(rec.start_date, currDate) + rec.age;
+				curr_year_diff = medial::repository::DateDiff(rec.start_date, currDate) + rec.age;
 			else
-				curr_year_diff = DateDiff(rec.min_allowed_date, currDate);
+				curr_year_diff = medial::repository::DateDiff(rec.min_allowed_date, currDate);
 			int max_diff = int(365 * curr_year_diff) - 1;
 			if (max_diff < 2) {
 				if (addNew && patient_samples.samples.empty()) //was new and haven't been added yet
@@ -89,7 +89,7 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 
 		for (size_t i = 0; i < sample_count; ++i)
 		{
-			int sample_pred_date = DateAdd(currDate, -rnd_days_diff);
+			int sample_pred_date = medial::repository::DateAdd(currDate, -rnd_days_diff);
 			MedSample smp;
 			smp.id = rec.pid;
 			smp.outcome = rec.registry_value;
@@ -187,11 +187,11 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			idSamples.push_back(pid_sample);
 		}
 
-		for (long date = start_date; date <= end_date; date = DateAdd(date, day_jump)) {
+		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, day_jump)) {
 			//search for match in all regs:
 			int pred_date = date;
 			if (use_random)
-				pred_date = DateAdd(pred_date, -rand_int(gen));
+				pred_date = medial::repository::DateAdd(pred_date, -rand_int(gen));
 
 			MedSample smp;
 			smp.id = it->first;
@@ -313,12 +313,12 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 		}
 		for (int age = start_age; age <= end_age; age += age_bin) {
 			//search for match in all regs:
-			int pred_start_date = DateAdd(all_pid_records->front()->start_date, -365 * (all_pid_records->front()->age - age)); //mark start date in age_bin to age
-			int pred_end_date = DateAdd(pred_start_date, 365 * age_bin); //end date in age_bin
+			int pred_start_date = medial::repository::DateAdd(all_pid_records->front()->start_date, -365 * (all_pid_records->front()->age - age)); //mark start date in age_bin to age
+			int pred_end_date = medial::repository::DateAdd(pred_start_date, 365 * age_bin); //end date in age_bin
 
 			MedSample smp;
 			smp.id = it->first;
-			smp.time = DateAdd(pred_start_date, age_bin * 365 / 2); //choose middle
+			smp.time = medial::repository::DateAdd(pred_start_date, age_bin * 365 / 2); //choose middle
 			int curr_index = 0;
 			float reg_val = -1;
 			int reg_time = -1;
