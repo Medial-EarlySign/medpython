@@ -1234,7 +1234,7 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 		cm += 1 / (i + double(1));
 
 	double num_test_factor = num_of_init_test * cm;//dependence correction
-	vector<pair<int, vector<double>>> keysSorted(scores.size());
+	vector<pair<int, vector<double>>> keysSorted(indexes.size());
 
 	for (int i = 0; i < indexes.size(); ++i) {
 		vector<double> vec = { p_vals[indexes[i]],
@@ -1244,7 +1244,8 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 
 	std::sort(keysSorted.begin(), keysSorted.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
 		int pos = 0;
-		while (pos < a.second.size() && a.second[pos] == b.second[pos])
+		while (pos < a.second.size() &&
+			a.second[pos] == b.second[pos])
 			++pos;
 		if (pos >= a.second.size())
 			return false;

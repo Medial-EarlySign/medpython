@@ -64,7 +64,12 @@ public:
 
 	int init(map<string, string>& map);
 
-	MedSamplingYearly() { gen = mt19937(rd()); }
+	MedSamplingYearly() {
+		gen = mt19937(rd());
+		conflict_method = "drop"; //default
+		prediction_month_day = 101; //deafult
+		back_random_duration = 0; //default
+	}
 private:
 	random_device rd;
 	mt19937 gen;
@@ -107,7 +112,7 @@ public:
 
 	int init(map<string, string>& map);
 
-	MedSamplingDates() { gen = mt19937(rd()); }
+	MedSamplingDates() { gen = mt19937(rd()); take_count = 1; }
 
 private:
 	random_device rd;

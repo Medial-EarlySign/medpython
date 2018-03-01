@@ -114,8 +114,6 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 }
 
 int MedSamplingYearly::init(map<string, string>& map) {
-	conflict_method = "drop"; //default
-	prediction_month_day = 101; //deafult
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "start_year") {
