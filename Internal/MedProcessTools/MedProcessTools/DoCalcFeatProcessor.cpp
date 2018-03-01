@@ -219,12 +219,26 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 
 	for (int i = 0; i < n_samples; i++) {
 		float res;
-		if (p_sources[0][i] == missing_value || p_sources[1][i] == missing_value)
+		float a = p_sources[0][i];
+		float b = p_sources[1][i];
+		if (a == missing_value && b == missing_value)
 			res = missing_value;
-		else if (calc_type == "and")
-			res = p_sources[0][i] && p_sources[1][i];
-		else if (calc_type == "or")
-			res = p_sources[0][i] || p_sources[1][i];
+		else if (calc_type == "and") {
+			if (a == missing_value || b == missing_value) {
+				// one of them missing
+				if (a == 0 || b == 0)
+					res = 0;
+				else res = missing_value;
+			} else res = a && b;
+		}
+		else if (calc_type == "or") {
+			if (a == missing_value || b == missing_value) {
+				// one of them missing
+				if (a == 1 || b == 1)
+					res = 1;
+				else res = missing_value;
+			} else res = a || b;	
+		}
 		else MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
 		p_out[i] = res;
 	}
