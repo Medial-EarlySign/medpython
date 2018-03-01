@@ -177,7 +177,8 @@ typedef enum {
 	FTR_CATEGORY_SET_SUM = 14, ///<"category_set_sum" - sums the values of appearnces of sets in the time window
 	FTR_NSAMPLES = 15, ///<"nsamples" - counts the number of times the signal apear in the time window
 	FTR_EXISTS = 16, ///<"exists" - boolean 0/1 if the signal apears in the time window
-
+	FTR_LAST_DELTA_TIME_NORM_VALUE = 17,
+	FTR_LAST_DELTA_TIME_AVG_NORM_VALUE = 18,
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -195,6 +196,7 @@ private:
 	float uget_min(UniversalSigVec &usv, int time_point);
 	float uget_std(UniversalSigVec &usv, int time_point);
 	float uget_last_delta(UniversalSigVec &usv, int time_point);
+	float last_delta_time_norm(UniversalSigVec &usv, int time);
 	float uget_last_time(UniversalSigVec &usv, int time_point);
 	float uget_last2_time(UniversalSigVec &usv, int time_point);
 	float uget_slope(UniversalSigVec &usv, int time_point);
