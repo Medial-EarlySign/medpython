@@ -454,11 +454,11 @@ int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRe
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
 	versionIterator vit(rec, iteratorSignalIds);
 
-	auto it = calc2req_sigs.find(calculator);
-	if (it == calc2req_sigs.end()) {//unexpected
-		cout << "cannot find name " << calculator << " in calc2req_sigs" << endl;
-		return -1;
-	}
+	//auto it = calc2req_sigs.find(calculator);
+	//if (it == calc2req_sigs.end()) {//unexpected
+	//	cout << "cannot find name " << calculator << " in calc2req_sigs" << endl;
+	//	return -1;
+	//}
 
 	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 		//componentData will hold the data of component signals after alignment to required time_points
@@ -475,7 +475,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRe
 			curTimes.clear();
 			curVals.clear();
 
-			process_hosp_signal((it->second)[i], rec.usvs[i], curTimes, curVals);
+			process_hosp_signal(signals[i], rec.usvs[i], curTimes, curVals);
 
 			int curLen = (int)curTimes.size();
 
@@ -633,9 +633,9 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
 	versionIterator vit(rec, iteratorSignalIds);
 
-	auto it = calc2req_sigs.find(V_names[0]);
-	if (it == calc2req_sigs.end()) //unexpected
-		return -1;
+	//auto it = calc2req_sigs.find(V_names[0]);
+	//if (it == calc2req_sigs.end()) //unexpected
+	//	return -1;
 
 	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 		rec.uget(sigs_ids[0], iver, rec.usvs[0]);
@@ -791,11 +791,11 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
 	versionIterator vit(rec, iteratorSignalIds);
 
-	auto it = calc2req_sigs.find(calculator);
-	if (it == calc2req_sigs.end()) {//unexpected
-		cout << "cannot find name " << calculator << " in calc2req_sigs" << endl;
-		return -1;
-	}
+	//auto it = calc2req_sigs.find(calculator);
+	//if (it == calc2req_sigs.end()) {//unexpected
+	//	cout << "cannot find name " << calculator << " in calc2req_sigs" << endl;
+	//	return -1;
+	//}
 
 	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 		//componentData will hold the data of component signals after alignment to required time_points
@@ -812,7 +812,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 			curTimes.clear();
 			curVals.clear();
 
-			process_hosp_signal((it->second)[i], rec.usvs[i], curTimes, curVals);
+			process_hosp_signal(signals[i], rec.usvs[i], curTimes, curVals);
 
 			int curLen = (int)curTimes.size();
 
