@@ -77,9 +77,21 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 	no_comments_stream.seekg(0);
 
 	ptree pt;
-	read_json(no_comments_stream, pt);
+	try {
+		read_json(no_comments_stream, pt);
+	}
+	catch (json_parser_error e) {
+		no_comments_stream.clear();
+		no_comments_stream.seekg(0);
+		MLOG("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
+		for (int i = 1; getline(no_comments_stream, my_line); i++) {
+			if (abs((int)e.line() - i) < 3)
+				MLOG("%d\t%s\n", i, my_line.c_str());
+		}
+		MTHROW_AND_ERR("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
+	}
 	this->model_json_version = pt.get<int>("model_json_version", model_json_version);
-	MLOG("model_json_version %d\n", model_json_version);
+	MLOG("\nmodel_json_version [%d]\n", model_json_version);
 	if (model_json_version <= 1) {
 		init_from_json_file_with_alterations_version_1(fname, alterations);
 		return;
@@ -95,7 +107,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 			int process_set;
 			if (action_type == "rp_set") process_set = rp_set++;
 			else process_set = fp_set++;			
-			int num_members = action.get_child("members").size();
+			int num_members = (int)action.get_child("members").size();
 			int num_actions = 0;
 			string first_action_added = "";
 			for (auto &member : action.get_child("members")) {
@@ -108,10 +120,10 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 				if (duplicate == 1 && all_combinations.size() != 1)
 					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] set %d has one member which expanded to %d actions\n",
-						action_type.c_str(), process_set, all_combinations.size());
+						action_type.c_str(), process_set, (int)all_combinations.size());
 				for (string c : all_combinations)
 					add_process_to_set(process_set, duplicate, c);
-				num_actions += all_combinations.size();	
+				num_actions += (int)all_combinations.size();	
 				if (first_action_added == "")
 					first_action_added = all_combinations[0];
 			}			
@@ -140,7 +152,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 			concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 			if (all_combinations.size() > 1 && (action_type == "rep_processor" || action_type == "feat_processor"))
 				MTHROW_AND_ERR("action_type [%s] expanded to %d combinations, which is possible only inside a set! first instance is [%s]\n",
-					action_type.c_str(), all_combinations.size(), all_combinations[0].c_str());
+					action_type.c_str(), (int)all_combinations.size(), all_combinations[0].c_str());
 			for (string c : all_combinations)
 				add_process_to_set(process_set, duplicate, c);
 			MLOG("added %d actions to [%s] set %d, first of which was [%s]\n", all_combinations.size(), set_name.c_str(), process_set, all_combinations[0].c_str());
