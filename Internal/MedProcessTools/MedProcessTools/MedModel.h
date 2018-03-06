@@ -46,10 +46,10 @@ public:
 	vector<FeatureProcessor *> feature_processors;
 
 	/// Predictor
-	MedPredictor *predictor;
+	MedPredictor *predictor = NULL;
 
 	/// Learning samples
-	MedSamples *LearningSet;
+	MedSamples *LearningSet = NULL;
 
 	/// Safe Mode for train/test intersection
 	int safe_mode = 0;
@@ -65,7 +65,7 @@ public:
 	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
 	~MedModel() { clear(); };
 
-	void clear() {}; 
+	void clear(); 
 
 	MedFeatures features;	///< the created matrix - no need to serialize
 

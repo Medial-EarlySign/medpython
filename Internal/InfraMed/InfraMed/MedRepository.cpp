@@ -310,8 +310,8 @@ int MedRepository::read_pid_list()
 	string fname_pids = path + "/" + rep_files_prefix + "_all_pids.list";
 
 	all_pids_list.clear();
-	unsigned char *data;
-	unsigned long long size;
+	unsigned char *data = NULL;
+	unsigned long long size = 0;
 	if (read_bin_file_IM(fname_pids, data, size) < 0) {
 		MERR("ERROR: Failed reading %s ... it is recommended to repeat conversion\n", fname_pids.c_str());
 		return 0; // -1
@@ -321,6 +321,9 @@ int MedRepository::read_pid_list()
 	all_pids_list.resize(list[0]);
 	for (int i=0; i<all_pids_list.size(); i++)
 		all_pids_list[i] = list[i+1];
+
+	if (size > 0) delete[] data;
+
 	return 0;
 }
 

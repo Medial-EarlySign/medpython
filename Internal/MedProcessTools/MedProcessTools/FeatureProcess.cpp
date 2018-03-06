@@ -274,6 +274,19 @@ void MultiFeatureProcessor::copy(FeatureProcessor *processor) {
 	}
 }
 
+
+//.......................................................................................
+void MultiFeatureProcessor::clear()
+{
+	for (auto pfp : processors) {
+		if (pfp != NULL) {
+			delete pfp;
+			pfp = NULL;
+		}
+	}
+	processors.clear();
+}
+
 // Init 
 //.......................................................................................
 int MultiFeatureProcessor::init(map<string, string>& mapper) {

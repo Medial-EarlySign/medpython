@@ -242,6 +242,17 @@ size_t RepProcessor::processor_serialize(unsigned char *blob) {
 //=======================================================================================
 // RepMultiProcessor
 //=======================================================================================
+//.......................................................................................
+void RepMultiProcessor::clear()
+{
+	for (auto p : processors) {
+		if (p != NULL) {
+			delete p;
+			p = NULL;
+		}
+	}
+	processors.clear();
+}
 // Required Signals ids : Fill the member vector - req_signal_ids
 //.......................................................................................
 void RepMultiProcessor::set_required_signal_ids(MedDictionarySections& dict) {
@@ -1315,6 +1326,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		else if (field == "names") {
 			boost::split(V_names, entry.second, boost::is_any_of(",:"));
 		}
+	
 	}
 
 	calc_type = get_calculator_type(calculator);

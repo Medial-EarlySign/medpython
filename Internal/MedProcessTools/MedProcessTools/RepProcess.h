@@ -44,6 +44,9 @@ public:
 	unordered_set<string> aff_signals; ///< names of signals affected by processing
 	unordered_set<int> aff_signal_ids; ///< ids of signals affected by processing
 
+	virtual ~RepProcessor() { clear(); }
+	virtual void clear() {  };
+
 	/// <summary> 
 	/// virtual signals are created only in rep processors but can be used by any rep processor that comes after
 	/// or any feture generator as a regular signal.
@@ -185,6 +188,10 @@ public:
 
 	/// <summary> Constructor </summary>
 	RepMultiProcessor() { processor_type = REP_PROCESS_MULTI; };
+	~RepMultiProcessor() { clear(); };
+
+	void clear();
+
 
 	/// <summary> Add processors to set  </summary>
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals);
@@ -593,6 +600,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		float missing_value = (float)MED_MAT_MISSING_VALUE;
 
 		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
+
 
 		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
 

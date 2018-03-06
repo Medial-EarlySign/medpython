@@ -253,18 +253,13 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {
-	unsigned char *blob;
 	unsigned long long final_size;
-
-	if (read_binary_data_alloc(fname, blob, final_size) < 0)
-		MTHROW_AND_ERR("Error reading samples from file [%s]\n", fname.c_str());
 
 	ifstream inf(fname);
 
 	MLOG("MedSamples: reading %s\n", fname.c_str());
 	if (!inf) {
-		MERR("MedSamples: can't open file %s for read\n", fname.c_str());
-		return -1;
+		MTHROW_AND_ERR("MedSamples: can't open file %s for read\n", fname.c_str());
 	}
 
 	string curr_line;
