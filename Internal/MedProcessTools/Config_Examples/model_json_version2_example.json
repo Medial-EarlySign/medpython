@@ -31,7 +31,7 @@
       "fg_type": "basic",
       "type": [ "win_delta" ],
       "window": "win_from=0;win_to=180",
-      "d_window": "d_win_from=180;d_win_to=FEATURE_GENERATOR_WIN_TO",
+      "d_window": "d_win_from=180;d_win_to=1000",
       "time_unit": "Days",
       "signal": "file:all.signals",
       "tags": "numeric"
@@ -40,9 +40,14 @@
       "action_type": "feat_generator",
       "fg_type": "basic",
       "type": [ "last", "exists" ],
-      "window": [ "win_from=0;win_to=FEATURE_GENERATOR_WIN_TO" ],
+      "window": [ "win_from=0;win_to=1000" ],
       "time_unit": "Days",
       "signal": "file:all.signals",
+      "tags": "categorical"
+    },
+    {
+      "action_type": "feat_generator",
+      "fg_type": "age",
       "tags": "categorical"
     },
     {
@@ -50,11 +55,16 @@
       "members": [
         {
           "fp_type": "imputer",
-          "strata": "Age,40,70,10:Gender,1,2,1",
+          "strata": "Age,40,70,10",
           "moment_type": "0",
           "tag": "numeric", // impute the numeric features with mean
-          "duplicate":  "y"
-        },
+          "duplicate": "y"
+        }
+      ]
+    },
+    {
+      "action_type": "fp_set",
+      "members": [
         {
           "fp_type": "remove_deg",
           "percentage": "0.995"
@@ -63,5 +73,5 @@
     }
   ],
   "predictor": "xgb",
-  "predictor_params": "booster=gbtree;objective=binary:logistic;eta=0.05;gamma=1;max_depth=5;num_round=XGBOOST_NUM_ITERATIONS;min_child_weight=6;silent=1;missing_value=666"
+  "predictor_params": "booster=gbtree;objective=binary:logistic;eta=0.05;gamma=1;max_depth=5;num_round=5;min_child_weight=6;silent=1;missing_value=666"
 }

@@ -112,7 +112,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	//init:
 	rd_gen.resize(maxThreadCount);
 	for (size_t i = 0; i < maxThreadCount; ++i)
-		if (seed == 0) 
+		if (seed == 0)
 			rd_gen[i] = mt19937(rd());
 		else
 			rd_gen[i] = mt19937(seed);
@@ -323,7 +323,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	const vector<MeasurementFunctions> &meas_functions, const vector<void *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
-	const vector<int> &pids_full, FilterCohortFunc cohort_def, void *cohort_params, int seed = 0) {
+	const vector<int> &pids_full, const vector<int> &filter_indexes, FilterCohortFunc cohort_def, void *cohort_params, int seed = 0) {
 	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
@@ -331,8 +331,13 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//initialize measurement params per cohort:
 	time_t st = time(NULL);
 	for (size_t i = 0; i < function_params.size(); ++i)
-		if (process_measurments_params != NULL && function_params[i] != NULL)
-			process_measurments_params(additional_info, y, pids, function_params[i]);
+		if (process_measurments_params != NULL && function_params[i] != NULL) {
+			ROC_And_Filter_Params prm;
+			prm.roc_params = (ROC_Params *)function_params[i];
+			prm.filter = (vector<Filter_Param> *)cohort_params;
+			process_measurments_params(additional_info, y, pids, &prm,
+				filter_indexes, y_full, pids_full);
+		}
 	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 #ifdef USE_MIN_THREADS
@@ -587,10 +592,11 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 
 	map<string, map<string, float>> all_cohorts_measurments;
 	vector<float> preds_c, y_c;
-	vector<int> pids_c;
+	vector<int> pids_c, filtered_indexes;
 	vector<int> class_sz;
 	pids_c.reserve((int)y.size());
 	preds_c.reserve((int)y.size());
+	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 	{
@@ -603,11 +609,13 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		pids_c.clear();
 		preds_c.clear();
 		y_c.clear();
+		filtered_indexes.clear();
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
 				pids_c.push_back(pids[j]);
 				y_c.push_back(y[j]);
 				preds_c.push_back((*final_preds)[j]);
+				filtered_indexes.push_back((int)j);
 				++class_sz[y[j] > 0];
 			}
 		//now we have cohort: run analysis:
@@ -629,7 +637,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, it->second, c_params, seed);
+			process_measurments_params, additional_info, y, pids, filtered_indexes, it->second, c_params, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 	}
@@ -1499,13 +1507,147 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 #pragma endregion
 
 #pragma region Process Measurement Param Functions
+void count_stats(int bin_counts, const vector<float> &y, const map<string, vector<float>> &additional_info
+	, const vector<int> &filtered_indexes, const ROC_Params *params,
+	vector<vector<double>> &male_counts, vector<vector<double>> &female_counts) {
+
+	male_counts.resize(bin_counts);
+	female_counts.resize(bin_counts);
+	for (size_t i = 0; i < male_counts.size(); ++i)
+		male_counts[i].resize(2);
+	for (size_t i = 0; i < female_counts.size(); ++i)
+		female_counts[i].resize(2);
+	int min_age = (int)params->inc_stats.min_age;
+	int max_age = (int)params->inc_stats.max_age;
+	//if filtered_indexes is empty pass on all y. otherwise traverse over indexes:
+	if (filtered_indexes.empty()) {
+		for (size_t i = 0; i < y.size(); ++i)
+		{
+			if (additional_info.at("Age")[i] < min_age ||
+				additional_info.at("Age")[i] >= max_age + params->inc_stats.age_bin_years)
+				continue; //skip out of range or already case
+			int age_index = (int)floor((additional_info.at("Age")[i] - min_age) /
+				params->inc_stats.age_bin_years);
+			if (age_index >= bin_counts)
+				age_index = bin_counts - 1;
+
+			if (additional_info.at("Gender")[i] == GENDER_MALE)  //Male
+				++male_counts[age_index][y[i] > 0];
+			else //Female
+				++female_counts[age_index][y[i] > 0];
+		}
+	}
+	else {
+		for (size_t ii = 0; ii < filtered_indexes.size(); ++ii)
+		{
+			int i = filtered_indexes[ii];
+			if (additional_info.at("Age")[i] < min_age ||
+				additional_info.at("Age")[i] >= max_age + params->inc_stats.age_bin_years)
+				continue; //skip out of range or already case
+			int age_index = (int)floor((additional_info.at("Age")[i] - min_age) /
+				params->inc_stats.age_bin_years);
+			if (age_index >= bin_counts)
+				age_index = bin_counts - 1;
+
+			if (additional_info.at("Gender")[i] == GENDER_MALE)  //Male
+				++male_counts[age_index][y[i] > 0];
+			else //Female
+				++female_counts[age_index][y[i] > 0];
+		}
+	}
+}
+
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, void *function_params) {
-	ROC_Params *params = (ROC_Params *)function_params;
+	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
+	ROC_And_Filter_Params *pr_full = (ROC_And_Filter_Params *)function_params;
+	ROC_Params *params = pr_full->roc_params;
+	vector<Filter_Param> *cohort_filt = pr_full->filter;
+
 	if (params->inc_stats.sorted_outcome_labels.empty())
 		return; //no inc file
 	//calculating the "fixed" incidence in the cohort giving the true inc. in the general population
 	// select cohort - and multiply in the given original incidence
+	if (params->inc_stats.sorted_outcome_labels.size() != 2)
+		MTHROW_AND_ERR("Category outcome aren't supported for now\n");
+	if (additional_info.find("Age") == additional_info.end() || additional_info.find("Gender") == additional_info.end())
+		MTHROW_AND_ERR("Age or Gender Signals are missings\n");
+
+	int min_age = (int)params->inc_stats.min_age;
+	int max_age = (int)params->inc_stats.max_age;
+	int bin_counts = (int)floor((max_age - min_age) / params->inc_stats.age_bin_years);
+	if (bin_counts * params->inc_stats.age_bin_years >
+		(max_age - min_age) + 0.5)
+		++bin_counts; //has at least 0.5 years for last bin to create it
+	if (params->inc_stats.male_labels_count_per_age.size() != bin_counts)
+		MTHROW_AND_ERR("Male vector has %d members. and need to have %d members\n",
+			(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
+
+	vector<vector<double>> filtered_male_counts, filtered_female_counts;
+	vector<vector<double>> all_male_counts, all_female_counts;
+	count_stats(bin_counts, y_full, additional_info, filtered_indexes, params,
+		filtered_male_counts, filtered_female_counts);
+	//always filter Time-Window:
+	vector<int> baseline_all;
+	Filter_Param *time_win_cond = NULL;
+	for (auto i = 0; i < cohort_filt->size() && time_win_cond == NULL; ++i)
+		if ((*cohort_filt)[i].param_name == "Time-Window")
+			time_win_cond = &(*cohort_filt)[i];
+	if (time_win_cond != NULL)
+		for (size_t i = 0; i < y_full.size(); ++i)
+			if (filter_range_param(additional_info, (int)i, time_win_cond))
+				baseline_all.push_back((int)i);
+	count_stats(bin_counts, y_full, additional_info, baseline_all, params,
+		all_male_counts, all_female_counts);
+
+	//Lets calc the ratio for the incidence in the filter:
+	params->incidence_fix = 0;
+	double tot_controls = 0;
+	//recalc new ratio of #1/(#1+#0) and fix stats
+	for (size_t i = 0; i < bin_counts; ++i)
+	{
+		double tot_cn_filtered = filtered_male_counts[i][0] + filtered_male_counts[i][1];
+		if (filtered_male_counts[i][0] > 0 && all_male_counts[i][1] > 0) {
+			double general_inc = params->inc_stats.male_labels_count_per_age[i][1] /
+				(params->inc_stats.male_labels_count_per_age[i][1] +
+					params->inc_stats.male_labels_count_per_age[i][0]);
+			tot_controls += filtered_male_counts[i][0];
+			double filtered_inc = filtered_male_counts[i][1] / tot_cn_filtered;
+			double all_inc = all_male_counts[i][1] / (all_male_counts[i][1] + all_male_counts[i][0]);
+			double inc_ratio = filtered_inc / all_inc;
+
+			params->incidence_fix += filtered_male_counts[i][0] * general_inc * inc_ratio;
+		}
+		tot_cn_filtered = filtered_female_counts[i][0] + filtered_female_counts[i][1];
+		if (filtered_female_counts[i][0] > 0 && all_female_counts[i][1]) {
+			double general_inc = params->inc_stats.female_labels_count_per_age[i][1] /
+				(params->inc_stats.female_labels_count_per_age[i][1] +
+					params->inc_stats.female_labels_count_per_age[i][0]);
+			tot_controls += filtered_female_counts[i][0];
+			double filtered_inc = filtered_female_counts[i][1] / tot_cn_filtered;
+			double all_inc = all_female_counts[i][1] / (all_female_counts[i][1] + all_female_counts[i][0]);
+			double inc_ratio = filtered_inc / all_inc;
+
+			params->incidence_fix += filtered_female_counts[i][0] * general_inc * inc_ratio;
+		}
+	}
+
+	if (tot_controls > 0)
+		params->incidence_fix /= tot_controls;
+
+	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f%% mean incidence\n",
+		100 * params->incidence_fix);
+}
+
+void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additional_info,
+	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
+	ROC_And_Filter_Params *pr_full = (ROC_And_Filter_Params *)function_params;
+	ROC_Params *params = pr_full->roc_params;
+	if (params->inc_stats.sorted_outcome_labels.empty())
+		return; //no inc file
+				//calculating the "fixed" incidence in the cohort giving the true inc. in the general population
+				// select cohort - and multiply in the given original incidence
 	if (params->inc_stats.sorted_outcome_labels.size() != 2)
 		MTHROW_AND_ERR("Category outcome aren't supported for now\n");
 	if (additional_info.find("Age") == additional_info.end() || additional_info.find("Gender") == additional_info.end())
@@ -1519,27 +1661,9 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 		MTHROW_AND_ERR("Male vector has %d members. and need to have %d members\n",
 			(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
 
-	vector<vector<double>> filtered_male_counts(2), filtered_female_counts(2);
-	for (size_t i = 0; i < filtered_male_counts.size(); ++i)
-		filtered_male_counts[i].resize(bin_counts);
-	for (size_t i = 0; i < filtered_female_counts.size(); ++i)
-		filtered_female_counts[i].resize(bin_counts);
-
-	for (size_t i = 0; i < y.size(); ++i)
-	{
-		if (additional_info.at("Age")[i] < params->inc_stats.min_age ||
-			additional_info.at("Age")[i] > params->inc_stats.max_age)
-			continue; //skip out of range or already case
-		int age_index = (int)floor((additional_info.at("Age")[i] - params->inc_stats.min_age) /
-			params->inc_stats.age_bin_years);
-		if (age_index >= bin_counts)
-			age_index = bin_counts - 1;
-
-		if (additional_info.at("Gender")[i] == 1)  //Male
-			++filtered_male_counts[y[i] > 0][age_index];
-		else //Female
-			++filtered_female_counts[y[i] > 0][age_index];
-	}
+	vector<vector<double>> filtered_male_counts, filtered_female_counts;
+	count_stats(bin_counts, y_full, additional_info, filtered_indexes, params,
+		filtered_male_counts, filtered_female_counts);
 
 	params->incidence_fix = 0;
 	double tot_controls = 0;
@@ -1547,27 +1671,28 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	for (size_t i = 0; i < bin_counts; ++i)
 	{
 		//Males:
-		if (filtered_male_counts[0][i] > 0) {
+		if (filtered_male_counts[i][0] > 0) {
 			double general_inc = params->inc_stats.male_labels_count_per_age[i][1] /
 				(params->inc_stats.male_labels_count_per_age[i][1] +
 					params->inc_stats.male_labels_count_per_age[i][0]);
-			tot_controls += filtered_male_counts[0][i];
-			params->incidence_fix += filtered_male_counts[0][i] * general_inc;
+			tot_controls += filtered_male_counts[i][0];
+			params->incidence_fix += filtered_male_counts[i][0] * general_inc;
 		}
 		//Females:
-		if (filtered_female_counts[0][i] > 0) {
+		if (filtered_female_counts[i][0] > 0) {
 			double general_inc = params->inc_stats.female_labels_count_per_age[i][1] /
 				(params->inc_stats.female_labels_count_per_age[i][1] +
 					params->inc_stats.female_labels_count_per_age[i][0]);
-			tot_controls += filtered_female_counts[0][i];
-			params->incidence_fix += filtered_female_counts[0][i] * general_inc;
+			tot_controls += filtered_female_counts[i][0];
+			params->incidence_fix += filtered_female_counts[i][0] * general_inc;
 		}
 	}
 
 	if (tot_controls > 0)
 		params->incidence_fix /= tot_controls;
 
-	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f mean incidence\n", params->incidence_fix);
+	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f%% mean incidence\n",
+		100 * params->incidence_fix);
 }
 #pragma endregion
 
@@ -1798,8 +1923,9 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 		string command = tokens[0];
 		if (command == "AGE_BIN")
 			age_bin_years = stoi(tokens[1]);
-		else if (command == "AGE_MIN")
+		else if (command == "AGE_MIN") {
 			min_age = stof(tokens[1]);
+		}
 		else if (command == "AGE_MAX")
 			max_age = stof(tokens[1]);
 		else if (command == "OUTCOME_VALUE")
@@ -1808,6 +1934,9 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 			if (tokens.size() != 5)
 				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
 			float age = stof(tokens[2]);
+			min_age = float(int(min_age / age_bin_years) * age_bin_years);
+			max_age = float(int(ceil(max_age / age_bin_years)) * age_bin_years);
+
 			if (age < min_age || age> max_age) {
 				MWARN("Warning:: skip age because out of range in line \"%s\"\n", line.c_str());
 				continue;

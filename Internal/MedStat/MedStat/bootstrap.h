@@ -241,6 +241,11 @@ public:
 	ADD_SERIALIZATION_FUNCS(param_name, min_range, max_range)
 };
 
+struct ROC_And_Filter_Params {
+	ROC_Params *roc_params;
+	vector<Filter_Param> *filter;
+};
+
 //Infra
 ///Function which recieves Lazy_Iterator and the thread num for iterating the predictions and labels.
 /// it also recieves function_params which are additional arguments for the function (can be working points
@@ -251,7 +256,8 @@ typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, int t
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
 /// a function to process and maniplulate function params based on the given cohort - for example sotring
 /// incedince information for the cohort
-typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, void *function_params);
+typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full);
 /// a funtion to preprocess the prediction scores (binning for example to speed up bootstrap).
 /// the function manipulate preds based on function_params
 typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
@@ -262,7 +268,17 @@ typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params)
 /// and storing the incidence inside of it.
 /// </summary>
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, void *function_params);
+	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full);
+
+/// <summary>
+/// a function to calculate the incidence in each cohort - preprocessing of function_params
+/// and storing the incidence inside of it. The old has same implementation as old bootstrap
+/// only averaging incidence over the controls in the sample based on incidence in each group(age+gender)
+/// </summary>
+void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additional_info,
+	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full);
 #pragma endregion
 
 #pragma region Process Scores Functions

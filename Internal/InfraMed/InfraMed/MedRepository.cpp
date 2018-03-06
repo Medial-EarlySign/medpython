@@ -1315,7 +1315,7 @@ int IndexTable::write_to_file(string &fname)
 int IndexTable::read_from_file(string &fname)
 {
 
-	unsigned char *data;
+	unsigned char *data = NULL;
 	unsigned long long size = 0;
 	int rc;
 
@@ -1324,16 +1324,18 @@ int IndexTable::read_from_file(string &fname)
 //		rc = read_bin_file_IM_parallel(fname, data, size);
 //		MLOG("IndexTable::read_from_file fname is %s\n", fname.c_str());
 		rc = read_bin_file_IM(fname, data, size);
+		if (rc != 0 && file_exists_IM(fname))
+			MTHROW_AND_ERR("IndexTable::read_from_file could not read from [%s]\n", fname.c_str());
 	}
-
 	if (size > 0) {
-		if (rc >= 0)
 			deserialize(data);
-
-		delete[] data;
+//		MLOG("IndexTable::read_from_file fname [%s] rc %d before delete[] data %d\n", fname.c_str(), rc, data);
+		if (data != NULL)
+			delete[] data;
+//		MLOG("IndexTable::read_from_file fname [%s] rc %d after delete[] data %d\n", fname.c_str(), rc, data);
 	}
 
-	if (rc < 0 && !file_exists_IM(fname)) rc = 0;
+	//if (rc < 0 && !file_exists_IM(fname)) rc = 0;
 
 	return rc;
 }
@@ -1348,8 +1350,11 @@ void IndexTable::clear()
 	lock_guard<mutex> guard(index_table_locks[sid]);
 
 	if (work_area_allocated) {
-		if (work_area != NULL)
+		if (work_area != NULL) {
+			//MLOG("IndexTable::clear before work_area [%d]\n", work_area);
 			delete[] work_area;
+			//MLOG("IndexTable::clear after work_area [%d]\n", work_area);
+		}
 	}
 	work_area = NULL;
 	init();
@@ -1389,7 +1394,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 	lock_guard<mutex> guard(index_table_read_locks[sid]);
 
 	if (is_loaded && is_locked) {
-		MERR("%s ERROR: failed reading index table %s since this signal is LOCKED\n", prefix.c_str(), idx_fname.c_str());
+		MTHROW_AND_ERR("%s ERROR: failed reading index table %s since this signal is LOCKED\n", prefix.c_str(), idx_fname.c_str());
 		return -2;
 	}
 
@@ -1404,7 +1409,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		//MLOG("in here:: idx_fname %s data_fname %s\n", idx_fname.c_str(), data_fname.c_str());
 		// read index table
 		if (read_from_file(idx_fname) < 0) {
-			MERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
+			MTHROW_AND_ERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
 			return -1;
 		}
 
@@ -1413,7 +1418,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		if (file_exists_IM(data_fname)) {
 			//if (read_bin_file_IM_parallel(data_fname, work_area, w_size) < 0) {
 			if (read_bin_file_IM(data_fname, work_area, w_size) < 0) {
-				MERR("%s ERROR: can't read or allocate for file %s\n", prefix.c_str(), data_fname.c_str());
+				MTHROW_AND_ERR("%s ERROR: can't read or allocate for file %s\n", prefix.c_str(), data_fname.c_str());
 				return -1;
 			}
 		}
@@ -1441,7 +1446,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 
 		IndexTable idx;
 		if (idx.read_from_file(idx_fname) < 0) {
-			MERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
+			MTHROW_AND_ERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
 			return -1;
 		}
 
@@ -1481,8 +1486,10 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		if (d_size == 0)
 			return 0;
 
+		//MLOG("before allocating work_area d_size %d\n", d_size);
 		work_area = new unsigned char[d_size];
-		// TBD .. check alloc issues
+		if (work_area == NULL)
+			MTHROW_AND_ERR("IndexTable::read_index_and_data could not allocate work_area\n")
 		w_size = d_size;
 		work_area_allocated = 1;
 
@@ -1490,7 +1497,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		MedBufferedFile mbf;
 
 		if (mbf.open(data_fname) < 0) {
-			MERR("ERROR: Can't open data file %s\n", data_fname.c_str());
+			MTHROW_AND_ERR("ERROR: Can't open data file %s\n", data_fname.c_str());
 			return -1;
 		}
 
@@ -1500,10 +1507,12 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		for (int i=0; i<inds.size(); i++) {
 			unsigned long long pos = idx.base + (unsigned long long)idx.sv.data[inds[i]]*(unsigned long long)idx.factor;
 			int blen = lens[i]*factor;
+			//MLOG("before pid %d sid %d pos %lld factor %d %d blen %d i %d idx.base %d\n", inds[i], sid, pos, factor, idx.factor, blen, i, idx.base);
 			mbf.read(buf, pos, blen);
-			//MLOG("pid %d sid %d pos %lld factor %d %d blen %d i %d\n", inds[i], sid, pos, factor, idx.factor, blen, i);
+			//MLOG("after pid %d sid %d pos %lld factor %d %d blen %d i %d idx.base %d\n", inds[i], sid, pos, factor, idx.factor, blen, i, idx.base);
 			buf += blen;
-			insert(keys[i], lens[i]);
+			if (insert(keys[i], lens[i]) < 0)
+				MTHROW_AND_ERR("IndexTable::read_index_and_data could not insert(keys[i], lens[i])\n");
 		}
 
 		mbf.close();

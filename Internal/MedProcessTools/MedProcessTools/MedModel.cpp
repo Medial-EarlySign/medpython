@@ -722,7 +722,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 		MLOG("fp_type [%s] acting on [%d] features\n", fp_type.c_str(), int(features.size()));
 		((MultiFeatureProcessor *)feature_processors[i_set])->add_processors_set(type, features, init_string);
 	}
-	else if (feat_names == "All" || (feat_names == "" && duplicate)) { // Work on all features. Will be created at learn
+	else if (feat_names == "All" || (feat_names == "" && duplicate)) { // Work on all features. Will be created at Learn and will adhere to "tag" filtering
 		((MultiFeatureProcessor *)feature_processors[i_set])->init_string = init_string;
 		((MultiFeatureProcessor *)feature_processors[i_set])->members_type = type;
 		((MultiFeatureProcessor *)feature_processors[i_set])->duplicate = 1;

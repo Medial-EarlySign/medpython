@@ -105,6 +105,8 @@
     <ClInclude Include="MedNumeric.h" />
     <ClInclude Include="MedObjectTypes.h" />
     <ClInclude Include="MedPlot.h" />
+    <ClInclude Include="MedRegistry.h" />
+    <ClInclude Include="MedSamplingStrategy.h" />
     <ClInclude Include="MedSparseVec.h" />
     <ClInclude Include="MedUtils.h" />
     <ClInclude Include="MedUtils_imp.h" />
@@ -120,6 +122,8 @@
     <ClCompile Include="MedMedical.cpp" />
     <ClCompile Include="MedNumeric.cpp" />
     <ClCompile Include="MedPlot.cpp" />
+    <ClCompile Include="MedRegistry.cpp" />
+    <ClCompile Include="MedSamplingStrategy.cpp" />
     <ClCompile Include="MedUtils.cpp" />
     <ClCompile Include="time_utils.cpp" />
   </ItemGroup>

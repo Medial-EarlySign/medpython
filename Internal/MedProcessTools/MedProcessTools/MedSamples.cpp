@@ -224,6 +224,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 	pos["pred"] = -1;
 	pos["split"] = -1;
 
+	vector<string> unknown_fields;
 	for (int i = 0; i < field_names.size(); i++) {
 		if (field_names[i] == "id" || field_names[i] == "pid")
 			pos["id"] = i;
@@ -237,13 +238,20 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 			pos["pred"] = i;
 		else if (field_names[i] == "split")
 			pos["split"] = i;
-		else MWARN("WARNING: header line contains [%s] which is not part of MedSample\n",field_names[i].c_str());
+		else unknown_fields.push_back(field_names[i]);
+	}
+	if (unknown_fields.size() > 0) {
+		string warning = "WARNING: header line contains unused fields [";
+		for (string u : unknown_fields)
+			warning += u + ",";
+		warning += "]";
+		MWARN("%s\n", warning.c_str());			
 	}
 	for (auto& e : pos)
 		if (e.second == -1)
-			MWARN("WARNING: header line does not contain [%s]\n", e.first.c_str());
-		else MLOG("header line contains [%s] at column [%d]\n", e.first.c_str(), e.second);
-
+			MWARN("[%s]=unspecified, ", e.first.c_str());
+		else MLOG("[%s]=%d, ", e.first.c_str(), e.second);	
+	MLOG("\n");
 	return 0;
 }
 

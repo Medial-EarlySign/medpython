@@ -68,8 +68,9 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 	string json_contents = file_to_string(0, fname, alterations);
 	istringstream no_comments_stream(json_contents);
 
-	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());
-	int i = 5; string my_line;
+	int i = 5;
+	MLOG("init model from json file [%s], stripping comments and displaying first %d lines:\n", fname.c_str(), i);
+	string my_line;
 	while (i-- > 0 && getline(no_comments_stream, my_line))
 		MLOG("%s\n", my_line.c_str());
 	no_comments_stream.clear();
@@ -94,17 +95,27 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 			int process_set;
 			if (action_type == "rp_set") process_set = rp_set++;
 			else process_set = fp_set++;			
+			int num_members = action.get_child("members").size();
 			int num_actions = 0;
+			string first_action_added = "";
 			for (auto &member : action.get_child("members")) {
 				int duplicate = 0;
 				parse_action(member.second, all_action_attrs, duplicate, pt, fname);
+				if (duplicate == 1 && num_members != 1)
+					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] set %d has %d members, please separate it to multiple sets\n",
+						action_type.c_str(), process_set, num_members);
 				vector<string> all_combinations;
 				concatAllCombinations(all_action_attrs, 0, "", all_combinations);
+				if (duplicate == 1 && all_combinations.size() != 1)
+					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] set %d has one member which expanded to %d actions\n",
+						action_type.c_str(), process_set, all_combinations.size());
 				for (string c : all_combinations)
 					add_process_to_set(process_set, duplicate, c);
-				num_actions += (int)(all_combinations.size());
-			}
-			MLOG("added %d actions to [%s] set %d\n", num_actions, action_type.c_str(), process_set);
+				num_actions += all_combinations.size();	
+				if (first_action_added == "")
+					first_action_added = all_combinations[0];
+			}			
+			MLOG("added %d actions to [%s] set %d, first of which was [%s]\n", num_actions, action_type.c_str(), process_set, first_action_added.c_str());
 		}
 		else if (action_type == "rep_processor" || action_type == "feat_generator" || action_type == "feat_processor") {
 			int process_set; string set_name = "";
@@ -116,23 +127,24 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				process_set = fp_set++;
 				set_name = "fp_set";
 			}
-			else {
+			else if (action_type == "feat_generator") {
 				process_set = 0;
 				set_name = "fg_set";
 			}
+			else MTHROW_AND_ERR("unknown action_type [%s]\n", action_type.c_str());
 			int duplicate = 0;
 			parse_action(action, all_action_attrs, duplicate, pt, fname);
 			if (duplicate == 1)
-				MTHROW_AND_ERR("duplicate action requested and not inside an action set!");
+				MTHROW_AND_ERR("duplicate action requested and not inside a set!");
 			vector<string> all_combinations;
 			concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 			if (all_combinations.size() > 1 && (action_type == "rep_processor" || action_type == "feat_processor"))
-				MTHROW_AND_ERR("action_type [%s] got multiple values for some properties. This implies parse-time duplication which is possible only inside a set! first instance is [%s]\n",
-					action_type.c_str(), all_combinations[0].c_str());
+				MTHROW_AND_ERR("action_type [%s] expanded to %d combinations, which is possible only inside a set! first instance is [%s]\n",
+					action_type.c_str(), all_combinations.size(), all_combinations[0].c_str());
 			for (string c : all_combinations)
 				add_process_to_set(process_set, duplicate, c);
-			MLOG("added %d actions to [%s] set %d\n", all_combinations.size(), set_name.c_str(), process_set);
-		}
+			MLOG("added %d actions to [%s] set %d, first of which was [%s]\n", all_combinations.size(), set_name.c_str(), process_set, all_combinations[0].c_str());
+		} else MTHROW_AND_ERR("unknown action_type [%s]\n", action_type.c_str());
 	}
 	if (pt.count("predictor") > 0) {
 		auto my_pred = pt.get_child("predictor");

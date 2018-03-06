@@ -397,7 +397,9 @@ public:
 		~MedRepository() { 
 			//fprintf(stderr, "rep free\n"); fflush(stderr);
 			if (work_area) {
+				//fprintf(stderr, "~MedRepository before delete[] work_area %d", work_area);
 				delete[] work_area;
+				//fprintf(stderr, "~MedRepository after delete[] work_area %d", work_area);
 				work_area = NULL;
 			}
 			free_all_sigs();

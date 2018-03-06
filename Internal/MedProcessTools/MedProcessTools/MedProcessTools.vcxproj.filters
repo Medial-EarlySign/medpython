@@ -157,5 +157,11 @@
     <None Include="..\Config_Examples\model_json_version2_example.json">
       <Filter>Config_Examples</Filter>
     </None>
+    <None Include="..\Config_Examples\all.signals">
+      <Filter>Config_Examples</Filter>
+    </None>
+    <None Include="..\Config_Examples\do_calc_example.json">
+      <Filter>Config_Examples</Filter>
+    </None>
   </ItemGroup>
 </Project>

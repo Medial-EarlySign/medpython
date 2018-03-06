@@ -36,7 +36,6 @@ typedef enum {
 * A virtual class of processes on MedFeatures;
 * E.g. Cleaning
 */
-/// \todo ihadanny 20171205 - MIN_SAMPLES_IN_STRATA_FOR_LEARNING should be changed to a configurable value
 class FeatureProcessor : public SerializableObject {
 public:
 
