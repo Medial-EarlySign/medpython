@@ -105,13 +105,18 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Prepare new Feature
 	int samples_size = (int)features.samples.size();
-	features.data[feature_name].clear();
-	features.data[feature_name].resize(samples_size);
-	float *p_out = &(features.data[feature_name][0]);
+	// TODO: ihadanny 20180305 - the following critical section is a workaround for MedFeatures being not threadsafe
+	// a good solution might be adding a Prepare stage for processors, or maybe add a threadsafe AllocateNewFeature method
+#pragma omp critical 
+	{
+		features.data[feature_name].clear();
+		features.data[feature_name].resize(samples_size);
+		// Attributes
+		features.attributes[feature_name].normalized = false;
+		features.attributes[feature_name].imputed = true;
+	}
 
-	// Attributes
-	features.attributes[feature_name].normalized = false;
-	features.attributes[feature_name].imputed = true;
+	float *p_out = &(features.data[feature_name][0]);
 
 	// Prepare
 	vector<float*> p_sources;
