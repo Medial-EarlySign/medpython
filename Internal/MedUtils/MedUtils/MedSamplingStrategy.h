@@ -39,7 +39,10 @@ public:
 
 	int init(map<string, string>& map);
 
-	MedSamplingTimeWindow() { gen = mt19937(rd()); sample_count = 1; }
+	MedSamplingTimeWindow() {
+		gen = mt19937(rd()); sample_count = 1; take_max = false;
+		maximal_time_back = 0; minimal_time_back = 0;
+	}
 private:
 	random_device rd;
 	mt19937 gen;
@@ -69,6 +72,11 @@ public:
 		conflict_method = "drop"; //default
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
+		int day_jump = 0;
+		use_allowed = false;
+		conflict_method = "all";
+		start_year = 0;
+		end_year = 0;
 	}
 private:
 	random_device rd;
@@ -88,6 +96,13 @@ public:
 
 	///sample by year from age to age by jump and find match in registry
 	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
+
+	MedSamplingAge() {
+		start_age = 0;
+		end_age = 120;
+		age_bin = 1;
+		conflict_method = "all";
+	}
 
 	int init(map<string, string>& map);
 
@@ -112,7 +127,10 @@ public:
 
 	int init(map<string, string>& map);
 
-	MedSamplingDates() { gen = mt19937(rd()); take_count = 1; }
+	MedSamplingDates() {
+		gen = mt19937(rd()); take_count = 1; use_allowed = false;
+		conflict_method = "all";
+	}
 
 private:
 	random_device rd;
