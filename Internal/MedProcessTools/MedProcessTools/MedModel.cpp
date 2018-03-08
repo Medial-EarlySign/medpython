@@ -1128,10 +1128,10 @@ void MedModel::clear()
 		predictor = NULL;
 	}
 
-	if (LearningSet != NULL) {
-		delete LearningSet;
-		LearningSet = NULL;
-	}
+	//if (LearningSet != NULL) {
+	//	delete LearningSet;
+	//	LearningSet = NULL;
+	//}
 }
 
 //.......................................................................................
