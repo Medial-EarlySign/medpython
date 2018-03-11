@@ -597,10 +597,16 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 	MOUT("pid %d sid %d %s ::", pid, sid, sigs.name(sid).c_str());
 
 	int drug_sid = sigs.sid("Drug");
-
+	
 	MOUT(" %d ::\n", len);
 	int val;
 	int section_id = dict.section_id(sigs.name(sid));
+	int drugs_nice_names_section = dict.section_id("Drugs_nice_names");
+	if (sid == drug_sid && drugs_nice_names_section != 0) {
+		MLOG("replacing Drug=[%d] with Drugs_nice_names=[%d]\n", section_id, drugs_nice_names_section);
+		section_id = drugs_nice_names_section;
+	}
+
 	for (int i=0; i<len; i++) {
 		if (sigs.type(sid) == T_Value) {
 			SVal *v = (SVal *)data;
@@ -633,13 +639,8 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0 || dict.dict(section_id)->Id2Names[val].size()<=3)
 					MOUT("|%s", st.c_str());
 			}
-//		if (sid != drug_sid)
-			MOUT(" :\n");
-//		else
-//			MOUT(" : ");
+		MOUT(" :\n");
 	}
-	if (sid == drug_sid)
-		MOUT("\n");
 }
 
 
