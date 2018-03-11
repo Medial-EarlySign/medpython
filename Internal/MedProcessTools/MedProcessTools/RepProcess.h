@@ -44,6 +44,9 @@ public:
 	unordered_set<string> aff_signals; ///< names of signals affected by processing
 	unordered_set<int> aff_signal_ids; ///< ids of signals affected by processing
 
+	virtual ~RepProcessor() { clear(); }
+	virtual void clear() {  };
+
 	/// <summary> 
 	/// virtual signals are created only in rep processors but can be used by any rep processor that comes after
 	/// or any feture generator as a regular signal.
@@ -185,6 +188,10 @@ public:
 
 	/// <summary> Constructor </summary>
 	RepMultiProcessor() { processor_type = REP_PROCESS_MULTI; };
+	~RepMultiProcessor() { clear(); };
+
+	void clear();
+
 
 	/// <summary> Add processors to set  </summary>
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals);
@@ -553,6 +560,7 @@ public:
 
 typedef enum {
 	CALC_TYPE_UNDEF, ///< undefined signal, nothing to do or error
+	CALC_TYPE_HOSP_PROCESSOR,
 	CALC_TYPE_EGFR, ///< calculates eGFR CKD_EPI signal in each point we have Creatinine , depends on Creatinine, GENDER, BYEAR
 	CALC_TYPE_DEBUG, ///< just here to help when debugging: currently calculates delta Hemoglobin (relative to last test for each test above second)
 	CALC_TYPE_HOSP_MELD, ///< calculates MELD signal. components: CHARTLAB_Bilirubin, CHARTLAB_INR(PT), CHARTLAB_Creatinine, CHARTLAB_Sodium
@@ -620,6 +628,8 @@ class RepCalcSimpleSignals : public RepProcessor {
 		float missing_value = (float)MED_MAT_MISSING_VALUE;
 
 		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
+
+		vector<string> signals; ///< it is possible to transfer a vector of required signals, to override default ones.
 
 		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
 
@@ -760,6 +770,8 @@ class RepCalcSimpleSignals : public RepProcessor {
 			return calc_hosp_qSOFA(args.at(0), args.at(1), args.at(2), (int)(params.at(0)));
 		}
 
+		static float identity(const vector<float>& args, const vector<float>& params) {	return args.at(0); }
+
 		static float med2KgPlusMed(float med2kg, float med, float kg);
 		static float anySeenRecently(const vector<pair<int, float> >& data, int time, const vector<float>& params);
 		static float interleave(const vector<pair<int, float> >& data, int time, const vector<float>& params);
@@ -783,7 +795,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static int afterEverything() { return numeric_limits<int>::max(); }
 
 		// serialization
-		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, V_names, V_types, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, signals, V_names, V_types, req_signals, aff_signals, virtual_signals)
 
 
 	private:
@@ -792,6 +804,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		/// from a calculator name to a calculator enum type
 		const map<string, int> calc2type = { 
+			{"calc_hosp_processor", CALC_TYPE_HOSP_PROCESSOR },
 			{"calc_eGFR", CALC_TYPE_EGFR}, 
 			{"calc_debug", CALC_TYPE_DEBUG},
 			{"calc_hosp_MELD", CALC_TYPE_HOSP_MELD},
@@ -827,11 +840,13 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// from a calculator name to the list of required signals
 		const map<string, vector<string>> calc2req_sigs = { 
 			//--------- level 1 - calculated from raw signals (level0)
-			{"calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}}, 
+			//the general hospital processor's signals must be overridden from outside
+			{ "calc_hosp_processor",{} },
+			{ "calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}}, 
 			{ "calc_debug",{ "Hemoglobin" }},
-			{"calc_hosp_MELD",{ "CHARTLAB_Bilirubin", "CHARTLAB_INR(PT)", "CHARTLAB_Creatinine", "CHARTLAB_Sodium" }},
-			{"calc_hosp_BP_sys", {"CHART_Arterial_BP_Sys", "CHART_NonInvasive_BP_Sys"}},
-			{"calc_hosp_BP_dia", {"CHART_Arterial_BP_Dia", "CHART_NonInvasive_BP_Dia"}},
+			{ "calc_hosp_MELD",{ "CHARTLAB_Bilirubin", "CHARTLAB_INR(PT)", "CHARTLAB_Creatinine", "CHARTLAB_Sodium" }},
+			{ "calc_hosp_BP_sys", {"CHART_Arterial_BP_Sys", "CHART_NonInvasive_BP_Sys"}},
+			{ "calc_hosp_BP_dia", {"CHART_Arterial_BP_Dia", "CHART_NonInvasive_BP_Dia"}},
 			{ "calc_hosp_BMI",{ "CHART_Weight", "CHART_Height" } },
 			{ "calc_hosp_APRI",{ "LAB_AST", "CHARTLAB_Platelets" } },
 			{ "calc_hosp_SIDA",{ "CHARTLAB_Sodium","CHARTLAB_Potassium","CHARTLAB_Chloride" } },
@@ -842,27 +857,27 @@ class RepCalcSimpleSignals : public RepProcessor {
 														"CHART_Vent_Type", "CHART_Resp_Rate_Set" } },
 			{ "calc_hosp_SOFA_nervous",{ "CHART_GCS" } },
 			{ "calc_hosp_SOFA_liver",{ "CHARTLAB_Bilirubin" } },
-			//need to implement "calc_24h_mean_urine_output" with special care - see my module
+			//need to implement "calc_24h_mean_urine_output" with special care - see my module			
 			{ "calc_hosp_24h_urine_output",{ "OUTPUT_UrineProduction" } },
-			{ "calc_hosp_SOFA_coagulation",{ "CHARTLAB_Platelets" } },
-			{ "calc_hosp_dopamine_per_kg",{"INPUT_Dopamine-k_Rate"} },
-			{ "calc_hosp_epinephrine_per_kg",{"INPUT_Epinephrine-k_Rate","INPUT_Epinephrine_Rate","CHART_Weight" } },
-			{ "calc_hosp_norepinephrine_per_kg",{ "INPUT_Norepinephrine-k_Rate","INPUT_Norepinephrine_Rate","CHART_Weight" } },
-			{ "calc_hosp_dobutamine_per_kg",{ "INPUT_Dobutamine-k_Rate" } },
+			{ "calc_hosp_SOFA_coagulation",{ "CHARTLAB_Platelets" } },			
+			{ "calc_hosp_dopamine_per_kg",{"INPUT_Dopamine-k_Rate_processed"} },			
+			{ "calc_hosp_epinephrine_per_kg",{"INPUT_Epinephrine-k_Rate_processed","INPUT_Epinephrine_Rate_processed","CHART_Weight" } },
+			{ "calc_hosp_norepinephrine_per_kg",{ "INPUT_Norepinephrine-k_Rate_processed","INPUT_Norepinephrine_Rate_processed","CHART_Weight" } },			
+			{ "calc_hosp_dobutamine_per_kg",{ "INPUT_Dobutamine-k_Rate_processed" } },
 			{ "calc_hosp_SIRS",{ "CHART_Temperature","CHART_Heart_Rate","CHART_Resp_Rate","CHART_Art_PaCO2",
 									"CHARTLAB_WBC","LAB_Neutrophils_Bands%" } },
 			{ "calc_hosp_pressure_adjusted_hr",{ "CHART_Heart_Rate","CHART_CVP","CHART_Arterial_BP_Mean" } },
 			{ "calc_hosp_MODS",{ "CHART_ART_PaO2","CHART_FiO2","CHARTLAB_Platelets","CHARTLAB_Bilirubin","CHART_Heart_Rate","CHART_CVP",
 									"CHART_Arterial_BP_Mean","CHART_GCS","CHARTLAB_Creatinine" } },			
 			//---------- level 2 - calculated from level < 2
-			{"calc_hosp_shock_index", { "CHART_Heart_Rate", "calc_hosp_BP_sys", "calc_hosp_BP_dia" }},							
+			{ "calc_hosp_shock_index", { "CHART_Heart_Rate", "calc_hosp_BP_sys", "calc_hosp_BP_dia" }},							
 			{ "calc_hosp_pulse_pressure", { "calc_hosp_BP_sys", "calc_hosp_BP_dia" } },			
 			{ "calc_hosp_eGFR", { "CHARTLAB_Creatinine", "Age", "Gender", "calc_hosp_is_african_american" } },
 			{ "calc_hosp_SOFA_respiratory", { "calc_hosp_PaO2_FiO2_ratio", "calc_hosp_is_mechanically_ventilated" } },
 			{ "calc_hosp_SOFA_renal", {"CHARTLAB_Creatinine", "calc_hosp_24h_urine_output" } },
 			{ "calc_hosp_SOFA_cardio", {"CHART_Arterial_BP_Mean", "calc_hosp_dopamine_per_kg", "calc_hosp_epinephrine_per_kg", 
 										"calc_hosp_norepinephrine_per_kg", "calc_hosp_dobutamine_per_kg"} },
-			{ "calc_hosp_qSOFA", {"CHART_GCS", "calc_hosp_BP_sys", "CHART_Resp_Rate"} },	
+			{ "calc_hosp_qSOFA", {"CHART_GCS", "calc_hosp_BP_sys", "CHART_Resp_Rate"} },				
 			//---------- level 3 - calculated from level < 3
 		    { "calc_hosp_SOFA",{ "calc_hosp_SOFA_nervous", "calc_hosp_SOFA_liver", "calc_hosp_SOFA_coagulation", "calc_hosp_SOFA_respiratory",
 								 "calc_hosp_SOFA_renal", "calc_hosp_SOFA_cardio" } }
@@ -871,6 +886,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// from a calculator name to a list of pairs of virtual names and their types created by the calculator
 		/// the virtual names can be changed by the user (but have to be given in the SAME order as here)
 		const map<string, vector<pair<string, int>>> calc2virtual = {
+			{ "calc_hosp_processor",{ { "calc_hosp_processor", T_TimeVal } } },
 			{ "calc_eGFR" ,{ { "calc_eGFR", T_DateVal } } },
 			{ "calc_debug" ,{ { "calc_debug", T_DateVal } } },
 			{ "calc_hosp_MELD" ,{ { "calc_hosp_MELD", T_TimeVal } } },
@@ -905,6 +921,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		/// from a calculator name to the default coefficients (parameters) of it. Can of course be empty for a non parametric calculator.
 		const map<string, vector<float>> calc2coeffs = {
+			{"calc_hosp_processor",{} },
 			{"calc_eGFR" , {}},
 			{ "calc_debug" ,{}},
 			{"calc_hosp_MELD" ,{1.0F}},

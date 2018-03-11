@@ -242,6 +242,17 @@ size_t RepProcessor::processor_serialize(unsigned char *blob) {
 //=======================================================================================
 // RepMultiProcessor
 //=======================================================================================
+//.......................................................................................
+void RepMultiProcessor::clear()
+{
+	for (auto p : processors) {
+		if (p != NULL) {
+			delete p;
+			p = NULL;
+		}
+	}
+	processors.clear();
+}
 // Required Signals ids : Fill the member vector - req_signal_ids
 //.......................................................................................
 void RepMultiProcessor::set_required_signal_ids(MedDictionarySections& dict) {
@@ -1315,17 +1326,24 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		else if (field == "names") {
 			boost::split(V_names, entry.second, boost::is_any_of(",:"));
 		}
+		else if (field == "signals") {
+			boost::split(signals, entry.second, boost::is_any_of(",:"));
+		}
 	}
 
 	calc_type = get_calculator_type(calculator);
 
 	if (calc_type != CALC_TYPE_UNDEF) {
 
-		// add required signals dependent on the actual calculator we run
+		// add required signals depending on the actual calculator we run
+		// might be overidden from json
 		req_signals.clear();
-		for (string req_s : calc2req_sigs.find(calculator)->second)
-			req_signals.insert(req_s);
+		if (signals.size() == 0)
+			signals = calc2req_sigs.find(calculator)->second;
 
+		for (auto & req_s : signals)
+			req_signals.insert(req_s);		
+						
 		// add coefficients if needed
 		if (coeff.size() == 0)
 			coeff = calc2coeffs.find(calculator)->second;
@@ -1379,7 +1397,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict)
 	// In the next loop it is VERY important to go over items in the ORDER they are given in calc2req
 	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
-	for (auto &rsig : calc2req_sigs.find(calculator)->second) 
+	for (auto &rsig : signals) 
 		sigs_ids.push_back(dict.id(rsig));
 
 }
@@ -1419,6 +1437,13 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
 
 	switch (calc_type) {
+		case CALC_TYPE_HOSP_PROCESSOR: 
+			calcFunc = identity; 
+			if (signals.size() != 1) {
+				//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
+				return -1;
+			}
+			break;
 		case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
 		case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
 		case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;

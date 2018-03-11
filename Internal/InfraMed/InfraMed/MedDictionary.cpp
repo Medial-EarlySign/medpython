@@ -335,7 +335,7 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 	int max_id = Id2Name.rbegin()->first;
 
 	lut.clear();
-	lut.resize(max_id+1,0);
+	lut.resize(max_id+1,(char)0);
 
 /*
 	for (int j=0; j<sig_ids.size(); j++) {

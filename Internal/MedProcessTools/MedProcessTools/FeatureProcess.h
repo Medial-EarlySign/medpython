@@ -51,7 +51,8 @@ public:
 
 	// Constructor/Destructor
 	FeatureProcessor() { learn_nthreads = DEFAULT_FEAT_CLNR_NTHREADS;  clean_nthreads = DEFAULT_FEAT_CLNR_NTHREADS; };
-	~FeatureProcessor() {};
+	virtual ~FeatureProcessor() { clear(); };
+	virtual void clear() {};
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *processor; }
@@ -136,7 +137,9 @@ public:
 
 	// Constructor/Destructor
 	MultiFeatureProcessor() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; };
-	~MultiFeatureProcessor() {};
+	~MultiFeatureProcessor() { clear(); };
+
+	void clear();
 
 	/// The parsed fields from init command.
 	/// @snippet FeatureProcess.cpp MultiFeatureProcessor::init

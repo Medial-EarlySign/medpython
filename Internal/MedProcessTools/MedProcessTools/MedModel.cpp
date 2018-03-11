@@ -1094,6 +1094,46 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	return ptr;
 }
 
+void MedModel::clear()
+{
+	if (rep_processors.size() > 0) {
+		for (auto prep : rep_processors)
+			if (prep != NULL) {
+				delete prep;
+				prep = NULL;
+			}
+		rep_processors.clear();
+	}
+
+	if (generators.size() > 0) {
+		for (auto pgen : generators)
+			if (pgen != NULL) {
+				delete pgen;
+				pgen = NULL;
+			}
+		generators.clear();
+	}
+
+	if (feature_processors.size() > 0) {
+		for (auto pfeat : feature_processors)
+			if (pfeat != NULL) {
+				delete pfeat;
+				pfeat = NULL;
+			}
+		feature_processors.clear();
+	}
+
+	if (predictor != NULL) {
+		delete predictor;
+		predictor = NULL;
+	}
+
+	if (LearningSet != NULL) {
+		delete LearningSet;
+		LearningSet = NULL;
+	}
+}
+
 //.......................................................................................
 void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag)
 {

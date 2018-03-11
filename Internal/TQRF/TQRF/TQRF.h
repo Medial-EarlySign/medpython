@@ -140,6 +140,7 @@ public:
 	MedFeatures *orig_medf;			   /// pointer to the original MedFeatures
 
 	int nfeat = 0;					/// just an easy helper that = qx.size()
+	vector<string> feature_names;	/// useful for debugging
 	int ncateg = 0;					/// ncateg 0 is regression, otherwise categories are assumed to be 0 ... ncateg-1
 	vector<vector<float> *> orig_data; /// pointers to the original data given
 	vector<string> feat_names;		   /// as given in train
@@ -166,7 +167,7 @@ private:
 class TQRF_Node : public SerializableObject {
 public:
 	// Next are must for every node and are ALWAYS serialized
-	int node_idx;			/// for debugging and prints
+	int node_idx = -1;			/// for debugging and prints
 	int i_feat = -1;				/// index of feature used in this node
 	float bound = (float)-1e10;		/// samples with <= bound go to Left , the other to Right
 	int is_terminal = 0;
@@ -186,11 +187,11 @@ public:
 	vector<vector<int>> time_categ_count;
 
 	// regression : mask |= 0x2
-	float pred_mean = (float)-1e10;
-	float pred_std = (float)1;
+	//float pred_mean = (float)-1e10;
+	//float pred_std = (float)1;
 
 	// quantiles: mask |= 0x4
-	vector<pair<float, float>> quantiles;
+	//vector<pair<float, float>> quantiles;
 
 
 	// following are never serialized - only for learn time
@@ -228,10 +229,11 @@ public:
 	// memory allocation - we want it single time
 	// tricks for efficient calculation of counts and the scores
 
+	virtual ~TQRF_Split_Stat() {};
 
 	virtual int init(Quantized_Feat &qf, TQRF_Params &params) {	return 0;};
 	virtual int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params) { return 0; };
-	virtual int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+	virtual int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
 
 	int get_q_test_points(int feat_max_q, TQRF_Params &params, vector<int> &qpoints);
 
@@ -239,6 +241,9 @@ public:
 	// helper vector for qpoints
 	vector<int> qpoints;
 	
+	// debug
+	virtual void print_histograms() { return; };
+
 	// the actual number of q values used (full or after qpoints squeeze if it was done)
 	int counts_q = 0;
 
@@ -256,31 +261,33 @@ public:
 	// this is needed for a more efficient computation of scores later
 	vector<vector<int>> sums;
 
+	~TQRF_Split_Categorial() {};
+
 	// next are for easy access
 	int ncateg = 0;
 	int nslices = 0;
-	int maxq = 0;
-
-
+	int maxq = 0; // overall
 
 	// API's
 	int init(Quantized_Feat &qf, TQRF_Params &params);
 	int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params);
 	//virtual int get_best_split(TQRF_Params &params, int &best_q, float &best_score);
+
+	void print_histograms();
 };
 
 
 //==========================================================================================================================
 class TQRF_Split_LogRank : public TQRF_Split_Categorial {
 public:
-	int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
 };
 
 
 //==========================================================================================================================
 class TQRF_Split_Entropy : public TQRF_Split_Categorial {
 public:
-	int get_best_split(TQRF_Params &params, int &best_q, float &best_score);
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
 };
 
 
@@ -292,7 +299,7 @@ public:
 
 	int init(Quantized_Feat &qf, TQRF_Params &params) { return 0; };
 	int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params) { return 0; };
-	int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
 };
 
 //==========================================================================================================================
@@ -364,6 +371,7 @@ public:
 	vector<TQRF_Tree> trees;
 
 	int init(map<string, string>& map) { return params.init(map); }
+	int init_from_string(string init_string) { params.init_string = init_string; return SerializableObject::init_from_string(init_string); }
 
 	void init_tables(Quantized_Feat &qfeat);
 

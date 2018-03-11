@@ -5,16 +5,17 @@
 #include <random>
 #include "Logger/Logger/Logger.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/math/distributions/chi_squared.hpp>
 
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-float DateDiff(int refDate, int dateSample) {
+float medial::repository::DateDiff(int refDate, int dateSample) {
 	return float((med_time_converter.convert_date(MedTime::Days, dateSample) -
 		med_time_converter.convert_date(MedTime::Days, refDate)) / 365.0);
 }
 
-int DateAdd(int refDate, int daysAdd) {
+int medial::repository::DateAdd(int refDate, int daysAdd) {
 	return med_time_converter.convert_days(MedTime::Date,
 		med_time_converter.convert_date(MedTime::Days, refDate) + daysAdd);
 }
@@ -76,7 +77,7 @@ void MedRegistry::write_text_file(const string &file_path) {
 	MLOG("[Wrote %d registry records to %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
-int get_value(MedRepository &rep, int pid, int sigCode) {
+int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	int len, gend = -1;
 	void *data = rep.get(pid, sigCode, len);
 	if (len > 0)
@@ -99,7 +100,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager) {
 		vector<UniversalSigVec> sig_vec((int)signalCodes.size());
 		for (size_t k = 0; k < sig_vec.size(); ++k)
 			dataManager.uget(dataManager.pids[i], signalCodes[k], sig_vec[k]);
-		int birth = get_value(dataManager, dataManager.pids[i], bDateCode);
+		int birth = medial::repository::get_value(dataManager, dataManager.pids[i], bDateCode);
 		vector<MedRegistryRecord> vals;
 		get_registry_records(dataManager.pids[i], birth, sig_vec, vals);
 
@@ -181,6 +182,49 @@ vector<int> get_parents_rc(MedDictionarySections &dict, const string &group) {
 
 	return res;
 }
+vector<int> get_sons_rc(MedDictionarySections &dict, const string &group) {
+	int sectionId = 1;
+	vector<int> res;
+
+	size_t pos = group.find_first_of('.');
+	if (pos == string::npos) {
+		return res; // leaf - no sons
+	}
+
+	//iterate all letters - lower & upper case:
+	char startChar = 'a';
+	char startCharU = 'A';
+	for (size_t i = 0; i < 26; ++i) {
+		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+
+		manip = group.substr(0, pos) + startCharU + group.substr(pos + 1);
+		code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+		++startChar;
+		++startCharU;
+	}
+
+	//iterate over 0-9:
+	startChar = '0';
+	for (size_t i = 0; i < 10; ++i) {
+		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+
+		++startChar;
+	}
+
+	return res;
+}
+
 
 #pragma endregion
 
@@ -270,6 +314,57 @@ vector<int> get_parents_atc(MedDictionarySections &dict, const string &group) {
 	return res;
 }
 
+vector<int> get_sons_atc(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	static vector<bool> iterTypeNum = { true, false, false, true };
+	static vector<int> indexLookup = { 1, 3, 5, 6 };
+	vector<int> res;
+	string conv = group;
+	if (conv.size() >= 12 && conv.at(0) == 'A' && conv.at(1) == 'T' && conv.at(2) == 'C' && conv.at(3) == '_')
+		conv = group.substr(4, 12);
+
+	size_t pos = conv.find_first_of('_');
+	if (pos == 4)
+		pos = conv.find_first_of('_', 5);
+	if (pos == string::npos)
+		return res; // leaf - no sons
+
+	int ind = 0;
+	while (ind < indexLookup.size() && indexLookup[ind] != pos)
+		++ind;
+	if (ind >= indexLookup.size()) {
+		cerr << "Bug in code " << group << endl;
+		throw logic_error("Bug in code");
+	}
+
+	if (iterTypeNum[ind]) {
+		//iterate over 00-99:
+		for (size_t i = 0; i < 100; ++i) {
+			string nm = to_string(i);
+			if (i < 10) {
+				nm = "0" + nm;
+			}
+			string manip = "ATC_" + conv.substr(0, pos) + nm + conv.substr(pos + 2);
+			int code = dict.id(sectionId, manip);
+			if (code > 0)
+				res.push_back(code);
+		}
+	}
+	else {
+		char startChar = 'A';
+		for (size_t i = 0; i < 26; ++i) {
+			string manip = "ATC_" + conv.substr(0, pos) + startChar + conv.substr(pos + 1);
+			int code = dict.id(sectionId, manip);
+			if (code > 0)
+				res.push_back(code);
+			++startChar;
+		}
+	}
+
+	return res;
+}
+
+
 #pragma endregion
 
 #pragma region BNF hirerachy
@@ -347,15 +442,85 @@ vector<int> get_parents_bnf(MedDictionarySections &dict, const string &group) {
 	return res;
 }
 
+vector<int> get_sons_bnf(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	vector<int> res;
+
+
+	size_t pos = group.find(".00");
+	if (pos == string::npos) {
+		return res; // leaf - no sons
+	}
+
+	//iterate over 00-99:
+	for (size_t i = 0; i < 100; ++i) {
+		string nm = to_string(i);
+		if (i < 10) {
+			nm = "0" + nm;
+		}
+		string manip = group.substr(0, pos) + "." + nm + group.substr(pos + 3);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+	}
+
+	return res;
+}
+
 #pragma endregion
 
-string get_readcode_code(MedDictionarySections &dict, int id, string(*filterCode)(const vector<string> &), int sectionId) {
+string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
+	if (signalHirerchyType == "RC")
+		return filter_g_code(vec);
+	else if (signalHirerchyType == "ATC")
+		return filter_atc_code(vec);
+	else if (signalHirerchyType == "BNF")
+		return filter_bnf_code(vec);
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+}
+vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
+	if (signalHirerchyType == "RC")
+		return get_parents_rc(dict, group);
+	else if (signalHirerchyType == "ATC")
+		return get_parents_atc(dict, group);
+	else if (signalHirerchyType == "BNF")
+		return get_parents_bnf(dict, group);
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+}
+vector<int> medial::signal_hierarchy::sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
+	if (signalHirerchyType == "RC")
+		return get_sons_rc(dict, group);
+	else if (signalHirerchyType == "ATC")
+		return get_sons_atc(dict, group);
+	else if (signalHirerchyType == "BNF")
+		return get_sons_bnf(dict, group);
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+}
+
+string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType) {
+	int sectionId = 0;
+	if (signalHirerchyType == "RC")
+		sectionId = 1;
+	else if (signalHirerchyType == "ATC")
+		sectionId = 2;
+	else if (signalHirerchyType == "BNF")
+		sectionId = 2;
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
 	string res = "";
 	vector<int> sets;
 	dict.get_member_sets(sectionId, id, sets);
 	if (dict.dicts[sectionId].Id2Names.find(id) != dict.dicts[sectionId].Id2Names.end()) {
 		vector<string> nms = dict.dicts[sectionId].Id2Names.at(id);
-		string filterd = filterCode(nms);
+		string filterd = filter_code_hierarchy(nms, signalHirerchyType);
 		if (!filterd.empty()) {
 			res = filterd;
 			return res;
@@ -367,7 +532,7 @@ string get_readcode_code(MedDictionarySections &dict, int id, string(*filterCode
 		if (dict.dicts[sectionId].Id2Names.find(s) != dict.dicts[sectionId].Id2Names.end()) {
 			names = dict.dicts[sectionId].Id2Names.at(s);
 		}
-		string name = filterCode(names);
+		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
 			cerr << "not supported" << endl;
@@ -381,7 +546,7 @@ string get_readcode_code(MedDictionarySections &dict, int id, string(*filterCode
 	return res;
 }
 
-void MedRegistry::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
+void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
 	const string &signalHirerchyType,
 	vector<MedRegistryRecord> &res) {
 	UniversalSigVec &signalVal = signals[0];
@@ -392,44 +557,20 @@ void MedRegistry::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedD
 		rec.pid = pid;
 		rec.age = -1;
 		rec.start_date = signalVal.Date(i);
-		rec.end_date = DateAdd(rec.start_date, 1);
+		rec.end_date = medial::repository::DateAdd(rec.start_date, 1);
 		rec.registry_value = signalVal.Val(i);
 		res.push_back(rec);
 		if (signalVal.Val(i) <= 0)
 			continue; //has no hirerachy
 		//take care of hirerachy:
-		auto func_filter = filter_g_code;
-		auto func_parents = get_parents_rc;
-		int sectionId = 1;
-		if (signalHirerchyType == "None") {
-			//do nothing - no hirarchy
-		}
-		else if (signalHirerchyType == "RC") {
-			func_filter = filter_g_code;
-			func_parents = get_parents_rc;
-			sectionId = 1;
-		}
-		else if (signalHirerchyType == "ATC") {
-			func_filter = filter_atc_code;
-			func_parents = get_parents_atc;
-			sectionId = 2;
-		}
-		else if (signalHirerchyType == "BNF")
-		{
-			func_filter = filter_bnf_code;
-			func_parents = get_parents_bnf;
-			sectionId = 2;
-		}
-		else
-			MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
-				signalHirerchyType.c_str());
 
-
-		string s = get_readcode_code(dict, (int)signalVal.Val(i), func_filter, sectionId);
+		if (signalHirerchyType.empty() || signalHirerchyType == "None")
+			continue;
+		string s = get_readcode_code(dict, (int)signalVal.Val(i), signalHirerchyType);
 		if (s.empty())
 			continue;
 
-		vector<int> nums = func_parents(dict, s);
+		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType);
 		for (size_t k = 1; k < nums.size() && k <= 3; ++k) //take till 3
 		{
 			if (nums[k] <= 0)
@@ -439,7 +580,7 @@ void MedRegistry::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedD
 			rec2.pid = pid;
 			rec2.age = -1;
 			rec2.start_date = signalVal.Date(i);
-			rec2.end_date = DateAdd(rec2.start_date, 1);
+			rec2.end_date = medial::repository::DateAdd(rec2.start_date, 1);
 			rec2.registry_value = (float)nums[k];
 			res.push_back(rec2);
 		}
@@ -453,8 +594,8 @@ void MedRegistry::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedD
 bool date_intersection(int min_allowed_date, int max_allowed_date, int reg_start, int reg_end, int sig_date,
 	int time_window_from, int time_window_to, bool use_whole) {
 	//Registry, Signal
-	int sig_start_date = DateAdd(sig_date, time_window_from);
-	int sig_end_date = DateAdd(sig_date, time_window_to);
+	int sig_start_date = medial::repository::DateAdd(sig_date, time_window_from);
+	int sig_end_date = medial::repository::DateAdd(sig_date, time_window_to);
 	int reffer_date = sig_start_date;
 	if (time_window_from < 0) //if looking backward force end_date to be in allowed
 		reffer_date = sig_end_date;
@@ -542,13 +683,13 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 		for (MedSample rec : idSample.samples)
 		{
 			int ind = rec.outcome > 0;
-			int gend = get_value(dataManager, rec.id, genderCode);
-			int bdate = get_value(dataManager, rec.id, bdateCode);
+			int gend = medial::repository::get_value(dataManager, rec.id, genderCode);
+			int bdate = medial::repository::get_value(dataManager, rec.id, bdateCode);
 			if (gend == -1) {
 				++unknown_gender;
 				continue;
 			}
-			double curr_age = DateDiff(bdate, rec.time);
+			double curr_age = medial::repository::DateDiff(bdate, rec.time);
 
 			float ageBin = float(ageBinValue * floor(curr_age / ageBinValue));
 			if (gend == 1) {
@@ -606,13 +747,13 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 			continue; // show only stats for registry=1,0
 		}
 		//calcs on the fly pid records:
-		int gender = get_value(dataManager, pid, genderCode);
-		int BDate = get_value(dataManager, pid, bdateCode);
+		int gender = medial::repository::get_value(dataManager, pid, genderCode);
+		int BDate = medial::repository::get_value(dataManager, pid, bdateCode);
 		vector<UniversalSigVec> patientFile(1);
 		dataManager.uget(pid, signalCode, patientFile[0]);
 
 		vector<MedRegistryRecord> signal_vals;
-		getRecords_Hir(pid, patientFile, dataManager.dict, signalHirerchyType, signal_vals);
+		medial::signal_hierarchy::getRecords_Hir(pid, patientFile, dataManager.dict, signalHirerchyType, signal_vals);
 
 		vector<unordered_map<float, int>> val_seen_pid_pos(age_bin_count); //for age bin index and value (it's for same pid so gender doesnt change) - if i saw the value already
 
@@ -636,7 +777,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 				if (regRec.age != -1)
 					ageBin = float(ageBinValue * floor(double(regRec.age) / ageBinValue));
 				else
-					ageBin = float(ageBinValue * floor(double(DateDiff(BDate, sigRec.start_date)) / ageBinValue));
+					ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, sigRec.start_date)) / ageBinValue));
 				ageBin_index = int((ageBin - min_age) / ageBinValue);
 				if (ageBin < min_age || ageBin > max_age)
 					continue; //skip out of range...
@@ -759,13 +900,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	if (start_date < bdate)
 		return;
 
-	int min_date = DateAdd(start_date, 365);
+	int min_date = medial::repository::DateAdd(start_date, 365);
 
 	MedRegistryRecord r;
 	r.pid = pid;
 	r.min_allowed_date = min_date; //at least 1 year data
 	r.start_date = min_date;
-	r.age = int(DateDiff(bdate, r.start_date));
+	r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 	r.registry_value = 0;
 
 	int last_date = start_date;
@@ -776,7 +917,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		last_date = signal.Date(i);
 		if (signal.Val(i) > 0 && RCFlags[(int)signal.Val(i)]) {
 			//flush buffer
-			int last_date = DateAdd(signal.Date(i), -buffer_duration);
+			int last_date = medial::repository::DateAdd(signal.Date(i), -buffer_duration);
 			r.end_date = last_date;
 			r.max_allowed_date = last_date;
 			if (r.end_date > r.start_date)
@@ -788,7 +929,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			r.min_allowed_date = last_date;
 			r.max_allowed_date = signal.Date(i);
 			r.start_date = signal.Date(i);
-			r.age = (int)round(DateDiff(bdate, signal.Date(i)));
+			r.age = (int)round(medial::repository::DateDiff(bdate, signal.Date(i)));
 			r.registry_value = 1;
 			if (take_only_first) {
 				r.end_date = 30000000;
@@ -796,12 +937,12 @@ void MedRegistryCodesList::get_registry_records(int pid,
 				return;
 			}
 			else
-				r.end_date = DateAdd(signal.Date(i), duration_flag);
-			int max_search = DateAdd(r.end_date, buffer_duration - 1);
+				r.end_date = medial::repository::DateAdd(signal.Date(i), duration_flag);
+			int max_search = medial::repository::DateAdd(r.end_date, buffer_duration - 1);
 			//advanced till passed end_date + buffer with no reapeating RC:
 			while (i < signal.len && signal.Date(i) < max_search) {
 				if (signal.Val(i) > 0 && RCFlags[(int)signal.Val(i)])
-					r.end_date = DateAdd(signal.Date(i), duration_flag);
+					r.end_date = medial::repository::DateAdd(signal.Date(i), duration_flag);
 				++i;
 			}
 			results.push_back(r);
@@ -810,20 +951,315 @@ void MedRegistryCodesList::get_registry_records(int pid,
 				break;
 			}
 			//prepare for next:
-			start_date = DateAdd(signal.Date(i), buffer_duration); //next time don't predict before last record
+			start_date = medial::repository::DateAdd(signal.Date(i), buffer_duration); //next time don't predict before last record
 			if (start_date < min_date)
 				start_date = min_date;
 			r.min_allowed_date = start_date;
 			r.registry_value = 0;
 			r.start_date = start_date;
-			r.age = int(DateDiff(bdate, r.start_date));
+			r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 			--i; //return to previous one...
 		}
 	}
 
 	r.end_date = last_date;
-	last_date = DateAdd(last_date, -buffer_duration);
+	last_date = medial::repository::DateAdd(last_date, -buffer_duration);
 	r.max_allowed_date = last_date;
 	if (r.end_date > r.start_date)
 		results.push_back(r);
+}
+
+
+double gender_calc(const map<float, vector<int>> &gender_sorted, int smooth_balls) {
+	//calc over all ages
+	double regScore = 0;
+	for (auto i = gender_sorted.begin(); i != gender_sorted.end(); ++i) { //iterate over age bins
+		const vector<int> &probs_tmp = i->second; //the forth numbers
+		vector<double> probs((int)probs_tmp.size()); //the forth numbers - float with fix
+		double totCnt = 0;
+		vector<double> R(2);
+		vector<double> C(2);
+
+		C[0] = probs_tmp[0] + probs_tmp[2]; //how much controls
+		C[1] = probs_tmp[1] + probs_tmp[1 + 2]; //how much cases
+		totCnt = C[0] + C[1];
+		for (size_t j = 0; j < probs_tmp.size(); ++j)
+			probs[j] = probs_tmp[j] + (smooth_balls * C[j % 2] / totCnt);  /* add smooth addition */
+
+		totCnt = 0;
+		R[0] = probs[0] + probs[1];
+		R[1] = probs[2 + 0] + probs[2 + 1];
+		C[0] = probs[0] + probs[2]; //how much controls
+		C[1] = probs[1] + probs[1 + 2]; //how much cases
+		for (size_t j = 0; j < probs.size(); ++j)
+			totCnt += probs[j];
+
+		for (size_t j = 0; j < probs.size(); ++j)
+		{
+			double	Qij = probs[j];
+			double Eij = (R[j / 2] * C[j % 2]) / totCnt;
+
+			if (Eij > 0)
+				regScore += ((Qij - Eij) * (Qij - Eij)) / (Eij); //Chi-square
+		}
+
+	}
+	return regScore;
+}
+
+double medial::contingency_tables::chisqr(int Dof, double Cv)
+{
+	if (Dof < 1 || Cv <= 0) {
+		return 1;
+	}
+	boost::math::chi_squared dist(Dof);
+	return (1.0 - boost::math::cdf(dist, Cv));
+}
+
+void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats,
+	vector<float> &all_signal_values, vector<int> &signal_indexes,
+	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls) {
+
+	unordered_set<float> all_vals;
+	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
+		all_vals.insert(i->first);
+	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
+		all_vals.insert(i->first);
+	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
+	signal_indexes.resize(all_signal_values.size());
+	for (size_t i = 0; i < signal_indexes.size(); ++i)
+		signal_indexes[i] = (int)i;
+	posCnts.resize(all_signal_values.size());
+	valCnts.resize(all_signal_values.size());
+	lift.resize(all_signal_values.size());
+	scores.resize(all_signal_values.size());
+	p_values.resize(all_signal_values.size());
+	pos_ratio.resize(all_signal_values.size());
+
+	for (int index : signal_indexes)
+	{
+		float signalVal = all_signal_values[index];
+		//check chi-square for this value:
+		double totCnt = 0;
+		double sig_sum = 0;
+		double sum_noSig_reg = 0;
+		double sum_noSig_tot = 0;
+
+		if (male_stats.find(signalVal) != male_stats.end())
+			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (female_stats.find(signalVal) != female_stats.end())
+			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (totCnt == 0)
+			continue;
+		valCnts[index] = totCnt; //for signal apeareance
+		sig_sum += posCnts[index];
+		if (sig_sum > 0 && sum_noSig_reg > 0)
+			lift[index] = (posCnts[index] / sig_sum) / (sum_noSig_reg / sum_noSig_tot);
+		if (sig_sum > 0 && sum_noSig_reg <= 0)
+			lift[index] = 2 * posCnts[index]; //maximum lift
+		pos_ratio[index] = posCnts[index] / totCnt;
+
+		double regScore = 0;
+		if (male_stats.find(signalVal) != male_stats.end())
+			regScore += gender_calc(male_stats.at(signalVal), smooth_balls); //Males
+		if (female_stats.find(signalVal) != female_stats.end())
+			regScore += gender_calc(female_stats.at(signalVal), smooth_balls); //Females
+
+		scores[index] = (float)regScore;
+		int dof = -1;
+		if (male_stats.find(signalVal) != male_stats.end())
+			dof += (int)male_stats.at(signalVal).size();
+		if (female_stats.find(signalVal) != female_stats.end())
+			dof += (int)female_stats.at(signalVal).size();
+		double pv = chisqr(dof, regScore);
+		p_values[index] = pv;
+	}
+}
+
+void medial::contingency_tables::FilterRange(vector<int> &indexes, const vector<double> &vecCnts
+	, double min_val, double max_val) {
+	vector<int> filtered_indexes;
+	filtered_indexes.reserve(indexes.size());
+	for (size_t i = 0; i < indexes.size(); ++i)
+		if (vecCnts[indexes[i]] >= min_val && vecCnts[indexes[i]] <= max_val)
+			filtered_indexes.push_back(indexes[i]);
+	indexes.swap(filtered_indexes);
+}
+
+void read_gender_val(ifstream &fr, map<float, vector<int>> &vec) {
+	int dict_size;
+	fr.read((char *)&dict_size, sizeof(int));
+	for (size_t i = 0; i < dict_size; ++i)
+	{
+		float ageBin;
+		fr.read((char *)&ageBin, sizeof(float));
+		vec[ageBin] = vector<int>(4);
+		for (size_t j = 0; j < vec[ageBin].size(); ++j)
+		{
+			fr.read((char *)&vec[ageBin][j], sizeof(int));
+		}
+	}
+}
+
+void write_gender_val(ofstream &fw, const map<float, vector<int>> &gender_stats) {
+	int dict_size = (int)gender_stats.size();
+	fw.write((char *)&dict_size, sizeof(int));
+
+	for (auto it = gender_stats.begin(); it != gender_stats.end(); ++it)
+	{
+		float ageBin = it->first;
+		fw.write((char*)&ageBin, sizeof(float));
+		if (it->second.size() != 4) {
+			throw logic_error("validation failed for stats vector of size 4");
+		}
+		for (size_t i = 0; i < it->second.size(); ++i) //fixed size - 4
+		{
+			int num = it->second[i];
+			fw.write((char *)&num, sizeof(int));
+		}
+	}
+}
+
+void write_gender(const map<float, map<float, vector<int>>> &dict, const string &file_path) {
+	ofstream fw(file_path, ios::binary);
+	//Format is dictionary Size then each rowL float, male_vector, feamle_vector. gender_vector = map_size, for each row: float, 4 int vector numbers for stats
+	int dict_size = (int)dict.size();
+	fw.write((char *)&dict_size, sizeof(int));
+	for (auto it = dict.begin(); it != dict.end(); ++it)
+	{
+		float signalValue = it->first;
+		const map<float, vector<int>> &stats = it->second;
+
+		fw.write((char *)&signalValue, sizeof(float));
+		write_gender_val(fw, stats);
+		//lets serialize male and then female:
+	}
+
+	fw.close();
+}
+
+void read_gender(const string &file_path, map<float, map<float, vector<int>>> &dict) {
+	ifstream fr(file_path, ios::binary);
+	int dict_size;
+	fr.read((char *)&dict_size, sizeof(int));
+
+	for (size_t i = 0; i < dict_size; ++i)
+	{
+		float signalValue;
+		fr.read((char *)&signalValue, sizeof(float));
+		read_gender_val(fr, dict[signalValue]);
+	}
+
+	fr.close();
+}
+
+void medial::contingency_tables::write_stats(const string &file_path,
+	const map<float, map<float, vector<int>>> &males_stats, const map<float, map<float, vector<int>>> &females_stats) {
+
+	ofstream fw(file_path, ios::binary);
+	if (!fw.good())
+		MTHROW_AND_ERR("IOError: can't open %s for writing.\n", file_path.c_str());
+	//Format is dictionary Size then each rowL float, male_vector, feamle_vector. gender_vector = map_size, for each row: float, 4 int vector numbers for stats
+	int dict_size = (int)males_stats.size();
+	fw.write((char *)&dict_size, sizeof(int));
+	for (auto it = males_stats.begin(); it != males_stats.end(); ++it)
+	{
+		float signalValue = it->first;
+		const map<float, vector<int>> &stats = it->second;
+
+		fw.write((char *)&signalValue, sizeof(float));
+		write_gender_val(fw, stats);
+	}
+
+	dict_size = (int)females_stats.size();
+	fw.write((char *)&dict_size, sizeof(int));
+	for (auto it = females_stats.begin(); it != females_stats.end(); ++it)
+	{
+		float signalValue = it->first;
+		const map<float, vector<int>> &stats = it->second;
+
+		fw.write((char *)&signalValue, sizeof(float));
+		write_gender_val(fw, stats);
+	}
+
+	fw.close();
+	MLOG("wrote [%d] keys on both male and female.\n", int(males_stats.size() + females_stats.size()));
+}
+
+void medial::contingency_tables::read_stats(const string &file_path,
+	map<float, map<float, vector<int>>> &males_stats, map<float, map<float, vector<int>>> &females_stats) {
+	ifstream fr(file_path, ios::binary);
+	int dict_size;
+	fr.read((char *)&dict_size, sizeof(int));
+	for (size_t i = 0; i < dict_size; ++i)
+	{
+		float signalValue;
+		fr.read((char *)&signalValue, sizeof(float));
+		read_gender_val(fr, males_stats[signalValue]);
+	}
+	fr.read((char *)&dict_size, sizeof(int));
+	for (size_t i = 0; i < dict_size; ++i)
+	{
+		float signalValue;
+		fr.read((char *)&signalValue, sizeof(float));
+		read_gender_val(fr, females_stats[signalValue]);
+	}
+
+	fr.close();
+	MLOG("read [%d] records on both male and female stats.\n",
+		int(males_stats.size() + females_stats.size()));
+}
+
+void medial::contingency_tables::FilterFDR(vector<int> &indexes,
+	const vector<double> &scores, const vector<double> &p_vals, const vector<double> &lift,
+	double filter_pval) {
+	//sort by  pVal (if equal than -score (Floating point round and they are almost all has same dof)) also use posCnts/ valCnts:
+	int num_of_init_test = (int)indexes.size();
+	double cm = 0;
+	for (size_t i = 0; i < num_of_init_test; ++i)
+		cm += 1 / (i + double(1));
+
+	double num_test_factor = num_of_init_test * cm;//dependence correction
+	vector<pair<int, vector<double>>> keysSorted(indexes.size());
+
+	for (int i = 0; i < indexes.size(); ++i) {
+		vector<double> vec = { p_vals[indexes[i]],
+			-lift[indexes[i]] , -scores[indexes[i]] };
+		keysSorted[i] = pair<int, vector<double>>(indexes[i], vec);
+	}
+
+	sort(keysSorted.begin(), keysSorted.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
+		int pos = 0;
+		while (pos < a.second.size() &&
+			a.second[pos] == b.second[pos])
+			++pos;
+		if (pos >= a.second.size())
+			return false;
+		return b.second[pos] > a.second[pos];
+	});
+
+	double normAlpha = filter_pval / num_test_factor;
+	int totSum = 0;
+	int stop_index = 0;
+	while (stop_index < keysSorted.size() && normAlpha * (stop_index + 1) >= keysSorted[stop_index].second[0])
+		++stop_index;
+
+	//Keep only filtered indexes
+	indexes.resize(stop_index);
+	for (size_t i = 0; i < stop_index; ++i)
+		indexes[i] = keysSorted[i].first;
 }
