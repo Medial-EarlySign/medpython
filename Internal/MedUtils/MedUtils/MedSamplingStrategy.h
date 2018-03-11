@@ -30,8 +30,10 @@ public:
 class MedSamplingTimeWindow : public MedSamplingStrategy {
 public:
 	bool take_max; ///< If true will random sample between all time range of min_allowed to max_allowed
-	int maximal_time_back; ///< If take_max is false. will sample till maximal_time_back duration from max_allowed. In days
-	int minimal_time_back; ///< If take_max is false. will treat at least minimal_time_back duration from max_allowed. In days
+	int maximal_time_case; ///< If take_max is false. will sample till maximal_time_case duration from max_allowed for cases. In days
+	int minimal_time_case; ///< Will treat at least minimal_time_case duration from max_allowed for cases. In days
+	int maximal_time_control; ///< If take_max is false. Will sample till maximla_time_control duration from max_allowed for controls. In days
+	int minimal_time_control; ///< Will treat at least minimal_time_control duration from max_allowed for controls. In days
 	int sample_count; ///< how many samples to take in each time window
 
 	///sample random using Environment variable. params: [Random_Duration, Back_Time_Window_Years, Jump_Time_Period_Years]
@@ -41,7 +43,7 @@ public:
 
 	MedSamplingTimeWindow() {
 		gen = mt19937(rd()); sample_count = 1; take_max = false;
-		maximal_time_back = 0; minimal_time_back = 0;
+		maximal_time_case = 0; minimal_time_case = 0; minimal_time_control = 0; maximal_time_control = 0;
 	}
 private:
 	random_device rd;
