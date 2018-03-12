@@ -16,7 +16,8 @@ using namespace std;
 enum TQRF_TreeTypes {
 	TQRF_TREE_ENTROPY = 0,
 	TQRF_TREE_REGRESSION = 1,
-	TQRF_TREE_LOGRANK = 3,
+	TQRF_TREE_LOGRANK = 2,
+	TQRF_TREE_DEV = 3, // free place to use when developing new score ideas
 	TQRF_TREE_UNDEFINED = 4
 };
 
@@ -59,6 +60,8 @@ public:
 	string samples_time_unit = "Date";
 	int samples_time_unit_i; /// calculated upon init
 
+	int ncateg = 2;			/// number of categories (1 for regression)
+
 	// time slices
 	string time_slice_unit = "Days";
 	int time_slice_unit_i; /// calculated upon init
@@ -66,6 +69,9 @@ public:
 	int n_time_slices = 1;				/// if time_slices vector is not given, one will be created using time_slice_size and this parameter. 
 	vector<int> time_slices = {};		/// if not empty: defines the borders of all the time lines. Enables a very flexible time slicing strategy
 	
+	vector<float> time_slices_wgts ={}; /// default is all 1.0 , but can be assigned by the user, will be used to weight the scores from different time windows
+	int censor_cases = 0;				/// when calclating the time slices distributions we have an option to NOT count the preciding 0's of non 0 cases.
+
 	// quantization
 	int max_q = 200;					/// maximal quantization
 	//int max_q_sample = 100000;			/// the max number of values to use when deciding q limits
@@ -107,7 +113,15 @@ public:
 
 	// sanities
 	int test_for_inf = 1;				/// will fail on non finite values in input data	
-	int test_for_missing = 0;			/// will fail on if missing value found in data
+	int test_for_missing = 0;			/// will fail if missing value found in data
+
+	// prediction configuration
+	int only_this_categ = -1;			/// relavant only to categorial predictions: -1: give all categs, 0 and above: give only those categs
+										/// remember that currently 0 is a special category in TQRF : the control category (nothing happens, healthy, etc...)
+	int predict_from_slice = -1;		/// will give predictions for slices [predict_from_slice,...,predict_to_slice]. if negative: all slices.
+	int predict_to_slice = -1;
+	int predict_sum_times = 0;			/// will sum predictions over different times
+
 
 	// verbosity
 	int verbosity = 0;					/// for debug prints
@@ -145,6 +159,7 @@ public:
 	vector<vector<float> *> orig_data; /// pointers to the original data given
 	vector<string> feat_names;		   /// as given in train
 	vector<float> y;
+	vector<int> y_i;
 	vector<int> last_time_slice;	/// when there's more than 1 time slice there may be censoring involved and the last_time_slice is the last uncensored one.
 	int n_time_slices;				/// 1 time slice is simply the regular case of a label for the whole future
 	vector<int> slice_counts[2];	/// counts of elements in slices (in case of non regression trees). slices with no variability are not interesting.
@@ -261,6 +276,11 @@ public:
 	// this is needed for a more efficient computation of scores later
 	vector<vector<int>> sums;
 
+	// sums_t[t] = number of samples in time slice t (needed later for more efficient calculations)
+	vector<int> sums_t;
+
+	int total_sum = 0; // sum of the sum_t vector
+
 	~TQRF_Split_Categorial() {};
 
 	// next are for easy access
@@ -290,6 +310,12 @@ public:
 	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
 };
 
+
+//==========================================================================================================================
+class TQRF_Split_Dev : public TQRF_Split_Categorial {
+public:
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
+};
 
 //==========================================================================================================================
 class TQRF_Split_Regression : public TQRF_Split_Stat {
@@ -322,6 +348,8 @@ public:
 
 	void init(Quantized_Feat &qfeat, TQRF_Params &params) { _qfeat = &qfeat; _params = &params; }
 	int Train(Quantized_Feat &qfeat, TQRF_Params &params) {	init(qfeat, params); return Train(); }
+
+	TQRF_Node *Get_Node(MedMat<float> &x, int i_row, float missing_val);
 
 	int Train();
 
@@ -381,6 +409,14 @@ public:
 	/// The y matrix is added since we may want to use regression with y values given for every time slice ...
 	int Train(MedFeatures &medf, const MedMat<float> &Y);
 	int Train(MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
+
+
+	/// However - the basic predict for this model is MedMat !! , as here it is much simpler :
+	/// we only need to find the terminal nodes in the trees and calculate our scores
+	int Predict(MedMat<float> &x, vector<float> &preds);
+	int n_preds_per_sample();
+
+	int Predict_Categorial(MedMat<float> &x, vector<float> &preds); // currently like this... with time should consider inheritance to do it right.
 
 	// simple helpers
 	static int get_tree_type(const string &str);
