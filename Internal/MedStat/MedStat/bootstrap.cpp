@@ -13,7 +13,7 @@
 #pragma float_control( except, on )
 #endif
 
-#define LOCAL_SECTION LOG_APP
+#define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 //#define WARN_SKIP_WP
 //#define USE_MIN_THREADS
@@ -569,7 +569,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	PreprocessScoresFunc preprocess_scores, void *preprocess_scores_params, float sample_ratio, int sample_per_pid,
 	int loopCnt, int seed, bool binary_outcome) {
 #if defined(__unix__)
-	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	if (preds.size() != y.size() || preds.size() != pids.size()) {

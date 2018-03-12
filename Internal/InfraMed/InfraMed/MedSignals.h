@@ -578,7 +578,7 @@ class MedSignals {
 		string signals_to_files;
 		map<string, int> Name2Sid;
 		map<int, string> Sid2Name;
-		map<int, SignalInfo> Sid2Info;
+		vector<SignalInfo> Sid2Info;
 		vector<string> signals_names;
 		vector<int>	signals_ids;
 		vector<int> sid2serial; // inverse of signal_ids, -1: empty slots
@@ -605,7 +605,7 @@ class MedSignals {
 		// this is useful when using repositories to calculate new features, etc.
 		int insert_virtual_signal(const string &sig_name, int type);
 	private:
-
+		map<int, SignalInfo> _Sid2Info;
 };
 
 
