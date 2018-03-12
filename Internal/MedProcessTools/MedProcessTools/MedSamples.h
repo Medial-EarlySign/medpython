@@ -117,6 +117,7 @@ public:
 
 	/// <summary> Constructor. init time_unit according to global med_rep_type </summary>
 	MedSamples() { time_unit = med_rep_type.basicTimeUnit; }
+	~MedSamples() {}
 
 	/// <summary> Clear data and init time_unit according to global med_rep_type </summary>
 	void clear() { time_unit = MedTime::Date; idSamples.clear(); }
