@@ -774,7 +774,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					has_intr = true;//censored out - mark as done, no valid registry records for pid
 					break;
 				}
-				if (regRec.age != -1)
+				if (regRec.age != -1 && regRec.registry_value > 0)
 					ageBin = float(ageBinValue * floor(double(regRec.age) / ageBinValue));
 				else
 					ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, sigRec.start_date)) / ageBinValue));
@@ -824,18 +824,50 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	}
 	if (!debug_file.empty())
 		dbg_file.close();
+	unordered_set<float> vals;
+	for (auto it = maleSignalToStats.begin(); it != maleSignalToStats.end(); ++it)
+		vals.insert(it->first);
+	for (auto it = femaleSignalToStats.begin(); it != femaleSignalToStats.end(); ++it)
+		vals.insert(it->first);
 
 	//update values prevalence
-	for (auto it = maleSignalToStats.begin(); it != maleSignalToStats.end(); ++it)
+	for (auto it = vals.begin(); it != vals.end(); ++it)
 	{
-		for (auto jt = maleSignalToStats[it->first].begin(); jt != maleSignalToStats[it->first].end(); ++jt) {
-			maleSignalToStats[it->first][jt->first][0] = male_total_prevalence[jt->first][0] - maleSignalToStats[it->first][jt->first][2];
-			maleSignalToStats[it->first][jt->first][1] = male_total_prevalence[jt->first][1] - maleSignalToStats[it->first][jt->first][3];
-		}
-		for (auto jt = femaleSignalToStats[it->first].begin(); jt != femaleSignalToStats[it->first].end(); ++jt) {
-			femaleSignalToStats[it->first][jt->first][0] = female_total_prevalence[jt->first][0] - femaleSignalToStats[it->first][jt->first][2];
-			femaleSignalToStats[it->first][jt->first][1] = female_total_prevalence[jt->first][1] - femaleSignalToStats[it->first][jt->first][3];
-		}
+		if (maleSignalToStats.find(*it) != maleSignalToStats.end())
+			for (auto jt = maleSignalToStats[*it].begin(); jt != maleSignalToStats[*it].end(); ++jt) {
+				if (male_total_prevalence.find(jt->first) == male_total_prevalence.end())
+					MTHROW_AND_ERR("Sample is too small - no incidences for age_bin=%f in males\n", jt->first);
+				/*if (male_total_prevalence[jt->first][1] < maleSignalToStats[*it][jt->first][3])
+					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[1,3]. Males, age_bin=%f"
+						, jt->first);
+				if (male_total_prevalence[jt->first][0] < maleSignalToStats[*it][jt->first][2])
+					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[0,2]. Males, age_bin=%f"
+						, jt->first);*/
+				maleSignalToStats[*it][jt->first][0] = male_total_prevalence[jt->first][0] - maleSignalToStats[*it][jt->first][2];
+				maleSignalToStats[*it][jt->first][1] = male_total_prevalence[jt->first][1] - maleSignalToStats[*it][jt->first][3];
+				if (maleSignalToStats[*it][jt->first][0] < 0)
+					maleSignalToStats[*it][jt->first][0] = 0;
+				if (maleSignalToStats[*it][jt->first][1] < 0)
+					maleSignalToStats[*it][jt->first][1] = 0;
+
+			}
+		if (femaleSignalToStats.find(*it) != femaleSignalToStats.end())
+			for (auto jt = femaleSignalToStats[*it].begin(); jt != femaleSignalToStats[*it].end(); ++jt) {
+				if (female_total_prevalence.find(jt->first) == female_total_prevalence.end())
+					MTHROW_AND_ERR("Sample is too small - no incidences for age_bin=%f in females\n", jt->first);
+				/*if (female_total_prevalence[jt->first][1] < femaleSignalToStats[*it][jt->first][3])
+					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[1,3]. Females, age_bin=%f"
+						, jt->first);
+				if (female_total_prevalence[jt->first][0] < femaleSignalToStats[*it][jt->first][2])
+					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[0,2]. Females, age_bin=%f"
+						, jt->first);*/
+				femaleSignalToStats[*it][jt->first][0] = female_total_prevalence[jt->first][0] - femaleSignalToStats[*it][jt->first][2];
+				femaleSignalToStats[*it][jt->first][1] = female_total_prevalence[jt->first][1] - femaleSignalToStats[*it][jt->first][3];
+				if (femaleSignalToStats[*it][jt->first][0] < 0)
+					femaleSignalToStats[*it][jt->first][0] = 0;
+				if (femaleSignalToStats[*it][jt->first][1] < 0)
+					femaleSignalToStats[*it][jt->first][1] = 0;
+			}
 	}
 
 	duration = (int)difftime(time(NULL), start);
@@ -926,10 +958,10 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//start new record
 			//r.pid = pid;
 			//r.male = gender == 1;
-			r.min_allowed_date = last_date;
+			r.min_allowed_date = min_date;
 			r.max_allowed_date = signal.Date(i);
 			r.start_date = signal.Date(i);
-			r.age = (int)round(medial::repository::DateDiff(bdate, signal.Date(i)));
+			r.age = (int)medial::repository::DateDiff(bdate, signal.Date(i));
 			r.registry_value = 1;
 			if (take_only_first) {
 				r.end_date = 30000000;
