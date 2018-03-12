@@ -295,6 +295,7 @@ public:
 
 	// Function
 	MedLM();
+	~MedLM() {};
 	MedLM(void *params);
 	MedLM(MedLMParams& params);
 	int init(void *params);
@@ -359,6 +360,7 @@ public:
 	// Function
 	void Initb();
 	MedLasso();
+	~MedLasso() {};
 	MedLasso(void *params);
 	MedLasso(MedLassoParams& params);
 	int init(void *params);
@@ -436,6 +438,7 @@ public:
 
 	// Function
 	MedGDLM();
+	~MedGDLM() {};
 	MedGDLM(void *params);
 	MedGDLM(MedGDLMParams& params);
 	/// The parsed fields from init command.
@@ -524,6 +527,7 @@ public:
 
 	// Function
 	MedQRF();
+	~MedQRF() {};
 	MedQRF(void *params);
 	MedQRF(MedQRFParams& params);
 	int init(void *params);
