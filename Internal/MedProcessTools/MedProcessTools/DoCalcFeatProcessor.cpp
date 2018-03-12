@@ -105,13 +105,18 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Prepare new Feature
 	int samples_size = (int)features.samples.size();
-	features.data[feature_name].clear();
-	features.data[feature_name].resize(samples_size);
-	float *p_out = &(features.data[feature_name][0]);
+	// TODO: ihadanny 20180305 - the following critical section is a workaround for MedFeatures being not threadsafe
+	// a good solution might be adding a Prepare stage for processors, or maybe add a threadsafe AllocateNewFeature method
+#pragma omp critical 
+	{
+		features.data[feature_name].clear();
+		features.data[feature_name].resize(samples_size);
+		// Attributes
+		features.attributes[feature_name].normalized = false;
+		features.attributes[feature_name].imputed = true;
+	}
 
-	// Attributes
-	features.attributes[feature_name].normalized = false;
-	features.attributes[feature_name].imputed = true;
+	float *p_out = &(features.data[feature_name][0]);
 
 	// Prepare
 	vector<float*> p_sources;
@@ -176,10 +181,10 @@ void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samp
 void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, int n_samples) {
 	MLOG("DoCalcFeatProcessor::do_threshold start\n");
 	if (p_sources.size() != 1)
-		MTHROW_AND_ERR("do_threshold expects 1 source_feature_names, got [%d]\n", p_sources.size());
+		MTHROW_AND_ERR("do_threshold expects 1 source_feature_names, got [%d]\n", (int)p_sources.size());
 	float *p = p_sources[0];
 	if (parameters.size() != 2)
-		MTHROW_AND_ERR("do_threshold expects 2 parameters, got [%d]\n", parameters.size());
+		MTHROW_AND_ERR("do_threshold expects 2 parameters, got [%d]\n", (int)parameters.size());
 	if (parameters[0] != ">" && parameters[0] != "<" && parameters[0] != ">=" && parameters[0] != "<=")
 		MTHROW_AND_ERR("do_threshold expects the first parameter to be one of [>,<,>=,<=], got [%s]\n", parameters[0].c_str());
 	float thresold;
@@ -187,7 +192,7 @@ void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, i
 	{
 		thresold = boost::lexical_cast<float>(parameters[1]);
 	}
-	catch (const boost::bad_lexical_cast &exc) {
+	catch (const boost::bad_lexical_cast) {
 		MTHROW_AND_ERR("do_threshold expects the second parameter to be a float threshold, got [%s]\n", parameters[1].c_str());
 	}
 
@@ -213,7 +218,7 @@ void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, i
 void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *p_out, int n_samples) {
 	MLOG("DoCalcFeatProcessor::do_boolean_condition start\n");
 	if (p_sources.size() != 2)
-		MTHROW_AND_ERR("[%s] expects 2 source_feature_names, got [%d]\n", calc_type.c_str(), p_sources.size());
+		MTHROW_AND_ERR("[%s] expects 2 source_feature_names, got [%d]\n", calc_type.c_str(), (int)p_sources.size());
 	if (calc_type != "and" && calc_type != "or")
 		MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
 

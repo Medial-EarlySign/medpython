@@ -87,6 +87,7 @@ int RepProcessor::learn(MedPidRepository& rep) {
 	for (int pid : rep.pids)
 		fakeSamples.insertRec(pid, 0);
 	this->learn(rep, fakeSamples);
+	return 0;
 }
 
 // Learn processing parameters only if affecting any of the signals given in neededSignalIds
