@@ -775,7 +775,8 @@ public:
 
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeaturePCA *>(processor)); }
 
-	ADD_SERIALIZATION_FUNCS(params, selected_indexes, W)
+	
+	ADD_SERIALIZATION_FUNCS(names, params, selected_indexes, W);
 
 private:
 	MedMat<float> W;
