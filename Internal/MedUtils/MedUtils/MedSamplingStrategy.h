@@ -62,6 +62,8 @@ public:
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int day_jump; ///< the years bin, how many years to jump backward from each prediciton date
 	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
+	int allowed_time_from; ///< time window settings whem use_allowed is on
+	int allowed_time_to; ///< time window settings whem use_allowed is on
 	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 
 	///sample by year from year to year by jump and find match in registry
@@ -79,6 +81,8 @@ public:
 		conflict_method = "all";
 		start_year = 0;
 		end_year = 0;
+		allowed_time_to = 0;
+		allowed_time_from = 0;
 	}
 private:
 	random_device rd;
@@ -119,6 +123,8 @@ class MedSamplingDates : public MedSamplingStrategy {
 public:
 	int take_count; ///< How many samples to take in each date
 	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
+	int allowed_time_from; ///< time window settings whem use_allowed is on
+	int allowed_time_to; ///< time window settings whem use_allowed is on
 	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 	vector<vector<pair<int, int>>> samples_list_pid_dates; ///< All sample options for pid,date to sample from. row is sample with all options to sample from 
 
@@ -131,7 +137,7 @@ public:
 
 	MedSamplingDates() {
 		gen = mt19937(rd()); take_count = 1; use_allowed = false;
-		conflict_method = "all";
+		conflict_method = "all"; allowed_time_from = 0; allowed_time_to = 0;
 	}
 
 private:
