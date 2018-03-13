@@ -11,6 +11,7 @@
 //
 //===============================================================================
 
+// Branched to a separate branch (test)
 
 // AM_DLL_EXPORT is defined only in the matching .cpp file to handle the dll building
 // apps just include this h file and hence will work in import mode.

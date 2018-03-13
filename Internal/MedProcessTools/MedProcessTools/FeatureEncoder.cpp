@@ -27,7 +27,41 @@ int FeatureEncoder::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	return 0;
 }
 
-int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) {
+//-------------------------------------------------------------------------------
+// PCA Learn
+//-------------------------------------------------------------------------------
+int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) 
+{
+	MedMat<float> x;
+
+	features.get_as_matrix(x);
+
+	MedMat<float> pca_base;
+	vector<float> varsum;
+	MLOG("Running PCA : x: %d x %d\n", x.nrows, x.ncols);
+	MedPCA(x, pca_base, varsum); //save linear coef, save varsum for each feature
+	MLOG("After PCA: Got base matrix: %d x %d , varsum %d\n", pca_base.nrows, pca_base.ncols, varsum.size());
+
+	for (int i=0; i<params.pca_top; i++) {
+		MLOG("PCA base %d : varsum %f\n", i, varsum[i]);
+	}
+	
+	W.resize(params.pca_top, pca_base.ncols);
+
+#pragma omp parallel for
+	for (int i=0; i<params.pca_top; i++)
+		for (int j=0; j<pca_base.ncols; j++)
+			W(i, j) = pca_base(i, j);
+
+	names.clear();
+	for (int i=0; i<params.pca_top; i++)
+		names.push_back("FTR_ENCODER_PCA_" + to_string(i));
+
+	return 0;
+}
+
+#if 0
+int FeaturePCA::_learn_old(MedFeatures& features, unordered_set<int>& ids) {
 	MedMat<float> init_mat, cov_mat, pca_mat;
 	vector<string> feat_names;
 	if (!ids.empty()) {
@@ -127,15 +161,16 @@ int FeaturePCA::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	return 0;
 }
+#endif
 
 int FeaturePCA::_apply(MedFeatures& features, unordered_set<int>& ids) {
-	MedMat<float> base_mat;
+	MedMat<float> x;
 	//ids not supported
-	features.get_as_matrix(base_mat);
+	features.get_as_matrix(x);
 	//apply multiply by W: and add to features
 
 #pragma omp parallel for
-	for (int pca_cnt = 0; pca_cnt < names.size(); ++pca_cnt)
+	for (int pca_cnt=0; pca_cnt<names.size(); pca_cnt++)
 	{
 		string name = names[pca_cnt];
 #pragma omp critical 
@@ -145,9 +180,12 @@ int FeaturePCA::_apply(MedFeatures& features, unordered_set<int>& ids) {
 			features.tags[name].insert("pca_encoder");
 		}
 		//do multiply:
-		for (int i = 0; i < features.samples.size(); ++i)
-			for (int j = 0; j < base_mat.ncols; ++j)
-				features.data[name][i] += base_mat(i, j)*W(pca_cnt, j);
+		float *datap = &(features.data[name][0]);
+		for (int i=0; i<x.nrows; i++) {
+			datap[i] = 0;
+			for (int j=0; j<x.ncols; j++)
+				datap[i] += x(i, j)*W(pca_cnt, j);
+		}
 	}
 
 	return 0;

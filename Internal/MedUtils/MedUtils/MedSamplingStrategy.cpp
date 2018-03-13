@@ -140,6 +140,10 @@ int MedSamplingYearly::init(map<string, string>& map) {
 			prediction_month_day = stoi(it->second);
 		else if (it->first == "back_random_duration")
 			back_random_duration = stoi(it->second);
+		else if (it->first == "allowed_time_from")
+			allowed_time_from = stoi(it->second);
+		else if (it->first == "allowed_time_to")
+			allowed_time_to = stoi(it->second);
 		else if (it->first == "use_allowed")
 			use_allowed = stoi(it->second) > 0;
 		else if (it->first == "conflict_method")
@@ -156,6 +160,23 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	if (back_random_duration < 0)
 		MTHROW_AND_ERR("back_random_duration must be positive\n");
 	return 0;
+}
+
+bool in_time_window(int pred_date, const MedRegistryRecord *r, int time_from, int time_to) {
+	if (time_from == 0 && time_to == 0)
+		return true; //when both 0 - won't use time window filtering
+	int sig_start_date = medial::repository::DateAdd(pred_date, time_from);
+	int sig_end_date = medial::repository::DateAdd(pred_date, time_to);
+	int reffer_date = sig_start_date;
+	if (time_from < 0) //if looking backward force end_date to be in allowed
+		reffer_date = sig_end_date;
+	if (reffer_date > r->max_allowed_date || reffer_date < r->min_allowed_date)
+		return false;
+
+	if (time_from < 0)
+		return (sig_start_date <= r->end_date) && (r->registry_value > 0 || sig_start_date >= r->start_date);
+	else
+		return (sig_end_date >= r->start_date) && (r->registry_value > 0 || sig_end_date <= r->end_date);
 }
 
 void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
@@ -216,7 +237,12 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 						++curr_index;
 				if (curr_index >= all_pid_records->size())
 					break; //skip if no match
-						   //found match:
+				if (use_allowed && !in_time_window(pred_date, (*all_pid_records)[curr_index],
+					allowed_time_from, allowed_time_to)) {
+					++curr_index;
+					continue;
+				}
+				//found match:
 				if (reg_time == -1) { //first match
 					reg_val = (*all_pid_records)[curr_index]->registry_value;
 					reg_time = (*all_pid_records)[curr_index]->end_date;
@@ -393,6 +419,10 @@ int MedSamplingDates::init(map<string, string>& map) {
 			take_count = stoi(it->second);
 		else if (it->first == "use_allowed")
 			use_allowed = stoi(it->second) > 0;
+		else if (it->first == "allowed_time_from")
+			allowed_time_from = stoi(it->second);
+		else if (it->first == "allowed_time_to")
+			allowed_time_to = stoi(it->second);
 		else if (it->first == "conflict_method")
 			conflict_method = it->second;
 		else
@@ -447,6 +477,11 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 				if (curr_index >= all_pid_records.size())
 					break; //skip if no match
 						   //found match:
+				if (use_allowed && !in_time_window(choosed_time, all_pid_records[curr_index],
+					allowed_time_from, allowed_time_to)) {
+					++curr_index;
+					continue;
+				}
 				if (reg_time == -1) { //first match
 					reg_val = all_pid_records[curr_index]->registry_value;
 					if (reg_val <= 0)

@@ -986,7 +986,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			start_date = medial::repository::DateAdd(signal.Date(i), buffer_duration); //next time don't predict before last record
 			if (start_date < min_date)
 				start_date = min_date;
-			r.min_allowed_date = start_date;
+			r.min_allowed_date = min_date;
 			r.registry_value = 0;
 			r.start_date = start_date;
 			r.age = int(medial::repository::DateDiff(bdate, r.start_date));
