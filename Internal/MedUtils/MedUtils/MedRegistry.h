@@ -122,6 +122,8 @@ namespace medial {
 		int get_value(MedRepository &rep, int pid, int sigCode);
 	}
 	namespace contingency_tables {
+		double calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls);
+
 		void calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
 			vector<float> &all_signal_values, vector<int> &signal_indexes,
@@ -141,6 +143,9 @@ namespace medial {
 		void FilterFDR(vector<int> &indexes,
 			const vector<double> &scores, const vector<double> &p_vals, const vector<double> &lift,
 			double filter_pval);
+	}
+	namespace print {
+		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
 	}
 }
 

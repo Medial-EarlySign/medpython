@@ -122,4 +122,15 @@ public:
 	size_t deserialize(unsigned char *blob);
 };
 
+namespace medial {
+	namespace process {
+		void filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag = false);
+		void down_sample(MedFeatures &dataMat, double take_ratio);
+		void reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
+			vector<float> &weigths, bool print_verbose);
+		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
+			vector<int> &filtered_row_ids, float price_ratio, bool print_verbose);
+	}
+}
+
 #endif

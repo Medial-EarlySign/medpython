@@ -63,6 +63,19 @@ double get_mutual_information(map<int,int>& x_count, int nx, map<int,int>& y_cou
 int get_moments(vector<float>& values, vector<float>& wgts, float missing_value, float& mean, float& sd, bool do_missing=true);
 int get_moments(float *values,float *wgts, int n, float missing_value, float& mean, float& sd, bool do_missing = true);
 
+namespace medial {
+	namespace print {
+		template<class T> string print_obj(T obj, string format);
+		template<class T> void print_vec(const vector<T> &vec, const string &title, const string &format);
+		template<class T> void print_hist_vec(const vector<T> &vec, const string &title, const string &format);
+	}
+	namespace process {
+		template<class T> void prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res);
+		template<typename T> int binary_search_index(const T *begin, const T *end, T val);
+		template<typename T> int binary_search_position(const T *begin, const T *end, T val, bool reversed);
+	}
+}
+
 #include "MedUtils_imp.h"
 
 #endif

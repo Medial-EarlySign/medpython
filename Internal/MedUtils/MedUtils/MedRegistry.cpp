@@ -1002,7 +1002,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 }
 
 
-double gender_calc(const map<float, vector<int>> &gender_sorted, int smooth_balls) {
+double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls) {
 	//calc over all ages
 	double regScore = 0;
 	for (auto i = gender_sorted.begin(); i != gender_sorted.end(); ++i) { //iterate over age bins
@@ -1107,9 +1107,9 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
-			regScore += gender_calc(male_stats.at(signalVal), smooth_balls); //Males
+			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls); //Males
 		if (female_stats.find(signalVal) != female_stats.end())
-			regScore += gender_calc(female_stats.at(signalVal), smooth_balls); //Females
+			regScore += calc_chi_square_dist(female_stats.at(signalVal), smooth_balls); //Females
 
 		scores[index] = (float)regScore;
 		int dof = -1;
@@ -1294,4 +1294,43 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	indexes.resize(stop_index);
 	for (size_t i = 0; i < stop_index; ++i)
 		indexes[i] = keysSorted[i].first;
+}
+
+void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file) {
+	map<float, int> histCounts, histCounts_All;
+	vector<unordered_set<int>> pid_index(2);
+	for (size_t k = 0; k < regRecords.size(); ++k)
+	{
+		if (pid_index[regRecords[k].registry_value > 0].find(regRecords[k].pid) == pid_index[regRecords[k].registry_value > 0].end()) {
+			if (histCounts.find(regRecords[k].registry_value) == histCounts.end()) {
+				histCounts[regRecords[k].registry_value] = 0;
+			}
+			++histCounts[regRecords[k].registry_value];
+		}
+		pid_index[regRecords[k].registry_value > 0].insert(regRecords[k].pid);
+		++histCounts_All[regRecords[k].registry_value];
+	}
+	cout << "Registry has " << regRecords.size() << " records. [";
+	string delim = " ";
+	if (histCounts.size() > 2)
+		delim = "\n";
+	for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
+		cout << delim << (int)it->first << "=" << it->second;
+	cout << " ]" << " All = [ ";
+	for (auto it = histCounts_All.begin(); it != histCounts_All.end(); ++it)
+		cout << delim << (int)it->first << "=" << it->second;
+	cout << " ]" << endl;
+	if (!log_file.empty()) {
+		ofstream fo(log_file, ios::app);
+		fo << "Registry has " << regRecords.size() << " records. [";
+		if (histCounts.size() > 2)
+			delim = "\n";
+		for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
+			fo << delim << (int)it->first << "=" << it->second;
+		fo << " ]" << " All = [ ";
+		for (auto it = histCounts_All.begin(); it != histCounts_All.end(); ++it)
+			fo << delim << (int)it->first << "=" << it->second;
+		fo << " ]" << endl;
+		fo.close();
+	}
 }

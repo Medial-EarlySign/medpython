@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "MedFeatures.h"
+#include <random>
 
 #include "Logger/Logger/Logger.h"
 #define LOCAL_SECTION LOG_MEDFEAT
@@ -394,7 +395,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 				if (field_ind_to_pred_index[i] >= 0)
 					newSample.prediction[i] = stof(fields[field_ind_to_pred_index[i]]);
 			samples.push_back(newSample);
-			
+
 			for (int i = 0; i < names.size(); i++)
 				data[names[i]].push_back(stof(fields[idx + i]));
 		}
@@ -482,4 +483,387 @@ size_t  MedFeatures::serialize(unsigned char *blob) {
 //.......................................................................................
 size_t MedFeatures::deserialize(unsigned char *blob) {
 	return MedSerialize::deserialize(blob, data, weights, samples, attributes);
+}
+
+void medial::process::filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag) {
+	MedFeatures filtered;
+	filtered.time_unit = dataMat.time_unit;
+	filtered.attributes = dataMat.attributes;
+
+	sort(selected_indexes.begin(), selected_indexes.end());
+
+	int curr_ind = 0;
+	if (!op_flag) {
+		for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+			filtered.data[iit->first].reserve(selected_indexes.size());
+		if (!dataMat.weights.empty())
+			filtered.weights.reserve(selected_indexes.size());
+		filtered.samples.reserve(selected_indexes.size());
+		for (int i : selected_indexes) //all selected indexes
+		{
+			filtered.samples.push_back(dataMat.samples[i]);
+			for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+				filtered.data[iit->first].push_back(iit->second[i]);
+
+			if (!dataMat.weights.empty())
+				filtered.weights.push_back(dataMat.weights[i]);
+		}
+	}
+	else {
+		for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+			filtered.data[iit->first].reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
+		if (!dataMat.weights.empty())
+			filtered.weights.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
+		filtered.samples.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
+		for (int i = 0; i < dataMat.samples.size(); ++i)
+		{
+			//remove selected row when matched:
+			if (curr_ind < selected_indexes.size() && i == selected_indexes[curr_ind]) {
+				++curr_ind;
+				continue;
+			}
+			filtered.samples.push_back(dataMat.samples[i]);
+			for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+				filtered.data[iit->first].push_back(iit->second[i]);
+			if (!dataMat.weights.empty())
+				filtered.weights.push_back(dataMat.weights[i]);
+		}
+	}
+	filtered.init_pid_pos_len();
+
+	//dataMat = filtered;
+	dataMat.samples.swap(filtered.samples);
+	dataMat.data.swap(filtered.data);
+	dataMat.weights.swap(filtered.weights);
+	dataMat.pid_pos_len.swap(filtered.pid_pos_len);
+	dataMat.attributes.swap(filtered.attributes);
+	dataMat.tags.swap(filtered.tags);
+	dataMat.time_unit = filtered.time_unit;
+}
+
+void medial::process::down_sample(MedFeatures &dataMat, double take_ratio) {
+	int final_cnt = int(take_ratio * dataMat.samples.size());
+	if (take_ratio >= 1) {
+		return;
+	}
+
+	vector<int> all_selected_indexes(final_cnt);
+	vector<bool> seen_index((int)dataMat.samples.size());
+	random_device rd;
+	mt19937 gen;
+	uniform_int_distribution<> dist_gen(0, (int)dataMat.samples.size() - 1);
+	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
+	{
+		int num_ind = dist_gen(gen);
+		while (seen_index[num_ind])
+			num_ind = dist_gen(gen);
+		seen_index[num_ind] = true;
+
+		all_selected_indexes[k] = num_ind;
+	}
+	filter_row_indexes(dataMat, all_selected_indexes);
+}
+
+void medial::process::reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
+	vector<float> &weigths, bool print_verbose) {
+	if (groups.size() != data_records.samples.size())
+		MTHROW_AND_ERR("data_records and groups should hsve same size\n");
+
+	vector<float> full_weights(groups.size(), 1);
+	vector<unordered_map<string, vector<int>>> list_label_groups(2);
+	vector<unordered_map<string, int>> count_label_groups(2);
+	vector<string> all_groups;
+	unordered_set<string> seen_pid_0;
+	unordered_set<string> seen_group;
+	unordered_map<string, unordered_set<int>> group_to_seen_pid; //of_predicition
+	
+	for (size_t i = 0; i < data_records.samples.size(); ++i)
+	{
+		//int year = int(year_bin_size * round((it->registry.date / 10000) / year_bin_size));
+		int label = int(data_records.samples[i].outcome > 0);
+
+		if ((label > 0) && seen_group.find(groups[i]) == seen_group.end()) {
+			all_groups.push_back(groups[i]);
+			seen_group.insert(groups[i]);
+		}
+
+		list_label_groups[label][groups[i]].push_back((int)i);
+		++count_label_groups[label][groups[i]];
+		if (label == 0) {
+			group_to_seen_pid[groups[i]].insert(data_records.samples[i].id);
+		}
+	}
+
+	unordered_map<string, int> year_total;
+	unordered_map<string, float> year_ratio;
+	int i = 0;
+	sort(all_groups.begin(), all_groups.end());
+	if (print_verbose) {
+		MLOG("Before Mathcing Total samples is %d on %d groups\n",
+			(int)data_records.samples.size(), (int)all_groups.size());
+		MLOG("Group" "\t" "Count_0" "\t" "Count_1" "\t" "ratio\n");
+	}
+	for (const string &grp : all_groups)
+	{
+		if (count_label_groups[0][grp] == 0)
+			continue;
+		year_total[grp] = count_label_groups[0][grp] + count_label_groups[1][grp];
+		year_ratio[grp] = count_label_groups[1][grp] / float(count_label_groups[0][grp] + count_label_groups[1][grp]);
+		++i;
+		if (print_verbose) {
+			cout << grp << "\t" << count_label_groups[0][grp] << "\t" << count_label_groups[1][grp] << "\t"
+				<< count_label_groups[1][grp] / float(count_label_groups[1][grp] + count_label_groups[0][grp]) << endl;
+		}
+
+	}
+
+	float r_target = 0.5;
+
+	//For each year_bin - balance to this ratio using price_ratio weight for removing 1's labels:
+	seen_pid_0.clear();
+	unordered_map<string, float> group_to_factor;
+	for (int k = int(all_groups.size() - 1); k >= 0; --k) {
+		string &grp = all_groups[k];
+
+		float base_ratio = count_label_groups[1][grp] / float(count_label_groups[1][grp] + count_label_groups[0][grp]);
+		float factor = 0;
+		if (base_ratio > 0)
+			factor = float((r_target / (1 - r_target)) *
+				(double(count_label_groups[0][grp]) / count_label_groups[1][grp]));
+
+		if (print_verbose)
+			if (factor > 0)
+				MLOG("Weighting group %s base_ratio=%f factor= %f\n",
+					grp.c_str(), base_ratio, factor);
+			else
+				MLOG("Dropping group %s Num_controls=%d with zero cases\n",
+					grp.c_str(), count_label_groups[0][grp]);
+
+		if (factor == 0) {
+			list_label_groups[0].erase(grp); //for zero it's different
+			list_label_groups[1].erase(grp); //for zero it's different
+		}
+		else {
+			group_to_factor[grp] = factor;
+			//Commit Change to weights:
+			for (int ind : list_label_groups[1][grp])
+				full_weights[ind] = factor;
+		}
+	}
+
+	//Commit on all records:
+	MedFeatures filtered;
+	filtered.time_unit = data_records.time_unit;
+	filtered.attributes = data_records.attributes;
+
+	vector<int> all_selected_indexes;
+	for (size_t k = 0; k < list_label_groups.size(); ++k) //for 0 and 1:
+	{
+		for (auto it = list_label_groups[k].begin(); it != list_label_groups[k].end(); ++it) //for each group
+		{
+			vector<int> &ind_list = it->second;
+			all_selected_indexes.insert(all_selected_indexes.end(), ind_list.begin(), ind_list.end());
+		}
+	}
+
+	sort(all_selected_indexes.begin(), all_selected_indexes.end());
+	filter_row_indexes(data_records, all_selected_indexes);
+	weigths.clear();
+	weigths.resize(all_selected_indexes.size(), 1);
+	//filter full_weights to weights:
+	for (size_t i = 0; i < all_selected_indexes.size(); ++i)
+		weigths[i] = full_weights[all_selected_indexes[i]];
+
+
+	if (print_verbose) {
+		MLOG("After Matching Size=%d:\n", (int)data_records.samples.size());
+		unordered_map<string, vector<int>> counts_stat;
+		unordered_map<string, vector<double>> weight_stats;
+		for (size_t i = 0; i < all_selected_indexes.size(); ++i)
+		{
+			if (counts_stat[groups[all_selected_indexes[i]]].empty()) {
+				counts_stat[groups[all_selected_indexes[i]]].resize(2);
+				weight_stats[groups[all_selected_indexes[i]]].resize(2);
+			}
+			++counts_stat[groups[all_selected_indexes[i]]][data_records.samples[i].outcome > 0];
+			weight_stats[groups[all_selected_indexes[i]]][data_records.samples[i].outcome > 0] +=
+				weigths[i];
+		}
+		MLOG("Group\tCount_0\tCount_1\tratio\tweighted_ratio\n");
+		for (const string &grp : all_groups)
+			if (group_to_factor.find(grp) != group_to_factor.end())
+				MLOG("%s\t%d\t%d\t%2.5f\t%2.5f\n", grp.c_str(),
+					counts_stat[grp][0], counts_stat[grp][1],
+					counts_stat[grp][1] / double(counts_stat[grp][1] + counts_stat[grp][0]),
+					weight_stats[grp][1] / double(weight_stats[grp][1] + weight_stats[grp][0]));
+		//print_by_year(data_records.samples);
+	}
+}
+
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,
+	vector<int> &filtered_row_ids, float price_ratio, bool print_verbose) {
+	if (groups.size() != data_records.samples.size())
+		MTHROW_AND_ERR("data_records and groups should hsve same size\n");
+
+	vector<unordered_map<string, vector<int>>> list_label_groups(2);
+	vector<unordered_map<string, int>> count_label_groups(2);
+	vector<string> all_groups;
+	unordered_set<string> seen_pid_0;
+	unordered_set<string> seen_group;
+	unordered_map<string, unordered_set<int>> group_to_seen_pid; //of_predicition
+	
+	for (size_t i = 0; i < data_records.samples.size(); ++i)
+	{
+		//int year = int(year_bin_size * round((it->registry.date / 10000) / year_bin_size));
+		int label = int(data_records.samples[i].outcome > 0);
+
+		if ((label > 0) && seen_group.find(groups[i]) == seen_group.end()) {
+			all_groups.push_back(groups[i]);
+			seen_group.insert(groups[i]);
+		}
+
+		list_label_groups[label][groups[i]].push_back((int)i);
+		++count_label_groups[label][groups[i]];
+		if (label == 0) {
+			group_to_seen_pid[groups[i]].insert(data_records.samples[i].id);
+		}
+	}
+
+	unordered_map<string, int> year_total;
+	unordered_map<string, float> year_ratio;
+	vector<float> all_ratios((int)all_groups.size());
+	int i = 0;
+	sort(all_groups.begin(), all_groups.end());
+	if (print_verbose) {
+		MLOG("Before Mathcing Total samples is %d on %d groups\n",
+			(int)data_records.samples.size(), (int)all_groups.size());
+		MLOG("Group"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio\n");
+	}
+	for (const string &grp : all_groups)
+	{
+		if (count_label_groups[0][grp] == 0)
+			continue;
+		year_total[grp] = count_label_groups[0][grp] + count_label_groups[1][grp];
+		year_ratio[grp] = count_label_groups[1][grp] / float(count_label_groups[0][grp] + count_label_groups[1][grp]);
+		all_ratios[i] = year_ratio[grp];
+		++i;
+		if (print_verbose)
+			MLOG("%s\t%d\t%d\t%f\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
+				, count_label_groups[1][grp] / float(count_label_groups[1][grp] + count_label_groups[0][grp]));
+
+	}
+
+
+	//Choose ratio to balance all for:
+	sort(all_ratios.begin(), all_ratios.end());
+	float r_target = 0;
+	float best_cost = -1;
+	int best_0_rem = 0, best_1_rem = 0;
+
+	for (size_t k = 0; k < all_ratios.size(); ++k)
+	{
+		//evaluate if this was choosen:
+		float curr_target = all_ratios[k];
+		if (curr_target == 0)
+			continue;
+		float cost = 0;
+		int tot_0_rem = 0, tot_1_rem = 0;
+		for (auto it = count_label_groups[1].begin(); it != count_label_groups[1].end(); ++it) {
+			float cost_val = 0;
+			if (year_ratio[it->first] > curr_target) { //remove 1's (too much 1's):
+				float shrink_factor = (curr_target * count_label_groups[0][it->first]) /
+					(count_label_groups[1][it->first] - (count_label_groups[1][it->first] * curr_target)); //to multiply by 1's
+				cost_val = (count_label_groups[1][it->first] - int(round(shrink_factor*count_label_groups[1][it->first]))) * price_ratio;
+				tot_1_rem += count_label_groups[1][it->first] - int(round(shrink_factor*count_label_groups[1][it->first]));
+			}
+			else {
+				float shrink_factor = 1;
+				if (count_label_groups[0][it->first] > 0)
+					shrink_factor = (1 - curr_target) * count_label_groups[1][it->first] /
+					(curr_target * count_label_groups[0][it->first]); //to multiply by 0's
+				cost_val = (float)(count_label_groups[0][it->first] - int(round(shrink_factor*count_label_groups[0][it->first])));
+				tot_0_rem += count_label_groups[0][it->first] - int(round(shrink_factor*count_label_groups[0][it->first]));
+			}
+			cost += cost_val;
+		}
+
+		if (best_cost == -1 || cost < best_cost) {
+			best_cost = cost;
+			r_target = curr_target;
+			best_0_rem = tot_0_rem;
+			best_1_rem = tot_1_rem;
+		}
+	}
+	//r_target = prctil(all_ratios, 0.5);
+	if (!print_verbose)
+		MLOG_D("Best Target is %2.3f so retargeting balance to it. cost=%2.3f remove [%d, %d]\n", r_target, best_cost, best_0_rem
+			, best_1_rem);
+	else
+		MLOG("Best Target is %2.3f so retargeting balance to it. cost=%2.3f remove [%d, %d]\n", r_target, best_cost, best_0_rem
+			, best_1_rem);
+
+	//For each year_bin - balance to this ratio using price_ratio weight for removing 1's labels:
+	seen_pid_0.clear();
+	for (int k = int(all_groups.size() - 1); k >= 0; --k) {
+		string &grp = all_groups[k];
+		int target_size = 0;
+		int remove_size = 0;
+		int ind = 0;
+		float shrink_factor = 1;
+		if (year_ratio[grp] > r_target) {
+			shrink_factor = (r_target * count_label_groups[0][grp]) / (count_label_groups[1][grp] - (count_label_groups[1][grp] * r_target)); //to multiply by 1's
+			ind = 1;
+		}
+		else {
+			if (count_label_groups[0][grp] > 0)
+				shrink_factor = (1 - r_target) * count_label_groups[1][grp] / (r_target * count_label_groups[0][grp]); //to multiply by 0's
+			else
+				shrink_factor = 1;
+		}
+		target_size = int(round(shrink_factor*count_label_groups[ind][grp]));
+		remove_size = count_label_groups[ind][grp] - target_size;
+
+		if (print_verbose)
+			cout << "Doing group " << grp << " ind=" << ind << " target_size=" << target_size
+			<< " removing= " << remove_size << endl;
+
+		unordered_set<int> seen_year_pid;
+		random_shuffle(list_label_groups[ind][grp].begin(), list_label_groups[ind][grp].end());
+		if (target_size > list_label_groups[ind][grp].size())
+			MERR("ERROR/BUG: try to shrink %d into %d\n"
+				, (int)list_label_groups[ind][grp].size(), target_size);
+		else
+			list_label_groups[ind][grp].resize(target_size); //for zero it's different
+	}
+
+	//Commit on all records:
+	MedFeatures filtered;
+	filtered.time_unit = data_records.time_unit;
+	filtered.attributes = data_records.attributes;
+
+	for (size_t k = 0; k < list_label_groups.size(); ++k) //for 0 and 1:
+		for (auto it = list_label_groups[k].begin(); it != list_label_groups[k].end(); ++it) //for each year
+		{
+			vector<int> ind_list = it->second;
+			filtered_row_ids.insert(filtered_row_ids.end(), ind_list.begin(), ind_list.end());
+		}
+
+
+	filter_row_indexes(data_records, filtered_row_ids);
+
+	if (print_verbose) {
+		MLOG("After Matching Size=%d:\n", (int)data_records.samples.size());
+		unordered_map<string, vector<int>> counts_stat;
+		for (size_t i = 0; i < filtered_row_ids.size(); ++i)
+		{
+			if (counts_stat[groups[filtered_row_ids[i]]].empty())
+				counts_stat[groups[filtered_row_ids[i]]].resize(2);
+			++counts_stat[groups[filtered_row_ids[i]]][data_records.samples[i].outcome > 0];
+		}
+		MLOG("Group\tCount_0\tCount_1\tratio\n");
+		for (const string &grp : all_groups)
+			MLOG("%s\t%d\t%d\t%2.5f\n", grp.c_str(),
+				counts_stat[grp][0], counts_stat[grp][1], counts_stat[grp][1] / double(counts_stat[grp][1] + counts_stat[grp][0]));
+		//print_by_year(data_records.samples);
+	}
 }

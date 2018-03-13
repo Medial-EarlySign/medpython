@@ -2,6 +2,7 @@
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "Logger/Logger/Logger.h"
 #include <boost/crc.hpp>
+#include <random>
 
 #define LOCAL_SECTION MED_SAMPLES_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -14,7 +15,7 @@
 int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 	if (pos.size() == 0)
 		return parse_from_string(s);
-	vector<string> fields; 
+	vector<string> fields;
 	boost::split(fields, s, boost::is_any_of("\t\n\r"));
 	if (fields.size() == 0)
 		return -1;
@@ -64,7 +65,7 @@ int MedSample::parse_from_string(string &s)
 		if (fields.size() >= 7)
 			split = stoi(fields[6]);
 		if (fields.size() >= 8) {
-			for (int i=7; i<fields.size(); i++)
+			for (int i = 7; i < fields.size(); i++)
 				prediction.push_back(stof(fields[i]));
 		}
 		return 0;
@@ -83,7 +84,7 @@ int MedSample::parse_from_string(string &s)
 		if (fields.size() >= 6)
 			split = stoi(fields[5]);
 		if (fields.size() >= 7) {
-			for (int i=6; i<fields.size(); i++)
+			for (int i = 6; i < fields.size(); i++)
 				prediction.push_back(stof(fields[i]));
 		}
 		return 0;
@@ -156,13 +157,13 @@ int MedSamples::insert_preds(MedFeatures& features) {
 
 	size_t size = (size_t)nSamples();
 	if (features.samples.size() != size) {
-		MERR("Size mismatch between features and samples (%d vs %d)\n",features.samples.size(),size);
+		MERR("Size mismatch between features and samples (%d vs %d)\n", features.samples.size(), size);
 		return -1;
 	}
 
 	int idx = 0;
 	for (MedIdSamples& idSample : idSamples) {
-		for (unsigned int i = 0; i < idSample.samples.size(); i++) 
+		for (unsigned int i = 0; i < idSample.samples.size(); i++)
 			idSample.samples[i].prediction = features.samples[idx++].prediction;
 	}
 
@@ -182,8 +183,8 @@ void MedSamples::get_ids(vector<int>& ids) {
 // Extract a single vector of concatanated (vectors of) predictions
 //.......................................................................................
 void MedSamples::get_preds(vector<float>& preds) {
-	for (auto& idSample : idSamples) 
-		for (auto& sample : idSample.samples) 
+	for (auto& idSample : idSamples)
+		for (auto& sample : idSample.samples)
 			for (int i = 0; i < sample.prediction.size(); i++)
 				preds.push_back(sample.prediction[i]);
 }
@@ -198,7 +199,7 @@ void MedSamples::get_y(vector<float>& y) {
 
 // gets a list of all categories (different values) appearing in the outcome
 //.......................................................................................
-void MedSamples::get_categs(vector<float>& categs) 
+void MedSamples::get_categs(vector<float>& categs)
 {
 	map<float, int> categ_inside;
 	categs.clear();
@@ -207,7 +208,7 @@ void MedSamples::get_categs(vector<float>& categs)
 	for (auto &id : idSamples)
 		for (auto &rec : id.samples)
 			categ_inside[rec.outcome] = 1;
-	
+
 	// Create a vector
 	for (auto &it : categ_inside)
 		categs.push_back(it.first);
@@ -245,14 +246,14 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 		for (string u : unknown_fields)
 			warning += u + ",";
 		warning += "]";
-		MWARN("%s\n", warning.c_str());			
+		MWARN("%s\n", warning.c_str());
 	}
 	for (auto& e : pos)
 		if (e.second == -1)
 			MWARN("[%s]=unspecified, ", e.first.c_str());
-		else MLOG("[%s]=%d, ", e.first.c_str(), e.second);	
-	MLOG("\n");
-	return 0;
+		else MLOG("[%s]=%d, ", e.first.c_str(), e.second);
+		MLOG("\n");
+		return 0;
 }
 
 // read from text file.
@@ -261,7 +262,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
 {
-	unsigned long long final_size;
+	unsigned long long final_size = 0;
 
 	ifstream inf(fname);
 
@@ -295,7 +296,7 @@ int MedSamples::read_from_file(const string &fname)
 					continue;
 				}
 				MedSample sample;
-				 
+
 				if (sample.parse_from_string(curr_line, pos) < 0) {
 					MWARN("skipping [%s]\n", curr_line.c_str());
 					skipped_records++;
@@ -390,7 +391,7 @@ void MedSamples::sort_by_id_date() {
 // Make sure that : (1) every pid has one idSample at most and (2) everything is sorted
 //.......................................................................................
 void MedSamples::normalize() {
-	
+
 	// since order may be random, we need a map to collect by pid
 	map<int, vector<MedSample>> pid_to_samples;
 	map<int, int> pid_to_split;
@@ -425,7 +426,7 @@ int MedSamples::nSamples()
 
 // API's for online insertions : main use case is a single time point for prediction per pid
 //.......................................................................................
-void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime) 
+void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)
 {
 	MedIdSamples sample;
 
@@ -464,7 +465,7 @@ void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, fl
 void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 {
 	vec_samples.clear();
-	for (auto &s: idSamples) {
+	for (auto &s : idSamples) {
 		for (auto &samp : s.samples) {
 			vec_samples.push_back(samp);
 		}
@@ -500,9 +501,188 @@ bool MedSamples::same_as(MedSamples &other, int mode) {
 		return false;
 
 	for (unsigned int i = 0; i < idSamples.size(); i++) {
-		if (! idSamples[i].same_as(other.idSamples[i],mode))
+		if (!idSamples[i].same_as(other.idSamples[i], mode))
 			return false;
 	}
 
 	return true;
+}
+
+void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {
+	map<float, int> histCounts, histCountAll;
+	vector<unordered_set<int>> pid_index(2);
+	for (size_t k = 0; k < samples.size(); ++k)
+	{
+		if (pid_index[samples[k].outcome > 0].find(samples[k].id) == pid_index[samples[k].outcome > 0].end()) {
+			if (histCounts.find(samples[k].outcome) == histCounts.end()) {
+				histCounts[samples[k].outcome] = 0;
+			}
+			++histCounts[samples[k].outcome];
+		}
+		if (histCountAll.find(samples[k].outcome) == histCountAll.end()) {
+			histCountAll[samples[k].outcome] = 0;
+		}
+		++histCountAll[samples[k].outcome];
+		pid_index[samples[k].outcome > 0].insert(samples[k].id);
+	}
+	MLOG("Samples has %d records. for uniq_pids = [", (int)samples.size());
+	for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
+		MLOG(" %d=%d", it->first, it->second);
+	MLOG(" ] all = [");
+	for (auto it = histCountAll.begin(); it != histCountAll.end(); ++it)
+		MLOG(" %d=%d", (int)it->first, it->second);
+	MLOG(" ]\n");
+
+	if (!log_file.empty()) {
+		ofstream fo(log_file, ios::app);
+		fo << "Samples has " << samples.size() << " records. fir uniq_pids = [";
+		for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
+			fo << " " << it->first << "=" << it->second;
+		fo << " ] all=[";
+		for (auto it = histCountAll.begin(); it != histCountAll.end(); ++it)
+			fo << " " << it->first << "=" << it->second;
+		fo << " ]" << endl;
+		fo.close();
+	}
+}
+
+void medial::print::print_samples_stats(const MedSamples &samples, const string &log_file) {
+	vector<MedSample> smps;
+	for (size_t i = 0; i < samples.idSamples.size(); ++i)
+		smps.insert(smps.end(), samples.idSamples[i].samples.begin(), samples.idSamples[i].samples.end());
+	print_samples_stats(smps, log_file);
+}
+
+void medial::print::print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids,
+	bool take_prediction_time,
+	const string &log_file) {
+	unordered_map<int, int> count_0, count_1;
+	vector<int> all_years;
+	unordered_set<int> seen_year;
+	vector<unordered_map<int, unordered_set<int>>> year_to_seen_pid(2); //of_predicition
+	for (size_t i = 0; i < data_records.size(); ++i)
+	{
+		//int year = int(year_bin_size * round((it->registry.date / 10000) / year_bin_size));
+		int label = int(data_records[i].outcome > 0);
+		int tm = data_records[i].time;
+		if (!take_prediction_time)
+			tm = data_records[i].outcomeTime;
+		int prediction_year = int(year_bin_size*round(tm / 10000 / year_bin_size));
+
+		if ((label > 0) && seen_year.find(prediction_year) == seen_year.end()) {
+			all_years.push_back(prediction_year);
+			seen_year.insert(prediction_year);
+		}
+
+		if (label > 0) {
+			if (!unique_ids ||
+				year_to_seen_pid[1][prediction_year].find(data_records[i].id) == year_to_seen_pid[1][prediction_year].end()) {
+				++count_1[prediction_year];
+				year_to_seen_pid[1][prediction_year].insert(data_records[i].id);
+			}
+		}
+		else {
+			if (!unique_ids ||
+				year_to_seen_pid[0][prediction_year].find(data_records[i].id) == year_to_seen_pid[0][prediction_year].end()) {
+				++count_0[prediction_year];
+				year_to_seen_pid[0][prediction_year].insert(data_records[i].id);
+			}
+		}
+	}
+
+	unordered_map<int, int> year_total;
+	unordered_map<int, float> year_ratio;
+	vector<float> all_ratios((int)all_years.size());
+	int i = 0;
+	sort(all_years.begin(), all_years.end());
+	if (take_prediction_time)
+		MLOG("Printing by prediction time...\n");
+	else
+		MLOG("Printing by outcome time...\n");
+	MLOG("Year"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio\n");
+	for (int year : all_years)
+	{
+		year_total[year] = count_0[year] + count_1[year];
+		year_ratio[year] = count_1[year] / float(count_0[year] + count_1[year]);
+		all_ratios[i] = year_ratio[year];
+		++i;
+		MLOG("%d\t%d\t%d\t%f\n", year, count_0[year], count_1[year],
+			count_1[year] / float(count_1[year] + count_0[year]));
+	}
+
+	if (!log_file.empty()) {
+		i = 0;
+		ofstream fo(log_file, ios::app);
+		if (take_prediction_time)
+			fo << "Printing by prediction time..." << endl;
+		else
+			fo << "Printing by outcome time..." << endl;
+		fo << "Year" << "\t" << "Count_0" << "\t" << "Count_1" << "\t" << "ratio" << endl;
+		for (int year : all_years)
+		{
+			year_total[year] = count_0[year] + count_1[year];
+			year_ratio[year] = count_1[year] / float(count_0[year] + count_1[year]);
+			all_ratios[i] = year_ratio[year];
+			++i;
+			fo << year << "\t" << count_0[year] << "\t" << count_1[year] << "\t"
+				<< count_1[year] / float(count_1[year] + count_0[year]) << endl;
+
+		}
+		fo.close();
+	}
+}
+
+void medial::print::print_by_year(const MedSamples &data_records, int year_bin_size, bool unique_ids, bool take_prediction_time, const string &log_file) {
+	vector<MedSample> vec;
+	for (size_t i = 0; i < data_records.idSamples.size(); ++i)
+		vec.insert(vec.end(), data_records.idSamples[i].samples.begin(), data_records.idSamples[i].samples.end());
+	print_by_year(vec, year_bin_size, unique_ids, take_prediction_time, log_file);
+}
+
+void medial::process::down_sample(MedSamples &samples, double take_ratio) {
+	int tot_samples = samples.nSamples();
+	//int tot_samples = (int)samples.idSamples.size();
+	vector<int> pids_index;
+	pids_index.reserve(tot_samples);
+	for (size_t i = 0; i < samples.idSamples.size(); ++i)
+		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
+			pids_index.push_back((int)i);
+
+	int final_cnt = int(take_ratio * tot_samples);
+	if (take_ratio >= 1 || final_cnt == 0) {
+		return;
+	}
+
+	vector<int> all_selected_indexes(final_cnt);
+	vector<bool> seen_index(tot_samples);
+	random_device rd;
+	mt19937 gen;
+	uniform_int_distribution<> dist_gen(0, tot_samples - 1);
+	MedSamples filterd;
+	filterd.time_unit = samples.time_unit;
+	vector<vector<MedSample>> new_samples((int)samples.idSamples.size());
+	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
+	{
+		int num_ind = dist_gen(gen);
+		while (seen_index[num_ind])
+			num_ind = dist_gen(gen);
+		seen_index[num_ind] = true;
+		int index_i = pids_index[num_ind];
+		int index_j = 0;
+		while (index_j < samples.idSamples[index_i].samples.size() &&
+			num_ind - index_j - 1 >= 0 &&
+			pids_index[num_ind - index_j - 1] == index_i)
+			++index_j;
+
+		new_samples[index_i].push_back(samples.idSamples[index_i].samples[index_j]);
+	}
+	for (size_t i = 0; i < new_samples.size(); ++i)
+		if (!new_samples[i].empty()) {
+			MedIdSamples smp(new_samples[i].front().id);
+			smp.samples.swap(new_samples[i]);
+			filterd.idSamples.push_back(smp);
+		}
+	samples.idSamples.swap(filterd.idSamples);
+	samples.sort_by_id_date();
+	medial::print::print_samples_stats(samples);
 }

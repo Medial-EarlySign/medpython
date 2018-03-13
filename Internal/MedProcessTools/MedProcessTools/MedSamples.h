@@ -191,6 +191,19 @@ public:
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 };
 
+namespace medial {
+	namespace print {
+		void print_samples_stats(const vector<MedSample> &samples, const string &log_file = "");
+		void print_samples_stats(const MedSamples &samples, const string &log_file = "");
+		void print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids = false,
+			bool take_prediction_time = true, const string &log_file = "");
+		void print_by_year(const MedSamples &data_records, int year_bin_size, bool unique_ids = false,
+			bool take_prediction_time = true, const string &log_file = "");
+	}
+	namespace process {
+		void down_sample(MedSamples &samples, double take_ratio);
+	}
+}
 
 //=======================================
 // Joining the MedSerialze wagon
