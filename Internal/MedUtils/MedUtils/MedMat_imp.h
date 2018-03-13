@@ -605,6 +605,7 @@ template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int ti
 	}
 
 	inf.close();
+	fprintf(stderr, "read %dX%d data\n", nrows, ncols);
 	return 0;
 }
 
