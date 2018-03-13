@@ -72,7 +72,7 @@ namespace medial {
 	namespace process {
 		template<class T> void prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res);
 		template<typename T> int binary_search_index(const T *begin, const T *end, T val);
-		template<typename T> int binary_search_position(const T *begin, const T *end, T val, bool reversed);
+		template<typename T> int binary_search_position(const T *begin, const T *end, T val, bool reversed = false);
 	}
 }
 

@@ -323,6 +323,7 @@ template<typename T> int medial::process::binary_search_position(const T *begin,
 	}
 }
 template int medial::process::binary_search_position<int>(const int *begin, const int *end, int val, bool reversed);
+template int medial::process::binary_search_position<double>(const double *begin, const double *end, double val, bool reversed);
 template int medial::process::binary_search_position<float>(const float *begin, const float *end, float val, bool reversed);
 
 template int medial::process::binary_search_index(const float *begin, const float *end, float val);
