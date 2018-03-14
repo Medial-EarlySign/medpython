@@ -63,33 +63,32 @@ double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_c
 int get_moments(vector<float>& values, vector<float>& wgts, float missing_value, float& mean, float& sd, bool do_missing = true);
 int get_moments(float *values, float *wgts, int n, float missing_value, float& mean, float& sd, bool do_missing = true);
 
+/**
+* \brief medial namespace for function
+*/
 namespace medial {
 	/*!
-	*  \addtogroup print
-	*  @{
+	*  \brief print
 	*/
 	namespace print {
-		/// general print to string woth format
+		/// \brief general print to string woth format
 		template<class T> string print_obj(T obj, string format);
-		/// printing vector elements in list [] with title to MLOG
+		/// \brief printing vector elements in list [] with title to MLOG
 		template<class T> void print_vec(const vector<T> &vec, const string &title, const string &format);
-		/// printing vector elements hist prctiles in list [] with title to MLOG
+		/// \brief printing vector elements hist prctiles in list [] with title to MLOG
 		template<class T> void print_hist_vec(const vector<T> &vec, const string &title, const string &format);
 	}
-	/*! @} End of Doxygen Groups*/
 	/*!
-	*  \addtogroup process
-	*  @{
+	*  \brief process
 	*/
 	namespace process {
-		/// calc prctile
+		/// \brief calc prctile
 		template<class T> void prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res);
-		/// binary search for index. -1 if not found
+		/// \brief binary search for index. -1 if not found
 		template<typename T> int binary_search_index(const T *begin, const T *end, T val);
-		/// binary search for position to add new element in sorted manner.
+		/// \brief binary search for position to add new element in sorted manner.
 		template<typename T> int binary_search_position(const T *begin, const T *end, T val, bool reversed = false);
 	}
-	/*! @} End of Doxygen Groups*/
 }
 
 #include "MedUtils_imp.h"

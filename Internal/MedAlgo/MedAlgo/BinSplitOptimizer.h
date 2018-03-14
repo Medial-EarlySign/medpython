@@ -57,10 +57,12 @@ public:
 	}
 };
 
+/**
+* \brief medial namespace for function
+*/
 namespace medial {
 	/*!
-	*  \addtogroup process
-	*  @{
+	*  \brief process namespace
 	*/
 	namespace process {
 		/// <summary>
@@ -76,7 +78,6 @@ namespace medial {
 		void split_feature_to_bins(const BinSettings &setting, vector<float> &feature,
 			const vector<int> &sel_indexes, vector<float> &y);
 	}
-	/*! @} End of Doxygen Groups*/
 }
 
 #endif

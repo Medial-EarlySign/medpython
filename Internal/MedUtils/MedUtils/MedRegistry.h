@@ -97,25 +97,27 @@ private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
 
+/**
+* \brief medial namespace for function
+*/
 namespace medial {
 	/*!
-	*  \addtogroup signal_hierarchy
-	*  @{
+	* \brief signal_hierarchy namespace
 	*/
 	namespace signal_hierarchy {
-		///Getting signal with hirarchy options for each siganl
+		/// \brief Getting signal with hirarchy options for each siganl
 		void getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
 			const string &signalHirerchyType,
 			vector<MedRegistryRecord> &res);
 	}
-	/*! @} End of Doxygen Groups*/
 	/*!
-	*  \addtogroup contingency_tables
-	*  @{
+	* \brief contingency_tables namespace
 	*/
 	namespace contingency_tables {
+		/// \brief calc chi square distance for all groups with 4 value vector
 		double calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls);
 
+		/// \brief calcs chi square for full male, female and stores all the results stats and values in the vectors
 		void calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
 			vector<float> &all_signal_values, vector<int> &signal_indexes,
@@ -123,29 +125,30 @@ namespace medial {
 			vector<double> &lift, vector<double> &scores,
 			vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls);
 
+		/// \brief filter by range
 		void FilterRange(vector<int> &indexes, const vector<double> &vecCnts
 			, double min_val, double max_val);
 
+		/// \brief calc chi square probabilty from distance, DOF
 		double chisqr(int Dof, double Cv);
+		/// \brief serialize male,female stats
 		void write_stats(const string &file_path, 
 			const map<float, map<float, vector<int>>> &males_stats, const map<float, map<float, vector<int>>> &females_stats);
+		/// \brief deserialize male,female stats
 		void read_stats(const string &file_path, 
 			map<float, map<float, vector<int>>> &males_stats, map<float, map<float, vector<int>>> &females_stats);
-
+		/// \brief filter by FDR
 		void FilterFDR(vector<int> &indexes,
 			const vector<double> &scores, const vector<double> &p_vals, const vector<double> &lift,
 			double filter_pval);
 	}
-	/*! @} End of Doxygen Groups*/
 	/*!
-	*  \addtogroup print
-	*  @{
+	*  \brief print namespace
 	*/
 	namespace print {
-		/// printing registry stats for labels inside of it.
+		/// \brief printing registry stats for labels inside of it.
 		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
 	}
-	/*! @} End of Doxygen Groups*/
 }
 
 /**

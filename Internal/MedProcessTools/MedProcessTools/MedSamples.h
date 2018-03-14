@@ -191,33 +191,32 @@ public:
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 };
 
+/**
+* \brief medial namespace for function
+*/
 namespace medial {
 	/*!
-	*  \addtogroup print
-	*  @{
+	*  \brief print namespace
 	*/
 	namespace print {
-		/// print samples stats
+		/// \brief print samples stats
 		void print_samples_stats(const vector<MedSample> &samples, const string &log_file = "");
-		/// print samples stats
+		/// \brief print samples stats
 		void print_samples_stats(const MedSamples &samples, const string &log_file = "");
-		/// print samples stats by year
+		/// \brief print samples stats by year
 		void print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids = false,
 			bool take_prediction_time = true, const string &log_file = "");
-		/// print samples stats by year
+		/// \brief print samples stats by year
 		void print_by_year(const MedSamples &data_records, int year_bin_size, bool unique_ids = false,
 			bool take_prediction_time = true, const string &log_file = "");
 	}
-	/*! @} End of Doxygen Groups*/
 	/*!
-	*  \addtogroup process
-	*  @{
+	*  \brief process namespace
 	*/
 	namespace process {
-		/// down sammling
+		/// \brief down sammling
 		void down_sample(MedSamples &samples, double take_ratio);
 	}
-	/*! @} End of Doxygen Groups*/
 }
 
 //=======================================
