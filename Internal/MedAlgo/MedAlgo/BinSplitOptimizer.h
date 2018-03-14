@@ -2,6 +2,7 @@
 #define __BIN_SPLITTER_H__
 #include <map>
 #include <vector>
+#include <limits.h>
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 
 using namespace std;
@@ -45,7 +46,7 @@ public:
 
 	int init(map<string, string>& map);
 
-	static const unordered_map<BinSplitMethod, string> name_to_method;
+	static const unordered_map<int, string> name_to_method;
 	static BinSplitMethod bin_method_name_to_type(const string& bin_method);
 
 	BinSettings() {

@@ -536,7 +536,7 @@ int BinSettings::init(map<string, string>& map) {
 	return  0;
 }
 
-const unordered_map<BinSplitMethod, string> BinSettings::name_to_method = {
+const unordered_map<int, string> BinSettings::name_to_method = {
 	{BinSplitMethod::SameValueWidth, "same_width"},
 	{ BinSplitMethod::PartitaionMover, "partition_mover" },
 	{ BinSplitMethod::IterativeMerge, "iterative_merge" },
