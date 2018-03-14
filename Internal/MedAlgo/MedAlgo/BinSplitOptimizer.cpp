@@ -383,12 +383,20 @@ float _min_vec(const vector<float> &vec) {
 	return m;
 }
 
-void SplitToBinsSimple(vector<float> &x, int binCnt) {
+void SplitToBinsSimple(vector<float> &x, int binCnt, const float *min_val_given = NULL
+	, const float *max_val_given = NULL) {
 	if (binCnt == 0) {
 		return;
 	}
-	float min_val = _min_vec(x);
-	float max_val = _max_vec(x);
+	float min_val, max_val;
+	if (min_val_given != NULL)
+		min_val = *min_val_given;
+	else
+		min_val = _min_vec(x);
+	if (max_val_given != NULL)
+		max_val = *max_val_given;
+	else
+		max_val = _max_vec(x);
 	if (max_val == min_val) {
 		max_val = min_val + 1;
 	}
@@ -449,10 +457,26 @@ void medial::process::split_feature_to_bins(const BinSettings &setting, vector<f
 	MedQRF qrf;
 	qrf.params.ntrees = 1; qrf.params.maxq = 1000;  qrf.params.type = QRF_TreeType::QRF_CATEGORICAL_ENTROPY_TREE;
 	qrf.params.ntry = 1; qrf.params.get_only_this_categ = 1; qrf.qf.take_all_samples = true;
+	if (setting.max_value_cutoff != (float)INT_MAX || setting.min_value_cutoff != (float)INT_MIN) {
+		//trim values:
+		for (size_t i = 0; i < feature.size(); ++i)
+		{
+			if (feature[i] > setting.max_value_cutoff)
+				feature[i] = setting.max_value_cutoff;
+			if (feature[i] < setting.min_value_cutoff)
+				feature[i] = setting.min_value_cutoff;
+		}
+	}
+	const float *max_val_given = NULL, *min_val_given = NULL;
+	if (setting.max_value_cutoff != (float)INT_MAX)
+		max_val_given = &setting.max_value_cutoff;
+	if (setting.min_value_cutoff != (float)INT_MIN)
+		min_val_given = &setting.min_value_cutoff;
 	switch (setting.split_method)
 	{
 	case BinSplitMethod::SameValueWidth:
-		SplitToBinsSimple(feature, setting.binCnt);
+		SplitToBinsSimple(feature, setting.binCnt, min_val_given, max_val_given);
+
 		break;
 	case BinSplitMethod::IterativeMerge:
 		splitingParams.score_bins = setting.binCnt;
@@ -489,4 +513,40 @@ void medial::process::split_feature_to_bins(const BinSettings &setting, vector<f
 		MTHROW_AND_ERR("Unsupported split method");
 	}
 
+}
+
+int BinSettings::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "min_bin_count")
+			min_bin_count = stoi(it->second);
+		else if (it->first == "min_res_value")
+			min_res_value = stod(it->second);
+		else if (it->first == "binCnt")
+			binCnt = stoi(it->second);
+		else if (it->first == "min_value_cutoff")
+			min_value_cutoff = stof(it->second);
+		else if (it->first == "max_value_cutoff")
+			max_value_cutoff = stof(it->second);
+		else if (it->first == "split_method")
+			split_method = bin_method_name_to_type(it->second);
+		else
+			MTHROW_AND_ERR("Unsupported param \"%s\"\n", it->first.c_str());
+	}
+	return  0;
+}
+
+const unordered_map<BinSplitMethod, string> BinSettings::name_to_method = {
+	{BinSplitMethod::SameValueWidth, "same_width"},
+	{ BinSplitMethod::PartitaionMover, "partition_mover" },
+	{ BinSplitMethod::IterativeMerge, "iterative_merge" },
+	{ BinSplitMethod::DynamicSplit, "dynamic_split" }
+};
+
+BinSplitMethod BinSettings::bin_method_name_to_type(const string& bin_method) {
+	for (auto it = name_to_method.begin(); it != name_to_method.end(); ++it)
+		if (it->second == bin_method) {
+			return BinSplitMethod(it->first);
+		}
+	MTHROW_AND_ERR("Not Supported %s bin method\n", bin_method.c_str());
 }

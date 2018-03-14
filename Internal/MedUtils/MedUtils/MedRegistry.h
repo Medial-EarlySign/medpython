@@ -98,29 +98,21 @@ private:
 };
 
 namespace medial {
+	/*!
+	*  \addtogroup signal_hierarchy
+	*  @{
+	*/
 	namespace signal_hierarchy {
 		///Getting signal with hirarchy options for each siganl
 		void getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
 			const string &signalHirerchyType,
 			vector<MedRegistryRecord> &res);
-
-		///filtering hierarchy codes
-		string filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType);
-		///getting parents in hierarchy codes
-		vector<int> parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
-		///getting sons in hierarchy codes
-		vector<int> sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
-		/// gets codes
-		string get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType);
 	}
-	namespace repository {
-		///Helper function to calc diff between dates in years
-		float DateDiff(int refDate, int dateSample);
-		///Helper function to add days to date
-		int DateAdd(int refDate, int daysAdd);
-		///fetching specifc signal code value
-		int get_value(MedRepository &rep, int pid, int sigCode);
-	}
+	/*! @} End of Doxygen Groups*/
+	/*!
+	*  \addtogroup contingency_tables
+	*  @{
+	*/
 	namespace contingency_tables {
 		double calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls);
 
@@ -144,9 +136,16 @@ namespace medial {
 			const vector<double> &scores, const vector<double> &p_vals, const vector<double> &lift,
 			double filter_pval);
 	}
+	/*! @} End of Doxygen Groups*/
+	/*!
+	*  \addtogroup print
+	*  @{
+	*/
 	namespace print {
+		/// printing registry stats for labels inside of it.
 		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
 	}
+	/*! @} End of Doxygen Groups*/
 }
 
 /**

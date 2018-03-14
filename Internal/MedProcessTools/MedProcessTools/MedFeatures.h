@@ -123,14 +123,23 @@ public:
 };
 
 namespace medial {
+	/*!
+	*  \addtogroup process
+	*  @{
+	*/
 	namespace process {
+		///filtering MedFeatures by selected indexes rows
 		void filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag = false);
+		///dow sampling with ratio
 		void down_sample(MedFeatures &dataMat, double take_ratio);
+		/// reweighting method by given groups uniq values. return weights
 		void reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
 			vector<float> &weigths, bool print_verbose);
+		/// matching by given groups uniq values. returns also the row_ids filtered
 		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
 			vector<int> &filtered_row_ids, float price_ratio, bool print_verbose);
 	}
+	/*! @} End of Doxygen Groups*/
 }
 
 #endif

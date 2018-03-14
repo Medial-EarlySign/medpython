@@ -607,4 +607,35 @@ inline void *MedRepository::uget(int pid, int sid, UniversalSigVec &usv)
 
 }
 
+namespace medial {
+	/*!
+	*  \addtogroup signal_hierarchy
+	*  @{
+	*/
+	namespace signal_hierarchy {
+		///filtering hierarchy codes
+		string filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType);
+		///getting parents in hierarchy codes
+		vector<int> parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
+		///getting sons in hierarchy codes
+		vector<int> sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
+		/// gets codes
+		string get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType);
+	}
+	/*! @} End of Doxygen Groups*/
+	/*!
+	*  \addtogroup repository
+	*  @{
+	*/
+	namespace repository {
+		///Helper function to calc diff between dates in years
+		float DateDiff(int refDate, int dateSample);
+		///Helper function to add days to date
+		int DateAdd(int refDate, int daysAdd);
+		///fetching specifc signal code value
+		int get_value(MedRepository &rep, int pid, int sigCode);
+	}
+	/*! @} End of Doxygen Groups*/
+}
+
 #endif
