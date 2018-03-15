@@ -686,3 +686,38 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio) {
 	samples.sort_by_id_date();
 	medial::print::print_samples_stats(samples);
 }
+
+void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio) {
+	if (take_ratio >= 1)
+		return;
+	unordered_map<int, vector<int>> pid_to_inds;
+	vector<int> id_to_pid;
+	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
+		if (pid_to_inds.find(samples.idSamples[i].id) == pid_to_inds.end())
+			id_to_pid.push_back(samples.idSamples[i].id);
+		pid_to_inds[samples.idSamples[i].id].push_back((int)i);
+	}
+	int final_cnt = int(take_ratio * id_to_pid.size());
+
+	vector<int> all_selected_indexes(final_cnt);
+	vector<bool> seen_index((int)id_to_pid.size());
+	random_device rd;
+	mt19937 gen;
+	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
+	MedSamples filterd;
+	filterd.time_unit = samples.time_unit;
+	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
+	{
+		int num_ind = dist_gen(gen);
+		while (seen_index[num_ind])
+			num_ind = dist_gen(gen);
+		int pid = id_to_pid[num_ind];
+		vector<int> take_inds = pid_to_inds.at(pid);
+		for (int ind : take_inds)
+			//#pragma omp critical
+			filterd.idSamples.push_back(samples.idSamples[ind]);
+		seen_index[num_ind] = true;
+	}
+	samples.idSamples.swap(filterd.idSamples);
+	samples.sort_by_id_date();
+}

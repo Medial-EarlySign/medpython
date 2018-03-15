@@ -216,6 +216,8 @@ namespace medial {
 	namespace process {
 		/// \brief down sammling
 		void down_sample(MedSamples &samples, double take_ratio);
+		/// \brief down sample by selecting from pids
+		void down_sample_by_pid(MedSamples &samples, double take_ratio);
 	}
 }
 
