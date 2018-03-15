@@ -72,7 +72,7 @@ namespace medial {
 	*/
 	namespace print {
 		/// \brief general print to string woth format
-		template<class T> string print_obj(T obj, string format);
+		template<class T> string print_obj(T obj, const string &format);
 		/// \brief printing vector elements in list [] with title to MLOG
 		template<class T> void print_vec(const vector<T> &vec, const string &title, const string &format);
 		/// \brief printing vector elements hist prctiles in list [] with title to MLOG

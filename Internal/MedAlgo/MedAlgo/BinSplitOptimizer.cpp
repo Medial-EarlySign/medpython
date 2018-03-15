@@ -403,7 +403,7 @@ void SplitToBinsSimple(vector<float> &x, int binCnt, const float *min_val_given 
 	for (size_t k = 0; k < x.size(); ++k)
 	{
 		if (x[k] != MED_MAT_MISSING_VALUE) {
-			int index = (int)(binCnt - 1)*(x[k] - min_val) / (max_val - min_val);
+			int index = int((binCnt - 1)*(x[k] - min_val) / (max_val - min_val));
 			x[k] = (max_val - min_val) * index / (binCnt - 1) + min_val;
 		}
 	}

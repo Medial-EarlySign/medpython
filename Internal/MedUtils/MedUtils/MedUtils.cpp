@@ -159,14 +159,16 @@ int get_moments(float *values, float* wgts, int size, float missing_value, float
 	return (int)n;
 }
 
-template<class T> string medial::print::print_obj(T obj, string format) {
+template<class T> string medial::print::print_obj(T obj, const string &format) {
 	//return to_string((round(num * 1000) / 1000));
 	char res[50];
 	snprintf(res, sizeof(res), format.c_str(), obj);
 	return string(res);
 }
-template string medial::print::print_obj<float>(float obj, string format);
-template string medial::print::print_obj<double>(double obj, string format);
+template string medial::print::print_obj<float>(float obj, const string &format);
+template string medial::print::print_obj<double>(double obj, const string &format);
+template string medial::print::print_obj<const char *>(const char *obj, const string &format);
+template string medial::print::print_obj<int>(int obj, const string &format);
 template<class T> void medial::process::prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res) {
 	if (x.size() == 0)
 		throw invalid_argument("x is empty");
