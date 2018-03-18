@@ -587,6 +587,12 @@ int RegistrySignalRange::init(map<string, string>& map) {
 	return 0;
 }
 
+inline int Date_wrapper(UniversalSigVec &signal, int i) {
+	if (signal.get_type() != T_Value)
+		return signal.Date(i);
+	else
+		return (int)signal.Val(i);
+}
 
 int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers) {
 	int minDate = -1, minDate_index = -1;
@@ -595,9 +601,17 @@ int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPoi
 		UniversalSigVec &data = patientFile[i];
 		if (signalPointers[i] >= data.len)
 			continue; //already reached the end for this signal
-		if (minDate_index == -1 || data.Date(signalPointers[i]) < minDate) {
-			minDate = data.Date(signalPointers[i]);
-			minDate_index = (int)i;
+		if (data.get_type() == T_Value) {
+			if (minDate_index == -1 || data.Val(signalPointers[i]) < minDate) {
+				minDate = data.Date(signalPointers[i]);
+				minDate_index = (int)i;
+			}
+		}
+		else {
+			if (minDate_index == -1 || data.Date(signalPointers[i]) < minDate) {
+				minDate = data.Date(signalPointers[i]);
+				minDate_index = (int)i;
+			}
 		}
 	}
 	if (minDate_index >= 0)
@@ -622,8 +636,8 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		int i = signals_indexes_pointers[signal_index] - 1; //the current signal time
 		//find first date if not marked already
 		if (start_date == -1) {
-			if (signal.Date(i) >= bdate) {
-				start_date = signal.Date(i);
+			if (Date_wrapper(signal, i) >= bdate) {
+				start_date = Date_wrapper(signal, i);
 				r.start_date = medial::repository::DateAdd(start_date, start_buffer_duration);
 			}
 			else {
@@ -636,13 +650,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 		r.registry_value = 0;
 		//I have start_date
-		if (signal.Date(i) > max_repo_date)
+		if (Date_wrapper(signal, i) > max_repo_date)
 			break;
-		last_date = signal.Date(i);
+		last_date = Date_wrapper(signal, i);
 
 		if (signal_prop->get_outcome(signal, i) > 0) {
 			//flush buffer
-			int last_date_c = medial::repository::DateAdd(signal.Date(i), -signal_prop->buffer_duration);
+			int last_date_c = medial::repository::DateAdd(Date_wrapper(signal, i), -signal_prop->buffer_duration);
 			r.end_date = last_date_c;
 			r.max_allowed_date = last_date_c;
 			if (r.end_date > r.start_date)
@@ -651,9 +665,9 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//start new record
 			//r.pid = pid;
 			r.min_allowed_date = min_date;
-			r.max_allowed_date = signal.Date(i);
-			r.start_date = signal.Date(i);
-			r.age = (int)medial::repository::DateDiff(bdate, signal.Date(i));
+			r.max_allowed_date = Date_wrapper(signal, i);
+			r.start_date = Date_wrapper(signal, i);
+			r.age = (int)medial::repository::DateDiff(bdate, Date_wrapper(signal, i));
 			r.registry_value = 1;
 			if (signal_prop->take_only_first) {
 				r.end_date = 30000000;
@@ -661,13 +675,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 				return;
 			}
 			else
-				r.end_date = medial::repository::DateAdd(signal.Date(i), signal_prop->duration_flag);
+				r.end_date = medial::repository::DateAdd(Date_wrapper(signal, i), signal_prop->duration_flag);
 			int max_search = medial::repository::DateAdd(r.end_date,
 				signal_prop->buffer_duration - 1);
 			//advanced till passed end_date + buffer with no reapeating RC:
-			while (signal_index >= 0 && signal.Date(i) < max_search) {
+			while (signal_index >= 0 && Date_wrapper(signal, i) < max_search) {
 				if (signal_prop->get_outcome(signal, i) > 0) {
-					r.end_date = medial::repository::DateAdd(signal.Date(i), signal_prop->duration_flag);
+					r.end_date = medial::repository::DateAdd(Date_wrapper(signal, i), signal_prop->duration_flag);
 					max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
 				}
 
@@ -686,7 +700,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//prepare for next:
 			r.min_allowed_date = min_date;
 			r.registry_value = 0;
-			r.start_date = signal.Date(i); //already after duration and buffer. can start new control
+			r.start_date = Date_wrapper(signal, i); //already after duration and buffer. can start new control
 			r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 			continue; //dont call fetch_next again
 		}
