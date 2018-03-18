@@ -132,10 +132,10 @@ namespace medial {
 		/// \brief calc chi square probabilty from distance, DOF
 		double chisqr(int Dof, double Cv);
 		/// \brief serialize male,female stats
-		void write_stats(const string &file_path, 
+		void write_stats(const string &file_path,
 			const map<float, map<float, vector<int>>> &males_stats, const map<float, map<float, vector<int>>> &females_stats);
 		/// \brief deserialize male,female stats
-		void read_stats(const string &file_path, 
+		void read_stats(const string &file_path,
 			map<float, map<float, vector<int>>> &males_stats, map<float, map<float, vector<int>>> &females_stats);
 		/// \brief filter by FDR
 		void FilterFDR(vector<int> &indexes,
@@ -152,27 +152,72 @@ namespace medial {
 }
 
 /**
+* A abstract class that represents a signal used to create registry and it's
+* filter conditions to change outcome values based on current time point
+* usefull if the registry depends seperatly by each signal / only one signal
+*/
+class RegistrySignal : public SerializableObject {
+public:
+	string signalName; ///< the signal name
+	int duration_flag; ///< the duration for each positive to merge time ranges
+	int buffer_duration; ///< a buffer duration between positive to negative
+	bool take_only_first; ///< if True will take only first occournce
+
+	/// a function that retrive current outcome based on new time point
+	virtual float get_outcome(UniversalSigVec &s, int current_i) = 0;
+};
+
+/**
+* A Class that condition a set of codes in dictionary
+*/
+class RegistrySignalSet : public RegistrySignal {
+public:
+	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
+		MedRepository &rep, const vector<string> &sets);
+	float get_outcome(UniversalSigVec &s, int current_i);
+
+	int init(map<string, string>& map);
+private:
+	vector<char> Flags;
+};
+
+/**
+* A Class that condition a value range
+*/
+class RegistrySignalRange : public RegistrySignal {
+public:
+	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
+		float min_rnage, float max_range);
+	float get_outcome(UniversalSigVec &s, int current_i);
+
+	int init(map<string, string>& map);
+private:
+	float min_value;
+	float max_value;
+};
+
+/**
 * A Class which creates registry based on readcode lists.
 *  Important: must be initialized by init_lists first
 */
 class MedRegistryCodesList : public MedRegistry {
 public:
-	vector<char> RCFlags; ///< Readcode flags
-	vector<bool> SkipPids; ///< black list of patients
-
-	int duration_flag; ///< the duration for each positive to merge time ranges
-	int buffer_duration; ///< a buffer duration between positive to negative
-	bool take_only_first; ///< if True will take only first occournce
+	int start_buffer_duration; ///< the duration buffer form start
+	int end_buffer_duration; ///< the duration buffer from last date
 	int max_repo_date; ///< the maximal date for the repository
+
+	vector<RegistrySignal *> signal_filters; ///< the signal filters
 
 	/// <summary>
 	/// The init function
 	/// </summary>
-	void init_lists(MedRepository &rep, int dur_flag, int buffer_dur, bool takeOnlyFirst,
-		int max_repo, const vector<string> *rc_sets = NULL, const string &skip_pid_file = "");
+	void init(MedRepository &rep, int start_dur, int end_durr, int max_repo,
+		const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file = "");
 private:
+	vector<bool> SkipPids; ///< black list of patients mask
+
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
-	bool init_lists_called;
+	bool init_called; ///< a flag to mark that init was called
 };
 
 MEDSERIALIZE_SUPPORT(MedRegistryRecord)

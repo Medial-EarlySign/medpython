@@ -457,112 +457,213 @@ inline void init_list(const string &reg_path, vector<bool> &list) {
 	file.close();
 }
 
-void MedRegistryCodesList::init_lists(MedRepository &rep, int dur_flag, int buffer_dur, bool takeOnlyFirst,
-	int max_repo, const vector<string> *rc_sets, const string &skip_pid_file) {
-	if (rc_sets != NULL) {
-		int section_id = rep.dict.section_id("RC");
+RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
+	MedRepository &rep, const vector<string> &sets) {
+	signalName = sigName;
+	buffer_duration = buffer_time;
+	duration_flag = durr_time;
+	take_only_first = take_first;
+	if (!sets.empty()) {
+		int section_id = rep.dict.section_id(sigName);
 		rep.dict.curr_section = section_id;
 		rep.dict.default_section = section_id;
-		rep.dict.prep_sets_lookup_table(section_id, *rc_sets, RCFlags);
+		rep.dict.prep_sets_lookup_table(section_id, sets, Flags);
 	}
+}
 
-	duration_flag = dur_flag;
-	buffer_duration = buffer_dur;
-	take_only_first = takeOnlyFirst;
+float RegistrySignalSet::get_outcome(UniversalSigVec &s, int current_i) {
+	if (current_i < 0 || current_i >= s.len
+		|| s.Val(current_i) < 0 || s.Val(current_i) >= Flags.size())
+		return 0;
+	return Flags[(int)s.Val(current_i)];
+}
+
+int RegistrySignalSet::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "signalName")
+			signalName = it->second;
+		else if (it->first == "duration_flag")
+			duration_flag = stoi(it->second);
+		else if (it->first == "buffer_duration")
+			buffer_duration = stoi(it->second);
+		else if (it->first == "take_only_first")
+			take_only_first = stoi(it->second) > 0;
+		else
+			MTHROW_AND_ERR("unsupported element \"%s\"\n",
+				it->first.c_str());
+	}
+	return 0;
+}
+
+void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr, int max_repo,
+	const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file) {
+	if (signal_conditions.empty())
+		MTHROW_AND_ERR("must be initialize with something\n");
+	init_called = true;
+	start_buffer_duration = start_dur;
+	end_buffer_duration = end_durr;
 	max_repo_date = max_repo;
-
 	if (!skip_pid_file.empty())
 		init_list(skip_pid_file, SkipPids);
+
 	signalCodes.clear();
-	signalCodes.push_back(rep.sigs.sid("RC"));
-	init_lists_called = true;
+	for (size_t i = 0; i < signal_conditions.size(); ++i)
+		signalCodes.push_back(rep.sigs.sid(signal_conditions[i]->signalName));
+	//the user called init for this signal_conditions
+	signal_filters = signal_conditions;
+}
+
+RegistrySignalRange::RegistrySignalRange(const string &sigName, int durr_time, int buffer_time,
+	bool take_first, float min_range, float max_range) {
+	signalName = sigName;
+	duration_flag = durr_time;
+	buffer_duration = buffer_time;
+	take_only_first = take_first;
+
+	min_value = min_range;
+	max_value = max_range;
+}
+
+float RegistrySignalRange::get_outcome(UniversalSigVec &s, int current_i) {
+	return current_i < s.len && s.Val(current_i) >= min_value && s.Val(current_i) <= max_value;
+}
+
+int RegistrySignalRange::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "signalName")
+			signalName = it->second;
+		else if (it->first == "duration_flag")
+			duration_flag = stoi(it->second);
+		else if (it->first == "buffer_duration")
+			buffer_duration = stoi(it->second);
+		else if (it->first == "take_only_first")
+			take_only_first = stoi(it->second) > 0;
+		else if (it->first == "min_value")
+			min_value = stof(it->second);
+		else if (it->first == "max_value")
+			max_value = stof(it->second);
+		else
+			MTHROW_AND_ERR("unsupported element \"%s\"\n",
+				it->first.c_str());
+	}
+	return 0;
+}
+
+
+int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers) {
+	int minDate = -1, minDate_index = -1;
+	for (size_t i = 0; i < patientFile.size(); ++i)
+	{
+		UniversalSigVec &data = patientFile[i];
+		if (signalPointers[i] >= data.len)
+			continue; //already reached the end for this signal
+		if (minDate_index == -1 || data.Date(signalPointers[i]) < minDate) {
+			minDate = data.Date(signalPointers[i]);
+			minDate_index = (int)i;
+		}
+	}
+	if (minDate_index >= 0)
+		++signalPointers[minDate_index];
+	return minDate_index;
 }
 
 void MedRegistryCodesList::get_registry_records(int pid,
 	int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) {
-	if (!init_lists_called)
-		MTHROW_AND_ERR("Must be initialized by init_lists before use\n");
-	UniversalSigVec &signal = usv[0]; //RC signal
-	if (signal.len <= 0)
-		return;
-	int start_date = signal.Date(0);
-	int first_legal_index = 0;
-	for (int i = 1; i < signal.len && start_date < bdate; ++i) {
-		start_date = signal.Date(i); //finds first legal date
-		first_legal_index = i;
-	}
-	if (start_date < bdate)
-		return;
-
-	int min_date = medial::repository::DateAdd(start_date, 365);
+	if (!init_called)
+		MTHROW_AND_ERR("Must be initialized by init before use\n");
+	vector<int> signals_indexes_pointers(signal_filters.size()); //all in 0
 
 	MedRegistryRecord r;
 	r.pid = pid;
-	r.min_allowed_date = min_date; //at least 1 year data
-	r.start_date = min_date;
-	r.age = int(medial::repository::DateDiff(bdate, r.start_date));
-	r.registry_value = 0;
-
-	int last_date = start_date;
-	for (int i = first_legal_index; i < signal.len; ++i)
+	int start_date = -1, last_date = -1;
+	int signal_index = fetch_next_date(usv, signals_indexes_pointers);
+	while (signal_index >= 0)
 	{
+		UniversalSigVec &signal = usv[signal_index];
+		RegistrySignal *signal_prop = signal_filters[signal_index];
+		int i = signals_indexes_pointers[signal_index] - 1; //the current signal time
+		//find first date if not marked already
+		if (start_date == -1) {
+			if (signal.Date(i) >= bdate) {
+				start_date = signal.Date(i);
+				r.start_date = medial::repository::DateAdd(start_date, start_buffer_duration);
+			}
+			else {
+				signal_index = fetch_next_date(usv, signals_indexes_pointers);
+				continue;
+			}
+		}
+		int min_date = medial::repository::DateAdd(start_date, start_buffer_duration);
+		r.min_allowed_date = min_date; //at least 1 year data
+		r.age = int(medial::repository::DateDiff(bdate, r.start_date));
+		r.registry_value = 0;
+		//I have start_date
 		if (signal.Date(i) > max_repo_date)
 			break;
 		last_date = signal.Date(i);
-		if (signal.Val(i) > 0 && RCFlags[(int)signal.Val(i)]) {
+
+		if (signal_prop->get_outcome(signal, i) > 0) {
 			//flush buffer
-			int last_date = medial::repository::DateAdd(signal.Date(i), -buffer_duration);
-			r.end_date = last_date;
-			r.max_allowed_date = last_date;
+			int last_date_c = medial::repository::DateAdd(signal.Date(i), -signal_prop->buffer_duration);
+			r.end_date = last_date_c;
+			r.max_allowed_date = last_date_c;
 			if (r.end_date > r.start_date)
 				results.push_back(r);
 
 			//start new record
 			//r.pid = pid;
-			//r.male = gender == 1;
 			r.min_allowed_date = min_date;
 			r.max_allowed_date = signal.Date(i);
 			r.start_date = signal.Date(i);
 			r.age = (int)medial::repository::DateDiff(bdate, signal.Date(i));
 			r.registry_value = 1;
-			if (take_only_first) {
+			if (signal_prop->take_only_first) {
 				r.end_date = 30000000;
 				results.push_back(r);
 				return;
 			}
 			else
-				r.end_date = medial::repository::DateAdd(signal.Date(i), duration_flag);
-			int max_search = medial::repository::DateAdd(r.end_date, buffer_duration - 1);
+				r.end_date = medial::repository::DateAdd(signal.Date(i), signal_prop->duration_flag);
+			int max_search = medial::repository::DateAdd(r.end_date,
+				signal_prop->buffer_duration - 1);
 			//advanced till passed end_date + buffer with no reapeating RC:
-			while (i < signal.len && signal.Date(i) < max_search) {
-				if (signal.Val(i) > 0 && RCFlags[(int)signal.Val(i)])
-					r.end_date = medial::repository::DateAdd(signal.Date(i), duration_flag);
-				++i;
+			while (signal_index >= 0 && signal.Date(i) < max_search) {
+				if (signal_prop->get_outcome(signal, i) > 0) {
+					r.end_date = medial::repository::DateAdd(signal.Date(i), signal_prop->duration_flag);
+					max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+				}
+
+				signal_index = fetch_next_date(usv, signals_indexes_pointers);
+				if (signal_index < 0)
+					break;
+				i = signals_indexes_pointers[signal_index] - 1; //the current signal time
+				signal_prop = signal_filters[signal_index];
+				signal = usv[signal_index];
 			}
 			results.push_back(r);
-			if (i >= signal.len) {
+			if (signal_index < 0) {
 				r.start_date = 30000000; //no more control times, reached the end
 				break;
 			}
 			//prepare for next:
-			start_date = medial::repository::DateAdd(signal.Date(i), buffer_duration); //next time don't predict before last record
-			if (start_date < min_date)
-				start_date = min_date;
 			r.min_allowed_date = min_date;
 			r.registry_value = 0;
-			r.start_date = start_date;
+			r.start_date = signal.Date(i); //already after duration and buffer. can start new control
 			r.age = int(medial::repository::DateDiff(bdate, r.start_date));
-			--i; //return to previous one...
+			continue; //dont call fetch_next again
 		}
+
+		signal_index = fetch_next_date(usv, signals_indexes_pointers);
 	}
 
 	r.end_date = last_date;
-	last_date = medial::repository::DateAdd(last_date, -buffer_duration);
+	last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
 	r.max_allowed_date = last_date;
 	if (r.end_date > r.start_date)
 		results.push_back(r);
 }
-
 
 double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls) {
 	//calc over all ages
