@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <random>
+#include <map>
 #include "Logger/Logger/Logger.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
@@ -479,6 +480,8 @@ float RegistrySignalSet::get_outcome(UniversalSigVec &s, int current_i) {
 }
 
 int RegistrySignalSet::init(map<string, string>& map) {
+
+	string sets_arg = "";
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "signalName")
@@ -489,11 +492,44 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			buffer_duration = stoi(it->second);
 		else if (it->first == "take_only_first")
 			take_only_first = stoi(it->second) > 0;
+		else if (it->first == "sets")
+			sets_arg = it->second;
 		else
 			MTHROW_AND_ERR("unsupported element \"%s\"\n",
 				it->first.c_str());
 	}
+	//save to end
+	if (!sets_arg.empty()) {
+		std::map<string, string> set_init;
+		//rep=;sets=;
+		init_map_from_string(sets_arg, set_init);
+		if (set_init.find("rep") == set_init.end())
+			MTHROW_AND_ERR("sets should contain rep\n");
+		if (set_init.find("sets") == set_init.end())
+			MTHROW_AND_ERR("sets should contain sets for file path\n");
+		vector<string> sets;
+		medial::io::read_codes_file(set_init["sets"], sets);
+		MedRepository rep;
+		if (rep.init(set_init["rep"]) < 0)
+			MTHROW_AND_ERR("unabale to init rep by %s\n", set_init["rep"].c_str());
+		if (!sets.empty()) {
+			int section_id = rep.dict.section_id(signalName);
+			rep.dict.curr_section = section_id;
+			rep.dict.default_section = section_id;
+			rep.dict.prep_sets_lookup_table(section_id, sets, Flags);
+		}
+	}
 	return 0;
+}
+
+RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets) {
+	init_from_string(init_string);
+	if (!sets.empty()) {
+		int section_id = rep.dict.section_id(signalName);
+		rep.dict.curr_section = section_id;
+		rep.dict.default_section = section_id;
+		rep.dict.prep_sets_lookup_table(section_id, sets, Flags);
+	}
 }
 
 void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr, int max_repo,
@@ -996,4 +1032,43 @@ void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords,
 		fo << " ]" << endl;
 		fo.close();
 	}
+}
+
+void medial::io::read_codes_file(const string &file_path, vector<string> &tokens) {
+	tokens.clear();
+	ifstream file;
+	file.open(file_path);
+	if (!file.is_open())
+		throw logic_error("Unable to open test indexes file:\n" + file_path);
+	string line;
+	//getline(file, line); //ignore first line
+	while (getline(file, line)) {
+		boost::trim(line);
+		if (line.empty())
+			continue;
+		if (line.at(0) == '#')
+			continue;
+		if (line.find('\t') != string::npos)
+			line = line.substr(0, line.find('\t'));
+		tokens.push_back(line);
+	}
+	file.close();
+}
+
+RegistrySignal *RegistrySignal::make_registry_signal(const string &type) {
+	MedRepository rep;
+	vector<string> empty_arr;
+	string empty_str = "";
+	if (type == "set")
+		return new RegistrySignalSet(empty_str, 0, 0, false, rep, empty_arr);
+	else if (type == "range")
+		return new RegistrySignalRange(empty_str, 0, 0, false, 0, 0);
+	else
+		MTHROW_AND_ERR("Unsupported type %s\n", type.c_str());
+}
+
+RegistrySignal *RegistrySignal::make_registry_signal(const string &type, const string &init_string) {
+	RegistrySignal *reg = make_registry_signal(type);
+	reg->init_from_string(init_string);
+	return reg;
 }

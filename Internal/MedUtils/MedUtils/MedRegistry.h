@@ -149,6 +149,9 @@ namespace medial {
 		/// \brief printing registry stats for labels inside of it.
 		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
 	}
+	namespace io {
+		void read_codes_file(const string &file_path, vector<string> &tokens);
+	}
 }
 
 /**
@@ -165,6 +168,9 @@ public:
 
 	/// a function that retrive current outcome based on new time point
 	virtual float get_outcome(UniversalSigVec &s, int current_i) = 0;
+
+	static RegistrySignal *make_registry_signal(const string &type);
+	static RegistrySignal *make_registry_signal(const string &type, const string &init_string);
 };
 
 /**
@@ -174,6 +180,7 @@ class RegistrySignalSet : public RegistrySignal {
 public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		MedRepository &rep, const vector<string> &sets);
+	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
 	float get_outcome(UniversalSigVec &s, int current_i);
 
 	int init(map<string, string>& map);
