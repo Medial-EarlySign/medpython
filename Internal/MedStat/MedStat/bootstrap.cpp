@@ -621,11 +621,11 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		//now we have cohort: run analysis:
 		string cohort_name = it->first;
 
-		if (y_c.size() < 100) {
+		if (y_c.size() < 10) {
 			MWARN("WARN: Cohort %s is too small - has %d samples. Skipping\n", cohort_name.c_str(), int(y_c.size()));
 			continue;
 		}
-		if (binary_outcome && (class_sz[0] < 10 || class_sz[1] < 10)) {
+		if (binary_outcome && (class_sz[0] < 1 || class_sz[1] < 1)) {
 			MWARN("WARN: Cohort %s is too small - has %d samples with labels = [%d, %d]. Skipping\n",
 				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
 			continue;
