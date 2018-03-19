@@ -237,7 +237,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 				auto agg_res = booststrap_analyze(preds, y_changed, *rep_ids, cp_info, cohorts_t,
 					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
 					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
-				all_results.insert(*agg_res.begin()); //has one key
+				if (!agg_res.empty()) // if the cohort is too small it does not return results
+					all_results.insert(*agg_res.begin()); //has one key
 			}
 		}
 
