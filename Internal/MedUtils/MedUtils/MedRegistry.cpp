@@ -594,7 +594,7 @@ inline int Date_wrapper(UniversalSigVec &signal, int i) {
 		return (int)signal.Val(i);
 }
 
-int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers) {
+int medial::repository::fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers) {
 	int minDate = -1, minDate_index = -1;
 	for (size_t i = 0; i < patientFile.size(); ++i)
 	{
@@ -628,7 +628,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	MedRegistryRecord r;
 	r.pid = pid;
 	int start_date = -1, last_date = -1;
-	int signal_index = fetch_next_date(usv, signals_indexes_pointers);
+	int signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
 	while (signal_index >= 0)
 	{
 		UniversalSigVec &signal = usv[signal_index];
@@ -641,7 +641,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 				r.start_date = medial::repository::DateAdd(start_date, start_buffer_duration);
 			}
 			else {
-				signal_index = fetch_next_date(usv, signals_indexes_pointers);
+				signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
 				continue;
 			}
 		}
@@ -685,7 +685,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 					max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
 				}
 
-				signal_index = fetch_next_date(usv, signals_indexes_pointers);
+				signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
 				if (signal_index < 0)
 					break;
 				i = signals_indexes_pointers[signal_index] - 1; //the current signal time
@@ -705,7 +705,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			continue; //dont call fetch_next again
 		}
 
-		signal_index = fetch_next_date(usv, signals_indexes_pointers);
+		signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
 	}
 
 	r.end_date = last_date;
