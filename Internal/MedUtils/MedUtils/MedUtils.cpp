@@ -413,12 +413,11 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	post_process();
 
 	if (debug) {
-		cout << "Debug Running With:" << endl;
+		MLOG("Debug Running With:\n");
 		for (auto it = vm.begin(); it != vm.end(); ++it)
-			cout << it->first << " = " << medial::print::print_any(it->second) << endl;
-		cout << "######################################" << endl;
-		cout << endl << app_logo << endl;
-		cout << "######################################" << endl;
+			MLOG("%s = %s\n", it->first.c_str(), medial::print::print_any(it->second).c_str());
+		MLOG("######################################\n\n%s\n", app_logo.c_str());
+		MLOG("######################################\n");
 	}
 
 	return 0;
