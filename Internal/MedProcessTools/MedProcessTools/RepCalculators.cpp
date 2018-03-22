@@ -779,7 +779,7 @@ int RepCalcSimpleSignals::_apply_calc_log(PidDynamicRec& rec, vector<int>& time_
 	if (rec.usvs.size() < 1) rec.usvs.resize(1);
 
 	// Loop on versions of signal
-	set<int> iteratorSignalIds = { i_sid };
+	set<int> iteratorSignalIds = { i_sid, v_sid };
 	versionIterator vit(rec, iteratorSignalIds);
 
 	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
