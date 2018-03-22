@@ -1373,10 +1373,12 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		aff_signals.clear();
 		virtual_signals.clear();
 		for (int i=0; i<V_names.size(); i++) {
-			req_signals.insert(V_names[i]);
 			aff_signals.insert(V_names[i]);
 			virtual_signals.push_back({ V_names[i], V_types[i] });
 		}
+		for (int i = 0; i < signals.size(); i++)
+			req_signals.insert(signals[i]);
+
 
 		return 0;
 	}
@@ -1493,8 +1495,12 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc);
 
 
-	if (calc_type == CALC_TYPE_LOG)
-		return _apply_calc_log(rec, time_points);
+	if (calc_type == CALC_TYPE_LOG) {
+		int rv = _apply_calc_log(rec, time_points);
+		if (rv < 0)
+			cout << "=====================apply log returned -1=======================" << endl;
+		return rv;
+	}
 
 
 	return -1;

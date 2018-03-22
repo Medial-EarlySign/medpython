@@ -632,7 +632,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		vector<string> signals; ///< it is possible to transfer a vector of required signals, to override default ones.
 
-		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
+		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS;}
 
 		/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
 		int init(map<string, string>& mapper);
