@@ -761,6 +761,121 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 
 //.......................................................................................
 
+
+int RepCalcSimpleSignals::_apply_calc_log(PidDynamicRec& rec, vector<int>& time_points) {
+
+	//Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+
+	//sid for the calculated signal
+	int v_sid = V_ids[0];
+
+	//length of calculated data
+	size_t len = time_points.size();
+
+	//handle abnormal case
+	if (len == 0)
+		return -1;
+
+	//sigs_ids is a vector containing the sids of the components in the right order
+	size_t nComponents = 1;
+
+	//rec should contain space for the required sids
+	if (rec.usvs.size() < nComponents)
+		rec.usvs.resize(nComponents);
+
+	// Loop on versions
+	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
+	versionIterator vit(rec, iteratorSignalIds);
+
+	//auto it = calc2req_sigs.find(calculator);
+	//if (it == calc2req_sigs.end()) {//unexpected
+	//	cout << "cannot find name " << calculator << " in calc2req_sigs" << endl;
+	//	return -1;
+	//}
+
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+		//componentData will hold the data of component signals after alignment to required time_points
+		//for each time point we take the most recent data or missing_data otherwise.
+		vector<vector<float> > componentData(nComponents);
+		vector<int> curTimes; //times of data for current component
+		vector<float> curVals; //(processed) vals of data for current component	
+
+		vector<int> iverTimes(time_points.begin(), time_points.begin() + iver + 1);
+
+		//get component data
+		for (size_t i = 0; i < nComponents; ++i) {
+			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+			curTimes.clear();
+			curVals.clear();
+
+			int len = rec.usvs[i].len;
+			curTimes.clear(); curTimes.reserve(len + 1);
+			curVals.clear(); curVals.reserve(len + 1);
+			//get type
+			SigType sigType = rec.usvs[i].get_type();
+
+			//handle all other signals by simply taking the value and time from the 0-th channels
+			for (int ii = 0; ii < len; ++ii) {
+
+				float val = rec.usvs[i].Val(ii, 0);
+				if (val > 0) {
+					curTimes.push_back(rec.usvs[i].Time(ii, 0));
+					curVals.push_back(rec.usvs[i].Val(ii, 0));
+				}
+			}
+
+			int curLen = (int)curTimes.size();
+
+			vector<size_t> indices;
+			find_sorted_vec_in_sorted_vec(iverTimes, curTimes, indices);
+
+			//get the values from the correct indices
+			componentData[i].reserve(len);
+
+			if (curTimes.empty())
+				componentData[i].insert(componentData[i].begin(), iver + 1, badValue());
+			else {
+				for (int j = 0; j <= iver; ++j) {
+					size_t curInd = indices[j];
+					//curInd is the place we would add time_points[j] in curTimes; 0 means at the beginning
+					if (curInd == 0)
+						componentData[i].push_back(badValue());
+					else
+						componentData[i].push_back(curVals[(int)curInd - 1]);
+				}
+			}
+		}
+
+		//we now have a matrix of data in componentData. For a given j, componentData[i][j] represent values in time_points[j]
+		vector<float> inValues(nComponents); //for a given time, the inputs
+		vector<float> calcValues(iver + 1); //for all times, the calculated values
+
+		for (int j = 0; j <= iver; ++j) {
+			for (int i = 0; i < nComponents; ++i)
+				inValues[i] = componentData[i][j];
+
+			//float val = calcFunc(inValues, coeff);
+
+			float val = log(inValues[0]);
+			calcValues[j] = val;
+		}
+
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
+	}
+
+	return 0;
+}
+
+
+
+
+//.......................................................................................
+
 int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, 
 													 float (*calcFunc)(const vector<float>&, const vector<float>&)) {
 	

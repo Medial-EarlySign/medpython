@@ -561,6 +561,7 @@ public:
 typedef enum {
 	CALC_TYPE_UNDEF, ///< undefined signal, nothing to do or error
 	CALC_TYPE_HOSP_PROCESSOR,
+	CALC_TYPE_LOG,
 	CALC_TYPE_EGFR, ///< calculates eGFR CKD_EPI signal in each point we have Creatinine , depends on Creatinine, GENDER, BYEAR
 	CALC_TYPE_DEBUG, ///< just here to help when debugging: currently calculates delta Hemoglobin (relative to last test for each test above second)
 	CALC_TYPE_HOSP_MELD, ///< calculates MELD signal. components: CHARTLAB_Bilirubin, CHARTLAB_INR(PT), CHARTLAB_Creatinine, CHARTLAB_Sodium
@@ -590,7 +591,7 @@ typedef enum {
 	CALC_TYPE_HOSP_SOFA_RESPIRATORY,
 	CALC_TYPE_HOSP_SOFA_RENAL,
 	CALC_TYPE_HOSP_SOFA_CARDIO,
-	CALC_TYPE_HOSP_SOFA
+	CALC_TYPE_HOSP_SOFA	
 } RepCalcSimpleSignalsType;
 
 //.......................................................................................
@@ -664,6 +665,9 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static int process_hosp_signal(const string& name, UniversalSigVec& usv, vector<int>& times, vector<float>& vals);
 				
 		int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, float (*calcFunc)(const vector<float>&, const vector<float>&));
+
+		int _apply_calc_log(PidDynamicRec& rec, vector<int>& time_points);
+
 		int _apply_calc_hosp_time_dependent_pointwise(PidDynamicRec& rec, vector<int>& time_points,
 			float(*calcFunc)(const vector<pair<int, float> >&, int, const vector<float>&));
 		int _apply_calc_24h_urine_output(PidDynamicRec& rec, vector<int>& time_points);
@@ -805,6 +809,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// from a calculator name to a calculator enum type
 		const map<string, int> calc2type = { 
 			{"calc_hosp_processor", CALC_TYPE_HOSP_PROCESSOR },
+			{ "calc_log", CALC_TYPE_LOG },
 			{"calc_eGFR", CALC_TYPE_EGFR}, 
 			{"calc_debug", CALC_TYPE_DEBUG},
 			{"calc_hosp_MELD", CALC_TYPE_HOSP_MELD},
@@ -842,6 +847,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 			//--------- level 1 - calculated from raw signals (level0)
 			//the general hospital processor's signals must be overridden from outside
 			{ "calc_hosp_processor",{} },
+			{ "calc_log",{} },
 			{ "calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}}, 
 			{ "calc_debug",{ "Hemoglobin" }},
 			{ "calc_hosp_MELD",{ "CHARTLAB_Bilirubin", "CHARTLAB_INR(PT)", "CHARTLAB_Creatinine", "CHARTLAB_Sodium" }},
@@ -887,6 +893,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// the virtual names can be changed by the user (but have to be given in the SAME order as here)
 		const map<string, vector<pair<string, int>>> calc2virtual = {
 			{ "calc_hosp_processor",{ { "calc_hosp_processor", T_TimeVal } } },
+			{ "calc_log",{ { "calc_log", T_DateVal } } },
 			{ "calc_eGFR" ,{ { "calc_eGFR", T_DateVal } } },
 			{ "calc_debug" ,{ { "calc_debug", T_DateVal } } },
 			{ "calc_hosp_MELD" ,{ { "calc_hosp_MELD", T_TimeVal } } },
@@ -922,6 +929,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// from a calculator name to the default coefficients (parameters) of it. Can of course be empty for a non parametric calculator.
 		const map<string, vector<float>> calc2coeffs = {
 			{"calc_hosp_processor",{} },
+			{ "calc_log",{} },
 			{"calc_eGFR" , {}},
 			{ "calc_debug" ,{}},
 			{"calc_hosp_MELD" ,{1.0F}},

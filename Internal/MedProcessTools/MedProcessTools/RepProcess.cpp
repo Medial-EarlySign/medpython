@@ -1492,6 +1492,11 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	if (calcTimeFunc)
 		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc);
 
+
+	if (calc_type == CALC_TYPE_LOG)
+		return _apply_calc_log(rec, time_points);
+
+
 	return -1;
 }
 
