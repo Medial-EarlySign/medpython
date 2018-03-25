@@ -109,6 +109,11 @@ void MedRegistry::create_registry(MedPidRepository &dataManager) {
 	dataManager.clear();
 }
 
+void MedRegistry::get_registry_creation_codes(vector<int> &signal_codes)
+{
+	signal_codes = signalCodes;
+}
+
 void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
 	const string &signalHirerchyType,
 	vector<MedRegistryRecord> &res) {

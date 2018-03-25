@@ -66,6 +66,11 @@ public:
 	void create_registry(MedPidRepository &dataManager);
 
 	/// <summary>
+	/// returns the signal codes used to create the registry
+	/// </summary>
+	void get_registry_creation_codes(vector<int> &signal_codes);
+
+	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
 	/// @param repository_path the repsitory path
 	/// @param signalCode the signal code to calculate the stats of the registry with

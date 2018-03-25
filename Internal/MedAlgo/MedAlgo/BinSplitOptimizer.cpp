@@ -461,6 +461,8 @@ void medial::process::split_feature_to_bins(const BinSettings &setting, vector<f
 		//trim values:
 		for (size_t i = 0; i < feature.size(); ++i)
 		{
+			if (feature[i] == MED_MAT_MISSING_VALUE)
+				continue;
 			if (feature[i] > setting.max_value_cutoff)
 				feature[i] = setting.max_value_cutoff;
 			if (feature[i] < setting.min_value_cutoff)
