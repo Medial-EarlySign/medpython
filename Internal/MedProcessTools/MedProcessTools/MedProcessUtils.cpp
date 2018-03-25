@@ -109,3 +109,22 @@ void get_all_required_signal_ids(unordered_set<int>& signalIds, vector<RepProces
 		rep_processors[i]->get_required_signal_ids(signalIds, signalIds);
 
 }
+
+void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureGenerator *>& generators, unordered_set<int>& extra_req_signal_ids,
+	vector<int>& all_req_signal_ids_v, vector<unordered_set<int> >& current_required_signal_ids) {
+
+	// Get All required signals
+	unordered_set<int> all_req_signal_ids;
+	all_req_signal_ids.insert(extra_req_signal_ids.begin(), extra_req_signal_ids.end());
+	get_all_required_signal_ids(all_req_signal_ids, processors, -1, generators);
+
+	// Feed to vector
+	for (int signalId : all_req_signal_ids)
+		all_req_signal_ids_v.push_back(signalId);
+
+	// Get required signals iteratively
+	for (size_t i = 0; i < processors.size(); i++) {
+		current_required_signal_ids[i].insert(extra_req_signal_ids.begin(), extra_req_signal_ids.end());
+		get_all_required_signal_ids(current_required_signal_ids[i], processors, (int)i, generators);
+	}
+}

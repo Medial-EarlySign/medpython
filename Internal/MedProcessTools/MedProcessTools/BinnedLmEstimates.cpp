@@ -181,6 +181,14 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	size_t nmodels = 1 << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
+	// Required signals
+
+	vector<int> all_req_signal_ids_v;
+	vector<unordered_set<int> > current_required_signal_ids(processors.size());
+	vector<FeatureGenerator *> generators = { this };
+	unordered_set<int> extra_req_signal_ids;
+	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
+
 	// Collect Data
 	int len, byear, gender, age;
 	PidDynamicRec rec;
@@ -214,28 +222,15 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			// Apply processing at last time point only
 //			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
 			vector<int> time_points(1, 39991231);   
-
-			// Init Dynamic Rec
-			unordered_set<int> all_req_signal_ids;
-			for (int sigId : req_signal_ids)
-				all_req_signal_ids.insert(sigId);
-
-			// Collect from processors itertively
-			for (int i = (int)processors.size() - 1; i >=0; i--)
-				processors[i]->get_required_signal_ids(all_req_signal_ids, all_req_signal_ids);
-			vector<int> all_req_signal_ids_v(all_req_signal_ids.begin(), all_req_signal_ids.end());
+			
 			rec.init_from_rep(std::addressof(rep), id, all_req_signal_ids_v, 1);
 
 			// BYear/Age
 			prepare_for_age(rec, ageUsv, age, byear);
 			  
 			// Apply Processors
-			for (unsigned int i = 0; i < processors.size(); i++) {
-				unordered_set<int> current_req_signal_ids;
-				vector<FeatureGenerator *> generator = { this };
-				get_all_required_signal_ids(current_req_signal_ids, processors, i, generator);
-				processors[i]->conditional_apply(rec, time_points, current_req_signal_ids);
-			}				
+			for (unsigned int i = 0; i < processors.size(); i++) 
+				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i]);
 
 			// Collect values and ages
 			rec.uget(signalId, 0, usv); 

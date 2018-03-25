@@ -774,8 +774,6 @@ int RepCalcSimpleSignals::_apply_calc_log(PidDynamicRec& rec, vector<int>& time_
 	int v_sid = V_ids[0]; // Output signal
 	int i_sid = sigs_ids[0]; // Input signal
 
-
-
 	if (rec.usvs.size() < 1) rec.usvs.resize(1);
 
 	// Loop on versions of signal

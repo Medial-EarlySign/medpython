@@ -809,7 +809,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// from a calculator name to a calculator enum type
 		const map<string, int> calc2type = { 
 			{"calc_hosp_processor", CALC_TYPE_HOSP_PROCESSOR },
-			{ "calc_log", CALC_TYPE_LOG },
+			{"calc_log", CALC_TYPE_LOG },
 			{"calc_eGFR", CALC_TYPE_EGFR}, 
 			{"calc_debug", CALC_TYPE_DEBUG},
 			{"calc_hosp_MELD", CALC_TYPE_HOSP_MELD},

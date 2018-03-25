@@ -185,6 +185,7 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames,
 
 //.......................................................................................
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
+
 	for (auto sig : req_signal_ids)
 		signalIds.insert(sig);
 }
@@ -194,9 +195,10 @@ void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds, unordered_set<int> preReqSignals) {
 
 	for (int signal : preReqSignals) {
-		if (is_signal_affected(signal))
+		if (is_signal_affected(signal)) {
 			get_required_signal_ids(signalIds);
-		return;
+			return;
+		}
 	}
 }
 
@@ -1514,23 +1516,15 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values, vector<RepProcessor *>& prev_processors)
 {
 
-	PidDynamicRec rec;
-	unordered_set<int> req_signal_ids = { signalId };
-	vector<FeatureGenerator *> generators;
-	get_all_required_signal_ids(req_signal_ids, prev_processors, -1, generators);
+	// Required signals
 	vector<int> req_signal_ids_v;
-	for (int signalId : req_signal_ids) 
-		req_signal_ids_v.push_back(signalId);
-
-	UniversalSigVec usv;
-
-	// Get required signals iteratively
 	vector<unordered_set<int> > current_required_signal_ids(prev_processors.size());
-	vector<FeatureGenerator *> noGenerators;
-	for (size_t i = 0; i < prev_processors.size(); i++) {
-		current_required_signal_ids[i] = { signalId };
-		get_all_required_signal_ids(current_required_signal_ids[i], prev_processors, (int) i, noGenerators);
-	}
+	vector<FeatureGenerator *> noGenerators ;
+	unordered_set<int> extra_req_signal_ids = { signalId };
+	handle_required_signals(prev_processors, noGenerators, extra_req_signal_ids, req_signal_ids_v, current_required_signal_ids);
+
+	PidDynamicRec rec;
+	UniversalSigVec usv;
 
 	bool signalIsVirtual = (bool)(rep.sigs.Sid2Info[signalId].virtual_sig != 0);
 
