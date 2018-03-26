@@ -529,9 +529,36 @@ string MedModel::file_to_string(int recursion_level, const string& main_file, ve
 	int last_char = 0;
 	string out_string = "";
 	for (; it != end; ++it) {
-		std::cerr << "found: " << it->str(0) << ":::" << it->str(1) << "\n";
+		string json_ref = it->str(1);
+		std::cerr << "found: " << json_ref << "\n";
+		vector<string> tokens;
+		boost::split(tokens, json_ref, boost::is_any_of(";"));
+		if (tokens.empty())
+			MTHROW_AND_ERR("could not parse [%s]", it->str(0).c_str());
+		string small_file = tokens[0];
+		vector<string> my_alterations;
+		for (int i = 1; i < tokens.size(); i++)
+			my_alterations.push_back(tokens[i]);
+		for (string alt : alterations) {
+			vector<string> fields;
+			boost::algorithm::split_regex(fields, alt, boost::regex("::"));
+			if (fields.size() != 2)
+				MTHROW_AND_ERR("Cannot parse alteration string [%s] \n", alt.c_str());
+			bool overriden = false;
+			for (string existing_alt : my_alterations) {
+				vector<string> existing_fields;
+				boost::algorithm::split_regex(existing_fields, existing_alt, boost::regex("::"));
+				if (fields[0] == existing_fields[0]) {
+					MLOG("alteration [%s] overriden in the context of [%s] to [%s]\n",
+						fields[0].c_str(), small_file.c_str(), existing_fields[1].c_str());
+					overriden = true;
+				}
+			}
+			if (!overriden)
+				my_alterations.push_back(alt);
+		}
 		out_string += orig.substr(last_char, it->position() - last_char);
-		out_string += file_to_string(recursion_level + 1, main_file, alterations, it->str(1));
+		out_string += file_to_string(recursion_level + 1, main_file, my_alterations, small_file);
 		last_char = (int)it->position() + (int)it->str(0).size();
 	}
 	out_string += orig.substr(last_char);
