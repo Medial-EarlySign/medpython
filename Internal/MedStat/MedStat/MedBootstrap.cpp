@@ -152,9 +152,15 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 	for (size_t i = 0; i < y_changed.size(); ++i)
 	{
 		if (y[i] > 0 && !filter_range_param(additional_info, (int)i, &time_filter)) {
-			if (additional_info.at(search_term)[i] > time_filter.max_range) {
+			// cases which are long before the outcome (>2*max_range) are considered as controls:
+
+			// ----------------max_range*2--------max_range---------min_range---event---------------
+			// -------------------^-------------------^----------------^----------^-----------------
+			// ------control------|------censor-------|------case------|--------censor--------------
+
+			if (additional_info.at(search_term)[i] > time_filter.max_range * 2) {
 				y_changed[i] = 0;
-				cp_info[search_term][i] = time_filter.min_range; //wont filter because time
+				cp_info[search_term][i] = time_filter.min_range; // bogus time - wont filter because in time range
 			}
 		}
 	}
