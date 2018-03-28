@@ -564,7 +564,7 @@ void medial::process::down_sample(MedFeatures &dataMat, double take_ratio) {
 	filter_row_indexes(dataMat, all_selected_indexes);
 }
 
-void medial::process::reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
+double medial::process::reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
 	vector<float> &weigths, bool print_verbose) {
 	if (groups.size() != data_records.samples.size())
 		MTHROW_AND_ERR("data_records and groups should hsve same size\n");
@@ -576,7 +576,7 @@ void medial::process::reweight_by_general(MedFeatures &data_records, const vecto
 	unordered_set<string> seen_pid_0;
 	unordered_set<string> seen_group;
 	unordered_map<string, unordered_set<int>> group_to_seen_pid; //of_predicition
-	
+
 	for (size_t i = 0; i < data_records.samples.size(); ++i)
 	{
 		//int year = int(year_bin_size * round((it->registry.date / 10000) / year_bin_size));
@@ -618,6 +618,7 @@ void medial::process::reweight_by_general(MedFeatures &data_records, const vecto
 	}
 
 	float r_target = 0.5;
+	double max_factor = 0;
 
 	//For each year_bin - balance to this ratio using price_ratio weight for removing 1's labels:
 	seen_pid_0.clear();
@@ -630,6 +631,8 @@ void medial::process::reweight_by_general(MedFeatures &data_records, const vecto
 		if (base_ratio > 0)
 			factor = float((r_target / (1 - r_target)) *
 				(double(count_label_groups[0][grp]) / count_label_groups[1][grp]));
+		if (factor > max_factor)
+			max_factor = factor;
 
 		if (print_verbose)
 			if (factor > 0)
@@ -649,6 +652,13 @@ void medial::process::reweight_by_general(MedFeatures &data_records, const vecto
 			for (int ind : list_label_groups[1][grp])
 				full_weights[ind] = factor;
 		}
+	}
+	//let's divide all by 1/max_factor:
+	if (max_factor > 0) {
+		for (size_t i = 0; i < full_weights.size(); ++i)
+			full_weights[i] /= (float)max_factor;
+		for (auto it = group_to_factor.begin(); it != group_to_factor.end(); ++it)
+			group_to_factor[it->first] /= (float)max_factor;
 	}
 
 	//Commit on all records:
@@ -698,6 +708,10 @@ void medial::process::reweight_by_general(MedFeatures &data_records, const vecto
 					weight_stats[grp][1] / double(weight_stats[grp][1] + weight_stats[grp][0]));
 		//print_by_year(data_records.samples);
 	}
+	if (max_factor > 0)
+		return 1.0 / max_factor;
+	else
+		return (double)0;
 }
 
 void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,
@@ -711,7 +725,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	unordered_set<string> seen_pid_0;
 	unordered_set<string> seen_group;
 	unordered_map<string, unordered_set<int>> group_to_seen_pid; //of_predicition
-	
+
 	for (size_t i = 0; i < data_records.samples.size(); ++i)
 	{
 		//int year = int(year_bin_size * round((it->registry.date / 10000) / year_bin_size));

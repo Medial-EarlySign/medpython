@@ -134,8 +134,8 @@ namespace medial {
 		void filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag = false);
 		/// \brief down sampling with ratio
 		void down_sample(MedFeatures &dataMat, double take_ratio);
-		/// \brief reweighting method by given groups uniq values. return weights
-		void reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
+		/// \brief reweighting method by given groups uniq values. return weights and min_factor
+		double reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
 			vector<float> &weigths, bool print_verbose);
 		/// \brief matching by given groups uniq values. returns also the row_ids filtered
 		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
