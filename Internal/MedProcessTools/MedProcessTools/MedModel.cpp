@@ -754,7 +754,7 @@ void MedModel::add_process_to_set(int i_set, int duplicate, const string &init_s
 	if (init_string.find("fg_type") != string::npos) return add_feature_generator_to_set(i_set, init_string);
 	if (init_string.find("fp_type") != string::npos) return add_feature_processor_to_set(i_set, duplicate, init_string);
 
-	MERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
+	MTHROW_AND_ERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
 }
 
 
@@ -803,8 +803,8 @@ void MedModel::init_all(MedDictionarySections& dict) {
 // are required ....
 //.......................................................................................
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+	
 	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
-
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
@@ -813,6 +813,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	}
 
 	MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
+
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
@@ -850,6 +851,7 @@ int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
 			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			rep.sigs.Sid2Info[new_id].time_unit = med_rep_type.basicTimeUnit; // Currently, time-unit is determined by med_rep_type
 			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
 		}
 		else {
