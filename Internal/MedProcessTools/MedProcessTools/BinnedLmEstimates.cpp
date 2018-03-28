@@ -221,7 +221,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			// Apply processing at last time point only
 //			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
-			vector<int> time_points(1, 39991231);   
+			vector<int> time_points;   
 			
 			rec.init_from_rep(std::addressof(rep), id, all_req_signal_ids_v, 1);
 

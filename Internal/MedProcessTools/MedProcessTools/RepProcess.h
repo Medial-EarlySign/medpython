@@ -141,7 +141,8 @@ public:
 	int conditional_learn(MedPidRepository& rep, MedSamples& samples, unordered_set<int>& neededSignalIds) { vector<RepProcessor *> temp;  return _conditional_learn(rep, samples, temp, neededSignalIds); }
 
 	// Applying
-	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes.
+	/// <summary> if time_points is empty, processinng is done for each version for all times </summary>
 	virtual int _apply(PidDynamicRec& rec, vector<int>& time_points) = 0;
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points only if required : May be implemented for inheriting classes </summary>
 	virtual int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds);
@@ -631,6 +632,9 @@ class RepCalcSimpleSignals : public RepProcessor {
 		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
 
 		vector<string> signals; ///< it is possible to transfer a vector of required signals, to override default ones.
+		string timer_signal; ///< if given, used to detrmine time-points when virtual signal(s) are calculated
+		int timer_signal_id; ///< id of timer-signal (if given)
+		int signals_time_unit; ///< Time unit of timer and all signals 
 
 		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS;}
 
@@ -638,14 +642,14 @@ class RepCalcSimpleSignals : public RepProcessor {
 		int init(map<string, string>& mapper);
 
 		// making sure V_ids and sigs_ids are initialized
-		void init_tables(MedDictionarySections& dict);
+		void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 
 		void add_virtual_signals(map<string, int> &_virtual_signals);
 
 
 		// Learning
 		/// <summary> In this class there's never learning - we return 0 immediately </summary>
-		int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict); return 0; };
+		int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict, rep.sigs); return 0; };
 
 		// Applying
 		/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
@@ -663,8 +667,10 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		//process io fields in MIMIC style, depending on their type (understood from the name and the type
 		static int process_hosp_signal(const string& name, UniversalSigVec& usv, vector<int>& times, vector<float>& vals);
-				
-		int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, float (*calcFunc)(const vector<float>&, const vector<float>&));
+		
+		void index_targets_in_given_vector(const vector<int> &target, const vector<int> &given, int& max_diff, int signals_time_unit, int diff_time_unit, int& max, vector<size_t>& indices);
+		
+		int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, int timer_signal_id, float (*calcFunc)(const vector<float>&, const vector<float>&));
 
 		int _apply_calc_log(PidDynamicRec& rec, vector<int>& time_points);
 
@@ -805,6 +811,9 @@ class RepCalcSimpleSignals : public RepProcessor {
 	private:
 
 		// definitions and defaults for each calculator - all must be filled in for a new calculator
+
+		// calculators where timer-signals should not be given
+		const unordered_set<string> calc_without_timers = { "calc_eGFR","calc_debug","calc_hosp_24h_urine_output","calc_log" };
 
 		/// from a calculator name to a calculator enum type
 		const map<string, int> calc2type = { 

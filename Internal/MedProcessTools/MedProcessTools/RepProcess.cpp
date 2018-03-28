@@ -593,8 +593,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		return -1;
 	}
 
-	// Check that we have the correct number of dynamic-versions : one per time-point
-	if (time_points.size() != rec.get_n_versions()) {
+	// Check that we have the correct number of dynamic-versions : one per time-point (if given)
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
 	}
@@ -618,7 +618,7 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 			float ival = rec.usv.Val(i, val_channel);
 
 			// No need to clean past the latest relevant time-point
-			if (itime > time_points[iver])	break;
+			if (time_points.size() != 0 && itime > time_points[iver])	break;
 
 			// Identify values to change or remove
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
@@ -903,7 +903,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 	for (auto affSig : aff_signals)affSignalIds.insert(myDict.id(affSig));
 	
 	// Check that we have the correct number of dynamic-versions : one per time-point
-	if (time_points.size() != rec.get_n_versions()) {
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
 	}
@@ -945,7 +945,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 			for (sPointer[0] = 0; sPointer[0] < ruleUsvs[0].len; sPointer[0]++) {
 				//printf("start loop %d %d \n", sPointer[0], ruleUsvs[0].len);
 				thisTime = ruleUsvs[0].Time(sPointer[0], time_channel);
-				if (thisTime > time_points[iver])break;
+				if (time_points.size() != 0 && thisTime > time_points[iver])break;
 				bool ok = true;
 				for (int i = 1; i < mySids.size(); i++) {
 					while (ruleUsvs[i].Time(sPointer[i], time_channel) < thisTime && sPointer[i] < ruleUsvs[i].len - 1)sPointer[i]++;
@@ -1183,7 +1183,7 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points)
 		return -1;
 	}
 
-	if (time_points.size() != rec.get_n_versions()) {
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
 	}
@@ -1207,7 +1207,7 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points)
 		for (int i = 0; i < len; i++) {
 			int itime = rec.usv.Time(i, time_channel);
 
-			if (itime > time_points[iver]) {
+			if (time_points.size() != 0 && itime > time_points[iver]) {
 				verLen = i;
 				break;
 			}
@@ -1332,11 +1332,23 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		else if (field == "signals") {
 			boost::split(signals, entry.second, boost::is_any_of(",:"));
 		}
+		else if (field == "timer") timer_signal = entry.second;
 	}
 
 	calc_type = get_calculator_type(calculator);
 
 	if (calc_type != CALC_TYPE_UNDEF) {
+
+		// Timer
+		// unrequired timer
+		if (!timer_signal.empty() && calc_without_timers.find(calculator) != calc_without_timers.end()) {
+			MERR("Caclulator %s must not be given a timer signal\n", calculator.c_str());
+			return -1;
+		}
+
+		// default timer is the first required signal
+		if (timer_signal.empty() && !calc2req_sigs.find(calculator)->second.empty())
+			timer_signal = calc2req_sigs.find(calculator)->second[0];
 
 		// add required signals depending on the actual calculator we run
 		// might be overidden from json
@@ -1345,7 +1357,10 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 			signals = calc2req_sigs.find(calculator)->second;
 
 		for (auto & req_s : signals)
-			req_signals.insert(req_s);		
+			req_signals.insert(req_s);
+
+		if ((!timer_signal.empty()) && req_signals.find(timer_signal) == req_signals.end())
+			req_signals.insert(timer_signal);
 						
 		// add coefficients if needed
 		if (coeff.size() == 0)
@@ -1391,7 +1406,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 
 mutex RepCalcSimpleSignals_init_tables_mutex;
 //.......................................................................................
-void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict)
+void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs)
 {
 	lock_guard<mutex> guard(RepCalcSimpleSignals_init_tables_mutex);
 
@@ -1404,6 +1419,11 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict)
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
 	for (auto &rsig : signals) 
 		sigs_ids.push_back(dict.id(rsig));
+
+	if (!timer_signal.empty()) {
+		timer_signal_id = dict.id(timer_signal);
+		signals_time_unit = sigs.Sid2Info[timer_signal_id].time_unit;
+	}
 
 }
 
@@ -1431,11 +1451,14 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	if (calc_type == CALC_TYPE_EGFR)
 		return _apply_calc_eGFR(rec, time_points);
 
-	if (calc_type == CALC_TYPE_DEBUG)
+	if (calc_type == CALC_TYPE_DEBUG) 
 		return _apply_calc_debug(rec, time_points);
 
-	if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT)
+	if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT) 
 		return _apply_calc_24h_urine_output(rec, time_points);
+
+	if (calc_type == CALC_TYPE_LOG)
+		return _apply_calc_log(rec, time_points);
 
 	//handle calculation that are done by first extrapolating each signal to the required 
 	//time points and then performing a pointwise calculation for the values in each time point.
@@ -1476,7 +1499,7 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	}
 
 	if (calcFunc) {
-		int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
+		int rv = _apply_calc_hosp_pointwise(rec, time_points, timer_signal_id, calcFunc);
 		return rv;
 	}
 
@@ -1496,13 +1519,6 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	if (calcTimeFunc)
 		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc);
 
-
-	if (calc_type == CALC_TYPE_LOG) {
-		int rv = _apply_calc_log(rec, time_points);
-		if (rv < 0)
-			cout << "=====================apply log returned -1=======================" << endl;
-		return rv;
-	}
 
 
 	return -1;
