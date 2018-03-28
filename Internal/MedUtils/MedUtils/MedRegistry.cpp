@@ -608,7 +608,7 @@ int medial::repository::fetch_next_date(vector<UniversalSigVec> &patientFile, ve
 			continue; //already reached the end for this signal
 		if (data.get_type() == T_Value) {
 			if (minDate_index == -1 || data.Val(signalPointers[i]) < minDate) {
-				minDate = data.Date(signalPointers[i]);
+				minDate = (int)data.Val(signalPointers[i]);
 				minDate_index = (int)i;
 			}
 		}
