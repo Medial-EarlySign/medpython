@@ -1340,10 +1340,19 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	if (calc_type != CALC_TYPE_UNDEF) {
 
 		// Timer
-		// unrequired timer
+		// Given when not required
 		if (!timer_signal.empty() && calc_without_timers.find(calculator) != calc_without_timers.end()) {
 			MERR("Caclulator %s must not be given a timer signal\n", calculator.c_str());
 			return -1;
+		}
+
+		// for CALC_TYPE_HOSP_PROCESSOR default timer is signal
+		if (calc_type == CALC_TYPE_HOSP_PROCESSOR) {
+			if (!timer_signal.empty() && timer_signal != signals[0]) {
+				MERR("Calculator %s timer must be the same as signal\n", calculator.c_str());
+				return -1;
+			}
+			timer_signal = signals[0];
 		}
 
 		// default timer is the first required signal
@@ -1424,6 +1433,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		timer_signal_id = dict.id(timer_signal);
 		signals_time_unit = sigs.Sid2Info[timer_signal_id].time_unit;
 	}
+
 
 }
 
