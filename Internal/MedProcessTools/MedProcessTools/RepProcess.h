@@ -116,7 +116,7 @@ public:
 	virtual bool filter(unordered_set<string>& reqSignals);
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
-	virtual void init_tables(MedDictionarySections& dict) { return; }
+	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs) { return; }
 
 	// Learning
 	/// <summary> learn processing model on a subset of samples. Apply set of preceeding processors on DynamicPidRec before learning : 
@@ -225,7 +225,7 @@ public:
 	void set_signal_ids(MedDictionarySections& dict); 
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
-	void init_tables(MedDictionarySections& dict) { for (RepProcessor * proc : processors) { proc->init_tables(dict); } }
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs) { for (RepProcessor * proc : processors) { proc->init_tables(dict,sigs); } }
 
 
 	/// <summary> learn processors </summary>
@@ -805,7 +805,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static int afterEverything() { return numeric_limits<int>::max(); }
 
 		// serialization
-		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, signals, V_names, V_types, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, signals, V_names, V_types, req_signals, aff_signals, virtual_signals,timer_signal)
 
 
 	private:

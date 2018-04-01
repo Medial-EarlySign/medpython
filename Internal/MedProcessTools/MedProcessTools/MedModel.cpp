@@ -46,7 +46,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Set of signals
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
-		init_all(rep.dict);
+		init_all(rep.dict,rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
@@ -194,7 +194,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
 		// Initialize
-		init_all(rep.dict);
+		init_all(rep.dict,rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
@@ -342,7 +342,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			// Generate DynamicRec with all relevant signals
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 			
-			// Apply rep-cleaning
+			// Apply rep-processing
 			for (unsigned int i = 0; i < rep_processors.size(); i++)
 				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
 
@@ -779,7 +779,7 @@ void MedModel::set_affected_signal_ids(MedDictionarySections& dict) {
 
 // initialization :  find signal ids, init tables
 //.......................................................................................
-void MedModel::init_all(MedDictionarySections& dict) {
+void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 
 	// signal ids
 	set_affected_signal_ids(dict);
@@ -793,7 +793,7 @@ void MedModel::init_all(MedDictionarySections& dict) {
 
 	// tables
 	for (RepProcessor *processor : rep_processors)
-		processor->init_tables(dict);
+		processor->init_tables(dict,sigs);
 
 	for (FeatureGenerator *generator : generators)
 		generator->init_tables(dict);
