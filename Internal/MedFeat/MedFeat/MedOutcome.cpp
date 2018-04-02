@@ -167,6 +167,7 @@ void OutcomeFilter::init_from_string(const string &s)
 		else if (fields[i] == "age_bin_width") age_bin_width = stof(fields[++i]);
 		else if (fields[i] == "match_gender_flag") match_gender_flag = stoi(fields[++i]);
 		else if (fields[i] == "match_const_flag") match_const_flag = stoi(fields[++i]);
+		else if (fields[i] == "match_do_shuffle_flag") match_do_shuffle_flag = stoi(fields[++i]);
 		else if (fields[i] == "match_dates_flag") match_dates_flag = stoi(fields[++i]);
 		else if (fields[i] == "dates_bin_width") dates_bin_width = stof(fields[++i]);
 		else if (fields[i] == "match_location_flag") match_location_flag = stoi(fields[++i]);
@@ -809,7 +810,7 @@ double get_pairing_ratio(map<string, pair<int, int>> cnts, double w, int n_steps
 	}
 
 	double r_step = (max_ratio - min_ratio) / n_steps;
-	MLOG("min ratio %8.3f max ratio %8.3f\n", min_ratio, max_ratio);
+	MLOG("min ratio %8.3f max ratio %8.3f match_event_case_price_ratio %8.3f\n", min_ratio, max_ratio, w);
 	// Find Optimal ratio - cnt1 and cnt2 are the overall number of samples we're giving up on 
 	int opt_cnt1 = -1, opt_cnt2 = -1;
 	double opt_r = 0;
@@ -836,14 +837,14 @@ double get_pairing_ratio(map<string, pair<int, int>> cnts, double w, int n_steps
 		double current_price = cnt1 + w*cnt2;
 		double opt_price = opt_cnt1 + w*opt_cnt2;
 
+		MLOG("considered ratio %8.3f price %8.3f lose %d cases and %d controls\n", r, current_price, cnt2, cnt1);
 		if (opt_r == 0 || current_price < opt_price) {
 			opt_r = r;
 			opt_cnt1 = cnt1;
 			opt_cnt2 = cnt2;
 		}
-		MLOG("ratio %8.3f price %8.3f \t opt ratio %8.3f lose %d events and %d controls = price of %8.3f \n", r, current_price, opt_r, opt_cnt2, opt_cnt1, opt_price);
-
 	}
+	MLOG("opt ratio %8.3f price %8.3f lose %d cases and %d controls\n", opt_r, opt_cnt1 + w*opt_cnt2, opt_cnt2, opt_cnt1);
 
 	return opt_r;
 }
@@ -897,6 +898,8 @@ void match_binary_outcome(MedRepository &rep, OutcomeFilter &filter, MedOutcome 
 	
 	// sample controls and events into mout
 	int n_events = 0, n_ctrl = 0;
+	if (!filter.match_do_shuffle_flag)
+		MLOG("NOTE: match_do_shuffle_flag=0, taking controls and cases in the order they were given in the input file\n");
 	for (auto it=cnts.begin(); it!=cnts.end(); it++) {
 		signature = it->first;
 		int ev_cnt = it->second.first;
@@ -911,19 +914,22 @@ void match_binary_outcome(MedRepository &rep, OutcomeFilter &filter, MedOutcome 
 		//if (ntake == 0) ntake = 1 + (int)factor/2;
 		if (ntake_ev > (int)event_ids[signature].size()) ntake_ev = (int)event_ids[signature].size();
 
-		random_shuffle(control_ids[signature].begin(), control_ids[signature].end());
-		random_shuffle(event_ids[signature].begin(), event_ids[signature].end());
+		if (filter.match_do_shuffle_flag) {
+			random_shuffle(control_ids[signature].begin(), control_ids[signature].end());
+			random_shuffle(event_ids[signature].begin(), event_ids[signature].end());
+		}
+		
 		for (int i=0; i<ntake_ctrl; i++)
 			mout_out.out.push_back(mout_in.out[control_ids[signature][i]]);
 		for (int i = 0; i<ntake_ev; i++)
 			mout_out.out.push_back(mout_in.out[event_ids[signature][i]]);
 		n_ctrl += ntake_ctrl;
 		n_events += ntake_ev;
-		MLOG("%s : ntake_ctrl: %d/%d ntake_ev: %d/%d total size is %d\n", signature.c_str(), ntake_ctrl, control_ids[signature].size(),
+		MLOG("%s : ntake_ctrl: %d/%d ntake_case: %d/%d total size is %d\n", signature.c_str(), ntake_ctrl, control_ids[signature].size(),
 			ntake_ev, event_ids[signature].size(), mout_out.out.size());
 	}
 
-	MLOG("Added %d controls, %d events, with a factor of %f\n", n_ctrl, n_events, n_events, factor);
+	MLOG("Added %d controls, %d cases, with a factor of %f\n", n_ctrl, n_events, n_events, factor);
 	mout_out.sort();
 }
 
