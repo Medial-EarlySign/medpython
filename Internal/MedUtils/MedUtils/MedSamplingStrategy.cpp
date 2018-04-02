@@ -65,7 +65,7 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 		if (year_diff_to_first_pred < 0 || rec.end_date <= rec.start_date || rec.end_date <= rec.min_allowed_date) {
 			++skip_end_smaller_start;
 			if (skip_end_smaller_start < 5) {
-				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d], pred_dates=[%d => %d], outcome=%f, age=%2.1f\n",
+				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d], pred_dates=[%d => %d], outcome=%f, age=%d\n",
 					rec.pid, rec.start_date, rec.end_date, rec.min_allowed_date, rec.max_allowed_date,
 					rec.registry_value, rec.age);
 			}
