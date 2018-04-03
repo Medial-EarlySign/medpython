@@ -576,6 +576,7 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 	unordered_set<string> seen_pid_0;
 	unordered_set<string> seen_group;
 	unordered_map<string, unordered_set<int>> group_to_seen_pid; //of_predicition
+	int init_sample_count = (int)data_records.samples.size();
 
 	for (size_t i = 0; i < data_records.samples.size(); ++i)
 	{
@@ -654,6 +655,11 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 		}
 	}
 	//let's divide all by 1/max_factor:
+	double total_cnt_after = 0;
+	for (auto it = group_to_factor.begin(); it != group_to_factor.end(); ++it)
+		total_cnt_after += (count_label_groups[0][it->first] + count_label_groups[1][it->first]) * it->second;
+	max_factor = float(total_cnt_after / (double)init_sample_count); //change to take not max - keep same sum
+
 	if (max_factor > 0) {
 		for (size_t i = 0; i < full_weights.size(); ++i)
 			full_weights[i] /= (float)max_factor;
