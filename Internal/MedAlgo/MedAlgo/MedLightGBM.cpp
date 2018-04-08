@@ -296,8 +296,8 @@ namespace LightGBM {
 
 void MedLightGBM::calc_feature_importance(vector<float> &features_importance_scores,
 	const string &general_params) {
-	if (!_mark_learn_done)
-		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
+	//if (!_mark_learn_done)
+	//	MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 
 	mem_app.calc_feature_importance(features_importance_scores, general_params,
 		(model_features.empty() ? features_count : (int)model_features.size()));
