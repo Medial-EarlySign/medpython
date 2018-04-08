@@ -10,6 +10,7 @@
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
+#include <Medutils/MedUtils/MedGenUtils.h>
 #include <TQRF/TQRF/TQRF.h>
 
 #include <Logger/Logger/Logger.h>
@@ -31,6 +32,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("model", po::value<string>()->default_value(""), "model file to generate features")
 			("tqrf_params", po::value<string>()->default_value(""), "tqrf_params")
 			("preds_file", po::value<string>()->default_value(""), "preds file to write")
+			("seed", po::value<int>()->default_value(-1), "random seed (-1 is time)")
 			;
 
 
@@ -56,6 +58,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 		cerr << "Exception of unknown type!\n";
 		return -1;
 	}
+
+	set_rand_seed(vm["seed"].as<int>());
 
 	return 0;
 }
