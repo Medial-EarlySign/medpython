@@ -423,112 +423,53 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		}
 		//choose pids:
 		uniform_int_distribution<> rand_pids(0, (int)pid_to_inds.size() - 1);
-		if (sample_per_pid > 0) {
+
+		//other sampling - sample pids and take all thier data:
+		//now sample cohort 
+
 #pragma omp parallel for schedule(dynamic,1)
-			for (int i = 0; i < loopCnt; ++i)
+		for (int i = 0; i < loopCnt; ++i)
+		{
+			vector<int> selected_pids(cohort_size);
+			for (size_t k = 0; k < cohort_size; ++k)
 			{
-				int curr_ind = 0;
-				unordered_set<int> selected_ind_pid;
-				vector<int> selected_inds(cohort_size * sample_per_pid);
+				int ind_pid = rand_pids(rd_gen);
+				selected_pids[k] = ind_to_pid[ind_pid];
+			}
 
-				for (size_t k = 0; k < cohort_size; ++k)
+			//create preds, y for all seleceted pids:
+			vector<float> selected_preds, selected_y;
+			for (size_t k = 0; k < selected_pids.size(); ++k)
+			{
+				int pid = selected_pids[k];
+				vector<int> ind_vec = pid_to_inds[pid];
+				for (int ind : ind_vec)
 				{
-					int ind_pid = rand_pids(rd_gen);
-					while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
-						ind_pid = rand_pids(rd_gen);
-					selected_ind_pid.insert(ind_pid);
-
-					vector<int> inds = pid_to_inds[ind_to_pid[ind_pid]];
-					uniform_int_distribution<> random_num(0, (int)inds.size() - 1);
-					for (size_t kk = 0; kk < sample_per_pid; ++kk)
-					{
-						selected_inds[curr_ind] = inds[random_num(rd_gen)];
-						++curr_ind;
-					}
-				}
-
-				//now calculate measures on cohort of selected indexes for preds, y:
-				vector<float> selected_preds((int)selected_inds.size()), selected_y((int)selected_inds.size());
-				for (size_t k = 0; k < selected_inds.size(); ++k)
-				{
-					selected_preds[k] = preds[selected_inds[k]];
-					selected_y[k] = y[selected_inds[k]];
-				}
-
-				iterator.set_static(&selected_y, &selected_preds, i);
-#ifdef USE_MIN_THREADS
-				int th_num = omp_get_thread_num();
-#else
-				int th_num = i;
-#endif
-				for (size_t k = 0; k < meas_functions.size(); ++k)
-				{
-					map<string, float> batch_measures;
-#ifdef USE_MIN_THREADS
-					iterator.restart_iterator(th_num);
-#else
-					if (k > 0)
-						iterator.restart_iterator(th_num);
-#endif
-					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
-#pragma omp critical
-					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-						all_measures[jt->first].push_back(jt->second);
+					selected_preds.push_back(preds[ind]);
+					selected_y.push_back(y[ind]);
 				}
 			}
-		}
-		else { //other sampling - sample pids and take all thier data:
-			   //now sample cohort 
 
-
-#pragma omp parallel for schedule(dynamic,1)
-			for (int i = 0; i < loopCnt; ++i)
+			iterator.set_static(&selected_y, &selected_preds, i);
+#ifdef USE_MIN_THREADS
+			int th_num = omp_get_thread_num();
+#else
+			int th_num = i;
+#endif
+			//calc measures for sample:
+			for (size_t k = 0; k < meas_functions.size(); ++k)
 			{
-				unordered_set<int> selected_ind_pid;
-				vector<int> selected_pids(cohort_size);
-				for (size_t k = 0; k < cohort_size; ++k)
-				{
-					int ind_pid = rand_pids(rd_gen);
-					while (selected_ind_pid.find(ind_pid) != selected_ind_pid.end())
-						ind_pid = rand_pids(rd_gen);
-					selected_ind_pid.insert(ind_pid);
-					selected_pids[k] = ind_to_pid[ind_pid];
-				}
-
-				//create preds, y for all seleceted pids:
-				vector<float> selected_preds, selected_y;
-				for (size_t k = 0; k < selected_pids.size(); ++k)
-				{
-					int pid = selected_pids[k];
-					vector<int> ind_vec = pid_to_inds[pid];
-					for (int ind : ind_vec)
-					{
-						selected_preds.push_back(preds[ind]);
-						selected_y.push_back(y[ind]);
-					}
-				}
-
-				iterator.set_static(&selected_y, &selected_preds, i);
+				map<string, float> batch_measures;
 #ifdef USE_MIN_THREADS
-				int th_num = omp_get_thread_num();
+				iterator.restart_iterator(th_num);
 #else
-				int th_num = i;
-#endif
-				//calc measures for sample:
-				for (size_t k = 0; k < meas_functions.size(); ++k)
-				{
-					map<string, float> batch_measures;
-#ifdef USE_MIN_THREADS
+				if (k > 0)
 					iterator.restart_iterator(th_num);
-#else
-					if (k > 0)
-						iterator.restart_iterator(th_num);
 #endif
-					batch_measures = meas_functions[k](&iterator, i, function_params[k]);
+				batch_measures = meas_functions[k](&iterator, i, function_params[k]);
 #pragma omp critical
-					for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
-						all_measures[jt->first].push_back(jt->second);
-				}
+				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
+					all_measures[jt->first].push_back(jt->second);
 			}
 		}
 	}
@@ -621,11 +562,11 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		//now we have cohort: run analysis:
 		string cohort_name = it->first;
 
-		if (y_c.size() < 100) {
+		if (y_c.size() < 10) {
 			MWARN("WARN: Cohort %s is too small - has %d samples. Skipping\n", cohort_name.c_str(), int(y_c.size()));
 			continue;
 		}
-		if (binary_outcome && (class_sz[0] < 10 || class_sz[1] < 10)) {
+		if (binary_outcome && (class_sz[0] < 1 || class_sz[1] < 1)) {
 			MWARN("WARN: Cohort %s is too small - has %d samples with labels = [%d, %d]. Skipping\n",
 				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
 			continue;
@@ -909,7 +850,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	}
 
 	if (f_cnt == 0 || t_sum <= 0) {
-		//MTHROW_AND_ERR("no falses or no positives exists in cohort\n");
+		MWARN("no falses or no positives exists in cohort\n");
 		return res;
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
@@ -1785,7 +1726,7 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
-	if (params.score_bins == 0 && bin_size_last < 10)
+	if (params.score_bins > 0 && bin_size_last < 10)
 		if (params.score_resolution != 0)
 			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
 				" is highly quantitize(%d). try canceling preprocess_score by "

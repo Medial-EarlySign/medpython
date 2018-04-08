@@ -66,6 +66,11 @@ public:
 	void create_registry(MedPidRepository &dataManager);
 
 	/// <summary>
+	/// returns the signal codes used to create the registry
+	/// </summary>
+	void get_registry_creation_codes(vector<int> &signal_codes);
+
+	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
 	/// @param repository_path the repsitory path
 	/// @param signalCode the signal code to calculate the stats of the registry with
@@ -97,31 +102,27 @@ private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
 
+/**
+* \brief medial namespace for function
+*/
 namespace medial {
+	/*!
+	* \brief signal_hierarchy namespace
+	*/
 	namespace signal_hierarchy {
-		///Getting signal with hirarchy options for each siganl
+		/// \brief Getting signal with hirarchy options for each siganl
 		void getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
 			const string &signalHirerchyType,
 			vector<MedRegistryRecord> &res);
-
-		///filtering hierarchy codes
-		string filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType);
-		///getting parents in hierarchy codes
-		vector<int> parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
-		///getting sons in hierarchy codes
-		vector<int> sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
-		/// gets codes
-		string get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType);
 	}
-	namespace repository {
-		///Helper function to calc diff between dates in years
-		float DateDiff(int refDate, int dateSample);
-		///Helper function to add days to date
-		int DateAdd(int refDate, int daysAdd);
-		///fetching specifc signal code value
-		int get_value(MedRepository &rep, int pid, int sigCode);
-	}
+	/*!
+	* \brief contingency_tables namespace
+	*/
 	namespace contingency_tables {
+		/// \brief calc chi square distance for all groups with 4 value vector
+		double calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls);
+
+		/// \brief calcs chi square for full male, female and stores all the results stats and values in the vectors
 		void calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
 			vector<float> &all_signal_values, vector<int> &signal_indexes,
@@ -129,20 +130,89 @@ namespace medial {
 			vector<double> &lift, vector<double> &scores,
 			vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls);
 
+		/// \brief filter by range
 		void FilterRange(vector<int> &indexes, const vector<double> &vecCnts
 			, double min_val, double max_val);
 
+		/// \brief calc chi square probabilty from distance, DOF
 		double chisqr(int Dof, double Cv);
-		void write_stats(const string &file_path, 
+		/// \brief serialize male,female stats
+		void write_stats(const string &file_path,
 			const map<float, map<float, vector<int>>> &males_stats, const map<float, map<float, vector<int>>> &females_stats);
-		void read_stats(const string &file_path, 
+		/// \brief deserialize male,female stats
+		void read_stats(const string &file_path,
 			map<float, map<float, vector<int>>> &males_stats, map<float, map<float, vector<int>>> &females_stats);
-
+		/// \brief filter by FDR
 		void FilterFDR(vector<int> &indexes,
 			const vector<double> &scores, const vector<double> &p_vals, const vector<double> &lift,
 			double filter_pval);
 	}
+	/*!
+	*  \brief print namespace
+	*/
+	namespace print {
+		/// \brief printing registry stats for labels inside of it.
+		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
+	}
+	namespace io {
+		void read_codes_file(const string &file_path, vector<string> &tokens);
+	}
+	namespace repository {
+		/// \brief fetches the next date from all signals in patientFile by date order.
+		/// the signalPointers is array of indexes of each signal. it also advances the right index
+		/// returns the signal with the minimal date - "the next date"
+		int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers);
+	}
 }
+
+/**
+* A abstract class that represents a signal used to create registry and it's
+* filter conditions to change outcome values based on current time point
+* usefull if the registry depends seperatly by each signal / only one signal
+*/
+class RegistrySignal : public SerializableObject {
+public:
+	string signalName; ///< the signal name
+	int duration_flag; ///< the duration for each positive to merge time ranges
+	int buffer_duration; ///< a buffer duration between positive to negative
+	bool take_only_first; ///< if True will take only first occournce
+
+	/// a function that retrive current outcome based on new time point
+	virtual float get_outcome(UniversalSigVec &s, int current_i) = 0;
+
+	static RegistrySignal *make_registry_signal(const string &type);
+	static RegistrySignal *make_registry_signal(const string &type, const string &init_string);
+};
+
+/**
+* A Class that condition a set of codes in dictionary
+*/
+class RegistrySignalSet : public RegistrySignal {
+public:
+	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
+		MedRepository &rep, const vector<string> &sets);
+	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
+	float get_outcome(UniversalSigVec &s, int current_i);
+
+	int init(map<string, string>& map);
+private:
+	vector<char> Flags;
+};
+
+/**
+* A Class that condition a value range
+*/
+class RegistrySignalRange : public RegistrySignal {
+public:
+	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
+		float min_rnage, float max_range);
+	float get_outcome(UniversalSigVec &s, int current_i);
+
+	int init(map<string, string>& map);
+private:
+	float min_value;
+	float max_value;
+};
 
 /**
 * A Class which creates registry based on readcode lists.
@@ -150,22 +220,22 @@ namespace medial {
 */
 class MedRegistryCodesList : public MedRegistry {
 public:
-	vector<char> RCFlags; ///< Readcode flags
-	vector<bool> SkipPids; ///< black list of patients
-
-	int duration_flag; ///< the duration for each positive to merge time ranges
-	int buffer_duration; ///< a buffer duration between positive to negative
-	bool take_only_first; ///< if True will take only first occournce
+	int start_buffer_duration; ///< the duration buffer form start
+	int end_buffer_duration; ///< the duration buffer from last date
 	int max_repo_date; ///< the maximal date for the repository
+
+	vector<RegistrySignal *> signal_filters; ///< the signal filters
 
 	/// <summary>
 	/// The init function
 	/// </summary>
-	void init_lists(MedRepository &rep, int dur_flag, int buffer_dur, bool takeOnlyFirst,
-		int max_repo, const vector<string> *rc_sets = NULL, const string &skip_pid_file = "");
+	void init(MedRepository &rep, int start_dur, int end_durr, int max_repo,
+		const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file = "");
 private:
+	vector<bool> SkipPids; ///< black list of patients mask
+
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
-	bool init_lists_called;
+	bool init_called; ///< a flag to mark that init was called
 };
 
 MEDSERIALIZE_SUPPORT(MedRegistryRecord)

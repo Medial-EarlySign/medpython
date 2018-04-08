@@ -141,7 +141,13 @@ int MedSignals::read(string path, vector<string> &sfnames)
 
 	for (int i = 0; i < sfnames.size(); i++) {
 		string fname = (path == "") ? sfnames[i] : path + "/" + sfnames[i];
-		rc += read(fname);
+		try {
+			rc += read(fname);
+		}
+		catch (...) {
+			MERR("Error in reading Signal %s\n", fname.c_str());
+			throw;
+		}
 	}
 
 	return rc;
@@ -252,7 +258,7 @@ int MedSignals::read_sfile(const string &fname)
 					if (sid >= Sid2Info.size()) {
 						SignalInfo si;
 						si.sid = -1;
-						Sid2Info.resize(sid+1, si);
+						Sid2Info.resize(sid + 1, si);
 					}
 					Sid2Info[sid].fno = stoi(fields[0]);
 					Sid2Info[sid].sid = sid;

@@ -146,7 +146,7 @@ public:
 	int collect_and_add_virtual_signals(MedRepository &rep);
 
 	/// Initialization : signal ids and tables
-	void init_all(MedDictionarySections& dict);
+	void init_all(MedDictionarySections& dict, MedSignals& sigs);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }

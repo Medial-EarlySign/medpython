@@ -292,6 +292,15 @@ private:
 		const string &string_cohort = "All", float max_search_range = 0.1);
 };
 
+namespace medial {
+	namespace process {
+		void make_sim_time_window(const string &cohort_name, const vector<Filter_Param> &filter_p,
+			const vector<float> &y, const map<string, vector<float>> &additional_info,
+			vector<float> &y_changed, map<string, vector<float>> &cp_info,
+			map<string, FilterCohortFunc> &cohorts_t, map<string, void *> &cohort_params_t);
+	}
+}
+
 MEDSERIALIZE_SUPPORT(MedBootstrap)
 MEDSERIALIZE_SUPPORT(MedBootstrapResult)
 

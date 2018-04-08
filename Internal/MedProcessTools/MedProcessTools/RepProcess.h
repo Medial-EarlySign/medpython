@@ -116,7 +116,7 @@ public:
 	virtual bool filter(unordered_set<string>& reqSignals);
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
-	virtual void init_tables(MedDictionarySections& dict) { return; }
+	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs) { return; }
 
 	// Learning
 	/// <summary> learn processing model on a subset of samples. Apply set of preceeding processors on DynamicPidRec before learning : 
@@ -141,7 +141,8 @@ public:
 	int conditional_learn(MedPidRepository& rep, MedSamples& samples, unordered_set<int>& neededSignalIds) { vector<RepProcessor *> temp;  return _conditional_learn(rep, samples, temp, neededSignalIds); }
 
 	// Applying
-	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes.
+	/// <summary> if time_points is empty, processinng is done for each version for all times </summary>
 	virtual int _apply(PidDynamicRec& rec, vector<int>& time_points) = 0;
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points only if required : May be implemented for inheriting classes </summary>
 	virtual int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds);
@@ -224,7 +225,7 @@ public:
 	void set_signal_ids(MedDictionarySections& dict); 
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
-	void init_tables(MedDictionarySections& dict) { for (RepProcessor * proc : processors) { proc->init_tables(dict); } }
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs) { for (RepProcessor * proc : processors) { proc->init_tables(dict,sigs); } }
 
 
 	/// <summary> learn processors </summary>
@@ -561,6 +562,7 @@ public:
 typedef enum {
 	CALC_TYPE_UNDEF, ///< undefined signal, nothing to do or error
 	CALC_TYPE_HOSP_PROCESSOR,
+	CALC_TYPE_LOG,
 	CALC_TYPE_EGFR, ///< calculates eGFR CKD_EPI signal in each point we have Creatinine , depends on Creatinine, GENDER, BYEAR
 	CALC_TYPE_DEBUG, ///< just here to help when debugging: currently calculates delta Hemoglobin (relative to last test for each test above second)
 	CALC_TYPE_HOSP_MELD, ///< calculates MELD signal. components: CHARTLAB_Bilirubin, CHARTLAB_INR(PT), CHARTLAB_Creatinine, CHARTLAB_Sodium
@@ -590,7 +592,7 @@ typedef enum {
 	CALC_TYPE_HOSP_SOFA_RESPIRATORY,
 	CALC_TYPE_HOSP_SOFA_RENAL,
 	CALC_TYPE_HOSP_SOFA_CARDIO,
-	CALC_TYPE_HOSP_SOFA
+	CALC_TYPE_HOSP_SOFA	
 } RepCalcSimpleSignalsType;
 
 //.......................................................................................
@@ -630,21 +632,24 @@ class RepCalcSimpleSignals : public RepProcessor {
 		vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
 
 		vector<string> signals; ///< it is possible to transfer a vector of required signals, to override default ones.
+		string timer_signal; ///< if given, used to detrmine time-points when virtual signal(s) are calculated
+		int timer_signal_id; ///< id of timer-signal (if given)
+		int signals_time_unit; ///< Time unit of timer and all signals 
 
-		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
+		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS;}
 
 		/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
 		int init(map<string, string>& mapper);
 
 		// making sure V_ids and sigs_ids are initialized
-		void init_tables(MedDictionarySections& dict);
+		void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 
 		void add_virtual_signals(map<string, int> &_virtual_signals);
 
 
 		// Learning
 		/// <summary> In this class there's never learning - we return 0 immediately </summary>
-		int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict); return 0; };
+		int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict, rep.sigs); return 0; };
 
 		// Applying
 		/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
@@ -662,8 +667,13 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		//process io fields in MIMIC style, depending on their type (understood from the name and the type
 		static int process_hosp_signal(const string& name, UniversalSigVec& usv, vector<int>& times, vector<float>& vals);
-				
-		int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, float (*calcFunc)(const vector<float>&, const vector<float>&));
+		
+		void index_targets_in_given_vector(const vector<int> &target, const vector<int> &given, int& max_diff, int signals_time_unit, int diff_time_unit, int& max, vector<size_t>& indices);
+		
+		int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, int timer_signal_id, float (*calcFunc)(const vector<float>&, const vector<float>&));
+
+		int _apply_calc_log(PidDynamicRec& rec, vector<int>& time_points);
+
 		int _apply_calc_hosp_time_dependent_pointwise(PidDynamicRec& rec, vector<int>& time_points,
 			float(*calcFunc)(const vector<pair<int, float> >&, int, const vector<float>&));
 		int _apply_calc_24h_urine_output(PidDynamicRec& rec, vector<int>& time_points);
@@ -795,16 +805,20 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static int afterEverything() { return numeric_limits<int>::max(); }
 
 		// serialization
-		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, signals, V_names, V_types, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, signals, V_names, V_types, req_signals, aff_signals, virtual_signals,timer_signal)
 
 
 	private:
 
 		// definitions and defaults for each calculator - all must be filled in for a new calculator
 
+		// calculators where timer-signals should not be given
+		const unordered_set<string> calc_without_timers = { "calc_eGFR","calc_debug","calc_hosp_24h_urine_output","calc_log" };
+
 		/// from a calculator name to a calculator enum type
 		const map<string, int> calc2type = { 
 			{"calc_hosp_processor", CALC_TYPE_HOSP_PROCESSOR },
+			{"calc_log", CALC_TYPE_LOG },
 			{"calc_eGFR", CALC_TYPE_EGFR}, 
 			{"calc_debug", CALC_TYPE_DEBUG},
 			{"calc_hosp_MELD", CALC_TYPE_HOSP_MELD},
@@ -842,6 +856,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 			//--------- level 1 - calculated from raw signals (level0)
 			//the general hospital processor's signals must be overridden from outside
 			{ "calc_hosp_processor",{} },
+			{ "calc_log",{} },
 			{ "calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}}, 
 			{ "calc_debug",{ "Hemoglobin" }},
 			{ "calc_hosp_MELD",{ "CHARTLAB_Bilirubin", "CHARTLAB_INR(PT)", "CHARTLAB_Creatinine", "CHARTLAB_Sodium" }},
@@ -887,6 +902,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// the virtual names can be changed by the user (but have to be given in the SAME order as here)
 		const map<string, vector<pair<string, int>>> calc2virtual = {
 			{ "calc_hosp_processor",{ { "calc_hosp_processor", T_TimeVal } } },
+			{ "calc_log",{ { "calc_log", T_DateVal } } },
 			{ "calc_eGFR" ,{ { "calc_eGFR", T_DateVal } } },
 			{ "calc_debug" ,{ { "calc_debug", T_DateVal } } },
 			{ "calc_hosp_MELD" ,{ { "calc_hosp_MELD", T_TimeVal } } },
@@ -922,6 +938,7 @@ class RepCalcSimpleSignals : public RepProcessor {
 		/// from a calculator name to the default coefficients (parameters) of it. Can of course be empty for a non parametric calculator.
 		const map<string, vector<float>> calc2coeffs = {
 			{"calc_hosp_processor",{} },
+			{ "calc_log",{} },
 			{"calc_eGFR" , {}},
 			{ "calc_debug" ,{}},
 			{"calc_hosp_MELD" ,{1.0F}},

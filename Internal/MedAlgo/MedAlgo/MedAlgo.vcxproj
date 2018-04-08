@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BinSplitOptimizer.h" />
     <ClInclude Include="MedLinearModel.h" />
     <ClInclude Include="MedAlgo.h" />
     <ClInclude Include="MedBooster.h" />
@@ -93,6 +94,7 @@
     <ClInclude Include="svm.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BinSplitOptimizer.cpp" />
     <ClCompile Include="MedLinearModel.cpp" />
     <ClCompile Include="MedAlgo.cpp" />
     <ClCompile Include="MedBooster.cpp" />

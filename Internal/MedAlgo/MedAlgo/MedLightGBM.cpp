@@ -348,6 +348,7 @@ size_t MedLightGBM::deserialize(unsigned char *blob)
 		MERR("MedLightGBM::deserialize() failed moving model to string\n");
 	size += MedSerialize::deserialize(blob + size, model_features);
 	size += MedSerialize::deserialize(blob + size, features_count);
+	_mark_learn_done = true;
 	return size;
 }
 

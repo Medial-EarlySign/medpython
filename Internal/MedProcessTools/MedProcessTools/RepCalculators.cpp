@@ -761,11 +761,120 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 
 //.......................................................................................
 
-int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, 
+
+int RepCalcSimpleSignals::_apply_calc_log(PidDynamicRec& rec, vector<int>& time_points) {
+
+	//Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+
+	//sid for the calculated signal
+	int v_sid = V_ids[0]; // Output signal
+	int i_sid = sigs_ids[0]; // Input signal
+
+	if (rec.usvs.size() < 1) rec.usvs.resize(1);
+
+	// Loop on versions of signal
+	set<int> iteratorSignalIds = { i_sid, v_sid };
+	versionIterator vit(rec, iteratorSignalIds);
+
+	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+
+		rec.uget(i_sid, iver, rec.usvs[0]); // getting the requested input signal into usv[0]
+
+		float epsilon = (float)0.00001;
+		if (rec.usvs[0].len) {
+
+			vector<float> v_vals;
+			vector<int> v_times;
+
+			// calculating for each creatinine point up to the relevant time-point
+			for (int i = 0; i<rec.usvs[0].len; i++) {
+				if (time_points.size() != 0 && rec.usvs[0].Time(i) > time_points[iver])
+					break;
+
+				if (rec.usvs[0].Val(i) > epsilon) {
+					v_times.push_back(rec.usvs[0].Time(i));
+					v_vals.push_back(log(rec.usvs[0].Val(i)));
+				}
+			}
+
+			// pushing virtual data into rec (into orig version)
+			rec.set_version_universal_data(v_sid, iver, &v_times[0], &v_vals[0], (int)v_times.size());
+		}
+	}
+
+
+	return 0;
+
+}
+
+
+//.......................................................................................
+
+// Given two strictly increasing vectors : 'target' and 'given', create a vector of indices of the same length of 'target',
+// Such that the value of given at index[i] is the closest to the value of target[i] while requiring - 
+//		1. abs(given[index[i]] - target[i]) < max_diff or max_diff < 0
+//		2. given[index[i]] < max
+// Insert -1 if none can be found
+void RepCalcSimpleSignals::index_targets_in_given_vector(const vector<int> &target, const vector<int> &given, int& max_diff, int signals_time_unit, int diff_time_unit, int& max, vector<size_t>& indices) {
+
+	indices.resize(target.size(), -1);
+
+	size_t iGiven = 0;
+	for (size_t iTarget = 0; iTarget < target.size(); iTarget++) {
+
+		int targetTime = med_time_converter.convert_times(signals_time_unit, diff_time_unit, target[iTarget]);
+
+		int iMinDiff = -1;
+		int diff;
+		while (iGiven < given.size() && given[iGiven] <= max) {
+			// Passing/Hitting the target
+			int givenTime = med_time_converter.convert_times(signals_time_unit, diff_time_unit, given[iGiven]);
+			if (given[iGiven] >= target[iTarget]) {
+				if (iGiven == 0) {
+					iMinDiff = iGiven;
+					diff = givenTime;
+				}
+				else {
+					int prevGivenTime = med_time_converter.convert_times(signals_time_unit, diff_time_unit, given[iGiven - 1]);
+					if (givenTime - targetTime < targetTime - prevGivenTime) {
+						iMinDiff = iGiven;
+						diff = givenTime - targetTime;
+					}
+					else {
+						iMinDiff = --iGiven;
+						diff = targetTime - prevGivenTime;
+					}
+				}
+				break;
+			}
+			iGiven++;
+		}
+
+		// Have we reached the end ?
+		if (iGiven > 0 && (iGiven == given.size() || given[iGiven] >= max)) {
+			iMinDiff = --iGiven;
+			int givenTime = med_time_converter.convert_times(signals_time_unit, diff_time_unit, given[iGiven]);
+			diff = targetTime - givenTime;
+		}
+
+		// Are we ok ?
+		if (iMinDiff != -1 && (max_diff < 0 || fabs((float)diff) <= max_diff))
+			indices[iTarget] = iMinDiff;
+
+	}
+}
+
+//.......................................................................................
+
+int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, int timer_signal_id, 
 													 float (*calcFunc)(const vector<float>&, const vector<float>&)) {
 	
 	//Check that we have the correct number of dynamic-versions : one per time-point
-	if (time_points.size() != rec.get_n_versions()) {
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
 	}
@@ -776,19 +885,16 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 	//length of calculated data
 	size_t len = time_points.size();
 
-	//handle abnormal case
-	if (len == 0)
-		return -1;
-
 	//sigs_ids is a vector containing the sids of the components in the right order
 	size_t nComponents = sigs_ids.size();
 	
 	//rec should contain space for the required sids
-	if (rec.usvs.size() < nComponents)
-		rec.usvs.resize(nComponents);
+	if (rec.usvs.size() < nComponents+1)
+		rec.usvs.resize(nComponents+1);
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
+	iteratorSignalIds.insert(timer_signal_id);
 	versionIterator vit(rec, iteratorSignalIds);
 
 	//auto it = calc2req_sigs.find(calculator);
@@ -797,14 +903,26 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 	//	return -1;
 	//}
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-		//componentData will hold the data of component signals after alignment to required time_points
+	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
+
+		// Get points for calculating values
+		rec.uget(timer_signal_id, iver, rec.usvs[nComponents]);
+
+		//componentData will hold the data of component signals after alignment to time-points given by base-signal
 		//for each time point we take the most recent data or missing_data otherwise.
 		vector<vector<float> > componentData(nComponents);
 		vector<int> curTimes; //times of data for current component
 		vector<float> curVals; //(processed) vals of data for current component	
 
-		vector<int> iverTimes(time_points.begin(), time_points.begin() + iver + 1);
+		vector<int> iverTimes(rec.usvs[nComponents].len);
+		int nPoints = 0;
+		for (int iPoint = 0; iPoint < rec.usvs[nComponents].len; iPoint++) {
+			if (rec.usvs[nComponents].Time(iPoint) > time_points[iver])
+				break;
+			else
+				iverTimes[nPoints++] = rec.usvs[nComponents].Time(iPoint);
+		}
+		iverTimes.resize(nPoints);
 
 		//get component data
 		for (size_t i = 0; i < nComponents; ++i) {
@@ -817,39 +935,41 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 			int curLen = (int)curTimes.size();
 
 			vector<size_t> indices;
-			find_sorted_vec_in_sorted_vec(iverTimes, curTimes, indices);
+			int max_diff = -1; 
+			int diff_time_unit = med_rep_type.windowTimeUnit;
+			index_targets_in_given_vector(iverTimes, curTimes, max_diff, signals_time_unit, diff_time_unit, time_points[iver], indices);
 
 			//get the values from the correct indices
-			componentData[i].reserve(len);
+			componentData[i].resize(nPoints);
 
-			if (curTimes.empty())
-				componentData[i].insert(componentData[i].begin(), iver + 1, badValue());
-			else {
-				for (int j = 0; j <= iver; ++j) {
-					size_t curInd = indices[j];
-					//curInd is the place we would add time_points[j] in curTimes; 0 means at the beginning
-					if (curInd == 0)
-						componentData[i].push_back(badValue());
-					else
-						componentData[i].push_back(curVals[(int)curInd - 1]);
-				}
+			for (int j = 0; j < nPoints; j++) {
+				if (indices[j] == -1)
+					componentData[i][j] = badValue();
+				else
+					componentData[i][j] = curVals[indices[j]];
 			}
 		}
 
 		//we now have a matrix of data in componentData. For a given j, componentData[i][j] represent values in time_points[j]
+		vector<int> finalTimes(nPoints);
+		vector<float> finalValues(nPoints);
 		vector<float> inValues(nComponents); //for a given time, the inputs
-		vector<float> calcValues(iver + 1); //for all times, the calculated values
+		int nGoodPoints = 0;
 
-		for (int j = 0; j <= iver; ++j) {
+		for (int j = 0; j < nPoints; j++) {
 			for (int i = 0; i < nComponents; ++i)
 				inValues[i] = componentData[i][j];
-
 			float val = calcFunc(inValues, coeff);
-			calcValues[j] = val;
+
+			if (!isMissingValue(val)) {
+				finalTimes[nGoodPoints] = iverTimes[j];
+				finalValues[nGoodPoints] = val;
+				nGoodPoints++;
+			}
 		}
 
 		// pushing virtual data into rec (into orig version)
-		rec.set_version_universal_data(v_sid, iver, &time_points[0], &calcValues[0], (int)(iver + 1));
+		rec.set_version_universal_data(v_sid, iver, &(finalTimes[0]), &(finalValues[0]), nGoodPoints);
 	}
 
 	return 0;

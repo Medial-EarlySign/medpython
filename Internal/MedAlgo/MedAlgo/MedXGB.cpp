@@ -290,6 +290,7 @@ size_t MedXGB::deserialize(unsigned char *blob) {
 	s += MedSerialize::get_size(model_features);
 	MedSerialize::deserialize(blob + s, features_count);
 	s += MedSerialize::get_size(features_count);
+	_mark_learn_done = true;
 	return s;
 }
 
