@@ -46,7 +46,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Set of signals
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
-		init_all(rep.dict);
+		init_all(rep.dict,rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
@@ -72,6 +72,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
+
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
 		timer.start();
 		if (learn_rep_processors(rep, *LearningSet) < 0) { //??? why are rep processors initialized for ALL time points in an id??
@@ -193,7 +194,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
 		// Initialize
-		init_all(rep.dict);
+		init_all(rep.dict,rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
@@ -341,7 +342,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			// Generate DynamicRec with all relevant signals
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 			
-			// Apply rep-cleaning
+			// Apply rep-processing
 			for (unsigned int i = 0; i < rep_processors.size(); i++)
 				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
 
@@ -781,7 +782,7 @@ void MedModel::add_process_to_set(int i_set, int duplicate, const string &init_s
 	if (init_string.find("fg_type") != string::npos) return add_feature_generator_to_set(i_set, init_string);
 	if (init_string.find("fp_type") != string::npos) return add_feature_processor_to_set(i_set, duplicate, init_string);
 
-	MERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
+	MTHROW_AND_ERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
 }
 
 
@@ -805,7 +806,7 @@ void MedModel::set_affected_signal_ids(MedDictionarySections& dict) {
 
 // initialization :  find signal ids, init tables
 //.......................................................................................
-void MedModel::init_all(MedDictionarySections& dict) {
+void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 
 	// signal ids
 	set_affected_signal_ids(dict);
@@ -819,7 +820,7 @@ void MedModel::init_all(MedDictionarySections& dict) {
 
 	// tables
 	for (RepProcessor *processor : rep_processors)
-		processor->init_tables(dict);
+		processor->init_tables(dict,sigs);
 
 	for (FeatureGenerator *generator : generators)
 		generator->init_tables(dict);
@@ -830,8 +831,8 @@ void MedModel::init_all(MedDictionarySections& dict) {
 // are required ....
 //.......................................................................................
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+	
 	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
-
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
@@ -840,6 +841,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	}
 
 	MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
+
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
@@ -877,6 +879,7 @@ int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
 			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			rep.sigs.Sid2Info[new_id].time_unit = med_rep_type.basicTimeUnit; // Currently, time-unit is determined by med_rep_type
 			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
 		}
 		else {

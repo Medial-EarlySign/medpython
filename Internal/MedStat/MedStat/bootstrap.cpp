@@ -1422,7 +1422,7 @@ bool time_range_filter(float outcome, int min_time, int max_time, int time, int 
 }
 bool time_range_filter(float outcome, float min_time, float max_time, float diff_days) {
 	return ((outcome > 0 && diff_days >= min_time && diff_days <= max_time) ||
-		(outcome <= 0 && diff_days > max_time));
+		(outcome <= 0 && diff_days >= max_time));
 }
 
 bool filter_range_param(const map<string, vector<float>> &record_info, int index, void *cohort_params) {

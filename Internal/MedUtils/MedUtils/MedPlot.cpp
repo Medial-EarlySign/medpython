@@ -25,6 +25,21 @@ inline char separator()
 #endif
 }
 
+inline string get_html_template() {
+	ifstream file(BaseResourcePath + separator() + "Graph_HTML.txt");
+	string content = "";
+	if (file.is_open()) {
+		string ln;
+		while (getline(file, ln))
+			content += "\n" + ln;
+		file.close();
+	}
+	else {
+		content = "<html>\n<head>\n  <!-- Plotly.js -->\n   <script src=\"plotly-latest.min.js\"></script>\n</head>\n\n<body>\n  <div id=\"myDiv\" align=\"center\"><!-- Plotly chart will be drawn inside this DIV --></div>\n  <script>\n    <!-- JAVASCRIPT CODE GOES HERE -->\n\n\t{0}\n\nPlotly.newPlot(\'myDiv\', data, layout);\n\t\n\tfunction searchXY() {\n\t\tsNum = parseInt(document.getElementById(\'seriesNum\').value);\n\t\tx = parseFloat(document.getElementById(\'xVal\').value);\n\t\ty = parseFloat(document.getElementById(\'yVal\').value);\n\t\tvar ser = data[sNum];\n\t\t\n\t\tif (\'z\' in ser) { //search in 3D Graph\n\t\t\tvar ind = ser.x.indexOf(x) + (ser.y.indexOf(y) % ser.x.length);\n\t\t\tdocument.getElementById(\'res\').innerHTML = ser.z[ind];\n\t\t\treturn ser.z[ind];\n\t\t}\n\t\telse {\n\t\tvar minDistance = NaN;\n\t\tvar minDistanceInd = NaN;\n\t\t\tif (!isNaN(x)) {\n\t\t\t\tfor (i=0; i< ser.x.length; ++i) {\n\t\t\t\t\tif (isNaN(minDistance) || Math.abs(ser.x[i] - x) < minDistance) {\n\t\t\t\t\t\tminDistance = Math.abs(ser.x[i] - x);\n\t\t\t\t\t\tminDistanceInd = i;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tdocument.getElementById(\'xVal\').value = ser.x[minDistanceInd];\n\t\t\t\tdocument.getElementById(\'yVal\').value = ser.y[minDistanceInd];\n\t\t\t}\n\t\t\telse if(!isNaN(y)) {\n\t\t\t\tfor (i=0; i< ser.y.length; ++i) {\n\t\t\t\t\tif (isNaN(minDistance) || Math.abs(ser.y[i] - y) < minDistance) {\n\t\t\t\t\t\tminDistance = Math.abs(ser.y[i] - y);\n\t\t\t\t\t\tminDistanceInd = i;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tdocument.getElementById(\'xVal\').value = ser.x[minDistanceInd];\n\t\t\t\tdocument.getElementById(\'yVal\').value = ser.y[minDistanceInd];\n\t\t\t}\n\t\t\t\n\t\t}\n\t}\n\t\n  </script>\n  \n  <h3 align=\"center\">Search for values in graph (leave x or y empty to search for the other value)</h3>\n   <p align=\"center\"> \n   <label for \"seriesNum\">series number (top is 0)</label>\n   <input type=\"number\" name=\"seriesNum\" id=\"seriesNum\" value=\"0\"></input>\n  <label for=\"xVal\">x</label>\n  <input type=\"number\" name=\"xVal\" id=\"xVal\"></input>\n  <label for=\"xVal\">y</label>\n  <input type=\"number\" name=\"yVal\" id=\"yVal\"></input>\n  <input type=\"button\" value=\"search\" onclick=\"searchXY();\"></input>\n  </p>\n  <span id=\"res\"></span>\n  \n</body>\n</html>";
+	}
+	return content;
+}
+
 string float2Str(float num) {
 	//return to_string((round(num * 1000) / 1000));
 	char res[50];
@@ -138,16 +153,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	jsOut << jsData;
 	jsOut.close();*/
 
-	ifstream file(BaseResourcePath + separator() + "Graph_HTML.txt");
-	if (!file.is_open()) {
-		throw logic_error("Unable to open file");
-	}
-	string ln;
-	string content = "";
-	while (getline(file, ln)) {
-		content += "\n" + ln;
-	}
-	file.close();
+	string content = get_html_template();
 
 	size_t ind = content.find("{0}");
 	if (ind == string::npos) {
@@ -259,16 +265,7 @@ void createHtml3D(string outPath, const vector<vector<vector<float>>> &vec3d,
 	jsOut << jsData;
 	jsOut.close();*/
 
-	ifstream file(BaseResourcePath + separator() + "Graph_HTML.txt");
-	if (!file.is_open()) {
-		throw logic_error("Unable to open file");
-	}
-	string ln;
-	string content = "";
-	while (getline(file, ln)) {
-		content += "\n" + ln;
-	}
-	file.close();
+	string content = get_html_template();
 
 	size_t ind = content.find("{0}");
 	if (ind == string::npos) {

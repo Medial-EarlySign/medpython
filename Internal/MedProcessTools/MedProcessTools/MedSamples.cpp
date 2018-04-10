@@ -527,7 +527,7 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 	}
 	MLOG("Samples has %d records. for uniq_pids = [", (int)samples.size());
 	for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
-		MLOG(" %d=%d", it->first, it->second);
+		MLOG(" %d=%d", (int)it->first, it->second);
 	MLOG(" ] all = [");
 	for (auto it = histCountAll.begin(); it != histCountAll.end(); ++it)
 		MLOG(" %d=%d", (int)it->first, it->second);

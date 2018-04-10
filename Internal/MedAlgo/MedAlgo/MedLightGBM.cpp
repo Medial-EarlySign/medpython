@@ -296,8 +296,8 @@ namespace LightGBM {
 
 void MedLightGBM::calc_feature_importance(vector<float> &features_importance_scores,
 	const string &general_params) {
-	if (!_mark_learn_done)
-		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
+	//if (!_mark_learn_done)
+	//	MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 
 	mem_app.calc_feature_importance(features_importance_scores, general_params,
 		(model_features.empty() ? features_count : (int)model_features.size()));
@@ -348,6 +348,7 @@ size_t MedLightGBM::deserialize(unsigned char *blob)
 		MERR("MedLightGBM::deserialize() failed moving model to string\n");
 	size += MedSerialize::deserialize(blob + size, model_features);
 	size += MedSerialize::deserialize(blob + size, features_count);
+	_mark_learn_done = true;
 	return size;
 }
 

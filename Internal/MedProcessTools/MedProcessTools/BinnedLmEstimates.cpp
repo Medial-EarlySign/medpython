@@ -181,6 +181,14 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	size_t nmodels = 1 << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
+	// Required signals
+
+	vector<int> all_req_signal_ids_v;
+	vector<unordered_set<int> > current_required_signal_ids(processors.size());
+	vector<FeatureGenerator *> generators = { this };
+	unordered_set<int> extra_req_signal_ids;
+	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
+
 	// Collect Data
 	int len, byear, gender, age;
 	PidDynamicRec rec;
@@ -198,36 +206,34 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		assert(len == 1);
 		gender = (int)(genderSignal[0].val);
 
-		// Get signal
-		rep.uget(id,signalId,usv);
-		id_firsts[i] = (int) ages.size();
+		// Get signal (if not virtual)
+		id_firsts[i] = (int)ages.size();
+		if (rep.sigs.Sid2Info[signalId].virtual_sig == 0) {
+			rep.uget(id, signalId, usv);
 
-		if (usv.len == 0) {
-			id_lasts[i] = id_firsts[i];
-			continue;
-		}		
+			if (usv.len == 0) {
+				id_lasts[i] = id_firsts[i];
+				continue;
+			}
+		}
 
 		if (processors.size()) {
 
 			// Apply processing at last time point only
-			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
-
-			// Init Dynamic Rec
-			rec.init_from_rep(std::addressof(rep), id, req_signal_ids, 1);
+//			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
+			vector<int> time_points;   
+			
+			rec.init_from_rep(std::addressof(rep), id, all_req_signal_ids_v, 1);
 
 			// BYear/Age
 			prepare_for_age(rec, ageUsv, age, byear);
-
+			  
 			// Apply Processors
-			for (unsigned int i = 0; i < processors.size(); i++) {
-				unordered_set<int> current_req_signal_ids;
-				vector<FeatureGenerator *> generator = { this };
-				get_all_required_signal_ids(current_req_signal_ids, processors, i, generator);
-				processors[i]->conditional_apply(rec, time_points, current_req_signal_ids);
-			}				
+			for (unsigned int i = 0; i < processors.size(); i++) 
+				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i]);
 
 			// Collect values and ages
-			rec.uget(signalId, 0, usv);
+			rec.uget(signalId, 0, usv); 
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
 				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);

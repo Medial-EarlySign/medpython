@@ -8,16 +8,16 @@
 // Pearson Correlation: A pure C function
 double  get_corr_pearson(float *v1, float *v2, int len)
 {
-	double sx,sy,sxy,sxx,syy,n;
+	double sx, sy, sxy, sxx, syy, n;
 
 	sx = sy = sxy = sxx = syy = 0;
 
-	for (int i=0; i<len; i++) {
+	for (int i = 0; i < len; i++) {
 		sx += v1[i];
 		sy += v2[i];
-		sxx += v1[i]*v1[i];
-		syy += v2[i]*v2[i];
-		sxy += v1[i]*v2[i];
+		sxx += v1[i] * v1[i];
+		syy += v2[i] * v2[i];
+		sxy += v1[i] * v2[i];
 	}
 
 	n = (double)len;
@@ -32,89 +32,90 @@ double  get_corr_pearson(float *v1, float *v2, int len)
 	double c2 = sxx - sx*sx;
 	double c3 = syy - sy*sy;
 
-	double epsilon = 1e-8 ;
+	double epsilon = 1e-8;
 	if (c2 < epsilon || c3 < epsilon)
 		return 0;
 
-	return (float)(c1/(sqrt(c2)*sqrt(c3)));
+	return (float)(c1 / (sqrt(c2)*sqrt(c3)));
 }
 
 // Mutual information of binned-vectors
 int get_mutual_information(vector<int>& x, vector<int>& y, double& mi, int &n) {
 
 	if (x.size() != y.size()) {
-		MERR("Size mismatch. Quitting\n") ;
-		return -1 ;
+		MERR("Size mismatch. Quitting\n");
+		return -1;
 	}
 
-	map<int,int> x_counts,y_counts ;
-	map<pair<int,int>,int> xy_counts ;
-	n = 0 ;
+	map<int, int> x_counts, y_counts;
+	map<pair<int, int>, int> xy_counts;
+	n = 0;
 
-	for (unsigned int i=0; i<x.size(); i++) {
-		if (x[i]!=-1 && y[i]!=-1) {
-			x_counts[x[i]]++ ;
-			y_counts[y[i]]++ ;
-			xy_counts[pair<int,int>(x[i],y[i])]++ ;
-			n++ ;
+	for (unsigned int i = 0; i < x.size(); i++) {
+		if (x[i] != -1 && y[i] != -1) {
+			x_counts[x[i]]++;
+			y_counts[y[i]]++;
+			xy_counts[pair<int, int>(x[i], y[i])]++;
+			n++;
 		}
 	}
 
 	if (n < 2) {
-		MLOG_V("Not enough common non-missing entries for mutual information.\n") ;
-		mi = -1 ;
-	} else {
-		mi = get_mutual_information(x_counts,n,y_counts,n,xy_counts,n) ;
+		MLOG_V("Not enough common non-missing entries for mutual information.\n");
+		mi = -1;
+	}
+	else {
+		mi = get_mutual_information(x_counts, n, y_counts, n, xy_counts, n);
 	}
 
-	return 0 ;
+	return 0;
 }
 
 // Counts from binned vectors
-void get_counts(vector<int>& x, map<int,int>& counts, int& n) {
+void get_counts(vector<int>& x, map<int, int>& counts, int& n) {
 
-	n=0 ;
-	counts.clear() ;
-	for (unsigned int i=0; i<x.size(); i++) {
+	n = 0;
+	counts.clear();
+	for (unsigned int i = 0; i < x.size(); i++) {
 		if (x[i] != -1) {
-			counts[x[i]] ++ ;
-			n++ ;
+			counts[x[i]] ++;
+			n++;
 		}
 	}
 }
 
-int get_co_counts(vector<int>& x, vector<int>& y, map<pair<int,int>,int>& counts, int& n) {
+int get_co_counts(vector<int>& x, vector<int>& y, map<pair<int, int>, int>& counts, int& n) {
 
 	if (x.size() != y.size()) {
-		MERR("Size mismatch (%d vs %d). Quitting\n",x.size(),y.size()) ;
-		return -1 ;
+		MERR("Size mismatch (%d vs %d). Quitting\n", x.size(), y.size());
+		return -1;
 	}
 
-	n=0 ;
-	counts.clear() ;
-	for (unsigned int i=0; i<x.size(); i++) {
+	n = 0;
+	counts.clear();
+	for (unsigned int i = 0; i < x.size(); i++) {
 		if (x[i] != -1 && y[i] != -1) {
-			counts[pair<int,int>(x[i],y[i])] ++ ;
-			n++ ;
+			counts[pair<int, int>(x[i], y[i])] ++;
+			n++;
 		}
 	}
 
-	return 0 ;
+	return 0;
 }
 
 // Mutual information from counts
-double get_mutual_information(map<int,int>& x_count, int nx, map<int,int>& y_count, int ny,  map<pair<int,int>,int>& xy_count, int n) {
+double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_count, int ny, map<pair<int, int>, int>& xy_count, int n) {
 
-	double mi = 0 ;
+	double mi = 0;
 	for (auto it = xy_count.begin(); it != xy_count.end(); it++) {
-		double p = (it->second + 0.0)/n ;
-		double px = (x_count[it->first.first] + 0.0)/nx ;
-		double py = (y_count[it->first.second] + 0.0)/ny ;
+		double p = (it->second + 0.0) / n;
+		double px = (x_count[it->first.first] + 0.0) / nx;
+		double py = (y_count[it->first.second] + 0.0) / ny;
 
-		mi += p * log(p/px/py)/log(2.0) ;
+		mi += p * log(p / px / py) / log(2.0);
 	}
 
-	return mi ;
+	return mi;
 }
 
 // Get moments of a vector
@@ -144,7 +145,7 @@ int get_moments(float *values, float* wgts, int size, float missing_value, float
 	s = 0.0;
 	for (int i = 0; i < size; i++) {
 		if (!do_missing || values[i] != missing_value)
-			s += wgts[i] * (values[i]-mean)*(values[i]-mean);
+			s += wgts[i] * (values[i] - mean)*(values[i] - mean);
 	}
 
 	if (n > 1)
@@ -332,3 +333,115 @@ template int medial::process::binary_search_index(const float *begin, const floa
 template int medial::process::binary_search_index(const int *begin, const int *end, int val);
 template int medial::process::binary_search_index(const double *begin, const double *end, double val);
 template int medial::process::binary_search_index(const string *begin, const string *end, string val);
+
+string medial::print::print_any(po::variable_value &a) {
+	if (a.value().type() == typeid(string)) {
+		return a.as<string>();
+	}
+	else if (a.value().type() == typeid(int)) {
+		return to_string(a.as<int>());
+	}
+	else if (a.value().type() == typeid(float)) {
+		return to_string(a.as<float>());
+	}
+	else if (a.value().type() == typeid(bool)) {
+		return to_string(a.as<bool>());
+	}
+
+	return "";
+}
+
+void medial::io::ProgramArgs_base::init(po::options_description &prg_options, const string &app_l) {
+	po::options_description general_options("Program General Options");
+	general_options.add_options()
+		("help", "help & exit")
+		("h", "help & exit")
+		("base_config", po::value<string>(&base_config), "config file with all arguments - in CMD we override those settings")
+		("debug", po::bool_switch(&debug), "set debuging verbose");
+	desc.add(general_options);
+	desc.add(prg_options);
+	if (!app_l.empty())
+		app_logo = app_l;
+	debug = false;
+	init_called = true;
+}
+
+int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
+	if (!init_called)
+		MTHROW_AND_ERR("ProgramArgs_base::init function wasn't called\n");
+	po::variables_map vm;
+	po::options_description desc_file(desc);
+	po::variables_map vm_config;
+
+	auto parsed_args = po::parse_command_line(argc, argv, desc);
+	po::store(parsed_args, vm);
+	if (vm.count("help") || vm.count("h")) {
+		cerr << app_logo << endl;
+		cerr << desc << endl;
+		return -1;
+	}
+
+	if (vm.count("base_config") > 0) {
+		std::ifstream ifs(vm["base_config"].as<string>(), std::ifstream::in);
+		if (!ifs.good())
+			MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", vm["base_config"].as<string>().c_str());
+		auto parsed = po::parse_config_file(ifs, desc_file, true);
+		po::store(parsed, vm_config);
+		ifs.close();
+	}
+	//iterate on all values and override defaults in desc:
+	bool has_valus = false;
+	for (auto it = vm_config.begin(); it != vm_config.end(); ++it)
+	{
+		if (it->second.defaulted()) {
+			continue;
+		}
+		has_valus = true;
+		if (vm.find(it->first) == vm.end() || vm[it->first].defaulted()) {
+			//should not happended
+
+			if (vm.find(it->first) == vm.end()) {
+				vm.insert(pair<string, po::variable_value>(it->first, it->second));
+			}
+			vm.at(it->first) = it->second;
+
+		}
+	}
+
+	po::notify(vm);
+
+	post_process();
+
+	if (debug) {
+		MLOG("Debug Running With:\n");
+		for (auto it = vm.begin(); it != vm.end(); ++it)
+			MLOG("%s = %s\n", it->first.c_str(), medial::print::print_any(it->second).c_str());
+		MLOG("######################################\n\n%s\n", app_logo.c_str());
+		MLOG("######################################\n");
+	}
+
+	return 0;
+}
+
+template<class T> string medial::io::get_list(const unordered_map<string, T> &ls) {
+	string res = "";
+	for (auto it = ls.begin(); it != ls.end(); ++it)
+		if (it == ls.begin())
+			res += it->first;
+		else
+			res += "," + it->first;
+	return res;
+}
+template string medial::io::get_list<int>(const unordered_map<string, int> &ls);
+
+template<class T> string medial::io::get_list_op(const unordered_map<T, string> &ls) {
+	string res = "";
+	for (auto it = ls.begin(); it != ls.end(); ++it)
+		if (it == ls.begin())
+			res += it->second;
+		else
+			res += "," + it->second;
+	return res;
+}
+template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls);
+

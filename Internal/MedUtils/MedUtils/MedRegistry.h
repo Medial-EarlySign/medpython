@@ -66,6 +66,11 @@ public:
 	void create_registry(MedPidRepository &dataManager);
 
 	/// <summary>
+	/// returns the signal codes used to create the registry
+	/// </summary>
+	void get_registry_creation_codes(vector<int> &signal_codes);
+
+	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
 	/// @param repository_path the repsitory path
 	/// @param signalCode the signal code to calculate the stats of the registry with
@@ -151,6 +156,12 @@ namespace medial {
 	}
 	namespace io {
 		void read_codes_file(const string &file_path, vector<string> &tokens);
+	}
+	namespace repository {
+		/// \brief fetches the next date from all signals in patientFile by date order.
+		/// the signalPointers is array of indexes of each signal. it also advances the right index
+		/// returns the signal with the minimal date - "the next date"
+		int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers);
 	}
 }
 
