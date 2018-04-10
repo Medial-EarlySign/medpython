@@ -176,6 +176,7 @@ void OutcomeFilter::init_from_string(const string &s)
 		else if (fields[i] == "match_min_size") match_min_size = stoi(fields[++i]);
 		else if (fields[i] == "match_max_ratio") match_max_ratio = stoi(fields[++i]);
 		else if (fields[i] == "match_event_case_price_ratio") match_event_case_price_ratio = stof(fields[++i]);		
+		else if (fields[i] == "match_max_samples") match_max_samples = stoi(fields[++i]);
 		else MWARN("OutcomeFilter: unknown token [%s] \n", fields[i].c_str());
 	}
 }
@@ -791,15 +792,52 @@ void match_binary_outcome(MedRepository &rep, const string &match_params, MedOut
 	match_binary_outcome(rep, filter, mout_in, mout_out);
 }
 
-// search for the optimal ratio between control/event samples
-// the price of giving up 1 control is 1.0, the price of giving up 1 event is w 
-double get_pairing_ratio(map<string, pair<int, int>> cnts, double w, int n_steps) {
-
-	// Get ratio for w->0
-	double min_ratio = -1, max_ratio = -1;
+void try_pairing_ratio(int& opt_cnt1, int& opt_cnt2, double& opt_r, map<string, pair<int, int>> cnts, double w, double r, int match_max_samples) {
+	// Find Optimal ratio - cnt1 and cnt2 are the overall number of samples we're giving up on 
+	int cnt1 = 0, cnt2 = 0;
+	int left_samples = 0;
 	for (auto it = cnts.begin(); it != cnts.end(); it++) {
 		int ev_cnt = it->second.first;
 		int ctrl_cnt = it->second.second;
+		if (ev_cnt == 0.0)
+			cnt1 += ctrl_cnt;
+		else if (ctrl_cnt == 0.0)
+			cnt2 += ev_cnt;
+		else {
+			double iratio = (float)(ctrl_cnt) / (float)(ev_cnt);
+			if (iratio < r)
+				// more events than we want, have to give up on some:
+				cnt2 += (ev_cnt - (int)(ctrl_cnt / r + 0.5));
+			else
+				cnt1 += (ctrl_cnt - (int)(ev_cnt * r + 0.5));
+		}
+		left_samples += ev_cnt + ctrl_cnt;
+	}
+	left_samples -= cnt1;
+	left_samples -= cnt2;
+	double current_price = cnt1 + w*cnt2;
+	double opt_price = opt_cnt1 + w*opt_cnt2;
+
+	MLOG("considered ratio %8.3f price %8.3f lose %d cases and %d controls, left with %d samples\n", r, current_price, cnt2, cnt1, left_samples);
+	if ((left_samples < match_max_samples) && (opt_r == 0 || current_price < opt_price)) {
+		opt_r = r;
+		MLOG("updated opt_r to %8.3f\n", opt_r);
+		opt_cnt1 = cnt1;
+		opt_cnt2 = cnt2;
+	}
+}
+// search for the optimal ratio between control/event samples
+// the price of giving up 1 control is 1.0, the price of giving up 1 event is w 
+double get_pairing_ratio(map<string, pair<int, int>> cnts, double w, int n_steps, int match_max_samples) {
+
+	// Get ratio for w->0
+	double min_ratio = -1, max_ratio = -1;
+	int total_ev = 0, total_ctrl = 0;
+	for (auto it = cnts.begin(); it != cnts.end(); it++) {
+		int ev_cnt = it->second.first;
+		int ctrl_cnt = it->second.second;		
+		total_ev += ev_cnt;
+		total_ctrl += ctrl_cnt;
 		if (ev_cnt > 0 && ctrl_cnt > 0) {
 			float iratio = (float)(ctrl_cnt) / (float)(ev_cnt);
 			if (min_ratio == -1 || iratio < min_ratio)
@@ -809,42 +847,21 @@ double get_pairing_ratio(map<string, pair<int, int>> cnts, double w, int n_steps
 		}
 	}
 
-	double r_step = (max_ratio - min_ratio) / n_steps;
 	MLOG("min ratio %8.3f max ratio %8.3f match_event_case_price_ratio %8.3f\n", min_ratio, max_ratio, w);
-	// Find Optimal ratio - cnt1 and cnt2 are the overall number of samples we're giving up on 
+	double r_for_max_samples = max(double(match_max_samples) / (total_ev + 0.5) - 1, 1.0);
+	MLOG("total_ctrl %d total_ev %d match_max_samples %d r_for_max_samples %8.3f \n", total_ctrl, total_ev, match_max_samples, r_for_max_samples);
+
 	int opt_cnt1 = -1, opt_cnt2 = -1;
 	double opt_r = 0;
+	if (r_for_max_samples < max_ratio)
+		try_pairing_ratio(opt_cnt1, opt_cnt2, opt_r, cnts, w, r_for_max_samples, match_max_samples);
+	double r_step = (max_ratio - min_ratio) / n_steps;
 	for (int ir = 0; ir<n_steps; ir++) {
 		double r = min_ratio + ir*r_step;
-
-		int cnt1 = 0, cnt2 = 0;
-		for (auto it = cnts.begin(); it != cnts.end(); it++) {
-			int ev_cnt = it->second.first;
-			int ctrl_cnt = it->second.second;
-			if (ev_cnt == 0.0)
-				cnt1 += ctrl_cnt;
-			else if (ctrl_cnt == 0.0)
-				cnt2 += ev_cnt;
-			else {
-				double iratio = (float)(ctrl_cnt) / (float)(ev_cnt);
-				if (iratio < r) 
-					// more events than we want, have to give up on some:
-					cnt2 += (ev_cnt - (int)(ctrl_cnt / r + 0.5));
-				else
-					cnt1 += (ctrl_cnt - (int)(ev_cnt * r + 0.5));
-			}
-		}
-		double current_price = cnt1 + w*cnt2;
-		double opt_price = opt_cnt1 + w*opt_cnt2;
-
-		MLOG("considered ratio %8.3f price %8.3f lose %d cases and %d controls\n", r, current_price, cnt2, cnt1);
-		if (opt_r == 0 || current_price < opt_price) {
-			opt_r = r;
-			opt_cnt1 = cnt1;
-			opt_cnt2 = cnt2;
-		}
+		try_pairing_ratio(opt_cnt1, opt_cnt2, opt_r, cnts, w, r, match_max_samples);
 	}
-	MLOG("opt ratio %8.3f price %8.3f lose %d cases and %d controls\n", opt_r, opt_cnt1 + w*opt_cnt2, opt_cnt2, opt_cnt1);
+	MLOG("opt ratio %8.3f price %8.3f lose %d cases and %d controls\n", opt_r, opt_cnt1 + w*opt_cnt2, 
+		opt_cnt2, opt_cnt1);
 
 	return opt_r;
 }
@@ -886,7 +903,7 @@ void match_binary_outcome(MedRepository &rep, OutcomeFilter &filter, MedOutcome 
 		}
 	}
 
-	double opt_ratio = get_pairing_ratio(cnts, filter.match_event_case_price_ratio, 20);
+	double opt_ratio = get_pairing_ratio(cnts, filter.match_event_case_price_ratio, 20, filter.match_max_samples);
 	float factor = (float)opt_ratio;
 	if (factor < 1) factor = 1;
 	if (factor > filter.match_max_ratio) {

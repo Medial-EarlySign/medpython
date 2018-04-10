@@ -98,13 +98,15 @@ class OutcomeFilter {
 		int match_min_size; // min number of events in a group to consider for ratio calculations
 		int match_max_ratio;
 		float match_event_case_price_ratio;	// when calculating the optimal match ratio, how many controls are we willing to lose to save one case?
+		int match_max_samples;
 
 		OutcomeFilter() {filter_flag = 0; min_date = -1; train_to_take=0x7; gender=0x3; min_age=0; max_age=185; filter_just_demographics=0; sigs.clear(); 
 					     sigs_win_min=0; sigs_win_max=360; min_sigs_time_points_in_win=1; history_time_before = 0; clock_sigs.clear();
 						 stick_to_sigs = 0; n_points_to_take_in_win = 1;
 						 match_flag = 0; match_age_flag = 0; age_bin_width = 5; match_gender_flag = 0; match_const_flag = 0; match_do_shuffle_flag = 1; match_dates_flag = 0; dates_bin_width = 365;
 						 match_location_flag = 0; match_signals_flag = 0; sigs_to_match.clear();
-						 match_min_size = 10; match_max_ratio = 4; match_event_case_price_ratio = 100.0;	}
+						 match_min_size = 10; match_max_ratio = 4; match_event_case_price_ratio = 100.0; match_max_samples = 1000000;
+		}
 
 		// the following is very useful when in need of init from command_line or file (sits on top of defaults)
 		void init_from_string(const string &s);
