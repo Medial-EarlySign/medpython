@@ -1337,6 +1337,7 @@ int RepPanelCompleter::init(map<string, string>& mapper)
 	}
 
 	init_lists();
+	return 0;
 }
 
 //.......................................................................................
@@ -1377,7 +1378,7 @@ int RepPanelCompleter::update_panels(string& panels) {
 		if (selected.find(panel.first) == selected.end())
 			panel_signal_names[panel2type[panel.first]].clear();
 	}
-
+	return 0;
 }
 
 
@@ -1493,7 +1494,7 @@ int RepPanelCompleter::_apply(PidDynamicRec& rec, vector<int>& time_points) {
 int RepPanelCompleter::apply_red_line_completer(PidDynamicRec& rec, vector<int>& time_points) {
 
 	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_RED_LINE_PANEL];
-	int n_sigs = sigs_ids.size();
+	int n_sigs = (int) sigs_ids.size();
 
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_RED_LINE_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_RED_LINE_PANEL];
@@ -1548,7 +1549,7 @@ int RepPanelCompleter::apply_red_line_completer(PidDynamicRec& rec, vector<int>&
 int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int>& time_points) {
 	
 	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_WHITE_LINE_PANEL];
-	int n_sigs = sigs_ids.size();
+	int n_sigs = (int) sigs_ids.size();
 
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_WHITE_LINE_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_WHITE_LINE_PANEL];
@@ -1605,7 +1606,7 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 //.......................................................................................
 int RepPanelCompleter::apply_platelets_completer(PidDynamicRec& rec, vector<int>& time_points) {
 	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_PLATELETS_PANEL];
-	int n_sigs = sigs_ids.size();
+	int n_sigs = (int) sigs_ids.size();
 
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_PLATELETS_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_PLATELETS_PANEL];
@@ -1648,7 +1649,7 @@ int RepPanelCompleter::apply_platelets_completer(PidDynamicRec& rec, vector<int>
 int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& time_points) {
 
 	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_LIPIDS_PANEL];
-	int n_sigs = sigs_ids.size();
+	int n_sigs = (int) sigs_ids.size();
 
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_LIPIDS_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_LIPIDS_PANEL];
@@ -1675,7 +1676,7 @@ int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& t
 		// Tryglicerids -> VLDL
 		for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 			if (panels[iPanel][LIPIDS_PNL_TRGS] != missing_val)
-				panels[iPanel][LIPIDS_PNL_VLDL] = panels[iPanel][LIPIDS_PNL_TRGS] / 5.0;
+				panels[iPanel][LIPIDS_PNL_VLDL] = panels[iPanel][LIPIDS_PNL_TRGS] / 5.0F;
 		}
 
 		// Complete
@@ -1704,7 +1705,7 @@ int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& t
 			changed_signals[LIPIDS_PNL_TRGS] = 1;
 			for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 				if (panels[iPanel][LIPIDS_PNL_TRGS] == missing_val && panels[iPanel][LIPIDS_PNL_VLDL] != missing_val)
-					panels[iPanel][LIPIDS_PNL_TRGS] = 5.0 * panels[iPanel][LIPIDS_PNL_VLDL];
+					panels[iPanel][LIPIDS_PNL_TRGS] = 5.0F * panels[iPanel][LIPIDS_PNL_VLDL];
 			}
 		}
 
@@ -1722,7 +1723,7 @@ int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& t
 int RepPanelCompleter::apply_eGFR_completer(PidDynamicRec& rec, vector<int>& time_points) {
 	
 	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_EGFR_PANEL];
-	int n_sigs = sigs_ids.size();
+	int n_sigs = (int) sigs_ids.size();
 
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_EGFR_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_EGFR_PANEL];
@@ -1811,7 +1812,7 @@ int RepPanelCompleter::perpare_for_age_and_gender(PidDynamicRec& rec, int& age, 
 int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time_points) {
 	
 	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_BMI_PANEL];
-	int n_sigs = sigs_ids.size();
+	int n_sigs = (int) sigs_ids.size();
 
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_BMI_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_BMI_PANEL];
@@ -1851,7 +1852,7 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 			changed_signals[BMI_PNL_HGT] = 1;
 			for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 				if (panels[iPanel][BMI_PNL_HGT] == missing_val && panels[iPanel][BMI_PNL_HGT_SQR] != missing_val)
-					panels[iPanel][BMI_PNL_HGT] = completer_round(sqrt(panels[iPanel][BMI_PNL_HGT_SQR]) * 100, original_sig_res[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT],
+					panels[iPanel][BMI_PNL_HGT] = completer_round(sqrt(panels[iPanel][BMI_PNL_HGT_SQR]) * 100.0F, original_sig_res[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT],
 						final_sig_res[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT], sig_conversion_factors[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT]);
 			}
 		}
@@ -2065,7 +2066,7 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 		}
 	}
 
-
+	return 0;
 }
 
 // Read Signals metadata - extract resolutions and conversions from a csv

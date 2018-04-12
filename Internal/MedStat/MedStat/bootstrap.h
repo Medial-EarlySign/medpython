@@ -330,7 +330,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 /// Will output the bootstrap results into file in TAB delimeted format. each line is cohort and the
 /// The columns are the measurements
 /// </summary>
-void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);
+void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments, const string& run_id);
 /// <summary>
 /// Will read the bootstrap results from file in TAB delimeted format. each line is cohort and the
 /// The columns are the measurements
@@ -341,7 +341,7 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 /// Will output the bootstrap results into file with the new format with columns: 
 /// "Cohort$Measure_Name", "Value"
 /// </summary>
-void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments);
+void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments, const string& run_id);
 /// <summary>
 /// Will read the bootstrap results into file with the new format with columns: 
 /// "Cohort$Measure_Name", "Value"

@@ -586,7 +586,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	return all_cohorts_measurments;
 }
 
-void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
+void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments, const string& run_id) {
 	string delimeter = "\t";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
@@ -603,6 +603,7 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	fw << "Cohort_Description";
 	for (size_t i = 0; i < all_columns.size(); ++i)
 		fw << delimeter << all_columns[i];
+	fw << delimeter << "run_id";
 	fw << endl;
 
 	for (auto it = all_cohorts_measurments.begin(); it != all_cohorts_measurments.end(); ++it)
@@ -613,6 +614,7 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 		for (size_t i = 0; i < all_columns.size(); ++i)
 			fw << delimeter <<
 			(cohort_values.find(all_columns[i]) != cohort_values.end() ? cohort_values.at(all_columns[i]) : MED_MAT_MISSING_VALUE);
+		fw << delimeter << run_id;
 		fw << endl;
 	}
 
@@ -650,17 +652,20 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 	of.close();
 }
 
-void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
+void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments, const string& run_id) {
 	string delimeter = "\t";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
 	map<string, float> flat_map;
-	for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt)
+	for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt) {
+		char buff[1000];
 		for (auto it = jt->second.begin(); it != jt->second.end(); ++it) {
-			char buff[1000];
 			snprintf(buff, sizeof(buff), "%s$%s", jt->first.c_str(), it->first.c_str());
 			flat_map[string(buff)] = it->second;
 		}
+		snprintf(buff, sizeof(buff), "%s$run_id@%s", jt->first.c_str(), run_id.c_str());
+		flat_map[string(buff)] = 1.0;
+	}
 
 	ofstream fw(file_name);
 	if (!fw.good())

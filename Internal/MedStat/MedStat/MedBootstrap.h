@@ -278,7 +278,7 @@ public:
 	/// writes the results to file with TAB delimeted manner. you can also
 	/// pivot the format
 	/// </summary>
-	void write_results_to_text_file(const string &path, bool pivot_format = true);
+	void write_results_to_text_file(const string &path, bool pivot_format = true, const string& run_id = "");
 	/// <summary>
 	/// reads the results from file with TAB delimeted manner. you can also
 	/// read pivot format
