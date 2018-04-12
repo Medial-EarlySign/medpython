@@ -603,7 +603,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	fw << "Cohort_Description";
 	for (size_t i = 0; i < all_columns.size(); ++i)
 		fw << delimeter << all_columns[i];
-	fw << delimeter << "run_id";
+	if (!run_id.empty())
+		fw << delimeter << "run_id";
 	fw << endl;
 
 	for (auto it = all_cohorts_measurments.begin(); it != all_cohorts_measurments.end(); ++it)
@@ -614,7 +615,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 		for (size_t i = 0; i < all_columns.size(); ++i)
 			fw << delimeter <<
 			(cohort_values.find(all_columns[i]) != cohort_values.end() ? cohort_values.at(all_columns[i]) : MED_MAT_MISSING_VALUE);
-		fw << delimeter << run_id;
+		if (!run_id.empty())
+			fw << delimeter << run_id;
 		fw << endl;
 	}
 
@@ -660,24 +662,26 @@ void write_pivot_bootstrap_results(const string &file_name, const map<string, ma
 	for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt) {
 		char buff[1000];
 		for (auto it = jt->second.begin(); it != jt->second.end(); ++it) {
-			snprintf(buff, sizeof(buff), "%s$%s", jt->first.c_str(), it->first.c_str());
+			snprintf(buff, sizeof(buff), "%s%s%s", jt->first.c_str(), delimeter.c_str(), it->first.c_str());
 			flat_map[string(buff)] = it->second;
 		}
-		snprintf(buff, sizeof(buff), "%s$run_id@%s", jt->first.c_str(), run_id.c_str());
-		flat_map[string(buff)] = 1.0;
 	}
 
 	ofstream fw(file_name);
 	if (!fw.good())
 		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
-	fw << "Cohort$Measurement" << delimeter << "Value" << endl;
+	fw << "Cohort" << delimeter << "Measurement" << delimeter << "Value" << endl;
 	for (auto it = flat_map.begin(); it != flat_map.end(); ++it)
 	{
 		string cohort_measure_name = it->first;
 		float value = it->second;
 		fw << cohort_measure_name << delimeter << value << "\n";
 	}
+	if (!run_id.empty())
+		for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt)
+			fw << jt->first << delimeter << "run_id" << delimeter << run_id << "\n";
+
 	fw.flush();
 	fw.close();
 }
@@ -698,16 +702,13 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 			continue;
 		vector<string> tokens;
 		boost::split(tokens, line, boost::is_any_of(delimeter));
-		if (tokens.size() != 2)
+		if (tokens.size() != 3)
 			MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
-		float value = stof(tokens[1]);
-		string cohort_and_measure = tokens[0];
-		tokens.clear();
-		boost::split(tokens, cohort_and_measure, boost::is_any_of("$"));
-		if (tokens.size() != 2)
-			MTHROW_AND_ERR("coudn't parse cohort_name and measure with $. got \"%s\"\n", cohort_and_measure.c_str());
-		string cohort_name = tokens[0];
-		string measure_name = tokens[1];
+		string &cohort_name = tokens[0];
+		string &measure_name = tokens[1];
+		if (measure_name == "run_id")
+			continue;
+		float value = stof(tokens[2]);
 		all_cohorts_measurments[cohort_name][measure_name] = value;
 	}
 
