@@ -43,7 +43,6 @@ float get_eGFR_CKD_EPI(float age, float creatinine, int gender, int ethnicity)
 //---------------------------------------------------------------------------------------------------------------------------
 float get_eGFR_MDRD(float age, float creatinine, int gender, int ethnicity)
 {
-
 	if (age <= 1 || creatinine <= 0.1) return -1;
 
 	double eGFR_MDRD = 175.0 * pow((double)creatinine, -1.154) * pow((double)age, -0.203);
