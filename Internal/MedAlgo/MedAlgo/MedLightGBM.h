@@ -96,8 +96,8 @@ namespace LightGBM {
 			LoadModelFromString(mdl);
 		}
 
-		vector<float> FeatureImportanceTrick() {
-			vector<pair<size_t, string>> res = FeatureImportance();
+		vector<float> FeatureImportanceTrick(const string &method = "frequency") {
+			vector<pair<size_t, string>> res = FeatureImportance(method);
 
 			vector<float> final_res(MaxFeatureIdx() + 1);
 			for (size_t i = 0; i < res.size(); ++i) {

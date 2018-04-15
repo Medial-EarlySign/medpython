@@ -288,8 +288,14 @@ namespace LightGBM {
 	void  MemApp::calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params, int max_feature_idx_) {
 
+		map<string, string> params;
+		init_map_from_string(general_params, params);
+		string importance_type = "";
+		if (params.find("importance_type") != params.end())
+			importance_type = params.at("importance_type");
+
 		GBDT_Accessor booster_access(boosting_.get());
-		features_importance_scores = booster_access.FeatureImportanceTrick();
+		features_importance_scores = booster_access.FeatureImportanceTrick(importance_type);
 	}
 
 }
