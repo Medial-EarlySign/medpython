@@ -465,9 +465,12 @@ int filter_outcome_record(MedRepository &rep, OutcomeFilter &filter, OutcomeReco
 	int gender = (int)((SVal *)rep.get(orec.pid,"GENDER",len))[0].val;
 	if (len == 0) return 0;
 
-	gender = (1 << (gender-1));
-	if ((filter.gender&gender) == 0)
+	if (verbose) MLOG("gender = [%d]\n", gender);
+	gender = (1 << (gender-1));	
+	if ((filter.gender&gender) == 0) {
+		if (verbose) MLOG("filtered by gender\n");
 		return 0;
+	}
 
 	int train = (int)((SVal *)rep.get(orec.pid,"TRAIN",len))[0].val;
 	train = (1 << (train-1));
@@ -921,8 +924,11 @@ void match_binary_outcome(MedRepository &rep, OutcomeFilter &filter, MedOutcome 
 		signature = it->first;
 		int ev_cnt = it->second.first;
 		int ctrl_cnt = it->second.second;
-		if (ev_cnt == 0 || ctrl_cnt == 0)
+		if (ev_cnt == 0 || ctrl_cnt == 0) {
+			MLOG("%s : ntake_ctrl: %d/%d ntake_case: %d/%d total size is %d\n", signature.c_str(), 0, control_ids[signature].size(),
+				0, event_ids[signature].size(), mout_out.out.size());			
 			continue;
+		}
 		int ntake_ctrl = (int)((float)ev_cnt * factor);
 		//if (ntake == 0) ntake = 1 + (int)factor/2;
 		if (ntake_ctrl > (int)control_ids[signature].size()) ntake_ctrl = (int)control_ids[signature].size();
