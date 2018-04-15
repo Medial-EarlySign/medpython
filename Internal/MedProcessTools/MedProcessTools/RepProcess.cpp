@@ -1827,6 +1827,7 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
 		// Get Signals
+		rec.usvs.resize(n_sigs);
 		for (size_t i = 0; i < n_sigs; ++i)
 			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
 
@@ -1834,7 +1835,7 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 		vector<int> panel_times;
 		vector<vector<float> > panels;
 		get_panels(rec.usvs, panel_times, panels, time_limit, BMI_PNL_LAST);
-
+		
 		// Get Square of height (in meters)
 		for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 			if (panels[iPanel][BMI_PNL_HGT] != missing_val)
