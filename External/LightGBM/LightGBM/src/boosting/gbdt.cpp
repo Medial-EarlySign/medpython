@@ -1065,4 +1065,8 @@ namespace LightGBM {
 		return pairs;
 	}
 
+	std::vector<std::pair<size_t, std::string>> GBDT::FeatureImportance() const {
+		return FeatureImportance("frequency");
+	}
+
 }  // namespace LightGBM
