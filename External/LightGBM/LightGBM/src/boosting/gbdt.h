@@ -298,7 +298,8 @@ protected:
   /*!
   * \brief Calculate feature importances
   */
-  std::vector<std::pair<size_t, std::string>> FeatureImportance() const;
+  std::unordered_set<std::string> valid_feature_importance_methods = { "frequency", "gain" };
+  std::vector<std::pair<size_t, std::string>> FeatureImportance(const std::string &method = "frequency") const;
 
   /*! \brief current iteration */
   int iter_;
