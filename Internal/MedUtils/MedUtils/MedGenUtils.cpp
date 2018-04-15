@@ -133,7 +133,7 @@ int initialization_text_to_map(const string& text, map<string, string>& init_map
 		}
 
 		for (auto &ft : from_to) {
-			MLOG("found substring: %d-%d : %s\n", ft.first, ft.second, text.substr(ft.first, ft.second-ft.first+1).c_str());
+			MLOG_D("found substring: %d-%d : %s\n", ft.first, ft.second, text.substr(ft.first, ft.second-ft.first+1).c_str());
 		}
 
 	}
@@ -149,14 +149,14 @@ int initialization_text_to_map(const string& text, map<string, string>& init_map
 		for (j=0; j<from_to.size(); j++) {
 			string name = "REPLACE_ME_LATER_NUMBER_"+to_string(j);
 			string replacer = text.substr(from_to[j].first+2, from_to[j].second-from_to[j].first-2);
-			MLOG("replacer %d : %s -> %s\n", j, name.c_str(), replacer.c_str());
+			MLOG_D("replacer %d : %s -> %s\n", j, name.c_str(), replacer.c_str());
 			new_text += name;
 			replacers[name] = replacer;
 			if (j<from_to.size()-1)
 				new_text += text.substr(from_to[j].second+1, from_to[j+1].first-from_to[j].second);
 		}
 		new_text += text.substr(from_to[j-1].second+1, text.length()-from_to[j-1].second);
-		MLOG("new_text is %s\n", new_text.c_str());
+		MLOG_D("new_text is %s\n", new_text.c_str());
 
 	}
 
