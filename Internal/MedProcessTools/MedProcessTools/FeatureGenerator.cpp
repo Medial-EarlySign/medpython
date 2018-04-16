@@ -441,7 +441,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
 	case FTR_EXISTS:			return uget_exists(rec.usv, time, win_from, win_to);
 	case FTR_LAST_DELTA_TIME_NORM_VALUE: return last_delta_time_norm(rec.usv, time);
-	case FTR_LAST_DELTA_TIME_AVG_NORM_VALUE: return last_delta_time_norm(rec.usv, time)/ uget_avg(rec.usv, time);
+	case FTR_LAST_DELTA_TIME_AVG_NORM_VALUE: return last_delta_time_avg_norm(rec.usv, time);
 
 	default:	return missing_val;
 	}
@@ -951,6 +951,7 @@ float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time)
 	return missing_val;
 }
 
+//.......................................................................................
 float BasicFeatGenerator::last_delta_time_norm(UniversalSigVec &usv, int time)
 {
 	int min_time, max_time;
@@ -958,13 +959,28 @@ float BasicFeatGenerator::last_delta_time_norm(UniversalSigVec &usv, int time)
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
-			if (i>0 && usv.Time(i - 1, time_channel) >= min_time)
-				return ((usv.Val(i, val_channel) - usv.Val(i - 1, val_channel))/(usv.Time(i, time_channel) - usv.Time(i-1, time_channel)));
-			else
-				return missing_val;
+			for (int j = i - 1; j >= 0; j--)
+			{
+				if (j < 0 || usv.Time(j, time_channel) < min_time)
+					return missing_val;
+
+				if (usv.Time(j, time_channel) != usv.Time(i, time_channel))
+				{
+					int diff_days = med_time_converter.convert_date(MedTime::Days, usv.Time(i, time_channel)) -
+						med_time_converter.convert_date(MedTime::Days, usv.Time(j, time_channel));
+					return ((usv.Val(i, val_channel) - usv.Val(j, val_channel)) / diff_days);
+				}
+			}
 		}
 	}
 	return missing_val;
+}
+//.......................................................................................
+float BasicFeatGenerator::last_delta_time_avg_norm(UniversalSigVec &usv, int time)
+{
+	float avg = uget_avg(usv, time);
+	if (avg != 0)
+		return last_delta_time_norm(usv, time) / avg;
 }
 
 //.......................................................................................
