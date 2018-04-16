@@ -108,7 +108,7 @@ public:
 	vector<string> model_features; ///<The model features used in Learn, to validate when caling predict
 	///The model features count used in Learn, to validate when caling predict. 
 	///used if model_features is empty because feature names aren't availabe during learn
-	int features_count = 0; 
+	int features_count = 0;
 
 	// Each wrapped algorithm needs to implement the following:
 	//.........................................................
@@ -295,6 +295,7 @@ public:
 
 	// Function
 	MedLM();
+	~MedLM() {};
 	MedLM(void *params);
 	MedLM(MedLMParams& params);
 	int init(void *params);
@@ -359,6 +360,7 @@ public:
 	// Function
 	void Initb();
 	MedLasso();
+	~MedLasso() {};
 	MedLasso(void *params);
 	MedLasso(MedLassoParams& params);
 	int init(void *params);
@@ -436,6 +438,7 @@ public:
 
 	// Function
 	MedGDLM();
+	~MedGDLM() {};
 	MedGDLM(void *params);
 	MedGDLM(MedGDLMParams& params);
 	/// The parsed fields from init command.
@@ -524,6 +527,7 @@ public:
 
 	// Function
 	MedQRF();
+	~MedQRF() {};
 	MedQRF(void *params);
 	MedQRF(MedQRFParams& params);
 	int init(void *params);
@@ -1050,6 +1054,27 @@ private:
 
 
 };
+
+/**
+* \brief medial namespace for function
+*/
+namespace medial {
+	/*!
+	*  \brief models namespace
+	*/
+	namespace models {
+		/// \brief returns string to create model with init_string. void * is MedPredictor
+		string getParamsInfraModel(void *model);
+		/// \brief returns MedPredictor *, a clone copy of given model (params without learned data). if delete_old is true will free old given model
+		void *copyInfraModel(void *model, bool delete_old = true);
+		/// \brief initialize model which is MedPredictor by copying it's parameters to new address and freeing old one
+		void initInfraModel(void *&model);
+		/// \brief run Learn on the MedPredictor - wrapper api
+		void learnInfraModel(void *model, const vector<vector<float>> &xTrain, vector<float> &y, vector<float> &weights);
+		/// \brief run predict on the MedPredictor - wrapper api
+		vector<float> predictInfraModel(void *model, const vector<vector<float>> &xTest);
+	}
+}
 
 //================================================================
 // dependent includes

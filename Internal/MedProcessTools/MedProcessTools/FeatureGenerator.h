@@ -71,7 +71,8 @@ public:
 
 	// Constructor/Destructor
 	FeatureGenerator() { learn_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS; pred_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS;  missing_val = MED_MAT_MISSING_VALUE; serial_id = ++MedFeatures::global_serial_id_cnt; };
-	~FeatureGenerator() {};
+	virtual ~FeatureGenerator() { clear(); };
+	virtual void clear() { };
 
 	// Required Signals
 	vector<string> req_signals;
@@ -235,7 +236,7 @@ public:
 
 	// Constructor/Destructor
 	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
-	~BasicFeatGenerator() {};
+	//~BasicFeatGenerator() {};
 	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1, signalName); }
 	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) {
 		signalName = _signalName; type = _type; win_from = _time_win_from; win_to = _time_win_to;
@@ -285,11 +286,14 @@ public:
 	/// Signal Id
 	int signalId;
 
+	~AgeGenerator() { clear(); }
+	void clear() { }
+
 	// Constructor/Destructor
 	AgeGenerator() {
 		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven; signalName = "BYEAR"; req_signals.assign(1, directlyGiven ? "Age" : signalName);
 	}
-	~AgeGenerator() {};
+	//~AgeGenerator() {};
 
 	// Name
 	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Age"); }
@@ -363,7 +367,7 @@ public:
 	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, med_rep_type.genderSignalName); }
 	GenderGenerator(int _genderId) : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, med_rep_type.genderSignalName); }
 
-	~GenderGenerator() {};
+	//~GenderGenerator() {};
 
 	// Name
 	void set_names() { if (names.empty()) names.push_back("Gender"); }
@@ -431,7 +435,7 @@ public:
 	BinnedLmEstimates(string _signalName) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); names.clear();  set_names(); };
 	BinnedLmEstimates(string _signalName, string init_string) : FeatureGenerator() { signalName = _signalName; init_defaults(); req_signals.push_back(signalName); init_from_string(init_string); };
 
-	~BinnedLmEstimates() {};
+	//~BinnedLmEstimates() {};
 
 	void set(string& _signalName);
 	void set(string& _signalName, BinnedLmEstimatesParams* _params);
@@ -522,7 +526,7 @@ public:
 
 	// Constructor/Destructor
 	RangeFeatGenerator() : FeatureGenerator() { init_defaults(); };
-	~RangeFeatGenerator() {};
+	//~RangeFeatGenerator() {};
 	void set(string& _signalName, RangeFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1, signalName); }
 	void set(string& _signalName, RangeFeatureTypes _type, int _time_win_from, int _time_win_to) {
 		signalName = _signalName; type = _type; win_from = _time_win_from; win_to = _time_win_to;

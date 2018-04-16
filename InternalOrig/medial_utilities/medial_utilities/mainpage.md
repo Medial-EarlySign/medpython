@@ -23,15 +23,18 @@ you can also use the search box to find your file/function
  * MedBootstrapResult - the main object to run bootstrap on our data adn store the results, it contains the MedBootstrap as configuration for the bootstrap
  * bootstrap.h - the internal bootstrap infrastracture for more general use
 
+ @subsection MedUtils MedUtils
+ * MedMat - a more basic data structure to store matrix data
+ * MedPlot.h - A Library to plot graphs in HTML using plotly.js 
+ * MedRegistry - A class that represents a registry records of from, to dates for each patient state
+ * MedSamplingStrategy - A class that samples on MedRegistry to create MedSamples
+ * MedCohort - A class that reperesents registry. should be merged with MedRegistry
+
  @subsection MedTime MedTime
  * MedTime.h - A library to convert between time units
 
   @subsection MedFeat MedFeat
  * MedOutcome - example object, need more documentation
-
- @subsection MedUtils MedUtils
- * MedMat - a more basic data structure to store matrix data
- * MedPlot.h -  A Library to plot graphs in HTML using plotly.js 
  
  @subsection Logger Logger
  * Several macros command for logging

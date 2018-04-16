@@ -13,17 +13,16 @@
 #endif
 
 
-float run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variables_map &vm, vector<string> signals)
+void run_learn_apply(MedPidRepository &rep, MedSamples &allSamples, po::variables_map &vm, vector<string> signals)
 {
-	float AUC = -999;
-
 	// Define Model
 	MedModel my_model;
-	my_model.init_from_json_file_with_alterations("H:\\MR\\Libs\\Internal\\MedProcessTools\\Config_Examples\\model_json_version2_example.json", vector<string> {});
+	string init_file = vm["model_init_file"].as<string>();
+	vector<string> dummy;
+	my_model.init_from_json_file_with_alterations(init_file, dummy);
 
 	MedTimer timer;
 	timer.start();
-
 }
 
 int main(int argc, char *argv[])
@@ -62,15 +61,7 @@ int main(int argc, char *argv[])
 
 	MedPidRepository rep;
 
-	if (vm.count("scan_sigs")) {
-		for (auto sig : signals) {
-			float auc = run_learn_apply(rep, allSamples, vm, { sig });
-			MLOG("##SCAN_SIGS## %s %f\n", sig.c_str(), auc);
-		}
-	}
-	else {
-		run_learn_apply(rep, allSamples, vm, signals);
-	}
+	run_learn_apply(rep, allSamples, vm, signals);
 
 	return 0;
 }
@@ -83,11 +74,10 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 	try {
 		desc.add_options()
 			("help", "produce help message")
-			("config", po::value<string>()->required(), "repository file name")
+			("config", po::value<string>()->default_value("W:\\CancerData\\Repositories\\THIN\\thin_jun2017\\thin.repository"), "repository file name")
 			("ids",po::value<string>(),"file of ids to consider")
 			("samples", po::value<string>()->required(), "samples file name")
 			("sigs", po::value<string>()->default_value("NONE"), "list of signals to consider")
-			("scan_sigs", "run and age+genger+sig model for each one of the signals")
 			("importance", "run importance when using qrf model")
 			("drug_feats", "add drug based features to model")
 			("csv_feat", po::value<string>()->default_value("NONE"), "file name to save features as csv (NONE = no saving)")
@@ -100,7 +90,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("predictor_params", po::value<string>()->default_value(""), "predictor params")
 			("temp_file", po::value<string>(), "temporary file for serialization")
 			("direct_init", po::value<int>()->default_value(0), "temporary file for serialization")
-			("model_init_file", po::value<string>(), "init json file for entire model")
+			("model_init_file", po::value<string>()->default_value("H:\\MR\\Libs\\Internal\\MedProcessTools\\Config_Examples\\model_json_version2_example.json"), "init json file for entire model")
 			("nfolds", po::value<int>(), "number of cross-validation folds")
 			;
 

@@ -129,6 +129,48 @@ bool has_element(const vector<Filter_Param> &vec, const string &val) {
 	return false;
 }
 
+void medial::process::make_sim_time_window(const string &cohort_name, const vector<Filter_Param> &filter_p,
+	const vector<float> &y, const map<string, vector<float>> &additional_info,
+	vector<float> &y_changed, map<string, vector<float>> &cp_info,
+	map<string, FilterCohortFunc> &cohorts_t, map<string, void *> &cohort_params_t) {
+	string search_term = "Time-Window";
+	cohorts_t[cohort_name] = filter_range_params;
+	cohort_params_t[cohort_name] = (void *)&filter_p;
+	//lets find the element:
+	Filter_Param time_filter;
+	for (size_t i = 0; i < filter_p.size(); ++i)
+		if (filter_p[i].param_name == search_term)
+		{
+			time_filter = filter_p[i];
+			break;
+		}
+
+	//update: y_changed based on y
+	cp_info = additional_info; //a copy - i will change those each time
+	y_changed.insert(y_changed.end(), y.begin(), y.end());
+	//update: cp_info["Time-Window"] based on additional_info["Time-Window"] for cases not in time window
+	int cases_censored = 0, cases_changed_to_controls = 0;
+	for (size_t i = 0; i < y_changed.size(); ++i)
+	{
+		if (y[i] > 0 && !filter_range_param(additional_info, (int)i, &time_filter)) {
+			// cases which are long before the outcome (>2*max_range) are considered as controls:
+
+			// ----------------max_range*2--------max_range---------min_range---event---------------
+			// -------------------^-------------------^----------------^----------^-----------------
+			// ------control------|------censor-------|------case------|--------censor--------------
+
+			if (additional_info.at(search_term)[i] > time_filter.max_range * 2) {
+				y_changed[i] = 0;
+				cp_info[search_term][i] = time_filter.min_range; // bogus time - wont filter because in time range
+				cases_changed_to_controls++;
+			}
+			else
+				cases_censored++;
+		}
+	}
+	MLOG("make_sim_time_window for cohort [%s] censored %d cases and changed %d cases to controls as they were %f days before outcome date\n",
+		cohort_name.c_str(), cases_censored, cases_changed_to_controls, time_filter.max_range * 2);
+}
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info) {
@@ -197,35 +239,18 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 		//now lets add each time window result:
 		for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
 			if (has_element(it->second, search_term)) {
+				vector<float> y_changed;
+				map<string, vector<float>> cp_info;
 				map<string, FilterCohortFunc> cohorts_t;
 				map<string, void *> cohort_params_t;
-				cohorts_t[it->first] = filter_range_params;
-				cohort_params_t[it->first] = (void *)&it->second;
-				//lets find the element:
-				Filter_Param time_filter;
-				for (size_t i = 0; i < it->second.size(); ++i)
-					if (it->second[i].param_name == search_term)
-					{
-						time_filter = it->second[i];
-						break;
-					}
-
-				//update: y_changed based on y
-				map<string, vector<float>> cp_info = additional_info; //a copy - i will change those each time
-				vector<float> y_changed(y.begin(), y.end());
-				//update: cp_info["Time-Window"] based on additional_info["Time-Window"] for cases not in time window
-				for (size_t i = 0; i < y_changed.size(); ++i)
-				{
-					if (y[i] > 0 && !filter_range_param(additional_info, (int)i, &time_filter)) {
-						y_changed[i] = 0;
-						cp_info[search_term][i] = time_filter.min_range; //wont filter because time
-					}
-				}
+				medial::process::make_sim_time_window(it->first, it->second,
+					y, additional_info, y_changed, cp_info, cohorts_t, cohort_params_t);
 
 				auto agg_res = booststrap_analyze(preds, y_changed, *rep_ids, cp_info, cohorts_t,
 					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
 					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
-				all_results.insert(*agg_res.begin()); //has one key
+				if (!agg_res.empty()) // if the cohort is too small it does not return results
+					all_results.insert(*agg_res.begin()); //has one key
 			}
 		}
 
@@ -793,11 +818,11 @@ void MedBootstrapResult::explore_score(float score, map<string, float> &score_me
 	explore_measure("SCORE", score, score_measurements, string_cohort, max_search_range);
 }
 
-void MedBootstrapResult::write_results_to_text_file(const string &path, bool pivot_format) {
+void MedBootstrapResult::write_results_to_text_file(const string &path, bool pivot_format, const string& run_id) {
 	if (pivot_format)
-		write_pivot_bootstrap_results(path, bootstrap_results);
+		write_pivot_bootstrap_results(path, bootstrap_results, run_id);
 	else
-		write_bootstrap_results(path, bootstrap_results);
+		write_bootstrap_results(path, bootstrap_results, run_id);
 }
 
 void MedBootstrapResult::read_results_to_text_file(const string &path, bool pivot_format) {

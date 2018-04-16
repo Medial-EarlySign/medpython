@@ -25,7 +25,7 @@ public:
 	float outcome = 0;		///< Outcome
 	int outcomeTime = 0;	///< Outcome time (date)
 	vector<float> prediction;	///< Prediction(s) - empty if non given
-	 
+
 	/// <summary> Constructor </summary>
 	MedSample() { prediction.clear(); }
 	/// <summary> Destructor </summary>
@@ -79,14 +79,14 @@ class MedIdSamples : public SerializableObject {
 public:
 	int id = -1;		///< Patient id
 	/// Split for cross-validation. Note that nothing forces the id and split of each MedSample to be the same as that of MedIdSamples, though anything else is an improper use, and not guaranteed to work.
-	int split = -1;		
+	int split = -1;
 	vector<MedSample> samples;		///< MedSamples for the given id
 
 	/// <summary> Constructor with id </summary>
 	MedIdSamples(int _id) { id = _id; split = -1; samples.clear(); }
 	/// <summary> Constructor without id </summary>
 	MedIdSamples() { id = -1; split = -1; samples.clear(); }
-	
+
 	/// <summary> Set split and export to all MedSample entries. </summary> 
 	void set_split(int _split) { split = _split; for (auto& s : samples) s.split = _split; }
 
@@ -117,6 +117,7 @@ public:
 
 	/// <summary> Constructor. init time_unit according to global med_rep_type </summary>
 	MedSamples() { time_unit = med_rep_type.basicTimeUnit; }
+	~MedSamples() {}
 
 	/// <summary> Clear data and init time_unit according to global med_rep_type </summary>
 	void clear() { time_unit = MedTime::Date; idSamples.clear(); }
@@ -158,14 +159,14 @@ public:
 	/// <summary> Extract a vector of all outcomes  </summary>
 	void get_y(vector<float>& y);
 	/// <summary>  Get a list of all categories (different values) appearing in the outcome </summary>
-	void get_categs(vector<float> &categs); 
+	void get_categs(vector<float> &categs);
 	/// <summary> Get all MedSamples as a single vector </summary>
 	void export_to_sample_vec(vector<MedSample> &vec_samples);
 
 	/// <summary> Sort by id and then date </summary>
-	void sort_by_id_date(); 
+	void sort_by_id_date();
 	/// <summary> Make sure that : (1) every pid has one idSample at most and (2) everything is sorted </summary>
-	void normalize(); 
+	void normalize();
 
 	/// <summary> Comparison function : mode 0 requires equal id/time, mode 1 requires equal outcome info, mode 2 also compares split and prediction </summary>
 	/// <returns> true if equal , false otherwise </returns>
@@ -190,6 +191,35 @@ public:
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 };
 
+/**
+* \brief medial namespace for function
+*/
+namespace medial {
+	/*!
+	*  \brief print namespace
+	*/
+	namespace print {
+		/// \brief print samples stats
+		void print_samples_stats(const vector<MedSample> &samples, const string &log_file = "");
+		/// \brief print samples stats
+		void print_samples_stats(const MedSamples &samples, const string &log_file = "");
+		/// \brief print samples stats by year
+		void print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids = false,
+			bool take_prediction_time = true, const string &log_file = "");
+		/// \brief print samples stats by year
+		void print_by_year(const MedSamples &data_records, int year_bin_size, bool unique_ids = false,
+			bool take_prediction_time = true, const string &log_file = "");
+	}
+	/*!
+	*  \brief process namespace
+	*/
+	namespace process {
+		/// \brief down sammling
+		void down_sample(MedSamples &samples, double take_ratio);
+		/// \brief down sample by selecting from pids
+		void down_sample_by_pid(MedSamples &samples, double take_ratio);
+	}
+}
 
 //=======================================
 // Joining the MedSerialze wagon

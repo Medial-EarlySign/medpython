@@ -16,7 +16,8 @@ using namespace std;
 enum TQRF_TreeTypes {
 	TQRF_TREE_ENTROPY = 0,
 	TQRF_TREE_REGRESSION = 1,
-	TQRF_TREE_LOGRANK = 3,
+	TQRF_TREE_LOGRANK = 2,
+	TQRF_TREE_DEV = 3, // free place to use when developing new score ideas
 	TQRF_TREE_UNDEFINED = 4
 };
 
@@ -59,6 +60,8 @@ public:
 	string samples_time_unit = "Date";
 	int samples_time_unit_i; /// calculated upon init
 
+	int ncateg = 2;			/// number of categories (1 for regression)
+
 	// time slices
 	string time_slice_unit = "Days";
 	int time_slice_unit_i; /// calculated upon init
@@ -66,6 +69,9 @@ public:
 	int n_time_slices = 1;				/// if time_slices vector is not given, one will be created using time_slice_size and this parameter. 
 	vector<int> time_slices = {};		/// if not empty: defines the borders of all the time lines. Enables a very flexible time slicing strategy
 	
+	vector<float> time_slices_wgts ={}; /// default is all 1.0 , but can be assigned by the user, will be used to weight the scores from different time windows
+	int censor_cases = 0;				/// when calclating the time slices distributions we have an option to NOT count the preciding 0's of non 0 cases.
+
 	// quantization
 	int max_q = 200;					/// maximal quantization
 	//int max_q_sample = 100000;			/// the max number of values to use when deciding q limits
@@ -107,11 +113,20 @@ public:
 
 	// sanities
 	int test_for_inf = 1;				/// will fail on non finite values in input data	
-	int test_for_missing = 0;			/// will fail on if missing value found in data
+	int test_for_missing = 0;			/// will fail if missing value found in data
+
+	// prediction configuration
+	int only_this_categ = -1;			/// relavant only to categorial predictions: -1: give all categs, 0 and above: give only those categs
+										/// remember that currently 0 is a special category in TQRF : the control category (nothing happens, healthy, etc...)
+	int predict_from_slice = -1;		/// will give predictions for slices [predict_from_slice,...,predict_to_slice]. if negative: all slices.
+	int predict_to_slice = -1;
+	int predict_sum_times = 0;			/// will sum predictions over different times
+
 
 	// verbosity
 	int verbosity = 0;					/// for debug prints
 	int ids_to_print = 30;				/// control debug prints in certain places
+	int debug = 0;						/// extra param for use when debugging
 
 	//========================================================================================================================
 
@@ -140,22 +155,33 @@ public:
 	MedFeatures *orig_medf;			   /// pointer to the original MedFeatures
 
 	int nfeat = 0;					/// just an easy helper that = qx.size()
+	vector<string> feature_names;	/// useful for debugging
 	int ncateg = 0;					/// ncateg 0 is regression, otherwise categories are assumed to be 0 ... ncateg-1
 	vector<vector<float> *> orig_data; /// pointers to the original data given
 	vector<string> feat_names;		   /// as given in train
 	vector<float> y;
+	vector<int> y_i;
 	vector<int> last_time_slice;	/// when there's more than 1 time slice there may be censoring involved and the last_time_slice is the last uncensored one.
 	int n_time_slices;				/// 1 time slice is simply the regular case of a label for the whole future
 	vector<int> slice_counts[2];	/// counts of elements in slices (in case of non regression trees). slices with no variability are not interesting.
 
 	vector<int> is_categorial_feat;
 
+	// next are pre computed for bagging purposes
+	vector<vector<vector<int>>> time_categ_pids;
+	vector<vector<vector<int>>> time_categ_idx;
+	vector<vector<int>> categ_pids;
+	vector<vector<int>> categ_idx;
+	unordered_map<int, vector<vector<vector<int>>>> pid2time_categ_idx;
+
 	int init(MedFeatures &medf, TQRF_Params &params);
+
+	~Quantized_Feat() { fprintf(stderr, "IN QF destructor\n"); pid2time_categ_idx.clear(); fprintf(stderr, "IN QF destructor2\n");}
 
 private:
 	int quantize_feat(int i_feat, TQRF_Params &params);
 	int init_time_slices(MedFeatures &medf, TQRF_Params &params);
-
+	int init_pre_bagging(TQRF_Params &params);
 
 };
 
@@ -166,7 +192,7 @@ private:
 class TQRF_Node : public SerializableObject {
 public:
 	// Next are must for every node and are ALWAYS serialized
-	int node_idx;			/// for debugging and prints
+	int node_idx = -1;			/// for debugging and prints
 	int i_feat = -1;				/// index of feature used in this node
 	float bound = (float)-1e10;		/// samples with <= bound go to Left , the other to Right
 	int is_terminal = 0;
@@ -186,11 +212,11 @@ public:
 	vector<vector<int>> time_categ_count;
 
 	// regression : mask |= 0x2
-	float pred_mean = (float)-1e10;
-	float pred_std = (float)1;
+	//float pred_mean = (float)-1e10;
+	//float pred_std = (float)1;
 
 	// quantiles: mask |= 0x4
-	vector<pair<float, float>> quantiles;
+	//vector<pair<float, float>> quantiles;
 
 
 	// following are never serialized - only for learn time
@@ -228,10 +254,11 @@ public:
 	// memory allocation - we want it single time
 	// tricks for efficient calculation of counts and the scores
 
+	virtual ~TQRF_Split_Stat() {};
 
 	virtual int init(Quantized_Feat &qf, TQRF_Params &params) {	return 0;};
 	virtual int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params) { return 0; };
-	virtual int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+	virtual int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
 
 	int get_q_test_points(int feat_max_q, TQRF_Params &params, vector<int> &qpoints);
 
@@ -239,6 +266,9 @@ public:
 	// helper vector for qpoints
 	vector<int> qpoints;
 	
+	// debug
+	virtual void print_histograms() { return; };
+
 	// the actual number of q values used (full or after qpoints squeeze if it was done)
 	int counts_q = 0;
 
@@ -256,33 +286,47 @@ public:
 	// this is needed for a more efficient computation of scores later
 	vector<vector<int>> sums;
 
+	// sums_t[t] = number of samples in time slice t (needed later for more efficient calculations)
+	vector<int> sums_t;
+
+	int total_sum = 0; // sum of the sum_t vector
+
+	~TQRF_Split_Categorial() {};
+
 	// next are for easy access
 	int ncateg = 0;
 	int nslices = 0;
-	int maxq = 0;
-
-
+	int maxq = 0; // overall
 
 	// API's
 	int init(Quantized_Feat &qf, TQRF_Params &params);
 	int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params);
 	//virtual int get_best_split(TQRF_Params &params, int &best_q, float &best_score);
+
+	void print_histograms();
 };
 
 
 //==========================================================================================================================
 class TQRF_Split_LogRank : public TQRF_Split_Categorial {
 public:
-	int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
 };
 
 
 //==========================================================================================================================
 class TQRF_Split_Entropy : public TQRF_Split_Categorial {
 public:
-	int get_best_split(TQRF_Params &params, int &best_q, float &best_score);
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
 };
 
+
+//==========================================================================================================================
+class TQRF_Split_Dev : public TQRF_Split_Categorial {
+public:
+	~TQRF_Split_Dev() {};
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
+};
 
 //==========================================================================================================================
 class TQRF_Split_Regression : public TQRF_Split_Stat {
@@ -292,7 +336,7 @@ public:
 
 	int init(Quantized_Feat &qf, TQRF_Params &params) { return 0; };
 	int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params) { return 0; };
-	int get_best_split(TQRF_Params &params, int &best_q, float &best_score) { return 0; };
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
 };
 
 //==========================================================================================================================
@@ -315,6 +359,8 @@ public:
 
 	void init(Quantized_Feat &qfeat, TQRF_Params &params) { _qfeat = &qfeat; _params = &params; }
 	int Train(Quantized_Feat &qfeat, TQRF_Params &params) {	init(qfeat, params); return Train(); }
+
+	TQRF_Node *Get_Node(MedMat<float> &x, int i_row, float missing_val);
 
 	int Train();
 
@@ -348,6 +394,7 @@ private:
 	int n_nodes_in_process = 0;
 	int i_last_node_in_process = 0;
 
+	int bag_chooser(float p, int _t, int _c, /* OUT APPEND */ vector<int> &_indexes);
 	int bag_chooser(int choose_with_repeats, int single_sample_per_id, float p, vector<int> &pids, vector<int> &idx, unordered_map<int, vector<int>> &pid2idx, /* OUT APPEND */ vector<int> &_indexes);
 
 
@@ -364,6 +411,7 @@ public:
 	vector<TQRF_Tree> trees;
 
 	int init(map<string, string>& map) { return params.init(map); }
+	int init_from_string(string init_string) { params.init_string = init_string; return SerializableObject::init_from_string(init_string); }
 
 	void init_tables(Quantized_Feat &qfeat);
 
@@ -374,11 +422,35 @@ public:
 	int Train(MedFeatures &medf, const MedMat<float> &Y);
 	int Train(MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
 
+
+	/// However - the basic predict for this model is MedMat !! , as here it is much simpler :
+	/// we only need to find the terminal nodes in the trees and calculate our scores
+	int Predict(MedMat<float> &x, vector<float> &preds);
+	int n_preds_per_sample();
+
+	int Predict_Categorial(MedMat<float> &x, vector<float> &preds); // currently like this... with time should consider inheritance to do it right.
+
 	// simple helpers
 	static int get_tree_type(const string &str);
 	static int get_missing_value_method(const string &str);
 private:
 
+};
+
+
+/// next is for debugging
+class AllIndexes : public SerializableObject {
+
+public:
+
+	vector<vector<int>> all_indexes;
+
+	void init_all_indexes(vector<TQRF_Tree> &trees) {
+		for (auto &tree : trees)
+			all_indexes.push_back(tree.indexes);
+	}
+
+	ADD_SERIALIZATION_FUNCS(all_indexes);
 };
 
 //========================================

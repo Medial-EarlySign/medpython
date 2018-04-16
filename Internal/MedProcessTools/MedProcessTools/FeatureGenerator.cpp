@@ -363,6 +363,8 @@ void BasicFeatGenerator::set_names() {
 		}
 
 		name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
+		if (type == FTR_WIN_DELTA_VALUE)
+			name += "_" + std::to_string(d_win_from) + "_" + std::to_string(d_win_to);
 		if (time_channel!=0 || val_channel != 0)
 			name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 		names.push_back(name);

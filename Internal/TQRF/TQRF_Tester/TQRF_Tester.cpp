@@ -10,6 +10,7 @@
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
+#include <Medutils/MedUtils/MedGenUtils.h>
 #include <TQRF/TQRF/TQRF.h>
 
 #include <Logger/Logger/Logger.h>
@@ -30,6 +31,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("samples_test", po::value<string>()->default_value(""), "samples file to test with")
 			("model", po::value<string>()->default_value(""), "model file to generate features")
 			("tqrf_params", po::value<string>()->default_value(""), "tqrf_params")
+			("preds_file", po::value<string>()->default_value(""), "preds file to write")
+			("seed", po::value<int>()->default_value(-1), "random seed (-1 is time)")
 			;
 
 
@@ -55,6 +58,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 		cerr << "Exception of unknown type!\n";
 		return -1;
 	}
+
+	set_rand_seed(vm["seed"].as<int>());
 
 	return 0;
 }
@@ -83,7 +88,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (vm["samples_test"].as<string>() != "") {
-		if (samples_train.read_from_file(vm["samples_test"].as<string>()) < 0) {
+		if (samples_test.read_from_file(vm["samples_test"].as<string>()) < 0) {
 			MERR("ERROR: failed reading samples file %s\n", vm["samples_test"].as<string>().c_str());
 			return -1;
 		}
@@ -103,11 +108,12 @@ int main(int argc, char *argv[])
 	samples_test.get_ids(pids_test);
 	pids = pids_train;
 	pids.insert(pids.end(), pids_test.begin(), pids_test.end());
+	MLOG("pids: train %d test: %d all: %d\n", pids_train.size(), pids_test.size(), pids.size());
 	vector<string> signals;
 	model.get_required_signal_names(signals);
 
 	MedPidRepository rep;
-	if (rep.read_all(vm["rep"].as<string>(), pids_train, signals) < 0) {
+	if (rep.read_all(vm["rep"].as<string>(), pids, signals) < 0) {
 		MERR("ERROR: failed reading repository %s\n", vm["rep"].as<string>().c_str());
 		return -1;
 	}
@@ -129,6 +135,41 @@ int main(int argc, char *argv[])
 
 	MLOG(">>> Before tqrf Train ....\n");
 	tqrf.Train(model.features);
+
+	MLOG(">>> Model built ... now predicting on test samples (if given)\n");
+	if (vm["samples_test"].as<string>() != "") {
+
+		model.features.clear();
+		// run model
+		model.apply(rep, samples_test, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+
+		// get a matrix
+		MedMat<float> x;
+		model.features.get_as_matrix(x);
+
+		MLOG(">>> Got predict matrix x : %d x %d\n", x.nrows, x.ncols);
+
+		// get tqrf predictions
+		vector<float> preds;
+		tqrf.Predict(x, preds);
+
+		MLOG(">>> Got %d tqrf predictions : n_per_sample %d (%d ids)\n", preds.size(), tqrf.n_preds_per_sample(), preds.size()/tqrf.n_preds_per_sample());
+
+		// add predictions to MedSamples
+		int i = 0;
+		int n_per_sample = tqrf.n_preds_per_sample();
+		for (auto &Id : samples_test.idSamples)
+			for (auto &s : Id.samples) {
+				s.prediction.clear();
+				for (int j=0; j<n_per_sample; j++)
+					s.prediction.push_back(preds[i*n_per_sample + j]);
+				i++;
+			}
+
+		// write to preds file
+		samples_test.write_to_file(vm["preds_file"].as<string>());
+		MLOG(">>> Wrote tqrf predictions to file %s\n", vm["preds_file"].as<string>().c_str());
+	}
 
 	return 0;
 }

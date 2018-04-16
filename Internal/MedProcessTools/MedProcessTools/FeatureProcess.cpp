@@ -40,7 +40,7 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 	else if (processor_name == "pca")
 		return FTR_PROCESS_ENCODER_PCA;
 	else
-		return FTR_PROCESS_LAST;
+		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
 
 // Initialization
@@ -129,14 +129,14 @@ string FeatureProcessor::resolve_feature_name(MedFeatures& features, string subs
 	for (auto &candidate : features.attributes)
 		if (candidate.first.find(substr) != string::npos) {
 			if (real_feature_name != "")
-				throw runtime_error(string("source_feature_name [") + substr + "] matches both [" + real_feature_name + "] and [" + candidate.first + "]");
+				MTHROW_AND_ERR("%s\n", (string("source_feature_name [") + substr + "] matches both [" + real_feature_name + "] and [" + candidate.first + "]").c_str());
 			real_feature_name = candidate.first;
 		}
 	if (real_feature_name == "") {
 		string err = string("source_feature_name [") + substr + "] does not match any feature. Tried matching to these features:\n";
 		for (auto candidate : features.attributes)
 			err += candidate.first + "\n";
-		throw runtime_error(err);
+		MTHROW_AND_ERR("%s\n", err.c_str());
 	}
 
 	return real_feature_name;
@@ -272,6 +272,19 @@ void MultiFeatureProcessor::copy(FeatureProcessor *processor) {
 		processors[i] = make_processor(tempProcessor->processors[i]->processor_type);
 		processors[i]->copy(tempProcessor->processors[i]);
 	}
+}
+
+
+//.......................................................................................
+void MultiFeatureProcessor::clear()
+{
+	for (auto pfp : processors) {
+		if (pfp != NULL) {
+			delete pfp;
+			pfp = NULL;
+		}
+	}
+	processors.clear();
 }
 
 // Init 

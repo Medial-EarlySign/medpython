@@ -67,6 +67,7 @@
       <AdditionalIncludeDirectories>$(BOOST_HOME);$(MR_LIBS_INC);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -119,7 +120,9 @@
     <ClInclude Include="StripComments.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Config_Examples\all.signals" />
     <None Include="..\Config_Examples\chads2_config.json" />
+    <None Include="..\Config_Examples\do_calc_example.json" />
     <None Include="..\Config_Examples\model_json_version2_example.json" />
     <None Include="..\Config_Examples\fragile_config.json" />
     <None Include="..\Config_Examples\signal_json_ranges.json" />

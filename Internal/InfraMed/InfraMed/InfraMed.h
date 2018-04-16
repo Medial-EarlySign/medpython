@@ -397,7 +397,9 @@ public:
 		~MedRepository() { 
 			//fprintf(stderr, "rep free\n"); fflush(stderr);
 			if (work_area) {
+				//fprintf(stderr, "~MedRepository before delete[] work_area %d", work_area);
 				delete[] work_area;
+				//fprintf(stderr, "~MedRepository after delete[] work_area %d", work_area);
 				work_area = NULL;
 			}
 			free_all_sigs();
@@ -603,6 +605,36 @@ inline void *MedRepository::uget(int pid, int sid, UniversalSigVec &usv)
 	usv.data = get(pid, sid, usv.len);
 	return usv.data;
 
+}
+
+/**
+* \brief medial namespace for function
+*/
+namespace medial {
+	/*!
+	* \brief signal_hierarchy namespace
+	*/
+	namespace signal_hierarchy {
+		/// \brief filtering hierarchy codes
+		string filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType);
+		/// \brief getting parents in hierarchy codes
+		vector<int> parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
+		/// \brief getting sons in hierarchy codes
+		vector<int> sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
+		/// \brief gets codes
+		string get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType);
+	}
+	/*!
+	* \brief repository namespace
+	*/
+	namespace repository {
+		/// \brief Helper function to calc diff between dates in years
+		float DateDiff(int refDate, int dateSample);
+		/// \brief Helper function to add days to date
+		int DateAdd(int refDate, int daysAdd);
+		/// \brief fetching specifc signal code value
+		int get_value(MedRepository &rep, int pid, int sigCode);
+	}
 }
 
 #endif

@@ -33,7 +33,7 @@ public:
 *		- time_unit : the time-unit in which samples are given <br>
 * <br>
 * - Helpers :  <br>
-*		- pid_pos_len :  pid_pos_len[pid].first holds the first row in the matrix per id, 
+*		- pid_pos_len :  pid_pos_len[pid].first holds the first row in the matrix per id,
 *						 pid_pos_len[pid].second holds the number of relevant rows
 */
 //.......................................................................................
@@ -73,7 +73,7 @@ public:
 	void set_time_unit(int _time_unit) { time_unit = _time_unit; }
 
 	/// <summary> Get a vector of feature names </summary>
-	void get_feature_names(vector<string>& names) ;
+	void get_feature_names(vector<string>& names);
 	/// <summary> Get data (+attributes) as a MedMat </summary>
 	void get_as_matrix(MedMat<float>& mat);
 	/// <summary> Get subset of data (+attributes) as a MedMat : Only features in 'names' </summary>
@@ -121,5 +121,26 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 };
+
+/**
+* \brief medial namespace for function
+*/
+namespace medial {
+	/*!
+	*  \brief process namespace
+	*/
+	namespace process {
+		/// \brief filtering MedFeatures by selected indexes rows
+		void filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag = false);
+		/// \brief down sampling with ratio
+		void down_sample(MedFeatures &dataMat, double take_ratio);
+		/// \brief reweighting method by given groups uniq values. return weights and min_factor
+		double reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
+			vector<float> &weigths, bool print_verbose);
+		/// \brief matching by given groups uniq values. returns also the row_ids filtered
+		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
+			vector<int> &filtered_row_ids, float price_ratio, bool print_verbose);
+	}
+}
 
 #endif

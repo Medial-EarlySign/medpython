@@ -1,5 +1,5 @@
 #include "TQRF.h"
-
+#include <MedStat/MedStat/MedPerformance.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -12,15 +12,15 @@ int TQRF_Params::init(map<string, string>& map)
 {
 	for (auto &f : map) {
 
-		MLOG("%s => %s %d\n", f.first.c_str(), f.second.c_str(), (f.first == "time_slice_size"));
+		//MLOG("%s => %s %d\n", f.first.c_str(), f.second.c_str(), (f.first == "time_slice_size"));
 
 		// general
 		if (f.first == "samples_time_unit") samples_time_unit = f.second;
+		if (f.first == "ncateg") ncateg = stoi(f.second);
 
 		// time slices
 		else if (f.first == "time_slice_unit") time_slice_unit = f.second;
-		else if (f.first == "time_slice_size") {
-			time_slice_size = stoi(f.second); MLOG("#####\n");		}
+		else if (f.first == "time_slice_size") time_slice_size = stoi(f.second);
 		else if (f.first == "n_time_slices") n_time_slices = stoi(f.second);
 		else if (f.first == "time_slices") {
 			vector<string> fields;
@@ -29,6 +29,13 @@ int TQRF_Params::init(map<string, string>& map)
 				time_slices.push_back(stoi(ts));
 			n_time_slices = (int)time_slices.size();
 		}
+		else if (f.first == "time_slices_wgts") {
+			vector<string> fields;
+			boost::split(fields, f.second, boost::is_any_of(","));
+			for (auto &ts : fields)
+				time_slices_wgts.push_back(stof(ts));
+		}
+		else if (f.first == "censor_cases") censor_cases = stoi(f.second);
 
 		// quantization
 		else if (f.first == "max_q") max_q = stoi(f.second);
@@ -36,7 +43,7 @@ int TQRF_Params::init(map<string, string>& map)
 		else if (f.first == "qpoints_per_split") qpoints_per_split = stoi(f.second);
 
 		// trees and stopping criteria
-		if (f.first == "tree_type") tree_type = f.second;
+		else if (f.first == "tree_type") tree_type = f.second;
 		else if (f.first == "ntrees") ntrees = stoi(f.second);
 		else if (f.first == "max_depth") max_depth = stoi(f.second);
 		else if (f.first == "min_node_last_slice") min_node_last_slice = stoi(f.second);
@@ -51,6 +58,11 @@ int TQRF_Params::init(map<string, string>& map)
 		else if (f.first == "bag_prob") bag_prob = stof(f.second);
 		else if (f.first == "bag_ratio") bag_ratio = stof(f.second);
 		else if (f.first == "bag_feat") bag_feat = stof(f.second);
+
+		// feature sampling
+		else if (f.first == "ntry") ntry = stoi(f.second);
+		else if (f.first == "ntry_prob") ntry_prob = stof(f.second);
+
 
 		// missing value
 		else if (f.first == "missing_val") missing_val = stof(f.second);
@@ -68,19 +80,44 @@ int TQRF_Params::init(map<string, string>& map)
 		else if (f.first == "test_for_inf") test_for_inf = stoi(f.second);
 		else if (f.first == "test_for_missing") test_for_missing = stoi(f.second);
 
+		// prediction configuration
+		else if (f.first == "only_this_categ") only_this_categ = stoi(f.second);
+		else if (f.first == "predict_from_slice") predict_from_slice = stoi(f.second);
+		else if (f.first == "predict_to_slice") predict_to_slice = stoi(f.second);
+		else if (f.first == "predict_sum_times") predict_sum_times = stoi(f.second);
+
 		// sanities
 		else if (f.first == "verbosity") verbosity = stoi(f.second);
 		else if (f.first == "ids_to_print") ids_to_print = stoi(f.second);
+		else if (f.first == "debug") debug = stoi(f.second);
 
 		else {
 			MERR("TQRF_Params::init(): No such parameter \'%s\'\n", f.first.c_str());
-			//return -1;
+			return -1;
 		}
 	}
 
 	tree_type_i = TQRF_Forest::get_tree_type(tree_type);
 	samples_time_unit_i = med_time_converter.string_to_type(samples_time_unit);
 	time_slice_unit_i = med_time_converter.string_to_type(time_slice_unit);
+
+	if (predict_from_slice >= 0 && 
+		((predict_to_slice - predict_from_slice + 1) > n_time_slices || predict_to_slice < 0 || predict_from_slice < 0 || predict_from_slice >= n_time_slices || predict_to_slice >= n_time_slices) ) {
+		MTHROW_AND_ERR("TQRF: Conflicting params: n_time_slices=%d <==> predict_from_slice=%d predict_to_slice=%d\n", n_time_slices, predict_from_slice, predict_to_slice);
+	}
+
+	if (time_slices_wgts.size() == 0) {
+		time_slices_wgts.resize(time_slices.size(), (float)1);
+	}
+	else {
+		if (time_slices_wgts.size() != time_slices.size())
+			MTHROW_AND_ERR("TQRF: Conflicting params sizes: time_slices_wgts & time_slices\n");
+		float s = 0;
+		for (auto w : time_slices_wgts) s+=w;
+		s = (float)time_slices_wgts.size()/s;
+		for (auto &w : time_slices_wgts) w = w * s;
+
+	}
 
 	return 0;
 }
@@ -170,7 +207,7 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 			if (j >= len) j = len - 1;
 			float q = curr_data[j].first;
 			while ((j < len-1) && (curr_data[j+1].first == q)) j++;
-			if (params.verbosity > 1) MLOG("%s : %f : j %d size %d\n", feat_names[i_feat].c_str(), q, j, j-prev_j);
+			if (params.verbosity > 2) MLOG("%s : %f : j %d size %d\n", feat_names[i_feat].c_str(), q, j, j-prev_j);
 			q_to_val[i_feat].push_back(q);
 		}
 	}
@@ -187,7 +224,7 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 	int q_size = (int)q_to_val[i_feat].size();
 	qx[i_feat].resize(data->size());
 	for (auto &v : curr_data) {
-		if (q_i < q_size && v.first >= q_to_val[i_feat][q_i])
+		while (q_i < q_size && v.first > q_to_val[i_feat][q_i])
 			q_i++;
 		qx[i_feat][v.second] = (short)q_i;
 	}
@@ -214,7 +251,7 @@ int Quantized_Feat::init(MedFeatures &medf, TQRF_Params &params)
 	for (auto &df : medf.data) {
 		orig_data.push_back(&df.second);
 		feat_names.push_back(df.first);
-		if (params.verbosity > 1) MLOG("Quantized_Feat:: %s :: %d elements :: %f %f %f %f ....\n", feat_names.back().c_str(), orig_data.back()->size(),
+		if (params.verbosity > 2) MLOG("Quantized_Feat:: %s :: %d elements :: %f %f %f %f ....\n", feat_names.back().c_str(), orig_data.back()->size(),
 			(*orig_data.back())[0], (*orig_data.back())[1], (*orig_data.back())[2], (*orig_data.back())[3]);
 	}
 
@@ -223,9 +260,13 @@ int Quantized_Feat::init(MedFeatures &medf, TQRF_Params &params)
 
 	// init y and get ncateg if needed
 	y.resize(medf.samples.size());
+	y_i.resize(medf.samples.size());
+
 #pragma omp parallel for
-	for (int i=0; i<medf.samples.size(); i++)
+	for (int i=0; i<medf.samples.size(); i++) {
 		y[i] = medf.samples[i].outcome;
+		y_i[i] = (int)y[i];
+	}
 
 	if (params.tree_type_i != TQRF_TREE_REGRESSION) {
 		float maxy = *max_element(y.begin(), y.end());
@@ -270,10 +311,66 @@ int Quantized_Feat::init(MedFeatures &medf, TQRF_Params &params)
 		if (quantize_feat(i, params) < 0)
 			rc = -1;
 
+	medf.get_feature_names(feature_names);
+
 	// rc
 	return rc;
 }
 
+//------------------------------------------------------------------------------------------------
+int Quantized_Feat::init_pre_bagging(TQRF_Params &params)
+{
+	
+	
+	int _n_categ = 2;
+	time_categ_pids.resize(params.n_time_slices, vector<vector<int>>(_n_categ));
+	time_categ_idx.resize(params.n_time_slices, vector<vector<int>>(_n_categ));
+	categ_pids.resize(_n_categ);
+	categ_idx.resize(_n_categ);
+
+	vector<vector<vector<int>>> empty_time_categ_idx(params.n_time_slices, vector<vector<int>>(_n_categ));
+
+	unordered_set<int> pid_used;
+
+	for (int i=0; i<orig_medf->samples.size(); i++) {
+		MedSample &s = orig_medf->samples[i];
+
+		// currently we split categories to 0 and the others, sampling the others as they are (later)
+		// in theory it is possible to improve this and build a mechanism to control the sampling of every category
+		// in every time slice.
+
+		int c = 0;
+		if (params.tree_type_i == TQRF_TREE_REGRESSION || y[i] != 0) c=1;
+
+		int t = last_time_slice[i];
+		int pid = s.id;
+
+		if (pid_used.find(pid) == pid_used.end())	time_categ_pids[t][c].push_back(pid);
+		if (pid_used.find(pid) == pid_used.end())	categ_pids[c].push_back(pid);
+
+		time_categ_idx[t][c].push_back(i);
+		categ_idx[c].push_back(i);
+
+		if (pid2time_categ_idx.find(pid) == pid2time_categ_idx.end()) pid2time_categ_idx[pid] = empty_time_categ_idx;
+		pid2time_categ_idx[pid][t][c].push_back(i);
+		if (c == 0 && t > 0) pid2time_categ_idx[pid][0][0].push_back(i); // making life easier for controls handling
+		pid_used.insert(pid);
+	}
+
+	for (int c=0; c<_n_categ; c++) {
+		MLOG("TQRF: samples [c=%d p %6d i %6d] ::", c, categ_pids[c].size(), categ_idx[c].size());
+		for (int t=0; t<params.n_time_slices; t++)
+			MLOG(" [t=%d] pids %6d idx %6d :", t, time_categ_pids[t][c].size(), time_categ_idx[t][c].size());
+		MLOG("\n");
+	}
+
+
+	// for convinience we set the 0 vector for t=0 to be all the controls
+	time_categ_pids[0][0] = categ_pids[0];
+	time_categ_idx[0][0] = categ_idx[0];
+
+	return 0;
+}
 
 //------------------------------------------------------------------------------------------------
 int Quantized_Feat::init_time_slices(MedFeatures &medf, TQRF_Params &params)
@@ -317,12 +414,16 @@ int Quantized_Feat::init_time_slices(MedFeatures &medf, TQRF_Params &params)
 				break;
 		if (y[i] == 0 || j<params.time_slices.size()) {
 			last_time_slice[i] = min(j, (int)params.time_slices.size()-1);
+			//if (params.debug) if (y[i] && j==1) { y[i] = -1; y_i[i] = -1; } // DEBUG
 		}
 		else {
 			// interesting case in which we have y[i] != 0 that ended AFTER the LAST time slice.
 			// in this case we have to treat the sample as a 0 outcome (!)
 			last_time_slice[i] = (int)params.time_slices.size()-1;
-			y[i] = 0;
+			y[i] = 0; 
+			y_i[i] = 0;
+			//MLOG(">>>>> sample %d : pid %d otime %d outcome %f time %d : d1 %d d2 %d diff %d : last_time_slice %d y %f (%d)\n", i, s.id, s.outcomeTime, s.outcome, s.time, d1, d2, time_diff, last_time_slice[i], y[i], y[i] != s.outcome);
+
 		}
 
 		if (params.verbosity > 0 && i < params.ids_to_print)
@@ -344,12 +445,13 @@ int Quantized_Feat::init_time_slices(MedFeatures &medf, TQRF_Params &params)
 	}
 	for (int j=0; j<n_time_slices; j++) {
 		if (params.verbosity > 0)
-			MLOG("Slice %d : %d : 0: %d 1: %d p: %f\n", j, params.time_slices[j], cnt[0][j], cnt[1][j], (float)cnt[1][j]/(1+cnt[0][j]));
+			MLOG("Slice %d : %d : 0: %d 1: %d p: %f\n", j, params.time_slices[j], cnt[0][j], cnt[1][j], (float)cnt[1][j]/(1+cnt[1][j]+cnt[0][j]));
 		if (cnt[0][j] < MIN_ELEMENTS_IN_TIME_SLICE || cnt[1][j] < MIN_ELEMENTS_IN_TIME_SLICE) {
 			MWARN("TQRF: WARNING : time slice %d (%d) too small or non variable :0: %d 1: %d p: %f\n", j, params.time_slices[j], cnt[0][j], cnt[1][j], (float)cnt[1][j]/(1+cnt[0][j]));
 		}
 	}
 
+	init_pre_bagging(params);
 	return 0;
 }
 
@@ -358,10 +460,35 @@ int Quantized_Feat::init_time_slices(MedFeatures &medf, TQRF_Params &params)
 // TQRF_Forest
 //================================================================================================
 //------------------------------------------------------------------------------------------------
+int TQRF_Forest::n_preds_per_sample()
+{
+	if (params.tree_type_i == TQRF_TREE_REGRESSION) {
+		MTHROW_AND_ERR("TQRF Regression trees not available yet...\n");
+		return -1;
+	}
+	//else {
+	// categorial cases
+	int n = params.ncateg;
+	if (params.only_this_categ >= 0) n=1;
+
+	int m = params.n_time_slices;
+
+	if (params.predict_from_slice >=0 && params.predict_from_slice < params.n_time_slices &&
+		params.predict_to_slice >= params.predict_from_slice && params.predict_to_slice < params.n_time_slices)
+		m = params.predict_to_slice - params.predict_from_slice + 1;
+
+	if (params.predict_sum_times)
+		m = 1;
+
+	return n*m;
+}
+
+//------------------------------------------------------------------------------------------------
 int TQRF_Forest::get_tree_type(const string &str)
 {
 	if (boost::iequals(str, "entropy")) return TQRF_TREE_ENTROPY;
 	if (boost::iequals(str, "logrank")) return TQRF_TREE_LOGRANK;
+	if (boost::iequals(str, "devel")) return TQRF_TREE_DEV;
 	if (boost::iequals(str, "regression")) return TQRF_TREE_REGRESSION;
 
 	return TQRF_TREE_UNDEFINED;
@@ -392,14 +519,31 @@ void TQRF_Forest::init_tables(Quantized_Feat &qfeat)
 		params.log_table.resize(max_samples);
 		params.log_table[0] = 0; // we will always use it in an nlogn manner hence the 0 rather than -inf
 		for (int i = 1; i < max_samples; i++)
-			params.log_table[i] = (double)i * log((double)i);
+			params.log_table[i] = (double)i * log((double)i)/log(2.0);
 
+	}
+	if (params.tree_type_i == TQRF_TREE_DEV) {
+
+		MLOG("TQRF: Preparing sum log table\n");
+		// initializing a precomputed sigma(log(n)) table for the sake of computing log likelihood scores
+		int max_samples = (int)qfeat.y.size()+1;
+		params.log_table.resize(max_samples);
+		params.log_table[0] = 0; 
+		for (int i = 1; i < max_samples; i++)
+			params.log_table[i] = params.log_table[i-1] + log((double)i);
 	}
 }
 
 //------------------------------------------------------------------------------------------------
 int TQRF_Forest::Train(MedFeatures &medf, const MedMat<float> &Y)
 {
+	MLOG("====================================TQRF==================================\n");
+	MLOG("TQRF_Forest: Running with params: %s\n", params.init_string.c_str());
+	MLOG("TQRF_Forest: Train: medf : %d x %d \n", medf.data.size(), medf.samples.size());
+
+	MedTimer timer;
+
+	timer.start();
 	// first - quantifying data
 	Quantized_Feat qfeat;
 	qfeat.init(medf, params);
@@ -408,17 +552,160 @@ int TQRF_Forest::Train(MedFeatures &medf, const MedMat<float> &Y)
 	// for example: log tables for entropy scores etc...
 	init_tables(qfeat);
 
+	timer.take_curr_time();
+	MLOG("TQRF_Forest: Init qfeat and tables time: %f sec\n", timer.diff_sec());
+
+	MLOG("TQRF_Forest: Starting run on %d trees\n", params.ntrees);
+
+	timer.start();
 	// creating the trees and parallelize train on each tree
 	trees.resize(params.ntrees);
+#pragma omp parallel for
 	for (int i=0; i<params.ntrees; i++) {
 		trees[i].id = i;
 		trees[i].tree_type = params.tree_type_i;
 		trees[i].init(qfeat, params);
 		trees[i].Train();
+		if (params.verbosity > 0) MLOG("TQRF: Trained Tree %d : type %d : indexes %d : feats %d : n_nodes %d\n", trees[i].id, trees[i].tree_type, trees[i].indexes.size(), trees[i].i_feats.size(), trees[i].nodes.size());
+	}
+
+	timer.take_curr_time();
+	MLOG("TQRF_Forest: %d Trees training time : %f sec \n", params.ntrees, timer.diff_sec());
+
+	// calculating average bagging per tree (should move to a separate report routine)
+	vector<vector<int>> avg_bag;
+	avg_bag.resize(qfeat.n_time_slices, vector<int>(qfeat.ncateg, 0));
+	for (int i=0; i<params.ntrees; i++) {
+		if (trees[i].nodes.size() > 1)
+			for (int t=0; t<qfeat.n_time_slices; t++)
+				for (int c=0; c<qfeat.ncateg; c++)
+					avg_bag[t][c] += trees[i].nodes[0].time_categ_count[t][c];
+	}
+	for (int t=0; t<qfeat.n_time_slices; t++)
+		for (int c=0; c<qfeat.ncateg; c++)
+			avg_bag[t][c] /= params.ntrees;
+
+	MLOG("TQRF_Forest: average bagging report :");
+	for (int t=0; t<qfeat.n_time_slices; t++)
+		for (int c=0; c<qfeat.ncateg; c++)
+			MLOG(" [t=%d][c=%d] %d :", t, c, avg_bag[t][c]);
+	MLOG("\n");
+
+
+	//// DEBUG - Saving all indexes
+	if (0) {
+		AllIndexes a_i;
+		a_i.init_all_indexes(trees);
+		a_i.write_to_file("all_indexes.bin");
 	}
 
 	return 0;
 }
+
+//------------------------------------------------------------------------------------------------
+int TQRF_Forest::Predict(MedMat<float> &x, vector<float> &preds)
+{
+	MLOG("TQRF_Forest: Running predict on matrix of %d x %d\n", x.nrows, x.ncols);
+
+	if (params.tree_type_i == TQRF_TREE_REGRESSION) {
+		MTHROW_AND_ERR("TQRF Regression Trees not available yet...\n");
+		return -1;
+	}
+
+	if (params.tree_type_i == TQRF_TREE_ENTROPY || params.tree_type_i == TQRF_TREE_LOGRANK || params.tree_type_i == TQRF_TREE_DEV) {
+		return Predict_Categorial(x, preds);
+	}
+
+	return -1;
+}
+
+//------------------------------------------------------------------------------------------------
+int TQRF_Forest::Predict_Categorial(MedMat<float> &x, vector<float> &preds)
+{
+	MLOG("TQRF_Forest : Predict_Categorial\n");
+	MedTimer timer;
+
+	timer.start();
+
+	int n_per_sample = n_preds_per_sample();
+	// get preds to the right size (so we can thread it all)
+	preds.resize(x.nrows * n_per_sample, (float)-1);
+
+#pragma omp parallel for
+	for (int i=0; i<x.nrows; i++) {
+		vector<vector<int>> sum_over_trees;
+		sum_over_trees.resize(params.n_time_slices, vector<int>(params.ncateg, 0));
+		for (int i_tree = 0; i_tree < trees.size(); i_tree++) {
+			TQRF_Node *cnode = trees[i_tree].Get_Node(x, i, params.missing_val);
+			for (int t=0; t<params.n_time_slices; t++)
+				for (int c=0; c<params.ncateg; c++)
+					sum_over_trees[t][c] += cnode->time_categ_count[t][c];
+		}
+
+		vector<int> sum_t(params.n_time_slices, 0);
+		for (int t=0; t<params.n_time_slices; t++)
+			for (int c=0; c<params.ncateg; c++)
+				sum_t[t] += sum_over_trees[t][c];
+
+		vector<vector<float>> probs_t;
+		probs_t.resize(params.n_time_slices, vector<float>(params.ncateg, 0));
+		for (int t=0; t<params.n_time_slices; t++)
+			for (int c=0; c<params.ncateg; c++) {
+				if (sum_t[t] > 0)
+					probs_t[t][c] = (float)sum_over_trees[t][c]/sum_t[t];
+			}
+
+		// we are now ready to actually report the needed predicions
+		int from_t = 0, to_t = params.n_time_slices-1;
+		if (params.predict_from_slice >= 0) {
+			from_t = params.predict_from_slice;
+			to_t = params.predict_to_slice;
+		}
+		int from_c = 0, to_c = params.ncateg-1;
+		if (params.only_this_categ >= 0) {
+			from_c = params.only_this_categ;
+			to_c = params.only_this_categ;
+		}
+
+		// abit km explanations:
+		// when looking at 2 adjacent time slices , we have counts N0_c for t0 (and category c) and N1_c for t1
+		// we have the following connection:
+		// N0_c = SUM(N1_C) + Censored
+		// Hence the survival (category 0) after each time is:
+		// S0 = N0_0 / SUM(N0_c) , S1 = S0 * (N1_0 / SUM(N1_c))
+		// The probability to get class 'c' during each of these times is
+		// P0_c = N0_c / SUM(N0_c) , P1_c = S0 * (N1_c / SUM(N1_c)
+		// Those are our estimates with this model
+
+		vector<float> survival(params.n_time_slices);
+		survival[0] = (float)1.0;
+		for (int t=1; t<params.n_time_slices; t++)
+			survival[t] = survival[t-1] * probs_t[t-1][0];
+		int index = i*n_per_sample;
+		//assert(from_t ==0 && to_t == 0 && from_c == 1 && to_c == 1); // DEBUG
+		if (params.predict_sum_times) {
+			for (int c=from_c; c<=to_c; c++) {
+				preds[index] = 0;
+				for (int t=from_t; t<=to_t; t++)
+					preds[index] += survival[t] * probs_t[t][c];
+				index++;
+			}
+		}
+		else {
+			for (int t=from_t; t<=to_t; t++)
+				for (int c=from_c; c<=to_c; c++) {
+					preds[index++] = survival[t] * probs_t[t][c];
+				}
+		}
+
+	}
+
+	timer.take_curr_time();
+	MLOG("TQRF_Forest : Predict_Categorial : Finished : got %d predictions (n_per_sample %d) : time: %f sec\n", preds.size(), n_per_sample, timer.diff_sec());
+
+	return 0;
+}
+
 
 //================================================================================================
 // TQRF_Split_Stat family of classes
@@ -431,6 +718,8 @@ TQRF_Split_Stat *TQRF_Split_Stat::make_tqrf_split_stat(int tree_type)
 		return new TQRF_Split_Entropy;
 	if (tree_type == TQRF_TREE_REGRESSION)
 		return new TQRF_Split_Regression;
+	if (tree_type == TQRF_TREE_DEV)
+		return new TQRF_Split_Dev;
 	 
 	return NULL;
 }
@@ -476,6 +765,7 @@ int TQRF_Split_Categorial::init(Quantized_Feat &qf, TQRF_Params &params)
 
 	counts.resize(nslices, vector<vector<int>>(maxq , vector<int>(ncateg)));
 	sums.resize(nslices, vector<int>(ncateg));
+	sums_t.resize(nslices);
 
 	return 0;
 }
@@ -491,9 +781,11 @@ int TQRF_Split_Categorial::prep_histograms(int i_feat, TQRF_Node &node, vector<i
 		for (int q=0; q<feat_maxq; q++)
 			for (int c=0; c<ncateg; c++)
 				counts[t][q][c] = 0;
-	for (int t=0; t<nslices; t++)
+	for (int t=0; t<nslices; t++) {
+		sums_t[t] = 0;
 		for (int c=0; c<ncateg; c++)
 			sums[t][c] = 0;
+	}
 
 	// now going over each sample in the node (sometimes we have to sample)
 	// and adding counts for each category.
@@ -507,13 +799,13 @@ int TQRF_Split_Categorial::prep_histograms(int i_feat, TQRF_Node &node, vector<i
 	for (int i=node.from_idx; i<=node.to_idx; i++) {
 		int idx = indexes[i];
 		int q = feat_qvals[idx];
-		int c = (int)(qf.y[idx]);
+		int c = qf.y_i[idx];
 		int t = qf.last_time_slice[idx];
 
 		counts[t][q][c]++;
 		// in case c is 0 we need now to also add a ++ for all cells [0...(t-1)][q][0] . However, we will do those in one swip
 		// at the end which should be more efficient.
-		if (q > 0) sums[t][c]++; // not summing q=0 cases: missing values are seprate
+		if (q > 0) sums[t][c]++; // not summing q=0 cases: missing values are separate
 	}
 
 	// now we consider the cases of fewer qpoints 
@@ -522,6 +814,7 @@ int TQRF_Split_Categorial::prep_histograms(int i_feat, TQRF_Node &node, vector<i
 	get_q_test_points(feat_maxq, params, qpoints);
 
 	counts_q = feat_maxq;
+
 	if (qpoints.size() != 0) {
 
 		// checking fewer q points - given orderes in qpoints
@@ -544,19 +837,50 @@ int TQRF_Split_Categorial::prep_histograms(int i_feat, TQRF_Node &node, vector<i
 		counts_q = (int)qpoints.size() + 1; // +1 for q=0
 	}
 
-
 	// summing all 0 counts in one swip
 	for (int t=nslices-2; t>=0; t--) {
-		sums[t][0] += sums[t+1][0];
+		int to_categ = (params.censor_cases) ? 1 : ncateg;
+		for (int c=0; c<to_categ; c++)
+			sums[t][0] += sums[t+1][c];
 		for (int q=1; q<counts_q; q++)
-			counts[t][q][0] += counts[t+1][q][0];
+			for (int c=0; c<to_categ; c++)
+				counts[t][q][0] += counts[t+1][q][c];
+	}
+
+	total_sum = 0;
+	for (int t=0; t<nslices; t++) {
+		for (int c=0; c<ncateg; c++)
+			sums_t[t] += sums[t][c];
+		total_sum += sums_t[t];
 	}
 
 	return 0;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+void TQRF_Split_Categorial::print_histograms()
+{
+	MLOG("nslices %d ncateg %d maxq %d counts_q %d\n", nslices, ncateg, maxq, counts_q);
 
-int TQRF_Split_Entropy::get_best_split(TQRF_Params &params, int &best_q, float &best_score)
+	for (int q=0; q<counts_q; q++) {
+		MLOG("counts q[%d] :", q);
+		for (int c=0; c<ncateg; c++)
+			for (int t=0; t<nslices; t++)
+				MLOG(" c[%1d] t[%1d] %d :", c, t, counts[t][q][c]);
+		MLOG("\n");
+	}
+
+
+	MLOG("sums :");
+	for (int c=0; c<ncateg; c++)
+		for (int t=0; t<nslices; t++)
+			MLOG(" c[%1d] t[%1d] %d :", c, t, sums[t][c]);
+	MLOG("\n");
+}
+
+
+//--------------------------------------------------------------------------------------------------------------------
+int TQRF_Split_Entropy::get_best_split(TQRF_Params &params, int &best_q, double &best_score)
 {
 	// the scenario is that we have counts and sums ready and squeezed to the qpoints we want to test
 	// we need to go over each of the possible split points, and if it is valid in the sense of 
@@ -565,38 +889,79 @@ int TQRF_Split_Entropy::get_best_split(TQRF_Params &params, int &best_q, float &
 	best_q = -1;			// signing no split point found
 	best_score = -1;
 
-	vector<int> left_sums(ncateg, 0), right_sums(ncateg, 0);
-	int lsum = 0, rsum = 0;
+	//vector<int> left_sums(ncateg, 0), right_sums(ncateg, 0);
+	vector<vector<int>> left_sums, right_sums;
+
+	left_sums.resize(nslices, vector<int>(ncateg, 0));
+	right_sums.resize(nslices, vector<int>(ncateg, 0));
+	vector<int> lsum(nslices), rsum(nslices);
+	vector<double> H(nslices);
 
 	// below is a version for a single time slice only... to begin with debugging and build code
 	// will be changed to sum over slices later
-	if (nslices != 1)
-		throw("ERROR: Running on debug version that supports only a single time slice !!!!!!\n");
+	//if (nslices != 1)
+	//	MTHROW_AND_ERR("ERROR: Running on debug version that supports only a single time slice !!!!!!\n");
+
+	if (params.verbosity > 2) MLOG("TQRF_Split_Entropy::get_best_split counts_q=%d ncateg=%d\n", counts_q, ncateg);
 
 	for (int q=1; q<counts_q-1; q++) {
 
-		for (int c=0; c<ncateg; c++) {
-			left_sums[c] += counts[0][q][c];
-			right_sums[c] = sums[0][c] - left_sums[c];
-			lsum += left_sums[c];
-			rsum += right_sums[c];
+		fill(lsum.begin(), lsum.end(), 0);
+		fill(rsum.begin(), rsum.end(), 0);
+
+		for (int t=0; t<nslices; t++) {
+			for (int c=0; c<ncateg; c++) {
+				left_sums[t][c] += counts[t][q][c];
+				right_sums[t][c] = sums[t][c] - left_sums[t][c];
+				lsum[t] += left_sums[t][c];
+				rsum[t] += right_sums[t][c];
+			}
 		}
 
-		if (lsum >= params.min_node && rsum >= params.min_node) {
-			double H = 0;
+		if (params.verbosity > 2) {
+			for (int t=0; t<nslices; t++) {
+				MLOG("[T slice = %d] Left  q %d : lsum %d :", t, q, lsum[t]);
+				for (int c=0; c<ncateg; c++)
+					MLOG("c[%d] %d :", c, left_sums[t][c]);
+				MLOG(" Right q %d : rsum %d :", q, rsum[t]);
+				for (int c=0; c<ncateg; c++)
+					MLOG("c[%d] %d :", c, right_sums[t][c]);
+				MLOG("\n");
+			}
+		}
 
-			// add left and right side entropy
-			for (int c=0; c<ncateg; c++) {
-				H += params.log_table[left_sums[c]];
-				H += params.log_table[right_sums[c]];
+		if (lsum[0] >= params.min_node && rsum[0] >= params.min_node) {
+
+			double H_tot = 0;
+			fill(H.begin(), H.end(), 0);
+
+			for (int t=0; t<nslices; t++) {
+
+				// add left and right side entropy
+				for (int c=0; c<ncateg; c++) {
+					H[t] += params.log_table[left_sums[t][c]];
+					H[t] += params.log_table[right_sums[t][c]];
+					H[t] -= params.log_table[left_sums[t][c]+right_sums[t][c]];
+				}
+
+				// subtract overall sum entropy
+				H[t] -= params.log_table[lsum[t]];
+				H[t] -= params.log_table[rsum[t]];
+
+				H[t] += params.log_table[lsum[t]+rsum[t]];
+
+				H[t] /= (double)(lsum[t]+rsum[t])/1000.0; // actual information gain (x1000 for better resolution)
+
+				H_tot += H[t] * (double)sums_t[t]/(double)total_sum;
 			}
 
-			// subtract overall sum entropy
-			H -= params.log_table[lsum];
-			H -= params.log_table[rsum];
+			if (params.verbosity > 2) {
+				MLOG("      q %d : H %f best_score %f best_q %d\n", q, H_tot, best_score, best_q);
+			}
 
-			if ((float)H > best_score) {
-				best_score = (float)H;
+			//if (best_score < 0 || (H > 0 && H < best_score)) {
+			if (H_tot > best_score) {
+				best_score = H_tot;
 				best_q = q;
 			}
 		}
@@ -608,59 +973,330 @@ int TQRF_Split_Entropy::get_best_split(TQRF_Params &params, int &best_q, float &
 	return 0;
 }
 
+
+//--------------------------------------------------------------------------------------------------------------------
+int TQRF_Split_Dev::get_best_split(TQRF_Params &params, int &best_q, double &best_score)
+{
+	// the scenario is that we have counts and sums ready and squeezed to the qpoints we want to test
+	// we need to go over each of the possible split points, and if it is valid in the sense of 
+	// number of samples left on each side (we always test this WITHOUT the missing vals) we get the score
+
+	best_q = -1;			// signing no split point found
+	best_score = -1e30;
+
+
+	// this development version is calculating the likelihood score for getting the exact split
+
+
+
+	//vector<int> left_sums(ncateg, 0), right_sums(ncateg, 0);
+	vector<vector<int>> left_sums, right_sums;
+
+	//nslices = 1; // DEBUG
+
+	left_sums.resize(nslices, vector<int>(ncateg, 0));
+	right_sums.resize(nslices, vector<int>(ncateg, 0));
+	vector<int> lsum(nslices), rsum(nslices);
+	vector<double> L(nslices);
+
+	if (params.verbosity > 2) MLOG("TQRF_Split_Dev::get_best_split counts_q=%d ncateg=%d\n", counts_q, ncateg);
+
+	for (int q=1; q<counts_q-1; q++) {
+
+		fill(lsum.begin(), lsum.end(), 0);
+		fill(rsum.begin(), rsum.end(), 0);
+
+		// getting the slices counts for left and right
+		for (int t=0; t<nslices; t++) {
+			for (int c=0; c<ncateg; c++) {
+				left_sums[t][c] += counts[t][q][c];
+				right_sums[t][c] = sums[t][c] - left_sums[t][c];
+				lsum[t] += left_sums[t][c];
+				rsum[t] += right_sums[t][c];
+			}
+		}
+
+		if (params.verbosity > 2) {
+			for (int t=0; t<nslices; t++) {
+				MLOG("[T slice = %d] Left  q %d : lsum %d :", t, q, lsum[t]);
+				for (int c=0; c<ncateg; c++)
+					MLOG("c[%d] %d :", c, left_sums[t][c]);
+				MLOG("Right q %d : rsum %d :", q, rsum[t]);
+				for (int c=0; c<ncateg; c++)
+					MLOG("c[%d] %d :", c, right_sums[t][c]);
+				MLOG("\n");
+			}
+		}
+
+
+		if (lsum[0] >= params.min_node && rsum[0] >= params.min_node) {
+
+			double L_tot = 0;
+			fill(L.begin(), L.end(), 0);
+
+			for (int t=0; t<nslices; t++) {
+
+				// add left and right side entropy
+				for (int c=0; c<ncateg; c++) {
+					L[t] += params.log_table[sums[t][c]];
+					L[t] -= params.log_table[left_sums[t][c]];
+					L[t] -= params.log_table[right_sums[t][c]];
+				}
+				L[t] += params.log_table[lsum[t]];
+				L[t] += params.log_table[rsum[t]];
+				L[t] -= params.log_table[sums_t[t]];
+
+				L_tot += L[t] * params.time_slices_wgts[t];
+			}
+
+			//L_tot = L[0];
+			// prob=exp(L_tot) but we want the minimal probability so we need to use -L_tot
+			L_tot = -L_tot;
+
+			if (params.verbosity > 2) {
+				MLOG("      q %d : L_tot %f best_score %f best_q %d\n", q, L_tot, best_score, best_q);
+			}
+
+			//if (best_score < 0 || (H > 0 && H < best_score)) {
+			if (L_tot > best_score) {
+				best_score = L_tot;
+				best_q = q;
+			}
+		}
+
+	}
+
+	//if (qpoints.size() > 0 && best_q>0) best_q = qpoints[best_q-1]; // TBD - qpoints
+	//nslices = params.time_slices.size(); // DEBUG
+
+	return 0;
+}
+
 //================================================================================================
 // TQRF_Tree
 //================================================================================================
 //--------------------------------------------------------------------------------------------------------------------
+// major stage in algorithm:
+// we finished the work on deciding if and how to split our node, and need to actually do it.
+// list of issues handled in this stage:
+// (1) close work on our node, wheather needed a split or not.
+// (2) add info from the splitting tqs into our node (distributions etc)
+// (3) split node if needed, create the new nodes.
+// (4) update indexes as needed
+// (5) decide what to do with missing values !!
+int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
+{
+	// 
+	// finish the work on current node
+	//
+
+	TQRF_Node *cnode = &nodes[i_curr_node];
+
+	if (_params->verbosity > 1) MLOG("TQRF: node_splitter : Tree %d : node %d / %d : %d - %d : i_best %d : q_best %d : feat %s\n", 
+		id, i_curr_node, nodes.size(), cnode->from_idx, cnode->to_idx, i_best, q_best, (i_best<0)? "NONE" :_qfeat->feature_names[i_best].c_str());
+	if (i_best >= 0) {
+
+		// We found a point to split the node
+		TQRF_Node Left, Right;
+
+		cnode->i_feat = i_best;
+		cnode->bound = _qfeat->q_to_val[i_best][q_best];
+
+		// need to calc node sizes, and general average in order to decide for missing value strategy
+		int n_missing = 0, n_left = 0, n_right = 0;
+		float sum_vals = 0;
+		for (int i=cnode->from_idx; i<=cnode->to_idx; i++) {
+			int idx = indexes[i];
+			int q = _qfeat->qx[i_best][idx];
+			if (q > 0) {
+				if (q <= q_best)
+					n_left++;
+				else
+					n_right++;
+				sum_vals += _qfeat->q_to_val[i_best][q];
+			}
+			else
+				n_missing++;
+		}
+		if (_params->verbosity > 1) MLOG("TQRF: node_splitter : Tree %d : node %d : n_missing %d n_left %d n_right %d\n",
+											id, i_curr_node, n_missing, n_left, n_right);
+
+		// decide missing val strategy
+		if (_params->missing_method == TQRF_MISSING_VALUE_LEFT) cnode->missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+		else if (_params->missing_method == TQRF_MISSING_VALUE_RAND_ALL) {
+			if (rand_1() < 0.5)
+				cnode->missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+			else
+				cnode->missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
+		}
+		else if (_params->missing_method == TQRF_MISSING_VALUE_LARGER_NODE || _params->missing_method == TQRF_MISSING_VALUE_MEDIAN) {
+			if (n_left >= n_right)
+				cnode->missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+			else
+				cnode->missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
+		}
+		else if (_params->missing_method == TQRF_MISSING_VALUE_MEAN) {
+			float node_avg = sum_vals / ((float)(n_right + n_left) + (float)1e-3);
+			if (node_avg <= cnode->bound)
+				cnode->missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+			else
+				cnode->missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
+		}
+		else if (_params->missing_method == TQRF_MISSING_VALUE_RAND_EACH_SAMPLE)
+			cnode->missing_direction = TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE;
+
+
+		if (_params->verbosity > 1) MLOG("TQRF: node_splitter : Tree %d : node %d : missing direction %d\n", id, cnode->node_idx, cnode->missing_direction);
+
+		// making the split , first we rearange indexes
+		int n_in_left = 0;
+		vector<int> left_inds, right_inds;
+		//left_inds.reserve(cnode.size());
+		//right_inds.reserve(cnode.size());
+		for (int i=cnode->from_idx; i<=cnode->to_idx; i++) {
+			int idx = indexes[i];
+			int q = _qfeat->qx[i_best][idx];
+			if (q > 0) {
+				if (q <= q_best)
+					left_inds.push_back(idx);
+				else
+					right_inds.push_back(idx);
+			}
+			else {
+				if (cnode->missing_direction == TQRF_MISSING_DIRECTION_LEFT) left_inds.push_back(idx);
+				else if (cnode->missing_direction == TQRF_MISSING_DIRECTION_RIGHT) right_inds.push_back(idx);
+				else { // if (cnode.missing_direction == TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE) case ...
+					if (rand_1() < (float)0.5)
+						left_inds.push_back(idx);
+					else
+						right_inds.push_back(idx);
+				}
+			}
+		}
+
+		int curr_i = cnode->from_idx;
+		for (auto idx : left_inds) indexes[curr_i++] = idx;
+		for (auto idx : right_inds) indexes[curr_i++] = idx;
+		Left.from_idx = cnode->from_idx;
+		Left.to_idx = cnode->from_idx + (int)left_inds.size() - 1;
+		Right.from_idx = Left.to_idx + 1;
+		Right.to_idx = cnode->to_idx;
+
+		Left.depth = cnode->depth + 1;
+		Right.depth = cnode->depth + 1;
+
+		// we may be running in threads over nodes... hence we make sure the following part is protected
+#pragma omp critical
+		{
+			int n_nodes = (int)nodes.size();
+
+			Left.node_idx = n_nodes;
+			Right.node_idx = n_nodes+1;
+
+			cnode->left_node = n_nodes;
+			cnode->right_node = n_nodes+1;
+			cnode->is_terminal = 0;
+
+			nodes.push_back(Left);
+			nodes.push_back(Right);
+
+			cnode = &nodes[i_curr_node]; // reassigning as it may have changed in the push !!!
+			if (_params->verbosity > 1) MLOG("TQRF: Tree %d Node %d ( s %d d %d ) : split: feat %d : q %d : qval %f : left %d (%d) , right %d (%d)\n", 
+				id, cnode->node_idx, cnode->size(), cnode->depth, i_best, q_best, cnode->bound, Left.node_idx, Left.size(), Right.node_idx, Right.size());
+		}
+	}
+
+	// we now have to finalize the work on cnode (current node) no matter if it was split or not.
+	// we need to make sure it has the needed counts etc in order to be able to give predictions
+	// plus we change its state
+
+	cnode = &nodes[i_curr_node]; // reassigning as it may have changed in the push !!!
+	if (tree_type == TQRF_TREE_ENTROPY || tree_type == TQRF_TREE_LOGRANK || tree_type == TQRF_TREE_DEV) {
+
+		// we go over the y values for the indexes in our node and collect them for each time slice
+		nodes[i_curr_node].time_categ_count.clear();
+		nodes[i_curr_node].time_categ_count.resize(_qfeat->n_time_slices, vector<int>(_qfeat->ncateg, 0));
+		for (int i=nodes[i_curr_node].from_idx; i<=nodes[i_curr_node].to_idx; i++) {
+			int idx = indexes[i];
+			int c = _qfeat->y_i[idx];
+			int t = _qfeat->last_time_slice[idx];
+			nodes[i_curr_node].time_categ_count[t][c]++;
+		}
+		// reverse adding 0 (=control) categs
+		int to_categ = (_params->censor_cases == 1) ? 1 : _qfeat->ncateg;
+		for (int t=_qfeat->n_time_slices-2; t>=0; t--) {
+			for (int c=0; c<to_categ; c++)
+				nodes[i_curr_node].time_categ_count[t][0] += nodes[i_curr_node].time_categ_count[t+1][c];
+		}
+
+		if (_params->verbosity > 1) {
+			cnode = &nodes[i_curr_node]; // reassigning as it may have changed in the push !!!
+			vector<int> c_for_chi;
+			MLOG("TQRF: Tree %d Node %d cnts[t][c] ::", id, cnode->node_idx);
+			for (int t=0; t<_qfeat->n_time_slices; t++) {
+				int sum = 0;
+				for (int c=0; c<_qfeat->ncateg; c++) sum += cnode->time_categ_count[t][c];
+				for (int c=0; c<_qfeat->ncateg; c++) {
+					float ratio = (sum > 0) ? (float)cnode->time_categ_count[t][c]/(float)sum : 0;
+					MLOG(" [%d][%d] %d %4.3f :", t, c, cnode->time_categ_count[t][c], ratio);	
+					c_for_chi.push_back(cnode->time_categ_count[t][c]);
+				}
+			}
+			vector<double> exp_for_chi;
+			double chi_score = get_chi2_n_x_m(c_for_chi, _qfeat->ncateg, _qfeat->n_time_slices, exp_for_chi);
+			MLOG(" chi_score %6.3f\n", chi_score);
+		}
+
+	}
+	else {
+		MTHROW_AND_ERR("TQRF::node_splitter(): tree_type %d doesn't know how to finalize nodes yet !!... sayonara...\n", tree_type);
+	}
+	if (i_best < 0 || cnode->depth >= _params->max_depth || cnode->size() <= _params->min_node) {
+		nodes[i_curr_node].is_terminal = 1;
+		if (_params->verbosity > 1) MLOG("TQRF: node_splitter : Tree %d : node %d : depth %d size %d : terminal %d\n", id, i_curr_node, nodes[i_curr_node].depth, nodes[i_curr_node].size(), nodes[i_curr_node].is_terminal);
+	}
+
+	cnode->state = TQRF_Node_State_Done;
+
+	if (_params->verbosity > 1) MLOG("TQRF: node_splitter : Tree %d : node %d : size %d : terminal %d : Done\n", id, i_curr_node, nodes[i_curr_node].size(), nodes[i_curr_node].is_terminal);
+
+	return 0;
+}
+//--------------------------------------------------------------------------------------------------------------------
 int TQRF_Tree::get_bagged_indexes()
 {
-	unordered_set<int> s_pids[2];
-	vector<int> v_pids[2], v_indexes[2];
-	unordered_map<int, vector<int>> pid2indexes;
-
 	bool is_regression = (tree_type == TQRF_TREE_REGRESSION);
 
 	if (_params->verbosity > 0) MLOG("Tree %d %s : bagging : params: bag_prob %f bag_ratio %f single_per_pid %d bag_with_repeats %d\n", id, _params->tree_type.c_str(), _params->bag_prob, _params->bag_ratio, _params->single_sample_per_pid, _params->bag_with_repeats);
 
-	int cnt[2] = { 0,0 };
-	for (int i=0; i<_qfeat->orig_medf->samples.size(); i++) {
-		MedSample &s = _qfeat->orig_medf->samples[i];
-
-		//if (_params->verbosity > 0 && i<_params->ids_to_print) MLOG("i %d : s : pid %d outcome_time %d outcome %f time %d\n", i, s.id, s.outcomeTime, s.outcome, s.time);
-
-		int j = 0;
-		if (is_regression || (s.outcome != 0)) j=1;
-		cnt[j]++;
-		if (_params->single_sample_per_pid) {
-			if (s_pids[j].find(s.id) == s_pids[j].end()) { v_pids[j].push_back(s.id); s_pids[j].insert(s.id); }
-			if (pid2indexes.find(s.id) == pid2indexes.end()) pid2indexes[s.id] = vector<int>();
-			pid2indexes[s.id].push_back(i);
-		}
-		else {
-			//if (s_indexes[j].find(s.id) == s_indexes[j].end()) { v_indexes[j].push_back(i); s_indexes[j].insert(i); }
-			v_indexes[j].push_back(i);
-		}
-	}
-	if (_params->verbosity > 0) MLOG("Tree %d : bagging : cnt %d %d : s_pids %d %d : v_pids %d %d : v_indexes %d %d\n", id, cnt[0], cnt[1], s_pids[0].size(), s_pids[1].size(), v_pids[0].size(), v_pids[1].size(), v_indexes[0].size(), v_indexes[1].size());
-
 	if (tree_type != TQRF_TREE_REGRESSION) {
 
-		// calculate the bagging probabilities for 0 and 1
-		int n0 = 0, n1 = 0;
-		float p0 = 0, p1 = 0;
+		// the general idea is to calculate how many 1's and 0's we need to choose for time slice 0 (marked n0, n1)
+		// we will then choose for each other time slice the minimum between n0 and the bag_prob * number of pids/samples in the slice.
 
+		int _n_categs = 2;
+		// calculate the bagging probabilities for 0 and 1
+		vector<vector<int>> time_categ_cnts(_params->n_time_slices, vector<int>(_n_categs,0));
+		vector<vector<float>> time_categ_probs(_params->n_time_slices, vector<float>(_n_categs,0));
+		
 		if (_params->bag_ratio < 0) {
-			p0 = _params->bag_prob;
-			p1 = _params->bag_prob;
+			for (int t=0; t<_params->n_time_slices; t++) {
+				time_categ_probs[t][0] = _params->bag_prob;
+				time_categ_probs[t][1] = _params->bag_prob;
+			}
 		}
 		else {
+
+			// solving for time 0 : calculating n0 , n1
+			int n0 = 0, n1 = 0;
+			float p0, p1;
 			if (_params->single_sample_per_pid) {
-				n0 = (int)s_pids[0].size();
-				n1 = (int)s_pids[1].size();
+				n0 = (int)_qfeat->categ_pids[0].size();
+				n1 = (int)_qfeat->time_categ_pids[0][1].size();
 			}
 			else {
-				n0 = (int)v_indexes[0].size();
-				n1 = (int)v_indexes[1].size();
+				n0 = (int)_qfeat->categ_idx[0].size();
+				n1 = (int)_qfeat->time_categ_idx[0][1].size();
 			}
 
 			//
@@ -677,74 +1313,116 @@ int TQRF_Tree::get_bagged_indexes()
 
 			p0 = min(p0, (float)1);
 			p1 = min(p1, (float)1);
+
+			time_categ_probs[0][0] = p0; // will be used for controls
+			time_categ_probs[0][1] = p1; // will be used for cases in time slice 0
+
+			n1 = (int)(p1*(float)n1);
+			// now handling the c=1 cases for all time slices greater than 0
+			float p_t;
+			int n_t;
+			for (int t=1; t<_params->n_time_slices; t++) {
+				p_t = 0;
+				n_t = (_params->single_sample_per_pid) ? _qfeat->time_categ_pids[t][1].size() : _qfeat->time_categ_idx[t][1].size();
+				if (n_t > 0)
+					p_t = (float)n1/(float)n_t;
+				time_categ_probs[t][1] = min(_params->bag_prob, p_t);
+			}
 		}
 
 		indexes.clear();
 
-		bag_chooser(_params->bag_with_repeats, _params->single_sample_per_pid, p0, v_pids[0], v_indexes[0], pid2indexes, indexes);
-		int nc0 = (int)indexes.size();
-		bag_chooser(_params->bag_with_repeats, _params->single_sample_per_pid, p1, v_pids[1], v_indexes[1], pid2indexes, indexes);
-		int nc1 = (int)indexes.size() - nc0;
-		float actual_ratio = (float)nc0/(nc1+1);
-		if (_params->verbosity > 0) MLOG("Tree %d :: bagging : categorial : n0 %d n1 %d p0 %f p1 %f : actual 0: %d 1: %d ratio %f\n", id, n0, n1, p0, p1, nc0, nc1, actual_ratio);
+		// choosing the controls (c=0) -> always using t=0 for those
+		bag_chooser(time_categ_probs[0][0], 0, 0, /* OUT APPEND */ indexes);
+		int nc0 = indexes.size();
+		if (_params->verbosity > 0) MLOG("Tree %d : bagging : 0 : %d chosen : first %d last %d : p %f\n", id, nc0, indexes[0], indexes[nc0-1], time_categ_probs[0][0]);
+
+		// choosing the cases (c=1) for all the different time slices
+		int nc_bef = nc0;
+		for (int t=0; t<_params->n_time_slices; t++) {
+			bag_chooser(time_categ_probs[t][1], t, 1, indexes);
+			int nc1 = (int)indexes.size() - nc_bef;
+			float actual_ratio = (float)nc0/(nc1+1);
+			if (_params->verbosity > 0) MLOG("Tree %d : bagging : 1 : t=%d : %d chosen : first %d last %d : p %f : ratio %f\n", id, t, nc1, indexes[nc0], indexes[nc1+nc0-1], time_categ_probs[t][1], actual_ratio);
+			nc_bef = indexes.size();
+		}
 
 	}
 	else {
 		// in regression all samples are with j==1
-		bag_chooser(_params->bag_with_repeats, _params->single_sample_per_pid, _params->bag_prob, v_pids[1], v_indexes[1], pid2indexes, indexes);
+		bag_chooser(_params->bag_prob, 0, 1, indexes);
 		if (_params->verbosity > 0) MLOG("Tree %d :: bagging : regression : indexes %d\n", id, indexes.size());
 	}
 
+	// sanity print
+	if (_params->verbosity > 0) {
+		vector<int> cnts ={ 0,0 };
+		vector<int> tcnts ={ 0,0 };
+		for (auto idx : indexes) {
+			if (_qfeat->y[idx] == 0)
+				cnts[0]++;
+			else
+				cnts[1]++;
+			if (_qfeat->last_time_slice[idx] == 0)
+				tcnts[0]++;
+			else
+				tcnts[1]++;
+		}
+		MLOG("Tree %d :: bagging : counting by Y values: 0: %d 1: %d :: times 0: %d >0: %d\n", id, cnts[0], cnts[1], tcnts[0], tcnts[1]);
+	}
 
 	// now choosing the features to be used in this tree (in case feature bagging is requested)
 	i_feats.clear();
 	for (int i=0; i<_qfeat->nfeat; i++)
 		if (rand_1() <= _params->bag_feat)
 			i_feats.push_back(i);
-
 	return 0;
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-int TQRF_Tree::bag_chooser(int choose_with_repeats, int single_sample_per_id, float p, vector<int> &pids, vector<int> &idx, unordered_map<int, vector<int>> &pid2idx, /* OUT APPEND */ vector<int> &_indexes)
+int TQRF_Tree::bag_chooser(float p, int _t , int _c, /* OUT APPEND */ vector<int> &_indexes)
 {
-	int n_pids = (int)pids.size();
-	int n_idx = (int)idx.size();
+	int	n_pids = (int)_qfeat->time_categ_pids[_t][_c].size();
+	int	n_idx = (int)_qfeat->time_categ_idx[_t][_c].size();
 
-	if (single_sample_per_id) {
+	if (_params->single_sample_per_pid) {
 
-		if (choose_with_repeats) {
+		if (_params->bag_with_repeats) {
 			unordered_map<int, int> pid_idx;
 			int n_choose = (int)(p*(float)n_pids);
 			for (int i=0; i<n_choose; i++) {
-				int rand_pid = pids[rand_N(n_pids)];
+				int rand_pid = _qfeat->time_categ_pids[_t][_c][rand_N(n_pids)];
 				if (pid_idx.find(rand_pid) == pid_idx.end()) {
-					int len_pid = (int)pid2idx[rand_pid].size();
+					int len_pid = (int)_qfeat->pid2time_categ_idx[rand_pid][_t][_c].size();
 					int rand_idx = rand_N(len_pid);
-					pid_idx[rand_pid] = pid2idx[rand_pid][rand_idx];
+					pid_idx[rand_pid] = _qfeat->pid2time_categ_idx[rand_pid][_t][_c][rand_idx];
 				}
 				_indexes.push_back(pid_idx[rand_pid]); // making sure to choose the SAME sample per id
 			}
 		}
 		else {
 			for (int i=0; i<n_pids; i++)
-				if (rand_1() < p)
-					_indexes.push_back(pid2idx[pids[i]][rand_N((int)pid2idx[pids[i]].size())]);
+				if (rand_1() < p) {
+					int pid = _qfeat->time_categ_pids[_t][_c][i];
+					int len_pid = (int)_qfeat->pid2time_categ_idx[pid][_t][_c].size();
+					int rand_idx = rand_N(len_pid);
+					_indexes.push_back(_qfeat->pid2time_categ_idx[pid][_t][_c][rand_idx]);
+				}
 		}
 
 	}
 	else {
-		if (choose_with_repeats) {
+		if (_params->bag_with_repeats) {
 
 			int n_choose = (int)(p*(float)n_idx);
 			for (int i=0; i<n_choose; i++)
-				_indexes.push_back(idx[rand_N(n_idx)]);
+				_indexes.push_back(_qfeat->time_categ_idx[_t][_c][rand_N(n_idx)]);
 
 		}
 		else {
 			for (int i=0; i<n_idx; i++)
 				if (rand_1() < p)
-					_indexes.push_back(idx[i]);
+					_indexes.push_back(_qfeat->time_categ_idx[_t][_c][i]);
 		}
 	}
 
@@ -766,6 +1444,7 @@ int TQRF_Tree::init_root_node()
 	root.state = TQRF_Node_State_Initiated;
 	root.depth = 0;
 
+	root.node_idx = 0;
 	nodes.push_back(root);
 
 	return 0;
@@ -790,18 +1469,25 @@ int TQRF_Tree::get_feats_to_test(vector<int> &feats_to_test)
 	// first we need to know how many features we need to choose
 	int n_to_choose = max(_params->ntry, (int)(_params->ntry_prob * (float)i_feats.size()));
 
-	if (n_to_choose < (int)i_feats.size())
+	if (n_to_choose > (int)i_feats.size())
 		n_to_choose = (int)i_feats.size();
 
 	// we now go through n_to_choose steps of random swapping on i_feats
 	feats_to_test.clear();
-	for (int i=0; i<i_feats.size(); i++) {
+
+	if (_params->verbosity > 1) MLOG("TQRF: get_feats_to_test: n_to_choose %d/%d\n", n_to_choose, i_feats.size());
+	for (int i=0; i<n_to_choose; i++) {
 		int n = (int)i_feats.size() - i - 1;
 		int j = rand_N(n) + i;
 		int f = i_feats[i];
 		i_feats[i] = i_feats[j];
 		i_feats[j] = f;
-		feats_to_test.push_back(f);
+		feats_to_test.push_back(i_feats[i]);
+	}
+	if (_params->verbosity > 1) {
+		MLOG("TQRF: Tree %d : chose %d features to split by : ", id, feats_to_test.size());
+		for (auto f : feats_to_test) MLOG(" %d", f);
+		MLOG("\n");
 	}
 
 	return 0;
@@ -810,8 +1496,9 @@ int TQRF_Tree::get_feats_to_test(vector<int> &feats_to_test)
 //--------------------------------------------------------------------------------------------------------------------
 void TQRF_Tree::free_split_stats(vector<TQRF_Split_Stat *> &tqs)
 {
-	for (auto &t : tqs)
+	for (auto &t : tqs) {
 		delete t;
+	}
 
 	tqs.clear();
 }
@@ -834,155 +1521,7 @@ int TQRF_Tree::init_split_stats(vector<TQRF_Split_Stat *> &tqs)
 }
 
 
-//--------------------------------------------------------------------------------------------------------------------
-// major stage in algorithm:
-// we finished the work on deciding if and how to split our node, and need to actually do it.
-// list of issues handled in this stage:
-// (1) close work on our node, wheather needed a split or not.
-// (2) add info from the splitting tqs into our node (distributions etc)
-// (3) split node if needed, create the new nodes.
-// (4) update indexes as needed
-// (5) decide what to do with missing values !!
-int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
-{
-	// 
-	// finish the work on current node
-	//
-	TQRF_Node &cnode = nodes[i_curr_node];
-	
-	if (i_best >= 0) {
-		
-		// We found a point to split the node
-		TQRF_Node Left, Right;
 
-		cnode.i_feat = i_best;
-		cnode.bound = _qfeat->q_to_val[i_best][q_best];
-
-		// need to calc node sizes, and general average in order to decide for missing value strategy
-		int n_missing = 0, n_left = 0, n_right = 0;
-		float sum_vals = 0;
-		for (int i=cnode.from_idx; i<=cnode.to_idx; i++) {
-			int idx = indexes[i];
-			int q = _qfeat->qx[i_best][idx];
-			if (q > 0) {
-				if (q <= q_best)
-					n_left++;
-				else
-					n_right++;
-				sum_vals += _qfeat->q_to_val[i_best][q];
-			}
-			else
-				n_missing++;
-		}
-
-		// decide missing val strategy
-		if (_params->missing_method == TQRF_MISSING_VALUE_LEFT) cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
-		else if (_params->missing_method == TQRF_MISSING_VALUE_RAND_ALL) {
-			if (rand_1() < 0.5)
-				cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
-			else
-				cnode.missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
-		}
-		else if (_params->missing_method == TQRF_MISSING_VALUE_LARGER_NODE || _params->missing_method == TQRF_MISSING_VALUE_MEDIAN) {
-			if (n_left >= n_right)
-				cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
-			else
-				cnode.missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
-		}
-		else if (_params->missing_method == TQRF_MISSING_VALUE_MEAN) {
-			float node_avg = sum_vals / ((float)(n_right + n_left) + (float)1e-3);
-			if (node_avg <= cnode.bound)
-				cnode.missing_direction = TQRF_MISSING_DIRECTION_LEFT;
-			else
-				cnode.missing_direction = TQRF_MISSING_DIRECTION_RIGHT;
-		}
-		else if (_params->missing_method == TQRF_MISSING_VALUE_RAND_EACH_SAMPLE)
-			cnode.missing_direction = TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE;
-
-
-		// making the split , first we rearange indexes
-		int n_in_left = 0;
-		vector<int> left_inds, right_inds;
-		left_inds.reserve(cnode.size());
-		right_inds.reserve(cnode.size());
-		for (int i=cnode.from_idx; i<=cnode.to_idx; i++) {
-			int idx = indexes[i];
-			int q = _qfeat->qx[i_best][idx];
-			if (q > 0) {
-				if (q <= q_best)
-					left_inds.push_back(idx);
-				else
-					right_inds.push_back(idx);
-			}
-			else {
-				if (cnode.missing_direction == TQRF_MISSING_DIRECTION_LEFT) left_inds.push_back(idx);
-				else if (cnode.missing_direction == TQRF_MISSING_DIRECTION_RIGHT) right_inds.push_back(idx);
-				else  { // if (cnode.missing_direction == TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE) case ...
-					if (rand_1() < (float)0.5)
-						left_inds.push_back(idx);
-					else
-						right_inds.push_back(idx);
-				}
-			}
-		}
-		int curr_i = cnode.from_idx;
-		for (auto idx : left_inds) indexes[curr_i++] = idx;
-		for (auto idx : right_inds) indexes[curr_i++] = idx;
-		Left.from_idx = cnode.from_idx;
-		Left.to_idx = cnode.from_idx + (int)left_inds.size() - 1;
-		Right.from_idx = Left.to_idx + 1;
-		Right.to_idx = cnode.to_idx;
-
-		Left.depth = cnode.depth + 1;
-		Right.depth = cnode.depth + 1;
-
-		// we may be running in threads over nodes... hence we make sure the following part is protected
-#pragma omp critical
-		{
-			int n_nodes = (int)nodes.size();
-			
-			Left.node_idx = n_nodes;
-			Right.node_idx = n_nodes+1;
-
-			cnode.left_node = n_nodes;
-			cnode.right_node = n_nodes+1;
-			cnode.is_terminal = 0;
-			
-			nodes.push_back(Left);
-			nodes.push_back(Right);
-
-			if (_params->verbosity > 1) MLOG("TQRF: Tree %d Node %d ( s %d d %d ) : split: feat %d : q %d : qval %f : left %d (%d) , right %d (%d)\n", id, cnode.node_idx, cnode.size(), cnode.depth, i_best, q_best, cnode.bound, Left.node_idx, Left.size(), Right.node_idx, Right.size());
-		}
-	}
-
-	// we now have to finalize the work on cnode (current node) no matter if it was split or not.
-	// we need to make sure it has the needed counts etc in order to be able to give predictions
-	// plus we change its state
-
-	if (tree_type == TQRF_TREE_ENTROPY || tree_type == TQRF_TREE_LOGRANK) {
-
-		// we go over the y values for the indexes in our node and collect them for each time slice
-		cnode.time_categ_count.resize(_qfeat->n_time_slices, vector<int>(_qfeat->ncateg, 0));
-		for (int i=cnode.from_idx; i<cnode.to_idx; i++) {
-			int idx = indexes[i];
-			int c = (int)_qfeat->y[idx];
-			int t = _qfeat->last_time_slice[idx];
-			cnode.time_categ_count[t][c]++;
-		}
-		// reverse adding 0 (=control) categs
-		for (int t=_qfeat->n_time_slices-1; t>=0; t--)
-			cnode.time_categ_count[t][0] += cnode.time_categ_count[t+1][0];
-	}
-	else {
-		MTHROW_AND_ERR("TQRF::node_splitter(): tree_type %d doesn't know how to finalize nodes yet !!... sayonara...\n", tree_type);
-	}
-	if (cnode.depth >= _params->max_depth || cnode.size() <= _params->min_node)
-		cnode.is_terminal = 1;
-
-	cnode.state = TQRF_Node_State_Done;
-
-	return 0;
-}
 
 //--------------------------------------------------------------------------------------------------------------------
 // non threaded version
@@ -990,58 +1529,119 @@ int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
 //--------------------------------------------------------------------------------------------------------------------
 int TQRF_Tree::Train()
 {
+	if (_params->verbosity > 1) MLOG("Tree %d  Train() before bagging\n", id);
 
 	// creating the bag
 	get_bagged_indexes();
 
+	if (_params->verbosity > 1) MLOG("After get_bagged_indexes()\n");
 	// initializing tree and root
 	init_root_node();
+	if (_params->verbosity > 1) MLOG("After init_root_node()\n");
 
-	bool go_on = true;
+	//bool go_on = true;
 	int i_curr_node = -1;
 
 	vector<int> feats_to_test;
 	vector<TQRF_Split_Stat *> tqs;
 
 	init_split_stats(tqs);
+	if (_params->verbosity > 1) MLOG("After init_split_stats()\n");
 
-	while (go_on) {
+	vector<pair<int, double>> best_q;
+
+	while (1) {
 
 		if ((i_curr_node = get_next_node(i_curr_node)) < 0)
 			break; // finished work on this tree - no more nodes to work on.
 
+		if (_params->verbosity > 1) MLOG("TQRF: Tree %d Working on =================>>>>> node %d\n", id, i_curr_node);
+
+
 		// getting a list of features to test, based on tree parameters
 		get_feats_to_test(feats_to_test);
 
-		vector<pair<int,float>> best_q(feats_to_test.size());
-// optional "easy" threading right here !
+		if (feats_to_test.size() > 0)
+			best_q.resize(feats_to_test.size()); //, { -1,-1 });
+
+												 
+		// optional "easy" threading right here !
 		for (int i=0; i<feats_to_test.size(); i++) {
-			tqs[i]->prep_histograms(feats_to_test[i], nodes[i_curr_node], indexes, (*_qfeat), (*_params));
-			tqs[i]->get_best_split((*_params), best_q[i].first, best_q[i].second);
+			best_q[i] ={ -1, -1.0 };
+			int i_f = feats_to_test[i];
+			if (_params->verbosity > 2) MLOG("TQRF: Tree %d node %d feat[%d] = %d : %s before histogram\n", id, i_curr_node, i, i_f, _qfeat->feature_names[i_f].c_str());
+
+			tqs[i]->prep_histograms(i_f, nodes[i_curr_node], indexes, (*_qfeat), (*_params));
+			if (_params->verbosity > 2) MLOG("TQRF: Tree %d node %d feat[%d] = %d : %s after histogram\n", id, i_curr_node, i, i_f, _qfeat->feature_names[i_f].c_str());
+			if (_params->verbosity > 2) tqs[i]->print_histograms();
+			
+			if (nodes[i_curr_node].depth <= _params->max_depth)
+				tqs[i]->get_best_split((*_params), best_q[i].first, best_q[i].second);
+			if (_params->verbosity > 2) MLOG("TQRF: Tree %d node %d feat[%d] = %d : after get_best_split %s : %d %f : cut off val %f\n", id, i_curr_node, i, i_f, _qfeat->feature_names[i_f].c_str(), best_q[i].first, best_q[i].second, (best_q[i].first < 0) ? -1 : _qfeat->q_to_val[i_f][best_q[i].first]);
 		}
 
 		// choose best choice : scores are ALWAYS for maximum
 		int i_best = -1;
 		int q_best = -1;
-		float q_best_score = (float)-1e10;
+		double q_best_score = -1e10;
 
-		for (int i=0; i<feats_to_test.size(); i++) 
+		for (int i=0; i<feats_to_test.size(); i++) {
+			if (_params->verbosity > 2) MLOG("TQRF: after features scan : %d : feat %d %s : q %d score %f\n", i, feats_to_test[i], _qfeat->feature_names[feats_to_test[i]].c_str(), best_q[i].first, best_q[i].second);
 			if (best_q[i].first > 0 && best_q[i].second > q_best_score) {
 				q_best_score = best_q[i].second;
 				q_best = best_q[i].first;
-				i_best = i;
+				i_best = feats_to_test[i];
 			}
-
+		}
+		if (_params->verbosity > 1) MLOG("TQRF: Tree %d Node %d : best feature %d %s , q %d qval %f score %f\n", id, nodes[i_curr_node].node_idx, i_best, (i_best < 0) ? "" : _qfeat->feature_names[i_best].c_str(), q_best, (i_best < 0) ? 0 : _qfeat->q_to_val[i_best][q_best], q_best_score);
 
 		node_splitter(i_curr_node, i_best, q_best);
-
-//		split_node();
-
 	}
 
 	// need to free split stats
 	free_split_stats(tqs);
 
-
 	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+// get a feature matrix and does the travel on the tree to the terminal node for a specific row
+//--------------------------------------------------------------------------------------------------------------------
+TQRF_Node *TQRF_Tree::Get_Node(MedMat<float> &x, int i_row, float missing_val)
+{
+	int curr_node = 0;
+	TQRF_Node *cnode;
+
+	float *row = &x.m[i_row*x.ncols];
+	cnode = &nodes[curr_node];
+//	while (cnode->is_terminal == 0) {
+	while (1) {
+
+		float v = row[cnode->i_feat];
+
+		if (v == missing_val) {
+			// applying missing val strategy:
+			if (cnode->missing_direction == TQRF_MISSING_DIRECTION_LEFT) curr_node = cnode->left_node;
+			else if (cnode->missing_direction == TQRF_MISSING_DIRECTION_RIGHT) curr_node = cnode->right_node;
+			else if (cnode->missing_direction == TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE) {
+				if (rand_1() <= 0.5)
+					curr_node = cnode->left_node;
+				else
+					curr_node = cnode->right_node;
+			}
+
+		}
+		else {
+			if (v <= cnode->bound)
+				curr_node = cnode->left_node;
+			else
+				curr_node = cnode->right_node;
+		}
+
+		cnode = &nodes[curr_node];
+		if (cnode->is_terminal)
+			break;
+	}
+
+	return cnode;
 }

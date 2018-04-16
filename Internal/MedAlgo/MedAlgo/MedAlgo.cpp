@@ -119,7 +119,7 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type, string
 //.......................................................................................
 int MedPredictor::init_from_string(string text) {
 
-	MLOG("MedPredictor init from string (classifier type is %d)\n", classifier_type);
+	MLOG("MedPredictor init from string [%s] (classifier type is %d)\n", text.c_str(), classifier_type);
 
 	// parse text of the format "Name = Value ; Name = Value ; ..."
 
@@ -964,4 +964,183 @@ int MedPredictor::predict(MedFeatures& ftrs_data) {
 	}
 
 	return 0;
+}
+
+void convertXMat(const vector<vector<float>> x, MedMat<float> &xMat) {
+	xMat.resize((int)x[0].size(), (int)x.size());
+	for (size_t i = 0; i < x.size(); ++i)
+	{
+		vector<float> xx = x[i];
+		for (size_t k = 0; k < xx.size(); ++k)
+		{
+			xMat((int)k, (int)i) = xx[k];
+		}
+	}
+	xMat.missing_value = MED_MAT_MISSING_VALUE;
+}
+
+string medial::models::getParamsInfraModel(void *model) {
+	MedPredictor *m = (MedPredictor *)model;
+	MedQRFParams pr_qrf;
+	MedLightGBMParams pr_lightGBM;
+	MedXGBParams pr_xgb;
+	map<string, string> empty_m;
+	MedSpecificGroupModels *model_specific;
+	MedSvm *svm;
+	MedLinearModel *lm;
+	MedGDLM *gdlm;
+	char buff[2000];
+	string l1_str;
+
+	switch (m->classifier_type) {
+	case MODEL_QRF:
+		pr_qrf = ((MedQRF *)model)->params;
+		l1_str = to_string(pr_qrf.type);
+		if (pr_qrf.type == QRF_BINARY_TREE)
+			l1_str = "binary";
+		else if (pr_qrf.type == QRF_REGRESSION_TREE)
+			l1_str = "regression";
+		else if (pr_qrf.type == QRF_CATEGORICAL_CHI2_TREE)
+			l1_str = "categorial_chi2";
+		else if (pr_qrf.type == QRF_CATEGORICAL_ENTROPY_TREE)
+			l1_str = "categorial_entropy";
+		snprintf(buff, 2000, "%s: ntrees=%d; maxq=%d; min_node=%d; ntry=%d; spread=%2.3f; type=%s; max_depth=%d",
+			predictor_type_to_name[m->classifier_type].c_str(), pr_qrf.ntrees, pr_qrf.maxq, pr_qrf.min_node, pr_qrf.ntry, pr_qrf.spread, l1_str.c_str(), pr_qrf.max_depth);
+		break;
+	case MODEL_LIGHTGBM:
+		pr_lightGBM = ((MedLightGBM *)model)->params;
+		snprintf(buff, 2000, "%s: %s",
+			predictor_type_to_name[m->classifier_type].c_str(), pr_lightGBM.user_params.c_str());
+		break;
+	case MODEL_XGB:
+		pr_xgb = ((MedXGB *)model)->params;
+		snprintf(buff, 2000, "%s: tree_method=%s; booster=%s; objective=%s; eta=%2.3f; alpha=%2.3f; lambda=%2.3f; gamma=%2.3f; max_depth=%d; colsample_bytree=%2.3f; colsample_bylevel=%2.3f; min_child_weight=%d; num_round=%d; subsample=%2.3f",
+			predictor_type_to_name[m->classifier_type].c_str(), pr_xgb.tree_method.c_str(), pr_xgb.booster.c_str(), pr_xgb.objective.c_str(), pr_xgb.eta,
+			pr_xgb.alpha, pr_xgb.lambda, pr_xgb.gamma, pr_xgb.max_depth, pr_xgb.colsample_bytree, pr_xgb.colsample_bylevel, pr_xgb.min_child_weight, pr_xgb.num_round, pr_xgb.subsample);
+		break;
+	case MODEL_SPECIFIC_GROUPS_MODELS:
+		model_specific = ((MedSpecificGroupModels *)model);
+		snprintf(buff, 2000, "%s: model=%s x %d",
+			predictor_type_to_name[m->classifier_type].c_str(), predictor_type_to_name[model_specific->get_model(0)->classifier_type].c_str(),
+			model_specific->model_cnt());
+		break;
+	case MODEL_SVM:
+		svm = ((MedSvm *)model);
+		snprintf(buff, 2000, "%s: kernal_type=%d; C=%2.3f; coef0=%2.3f; degree=%d; gamma=%2.3f; eps=%2.3f",
+			predictor_type_to_name[m->classifier_type].c_str(), svm->params.kernel_type
+			, svm->params.C, svm->params.coef0, svm->params.degree, svm->params.gamma, svm->params.eps);
+		break;
+	case MODEL_LINEAR_SGD:
+		lm = ((MedLinearModel *)model);
+		l1_str = lm->norm_l1 ? "(L1)" : "(L2)";
+		snprintf(buff, 2000, "%s: name=%s; num_params=%d; block_num=%2.3f%s; learning_rate=%2.3f; sample_count=%d; tot_steps=%d",
+			predictor_type_to_name[m->classifier_type].c_str(), lm->model_name.c_str(),
+			(int)lm->model_params.size(), lm->block_num, l1_str.c_str(),
+			lm->learning_rate, lm->sample_count, lm->tot_steps);
+		break;
+	case MODEL_GD_LINEAR:
+		gdlm = (MedGDLM*)model;
+		snprintf(buff, 2000, "%s: method=%s; batch-size=%d; l_lasso=%2.3f; l_ridge=%2.3f; rate=%2.3f; rate_decay=%2.3f; momentum=%2.3f; stop_at_err=%2.3f; max_iters=%d",
+			predictor_type_to_name[m->classifier_type].c_str(), gdlm->params.method.c_str(), gdlm->params.batch_size,
+			gdlm->params.l_lasso, gdlm->params.l_ridge, gdlm->params.rate, gdlm->params.rate_decay,
+			gdlm->params.momentum, gdlm->params.stop_at_err, gdlm->params.max_iter);
+		break;
+	default:
+		throw invalid_argument("Unsupported Type init for model " + to_string(m->classifier_type));
+	}
+
+	return string(buff);
+}
+
+void *medial::models::copyInfraModel(void *model, bool delete_old) {
+	MedPredictor *m = (MedPredictor *)model;
+	MedQRFParams pr_qrf;
+	MedLightGBMParams pr_lightGBM;
+	MedXGBParams pr_xgb;
+	map<string, string> empty_m;
+	MedSpecificGroupModels *model_specific;
+	MedSvm *svm;
+	MedLinearModel *lm;
+	MedGDLM *gdlm;
+	void *newM;
+
+	switch (m->classifier_type) {
+	case MODEL_QRF:
+		pr_qrf = MedQRFParams(((MedQRF *)model)->params);
+		newM = new MedQRF(pr_qrf);
+		((MedQRF *)newM)->qf = QRF_Forest(); //Erase forest
+		if (delete_old)
+			delete ((MedQRF *)model);
+		break;
+	case MODEL_LIGHTGBM:
+		pr_lightGBM = MedLightGBMParams(((MedLightGBM *)model)->params);
+		if (delete_old)
+			delete ((MedLightGBM *)model);
+		newM = new MedLightGBM;
+		((MedLightGBM *)newM)->params = pr_lightGBM;
+		((MedLightGBM *)newM)->init(empty_m);
+		break;
+	case MODEL_XGB:
+		pr_xgb = MedXGBParams(((MedXGB *)model)->params);
+		if (delete_old)
+			delete ((MedXGB *)model);
+		newM = new MedXGB;
+		((MedXGB *)newM)->params = pr_xgb;
+		break;
+	case MODEL_SPECIFIC_GROUPS_MODELS:
+		model_specific = ((MedSpecificGroupModels *)model);
+		newM = model_specific->clone();
+		for (size_t i = 0; i < model_specific->model_cnt(); ++i)
+			(*((MedQRF *)model_specific->get_model((int)i))).qf = QRF_Forest(); //to release memory
+
+		break;
+	case MODEL_SVM:
+		svm = ((MedSvm *)model);
+		newM = new MedSvm(svm->params);
+		if (delete_old)
+			delete (MedSvm *)model;
+		break;
+	case MODEL_LINEAR_SGD:
+		lm = ((MedLinearModel *)model);
+		newM = (MedLinearModel *)lm->clone();
+		if (delete_old)
+			delete (MedLinearModel *)model;
+		break;
+	case MODEL_GD_LINEAR:
+		gdlm = (MedGDLM*)model;
+		newM = new MedGDLM(gdlm->params);
+		if (delete_old)
+			delete (MedGDLM *)model;
+		break;
+	default:
+		throw invalid_argument("Unsupported Type init for model " + to_string(m->classifier_type) + " (copy)");
+	}
+
+	return newM;
+}
+
+void medial::models::initInfraModel(void *&model) {
+	void *newM = copyInfraModel(model, true);
+
+	model = newM;
+}
+
+void medial::models::learnInfraModel(void *model, const vector<vector<float>> &xTrain, vector<float> &y, vector<float> &weights) {
+	MedMat<float> xTrain_m;
+	convertXMat(xTrain, xTrain_m);
+	MedPredictor *m = (MedPredictor *)model;
+	if (m->normalize_for_learn)
+		xTrain_m.normalize();
+	m->learn(xTrain_m, y, weights);
+}
+
+vector<float> medial::models::predictInfraModel(void *model, const vector<vector<float>> &xTest) {
+	MedMat<float> xTest_m;
+	convertXMat(xTest, xTest_m);
+	MedPredictor *m = (MedPredictor *)model;
+	if (m->normalize_for_predict)
+		xTest_m.normalize();
+	vector<float> preds;
+	m->predict(xTest_m, preds);
+	return preds;
 }

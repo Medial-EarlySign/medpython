@@ -310,8 +310,8 @@ int MedRepository::read_pid_list()
 	string fname_pids = path + "/" + rep_files_prefix + "_all_pids.list";
 
 	all_pids_list.clear();
-	unsigned char *data;
-	unsigned long long size;
+	unsigned char *data = NULL;
+	unsigned long long size = 0;
 	if (read_bin_file_IM(fname_pids, data, size) < 0) {
 		MERR("ERROR: Failed reading %s ... it is recommended to repeat conversion\n", fname_pids.c_str());
 		return 0; // -1
@@ -321,6 +321,9 @@ int MedRepository::read_pid_list()
 	all_pids_list.resize(list[0]);
 	for (int i=0; i<all_pids_list.size(); i++)
 		all_pids_list[i] = list[i+1];
+
+	if (size > 0) delete[] data;
+
 	return 0;
 }
 
@@ -594,10 +597,16 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 	MOUT("pid %d sid %d %s ::", pid, sid, sigs.name(sid).c_str());
 
 	int drug_sid = sigs.sid("Drug");
-
+	
 	MOUT(" %d ::\n", len);
 	int val;
 	int section_id = dict.section_id(sigs.name(sid));
+	int drugs_nice_names_section = dict.section_id("Drugs_nice_names");
+	if (sid == drug_sid && drugs_nice_names_section != 0) {
+		MLOG("replacing Drug=[%d] with Drugs_nice_names=[%d]\n", section_id, drugs_nice_names_section);
+		section_id = drugs_nice_names_section;
+	}
+
 	for (int i=0; i<len; i++) {
 		if (sigs.type(sid) == T_Value) {
 			SVal *v = (SVal *)data;
@@ -630,13 +639,8 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0 || dict.dict(section_id)->Id2Names[val].size()<=3)
 					MOUT("|%s", st.c_str());
 			}
-//		if (sid != drug_sid)
-			MOUT(" :\n");
-//		else
-//			MOUT(" : ");
+		MOUT(" :\n");
 	}
-	if (sid == drug_sid)
-		MOUT("\n");
 }
 
 
@@ -1312,7 +1316,7 @@ int IndexTable::write_to_file(string &fname)
 int IndexTable::read_from_file(string &fname)
 {
 
-	unsigned char *data;
+	unsigned char *data = NULL;
 	unsigned long long size = 0;
 	int rc;
 
@@ -1321,16 +1325,18 @@ int IndexTable::read_from_file(string &fname)
 //		rc = read_bin_file_IM_parallel(fname, data, size);
 //		MLOG("IndexTable::read_from_file fname is %s\n", fname.c_str());
 		rc = read_bin_file_IM(fname, data, size);
+		if (rc != 0 && file_exists_IM(fname))
+			MTHROW_AND_ERR("IndexTable::read_from_file could not read from [%s]\n", fname.c_str());
 	}
-
 	if (size > 0) {
-		if (rc >= 0)
 			deserialize(data);
-
-		delete[] data;
+//		MLOG("IndexTable::read_from_file fname [%s] rc %d before delete[] data %d\n", fname.c_str(), rc, data);
+		if (data != NULL)
+			delete[] data;
+//		MLOG("IndexTable::read_from_file fname [%s] rc %d after delete[] data %d\n", fname.c_str(), rc, data);
 	}
 
-	if (rc < 0 && !file_exists_IM(fname)) rc = 0;
+	//if (rc < 0 && !file_exists_IM(fname)) rc = 0;
 
 	return rc;
 }
@@ -1345,8 +1351,11 @@ void IndexTable::clear()
 	lock_guard<mutex> guard(index_table_locks[sid]);
 
 	if (work_area_allocated) {
-		if (work_area != NULL)
+		if (work_area != NULL) {
+			//MLOG("IndexTable::clear before work_area [%d]\n", work_area);
 			delete[] work_area;
+			//MLOG("IndexTable::clear after work_area [%d]\n", work_area);
+		}
 	}
 	work_area = NULL;
 	init();
@@ -1386,7 +1395,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 	lock_guard<mutex> guard(index_table_read_locks[sid]);
 
 	if (is_loaded && is_locked) {
-		MERR("%s ERROR: failed reading index table %s since this signal is LOCKED\n", prefix.c_str(), idx_fname.c_str());
+		MTHROW_AND_ERR("%s ERROR: failed reading index table %s since this signal is LOCKED\n", prefix.c_str(), idx_fname.c_str());
 		return -2;
 	}
 
@@ -1401,7 +1410,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		//MLOG("in here:: idx_fname %s data_fname %s\n", idx_fname.c_str(), data_fname.c_str());
 		// read index table
 		if (read_from_file(idx_fname) < 0) {
-			MERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
+			MTHROW_AND_ERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
 			return -1;
 		}
 
@@ -1410,7 +1419,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		if (file_exists_IM(data_fname)) {
 			//if (read_bin_file_IM_parallel(data_fname, work_area, w_size) < 0) {
 			if (read_bin_file_IM(data_fname, work_area, w_size) < 0) {
-				MERR("%s ERROR: can't read or allocate for file %s\n", prefix.c_str(), data_fname.c_str());
+				MTHROW_AND_ERR("%s ERROR: can't read or allocate for file %s\n", prefix.c_str(), data_fname.c_str());
 				return -1;
 			}
 		}
@@ -1438,7 +1447,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 
 		IndexTable idx;
 		if (idx.read_from_file(idx_fname) < 0) {
-			MERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
+			MTHROW_AND_ERR("%s ERROR: failed reading index table %s\n", prefix.c_str(), idx_fname.c_str());
 			return -1;
 		}
 
@@ -1478,8 +1487,10 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		if (d_size == 0)
 			return 0;
 
+		//MLOG("before allocating work_area d_size %d\n", d_size);
 		work_area = new unsigned char[d_size];
-		// TBD .. check alloc issues
+		if (work_area == NULL)
+			MTHROW_AND_ERR("IndexTable::read_index_and_data could not allocate work_area\n")
 		w_size = d_size;
 		work_area_allocated = 1;
 
@@ -1487,7 +1498,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		MedBufferedFile mbf;
 
 		if (mbf.open(data_fname) < 0) {
-			MERR("ERROR: Can't open data file %s\n", data_fname.c_str());
+			MTHROW_AND_ERR("ERROR: Can't open data file %s\n", data_fname.c_str());
 			return -1;
 		}
 
@@ -1497,10 +1508,12 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		for (int i=0; i<inds.size(); i++) {
 			unsigned long long pos = idx.base + (unsigned long long)idx.sv.data[inds[i]]*(unsigned long long)idx.factor;
 			int blen = lens[i]*factor;
+			//MLOG("before pid %d sid %d pos %lld factor %d %d blen %d i %d idx.base %d\n", inds[i], sid, pos, factor, idx.factor, blen, i, idx.base);
 			mbf.read(buf, pos, blen);
-			//MLOG("pid %d sid %d pos %lld factor %d %d blen %d i %d\n", inds[i], sid, pos, factor, idx.factor, blen, i);
+			//MLOG("after pid %d sid %d pos %lld factor %d %d blen %d i %d idx.base %d\n", inds[i], sid, pos, factor, idx.factor, blen, i, idx.base);
 			buf += blen;
-			insert(keys[i], lens[i]);
+			if (insert(keys[i], lens[i]) < 0)
+				MTHROW_AND_ERR("IndexTable::read_index_and_data could not insert(keys[i], lens[i])\n");
 		}
 
 		mbf.close();
@@ -1513,3 +1526,441 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 	return 0;
 }
 
+float medial::repository::DateDiff(int refDate, int dateSample) {
+	return float((med_time_converter.convert_date(MedTime::Days, dateSample) -
+		med_time_converter.convert_date(MedTime::Days, refDate)) / 365.0);
+}
+
+int medial::repository::DateAdd(int refDate, int daysAdd) {
+	return med_time_converter.convert_days(MedTime::Date,
+		med_time_converter.convert_date(MedTime::Days, refDate) + daysAdd);
+}
+
+int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
+	int len, gend = -1;
+	void *data = rep.get(pid, sigCode, len);
+	if (len > 0)
+		gend = (int)(*(SVal *)data).val;
+	return gend;
+}
+
+
+#pragma region Readcodes hirerachy
+
+bool is_code_chr(char ch) {
+	return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '.';
+}
+
+bool all_code_chars(const string &str) {
+	int i = 0;
+	while (i < str.size() && is_code_chr(str.at(i)))
+		++i;
+	return i >= str.size();
+}
+
+string filter_g_code(const vector<string> &vec) {
+	for (string s : vec)
+	{
+		if (s.size() == 7 && s.at(0) == 'G' && s.at(1) == '_') {
+			return s;
+		}
+		if (s.size() == 7 && all_code_chars(s)) {
+			//return "G_" + s.substr(0, 5);
+			return s;
+		}
+	}
+	return "";
+}
+
+vector<int> get_parents_rc(MedDictionarySections &dict, const string &group) {
+	int sectionId = 1;
+	vector<int> res(5);
+	static vector<string> constStrings = { "",".", "..", "...", "...." };
+
+	int ii = 0;
+	string lookupVal = group;
+	if (all_code_chars(group)) {
+		int code = dict.dicts[sectionId].id(group);
+		res.insert(res.begin(), code);
+		++ii;
+		lookupVal = "G_" + group.substr(0, 5);
+	}
+
+	for (size_t i = 0; i < 5; ++i)
+	{
+		if (lookupVal.at(lookupVal.size() - 1 - i) == '.') {
+			res.pop_back();
+			continue; //skip - will do next
+		}
+		string manip = lookupVal.substr(0, lookupVal.size() - i) + constStrings[i];
+		int code = dict.id(sectionId, manip);
+
+		res[ii] = code;
+		++ii;
+	}
+
+	return res;
+}
+vector<int> get_sons_rc(MedDictionarySections &dict, const string &group) {
+	int sectionId = 1;
+	vector<int> res;
+
+	size_t pos = group.find_first_of('.');
+	if (pos == string::npos) {
+		return res; // leaf - no sons
+	}
+
+	//iterate all letters - lower & upper case:
+	char startChar = 'a';
+	char startCharU = 'A';
+	for (size_t i = 0; i < 26; ++i) {
+		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+
+		manip = group.substr(0, pos) + startCharU + group.substr(pos + 1);
+		code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+		++startChar;
+		++startCharU;
+	}
+
+	//iterate over 0-9:
+	startChar = '0';
+	for (size_t i = 0; i < 10; ++i) {
+		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+
+		++startChar;
+	}
+
+	return res;
+}
+
+
+#pragma endregion
+
+#pragma region ATC hirerachy
+
+bool is_numeric(const string &str) {
+	int i = 2;
+	while (i < str.size() && (str[i] >= '0' && str[i] <= '9')) {
+		++i;
+	}
+	return i >= str.size();
+}
+
+string filter_atc_code(const vector<string> &vec) {
+	for (string s : vec)
+	{
+		if (s.size() >= 12 && s.at(0) == 'A' && s.at(1) == 'T' && s.at(2) == 'C' && s.at(3) == '_') {
+			if (s.size() == 12)
+				return s;
+			else
+				return s.substr(0, 12);
+		}
+		if (s.size() == 10 && s.at(0) == 'd' && s.at(1) == 'c' && is_numeric(s)) {
+			return s;
+		}
+	}
+	return "";
+}
+
+vector<int> get_parents_atc(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	int maxH = 5;
+	vector<int> res(maxH);
+	static vector<string> constStrings = { "", "__", "___", /* skip _ in last*/ "_____", "_______" };
+	static vector<int> indexLookup = { 1, 3, 5, 7 };
+
+	string lookupCode = group;
+	int ii = 0;
+	//If dc - find it's ATC (ATc si size 12, dc is 10)
+	if (group.size() == 10) {
+		int code = dict.id(sectionId, group);
+		res.insert(res.begin(), code);
+		++ii;
+		++maxH;
+
+		//search all options for ATC:
+		vector<int> sets;
+		dict.get_member_sets(sectionId, code, sets);
+		bool found_atc = false;
+		for (int set_i : sets)
+		{
+			if (dict.dicts[sectionId].Id2Names.find(set_i) == dict.dicts[sectionId].Id2Names.end()) {
+				continue;
+			}
+			vector<string> set_names = dict.dicts[sectionId].Id2Names.at(set_i);
+			for (string set_name : set_names) {
+				if (set_name.size() == 12 && set_name.at(0) == 'A' && set_name.at(1) == 'T' && set_name.at(2) == 'C' && set_name.at(3) == '_') {
+					found_atc = true;
+					lookupCode = set_name;
+					break;
+				}
+			}
+			if (found_atc)
+			{
+				break;
+			}
+		}
+	}
+
+	for (size_t i = 0; i < indexLookup.size(); ++i)
+	{
+		if (lookupCode.at(lookupCode.size() - indexLookup[i]) == '_') {
+			res.pop_back();
+			continue; //skip - will do next anyway
+		}
+		string manip = lookupCode.substr(0, lookupCode.size() - constStrings[i].size()) + constStrings[i];
+		int code = dict.id(sectionId, manip);
+
+		res[ii] = code;
+		++ii;
+	}
+	string manip = lookupCode.substr(0, lookupCode.size() - constStrings[constStrings.size() - 1].size()) + constStrings[constStrings.size() - 1];
+	int code = dict.id(sectionId, manip);
+
+	res[ii] = code;
+
+	return res;
+}
+
+vector<int> get_sons_atc(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	static vector<bool> iterTypeNum = { true, false, false, true };
+	static vector<int> indexLookup = { 1, 3, 5, 6 };
+	vector<int> res;
+	string conv = group;
+	if (conv.size() >= 12 && conv.at(0) == 'A' && conv.at(1) == 'T' && conv.at(2) == 'C' && conv.at(3) == '_')
+		conv = group.substr(4, 12);
+
+	size_t pos = conv.find_first_of('_');
+	if (pos == 4)
+		pos = conv.find_first_of('_', 5);
+	if (pos == string::npos)
+		return res; // leaf - no sons
+
+	int ind = 0;
+	while (ind < indexLookup.size() && indexLookup[ind] != pos)
+		++ind;
+	if (ind >= indexLookup.size()) {
+		cerr << "Bug in code " << group << endl;
+		throw logic_error("Bug in code");
+	}
+
+	if (iterTypeNum[ind]) {
+		//iterate over 00-99:
+		for (size_t i = 0; i < 100; ++i) {
+			string nm = to_string(i);
+			if (i < 10) {
+				nm = "0" + nm;
+			}
+			string manip = "ATC_" + conv.substr(0, pos) + nm + conv.substr(pos + 2);
+			int code = dict.id(sectionId, manip);
+			if (code > 0)
+				res.push_back(code);
+		}
+	}
+	else {
+		char startChar = 'A';
+		for (size_t i = 0; i < 26; ++i) {
+			string manip = "ATC_" + conv.substr(0, pos) + startChar + conv.substr(pos + 1);
+			int code = dict.id(sectionId, manip);
+			if (code > 0)
+				res.push_back(code);
+			++startChar;
+		}
+	}
+
+	return res;
+}
+
+
+#pragma endregion
+
+#pragma region BNF hirerachy
+
+string filter_bnf_code(const vector<string> &vec) {
+	for (string s : vec)
+	{
+		if (s.size() == 15 && s.at(0) == 'B' && s.at(1) == 'N' && s.at(2) == 'F' && s.at(4) == '_') {
+			return s;
+		}
+		if (s.size() == 10 && s.at(0) == 'd' && s.at(1) == 'c' && is_numeric(s)) {
+			return s;
+		}
+	}
+	return "";
+}
+
+vector<int> get_parents_bnf(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	int maxH = 4;
+	vector<int> res(maxH);
+	static vector<int> indexLookup = { 1, 4, 7 };
+	static vector<string> constStrings = { "", "00", "00.00", "00.00.00" };
+
+	string lookupCode = group;
+	int ii = 0;
+	//If dc - find it's BNF (BNF size 15, dc is 10)
+	if (group.size() == 10) {
+		int code = dict.id(sectionId, group);
+		res.insert(res.begin(), code);
+		++ii;
+		++maxH;
+
+		//search all options for BNF:
+		vector<int> sets;
+		dict.get_member_sets(sectionId, code, sets);
+		bool found_bnf = false;
+		for (int set_i : sets)
+		{
+			if (dict.dicts[sectionId].Id2Names.find(set_i) == dict.dicts[sectionId].Id2Names.end()) {
+				continue;
+			}
+			vector<string> set_names = dict.dicts[sectionId].Id2Names.at(set_i);
+			for (string set_name : set_names) {
+				if (set_name.size() == 15 && set_name.at(0) == 'B' && set_name.at(1) == 'N' && set_name.at(2) == 'F' && set_name.at(3) == '_') {
+					found_bnf = true;
+					lookupCode = set_name;
+					break;
+				}
+			}
+			if (found_bnf)
+			{
+				break;
+			}
+		}
+	}
+
+	for (size_t i = 0; i < indexLookup.size(); ++i)
+	{
+		if (lookupCode.at(lookupCode.size() - indexLookup[i]) == '0' && lookupCode.at(lookupCode.size() - indexLookup[i] - 1) == '0') {
+			res.pop_back();
+			continue; //skip - will do next
+		}
+		string manip = lookupCode.substr(0, lookupCode.size() - constStrings[i].size()) + constStrings[i];
+		int code = dict.id(sectionId, manip);
+
+		res[ii] = code;
+		++ii;
+	}
+
+	string manip = lookupCode.substr(0, lookupCode.size() - constStrings[constStrings.size() - 1].size()) + constStrings[constStrings.size() - 1];
+	int code = dict.id(sectionId, manip);
+	res[ii] = code;
+
+	return res;
+}
+
+vector<int> get_sons_bnf(MedDictionarySections &dict, const string &group) {
+	int sectionId = dict.section_id("Drug");
+	vector<int> res;
+
+
+	size_t pos = group.find(".00");
+	if (pos == string::npos) {
+		return res; // leaf - no sons
+	}
+
+	//iterate over 00-99:
+	for (size_t i = 0; i < 100; ++i) {
+		string nm = to_string(i);
+		if (i < 10) {
+			nm = "0" + nm;
+		}
+		string manip = group.substr(0, pos) + "." + nm + group.substr(pos + 3);
+		int code = dict.id(sectionId, manip);
+		if (code > 0) {
+			res.push_back(code);
+		}
+	}
+
+	return res;
+}
+
+#pragma endregion
+
+string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
+	if (signalHirerchyType == "RC")
+		return filter_g_code(vec);
+	else if (signalHirerchyType == "ATC")
+		return filter_atc_code(vec);
+	else if (signalHirerchyType == "BNF")
+		return filter_bnf_code(vec);
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+}
+vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
+	if (signalHirerchyType == "RC")
+		return get_parents_rc(dict, group);
+	else if (signalHirerchyType == "ATC")
+		return get_parents_atc(dict, group);
+	else if (signalHirerchyType == "BNF")
+		return get_parents_bnf(dict, group);
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+}
+vector<int> medial::signal_hierarchy::sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
+	if (signalHirerchyType == "RC")
+		return get_sons_rc(dict, group);
+	else if (signalHirerchyType == "ATC")
+		return get_sons_atc(dict, group);
+	else if (signalHirerchyType == "BNF")
+		return get_sons_bnf(dict, group);
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+}
+
+string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType) {
+	int sectionId = 0;
+	if (signalHirerchyType == "RC")
+		sectionId = 1;
+	else if (signalHirerchyType == "ATC")
+		sectionId = 2;
+	else if (signalHirerchyType == "BNF")
+		sectionId = 2;
+	else
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+			signalHirerchyType.c_str());
+	string res = "";
+	vector<int> sets;
+	dict.get_member_sets(sectionId, id, sets);
+	if (dict.dicts[sectionId].Id2Names.find(id) != dict.dicts[sectionId].Id2Names.end()) {
+		vector<string> nms = dict.dicts[sectionId].Id2Names.at(id);
+		string filterd = filter_code_hierarchy(nms, signalHirerchyType);
+		if (!filterd.empty()) {
+			res = filterd;
+			return res;
+		}
+	}
+	for (int s : sets)
+	{
+		vector<string> names;
+		if (dict.dicts[sectionId].Id2Names.find(s) != dict.dicts[sectionId].Id2Names.end()) {
+			names = dict.dicts[sectionId].Id2Names.at(s);
+		}
+		string name = filter_code_hierarchy(names, signalHirerchyType);
+		if (!name.empty() && !res.empty()) {
+			//more than one option - for now not supported:
+			cerr << "not supported" << endl;
+			throw logic_error("not supported");
+		}
+		if (!name.empty()) {
+			res = name;
+		}
+	}
+
+	return res;
+}
