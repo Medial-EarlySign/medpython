@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedFeat/MedFeat/MedOutcome.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "Logger/Logger/Logger.h"
@@ -42,6 +43,10 @@ public:
 
 	void write_calibration_table(const string & calibration_table_file);
 	void read_calibration_table(const string& fname);
+
+	ADD_SERIALIZATION_FUNCS(estimator_type, binning_method, bins_num, pos_sample_min_days_before_case, pos_sample_max_days_before_case,
+		km_time_resolution_in_days, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, cals)
+
 protected:
 	double calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot);
 	void smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals);
