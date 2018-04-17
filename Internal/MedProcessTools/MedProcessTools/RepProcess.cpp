@@ -1333,11 +1333,21 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 			boost::split(signals, entry.second, boost::is_any_of(",:"));
 		}
 		else if (field == "timer") timer_signal = entry.second;
+		else if (field == "time_step") time_step_str = entry.second;
 	}
 
 	calc_type = get_calculator_type(calculator);
 
 	if (calc_type != CALC_TYPE_UNDEF) {
+
+		//time_step
+		if (!time_step_str.empty()) {
+			time_step = stoi(time_step_str);
+			if (time_step <= 0) {
+				MERR("Non-positive time_step: %d\n", time_step);
+				return -1;
+			}
+		}
 
 		// Timer
 		// Given when not required
@@ -1356,8 +1366,8 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		}
 
 		// default timer is the first required signal
-		if (timer_signal.empty() && !calc2req_sigs.find(calculator)->second.empty())
-			timer_signal = calc2req_sigs.find(calculator)->second[0];
+		//if (timer_signal.empty() && !calc2req_sigs.find(calculator)->second.empty())
+		//	timer_signal = calc2req_sigs.find(calculator)->second[0];
 
 		// add required signals depending on the actual calculator we run
 		// might be overidden from json
@@ -1405,7 +1415,6 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		for (int i = 0; i < signals.size(); i++)
 			req_signals.insert(signals[i]);
 
-
 		return 0;
 	}
 
@@ -1434,6 +1443,12 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		signals_time_unit = sigs.Sid2Info[timer_signal_id].time_unit;
 	}
 
+	//hack for saving run-time: code for african american is added on the fly as a coeff,
+	//to be used by the calculator
+	if (calc_type == CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN) {
+		int african_american_dict_id = dict.id("BLACK/AFRICAN AMERICAN");
+		coeff = {(float)african_american_dict_id };
+	}
 
 }
 
@@ -1509,7 +1524,7 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	}
 
 	if (calcFunc) {
-		int rv = _apply_calc_hosp_pointwise(rec, time_points, timer_signal_id, calcFunc);
+		int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
 		return rv;
 	}
 
@@ -1523,13 +1538,17 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
 	switch (calc_type) {	
 	case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
 	case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
-	case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently;//special function
 	}
 
 	if (calcTimeFunc)
-		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc);
+		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, false); //use past/future observations
 
+	switch (calc_type) {
+	case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently; break; //special function
+	}
 
+	if (calcTimeFunc)
+		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
 
 	return -1;
 }
