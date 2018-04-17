@@ -253,3 +253,13 @@ int MedTime::add_subtruct_days(int in_time, int delta_days) {
 	int out_time = convert_times(Days, Date, in_time_n);
 	return out_time;
 }
+
+
+//.....................................................................................................
+int MedTime::diff_times(int d1, int d2, int in_type, int out_type)
+{
+	int t1 = convert_times(in_type, out_type, d1);
+	int t2 = convert_times(in_type, out_type, d2);
+	return (t1-t2);
+}
+

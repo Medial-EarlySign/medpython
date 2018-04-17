@@ -149,15 +149,27 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 	cp_info = additional_info; //a copy - i will change those each time
 	y_changed.insert(y_changed.end(), y.begin(), y.end());
 	//update: cp_info["Time-Window"] based on additional_info["Time-Window"] for cases not in time window
+	int cases_censored = 0, cases_changed_to_controls = 0;
 	for (size_t i = 0; i < y_changed.size(); ++i)
 	{
 		if (y[i] > 0 && !filter_range_param(additional_info, (int)i, &time_filter)) {
-			if (additional_info.at(search_term)[i] > time_filter.max_range) {
+			// cases which are long before the outcome (>2*max_range) are considered as controls:
+
+			// ----------------max_range*2--------max_range---------min_range---event---------------
+			// -------------------^-------------------^----------------^----------^-----------------
+			// ------control------|------censor-------|------case------|--------censor--------------
+
+			if (additional_info.at(search_term)[i] > time_filter.max_range * 2) {
 				y_changed[i] = 0;
-				cp_info[search_term][i] = time_filter.min_range; //wont filter because time
+				cp_info[search_term][i] = time_filter.min_range; // bogus time - wont filter because in time range
+				cases_changed_to_controls++;
 			}
+			else
+				cases_censored++;
 		}
 	}
+	MLOG("make_sim_time_window for cohort [%s] censored %d cases and changed %d cases to controls as they were %f days before outcome date\n",
+		cohort_name.c_str(), cases_censored, cases_changed_to_controls, time_filter.max_range * 2);
 }
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
@@ -806,11 +818,11 @@ void MedBootstrapResult::explore_score(float score, map<string, float> &score_me
 	explore_measure("SCORE", score, score_measurements, string_cohort, max_search_range);
 }
 
-void MedBootstrapResult::write_results_to_text_file(const string &path, bool pivot_format) {
+void MedBootstrapResult::write_results_to_text_file(const string &path, bool pivot_format, const string& run_id) {
 	if (pivot_format)
-		write_pivot_bootstrap_results(path, bootstrap_results);
+		write_pivot_bootstrap_results(path, bootstrap_results, run_id);
 	else
-		write_bootstrap_results(path, bootstrap_results);
+		write_bootstrap_results(path, bootstrap_results, run_id);
 }
 
 void MedBootstrapResult::read_results_to_text_file(const string &path, bool pivot_format) {

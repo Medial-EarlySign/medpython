@@ -24,6 +24,7 @@ typedef enum {
 	REP_PROCESS_CONFIGURED_OUTLIER_CLEANER,///<"configured_outlier_cleaner" or "conf_cln" to activate RepConfiguredOutlierCleaner
 	REP_PROCESS_RULEBASED_OUTLIER_CLEANER,///<"rulebased_outlier_cleaner" or "rule_cln" to activate RepRuleBasedOutlierCleaner
 	REP_PROCESS_CALC_SIGNALS,///<"calc_signals" or "calculator" to activate RepCalcSimpleSignals
+	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -557,6 +558,198 @@ public:
 	/// <summary> Print processors information </summary>
 	void print();
 };
+
+
+//.......................................................................................
+/** RepPanelCompleter fills-in calculatable signal values. Enriching existing signals
+
+	The available completions are currently -
+		1. RedLineCompleter : MCV,HCT,RBC,MCH,MCHC,HGB
+		2. WhiteLineCompleter : WBC,Eosonophils#,Eosonophils%,Neutrophils#,Neutrophils%,Lymphocytes#,Lymphocytes%,Monocytes#,Monocytes%,Basophils#,Basophils%
+		3. PlateletsCompleter : Platelets, Platelets_Hematocrit and MPV
+		4. LipidsCompleter : Cholesterol,LDL,HDL,HDL_over_Cholesterol,Cholesterol_over_HDL,HDL_over_LDL,LDL_over_HDL,NonHDLCholesterol,HDL_over_nonHDL,Tryglicerids
+		5. eGFRCompleter : Creatinine, eGFR_CKD_EPI,eGFR_MDRD
+		6. BMICompleter : BMI,Weight,Height
+
+	Signals above are the default values. They can be changed, keeping the order, or set to NULL, in which case the completion is not-performed
+
+*/
+//.......................................................................................
+
+typedef enum {
+	REP_CMPLT_RED_LINE_PANEL, ///< complete values of the red blood line
+	REP_CMPLT_WHITE_LINE_PANEL, ///< complete values of the white blood line
+	REP_CMPLT_PLATELETS_PANEL, ///< complete values of platelets measurements
+	REP_CMPLT_LIPIDS_PANEL, ///< complete lipd values
+	REP_CMPLT_EGFR_PANEL, ///< complete eGFR values
+	REP_CMPLT_BMI_PANEL ///< complete BMI/HIGHT/WEIGHT values
+} PanelCompleterTypes;
+
+typedef enum {
+	RED_PNL_MCV,
+	RED_PNL_HCT,
+	RED_PNL_RBC,
+	RED_PNL_MCH,
+	RED_PNL_MCHC,
+	RED_PNL_HGB,
+	RED_PNL_LAST
+} RedPanelSignals;
+
+typedef enum {
+	WHITE_PNL_WBC,
+	WHITE_PNL_EOS_N, WHITE_PNL_EOS_P,
+	WHITE_PNL_NEU_N, WHITE_PNL_NEU_P,
+	WHITE_PNL_LYM_N, WHITE_PNL_LYM_P,
+	WHITE_PNL_MON_N, WHITE_PNL_MON_P,
+	WHITE_PNL_BAS_N, WHITE_PNL_BAS_P,
+	WHITE_PNL_LAST
+} WhitePanelSignals;
+
+typedef enum {
+	PLT_PNL_PLTS,
+	PLT_PNL_PLT_HCT,
+	PLT_PNL_MPV,
+	PLT_PNL_LAST
+} PltsPanelSignals ;
+
+typedef enum {
+	LIPIDS_PNL_CHOL,
+	LIPIDS_PNL_LDL,
+	LIPIDS_PNL_HDL,
+	LIPIDS_PNL_HDL_OVER_CHOL,
+	LIPIDS_PNL_CHOL_OVER_HDL,
+	LIPIDS_PNL_HDL_OVER_LDL,
+	LIPIDS_PNL_LDL_OVER_HDL,
+	LIPIDS_PNL_NON_HDL_CHOL,
+	LIPIDS_PNL_HDL_OVER_NON_HDL,
+	LIPIDS_PNL_TRGS,
+	LIPIDS_PNL_VLDL,
+	LIPIDS_PNL_LAST
+} LipidsPanelSignals;
+
+typedef enum {
+	EGFR_PNL_CRT,
+	EGFR_PNL_CKD_EPI,
+	EGFR_PNL_MDRD,
+	EGFR_PNL_LAST
+} eGFRPanelSignals ;
+
+typedef enum {
+	BMI_PNL_BMI,
+	BMI_PNL_WGT,
+	BMI_PNL_HGT,
+	BMI_PNL_HGT_SQR,
+	BMI_PNL_LAST
+} BMIPanelSignals;
+
+class RepPanelCompleter : public RepProcessor {
+public:
+	// Signals for completions
+	vector<vector<string> > panel_signal_names;
+	vector<vector<int> > panel_signal_ids;
+
+	// Extra signal ids
+	int byearId, genderId, ageId;
+	bool ageDirectlyGiven; // True for inpatients (use ageId) , false for outpatients (use byearId)
+	string genderSignalName;
+
+	// Missing value indication
+	float missing_val = MED_MAT_MISSING_VALUE;
+
+	// Signals meta-data : original and final resolution and factors
+	string metadata_file;
+	vector<vector<float> > original_sig_res, final_sig_res, sig_conversion_factors;
+
+	RepPanelCompleter() { processor_type = REP_PROCESS_COMPLETE; init_defaults(); }
+
+	/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
+	int init(map<string, string>& mapper);
+
+	/// <summary> initialize to default values :  Should be implemented for inheriting classes that have parameters </summary>
+	void init_defaults();
+
+	// Change signal names from defualt
+	int update_signal_names(string panel, string& names);
+
+	// Change panels to handle
+	int update_panels(string& panels);
+
+	// initialize signal ids
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	/// Fill req- and aff-signals vectors
+	void init_lists();
+
+	// Read conversion and resolution info
+	void read_metadata();
+
+	// Learning
+	/// <summary> In this class there's never learning - we return 0 immediately </summary>
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict, rep.sigs); read_metadata(); return 0; };
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points);
+
+	// calculators implementations
+	int apply_red_line_completer(PidDynamicRec& rec, vector<int>& time_points);
+	int apply_white_line_completer(PidDynamicRec& rec, vector<int>& time_points);
+	int apply_platelets_completer(PidDynamicRec& rec, vector<int>& time_points);
+	int apply_lipids_completer(PidDynamicRec& rec, vector<int>& time_points);
+	int apply_eGFR_completer(PidDynamicRec& rec, vector<int>& time_points);
+	int apply_BMI_completer(PidDynamicRec& rec, vector<int>& time_points);
+
+	// Utilities
+	// Age/Gender
+	int perpare_for_age_and_gender(PidDynamicRec& rec, int& age, int& bYear, int& gender);
+
+	// Rounding - take care of resolution both in original and final units 
+	inline float completer_round(float value, float orig_res, float final_res, float factor) {return  set_resolution(set_resolution(value / factor, orig_res) * factor, final_res);}
+	inline float set_resolution(float value, float res) {return res * (int)(value / res + 0.5); }
+
+	// Generating panels from usvs
+	void get_panels(vector<UniversalSigVec>& usvs, vector<int>& panel_times, vector<vector<float>>& panels, int time_limit, int panel_size);
+
+	// Applying formulas
+	int triplet_complete(vector<float>& panel, float factor, int x_idx, int y_idx, int z_idx, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv ,vector<int>& changed);
+	int sum_complete(vector<float>& panel, int sum, vector<int>& summands, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv, vector<int>& changed);
+	int reciprocal_complete(vector<float>& panel, float factor, int x_idx, int y_idx, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv, vector<int>& changed);
+	int egfr_complete(vector<float>& panel, float age, int gender, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv, vector<int>& changed);
+
+	// Updating signals in dynamic-rec
+	int update_signals(PidDynamicRec& rec, int iver, vector<vector<float>>& panels, vector<int>& panel_times, vector<int>& sigs_ids, vector<int>& changed);
+
+	// serialization. meta-data file is kept for information but not used in apply
+	ADD_SERIALIZATION_FUNCS(panel_signal_names, missing_val, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file)
+
+private:
+
+	map<string, PanelCompleterTypes> panel2type = {
+		{ "red_line",REP_CMPLT_RED_LINE_PANEL },
+		{ "white_line",REP_CMPLT_WHITE_LINE_PANEL },
+		{ "platelets",REP_CMPLT_PLATELETS_PANEL },
+		{ "lipids",REP_CMPLT_LIPIDS_PANEL },
+		{ "egfr",REP_CMPLT_EGFR_PANEL },
+		{ "bmi",REP_CMPLT_BMI_PANEL }
+	};
+
+	// definitions and defaults for each panel-completer
+	map<string, vector<string> > panel2signals = {
+		{ "red_line", {"MCV","Hematocrit","RBC","MCH","MCHC-M","Hemoglobin"}},
+		{ "white_line", {"WBC", "Eosinophils#", "Eosinophils%", "Neutrophils#", "Neutrophils%", "Lymphocytes#", "Lymphocytes%", "Monocytes#", "Monocytes%", "Basophils#", "Basophils%"}},
+		{ "platelets", {"Platelets", "Platelets_Hematocrit","MPV"}},
+		{ "lipids",{"Cholesterol", "LDL", "HDL", "HDL_over_Cholesterol", "Cholesterol_over_HDL", "HDL_over_LDL", "LDL_over_HDL", "NonHDLCholesterol", "HDL_over_nonHDL", "Triglycerides"}},
+		{ "egfr", {"Creatinine","eGFR_CKD_EPI","eGFR_MDRD"}},
+		{ "bmi", {"BMI","Weight","Height"}}
+	};
+
+	vector<int> white_panel_nums = { WHITE_PNL_EOS_N,WHITE_PNL_NEU_N,WHITE_PNL_LYM_N,WHITE_PNL_MON_N,WHITE_PNL_BAS_N };
+	vector<int> white_panel_precs = { WHITE_PNL_EOS_P,WHITE_PNL_NEU_P,WHITE_PNL_LYM_P,WHITE_PNL_MON_P,WHITE_PNL_BAS_P };
+	vector<int> chol_types1 = { LIPIDS_PNL_NON_HDL_CHOL,LIPIDS_PNL_HDL };
+	vector<int> chol_types2 = { LIPIDS_PNL_LDL, LIPIDS_PNL_HDL, LIPIDS_PNL_VLDL };
+};
+
+//.......................................................................................
 
 
 typedef enum {

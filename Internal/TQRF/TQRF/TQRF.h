@@ -126,6 +126,7 @@ public:
 	// verbosity
 	int verbosity = 0;					/// for debug prints
 	int ids_to_print = 30;				/// control debug prints in certain places
+	int debug = 0;						/// extra param for use when debugging
 
 	//========================================================================================================================
 
@@ -166,12 +167,21 @@ public:
 
 	vector<int> is_categorial_feat;
 
+	// next are pre computed for bagging purposes
+	vector<vector<vector<int>>> time_categ_pids;
+	vector<vector<vector<int>>> time_categ_idx;
+	vector<vector<int>> categ_pids;
+	vector<vector<int>> categ_idx;
+	unordered_map<int, vector<vector<vector<int>>>> pid2time_categ_idx;
+
 	int init(MedFeatures &medf, TQRF_Params &params);
+
+	~Quantized_Feat() { fprintf(stderr, "IN QF destructor\n"); pid2time_categ_idx.clear(); fprintf(stderr, "IN QF destructor2\n");}
 
 private:
 	int quantize_feat(int i_feat, TQRF_Params &params);
 	int init_time_slices(MedFeatures &medf, TQRF_Params &params);
-
+	int init_pre_bagging(TQRF_Params &params);
 
 };
 
@@ -314,6 +324,7 @@ public:
 //==========================================================================================================================
 class TQRF_Split_Dev : public TQRF_Split_Categorial {
 public:
+	~TQRF_Split_Dev() {};
 	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
 };
 
@@ -383,6 +394,7 @@ private:
 	int n_nodes_in_process = 0;
 	int i_last_node_in_process = 0;
 
+	int bag_chooser(float p, int _t, int _c, /* OUT APPEND */ vector<int> &_indexes);
 	int bag_chooser(int choose_with_repeats, int single_sample_per_id, float p, vector<int> &pids, vector<int> &idx, unordered_map<int, vector<int>> &pid2idx, /* OUT APPEND */ vector<int> &_indexes);
 
 
@@ -423,6 +435,22 @@ public:
 	static int get_missing_value_method(const string &str);
 private:
 
+};
+
+
+/// next is for debugging
+class AllIndexes : public SerializableObject {
+
+public:
+
+	vector<vector<int>> all_indexes;
+
+	void init_all_indexes(vector<TQRF_Tree> &trees) {
+		for (auto &tree : trees)
+			all_indexes.push_back(tree.indexes);
+	}
+
+	ADD_SERIALIZATION_FUNCS(all_indexes);
 };
 
 //========================================

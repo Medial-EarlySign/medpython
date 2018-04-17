@@ -605,16 +605,18 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 	}
 	for (const string &grp : all_groups)
 	{
-		if (count_label_groups[0][grp] == 0)
+		if (count_label_groups[0][grp] == 0) {
+			if (print_verbose)
+				MLOG("Skip group %s with only %d cases\n", grp.c_str(), count_label_groups[1][grp]);
 			continue;
+		}
 		year_total[grp] = count_label_groups[0][grp] + count_label_groups[1][grp];
 		year_ratio[grp] = count_label_groups[1][grp] / float(count_label_groups[0][grp] + count_label_groups[1][grp]);
 		++i;
-		if (print_verbose) {
-			cout << grp << "\t" << count_label_groups[0][grp] << "\t" << count_label_groups[1][grp] << "\t"
-				<< count_label_groups[1][grp] / float(count_label_groups[1][grp] + count_label_groups[0][grp]) << endl;
-		}
 
+		if (print_verbose)
+			MLOG("%s\t%d\t%d\t%2.5f\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp],
+				count_label_groups[1][grp] / float(count_label_groups[1][grp] + count_label_groups[0][grp]));
 	}
 
 	float r_target = 0.5;
@@ -634,17 +636,21 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 		if (factor > max_factor)
 			max_factor = factor;
 
-		if (print_verbose)
-			if (factor > 0)
+
+		if (factor > 0) {
+			if (print_verbose)
 				MLOG("Weighting group %s base_ratio=%f factor= %f\n",
 					grp.c_str(), base_ratio, factor);
-			else
-				MLOG("Dropping group %s Num_controls=%d with zero cases\n",
-					grp.c_str(), count_label_groups[0][grp]);
+		}
+		else
+			MLOG("Dropping group %s Num_controls=%d with zero cases\n",
+				grp.c_str(), count_label_groups[0][grp]);
 
-		if (factor == 0) {
+		if (factor <= 0) {
 			list_label_groups[0].erase(grp); //for zero it's different
 			list_label_groups[1].erase(grp); //for zero it's different
+			count_label_groups[0][grp] = 0;
+			count_label_groups[1][grp] = 0;
 		}
 		else {
 			group_to_factor[grp] = factor;
@@ -654,8 +660,20 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 		}
 	}
 	//let's divide all by 1/max_factor:
+	double total_cnt_after = 0, init_sample_count = 0;
+	for (auto it = group_to_factor.begin(); it != group_to_factor.end(); ++it) {
+		total_cnt_after += count_label_groups[0][it->first] + (double)count_label_groups[1][it->first] * it->second;
+		init_sample_count += (count_label_groups[0][it->first] + count_label_groups[1][it->first]);
+	}
+	max_factor = float(total_cnt_after / init_sample_count); //change to take not max - keep same sum
+	MLOG_D("init_sample_count=%d, total_cnt_after=%2.1f, max_factor=%2.1f, orig_size=%d"
+		",all_groups.size()=%d, group_to_factor.size()=%d\n",
+		(int)init_sample_count, (float)total_cnt_after, (float)max_factor,
+		(int)data_records.samples.size(), (int)all_groups.size(), (int)group_to_factor.size());
+
 	if (max_factor > 0) {
 		for (size_t i = 0; i < full_weights.size(); ++i)
+			//if (data_records.samples[i].outcome > 0)
 			full_weights[i] /= (float)max_factor;
 		for (auto it = group_to_factor.begin(); it != group_to_factor.end(); ++it)
 			group_to_factor[it->first] /= (float)max_factor;
@@ -684,7 +702,6 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 	for (size_t i = 0; i < all_selected_indexes.size(); ++i)
 		weigths[i] = full_weights[all_selected_indexes[i]];
 
-
 	if (print_verbose) {
 		MLOG("After Matching Size=%d:\n", (int)data_records.samples.size());
 		unordered_map<string, vector<int>> counts_stat;
@@ -699,12 +716,13 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 			weight_stats[groups[all_selected_indexes[i]]][data_records.samples[i].outcome > 0] +=
 				weigths[i];
 		}
-		MLOG("Group\tCount_0\tCount_1\tratio\tweighted_ratio\n");
+		MLOG("Group\tCount_0\tCount_1\tratio\tweight_cases\tweighted_ratio\n");
 		for (const string &grp : all_groups)
 			if (group_to_factor.find(grp) != group_to_factor.end())
-				MLOG("%s\t%d\t%d\t%2.5f\t%2.5f\n", grp.c_str(),
+				MLOG("%s\t%d\t%d\t%2.5f\t%2.5f\t%2.5f\n", grp.c_str(),
 					counts_stat[grp][0], counts_stat[grp][1],
 					counts_stat[grp][1] / double(counts_stat[grp][1] + counts_stat[grp][0]),
+					group_to_factor.at(grp),
 					weight_stats[grp][1] / double(weight_stats[grp][1] + weight_stats[grp][0]));
 		//print_by_year(data_records.samples);
 	}

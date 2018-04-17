@@ -857,7 +857,7 @@ int ImportanceFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "verbose") verbose = stoi(entry.second) > 0;
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
-			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
+			MLOG("Unknown parameter \'%s\' for ImportanceFeatureSelector\n", field.c_str());
 		//! [ImportanceFeatureSelector::init]
 	}
 
@@ -903,8 +903,10 @@ int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>&
 		// Select according to number
 		int n = (features_scores.size() > numToSelect) ? numToSelect : (int)features_scores.size();
 		selected.resize(n);
-		for (int i = 0; i < n; i++)
+		for (int i = 0; i < n; i++) {
+			MLOG("SELECTED FEATURE %s : %2.3f\n", features_scores[i].first.c_str(), features_scores[i].second);
 			selected[i] = features_scores[i].first;
+		}
 	}
 
 	return 0;
