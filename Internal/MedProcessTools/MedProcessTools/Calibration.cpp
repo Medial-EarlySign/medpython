@@ -44,7 +44,7 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 	for (auto& c : cals)
 		cases += c.cnt_cases;
 	int min_cases_for_calibration = min_cases_for_calibration_smoothing_pct * cases / 100;
-	MLOG("requiring min_cases_for_calibration_pct = [%d * %d / 100 = %d]\n", min_cases_for_calibration_smoothing_pct, cases,
+	MLOG("smooth_calibration_entries requiring min_cases_for_calibration_smoothing = [%d * %d / 100 = %d]\n", min_cases_for_calibration_smoothing_pct, cases,
 		min_cases_for_calibration);
 
 	for (int s = 0; s < cals.size(); s++) {
@@ -53,10 +53,10 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 		int cases = cals[start].cnt_cases;
 		vector<int> controls_per_time_slot;
 		vector<int> cases_per_time_slot;
-		for (size_t j = 0; j < cals[0].controls_per_time_slot.size(); j++)
+		for (size_t j = 0; j < cals[start].controls_per_time_slot.size(); j++)
 		{
-			controls_per_time_slot.push_back(0);
-			cases_per_time_slot.push_back(0);
+			controls_per_time_slot.push_back(cals[start].controls_per_time_slot[j]);
+			cases_per_time_slot.push_back(cals[start].cases_per_time_slot[j]);
 		}
 
 		while (cases < min_cases_for_calibration) {
@@ -67,7 +67,7 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 				end++;
 				controls += cals[end].cnt_controls;
 				cases += cals[end].cnt_cases;
-				for (size_t j = 0; j < cals[0].controls_per_time_slot.size(); j++)
+				for (size_t j = 0; j < cals[end].controls_per_time_slot.size(); j++)
 				{
 					controls_per_time_slot[j] += cals[end].controls_per_time_slot[j];
 					cases_per_time_slot[j] += cals[end].cases_per_time_slot[j];
@@ -77,7 +77,7 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 				start--;
 				controls += cals[start].cnt_controls;
 				cases += cals[start].cnt_cases;
-				for (size_t j = 0; j < cals[0].controls_per_time_slot.size(); j++)
+				for (size_t j = 0; j < cals[start].controls_per_time_slot.size(); j++)
 				{
 					controls_per_time_slot[j] += cals[start].controls_per_time_slot[j];
 					cases_per_time_slot[j] += cals[start].cases_per_time_slot[j];
@@ -127,9 +127,9 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples ) {
 	}
 	std::sort(samples.begin(), samples.end(), comp_sample_pred);
 	MLOG("eligible samples [%d] cases [%d]\n", int(samples.size()), cases);
-	int max_samples_per_bin;
-	int max_cases_per_bin;
-	float max_delta_in_bin;
+	int max_samples_per_bin = 0;
+	int max_cases_per_bin = 0;
+	float max_delta_in_bin = 0.0;
 	if (binning_method == "unique_score_per_bin") {
 		bins_num = (int)unique_preds.size();
 		MLOG("unique_score_per_bin, bins_num [%d] \n", bins_num);
@@ -329,5 +329,4 @@ int Calibrator::Apply(MedSamples& samples) {
 				s.prediction[0] = best.mean_outcome;
 		}
 	}
-
 }
