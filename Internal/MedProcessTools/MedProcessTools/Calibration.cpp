@@ -3,9 +3,27 @@
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-using namespace medial::calibration;
+int Calibrator::init(map<string, string>& mapper) {
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [Calibrator::init]
+		if (field == "estimator_type") estimator_type = entry.second;
+		else if (field == "binning_method") binning_method = entry.second;
+		else if (field == "bins_num") bins_num = stoi(entry.second);
+		else if (field == "pos_sample_min_days_before_case") pos_sample_min_days_before_case = stoi(entry.second);
+		else if (field == "pos_sample_max_days_before_case") pos_sample_max_days_before_case = stoi(entry.second);
+		else if (field == "km_time_resolution_in_days") km_time_resolution_in_days = stoi(entry.second);
+		else if (field == "do_calibration_smoothing") do_calibration_smoothing = stoi(entry.second);
+		else if (field == "min_cases_for_calibration_smoothing_pct") min_cases_for_calibration_smoothing_pct = stoi(entry.second);	
+		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
+		//! [Calibrator::init]
+	}
 
-double medial::calibration::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot) {
+	return 0;
+}
+
+
+double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot) {
 	double prob = 1.0;
 	int total_controls_all = 0;
 	for (int i = 0; i < controls_per_time_slot.size(); i++)
@@ -20,13 +38,13 @@ double medial::calibration::calc_kaplan_meier(vector<int> controls_per_time_slot
 }
 
 // expand to neighbor calibration entries, until finding enough cases
-void medial::calibration::smooth_calibration_entries(const vector<calibration_entry>& cals, int min_cases_for_calibration_pct, vector<calibration_entry>& smooth_cals) {
+void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals) {
 	smooth_cals.clear();
 	int cases = 0;
 	for (auto& c : cals)
 		cases += c.cnt_cases;
-	int min_cases_for_calibration = min_cases_for_calibration_pct * cases / 100;
-	MLOG("requiring min_cases_for_calibration_pct = [%d * %d / 100 = %d]\n", min_cases_for_calibration_pct, cases,
+	int min_cases_for_calibration = min_cases_for_calibration_smoothing_pct * cases / 100;
+	MLOG("requiring min_cases_for_calibration_pct = [%d * %d / 100 = %d]\n", min_cases_for_calibration_smoothing_pct, cases,
 		min_cases_for_calibration);
 
 	for (int s = 0; s < cals.size(); s++) {
@@ -76,21 +94,22 @@ void medial::calibration::smooth_calibration_entries(const vector<calibration_en
 	}
 }
 
-void medial::calibration::do_calibration(string binning_method, vector<MedSample>& all_samples, int bins_num,
-	int pos_sample_min_days_before_case, int pos_sample_max_days_before_case, int km_time_resolution_in_days,
-	vector<calibration_entry>& res) {
-	res.clear();
-	std::sort(all_samples.begin(), all_samples.end(), comp_sample_pred);
-	float min_pred = 100000.0, max_pred = -100000.0;
-	int unique_scores = 0;
-	int cases = 0;
-	float prev_pred = min_pred;
+int Calibrator::Learn(const MedSamples& orig_samples) {
 	vector<MedSample> samples;
-	for (auto e : all_samples) {
-		if (e.prediction[0] != prev_pred) {
-			prev_pred = e.prediction[0];
-			unique_scores++;
-		}
+	for (const auto& pat : orig_samples.idSamples)
+		for (const auto& s : pat.samples)
+			samples.push_back(s);
+	Learn(samples);
+}
+int Calibrator::Learn(const vector<MedSample>& orig_samples ) {
+	cals.clear();
+	float min_pred = 100000.0, max_pred = -100000.0;
+	int cases = 0;
+	set<float> unique_preds;
+	vector<MedSample> samples;
+	for (auto e : orig_samples) {
+		if (unique_preds.find(e.prediction[0]) == unique_preds.end())
+			unique_preds.insert(e.prediction[0]);
 		if (e.prediction[0] < min_pred)
 			min_pred = e.prediction[0];
 		if (e.prediction[0] > max_pred)
@@ -106,27 +125,28 @@ void medial::calibration::do_calibration(string binning_method, vector<MedSample
 			cases++;
 		samples.push_back(e);
 	}
+	std::sort(samples.begin(), samples.end(), comp_sample_pred);
 	MLOG("eligible samples [%d] cases [%d]\n", int(samples.size()), cases);
 	int max_samples_per_bin;
 	int max_cases_per_bin;
 	float max_delta_in_bin;
-	if (binning_method == "do_bin_per_unique_score") {
-		bins_num = unique_scores;
-		MLOG("do_bin_per_unique_score, bins_num [%d] \n", bins_num);
+	if (binning_method == "unique_score_per_bin") {
+		bins_num = (int)unique_preds.size();
+		MLOG("unique_score_per_bin, bins_num [%d] \n", bins_num);
 	}
-	else	if (binning_method == "do_max_samples_per_bin") {
+	else if (binning_method == "equal_num_of_samples_per_bin") {
 		max_samples_per_bin = ((int)samples.size() + (bins_num - 1)) / bins_num;
-		MLOG("do_max_samples_per_bin bins_num: %d max_samples_per_bin: %d \n",
+		MLOG("equal_num_of_samples_per_bin bins_num: %d max_samples_per_bin: %d \n",
 			bins_num, max_samples_per_bin);
 	}
-	else if (binning_method == "do_max_cases_per_bin") {
+	else if (binning_method == "equal_num_of_cases_per_bin") {
 		max_cases_per_bin = max((cases + (bins_num - 1)) / bins_num, 10);
-		MLOG("do_max_cases_per_bin bins_num: %d max_cases_per_bin: %d \n",
+		MLOG("equal_num_of_cases_per_bin bins_num: %d max_cases_per_bin: %d \n",
 			bins_num, max_cases_per_bin);
 	}
-	else if (binning_method == "do_max_score_delta_per_bin") {
+	else if (binning_method == "equal_score_delta_per_bin") {
 		max_delta_in_bin = (max_pred - min_pred) / bins_num;
-		MLOG("min_pred: %f max_pred: %f max_delta_in_bin: %f \n",
+		MLOG("equal_score_delta_per_bin min_pred: %f max_pred: %f max_delta_in_bin: %f \n",
 			min_pred, max_pred, (int)samples.size(), max_delta_in_bin);
 	}
 	else MTHROW_AND_ERR("unknown binning method [%s]\n", binning_method.c_str());
@@ -159,15 +179,15 @@ void medial::calibration::do_calibration(string binning_method, vector<MedSample
 		bin_cases_per_time_slot.push_back(cases_per_time_slot);
 	}
 	int cnt = 0, bin = 1;
-	prev_pred = min_pred;
+	float prev_pred = min_pred;
 	for (auto &o : samples) {
 		// TODO: use medtime
 		int gap = get_day_approximate(o.outcomeTime) - get_day_approximate(o.time);
 		if (
-			(binning_method == "do_bin_per_unique_score" && prev_pred != o.prediction[0]) ||
-			(binning_method == "do_max_samples_per_bin" && cnt_controls[bin] + cnt_cases[bin] >= max_samples_per_bin) ||
-			(binning_method == "do_max_score_delta_per_bin" && (o.prediction[0] - bin_min_preds[bin]) > max_delta_in_bin) ||
-			(binning_method == "do_max_cases_per_bin" && cnt_cases[bin] >= max_cases_per_bin))
+			(binning_method == "unique_score_per_bin" && prev_pred != o.prediction[0]) ||
+			(binning_method == "equal_num_of_samples_per_bin" && cnt_controls[bin] + cnt_cases[bin] >= max_samples_per_bin) ||
+			(binning_method == "equal_score_delta_per_bin" && (o.prediction[0] - bin_min_preds[bin]) > max_delta_in_bin) ||
+			(binning_method == "equal_num_of_cases_per_bin" && cnt_cases[bin] >= max_cases_per_bin))
 		{
 			bin++;
 			bin_min_preds[bin] = o.prediction[0];
@@ -206,11 +226,16 @@ void medial::calibration::do_calibration(string binning_method, vector<MedSample
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
 		ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i]);
 		cumul_cnt += ce.cnt_controls + ce.cnt_cases;
-		res.push_back(ce);
+		cals.push_back(ce);
+	}
+	if (do_calibration_smoothing) {
+		vector<calibration_entry> smooth_cals;
+		smooth_calibration_entries(cals, smooth_cals);
+		cals = smooth_cals;
 	}
 }
 
-void medial::calibration::write_calibration_table(vector<calibration_entry>& cals, const string & calibration_table_file) {
+void Calibrator::write_calibration_table(const string & calibration_table_file) {
 	ofstream of;
 	of.open(calibration_table_file, ios::out);
 	if (!of) {
@@ -237,7 +262,7 @@ void medial::calibration::write_calibration_table(vector<calibration_entry>& cal
 	MLOG("wrote [%d] bins into [%s]\n", cals.size(), calibration_table_file.c_str());
 }
 
-void medial::calibration::read_calibration_table(const string& fname, vector<calibration_entry>& cals) {
+void Calibrator::read_calibration_table(const string& fname) {
 	ifstream inf(fname);
 	if (!inf) {
 		MLOG("can't open file %s for read\n", fname.c_str());
@@ -274,11 +299,35 @@ void medial::calibration::read_calibration_table(const string& fname, vector<cal
 	inf.close();
 }
 
-calibration_entry medial::calibration::calibrate_pred(vector<calibration_entry>& cals, float pred) {
+calibration_entry Calibrator::calibrate_pred(float pred) {
 	int start = 0;
 	for (int i = 0; i < cals.size(); i++) {
 		if (pred >= cals[i].min_pred)
 			start = i;
 	}
 	return cals[start];
+}
+
+int Calibrator::Apply(MedSamples& samples) {
+	int do_km;
+	if (estimator_type == "kaplan_meier") {
+		do_km = 1;
+		MLOG("calibrating [%d] samples using kaplan_meier estimator");
+	}
+	else if (estimator_type == "mean_cases") {
+		do_km = 0;
+		MLOG("calibrating [%d] samples using mean_cases estimator");
+	}
+	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
+
+	for (auto &pat : samples.idSamples) {
+		for (auto& s : pat.samples) {
+			calibration_entry best = calibrate_pred(s.prediction[0]);
+			if (do_km)
+				s.prediction[0] = best.kaplan_meier;
+			else
+				s.prediction[0] = best.mean_outcome;
+		}
+	}
+
 }
