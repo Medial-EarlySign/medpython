@@ -76,9 +76,8 @@ public:
 		conflict_method = "drop"; //default
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
-		int day_jump = 0;
+		day_jump = 0;
 		use_allowed = false;
-		conflict_method = "all";
 		start_year = 0;
 		end_year = 0;
 		allowed_time_to = 0;

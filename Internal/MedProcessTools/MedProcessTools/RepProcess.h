@@ -826,7 +826,9 @@ class RepCalcSimpleSignals : public RepProcessor {
 
 		vector<string> signals; ///< it is possible to transfer a vector of required signals, to override default ones.
 		string timer_signal; ///< if given, used to detrmine time-points when virtual signal(s) are calculated
-		int timer_signal_id; ///< id of timer-signal (if given)
+		int timer_signal_id = -1; ///< id of timer-signal (if given)
+		string time_step_str; ///< string to describe time step (if given), and translate to time_step
+		int time_step = -1; ///< add times every time_step starting from the first time (timer or union), if given. must be positive
 		int signals_time_unit; ///< Time unit of timer and all signals 
 
 		RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS;}
@@ -861,14 +863,15 @@ class RepCalcSimpleSignals : public RepProcessor {
 		//process io fields in MIMIC style, depending on their type (understood from the name and the type
 		static int process_hosp_signal(const string& name, UniversalSigVec& usv, vector<int>& times, vector<float>& vals);
 		
-		void index_targets_in_given_vector(const vector<int> &target, const vector<int> &given, int& max_diff, int signals_time_unit, int diff_time_unit, int& max, vector<size_t>& indices);
+		void index_targets_in_given_vector(const vector<int> &target, const vector<int> &given, int& max_diff, int signals_time_unit, int diff_time_unit, int& max, vector<size_t>& indices, bool onlyPast = false);
 		
-		int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, int timer_signal_id, float (*calcFunc)(const vector<float>&, const vector<float>&));
+		int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, float (*calcFunc)(const vector<float>&, const vector<float>&), bool onlyPast = false);
 
 		int _apply_calc_log(PidDynamicRec& rec, vector<int>& time_points);
 
 		int _apply_calc_hosp_time_dependent_pointwise(PidDynamicRec& rec, vector<int>& time_points,
-			float(*calcFunc)(const vector<pair<int, float> >&, int, const vector<float>&));
+			float(*calcFunc)(const vector<pair<int, float> >&, int, const vector<float>&), bool onlyPast = false);
+
 		int _apply_calc_24h_urine_output(PidDynamicRec& rec, vector<int>& time_points);
 
 		static float calc_hosp_MELD(float bilirubin, float inr, float creatinine, float na, int mode);	
@@ -892,9 +895,9 @@ class RepCalcSimpleSignals : public RepProcessor {
 		static float calc_hosp_PaO2_FiO2_ratio(const vector<float>& args, const vector<float>& params) {
 			return calc_hosp_PaO2_FiO2_ratio(args.at(0), args.at(1));
 		}
-		static float calc_hosp_is_african_american(float ethnicity);
+		static float calc_hosp_is_african_american(float ethnicity, float african_american_dict_id);
 		static float calc_hosp_is_african_american(const vector<float>& args, const vector<float>& params) {
-			return calc_hosp_is_african_american(args.at(0));
+			return calc_hosp_is_african_american(args.at(0), params.at(0));
 		}
 		//no need for a function for mechanical ventilation
 		static float calc_hosp_SOFA_nervous(float x, bool optimistic); 
