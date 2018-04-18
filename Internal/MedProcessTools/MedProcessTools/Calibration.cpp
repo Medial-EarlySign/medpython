@@ -28,6 +28,7 @@ double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<
 	int total_controls_all = 0;
 	for (int i = 0; i < controls_per_time_slot.size(); i++)
 		total_controls_all += controls_per_time_slot[i];
+	//MLOG("size %d total_controls_all %d\n", controls_per_time_slot.size(), total_controls_all);
 	for (int i = 0; i < controls_per_time_slot.size(); i++) {
 		if (total_controls_all <= 0)
 			MTHROW_AND_ERR("calc_kaplan_meier left without controls in time slot [%d]\n", i);
@@ -135,12 +136,12 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples ) {
 		MLOG("unique_score_per_bin, bins_num [%d] \n", bins_num);
 	}
 	else if (binning_method == "equal_num_of_samples_per_bin") {
-		max_samples_per_bin = ((int)samples.size() + (bins_num - 1)) / bins_num;
+		max_samples_per_bin = max((int)samples.size()/ bins_num, 10);
 		MLOG("equal_num_of_samples_per_bin bins_num: %d max_samples_per_bin: %d \n",
 			bins_num, max_samples_per_bin);
 	}
 	else if (binning_method == "equal_num_of_cases_per_bin") {
-		max_cases_per_bin = max((cases + (bins_num - 1)) / bins_num, 10);
+		max_cases_per_bin = max(cases / bins_num, 10);
 		MLOG("equal_num_of_cases_per_bin bins_num: %d max_cases_per_bin: %d \n",
 			bins_num, max_cases_per_bin);
 	}
@@ -184,10 +185,14 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples ) {
 		// TODO: use medtime
 		int gap = get_day_approximate(o.outcomeTime) - get_day_approximate(o.time);
 		if (
+			(bin < bins_num )
+			&&
+			(
 			(binning_method == "unique_score_per_bin" && prev_pred != o.prediction[0]) ||
 			(binning_method == "equal_num_of_samples_per_bin" && cnt_controls[bin] + cnt_cases[bin] >= max_samples_per_bin) ||
 			(binning_method == "equal_score_delta_per_bin" && (o.prediction[0] - bin_min_preds[bin]) > max_delta_in_bin) ||
 			(binning_method == "equal_num_of_cases_per_bin" && cnt_cases[bin] >= max_cases_per_bin))
+			)
 		{
 			bin++;
 			bin_min_preds[bin] = o.prediction[0];
