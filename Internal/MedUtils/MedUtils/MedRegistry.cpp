@@ -460,6 +460,7 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 	MLOG("Sampling for incidence stats...\n");
 	sampler->do_sample(registry_records, incidence_samples);
 	MLOG("Done...\n");
+	delete sampler;
 	MedRepository rep;
 	vector<int> pids;
 	get_pids(pids);
