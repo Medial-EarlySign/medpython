@@ -530,33 +530,35 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 				}
 			}
 		}
-	if (use_kaplan_meir)
+	if (use_kaplan_meir) {
 		for (int c = 0; c < sorted_times.size(); ++c)
 		{
 			sort(sorted_times[c].begin(), sorted_times[c].end());
 			times_indexes[c].resize(sorted_times[c].size());
-			//prepare times_indexes:
-			for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
-				for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
-					int pid = incidence_samples.idSamples[i].samples[j].id;
-					int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
-					int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
-					int age_index = (age - min_age) / age_bin;
-					if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
-						continue;
-
-					int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
-						incidence_samples.idSamples[i].samples[j].outcomeTime));
-					int original_time = time_diff;
-					if (time_diff > time_period)
-						time_diff = time_period;
-					int ind = medial::process::binary_search_index(sorted_times[c].data(),
-						sorted_times[c].data() + sorted_times[c].size() - 1, time_diff);
-					if (incidence_samples.idSamples[i].samples[j].outcome <= 0 ||
-						original_time <= time_period)
-						times_indexes[c][ind].push_back(pair<int, int>((int)i, (int)j));
-				}
 		}
+		//prepare times_indexes:
+		for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
+			for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
+				int pid = incidence_samples.idSamples[i].samples[j].id;
+				int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
+				int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
+				int age_index = (age - min_age) / age_bin;
+				if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
+					continue;
+
+				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
+					incidence_samples.idSamples[i].samples[j].outcomeTime));
+				int original_time = time_diff;
+				if (time_diff > time_period)
+					time_diff = time_period;
+				int ind = medial::process::binary_search_index(sorted_times[age_index].data(),
+					sorted_times[age_index].data() + sorted_times[age_index].size() - 1, time_diff);
+				if (incidence_samples.idSamples[i].samples[j].outcome <= 0 ||
+					original_time <= time_period)
+					times_indexes[age_index][ind].push_back(pair<int, int>((int)i, (int)j));
+			}
+	}
+
 
 	if (use_kaplan_meir) {
 		bool warn_shown = false;
