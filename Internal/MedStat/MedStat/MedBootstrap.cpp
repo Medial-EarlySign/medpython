@@ -502,8 +502,9 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					{
 						if (reg_records[k]->registry_value > 0)
 							continue;
-						if (sim_features.samples[i].time >= reg_records[k]->min_allowed_date &&
-							sim_features.samples[i].time <= reg_records[k]->max_allowed_date) {
+						int diff_to_allowed = int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
+							reg_records[k]->max_allowed_date)));
+						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_records[k]->min_allowed_date) {
 							is_legal = true;
 							break;
 						}
@@ -511,7 +512,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					if (is_legal)
 						selected_rows.push_back((int)i); //add if legal
 				}
-				selected_rows.push_back((int)i);
+				else
+					selected_rows.push_back((int)i);
 			}
 			medial::process::filter_row_indexes(sim_features, selected_rows);
 			final_features = &sim_features;
@@ -885,7 +887,7 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 				samples.idSamples[i].samples[j].outcomeTime)
 				- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
 			//check if valid for time_window:
-			if (samples.idSamples[i].samples[j].outcome >0) {
+			if (samples.idSamples[i].samples[j].outcome > 0) {
 				if ((diff_days >= min_time && diff_days <= max_time) &&
 					(keep_case_index < 0 || max_pred_case < samples.idSamples[i].samples[j].prediction[0])) {
 					max_pred_case = samples.idSamples[i].samples[j].prediction[0];
