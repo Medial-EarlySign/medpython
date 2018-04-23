@@ -500,10 +500,10 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					bool is_legal = false;
 					for (size_t k = 0; k < reg_records.size(); ++k)
 					{
-						if (reg_records[i]->registry_value > 0)
+						if (reg_records[k]->registry_value > 0)
 							continue;
-						if (sim_features.samples[i].time >= reg_records[i]->min_allowed_date &&
-							sim_features.samples[i].time <= reg_records[i]->max_allowed_date) {
+						if (sim_features.samples[i].time >= reg_records[k]->min_allowed_date &&
+							sim_features.samples[i].time <= reg_records[k]->max_allowed_date) {
 							is_legal = true;
 							break;
 						}
