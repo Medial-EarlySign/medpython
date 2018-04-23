@@ -78,6 +78,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	AM_API_ClearData(am);
 
+	//MLOG("=====> now running get_preds_from_algomarker()\n");
 	//MLOG("Going over %d pids\n", pids.size());
 	for (auto pid : pids)
 		for (auto &sig : sigs) {
@@ -119,8 +120,12 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	samples.export_to_sample_vec(_vsamp);
 	for (auto &s : _vsamp) {
 		_pids.push_back(s.id);
-		_timestamps.push_back((long long)s.time*10000 + 1010);
+		//_timestamps.push_back((long long)s.time*10000 + 1010);
+		_timestamps.push_back((long long)s.time);
+		//MLOG("pid %d time %lld\n", _pids.back(), _timestamps.back());
 	}
+
+
 
 	//MLOG("Before CreateRequest\n");
 	// prep request
@@ -134,7 +139,34 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	MLOG("Before Calculate\n");
 	AM_API_CreateResponses(&resp);
 	int calc_rc = AM_API_Calculate(am, req, resp);
-	//MLOG("After Calculate: rc = %d\n", calc_rc);
+	MLOG("After Calculate: rc = %d\n", calc_rc);
+
+#if 0
+
+	MLOG("SIGNALS IN ALGOMARKER ===========> :: \n");
+	MedialInfraAlgoMarker *mam = (MedialInfraAlgoMarker *)am;
+	vector<string> print_sigs ={ "Drug" };
+	for (int i=0; i<_pids.size(); i++) {
+		for (int j=0; j< print_sigs.size(); j++) {
+			mam->ma.rep.print_data_vec(_pids[i], print_sigs[j]);
+
+			UniversalSigVec usv;
+			int psid = mam->ma.rep.sigs.sid(print_sigs[j]);
+			mam->ma.rep.uget(_pids[i], psid, usv);
+
+			int ii;
+			for (ii=0; ii<usv.len; ii++)
+				MLOG(" %d %d,%d : ", usv.Time(ii, 0), (int)usv.Val(ii, 0), (int)usv.Val(ii, 1));
+			MLOG(" (%d vals)\n", ii);
+
+
+		}
+	}
+
+	MedMat<float> xfeat;
+	mam->ma.model.features.get_as_matrix(xfeat);
+	xfeat.write_to_csv_file("am.csv");
+#endif
 
 	// go over reponses and pack them to a MesSample vector
 	int n_resp = AM_API_GetResponsesNum(resp);
@@ -144,23 +176,24 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	float _scr;
 	int pid;
 	long long ts;
-	char *_scr_type;
+	char *_scr_type = NULL;
 	AMResponse *response;
 	for (int i=0; i<n_resp; i++) {
 		//MLOG("Getting response no. %d\n", i);
 		int resp_rc = AM_API_GetResponseAtIndex(resp, i, &response);
 		int n_scores;
 		AM_API_GetResponseScoresNum(response, &n_scores);
-		//int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_types);
+		//int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_type);
 		//MLOG("resp_rc = %d\n", resp_rc);
 		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
-		
+
 		AM_API_GetResponsePoint(response, &pid, &ts);
 		MedSample s;
 		s.id = pid;
 		s.time = (int)(ts/10000);
 		if (resp_rc == AM_OK_RC && n_scores > 0) {
 			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+			//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 			s.prediction.push_back(_scr);
 		}
 		else {
@@ -451,6 +484,7 @@ int main(int argc, char *argv[])
 		MLOG(" %s", sig.c_str());
 		sigs.push_back(sig);
 	}
+	//sigs ={ "BYEAR","GENDER","Glucose", "BMI" ,"WBC","Triglycerides","ALT","RBC","GENDER","HDL","Na","HbA1C","Weight","Drug" }; // DEBUG
 	MLOG("\n");
 
 	// read samples file
@@ -474,8 +508,25 @@ int main(int argc, char *argv[])
 	if (rep.read_all(vm["rep"].as<string>(), pids, sigs) < 0) return -1;
 
 
+
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
+
+#if 0
+
+	MLOG("SIGNALS IN REP ===========> :: \n");
+	vector<string> print_sigs ={ "Drug" };
+	for (int i=0; i<pids.size(); i++) {
+		for (int j=0; j< print_sigs.size(); j++)
+			rep.print_data_vec(pids[i], print_sigs[j]);
+	}
+
+	MedMat<float> xfeat;
+	model.features.get_as_matrix(xfeat);
+	xfeat.write_to_csv_file("direct.csv");
+
+#endif
+
 
 	// printing
 	vector<MedSample> res1;
