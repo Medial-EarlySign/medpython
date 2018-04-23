@@ -492,8 +492,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					selected_rows.push_back((int)i);
 					continue;
 				}
-				int time_df = int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
-					sim_features.samples[i].outcomeTime))); //time to turn into case
+				int time_df = (med_time_converter.convert_date(MedTime::Days, sim_features.samples[i].outcomeTime)
+					- med_time_converter.convert_date(MedTime::Days, sim_features.samples[i].time));
 				if (time_df > time_filter.max_range) {
 					//search for intersection:
 					const vector<MedRegistryRecord *> &reg_records = pid_to_reg[sim_features.samples[i].id];
