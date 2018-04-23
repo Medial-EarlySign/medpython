@@ -188,4 +188,17 @@ private:
 //=======================================
 MEDSERIALIZE_SUPPORT(MedModel)
 
+/**
+* \brief medial namespace for function
+*/
+namespace medial {
+	/*!
+	*  \brief process namespace
+	*/
+	namespace process {
+		/// \brief cleaning uneeded rep_processors - when no generator is being used
+		bool clean_uneeded_rep_processors(MedModel &m, const vector<string> &needed_sigs);
+	}
+}
+
 #endif
