@@ -84,6 +84,7 @@ public:
 	int max_depth = 100;				/// maximal depth of tree
 	int min_node_last_slice = 10;		/// stopping criteria : minimal number of samples in a node in the last time slice
 	int min_node = 10;					/// stopping criteria : minimal number of samples in a node in the first time slice
+	float random_split_prob = 0;		/// at this probability we will split a node in a random manner, in order to add noise to the tree.
 
 	// feature sampling
 	int ntry = -1;						/// -1: use the ntry_prob rule, > 0 : choose this number of features.

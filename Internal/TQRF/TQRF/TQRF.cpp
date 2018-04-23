@@ -48,6 +48,7 @@ int TQRF_Params::init(map<string, string>& map)
 		else if (f.first == "max_depth") max_depth = stoi(f.second);
 		else if (f.first == "min_node_last_slice") min_node_last_slice = stoi(f.second);
 		else if (f.first == "min_node") min_node = stoi(f.second);
+		else if (f.first == "random_split_prob") random_split_prob = stof(f.second);
 
 		// speedup by subsample control
 		else if (f.first == "max_node_test_samples") max_node_test_samples = stoi(f.second);
@@ -81,8 +82,8 @@ int TQRF_Params::init(map<string, string>& map)
 
 		// boosting
 		else if (f.first == "nrounds") nrounds = stoi(f.second);
-		else if (f.first == "min_p") nrounds = stof(f.second);
-		else if (f.first == "max_p") nrounds = stof(f.second);
+		else if (f.first == "min_p") min_p = stof(f.second);
+		else if (f.first == "max_p") max_p = stof(f.second);
 		else if (f.first == "alpha") alpha = stof(f.second);
 
 		// sanities
@@ -715,8 +716,8 @@ int TQRF_Forest::Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y)
 
 			//qfeat.wgts[i] = 1;
 			//qfeat.wgts[i] = 1 - probs[i];
-			//qfeat.wgts[i] = -log(probs[i]);
-			qfeat.wgts[i] = 1/probs[i];
+			qfeat.wgts[i] = -log(probs[i]);
+			//qfeat.wgts[i] = 1/probs[i];
 			//qfeat.wgts[i] = exp(1-probs[i]) * qfeat.wgts[i];
 			//qfeat.wgts[i] = qfeat.wgts[i]*qfeat.wgts[i]*qfeat.wgts[i];
 			//qfeat.wgts[i] = sqrt(qfeat.wgts[i]);
@@ -1538,6 +1539,10 @@ int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
 		// need to calc node sizes, and general average in order to decide for missing value strategy
 		int n_missing = 0, n_left = 0, n_right = 0;
 		float sum_vals = 0;
+
+		bool do_random_split = (rand_1() < _params->random_split_prob);
+		if (do_random_split) cnode->i_feat = -1;
+
 		for (int i=cnode->from_idx; i<=cnode->to_idx; i++) {
 			int idx = indexes[i];
 			int q = _qfeat->qx[i_best][idx];
@@ -1555,7 +1560,8 @@ int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
 											id, i_curr_node, n_missing, n_left, n_right);
 
 		// decide missing val strategy
-		if (_params->missing_method == TQRF_MISSING_VALUE_LEFT) cnode->missing_direction = TQRF_MISSING_DIRECTION_LEFT;
+		if (do_random_split) cnode->missing_direction = TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE;
+		else if (_params->missing_method == TQRF_MISSING_VALUE_LEFT) cnode->missing_direction = TQRF_MISSING_DIRECTION_LEFT;
 		else if (_params->missing_method == TQRF_MISSING_VALUE_RAND_ALL) {
 			if (rand_1() < 0.5)
 				cnode->missing_direction = TQRF_MISSING_DIRECTION_LEFT;
@@ -1589,7 +1595,13 @@ int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
 		for (int i=cnode->from_idx; i<=cnode->to_idx; i++) {
 			int idx = indexes[i];
 			int q = _qfeat->qx[i_best][idx];
-			if (q > 0) {
+			if (do_random_split) {
+				if (rand_1() < (float)0.5)
+					left_inds.push_back(idx);
+				else
+					right_inds.push_back(idx);
+			}
+			else if (q > 0) {
 				if (q <= q_best)
 					left_inds.push_back(idx);
 				else
@@ -2073,9 +2085,13 @@ TQRF_Node *TQRF_Tree::Get_Node(MedMat<float> &x, int i_row, float missing_val)
 	float *row = &x.m[i_row*x.ncols];
 	cnode = &nodes[curr_node];
 //	while (cnode->is_terminal == 0) {
+	float v;
 	while (1) {
 
-		float v = row[cnode->i_feat];
+		if (cnode->i_feat >= 0)
+			v = row[cnode->i_feat];
+		else
+			v = missing_val;
 
 		if (v == missing_val) {
 			// applying missing val strategy:
