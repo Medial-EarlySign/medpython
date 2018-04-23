@@ -235,13 +235,14 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 						(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
 							pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
 						++curr_index;
-				if (curr_index >= all_pid_records->size())
-					break; //skip if no match
-				if (use_allowed && !in_time_window(pred_date, (*all_pid_records)[curr_index],
-					allowed_time_from, allowed_time_to)) {
+				if (use_allowed && curr_index < all_pid_records->size() &&
+					!in_time_window(pred_date, (*all_pid_records)[curr_index],
+						allowed_time_from, allowed_time_to)) {
 					++curr_index;
 					continue;
 				}
+				if (curr_index >= all_pid_records->size())
+					break; //skip if no match
 				//found match:
 				if (reg_time == -1) { //first match
 					reg_val = (*all_pid_records)[curr_index]->registry_value;
@@ -365,8 +366,9 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 						(pred_end_date < (*all_pid_records)[curr_index]->min_allowed_date ||
 							pred_start_date >(*all_pid_records)[curr_index]->max_allowed_date))
 						++curr_index;
-				if (use_allowed && !in_time_window(pred_start_date, (*all_pid_records)[curr_index],
-					0, 365 * age_bin)) {
+				if (use_allowed && curr_index < all_pid_records->size() &&
+					!in_time_window(pred_start_date, (*all_pid_records)[curr_index],
+						0, 365 * age_bin)) {
 					++curr_index;
 					continue;
 				}
@@ -491,14 +493,14 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 						(choosed_time < all_pid_records[curr_index]->min_allowed_date ||
 							choosed_time >all_pid_records[curr_index]->max_allowed_date))
 						++curr_index;
-				if (curr_index >= all_pid_records.size())
-					break; //skip if no match
-						   //found match:
-				if (use_allowed && !in_time_window(choosed_time, all_pid_records[curr_index],
+				if (use_allowed && curr_index < all_pid_records.size() && !in_time_window(choosed_time, all_pid_records[curr_index],
 					allowed_time_from, allowed_time_to)) {
 					++curr_index;
 					continue;
 				}
+				if (curr_index >= all_pid_records.size())
+					break; //skip if no match
+						   //found match:
 				if (reg_time == -1) { //first match
 					reg_val = all_pid_records[curr_index]->registry_value;
 					if (reg_val <= 0)

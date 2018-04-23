@@ -95,6 +95,29 @@ public:
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
 		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set);
 
+	/// <summary>
+	/// returns all patients ids from registry - unique patient ids
+	/// @param pids the unique patient ids result vector
+	/// </summary>
+	void get_pids(vector<int> &pids);
+
+	/// <summary>
+	/// calculate incidence and writes the result into file with old and new format
+	/// @param file_path the output file path to write the results
+	/// @param rep_path the repository path to calculate the incidence
+	/// @param age_bin the age_bin for binning age groups for the incidence
+	/// @param min_age the minimal age fro the incidence
+	/// @param max_age the maximal age fro the incidence
+	/// @param time_period the time period in days for the incidence
+	/// @param use_kaplan_meir if True will calc using kaplan meier survivol rates
+	/// @param sampler_name the sampler name for calculating incidence
+	/// @param sampler_args the sampler args for calculating incidence - may control trail years for example
+	/// </summary>
+	void create_incidence_file(const string &file_path, const string &rep_path, int age_bin, int min_age,
+		int max_age, int time_period = 365, bool use_kaplan_meir = false, const string &sampler_name = "yearly",
+		const string &sampler_args = "conflict_method=max;use_allowed=1;day_jump=365;allowed_time_from=0;"
+		"allowed_time_to=365;start_year=2007;end_year=2012");
+
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
 	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records

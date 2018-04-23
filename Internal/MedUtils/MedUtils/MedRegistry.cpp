@@ -444,6 +444,263 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 }
 
+void MedRegistry::get_pids(vector<int> &pids) {
+	pids.clear();
+	unordered_set<int> seen_pid;
+	for (size_t i = 0; i < registry_records.size(); ++i)
+		seen_pid.insert(registry_records[i].pid);
+	pids.insert(pids.end(), seen_pid.begin(), seen_pid.end());
+}
+
+void MedRegistry::create_incidence_file(const string &file_path, const string &rep_path,
+	int age_bin, int min_age, int max_age, int time_period, bool use_kaplan_meir,
+	const string &sampler_name, const string &sampler_args) {
+	MedSamplingStrategy *sampler = MedSamplingStrategy::make_sampler(sampler_name, sampler_args);
+	MedSamples incidence_samples;
+	MLOG("Sampling for incidence stats...\n");
+	sampler->do_sample(registry_records, incidence_samples);
+	MLOG("Done...\n");
+	delete sampler;
+	MedRepository rep;
+	vector<int> pids;
+	get_pids(pids);
+	vector<string> signal_to_read = { "BYEAR", "GENDER" };
+	if (rep.read_all(rep_path, pids, signal_to_read) < 0)
+		MTHROW_AND_ERR("FAILED reading repository %s\n", rep_path.c_str());
+	min_age = int(min_age / age_bin) * age_bin;
+
+	vector<int> all_cnts = { 0,0 };
+	int bin_counts = (max_age - min_age) / age_bin + 1;
+	vector<pair<int, int>> counts(bin_counts), male_counts(bin_counts), female_counts(bin_counts);
+	vector<vector<int>> sorted_times(bin_counts);
+	vector<vector<vector<pair<int, int>>>> times_indexes(bin_counts);
+	vector<vector<bool>> all_times;
+	if (use_kaplan_meir) {
+		all_times.resize(bin_counts);
+		times_indexes.resize(bin_counts);
+		sorted_times.resize(bin_counts);
+		for (size_t i = 0; i < bin_counts; ++i)
+		{
+			sorted_times[i].reserve(time_period + 1);
+			all_times[i].resize(time_period + 1, false);
+		}
+	}
+	for (int i = min_age; i < max_age; i += age_bin)
+		counts[(i - min_age) / age_bin] = pair<int, int>(0, 0);
+	int byear_sid = rep.sigs.sid("BYEAR");
+	int gender_sid = rep.sigs.sid("GENDER");
+	int len;
+	for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
+		for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
+			int pid = incidence_samples.idSamples[i].samples[j].id;
+			int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
+			int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
+			int gender = (int)((((SVal *)rep.get(pid, gender_sid, len))[0]).val);
+			//int bin = age_bin*(age / age_bin);
+			int age_index = (age - min_age) / age_bin;
+			if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
+				continue;
+
+			++counts[age_index].first;
+			if (gender == GENDER_MALE)
+				++male_counts[age_index].first;
+			else if (gender == GENDER_FEMALE)
+				++female_counts[age_index].first;
+			all_cnts[0]++;
+			if (incidence_samples.idSamples[i].samples[j].outcome > 0) {
+				++counts[age_index].second;
+				all_cnts[1]++;
+				if (gender == GENDER_MALE)
+					++male_counts[age_index].second;
+				else if (gender == GENDER_FEMALE)
+					++female_counts[age_index].second;
+				/*if (age_index*age_bin + min_age == 95)
+					MLOG("DEBUG:: pid=%d, time=%d, outcomeTime=%d\n", pid,
+						incidence_samples.idSamples[i].samples[j].time,
+						incidence_samples.idSamples[i].samples[j].outcomeTime);*/
+			}
+			if (use_kaplan_meir) {
+				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
+					incidence_samples.idSamples[i].samples[j].outcomeTime));
+				if (time_diff > time_period)
+					time_diff = time_period;
+				if (!all_times[age_index][time_diff]) {
+					sorted_times[age_index].push_back(time_diff);
+					all_times[age_index][time_diff] = true;
+				}
+			}
+		}
+	if (use_kaplan_meir) {
+		for (int c = 0; c < sorted_times.size(); ++c)
+		{
+			sort(sorted_times[c].begin(), sorted_times[c].end());
+			times_indexes[c].resize(sorted_times[c].size());
+		}
+		//prepare times_indexes:
+		for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
+			for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
+				int pid = incidence_samples.idSamples[i].samples[j].id;
+				int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
+				int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
+				int age_index = (age - min_age) / age_bin;
+				if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
+					continue;
+
+				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
+					incidence_samples.idSamples[i].samples[j].outcomeTime));
+				int original_time = time_diff;
+				if (time_diff > time_period)
+					time_diff = time_period;
+				int ind = medial::process::binary_search_index(sorted_times[age_index].data(),
+					sorted_times[age_index].data() + sorted_times[age_index].size() - 1, time_diff);
+				if (incidence_samples.idSamples[i].samples[j].outcome <= 0 ||
+					original_time <= time_period)
+					times_indexes[age_index][ind].push_back(pair<int, int>((int)i, (int)j));
+			}
+	}
+
+
+	if (use_kaplan_meir) {
+		bool warn_shown = false;
+		int kaplan_meier_controls_count = 100000;
+		//for each group - Age, Age+Gender... whatever
+		ofstream of_new(file_path + ".new_format");
+		if (!of_new.good())
+			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
+		of_new << "AGE_BIN" << "\t" << age_bin << "\n";
+		of_new << "AGE_MIN" << "\t" << min_age << "\n";
+		of_new << "AGE_MAX" << "\t" << max_age << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
+
+		for (int c = 0; c < sorted_times.size(); ++c)
+		{
+			double total_controls_all = 0;
+			for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
+				const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
+				//update only controls count for group - do for all groups
+				//to get total count from all time windows kaplan meier
+				for (const pair<int, int> &p_i_j : index_order)
+					if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0)
+						++total_controls_all;
+			}
+
+			double controls = 0, cases = 0, prob = 1;
+			for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
+				const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
+				for (const pair<int, int> &p_i_j : index_order) {
+					//keep update kaplan meir in time point
+					if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome > 0)
+						++cases;
+					else
+						++controls;
+				}
+				//reset kaplan meir - flash last time prob
+				if (!warn_shown && total_controls_all < 10) {
+					MWARN("the kaplan_meir left with small amount of controls - "
+						" try increasing the sampling / use smaller time window because the"
+						" registry has not so long period of tracking patients\n");
+					warn_shown = true;
+				}
+				if (total_controls_all > 0 || cases > 0)
+					prob *= total_controls_all / (cases + total_controls_all);
+				total_controls_all -= controls; //remove controls from current time-window - they are now censored
+				controls = 0; cases = 0;
+			}
+			prob = 1 - prob;
+			if (prob > 0 && prob < 1) {
+				int age = c * age_bin + min_age;
+				//print to file:
+				MLOG("Ages[%d - %d]:%d :: %2.2f%% (kaplan meier)\n", age, age + age_bin,
+					age + age_bin / 2, 100 * prob);
+
+				if (age >= min_age && age <= max_age) {
+					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+
+					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+				}
+			}
+		}
+		of_new.close();
+	}
+	else {
+		//regular inc calc
+		MLOG("Total counts: 0: %d 1: %d : inc %f\n", all_cnts[0], all_cnts[1],
+			(float)all_cnts[1] / all_cnts[0]);
+		int nlines = 0;
+		for (int c = 0; c < counts.size(); ++c) {
+			int age = c * age_bin + min_age;
+			int n0 = counts[c].first;
+			int n1 = counts[c].second;
+
+			if (age >= min_age && age < max_age) nlines++;
+
+			if (n0 > 0)
+				MLOG("Ages: %d - %d : %d : 0: %d 1: %d : %f\n", age, age + age_bin,
+					age + age_bin / 2, n0, n1, (n0 > 0) ? (float)n1 / n0 : 0);
+		}
+
+		ofstream of(file_path);
+		if (!of.good())
+			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_path.c_str());
+
+		of << "KeySize 1\n";
+		of << "Nkeys " << nlines << "\n";
+		of << "1.0\n";
+		for (int c = 0; c < counts.size(); ++c) {
+			int age = c * age_bin + min_age;
+			int n0 = counts[c].first;
+			int n1 = counts[c].second;
+
+			if (age >= min_age && age < max_age)
+				of << age + age_bin / 2 << " " << n1 << " " << n0 - n1 << "\n";
+		}
+		of.close();
+
+		//New Format:
+		ofstream of_new(file_path + ".new_format");
+		if (!of_new.good())
+			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
+
+		of_new << "AGE_BIN" << "\t" << age_bin << "\n";
+		of_new << "AGE_MIN" << "\t" << min_age << "\n";
+		of_new << "AGE_MAX" << "\t" << max_age << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
+
+		for (int c = 0; c < counts.size(); ++c) {
+
+			int age = c * age_bin + min_age;
+			int male_n0 = male_counts[c].first;
+			int male_n1 = male_counts[c].second;
+
+			if (age >= min_age && age <= max_age && male_n0 > 0) {
+				of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "0.0" << "\t" << male_n0 - male_n1 << "\n";
+				of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "1.0" << "\t" << male_n1 << "\n";
+			}
+
+			int female_n0 = female_counts[c].first;
+			int female_n1 = female_counts[c].second;
+
+			if (age >= min_age && age <= max_age && female_n0 > 0) {
+				of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "0.0" << "\t" << female_n0 - female_n1 << "\n";
+				of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "1.0" << "\t" << female_n1 << "\n";
+			}
+		}
+		of_new.close();
+	}
+}
+
 inline void init_list(const string &reg_path, vector<bool> &list) {
 	list.resize(16000000);
 	ifstream file;

@@ -6,10 +6,30 @@
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
-/** 
+#include <MedUtils/MedUtils/MedRegistry.h>
+
+/**
+* A class holder for optional arguments for bootstrap to use MedRegistry
+* If provided will calculated more accurate the incidence rate on each filter cohort
+* based on kaplan-meier(default option) and will use registry to censor samples when
+* using with sim_time_window mode
+*/
+class with_registry_args {
+public:
+	MedRegistry *registry; ///< the registry of records
+	MedSamplingYearly *sampler; ///< the sampler for calculating incidence for example yearly from year to year
+	bool do_kaplan_meir; ///< If true will do kaplan meier
+	string rep_path; ///< repository path
+	string json_model; ///< The json_model path to create matrix to calc incidence and filter cohort
+	with_registry_args() {
+		do_kaplan_meir = true;
+	}
+};
+
+/**
 * Bootstrap wrapper for Medila Infrastructure objects, simplify the parameters
 * and the input, output process. \n
-* for more control and lower level interface please refer to bootstrap.h 
+* for more control and lower level interface please refer to bootstrap.h
 */
 class MedBootstrap : public SerializableObject {
 public:
@@ -23,7 +43,7 @@ public:
 	int loopCnt; ///<the bootstrap count
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
-	bool simTimeWindow; 
+	bool simTimeWindow;
 	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
 	/// <summary>
@@ -36,7 +56,7 @@ public:
 	/// Please refer to parse_cohort_file for full spec.
 	/// </summary>
 	void get_cohort_from_arg(const string &single_cohort);
-	
+
 
 	/// <summary>
 	/// a function which reads cohorts file and stores it in filter_cohort.
@@ -109,7 +129,7 @@ public:
 	/// indexes in the samples are provided - it will return also results for each split
 	/// the higest level in the map is the split value
 	/// </returns>
-	map<string, map<string, float>> bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL); 
+	map<string, map<string, float>> bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 	/// <summary>
 	/// Will run the bootstraping process on all cohorts and measurements.
 	/// the input is samples, additional_info. additional_info is provided for filtering 
@@ -122,7 +142,7 @@ public:
 	/// indexes in the samples are provided - it will return also results for each split
 	/// the higest level in the map is the split value
 	/// </returns>
-	map<string, map<string, float>> bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	map<string, map<string, float>> bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 	/// <summary>
 	/// Will run the bootstraping process on all cohorts and measurements.
 	/// the input is samples, and rep_path. The rep_path is path to the repository which 
@@ -136,7 +156,7 @@ public:
 	/// indexes in the samples are provided - it will return also results for each split
 	/// the higest level in the map is the split value
 	/// </returns>
-	map<string, map<string, float>> bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	map<string, map<string, float>> bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 	/// <summary>
 	/// Will run the bootstraping process on all cohorts and measurements.
 	/// the input is samples, and rep. The rep is the repository which 
@@ -150,7 +170,7 @@ public:
 	/// indexes in the samples are provided - it will return also results for each split
 	/// the higest level in the map is the split value
 	/// </returns>
-	map<string, map<string, float>> bootstrap(MedSamples &samples, MedPidRepository &rep, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	map<string, map<string, float>> bootstrap(MedSamples &samples, MedPidRepository &rep, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 
 	/// <summary>
 	/// censors samples from samples based on time_range provided in pid_censor_dates.
@@ -211,6 +231,8 @@ public:
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 		const map<string, vector<float>> &additional_info);
+	map<string, map<string, float>> bootstrap_using_registry(MedFeatures &features_mat,
+		const with_registry_args& args, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 	void add_splits_results(const vector<float> &preds, const vector<float> &y,
 		const vector<int> &pids, const map<string, vector<float>> &data,
 		const unordered_map<int, vector<int>> &splits_inds,
@@ -235,17 +257,17 @@ public:
 	/// run the bootstrap - look at MedBootstrap.bootstrap documentition and stores
 	/// the results in bootstrap_results
 	/// </summary>
-	void bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	void bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 	/// <summary>
 	/// run the bootstrap - look at MedBootstrap.bootstrap documentition and stores
 	/// the results in bootstrap_results
 	/// </summary>
-	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	void bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 	/// <summary>
 	/// run the bootstrap - look at MedBootstrap.bootstrap documentition and stores
 	/// the results in bootstrap_results
 	/// </summary>
-	void bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL);
+	void bootstrap(MedSamples &samples, const string &rep_path, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 
 	/// <summary>
 	/// searches for the sensitivty(sens) and positive rate(pr) in the sepcific bootstrap_cohort results
