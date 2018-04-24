@@ -1,8 +1,11 @@
 #include "TQRF.h"
 #include <MedStat/MedStat/MedPerformance.h>
+#include <math.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+
+
 
 //================================================================================================
 // TQRF_Params
@@ -689,15 +692,22 @@ int TQRF_Forest::Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y)
 		//else
 		//	for (int i=from_tree; i<to_tree; i++) alphas[i] = 1;
 
-		for (int r=0; r<=round; r++) {
-			for (int i=r*params.ntrees; i<(r+1)*params.ntrees; i++) {
-				if (r == 0)
-					alphas[i] += pow((1-params.alpha), round-r);
-				else
-					alphas[i] += params.alpha*pow((1-params.alpha), round-1-r);
-			}
 
+		for (int i=round*params.ntrees; i<(round+1)*params.ntrees; i++) {
+			if (round == 0)
+				alphas[i] = 1;
+			else
+				alphas[i] = alphas[i-params.ntrees] * params.alpha;
 		}
+
+		//for (int r=0; r<=round; r++) {
+		//	for (int i=r*params.ntrees; i<(r+1)*params.ntrees; i++) {
+		//		if (r == 0)
+		//			alphas[i] += pow((1-params.alpha), round-r);
+		//		else
+		//			alphas[i] += params.alpha*pow((1-params.alpha), round-1-r);
+		//	}
+		//}
 
 		// now updating our sample counts
 		update_counts(sample_slice_counts, from_tree, to_tree, x, qfeat, 0);
@@ -717,6 +727,8 @@ int TQRF_Forest::Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y)
 			//qfeat.wgts[i] = 1;
 			//qfeat.wgts[i] = 1 - probs[i];
 			qfeat.wgts[i] = -log(probs[i]);
+			//qfeat.wgts[i] = 1/(probs[i]*probs[i]);
+			//qfeat.wgts[i] = pow(-log(probs[i]),1.5);
 			//qfeat.wgts[i] = 1/probs[i];
 			//qfeat.wgts[i] = exp(1-probs[i]) * qfeat.wgts[i];
 			//qfeat.wgts[i] = qfeat.wgts[i]*qfeat.wgts[i]*qfeat.wgts[i];
@@ -735,17 +747,17 @@ int TQRF_Forest::Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y)
 			//qfeat.wgts[i] = exp(c_i*(1-probs[i])); // *qfeat.wgts[i];
 			wsum += qfeat.wgts[i];
 		}
-
-		MLOG("ROUND %d : expected prob: e_i: %f c_i: %f\n", e_i, c_i);
-
 		wsum = (float)nsamples/wsum;
+
+		MLOG("ROUND %d : expected prob: e_i: %f c_i: %f wsum: %f\n", round, e_i, c_i, wsum);
+
 //#pragma omp parallel
 		for (int i=0; i<nsamples; i++)
 			qfeat.wgts[i] = qfeat.wgts[i] * wsum;
 #endif	
 		timer.take_curr_time();
 		MLOG("TQRF AdaBoost: finished round %d : %f sec : %d/%d trees so far\n", round, timer.diff_sec(), to_tree, trees.size());
-		for (int i=0; i<20; i++) MLOG("(%d) y_i %d last %d counts %f,%f probs %f wsum %f wgt %f \n", i, qfeat.y_i[i], qfeat.last_time_slice[i], sample_slice_counts[i][0], sample_slice_counts[i][1], probs[i], wsum, qfeat.wgts[i]);
+		//for (int i=0; i<20; i++) MLOG("(%d) y_i %d last %d counts %f,%f probs %f wsum %f wgt %f \n", i, qfeat.y_i[i], qfeat.last_time_slice[i], sample_slice_counts[i][0], sample_slice_counts[i][1], probs[i], wsum, qfeat.wgts[i]);
 	}
 
 	timer.take_curr_time();
@@ -777,7 +789,7 @@ int TQRF_Forest::Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y)
 
 int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, int from_tree, int to_tree, MedMat<float> &x, Quantized_Feat &qf, int zero_counts)
 {
-	MLOG("qf.y : %d %d x: %d x %d\n", qf.y.size(), qf.y_i.size(), x.nrows, x.ncols);
+	//MLOG("qf.y : %d %d x: %d x %d\n", qf.y.size(), qf.y_i.size(), x.nrows, x.ncols);
 	int nsamples = x.nrows;
 
 	//vector<float> p_curr(nsamples), probs(nsamples);
@@ -798,14 +810,15 @@ int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, int from_tr
 		
 
 		for (int c=0; c<params.ncateg; c++) {
-			if (i<10) MLOG("counts before(%d) i %d c %d: %f,%f : i_t %d : sum_over_trees(%d-%d) %f,%f : alpha %f : ", params.ncateg, i, c, sample_counts[i][0], sample_counts[i][1], i_t, from_tree, to_tree, sum_over_trees[i_t][0], sum_over_trees[i_t][1], params.alpha);
+			//if (i<10) MLOG("counts before(%d) i %d c %d: %f,%f : i_t %d : sum_over_trees(%d-%d) %f,%f : alpha %f : ", params.ncateg, i, c, sample_counts[i][0], sample_counts[i][1], i_t, from_tree, to_tree, sum_over_trees[i_t][0], sum_over_trees[i_t][1], params.alpha);
 			if (zero_counts)
 				sample_counts[i][c] = sum_over_trees[i_t][c];
 			else {
-				sample_counts[i][c] = (1-params.alpha)*sample_counts[i][c] + params.alpha*sum_over_trees[i_t][c];
+				//sample_counts[i][c] = (1-params.alpha)*sample_counts[i][c] + params.alpha*sum_over_trees[i_t][c];
+				sample_counts[i][c] = sample_counts[i][c] + alphas[from_tree]*sum_over_trees[i_t][c];
 			}
 
-			if (i<10) MLOG("counts after : %f,%f\n", sample_counts[i][0], sample_counts[i][1]);
+			//if (i<10) MLOG("counts after : %f,%f\n", sample_counts[i][0], sample_counts[i][1]);
 		}
 
 	}
@@ -898,7 +911,7 @@ int TQRF_Forest::Predict_Categorial(MedMat<float> &x, vector<float> &preds)
 			for (int c=from_c; c<=to_c; c++) {
 				preds[index] = 0;
 				for (int t=from_t; t<=to_t; t++)
-					preds[index] += survival[t] * probs_t[t][c];
+					preds[index] += /*survival[t] * */ probs_t[t][c];
 				index++;
 			}
 		}
