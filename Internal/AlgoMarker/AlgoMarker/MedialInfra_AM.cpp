@@ -112,6 +112,9 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 //------------------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
+	if (ma.data_load_end() < 0)
+		return AM_FAIL_RC;
+
 	if (responses == NULL)
 		return AM_FAIL_RC;
 
