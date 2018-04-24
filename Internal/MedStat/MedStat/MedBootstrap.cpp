@@ -492,18 +492,19 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					selected_rows.push_back((int)i);
 					continue;
 				}
-				int time_df = int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
-					sim_features.samples[i].outcomeTime))); //time to turn into case
+				int time_df = (med_time_converter.convert_date(MedTime::Days, sim_features.samples[i].outcomeTime)
+					- med_time_converter.convert_date(MedTime::Days, sim_features.samples[i].time));
 				if (time_df > time_filter.max_range) {
 					//search for intersection:
 					const vector<MedRegistryRecord *> &reg_records = pid_to_reg[sim_features.samples[i].id];
 					bool is_legal = false;
 					for (size_t k = 0; k < reg_records.size(); ++k)
 					{
-						if (reg_records[i]->registry_value > 0)
+						if (reg_records[k]->registry_value > 0)
 							continue;
-						if (sim_features.samples[i].time >= reg_records[i]->min_allowed_date &&
-							sim_features.samples[i].time <= reg_records[i]->max_allowed_date) {
+						int diff_to_allowed = int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
+							reg_records[k]->max_allowed_date)));
+						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_records[k]->min_allowed_date) {
 							is_legal = true;
 							break;
 						}
@@ -511,7 +512,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					if (is_legal)
 						selected_rows.push_back((int)i); //add if legal
 				}
-				selected_rows.push_back((int)i);
+				else
+					selected_rows.push_back((int)i);
 			}
 			medial::process::filter_row_indexes(sim_features, selected_rows);
 			final_features = &sim_features;
@@ -885,7 +887,7 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 				samples.idSamples[i].samples[j].outcomeTime)
 				- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
 			//check if valid for time_window:
-			if (samples.idSamples[i].samples[j].outcome >0) {
+			if (samples.idSamples[i].samples[j].outcome > 0) {
 				if ((diff_days >= min_time && diff_days <= max_time) &&
 					(keep_case_index < 0 || max_pred_case < samples.idSamples[i].samples[j].prediction[0])) {
 					max_pred_case = samples.idSamples[i].samples[j].prediction[0];
