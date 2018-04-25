@@ -372,7 +372,8 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	po::options_description desc_file(desc);
 	po::variables_map vm_config;
 
-	auto parsed_args = po::parse_command_line(argc, argv, desc);
+	auto parsed_args = po::parse_command_line(argc, argv, desc,
+		po::command_line_style::style_t::default_style);
 	po::store(parsed_args, vm);
 	if (vm.count("help") || vm.count("h")) {
 		MLOG("%s\n", app_logo.c_str());
