@@ -977,7 +977,8 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		results.push_back(r);
 }
 
-double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls) {
+double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted,
+	int smooth_balls, float allowed_error) {
 	//calc over all ages
 	double regScore = 0;
 	for (auto i = gender_sorted.begin(); i != gender_sorted.end(); ++i) { //iterate over age bins
@@ -1005,9 +1006,12 @@ double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<
 		{
 			double	Qij = probs[j];
 			double Eij = (R[j / 2] * C[j % 2]) / totCnt;
+			double Dij = abs(Qij - Eij) - (allowed_error / 100) * Eij;
+			if (Dij < 0)
+				Dij = 0;
 
 			if (Eij > 0)
-				regScore += ((Qij - Eij) * (Qij - Eij)) / (Eij); //Chi-square
+				regScore += (Dij * Dij) / (Eij); //Chi-square
 		}
 
 	}
@@ -1027,7 +1031,8 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 	const map<float, map<float, vector<int>>> &female_stats,
 	vector<float> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
-	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls) {
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
+	, float allowed_error) {
 
 	unordered_set<float> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
@@ -1082,9 +1087,9 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
-			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls); //Males
+			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls, allowed_error); //Males
 		if (female_stats.find(signalVal) != female_stats.end())
-			regScore += calc_chi_square_dist(female_stats.at(signalVal), smooth_balls); //Females
+			regScore += calc_chi_square_dist(female_stats.at(signalVal), smooth_balls, allowed_error); //Females
 
 		scores[index] = (float)regScore;
 		int dof = -1;
