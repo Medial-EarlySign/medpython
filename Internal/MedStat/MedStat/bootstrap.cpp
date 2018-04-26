@@ -895,6 +895,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -1030,6 +1031,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
 						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
@@ -1176,6 +1178,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
 						pr_points[curr_wp_pr_ind], pr_prev, pr_c,

@@ -147,6 +147,7 @@
       <AdditionalIncludeDirectories>$(BOOST_HOME);$(MR_LIBS_INC)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <SuppressStartupBanner>false</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -167,6 +168,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(BOOST_HOME);$(MR_LIBS_INC)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

@@ -354,8 +354,7 @@ string medial::print::print_any(po::variable_value &a) {
 void medial::io::ProgramArgs_base::init(po::options_description &prg_options, const string &app_l) {
 	po::options_description general_options("Program General Options");
 	general_options.add_options()
-		("help", "help & exit")
-		("h", "help & exit")
+		("help,h", "help & exit")
 		("base_config", po::value<string>(&base_config), "config file with all arguments - in CMD we override those settings")
 		("debug", po::bool_switch(&debug), "set debuging verbose");
 	desc.add(general_options);
@@ -373,11 +372,12 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	po::options_description desc_file(desc);
 	po::variables_map vm_config;
 
-	auto parsed_args = po::parse_command_line(argc, argv, desc);
+	auto parsed_args = po::parse_command_line(argc, argv, desc,
+		po::command_line_style::style_t::default_style);
 	po::store(parsed_args, vm);
 	if (vm.count("help") || vm.count("h")) {
-		cerr << app_logo << endl;
-		cerr << desc << endl;
+		MLOG("%s\n", app_logo.c_str());
+		cout << desc << endl;
 		return -1;
 	}
 
