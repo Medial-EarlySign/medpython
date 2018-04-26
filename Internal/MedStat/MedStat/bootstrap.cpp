@@ -1647,32 +1647,37 @@ void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additiona
 #pragma endregion
 
 #pragma region Process Scores Functions
+void _simple_find(const vector<pair<int, int>> &vec, int &found_pos, int search_pos) {
+	found_pos = -1;
+	for (int j = (int)vec.size() - 1; j >= 0 && found_pos == -1; --j)
+		if (vec[j].second >= search_pos && vec[j].first <= search_pos)
+			found_pos = j;
+}
+
 void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
 	const pair<int, int> *index_to_merge) {
 	pair<int, int> *merge_into = NULL;
 	int to_merge_size = ind_to_size[index_to_merge->first - 1];
 	int erase_index = -1;
 	//remove index_to_merge.first - 1:
-	for (int j = (int)size_to_ind[to_merge_size].size() - 1; j >= 0; --j)
-		if (size_to_ind[to_merge_size][j].second >= index_to_merge->first - 1 &&
-			size_to_ind[to_merge_size][j].first <= index_to_merge->first - 1) {
-			merge_into = &size_to_ind[to_merge_size][j];
-			erase_index = j;
-			//size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
-			break;
-		}
-	if (merge_into == NULL)
-		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
+	_simple_find(size_to_ind[to_merge_size], erase_index, index_to_merge->first - 1);
+	if (erase_index == -1)
+		MTHROW_AND_ERR("down: Bug couldn't found merge_into\n");
+	merge_into = &size_to_ind[to_merge_size][erase_index];
 
 	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
 	//update in min,max:
 	ind_to_size[merge_into->first] = new_size;
 	ind_to_size[index_to_merge->second] = new_size;
+	ind_to_size[merge_into->second] = new_size;
+	ind_to_size[index_to_merge->first] = new_size;
 	//erase old one
 	int first_pos = merge_into->first;
 	int second_pos = index_to_merge->second;
+	//already popd merged_into element
 	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
+
 	//insert new union
 	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
@@ -1683,26 +1688,24 @@ void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_
 	int to_merge_size = ind_to_size[index_to_merge->second + 1];
 	int erase_index = -1;
 	//remove index_to_merge.second + 1:
-	for (int j = (int)size_to_ind[to_merge_size].size() - 1; j >= 0; --j)
-		if (size_to_ind[to_merge_size][j].second >= index_to_merge->second + 1 &&
-			size_to_ind[to_merge_size][j].first <= index_to_merge->second + 1) {
-			merge_into = &size_to_ind[to_merge_size][j];
-			//size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
-			erase_index = j;
-			break;
-		}
-	if (merge_into == NULL)
-		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
+	_simple_find(size_to_ind[to_merge_size], erase_index, index_to_merge->second + 1);
+	if (erase_index == -1)
+		MTHROW_AND_ERR("up: Bug couldn't found merge_into\n");
+	merge_into = &size_to_ind[to_merge_size][erase_index];
 
 	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
 	//update in min,max:
 	ind_to_size[index_to_merge->first] = new_size;
 	ind_to_size[merge_into->second] = new_size;
+	ind_to_size[index_to_merge->second] = new_size;
+	ind_to_size[merge_into->first] = new_size;
 	//erase old one:
 	int first_pos = index_to_merge->first;
 	int second_pos = merge_into->second;
+	//already popd merged_into element
 	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
+
 	//insert new union set:
 	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
@@ -1727,11 +1730,13 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	for (size_t i = 0; i < preds.size(); ++i)
 		thresholds_indexes[preds[i]].push_back((int)i);
 	unique_scores.resize((int)thresholds_indexes.size());
-	int ind_p = 0;
+	int ind_p = 0, min_size = -1;
 	for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
 	{
 		unique_scores[ind_p] = it->first;
 		++ind_p;
+		if (min_size == -1 || min_size > it->second.size())
+			min_size = (int)it->second.size();
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
@@ -1746,21 +1751,23 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 				" is highly quantitize(%d). Will use score working points\n",
 				bin_size_last);
 
-	if (params.score_bins > 0 && bin_size_last > params.score_bins) {
+	if ((params.score_bins > 0 && bin_size_last > params.score_bins) ||
+		(params.score_min_samples > 0 && min_size < params.score_min_samples)) {
 		int c = 0;
 		vector<vector<pair<int, int>>> size_to_ind(preds.size()); //size, group, index_min_max
 		vector<int> ind_to_size(bin_size_last);
 		set<int> sizes;
-		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
+		for (auto it = unique_scores.begin(); it != unique_scores.end(); ++it)
 		{
-			size_to_ind[(int)it->second.size()].push_back(pair<int, int>(c, c));
-			ind_to_size[c] = (int)it->second.size();
+			size_to_ind[(int)thresholds_indexes[*it].size()].push_back(pair<int, int>(c, c));
+			ind_to_size[c] = (int)thresholds_indexes[*it].size();
 			++c;
-			sizes.insert((int)it->second.size());
+			sizes.insert((int)thresholds_indexes[*it].size());
 		}
 
-		while (bin_size_last > params.score_bins) {
-			int min_size = *sizes.begin();
+		while ((params.score_bins > 0 && bin_size_last > params.score_bins)
+			|| (params.score_min_samples > 0 && *sizes.begin() < params.score_min_samples)) {
+			min_size = *sizes.begin();
 			if (size_to_ind[min_size].empty())
 				MTHROW_AND_ERR("Bug couldn't found min_size=%d\n", min_size);
 
@@ -1818,7 +1825,7 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 		}
 	}
 
-	MLOG_D("Preprocess_bin_scores Done!\n");
+	MLOG_D("Preprocess_bin_scores Done - left with %d bins!\n", bin_size_last);
 }
 #pragma endregion
 
@@ -1939,6 +1946,7 @@ ROC_Params::ROC_Params(const string &init_string) {
 	score_bins = 0;
 	score_resolution = 0;
 	incidence_fix = 0;
+	score_min_samples = 0;
 	fix_label_to_binary = true;
 
 	//override default with given string:
@@ -1960,6 +1968,8 @@ ROC_Params::ROC_Params(const string &init_string) {
 			fix_label_to_binary = stoi(param_value) > 0;
 		else if (param_name == "score_bins")
 			score_bins = stoi(param_value);
+		else if (param_name == "score_min_samples")
+			score_min_samples = stoi(param_value);
 		else if (param_name == "score_resolution")
 			score_resolution = stof(param_value);
 		else if (param_name == "inc_stats_text")
