@@ -25,6 +25,7 @@ public:
 	float outcome = 0;		///< Outcome
 	int outcomeTime = 0;	///< Outcome time (date)
 	vector<float> prediction;	///< Prediction(s) - empty if non given
+	map<string, float> attributes;	///< Attribute(s) - empty if non given
 
 	/// <summary> Constructor </summary>
 	MedSample() { prediction.clear(); }
@@ -45,16 +46,16 @@ public:
 	/// <returns> 0 upon success, -1 if string does not fit any of the formats </returns>
 	int parse_from_string(string &s);
 	/// <summary>
-	/// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split,pred) 
+	/// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split,pred or pred_,attr_NAME) 
 	/// if pos is empty, check old and new formats
 	/// </summary>
 	/// <returns> 0 upon success, -1 upon failure to parse </returns>
-	int parse_from_string(string &s, map <string, int> & pos);
+	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos);
 	/// <summary> Write to string in new format </summary>
-	void write_to_string(string &s);
+	void write_to_string(string &s, vector<string>& attr);
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction)
+	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes)
 };
 
 /// <summary> Comparison functions for sorting by prediction value </summary>
@@ -175,6 +176,12 @@ public:
 	/// <summary> Return number of samples </summary>
 	int nSamples();
 
+	/// <summary> Get predictions vector size. Return -1 if not-consistent </summary>
+	int get_predictions_size(int& nPreds);
+
+	/// <summary> Get all attributes. Return -1 if not-consistent </summary>
+	int get_all_attributes(vector<string>& attributes);
+
 
 	// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);
@@ -185,9 +192,10 @@ public:
 	void insertRec(int pid, int time) { insertRec(pid, time, -1, 0); }
 
 	// Version for serialization
-	int version() { return  1; };
+	int version() { return  2; };
 
 	//Serialization, version 1: Added version, model_features, features_count to serialization
+	//				 version 2: Added attributes
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 };
 

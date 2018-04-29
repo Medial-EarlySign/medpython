@@ -946,10 +946,6 @@ void RepCalcSimpleSignals::index_targets_in_given_vector(const vector<int> &targ
 }
 
 
-
-
-
-
 //.......................................................................................
 
 int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points,

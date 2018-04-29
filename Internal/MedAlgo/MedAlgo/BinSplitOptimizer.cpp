@@ -455,8 +455,8 @@ void medial::process::split_feature_to_bins(const BinSettings &setting, vector<f
 	ROC_Params splitingParams;
 	splitingParams.score_resolution = 0;
 	MedQRF qrf;
-	qrf.params.ntrees = 1; qrf.params.maxq = 1000;  qrf.params.type = QRF_TreeType::QRF_CATEGORICAL_ENTROPY_TREE;
-	qrf.params.ntry = 1; qrf.params.get_only_this_categ = 1; qrf.qf.take_all_samples = true;
+	qrf.params.ntrees = 1; qrf.params.maxq = 1000;  qrf.params.type = QRF_TreeType::QRF_REGRESSION_TREE;
+	qrf.params.ntry = 1; qrf.params.get_only_this_categ = 0; qrf.qf.take_all_samples = true;
 	if (setting.max_value_cutoff != (float)INT_MAX || setting.min_value_cutoff != (float)INT_MIN) {
 		//trim values:
 		for (size_t i = 0; i < feature.size(); ++i)
@@ -482,6 +482,8 @@ void medial::process::split_feature_to_bins(const BinSettings &setting, vector<f
 		break;
 	case BinSplitMethod::IterativeMerge:
 		splitingParams.score_bins = setting.binCnt;
+		splitingParams.score_min_samples = setting.min_bin_count;
+		splitingParams.score_resolution = (float)setting.min_res_value;
 		preprocess_bin_scores(feature, (void *)&splitingParams); //will merge till converge to binCnt
 		break;
 	case BinSplitMethod::PartitaionMover:

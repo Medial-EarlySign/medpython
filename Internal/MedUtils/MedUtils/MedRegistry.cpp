@@ -977,11 +977,15 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		results.push_back(r);
 }
 
-double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls) {
+double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted,
+	int smooth_balls, float allowed_error, int minimal_balls) {
 	//calc over all ages
 	double regScore = 0;
 	for (auto i = gender_sorted.begin(); i != gender_sorted.end(); ++i) { //iterate over age bins
 		const vector<int> &probs_tmp = i->second; //the forth numbers
+		if (!(probs_tmp[0] >= minimal_balls && probs_tmp[1] >= minimal_balls
+			&& probs_tmp[2] >= minimal_balls && probs_tmp[3] >= minimal_balls))
+			continue; //skip row with minimal balls
 		vector<double> probs((int)probs_tmp.size()); //the forth numbers - float with fix
 		double totCnt = 0;
 		vector<double> R(2);
@@ -1005,9 +1009,12 @@ double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<
 		{
 			double	Qij = probs[j];
 			double Eij = (R[j / 2] * C[j % 2]) / totCnt;
+			double Dij = abs(Qij - Eij) - (allowed_error / 100) * Eij;
+			if (Dij < 0)
+				Dij = 0;
 
 			if (Eij > 0)
-				regScore += ((Qij - Eij) * (Qij - Eij)) / (Eij); //Chi-square
+				regScore += (Dij * Dij) / (Eij); //Chi-square
 		}
 
 	}
@@ -1023,11 +1030,27 @@ double medial::contingency_tables::chisqr(int Dof, double Cv)
 	return (1.0 - boost::math::cdf(dist, Cv));
 }
 
+int _count_legal_rows(const  map<float, vector<int>> &m, int minimal_balls) {
+	int res = 0;
+	for (auto it = m.begin(); it != m.end(); ++it)
+	{
+		int ind = 0;
+		bool all_good = true;
+		while (all_good && ind < it->second.size()) {
+			all_good = it->second[ind] >= minimal_balls;
+			++ind;
+		}
+		res += int(all_good);
+	}
+	return res;
+}
+
 void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 	const map<float, map<float, vector<int>>> &female_stats,
 	vector<float> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
-	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls) {
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
+	, float allowed_error, int minimal_balls) {
 
 	unordered_set<float> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
@@ -1082,16 +1105,16 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
-			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls); //Males
+			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls, allowed_error, minimal_balls); //Males
 		if (female_stats.find(signalVal) != female_stats.end())
-			regScore += calc_chi_square_dist(female_stats.at(signalVal), smooth_balls); //Females
+			regScore += calc_chi_square_dist(female_stats.at(signalVal), smooth_balls, allowed_error, minimal_balls); //Females
 
 		scores[index] = (float)regScore;
 		int dof = -1;
 		if (male_stats.find(signalVal) != male_stats.end())
-			dof += (int)male_stats.at(signalVal).size();
+			dof += _count_legal_rows(male_stats.at(signalVal), minimal_balls);
 		if (female_stats.find(signalVal) != female_stats.end())
-			dof += (int)female_stats.at(signalVal).size();
+			dof += _count_legal_rows(female_stats.at(signalVal), minimal_balls);
 		double pv = chisqr(dof, regScore);
 		p_values[index] = pv;
 	}

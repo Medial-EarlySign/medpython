@@ -97,6 +97,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	}
 	if (end_stage <= MED_MDL_LEARN_FTR_GENERATORS)
 		return 0;
+	
 	// Generate features
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		features.clear();
@@ -824,6 +825,10 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 
 	for (FeatureGenerator *generator : generators)
 		generator->init_tables(dict);
+
+	// attributes
+	for (RepProcessor *processor : rep_processors)
+		processor->init_attributes();
 }
 
 // Create a required signal names by back propograting : First find what's required by
