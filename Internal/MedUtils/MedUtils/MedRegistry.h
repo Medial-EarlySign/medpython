@@ -144,7 +144,7 @@ namespace medial {
 	namespace contingency_tables {
 		/// \brief calc chi square distance for all groups with 4 value vector
 		double calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls = 0,
-			float allowed_error = 0);
+			float allowed_error = 0, int minimal_balls = 0);
 
 		/// \brief calcs chi square for full male, female and stores all the results stats and values in the vectors
 		void calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
@@ -152,7 +152,8 @@ namespace medial {
 			vector<float> &all_signal_values, vector<int> &signal_indexes,
 			vector<double> &valCnts, vector<double> &posCnts,
 			vector<double> &lift, vector<double> &scores,
-			vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls = 0, float allowed_error = 0);
+			vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls = 0, float allowed_error = 0,
+			int minimal_balls = 0);
 
 		/// \brief filter by range
 		void FilterRange(vector<int> &indexes, const vector<double> &vecCnts
