@@ -529,7 +529,7 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 		// Get Square of height (in meters)
 		for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 			if (panels[iPanel][BMI_PNL_HGT] != missing_val)
-				panels[iPanel][BMI_PNL_HGT_SQR] = (panels[iPanel][BMI_PNL_HGT] / 100.0)*(panels[iPanel][BMI_PNL_HGT] / 100.0);
+				panels[iPanel][BMI_PNL_HGT_SQR] = (panels[iPanel][BMI_PNL_HGT] / 100.0F)*(panels[iPanel][BMI_PNL_HGT] / 100.0F);
 		}
 
 		// Complete

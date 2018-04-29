@@ -1076,7 +1076,7 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 		if (fields[i] == "values_in_dictionary") { values_in_dictionary = stoi(fields[++i]); }
 		if (fields[i] == "allowed_values") {
 			vector<string> svals;
-			boost:split(svals, fields[++i], boost::is_any_of(","));	
+			boost::split(svals, fields[++i], boost::is_any_of(","));	
 			for (auto &s : svals) allowed_values.insert(stof(s));
 		}
 	}

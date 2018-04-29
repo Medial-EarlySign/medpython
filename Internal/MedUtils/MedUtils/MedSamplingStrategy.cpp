@@ -464,6 +464,8 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 	for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
 	{
 		const vector<pair<int, int>> &all_sample_options = samples_list_pid_dates[i];
+		if (all_sample_options.empty())
+			continue;
 		uniform_int_distribution<> current_rand(0, (int)all_sample_options.size() - 1);
 		for (size_t k = 0; k < take_count; ++k)
 		{
@@ -552,7 +554,8 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 	}
 
 	for (auto it = map_pid_samples.begin(); it != map_pid_samples.end(); ++it)
-		samples.idSamples.push_back(it->second);
+		if (!it->second.samples.empty())
+			samples.idSamples.push_back(it->second);
 	samples.sort_by_id_date();
 }
 

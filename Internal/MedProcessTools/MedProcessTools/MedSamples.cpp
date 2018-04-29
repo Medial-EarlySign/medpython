@@ -367,7 +367,7 @@ int MedSamples::get_predictions_size(int& nPreds) {
 	for (auto &s : idSamples) {
 		for (auto& ss : s.samples) {
 			if (nPreds == -1)
-				nPreds = ss.prediction.size();
+				nPreds = (int) ss.prediction.size();
 			else if (ss.prediction.size() != nPreds)
 				return -1;
 		}

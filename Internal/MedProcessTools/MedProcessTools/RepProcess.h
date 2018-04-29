@@ -197,7 +197,7 @@ class RepMultiProcessor : public RepProcessor {
 public:
 	vector<RepProcessor *> processors; ///< Set of processors
 
-	vector<vector<float>> attributes_map; ///< A map from the index of an attribute in the list of attributes of each processor to the index in the list of attributes of the multi-processor
+	vector<vector<int>> attributes_map; ///< A map from the index of an attribute in the list of attributes of each processor to the index in the list of attributes of the multi-processor
 
 	/// <summary> Constructor </summary>
 	RepMultiProcessor() { processor_type = REP_PROCESS_MULTI; };

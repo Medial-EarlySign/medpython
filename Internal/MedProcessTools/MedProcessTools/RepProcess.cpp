@@ -536,7 +536,7 @@ void RepMultiProcessor::init_attributes() {
 		for (int j = 0; j < processors[i]->attributes.size(); j++) {
 			if (attributes_pos.find(processors[i]->attributes[j]) == attributes_pos.end()) {
 				attributes.push_back(processors[i]->attributes[j]);
-				attributes_pos[attributes.back()] = attributes.size() - 1;
+				attributes_pos[attributes.back()] = (int) attributes.size() - 1;
 			}
 			attributes_map[i][j] = attributes_pos[processors[i]->attributes[j]];
 		}
@@ -771,25 +771,25 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		int idx = 0;
 		if (!nRem_attr.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
-				attributes_mat[pVersion][idx] = nRemove;
+				attributes_mat[pVersion][idx] = (float) nRemove;
 			idx++;
 		}
 
 		if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-				attributes_mat[pVersion][idx] = nRemove;
+				attributes_mat[pVersion][idx] = (float)nRemove;
 			idx++;
 		}
 
 		if (!nTrim_attr.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
-				attributes_mat[pVersion][idx] = nChange;
+				attributes_mat[pVersion][idx] = (float) nChange;
 			idx++;
 		}
 
 		if (!nTrim_attr_suffix.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-				attributes_mat[pVersion][idx] = nChange;
+				attributes_mat[pVersion][idx] = (float) nChange;
 			idx++;
 		}
 	}
@@ -1150,7 +1150,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 
 		// Apply removals
-		int nRemove = 0;
+		size_t nRemove = 0;
 		int idx = 0;
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
@@ -1160,7 +1160,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 			if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
 				for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-					attributes_mat[pVersion][idx] = toRemove.size();
+					attributes_mat[pVersion][idx] = (float) toRemove.size();
 				idx++;
 			}
 			nRemove += toRemove.size();
@@ -1169,7 +1169,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		// Collect atttibutes
 		if (!nRem_attr.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-				attributes_mat[pVersion][idx] = nRemove;
+				attributes_mat[pVersion][idx] = (float) nRemove;
 		}
 	}
 
@@ -1492,13 +1492,13 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points,
 		// Collect atttibutes
 		int idx = 0;
 		if (!nRem_attr.empty() && !attributes_mat.empty())
-			attributes_mat[iver][idx++] = nRemove;
+			attributes_mat[iver][idx++] = (float) nRemove;
 		if (!nRem_attr_suffix.empty() && !attributes_mat.empty())
-			attributes_mat[iver][idx++] = nRemove;
+			attributes_mat[iver][idx++] = (float)nRemove;
 		if (!nTrim_attr.empty() && !attributes_mat.empty())
-			attributes_mat[iver][idx++] = nChange;
+			attributes_mat[iver][idx++] = (float)nChange;
 		if (!nTrim_attr_suffix.empty() && !attributes_mat.empty())
-			attributes_mat[iver][idx++] = nChange;
+			attributes_mat[iver][idx++] = (float)nChange;
 	}
 
 	return 0;
@@ -1633,7 +1633,7 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 		}
 
 		// Set attribute
-		attributes_mat[iver][0] = nMissing;
+		attributes_mat[iver][0] = (float) nMissing;
 	}
 
 	return 0;
