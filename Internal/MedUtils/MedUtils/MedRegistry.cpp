@@ -1036,8 +1036,10 @@ int _count_legal_rows(const  map<float, vector<int>> &m, int minimal_balls) {
 	{
 		int ind = 0;
 		bool all_good = true;
-		while (all_good && ind < it->second.size())
+		while (all_good && ind < it->second.size()) {
 			all_good = it->second[ind] >= minimal_balls;
+			++ind;
+		}
 		res += int(all_good);
 	}
 	return res;
