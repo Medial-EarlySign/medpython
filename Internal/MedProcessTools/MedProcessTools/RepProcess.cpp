@@ -25,6 +25,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CALC_SIGNALS;
 	else if (processor_name == "complete")
 		return REP_PROCESS_COMPLETE;
+	else if (processor_name == "req" || processor_name == "requirements")
+		return REP_PROCESS_CHECK_REQ;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -70,6 +72,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCalcSimpleSignals;
 	else if (processor_type == REP_PROCESS_COMPLETE)
 		return new RepPanelCompleter;
+	else if (processor_type == REP_PROCESS_CHECK_REQ)
+		return new RepCheckReq;
 	else
 		return NULL;
 
@@ -84,6 +88,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 	newRepProcessor->init_from_string(init_string);
 	return newRepProcessor;
 }
+
 // learn on all pids in repository, using fake samples - works only for repProcessors that ignore sample dates
 //.......................................................................................
 int RepProcessor::learn(MedPidRepository& rep) {
@@ -108,6 +113,9 @@ int RepProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& samples,
 //...................................
 bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 
+	if (unconditional)
+		return false;
+
 	for (string signal : neededSignals) {
 		if (is_signal_affected(signal))
 			return false;
@@ -129,21 +137,17 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 	for (unsigned int i = 0; i < time_points.size(); i++)
 		time_points[i] = samples.samples[i].time;
 
-	return apply(rec, time_points);
-}
+	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(),0)) ;
+	int rc = apply(rec, time_points,attributes_mat);
 
-// Apply processing on a single PidDynamicRec at a set of time-points given by time-points,
-// only if affecting any of the signals given in neededSignalIds
-//.......................................................................................
-int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds) {
-
-
-	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId)) 
-			return apply(rec, time_points);
+	if (rc == 0) {
+		for (unsigned int i = 0; i < time_points.size(); i++) {
+			for (int j = 0; j < attributes.size(); j++)
+				samples.samples[i].attributes[attributes[j]] += attributes_mat[i][j];
+		}
 	}
 
-	return 0;
+	return rc;
 }
 
 // Apply processing on a single PidDynamicRec at a set of time-points given by samples,
@@ -155,7 +159,33 @@ int RepProcessor::conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, u
 	for (unsigned int i = 0; i < time_points.size(); i++)
 		time_points[i] = samples.samples[i].time;
 
-	return conditional_apply(rec, time_points, neededSignalIds);
+	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(), 0));
+	int rc = conditional_apply(rec, time_points, neededSignalIds, attributes_mat);
+
+	if (rc == 0) {
+		for (unsigned int i = 0; i < time_points.size(); i++) {
+			for (int j = 0; j < attributes.size(); j++)
+				samples.samples[i].attributes[attributes[j]] += attributes_mat[i][j];
+		}
+	}
+
+	return rc;
+}
+
+// Apply processing on a single PidDynamicRec at a set of time-points given by time-points,
+// only if affecting any of the signals given in neededSignalIds
+//.......................................................................................
+int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds, vector<vector<float>>& attributes_mat) {
+
+	if (unconditional)
+		return apply(rec, time_points, attributes_mat);
+
+	for (int signalId : neededSignalIds) {
+		if (is_signal_affected(signalId)) 
+			return apply(rec, time_points, attributes_mat);
+	}
+
+	return 0;
 }
 
 // Fill req_signal_ids from req_signals
@@ -170,6 +200,7 @@ void RepProcessor::set_required_signal_ids(MedDictionarySections& dict) {
 // Add req_signals to set
 //.......................................................................................
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames) {
+
 	for (auto sig : req_signals)
 		signalNames.insert(sig);
 }
@@ -178,10 +209,14 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames)
 //.......................................................................................
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames, unordered_set<string> preReqSignalNames) {
 	
-	for (string signal : preReqSignalNames) {
-		if (is_signal_affected(signal)) {
-			get_required_signal_names(signalNames);
-			return;
+	if (unconditional)
+		get_required_signal_names(signalNames);
+	else {
+		for (string signal : preReqSignalNames) {
+			if (is_signal_affected(signal)) {
+				get_required_signal_names(signalNames);
+				return;
+			}
 		}
 	}
 
@@ -214,7 +249,6 @@ void RepProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 		aff_signal_ids.insert(dict.id(signalName));
 }
 
-
 //.......................................................................................
 void RepProcessor::dprint(const string &pref, int rp_flag)
 {
@@ -228,7 +262,6 @@ void RepProcessor::dprint(const string &pref, int rp_flag)
 		MLOG("\n");
 	}
 }
-
 
 // (De)Serialize
 //.......................................................................................
@@ -260,6 +293,7 @@ void RepMultiProcessor::clear()
 	}
 	processors.clear();
 }
+
 // Required Signals ids : Fill the member vector - req_signal_ids
 //.......................................................................................
 void RepMultiProcessor::set_required_signal_ids(MedDictionarySections& dict) {
@@ -338,12 +372,14 @@ void RepMultiProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 	for (auto& processor : processors)
 		processor->get_required_signal_ids(signalIds);
 }
+
+// Virtual Signals names : Get the virtual signals map
+//.......................................................................................
 void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals)
 {
 	for (auto& processor : processors)
 		processor->add_virtual_signals(_virtual_signals);
 }
-
 
 // Add req_signals to set only if processor is required for any of preReqSignalNames
 // Note that preReq is copied so it is not affected by enlarging signalNames
@@ -385,33 +421,80 @@ int RepMultiProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& sam
 
 // Apply processors
 //.......................................................................................
-int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points) {
+int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
 
 	vector<int> rc(processors.size(), 0);
+
+	// If attributes are required, prepare space for collecting them
+	vector<vector<vector<float> > > all_attributes_mats(processors.size());
+	if (!attributes_mat.empty()) {
+		all_attributes_mats.resize(processors.size());
+		for (int j = 0; j < processors.size(); j++) {
+			all_attributes_mats[j].resize(time_points.size());
+			for (int i = 0; i < time_points.size(); i++)
+				all_attributes_mats[j][i].resize(processors[j]->attributes.size(), 0);
+		}
+	}
 
 	// ??? chances are this next parallelization is not needed, as we parallel before on recs...
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		rc[j] = processors[j]->apply(rec, time_points);
+		rc[j] = processors[j]->apply(rec, time_points, all_attributes_mats[j]);
 	}
 
 	for (int r : rc) if (r < 0) return -1;
+
+	// If attributes are required, collect them 
+	if (!attributes_mat.empty()) {
+		for (int j = 0; j < processors.size(); j++) {
+			for (int i = 0; i < time_points.size(); i++) {
+				for (int k = 0; k < processors[j]->attributes.size(); k++)
+					attributes_mat[i][attributes_map[j][k]] += all_attributes_mats[j][i][k];
+			}
+		}
+	}
+
 	return 0;
 }
 
 // Apply processors that affect any of the needed signals
 //.......................................................................................
-int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds) {
+int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds, vector<vector<float>>& attributes_mat) {
 
 	vector<int> rc(processors.size(), 0);
+
+	// If attributes are required, prepare space for collecting them
+	vector<vector<vector<float> > > all_attributes_mats(processors.size());
+	if (!attributes_mat.empty()) {
+		all_attributes_mats.resize(processors.size());
+		for (int j = 0; j < processors.size(); j++) {
+			all_attributes_mats[j].resize(time_points.size());
+			for (int i = 0; i < time_points.size(); i++) 
+				all_attributes_mats[j][i].resize(processors[j]->attributes.size(), 0);
+		}
+	}
 
 	// ??? chances are this next parallelization is not needed, as we parallel before on recs...
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		rc[j] = processors[j]->conditional_apply(rec, time_points, neededSignalIds);
+		if (unconditional)
+			rc[j] = processors[j]->apply(rec, time_points, all_attributes_mats[j]);
+		else
+			rc[j] = processors[j]->conditional_apply(rec, time_points, neededSignalIds, all_attributes_mats[j]);
 	}
 
 	for (int r : rc) if (r < 0) return -1;
+
+	// If attributes are required, collect them 
+	if (!attributes_mat.empty()) {
+		for (int j = 0; j < processors.size(); j++) {
+			for (int i = 0; i < time_points.size(); i++) {
+				for (int k = 0; k < processors[j]->attributes.size(); k++)
+					attributes_mat[i][attributes_map[j][k]] += all_attributes_mats[j][i][k];
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -437,6 +520,27 @@ void  RepMultiProcessor::add_processors_set(RepProcessorTypes type, vector<strin
 		processors.push_back(processor);
 	}
 
+}
+
+// init attributes list and attributes map
+//.......................................................................................
+void RepMultiProcessor::init_attributes() {
+
+	attributes.clear();
+	map<string, int> attributes_pos;
+
+	attributes_map.resize(processors.size());
+	for (int i = 0; i < processors.size(); i++) {
+		processors[i]->init_attributes();
+		attributes_map[i].resize(processors[i]->attributes.size());
+		for (int j = 0; j < processors[i]->attributes.size(); j++) {
+			if (attributes_pos.find(processors[i]->attributes[j]) == attributes_pos.end()) {
+				attributes.push_back(processors[i]->attributes[j]);
+				attributes_pos[attributes.back()] = attributes.size() - 1;
+			}
+			attributes_map[i][j] = attributes_pos[processors[i]->attributes[j]];
+		}
+	}
 }
 
 // (De)Serialization
@@ -515,14 +619,30 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepBasicOutlierCleaner::init]
-		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
+		if (field == "signal") { signalName = entry.second; }
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "nrem_attr") nRem_attr = entry.second;
+		else if (field == "ntrim_attr") nTrim_attr = entry.second;
+		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
+		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		//! [RepBasicOutlierCleaner::init]
 	}
 
 	init_lists();
 	return MedValueCleaner::init(mapper);
+}
+
+// init attributes list
+//.......................................................................................
+void RepBasicOutlierCleaner::init_attributes() {
+
+	attributes.clear();
+	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
+	if (!nRem_attr_suffix.empty()) attributes.push_back(signalName + "_" + nRem_attr_suffix);
+
+	if (!nTrim_attr.empty()) attributes.push_back(nTrim_attr);
+	if (!nTrim_attr_suffix.empty()) attributes.push_back(signalName + "_" + nTrim_attr_suffix);
 }
 
  // Learn cleaning boundaries
@@ -587,7 +707,7 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, MedSamples& sam
 
 // Apply cleaning model
 //.......................................................................................
-int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
+int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
 	//MLOG("basic cleaner _apply: signalName %s signalId %d\n", signalName.c_str(), signalId);
 
@@ -647,6 +767,31 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
 			return -1;
 
+		// Collect atttibutes
+		int idx = 0;
+		if (!nRem_attr.empty() && !attributes_mat.empty()) {
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
+				attributes_mat[pVersion][idx] = nRemove;
+			idx++;
+		}
+
+		if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = nRemove;
+			idx++;
+		}
+
+		if (!nTrim_attr.empty() && !attributes_mat.empty()) {
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
+				attributes_mat[pVersion][idx] = nChange;
+			idx++;
+		}
+
+		if (!nTrim_attr_suffix.empty() && !attributes_mat.empty()) {
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = nChange;
+			idx++;
+		}
 	}
 
 	return 0;
@@ -710,6 +855,8 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "nrem_attr") nRem_attr = entry.second;
+		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "conf_file") {
 			confFileName = entry.second; if (int res = readConfFile(confFileName, outlierParams))return(res);
 		}
@@ -848,6 +995,8 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "addRequiredSignals")addRequiredSignals = stoi(entry.second)!=0;
+		else if (field == "nrem_attr") nRem_attr = entry.second;
+		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "consideredRules") {
 			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
 			for (auto& rule : rulesStrings) {
@@ -897,7 +1046,18 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 	return MedValueCleaner::init(mapper);
 }
 
-int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
+void RepRuleBasedOutlierCleaner::init_attributes() {
+
+	attributes.clear();
+	if (!nRem_attr_suffix.empty()) {
+		for (string signalName : signalNames)
+			attributes.push_back(signalName + "_" + nRem_attr_suffix);
+	}
+
+	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
+}
+
+int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 	
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
@@ -985,20 +1145,31 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 								removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
 					}
 				}
-
-
-
-
 			}
 		}
 
 
 		// Apply removals
+		int nRemove = 0;
+		int idx = 0;
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
 			vector <pair<int, float>>noChange;
 			if (rec.update(sig, iver, val_channel, noChange, toRemove) < 0)
 				return -1;
+
+			if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
+				for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+					attributes_mat[pVersion][idx] = toRemove.size();
+				idx++;
+			}
+			nRemove += toRemove.size();
+		}
+
+		// Collect atttibutes
+		if (!nRem_attr.empty() && !attributes_mat.empty()) {
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = nRemove;
 		}
 	}
 
@@ -1118,16 +1289,32 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepNbrsOutlierCleaner::init]
-		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
+		if (field == "signal") { signalName = entry.second; }
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
+		else if (field == "nrem_attr") nRem_attr = entry.second;
+		else if (field == "ntrim_attr") nTrim_attr == entry.second;
+		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
+		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		//! [RepNbrsOutlierCleaner::init]
 	}
 
 	init_lists();
 	return MedValueCleaner::init(mapper);
+}
+
+// init attributes list
+//.......................................................................................
+void RepNbrsOutlierCleaner::init_attributes() {
+
+	attributes.clear();
+	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
+	if (!nRem_attr_suffix.empty()) attributes.push_back(signalName + "_" + nRem_attr_suffix);
+
+	if (!nTrim_attr.empty()) attributes.push_back(nTrim_attr);
+	if (!nTrim_attr_suffix.empty()) attributes.push_back(signalName + "_" + nTrim_attr_suffix);
 }
 
 // Learn bounds
@@ -1179,7 +1366,7 @@ int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, MedSamples& samp
 
 // Clean
 //.......................................................................................
-int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points) {
+int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -1301,6 +1488,17 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points)
 		remove.resize(nRemove);
 		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
 			return -1;
+
+		// Collect atttibutes
+		int idx = 0;
+		if (!nRem_attr.empty() && !attributes_mat.empty())
+			attributes_mat[iver][idx++] = nRemove;
+		if (!nRem_attr_suffix.empty() && !attributes_mat.empty())
+			attributes_mat[iver][idx++] = nRemove;
+		if (!nTrim_attr.empty() && !attributes_mat.empty())
+			attributes_mat[iver][idx++] = nChange;
+		if (!nTrim_attr_suffix.empty() && !attributes_mat.empty())
+			attributes_mat[iver][idx++] = nChange;
 	}
 
 	return 0;
@@ -1315,831 +1513,130 @@ MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRe
 }
 
 //=======================================================================================
-// RepPanelCompleter fills-in calculatable signal values. Enriching existing signals
+// RepMinimalReq - check requirement and set attributes accordingly
 //=======================================================================================
 //.......................................................................................
-// Init from map
-int RepPanelCompleter::init(map<string, string>& mapper)
+int RepCheckReq::init(map<string, string>& mapper)
 {
+
+	time_channels.clear();
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RepPanelCompleter::init]
-		if (panel2type.find(field) != panel2type.end()) {
-			if (update_signal_names(field, entry.second) != 0) return -1;
+		//! [RepMinimalReq::init]
+		if (field == "signals") 
+			boost::split(signalNames, entry.second, boost::is_any_of(","));
+		else if (field == "time_channels") {
+			vector<string> channels;
+			boost::split(channels, entry.second, boost::is_any_of(","));
+			for (string& channel : channels)
+				time_channels.push_back(stoi(channel));
 		}
-		else if (field == "missing") missing_val = stof(entry.second);
-		else if (field == "config" || field == "metadata") metadata_file = entry.second;
-		else if (field == "panels") {
-			if (update_panels(entry.second) != 0) return -1;
-		}
-		//! [RepPanelCompleter::init]
+		else if (field == "time_unit") 
+			window_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "win_from") 
+			win_from = stoi(entry.second);
+		else if (field == "win_to") 
+			win_to = stoi(entry.second);
+		else if (field == "attr")
+			attrName = entry.second;
+		//! [RepMinimalReq::init]
+	}
+
+	// Take care of time-channels
+	if (time_channels.size() == 0)
+		time_channels.push_back(0);
+	if (time_channels.size() == 1) {
+		int channel = time_channels[0];
+		time_channels.resize(signalNames.size(), channel);
 	}
 
 	init_lists();
+
 	return 0;
 }
 
 //.......................................................................................
-// Update signal names
-int RepPanelCompleter::update_signal_names(string panel, string& names) {
+void RepCheckReq::set_signal_ids(MedDictionarySections& dict) {
 
-	vector<string> signals;
-	boost::split(signals, names, boost::is_any_of(","));
+	signalIds.resize(signalNames.size());
+	for (int i = 0; i < signalNames.size(); i++)
+		signalIds[i] = (dict.id(signalNames[i]));
+}
 
-	if (signals.size() != 0 && signals.size() != panel2signals[panel].size()) {
-		MERR("Wrong number of signals given for panel %s",panel.c_str());
+//.......................................................................................
+void RepCheckReq::init_lists() {
+	req_signals.insert(signalNames.begin(), signalNames.end());
+}
+
+//.......................................................................................
+void RepCheckReq::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+
+	sig_time_units.resize(signalIds.size());
+	for (int i = 0; i < signalIds.size(); i++)
+		sig_time_units[i] = sigs.Sid2Info[signalIds[i]].time_unit;
+
+}
+
+//.......................................................................................
+int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+
+	// Should we do anything ?
+	if (attributes_mat.empty())
+		return 0;
+
+	// Sanity checks
+	if (signalIds.size() != signalNames.size()) {
+		MERR("Uninitialized signalId\n");
 		return -1;
 	}
-	else {
-		panel_signal_names[panel2type[panel]] = signals;
-		return 0;
-	}
-}
 
-//.......................................................................................
-// Update panels to work on.
-int RepPanelCompleter::update_panels(string& panels) {
-
-	vector<string> list;
-	boost::split(list, panels, boost::is_any_of(","));
-
-	unordered_set<string> selected;
-	for (string& panel : list) {
-		if (panel2signals.find(panel) == panel2signals.end()) {
-			MERR("Required unknown panel %s for completion\n", panel.c_str());
+	for (int signalId : signalIds) {
+		if (signalId == -1) {
+			MERR("Uninitialized signalId\n");
 			return -1;
 		}
-		else
-			selected.insert(panel);
 	}
-
-	for (auto& panel : panel2signals) {
-		if (selected.find(panel.first) == selected.end())
-			panel_signal_names[panel2type[panel.first]].clear();
-	}
-	return 0;
-}
-
-
-//.......................................................................................
-// Set signal names to default
-void RepPanelCompleter::init_defaults() {
-
-	panel_signal_names.resize(panel2type.size());
-	for (auto& panel : panel2type)
-		panel_signal_names[panel.second] = panel2signals[panel.first];
-
-	ageDirectlyGiven = med_rep_type.ageDirectlyGiven;
-	genderSignalName = med_rep_type.genderSignalName;
-}
-
-//.......................................................................................
-// initialize signal ids
-void RepPanelCompleter::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
-
-	panel_signal_ids.resize(panel_signal_names.size());
-	for (int iPanel = 0; iPanel < panel_signal_ids.size(); iPanel++) {
-		panel_signal_ids[iPanel].resize(panel_signal_names[iPanel].size());
-		for (int iSig = 0; iSig < panel_signal_ids[iPanel].size(); iSig++) {
-			panel_signal_ids[iPanel][iSig] = dict.id(panel_signal_names[iPanel][iSig]);
-			if (panel_signal_ids[iPanel][iSig] == -1)
-				MTHROW_AND_ERR("Cannot find signal-id for %s\n", panel_signal_names[iPanel][iSig].c_str());
-		}
-	}
-
-	// EGFR Requires age and gender
-	if (panel_signal_names[REP_CMPLT_EGFR_PANEL].size()) {
-		genderId = dict.id(genderSignalName);
-
-		if (ageDirectlyGiven)
-			ageId = dict.id("Age");
-		else
-			byearId = dict.id("BYEAR");
-
-	}
-}
-
-//.......................................................................................
-// Fill required and affected signals
-void RepPanelCompleter::init_lists() {
-
-	req_signals.clear();
-	aff_signals.clear();
-
-	for (int iPanel = 0; iPanel < panel_signal_names.size(); iPanel++) {
-		for (int iSig = 0; iSig < panel_signal_names[iPanel].size(); iSig++) {
-			req_signals.insert(panel_signal_names[iPanel][iSig]);
-			aff_signals.insert(panel_signal_names[iPanel][iSig]);
-		}
-	}
-
-	if (panel_signal_names[REP_CMPLT_EGFR_PANEL].size()) {
-		req_signals.insert(genderSignalName);
-
-		if (ageDirectlyGiven)
-			req_signals.insert("Age");
-		else
-			req_signals.insert("BYEAR");
-
-	}
-}
-
-// Apply completions
-//.......................................................................................
-int RepPanelCompleter::_apply(PidDynamicRec& rec, vector<int>& time_points) {
-
-	// Check that we have the correct number of dynamic-versions : one per time-point (if given)
+	
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
 	}
 
-	int rc = 0;
-	if (panel_signal_ids[REP_CMPLT_RED_LINE_PANEL].size())
-		rc = apply_red_line_completer(rec, time_points);
-	if (rc < 0)
-		return -1;
-
-	if (panel_signal_ids[REP_CMPLT_WHITE_LINE_PANEL].size())
-		rc = apply_white_line_completer(rec, time_points);
-	if (rc < 0)
-		return -1;
-
-	if (panel_signal_ids[REP_CMPLT_PLATELETS_PANEL].size())
-		rc = apply_platelets_completer(rec, time_points);
-	if (rc < 0)
-		return -1;
-
-	if (panel_signal_ids[REP_CMPLT_LIPIDS_PANEL].size())
-		rc = apply_lipids_completer(rec, time_points);
-	if (rc < 0)
-		return -1;
-
-	if (panel_signal_ids[REP_CMPLT_EGFR_PANEL].size())
-		rc = apply_eGFR_completer(rec, time_points);
-	if (rc < 0)
-		return -1;
-
-	if (panel_signal_ids[REP_CMPLT_BMI_PANEL].size())
-		rc = apply_BMI_completer(rec, time_points);
-	if (rc < 0)
-		return -1;
-
-	return 0;
-}
-
-// Completion of red blood line panels
-//.......................................................................................
-int RepPanelCompleter::apply_red_line_completer(PidDynamicRec& rec, vector<int>& time_points) {
-
-	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_RED_LINE_PANEL];
-	int n_sigs = (int) sigs_ids.size();
-
-	vector<float>& orig_res = original_sig_res[REP_CMPLT_RED_LINE_PANEL];
-	vector<float>& final_res = final_sig_res[REP_CMPLT_RED_LINE_PANEL];
-	vector<float>& conv = sig_conversion_factors[REP_CMPLT_RED_LINE_PANEL];
-
 	// Loop on versions
-	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
+	set<int> _signalIds(signalIds.begin(), signalIds.end());
+	versionIterator vit(rec, _signalIds);
+	vector<UniversalSigVec> usvs(signalIds.size());
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
 
-		int time_limit = (time_points.size()) ? time_points[iver] : -1;
+	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
 
-		// Get Signals
-		rec.usvs.resize(n_sigs);
-		for (size_t i = 0; i < n_sigs; ++i)
-			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+		// NOTE : This is not perfect : we assume that the samples' time-unit is med_rep_type.basicTimeUnit
+		int time_point = med_time_converter.convert_times(med_rep_type.basicTimeUnit, window_time_unit, time_points[iver]);
+		
+		int nMissing = 0;
+		for (int i = 0; i < signalIds.size(); i++) {
+			rec.uget(signalIds[i], iver, usvs[i]);
 
-		// Get Panels
-		vector<int> panel_times; 
-		vector<vector<float> > panels;
-		get_panels(rec.usvs, panel_times, panels, time_limit, RED_PNL_LAST);
-
-		// Complete
-		vector<int> changed_signals(n_sigs, 0);
-		for (size_t i = 0; i < panels.size(); i++) {
-			int complete = 1;
-			while (complete) {
-				complete = 0;
-
-				// MCV = 10*HCT/RBC
-				complete += triplet_complete(panels[i], 10, RED_PNL_MCV, RED_PNL_HCT, RED_PNL_RBC, orig_res, final_res, conv, changed_signals);
-
-				// MCH = 10 * HGB / RBC
-				complete += triplet_complete(panels[i], 10, RED_PNL_MCH, RED_PNL_HGB, RED_PNL_RBC, orig_res, final_res, conv, changed_signals);
-
-				// MCHC = 100 * HGB / HCT
-				complete += triplet_complete(panels[i], 100, RED_PNL_MCHC, RED_PNL_HGB, RED_PNL_HCT, orig_res, final_res, conv, changed_signals);
-			}
-		}
-
-		// Update changed signals
-		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
-			return -1;
-	}
-
-	return 0;
-}
-
-// Completion of white blood line panels
-//.......................................................................................
-int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int>& time_points) {
-	
-	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_WHITE_LINE_PANEL];
-	int n_sigs = (int) sigs_ids.size();
-
-	vector<float>& orig_res = original_sig_res[REP_CMPLT_WHITE_LINE_PANEL];
-	vector<float>& final_res = final_sig_res[REP_CMPLT_WHITE_LINE_PANEL];
-	vector<float>& conv = sig_conversion_factors[REP_CMPLT_WHITE_LINE_PANEL];
-
-	// Loop on versions
-	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
-
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-
-		int time_limit = (time_points.size()) ? time_points[iver] : -1;
-
-		// Get Signals
-		rec.usvs.resize(n_sigs);
-		for (size_t i = 0; i < n_sigs; ++i)
-			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
-
-		// Get Panels
-		vector<int> panel_times;
-		vector<vector<float> > panels;
-		get_panels(rec.usvs, panel_times, panels, time_limit, WHITE_PNL_LAST);
-
-		// Complete
-		vector<int> changed_signals(n_sigs, 0);
-		for (size_t i = 0; i < panels.size(); i++) {
-			int complete = 1;
-			while (complete) {
-				complete = 0;
-
-				// WBC = SUM(#s)
-				complete += sum_complete(panels[i], WHITE_PNL_WBC, white_panel_nums, orig_res, final_res, conv, changed_signals);
-
-				// White subtypes - 
-				for (int j = 0; j<white_panel_nums.size(); j++) {
-					int num_idx = white_panel_nums[j];
-					int perc_idx = white_panel_precs[j];
-
-					// Perc = 100 * Num/WBC ;
-					complete += triplet_complete(panels[i], 100, perc_idx, num_idx, WHITE_PNL_WBC, orig_res, final_res, conv, changed_signals);
+			bool found = false;
+			for (int j = 0; j < usvs[i].len; j++) {
+				if (usvs[i].Time(j,time_channels[i]) > med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_from))
+					break;
+				if (usvs[i].Time(j, time_channels[i]) >= med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_to)) {
+					found = true;
+					break;
 				}
 			}
-		}
-
-		// Update changed signals
-		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
-			return -1;
-	}
-
-	return 0;
-}
-
-// Completion of platelets panels
-//.......................................................................................
-int RepPanelCompleter::apply_platelets_completer(PidDynamicRec& rec, vector<int>& time_points) {
-	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_PLATELETS_PANEL];
-	int n_sigs = (int) sigs_ids.size();
-
-	vector<float>& orig_res = original_sig_res[REP_CMPLT_PLATELETS_PANEL];
-	vector<float>& final_res = final_sig_res[REP_CMPLT_PLATELETS_PANEL];
-	vector<float>& conv = sig_conversion_factors[REP_CMPLT_PLATELETS_PANEL];
-
-	// Loop on versions
-	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
-
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-
-		int time_limit = (time_points.size()) ? time_points[iver] : -1;
-
-		// Get Signals
-		rec.usvs.resize(n_sigs);
-		for (size_t i = 0; i < n_sigs; ++i)
-			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
-
-		// Get Panels
-		vector<int> panel_times;
-		vector<vector<float> > panels;
-		get_panels(rec.usvs, panel_times, panels, time_limit, PLT_PNL_LAST);
-
-		// Complete
-		vector<int> changed_signals(n_sigs, 0);
-		for (size_t i = 0; i < panels.size(); i++)
-			triplet_complete(panels[i], 100, PLT_PNL_MPV, PLT_PNL_PLT_HCT, PLT_PNL_PLTS, orig_res, final_res, conv, changed_signals);
-
-
-		// Update changed signals
-		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
-			return -1;
-	}
-
-	return 0;
-}
-
-// Completion of lipids panels
-//.......................................................................................
-int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& time_points) {
-
-	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_LIPIDS_PANEL];
-	int n_sigs = (int) sigs_ids.size();
-
-	vector<float>& orig_res = original_sig_res[REP_CMPLT_LIPIDS_PANEL];
-	vector<float>& final_res = final_sig_res[REP_CMPLT_LIPIDS_PANEL];
-	vector<float>& conv = sig_conversion_factors[REP_CMPLT_LIPIDS_PANEL];
-
-	// Loop on versions
-	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
-
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-
-		int time_limit = (time_points.size()) ? time_points[iver] : -1;
-
-		// Get Signals
-		rec.usvs.resize(n_sigs);
-		for (size_t i = 0; i < n_sigs; ++i)
-			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
-
-		// Get Panels
-		vector<int> panel_times;
-		vector<vector<float> > panels;   
-		get_panels(rec.usvs, panel_times, panels, time_limit, LIPIDS_PNL_LAST);
-
-		// Tryglicerids -> VLDL
-		for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
-			if (panels[iPanel][LIPIDS_PNL_TRGS] != missing_val)
-				panels[iPanel][LIPIDS_PNL_VLDL] = panels[iPanel][LIPIDS_PNL_TRGS] / 5.0F;
-		}
-
-		// Complete
-		vector<int> changed_signals(LIPIDS_PNL_LAST, 0);
-		for (size_t i = 0; i < panels.size(); i++) {
-			int complete = 1;
-			while (complete) {
-				complete = 0;
-
-				complete += triplet_complete(panels[i], 1, LIPIDS_PNL_HDL_OVER_CHOL, LIPIDS_PNL_HDL, LIPIDS_PNL_CHOL, orig_res, final_res, conv, changed_signals); 
-				complete += triplet_complete(panels[i], 1, LIPIDS_PNL_CHOL_OVER_HDL, LIPIDS_PNL_CHOL, LIPIDS_PNL_HDL, orig_res, final_res, conv, changed_signals);
-				complete += triplet_complete(panels[i], 1, LIPIDS_PNL_HDL_OVER_LDL, LIPIDS_PNL_HDL, LIPIDS_PNL_LDL, orig_res, final_res, conv, changed_signals);
-				complete += triplet_complete(panels[i], 1, LIPIDS_PNL_LDL_OVER_HDL, LIPIDS_PNL_LDL, LIPIDS_PNL_HDL, orig_res, final_res, conv, changed_signals);
-				complete += triplet_complete(panels[i], 1, LIPIDS_PNL_HDL_OVER_NON_HDL, LIPIDS_PNL_HDL, LIPIDS_PNL_NON_HDL_CHOL, orig_res, final_res, conv, changed_signals);
-				
-				complete += reciprocal_complete(panels[i], 1, LIPIDS_PNL_HDL_OVER_LDL, LIPIDS_PNL_LDL_OVER_HDL, orig_res, final_res, conv, changed_signals);
-				complete += reciprocal_complete(panels[i], 1, LIPIDS_PNL_HDL_OVER_CHOL, LIPIDS_PNL_CHOL_OVER_HDL, orig_res, final_res, conv, changed_signals);
-
-				complete += sum_complete(panels[i], LIPIDS_PNL_CHOL, chol_types1, orig_res, final_res, conv, changed_signals);
-				complete += sum_complete(panels[i], LIPIDS_PNL_CHOL, chol_types2, orig_res, final_res, conv, changed_signals);
-			}
-		}
-
-		// VLDL -> Tryglicerids
-		if (changed_signals[LIPIDS_PNL_VLDL]) {
-			changed_signals[LIPIDS_PNL_TRGS] = 1;
-			for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
-				if (panels[iPanel][LIPIDS_PNL_TRGS] == missing_val && panels[iPanel][LIPIDS_PNL_VLDL] != missing_val)
-					panels[iPanel][LIPIDS_PNL_TRGS] = 5.0F * panels[iPanel][LIPIDS_PNL_VLDL];
-			}
-		}
-
-		// Update changed signals
-		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
-			return -1;
-
-	}
-
-	return 0;
-}
-
-// Completion of eGFR panels
-//.......................................................................................
-int RepPanelCompleter::apply_eGFR_completer(PidDynamicRec& rec, vector<int>& time_points) {
-	
-	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_EGFR_PANEL];
-	int n_sigs = (int) sigs_ids.size();
-
-	vector<float>& orig_res = original_sig_res[REP_CMPLT_EGFR_PANEL];
-	vector<float>& final_res = final_sig_res[REP_CMPLT_EGFR_PANEL];
-	vector<float>& conv = sig_conversion_factors[REP_CMPLT_EGFR_PANEL];
-
-	//  Age & Gender
-	int age, bYear, gender;
-	if (perpare_for_age_and_gender(rec,age, bYear,gender) < 0)
-		return -1;
-
-	int sig_time_unit = rec.my_rep->sigs.Sid2Info[sigs_ids[EGFR_PNL_CRT]].time_unit;
-
-	// Loop on versions
-	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
-
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-
-		int time_limit = (time_points.size()) ? time_points[iver] : -1;
-
-		// Get Signals
-		rec.usvs.resize(n_sigs);
-		for (size_t i = 0; i < n_sigs; ++i)
-			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
-
-		// Get Panels
-		vector<int> panel_times;
-		vector<vector<float> > panels;
-		get_panels(rec.usvs, panel_times, panels, time_limit, EGFR_PNL_LAST);
-
-		// Complete
-		vector<int> changed_signals(n_sigs, 0);
-		float current_age;
-		for (size_t i = 0; i < panels.size(); i++) {
-			// Age
-			if (ageDirectlyGiven)
-				current_age = (float) age;
-			else
-				current_age = (float)(1900 + med_time_converter.convert_date(MedTime::Years, panel_times[i]) - bYear);
-
-			egfr_complete(panels[i], current_age, gender, orig_res, final_res, conv, changed_signals);
-		}
-
-
-		// Update changed signals
-		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
-			return -1;
-	}
-
-	return 0;
-}
-
-// Age/Gender util
-//.......................................................................................
-int RepPanelCompleter::perpare_for_age_and_gender(PidDynamicRec& rec, int& age, int& bYear, int& gender) {
-
-	rec.uget(genderId, 0);
-	if (rec.usv.len == 0) {
-		MERR("No Gender given for %d\n", rec.pid);
-		return -1;
-	}
-	gender = (int)(rec.usv.Val(0));
-
-	if (ageDirectlyGiven) {
-		rec.uget(ageId, 0);
-		if (rec.usv.len == 0) {
-			MERR("No AGE given for %d\n", rec.pid);
-			return -1;
-		}
-		age = (int)(rec.usv.Val(0));
-	}
-	else {
-		rec.uget(byearId, 0);
-		if (rec.usv.len == 0) {
-			MERR("No BYEAR given for %d\n", rec.pid);
-			return -1;
-		}
-		bYear = (int)(rec.usv.Val(0));
-	}
-
-	return 0;
-}
-
-// Completion of BMI panels
-//.......................................................................................
-int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time_points) {
-	
-	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_BMI_PANEL];
-	int n_sigs = (int) sigs_ids.size();
-
-	vector<float>& orig_res = original_sig_res[REP_CMPLT_BMI_PANEL];
-	vector<float>& final_res = final_sig_res[REP_CMPLT_BMI_PANEL];
-	vector<float>& conv = sig_conversion_factors[REP_CMPLT_BMI_PANEL];
-
-	// Loop on versions
-	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
-
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-
-		int time_limit = (time_points.size()) ? time_points[iver] : -1;
-
-		// Get Signals
-		rec.usvs.resize(n_sigs);
-		for (size_t i = 0; i < n_sigs; ++i)
-			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
-
-		// Get Panels
-		vector<int> panel_times;
-		vector<vector<float> > panels;
-		get_panels(rec.usvs, panel_times, panels, time_limit, BMI_PNL_LAST);
-		
-		// Get Square of height (in meters)
-		for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
-			if (panels[iPanel][BMI_PNL_HGT] != missing_val)
-				panels[iPanel][BMI_PNL_HGT_SQR] = (panels[iPanel][BMI_PNL_HGT] / 100.0)*(panels[iPanel][BMI_PNL_HGT] / 100.0);
-		}
-
-		// Complete
-		vector<int> changed_signals(BMI_PNL_LAST, 0);
-		for (size_t i = 0; i < panels.size(); i++) 
-			triplet_complete(panels[i], 1, BMI_PNL_BMI, BMI_PNL_WGT, BMI_PNL_HGT_SQR, orig_res, final_res, conv, changed_signals);
-
-
-		// Get height in cm
-		if (changed_signals[BMI_PNL_HGT_SQR]) {
-			changed_signals[BMI_PNL_HGT] = 1;
-			for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
-				if (panels[iPanel][BMI_PNL_HGT] == missing_val && panels[iPanel][BMI_PNL_HGT_SQR] != missing_val)
-					panels[iPanel][BMI_PNL_HGT] = completer_round(sqrt(panels[iPanel][BMI_PNL_HGT_SQR]) * 100.0F, original_sig_res[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT],
-						final_sig_res[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT], sig_conversion_factors[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT]);
-			}
-		}
-
-		// Update changed signals
-		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
-			return -1;
-	}
-
-	return 0;
-}
-
-
-// Utilities
-// Generate panels from signals
-//.......................................................................................
-
-struct candidate_compare {
-	bool operator() (const pair<int,int>& lhs, const pair<int, int>& rhs) const {
-		return (lhs.first < rhs.first) || (lhs.first == rhs.first && lhs.second < rhs.second);
-	}
-};
-
-void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& panel_times, vector<vector<float>> &panels, int time_limit, int panel_size) {
-
-	// Prepare
-	panels.clear();
-	panel_times.clear();
-
-	set<pair<int,int>, candidate_compare> candidates; // Which signal should we insert next ;
-
-	vector<int> idx(usvs.size(), 0);
-	for (int i = 0; i < usvs.size(); i++) {
-		if (usvs[i].len > 0)
-			candidates.insert({ usvs[i].Time(0),i });
-	}
-
-	int currentTime = -1;
-	while (!candidates.empty()) {
-		// Get the next element
-		std::set<pair<int, int>, candidate_compare>::iterator it = candidates.begin();
-
-		// New Time Point
-		if (it->first != currentTime) {
-			currentTime = it->first;
-			panel_times.push_back(it->first);
-			panels.push_back(vector<float>(panel_size, missing_val));
-		}
-		int sig_idx = it->second;
-		candidates.erase(it);
-
-		// Update panel
-		panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]++);
-
-		// New candidate
-		if (usvs[sig_idx].len > idx[sig_idx]) {
-			int time = usvs[sig_idx].Time(idx[sig_idx]);
-			if (time_limit == -1 || time <= time_limit)
-				candidates.insert({ time ,sig_idx });
-		}
-	}
-
-	/* Print Panels
-	for (int i = 0; i < panels.size(); i++) {
-		cerr << panel_times[i];
-		for (int j = 0; j < panels[i].size(); j++)
-			cerr << " " << panels[i][j];
-		cerr << "\n";
-	}
-	*/
-
-}
-
-// Complete X = factor*Y/Z ; Y = X*Z/factor ; Z = factor*Y/X
-//.......................................................................................
-int RepPanelCompleter::triplet_complete(vector<float>& panel, float factor, int x_idx, int y_idx, int z_idx, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv, vector<int>& changed) {
-
-	// Try completing ...
-	if (panel[x_idx] == missing_val && panel[y_idx] != missing_val && panel[z_idx] != missing_val && panel[z_idx] != 0.0) {
-		panel[x_idx] = factor*panel[y_idx] / panel[z_idx];
-		if (x_idx < orig_res.size())				 
-			panel[x_idx] = completer_round(panel[x_idx], orig_res[x_idx], final_res[x_idx], conv[x_idx]);
-		changed[x_idx] = 1;
-		return 1;
-	}
-	else if (panel[y_idx] == missing_val && panel[x_idx] != missing_val && panel[z_idx] != missing_val) {
-		panel[y_idx] = panel[x_idx] * panel[z_idx] / factor;
-		if (y_idx < orig_res.size())
-		panel[y_idx] = completer_round(panel[y_idx], orig_res[y_idx], final_res[y_idx], conv[y_idx]);
-		changed[y_idx] = 1; 
-		return 1;
-	}
-	else if (panel[z_idx] == missing_val &&panel[y_idx] != missing_val && panel[x_idx] != missing_val && panel[x_idx] != 0) {
-		panel[z_idx] = factor*panel[y_idx] / panel[x_idx];
-		if(z_idx < orig_res.size())
-		panel[z_idx] = completer_round(panel[z_idx], orig_res[z_idx], final_res[z_idx], conv[z_idx]);
-		changed[z_idx] = 1;
-		return 1;
-	}
-	else
-		return 0;
-}
-
-// Complete sum = Sum of summands
-//.......................................................................................
-int RepPanelCompleter::sum_complete(vector<float>& panel, int sum, vector<int>& summands, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv, vector<int>& changed) {
-
-	int npresent = 0;
-	float sumVal = 0.0;
-	int missing = -1;
-	for (int i = 0; i < summands.size(); i++) {
-		if (panel[summands[i]] != missing_val) {
-			npresent++;
-			sumVal += panel[summands[i]];
-		}
-		else
-			missing = summands[i];
-	}
-
-	// Can we complete ?
-	if (npresent == summands.size() && panel[sum] == missing_val) {
-		panel[sum] = sumVal;
-		if (sum < orig_res.size())
-			panel[sum] =  completer_round(panel[sum], orig_res[sum], final_res[sum], conv[sum]);
-		changed[sum] = 1;
-		return 1;
-	}
-	else if (npresent == summands.size() - 1 && panel[sum] != missing_val) {
-		float val = panel[sum] - sumVal;
-		if (val >= 0) {
-			panel[missing] = val;
-			if (missing < orig_res.size())
-				panel[missing] = completer_round(panel[missing], orig_res[missing], final_res[missing], conv[missing]);
-			changed[missing] = 1;
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
-// Complete x = factor/y
-//.......................................................................................
-int RepPanelCompleter::reciprocal_complete(vector<float>& panel, float factor, int x_idx, int y_idx, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv, vector<int>& changed) {
-
-	// Can We complete ?
-	if (panel[x_idx] == missing_val && panel[y_idx] != missing_val && panel[y_idx] != 0.0) {
-		panel[x_idx] = factor / panel[y_idx];
-		if (x_idx < orig_res.size())
-			panel[x_idx] = completer_round(panel[x_idx], orig_res[x_idx], final_res[x_idx], conv[x_idx]);
-		changed[x_idx] = 1;
-		return 1;
-	} 
-	else if (panel[y_idx] == missing_val && panel[x_idx] != missing_val && panel[x_idx] != 0.0) {
-		panel[y_idx] = factor / panel[x_idx];
-		if (y_idx < orig_res.size())
-			panel[y_idx] = completer_round(panel[y_idx], orig_res[y_idx], final_res[y_idx], conv[y_idx]);
-		changed[y_idx] = 1;
-		return 1;
-	}
-
-	return 0;
-}
-
-// Complete eGFRs
-//.......................................................................................
-int RepPanelCompleter::egfr_complete(vector<float>& panel, float age, int gender, vector<float>& orig_res, vector<float>& final_res, vector<float>& conv, vector<int>& changed) {
-
-	int complete = 0;
-	float egfr;
-	if (panel[EGFR_PNL_CRT] != missing_val && panel[EGFR_PNL_CRT] != 0.0) {
-		egfr = completer_round(get_eGFR_CKD_EPI(age, panel[EGFR_PNL_CRT], gender),orig_res[EGFR_PNL_CKD_EPI],final_res[EGFR_PNL_CKD_EPI],conv[EGFR_PNL_CKD_EPI]);
-		if (isfinite(egfr)) {
-			panel[EGFR_PNL_CKD_EPI] = egfr;
-			changed[EGFR_PNL_CKD_EPI] = 1;
-			complete = 1;
-		}
-
-		egfr = completer_round(get_eGFR_MDRD(age, panel[EGFR_PNL_CRT], gender),orig_res[EGFR_PNL_MDRD],final_res[EGFR_PNL_MDRD],conv[EGFR_PNL_MDRD]);
-		if (isfinite(egfr)) {
-			panel[EGFR_PNL_MDRD] = egfr;
-			changed[EGFR_PNL_MDRD] = 1;
-			complete = 1;
-		}
-	}
-	
-	return complete;
-}
-
-// Updating signals in dynamic-rec
-//.......................................................................................
-int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vector<float>>& panels, vector<int>& panel_times, vector<int>& sigs_ids, vector<int>& changed) {
-
-	for (int iSig = 0; iSig < sigs_ids.size(); iSig++) {
-		if (changed[iSig]) {
-			vector<float> values(panels.size());
-			vector<int> times(panels.size());
-
-			int trueSize = 0;
-			for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
-				if (panels[iPanel][iSig] != missing_val) {
-					values[trueSize] = panels[iPanel][iSig];
-					times[trueSize] = panel_times[iPanel];
-					trueSize++;
-				}
-			}
-
-
-			if (rec.set_version_universal_data(sigs_ids[iSig], iver, &(times[0]), &(values[0]), trueSize) < 0)
-				return -1;
-		}
-	}
-
-	return 0;
-}
-
-// Read Signals metadata - extract resolutions and conversions from a csv
-//.......................................................................................
-void RepPanelCompleter::read_metadata() {
-
-	if (metadata_file.empty())
-		MTHROW_AND_ERR("No metadata file given\n");
-
-	// Open
-	ifstream infile;
-	infile.open(metadata_file.c_str(), ifstream::in);
-	if (!infile.is_open())
-		MTHROW_AND_ERR("Cannot open %s for reading\n", metadata_file.c_str());
-
-	// Read
-	int header = 1;
-	string thisLine;
-	map<string, int> columns;
-	map<string, float> all_original_res, all_final_res, all_conversion_factors;
-	vector<string> required = { "Name","FinalFactor","OrigResolution","FinalResolution" };
-
-	while (!infile.eof()) {
-		getline(infile, thisLine);
-		if (thisLine.empty() || thisLine.substr(0, 1) == "#")
-			continue;
-
-		vector<string> fields;
-		boost::split(fields, thisLine, boost::is_any_of(","));
-		
-		if (header == 1) {
-			for (int iCol = 0; iCol < fields.size(); iCol++)
-				columns[fields[iCol]] = iCol;
-
-			for (string& req : required) {
-				if (columns.find(req) == columns.end())
-					MTHROW_AND_ERR("Cannot find %s in meta-data file \'%s\'", req.c_str(), metadata_file.c_str());
-			}
 			
-			header = 0;
+			if (!found)
+				nMissing++;
 		}
-		else {
-			string sigName = fields[columns["Name"]];
-			all_original_res[sigName] = stof(fields[columns["OrigResolution"]]);
-			all_final_res[sigName] = stof(fields[columns["FinalResolution"]]);
-			all_conversion_factors[sigName] = stof(fields[columns["FinalFactor"]]);
-		}
+
+		// Set attribute
+		attributes_mat[iver][0] = nMissing;
 	}
 
-	// Fill in
-	original_sig_res.resize(panel_signal_names.size());
-	final_sig_res.resize(panel_signal_names.size());
-	sig_conversion_factors.resize(panel_signal_names.size());
-
-	for (int iPanel = 0; iPanel < panel_signal_names.size(); iPanel++) {
-		original_sig_res[iPanel].resize(panel_signal_names[iPanel].size());
-		final_sig_res[iPanel].resize(panel_signal_names[iPanel].size());
-		sig_conversion_factors[iPanel].resize(panel_signal_names[iPanel].size());
-
-		for (int iSig = 0; iSig < panel_signal_names[iPanel].size(); iSig++) {
-
-			if (all_original_res.find(panel_signal_names[iPanel][iSig]) == all_original_res.end())
-				MTHROW_AND_ERR("Cannot find metadata for signal %s\n", panel_signal_names[iPanel][iSig].c_str());
-			
-			original_sig_res[iPanel][iSig] = all_original_res[panel_signal_names[iPanel][iSig]];
-			final_sig_res[iPanel][iSig] = all_final_res[panel_signal_names[iPanel][iSig]];
-			sig_conversion_factors[iPanel][iSig] = all_conversion_factors[panel_signal_names[iPanel][iSig]];
-		}
-	}
-
-
-	infile.close();
+	return 0;
 }
 
 //=======================================================================================
@@ -2196,10 +1693,6 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 			}
 			timer_signal = signals[0];
 		}
-
-		// default timer is the first required signal
-		//if (timer_signal.empty() && !calc2req_sigs.find(calculator)->second.empty())
-		//	timer_signal = calc2req_sigs.find(calculator)->second[0];
 
 		// add required signals depending on the actual calculator we run
 		// might be overidden from json
@@ -2302,7 +1795,7 @@ int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
 }
 
 //.......................................................................................
-int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points)
+int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
 {
 	//handle special calculations
 	if (calc_type == CALC_TYPE_EGFR)
@@ -2435,8 +1928,9 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 			rec.init_from_rep(std::addressof(rep), id, req_signal_ids_v, (int)time_points.size());
 
 			// Process at all time-points
+			vector<vector<float>> dummy_attributes_mat;
 			for (size_t i = 0; i < prev_processors.size(); i++)
-				prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i]);
+				prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
 		
 			// If virtual - we need to get the signal now
 			if (signalIsVirtual)
