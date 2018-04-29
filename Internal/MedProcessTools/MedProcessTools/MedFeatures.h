@@ -120,6 +120,8 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
+
+	int version() { return  1; };
 };
 
 /**
