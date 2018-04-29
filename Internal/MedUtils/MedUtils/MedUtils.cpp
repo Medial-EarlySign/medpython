@@ -352,7 +352,8 @@ string medial::print::print_any(po::variable_value &a) {
 }
 
 void medial::io::ProgramArgs_base::init(po::options_description &prg_options, const string &app_l) {
-	po::options_description general_options("Program General Options");
+	po::options_description general_options("Program General Options",
+		(unsigned int)po::options_description::m_default_line_length*2);
 	general_options.add_options()
 		("help,h", "help & exit")
 		("base_config", po::value<string>(&base_config), "config file with all arguments - in CMD we override those settings")
