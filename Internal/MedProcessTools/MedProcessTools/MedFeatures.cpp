@@ -554,7 +554,7 @@ void medial::process::down_sample(MedFeatures &dataMat, double take_ratio, bool 
 
 	vector<bool> seen_index((int)dataMat.samples.size());
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, (int)dataMat.samples.size() - 1);
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
