@@ -223,9 +223,9 @@ namespace medial {
 	*/
 	namespace process {
 		/// \brief down sammling
-		void down_sample(MedSamples &samples, double take_ratio);
+		void down_sample(MedSamples &samples, double take_ratio, bool with_repeats = false);
 		/// \brief down sample by selecting from pids
-		void down_sample_by_pid(MedSamples &samples, double take_ratio);
+		void down_sample_by_pid(MedSamples &samples, double take_ratio, bool with_repeats = false);
 	}
 }
 
