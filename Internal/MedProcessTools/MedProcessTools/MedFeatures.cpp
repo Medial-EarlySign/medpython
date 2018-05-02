@@ -541,7 +541,7 @@ void medial::process::filter_row_indexes(MedFeatures &dataMat, vector<int> &sele
 	dataMat.time_unit = filtered.time_unit;
 }
 
-void medial::process::down_sample(MedFeatures &dataMat, double take_ratio) {
+void medial::process::down_sample(MedFeatures &dataMat, double take_ratio, bool with_repeats) {
 	int final_cnt = int(take_ratio * dataMat.samples.size());
 	if (take_ratio >= 1) {
 		return;
@@ -555,10 +555,11 @@ void medial::process::down_sample(MedFeatures &dataMat, double take_ratio) {
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		while (seen_index[num_ind])
-			num_ind = dist_gen(gen);
-		seen_index[num_ind] = true;
-
+		if (with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
 		all_selected_indexes[k] = num_ind;
 	}
 	filter_row_indexes(dataMat, all_selected_indexes);

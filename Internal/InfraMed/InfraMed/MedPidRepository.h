@@ -222,6 +222,9 @@ public:
 	int init();
 	int next() { return (--iVersion); }
 	int next_different();
+
+	inline int block_first() { return jVersion+1; }
+	inline int block_last() { return iVersion; }
 };
 
 #endif

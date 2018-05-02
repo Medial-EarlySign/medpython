@@ -229,8 +229,9 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			prepare_for_age(rec, ageUsv, age, byear);
 			  
 			// Apply Processors
+			vector<vector<float>> dummy_attributes_mat;
 			for (unsigned int i = 0; i < processors.size(); i++) 
-				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i]);
+				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
 
 			// Collect values and ages
 			rec.uget(signalId, 0, usv); 

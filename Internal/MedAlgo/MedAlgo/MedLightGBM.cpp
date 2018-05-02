@@ -290,7 +290,7 @@ namespace LightGBM {
 
 		map<string, string> params;
 		init_map_from_string(general_params, params);
-		string importance_type = "gain";
+		string importance_type = "gain"; //"frequency"; //"gain";
 		if (params.find("importance_type") != params.end())
 			importance_type = params.at("importance_type");
 

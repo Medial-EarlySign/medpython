@@ -180,7 +180,8 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&
 			field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width" && field != "rp_type" && field != "tag"&&
 			field != "conf_file"&& field != "clean_method"&& field != "signals"&&
-			field != "addRequiredSignals"&&field != "consideredRules")
+			field != "addRequiredSignals"&&field != "consideredRules" && 
+			field != "nrem_attr" && field != "ntrim_attr" && field != "nrem_suff" && field != "ntrim_suff")
 			MLOG("Unknonw parameter \'%s\' for MedValueCleaner\n", field.c_str());
 		//! [MedValueCleaner::init]
 
