@@ -139,7 +139,7 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 			continue;
 
 		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType);
-		for (size_t k = 1; k < nums.size() && k <= 3; ++k) //take till 3
+		for (size_t k = 0; k < nums.size() && k < 3; ++k) //take till 3
 		{
 			if (nums[k] <= 0)
 				continue;
