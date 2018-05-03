@@ -213,7 +213,7 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 	y_changed.insert(y_changed.end(), y.begin(), y.end());
 	//update: cp_info["Time-Window"] based on additional_info["Time-Window"] for cases not in time window
 	int cases_censored = 0, cases_changed_to_controls = 0;
-	int max_range = time_filter.max_range;
+	int max_range = (int)time_filter.max_range;
 	for (size_t i = 0; i < y_changed.size(); ++i)
 	{
 		if (y[i] > 0 && !filter_range_param(additional_info, (int)i, &time_filter)) {

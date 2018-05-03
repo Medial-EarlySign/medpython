@@ -1556,14 +1556,32 @@ string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec
 		return "";
 	return vec.front(); //always first is the coded
 }
-vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
+vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict,
+	const string &group, const string &signalHirerchyType, int depth) {
 	int sectionId = 0;
 	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
 		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
 			signalHirerchyType.c_str());
 	sectionId = dict.SectionName2Id.at(signalHirerchyType);
+
 	vector<int> parents;
-	dict.get_member_sets(sectionId, group, parents);
+	vector<int> last_parents = { dict.id(sectionId, group) };
+	if (last_parents.front() < 0)
+		return parents; //no parents
+
+	for (size_t k = 0; k < depth; ++k) {
+		vector<int> tmp_par, new_layer;
+		for (int par : last_parents)
+		{
+			dict.get_member_sets(sectionId, par, tmp_par);
+			new_layer.insert(new_layer.end(), tmp_par.begin(), tmp_par.end());
+			parents.insert(parents.end(), tmp_par.begin(), tmp_par.end()); //aggregate all parents
+		}
+		new_layer.swap(last_parents);
+		if (last_parents.empty())
+			break; //no more parents to loop up
+	}
+
 	return parents;
 }
 vector<int> medial::signal_hierarchy::sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
