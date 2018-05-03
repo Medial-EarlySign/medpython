@@ -1552,6 +1552,8 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 }
 
 string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
+	if (vec.empty())
+		return "";
 	return vec.front(); //always first is the coded
 }
 vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
