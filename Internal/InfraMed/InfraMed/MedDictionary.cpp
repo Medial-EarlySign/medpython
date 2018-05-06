@@ -269,7 +269,7 @@ void MedDictionary::get_member_sets(const string &member, vector<int> &sets)
 	if (Name2Id.find(member) == Name2Id.end())
 		return;
 	int id = Name2Id[member];
-	return get_set_members(id, sets);
+	return get_member_sets(id, sets);
 }
 
 //-----------------------------------------------------------------------------------------------

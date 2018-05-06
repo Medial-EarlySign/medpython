@@ -1551,396 +1551,57 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	return gend;
 }
 
-
-#pragma region Readcodes hirerachy
-
-bool is_code_chr(char ch) {
-	return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '.';
-}
-
-bool all_code_chars(const string &str) {
-	int i = 0;
-	while (i < str.size() && is_code_chr(str.at(i)))
-		++i;
-	return i >= str.size();
-}
-
-string filter_g_code(const vector<string> &vec) {
-	for (string s : vec)
-	{
-		if (s.size() == 7 && s.at(0) == 'G' && s.at(1) == '_') {
-			return s;
-		}
-		if (s.size() == 7 && all_code_chars(s)) {
-			//return "G_" + s.substr(0, 5);
-			return s;
-		}
-	}
-	return "";
-}
-
-vector<int> get_parents_rc(MedDictionarySections &dict, const string &group) {
-	int sectionId = 1;
-	vector<int> res(5);
-	static vector<string> constStrings = { "",".", "..", "...", "...." };
-
-	int ii = 0;
-	string lookupVal = group;
-	if (all_code_chars(group)) {
-		int code = dict.dicts[sectionId].id(group);
-		res.insert(res.begin(), code);
-		++ii;
-		lookupVal = "G_" + group.substr(0, 5);
-	}
-
-	for (size_t i = 0; i < 5; ++i)
-	{
-		if (lookupVal.at(lookupVal.size() - 1 - i) == '.') {
-			res.pop_back();
-			continue; //skip - will do next
-		}
-		string manip = lookupVal.substr(0, lookupVal.size() - i) + constStrings[i];
-		int code = dict.id(sectionId, manip);
-
-		res[ii] = code;
-		++ii;
-	}
-
-	return res;
-}
-vector<int> get_sons_rc(MedDictionarySections &dict, const string &group) {
-	int sectionId = 1;
-	vector<int> res;
-
-	size_t pos = group.find_first_of('.');
-	if (pos == string::npos) {
-		return res; // leaf - no sons
-	}
-
-	//iterate all letters - lower & upper case:
-	char startChar = 'a';
-	char startCharU = 'A';
-	for (size_t i = 0; i < 26; ++i) {
-		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
-		int code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-
-		manip = group.substr(0, pos) + startCharU + group.substr(pos + 1);
-		code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-		++startChar;
-		++startCharU;
-	}
-
-	//iterate over 0-9:
-	startChar = '0';
-	for (size_t i = 0; i < 10; ++i) {
-		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
-		int code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-
-		++startChar;
-	}
-
-	return res;
-}
-
-
-#pragma endregion
-
-#pragma region ATC hirerachy
-
-bool is_numeric(const string &str) {
-	int i = 2;
-	while (i < str.size() && (str[i] >= '0' && str[i] <= '9')) {
-		++i;
-	}
-	return i >= str.size();
-}
-
-string filter_atc_code(const vector<string> &vec) {
-	for (string s : vec)
-	{
-		if (s.size() >= 12 && s.at(0) == 'A' && s.at(1) == 'T' && s.at(2) == 'C' && s.at(3) == '_') {
-			if (s.size() == 12)
-				return s;
-			else
-				return s.substr(0, 12);
-		}
-		if (s.size() == 10 && s.at(0) == 'd' && s.at(1) == 'c' && is_numeric(s)) {
-			return s;
-		}
-	}
-	return "";
-}
-
-vector<int> get_parents_atc(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	int maxH = 5;
-	vector<int> res(maxH);
-	static vector<string> constStrings = { "", "__", "___", /* skip _ in last*/ "_____", "_______" };
-	static vector<int> indexLookup = { 1, 3, 5, 7 };
-
-	string lookupCode = group;
-	int ii = 0;
-	//If dc - find it's ATC (ATc si size 12, dc is 10)
-	if (group.size() == 10) {
-		int code = dict.id(sectionId, group);
-		res.insert(res.begin(), code);
-		++ii;
-		++maxH;
-
-		//search all options for ATC:
-		vector<int> sets;
-		dict.get_member_sets(sectionId, code, sets);
-		bool found_atc = false;
-		for (int set_i : sets)
-		{
-			if (dict.dicts[sectionId].Id2Names.find(set_i) == dict.dicts[sectionId].Id2Names.end()) {
-				continue;
-			}
-			vector<string> set_names = dict.dicts[sectionId].Id2Names.at(set_i);
-			for (string set_name : set_names) {
-				if (set_name.size() == 12 && set_name.at(0) == 'A' && set_name.at(1) == 'T' && set_name.at(2) == 'C' && set_name.at(3) == '_') {
-					found_atc = true;
-					lookupCode = set_name;
-					break;
-				}
-			}
-			if (found_atc)
-			{
-				break;
-			}
-		}
-	}
-
-	for (size_t i = 0; i < indexLookup.size(); ++i)
-	{
-		if (lookupCode.at(lookupCode.size() - indexLookup[i]) == '_') {
-			res.pop_back();
-			continue; //skip - will do next anyway
-		}
-		string manip = lookupCode.substr(0, lookupCode.size() - constStrings[i].size()) + constStrings[i];
-		int code = dict.id(sectionId, manip);
-
-		res[ii] = code;
-		++ii;
-	}
-	string manip = lookupCode.substr(0, lookupCode.size() - constStrings[constStrings.size() - 1].size()) + constStrings[constStrings.size() - 1];
-	int code = dict.id(sectionId, manip);
-
-	res[ii] = code;
-
-	return res;
-}
-
-vector<int> get_sons_atc(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	static vector<bool> iterTypeNum = { true, false, false, true };
-	static vector<int> indexLookup = { 1, 3, 5, 6 };
-	vector<int> res;
-	string conv = group;
-	if (conv.size() >= 12 && conv.at(0) == 'A' && conv.at(1) == 'T' && conv.at(2) == 'C' && conv.at(3) == '_')
-		conv = group.substr(4, 12);
-
-	size_t pos = conv.find_first_of('_');
-	if (pos == 4)
-		pos = conv.find_first_of('_', 5);
-	if (pos == string::npos)
-		return res; // leaf - no sons
-
-	int ind = 0;
-	while (ind < indexLookup.size() && indexLookup[ind] != pos)
-		++ind;
-	if (ind >= indexLookup.size()) {
-		cerr << "Bug in code " << group << endl;
-		throw logic_error("Bug in code");
-	}
-
-	if (iterTypeNum[ind]) {
-		//iterate over 00-99:
-		for (size_t i = 0; i < 100; ++i) {
-			string nm = to_string(i);
-			if (i < 10) {
-				nm = "0" + nm;
-			}
-			string manip = "ATC_" + conv.substr(0, pos) + nm + conv.substr(pos + 2);
-			int code = dict.id(sectionId, manip);
-			if (code > 0)
-				res.push_back(code);
-		}
-	}
-	else {
-		char startChar = 'A';
-		for (size_t i = 0; i < 26; ++i) {
-			string manip = "ATC_" + conv.substr(0, pos) + startChar + conv.substr(pos + 1);
-			int code = dict.id(sectionId, manip);
-			if (code > 0)
-				res.push_back(code);
-			++startChar;
-		}
-	}
-
-	return res;
-}
-
-
-#pragma endregion
-
-#pragma region BNF hirerachy
-
-string filter_bnf_code(const vector<string> &vec) {
-	for (string s : vec)
-	{
-		if (s.size() == 15 && s.at(0) == 'B' && s.at(1) == 'N' && s.at(2) == 'F' && s.at(4) == '_') {
-			return s;
-		}
-		if (s.size() == 10 && s.at(0) == 'd' && s.at(1) == 'c' && is_numeric(s)) {
-			return s;
-		}
-	}
-	return "";
-}
-
-vector<int> get_parents_bnf(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	int maxH = 4;
-	vector<int> res(maxH);
-	static vector<int> indexLookup = { 1, 4, 7 };
-	static vector<string> constStrings = { "", "00", "00.00", "00.00.00" };
-
-	string lookupCode = group;
-	int ii = 0;
-	//If dc - find it's BNF (BNF size 15, dc is 10)
-	if (group.size() == 10) {
-		int code = dict.id(sectionId, group);
-		res.insert(res.begin(), code);
-		++ii;
-		++maxH;
-
-		//search all options for BNF:
-		vector<int> sets;
-		dict.get_member_sets(sectionId, code, sets);
-		bool found_bnf = false;
-		for (int set_i : sets)
-		{
-			if (dict.dicts[sectionId].Id2Names.find(set_i) == dict.dicts[sectionId].Id2Names.end()) {
-				continue;
-			}
-			vector<string> set_names = dict.dicts[sectionId].Id2Names.at(set_i);
-			for (string set_name : set_names) {
-				if (set_name.size() == 15 && set_name.at(0) == 'B' && set_name.at(1) == 'N' && set_name.at(2) == 'F' && set_name.at(3) == '_') {
-					found_bnf = true;
-					lookupCode = set_name;
-					break;
-				}
-			}
-			if (found_bnf)
-			{
-				break;
-			}
-		}
-	}
-
-	for (size_t i = 0; i < indexLookup.size(); ++i)
-	{
-		if (lookupCode.at(lookupCode.size() - indexLookup[i]) == '0' && lookupCode.at(lookupCode.size() - indexLookup[i] - 1) == '0') {
-			res.pop_back();
-			continue; //skip - will do next
-		}
-		string manip = lookupCode.substr(0, lookupCode.size() - constStrings[i].size()) + constStrings[i];
-		int code = dict.id(sectionId, manip);
-
-		res[ii] = code;
-		++ii;
-	}
-
-	string manip = lookupCode.substr(0, lookupCode.size() - constStrings[constStrings.size() - 1].size()) + constStrings[constStrings.size() - 1];
-	int code = dict.id(sectionId, manip);
-	res[ii] = code;
-
-	return res;
-}
-
-vector<int> get_sons_bnf(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	vector<int> res;
-
-
-	size_t pos = group.find(".00");
-	if (pos == string::npos) {
-		return res; // leaf - no sons
-	}
-
-	//iterate over 00-99:
-	for (size_t i = 0; i < 100; ++i) {
-		string nm = to_string(i);
-		if (i < 10) {
-			nm = "0" + nm;
-		}
-		string manip = group.substr(0, pos) + "." + nm + group.substr(pos + 3);
-		int code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-	}
-
-	return res;
-}
-
-#pragma endregion
-
 string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
-	if (signalHirerchyType == "RC")
-		return filter_g_code(vec);
-	else if (signalHirerchyType == "ATC")
-		return filter_atc_code(vec);
-	else if (signalHirerchyType == "BNF")
-		return filter_bnf_code(vec);
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
-			signalHirerchyType.c_str());
+	if (vec.empty())
+		return "";
+	return vec.front(); //always first is the coded
 }
-vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
-	if (signalHirerchyType == "RC")
-		return get_parents_rc(dict, group);
-	else if (signalHirerchyType == "ATC")
-		return get_parents_atc(dict, group);
-	else if (signalHirerchyType == "BNF")
-		return get_parents_bnf(dict, group);
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict,
+	const string &group, const string &signalHirerchyType, int depth) {
+	int sectionId = 0;
+	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
 			signalHirerchyType.c_str());
+	sectionId = dict.SectionName2Id.at(signalHirerchyType);
+
+	vector<int> parents;
+	vector<int> last_parents = { dict.id(sectionId, group) };
+	if (last_parents.front() < 0)
+		return parents; //no parents
+
+	for (size_t k = 0; k < depth; ++k) {
+		vector<int> tmp_par, new_layer;
+		for (int par : last_parents)
+		{
+			dict.get_member_sets(sectionId, par, tmp_par);
+			new_layer.insert(new_layer.end(), tmp_par.begin(), tmp_par.end());
+			parents.insert(parents.end(), tmp_par.begin(), tmp_par.end()); //aggregate all parents
+		}
+		new_layer.swap(last_parents);
+		if (last_parents.empty())
+			break; //no more parents to loop up
+	}
+
+	return parents;
 }
 vector<int> medial::signal_hierarchy::sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
-	if (signalHirerchyType == "RC")
-		return get_sons_rc(dict, group);
-	else if (signalHirerchyType == "ATC")
-		return get_sons_atc(dict, group);
-	else if (signalHirerchyType == "BNF")
-		return get_sons_bnf(dict, group);
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+	int sectionId = 0;
+	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
 			signalHirerchyType.c_str());
+	sectionId = dict.SectionName2Id.at(signalHirerchyType);
+	vector<int> sons;
+	dict.get_set_members(sectionId, group, sons);
+	return sons;
 }
 
 string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType) {
 	int sectionId = 0;
-	if (signalHirerchyType == "RC")
-		sectionId = dict.SectionName2Id.at("RC");
-	else if (signalHirerchyType == "ATC")
-		sectionId = dict.SectionName2Id.at("Drug");
-	else if (signalHirerchyType == "BNF")
-		sectionId = dict.SectionName2Id.at("Drug");
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
 			signalHirerchyType.c_str());
+	sectionId = dict.SectionName2Id.at(signalHirerchyType);
+
 	string res = "";
 	vector<int> sets;
 	dict.get_member_sets(sectionId, id, sets);
@@ -1961,12 +1622,10 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
-			cerr << "not supported" << endl;
-			throw logic_error("not supported");
+			MTHROW_AND_ERR("not supported");
 		}
-		if (!name.empty()) {
+		if (!name.empty())
 			res = name;
-		}
 	}
 
 	return res;

@@ -101,6 +101,7 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 		for (const auto& s : pat.samples)
 			samples.push_back(s);
 	Learn(samples);
+	return 0;
 }
 int Calibrator::Learn(const vector<MedSample>& orig_samples ) {
 	cals.clear();

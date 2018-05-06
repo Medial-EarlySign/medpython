@@ -12,7 +12,7 @@
 //=======================================================================================
 // Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split) in addition to pred_pos vector and attr_pos map
 //.......................................................................................
-int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string,int>& attr_pos) {
+int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos) {
 	if (pos.size() == 0)
 		return parse_from_string(s);
 	vector<string> fields;
@@ -367,7 +367,7 @@ int MedSamples::get_predictions_size(int& nPreds) {
 	for (auto &s : idSamples) {
 		for (auto& ss : s.samples) {
 			if (nPreds == -1)
-				nPreds = (int) ss.prediction.size();
+				nPreds = (int)ss.prediction.size();
 			else if (ss.prediction.size() != nPreds)
 				return -1;
 		}
@@ -413,7 +413,7 @@ int MedSamples::write_to_file(const string &fname)
 {
 	ofstream of(fname);
 
-	int nPreds ;
+	int nPreds;
 	if (get_predictions_size(nPreds) < 0) {
 		MERR("MedSampels: Predictions vectors sizes inconsistent\n");
 		return -2;
@@ -721,7 +721,7 @@ void medial::print::print_by_year(const MedSamples &data_records, int year_bin_s
 	print_by_year(vec, year_bin_size, unique_ids, take_prediction_time, log_file);
 }
 
-void medial::process::down_sample(MedSamples &samples, double take_ratio) {
+void medial::process::down_sample(MedSamples &samples, double take_ratio, bool with_repeats) {
 	int tot_samples = samples.nSamples();
 	//int tot_samples = (int)samples.idSamples.size();
 	vector<int> pids_index;
@@ -738,7 +738,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio) {
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index(tot_samples);
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, tot_samples - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
@@ -746,9 +746,11 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio) {
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		while (seen_index[num_ind])
-			num_ind = dist_gen(gen);
-		seen_index[num_ind] = true;
+		if (with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
 		int index_i = pids_index[num_ind];
 		int index_j = 0;
 		while (index_j < samples.idSamples[index_i].samples.size() &&
@@ -769,7 +771,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio) {
 	medial::print::print_samples_stats(samples);
 }
 
-void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio) {
+void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio, bool with_repeats) {
 	if (take_ratio >= 1)
 		return;
 	unordered_map<int, vector<int>> pid_to_inds;
@@ -784,21 +786,23 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio)
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index((int)id_to_pid.size());
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		while (seen_index[num_ind])
-			num_ind = dist_gen(gen);
+		if (with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
 		int pid = id_to_pid[num_ind];
 		vector<int> take_inds = pid_to_inds.at(pid);
 		for (int ind : take_inds)
 			//#pragma omp critical
 			filterd.idSamples.push_back(samples.idSamples[ind]);
-		seen_index[num_ind] = true;
 	}
 	samples.idSamples.swap(filterd.idSamples);
 	samples.sort_by_id_date();

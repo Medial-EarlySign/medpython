@@ -118,6 +118,7 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 	const string &signalHirerchyType,
 	vector<MedRegistryRecord> &res) {
 	UniversalSigVec &signalVal = signals[0];
+	int max_search_depth = 3;
 
 	for (int i = 0; i < signalVal.len; ++i)
 	{
@@ -138,8 +139,8 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 		if (s.empty())
 			continue;
 
-		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType);
-		for (size_t k = 1; k < nums.size() && k <= 3; ++k) //take till 3
+		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType, max_search_depth);
+		for (size_t k = 0; k < nums.size(); ++k)
 		{
 			if (nums[k] <= 0)
 				continue;
@@ -1021,6 +1022,45 @@ double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<
 	return regScore;
 }
 
+double medial::contingency_tables::calc_mcnemar_square_dist(const map<float, vector<int>> &gender_sorted) {
+	//calc over all ages
+	double regScore = 0;
+	for (auto i = gender_sorted.begin(); i != gender_sorted.end(); ++i) { //iterate over age bins
+		const vector<int> &counts = i->second; //the forth numbers
+		double totCnt = 0;
+		vector<double> R(2);
+		R[0] = counts[0] + counts[1];
+		R[1] = counts[2 + 0] + counts[2 + 1];
+		totCnt = R[0] + R[1];
+
+		double p_min;
+		double b, c;
+		int min_ind = 0;
+		//Mathcing to lower:
+		p_min = R[0];
+		if (R[1] < p_min) {
+			p_min = R[1];
+			++min_ind;
+		}
+		if (p_min = 0)
+			continue; //no matching possible 0's in both cells
+		if (min_ind == 0) {
+			//matching to first whos lower(no sig appear before is lower):
+			b = counts[0 + 1];
+			c = counts[2 + 1] * R[0] / R[1];
+		}
+		else {
+			//matching to second whos lower:
+			b = counts[2 + 1];
+			c = counts[0 + 1] * R[1] / R[0];
+		}
+
+		if (b + c > 0)
+			regScore += (b - c) * (b - c) / (b + c); //Mcnemar
+	}
+	return regScore;
+}
+
 double medial::contingency_tables::chisqr(int Dof, double Cv)
 {
 	if (Dof < 1 || Cv <= 0) {
@@ -1115,6 +1155,80 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 			dof += _count_legal_rows(male_stats.at(signalVal), minimal_balls);
 		if (female_stats.find(signalVal) != female_stats.end())
 			dof += _count_legal_rows(female_stats.at(signalVal), minimal_balls);
+		double pv = chisqr(dof, regScore);
+		p_values[index] = pv;
+	}
+}
+
+void medial::contingency_tables::calc_mcnemar_scores(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats,
+	vector<float> &all_signal_values, vector<int> &signal_indexes,
+	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
+
+	unordered_set<float> all_vals;
+	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
+		all_vals.insert(i->first);
+	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
+		all_vals.insert(i->first);
+	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
+	signal_indexes.resize(all_signal_values.size());
+	for (size_t i = 0; i < signal_indexes.size(); ++i)
+		signal_indexes[i] = (int)i;
+	posCnts.resize(all_signal_values.size());
+	valCnts.resize(all_signal_values.size());
+	lift.resize(all_signal_values.size());
+	scores.resize(all_signal_values.size());
+	p_values.resize(all_signal_values.size());
+	pos_ratio.resize(all_signal_values.size());
+
+	for (int index : signal_indexes)
+	{
+		float signalVal = all_signal_values[index];
+		//check chi-square for this value:
+		double totCnt = 0;
+		double sig_sum = 0;
+		double sum_noSig_reg = 0;
+		double sum_noSig_tot = 0;
+
+		if (male_stats.find(signalVal) != male_stats.end())
+			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (female_stats.find(signalVal) != female_stats.end())
+			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (totCnt == 0)
+			continue;
+		valCnts[index] = totCnt; //for signal apeareance
+		sig_sum += posCnts[index];
+		if (sig_sum > 0 && sum_noSig_reg > 0)
+			lift[index] = (posCnts[index] / sig_sum) / (sum_noSig_reg / sum_noSig_tot);
+		if (sig_sum > 0 && sum_noSig_reg <= 0)
+			lift[index] = 2 * posCnts[index]; //maximum lift
+		pos_ratio[index] = posCnts[index] / totCnt;
+
+		double regScore = 0;
+		if (male_stats.find(signalVal) != male_stats.end())
+			regScore += calc_mcnemar_square_dist(male_stats.at(signalVal)); //Males
+		if (female_stats.find(signalVal) != female_stats.end())
+			regScore += calc_mcnemar_square_dist(female_stats.at(signalVal)); //Females
+
+		scores[index] = (float)regScore;
+		int dof = -1;
+		if (male_stats.find(signalVal) != male_stats.end())
+			dof += _count_legal_rows(male_stats.at(signalVal), 0);
+		if (female_stats.find(signalVal) != female_stats.end())
+			dof += _count_legal_rows(female_stats.at(signalVal), 0);
 		double pv = chisqr(dof, regScore);
 		p_values[index] = pv;
 	}

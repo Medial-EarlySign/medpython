@@ -541,27 +541,32 @@ void medial::process::filter_row_indexes(MedFeatures &dataMat, vector<int> &sele
 	dataMat.time_unit = filtered.time_unit;
 }
 
-void medial::process::down_sample(MedFeatures &dataMat, double take_ratio) {
+void medial::process::down_sample(MedFeatures &dataMat, double take_ratio, bool with_repeats,
+	vector<int> *selected_indexes) {
 	int final_cnt = int(take_ratio * dataMat.samples.size());
 	if (take_ratio >= 1) {
 		return;
 	}
+	vector<int> all_selected_indexes;
+	if (selected_indexes == NULL)
+		selected_indexes = &all_selected_indexes;
+	selected_indexes->resize(final_cnt);
 
-	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index((int)dataMat.samples.size());
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, (int)dataMat.samples.size() - 1);
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		while (seen_index[num_ind])
-			num_ind = dist_gen(gen);
-		seen_index[num_ind] = true;
-
-		all_selected_indexes[k] = num_ind;
+		if (with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
+		(*selected_indexes)[k] = num_ind;
 	}
-	filter_row_indexes(dataMat, all_selected_indexes);
+	filter_row_indexes(dataMat, *selected_indexes);
 }
 
 double medial::process::reweight_by_general(MedFeatures &data_records, const vector<string> &groups,
