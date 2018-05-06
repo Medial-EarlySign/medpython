@@ -637,12 +637,15 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 //.......................................................................................
 void RepBasicOutlierCleaner::init_attributes() {
 
+	string _signal_name = signalName;
+	if (val_channel != 0) _signal_name += "_" + to_string(val_channel);
+
 	attributes.clear();
 	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
-	if (!nRem_attr_suffix.empty()) attributes.push_back(signalName + "_" + nRem_attr_suffix);
+	if (!nRem_attr_suffix.empty()) attributes.push_back(_signal_name + "_" + nRem_attr_suffix);
 
 	if (!nTrim_attr.empty()) attributes.push_back(nTrim_attr);
-	if (!nTrim_attr_suffix.empty()) attributes.push_back(signalName + "_" + nTrim_attr_suffix);
+	if (!nTrim_attr_suffix.empty()) attributes.push_back(_signal_name + "_" + nTrim_attr_suffix);
 }
 
  // Learn cleaning boundaries
@@ -824,16 +827,18 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 	getline(infile, thisLine);//consume title line.
 	while (!infile.eof()) {
 		getline(infile, thisLine);
+		if (thisLine.back() == '\r') thisLine.pop_back();
+	
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));
 		if (f.size() != 7) {
-			fprintf(stderr, "Wrong field count in  %s \n", confFileName.c_str());
+			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(),thisLine.c_str(),f.size());
 			infile.close();
 			return -1;
 		}
+	
 		thisRecord.confirmedLow = thisRecord.logicalLow = (float)atof(f[1].c_str());
 		thisRecord.confirmedHigh = thisRecord.logicalHigh = (float)atof(f[2].c_str());
-
 
 		thisRecord.distLow = f[4];
 		thisRecord.distHigh = f[6];
@@ -841,6 +846,7 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = (float)atof(f[5].c_str());
 		outlierParams[f[0]] = thisRecord;
 	}
+
 	infile.close();
 	return(0);
 
@@ -857,6 +863,8 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
+		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
+		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		else if (field == "conf_file") {
 			confFileName = entry.second; if (int res = readConfFile(confFileName, outlierParams))return(res);
 		}
@@ -981,6 +989,7 @@ void RepConfiguredOutlierCleaner::print()
 
 int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 {
+
 	init_defaults();
 	set<string> rulesStrings;
 
@@ -997,6 +1006,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "addRequiredSignals")addRequiredSignals = stoi(entry.second)!=0;
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
+		else if (field == "tolerance") tolerance = stof(entry.second);
 		else if (field == "consideredRules") {
 			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
 			for (auto& rule : rulesStrings) {
@@ -1008,40 +1018,45 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepRuleBasedOutlierCleaner::init]
 
 	}
-	for (auto& rule : rules2Signals)
+
+
+	for (auto& rule : rules2Signals) {
 		if (std::find(consideredRules.begin(), consideredRules.end(), 0) != consideredRules.end() ||
 			std::find(consideredRules.begin(), consideredRules.end(), rule.first) != consideredRules.end())
 			continue;// rule remains
-		else rules2Signals.erase(rule.first);// rule removed
-
-
+		else 
+			rules2Signals.erase(rule.first);// rule removed
+	}
 
 	// add required signals according to rules that apply to affected signals
-	for (auto& rule : rules2Signals)
-		for (auto& sig : aff_signals)
+	for (auto& rule : rules2Signals) {
+		for (auto& sig : aff_signals) {
 			if (std::find(rule.second.begin(), rule.second.end(), sig) != rule.second.end()) {
+
 				rulesToApply.push_back(rule.first);
 				bool loopBreak = false;
-				for (auto& reqSig : rule.second) {
+				for (auto& reqSig : rule.second) {					
 					bool found = false;
-					for (auto& existReqSig : req_signals)
+					for (auto& existReqSig : req_signals) {
 						if (reqSig == existReqSig) {
 							found = true;
 							break;  //already there
 						}
+					}
+
 					if (!found)
 						if (addRequiredSignals)
 							req_signals.insert(reqSig);    //add required signal
 						else {
-							rulesToApply.pop_back();//We were asked not to load additional signals so ignore this rule
+							rulesToApply.pop_back(); //We were asked not to load additional signals so ignore this rule
 							loopBreak = true;
 							break;
 						}
 				}
 				if (loopBreak)break;
 			}
-
-
+		}
+	}
 
 	return MedValueCleaner::init(mapper);
 }
@@ -1050,21 +1065,40 @@ void RepRuleBasedOutlierCleaner::init_attributes() {
 
 	attributes.clear();
 	if (!nRem_attr_suffix.empty()) {
-		for (string signalName : signalNames)
+		for (string signalName : aff_signals)
 			attributes.push_back(signalName + "_" + nRem_attr_suffix);
 	}
 
 	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
 }
 
+void RepRuleBasedOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
+	for (auto reqSig : req_signals)reqSignalIds.insert(dict.id(reqSig));
+	for (auto affSig : aff_signals)affSignalIds.insert(dict.id(affSig));
+}
+
+void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+
+	rules_sids.resize(rulesToApply.size());
+	affected_by_rules.resize(rulesToApply.size());
+
+	for (int i = 0; i < rulesToApply.size(); i++) {
+		// build set of the participating signals
+
+		for (auto& sname : rules2Signals[rulesToApply[i]]) {
+			int thisSid = dict.id(sname);
+			rules_sids[i].push_back(thisSid);
+			affected_by_rules[i].push_back(affSignalIds.find(thisSid) != affSignalIds.end());
+		}
+	}
+}
+	
+
 int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 	
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
 	map <int, vector <int>> removePoints; // from signal id to its remove points
-	set <int> reqSignalIds, affSignalIds;
-	for (auto reqSig : req_signals)reqSignalIds.insert(myDict.id(reqSig));
-	for (auto affSig : aff_signals)affSignalIds.insert(myDict.id(affSig));
 	
 	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
@@ -1082,22 +1116,19 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 			rec.uget(reqSigId, iver, usvs[reqSigId]);
 			removePoints[reqSigId] = {};
 		}
+
 		//Now loop on rules
 		//printf("removePointsSize:%d\n", removePoints.size());
 
-		for (auto rule : rulesToApply) {
-			vector <int> mySids;
+		for (int iRule = 0; iRule < rulesToApply.size(); iRule++) {
+			int rule = rulesToApply[iRule];
 			vector <UniversalSigVec>ruleUsvs;
-			vector <bool>affected;
+			vector<int>& mySids = rules_sids[iRule];
 
 			// build set of the participating signals
-			
-			for (auto& sname : rules2Signals[rule]) {
-				int thisSid = myDict.id(sname);
-				mySids.push_back(thisSid);
-				affected.push_back(affSignalIds.find(thisSid) != affSignalIds.end());
-				ruleUsvs.push_back(usvs[thisSid]);
-			}
+			for (int sid : mySids)
+				ruleUsvs.push_back(usvs[sid]);
+
 			bool signalEmpty = false;
 			for (auto& thisUsv : ruleUsvs) // look for empty signals and skip the rule
 				if (thisUsv.len == 0)signalEmpty = true;
@@ -1125,7 +1156,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 					for (int i = 0; i < mySids.size(); i++) 
 						while(sPointer[i] < ruleUsvs[i].len - 1)
 							if (ruleUsvs[i].Time(sPointer[i], time_channel) == ruleUsvs[i].Time(sPointer[i] + 1, time_channel)) {
-								if(affected[i])
+								if(affected_by_rules[iRule][i])
 										removePoints[mySids[i]].insert(sPointer[i]);
 								sPointer[i]++;
 							}
@@ -1141,13 +1172,12 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 					if (ruleFlagged) {
 						
 						for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
-							if (affected[sIndex])
+							if (affected_by_rules[iRule][sIndex])
 								removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
 					}
 				}
 			}
 		}
-
 
 		// Apply removals
 		size_t nRemove = 0;
@@ -1157,7 +1187,6 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 			vector <pair<int, float>>noChange;
 			if (rec.update(sig, iver, val_channel, noChange, toRemove) < 0)
 				return -1;
-
 			if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
 				for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
 					attributes_mat[pVersion][idx] = (float) toRemove.size();
@@ -1182,7 +1211,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 // apply the rule and return true if data is consistent with the rule
 //ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 {
-#define TOLERANCE (0.1)
+
 	float left, right; // sides of the equality or inequality of the rule
 
 	switch (rule) {
@@ -1191,39 +1220,39 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) / ruleUsvs[2].Val(sPointer[2]) * (float)1e4;
 		//printf("inputs %f %f\n", ruleUsvs[1].Val(sPointer[1]), ruleUsvs[2].Val(sPointer[2]));
-		return (abs(left / right - 1) > TOLERANCE);
+		return (abs(left / right - 1) > tolerance);
 
 	case 2://MCH=Hemoglobin/RBC*10
 	case 3://MCV=Hematocrit/RBC*10
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10;
-		return(abs(left / right - 1) > TOLERANCE);
+		return(abs(left / right - 1) > tolerance);
 
 	case 4://MCHC-M=MCH/MCV*100
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 100;
-		return(abs(left / right - 1) > TOLERANCE);
+		return(abs(left / right - 1) > tolerance);
 
 	case 11://HDL_over_nonHDL=HDL/NonHDLCholesterol
 	case 12://HDL_over_Cholesterol=HDL/Cholesterol
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right =round( ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/(float)10.; //resolution in THIN is 0.1
-		return(abs(left / right - 1) > TOLERANCE);
+		return(abs(left / right - 1) > tolerance);
 
 	case 6://MPV=Platelets_Hematocrit/Platelets
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]);
-		return(abs(left / right - 1) > TOLERANCE);
+		return(abs(left / right - 1) > tolerance);
 
 	case 8://UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/10;//resolution in THIN is 0.1
-		return(abs(left / right - 1) > TOLERANCE);
+		return(abs(left / right - 1) > tolerance);
 
 	case 13://HDL_over_LDL=HDL/LDL
 	case 15://Cholesterol_over_HDL=Cholesterol/HDL
@@ -1231,42 +1260,42 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]);
-		return(abs(left / right - 1) > TOLERANCE);
+		return(abs(left / right - 1) > tolerance);
 
 	case 5://Eosinophils#+Monocytes#+Basophils#+Lymphocytes#+Neutrophils#<=WBC
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]) + ruleUsvs[2].Val(sPointer[2]) + ruleUsvs[3].Val(sPointer[3]) + ruleUsvs[4].Val(sPointer[4]);
 		right = ruleUsvs[5].Val(sPointer[5]);
-		return (left*(1 - TOLERANCE) >= right);
+		return (left*(1 - tolerance) >= right);
 	
 	case 19://Albumin<=Protein_Total	
 	case 21://NRBC<=RBC
 	case 22://CHADS2<=CHADS2_VASC
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]);
-		return(left*(1 - TOLERANCE) >= right);
+		return(left*(1 - tolerance) >= right);
 
 	case 7://UrineAlbumin <= UrineTotalProtein
 	case 20://FreeT4<=T4
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]);
-		return(left*(1 - TOLERANCE) >= right*1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
+		return(left*(1 - tolerance) >= right*1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
 
 	case 9://LDL+HDL<=Cholesterol
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]);
 		right = ruleUsvs[2].Val(sPointer[2]);
-		return (left*(1 - TOLERANCE) > right);
+		return (left*(1 - tolerance) > right);
 
 	case 10://NonHDLCholesterol + HDL = Cholesterol
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]);
 		right = ruleUsvs[2].Val(sPointer[2]);
-		return (abs(left / right - 1) > TOLERANCE);
+		return (abs(left / right - 1) > tolerance);
 
 	case 14://HDL_over_LDL=1/LDL_over_HDL
 	case 17://Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
 		if (ruleUsvs[2].Val(sPointer[1]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right =(float) 1. / ruleUsvs[1].Val(sPointer[1]);
-		return (abs(left / right - 1) > TOLERANCE);
+		return (abs(left / right - 1) > tolerance);
 
 	default: assert(0); return false; // return is never executed but eliminates warning
 	}
@@ -1309,12 +1338,15 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 //.......................................................................................
 void RepNbrsOutlierCleaner::init_attributes() {
 
+	string _signal_name = signalName;
+	if (val_channel != 0) _signal_name += "_" + to_string(val_channel);
+
 	attributes.clear();
 	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
-	if (!nRem_attr_suffix.empty()) attributes.push_back(signalName + "_" + nRem_attr_suffix);
+	if (!nRem_attr_suffix.empty()) attributes.push_back(_signal_name + "_" + nRem_attr_suffix);
 
 	if (!nTrim_attr.empty()) attributes.push_back(nTrim_attr);
-	if (!nTrim_attr_suffix.empty()) attributes.push_back(signalName + "_" + nTrim_attr_suffix);
+	if (!nTrim_attr_suffix.empty()) attributes.push_back(_signal_name + "_" + nTrim_attr_suffix);
 }
 
 // Learn bounds
