@@ -559,7 +559,7 @@ void medial::process::down_sample(MedFeatures &dataMat, double take_ratio, bool 
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		if (with_repeats) {
+		if (!with_repeats) {
 			while (seen_index[num_ind])
 				num_ind = dist_gen(gen);
 			seen_index[num_ind] = true;
