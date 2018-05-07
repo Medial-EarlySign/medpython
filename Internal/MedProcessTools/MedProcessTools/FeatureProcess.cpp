@@ -40,7 +40,7 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 	else if (processor_name == "pca")
 		return FTR_PROCESS_ENCODER_PCA;
 	else
-		return FTR_PROCESS_LAST;
+		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
 
 // Initialization

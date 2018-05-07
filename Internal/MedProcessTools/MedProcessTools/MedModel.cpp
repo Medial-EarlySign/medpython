@@ -46,7 +46,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Set of signals
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
-		init_all(rep.dict);
+		init_all(rep.dict,rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
@@ -72,6 +72,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
+
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
 		timer.start();
 		if (learn_rep_processors(rep, *LearningSet) < 0) { //??? why are rep processors initialized for ALL time points in an id??
@@ -96,6 +97,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	}
 	if (end_stage <= MED_MDL_LEARN_FTR_GENERATORS)
 		return 0;
+	
 	// Generate features
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		features.clear();
@@ -193,7 +195,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
 		// Initialize
-		init_all(rep.dict);
+		init_all(rep.dict,rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
@@ -341,7 +343,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			// Generate DynamicRec with all relevant signals
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 			
-			// Apply rep-cleaning
+			// Apply rep-processing
 			for (unsigned int i = 0; i < rep_processors.size(); i++)
 				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
 
@@ -529,9 +531,36 @@ string MedModel::file_to_string(int recursion_level, const string& main_file, ve
 	int last_char = 0;
 	string out_string = "";
 	for (; it != end; ++it) {
-		std::cerr << "found: " << it->str(0) << ":::" << it->str(1) << "\n";
+		string json_ref = it->str(1);
+		std::cerr << "found: " << json_ref << "\n";
+		vector<string> tokens;
+		boost::split(tokens, json_ref, boost::is_any_of(";"));
+		if (tokens.empty())
+			MTHROW_AND_ERR("could not parse [%s]", it->str(0).c_str());
+		string small_file = tokens[0];
+		vector<string> my_alterations;
+		for (int i = 1; i < tokens.size(); i++)
+			my_alterations.push_back(tokens[i]);
+		for (string alt : alterations) {
+			vector<string> fields;
+			boost::algorithm::split_regex(fields, alt, boost::regex("::"));
+			if (fields.size() != 2)
+				MTHROW_AND_ERR("Cannot parse alteration string [%s] \n", alt.c_str());
+			bool overriden = false;
+			for (string existing_alt : my_alterations) {
+				vector<string> existing_fields;
+				boost::algorithm::split_regex(existing_fields, existing_alt, boost::regex("::"));
+				if (fields[0] == existing_fields[0]) {
+					MLOG("alteration [%s] overriden in the context of [%s] to [%s]\n",
+						fields[0].c_str(), small_file.c_str(), existing_fields[1].c_str());
+					overriden = true;
+				}
+			}
+			if (!overriden)
+				my_alterations.push_back(alt);
+		}
 		out_string += orig.substr(last_char, it->position() - last_char);
-		out_string += file_to_string(recursion_level + 1, main_file, alterations, it->str(1));
+		out_string += file_to_string(recursion_level + 1, main_file, my_alterations, small_file);
 		last_char = (int)it->position() + (int)it->str(0).size();
 	}
 	out_string += orig.substr(last_char);
@@ -754,7 +783,7 @@ void MedModel::add_process_to_set(int i_set, int duplicate, const string &init_s
 	if (init_string.find("fg_type") != string::npos) return add_feature_generator_to_set(i_set, init_string);
 	if (init_string.find("fp_type") != string::npos) return add_feature_processor_to_set(i_set, duplicate, init_string);
 
-	MERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
+	MTHROW_AND_ERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
 }
 
 
@@ -778,7 +807,7 @@ void MedModel::set_affected_signal_ids(MedDictionarySections& dict) {
 
 // initialization :  find signal ids, init tables
 //.......................................................................................
-void MedModel::init_all(MedDictionarySections& dict) {
+void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 
 	// signal ids
 	set_affected_signal_ids(dict);
@@ -792,10 +821,14 @@ void MedModel::init_all(MedDictionarySections& dict) {
 
 	// tables
 	for (RepProcessor *processor : rep_processors)
-		processor->init_tables(dict);
+		processor->init_tables(dict,sigs);
 
 	for (FeatureGenerator *generator : generators)
 		generator->init_tables(dict);
+
+	// attributes
+	for (RepProcessor *processor : rep_processors)
+		processor->init_attributes();
 }
 
 // Create a required signal names by back propograting : First find what's required by
@@ -803,8 +836,8 @@ void MedModel::init_all(MedDictionarySections& dict) {
 // are required ....
 //.......................................................................................
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+	
 	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
-
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
@@ -813,6 +846,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	}
 
 	MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
+
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
@@ -850,6 +884,7 @@ int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
 			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			rep.sigs.Sid2Info[new_id].time_unit = med_rep_type.basicTimeUnit; // Currently, time-unit is determined by med_rep_type
 			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
 		}
 		else {
@@ -1151,4 +1186,55 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
 	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
+}
+
+bool clean_uneeded_rep_procc_simple(vector<RepProcessor *> &onlySimples, const unordered_set<string> &needed_sigs) {
+	vector<RepProcessor *> afterFiltr;
+	int original_size = (int)onlySimples.size();
+	for (RepProcessor *rp : onlySimples) {
+		unordered_set<string> sigs = rp->req_signals;
+		bool has_match = false;
+		for (string sig : sigs) {
+			if (needed_sigs.find(sig) != needed_sigs.end()) {
+				has_match = true;
+				break;
+			}
+		}
+		if (has_match) {
+			afterFiltr.push_back(rp);
+		}
+	}
+	onlySimples = afterFiltr;
+	return afterFiltr.size() != original_size;
+}
+bool medial::process::clean_uneeded_rep_processors(MedModel &m, const vector<string> &needed_sigs) {
+	vector<RepProcessor *> afterFiltr;
+	unordered_set<string> need_s;
+	need_s.insert(needed_sigs.begin(), needed_sigs.end());
+	bool has_cln = false;
+	for (RepProcessor *rp : m.rep_processors) {
+		vector<RepProcessor *> to_process;
+		bool cleaned;
+		if (rp->processor_type == REP_PROCESS_MULTI) {
+			RepMultiProcessor *rpc = (RepMultiProcessor *)rp;
+			to_process = rpc->processors;
+			cleaned = clean_uneeded_rep_procc_simple(to_process, need_s);
+			rpc->processors = to_process;
+			if (!to_process.empty())
+				afterFiltr.push_back(rpc);
+		}
+		else {
+			to_process.push_back(rp);
+			cleaned = clean_uneeded_rep_procc_simple(to_process, need_s);
+
+			if (!cleaned) {
+				afterFiltr.push_back(rp);
+			}
+
+		}
+		has_cln = has_cln | cleaned;
+	}
+
+	m.rep_processors = afterFiltr;
+	return has_cln;
 }

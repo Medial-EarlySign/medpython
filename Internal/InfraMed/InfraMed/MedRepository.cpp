@@ -45,13 +45,13 @@ void MedRepository::clear()
 	sigs.clear();
 	pids.clear();
 	if (work_area != NULL)
-		delete [] work_area;
+		delete[] work_area;
 	work_area = NULL;
 }
 //-----------------------------------------------------------
 int MedRepository::read_config(const string &fname)
 {
-	string fixed_name ;
+	string fixed_name;
 	//if (fix_path(fname,fixed_name) != 0) {
 	//	fprintf(stderr,"MedRepository : read_config: Can't fix path name %s\n",fname.c_str()) ;
 	//	fixed_name = fname;
@@ -62,34 +62,37 @@ int MedRepository::read_config(const string &fname)
 	ifstream inf(fixed_name);
 
 	if (!inf) {
-		MERR("MedRepository: read_config: Can't open file [%s]\n",fixed_name.c_str());
+		MERR("MedRepository: read_config: Can't open file [%s]\n", fixed_name.c_str());
 		return -1;
 	}
 
 	clear();
 
 	string curr_line;
-	while (getline(inf,curr_line)) {
+	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 
-			if (curr_line[curr_line.size()-1] == '\r')
-				curr_line.erase(curr_line.size()-1) ;
+			if (curr_line[curr_line.size() - 1] == '\r')
+				curr_line.erase(curr_line.size() - 1);
 
 			vector<string> fields;
-			split(fields, curr_line, boost::is_any_of("\t"));	
+			split(fields, curr_line, boost::is_any_of("\t"));
 
 			if (fields[0].compare("DESCRIPTION") == 0) {
 				desc = fields[1];
-			} else if (fields[0].compare("DIR") == 0) {
+			}
+			else if (fields[0].compare("DIR") == 0) {
 				path = fields[1];
 				if (path.compare(".") == 0) {
 					// in this case we fix our path to be from where we were called
 					size_t found = fixed_name.find_last_of("/\\");
 					path = fixed_name.substr(0, found);
 				}
-			} else if (fields[0].compare("DICTIONARY") == 0) {
+			}
+			else if (fields[0].compare("DICTIONARY") == 0) {
 				dictionary_fnames.push_back(fields[1]);
-			} else if (fields[0].compare("SIGNAL") == 0) {
+			}
+			else if (fields[0].compare("SIGNAL") == 0) {
 				signal_fnames.push_back(fields[1]);
 				dictionary_fnames.push_back(fields[1]);
 			}
@@ -105,14 +108,15 @@ int MedRepository::read_config(const string &fname)
 			}
 			else if (fields[0].compare("DATA") == 0) {
 				if (fields.size() < 3) {
-					MERR("NedRepository: read_config: DATA line in wrong format: %s \n",curr_line.c_str());
+					MERR("NedRepository: read_config: DATA line in wrong format: %s \n", curr_line.c_str());
 					return -1;
 				}
 				int fno = stoi(fields[1]);
-				if (data_fnames.size() < fno+1)
-					data_fnames.resize(fno+1);
+				if (data_fnames.size() < fno + 1)
+					data_fnames.resize(fno + 1);
 				data_fnames[fno] = fields[2];
-			} else if (fields[0].compare("INDEX") == 0) {
+			}
+			else if (fields[0].compare("INDEX") == 0) {
 				index_fnames.push_back(fields[1]);
 			}
 			else MLOG("Ignoring line: [%s]\n", curr_line.c_str());
@@ -121,8 +125,8 @@ int MedRepository::read_config(const string &fname)
 	}
 
 	// adding path to names + fixing paths.
-	if (add_path_to_name_IM(path,dictionary_fnames) == -1 || add_path_to_name_IM(path,signal_fnames) == -1 || add_path_to_name_IM(path,data_fnames) == -1 || add_path_to_name_IM(path,index_fnames) == -1)
-		return -1 ;
+	if (add_path_to_name_IM(path, dictionary_fnames) == -1 || add_path_to_name_IM(path, signal_fnames) == -1 || add_path_to_name_IM(path, data_fnames) == -1 || add_path_to_name_IM(path, index_fnames) == -1)
+		return -1;
 
 	config_fname = fname;
 	inf.close();
@@ -133,7 +137,7 @@ int MedRepository::read_config(const string &fname)
 int MedRepository::read_dictionary()
 {
 	if (dictionary_fnames.size() > 0) {
-		for (int i=0; i<dictionary_fnames.size(); i++) {
+		for (int i = 0; i < dictionary_fnames.size(); i++) {
 			if (read_dictionary(dictionary_fnames[i]) < 0)
 				return -1;
 		}
@@ -152,7 +156,7 @@ int MedRepository::read_dictionary(const string &fname)
 int MedRepository::read_signals()
 {
 	if (signal_fnames.size() > 0) {
-		for (int i=0; i<signal_fnames.size(); i++) {
+		for (int i = 0; i < signal_fnames.size(); i++) {
 			if (read_signals(signal_fnames[i]) < 0)
 				return -1;
 		}
@@ -169,14 +173,14 @@ int MedRepository::read_signals(const string &fname)
 //-----------------------------------------------------------
 int MedRepository::read_index()
 {
-	return(read_index(vector<int>(),vector<int>()));
+	return(read_index(vector<int>(), vector<int>()));
 }
 
 //-----------------------------------------------------------
 int MedRepository::read_index(const vector<int> &pids_to_take, const vector<int> &signals_to_take)
 {
-	if (index_fnames.size() > 0) {		
-		return (read_index(index_fnames,pids_to_take,signals_to_take));
+	if (index_fnames.size() > 0) {
+		return (read_index(index_fnames, pids_to_take, signals_to_take));
 	}
 	return 0;
 }
@@ -190,23 +194,23 @@ int MedRepository::read_index(vector<string> &fnames)
 //-----------------------------------------------------------
 int MedRepository::read_index(vector<string> &fnames, const vector<int> &pids_to_take, const vector<int> &signals_to_take)
 {
-	return(index.read_sub_index(fnames,pids_to_take,signals_to_take));
+	return(index.read_sub_index(fnames, pids_to_take, signals_to_take));
 }
 
 //-----------------------------------------------------------
 int MedRepository::get_data_mode(const string &fname)
 {
 	ifstream inf;
-	
-	inf.open(fname,ios::in | ios::binary);
+
+	inf.open(fname, ios::in | ios::binary);
 
 	if (!inf) {
-		MERR("MedRepository: get_data_mode: Can't open file %s\n",fname.c_str());
+		MERR("MedRepository: get_data_mode: Can't open file %s\n", fname.c_str());
 		return -1;
 	}
 
 	int mode;
-	inf.read((char *)&mode,sizeof(int));
+	inf.read((char *)&mode, sizeof(int));
 
 	inf.close();
 
@@ -217,7 +221,7 @@ int MedRepository::get_data_mode(const string &fname)
 void MedRepository::free_data()
 {
 	if (work_area != NULL) {
-		delete [] work_area;
+		delete[] work_area;
 		work_area = NULL;
 	}
 	if (work_size > 0)
@@ -243,24 +247,24 @@ int MedRepository::read_data(const string &fname)
 int MedRepository::read_data(vector<string> &fnames)
 {
 	free_data();
-	return(index.read_all_data(work_area,work_size,fnames));
+	return(index.read_all_data(work_area, work_size, fnames));
 }
 
 //-----------------------------------------------------------
 int MedRepository::read_all(const string &conf_name)
 {
-	return(read_all(conf_name,vector<int>(),vector<int>(),2)); // default: read all in the fastest possible way
+	return(read_all(conf_name, vector<int>(), vector<int>(), 2)); // default: read all in the fastest possible way
 }
 
 //-----------------------------------------------------------
 int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<int> &signals_to_take)
 {
-	return(read_all(conf_fname,pids_to_take,signals_to_take,1));
+	return(read_all(conf_fname, pids_to_take, signals_to_take, 1));
 }
 //-----------------------------------------------------------
 int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<string> &signals_to_take)
 {
-	return(read_all(conf_fname,pids_to_take,signals_to_take,1));
+	return(read_all(conf_fname, pids_to_take, signals_to_take, 1));
 }
 //-----------------------------------------------------------
 int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<string> &signals_to_take, int read_data_flag)
@@ -270,11 +274,11 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 
 	// read config
 	if (read_config(conf_fname) < 0) {
-		MERR("MedRepository: read_all: error: read_config [%s] failed\n",conf_fname.c_str());
+		MERR("MedRepository: read_all: error: read_config [%s] failed\n", conf_fname.c_str());
 		return -1;
 	}
 
-	MLOG("MedRepository: read config file %s\n",conf_fname.c_str());
+	MLOG("MedRepository: read config file %s\n", conf_fname.c_str());
 
 	// read dictionaries
 	if (dict.read(dictionary_fnames) < 0) {
@@ -282,23 +286,24 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 		return -1;
 	}
 	dict.read_state = 1;
-	MLOG_D("MedRepository: read %d dictionary files\n",dictionary_fnames.size());
+	MLOG_D("MedRepository: read %d dictionary files\n", dictionary_fnames.size());
 
 	MLOG("MedRepository: reading signals: ");
 	// Get signals ids
-	vector<int> signal_ids_to_take ;
-	for (unsigned int i=0; i<signals_to_take.size(); i++) {
+	vector<int> signal_ids_to_take;
+	for (unsigned int i = 0; i < signals_to_take.size(); i++) {
 		MLOG("%s,", signals_to_take[i].c_str());
 		if (dict.id(signals_to_take[i]) < 0) {
-			MERR("MedRepository: requested unknown signal %s\n",signals_to_take[i].c_str()) ;
-			return -1 ;
-		} else {
+			MERR("MedRepository: requested unknown signal %s\n", signals_to_take[i].c_str());
+			return -1;
+		}
+		else {
 			signal_ids_to_take.push_back(dict.id(signals_to_take[i]));
 		}
 	}
 	MLOG("\n");
 
-	return read_all(conf_fname,pids_to_take,signal_ids_to_take,read_data_flag) ;
+	return read_all(conf_fname, pids_to_take, signal_ids_to_take, read_data_flag);
 
 }
 //-----------------------------------------------------------
@@ -319,8 +324,8 @@ int MedRepository::read_pid_list()
 
 	int *list = (int *)data;
 	all_pids_list.resize(list[0]);
-	for (int i=0; i<all_pids_list.size(); i++)
-		all_pids_list[i] = list[i+1];
+	for (int i = 0; i < all_pids_list.size(); i++)
+		all_pids_list[i] = list[i + 1];
 
 	if (size > 0) delete[] data;
 
@@ -335,7 +340,7 @@ int MedRepository::init(const string &conf_fname)
 		MERR("MedRepository: init: error: read_config %s failed\n", conf_fname.c_str());
 		return -1;
 	}
-	
+
 	if (rep_mode < 3) {
 		MERR("MedRepository: init: error: init() is possible only from mode 3 and up\n");
 		return -1;
@@ -367,7 +372,7 @@ int MedRepository::init(const string &conf_fname)
 	MedTimer t("Rep Read Time");
 	t.start();
 	//MLOG("Reading Index Tables\n");
-	vector<int> pids_sort_uniq ={ -1 } , sids;
+	vector<int> pids_sort_uniq = { -1 }, sids;
 	if (read_index_tables(pids_sort_uniq, sids) < 0)
 		return -1;
 	if (read_pid_list() < 0)
@@ -387,11 +392,11 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 
 	// read config
 	if (read_config(conf_fname) < 0) {
-		MERR("MedRepository: read_all: error: read_config %s failed\n",conf_fname.c_str());
+		MERR("MedRepository: read_all: error: read_config %s failed\n", conf_fname.c_str());
 		return -1;
 	}
 
-	MLOG_D("MedRepository: read config file %s\n",conf_fname.c_str());
+	MLOG_D("MedRepository: read config file %s\n", conf_fname.c_str());
 
 	// read dictionaries
 	if (dict.read_state == 0) {
@@ -401,7 +406,7 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 		}
 	}
 	dict.read_state = 2;
-	MLOG_D("MedRepository: read %d dictionary files\n",dictionary_fnames.size());
+	MLOG_D("MedRepository: read %d dictionary files\n", dictionary_fnames.size());
 
 	// read signals
 	if (signal_fnames.size() == 0) {
@@ -424,7 +429,7 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 		// mode 2 TBD !!!
 		generate_fnames_for_prefix();
 	}
-	
+
 	MedTimer t("Rep Read Time");
 	t.start();
 	if (rep_mode < 3) {
@@ -468,7 +473,7 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 
 	}
 
-	t.take_curr_time(); MLOG("Read data time %f seconds\n",t.diff_sec());
+	t.take_curr_time(); MLOG("Read data time %f seconds\n", t.diff_sec());
 	return 0;
 }
 
@@ -476,13 +481,13 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 SDateVal *MedRepository::get_before_date(int pid, int sid, int date, int &len)
 {
 	int orig_len;
-	SDateVal *sdv = (SDateVal *)get(pid,sid,orig_len);
+	SDateVal *sdv = (SDateVal *)get(pid, sid, orig_len);
 
 	if (orig_len == 0)
 		sdv = NULL;
 	len = 0;
 	// ToDo:: Improve to binary serarch
-	for (int i=0; i<orig_len; i++) {
+	for (int i = 0; i < orig_len; i++) {
 		if (sdv[i].date < date)
 			len++;
 		else
@@ -500,7 +505,7 @@ SDateVal *MedRepository::get_before_date(int pid, const string &sig_name, int da
 		len = 0;
 		return NULL;
 	}
-	return(get_before_date(pid,sid,date,len));
+	return(get_before_date(pid, sid, date, len));
 }
 
 //----------------------------------------------------------
@@ -509,7 +514,7 @@ SDateVal *MedRepository::get_date(int pid, const string &sig_name, int date, con
 	int sid = sigs.sid(sig_name);
 	if (sid < 0)
 		return NULL;
-	return(get_date(pid,sid,date,mode));
+	return(get_date(pid, sid, date, mode));
 }
 
 //----------------------------------------------------------
@@ -518,7 +523,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	SDateVal *sdv;
 
 	int len;
-	sdv = (SDateVal *)get(pid,sid,len);
+	sdv = (SDateVal *)get(pid, sid, len);
 	if (sdv == NULL)
 		return NULL;
 
@@ -526,7 +531,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	if (mode.compare("==") == 0) {
 
 		// ToDo:: move to binary search
-		for (int i=0; i<len; i++) {
+		for (int i = 0; i<len; i++) {
 			if (sdv[i].date == date)
 				return(&sdv[i]);
 			else if (sdv[i].date > date)
@@ -538,7 +543,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	else if (mode.compare("<=") == 0) {
 
 		// ToDo:: move to binary search
-		for (int i=0; i<len; i++) {
+		for (int i = 0; i<len; i++) {
 			if (sdv[i].date <= date)
 				sdv_res = &sdv[i];
 			else if (sdv[i].date > date)
@@ -549,7 +554,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	else if (mode.compare(">=") == 0) {
 
 		// ToDo:: move to binary search
-		for (int i=len-1; i>0; i++) {
+		for (int i = len - 1; i > 0; i++) {
 			if (sdv[i].date >= date)
 				sdv_res = &sdv[i];
 			else if (sdv[i].date < date)
@@ -560,7 +565,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	else if (mode.compare("<") == 0) {
 
 		// ToDo:: move to binary search
-		for (int i=0; i<len; i++) {
+		for (int i = 0; i < len; i++) {
 			if (sdv[i].date < date)
 				sdv_res = &sdv[i];
 			else if (sdv[i].date >= date)
@@ -571,7 +576,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	else if (mode.compare(">") == 0) {
 
 		// ToDo:: move to binary search
-		for (int i=len-1; i>0; i++) {
+		for (int i = len - 1; i > 0; i++) {
 			if (sdv[i].date > date)
 				sdv_res = &sdv[i];
 			else if (sdv[i].date <= date)
@@ -588,7 +593,7 @@ void MedRepository::print_data_vec(int pid, const string &sig_name)
 	int sid = sigs.sid(sig_name);
 	if (sid < 0)
 		return;
-	print_data_vec(pid,sid);
+	print_data_vec(pid, sid);
 }
 
 //-----------------------------------------------------------
@@ -597,7 +602,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 	MOUT("pid %d sid %d %s ::", pid, sid, sigs.name(sid).c_str());
 
 	int drug_sid = sigs.sid("Drug");
-	
+
 	MOUT(" %d ::\n", len);
 	int val;
 	int section_id = dict.section_id(sigs.name(sid));
@@ -607,10 +612,10 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		section_id = drugs_nice_names_section;
 	}
 
-	for (int i=0; i<len; i++) {
+	for (int i = 0; i < len; i++) {
 		if (sigs.type(sid) == T_Value) {
 			SVal *v = (SVal *)data;
-			MOUT(" %d ", val=(int)v[i].val);
+			MOUT(" %d ", val = (int)v[i].val);
 		}
 		else if (sigs.type(sid) == T_DateVal) {
 			SDateVal *v = (SDateVal *)data;
@@ -618,7 +623,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;
-			MOUT(" %d %d %d ", v[i].date, val=(int)v[i].val, v[i].val2);
+			MOUT(" %d %d %d ", v[i].date, val = (int)v[i].val, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateRangeVal) {
 			SDateRangeVal *v = (SDateRangeVal *)data;
@@ -626,17 +631,17 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_CompactDateVal) {
 			SCompactDateVal *v = (SCompactDateVal *)data;
-			MOUT(" %d %d ", compact_date_to_date(v[i].compact_date), val= (int)v[i].val);
+			MOUT(" %d %d ", compact_date_to_date(v[i].compact_date), val = (int)v[i].val);
 		}
 		else if (sigs.type(sid) == T_DateShort2) {
 			SDateShort2 *v = (SDateShort2 *)data;
-			MOUT(" %d %d %d ", v[i].date, val=(int)v[i].val1, v[i].val2);
+			MOUT(" %d %d %d ", v[i].date, val = (int)v[i].val1, v[i].val2);
 		}
 
 		if (dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end())
-			for (int j=0; j<dict.dict(section_id)->Id2Names[val].size(); j++) {
+			for (int j = 0; j < dict.dict(section_id)->Id2Names[val].size(); j++) {
 				string st = dict.dict(section_id)->Id2Names[val][j];
-				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0 || dict.dict(section_id)->Id2Names[val].size()<=3)
+				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0 || dict.dict(section_id)->Id2Names[val].size() <= 3)
 					MOUT("|%s", st.c_str());
 			}
 		MOUT(" :\n");
@@ -649,7 +654,7 @@ void MedRepository::print_vec(void *data, int len, int pid, int sid)
 {
 	MOUT("pid %d sid %d %s ::", pid, sid, sigs.name(sid).c_str());
 	MOUT(" %d ::", len);
-	for (int i=0; i<len; i++) {
+	for (int i = 0; i < len; i++) {
 		if (sigs.type(sid) == T_Value) {
 			SVal *v = (SVal *)data;
 			MOUT(" %f :", v[i].val);
@@ -701,7 +706,7 @@ void MedRepository::print_data_vec(int pid, int sid)
 
 
 	int len = 0;
-	void *data = get(pid,sid,len);
+	void *data = get(pid, sid, len);
 
 	print_vec(data, len, pid, sid);
 }
@@ -721,7 +726,7 @@ void MedRepository::print_data_vec_dict(int pid, int sid)
 void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool dict_val = false)
 {
 	int section_id = 0;
-//	int drug_sid;
+	//	int drug_sid;
 	if (dict_val) {
 		section_id = dict.section_id(sigs.name(sid));
 		if (sigs.name(sid) == "Drug") {
@@ -799,12 +804,12 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 				if (j < dict.dict(section_id)->Id2Names[val].size()) {
 					string st = dict.dict(section_id)->Id2Names[val][j];
 					MOUT("\"%s\",", st.c_str());
-				} 
+				}
 			}
 		}
 		MOUT("\n");
 	}
-	
+
 
 }
 
@@ -813,23 +818,25 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 //----------------------------------------------------------------------------------------------
 int MedRepository::get_dates_with_signal(int pid, vector<string> &sig_names, vector<int> &dates)
 {
-	int i,j;
+	int i, j;
 	int len;
 
 	dates.clear();
-	for (i=0; i<sig_names.size(); i++) {
+	for (i = 0; i < sig_names.size(); i++) {
 		int st = sigs.type(sig_names[i]);
 		if (st == T_DateVal) {
-			SDateVal *v = (SDateVal *)get(pid,sig_names[i],len);
-			for (j=0; j<len; j++)
+			SDateVal *v = (SDateVal *)get(pid, sig_names[i], len);
+			for (j = 0; j < len; j++)
 				dates.push_back(v[j].date);
-		} else if (st == T_DateVal2) {
-			SDateVal2 *v = (SDateVal2 *)get(pid,sig_names[i],len);
-			for (j=0; j<len; j++)
+		}
+		else if (st == T_DateVal2) {
+			SDateVal2 *v = (SDateVal2 *)get(pid, sig_names[i], len);
+			for (j = 0; j < len; j++)
 				dates.push_back(v[j].date);
-		} else if (st == T_DateShort2) {
+		}
+		else if (st == T_DateShort2) {
 			SDateShort2 *v = (SDateShort2 *)get(pid, sig_names[i], len);
-			for (j=0; j<len; j++)
+			for (j = 0; j < len; j++)
 				dates.push_back(v[j].date);
 		}
 
@@ -852,14 +859,14 @@ int MedRepository::generate_fnames_for_prefix()
 	//vector<int> ii;
 	//for (int i=0; i<sigs.signals_names.size(); i++) ii.push_back(i); // this is just for debugging, making sure we are order independent
 	//random_shuffle(ii.begin(), ii.end());
-	for (int i=0; i<sigs.signals_names.size(); i++) {
+	for (int i = 0; i < sigs.signals_names.size(); i++) {
 		string fixed_sig_name = sigs.signals_names[i];
 		boost::replace_all(fixed_sig_name, "/", "_div_");
 		boost::replace_all(fixed_sig_name, ":", "_over_");
 		boost::replace_all(fixed_sig_name, "%", "_percent_");
-		string name = path+"/"+rep_files_prefix+"_"+fixed_sig_name; //sigs.signals_names[i];
-		data_fnames.push_back(name+".data");
-		index_fnames.push_back(name+".idx");
+		string name = path + "/" + rep_files_prefix + "_" + fixed_sig_name; //sigs.signals_names[i];
+		data_fnames.push_back(name + ".data");
+		index_fnames.push_back(name + ".idx");
 		int sid = sigs.sid(sigs.signals_names[i]);
 		sigs.Sid2Info[sid].fno = i;
 		//MLOG("i %d name %s sid %d\n", i, name.c_str(), sid);
@@ -880,10 +887,10 @@ int MedRepository::read_index_tables(const vector<int> &pids_to_take, const vect
 	int nerr = 0;
 
 	index.index_table.resize(MAX_SID_NUMBER);
-	if (pids_to_take.size()==0 || pids_to_take[0]>=0) { // this allows for reading an empty repository by signing it with a negative value for the first pid
+	if (pids_to_take.size() == 0 || pids_to_take[0] >= 0) { // this allows for reading an empty repository by signing it with a negative value for the first pid
 		//#pragma omp parallel for num_threads(2)
 #pragma omp parallel for
-		for (int i=0; i<sig_ids.size(); i++) {
+		for (int i = 0; i < sig_ids.size(); i++) {
 			int sid = sig_ids[i];
 			int fno = sigs.Sid2Info[sid].fno;
 			MLOG_D("Reading: sid %d index %s data %s\n", sid, index_fnames[fno].c_str(), data_fnames[fno].c_str());
@@ -899,15 +906,15 @@ int MedRepository::read_index_tables(const vector<int> &pids_to_take, const vect
 
 	unsigned long long all_index_size = 0;
 	unsigned long long all_data_size = 0;
-	for (int i=0; i<sig_ids.size(); i++) {
+	for (int i = 0; i < sig_ids.size(); i++) {
 		int sid = sig_ids[i];
 		all_index_size += index.index_table[sid].get_size();
 		all_data_size += index.index_table[sid].w_size;
 	}
 
 	double idx_gb, data_gb, tot_gb;
-	idx_gb = (double)all_index_size/(double)(1<<30);
-	data_gb = (double)all_data_size/(double)(1<<30);
+	idx_gb = (double)all_index_size / (double)(1 << 30);
+	data_gb = (double)all_data_size / (double)(1 << 30);
 	tot_gb = idx_gb + data_gb;
 
 	MLOG("Read %d signals, %d pids :: data %6.3fGB :: idx %6.3fGB :: tot %6.3fGB\n", index.signals.size(), index.pids.size(), data_gb, idx_gb, tot_gb);
@@ -962,7 +969,7 @@ int MedRepository::load(const vector<string> &sig_names, vector<int> &pids_to_ta
 {
 	int rc = 0;
 	for (auto &sname : sig_names)
-		rc += load(sname,pids_to_take);
+		rc += load(sname, pids_to_take);
 	return rc;
 }
 
@@ -971,7 +978,7 @@ int MedRepository::load(const vector<int> &sids, vector<int> &pids_to_take)
 {
 	int rc = 0;
 	for (int sid : sids)
-		rc += load(sid,pids_to_take);
+		rc += load(sid, pids_to_take);
 	return rc;
 }
 
@@ -1160,7 +1167,7 @@ int IndexTable::insert(unsigned int pid, unsigned int delta, int len)
 {
 	if (sv.data.size() <= 1)
 		sv.set_min(pid);
-	last_len = len; 
+	last_len = len;
 	acc = delta;
 	return sv.insert(pid, delta);
 }
@@ -1174,8 +1181,8 @@ int IndexTable::get_len(const unsigned int pid)
 	if (ind == 0)
 		return 0;
 
-	if (ind < sv.data.size()-1)
-		return (int)(sv.data[ind+1] - sv.data[ind]);
+	if (ind < sv.data.size() - 1)
+		return (int)(sv.data[ind + 1] - sv.data[ind]);
 
 	return last_len;
 
@@ -1206,12 +1213,12 @@ int IndexTable::get(const unsigned int pid, unsigned long long &pos, int &len)
 	else if (factor == 20)
 		pos = (pos << 4) + (pos << 2);
 	else*/
-		pos *= factor;
+	pos *= factor;
 
 	pos += base;
 
-	if (ind < sv.data.size()-1)
-		len = sv.data[ind+1] - sv.data[ind];
+	if (ind < sv.data.size() - 1)
+		len = sv.data[ind + 1] - sv.data[ind];
 	else
 		len = last_len;
 
@@ -1258,13 +1265,13 @@ size_t IndexTable::serialize(unsigned char *blob)
 	unsigned char *curr = blob;
 	size_t len = 0;
 
-	((int *)curr)[0] = last_len; curr+= sizeof(int);		// last_len
-	((int *)curr)[0] = sid; curr+= sizeof(int);				// sid
-	((unsigned long long *)curr)[0] = base; curr+= sizeof(unsigned long long);				// base
-	((unsigned int *)curr)[0] = factor; curr+= sizeof(unsigned int);				// factor
+	((int *)curr)[0] = last_len; curr += sizeof(int);		// last_len
+	((int *)curr)[0] = sid; curr += sizeof(int);				// sid
+	((unsigned long long *)curr)[0] = base; curr += sizeof(unsigned long long);				// base
+	((unsigned int *)curr)[0] = factor; curr += sizeof(unsigned int);				// factor
 	len += curr - blob;
 	len += sv.serialize(curr);
-	
+
 	return len;
 }
 
@@ -1296,7 +1303,7 @@ int IndexTable::write_to_file(string &fname)
 	// serialize
 	size_t ser_size;
 	ser_size = serialize(data);
-	MLOG("Serializing index for file %s : size %lld (%lld): sid %d : base %lld : factor %d : acc %d : last_len %d\n", 
+	MLOG("Serializing index for file %s : size %lld (%lld): sid %d : base %lld : factor %d : acc %d : last_len %d\n",
 		fname.c_str(), ser_size, size, sid, base, factor, acc, last_len);
 
 	// write
@@ -1322,18 +1329,18 @@ int IndexTable::read_from_file(string &fname)
 
 	{
 		lock_guard<mutex> guard(index_table_locks[sid]);
-//		rc = read_bin_file_IM_parallel(fname, data, size);
-//		MLOG("IndexTable::read_from_file fname is %s\n", fname.c_str());
+		//		rc = read_bin_file_IM_parallel(fname, data, size);
+		//		MLOG("IndexTable::read_from_file fname is %s\n", fname.c_str());
 		rc = read_bin_file_IM(fname, data, size);
 		if (rc != 0 && file_exists_IM(fname))
 			MTHROW_AND_ERR("IndexTable::read_from_file could not read from [%s]\n", fname.c_str());
 	}
 	if (size > 0) {
-			deserialize(data);
-//		MLOG("IndexTable::read_from_file fname [%s] rc %d before delete[] data %d\n", fname.c_str(), rc, data);
+		deserialize(data);
+		//		MLOG("IndexTable::read_from_file fname [%s] rc %d before delete[] data %d\n", fname.c_str(), rc, data);
 		if (data != NULL)
 			delete[] data;
-//		MLOG("IndexTable::read_from_file fname [%s] rc %d after delete[] data %d\n", fname.c_str(), rc, data);
+		//		MLOG("IndexTable::read_from_file fname [%s] rc %d after delete[] data %d\n", fname.c_str(), rc, data);
 	}
 
 	//if (rc < 0 && !file_exists_IM(fname)) rc = 0;
@@ -1401,7 +1408,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 
 	int keep_lock = is_locked;
 	clear(); // making sure we free all previous loads
-	is_locked = keep_lock; 
+	is_locked = keep_lock;
 
 	if (pids_to_include.size() == 0) {
 
@@ -1428,7 +1435,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 			w_size = 0;
 			work_area = NULL;
 		}
-		
+
 		if (w_size > 0) work_area_allocated = 1;
 		is_loaded = 1;
 		full_load = 1;
@@ -1463,18 +1470,18 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 
 		if (inds.size() > 0) {
 			int ii = 0;
-			for (ii=0; ii<inds.size()-1; ii++) {
-				d_size += (lens[ii] = idx.sv.data[inds[ii]+1] - idx.sv.data[inds[ii]]);
+			for (ii = 0; ii < inds.size() - 1; ii++) {
+				d_size += (lens[ii] = idx.sv.data[inds[ii] + 1] - idx.sv.data[inds[ii]]);
 			}
-			if (inds[ii] < idx.sv.data.size()-1)
-				d_size += (lens[ii] = idx.sv.data[inds[ii]+1] - idx.sv.data[inds[ii]]);
+			if (inds[ii] < idx.sv.data.size() - 1)
+				d_size += (lens[ii] = idx.sv.data[inds[ii] + 1] - idx.sv.data[inds[ii]]);
 			else
 				d_size += (lens[ii] = idx.last_len);
 		}
 
 		d_size *= idx.factor;
 		//MLOG("sid = %d , d_size = %d\n", sid, d_size);
-		
+
 
 
 		// initializing our index_table 
@@ -1491,7 +1498,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		work_area = new unsigned char[d_size];
 		if (work_area == NULL)
 			MTHROW_AND_ERR("IndexTable::read_index_and_data could not allocate work_area\n")
-		w_size = d_size;
+			w_size = d_size;
 		work_area_allocated = 1;
 
 		// now reading with a buffer one by one , copying and updating index_table
@@ -1505,9 +1512,9 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		unsigned char *buf = work_area;
 		//MLOG("pid_to_read : %d pids factor %d sid %d\n", pids_to_include.size(),factor,sid);
 
-		for (int i=0; i<inds.size(); i++) {
-			unsigned long long pos = idx.base + (unsigned long long)idx.sv.data[inds[i]]*(unsigned long long)idx.factor;
-			int blen = lens[i]*factor;
+		for (int i = 0; i < inds.size(); i++) {
+			unsigned long long pos = idx.base + (unsigned long long)idx.sv.data[inds[i]] * (unsigned long long)idx.factor;
+			int blen = lens[i] * factor;
 			//MLOG("before pid %d sid %d pos %lld factor %d %d blen %d i %d idx.base %d\n", inds[i], sid, pos, factor, idx.factor, blen, i, idx.base);
 			mbf.read(buf, pos, blen);
 			//MLOG("after pid %d sid %d pos %lld factor %d %d blen %d i %d idx.base %d\n", inds[i], sid, pos, factor, idx.factor, blen, i, idx.base);
@@ -1521,7 +1528,7 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 		full_load = 0;
 	}
 	tot_size = get_size() + get_data_size();
-	tot_size_gb = (double)tot_size/(double)(1<<30);
+	tot_size_gb = (double)tot_size / (double)(1 << 30);
 
 	return 0;
 }
@@ -1544,396 +1551,57 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	return gend;
 }
 
-
-#pragma region Readcodes hirerachy
-
-bool is_code_chr(char ch) {
-	return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '.';
-}
-
-bool all_code_chars(const string &str) {
-	int i = 0;
-	while (i < str.size() && is_code_chr(str.at(i)))
-		++i;
-	return i >= str.size();
-}
-
-string filter_g_code(const vector<string> &vec) {
-	for (string s : vec)
-	{
-		if (s.size() == 7 && s.at(0) == 'G' && s.at(1) == '_') {
-			return s;
-		}
-		if (s.size() == 7 && all_code_chars(s)) {
-			//return "G_" + s.substr(0, 5);
-			return s;
-		}
-	}
-	return "";
-}
-
-vector<int> get_parents_rc(MedDictionarySections &dict, const string &group) {
-	int sectionId = 1;
-	vector<int> res(5);
-	static vector<string> constStrings = { "",".", "..", "...", "...." };
-
-	int ii = 0;
-	string lookupVal = group;
-	if (all_code_chars(group)) {
-		int code = dict.dicts[sectionId].id(group);
-		res.insert(res.begin(), code);
-		++ii;
-		lookupVal = "G_" + group.substr(0, 5);
-	}
-
-	for (size_t i = 0; i < 5; ++i)
-	{
-		if (lookupVal.at(lookupVal.size() - 1 - i) == '.') {
-			res.pop_back();
-			continue; //skip - will do next
-		}
-		string manip = lookupVal.substr(0, lookupVal.size() - i) + constStrings[i];
-		int code = dict.id(sectionId, manip);
-
-		res[ii] = code;
-		++ii;
-	}
-
-	return res;
-}
-vector<int> get_sons_rc(MedDictionarySections &dict, const string &group) {
-	int sectionId = 1;
-	vector<int> res;
-
-	size_t pos = group.find_first_of('.');
-	if (pos == string::npos) {
-		return res; // leaf - no sons
-	}
-
-	//iterate all letters - lower & upper case:
-	char startChar = 'a';
-	char startCharU = 'A';
-	for (size_t i = 0; i < 26; ++i) {
-		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
-		int code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-
-		manip = group.substr(0, pos) + startCharU + group.substr(pos + 1);
-		code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-		++startChar;
-		++startCharU;
-	}
-
-	//iterate over 0-9:
-	startChar = '0';
-	for (size_t i = 0; i < 10; ++i) {
-		string manip = group.substr(0, pos) + startChar + group.substr(pos + 1);
-		int code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-
-		++startChar;
-	}
-
-	return res;
-}
-
-
-#pragma endregion
-
-#pragma region ATC hirerachy
-
-bool is_numeric(const string &str) {
-	int i = 2;
-	while (i < str.size() && (str[i] >= '0' && str[i] <= '9')) {
-		++i;
-	}
-	return i >= str.size();
-}
-
-string filter_atc_code(const vector<string> &vec) {
-	for (string s : vec)
-	{
-		if (s.size() >= 12 && s.at(0) == 'A' && s.at(1) == 'T' && s.at(2) == 'C' && s.at(3) == '_') {
-			if (s.size() == 12)
-				return s;
-			else
-				return s.substr(0, 12);
-		}
-		if (s.size() == 10 && s.at(0) == 'd' && s.at(1) == 'c' && is_numeric(s)) {
-			return s;
-		}
-	}
-	return "";
-}
-
-vector<int> get_parents_atc(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	int maxH = 5;
-	vector<int> res(maxH);
-	static vector<string> constStrings = { "", "__", "___", /* skip _ in last*/ "_____", "_______" };
-	static vector<int> indexLookup = { 1, 3, 5, 7 };
-
-	string lookupCode = group;
-	int ii = 0;
-	//If dc - find it's ATC (ATc si size 12, dc is 10)
-	if (group.size() == 10) {
-		int code = dict.id(sectionId, group);
-		res.insert(res.begin(), code);
-		++ii;
-		++maxH;
-
-		//search all options for ATC:
-		vector<int> sets;
-		dict.get_member_sets(sectionId, code, sets);
-		bool found_atc = false;
-		for (int set_i : sets)
-		{
-			if (dict.dicts[sectionId].Id2Names.find(set_i) == dict.dicts[sectionId].Id2Names.end()) {
-				continue;
-			}
-			vector<string> set_names = dict.dicts[sectionId].Id2Names.at(set_i);
-			for (string set_name : set_names) {
-				if (set_name.size() == 12 && set_name.at(0) == 'A' && set_name.at(1) == 'T' && set_name.at(2) == 'C' && set_name.at(3) == '_') {
-					found_atc = true;
-					lookupCode = set_name;
-					break;
-				}
-			}
-			if (found_atc)
-			{
-				break;
-			}
-		}
-	}
-
-	for (size_t i = 0; i < indexLookup.size(); ++i)
-	{
-		if (lookupCode.at(lookupCode.size() - indexLookup[i]) == '_') {
-			res.pop_back();
-			continue; //skip - will do next anyway
-		}
-		string manip = lookupCode.substr(0, lookupCode.size() - constStrings[i].size()) + constStrings[i];
-		int code = dict.id(sectionId, manip);
-
-		res[ii] = code;
-		++ii;
-	}
-	string manip = lookupCode.substr(0, lookupCode.size() - constStrings[constStrings.size() - 1].size()) + constStrings[constStrings.size() - 1];
-	int code = dict.id(sectionId, manip);
-
-	res[ii] = code;
-
-	return res;
-}
-
-vector<int> get_sons_atc(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	static vector<bool> iterTypeNum = { true, false, false, true };
-	static vector<int> indexLookup = { 1, 3, 5, 6 };
-	vector<int> res;
-	string conv = group;
-	if (conv.size() >= 12 && conv.at(0) == 'A' && conv.at(1) == 'T' && conv.at(2) == 'C' && conv.at(3) == '_')
-		conv = group.substr(4, 12);
-
-	size_t pos = conv.find_first_of('_');
-	if (pos == 4)
-		pos = conv.find_first_of('_', 5);
-	if (pos == string::npos)
-		return res; // leaf - no sons
-
-	int ind = 0;
-	while (ind < indexLookup.size() && indexLookup[ind] != pos)
-		++ind;
-	if (ind >= indexLookup.size()) {
-		cerr << "Bug in code " << group << endl;
-		throw logic_error("Bug in code");
-	}
-
-	if (iterTypeNum[ind]) {
-		//iterate over 00-99:
-		for (size_t i = 0; i < 100; ++i) {
-			string nm = to_string(i);
-			if (i < 10) {
-				nm = "0" + nm;
-			}
-			string manip = "ATC_" + conv.substr(0, pos) + nm + conv.substr(pos + 2);
-			int code = dict.id(sectionId, manip);
-			if (code > 0)
-				res.push_back(code);
-		}
-	}
-	else {
-		char startChar = 'A';
-		for (size_t i = 0; i < 26; ++i) {
-			string manip = "ATC_" + conv.substr(0, pos) + startChar + conv.substr(pos + 1);
-			int code = dict.id(sectionId, manip);
-			if (code > 0)
-				res.push_back(code);
-			++startChar;
-		}
-	}
-
-	return res;
-}
-
-
-#pragma endregion
-
-#pragma region BNF hirerachy
-
-string filter_bnf_code(const vector<string> &vec) {
-	for (string s : vec)
-	{
-		if (s.size() == 15 && s.at(0) == 'B' && s.at(1) == 'N' && s.at(2) == 'F' && s.at(4) == '_') {
-			return s;
-		}
-		if (s.size() == 10 && s.at(0) == 'd' && s.at(1) == 'c' && is_numeric(s)) {
-			return s;
-		}
-	}
-	return "";
-}
-
-vector<int> get_parents_bnf(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	int maxH = 4;
-	vector<int> res(maxH);
-	static vector<int> indexLookup = { 1, 4, 7 };
-	static vector<string> constStrings = { "", "00", "00.00", "00.00.00" };
-
-	string lookupCode = group;
-	int ii = 0;
-	//If dc - find it's BNF (BNF size 15, dc is 10)
-	if (group.size() == 10) {
-		int code = dict.id(sectionId, group);
-		res.insert(res.begin(), code);
-		++ii;
-		++maxH;
-
-		//search all options for BNF:
-		vector<int> sets;
-		dict.get_member_sets(sectionId, code, sets);
-		bool found_bnf = false;
-		for (int set_i : sets)
-		{
-			if (dict.dicts[sectionId].Id2Names.find(set_i) == dict.dicts[sectionId].Id2Names.end()) {
-				continue;
-			}
-			vector<string> set_names = dict.dicts[sectionId].Id2Names.at(set_i);
-			for (string set_name : set_names) {
-				if (set_name.size() == 15 && set_name.at(0) == 'B' && set_name.at(1) == 'N' && set_name.at(2) == 'F' && set_name.at(3) == '_') {
-					found_bnf = true;
-					lookupCode = set_name;
-					break;
-				}
-			}
-			if (found_bnf)
-			{
-				break;
-			}
-		}
-	}
-
-	for (size_t i = 0; i < indexLookup.size(); ++i)
-	{
-		if (lookupCode.at(lookupCode.size() - indexLookup[i]) == '0' && lookupCode.at(lookupCode.size() - indexLookup[i] - 1) == '0') {
-			res.pop_back();
-			continue; //skip - will do next
-		}
-		string manip = lookupCode.substr(0, lookupCode.size() - constStrings[i].size()) + constStrings[i];
-		int code = dict.id(sectionId, manip);
-
-		res[ii] = code;
-		++ii;
-	}
-
-	string manip = lookupCode.substr(0, lookupCode.size() - constStrings[constStrings.size() - 1].size()) + constStrings[constStrings.size() - 1];
-	int code = dict.id(sectionId, manip);
-	res[ii] = code;
-
-	return res;
-}
-
-vector<int> get_sons_bnf(MedDictionarySections &dict, const string &group) {
-	int sectionId = dict.section_id("Drug");
-	vector<int> res;
-
-
-	size_t pos = group.find(".00");
-	if (pos == string::npos) {
-		return res; // leaf - no sons
-	}
-
-	//iterate over 00-99:
-	for (size_t i = 0; i < 100; ++i) {
-		string nm = to_string(i);
-		if (i < 10) {
-			nm = "0" + nm;
-		}
-		string manip = group.substr(0, pos) + "." + nm + group.substr(pos + 3);
-		int code = dict.id(sectionId, manip);
-		if (code > 0) {
-			res.push_back(code);
-		}
-	}
-
-	return res;
-}
-
-#pragma endregion
-
 string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
-	if (signalHirerchyType == "RC")
-		return filter_g_code(vec);
-	else if (signalHirerchyType == "ATC")
-		return filter_atc_code(vec);
-	else if (signalHirerchyType == "BNF")
-		return filter_bnf_code(vec);
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
-			signalHirerchyType.c_str());
+	if (vec.empty())
+		return "";
+	return vec.front(); //always first is the coded
 }
-vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
-	if (signalHirerchyType == "RC")
-		return get_parents_rc(dict, group);
-	else if (signalHirerchyType == "ATC")
-		return get_parents_atc(dict, group);
-	else if (signalHirerchyType == "BNF")
-		return get_parents_bnf(dict, group);
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict,
+	const string &group, const string &signalHirerchyType, int depth) {
+	int sectionId = 0;
+	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
 			signalHirerchyType.c_str());
+	sectionId = dict.SectionName2Id.at(signalHirerchyType);
+
+	vector<int> parents;
+	vector<int> last_parents = { dict.id(sectionId, group) };
+	if (last_parents.front() < 0)
+		return parents; //no parents
+
+	for (size_t k = 0; k < depth; ++k) {
+		vector<int> tmp_par, new_layer;
+		for (int par : last_parents)
+		{
+			dict.get_member_sets(sectionId, par, tmp_par);
+			new_layer.insert(new_layer.end(), tmp_par.begin(), tmp_par.end());
+			parents.insert(parents.end(), tmp_par.begin(), tmp_par.end()); //aggregate all parents
+		}
+		new_layer.swap(last_parents);
+		if (last_parents.empty())
+			break; //no more parents to loop up
+	}
+
+	return parents;
 }
 vector<int> medial::signal_hierarchy::sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType) {
-	if (signalHirerchyType == "RC")
-		return get_sons_rc(dict, group);
-	else if (signalHirerchyType == "ATC")
-		return get_sons_atc(dict, group);
-	else if (signalHirerchyType == "BNF")
-		return get_sons_bnf(dict, group);
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+	int sectionId = 0;
+	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
 			signalHirerchyType.c_str());
+	sectionId = dict.SectionName2Id.at(signalHirerchyType);
+	vector<int> sons;
+	dict.get_set_members(sectionId, group, sons);
+	return sons;
 }
 
 string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType) {
 	int sectionId = 0;
-	if (signalHirerchyType == "RC")
-		sectionId = 1;
-	else if (signalHirerchyType == "ATC")
-		sectionId = 2;
-	else if (signalHirerchyType == "BNF")
-		sectionId = 2;
-	else
-		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. options are: ATC,BNF,RC,None\n",
+	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
+		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
 			signalHirerchyType.c_str());
+	sectionId = dict.SectionName2Id.at(signalHirerchyType);
+
 	string res = "";
 	vector<int> sets;
 	dict.get_member_sets(sectionId, id, sets);
@@ -1954,12 +1622,10 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
-			cerr << "not supported" << endl;
-			throw logic_error("not supported");
+			MTHROW_AND_ERR("not supported");
 		}
-		if (!name.empty()) {
+		if (!name.empty())
 			res = name;
-		}
 	}
 
 	return res;

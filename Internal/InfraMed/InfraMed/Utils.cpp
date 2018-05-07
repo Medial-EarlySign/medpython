@@ -128,7 +128,7 @@ int read_bin_file_IM(string &fname, unsigned char* &data, unsigned long long &si
 	size = inf.tellg();
 	data = new unsigned char[size];
 	if (data == NULL)
-		MTHROW_AND_ERR("read_bin_file_IM could not allocate %d bytes\n", size);
+		MTHROW_AND_ERR("read_bin_file_IM could not allocate %zd bytes\n", size);
 	//MLOG("allocated data %d with size = %d\n", data, size);
 //	inf.seekg(0, ios::beg);
 //	inf.read((char *)data, size);

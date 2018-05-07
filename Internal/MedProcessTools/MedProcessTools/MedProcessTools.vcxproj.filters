@@ -84,6 +84,12 @@
     <ClCompile Include="RepCalculators.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Calibration.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PanelCompleter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -141,6 +147,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MedModelExceptions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Calibration.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

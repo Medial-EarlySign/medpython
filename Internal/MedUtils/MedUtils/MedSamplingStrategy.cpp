@@ -65,7 +65,7 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 		if (year_diff_to_first_pred < 0 || rec.end_date <= rec.start_date || rec.end_date <= rec.min_allowed_date) {
 			++skip_end_smaller_start;
 			if (skip_end_smaller_start < 5) {
-				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d], pred_dates=[%d => %d], outcome=%f, age=%2.1f\n",
+				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d], pred_dates=[%d => %d], outcome=%f, age=%d\n",
 					rec.pid, rec.start_date, rec.end_date, rec.min_allowed_date, rec.max_allowed_date,
 					rec.registry_value, rec.age);
 			}
@@ -235,13 +235,14 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 						(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
 							pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
 						++curr_index;
-				if (curr_index >= all_pid_records->size())
-					break; //skip if no match
-				if (use_allowed && !in_time_window(pred_date, (*all_pid_records)[curr_index],
-					allowed_time_from, allowed_time_to)) {
+				if (use_allowed && curr_index < all_pid_records->size() &&
+					!in_time_window(pred_date, (*all_pid_records)[curr_index],
+						allowed_time_from, allowed_time_to)) {
 					++curr_index;
 					continue;
 				}
+				if (curr_index >= all_pid_records->size())
+					break; //skip if no match
 				//found match:
 				if (reg_time == -1) { //first match
 					reg_val = (*all_pid_records)[curr_index]->registry_value;
@@ -311,6 +312,8 @@ int MedSamplingAge::init(map<string, string>& map) {
 			age_bin = stoi(it->second);
 		else if (it->first == "conflict_method")
 			conflict_method = it->second;
+		else if (it->first == "use_allowed")
+			use_allowed = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -348,43 +351,59 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			MedSample smp;
 			smp.id = it->first;
 			smp.time = medial::repository::DateAdd(pred_start_date, age_bin * 365 / 2); //choose middle
-			int curr_index = 0;
+			int curr_index = 0, final_selected = -1;
 			float reg_val = -1;
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
-				while (curr_index < all_pid_records->size() &&
-					(pred_end_date < (*all_pid_records)[curr_index]->start_date ||
-						pred_start_date >(*all_pid_records)[curr_index]->end_date))
+				if (!use_allowed)
+					while (curr_index < all_pid_records->size() &&
+						(pred_end_date < (*all_pid_records)[curr_index]->start_date ||
+							pred_start_date >(*all_pid_records)[curr_index]->end_date))
+						++curr_index;
+				else
+					while (curr_index < all_pid_records->size() &&
+						(pred_end_date < (*all_pid_records)[curr_index]->min_allowed_date ||
+							pred_start_date >(*all_pid_records)[curr_index]->max_allowed_date))
+						++curr_index;
+				if (use_allowed && curr_index < all_pid_records->size() &&
+					!in_time_window(pred_start_date, (*all_pid_records)[curr_index],
+						0, 365 * age_bin)) {
 					++curr_index;
+					continue;
+				}
 				if (curr_index >= all_pid_records->size())
 					break; //skip if no match
-						   //found match:
+				//found match:
 				if (reg_time == -1) { //first match
 					reg_val = (*all_pid_records)[curr_index]->registry_value;
 					reg_time = (*all_pid_records)[curr_index]->end_date;
+					final_selected = curr_index;
 				}
 				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
 					//if already found and conflicting:
 					if (conflict_method == "drop") {
 						reg_val = -1;
 						reg_time = -1;
+						final_selected = -1;
 						break;
 					}
 					else if (conflict_method == "max") {
 						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
 							reg_val = (*all_pid_records)[curr_index]->registry_value;
 							reg_time = (*all_pid_records)[curr_index]->end_date;
+							final_selected = curr_index;
 						}
 					}
 					else {
 						//insert current and update next:
-						smp.outcomeTime = reg_time;
+						smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
 						smp.outcome = reg_val;
 						idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
 						++done_count;
 						reg_val = (*all_pid_records)[curr_index]->registry_value;
 						reg_time = (*all_pid_records)[curr_index]->end_date;
+						final_selected = curr_index;
 					}
 					++conflict_count;
 					break;
@@ -394,7 +413,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			}
 
 			if (reg_time != -1) {
-				smp.outcomeTime = reg_time;
+				smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[final_selected]->start_date : reg_time;
 				smp.outcome = reg_val;
 				idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
 				++done_count;
@@ -445,6 +464,8 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 	for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
 	{
 		const vector<pair<int, int>> &all_sample_options = samples_list_pid_dates[i];
+		if (all_sample_options.empty())
+			continue;
 		uniform_int_distribution<> current_rand(0, (int)all_sample_options.size() - 1);
 		for (size_t k = 0; k < take_count; ++k)
 		{
@@ -474,14 +495,14 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 						(choosed_time < all_pid_records[curr_index]->min_allowed_date ||
 							choosed_time >all_pid_records[curr_index]->max_allowed_date))
 						++curr_index;
-				if (curr_index >= all_pid_records.size())
-					break; //skip if no match
-						   //found match:
-				if (use_allowed && !in_time_window(choosed_time, all_pid_records[curr_index],
+				if (use_allowed && curr_index < all_pid_records.size() && !in_time_window(choosed_time, all_pid_records[curr_index],
 					allowed_time_from, allowed_time_to)) {
 					++curr_index;
 					continue;
 				}
+				if (curr_index >= all_pid_records.size())
+					break; //skip if no match
+						   //found match:
 				if (reg_time == -1) { //first match
 					reg_val = all_pid_records[curr_index]->registry_value;
 					if (reg_val <= 0)
@@ -533,7 +554,8 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 	}
 
 	for (auto it = map_pid_samples.begin(); it != map_pid_samples.end(); ++it)
-		samples.idSamples.push_back(it->second);
+		if (!it->second.samples.empty())
+			samples.idSamples.push_back(it->second);
 	samples.sort_by_id_date();
 }
 

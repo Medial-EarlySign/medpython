@@ -221,7 +221,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			// Apply processing at last time point only
 //			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
-			vector<int> time_points(1, 39991231);   
+			vector<int> time_points;   
 			
 			rec.init_from_rep(std::addressof(rep), id, all_req_signal_ids_v, 1);
 
@@ -229,8 +229,9 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			prepare_for_age(rec, ageUsv, age, byear);
 			  
 			// Apply Processors
+			vector<vector<float>> dummy_attributes_mat;
 			for (unsigned int i = 0; i < processors.size(); i++) 
-				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i]);
+				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
 
 			// Collect values and ages
 			rec.uget(signalId, 0, usv); 

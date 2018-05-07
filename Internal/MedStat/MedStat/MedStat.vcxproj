@@ -88,6 +88,7 @@
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>$(BOOST_HOME);$(MR_LIBS_INC)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -118,6 +118,8 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 						action_type.c_str(), process_set, num_members);
 				vector<string> all_combinations;
 				concatAllCombinations(all_action_attrs, 0, "", all_combinations);
+				if (all_combinations.empty())
+					MTHROW_AND_ERR("set %d expanded to 0 combinations! did you put an empty list inside a []?!\n");
 				if (duplicate == 1 && all_combinations.size() != 1)
 					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] set %d has one member which expanded to %d actions\n",
 						action_type.c_str(), process_set, (int)all_combinations.size());
@@ -150,9 +152,11 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				MTHROW_AND_ERR("duplicate action requested and not inside a set!");
 			vector<string> all_combinations;
 			concatAllCombinations(all_action_attrs, 0, "", all_combinations);
+			if (all_combinations.empty())
+				MTHROW_AND_ERR("set %d expanded to 0 combinations! did you put an empty list inside a []?!\n");
 			if (all_combinations.size() > 1 && (action_type == "rep_processor" || action_type == "feat_processor"))
 				MTHROW_AND_ERR("action_type [%s] expanded to %d combinations, which is possible only inside a set! first instance is [%s]\n",
-					action_type.c_str(), (int)all_combinations.size(), all_combinations[0].c_str());
+					action_type.c_str(), (int)all_combinations.size(), all_combinations[0].c_str());			
 			for (string c : all_combinations)
 				add_process_to_set(process_set, duplicate, c);
 			MLOG("added %d actions to [%s] set %d, first of which was [%s]\n", all_combinations.size(), set_name.c_str(), process_set, all_combinations[0].c_str());

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="keep_code.cpp" />
     <ClCompile Include="TQRF_Tester.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -114,6 +115,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(MR_LIBS_INC);$(BOOST_HOME)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

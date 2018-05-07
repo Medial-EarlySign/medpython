@@ -586,7 +586,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	return all_cohorts_measurments;
 }
 
-void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
+void write_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments, const string& run_id) {
 	string delimeter = "\t";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
@@ -603,6 +603,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 	fw << "Cohort_Description";
 	for (size_t i = 0; i < all_columns.size(); ++i)
 		fw << delimeter << all_columns[i];
+	if (!run_id.empty())
+		fw << delimeter << "run_id";
 	fw << endl;
 
 	for (auto it = all_cohorts_measurments.begin(); it != all_cohorts_measurments.end(); ++it)
@@ -613,6 +615,8 @@ void write_bootstrap_results(const string &file_name, const map<string, map<stri
 		for (size_t i = 0; i < all_columns.size(); ++i)
 			fw << delimeter <<
 			(cohort_values.find(all_columns[i]) != cohort_values.end() ? cohort_values.at(all_columns[i]) : MED_MAT_MISSING_VALUE);
+		if (!run_id.empty())
+			fw << delimeter << run_id;
 		fw << endl;
 	}
 
@@ -650,29 +654,34 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 	of.close();
 }
 
-void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments) {
+void write_pivot_bootstrap_results(const string &file_name, const map<string, map<string, float>> &all_cohorts_measurments, const string& run_id) {
 	string delimeter = "\t";
 	if (all_cohorts_measurments.empty())
 		throw invalid_argument("all_cohorts_measurments can't be empty");
 	map<string, float> flat_map;
-	for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt)
+	for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt) {
+		char buff[1000];
 		for (auto it = jt->second.begin(); it != jt->second.end(); ++it) {
-			char buff[1000];
-			snprintf(buff, sizeof(buff), "%s$%s", jt->first.c_str(), it->first.c_str());
+			snprintf(buff, sizeof(buff), "%s%s%s", jt->first.c_str(), delimeter.c_str(), it->first.c_str());
 			flat_map[string(buff)] = it->second;
 		}
+	}
 
 	ofstream fw(file_name);
 	if (!fw.good())
 		MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_name.c_str());
 
-	fw << "Cohort$Measurement" << delimeter << "Value" << endl;
+	fw << "Cohort" << delimeter << "Measurement" << delimeter << "Value" << endl;
 	for (auto it = flat_map.begin(); it != flat_map.end(); ++it)
 	{
 		string cohort_measure_name = it->first;
 		float value = it->second;
 		fw << cohort_measure_name << delimeter << value << "\n";
 	}
+	if (!run_id.empty())
+		for (auto jt = all_cohorts_measurments.begin(); jt != all_cohorts_measurments.end(); ++jt)
+			fw << jt->first << delimeter << "run_id" << delimeter << run_id << "\n";
+
 	fw.flush();
 	fw.close();
 }
@@ -693,16 +702,13 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 			continue;
 		vector<string> tokens;
 		boost::split(tokens, line, boost::is_any_of(delimeter));
-		if (tokens.size() != 2)
+		if (tokens.size() != 3)
 			MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
-		float value = stof(tokens[1]);
-		string cohort_and_measure = tokens[0];
-		tokens.clear();
-		boost::split(tokens, cohort_and_measure, boost::is_any_of("$"));
-		if (tokens.size() != 2)
-			MTHROW_AND_ERR("coudn't parse cohort_name and measure with $. got \"%s\"\n", cohort_and_measure.c_str());
-		string cohort_name = tokens[0];
-		string measure_name = tokens[1];
+		string &cohort_name = tokens[0];
+		string &measure_name = tokens[1];
+		if (measure_name == "run_id")
+			continue;
+		float value = stof(tokens[2]);
 		all_cohorts_measurments[cohort_name][measure_name] = value;
 	}
 
@@ -889,6 +895,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -1024,6 +1031,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
 						sens_points[curr_wp_sens_ind], true_rate[i - 1], true_rate[i],
@@ -1170,6 +1178,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
 						pr_points[curr_wp_pr_ind], pr_prev, pr_c,
@@ -1417,7 +1426,7 @@ bool time_range_filter(float outcome, int min_time, int max_time, int time, int 
 }
 bool time_range_filter(float outcome, float min_time, float max_time, float diff_days) {
 	return ((outcome > 0 && diff_days >= min_time && diff_days <= max_time) ||
-		(outcome <= 0 && diff_days > max_time));
+		(outcome <= 0 && diff_days >= max_time));
 }
 
 bool filter_range_param(const map<string, vector<float>> &record_info, int index, void *cohort_params) {
@@ -1638,32 +1647,37 @@ void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additiona
 #pragma endregion
 
 #pragma region Process Scores Functions
+void _simple_find(const vector<pair<int, int>> &vec, int &found_pos, int search_pos) {
+	found_pos = -1;
+	for (int j = (int)vec.size() - 1; j >= 0 && found_pos == -1; --j)
+		if (vec[j].second >= search_pos && vec[j].first <= search_pos)
+			found_pos = j;
+}
+
 void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
 	const pair<int, int> *index_to_merge) {
 	pair<int, int> *merge_into = NULL;
 	int to_merge_size = ind_to_size[index_to_merge->first - 1];
 	int erase_index = -1;
 	//remove index_to_merge.first - 1:
-	for (int j = (int)size_to_ind[to_merge_size].size() - 1; j >= 0; --j)
-		if (size_to_ind[to_merge_size][j].second >= index_to_merge->first - 1 &&
-			size_to_ind[to_merge_size][j].first <= index_to_merge->first - 1) {
-			merge_into = &size_to_ind[to_merge_size][j];
-			erase_index = j;
-			//size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
-			break;
-		}
-	if (merge_into == NULL)
-		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
+	_simple_find(size_to_ind[to_merge_size], erase_index, index_to_merge->first - 1);
+	if (erase_index == -1)
+		MTHROW_AND_ERR("down: Bug couldn't found merge_into\n");
+	merge_into = &size_to_ind[to_merge_size][erase_index];
 
 	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
 	//update in min,max:
 	ind_to_size[merge_into->first] = new_size;
 	ind_to_size[index_to_merge->second] = new_size;
+	ind_to_size[merge_into->second] = new_size;
+	ind_to_size[index_to_merge->first] = new_size;
 	//erase old one
 	int first_pos = merge_into->first;
 	int second_pos = index_to_merge->second;
+	//already popd merged_into element
 	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
+
 	//insert new union
 	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
@@ -1674,26 +1688,24 @@ void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_
 	int to_merge_size = ind_to_size[index_to_merge->second + 1];
 	int erase_index = -1;
 	//remove index_to_merge.second + 1:
-	for (int j = (int)size_to_ind[to_merge_size].size() - 1; j >= 0; --j)
-		if (size_to_ind[to_merge_size][j].second >= index_to_merge->second + 1 &&
-			size_to_ind[to_merge_size][j].first <= index_to_merge->second + 1) {
-			merge_into = &size_to_ind[to_merge_size][j];
-			//size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + j);
-			erase_index = j;
-			break;
-		}
-	if (merge_into == NULL)
-		MTHROW_AND_ERR("Bug couldn't found merge_into\n");
+	_simple_find(size_to_ind[to_merge_size], erase_index, index_to_merge->second + 1);
+	if (erase_index == -1)
+		MTHROW_AND_ERR("up: Bug couldn't found merge_into\n");
+	merge_into = &size_to_ind[to_merge_size][erase_index];
 
 	int new_size = *sizes.begin() + to_merge_size;
 	sizes.insert(new_size);
 	//update in min,max:
 	ind_to_size[index_to_merge->first] = new_size;
 	ind_to_size[merge_into->second] = new_size;
+	ind_to_size[index_to_merge->second] = new_size;
+	ind_to_size[merge_into->first] = new_size;
 	//erase old one:
 	int first_pos = index_to_merge->first;
 	int second_pos = merge_into->second;
+	//already popd merged_into element
 	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
+
 	//insert new union set:
 	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
@@ -1718,11 +1730,13 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 	for (size_t i = 0; i < preds.size(); ++i)
 		thresholds_indexes[preds[i]].push_back((int)i);
 	unique_scores.resize((int)thresholds_indexes.size());
-	int ind_p = 0;
+	int ind_p = 0, min_size = -1;
 	for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
 	{
 		unique_scores[ind_p] = it->first;
 		++ind_p;
+		if (min_size == -1 || min_size > it->second.size())
+			min_size = (int)it->second.size();
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
@@ -1737,21 +1751,23 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 				" is highly quantitize(%d). Will use score working points\n",
 				bin_size_last);
 
-	if (params.score_bins > 0 && bin_size_last > params.score_bins) {
+	if ((params.score_bins > 0 && bin_size_last > params.score_bins) ||
+		(params.score_min_samples > 0 && min_size < params.score_min_samples)) {
 		int c = 0;
 		vector<vector<pair<int, int>>> size_to_ind(preds.size()); //size, group, index_min_max
 		vector<int> ind_to_size(bin_size_last);
 		set<int> sizes;
-		for (auto it = thresholds_indexes.begin(); it != thresholds_indexes.end(); ++it)
+		for (auto it = unique_scores.begin(); it != unique_scores.end(); ++it)
 		{
-			size_to_ind[(int)it->second.size()].push_back(pair<int, int>(c, c));
-			ind_to_size[c] = (int)it->second.size();
+			size_to_ind[(int)thresholds_indexes[*it].size()].push_back(pair<int, int>(c, c));
+			ind_to_size[c] = (int)thresholds_indexes[*it].size();
 			++c;
-			sizes.insert((int)it->second.size());
+			sizes.insert((int)thresholds_indexes[*it].size());
 		}
 
-		while (bin_size_last > params.score_bins) {
-			int min_size = *sizes.begin();
+		while ((params.score_bins > 0 && bin_size_last > params.score_bins)
+			|| (params.score_min_samples > 0 && *sizes.begin() < params.score_min_samples)) {
+			min_size = *sizes.begin();
 			if (size_to_ind[min_size].empty())
 				MTHROW_AND_ERR("Bug couldn't found min_size=%d\n", min_size);
 
@@ -1809,7 +1825,7 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 		}
 	}
 
-	MLOG_D("Preprocess_bin_scores Done!\n");
+	MLOG_D("Preprocess_bin_scores Done - left with %d bins!\n", bin_size_last);
 }
 #pragma endregion
 
@@ -1930,6 +1946,7 @@ ROC_Params::ROC_Params(const string &init_string) {
 	score_bins = 0;
 	score_resolution = 0;
 	incidence_fix = 0;
+	score_min_samples = 0;
 	fix_label_to_binary = true;
 
 	//override default with given string:
@@ -1951,6 +1968,8 @@ ROC_Params::ROC_Params(const string &init_string) {
 			fix_label_to_binary = stoi(param_value) > 0;
 		else if (param_name == "score_bins")
 			score_bins = stoi(param_value);
+		else if (param_name == "score_min_samples")
+			score_min_samples = stoi(param_value);
 		else if (param_name == "score_resolution")
 			score_resolution = stof(param_value);
 		else if (param_name == "inc_stats_text")

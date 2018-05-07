@@ -118,6 +118,7 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 	const string &signalHirerchyType,
 	vector<MedRegistryRecord> &res) {
 	UniversalSigVec &signalVal = signals[0];
+	int max_search_depth = 3;
 
 	for (int i = 0; i < signalVal.len; ++i)
 	{
@@ -138,8 +139,8 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 		if (s.empty())
 			continue;
 
-		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType);
-		for (size_t k = 1; k < nums.size() && k <= 3; ++k) //take till 3
+		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType, max_search_depth);
+		for (size_t k = 0; k < nums.size(); ++k)
 		{
 			if (nums[k] <= 0)
 				continue;
@@ -444,6 +445,263 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 }
 
+void MedRegistry::get_pids(vector<int> &pids) {
+	pids.clear();
+	unordered_set<int> seen_pid;
+	for (size_t i = 0; i < registry_records.size(); ++i)
+		seen_pid.insert(registry_records[i].pid);
+	pids.insert(pids.end(), seen_pid.begin(), seen_pid.end());
+}
+
+void MedRegistry::create_incidence_file(const string &file_path, const string &rep_path,
+	int age_bin, int min_age, int max_age, int time_period, bool use_kaplan_meir,
+	const string &sampler_name, const string &sampler_args) {
+	MedSamplingStrategy *sampler = MedSamplingStrategy::make_sampler(sampler_name, sampler_args);
+	MedSamples incidence_samples;
+	MLOG("Sampling for incidence stats...\n");
+	sampler->do_sample(registry_records, incidence_samples);
+	MLOG("Done...\n");
+	delete sampler;
+	MedRepository rep;
+	vector<int> pids;
+	get_pids(pids);
+	vector<string> signal_to_read = { "BYEAR", "GENDER" };
+	if (rep.read_all(rep_path, pids, signal_to_read) < 0)
+		MTHROW_AND_ERR("FAILED reading repository %s\n", rep_path.c_str());
+	min_age = int(min_age / age_bin) * age_bin;
+
+	vector<int> all_cnts = { 0,0 };
+	int bin_counts = (max_age - min_age) / age_bin + 1;
+	vector<pair<int, int>> counts(bin_counts), male_counts(bin_counts), female_counts(bin_counts);
+	vector<vector<int>> sorted_times(bin_counts);
+	vector<vector<vector<pair<int, int>>>> times_indexes(bin_counts);
+	vector<vector<bool>> all_times;
+	if (use_kaplan_meir) {
+		all_times.resize(bin_counts);
+		times_indexes.resize(bin_counts);
+		sorted_times.resize(bin_counts);
+		for (size_t i = 0; i < bin_counts; ++i)
+		{
+			sorted_times[i].reserve(time_period + 1);
+			all_times[i].resize(time_period + 1, false);
+		}
+	}
+	for (int i = min_age; i < max_age; i += age_bin)
+		counts[(i - min_age) / age_bin] = pair<int, int>(0, 0);
+	int byear_sid = rep.sigs.sid("BYEAR");
+	int gender_sid = rep.sigs.sid("GENDER");
+	int len;
+	for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
+		for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
+			int pid = incidence_samples.idSamples[i].samples[j].id;
+			int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
+			int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
+			int gender = (int)((((SVal *)rep.get(pid, gender_sid, len))[0]).val);
+			//int bin = age_bin*(age / age_bin);
+			int age_index = (age - min_age) / age_bin;
+			if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
+				continue;
+
+			++counts[age_index].first;
+			if (gender == GENDER_MALE)
+				++male_counts[age_index].first;
+			else if (gender == GENDER_FEMALE)
+				++female_counts[age_index].first;
+			all_cnts[0]++;
+			if (incidence_samples.idSamples[i].samples[j].outcome > 0) {
+				++counts[age_index].second;
+				all_cnts[1]++;
+				if (gender == GENDER_MALE)
+					++male_counts[age_index].second;
+				else if (gender == GENDER_FEMALE)
+					++female_counts[age_index].second;
+				/*if (age_index*age_bin + min_age == 95)
+					MLOG("DEBUG:: pid=%d, time=%d, outcomeTime=%d\n", pid,
+						incidence_samples.idSamples[i].samples[j].time,
+						incidence_samples.idSamples[i].samples[j].outcomeTime);*/
+			}
+			if (use_kaplan_meir) {
+				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
+					incidence_samples.idSamples[i].samples[j].outcomeTime));
+				if (time_diff > time_period)
+					time_diff = time_period;
+				if (!all_times[age_index][time_diff]) {
+					sorted_times[age_index].push_back(time_diff);
+					all_times[age_index][time_diff] = true;
+				}
+			}
+		}
+	if (use_kaplan_meir) {
+		for (int c = 0; c < sorted_times.size(); ++c)
+		{
+			sort(sorted_times[c].begin(), sorted_times[c].end());
+			times_indexes[c].resize(sorted_times[c].size());
+		}
+		//prepare times_indexes:
+		for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
+			for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
+				int pid = incidence_samples.idSamples[i].samples[j].id;
+				int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
+				int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
+				int age_index = (age - min_age) / age_bin;
+				if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
+					continue;
+
+				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
+					incidence_samples.idSamples[i].samples[j].outcomeTime));
+				int original_time = time_diff;
+				if (time_diff > time_period)
+					time_diff = time_period;
+				int ind = medial::process::binary_search_index(sorted_times[age_index].data(),
+					sorted_times[age_index].data() + sorted_times[age_index].size() - 1, time_diff);
+				if (incidence_samples.idSamples[i].samples[j].outcome <= 0 ||
+					original_time <= time_period)
+					times_indexes[age_index][ind].push_back(pair<int, int>((int)i, (int)j));
+			}
+	}
+
+
+	if (use_kaplan_meir) {
+		bool warn_shown = false;
+		int kaplan_meier_controls_count = 100000;
+		//for each group - Age, Age+Gender... whatever
+		ofstream of_new(file_path + ".new_format");
+		if (!of_new.good())
+			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
+		of_new << "AGE_BIN" << "\t" << age_bin << "\n";
+		of_new << "AGE_MIN" << "\t" << min_age << "\n";
+		of_new << "AGE_MAX" << "\t" << max_age << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
+
+		for (int c = 0; c < sorted_times.size(); ++c)
+		{
+			double total_controls_all = 0;
+			for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
+				const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
+				//update only controls count for group - do for all groups
+				//to get total count from all time windows kaplan meier
+				for (const pair<int, int> &p_i_j : index_order)
+					if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0)
+						++total_controls_all;
+			}
+
+			double controls = 0, cases = 0, prob = 1;
+			for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
+				const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
+				for (const pair<int, int> &p_i_j : index_order) {
+					//keep update kaplan meir in time point
+					if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome > 0)
+						++cases;
+					else
+						++controls;
+				}
+				//reset kaplan meir - flash last time prob
+				if (!warn_shown && total_controls_all < 10) {
+					MWARN("the kaplan_meir left with small amount of controls - "
+						" try increasing the sampling / use smaller time window because the"
+						" registry has not so long period of tracking patients\n");
+					warn_shown = true;
+				}
+				if (total_controls_all > 0 || cases > 0)
+					prob *= total_controls_all / (cases + total_controls_all);
+				total_controls_all -= controls; //remove controls from current time-window - they are now censored
+				controls = 0; cases = 0;
+			}
+			prob = 1 - prob;
+			if (prob > 0 && prob < 1) {
+				int age = c * age_bin + min_age;
+				//print to file:
+				MLOG("Ages[%d - %d]:%d :: %2.2f%% (kaplan meier)\n", age, age + age_bin,
+					age + age_bin / 2, 100 * prob);
+
+				if (age >= min_age && age <= max_age) {
+					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+
+					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+				}
+			}
+		}
+		of_new.close();
+	}
+	else {
+		//regular inc calc
+		MLOG("Total counts: 0: %d 1: %d : inc %f\n", all_cnts[0], all_cnts[1],
+			(float)all_cnts[1] / all_cnts[0]);
+		int nlines = 0;
+		for (int c = 0; c < counts.size(); ++c) {
+			int age = c * age_bin + min_age;
+			int n0 = counts[c].first;
+			int n1 = counts[c].second;
+
+			if (age >= min_age && age < max_age) nlines++;
+
+			if (n0 > 0)
+				MLOG("Ages: %d - %d : %d : 0: %d 1: %d : %f\n", age, age + age_bin,
+					age + age_bin / 2, n0, n1, (n0 > 0) ? (float)n1 / n0 : 0);
+		}
+
+		ofstream of(file_path);
+		if (!of.good())
+			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", file_path.c_str());
+
+		of << "KeySize 1\n";
+		of << "Nkeys " << nlines << "\n";
+		of << "1.0\n";
+		for (int c = 0; c < counts.size(); ++c) {
+			int age = c * age_bin + min_age;
+			int n0 = counts[c].first;
+			int n1 = counts[c].second;
+
+			if (age >= min_age && age < max_age)
+				of << age + age_bin / 2 << " " << n1 << " " << n0 - n1 << "\n";
+		}
+		of.close();
+
+		//New Format:
+		ofstream of_new(file_path + ".new_format");
+		if (!of_new.good())
+			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
+
+		of_new << "AGE_BIN" << "\t" << age_bin << "\n";
+		of_new << "AGE_MIN" << "\t" << min_age << "\n";
+		of_new << "AGE_MAX" << "\t" << max_age << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+		of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
+
+		for (int c = 0; c < counts.size(); ++c) {
+
+			int age = c * age_bin + min_age;
+			int male_n0 = male_counts[c].first;
+			int male_n1 = male_counts[c].second;
+
+			if (age >= min_age && age <= max_age && male_n0 > 0) {
+				of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "0.0" << "\t" << male_n0 - male_n1 << "\n";
+				of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "1.0" << "\t" << male_n1 << "\n";
+			}
+
+			int female_n0 = female_counts[c].first;
+			int female_n1 = female_counts[c].second;
+
+			if (age >= min_age && age <= max_age && female_n0 > 0) {
+				of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "0.0" << "\t" << female_n0 - female_n1 << "\n";
+				of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+					age + age_bin / 2 << "\t" << "1.0" << "\t" << female_n1 << "\n";
+			}
+		}
+		of_new.close();
+	}
+}
+
 inline void init_list(const string &reg_path, vector<bool> &list) {
 	list.resize(16000000);
 	ifstream file;
@@ -608,7 +866,7 @@ int medial::repository::fetch_next_date(vector<UniversalSigVec> &patientFile, ve
 			continue; //already reached the end for this signal
 		if (data.get_type() == T_Value) {
 			if (minDate_index == -1 || data.Val(signalPointers[i]) < minDate) {
-				minDate = data.Date(signalPointers[i]);
+				minDate = (int)data.Val(signalPointers[i]);
 				minDate_index = (int)i;
 			}
 		}
@@ -720,11 +978,15 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		results.push_back(r);
 }
 
-double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted, int smooth_balls) {
+double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted,
+	int smooth_balls, float allowed_error, int minimal_balls) {
 	//calc over all ages
 	double regScore = 0;
 	for (auto i = gender_sorted.begin(); i != gender_sorted.end(); ++i) { //iterate over age bins
 		const vector<int> &probs_tmp = i->second; //the forth numbers
+		if (!(probs_tmp[0] >= minimal_balls && probs_tmp[1] >= minimal_balls
+			&& probs_tmp[2] >= minimal_balls && probs_tmp[3] >= minimal_balls))
+			continue; //skip row with minimal balls
 		vector<double> probs((int)probs_tmp.size()); //the forth numbers - float with fix
 		double totCnt = 0;
 		vector<double> R(2);
@@ -748,11 +1010,53 @@ double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<
 		{
 			double	Qij = probs[j];
 			double Eij = (R[j / 2] * C[j % 2]) / totCnt;
+			double Dij = abs(Qij - Eij) - (allowed_error / 100) * Eij;
+			if (Dij < 0)
+				Dij = 0;
 
 			if (Eij > 0)
-				regScore += ((Qij - Eij) * (Qij - Eij)) / (Eij); //Chi-square
+				regScore += (Dij * Dij) / (Eij); //Chi-square
 		}
 
+	}
+	return regScore;
+}
+
+double medial::contingency_tables::calc_mcnemar_square_dist(const map<float, vector<int>> &gender_sorted) {
+	//calc over all ages
+	double regScore = 0;
+	for (auto i = gender_sorted.begin(); i != gender_sorted.end(); ++i) { //iterate over age bins
+		const vector<int> &counts = i->second; //the forth numbers
+		double totCnt = 0;
+		vector<double> R(2);
+		R[0] = counts[0] + counts[1];
+		R[1] = counts[2 + 0] + counts[2 + 1];
+		totCnt = R[0] + R[1];
+
+		double p_min;
+		double b, c;
+		int min_ind = 0;
+		//Mathcing to lower:
+		p_min = R[0];
+		if (R[1] < p_min) {
+			p_min = R[1];
+			++min_ind;
+		}
+		if (p_min = 0)
+			continue; //no matching possible 0's in both cells
+		if (min_ind == 0) {
+			//matching to first whos lower(no sig appear before is lower):
+			b = counts[0 + 1];
+			c = counts[2 + 1] * R[0] / R[1];
+		}
+		else {
+			//matching to second whos lower:
+			b = counts[2 + 1];
+			c = counts[0 + 1] * R[1] / R[0];
+		}
+
+		if (b + c > 0)
+			regScore += (b - c) * (b - c) / (b + c); //Mcnemar
 	}
 	return regScore;
 }
@@ -766,11 +1070,27 @@ double medial::contingency_tables::chisqr(int Dof, double Cv)
 	return (1.0 - boost::math::cdf(dist, Cv));
 }
 
+int _count_legal_rows(const  map<float, vector<int>> &m, int minimal_balls) {
+	int res = 0;
+	for (auto it = m.begin(); it != m.end(); ++it)
+	{
+		int ind = 0;
+		bool all_good = true;
+		while (all_good && ind < it->second.size()) {
+			all_good = it->second[ind] >= minimal_balls;
+			++ind;
+		}
+		res += int(all_good);
+	}
+	return res;
+}
+
 void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 	const map<float, map<float, vector<int>>> &female_stats,
 	vector<float> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
-	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls) {
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
+	, float allowed_error, int minimal_balls) {
 
 	unordered_set<float> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
@@ -825,16 +1145,90 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
-			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls); //Males
+			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls, allowed_error, minimal_balls); //Males
 		if (female_stats.find(signalVal) != female_stats.end())
-			regScore += calc_chi_square_dist(female_stats.at(signalVal), smooth_balls); //Females
+			regScore += calc_chi_square_dist(female_stats.at(signalVal), smooth_balls, allowed_error, minimal_balls); //Females
 
 		scores[index] = (float)regScore;
 		int dof = -1;
 		if (male_stats.find(signalVal) != male_stats.end())
-			dof += (int)male_stats.at(signalVal).size();
+			dof += _count_legal_rows(male_stats.at(signalVal), minimal_balls);
 		if (female_stats.find(signalVal) != female_stats.end())
-			dof += (int)female_stats.at(signalVal).size();
+			dof += _count_legal_rows(female_stats.at(signalVal), minimal_balls);
+		double pv = chisqr(dof, regScore);
+		p_values[index] = pv;
+	}
+}
+
+void medial::contingency_tables::calc_mcnemar_scores(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats,
+	vector<float> &all_signal_values, vector<int> &signal_indexes,
+	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
+
+	unordered_set<float> all_vals;
+	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
+		all_vals.insert(i->first);
+	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
+		all_vals.insert(i->first);
+	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
+	signal_indexes.resize(all_signal_values.size());
+	for (size_t i = 0; i < signal_indexes.size(); ++i)
+		signal_indexes[i] = (int)i;
+	posCnts.resize(all_signal_values.size());
+	valCnts.resize(all_signal_values.size());
+	lift.resize(all_signal_values.size());
+	scores.resize(all_signal_values.size());
+	p_values.resize(all_signal_values.size());
+	pos_ratio.resize(all_signal_values.size());
+
+	for (int index : signal_indexes)
+	{
+		float signalVal = all_signal_values[index];
+		//check chi-square for this value:
+		double totCnt = 0;
+		double sig_sum = 0;
+		double sum_noSig_reg = 0;
+		double sum_noSig_tot = 0;
+
+		if (male_stats.find(signalVal) != male_stats.end())
+			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (female_stats.find(signalVal) != female_stats.end())
+			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (totCnt == 0)
+			continue;
+		valCnts[index] = totCnt; //for signal apeareance
+		sig_sum += posCnts[index];
+		if (sig_sum > 0 && sum_noSig_reg > 0)
+			lift[index] = (posCnts[index] / sig_sum) / (sum_noSig_reg / sum_noSig_tot);
+		if (sig_sum > 0 && sum_noSig_reg <= 0)
+			lift[index] = 2 * posCnts[index]; //maximum lift
+		pos_ratio[index] = posCnts[index] / totCnt;
+
+		double regScore = 0;
+		if (male_stats.find(signalVal) != male_stats.end())
+			regScore += calc_mcnemar_square_dist(male_stats.at(signalVal)); //Males
+		if (female_stats.find(signalVal) != female_stats.end())
+			regScore += calc_mcnemar_square_dist(female_stats.at(signalVal)); //Females
+
+		scores[index] = (float)regScore;
+		int dof = -1;
+		if (male_stats.find(signalVal) != male_stats.end())
+			dof += _count_legal_rows(male_stats.at(signalVal), 0);
+		if (female_stats.find(signalVal) != female_stats.end())
+			dof += _count_legal_rows(female_stats.at(signalVal), 0);
 		double pv = chisqr(dof, regScore);
 		p_values[index] = pv;
 	}

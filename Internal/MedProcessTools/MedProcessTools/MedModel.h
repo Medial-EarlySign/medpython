@@ -32,7 +32,7 @@ typedef enum {
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel : public SerializableObject {
 public:
-	int version() { return 1; }
+	int version() { return 2; }
 	/// remember learning set
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
@@ -146,7 +146,7 @@ public:
 	int collect_and_add_virtual_signals(MedRepository &rep);
 
 	/// Initialization : signal ids and tables
-	void init_all(MedDictionarySections& dict);
+	void init_all(MedDictionarySections& dict, MedSignals& sigs);
 
 	// Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
@@ -187,5 +187,18 @@ private:
 // Joining the MedSerialze wagon
 //=======================================
 MEDSERIALIZE_SUPPORT(MedModel)
+
+/**
+* \brief medial namespace for function
+*/
+namespace medial {
+	/*!
+	*  \brief process namespace
+	*/
+	namespace process {
+		/// \brief cleaning uneeded rep_processors - when no generator is being used
+		bool clean_uneeded_rep_processors(MedModel &m, const vector<string> &needed_sigs);
+	}
+}
 
 #endif

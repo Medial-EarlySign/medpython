@@ -76,9 +76,8 @@ public:
 		conflict_method = "drop"; //default
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
-		int day_jump = 0;
+		day_jump = 0;
 		use_allowed = false;
-		conflict_method = "all";
 		start_year = 0;
 		end_year = 0;
 		allowed_time_to = 0;
@@ -98,6 +97,7 @@ public:
 	int start_age; ///< The start age to sample from
 	int end_age; ///< The end age to sample from
 	int age_bin; ///< the age bin in years for jumping
+	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
 	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 
 	///sample by year from age to age by jump and find match in registry
@@ -108,6 +108,7 @@ public:
 		end_age = 120;
 		age_bin = 1;
 		conflict_method = "all";
+		use_allowed = false;
 	}
 
 	int init(map<string, string>& map);

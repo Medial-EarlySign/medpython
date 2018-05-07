@@ -16,9 +16,10 @@ using namespace std;
 enum TQRF_TreeTypes {
 	TQRF_TREE_ENTROPY = 0,
 	TQRF_TREE_REGRESSION = 1,
-	TQRF_TREE_LOGRANK = 2,
-	TQRF_TREE_DEV = 3, // free place to use when developing new score ideas
-	TQRF_TREE_UNDEFINED = 4
+	TQRF_TREE_LIKELIHOOD = 2,
+	TQRF_TREE_WEIGHTED_LIKELIHOOD = 3,
+	TQRF_TREE_DEV = 4, // free place to use when developing new score ideas
+	TQRF_TREE_UNDEFINED = 5
 };
 
 enum TQRF_Missing_Value_Method {
@@ -47,6 +48,7 @@ enum TQRF_Missing_Direction {
 
 #define TQRF_MAX_TIME_SLICE			10000000
 #define MIN_ELEMENTS_IN_TIME_SLICE	100
+#define UNSET_BETA	((float)-1e-10)
 
 
 //==========================================================================================================================
@@ -83,6 +85,7 @@ public:
 	int max_depth = 100;				/// maximal depth of tree
 	int min_node_last_slice = 10;		/// stopping criteria : minimal number of samples in a node in the last time slice
 	int min_node = 10;					/// stopping criteria : minimal number of samples in a node in the first time slice
+	float random_split_prob = 0;		/// at this probability we will split a node in a random manner, in order to add noise to the tree.
 
 	// feature sampling
 	int ntry = -1;						/// -1: use the ntry_prob rule, > 0 : choose this number of features.
@@ -123,9 +126,31 @@ public:
 	int predict_sum_times = 0;			/// will sum predictions over different times
 
 
+	// weights
+	float case_wgt = 1;					/// the weight to use for cases with y!=0 in a weighted case
+
+	// ada boost mode
+	int nrounds = 1;					/// a single round means simply running TQRF as defined with no boosting applied
+	float min_p = 0.01;					/// minimal probability to trim to when recalculating weights
+	float max_p = 0.99;					/// maximal probability to trip to when recalculating weights
+	float alpha = 1;					/// shrinkage factor
+
+	// lists
+	float tuning_size = 0;				/// size of group to tune tree weights by.
+	int tune_max_depth = 0;				/// max depth of a node to get a weight for. 0 means 1 weight per tree.
+	int tune_min_node_size = 0;			/// min node size for a node to have a weight
+
+	// tuning gradient descent parameters
+	float gd_rate = 0.01;				/// gradient descent step size
+	int gd_batch = 1000;				/// gradient descent batch size
+	float gd_momentum = 0.95;			/// gradient descent momentum
+	float gd_lambda = 0;				/// regularization
+	int gd_epochs = 0;					/// 0 : stop automatically , Otherwise: do this number of epochs
+
 	// verbosity
 	int verbosity = 0;					/// for debug prints
 	int ids_to_print = 30;				/// control debug prints in certain places
+	int debug = 0;						/// extra param for use when debugging
 
 	//========================================================================================================================
 
@@ -164,14 +189,35 @@ public:
 	int n_time_slices;				/// 1 time slice is simply the regular case of a label for the whole future
 	vector<int> slice_counts[2];	/// counts of elements in slices (in case of non regression trees). slices with no variability are not interesting.
 
+	vector<vector<int>> lists;		/// lists[0] is always the lines used for training the trees in round 1
+									/// the others can be used for later stages, for example :
+									/// lists[1] could be used for early stopping measurements or for estimating weights for trees/nodes
+
 	vector<int> is_categorial_feat;
 
+	// next are pre computed for bagging purposes
+	vector<vector<vector<int>>> time_categ_pids;
+	vector<vector<vector<int>>> time_categ_idx;
+	vector<vector<int>> categ_pids;
+	vector<vector<int>> categ_idx;
+	unordered_map<int, vector<vector<vector<int>>>> pid2time_categ_idx;
+
+	// next are helper arrays used when doind adaboost
+	vector<float> wgts;
+	vector<float> probs;
+	vector<float> w_to_sum;
+	vector<vector<float>> sum_over_trees;
+	float alpha0;
+
 	int init(MedFeatures &medf, TQRF_Params &params);
+
+	~Quantized_Feat() {  pid2time_categ_idx.clear(); }
 
 private:
 	int quantize_feat(int i_feat, TQRF_Params &params);
 	int init_time_slices(MedFeatures &medf, TQRF_Params &params);
-
+	int init_pre_bagging(TQRF_Params &params);
+	int init_lists(MedFeatures &medf, TQRF_Params &params);
 
 };
 
@@ -197,9 +243,10 @@ public:
 	int size() { return to_idx-from_idx+1; }
 
 	int node_serialization_mask = 0x1; /// choose which of the following to serialize
+	int beta_idx = -1;
 
 	// categorical : mask |= 0x1 , time_categ_count[t][c] : how many counts in this node are in timeslice t and category c
-	vector<vector<int>> time_categ_count;
+	vector<vector<float>> time_categ_count;
 
 	// regression : mask |= 0x2
 	//float pred_mean = (float)-1e10;
@@ -298,9 +345,9 @@ public:
 
 
 //==========================================================================================================================
-class TQRF_Split_LogRank : public TQRF_Split_Categorial {
+class TQRF_Split_Likelihood : public TQRF_Split_Categorial {
 public:
-	int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
 };
 
 
@@ -310,11 +357,47 @@ public:
 	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
 };
 
+//==========================================================================================================================
+class TQRF_Split_Weighted_Categorial : public TQRF_Split_Stat {
+public:
+	// categorial case : counts[t][q][c] : time_slice , quanta, category : number of elements
+	vector<vector<vector<float>>> counts;
+
+	// sums[t][c] = number of samples in time slice t and category c summed on all q vals
+	// this is needed for a more efficient computation of scores later
+	vector<vector<float>> sums;
+
+	// sums_t[t] = number of samples in time slice t (needed later for more efficient calculations)
+	vector<float> sums_t;
+
+	float total_sum = 0; // sum of the sum_t vector
+
+	~TQRF_Split_Weighted_Categorial() {};
+
+	// next are for easy access
+	int ncateg = 0;
+	int nslices = 0;
+	int maxq = 0; // overall
+
+				  // API's
+	int init(Quantized_Feat &qf, TQRF_Params &params);
+	int prep_histograms(int i_feat, TQRF_Node &node, vector<int> &indexes, Quantized_Feat &qf, TQRF_Params &params);
+	//virtual int get_best_split(TQRF_Params &params, int &best_q, float &best_score);
+
+	void print_histograms();
+};
+
+//==========================================================================================================================
+class TQRF_Split_Weighted_Likelihood : public TQRF_Split_Weighted_Categorial {
+public:
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
+};
 
 //==========================================================================================================================
 class TQRF_Split_Dev : public TQRF_Split_Categorial {
 public:
-	int get_best_split(TQRF_Params &params, int &best_q, double &best_score);
+	~TQRF_Split_Dev() {};
+	int get_best_split(TQRF_Params &params, int &best_q, double &best_score) { return 0; };
 };
 
 //==========================================================================================================================
@@ -374,6 +457,10 @@ public:
 	// close work on current node and make the split if needed
 	int node_splitter(int i_curr_node, int i_best, int q_best);
 
+	// once a node is finalized : prepares its internal counts (with or without taking weights into account)
+	float prep_node_counts(int i_curr_node, int use_wgts_flag);
+
+
 
 private:
 	Quantized_Feat *_qfeat;
@@ -383,6 +470,7 @@ private:
 	int n_nodes_in_process = 0;
 	int i_last_node_in_process = 0;
 
+	int bag_chooser(float p, int _t, int _c, /* OUT APPEND */ vector<int> &_indexes);
 	int bag_chooser(int choose_with_repeats, int single_sample_per_id, float p, vector<int> &pids, vector<int> &idx, unordered_map<int, vector<int>> &pid2idx, /* OUT APPEND */ vector<int> &_indexes);
 
 
@@ -397,6 +485,8 @@ public:
 
 	TQRF_Params params;
 	vector<TQRF_Tree> trees;
+	vector<float> alphas;
+	vector<float> betas;
 
 	int init(map<string, string>& map) { return params.init(map); }
 	int init_from_string(string init_string) { params.init_string = init_string; return SerializableObject::init_from_string(init_string); }
@@ -410,6 +500,13 @@ public:
 	int Train(MedFeatures &medf, const MedMat<float> &Y);
 	int Train(MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
 
+	int Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y);
+	int update_counts(vector<vector<float>> &sample_counts, MedMat<float> &x, Quantized_Feat &qf, int zero_counts, int round);
+
+	/// tuning : solving a gd problem of finding the optimal betas for nodes at some certain chosen depth in the trees on a kept-a-side 
+	/// set of samples.
+	int tune_betas(Quantized_Feat &qfeat);
+	int solve_betas_gd(MedMat<float>& C, MedMat<float>& S, vector<float> &b);
 
 	/// However - the basic predict for this model is MedMat !! , as here it is much simpler :
 	/// we only need to find the terminal nodes in the trees and calculate our scores
@@ -418,11 +515,37 @@ public:
 
 	int Predict_Categorial(MedMat<float> &x, vector<float> &preds); // currently like this... with time should consider inheritance to do it right.
 
+	// print average bagging reports
+	void print_average_bagging(int _n_time_slices, int _n_categ);
+
 	// simple helpers
 	static int get_tree_type(const string &str);
 	static int get_missing_value_method(const string &str);
 private:
 
+};
+
+// helper struct
+struct TreeNodeIdx {
+	int i_tree = -1;
+	int i_node = -1;
+	TreeNodeIdx(int i_t, int i_n) { i_tree = i_t; i_node = i_n; }
+};
+
+
+/// next is for debugging
+class AllIndexes : public SerializableObject {
+
+public:
+
+	vector<vector<int>> all_indexes;
+
+	void init_all_indexes(vector<TQRF_Tree> &trees) {
+		for (auto &tree : trees)
+			all_indexes.push_back(tree.indexes);
+	}
+
+	ADD_SERIALIZATION_FUNCS(all_indexes);
 };
 
 //========================================

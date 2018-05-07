@@ -195,14 +195,13 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 	map<string, string> params;
 	unordered_set<string> legal_types = { "weight", "gain","cover" };
 	initialization_text_to_map(general_params, params);
-	string importance_type = "weight";
+	string importance_type = "gain";
 	for (auto it = params.begin(); it != params.end(); ++it)
-	{
 		if (it->first == "importance_type")
 			importance_type = it->second;
 		else
 			MTHROW_AND_ERR("Unsupported calc_feature_importance param \"%s\"\n", it->first.c_str());
-	}
+
 
 	if (legal_types.find(importance_type) == legal_types.end())
 		MTHROW_AND_ERR("Ilegal importance_type value \"%s\" "
@@ -290,6 +289,7 @@ size_t MedXGB::deserialize(unsigned char *blob) {
 	s += MedSerialize::get_size(model_features);
 	MedSerialize::deserialize(blob + s, features_count);
 	s += MedSerialize::get_size(features_count);
+	_mark_learn_done = true;
 	return s;
 }
 
