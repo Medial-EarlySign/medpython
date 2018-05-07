@@ -118,6 +118,7 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 	const string &signalHirerchyType,
 	vector<MedRegistryRecord> &res) {
 	UniversalSigVec &signalVal = signals[0];
+	int max_search_depth = 3;
 
 	for (int i = 0; i < signalVal.len; ++i)
 	{
@@ -138,8 +139,8 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 		if (s.empty())
 			continue;
 
-		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType);
-		for (size_t k = 1; k < nums.size() && k <= 3; ++k) //take till 3
+		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType, max_search_depth);
+		for (size_t k = 0; k < nums.size(); ++k)
 		{
 			if (nums[k] <= 0)
 				continue;

@@ -738,7 +738,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio, bool w
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index(tot_samples);
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, tot_samples - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
@@ -746,7 +746,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio, bool w
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		if (with_repeats) {
+		if (!with_repeats) {
 			while (seen_index[num_ind])
 				num_ind = dist_gen(gen);
 			seen_index[num_ind] = true;
@@ -786,14 +786,14 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index((int)id_to_pid.size());
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		if (with_repeats) {
+		if (!with_repeats) {
 			while (seen_index[num_ind])
 				num_ind = dist_gen(gen);
 			seen_index[num_ind] = true;
