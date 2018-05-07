@@ -48,6 +48,7 @@ enum TQRF_Missing_Direction {
 
 #define TQRF_MAX_TIME_SLICE			10000000
 #define MIN_ELEMENTS_IN_TIME_SLICE	100
+#define UNSET_BETA	((float)-1e-10)
 
 
 //==========================================================================================================================
@@ -134,6 +135,18 @@ public:
 	float max_p = 0.99;					/// maximal probability to trip to when recalculating weights
 	float alpha = 1;					/// shrinkage factor
 
+	// lists
+	float tuning_size = 0;				/// size of group to tune tree weights by.
+	int tune_max_depth = 0;				/// max depth of a node to get a weight for. 0 means 1 weight per tree.
+	int tune_min_node_size = 0;			/// min node size for a node to have a weight
+
+	// tuning gradient descent parameters
+	float gd_rate = 0.01;				/// gradient descent step size
+	int gd_batch = 1000;				/// gradient descent batch size
+	float gd_momentum = 0.95;			/// gradient descent momentum
+	float gd_lambda = 0;				/// regularization
+	int gd_epochs = 0;					/// 0 : stop automatically , Otherwise: do this number of epochs
+
 	// verbosity
 	int verbosity = 0;					/// for debug prints
 	int ids_to_print = 30;				/// control debug prints in certain places
@@ -172,10 +185,13 @@ public:
 	vector<string> feat_names;		   /// as given in train
 	vector<float> y;
 	vector<int> y_i;
-	vector<float> wgts;
 	vector<int> last_time_slice;	/// when there's more than 1 time slice there may be censoring involved and the last_time_slice is the last uncensored one.
 	int n_time_slices;				/// 1 time slice is simply the regular case of a label for the whole future
 	vector<int> slice_counts[2];	/// counts of elements in slices (in case of non regression trees). slices with no variability are not interesting.
+
+	vector<vector<int>> lists;		/// lists[0] is always the lines used for training the trees in round 1
+									/// the others can be used for later stages, for example :
+									/// lists[1] could be used for early stopping measurements or for estimating weights for trees/nodes
 
 	vector<int> is_categorial_feat;
 
@@ -186,14 +202,22 @@ public:
 	vector<vector<int>> categ_idx;
 	unordered_map<int, vector<vector<vector<int>>>> pid2time_categ_idx;
 
+	// next are helper arrays used when doind adaboost
+	vector<float> wgts;
+	vector<float> probs;
+	vector<float> w_to_sum;
+	vector<vector<float>> sum_over_trees;
+	float alpha0;
+
 	int init(MedFeatures &medf, TQRF_Params &params);
 
-	~Quantized_Feat() { fprintf(stderr, "IN QF destructor\n"); pid2time_categ_idx.clear(); fprintf(stderr, "IN QF destructor2\n");}
+	~Quantized_Feat() {  pid2time_categ_idx.clear(); }
 
 private:
 	int quantize_feat(int i_feat, TQRF_Params &params);
 	int init_time_slices(MedFeatures &medf, TQRF_Params &params);
 	int init_pre_bagging(TQRF_Params &params);
+	int init_lists(MedFeatures &medf, TQRF_Params &params);
 
 };
 
@@ -219,6 +243,7 @@ public:
 	int size() { return to_idx-from_idx+1; }
 
 	int node_serialization_mask = 0x1; /// choose which of the following to serialize
+	int beta_idx = -1;
 
 	// categorical : mask |= 0x1 , time_categ_count[t][c] : how many counts in this node are in timeslice t and category c
 	vector<vector<float>> time_categ_count;
@@ -436,6 +461,7 @@ public:
 	float prep_node_counts(int i_curr_node, int use_wgts_flag);
 
 
+
 private:
 	Quantized_Feat *_qfeat;
 	TQRF_Params *_params;
@@ -460,6 +486,7 @@ public:
 	TQRF_Params params;
 	vector<TQRF_Tree> trees;
 	vector<float> alphas;
+	vector<float> betas;
 
 	int init(map<string, string>& map) { return params.init(map); }
 	int init_from_string(string init_string) { params.init_string = init_string; return SerializableObject::init_from_string(init_string); }
@@ -474,7 +501,12 @@ public:
 	int Train(MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
 
 	int Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y);
-	int update_counts(vector<vector<float>> &sample_counts, int from_tree, int to_tree, MedMat<float> &x, Quantized_Feat &qf, int zero_counts);
+	int update_counts(vector<vector<float>> &sample_counts, MedMat<float> &x, Quantized_Feat &qf, int zero_counts, int round);
+
+	/// tuning : solving a gd problem of finding the optimal betas for nodes at some certain chosen depth in the trees on a kept-a-side 
+	/// set of samples.
+	int tune_betas(Quantized_Feat &qfeat);
+	int solve_betas_gd(MedMat<float>& C, MedMat<float>& S, vector<float> &b);
 
 	/// However - the basic predict for this model is MedMat !! , as here it is much simpler :
 	/// we only need to find the terminal nodes in the trees and calculate our scores
@@ -483,11 +515,21 @@ public:
 
 	int Predict_Categorial(MedMat<float> &x, vector<float> &preds); // currently like this... with time should consider inheritance to do it right.
 
+	// print average bagging reports
+	void print_average_bagging(int _n_time_slices, int _n_categ);
+
 	// simple helpers
 	static int get_tree_type(const string &str);
 	static int get_missing_value_method(const string &str);
 private:
 
+};
+
+// helper struct
+struct TreeNodeIdx {
+	int i_tree = -1;
+	int i_node = -1;
+	TreeNodeIdx(int i_t, int i_n) { i_tree = i_t; i_node = i_n; }
 };
 
 
