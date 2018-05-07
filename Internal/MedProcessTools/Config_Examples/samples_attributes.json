@@ -1,0 +1,32 @@
+{
+	"model_json_version": "2",
+	"serialize_learning_set": "0",
+	"model_actions": [
+		{"action_type":"rp_set","members":[{"action_type": "rep_processor","rp_type": "basic_cln","nrem_attr":"nRem","ntrim_attr":"nTrim","take_log": "0","range": "range_min=0.001;range_max=100000","signal": "ref:signals", "nrem_suff":"nRem"},
+										   {"action_type": "rep_processor","rp_type": "basic_cln","nrem_attr":"nRem","ntrim_attr":"nTrim","take_log": "0","range": "range_min=0.001;range_max=100000","val_channel": ["0", "1"],"signal": "ref:double_signals"}]},
+			
+		{"action_type":"rep_processor","rp_type":"complete","panels":"red_line,white_line","metadata":"../Resources/thin_completion_metadata"},
+		{"action_type":"rep_processor","rp_type":"req","signals":"Hemoglobin,RBC,Hematocrit"},
+	
+		{"action_type":"feat_generator","fg_type": "basic","type": "last","window": ["win_from=0;win_to=10000", "win_from=720;win_to=10000"],"time_unit": "Days","signal": "ref:signals","tags":"numeric"},
+		{"action_type":"feat_generator","fg_type": "basic","type": "win_delta","window": "win_from=0;win_to=180","d_win": ["d_win_from=360;d_win_to=720", "d_win_from=720;d_win_to=1080"],"time_unit": "Days","signal": "ref:signals","tags":"numeric"},
+		{"action_type":"feat_generator","fg_type": "basic","type": ["first", "last2", "avg", "min", "max", "std", "last_time", "last2_time"],"window": "win_from=0;win_to=10000","time_unit": "Days","signal": "ref:signals","tags":"numeric"},
+		{"action_type":"feat_generator","fg_type": "basic","type": "slope","window": ["win_from=0;win_to=720", "win_from=0;win_to=10000", "win_from=720;win_to=10000"],"time_unit": "Days","signal": "ref:signals","tags":"numeric"},
+		
+		{"action_type":"feat_generator","fg_type": "basic","type": "last","window": ["win_from=0;win_to=10000", "win_from=720;win_to=10000"],"time_unit": "Days","val_channel": ["0","1"],"signal": "ref:double_signals","tags":"numeric"},
+		{"action_type":"feat_generator","fg_type": "basic","type": "win_delta","window": "win_from=0;win_to=180","d_win": ["d_win_from=360;d_win_to=720", "d_win_from=720;d_win_to=1080"],"time_unit": "Days","val_channel": ["0","1"],"signal": "ref:double_signals","tags":"numeric"},
+		{"action_type":"feat_generator","fg_type": "basic","type": ["first", "last2", "avg", "min", "max", "std", "last_time", "last2_time"],"window": "win_from=0;win_to=10000","time_unit": "Days","val_channel": ["0","1"],"signal": "ref:double_signals","tags":"numeric"},
+		{"action_type":"feat_generator","fg_type": "basic","type": "slope","window": ["win_from=0;win_to=720", "win_from=0;win_to=10000", "win_from=720;win_to=10000"],"time_unit": "Days","val_channel": ["0","1"],"signal": "ref:double_signals","tags":"numeric"}	,
+		
+		{"action_type":"feat_generator","fg_type": "age","tags":"numeric"},
+		{"action_type":"feat_generator","fg_type": "gender","tags":"categorial"}
+				
+	],
+
+	"predictor" : "lightgbm",
+	"predictor_params" : "num_threads=15;num_trees=250;learning_rate=0.05;lambda_l2=0;metric_freq=50",
+	
+	"double_signals": ["BP"],
+	"signals": ["Glucose","HbA1C", "Globulin", "BMI","Weight","Height" ,"LDL","HDL","Triglycerides","Cholesterol", "Creatinine","Albumin", "Na","K+","Ca","Bicarbonate", "Hemoglobin","RBC","WBC","MCH","MCV","RDW"]
+
+}
