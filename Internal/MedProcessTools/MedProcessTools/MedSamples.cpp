@@ -105,14 +105,14 @@ int MedSample::parse_from_string(string &s)
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, vector<string>& attr)
+void MedSample::write_to_string(string &s, const vector<string>& attr)
 {
 	s = "";
 	s += "SAMPLE\t" + to_string(id) + "\t" + to_string(time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
 	s += "\t" + to_string(split);
 	for (auto p : prediction)
 		s += "\t" + to_string(p);
-	for (string& a : attr)
+	for (const string& a : attr)
 		s += "\t" + to_string(attributes[a]);
 	return;
 }

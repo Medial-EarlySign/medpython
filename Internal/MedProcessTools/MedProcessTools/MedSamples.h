@@ -52,7 +52,7 @@ public:
 	/// <returns> 0 upon success, -1 upon failure to parse </returns>
 	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos);
 	/// <summary> Write to string in new format </summary>
-	void write_to_string(string &s, vector<string>& attr);
+	void write_to_string(string &s, const vector<string>& attr);
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes)
