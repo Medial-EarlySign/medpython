@@ -317,6 +317,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
 	if (name == "exists")			return FTR_EXISTS;
+	if (name == "max_diff")			return FTR_MAX_DIFF;
 
 	if (isInteger(name))
 		return (BasicFeatureTypes)stoi(name);
@@ -353,6 +354,7 @@ void BasicFeatGenerator::set_names() {
 		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
 		case FTR_NSAMPLES:		name += "nsamples"; break;
 		case FTR_EXISTS:		name += "exists"; break;
+		case FTR_MAX_DIFF:	name += "max_diff"; break;
 
 		default: name += "ERROR";
 		}
@@ -437,6 +439,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time);
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
 	case FTR_EXISTS:			return uget_exists(rec.usv, time, win_from, win_to);
+	case FTR_MAX_DIFF:			return uget_max_diff(rec.usv, time);
 
 	default:	return missing_val;
 	}
@@ -1448,4 +1451,36 @@ void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int 
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
+}
+
+
+//.......................................................................................
+// get the max diiference in values in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	float max_diff = missing_val;
+	vector<float> _vals_vec;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				break;
+			else {
+				if (_vals_vec.size() > 0) {
+					nth_element(_vals_vec.begin(), _vals_vec.begin() + _vals_vec.size() / 2, _vals_vec.end());
+					float median_prev_val = _vals_vec[_vals_vec.size() / 2];
+					//float prev_val = median_prev_val;
+					float prev_val = _vals_vec.back();
+					float diff = usv.Val(i, val_channel) - prev_val;
+					if (diff > max_diff || max_diff == missing_val)
+						max_diff = diff;
+				}
+				_vals_vec.push_back(usv.Val(i, val_channel));
+			}
+		}
+	}
+	return max_diff;
 }

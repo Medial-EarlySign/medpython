@@ -47,6 +47,8 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "future_ind")
+			future_ind = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for AlcoholGenerator\n", field.c_str());
 		//! [AlcoholGenerator::init]
@@ -101,7 +103,7 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 			int start_age = med_time_converter.convert_times(MedTime::Date, MedTime::Days, date_age_may_start_drinking);
 
 			int future_date = 20990101;
-			if (future_ind == "1") {
+			if (future_ind == "0") {
 				future_date = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
 			}
 
@@ -443,7 +445,10 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				if (test_date >= start_date && test_date <= end_date) {
 					int val = (int)drink_ranges[kk].val;
 					//fprintf(stderr, "val : %i \n", val);
-					if (val == 1) unknown_f = 1;
+					if (val == 1) {
+						unknown_f = 1;
+						quantity_f = missing_val;
+					}
 					else if (val == 2) never_drink_f = 1;
 					else if (val == 3) {
 						ex_drink_f = 1;
