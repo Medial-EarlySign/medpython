@@ -54,33 +54,33 @@ class MedRepository;
 class InMemRepData;
 
 class MedBufferedFile {
-	public:
-		string name = "";
-		int buf_size = 0;
-		int buf_len = 0;
-		unsigned char *buf = NULL;
-		unsigned long long buf_start_in_file = 0;
+public:
+	string name = "";
+	int buf_size = 0;
+	int buf_len = 0;
+	unsigned char *buf = NULL;
+	unsigned long long buf_start_in_file = 0;
 
-		static const int default_buf_size = 128*1024;
+	static const int default_buf_size = 128 * 1024;
 
-		int open(const string &fname);
-		int open(const string &fname, const int bsize);
-		void close();
-		unsigned long long read(unsigned char *outb, unsigned long long pos, unsigned long long len);
+	int open(const string &fname);
+	int open(const string &fname, const int bsize);
+	void close();
+	unsigned long long read(unsigned char *outb, unsigned long long pos, unsigned long long len);
 
-		ifstream *inf = NULL;
+	ifstream *inf = NULL;
 
 
 };
 
 class IndexElem {
-	public:
-		short file_num;
-		unsigned long long pos_in_file;
-		void *data;
-		int len; // len is always in bytes (to allow for size/alloc calculations)
+public:
+	short file_num;
+	unsigned long long pos_in_file;
+	void *data;
+	int len; // len is always in bytes (to allow for size/alloc calculations)
 
-		IndexElem() {file_num = -1; pos_in_file = 0; data = NULL; len = 0;}
+	IndexElem() { file_num = -1; pos_in_file = 0; data = NULL; len = 0; }
 };
 
 class CompactIndexElem {
@@ -93,10 +93,10 @@ public:	// 12 bytes per entry instead of 22
 };
 
 //extern mutex *index_table_locks; //[MAX_SID_NUMBER];
-								 
+
 // next is a fairly memory/speed efficient index to hold positions of a continous signal in a file/memory.
 class IndexTable {
-  public:
+public:
 	// thread safing
 	//mutex m_lock;
 
@@ -121,12 +121,13 @@ class IndexTable {
 
 	unsigned int acc;			// accumulator for easier insertions
 
-	void init() { sid = 0; sv.set_def(0); acc = 0; w_size = 0; tot_size = 0; tot_size_gb = 0; is_loaded=0; full_load = 0;
-				  is_locked = 0; work_area_allocated = 0; work_area = NULL;
+	void init() {
+		sid = 0; sv.set_def(0); acc = 0; w_size = 0; tot_size = 0; tot_size_gb = 0; is_loaded = 0; full_load = 0;
+		is_locked = 0; work_area_allocated = 0; work_area = NULL;
 	}
 	IndexTable() { init(); }
 
-	int insert(unsigned int pid, int len) { int rc = insert(pid, acc, len); if (rc >=0 ) acc += (unsigned int)len; return rc; }
+	int insert(unsigned int pid, int len) { int rc = insert(pid, acc, len); if (rc >= 0) acc += (unsigned int)len; return rc; }
 	int insert(unsigned int pid, unsigned int delta, int len); // { last_len = len; return sv.insert(pid, delta);  }
 	int get(const unsigned int pid, unsigned long long &pos, int &len);
 	int get_len(const unsigned int pid);
@@ -137,7 +138,7 @@ class IndexTable {
 	// locking prevents clearing or reading if already loaded
 	void lock(); //{ /*lock_guard<mutex> guard(m_lock);*/ is_locked = 1; }
 	void unlock(); // { /*lock_guard<mutex> guard(m_lock);*/ is_locked = 0; }
-	
+
 	// serializations
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
@@ -154,97 +155,97 @@ class IndexTable {
 };
 
 class MedIndex {
-	public:
-		int rep_mode;
+public:
+	int rep_mode;
 
-		vector<string> ifnames;
+	vector<string> ifnames;
 
-		void clear() { ifnames.clear(); sid2idx.clear(); pid2idx.clear(); idx_i.clear(); idx.clear(); pids.clear(); signals.clear(); n_pids = 0; n_signals = 0; sid_in.clear(); }
+	void clear() { ifnames.clear(); sid2idx.clear(); pid2idx.clear(); idx_i.clear(); idx.clear(); pids.clear(); signals.clear(); n_pids = 0; n_signals = 0; sid_in.clear(); }
 
-		int read_index(vector<string> &fnames);
-		int read_sub_index(vector<string> &fnames, const vector<int> &pids_to_include, const vector<int> &signals_to_include); // empty vector - means all are chosen
+	int read_index(vector<string> &fnames);
+	int read_sub_index(vector<string> &fnames, const vector<int> &pids_to_include, const vector<int> &signals_to_include); // empty vector - means all are chosen
 
-		inline void *get_ind_elem(int pid, int sid, unsigned int &len);
-		inline IndexElem *get_ind_elem2(int pid, int sid);
+	inline void *get_ind_elem(int pid, int sid, unsigned int &len);
+	inline IndexElem *get_ind_elem2(int pid, int sid);
 
-		//int write_index(string &fname);
+	//int write_index(string &fname);
 
-		unsigned long long get_index_max_data_size();
-		void set_mem_ptrs_off();
+	unsigned long long get_index_max_data_size();
+	void set_mem_ptrs_off();
 
-		// next reads all the data parts that match the index in memory
-		int read_all_data(unsigned char *&work_area, unsigned long long &wlen, vector<string> &data_fnames);
-		//int MedIndex::read_all_data(unsigned char *&work_area, unsigned long long &wlen, vector<string> &data_fnames, vector<int> pids_to_take, vector<int> sids_to_take);
-		int read_full_data(unsigned char *&work_area, unsigned long long &wlen, vector<string> &data_fnames);
+	// next reads all the data parts that match the index in memory
+	int read_all_data(unsigned char *&work_area, unsigned long long &wlen, vector<string> &data_fnames);
+	//int MedIndex::read_all_data(unsigned char *&work_area, unsigned long long &wlen, vector<string> &data_fnames, vector<int> pids_to_take, vector<int> sids_to_take);
+	int read_full_data(unsigned char *&work_area, unsigned long long &wlen, vector<string> &data_fnames);
 
-		// next reads index and data for a single signal using an IndexTable index (mode 3 and up).
-		int read_index_table_and_data(int sid, string &idx_fname, string &data_fname, const vector<int> &pids_to_include,
-			unsigned char *w_area, unsigned long long &data_size);
-		int read_index_table_and_data(int sid, string &idx_fname, string &data_fname, const vector<int> &pids_to_include);
-		int update_pids();
+	// next reads index and data for a single signal using an IndexTable index (mode 3 and up).
+	int read_index_table_and_data(int sid, string &idx_fname, string &data_fname, const vector<int> &pids_to_include,
+		unsigned char *w_area, unsigned long long &data_size);
+	int read_index_table_and_data(int sid, string &idx_fname, string &data_fname, const vector<int> &pids_to_include);
+	int update_pids();
 
-		// new modes (2 and up) related
-		//int get_idx_file_mode(const string &fname);
-
-
-		// lists of all pids and signals in the index
-		vector<int> pids;
-		vector<int> signals;
-		map<int, int> sid_in;
-
-		// mode 3 index - (much less variables !!)
-		vector<IndexTable> index_table;
+	// new modes (2 and up) related
+	//int get_idx_file_mode(const string &fname);
 
 
-		int contains_pid(int pid) {return (pid_idx[pid] >= 0);}
+	// lists of all pids and signals in the index
+	vector<int> pids;
+	vector<int> signals;
+	map<int, int> sid_in;
 
-		MedRepository *my_rep;
-		int min_pid_num;
-		int max_pid_num;
-
-		MedIndex() { min_pid_num = -1; max_pid_num = -1; rep_mode = 0; }
-
-	private:
-		int mode;
-
-		int get_mode(const string &fname);
-		int read_index_mode0(const string &fname, const vector<int> &pids_to_include, const vector<int> &signals_to_include);
-		int read_index_mode0_direct(const string &fname, const vector<int> &pids_to_include, const vector<int> &signals_to_include);
-		int read_index_mode0_new_direct(const string &fname, int f_factor, const vector<int> &pids_to_include, const vector<int> &signals_to_include);
-		int prep_idx_i();
-		int prep_idx_i_direct();
-
-		// mode 0 data elements
-		int n_pids;
-		int n_signals;
-		map<int,int> sid2idx;
-		map<int,int> pid2idx;
-		vector<vector<unsigned int>> idx_i; // first dimension: signals, second: pids
-		vector<IndexElem> idx;
-		
-		vector<vector<unsigned int>> idx_i_base;
-		vector<vector<unsigned char>> idx_i_add;
-
-		vector<vector<CompactIndexElem>> idx_recs;
-		vector<IndexElem> idx_recs_base;
-		vector<int> i_sid_type_byte_len;
-		vector<int> i_sid_factor;
-
-		vector<vector<unsigned int>> last_pid;
-		//vector<int> idx_factor;
-		//vector<int> idx_fno;
+	// mode 3 index - (much less variables !!)
+	vector<IndexTable> index_table;
 
 
-		// direct mapping
-		vector<unsigned int> sid_idx;
-		vector<unsigned int> pid_idx;
-		int min_pid,max_pid;
-		unsigned int n_pids_in_index;
-		unsigned int n_signals_in_index;
-		vector<int> pid_seen;
+	int contains_pid(int pid) { return (pid_idx[pid] >= 0); }
 
-		vector<unsigned int> idx_pid;
-		vector<unsigned int> idx_sid;
+	MedRepository *my_rep;
+	int min_pid_num;
+	int max_pid_num;
+
+	MedIndex() { min_pid_num = -1; max_pid_num = -1; rep_mode = 0; }
+
+private:
+	int mode;
+
+	int get_mode(const string &fname);
+	int read_index_mode0(const string &fname, const vector<int> &pids_to_include, const vector<int> &signals_to_include);
+	int read_index_mode0_direct(const string &fname, const vector<int> &pids_to_include, const vector<int> &signals_to_include);
+	int read_index_mode0_new_direct(const string &fname, int f_factor, const vector<int> &pids_to_include, const vector<int> &signals_to_include);
+	int prep_idx_i();
+	int prep_idx_i_direct();
+
+	// mode 0 data elements
+	int n_pids;
+	int n_signals;
+	map<int, int> sid2idx;
+	map<int, int> pid2idx;
+	vector<vector<unsigned int>> idx_i; // first dimension: signals, second: pids
+	vector<IndexElem> idx;
+
+	vector<vector<unsigned int>> idx_i_base;
+	vector<vector<unsigned char>> idx_i_add;
+
+	vector<vector<CompactIndexElem>> idx_recs;
+	vector<IndexElem> idx_recs_base;
+	vector<int> i_sid_type_byte_len;
+	vector<int> i_sid_factor;
+
+	vector<vector<unsigned int>> last_pid;
+	//vector<int> idx_factor;
+	//vector<int> idx_fno;
+
+
+	// direct mapping
+	vector<unsigned int> sid_idx;
+	vector<unsigned int> pid_idx;
+	int min_pid, max_pid;
+	unsigned int n_pids_in_index;
+	unsigned int n_signals_in_index;
+	vector<int> pid_seen;
+
+	vector<unsigned int> idx_pid;
+	vector<unsigned int> idx_sid;
 
 
 
@@ -292,186 +293,186 @@ public:
 };
 
 
- class DLLEXTERN  MedRepository {
-	public:
-		int rep_mode;
-		string rep_files_prefix;
+class DLLEXTERN  MedRepository {
+public:
+	int rep_mode;
+	string rep_files_prefix;
 
-		string desc;
-		string config_fname;
-		string path;
-		vector<string> dictionary_fnames;
-		vector<string> signal_fnames;
-		vector<string> data_fnames;
-		vector<string> index_fnames;
-		string	fsignals_to_files;
-		int min_pid_num;
-		int max_pid_num;
+	string desc;
+	string config_fname;
+	string path;
+	vector<string> dictionary_fnames;
+	vector<string> signal_fnames;
+	vector<string> data_fnames;
+	vector<string> index_fnames;
+	string	fsignals_to_files;
+	int min_pid_num;
+	int max_pid_num;
 
-		int format;
+	int format;
 
-		MedIndex index;
-		MedDictionarySections dict;
-		MedSignals sigs;
-		vector<int> pids;
-		vector<int> all_pids_list;
+	MedIndex index;
+	MedDictionarySections dict;
+	MedSignals sigs;
+	vector<int> pids;
+	vector<int> all_pids_list;
 
-		InMemRepData in_mem_rep; // for mode of running in in_mem
+	InMemRepData in_mem_rep; // for mode of running in in_mem
 
-		//-------------------------------------------------------------------
-		// most useful APIs - more overloads below
-		//-------------------------------------------------------------------
+	//-------------------------------------------------------------------
+	// most useful APIs - more overloads below
+	//-------------------------------------------------------------------
 
-		// reading a repository for a group of pids and signals. Empty group means all of it.
-		int read_all(const string &conf_fname);
-		int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<string> &signals_to_take);
-		int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<int> &signals_to_take);
+	// reading a repository for a group of pids and signals. Empty group means all of it.
+	int read_all(const string &conf_fname);
+	int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<string> &signals_to_take);
+	int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<int> &signals_to_take);
 
-		// reading without any signal (will later be loaded with load()
-		int init(const string &conf_fname);
+	// reading without any signal (will later be loaded with load()
+	int init(const string &conf_fname);
 
-		// getting the data for a pid,signal . Pointer to start returned, len elements inside. If not found NULL and 0 returned.
-		inline void *get(int pid, const string &sig_name, int &len);
-		inline void *uget(int pid, const string &sig_name, UniversalSigVec &usv);
-//		inline void *get(int pid, int sid, int &len);					// use this variant inside big loops to avoid map from string to int. // default variant
-		inline void *get_all_modes(int pid, int sid, int &len);
-		inline void *uget(int pid, int sid, UniversalSigVec &usv);		// Universal vec API, use this inside loops to avoid string map
-		void * (MedRepository::*get_ptr)(int, int, int&) = &MedRepository::get3;
-		inline void *get(int pid, int sid, int &len) { return (this->*get_ptr)(pid, sid, len); }
+	// getting the data for a pid,signal . Pointer to start returned, len elements inside. If not found NULL and 0 returned.
+	inline void *get(int pid, const string &sig_name, int &len);
+	inline void *uget(int pid, const string &sig_name, UniversalSigVec &usv);
+	//		inline void *get(int pid, int sid, int &len);					// use this variant inside big loops to avoid map from string to int. // default variant
+	inline void *get_all_modes(int pid, int sid, int &len);
+	inline void *uget(int pid, int sid, UniversalSigVec &usv);		// Universal vec API, use this inside loops to avoid string map
+	void * (MedRepository::*get_ptr)(int, int, int&) = &MedRepository::get3;
+	inline void *get(int pid, int sid, int &len) { return (this->*get_ptr)(pid, sid, len); }
 
-		//-------------------------------------------------------------------
+	//-------------------------------------------------------------------
 
-		inline void *get_in_mem(int pid, int sid, int &len) { return in_mem_rep.get(pid, sid, len); }
-		void switch_to_in_mem_mode() { in_mem_rep.clear(); in_mem_rep.my_rep = (MedRepository *)this; get_ptr = &MedRepository::get_in_mem; }
+	inline void *get_in_mem(int pid, int sid, int &len) { return in_mem_rep.get(pid, sid, len); }
+	void switch_to_in_mem_mode() { in_mem_rep.clear(); in_mem_rep.my_rep = (MedRepository *)this; get_ptr = &MedRepository::get_in_mem; }
 
-		//-------------------------------------------------------------------
-		int   read_config(const string &fname);
+	//-------------------------------------------------------------------
+	int   read_config(const string &fname);
 
-		int   read_dictionary();
-		int   read_dictionary(const string &dname);
+	int   read_dictionary();
+	int   read_dictionary(const string &dname);
 
-		int   read_signals();
-		int   read_signals(const string &fname);
+	int   read_signals();
+	int   read_signals(const string &fname);
 
-		int   read_index();
-		int   read_index(const vector<int> &pids_to_take, const vector<int> &signals_to_take);
-		int   read_index(vector<string> &fnames);
-		int	  read_index(vector<string> &fnames, const vector<int> &pids_to_take, const vector<int> &signals_to_take);
-		int	  read_index_tables(const vector<int> &pids_to_take, const vector<int> &signals_to_take);
+	int   read_index();
+	int   read_index(const vector<int> &pids_to_take, const vector<int> &signals_to_take);
+	int   read_index(vector<string> &fnames);
+	int	  read_index(vector<string> &fnames, const vector<int> &pids_to_take, const vector<int> &signals_to_take);
+	int	  read_index_tables(const vector<int> &pids_to_take, const vector<int> &signals_to_take);
 
-		// reading the data matching the current index (always read an index BEFORE reading data)
-		int read_data();
-		int read_data(const string &fname);
-		int read_data(vector<string> &fnames);
-		//int read_data(string &fname, vector<int> &pids_to_take, vector<int> &signals_to_take);
-		void free_data();
+	// reading the data matching the current index (always read an index BEFORE reading data)
+	int read_data();
+	int read_data(const string &fname);
+	int read_data(vector<string> &fnames);
+	//int read_data(string &fname, vector<int> &pids_to_take, vector<int> &signals_to_take);
+	void free_data();
 
-		// main initializing routines of repository from disk
-		int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<int> &signals_to_take, int read_data_flag);
+	// main initializing routines of repository from disk
+	int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<int> &signals_to_take, int read_data_flag);
 
-		int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<string> &signals_to_take, int read_data_flag);
+	int read_all(const string &conf_fname, const vector<int> &pids_to_take, const vector<string> &signals_to_take, int read_data_flag);
 
-		// mode 3 and up allows load and free of signals - overloads below
-		int load(const vector<int> &sids, vector<int> &pids_to_take);
+	// mode 3 and up allows load and free of signals - overloads below
+	int load(const vector<int> &sids, vector<int> &pids_to_take);
 
-		// locking a sig in memory: will not be freed with free() functions - overloads below
-		int lock_all_sigs();
-		int lock(const vector<int> &sids);
+	// locking a sig in memory: will not be freed with free() functions - overloads below
+	int lock_all_sigs();
+	int lock(const vector<int> &sids);
 
-		int unlock_all_sigs();
-		int unlock(const vector<int> &sids);
+	int unlock_all_sigs();
+	int unlock(const vector<int> &sids);
 
-		// when freeing: locked signals will NOT be freed, in order to free all unlock all first - overloads below
-		int free_all_sigs();				
-		int free(const vector<int> &sids);
+	// when freeing: locked signals will NOT be freed, in order to free all unlock all first - overloads below
+	int free_all_sigs();
+	int free(const vector<int> &sids);
 
-		double bound_gb;
-		int free_to_bound() { return free_to_bound(bound_gb); }				// calls free_to_bound with default set memory bound
-		int free_to_bound(double _bound_gb); // frees unlocked signals until getting below the bound
+	double bound_gb;
+	int free_to_bound() { return free_to_bound(bound_gb); }				// calls free_to_bound with default set memory bound
+	int free_to_bound(double _bound_gb); // frees unlocked signals until getting below the bound
 
-		// default is inifinity (1000gb), however - if set, the repository will try to free signals in order to get below this bound
-		// it can not free locked in signals, so in some cases the overall memory usage could be higher
-		int set_max_mem(double gb_mem) { bound_gb = gb_mem; }
+	// default is inifinity (1000gb), however - if set, the repository will try to free signals in order to get below this bound
+	// it can not free locked in signals, so in some cases the overall memory usage could be higher
+	int set_max_mem(double gb_mem) { bound_gb = gb_mem; }
 
-		MedRepository() { work_area = NULL; work_size=0; fsignals_to_files = ""; index.my_rep=this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix="rep"; bound_gb = 100.0; }
-		~MedRepository() { 
-			//fprintf(stderr, "rep free\n"); fflush(stderr);
-			if (work_area) {
-				//fprintf(stderr, "~MedRepository before delete[] work_area %d", work_area);
-				delete[] work_area;
-				//fprintf(stderr, "~MedRepository after delete[] work_area %d", work_area);
-				work_area = NULL;
-			}
-			free_all_sigs();
-			//fprintf(stderr, "rep free ended\n"); fflush(stderr);
-		};
-		//int build_full_format_index();
+	MedRepository() { work_area = NULL; work_size = 0; fsignals_to_files = ""; index.my_rep = this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix = "rep"; bound_gb = 100.0; }
+	~MedRepository() {
+		//fprintf(stderr, "rep free\n"); fflush(stderr);
+		if (work_area) {
+			//fprintf(stderr, "~MedRepository before delete[] work_area %d", work_area);
+			delete[] work_area;
+			//fprintf(stderr, "~MedRepository after delete[] work_area %d", work_area);
+			work_area = NULL;
+		}
+		free_all_sigs();
+		//fprintf(stderr, "rep free ended\n"); fflush(stderr);
+	};
+	//int build_full_format_index();
 
-		void clear();
+	void clear();
 
-		// main access routine: gets a pointer to data given pid and sid and its len (in vaiable type units).
-		// When there's no data returns NULL and len==0
-		inline void *get3(int pid, int sid, int &len);
+	// main access routine: gets a pointer to data given pid and sid and its len (in vaiable type units).
+	// When there's no data returns NULL and len==0
+	inline void *get3(int pid, int sid, int &len);
 
-		// common request: get a list of all values BEFORE (<) a given date
-		SDateVal *get_before_date(int pid, int sid, int date, int &len);
-		SDateVal *get_before_date(int pid, const string &sig_name, int date, int &len);
+	// common request: get a list of all values BEFORE (<) a given date
+	SDateVal *get_before_date(int pid, int sid, int date, int &len);
+	SDateVal *get_before_date(int pid, const string &sig_name, int date, int &len);
 
-		// api for SDateVal (most common), to get ptr to a valur relative to a specific date
-		// mode options are "==" "<=" ">=" "<" ">"
-		// these return the first one exactly at the same date, or the first one just before (<= or <) etc.
-		SDateVal *get_date(int pid, int sid, int date, const string &mode);
-		SDateVal *get_date(int pid, const string &sig_name, int date, const string &mode);
-
-
-		// test if repository has a specific pid or a specific signal
-		int contains_pid(int pid) {return index.contains_pid(pid);}
-		int contains_sid(int sid);
-
-		// printing routines (mainly for debugging)
-		void print_vec(void *data, int len, int pid, int sid);
-		void print_vec_dict(void *data, int len, int pid, int sid);
-		void print_data_vec(int pid, int sid);
-		void print_data_vec_dict(int pid, int sid);
-		void print_csv_vec(void * data, int len, int pid, int sid, bool dict_val);
-		void print_data_vec(int pid, const string &sig_name);
+	// api for SDateVal (most common), to get ptr to a valur relative to a specific date
+	// mode options are "==" "<=" ">=" "<" ">"
+	// these return the first one exactly at the same date, or the first one just before (<= or <) etc.
+	SDateVal *get_date(int pid, int sid, int date, const string &mode);
+	SDateVal *get_date(int pid, const string &sig_name, int date, const string &mode);
 
 
-		// getting all the dates for a pid in which there was at least one of the given signals
-		int get_dates_with_signal(int pid, vector<string> &sig_names, vector<int> &dates);
+	// test if repository has a specific pid or a specific signal
+	int contains_pid(int pid) { return index.contains_pid(pid); }
+	int contains_sid(int sid);
 
-		int get_pids_with_sig(const string &sig_name, vector<int> &in_pids); // getting all pids in rep that have at least once the signal.
-																			 
-		//-----------------------------------------------------------
-		// useful overloads
-		//-----------------------------------------------------------
-		int load(const string &sig_name);
-		int load(const int sid);
-		int load(const vector<string> &sig_names);
-		int load(const vector<int> &sids);
-		int load(const string &sig_name, vector<int> &pids_to_take);
-		int load(const int sid, vector<int> &pids_to_take);
-		int load(const vector<string> &sig_names, vector<int> &pids_to_take);
+	// printing routines (mainly for debugging)
+	void print_vec(void *data, int len, int pid, int sid);
+	void print_vec_dict(void *data, int len, int pid, int sid);
+	void print_data_vec(int pid, int sid);
+	void print_data_vec_dict(int pid, int sid);
+	void print_csv_vec(void * data, int len, int pid, int sid, bool dict_val);
+	void print_data_vec(int pid, const string &sig_name);
 
-		int lock(const string &sig_name);
-		int lock(const int sid);
-		int lock(const vector<string> &sig_names);
 
-		int unlock(const string &sig_name);
-		int unlock(const int sid);
-		int unlock(const vector<string> &sig_names);
+	// getting all the dates for a pid in which there was at least one of the given signals
+	int get_dates_with_signal(int pid, vector<string> &sig_names, vector<int> &dates);
 
-		int free(const string &sig_name);
-		int free(const int sid);
-		int free(const vector<string> &sig_names);
+	int get_pids_with_sig(const string &sig_name, vector<int> &in_pids); // getting all pids in rep that have at least once the signal.
 
-		int read_pid_list();
+	//-----------------------------------------------------------
+	// useful overloads
+	//-----------------------------------------------------------
+	int load(const string &sig_name);
+	int load(const int sid);
+	int load(const vector<string> &sig_names);
+	int load(const vector<int> &sids);
+	int load(const string &sig_name, vector<int> &pids_to_take);
+	int load(const int sid, vector<int> &pids_to_take);
+	int load(const vector<string> &sig_names, vector<int> &pids_to_take);
 
-		int generate_fnames_for_prefix();
-	private:
-		int get_data_mode(const string &fname);
-		unsigned char *work_area;
-		unsigned long long work_size;
+	int lock(const string &sig_name);
+	int lock(const int sid);
+	int lock(const vector<string> &sig_names);
+
+	int unlock(const string &sig_name);
+	int unlock(const int sid);
+	int unlock(const vector<string> &sig_names);
+
+	int free(const string &sig_name);
+	int free(const int sid);
+	int free(const vector<string> &sig_names);
+
+	int read_pid_list();
+
+	int generate_fnames_for_prefix();
+private:
+	int get_data_mode(const string &fname);
+	unsigned char *work_area;
+	unsigned long long work_size;
 
 };
 
@@ -499,10 +500,10 @@ inline IndexElem *MedIndex::get_ind_elem2(int pid, int sid)
 	unsigned int i_sid = sid_idx[sid];
 
 	//if (i_pid<0 || i_sid<0)
-	if (i_sid>=MAX_ID_NUM || i_pid>=MAX_ID_NUM)
-			return NULL;
+	if (i_sid >= MAX_ID_NUM || i_pid >= MAX_ID_NUM)
+		return NULL;
 
-//	int ie_i = idx_i[i_pid*n_signals + i_sid];
+	//	int ie_i = idx_i[i_pid*n_signals + i_sid];
 	int ie_i = idx_i[i_sid][i_pid];
 
 	if (ie_i < 0)
@@ -517,7 +518,7 @@ inline void *MedIndex::get_ind_elem(int pid, int sid, unsigned int &len)
 	unsigned int i_pid = pid_idx[pid];
 	unsigned int i_sid = sid_idx[sid];
 
-	if (i_sid>=MAX_ID_NUM || i_pid>=MAX_ID_NUM)
+	if (i_sid >= MAX_ID_NUM || i_pid >= MAX_ID_NUM)
 		return NULL;
 
 	unsigned char ie_i_add = idx_i_add[i_sid][i_pid];
@@ -546,7 +547,7 @@ inline void *MedRepository::get(int pid, const string &sig_name, int &len)
 	int sid = sigs.sid(sig_name);
 	if (sid < 0)
 		return NULL;
-	return(get(pid,sid,len));
+	return(get(pid, sid, len));
 }
 
 
@@ -564,7 +565,7 @@ inline void *MedRepository::get_all_modes(int pid, int sid, int &len)
 	unsigned int blen;
 
 	len = 0;
-	ie = index.get_ind_elem(pid,sid,blen);
+	ie = index.get_ind_elem(pid, sid, blen);
 	if (ie == NULL)
 		return NULL;
 
@@ -618,7 +619,8 @@ namespace medial {
 		/// \brief filtering hierarchy codes
 		string filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType);
 		/// \brief getting parents in hierarchy codes
-		vector<int> parents_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
+		vector<int> parents_code_hierarchy(MedDictionarySections &dict, const string &group,
+			const string &signalHirerchyType, int depth = 1);
 		/// \brief getting sons in hierarchy codes
 		vector<int> sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
 		/// \brief gets codes

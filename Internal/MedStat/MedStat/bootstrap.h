@@ -179,6 +179,7 @@ public:
 	bool use_score_working_points; ///< If true will calculate all roc measurements based on scores working points
 	float max_diff_working_point; ///< The maximal diff in calculated working point to requested working point to drop
 	int score_bins; ///< score bin count for speed up calculation. 0 means no binning
+	int score_min_samples; ///< score bin min sample count for speed up calculation. 0 means no limit
 	float score_resolution; ///< score resultion to contorl bining for speed up calculation. 0 means no binning resulotion
 	bool fix_label_to_binary; ///< If True will change label value to be binary 0,1 (default is True)
 	Incident_Stats inc_stats; ///< the incedince data if provided for general population. look for Incident_Stats for more info
@@ -192,6 +193,7 @@ public:
 		score_bins = 0;
 		score_resolution = 0;
 		incidence_fix = 0;
+		score_min_samples = 0;
 		fix_label_to_binary = true;
 	}
 	/// <summary>
@@ -202,7 +204,7 @@ public:
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
 
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
-		max_diff_working_point, score_bins, score_resolution, fix_label_to_binary, inc_stats)
+		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, inc_stats)
 };
 
 #pragma region Cohort Fucntions

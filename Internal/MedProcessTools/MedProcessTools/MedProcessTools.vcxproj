@@ -92,6 +92,7 @@
     <ClCompile Include="MedProcessUtils.cpp" />
     <ClCompile Include="MedSamples.cpp" />
     <ClCompile Include="MedValueCleaner.cpp" />
+    <ClCompile Include="PanelCompleter.cpp" />
     <ClCompile Include="RepCalculators.cpp" />
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="SampleFilter.cpp" />

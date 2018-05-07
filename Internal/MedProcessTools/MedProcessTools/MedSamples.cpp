@@ -10,9 +10,9 @@
 //=======================================================================================
 // MedSample
 //=======================================================================================
-// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split,pred)
+// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split) in addition to pred_pos vector and attr_pos map
 //.......................................................................................
-int MedSample::parse_from_string(string &s, map <string, int> & pos) {
+int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos) {
 	if (pos.size() == 0)
 		return parse_from_string(s);
 	vector<string> fields;
@@ -30,8 +30,17 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos) {
 			outcomeTime = (int)stod(fields[pos["outcome_date"]]);
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
-		if (pos["pred"] != -1 && fields.size() > pos["pred"])
-			prediction.push_back(stof(fields[pos["pred"]]));
+
+		for (int pos : pred_pos) {
+			if (pos != -1 && fields.size() > pos)
+				prediction.push_back(stof(fields[pos]));
+		}
+
+		for (auto& attr : attr_pos) {
+			if (attr.second != -1 && fields.size() > attr.second)
+				attributes[attr.first] = stof(fields[attr.second]);
+		}
+
 		return 0;
 	}
 	catch (std::invalid_argument e) {
@@ -96,13 +105,15 @@ int MedSample::parse_from_string(string &s)
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s)
+void MedSample::write_to_string(string &s, vector<string>& attr)
 {
 	s = "";
 	s += "SAMPLE\t" + to_string(id) + "\t" + to_string(time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
 	s += "\t" + to_string(split);
 	for (auto p : prediction)
 		s += "\t" + to_string(p);
+	for (string& a : attr)
+		s += "\t" + to_string(attributes[a]);
 	return;
 }
 
@@ -113,13 +124,15 @@ void MedSample::print(const string prefix) {
 	if (prediction.size() > 0)
 		for (auto pred : prediction)
 			MLOG(" %f", pred);
+	for (auto& attr : attributes)
+		MLOG("%s=%f", attr.first.c_str(), attr.second);
 	MLOG("\n");
 }
 
 //=======================================================================================
 // MedIdSamples
 //=======================================================================================
-// Comparison function : mode 0 requires equal id/time, mode 1 requires equal outcome info, mode 2 also compares split and prediction
+// Comparison function : mode 0 requires equal id/time, mode 1 requires equal outcome info, mode 2 also compares split, attributes and prediction
 //.......................................................................................
 bool MedIdSamples::same_as(MedIdSamples &other, int mode) {
 	if (other.samples.size() != samples.size())
@@ -134,10 +147,14 @@ bool MedIdSamples::same_as(MedIdSamples &other, int mode) {
 			return false;
 
 		if (mode > 1) {
-			if (samples[i].split != other.samples[i].split || samples[i].prediction.size() != other.samples[i].prediction.size())
+			if (samples[i].split != other.samples[i].split || samples[i].prediction.size() != other.samples[i].prediction.size() || samples[i].attributes.size() != other.samples[i].attributes.size())
 				return false;
 			for (unsigned int j = 0; j < samples[i].prediction.size(); j++) {
 				if (samples[i].prediction[j] != other.samples[i].prediction[j])
+					return false;
+			}
+			for (auto& attr : samples[i].attributes) {
+				if (other.samples[i].attributes.find(attr.first) == other.samples[i].attributes.end() || other.samples[i].attributes[attr.first] != attr.second)
 					return false;
 			}
 		}
@@ -217,12 +234,11 @@ void MedSamples::get_categs(vector<float>& categs)
 
 // Helper function : get a vector of fields and generate the fields' positions map 
 //.......................................................................................
-int extract_field_pos_from_header(vector<string> field_names, map <string, int> & pos) {
+int extract_field_pos_from_header(vector<string> field_names, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos) {
 	pos["id"] = -1;
 	pos["date"] = -1;
 	pos["outcome"] = -1;
 	pos["outcome_date"] = -1;
-	pos["pred"] = -1;
 	pos["split"] = -1;
 
 	vector<string> unknown_fields;
@@ -235,10 +251,14 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 			pos["outcome"] = i;
 		else if (field_names[i] == "outcomeTime" || field_names[i] == "outcome_date")
 			pos["outcome_date"] = i;
-		else if (field_names[i] == "prediction" || field_names[i] == "pred")
-			pos["pred"] = i;
 		else if (field_names[i] == "split")
 			pos["split"] = i;
+		else if (field_names[i] == "prediction" || field_names[i] == "pred" || field_names[i].substr(0, 5) == "pred_") // Note that we don't check that pred_# are actually ordered
+			pred_pos.push_back(i);
+		else if (field_names[i].substr(0, 5) == "attr_") {
+			string attr_name = field_names[i].substr(5, field_names[i].length() - 5);
+			attr_pos[attr_name] = i;
+		}
 		else unknown_fields.push_back(field_names[i]);
 	}
 	if (unknown_fields.size() > 0) {
@@ -257,7 +277,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 }
 
 // read from text file.
-// If the line starting with EVENT_FIELDS (followed by tabe-delimeted field names : id,date,outcome,outcome_date,split,pred) appears before the data lines, it is used to determine
+// If the line starting with EVENT_FIELDS (followed by tabe-delimeted field names : id,date,outcome,outcome_date,split,preds,attr) appears before the data lines, it is used to determine
 // fields positions, otherwise - old or new formats are used. Return -1 upon failure to open file
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname)
@@ -278,6 +298,8 @@ int MedSamples::read_from_file(const string &fname)
 	int curr_id = -1;
 	unordered_set<int> seen_ids;
 	map<string, int> pos;
+	vector<int> pred_pos;
+	map<string, int> attr_pos;
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -292,12 +314,12 @@ int MedSamples::read_from_file(const string &fname)
 				else if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
 				else if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
 				else if ((fields[0] == "EVENT_FIELDS" || fields[0] == "pid" || fields[0] == "id") && read_records == 1) {
-					extract_field_pos_from_header(fields, pos);
+					extract_field_pos_from_header(fields, pos, pred_pos, attr_pos);
 					continue;
 				}
 				MedSample sample;
 
-				if (sample.parse_from_string(curr_line, pos) < 0) {
+				if (sample.parse_from_string(curr_line, pos, pred_pos, attr_pos) < 0) {
 					MWARN("skipping [%s]\n", curr_line.c_str());
 					skipped_records++;
 					if (read_records > 30 && skipped_records > read_records / 2)
@@ -337,11 +359,70 @@ int MedSamples::read_from_file(const string &fname)
 	return 0;
 }
 
-// write to text file in new format. Return -1 upon failure to open file
+// Get predictions vector size. Return -1 if not-consistent
+//-------------------------------------------------------------------------------------------
+int MedSamples::get_predictions_size(int& nPreds) {
+
+	nPreds = -1;
+	for (auto &s : idSamples) {
+		for (auto& ss : s.samples) {
+			if (nPreds == -1)
+				nPreds = (int)ss.prediction.size();
+			else if (ss.prediction.size() != nPreds)
+				return -1;
+		}
+	}
+	return 0;
+
+}
+
+// Get all attributes 
+//-------------------------------------------------------------------------------------------
+int MedSamples::get_all_attributes(vector<string>& attributes) {
+
+	attributes.clear();
+
+	for (auto &s : idSamples) {
+		for (auto& ss : s.samples) {
+			if (attributes.empty()) {
+				for (auto& attr : ss.attributes)
+					attributes.push_back(attr.first);
+			}
+			else {
+				if (ss.attributes.size() != attributes.size())
+					return -1;
+
+				int idx = 0;
+				for (auto& attr : ss.attributes) {
+					if (attributes[idx++] != attr.first)
+						return -1;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
+// write to text file in new format. 
+// Return -1 upon failure to open file.
+// Return -2 upon prediction-length inconsistency
+// Return -3 upon attributes inconsistency
 //.......................................................................................
 int MedSamples::write_to_file(const string &fname)
 {
 	ofstream of(fname);
+
+	int nPreds;
+	if (get_predictions_size(nPreds) < 0) {
+		MERR("MedSampels: Predictions vectors sizes inconsistent\n");
+		return -2;
+	}
+	vector<string> attributes;
+	if (get_all_attributes(attributes) < 0) {
+		MERR("MedSamples: Attributes sets inconsistency\n");
+		return -3;
+	}
 
 	MLOG("MedSamples: writing to %s\n", fname.c_str());
 	if (!of) {
@@ -351,16 +432,19 @@ int MedSamples::write_to_file(const string &fname)
 	int samples = 0;
 	int buffer_write = 0;
 
-	//of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeLength" <<
-	//	'\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
-	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split" << '\t' << "prediction" << endl;
+	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split";
+	for (int i = 0; i < nPreds; i++)
+		of << "\tpred_" << i;
+	for (string name : attributes)
+		of << "\tattr_" << name;
+	of << "\n";
 
 	int line = 0;
 	for (auto &s : idSamples) {
 		for (auto ss : s.samples) {
 			samples++;
 			string sout;
-			ss.write_to_string(sout);
+			ss.write_to_string(sout, attributes);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
 			if (buffer_write > 0 && line >= buffer_write) {
@@ -535,7 +619,7 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 
 	if (!log_file.empty()) {
 		ofstream fo(log_file, ios::app);
-		fo << "Samples has " << samples.size() << " records. fir uniq_pids = [";
+		fo << "Samples has " << samples.size() << " records. for uniq_pids = [";
 		for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
 			fo << " " << it->first << "=" << it->second;
 		fo << " ] all=[";
@@ -553,9 +637,7 @@ void medial::print::print_samples_stats(const MedSamples &samples, const string 
 	print_samples_stats(smps, log_file);
 }
 
-void medial::print::print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids,
-	bool take_prediction_time,
-	const string &log_file) {
+void medial::print::print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids, bool take_prediction_time, const string &log_file) {
 	unordered_map<int, int> count_0, count_1;
 	vector<int> all_years;
 	unordered_set<int> seen_year;
@@ -639,7 +721,7 @@ void medial::print::print_by_year(const MedSamples &data_records, int year_bin_s
 	print_by_year(vec, year_bin_size, unique_ids, take_prediction_time, log_file);
 }
 
-void medial::process::down_sample(MedSamples &samples, double take_ratio) {
+void medial::process::down_sample(MedSamples &samples, double take_ratio, bool with_repeats) {
 	int tot_samples = samples.nSamples();
 	//int tot_samples = (int)samples.idSamples.size();
 	vector<int> pids_index;
@@ -656,7 +738,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio) {
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index(tot_samples);
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, tot_samples - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
@@ -664,9 +746,11 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio) {
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		while (seen_index[num_ind])
-			num_ind = dist_gen(gen);
-		seen_index[num_ind] = true;
+		if (!with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
 		int index_i = pids_index[num_ind];
 		int index_j = 0;
 		while (index_j < samples.idSamples[index_i].samples.size() &&
@@ -687,7 +771,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio) {
 	medial::print::print_samples_stats(samples);
 }
 
-void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio) {
+void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio, bool with_repeats) {
 	if (take_ratio >= 1)
 		return;
 	unordered_map<int, vector<int>> pid_to_inds;
@@ -702,21 +786,23 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio)
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index((int)id_to_pid.size());
 	random_device rd;
-	mt19937 gen;
+	mt19937 gen(rd());
 	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		while (seen_index[num_ind])
-			num_ind = dist_gen(gen);
+		if (!with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
 		int pid = id_to_pid[num_ind];
 		vector<int> take_inds = pid_to_inds.at(pid);
 		for (int ind : take_inds)
 			//#pragma omp critical
 			filterd.idSamples.push_back(samples.idSamples[ind]);
-		seen_index[num_ind] = true;
 	}
 	samples.idSamples.swap(filterd.idSamples);
 	samples.sort_by_id_date();
