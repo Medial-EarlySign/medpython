@@ -1622,7 +1622,8 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
-			MTHROW_AND_ERR("not supported");
+			MTHROW_AND_ERR("not supported code %d for signal=%s\n", 
+				id, signalHirerchyType.c_str());
 		}
 		if (!name.empty())
 			res = name;
