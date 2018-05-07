@@ -47,6 +47,8 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "future_ind")
+			future_ind = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for AlcoholGenerator\n", field.c_str());
 		//! [AlcoholGenerator::init]
@@ -101,7 +103,7 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 			int start_age = med_time_converter.convert_times(MedTime::Date, MedTime::Days, date_age_may_start_drinking);
 
 			int future_date = 20990101;
-			if (future_ind == "1") {
+			if (future_ind == "0") {
 				future_date = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
 			}
 
@@ -443,7 +445,10 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				if (test_date >= start_date && test_date <= end_date) {
 					int val = (int)drink_ranges[kk].val;
 					//fprintf(stderr, "val : %i \n", val);
-					if (val == 1) unknown_f = 1;
+					if (val == 1) {
+						unknown_f = 1;
+						quantity_f = missing_val;
+					}
 					else if (val == 2) never_drink_f = 1;
 					else if (val == 3) {
 						ex_drink_f = 1;
@@ -516,16 +521,16 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				int current_drinker = (int)__current_drinker;
 				int drinking_level = (int)__drinker_quantity;
 				if (current_drinker == 1 && drinking_level == -1)
-					drinking_level = MED_MAT_MISSING_VALUE, plm_drinking_level = 2;
-				else if (current_drinker == 0 || drinking_level <= 0)
-					plm_drinking_level = 0;
-				else if (drinking_level >= 1 && drinking_level <= 4)
 					plm_drinking_level = 1;
-				else if (drinking_level >= 5 && drinking_level <= 17)
+				else if (drinking_level == 0)
+					plm_drinking_level = 0;
+				else if (drinking_level <= 7)
+					plm_drinking_level = 1; 
+				else if (drinking_level <=14)
 					plm_drinking_level = 2;
-				else if (drinking_level >= 18 && drinking_level <= 45)
+				else if (drinking_level <=21)
 					plm_drinking_level = 3;
-				else if (drinking_level >= 46 && drinking_level <= 65)
+				else if (drinking_level <= 28)
 					plm_drinking_level = 4;
 				else
 					plm_drinking_level = 5;

@@ -73,6 +73,10 @@ int MedDictionary::read(const string &fname)
 			if (fields.size() >= 2) {
 				if (fields[0].compare(0, 3, "DEF") == 0) {
 					int n_id = stoi(fields[1]);
+					if (Name2Id.find(fields[2]) != Name2Id.end())
+						MWARN("Warning::MedDictionary.read read id %d with existing key name \"%s\" ("
+							"with maybe diffrent id) in dictionary %s\n", n_id, fields[2].c_str(),
+							fname.c_str());
 					Name2Id[fields[2]] = n_id;
 					Id2Name[n_id] = fields[2];
 					if (used.find(fields[2]) == used.end()) {
@@ -83,6 +87,10 @@ int MedDictionary::read(const string &fname)
 				}
 				else if (fields[0].compare(0, 6, "SIGNAL") == 0) {
 					int n_id = stoi(fields[2]);
+					if (Name2Id.find(fields[2]) != Name2Id.end())
+						MWARN("Warning::Signal \"%s\" is defined again. now with id %d ("
+							"with maybe diffrent id) in file %s\n", fields[2].c_str(), n_id,
+							fname.c_str());
 					Name2Id[fields[1]] = n_id;
 					Id2Name[n_id] = fields[1];
 					if (used.find(fields[1]) == used.end()) {

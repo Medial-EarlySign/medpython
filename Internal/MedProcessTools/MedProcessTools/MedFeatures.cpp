@@ -559,7 +559,7 @@ void medial::process::down_sample(MedFeatures &dataMat, double take_ratio, bool 
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		if (with_repeats) {
+		if (!with_repeats) {
 			while (seen_index[num_ind])
 				num_ind = dist_gen(gen);
 			seen_index[num_ind] = true;
@@ -774,7 +774,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	if (print_verbose) {
 		MLOG("Before Mathcing Total samples is %d on %d groups\n",
 			(int)data_records.samples.size(), (int)all_groups.size());
-		MLOG("Group"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio\n");
+		MLOG("Group"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio" "\t" "required_price_ratio" "\n");
 	}
 	for (const string &grp : all_groups)
 	{
@@ -784,15 +784,57 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 		year_ratio[grp] = count_label_groups[1][grp] / float(count_label_groups[0][grp] + count_label_groups[1][grp]);
 		all_ratios[i] = year_ratio[grp];
 		++i;
-		if (print_verbose)
-			MLOG("%s\t%d\t%d\t%f\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
-				, count_label_groups[1][grp] / float(count_label_groups[1][grp] + count_label_groups[0][grp]));
-
 	}
-
-
 	//Choose ratio to balance all for:
 	sort(all_ratios.begin(), all_ratios.end());
+	if (print_verbose) {
+		vector<float> controls_sum(all_groups.size()), cases_sum(all_groups.size());
+		for (const string &grp : all_groups) {
+			float grp_ratio = year_ratio[grp];
+			int ratio_ind = medial::process::binary_search_index(all_ratios.data(),
+				all_ratios.data() + all_ratios.size() - 1, grp_ratio);
+			if (ratio_ind < 0) {
+				MWARN("warning: bug in binary search - matching(effects just verbose printing)\n");
+				break;
+			}
+			for (const string &grp_calc : all_groups) {
+				float grp_ratio_clc = count_label_groups[1][grp_calc] / float(count_label_groups[1][grp_calc] + count_label_groups[0][grp_calc]);
+				if (grp_ratio_clc < grp_ratio)
+					controls_sum[ratio_ind] += (count_label_groups[1][grp_calc] + count_label_groups[0][grp_calc]) -
+					count_label_groups[1][grp_calc] / grp_ratio;
+				else
+					cases_sum[ratio_ind] += (count_label_groups[1][grp_calc] -
+						(count_label_groups[1][grp_calc] + count_label_groups[0][grp_calc])*grp_ratio) /
+					(1 - grp_ratio);
+			}
+		}
+		for (const string &grp : all_groups) {
+			float grp_ratio = year_ratio[grp];
+			int ratio_ind = medial::process::binary_search_index(all_ratios.data(),
+				all_ratios.data() + all_ratios.size() - 1, grp_ratio);
+			if (ratio_ind < 0)
+				break;
+			float factor_needed_down = 0, factor_needed_up = -1;
+			if (ratio_ind < all_ratios.size() - 1) {
+				float diff_cases = abs(cases_sum[ratio_ind] - cases_sum[ratio_ind + 1]);
+				float diff_controls = abs(controls_sum[ratio_ind] - controls_sum[ratio_ind + 1]);
+				factor_needed_up = diff_controls / diff_cases;
+			}
+			if (ratio_ind > 0) {
+				float diff_cases = abs(cases_sum[ratio_ind] - cases_sum[ratio_ind - 1]);
+				float diff_controls = abs(controls_sum[ratio_ind] - controls_sum[ratio_ind - 1]);
+				factor_needed_down = diff_controls / diff_cases;
+			}
+
+			if (factor_needed_up > 0)
+				MLOG("%s\t%d\t%d\t%f\t[%2.2f-%2.2f]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
+					, grp_ratio, factor_needed_down, factor_needed_up);
+			else
+				MLOG("%s\t%d\t%d\t%f\t[%2.2f-]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
+					, grp_ratio, factor_needed_down);
+		}
+	}
+
 	float r_target = 0;
 	float best_cost = -1;
 	int best_0_rem = 0, best_1_rem = 0;

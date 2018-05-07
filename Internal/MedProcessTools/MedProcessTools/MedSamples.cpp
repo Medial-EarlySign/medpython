@@ -105,14 +105,14 @@ int MedSample::parse_from_string(string &s)
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, vector<string>& attr)
+void MedSample::write_to_string(string &s, const vector<string>& attr)
 {
 	s = "";
 	s += "SAMPLE\t" + to_string(id) + "\t" + to_string(time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
 	s += "\t" + to_string(split);
 	for (auto p : prediction)
 		s += "\t" + to_string(p);
-	for (string& a : attr)
+	for (const string& a : attr)
 		s += "\t" + to_string(attributes[a]);
 	return;
 }
@@ -746,7 +746,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio, bool w
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		if (with_repeats) {
+		if (!with_repeats) {
 			while (seen_index[num_ind])
 				num_ind = dist_gen(gen);
 			seen_index[num_ind] = true;
@@ -793,7 +793,7 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
 	{
 		int num_ind = dist_gen(gen);
-		if (with_repeats) {
+		if (!with_repeats) {
 			while (seen_index[num_ind])
 				num_ind = dist_gen(gen);
 			seen_index[num_ind] = true;

@@ -179,7 +179,7 @@ typedef enum {
 	FTR_NSAMPLES = 15, ///<"nsamples" - counts the number of times the signal apear in the time window
 	FTR_EXISTS = 16, ///<"exists" - boolean 0/1 if the signal apears in the time window
 	FTR_CATEGORY_SET_FIRST = 17, ///<"category_set_first" - boolean 0/1 if the signal apears in the time window and did not appear ever before the window
-
+	FTR_MAX_DIFF = 18, //maximum diff in window
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -206,6 +206,7 @@ private:
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
+	float uget_max_diff(UniversalSigVec &usv, int time_point);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 
 public:
