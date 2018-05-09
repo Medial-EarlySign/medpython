@@ -102,13 +102,7 @@ ___fix_vecmap_iter()
 External Methods in addition to api
 """
 
-
-def __export_to_pandas(self, sig_name_str):
-    """get_sig_no_cat_conv(signame) -> Pandas DataFrame """
-    from pandas import DataFrame
-    return DataFrame.from_dict(dict(self.export_to_numpy(sig_name_str))) 
-
-def __export_to_pandas2(self, sig_name_str, translate=True, pids=None):
+def __export_to_pandas(self, sig_name_str, translate=True, pids=None):
     """get_sig(signame [, translate=True][, pids=None]) -> Pandas DataFrame
          translate : If True, will decode categorical fields into a readable representation in Pandas
          pid : If list is provided, will load only pids from the given list
@@ -125,15 +119,12 @@ def __export_to_pandas2(self, sig_name_str, translate=True, pids=None):
     if not translate:
       return df
     for field in sigexporter.get_categorical_fields():
-        sigexporter.get_categorical_field_dict(field)
-        ckey = sigexporter.get_categorical_keys()
-        cval = sigexporter.get_categorical_values()
-        df[field] = df[field].map(
-            pd.Series({ v:k for k,v in enumerate(ckey) })).astype('category').cat.rename_categories(cval)
+        df[field] = df[field].astype('category').cat.rename_categories(dict(sigexporter.get_categorical_field_dict(field)))
     return df
 
+
 def __bind_external_methods():
-    setattr(globals()['PidRepository'],'get_sig', __export_to_pandas2)
+    setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
 
 __bind_external_methods()
 

@@ -450,6 +450,9 @@ public:
 	/// Target number to select (if 0, ignored)
 	int numToSelect = 0;
 
+	/// Delta around numToSelect. will search to find [numToSelect - numToSelectDelta, numToSelect + numToSelectDelta] 
+	int numToSelectDelta = 0;
+
 	// Constructor
 	FeatureSelector() : FeatureProcessor() { missing_value = MED_MAT_MISSING_VALUE; numToSelect = 0; }
 
@@ -486,6 +489,15 @@ public:
 	float lambdaRatio = (float)0.1;
 	vector<string> lax_lasso_features;
 
+	/// rate for SGD:
+	float rate = (float)0.01;
+
+	/// Momentum for SGD:
+	float momentum = (float)0.95;
+
+	/// Momentum for SGD:
+	float stop_at_err = (float)1e-4;
+		
 	int nthreads = 12;
 
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_LASSO_SELECTOR; };

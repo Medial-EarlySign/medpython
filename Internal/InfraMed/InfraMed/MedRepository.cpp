@@ -1806,7 +1806,9 @@ void medial::repository::set_global_time_unit(const string &repository_path) {
 	if (temp_rep.read_config(repository_path) < 0)
 		MTHROW_AND_ERR("Can't read repository %s\n", repository_path.c_str());
 	global_default_time_unit = temp_rep.time_unit;
-	global_default_windows_time_unit = temp_rep.time_unit;
-	if (global_default_time_unit != MedTime::Date)
+	global_default_windows_time_unit = MedTime::Days;
+	if (global_default_time_unit != MedTime::Date) {
+		global_default_windows_time_unit = MedTime::Minutes;
 		MLOG("model_runner: running on ICU repository\n");
+	}
 }

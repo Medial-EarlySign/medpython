@@ -552,8 +552,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					{
 						if (reg_censor->at(k)->registry_value > 0)
 							continue;
-						int diff_to_allowed = int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
-							reg_censor->at(k)->end_date)));
+						int diff_to_allowed = med_time_converter.convert_days(global_default_windows_time_unit, int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
+							reg_censor->at(k)->end_date))));
 						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_censor->at(k)->start_date) {
 							is_legal = true;
 							break;
