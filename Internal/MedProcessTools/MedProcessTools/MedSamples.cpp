@@ -280,7 +280,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 // If the line starting with EVENT_FIELDS (followed by tabe-delimeted field names : id,date,outcome,outcome_date,split,preds,attr) appears before the data lines, it is used to determine
 // fields positions, otherwise - old or new formats are used. Return -1 upon failure to open file
 //-------------------------------------------------------------------------------------------
-int MedSamples::read_from_file(const string &fname)
+int MedSamples::read_from_file(const string &fname, bool sort_rows)
 {
 	unsigned long long final_size = 0;
 
@@ -354,7 +354,8 @@ int MedSamples::read_from_file(const string &fname)
 		}
 	}
 	MLOG("read [%d] samples for [%d] patient IDs. Skipped [%d] records\n", samples, idSamples.size(), skipped_records);
-	sort_by_id_date();
+	if (sort_rows)
+		sort_by_id_date();
 	inf.close();
 	return 0;
 }

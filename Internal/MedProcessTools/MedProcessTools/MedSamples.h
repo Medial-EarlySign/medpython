@@ -149,7 +149,7 @@ public:
 	/// fields positions, otherwise - old or new formats are used. 
 	/// </summary>
 	/// <returns>  -1 upon failure to open file, 0 upon success </returns>
-	int read_from_file(const string& file_name);
+	int read_from_file(const string& file_name, bool sort_rows = true);
 
 	/// <summary>  Write to text file in new format  </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
