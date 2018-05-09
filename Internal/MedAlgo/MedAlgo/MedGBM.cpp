@@ -179,21 +179,27 @@ int MedGBM::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 //..............................................................................
 size_t MedGBM::get_size() {
 
-	return get_gbm_info_size(&gbm_model) ;
+	return MedSerialize::get_size(classifier_type) + get_gbm_info_size(&gbm_model) ;
 
 }
 
 //..............................................................................
 size_t MedGBM::serialize(unsigned char *blob) {
 
-	return (size_t) gbm_serialize(&gbm_model,blob) ;
+	size_t ptr = 0;
+	ptr += MedSerialize::serialize(blob+ptr, classifier_type);
+	ptr += gbm_serialize(&gbm_model, blob+ptr);
+	return ptr;
 
 }
 
 //..............................................................................
 size_t MedGBM::deserialize(unsigned char *blob) {
-
-	return (size_t) gbm_deserialize(blob, &gbm_model) ;
+	
+	size_t ptr = 0;
+	ptr += MedSerialize::deserialize(blob+ptr, classifier_type);
+	ptr += gbm_deserialize(blob+ptr, &gbm_model);
+	return ptr;
 
 }
 

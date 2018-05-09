@@ -42,7 +42,7 @@ typedef enum {
 class RepProcessor : public SerializableObject {
 public:
 
-	RepProcessorTypes processor_type; ///< type of repository processor
+	RepProcessorTypes processor_type = REP_PROCESS_LAST; ///< type of repository processor
 
 	unordered_set<string> req_signals; ///< names of signals required for processsing
 	unordered_set<int> req_signal_ids; ///< ids of signals required for processing
@@ -158,7 +158,7 @@ public:
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes.
 	/// <summary> if time_points is empty, processinng is done for each version for all times </summary>
-	virtual int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_vals) = 0;
+	virtual int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_vals) { return -1; };
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points only if required : May be implemented for inheriting classes </summary>
 	virtual int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds, vector<vector<float>>& attributes_vals);
 
@@ -188,6 +188,10 @@ public:
 
 
 	// Serialization (including type)
+	ADD_CLASS_NAME(RepProcessor)
+	ADD_SERIALIZATION_FUNCS(processor_type, req_signals, aff_signals, unconditional)
+	void *new_polymorphic(string derived_class_name);
+
 	/// <summary> get size of processor + processor_type </summary>
 	size_t get_processor_size();
 	/// <summary> seialize processor + processor_type </summary>
@@ -271,9 +275,8 @@ public:
 	void dprint(const string &pref, int rp_flag);
 
 	/// serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(RepMultiProcessor)
+	ADD_SERIALIZATION_FUNCS(processor_type, processors)
 
 	/// <summary> Print processors information </summary>
 	void print() { for (auto& processor : processors) processor->print(); }
@@ -349,10 +352,11 @@ public:
 
 	/// Serialization
 	int version() { return 2; }
+	ADD_CLASS_NAME(RepBasicOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 		trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
-		/// <summary> Print processors information </summary>
+	/// <summary> Print processors information </summary>
 		void print();
 };
 
@@ -363,6 +367,7 @@ class confRecord : public SerializableObject {
 public:
 	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
 	string distLow, distHigh; //"none" "norm" or "log" 
+	ADD_CLASS_NAME(confRecord)
 	ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh, distLow, distHigh)
 };
 MEDSERIALIZE_SUPPORT(confRecord)
@@ -405,7 +410,7 @@ public:
 
 	/// Serialization
 	int version() { return 2; }
-
+	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 		trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParams, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
@@ -534,6 +539,7 @@ public:
 
 	/// Serialization
 	int version() { return 2; }
+	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channel, val_channel, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
 
 private:
@@ -613,6 +619,7 @@ public:
 
 	// Serialization
 	int version() { return 2; }
+	ADD_CLASS_NAME(RepNbrsOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 		trimMax, trimMin, removeMax, removeMin, nbr_time_unit, nbr_time_width, nbrsMax, nbrsMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
@@ -682,7 +689,8 @@ public:
 
 	/// Serialization
 	int version() { return 0; }
-	ADD_SERIALIZATION_FUNCS(signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
+	ADD_CLASS_NAME(RepSimValHandler)
+	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
 private:
 	void handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes);
 	int verbose_cnt = 0;
@@ -867,7 +875,8 @@ public:
 	// serialization. meta-data file is kept for information but not used in apply
 	int version() { return 1; }
 	void print();
-	ADD_SERIALIZATION_FUNCS(panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
+	ADD_CLASS_NAME(RepPanelCompleter)
+	ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
 
 private:
 
@@ -949,6 +958,7 @@ public:
 
 	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
+
 };
 
 /**
@@ -1126,7 +1136,8 @@ public:
 	void print();
 
 	// serialization
-	ADD_SERIALIZATION_FUNCS(calculator, calculator_init_params, max_time_search_range, signals_time_unit,
+	ADD_CLASS_NAME(RepCalcSimpleSignals)
+	ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
 		signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
 
 private:
@@ -1176,8 +1187,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	void print();
-
-	ADD_SERIALIZATION_FUNCS(output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
+	ADD_CLASS_NAME(RepCombineSignals)
+	ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
@@ -1213,8 +1224,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	void print();
-
-	ADD_SERIALIZATION_FUNCS(input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
+	ADD_CLASS_NAME(RepSplitSignal)
+	ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
@@ -1249,8 +1260,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	void print();
-
-	ADD_SERIALIZATION_FUNCS(input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
+	ADD_CLASS_NAME(RepSignalRate)
+	ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
@@ -1301,8 +1312,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	void print();
-
-	ADD_SERIALIZATION_FUNCS(signalName, output_name, work_channel, factor, time_window, time_unit,
+	ADD_CLASS_NAME(RepAggregateSignal)
+	ADD_SERIALIZATION_FUNCS(processor_type, signalName, output_name, work_channel, factor, time_window, time_unit,
 		start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
@@ -1359,7 +1370,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	// serialization.
-	ADD_SERIALIZATION_FUNCS(signalNames, time_channels, win_from, win_to, window_time_unit, attrName, req_signals)
+	ADD_CLASS_NAME(RepCheckReq)
+	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channels, win_from, win_to, window_time_unit, attrName, req_signals)
 };
 
 //.......................................................................................
@@ -1377,11 +1389,18 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================
+MEDSERIALIZE_SUPPORT(RepProcessor)
 MEDSERIALIZE_SUPPORT(RepMultiProcessor)
 MEDSERIALIZE_SUPPORT(RepBasicOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepRuleBasedOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepConfiguredOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepNbrsOutlierCleaner)
 MEDSERIALIZE_SUPPORT(RepCalcSimpleSignals)
-
+MEDSERIALIZE_SUPPORT(RepSimValHandler)
+MEDSERIALIZE_SUPPORT(RepPanelCompleter)
+MEDSERIALIZE_SUPPORT(RepCombineSignals)
+MEDSERIALIZE_SUPPORT(RepSplitSignal)
+MEDSERIALIZE_SUPPORT(RepSignalRate)
+MEDSERIALIZE_SUPPORT(RepAggregateSignal)
+MEDSERIALIZE_SUPPORT(RepCheckReq)
 #endif

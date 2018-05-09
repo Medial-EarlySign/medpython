@@ -1,7 +1,7 @@
 // Object that can be serialized and written/read from file and also initialized from string
 
 #include "SerializableObject.h"
-#include "MedProcessUtils.h"
+//#include "MedProcessUtils.h"
 #include <assert.h>
 #include <boost/crc.hpp>
 #include <chrono>
@@ -22,7 +22,7 @@ int SerializableObject::read_from_file(const string &fname) {
 	unsigned char *blob;
 	unsigned long long final_size;
 
-	if (read_binary_data_alloc(fname, blob, final_size) < 0) {
+	if (MedSerialize::read_binary_data_alloc(fname, blob, final_size) < 0) {
 		MTHROW_AND_ERR("Error reading model from file %s\n", fname.c_str());
 		return -1;
 	}
@@ -66,7 +66,7 @@ int SerializableObject::write_to_file(const string &fname)
 	checksum_agent.process_bytes(blob, final_size);
 	MLOG("write_to_file [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
 
-	if (write_binary_data(fname, blob, final_size) < 0) {
+	if (MedSerialize::write_binary_data(fname, blob, final_size) < 0) {
 		MERR("Error writing model to file %s\n", fname.c_str());
 		return -1;
 	}
@@ -79,7 +79,7 @@ int SerializableObject::write_to_file(const string &fname)
 int SerializableObject::init_from_string(string init_string) {
 
 	map<string, string> map;
-	if (init_map_from_string(init_string, map) < 0) return -1;
+	if (MedSerialize::init_map_from_string(init_string, map) < 0) return -1;
 	if (map.size() == 1 && map.begin()->first == "pFile") {
 		return init_params_from_file(map.begin()->second);
 	}
@@ -92,7 +92,7 @@ int SerializableObject::init_from_string(string init_string) {
 int SerializableObject::init_params_from_file(string fname)
 {
 	string data;
-	if (read_file_into_string(fname, data) < 0) return -1;
+	if (MedSerialize::read_file_into_string(fname, data) < 0) return -1;
 	boost::replace_all(data, "\n", "");
 	return init_from_string(data);
 }

@@ -57,6 +57,7 @@ public:
 	void write_to_string(string &s, int time_unit);
 
 	// Serialization
+	ADD_CLASS_NAME(MedSample)
 	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes, str_attributes)
 };
 
@@ -101,6 +102,7 @@ public:
 	void get_times(vector<int> &times) { times.clear(); for (auto &s : samples) times.push_back(s.time); }
 
 	// Serialization
+	ADD_CLASS_NAME(MedIdSamples)
 	ADD_SERIALIZATION_FUNCS(id, split, samples)
 
 };
@@ -201,6 +203,7 @@ public:
 
 	//Serialization, version 1: Added version, model_features, features_count to serialization
 	//				 version 2: Added attributes
+	ADD_CLASS_NAME(MedSamples)
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 };
 

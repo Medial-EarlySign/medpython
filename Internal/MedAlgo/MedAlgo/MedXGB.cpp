@@ -225,7 +225,7 @@ size_t MedXGB::get_size() {
 	xgboost::bst_ulong len;
 	XGBoosterGetModelRaw(my_learner, &len, &out_dptr);
 
-	return (int)len + sizeof(int) + MedSerialize::get_size(model_features)
+	return (int)len + sizeof(int) + MedSerialize::get_size(classifier_type) + MedSerialize::get_size(model_features)
 		+ MedSerialize::get_size(features_count);
 }
 
@@ -340,10 +340,9 @@ size_t MedXGB::serialize(unsigned char *blob) {
 	size_t s = sizeof(int);
 	memcpy(blob + s, out_dptr, len); //save model
 	s += len;
-	MedSerialize::serialize(blob + s, model_features);
-	s += MedSerialize::get_size(model_features);
-	MedSerialize::serialize(blob + s, features_count);
-	s += MedSerialize::get_size(features_count);
+	s += MedSerialize::serialize(blob + s, classifier_type);
+	s += MedSerialize::serialize(blob + s, model_features);
+	s += MedSerialize::serialize(blob + s, features_count);
 
 	return s;
 }
@@ -360,10 +359,9 @@ size_t MedXGB::deserialize(unsigned char *blob) {
 	if (XGBoosterLoadModelFromBuffer(my_learner, blob + s, size) != 0)
 		MTHROW_AND_ERR("failed XGBoosterLoadModelFromBuffer\n");
 	s += size;
-	MedSerialize::deserialize(blob + s, model_features);
-	s += MedSerialize::get_size(model_features);
-	MedSerialize::deserialize(blob + s, features_count);
-	s += MedSerialize::get_size(features_count);
+	s += MedSerialize::deserialize(blob + s, classifier_type);
+	s += MedSerialize::deserialize(blob + s, model_features);
+	s += MedSerialize::deserialize(blob + s, features_count);
 	_mark_learn_done = true;
 	return s;
 }

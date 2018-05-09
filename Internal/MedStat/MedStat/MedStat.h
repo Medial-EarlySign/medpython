@@ -125,6 +125,7 @@ public:
 	void single_remove_trim_replace(float &val);
 	void single_normalize(float &val);
 
+	ADD_CLASS_NAME(MedCleaner)
 	size_t get_size() ;
 	size_t serialize(unsigned char *buffer) ;
 	size_t deserialize(unsigned char *buffer) ;

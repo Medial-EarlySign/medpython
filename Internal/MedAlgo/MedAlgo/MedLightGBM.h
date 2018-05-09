@@ -152,6 +152,7 @@ struct MedLightGBMParams : public SerializableObject {
 	string defaults = "";
 	string user_params = "";
 
+	ADD_CLASS_NAME(MedLightGBMParams)
 	ADD_SERIALIZATION_FUNCS(defaults, user_params);
 };
 
@@ -213,6 +214,7 @@ public:
 
 
 	// serializations
+	ADD_CLASS_NAME(MedLightGBM)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);

@@ -9,7 +9,7 @@
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 
-#include "MedProcessTools/MedProcessTools/MedModel.h"
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -106,6 +106,24 @@ FeatureGenerator *FeatureGenerator::make_generator(string generator_name, string
 	//MLOG("making generator %s , %s\n", generator_name.c_str(), init_string.c_str());
 	return make_generator(ftr_generator_name_to_type(generator_name), init_string);
 }
+
+//.......................................................................................
+void *FeatureGenerator::new_polymorphic(string dname) {
+
+	CONDITIONAL_NEW_CLASS(dname, BasicFeatGenerator);
+	CONDITIONAL_NEW_CLASS(dname, AgeGenerator);
+	CONDITIONAL_NEW_CLASS(dname, GenderGenerator);
+	CONDITIONAL_NEW_CLASS(dname, SingletonGenerator);
+	CONDITIONAL_NEW_CLASS(dname, BinnedLmEstimates);
+	CONDITIONAL_NEW_CLASS(dname, SmokingGenerator);
+	CONDITIONAL_NEW_CLASS(dname, KpSmokingGenerator);
+	CONDITIONAL_NEW_CLASS(dname, AlcoholGenerator);
+	CONDITIONAL_NEW_CLASS(dname, RangeFeatGenerator);
+	CONDITIONAL_NEW_CLASS(dname, DrugIntakeGenerator);
+	CONDITIONAL_NEW_CLASS(dname, ModelFeatGenerator);
+	return NULL;
+}
+
 
 //.......................................................................................
 FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type) {
@@ -1768,32 +1786,12 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 }
 
-// (De)Serialize
-//.......................................................................................
-size_t ModelFeatGenerator::get_size() {
-	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded);
-	return size + model->get_size();
-}
-
-size_t ModelFeatGenerator::serialize(unsigned char *blob) {
-	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded);
-	size_t ptr2 = model->serialize(blob + ptr1);
-	return ptr2 + ptr1;
-}
-
-size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
-
-	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded);
-	model = new MedModel;
-	size_t ptr2 = model->deserialize(blob + ptr1);
-	return ptr2 + ptr1;
-}
-
 ModelFeatGenerator::~ModelFeatGenerator() {
 	if (model != NULL) delete model;
 	model = NULL;
 }
 
+ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded, model)
 //................................................................................................................
 // Helper function for time conversion
 //................................................................................................................

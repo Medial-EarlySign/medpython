@@ -10,6 +10,8 @@
 struct SparseMatRowMetaData : public SerializableObject {
 	int pid;
 	int time;
+	ADD_CLASS_NAME(SparseMatRowMetaData)
+	ADD_SERIALIZATION_FUNCS(pid, time)
 };
 
 // MedSparseMat is not templated ... currently float only
@@ -50,5 +52,10 @@ public:
 	// the following writes only the mat to a bin file with len at the start and then 3 arrays of length len for row , col and val.
 	// this allows for an easier and faster transfer to python.
 	int write_to_bin_file(string bin_file);
+
+	ADD_CLASS_NAME(MedSparseMat)
+	ADD_SERIALIZATION_FUNCS(n_rows, n_cols, lines, meta, dict)
 };
 
+MEDSERIALIZE_SUPPORT(SparseMatRowMetaData)
+MEDSERIALIZE_SUPPORT(MedSparseMat)

@@ -62,7 +62,8 @@ public:
 		tree_params.lambda = 1;
 	}
 
-	ADD_SERIALIZATION_FUNCS(ntrees, iter_count, burn_count, restart_count)
+	ADD_CLASS_NAME(MedBART)
+	ADD_SERIALIZATION_FUNCS(classifier_type, ntrees, iter_count, burn_count, restart_count)
 private:
 	int ntrees; ///< The nubmer of trees/restarts
 	int iter_count; ///< the number of steps to call next_gen_tree for each tree
@@ -72,6 +73,8 @@ private:
 
 	BART _model;
 };
+
+MEDSERIALIZE_SUPPORT(MedBART)
 
 #endif // !_MED_BART_H_
 

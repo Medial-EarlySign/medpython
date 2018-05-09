@@ -336,12 +336,13 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 //..............................................................................
 size_t MedQRF::get_size() {
 	return qf.get_size()
-		+ MedSerialize::get_size(model_features) + MedSerialize::get_size(features_count);
+		+ MedSerialize::get_size(classifier_type) + MedSerialize::get_size(model_features) + MedSerialize::get_size(features_count);
 }
 
 //..............................................................................
 size_t MedQRF::serialize(unsigned char *blob) {
 	size_t size = qf.serialize(blob);
+	size += MedSerialize::serialize(blob + size, classifier_type);
 	size += MedSerialize::serialize(blob + size, model_features);
 	size += MedSerialize::serialize(blob + size, features_count);
 	return size;
@@ -359,6 +360,7 @@ size_t MedQRF::deserialize(unsigned char *blob) {
 	params.get_count = qf.get_counts_flag;
 	params.quantiles = qf.quantiles;
 
+	s += MedSerialize::deserialize(blob + s, classifier_type);
 	s += MedSerialize::deserialize(blob + s, model_features);
 	s += MedSerialize::deserialize(blob + s, features_count);
 	return s;

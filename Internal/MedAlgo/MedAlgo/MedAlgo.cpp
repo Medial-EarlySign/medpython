@@ -69,6 +69,33 @@ MedPredictor * MedPredictor::make_predictor(string model_type, string init_strin
 	return make_predictor(predictor_name_to_type(model_type), init_string);
 }
 
+void *MedPredictor::new_polymorphic(string dname)
+{
+	CONDITIONAL_NEW_CLASS(dname, MedLM);
+	CONDITIONAL_NEW_CLASS(dname, MedGDLM);
+	CONDITIONAL_NEW_CLASS(dname, MedQRF);
+	CONDITIONAL_NEW_CLASS(dname, MedKNN);
+	CONDITIONAL_NEW_CLASS(dname, MedMars);
+	CONDITIONAL_NEW_CLASS(dname, MedGBM);
+	CONDITIONAL_NEW_CLASS(dname, MedBP);
+	CONDITIONAL_NEW_CLASS(dname, MedMultiClass);
+	CONDITIONAL_NEW_CLASS(dname, MedXGB);
+	CONDITIONAL_NEW_CLASS(dname, MedLasso);
+	CONDITIONAL_NEW_CLASS(dname, MedMicNet);
+	CONDITIONAL_NEW_CLASS(dname, MedBooster);
+	CONDITIONAL_NEW_CLASS(dname, MedDeepBit);
+	CONDITIONAL_NEW_CLASS(dname, MedLightGBM);
+	CONDITIONAL_NEW_CLASS(dname, MedSpecificGroupModels);
+	CONDITIONAL_NEW_CLASS(dname, MedSvm);
+	CONDITIONAL_NEW_CLASS(dname, MedTQRF);
+	CONDITIONAL_NEW_CLASS(dname, MedBART);
+	CONDITIONAL_NEW_CLASS(dname, MedLinearModel);
+#if NEW_COMPLIER
+	CONDITIONAL_NEW_CLASS(dname, MedVW);
+#endif
+	return NULL;
+}
+
 //.......................................................................................
 MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 
@@ -85,7 +112,7 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 	else if (model_type == MODEL_GBM)
 		return new MedGBM;
 	else if (model_type == MODEL_BP)
-		return new MedGBM;
+		return new MedBP;
 	else if (model_type == MODEL_MULTI_CLASS)
 		return new MedMultiClass;
 	else if (model_type == MODEL_XGB)

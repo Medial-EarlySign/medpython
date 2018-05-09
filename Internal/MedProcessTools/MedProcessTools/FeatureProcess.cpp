@@ -60,6 +60,26 @@ FeatureProcessor * FeatureProcessor::make_processor(string processor_name, strin
 }
 
 //.......................................................................................
+void *FeatureProcessor::new_polymorphic(string dname)
+{
+	CONDITIONAL_NEW_CLASS(dname, MultiFeatureProcessor);
+	CONDITIONAL_NEW_CLASS(dname, FeatureBasicOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, FeatureNormalizer);
+	CONDITIONAL_NEW_CLASS(dname, FeatureImputer);
+	CONDITIONAL_NEW_CLASS(dname, FeatureIterativeImputer);
+	CONDITIONAL_NEW_CLASS(dname, DoCalcFeatProcessor);
+	CONDITIONAL_NEW_CLASS(dname, UnivariateFeatureSelector);
+	CONDITIONAL_NEW_CLASS(dname, MRMRFeatureSelector);
+	CONDITIONAL_NEW_CLASS(dname, LassoSelector);
+	CONDITIONAL_NEW_CLASS(dname, DgnrtFeatureRemvoer);
+	CONDITIONAL_NEW_CLASS(dname, FeaturePCA);
+	CONDITIONAL_NEW_CLASS(dname, TagFeatureSelector);
+	CONDITIONAL_NEW_CLASS(dname, ImportanceFeatureSelector);
+	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
+	return NULL;
+}
+
+//.......................................................................................
 FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes processor_type) {
 
 	if (processor_type == FTR_PROCESS_MULTI)
@@ -297,54 +317,6 @@ int MultiFeatureProcessor::init(map<string, string>& mapper) {
 	return 0;
 }
 
-// Serialization
-//.......................................................................................
-size_t MultiFeatureProcessor::get_size() {
-
-	size_t size = MedSerialize::get_size(members_type, init_string, duplicate, tag);
-	size += sizeof(int);
-
-	for (auto& processor : processors)
-		size += processor->get_processor_size();
-
-	return size;
-}
-
-//.......................................................................................
-size_t MultiFeatureProcessor::serialize(unsigned char *blob) {
-
-	size_t ptr = MedSerialize::serialize(blob, members_type, init_string, duplicate, tag);
-
-	int nProcessors = (int)processors.size();
-	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
-
-	for (auto& processor : processors)
-		ptr += processor->processor_serialize(blob + ptr);
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t MultiFeatureProcessor::deserialize(unsigned char *blob) {
-
-	size_t ptr = MedSerialize::deserialize(blob, members_type, init_string, duplicate, tag);
-
-	// number of processors
-	int nProcessors;
-	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	processors.resize(nProcessors);
-
-	processors.resize(nProcessors);
-	for (int i = 0; i < nProcessors; i++) {
-		FeatureProcessorTypes type;
-		memcpy(&type, blob + ptr, sizeof(FeatureProcessorTypes)); ptr += sizeof(FeatureProcessorTypes);
-		processors[i] = FeatureProcessor::make_processor(type);
-		ptr += processors[i]->deserialize(blob + ptr);
-	}
-
-	return ptr;
-}
-
 //.......................................................................................
 void MultiFeatureProcessor::dprint(const string &pref, int fp_flag)
 {
@@ -442,22 +414,6 @@ int FeatureBasicOutlierCleaner::Apply(MedFeatures& features, unordered_set<int>&
 	return 0;
 }
 
-// (De)Serialization
-//.......................................................................................
-size_t FeatureBasicOutlierCleaner::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
-}
-
-//.......................................................................................
-size_t FeatureBasicOutlierCleaner::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
-}
-
-//.......................................................................................
-size_t FeatureBasicOutlierCleaner::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin);
-}
-
 //=======================================================================================
 // FeatureNormalizer
 //=======================================================================================
@@ -541,25 +497,6 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 
 	return 0;
 }
-
-// (De)Serialization
-//.......................................................................................
-size_t FeatureNormalizer::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, mean, sd, normalizeSd, fillMissing);
-}
-
-//extern char signalName_c[MAX_NAME_LEN + 1];
-
-//.......................................................................................
-size_t FeatureNormalizer::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, mean, sd, normalizeSd, fillMissing);
-}
-
-//.......................................................................................
-size_t FeatureNormalizer::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, resolved_feature_name, feature_name, mean, sd, normalizeSd, fillMissing);
-}
-
 
 //=======================================================================================
 // FeatureImputer
@@ -803,56 +740,6 @@ void FeatureImputer::addStrata(string& init_string) {
 	else
 		addStrata(fields[0], stof(fields[3]), stof(fields[1]), stof(fields[2]));
 
-}
-
-// (De)Serialization
-//.......................................................................................
-size_t FeatureImputer::get_size() {
-	return MedSerialize::get_size(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
-}
-
-//.......................................................................................
-size_t FeatureImputer::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
-}
-
-//.......................................................................................
-size_t FeatureImputer::deserialize(unsigned char *blob) {
-	size_t res = MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
-	verbose = true;
-	return res;
-}
-
-
-//.......................................................................................
-size_t featureSetStrata::get_size() {
-	return MedSerialize::get_size(stratas, factors);
-}
-
-//.......................................................................................
-size_t featureSetStrata::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, stratas, factors);
-}
-
-//.......................................................................................
-size_t featureSetStrata::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, stratas, factors);
-}
-
-//.......................................................................................
-size_t featureStrata::get_size() {
-	return MedSerialize::get_size(name, resolution, min, max, nValues);
-}
-
-//.......................................................................................
-size_t featureStrata::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, name, resolution, min, max, nValues);
-}
-
-
-//.......................................................................................
-size_t featureStrata::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, name, resolution, min, max, nValues);
 }
 
 //=======================================================================================

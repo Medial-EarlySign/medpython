@@ -174,7 +174,8 @@ public:
 
 	// serializations for a single node (partial... only what's needed by predictions, and not initialized by init_params)
 
-	ADD_SERIALIZATION_FUNCS(version, id, wgt, alpha, beta);
+	ADD_CLASS_NAME(micNode)
+	ADD_SERIALIZATION_FUNCS(version, id, wgt, alpha, beta)
 
 };
 
