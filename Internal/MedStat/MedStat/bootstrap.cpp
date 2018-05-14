@@ -563,18 +563,18 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		string cohort_name = it->first;
 
 		if (y_c.size() < 10) {
-			MWARN("WARN: Cohort %s is too small - has %d samples. Skipping\n", cohort_name.c_str(), int(y_c.size()));
+			MWARN("WARN: Cohort [%s] is too small - has %d samples. Skipping\n", cohort_name.c_str(), int(y_c.size()));
 			continue;
 		}
-		if (binary_outcome && (class_sz[0] < 1 || class_sz[1] < 1)) {
-			MWARN("WARN: Cohort %s is too small - has %d samples with labels = [%d, %d]. Skipping\n",
+		if (binary_outcome) {
+			if ((class_sz[0] < 1 || class_sz[1] < 1)) {
+				MWARN("WARN: Cohort [%s] is too small - has %d samples with labels = [%d, %d]. Skipping\n",
+					cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
+				continue;
+			}
+			else MLOG("Cohort [%s] - has %d samples with labels = [%d, %d]\n",
 				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
-			continue;
 		}
-		else if (binary_outcome)
-			MLOG_D("Cohort %s - has %d samples with labels = [%d, %d]\n",
-				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
-
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
@@ -1340,12 +1340,23 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				res[format_working_point("OR@SCORE", score_working_point, false)] = float(
 					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 
-			if (params->incidence_fix > 0)
+			if (params->incidence_fix > 0) {
 				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("RR@SCORE", score_working_point, false)] = float((ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
 						(params->incidence_fix * (1 - true_rate[i]))));
 				else
 					res[format_working_point("RR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
+			}
+			else {
+				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+					float FOR = float((1.0 - true_rate[i]) * t_sum) /
+						((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum);
+					res[format_working_point("RR@SCORE", score_working_point, false)] =
+						float(ppv / FOR);
+				}
+				else
+					res[format_working_point("RR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
+			}
 		}
 	}
 
