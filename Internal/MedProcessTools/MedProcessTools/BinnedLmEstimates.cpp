@@ -46,8 +46,8 @@ void BinnedLmEstimates::set_names() {
 
 //.......................................................................................
 void BinnedLmEstimates::set(string& _signalName) {
-	
-	signalName = _signalName; 
+
+	signalName = _signalName;
 
 	init_defaults();
 	names.clear();
@@ -55,7 +55,7 @@ void BinnedLmEstimates::set(string& _signalName) {
 
 	req_signals.resize(3);
 	req_signals[0] = med_rep_type.genderSignalName;
-	req_signals[1] = (ageDirectlyGiven) ?  "Age" : "BYEAR";
+	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
 	req_signals[2] = signalName;
 }
 
@@ -81,7 +81,7 @@ void BinnedLmEstimates::init_defaults() {
 	req_signals[0] = med_rep_type.genderSignalName;
 	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
 
-	signalId = -1; 
+	signalId = -1;
 	byearId = -1;
 	ageId = -1;
 	genderId = -1;
@@ -134,7 +134,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "time_unit") time_unit_periods = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second)!=0);
+		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second) != 0);
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
@@ -155,20 +155,20 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 
 //..............................................................................
 void BinnedLmEstimates::set_signal_ids(MedDictionarySections& dict) {
-	
-	signalId = dict.id(signalName); 
+
+	signalId = dict.id(signalName);
 	genderId = dict.id(med_rep_type.genderSignalName);
-	
+
 	if (ageDirectlyGiven)
 		ageId = dict.id("Age");
 	else
-		byearId = dict.id("BYEAR"); 
+		byearId = dict.id("BYEAR");
 }
 
 // Learn a generator
 //.......................................................................................
 int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
-	
+
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {
 		MERR("Uninitialized signalId\n");
@@ -196,7 +196,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	vector<float> values;
 	vector<int> ages, times, genders;
 	vector<int> id_firsts(ids.size()), id_lasts(ids.size());
-	
+
 	UniversalSigVec usv, ageUsv;
 	for (unsigned int i = 0; i < ids.size(); i++) {
 		int id = ids[i];
@@ -221,20 +221,20 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			// Apply processing at last time point only
 //			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
-			vector<int> time_points;   
-			
+			vector<int> time_points;
+
 			rec.init_from_rep(std::addressof(rep), id, all_req_signal_ids_v, 1);
 
 			// BYear/Age
 			prepare_for_age(rec, ageUsv, age, byear);
-			  
+
 			// Apply Processors
 			vector<vector<float>> dummy_attributes_mat;
-			for (unsigned int i = 0; i < processors.size(); i++) 
+			for (unsigned int i = 0; i < processors.size(); i++)
 				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
 
 			// Collect values and ages
-			rec.uget(signalId, 0, usv); 
+			rec.uget(signalId, 0, usv);
 			for (int i = 0; i < usv.len; i++) {
 				values.push_back(usv.Val(i, val_channel));
 				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
@@ -257,9 +257,9 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		}
 		id_lasts[i] = id_firsts[i] + usv.len - 1;
 	}
-	
+
 	// Allocate
-	int num = (int) values.size();
+	int num = (int)values.size();
 	if (num == 0) {
 		MERR("No Data Collected for %s\n", signalName.c_str());
 		return -1;
@@ -270,7 +270,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	xsdvs.resize(nfeatures, 0);
 	ymeans.resize(nmodels, 0);
 	ysdvs.resize(nmodels, 0);
-	
+
 	vector<double> sums[2];
 	vector<int> nums[2];
 	for (int igender = 0; igender < 2; igender++) {
@@ -283,11 +283,11 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	for (int i = 0; i < num; i++) {
 		if (ages[i] <= BINNED_LM_MAX_AGE && ages[i] >= 1) {
 			int id = ids[i];
-			nums[genders[i]-1][ages[i]] ++;
-			sums[genders[i]-1][ages[i]] += values[i];
+			nums[genders[i] - 1][ages[i]] ++;
+			sums[genders[i] - 1][ages[i]] += values[i];
 		}
 	}
-	
+
 	// Gender/Age - correct for missing data
 	for (int igender = 0; igender < 2; igender++) {
 		int most_common_age = 0;
@@ -297,8 +297,8 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		}
 
 		if (nums[igender][most_common_age] == 0) {
-			MDBG(DEBUG_LOG_LEVEL,"No %s found for gender %d. Are we in a single gender mode ?\n", signalName.c_str(), igender + 1);
-			continue;   
+			MDBG(DEBUG_LOG_LEVEL, "No %s found for gender %d. Are we in a single gender mode ?\n", signalName.c_str(), igender + 1);
+			continue;
 		}
 		else if (nums[igender][most_common_age] < BINNED_LM_MINIMAL_NUM_PER_AGE) {
 			MERR("Not enough tests for %s (most common age = %d has only %d samples)\n", signalName.c_str(), most_common_age, nums[igender][most_common_age]);
@@ -325,7 +325,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		}
 	}
 	// Collect data
-	MedMat<float> x((int) values.size(), (int) nperiods);
+	MedMat<float> x((int)values.size(), (int)nperiods);
 	vector<float> y(values.size());
 	vector<int> types(values.size());
 	int irow = 0;
@@ -342,12 +342,14 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 			// Add line + type to data matrix
 			int type = 0;
-			int iperiod = (int) nperiods;
-			int jperiod = (int) nperiods;
+			int iperiod = (int)nperiods;
+			int jperiod = (int)nperiods;
 
 			float type_sum = 0;
 			int type_num = 0;
 			for (int idx2 = id_firsts[i]; idx2 <= id_lasts[i]; idx2++) {
+				if (ages[idx2] > BINNED_LM_MAX_AGE || ages[idx2] < 1)
+					continue;
 				if (idx1 == idx2)
 					continue;
 
@@ -369,7 +371,10 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				}
 
 				if (iperiod != nperiods) {
-					type_sum += values[idx2] - means[gender-1][ages[idx2]];
+					if (idx2 >= values.size() || idx2 >= ages.size() || !(gender >= 1 && gender <= 2) || ages[idx2] >= means[gender - 1].size())
+						MTHROW_AND_ERR("ERROR: idx2=%d, values.size()=%d, ages.size()=%d, gender=%d, pid=%d, signalId=%d, age=%d\n",
+							idx2, (int)values.size(), (int)ages.size(), gender, ids[i], signalId, ages[idx2]);
+					type_sum += values[idx2] - means[gender - 1][ages[idx2]];
 					type_num++;
 				}
 			}
@@ -379,14 +384,14 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				x(irow, jperiod) = type_sum / type_num;
 			}
 
-			y[irow] = values[idx1] - means[gender-1][ages[idx1]];
+			y[irow] = values[idx1] - means[gender - 1][ages[idx1]];
 			types[irow++] = type;
 		}
 	}
 	// Build model for each class 
 	// Collect Data
 	int inrows = irow;
-	
+
 	models[0].n_ftrs = 0;
 	for (int type = 1; type < nmodels; type++) {
 		vector<int> cols(nperiods, 0);
@@ -432,10 +437,10 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 		ty.normalize();
 		ymeans[type] = ty.avg[0];
 		ysdvs[type] = ty.std[0];
-		
+
 		models[type].params.rfactor = params.rfactor;
-		models[type].learn(tx, ty);		
-//		models[type].print(stdout, "model." + signalName + "." + to_string(type));
+		models[type].learn(tx, ty);
+		//		models[type].print(stdout, "model." + signalName + "." + to_string(type));
 
 	}
 
@@ -458,14 +463,14 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 	size_t nmodels = 1 << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
-	int iperiod = (int) nperiods;
-	int jperiod = (int) nperiods;
-	
+	int iperiod = (int)nperiods;
+	int jperiod = (int)nperiods;
+
 	int len, byear, gender, age;
 
 	// BYear/Age
 	UniversalSigVec usv, ageUsv;
-	prepare_for_age(rec,ageUsv,age,byear);
+	prepare_for_age(rec, ageUsv, age, byear);
 
 	// Gender
 	SVal *genderSignal = (SVal *)rec.get(genderId, len);
@@ -478,23 +483,23 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 	}
 
 	// Features
-	MedMat<float> x(1, (int) nfeatures);
+	MedMat<float> x(1, (int)nfeatures);
 	for (int i = 0; i < num; i++) {
 		rec.uget(signalId, i);
-		int last_time = med_time_converter.convert_times(features.time_unit, time_unit_periods, features.samples[index+i].time);
-		int last_sig_time = med_time_converter.convert_times(features.time_unit,time_unit_sig, features.samples[index+i].time);
+		int last_time = med_time_converter.convert_times(features.time_unit, time_unit_periods, features.samples[index + i].time);
+		int last_sig_time = med_time_converter.convert_times(features.time_unit, time_unit_sig, features.samples[index + i].time);
 
 		for (unsigned int ipoint = 0; ipoint < params.estimation_points.size(); ipoint++) {
 			int type = 0;
 			float type_sum = 0;
 			int type_num = 0;
 
-			float *p_feat = p_data[ipoint] + index ;
+			float *p_feat = p_data[ipoint] + index;
 			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, last_time - params.estimation_points[ipoint]);
 
 			for (int j = 0; j < rec.usv.len; j++) {
 				int time = rec.usv.Time(j, time_channel);
-				if ( time > last_sig_time)
+				if (time > last_sig_time)
 					break;
 
 				int gap = target_time - time;
@@ -518,7 +523,7 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 					get_age(rec.usv.Time(j, time_channel), time_unit_sig, age, byear);
 					if (age > BINNED_LM_MAX_AGE) age = BINNED_LM_MAX_AGE;
 					if (age < 1) age = 1;
-					type_sum += rec.usv.Val(j,val_channel) - means[gender-1][age];
+					type_sum += rec.usv.Val(j, val_channel) - means[gender - 1][age];
 					type_num++;
 				}
 			}
@@ -543,7 +548,7 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 					}
 				}
 
-				p_feat[i] = (pred + ymeans[type] + means[gender-1][age]);
+				p_feat[i] = (pred + ymeans[type] + means[gender - 1][age]);
 			}
 			else {
 				p_feat[i] = missing_val;
@@ -565,7 +570,8 @@ void BinnedLmEstimates::get_p_data(MedFeatures &features) {
 			MTHROW_AND_ERR("Cannot generate weights using a multi-feature generator (type %d generates %d features)\n", generator_type, (int)names.size())
 		else
 			p_data[0] = &(features.weights[0]);
-	} else {
+	}
+	else {
 		for (unsigned int ipoint = 0; ipoint < params.estimation_points.size(); ipoint++)
 			p_data.push_back(&(features.data[names[ipoint]][0]));
 	}
@@ -650,22 +656,22 @@ void BinnedLmEstimates::prepare_for_age(PidDynamicRec& rec, UniversalSigVec& age
 void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear) {
 
 	if (ageDirectlyGiven) {
-		rep.uget(id,ageId, ageUsv);
+		rep.uget(id, ageId, ageUsv);
 		assert(ageUsv.len == 1);
 		age = (int)ageUsv.Val(0, 0);
 	}
 	else {
 		int len;
-		SVal *bYearSignal = (SVal *)rep.get(id,byearId, len);
+		SVal *bYearSignal = (SVal *)rep.get(id, byearId, len);
 		assert(len == 1);
 		byear = (int)(bYearSignal[0].val);
 	}
 }
 
 inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, int byear) {
-	
-	if (! ageDirectlyGiven)
-		age =  med_time_converter.convert_times(time_unit_from, MedTime::Date, time)/10000 - byear;
+
+	if (!ageDirectlyGiven)
+		age = med_time_converter.convert_times(time_unit_from, MedTime::Date, time) / 10000 - byear;
 
 
 }
@@ -679,46 +685,46 @@ void BinnedLmEstimates::print()
 
 	sout += prefix + "nmodels:" + to_string(models.size()) + "\n";
 
-	for (int i=0; i<models.size(); i++) {
+	for (int i = 0; i < models.size(); i++) {
 		string mprefix = prefix + "model " + to_string(i) + " :: ";
 		sout += mprefix + "len: " + to_string(models[i].b.size()) + " b0: " + to_string(models[i].b0) + " b:: ";
-		for (int j=0; j<models[i].b.size(); j++)
+		for (int j = 0; j < models[i].b.size(); j++)
 			sout += to_string(j) + ":" + to_string(models[i].b[j]) + " ";
 		sout += "\n";
 	}
 
 	sout += prefix + "xmeans (" + to_string(xmeans.size()) + ")" + " ::";
-	for (int i=0; i<xmeans.size(); i++) {
+	for (int i = 0; i < xmeans.size(); i++) {
 		sout += to_string(i) + ":" + to_string(xmeans[i]) + " ";
 	}
 	sout += "\n";
 
 	sout += prefix + "ymeans (" + to_string(ymeans.size()) + ")" + " ::";
-	for (int i=0; i<ymeans.size(); i++) {
+	for (int i = 0; i < ymeans.size(); i++) {
 		sout += to_string(i) + ":" + to_string(ymeans[i]) + " ";
 	}
 	sout += "\n";
 
 	sout += prefix + "xsdvs (" + to_string(xsdvs.size()) + ")" + " ::";
-	for (int i=0; i<xsdvs.size(); i++) {
+	for (int i = 0; i < xsdvs.size(); i++) {
 		sout += to_string(i) + ":" + to_string(xsdvs[i]) + " ";
 	}
 	sout += "\n";
 
 	sout += prefix + "ysdvs (" + to_string(ysdvs.size()) + ")" + " ::";
-	for (int i=0; i<ysdvs.size(); i++) {
+	for (int i = 0; i < ysdvs.size(); i++) {
 		sout += to_string(i) + ":" + to_string(ysdvs[i]) + " ";
 	}
 	sout += "\n";
 
 	sout += prefix + "means[0] (" + to_string(means[0].size()) + ")" + " ::";
-	for (int i=0; i<means[0].size(); i++) {
+	for (int i = 0; i < means[0].size(); i++) {
 		sout += to_string(i) + ":" + to_string(means[0][i]) + " ";
 	}
 	sout += "\n";
 
 	sout += prefix + "means[1] (" + to_string(means[1].size()) + ")" + " ::";
-	for (int i=0; i<means[1].size(); i++) {
+	for (int i = 0; i < means[1].size(); i++) {
 		sout += to_string(i) + ":" + to_string(means[1][i]) + " ";
 	}
 	sout += "\n";
