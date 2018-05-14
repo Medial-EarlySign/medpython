@@ -172,5 +172,8 @@
     <None Include="..\Config_Examples\do_calc_example.json">
       <Filter>Config_Examples</Filter>
     </None>
+    <None Include="..\Resources\thin_completion_metadata">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

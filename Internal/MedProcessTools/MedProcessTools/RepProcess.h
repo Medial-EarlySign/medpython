@@ -342,10 +342,13 @@ public:
 /** Parameters for configured outliers cleaner
 */
 //.......................................................................................
-typedef struct {
+class confRecord {
+public:
 	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
     string distLow,distHigh; //"none" "norm" or "log" 
-} confRecord;
+	ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh, distLow, distHigh)
+} ;
+MEDSERIALIZE_SUPPORT(confRecord)
 
 //.......................................................................................
 /** RepConfiguredOutlierCleaner is a simple cleaner considering each value of a certain signal separatley,
@@ -359,6 +362,8 @@ public:
 	string confFileName; ///< configuration file and mapping
 	string cleanMethod; ///< cleaning method :  "logical" "confirmed" or "learned"
 	map<string,confRecord> outlierParams; ///< a map from signal name to outliers parameters
+
+	RepConfiguredOutlierCleaner() { init_defaults(); }
 
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
@@ -383,6 +388,7 @@ public:
 
 	/// Serialization
 	int version() { return 2; }
+
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 		trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParams, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
@@ -431,7 +437,6 @@ public:
 	vector <int> signalIds;
 	int time_channel = 0;
 	int val_channel = 0;
-	MedDictionarySections myDict; ///< keeping it will enable us to get ids at apply stage
 	bool addRequiredSignals=false; ///< a flag stating if we want to load signals that are not in the cleaned signal list 
 								   /// because they share a rule with the cleaned signals (set it in jason)
 	vector<int> consideredRules;///< only rules in this list will be considered in this cleaner (read list from jason)
@@ -439,6 +444,8 @@ public:
 
 	string nRem_attr = ""; ///< Attribute name (in sample) for number of removed. not recorded if empty
 	string nRem_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of removed. not recorded if empty
+
+	float tolerance = 0.1;
 
 	/// static map from rule to participating signals
 	map <int, vector<string>>rules2Signals = { 
@@ -467,6 +474,11 @@ public:
 
 	vector <int> rulesToApply;
 
+	/// Helpers
+	set <int> reqSignalIds, affSignalIds;
+	vector<vector<int >> rules_sids;
+	vector<vector<bool>> affected_by_rules;
+
 	// Constructors 
 	RepRuleBasedOutlierCleaner() : RepProcessor() {init_defaults(); }
 	
@@ -486,23 +498,27 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepRuleBasedOutlierCleaner::init
 	int init(map<string, string>& mapper);
-	
+
 	/// <summary> Init attributes information : Should be implemented for inheriting classes that have attributes </summary>
 	void init_attributes();
 
-	// Learn cleaning model  : no learning for this cleaner. only apply
-	
 	///set signals
-	void set_signal_ids(MedDictionarySections& dict) { myDict = dict; } // keep the dict. We will set ids later.
+	void set_signal_ids(MedDictionarySections& dict);
+
+	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	// Learning
+	/// <summary> In this class there's never learning - we init tables and return 0 immediately </summary>
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict, rep.sigs); return 0; };
 
 	/// Apply cleaning model 
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	/// Serialization
 	int version() { return 2; }
-	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channel, val_channel, addRequiredSignals, consideredRules, nRem_attr, nRem_attr_suffix)
+	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channel, val_channel, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
 
-		//print 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 	/// apply the rule and return true if data is consistent with the rule
@@ -711,7 +727,7 @@ public:
 	void read_metadata();
 
 	// Learning
-	/// <summary> In this class there's never learning - we return 0 immediately </summary>
+	/// <summary> In this class there's never learning - we init tables and return 0 immediately </summary>
 	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict, rep.sigs); read_metadata(); return 0; };
 
 	// Applying
