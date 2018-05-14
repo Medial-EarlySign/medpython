@@ -446,3 +446,20 @@ template<class T> string medial::io::get_list_op(const unordered_map<T, string> 
 }
 template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls);
 
+float med_stof(const string& _Str) {
+	try {
+		return stof(_Str);
+	}
+	catch (invalid_argument e) {
+		MTHROW_AND_ERR("invalid stof argument [%s]\n", _Str.c_str());
+	}
+}
+
+int med_stoi(const string& _Str) {
+	try {
+		return stoi(_Str);
+	}
+	catch (invalid_argument e) {
+		MTHROW_AND_ERR("invalid stoi argument [%s]\n", _Str.c_str());
+	}
+}

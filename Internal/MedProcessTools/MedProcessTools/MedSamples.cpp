@@ -105,7 +105,7 @@ int MedSample::parse_from_string(string &s)
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, const vector<string>& attr)
+void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr)
 {
 	s = "";
 	s += "SAMPLE\t" + to_string(id) + "\t" + to_string(time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
@@ -114,6 +114,8 @@ void MedSample::write_to_string(string &s, const vector<string>& attr)
 		s += "\t" + to_string(p);
 	for (const string& a : attr)
 		s += "\t" + to_string(attributes[a]);
+	for (const string& a : str_attr)
+		s += "\t" + str_attributes[a];
 	return;
 }
 
@@ -280,7 +282,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 // If the line starting with EVENT_FIELDS (followed by tabe-delimeted field names : id,date,outcome,outcome_date,split,preds,attr) appears before the data lines, it is used to determine
 // fields positions, otherwise - old or new formats are used. Return -1 upon failure to open file
 //-------------------------------------------------------------------------------------------
-int MedSamples::read_from_file(const string &fname)
+int MedSamples::read_from_file(const string &fname, bool sort_rows)
 {
 	unsigned long long final_size = 0;
 
@@ -354,7 +356,8 @@ int MedSamples::read_from_file(const string &fname)
 		}
 	}
 	MLOG("read [%d] samples for [%d] patient IDs. Skipped [%d] records\n", samples, idSamples.size(), skipped_records);
-	sort_by_id_date();
+	if (sort_rows)
+		sort_by_id_date();
 	inf.close();
 	return 0;
 }
@@ -376,31 +379,37 @@ int MedSamples::get_predictions_size(int& nPreds) {
 
 }
 
+
 // Get all attributes 
 //-------------------------------------------------------------------------------------------
-int MedSamples::get_all_attributes(vector<string>& attributes) {
-
+int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) {
 	attributes.clear();
-
+	str_attributes.clear();
+	bool first = true;
 	for (auto &s : idSamples) {
 		for (auto& ss : s.samples) {
-			if (attributes.empty()) {
+			if (first) {
 				for (auto& attr : ss.attributes)
 					attributes.push_back(attr.first);
+				for (auto& attr : ss.str_attributes)
+					str_attributes.push_back(attr.first);
+				first = false;
 			}
-			else {
-				if (ss.attributes.size() != attributes.size())
-					return -1;
+			else {				
+				vector<string> my_attributes;
+				for (auto& attr : ss.attributes)
+					my_attributes.push_back(attr.first);
+				if (attributes != my_attributes)
+					MTHROW_AND_ERR("attributes are not the same across all samples");
 
-				int idx = 0;
-				for (auto& attr : ss.attributes) {
-					if (attributes[idx++] != attr.first)
-						return -1;
-				}
+				my_attributes.clear();
+				for (auto& attr : ss.str_attributes)
+					my_attributes.push_back(attr.first);
+				if (str_attributes != my_attributes)
+					MTHROW_AND_ERR("str_attributes are not the same across all samples");
 			}
 		}
 	}
-
 	return 0;
 }
 
@@ -418,11 +427,12 @@ int MedSamples::write_to_file(const string &fname)
 		MERR("MedSampels: Predictions vectors sizes inconsistent\n");
 		return -2;
 	}
-	vector<string> attributes;
-	if (get_all_attributes(attributes) < 0) {
+	vector<string> attributes, str_attributes;
+	if (get_all_attributes(attributes, str_attributes) < 0) {
 		MERR("MedSamples: Attributes sets inconsistency\n");
 		return -3;
 	}
+	MLOG("attributes size %d\n", attributes.size());
 
 	MLOG("MedSamples: writing to %s\n", fname.c_str());
 	if (!of) {
@@ -437,6 +447,8 @@ int MedSamples::write_to_file(const string &fname)
 		of << "\tpred_" << i;
 	for (string name : attributes)
 		of << "\tattr_" << name;
+	for (string name : str_attributes)
+		of << "\tstr_attr_" << name;
 	of << "\n";
 
 	int line = 0;
@@ -444,7 +456,7 @@ int MedSamples::write_to_file(const string &fname)
 		for (auto ss : s.samples) {
 			samples++;
 			string sout;
-			ss.write_to_string(sout, attributes);
+			ss.write_to_string(sout, attributes, str_attributes);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
 			if (buffer_write > 0 && line >= buffer_write) {
