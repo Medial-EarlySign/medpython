@@ -371,9 +371,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 				}
 
 				if (iperiod != nperiods) {
-					if (idx2 >= values.size() || idx2 >= ages.size() || !(gender >= 1 && gender <= 2) || ages[idx2] >= means[gender - 1].size())
-						MTHROW_AND_ERR("ERROR: idx2=%d, values.size()=%d, ages.size()=%d, gender=%d, pid=%d, signalId=%d, age=%d\n",
-							idx2, (int)values.size(), (int)ages.size(), gender, ids[i], signalId, ages[idx2]);
 					type_sum += values[idx2] - means[gender - 1][ages[idx2]];
 					type_num++;
 				}
