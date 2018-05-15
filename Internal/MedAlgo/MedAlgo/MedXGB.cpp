@@ -126,6 +126,7 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	Learner* learner = Learner::Create(cache_mats);
 	int version = 0;
 
+#pragma omp critical
 	learner->Configure(cfg);
 	learner->InitModel();
 
