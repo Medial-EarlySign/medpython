@@ -882,7 +882,9 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 			, best_1_rem);
 
 	//For each year_bin - balance to this ratio using price_ratio weight for removing 1's labels:
+	int min_grp_size = 5;
 	seen_pid_0.clear();
+	vector<int> skip_grp_indexs;
 	for (int k = int(all_groups.size() - 1); k >= 0; --k) {
 		string &grp = all_groups[k];
 		int target_size = 0;
@@ -905,7 +907,14 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 		if (print_verbose)
 			cout << "Doing group " << grp << " ind=" << ind << " target_size=" << target_size
 			<< " removing= " << remove_size << endl;
-
+		if (count_label_groups[0][grp] < min_grp_size || count_label_groups[1][grp] < min_grp_size) {
+			MWARN("Warning: matching group has very small counts - skipping group=%s [%d, %d]\n",
+				grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]);
+			list_label_groups[0][grp].clear();
+			list_label_groups[1][grp].clear();
+			skip_grp_indexs.push_back(k);
+			continue;
+		}
 		unordered_set<int> seen_year_pid;
 		random_shuffle(list_label_groups[ind][grp].begin(), list_label_groups[ind][grp].end());
 		if (target_size > list_label_groups[ind][grp].size())
@@ -915,6 +924,9 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 			list_label_groups[ind][grp].resize(target_size); //for zero it's different
 	}
 
+	for (int k = 0; k < skip_grp_indexs.size(); ++k)
+		all_groups.erase(all_groups.begin() + skip_grp_indexs[k]);
+
 	//Commit on all records:
 	MedFeatures filtered;
 	filtered.time_unit = data_records.time_unit;
@@ -923,7 +935,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	for (size_t k = 0; k < list_label_groups.size(); ++k) //for 0 and 1:
 		for (auto it = list_label_groups[k].begin(); it != list_label_groups[k].end(); ++it) //for each year
 		{
-			vector<int> ind_list = it->second;
+			vector<int> &ind_list = it->second;
 			filtered_row_ids.insert(filtered_row_ids.end(), ind_list.begin(), ind_list.end());
 		}
 
