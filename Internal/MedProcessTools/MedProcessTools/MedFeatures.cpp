@@ -834,7 +834,8 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 				float diff_controls = abs(controls_sum[ratio_ind] - controls_sum[ratio_ind - 1]);
 				factor_needed_down = diff_controls / diff_cases;
 			}
-
+			if (count_label_groups[0][grp] == 0)
+				grp_ratio = 1; //just for correct printing
 			if (factor_needed_up > 0)
 				MLOG("%s\t%d\t%d\t%f\t[%2.2f-%2.2f]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
 					, grp_ratio, factor_needed_down, factor_needed_up);
