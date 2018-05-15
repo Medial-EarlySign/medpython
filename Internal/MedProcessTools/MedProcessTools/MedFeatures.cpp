@@ -610,11 +610,8 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 	}
 	for (const string &grp : all_groups)
 	{
-		if (count_label_groups[0][grp] == 0) {
-			if (print_verbose)
-				MLOG("Skip group %s with only %d cases\n", grp.c_str(), count_label_groups[1][grp]);
+		if (count_label_groups[0][grp] == 0)
 			continue;
-		}
 		year_total[grp] = count_label_groups[0][grp] + count_label_groups[1][grp];
 		year_ratio[grp] = count_label_groups[1][grp] / float(count_label_groups[0][grp] + count_label_groups[1][grp]);
 		++i;
@@ -648,14 +645,19 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 					grp.c_str(), base_ratio, factor);
 		}
 		else
-			MLOG("Dropping group %s Num_controls=%d with zero cases\n",
-				grp.c_str(), count_label_groups[0][grp]);
+			MLOG("Dropping group %s Num_controls=%d with %d cases\n",
+				grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]);
 
 		if (factor <= 0) {
-			list_label_groups[0].erase(grp); //for zero it's different
-			list_label_groups[1].erase(grp); //for zero it's different
+			//list_label_groups[0].erase(grp); //for zero it's different
+			//list_label_groups[1].erase(grp); //for zero it's different
 			count_label_groups[0][grp] = 0;
 			count_label_groups[1][grp] = 0;
+			//set weights 0 for all:
+			for (int ind : list_label_groups[1][grp])
+				full_weights[ind] = 0;
+			for (int ind : list_label_groups[0][grp])
+				full_weights[ind] = 0;
 		}
 		else {
 			group_to_factor[grp] = factor;
@@ -765,6 +767,13 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 			group_to_seen_pid[groups[i]].insert(data_records.samples[i].id);
 		}
 	}
+	//remove groups with only controls:
+	for (auto it = list_label_groups[0].begin(); it != list_label_groups[0].end(); ++it)
+		if (seen_group.find(it->first) == seen_group.end()) {
+			MWARN("Warning: group %s has only %d controls with no cases- skipping\n",
+				it->first.c_str(), (int)it->second.size());
+			list_label_groups[0][it->first].clear();
+		}
 
 	unordered_map<string, int> year_total;
 	unordered_map<string, float> year_ratio;
