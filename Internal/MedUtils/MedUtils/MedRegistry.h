@@ -229,6 +229,8 @@ public:
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
 	float get_outcome(UniversalSigVec &s, int current_i);
 
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalSet::init
 	int init(map<string, string>& map);
 private:
 	vector<char> Flags;
@@ -239,14 +241,18 @@ private:
 */
 class RegistrySignalRange : public RegistrySignal {
 public:
-	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		float min_rnage, float max_range);
-	float get_outcome(UniversalSigVec &s, int current_i);
-
-	int init(map<string, string>& map);
-private:
 	float min_value;
 	float max_value;
+
+	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
+		float min_range, float max_range);
+	float get_outcome(UniversalSigVec &s, int current_i);
+
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalRange::init
+	int init(map<string, string>& map);
+private:
+
 };
 
 /**

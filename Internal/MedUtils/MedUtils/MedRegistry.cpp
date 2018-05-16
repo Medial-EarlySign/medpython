@@ -747,6 +747,7 @@ int RegistrySignalSet::init(map<string, string>& map) {
 	string sets_arg = "";
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
+		//! [RegistrySignalSet::init]
 		if (it->first == "signalName")
 			signalName = it->second;
 		else if (it->first == "duration_flag")
@@ -760,6 +761,7 @@ int RegistrySignalSet::init(map<string, string>& map) {
 		else
 			MTHROW_AND_ERR("unsupported element \"%s\"\n",
 				it->first.c_str());
+		//! [RegistrySignalSet::init]
 	}
 	//save to end
 	if (!sets_arg.empty()) {
@@ -833,6 +835,7 @@ float RegistrySignalRange::get_outcome(UniversalSigVec &s, int current_i) {
 int RegistrySignalRange::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
+		//! [RegistrySignalRange::init]
 		if (it->first == "signalName")
 			signalName = it->second;
 		else if (it->first == "duration_flag")
@@ -848,6 +851,7 @@ int RegistrySignalRange::init(map<string, string>& map) {
 		else
 			MTHROW_AND_ERR("unsupported element \"%s\"\n",
 				it->first.c_str());
+		//! [RegistrySignalRange::init]
 	}
 	return 0;
 }
