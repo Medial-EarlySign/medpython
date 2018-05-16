@@ -353,7 +353,7 @@ string medial::print::print_any(po::variable_value &a) {
 
 void medial::io::ProgramArgs_base::init(po::options_description &prg_options, const string &app_l) {
 	po::options_description general_options("Program General Options",
-		(unsigned int)po::options_description::m_default_line_length*2);
+		(unsigned int)po::options_description::m_default_line_length * 2);
 	general_options.add_options()
 		("help,h", "help & exit")
 		("base_config", po::value<string>(&base_config), "config file with all arguments - in CMD we override those settings")
@@ -415,9 +415,16 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 
 	if (debug) {
 		MLOG("Debug Running With:\n");
-		for (auto it = vm.begin(); it != vm.end(); ++it)
+		string full_params = string(argv[0]);
+		char buffer[1000];
+		for (auto it = vm.begin(); it != vm.end(); ++it) {
 			MLOG("%s = %s\n", it->first.c_str(), medial::print::print_any(it->second).c_str());
+			snprintf(buffer, sizeof(buffer), " --%s %s", it->first.c_str(), medial::print::print_any(it->second).c_str());
+			full_params += string(buffer);
+		}
 		MLOG("######################################\n\n%s\n", app_logo.c_str());
+		MLOG("######################################\n");
+		MLOG("Full Running Command:\n%s\n", full_params.c_str());
 		MLOG("######################################\n");
 	}
 

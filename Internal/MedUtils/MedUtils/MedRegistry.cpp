@@ -50,7 +50,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 	MLOG("[Read %d registry records from %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
-void MedRegistry::write_text_file(const string &file_path) {
+void MedRegistry::write_text_file(const string &file_path) const {
 	char delim = '\t';
 	ofstream fw(file_path);
 	if (!fw.good())
@@ -109,7 +109,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager) {
 	dataManager.clear();
 }
 
-void MedRegistry::get_registry_creation_codes(vector<int> &signal_codes)
+void MedRegistry::get_registry_creation_codes(vector<int> &signal_codes) const
 {
 	signal_codes = signalCodes;
 }
@@ -199,7 +199,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	MedSamplingStrategy &sampler,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
-	const string &debug_file, const unordered_set<float> &debug_vals) {
+	const string &debug_file, const unordered_set<float> &debug_vals) const {
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
@@ -338,7 +338,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 			bool has_intr = false;
 			for (int indReg : *registry_inds)
 			{
-				MedRegistryRecord &regRec = registry_records.at(indReg);
+				const MedRegistryRecord &regRec = registry_records.at(indReg);
 				if (regRec.registry_value < 0) {
 					has_intr = true;//censored out - mark as done, no valid registry records for pid
 					break;
@@ -445,7 +445,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 }
 
-void MedRegistry::get_pids(vector<int> &pids) {
+void MedRegistry::get_pids(vector<int> &pids) const {
 	pids.clear();
 	unordered_set<int> seen_pid;
 	for (size_t i = 0; i < registry_records.size(); ++i)
@@ -455,7 +455,7 @@ void MedRegistry::get_pids(vector<int> &pids) {
 
 void MedRegistry::create_incidence_file(const string &file_path, const string &rep_path,
 	int age_bin, int min_age, int max_age, int time_period, bool use_kaplan_meir,
-	const string &sampler_name, const string &sampler_args) {
+	const string &sampler_name, const string &sampler_args) const {
 	MedSamplingStrategy *sampler = MedSamplingStrategy::make_sampler(sampler_name, sampler_args);
 	MedSamples incidence_samples;
 	MLOG("Sampling for incidence stats...\n");

@@ -53,7 +53,7 @@ public:
 	/// <summary>
 	/// Writes the file to text file in tab delimeted format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue
 	/// </summary>
-	void write_text_file(const string &file_path);
+	void write_text_file(const string &file_path) const;
 	/// <summary>
 	/// Reads the file in text format in tab delimeted
 	/// </summary>
@@ -68,7 +68,7 @@ public:
 	/// <summary>
 	/// returns the signal codes used to create the registry
 	/// </summary>
-	void get_registry_creation_codes(vector<int> &signal_codes);
+	void get_registry_creation_codes(vector<int> &signal_codes) const;
 
 	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
@@ -93,13 +93,13 @@ public:
 		MedSamplingStrategy &sampler,
 		map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
-		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set);
+		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set) const;
 
 	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
 	/// @param pids the unique patient ids result vector
 	/// </summary>
-	void get_pids(vector<int> &pids);
+	void get_pids(vector<int> &pids) const;
 
 	/// <summary>
 	/// calculate incidence and writes the result into file with old and new format
@@ -116,7 +116,7 @@ public:
 	void create_incidence_file(const string &file_path, const string &rep_path, int age_bin, int min_age,
 		int max_age, int time_period = 365, bool use_kaplan_meir = false, const string &sampler_name = "yearly",
 		const string &sampler_args = "conflict_method=max;use_allowed=1;day_jump=365;allowed_time_from=0;"
-		"allowed_time_to=365;start_year=2007;end_year=2012");
+		"allowed_time_to=365;start_year=2007;end_year=2012") const;
 
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
@@ -241,8 +241,8 @@ private:
 */
 class RegistrySignalRange : public RegistrySignal {
 public:
-	float min_value;
-	float max_value;
+	float min_value; ///< the minimal value to turn control into case. greater than or equal
+	float max_value; ///< the maximal value to turn control into case. smaller than or equal
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		float min_range, float max_range);
