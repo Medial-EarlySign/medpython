@@ -5,6 +5,7 @@
 
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
+#include "KpSmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 
@@ -31,6 +32,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
+	else if (generator_name == "kp_smoking")
+		return FTR_GEN_KP_SMOKING;
 	else if (generator_name == "alcohol")
 		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
@@ -119,6 +122,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
+	else if (generator_type == FTR_GEN_KP_SMOKING)
+		return new KpSmokingGenerator;
 	else if (generator_type == FTR_GEN_ALCOHOL)
 		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)

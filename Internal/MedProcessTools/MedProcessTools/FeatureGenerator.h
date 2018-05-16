@@ -28,11 +28,12 @@ typedef enum {
 	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator (special case of signleton)
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
+	FTR_GEN_KP_SMOKING,
 	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
 	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
-	FTR_GEN_LAST
+	FTR_GEN_LAST,
 } FeatureGeneratorTypes;
 
 /** @file
