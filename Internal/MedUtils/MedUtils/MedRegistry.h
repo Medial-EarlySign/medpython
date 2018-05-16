@@ -261,13 +261,48 @@ public:
 
 	vector<RegistrySignal *> signal_filters; ///< the signal filters
 
+	MedRegistryCodesList() {
+		init_called = false;
+		start_buffer_duration = 0;
+		end_buffer_duration = 0;
+		max_repo_date = 0;
+	}
+
 	/// <summary>
-	/// The init function
+	/// parsing of registry signal rules - each line is new signal rule in this format:\n
+	/// Each line is TAB seperated by RegistrySignal type and RegistrySignal init string calling 
+	/// RegistrySignal::make_registry_signal 
+	/// </summary>
+	static void parse_registry_rules(const string &reg_cfg, const string &rep_path,
+		vector<RegistrySignal *> &result);
+
+	/// <summary>
+	/// The init function in code API
+	/// @param rep initialized repository with MedDictionry for initialization
+	/// @param start_dur a minimal time for patient to enter registry from first signal after birth
+	/// @param end_durr a minimal time for patient to leave registry from last signal
+	/// @param max_repo the last date in the repositry - censor after this date
+	/// @param signal_conditions vector of rules to calc when we turn patient into case
+	/// @param skip_pid_file a file with blacklist of patient ids to skip
+	/// @param pid_to_censor_dates an object to map between each patient and censor date for him
 	/// </summary>
 	void init(MedRepository &rep, int start_dur, int end_durr, int max_repo,
-		const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file = "");
+		const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file = "",
+		const unordered_map<int, int> *pid_to_censor_dates = NULL);
+
+	/// <summary>
+	/// the initializtion params. it has also "config_signals_rules", "pid_to_censor_dates", "rep" file paths.
+	/// @param rep the repository path
+	/// @param pid_to_censor_dates file path to pid censors. each line is pid TAB censor_date
+	/// @param config_signals_rules file path to RegistrySignal rules. parsing is done with 
+	/// MedRegistryCodesList::parse_registry_rules \n
+	/// The parsed fields from init command.
+	/// @snippet MedRegistry.cpp MedRegistryCodesList::init
+	/// </summary>
+	int init(map<string, string>& map);
 private:
 	vector<bool> SkipPids; ///< black list of patients mask
+	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
 
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
 	bool init_called; ///< a flag to mark that init was called
