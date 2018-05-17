@@ -53,7 +53,7 @@ public:
 	/// <summary>
 	/// Writes the file to text file in tab delimeted format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue
 	/// </summary>
-	void write_text_file(const string &file_path);
+	void write_text_file(const string &file_path) const;
 	/// <summary>
 	/// Reads the file in text format in tab delimeted
 	/// </summary>
@@ -68,7 +68,7 @@ public:
 	/// <summary>
 	/// returns the signal codes used to create the registry
 	/// </summary>
-	void get_registry_creation_codes(vector<int> &signal_codes);
+	void get_registry_creation_codes(vector<int> &signal_codes) const;
 
 	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
@@ -93,13 +93,13 @@ public:
 		MedSamplingStrategy &sampler,
 		map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
-		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set);
+		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set) const;
 
 	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
 	/// @param pids the unique patient ids result vector
 	/// </summary>
-	void get_pids(vector<int> &pids);
+	void get_pids(vector<int> &pids) const;
 
 	/// <summary>
 	/// calculate incidence and writes the result into file with old and new format
@@ -116,7 +116,7 @@ public:
 	void create_incidence_file(const string &file_path, const string &rep_path, int age_bin, int min_age,
 		int max_age, int time_period = 365, bool use_kaplan_meir = false, const string &sampler_name = "yearly",
 		const string &sampler_args = "conflict_method=max;use_allowed=1;day_jump=365;allowed_time_from=0;"
-		"allowed_time_to=365;start_year=2007;end_year=2012");
+		"allowed_time_to=365;start_year=2007;end_year=2012") const;
 
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
@@ -229,6 +229,8 @@ public:
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
 	float get_outcome(UniversalSigVec &s, int current_i);
 
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalSet::init
 	int init(map<string, string>& map);
 private:
 	vector<char> Flags;
@@ -239,14 +241,18 @@ private:
 */
 class RegistrySignalRange : public RegistrySignal {
 public:
+	float min_value; ///< the minimal value to turn control into case. greater than or equal
+	float max_value; ///< the maximal value to turn control into case. smaller than or equal
+
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		float min_rnage, float max_range);
+		float min_range, float max_range);
 	float get_outcome(UniversalSigVec &s, int current_i);
 
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalRange::init
 	int init(map<string, string>& map);
 private:
-	float min_value;
-	float max_value;
+
 };
 
 /**
@@ -261,13 +267,48 @@ public:
 
 	vector<RegistrySignal *> signal_filters; ///< the signal filters
 
+	MedRegistryCodesList() {
+		init_called = false;
+		start_buffer_duration = 0;
+		end_buffer_duration = 0;
+		max_repo_date = 0;
+	}
+
 	/// <summary>
-	/// The init function
+	/// parsing of registry signal rules - each line is new signal rule in this format:\n
+	/// Each line is TAB seperated by RegistrySignal type and RegistrySignal init string calling 
+	/// RegistrySignal::make_registry_signal 
+	/// </summary>
+	static void parse_registry_rules(const string &reg_cfg, const string &rep_path,
+		vector<RegistrySignal *> &result);
+
+	/// <summary>
+	/// The init function in code API
+	/// @param rep initialized repository with MedDictionry for initialization
+	/// @param start_dur a minimal time for patient to enter registry from first signal after birth
+	/// @param end_durr a minimal time for patient to leave registry from last signal
+	/// @param max_repo the last date in the repositry - censor after this date
+	/// @param signal_conditions vector of rules to calc when we turn patient into case
+	/// @param skip_pid_file a file with blacklist of patient ids to skip
+	/// @param pid_to_censor_dates an object to map between each patient and censor date for him
 	/// </summary>
 	void init(MedRepository &rep, int start_dur, int end_durr, int max_repo,
-		const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file = "");
+		const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file = "",
+		const unordered_map<int, int> *pid_to_censor_dates = NULL);
+
+	/// <summary>
+	/// the initializtion params. it has also "config_signals_rules", "pid_to_censor_dates", "rep" file paths.
+	/// @param rep the repository path
+	/// @param pid_to_censor_dates file path to pid censors. each line is pid TAB censor_date
+	/// @param config_signals_rules file path to RegistrySignal rules. parsing is done with 
+	/// MedRegistryCodesList::parse_registry_rules \n
+	/// The parsed fields from init command.
+	/// @snippet MedRegistry.cpp MedRegistryCodesList::init
+	/// </summary>
+	int init(map<string, string>& map);
 private:
 	vector<bool> SkipPids; ///< black list of patients mask
+	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
 
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
 	bool init_called; ///< a flag to mark that init was called

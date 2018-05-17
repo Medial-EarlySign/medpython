@@ -50,7 +50,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 	MLOG("[Read %d registry records from %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
-void MedRegistry::write_text_file(const string &file_path) {
+void MedRegistry::write_text_file(const string &file_path) const {
 	char delim = '\t';
 	ofstream fw(file_path);
 	if (!fw.good())
@@ -109,7 +109,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager) {
 	dataManager.clear();
 }
 
-void MedRegistry::get_registry_creation_codes(vector<int> &signal_codes)
+void MedRegistry::get_registry_creation_codes(vector<int> &signal_codes) const
 {
 	signal_codes = signalCodes;
 }
@@ -199,7 +199,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	MedSamplingStrategy &sampler,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
-	const string &debug_file, const unordered_set<float> &debug_vals) {
+	const string &debug_file, const unordered_set<float> &debug_vals) const {
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
@@ -338,7 +338,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 			bool has_intr = false;
 			for (int indReg : *registry_inds)
 			{
-				MedRegistryRecord &regRec = registry_records.at(indReg);
+				const MedRegistryRecord &regRec = registry_records.at(indReg);
 				if (regRec.registry_value < 0) {
 					has_intr = true;//censored out - mark as done, no valid registry records for pid
 					break;
@@ -445,7 +445,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 }
 
-void MedRegistry::get_pids(vector<int> &pids) {
+void MedRegistry::get_pids(vector<int> &pids) const {
 	pids.clear();
 	unordered_set<int> seen_pid;
 	for (size_t i = 0; i < registry_records.size(); ++i)
@@ -455,7 +455,7 @@ void MedRegistry::get_pids(vector<int> &pids) {
 
 void MedRegistry::create_incidence_file(const string &file_path, const string &rep_path,
 	int age_bin, int min_age, int max_age, int time_period, bool use_kaplan_meir,
-	const string &sampler_name, const string &sampler_args) {
+	const string &sampler_name, const string &sampler_args) const {
 	MedSamplingStrategy *sampler = MedSamplingStrategy::make_sampler(sampler_name, sampler_args);
 	MedSamples incidence_samples;
 	MLOG("Sampling for incidence stats...\n");
@@ -747,6 +747,7 @@ int RegistrySignalSet::init(map<string, string>& map) {
 	string sets_arg = "";
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
+		//! [RegistrySignalSet::init]
 		if (it->first == "signalName")
 			signalName = it->second;
 		else if (it->first == "duration_flag")
@@ -760,6 +761,7 @@ int RegistrySignalSet::init(map<string, string>& map) {
 		else
 			MTHROW_AND_ERR("unsupported element \"%s\"\n",
 				it->first.c_str());
+		//! [RegistrySignalSet::init]
 	}
 	//save to end
 	if (!sets_arg.empty()) {
@@ -796,7 +798,8 @@ RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &r
 }
 
 void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr, int max_repo,
-	const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file) {
+	const vector<RegistrySignal *> signal_conditions, const string &skip_pid_file,
+	const unordered_map<int, int> *pid_to_censor_dates) {
 	if (signal_conditions.empty())
 		MTHROW_AND_ERR("must be initialize with something\n");
 	init_called = true;
@@ -805,7 +808,8 @@ void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr,
 	max_repo_date = max_repo;
 	if (!skip_pid_file.empty())
 		init_list(skip_pid_file, SkipPids);
-
+	if (pid_to_censor_dates != NULL)
+		pid_to_max_allowed = *pid_to_censor_dates;
 	signalCodes.clear();
 	for (size_t i = 0; i < signal_conditions.size(); ++i)
 		signalCodes.push_back(rep.sigs.sid(signal_conditions[i]->signalName));
@@ -831,6 +835,7 @@ float RegistrySignalRange::get_outcome(UniversalSigVec &s, int current_i) {
 int RegistrySignalRange::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
+		//! [RegistrySignalRange::init]
 		if (it->first == "signalName")
 			signalName = it->second;
 		else if (it->first == "duration_flag")
@@ -846,6 +851,7 @@ int RegistrySignalRange::init(map<string, string>& map) {
 		else
 			MTHROW_AND_ERR("unsupported element \"%s\"\n",
 				it->first.c_str());
+		//! [RegistrySignalRange::init]
 	}
 	return 0;
 }
@@ -888,6 +894,10 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		MTHROW_AND_ERR("Must be initialized by init before use\n");
 	vector<int> signals_indexes_pointers(signal_filters.size()); //all in 0
 
+	int max_allowed_date = max_repo_date;
+	if (pid_to_max_allowed.find(pid) != pid_to_max_allowed.end())
+		max_allowed_date = pid_to_max_allowed[pid];
+
 	MedRegistryRecord r;
 	r.pid = pid;
 	int start_date = -1, last_date = -1;
@@ -913,7 +923,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 		r.registry_value = 0;
 		//I have start_date
-		if (Date_wrapper(signal, i) > max_repo_date)
+		if (Date_wrapper(signal, i) > max_allowed_date)
 			break;
 		last_date = Date_wrapper(signal, i);
 
@@ -1484,4 +1494,84 @@ RegistrySignal *RegistrySignal::make_registry_signal(const string &type, const s
 	RegistrySignal *reg = make_registry_signal(type);
 	reg->init_from_string(init_string);
 	return reg;
+}
+
+void MedRegistryCodesList::parse_registry_rules(const string &reg_cfg, const string &rep_path,
+	vector<RegistrySignal *> &result) {
+	ifstream fr(reg_cfg);
+	if (!fr.good())
+		MTHROW_AND_ERR("IOError: can't read registry rules config from %s\n", reg_cfg.c_str());
+	string line;
+	result.clear();
+	while (getline(fr, line))
+	{
+		boost::trim(line);
+		if (line.empty() || line[0] == '#')
+			continue; //skip line
+		vector<string> tokens;
+		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() != 2)
+			MTHROW_AND_ERR("IOERROR: bad file format excepting one [TAB]. got:\n%s\n", line.c_str());
+		string type = tokens[0];
+		string ini = tokens[1];
+		boost::replace_all(ini, "$REP", rep_path);
+		RegistrySignal *reg = RegistrySignal::make_registry_signal(type, ini);
+		result.push_back(reg);
+	}
+	fr.close();
+}
+
+int MedRegistryCodesList::init(map<string, string>& map) {
+	MedRepository repo;
+	string rep_path = "";
+	string registry_file_path = "";
+	for (auto it = map.begin(); it != map.end(); ++it)
+		//! [MedRegistryCodesList::init]
+		if (it->first == "rep")
+			rep_path = it->second;
+		else if (it->first == "start_buffer_duration")
+			start_buffer_duration = stoi(it->second);
+		else if (it->first == "end_buffer_duration")
+			end_buffer_duration = stoi(it->second);
+		else if (it->first == "max_repo_date")
+			max_repo_date = stoi(it->second);
+		else if (it->first == "pid_to_censor_dates") {
+			ifstream fr(it->second);
+			if (!fr.good())
+				MTHROW_AND_ERR("Error in MedRegistryCodesList::init - unable to open %s for reading.",
+					it->second.c_str());
+			string line;
+			while (getline(fr, line)) {
+				vector<string> tokens;
+				boost::split(tokens, line, boost::is_any_of("\t"));
+				if (tokens.size() != 2)
+					MTHROW_AND_ERR("Error in MedRegistryCodesList::init - in parsing pid_to_censor_dates file"
+						" - %s excpeting TAB for line:\n%s\n", it->second.c_str(), line.c_str());
+				pid_to_max_allowed[stoi(tokens[0])] = stoi(tokens[1]);
+			}
+			fr.close();
+		}
+		else if (it->first == "config_signals_rules")
+			registry_file_path = it->second;
+		else
+			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unsupported init param \"%s\"\n", it->first.c_str());
+		//! [MedRegistryCodesList::init]
+		if (rep_path.empty())
+			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide rep param to init function\n");
+		if (max_repo_date == 0)
+			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide max_repo_date param to init function\n");
+		if (registry_file_path.empty())
+			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide config_signals_rules param to init function\n");
+
+		if (repo.init(rep_path) < 0)
+			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unable to init repositrory from path %s\n", rep_path.c_str());
+
+		parse_registry_rules(registry_file_path, rep_path, signal_filters);
+		init_called = true;
+
+		signalCodes.clear();
+		for (size_t i = 0; i < signal_filters.size(); ++i)
+			signalCodes.push_back(repo.sigs.sid(signal_filters[i]->signalName));
+
+		return 0;
 }

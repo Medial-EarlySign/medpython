@@ -212,28 +212,31 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 	cp_info = additional_info; //a copy - i will change those each time
 	y_changed.insert(y_changed.end(), y.begin(), y.end());
 	//update: cp_info["Time-Window"] based on additional_info["Time-Window"] for cases not in time window
-	int cases_censored = 0, cases_changed_to_controls = 0;
+	int cases_censored = 0, cases_changed_to_controls = 0, cases_left_as_cases = 0;
 	int max_range = (int)time_filter.max_range;
 	for (size_t i = 0; i < y_changed.size(); ++i)
 	{
-		if (y[i] > 0 && !filter_range_param(additional_info, (int)i, &time_filter)) {
-			// cases which are long before the outcome (>2*max_range) are considered as controls:
+		if (y[i] > 0){
+			if (!filter_range_param(additional_info, (int)i, &time_filter)) {
+				// cases which are long before the outcome (>2*max_range) are considered as controls:
 
-			// ----------------max_range*2--------max_range---------min_range---event---------------
-			// -------------------^-------------------^----------------^----------^-----------------
-			// ------control------|------censor-------|------case------|--------censor--------------
+				// ----------------max_range*2--------max_range---------min_range---event---------------
+				// -------------------^-------------------^----------------^----------^-----------------
+				// ------control------|------censor-------|------case------|--------censor--------------
 
-			if (additional_info.at(search_term)[i] > max_range * 2) {
-				y_changed[i] = 0;
-				cp_info[search_term][i] = time_filter.min_range; // bogus time - wont filter because in time range
-				cases_changed_to_controls++;
+				if (additional_info.at(search_term)[i] > max_range * 2) {
+					y_changed[i] = 0;
+					cp_info[search_term][i] = time_filter.min_range; // bogus time - wont filter because in time range
+					cases_changed_to_controls++;
+				}
+				else
+					cases_censored++;
 			}
-			else
-				cases_censored++;
+			else cases_left_as_cases++;
 		}
 	}
-	MLOG("make_sim_time_window for cohort [%s] censored %d cases with %d<gap<%d and changed %d cases to controls with %d<gap\n",
-		cohort_name.c_str(), cases_censored, max_range, max_range * 2, cases_changed_to_controls, max_range * 2);
+	MLOG("make_sim_time_window for cohort [%s] censored %d cases with %d<gap<%d and changed %d cases to controls with %d<gap, left with %d cases\n",
+		cohort_name.c_str(), cases_censored, max_range, max_range * 2, cases_changed_to_controls, max_range * 2, cases_left_as_cases);
 }
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
