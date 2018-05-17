@@ -352,7 +352,7 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, iGenerateWeights)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights)
 };
 
 

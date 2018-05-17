@@ -29,6 +29,7 @@ typedef enum {
 	FTR_PROCESS_REMOVE_DGNRT_FTRS, ///<"remove_deg" to create DgnrtFeatureRemvoer
 	FTR_PROCESS_ITERATIVE_IMPUTER, ///<"iterative_imputer" to create IterativeImputer
 	FTR_PROCESS_ENCODER_PCA, ///<"pca" to create FeaturePCA
+	FTR_PROCESS_ONE_HOT, ///< make one-hot features from a given feature
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -788,6 +789,44 @@ private:
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
 };
 
+/**
+* OneHotFeatProcessor:
+*
+* Create one-hot index features from a given feature
+*/
+
+class OneHotFeatProcessor :public FeatureProcessor {
+public:
+
+	string index_feature_prefix = ""; ///< prefix of index features (names are prefix_value)
+	string other_feature_name= ""; ///< name of 'other' feature (if needed)
+	string removed_feature_name = ""; ///< name of feature to remove (if needed)
+	bool rem_origin = true; ///< if true, remove original feature after creating indeices
+	bool add_other = false; ///< if true, add an extra feature for values not in learning-set
+	bool allow_other = false; ///< if true, values in test, but not in learning-set are allowed
+	bool remove_last = false; ///< if true, remove the feature corresponding to the last value to avoid linear dependency
+	int max_values = 32; ///< maximal allowed number of different values
+
+	map<float, string> value2feature;
+
+	// Constructor
+	OneHotFeatProcessor() { init_defaults(); }
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureProcessor.cpp OneHotFeatProcessor::init
+	int init(map<string, string>& mapper);
+
+	virtual void init_defaults() { processor_type = FTR_PROCESS_ONE_HOT;}
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<OneHotFeatProcessor *>(processor)); }
+
+
+	ADD_SERIALIZATION_FUNCS(feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
+private:
+	int Learn(MedFeatures& features, unordered_set<int>& ids);
+	int Apply(MedFeatures& features, unordered_set<int>& ids);
+};
+
+
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================
@@ -803,5 +842,5 @@ MEDSERIALIZE_SUPPORT(FeaturePCAParams)
 MEDSERIALIZE_SUPPORT(FeaturePCA)
 MEDSERIALIZE_SUPPORT(TagFeatureSelector)
 MEDSERIALIZE_SUPPORT(ImportanceFeatureSelector)
-
+MEDSERIALIZE_SUPPORT(OneHotFeatProcessor)
 #endif
