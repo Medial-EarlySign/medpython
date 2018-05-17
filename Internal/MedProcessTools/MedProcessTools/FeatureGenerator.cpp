@@ -616,14 +616,57 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	float value;
 	if (rec.usv.len == 0)
 		value = missing_val;
-	else
-		value = (float)((int)(rec.usv.Val(0)));
-
+	else {
+		if (sets.size() == 0)
+		{
+			// Normal Singleton, just return value
+			value = (float)((int)(rec.usv.Val(0)));
+		}
+		else
+		{
+			// Categorial Variable - check whether exists in LUT. Return 0/1
+			value = (float)lut[((int)(rec.usv.Val(0)))];
+		}
+	}
 	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = value;
 
 	return 0;
+}
+
+void SingletonGenerator::set_names()
+{ 
+	if (names.empty()) {
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
+		//string name = signalName + ".";
+		string set_names = in_set_name;
+		if (set_names == "" && this->sets.size() > 0)
+			set_names = boost::algorithm::join(this->sets, "_");
+
+		if (set_names != "")
+			name += "category_set_" + set_names;
+ 
+		names.push_back(name);
+		//MLOG("Created %s\n", name.c_str());
+	}
+}
+
+void SingletonGenerator::init_tables(MedDictionarySections& dict) {
+	MLOG("sets size = %d \n", lut.size());
+	if (sets.size() > 0) {
+		// This is a categorial variable.
+		if (lut.size() == 0) {
+			int section_id = dict.section_id(signalName);
+			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
+			dict.prep_sets_lookup_table(section_id, sets, lut);
+			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
+		}
+	}
+	else
+		lut.clear();
+
+	return;
 }
 
 // Init
@@ -636,6 +679,8 @@ int SingletonGenerator::init(map<string, string>& mapper) {
 		if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "in_set_name") in_set_name = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
 		//! [SingletonGenerator::init]
