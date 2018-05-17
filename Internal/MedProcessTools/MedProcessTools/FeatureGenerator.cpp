@@ -318,6 +318,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "nsamples")			return FTR_NSAMPLES;
 	if (name == "exists")			return FTR_EXISTS;
 	if (name == "max_diff")			return FTR_MAX_DIFF;
+	if (name == "first_time")		return FTR_FIRST_DAYS;
 	if (name == "category_set_first")				return FTR_CATEGORY_SET_FIRST;
 
 
@@ -355,9 +356,10 @@ void BasicFeatGenerator::set_names() {
 		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count_" + set_names; break;
 		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
 		case FTR_CATEGORY_SET_FIRST:	name += "category_set_first_" + set_names; break;
-		case FTR_NSAMPLES:		name += "nsamples"; break;
-		case FTR_EXISTS:		name += "exists"; break;
-		case FTR_MAX_DIFF:	name += "max_diff"; break;
+		case FTR_NSAMPLES:			name += "nsamples"; break;
+		case FTR_EXISTS:			name += "exists"; break;
+		case FTR_MAX_DIFF:			name += "max_diff"; break;
+		case FTR_FIRST_DAYS:		name += "first_time"; break;
 
 		default: name += "ERROR";
 		}
@@ -443,6 +445,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
 	case FTR_EXISTS:			return uget_exists(rec.usv, time, win_from, win_to);
 	case FTR_MAX_DIFF:			return uget_max_diff(rec.usv, time);
+	case FTR_FIRST_DAYS:		return uget_first_time(rec.usv, time);
 	case FTR_CATEGORY_SET_FIRST:		return uget_category_set_first(rec, rec.usv, time);
 
 	default:	return missing_val;
@@ -968,6 +971,24 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 				return missing_val;
 	}
 
+	return missing_val;
+}
+
+//.......................................................................................
+float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				return missing_val;
+			else
+				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+		}
+	}
 	return missing_val;
 }
 
