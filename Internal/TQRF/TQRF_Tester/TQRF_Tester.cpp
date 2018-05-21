@@ -19,6 +19,11 @@
 using namespace std;
 namespace po = boost::program_options;
 
+#include <External/Eigen/Core>
+#include <External/Eigen/Dense>
+using namespace Eigen;
+
+
 //=========================================================================================================
 int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 	po::options_description desc("Program options");
@@ -65,12 +70,63 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 }
 
 
+//
+// just playing with matrices to learn how to do stuff
+void stam() {
+	
+	MatrixXf a(3, 2);
+	MatrixXf b(2, 1);
+	MatrixXf bsq(2, 1);
+	MatrixXf c(3, 1);
+	MatrixXf d(3, 2);
+	MatrixXf e(1, 3);
+	MatrixXf f(1, 2);
+
+
+	a << 1, 2, 3, 4, 5, 6;
+	b << 7, 5;
+
+	cout << "a:" << endl << a << endl;
+	cout << "b:" << endl << b << endl;
+
+	c = a * b;
+
+	cout << "c:" << endl << c << endl;
+
+	d = a * b.asDiagonal();
+
+	cout << "d:" << endl << d << endl;
+
+	bsq = b.array()*b.array();
+
+	cout << "bsq:" << endl << bsq << endl;
+
+	MedMat<float> A(3, 2);
+	A.m ={ 1.1,2.2,3.3,4.4,5.5,6.6 };
+	Map<MatrixXf> Af(&A.m[0], 2, 3);
+
+	cout << "Af:" << endl << Af << endl;
+
+	cout << "Af(0,1): " << Af(0, 1) << " a(0,1): " << a(0,1) << " A(0,1): " << A(0,1) <<  endl;
+
+	e = b.transpose() * Af;
+	cout << "e:" << endl << e << endl;
+
+	f = a.colwise().sum();
+	cout << "f=colsum a:" << endl << f << endl;
+
+
+	exit(0);
+}
+
 //========================================================================================
 // MAIN
 //========================================================================================
 
 int main(int argc, char *argv[])
 {
+	//stam();
+
 	int rc = 0;
 	po::variables_map vm;
 

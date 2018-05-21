@@ -90,7 +90,7 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				int start_age = med_time_converter.convert_times(MedTime::Date, MedTime::Days, date_age_may_start_smoking);
 
 				int future_date = 20990101;
-				if (future_ind == "1") {
+				if (future_ind == "0") {
 					future_date = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
 				}
 
@@ -430,7 +430,10 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 
 					if (test_date >= start_date && test_date <= end_date) {
 						int val = (int)smoke_ranges[kk].val;
-						if (val == 1) unknown_f = 1;
+						if (val == 1) {
+							unknown_f = 1;
+							quantity_f = missing_val;
+						}
 						else if (val == 2) never_smoke_f = 1;
 						else if (val == 3) {
 							ex_smoke_f = 1;

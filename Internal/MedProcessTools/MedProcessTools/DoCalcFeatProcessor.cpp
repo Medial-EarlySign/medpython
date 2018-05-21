@@ -217,37 +217,42 @@ void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, i
 
 void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *p_out, int n_samples) {
 	MLOG("DoCalcFeatProcessor::do_boolean_condition start\n");
-	if (p_sources.size() != 2)
-		MTHROW_AND_ERR("[%s] expects 2 source_feature_names, got [%d]\n", calc_type.c_str(), (int)p_sources.size());
-	if (calc_type != "and" && calc_type != "or")
-		MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
+	if (p_sources.size() < 1)
+		MTHROW_AND_ERR("[%s] expects at least 1 source_feature_names, got [%d]\n", calc_type.c_str(), (int)p_sources.size());
 
-	for (int i = 0; i < n_samples; i++) {
-		float res;
-		float a = p_sources[0][i];
-		float b = p_sources[1][i];
-		if (a == missing_value && b == missing_value)
-			res = missing_value;
-		else if (calc_type == "and") {
-			if (a == missing_value || b == missing_value) {
-				// one of them missing
-				if (a == 0 || b == 0)
-					res = 0;
-				else res = 1;
-			} else res = a && b;
+	if (calc_type == "and") {
+		for (int i = 0; i < n_samples; i++) {
+			int res = 1;
+			bool all_are_missing = true;
+			for (int j = 0; j < p_sources.size(); j++) {
+				if (p_sources[j][i] != missing_value) {
+					all_are_missing = false;
+					res &= (p_sources[j][i] != 0.0);
+				}
+			}
+			if (all_are_missing)
+				p_out[i] = missing_value;
+			else
+				p_out[i] = (float)res;
 		}
-		else if (calc_type == "or") {
-			if (a == missing_value || b == missing_value) {
-				// one of them missing
-				if (a == 1 || b == 1)
-					res = 1;
-				else res = 0;
-			} else res = a || b;	
-		}
-		else MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
-		p_out[i] = res;
 	}
-	MLOG("DoCalcFeatProcessor::do_boolean_condition end\n");
+	else if (calc_type == "or") {
+		for (int i = 0; i < n_samples; i++) {
+			int res = 0;
+			bool all_are_missing = true;
+			for (int j = 0; j < p_sources.size(); j++) {
+				if (p_sources[j][i] != missing_value) {
+					all_are_missing = false;
+					res |= (p_sources[j][i] != 0.0);
+				}
+			}
+			if (all_are_missing)
+				p_out[i] = missing_value;
+			else
+				p_out[i] = (float)res;
+		}
+	}
+	else MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
 	return;
 }
 

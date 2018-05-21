@@ -322,8 +322,10 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
 	if (name == "exists")			return FTR_EXISTS;
-	if (name == "last_delta_time_norm")                 return FTR_LAST_DELTA_TIME_NORM_VALUE;
-	if (name == "last_delta_time_avg_norm")             return FTR_LAST_DELTA_TIME_AVG_NORM_VALUE;
+	if (name == "max_diff")			return FTR_MAX_DIFF;
+	if (name == "first_time")		return FTR_FIRST_DAYS;
+	if (name == "category_set_first")				return FTR_CATEGORY_SET_FIRST;
+
 
 	if (isInteger(name))
 		return (BasicFeatureTypes)stoi(name);
@@ -358,11 +360,11 @@ void BasicFeatGenerator::set_names() {
 		case FTR_CATEGORY_SET:			name += "category_set_" + set_names ; break;
 		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count_" + set_names; break;
 		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
-		case FTR_NSAMPLES:		name += "nsamples"; break;
-		case FTR_EXISTS:		name += "exists"; break;
-		case FTR_LAST_DELTA_TIME_NORM_VALUE:		name += "last_delta_time_norm"; break;
-		case FTR_LAST_DELTA_TIME_AVG_NORM_VALUE:		name += "last_delta_time_avg_norm"; break;
-
+		case FTR_CATEGORY_SET_FIRST:	name += "category_set_first_" + set_names; break;
+		case FTR_NSAMPLES:			name += "nsamples"; break;
+		case FTR_EXISTS:			name += "exists"; break;
+		case FTR_MAX_DIFF:			name += "max_diff"; break;
+		case FTR_FIRST_DAYS:		name += "first_time"; break;
 
 		default: name += "ERROR";
 		}
@@ -410,7 +412,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 	
-	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM) {
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName); 
 			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
@@ -447,8 +449,9 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time);
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
 	case FTR_EXISTS:			return uget_exists(rec.usv, time, win_from, win_to);
-	case FTR_LAST_DELTA_TIME_NORM_VALUE: return last_delta_time_norm(rec.usv, time);
-	case FTR_LAST_DELTA_TIME_AVG_NORM_VALUE: return last_delta_time_avg_norm(rec.usv, time);
+	case FTR_MAX_DIFF:			return uget_max_diff(rec.usv, time);
+	case FTR_FIRST_DAYS:		return uget_first_time(rec.usv, time);
+	case FTR_CATEGORY_SET_FIRST:		return uget_category_set_first(rec, rec.usv, time);
 
 	default:	return missing_val;
 	}
@@ -1004,38 +1007,6 @@ float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time)
 }
 
 //.......................................................................................
-float BasicFeatGenerator::last_delta_time_norm(UniversalSigVec &usv, int time)
-{
-	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-
-	for (int i = usv.len - 1; i >= 0; i--) {
-		if (usv.Time(i, time_channel) <= max_time) {
-			for (int j = i - 1; j >= 0; j--)
-			{
-				if (j < 0 || usv.Time(j, time_channel) < min_time)
-					return missing_val;
-
-				if (usv.Time(j, time_channel) != usv.Time(i, time_channel))
-				{
-					int diff_days = med_time_converter.convert_date(MedTime::Days, usv.Time(i, time_channel)) -
-						med_time_converter.convert_date(MedTime::Days, usv.Time(j, time_channel));
-					return ((usv.Val(i, val_channel) - usv.Val(j, val_channel)) / diff_days);
-				}
-			}
-		}
-	}
-	return missing_val;
-}
-//.......................................................................................
-float BasicFeatGenerator::last_delta_time_avg_norm(UniversalSigVec &usv, int time)
-{
-	float avg = uget_avg(usv, time);
-	if (avg != 0)
-		return last_delta_time_norm(usv, time) / avg;
-}
-
-//.......................................................................................
 float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 {
 	int min_time, max_time;
@@ -1050,6 +1021,24 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 				return missing_val;
 	}
 
+	return missing_val;
+}
+
+//.......................................................................................
+float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				return missing_val;
+			else
+				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+		}
+	}
 	return missing_val;
 }
 
@@ -1139,6 +1128,21 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 		int itime = usv.Time(i, time_channel);
 		if (itime > max_time) break;
 		if (itime >= min_time && lut[(int)usv.Val(i, val_channel)]) 	return 1;
+	}
+
+	return 0;
+}
+
+float BasicFeatGenerator::uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime > max_time) return 0; // passed window
+		if (lut[(int)usv.Val(i, val_channel)]) // what we look for
+			return itime >= min_time; // inside window
 	}
 
 	return 0;
@@ -1537,4 +1541,36 @@ void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int 
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
+}
+
+
+//.......................................................................................
+// get the max diiference in values in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	float max_diff = missing_val;
+	vector<float> _vals_vec;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				break;
+			else {
+				if (_vals_vec.size() > 0) {
+					nth_element(_vals_vec.begin(), _vals_vec.begin() + _vals_vec.size() / 2, _vals_vec.end());
+					float median_prev_val = _vals_vec[_vals_vec.size() / 2];
+					//float prev_val = median_prev_val;
+					float prev_val = _vals_vec.back();
+					float diff = usv.Val(i, val_channel) - prev_val;
+					if (diff > max_diff || max_diff == missing_val)
+						max_diff = diff;
+				}
+				_vals_vec.push_back(usv.Val(i, val_channel));
+			}
+		}
+	}
+	return max_diff;
 }

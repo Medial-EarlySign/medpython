@@ -38,8 +38,7 @@ void get_percentiles(vector<float> &vals, vector<float> &p, vector<float> &pvals
 	if (only_positive_flag) {
 		while (n0<n && vals[n0]<=0) n0++;
 	}
-	pvals.resize(p.size());
-	pvals.clear();
+	pvals.resize(p.size(), 0);
 	for (int i=0; i<p.size(); i++) {
 		int k = n0 + (int)((float)(n-n0)*p[i]);
 		if (k < 0) k = 0;
