@@ -199,8 +199,6 @@ private:
 	float uget_min(UniversalSigVec &usv, int time_point);
 	float uget_std(UniversalSigVec &usv, int time_point);
 	float uget_last_delta(UniversalSigVec &usv, int time_point);
-	float last_delta_time_norm(UniversalSigVec &usv, int time);
-	float last_delta_time_avg_norm(UniversalSigVec &usv, int time);
 	float uget_last_time(UniversalSigVec &usv, int time_point);
 	float uget_last2_time(UniversalSigVec &usv, int time_point);
 	float uget_slope(UniversalSigVec &usv, int time_point);
