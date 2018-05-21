@@ -326,7 +326,7 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 	vector<int> sig_ids;
 	for (auto &name : set_names) {
 		int myid = id(name);
-		if (myid > 0)
+		if (myid >= 0)
 			sig_ids.push_back(myid);
 		else
 			MTHROW_AND_ERR("prep_sets_lookup_table() : Found bad name [%s] :: not found in dictionary()\n", name.c_str());
