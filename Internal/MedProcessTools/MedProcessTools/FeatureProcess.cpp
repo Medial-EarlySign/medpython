@@ -39,6 +39,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESSOR_IMPORTANCE_SELECTOR;
 	else if (processor_name == "pca")
 		return FTR_PROCESS_ENCODER_PCA;
+	else if (processor_name == "one_hot")
+		return FTR_PROCESS_ONE_HOT;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -86,6 +88,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new TagFeatureSelector;
 	else if (processor_type == FTR_PROCESSOR_IMPORTANCE_SELECTOR)
 		return new ImportanceFeatureSelector;
+	else if (processor_type == FTR_PROCESS_ONE_HOT)
+		return new OneHotFeatProcessor;
 	else
 		return NULL;
 
@@ -828,6 +832,117 @@ size_t featureStrata::serialize(unsigned char *blob) {
 //.......................................................................................
 size_t featureStrata::deserialize(unsigned char *blob) {
 	return MedSerialize::deserialize(blob, name, resolution, min, max, nValues);
+}
+
+//=======================================================================================
+// OneHotFeatProcessor
+//=======================================================================================
+int OneHotFeatProcessor::init(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [OneHotFeatProcessor::init]
+		if (field == "name") feature_name = entry.second;
+		else if (field == "prefix") index_feature_prefix = entry.second;
+		else if (field == "remove_origin") rem_origin = (stoi(entry.second) != 0);
+		else if (field == "add_other") add_other = (stoi(entry.second) != 0);
+		else if (field == "allow_other") allow_other = (stoi(entry.second) != 0);
+		else if (field == "remove_last") remove_last = (stoi(entry.second) != 0);
+		else if (field == "max_values") max_values = stoi(entry.second);
+		else 
+			MLOG("Unknown parameter \'%s\' for OneHotFeatProcessor\n", field.c_str());
+		//! [OneHotFeatProcessor::init]
+	}
+
+	// Set output names
+	if (index_feature_prefix == "")
+		index_feature_prefix = feature_name;
+
+	return 0;
+}
+
+int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
+
+	// Get all values
+	vector<float> values;
+	get_all_values(features, resolved_feature_name, ids, values, 0);
+
+	// Build value2feature
+	unordered_set<float> all_values(values.begin(), values.end());
+	if (all_values.size() > max_values)
+		MTHROW_AND_ERR("Found %zd different values for %s. More than allowed %d\n", all_values.size(), feature_name.c_str(), max_values);
+
+	;
+	for (float value : all_values)
+		value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_" + to_string(value);
+	other_feature_name = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_other";
+
+	// Remove last one
+	if (remove_last && !value2feature.empty())
+		removed_feature_name = value2feature.rbegin()->second;
+	
+	return 0;
+}
+
+int OneHotFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
+
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
+
+	// Prepare new Features
+	int samples_size = (int)features.samples.size();
+	for (auto& rec : value2feature) {
+		string feature_name = rec.second;
+		if (feature_name != removed_feature_name) 
+#pragma omp critical
+			{
+				features.data[feature_name].clear();
+				features.data[feature_name].resize(samples_size, 0.0);
+				// Attributes
+				features.attributes[feature_name].normalized = false;
+				features.attributes[feature_name].imputed = true;
+			}
+	}
+
+	
+	if (add_other) {
+#pragma omp critical
+		{
+			features.data[other_feature_name].clear();
+			features.data[other_feature_name].resize(samples_size,0.0);
+			// Attributes
+			features.attributes[other_feature_name].normalized = false;
+			features.attributes[other_feature_name].imputed = true;
+		}
+	}
+
+	// Fill it up
+	for (int i = 0; i < samples_size; i++) {
+		if (ids.empty() || ids.find(features.samples[i].id) != ids.end()) {
+			float value = features.data[resolved_feature_name][i];
+			if (value2feature.find(value) != value2feature.end()) {
+				if (value2feature[value] != removed_feature_name)
+					features.data[value2feature[value]][i] = 1.0;
+			}
+			else {
+				if (add_other)
+					features.data[other_feature_name][i] = 1.0;
+				else if (!allow_other)
+					MTHROW_AND_ERR("Unknown value %f for feature %s\n", value, feature_name.c_str());
+			}
+		}
+	}
+
+	// Remove original, if required
+	if (rem_origin) {
+		features.data.erase(resolved_feature_name);
+		features.attributes.erase(resolved_feature_name);
+	}
+
+	return 0;
 }
 
 //=======================================================================================

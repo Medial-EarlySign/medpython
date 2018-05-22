@@ -107,7 +107,9 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	XGBoosterSetParam(h_booster, "tree_method", boost::lexical_cast<std::string>(params.tree_method).c_str());
 
 	const double start = dmlc::GetTime();
-	for (int iter = 0; iter<200; iter++)
+#pragma omp critical
+	XGBoosterUpdateOneIter(h_booster, 0, h_train[0]);
+	for (int iter = 1; iter<200; iter++)
 		XGBoosterUpdateOneIter(h_booster, iter, h_train[0]);
 
 	double elapsed = dmlc::GetTime() - start;

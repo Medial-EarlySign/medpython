@@ -219,7 +219,7 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 	MLOG("DoCalcFeatProcessor::do_boolean_condition start\n");
 	if (p_sources.size() < 1)
 		MTHROW_AND_ERR("[%s] expects at least 1 source_feature_names, got [%d]\n", calc_type.c_str(), (int)p_sources.size());
-	float res;
+
 	if (calc_type == "and") {
 		for (int i = 0; i < n_samples; i++) {
 			int res = 1;

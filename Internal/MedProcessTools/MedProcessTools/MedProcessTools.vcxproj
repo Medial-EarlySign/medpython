@@ -128,6 +128,7 @@
     <None Include="..\Config_Examples\do_calc_example.json" />
     <None Include="..\Config_Examples\model_json_version2_example.json" />
     <None Include="..\Config_Examples\fragile_config.json" />
+    <None Include="..\Config_Examples\samples_attributes.json" />
     <None Include="..\Config_Examples\signal_json_ranges.json" />
     <None Include="..\Resources\thin_completion_metadata" />
   </ItemGroup>

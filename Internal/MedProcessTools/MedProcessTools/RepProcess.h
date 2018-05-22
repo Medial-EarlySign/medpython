@@ -445,7 +445,7 @@ public:
 	string nRem_attr = ""; ///< Attribute name (in sample) for number of removed. not recorded if empty
 	string nRem_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of removed. not recorded if empty
 
-	float tolerance = 0.1;
+	float tolerance = 0.1F;
 
 	/// static map from rule to participating signals
 	map <int, vector<string>>rules2Signals = { 
