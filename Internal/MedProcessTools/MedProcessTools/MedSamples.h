@@ -54,6 +54,7 @@ public:
 	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos);
 	/// <summary> Write to string in new format </summary>
 	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr);
+	void write_to_string(string &s);
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes, str_attributes)

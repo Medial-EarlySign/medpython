@@ -13,11 +13,11 @@ with distributed filesystems(HDFS or S3) in ```xgboost/make/config.mk```.
 
 Step by Step Tutorial on AWS
 ----------------------------
-Checkout [this tutorial](https://xgboost.readthedocs.org/en/latest/tutorial/aws_yarn.html) for running distributed xgboost.
+Checkout [this tutorial](https://xgboost.readthedocs.org/en/latest/tutorials/aws_yarn.html) for running distributed xgboost.
 
 
 Model Analysis
 --------------
-XGBoost is exchangable across all bindings and platforms.
+XGBoost is exchangeable across all bindings and platforms.
 This means you can use python or R to analyze the learnt model and do prediction.
 For example, you can use the [plot_model.ipynb](plot_model.ipynb) to visualize the learnt model.

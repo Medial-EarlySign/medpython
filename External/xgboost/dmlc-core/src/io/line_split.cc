@@ -26,7 +26,7 @@ size_t LineSplitter::SeekRecordBegin(Stream *fi) {
 }
 const char* LineSplitter::FindLastRecordBegin(const char *begin,
                                               const char *end) {
-  CHECK_XGB(begin != end);
+  CHECK(begin != end);
   for (const char *p = end - 1; p != begin; --p) {
     if (*p == '\n' || *p == '\r') return p + 1;
   }

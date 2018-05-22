@@ -53,7 +53,7 @@ class URISpec {
       }
       this->cache_file = os.str();
     } else {
-      CHECK_EQ(name_cache.size(), 1)
+      CHECK_EQ(name_cache.size(), 1U)
           << "only one `#` is allowed in file path for cachefile specification";
     }
     std::vector<std::string> name_args = Split(name_cache[0], '?');
@@ -62,12 +62,14 @@ class URISpec {
       for (size_t i = 0; i < arg_list.size(); ++i) {
         std::istringstream is(arg_list[i]);
         std::pair<std::string, std::string> kv;
-        CHECK_XGB(std::getline(is, kv.first, '=')) << "Invalid uri argument format";
-        CHECK_XGB(std::getline(is, kv.second)) << "Invalid uri argument format";
+        CHECK(std::getline(is, kv.first, '=')) << "Invalid uri argument format"
+          << " for key in arg " << i + 1;
+        CHECK(std::getline(is, kv.second)) << "Invalid uri argument format"
+          << " for value in arg " << i + 1;
         this->args.insert(kv);
       }
     } else {
-      CHECK_EQ(name_args.size(), 1)
+      CHECK_EQ(name_args.size(), 1U)
           << "only one `#` is allowed in file path for cachefile specification";
     }
     this->uri = name_args[0];

@@ -5,6 +5,7 @@
 //#if 1
 #include "xgboost/learner.h"
 #include "xgboost/data.h"
+#include <xgboost/c_api.h>
 
 struct MedXGBParams {
 	string booster; // gbtree or gblinear
@@ -39,7 +40,7 @@ struct MedXGBParams {
 
 class MedXGB : public MedPredictor {
 public:
-	xgboost::Learner* my_learner;
+	BoosterHandle my_learner = NULL;
 	xgboost::DMatrix* dvalidate = NULL;
 	MedXGBParams params;
 	void init_defaults();

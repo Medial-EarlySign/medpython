@@ -142,9 +142,9 @@ inline FileInfo ConvertPathInfo(const URI &path, const hdfsFileInfo &info) {
 }
 
 FileInfo HDFSFileSystem::GetPathInfo(const URI &path) {
-  CHECK_XGB(path.protocol == "hdfs://") << "HDFSFileSystem only works with hdfs";
+  CHECK(path.protocol == "hdfs://") << "HDFSFileSystem only works with hdfs";
   hdfsFileInfo *info = hdfsGetPathInfo(fs_, path.str().c_str());
-  CHECK_XGB(info != NULL) << "Path do not exist:" << path.str();
+  CHECK(info != NULL) << "Path do not exist:" << path.str();
   FileInfo ret = ConvertPathInfo(path, *info);
   hdfsFreeFileInfo(info, 1);
   return ret;
@@ -153,7 +153,7 @@ FileInfo HDFSFileSystem::GetPathInfo(const URI &path) {
 void HDFSFileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_list) {
   int nentry;
   hdfsFileInfo *files = hdfsListDirectory(fs_, path.str().c_str(), &nentry);
-  CHECK_XGB(files != NULL) << "Error when ListDirectory " << path.str();
+  CHECK(files != NULL) << "Error when ListDirectory " << path.str();
   out_list->clear();
   for (int i = 0; i < nentry; ++i) {
     out_list->push_back(ConvertPathInfo(path, files[i]));
@@ -180,7 +180,7 @@ SeekStream *HDFSFileSystem::Open(const URI &path,
     ref_counter_[0] += 1;
     return new HDFSStream(fs_, ref_counter_, fp_);
   }
-  CHECK_XGB(allow_null) << " HDFSFileSystem: fail to open \"" << path.str() << '\"';
+  CHECK(allow_null) << " HDFSFileSystem: fail to open \"" << path.str() << '\"';
   return NULL;
 }
 

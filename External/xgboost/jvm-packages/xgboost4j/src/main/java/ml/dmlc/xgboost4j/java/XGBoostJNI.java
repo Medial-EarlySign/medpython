@@ -15,6 +15,10 @@
  */
 package ml.dmlc.xgboost4j.java;
 
+import java.nio.ByteBuffer;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * xgboost JNI functions
@@ -23,6 +27,28 @@ package ml.dmlc.xgboost4j.java;
  * @author hzx
  */
 class XGBoostJNI {
+  private static final Log logger = LogFactory.getLog(DMatrix.class);
+
+  static {
+    try {
+      NativeLibLoader.initXGBoost();
+    } catch (Exception ex) {
+      logger.error("Failed to load native library", ex);
+      throw new RuntimeException(ex);
+    }
+  }
+
+  /**
+   * Check the return code of the JNI call.
+   *
+   * @throws XGBoostError if the call failed.
+   */
+  static void checkCall(int ret) throws XGBoostError {
+    if (ret != 0) {
+      throw new XGBoostError(XGBGetLastError());
+    }
+  }
+
   public final static native String XGBGetLastError();
 
   public final static native int XGDMatrixCreateFromFile(String fname, int silent, long[] out);
@@ -30,11 +56,11 @@ class XGBoostJNI {
   final static native int XGDMatrixCreateFromDataIter(java.util.Iterator<DataBatch> iter,
                                                              String cache_info, long[] out);
 
-  public final static native int XGDMatrixCreateFromCSR(long[] indptr, int[] indices, float[] data,
-                                                        long[] out);
+  public final static native int XGDMatrixCreateFromCSREx(long[] indptr, int[] indices, float[] data,
+                                                        int shapeParam, long[] out);
 
-  public final static native int XGDMatrixCreateFromCSC(long[] colptr, int[] indices, float[] data,
-                                                        long[] out);
+  public final static native int XGDMatrixCreateFromCSCEx(long[] colptr, int[] indices, float[] data,
+                                                          int shapeParam, long[] out);
 
   public final static native int XGDMatrixCreateFromMat(float[] data, int nrow, int ncol,
                                                         float missing, long[] out);
@@ -82,8 +108,8 @@ class XGBoostJNI {
 
   public final static native int XGBoosterGetModelRaw(long handle, byte[][] out_bytes);
 
-  public final static native int XGBoosterDumpModel(long handle, String fmap, int with_stats,
-                                                    String[][] out_strings);
+  public final static native int XGBoosterDumpModelEx(long handle, String fmap, int with_stats,
+                                                      String format, String[][] out_strings);
 
   public final static native int XGBoosterGetAttr(long handle, String key, String[] out_string);
   public final static native int XGBoosterSetAttr(long handle, String key, String value);
@@ -97,4 +123,9 @@ class XGBoostJNI {
   public final static native int RabitGetRank(int[] out);
   public final static native int RabitGetWorldSize(int[] out);
   public final static native int RabitVersionNumber(int[] out);
-}                                                                             
+
+  // Perform Allreduce operation on data in sendrecvbuf.
+  // This JNI function does not support the callback function for data preparation yet.
+  final static native int RabitAllreduce(ByteBuffer sendrecvbuf, int count,
+                                                int enum_dtype, int enum_op);
+}

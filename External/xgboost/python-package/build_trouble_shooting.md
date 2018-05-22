@@ -10,7 +10,7 @@ Linux platform (also Mac OS X in general)
 ------------
 **Trouble 0**: I see error messages like this when install from github using `python setup.py install`.
 
-    XGBoostLibraryNotFound: Cannot find XGBoost Libarary in the candicate path, did you install compilers and run build.sh in root path?
+    XGBoostLibraryNotFound: Cannot find XGBoost Library in the candidate path, did you install compilers and run build.sh in root path?
     List of candidates:
     /home/dmlc/anaconda/lib/python2.7/site-packages/xgboost-0.4-py2.7.egg/xgboost/libxgboostwrapper.so
     /home/dmlc/anaconda/lib/python2.7/site-packages/xgboost-0.4-py2.7.egg/xgboost/../../wrapper/libxgboostwrapper.so
@@ -18,7 +18,7 @@ Linux platform (also Mac OS X in general)
 
 **Solution 0**: Please check if you have:
 
-* installed the latest C++ compilers and `make`, for example `g++` and `gcc` (Linux) or `clang LLVM` (Mac OS X). Recommended compilers are `g++-5` or newer (Linux and Mac), or `clang` comes with Xcode in Mac OS X. For installting compilers, please refer to your system package management commands, e.g. `apt-get` `yum` or `brew`(Mac).
+* installed the latest C++ compilers and `make`, for example `g++` and `gcc` (Linux) or `clang LLVM` (Mac OS X). Recommended compilers are `g++-5` or newer (Linux and Mac), or `clang` comes with Xcode in Mac OS X. For installing compilers, please refer to your system package management commands, e.g. `apt-get` `yum` or `brew`(Mac).
 * compilers in your `$PATH`. Try typing `gcc` and see if your have it in your path.
 * Do you use other shells than `bash` and install from `pip`? In some old version of pip installation, the shell script used `pushd` for changing directory and triggering the build process, which may failed some shells without `pushd` command. Please update to the latest version by removing the old installation and redo `pip install xgboost`
 * Some outdated `make` may not recognize the recent changes in the `Makefile` and gives this error, please update to the latest `make`:
@@ -41,12 +41,21 @@ Linux platform (also Mac OS X in general)
 **Trouble 4**: I tried `python setup.py install` but it says `setuptools` import fail.
 **Solution 4**: Please make sure you have [setuptools](https://pypi.python.org/pypi/setuptools) before installing the python package.
 
+**Trouble 5**:  I see the same error message in **Trouble 0** when install from `pip install xgboost`.
+**Solution 5**: The compilation process uses too many processes to run `make` and the box runs out or RAM. To solve this, there are two alternatives:
+* Add more RAM.
+* Run `make` with just one process: 
+```
+git clone --recursive https://github.com/dmlc/xgboost
+cd xgboost; make -j1
+```
+
 Mac OS X (specific)
 ------------
 Most of the troubles and solutions are the same with that in the Linux platform. Mac has the following specific problems.
 
 **Trouble 0**: I successfully installed `xgboost` using github installation/using `pip install xgboost`. But it runs very slow with only single thread, what is going on?
-**Solution 0**: `clang LLVM` compiler on Mac OS X from Xcode doesn't support OpenMP multi-thread. An alternative choice is installing `homebrew` <http://brew.sh/> and `brew install g++-5` which provides multi-thread OpenMP support.
+**Solution 0**: `clang LLVM` compiler on Mac OS X from Xcode doesn't support OpenMP multi-thread. An alternative choice is installing `homebrew` <http://brew.sh/> and `brew install gcc5` which provides multi-thread OpenMP support.
 
 **Trouble 1**: Can I install `clang-omp` for supporting OpenMP without using `gcc`?
 **Solution 1**: it is not support and may have linking errors.

@@ -49,12 +49,12 @@ TEST(ThreadedIter, basics) {
   iter.Init(&prod);
   int counter = 0;
   while (iter.Next()) {
-    CHECK_XGB(counter == iter.Value());
+    CHECK(counter == iter.Value());
     delay(d);
     LOG(INFO)  << counter;
     ++counter;
   }
-  CHECK_XGB(!iter.Next());
+  CHECK(!iter.Next());
   iter.BeforeFirst();
   iter.BeforeFirst();
   iter.BeforeFirst();
@@ -65,11 +65,11 @@ TEST(ThreadedIter, basics) {
   int *value;
   while (iter.Next(&value)) {
     LOG(INFO)  << *value;
-    CHECK_XGB(counter == *value);
+    CHECK(counter == *value);
     ++counter;
     iter.Recycle(&value);
     delay(d);
-    CHECK_XGB(value == NULL);
+    CHECK(value == NULL);
   }
   LOG(INFO) << "finish";
 }

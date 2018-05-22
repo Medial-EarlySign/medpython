@@ -76,6 +76,10 @@ class Row {
   /*! \brief length of the sparse vector */
   size_t length;
   /*!
+   * \brief field of each instance
+   */
+  const IndexType *field;
+  /*!
    * \brief index of each instance
    */
   const IndexType *index;
@@ -84,6 +88,13 @@ class Row {
    *  indicating every value is set to be 1
    */
   const real_t *value;
+  /*!
+   * \param i the input index
+   * \return field for i-th feature
+   */
+  inline IndexType get_field(size_t i) const {
+    return field[i];
+  }
   /*!
    * \param i the input index
    * \return i-th feature
@@ -111,12 +122,12 @@ class Row {
     V sum = static_cast<V>(0);
     if (value == NULL) {
       for (size_t i = 0; i < length; ++i) {
-        CHECK_XGB(index[i] < size) << "feature index exceed bound";
+        CHECK(index[i] < size) << "feature index exceed bound";
         sum += weight[index[i]];
       }
     } else {
       for (size_t i = 0; i < length; ++i) {
-        CHECK_XGB(index[i] < size) << "feature index exceed bound";
+        CHECK(index[i] < size) << "feature index exceed bound";
         sum += weight[index[i]] * value[i];
       }
     }
@@ -143,6 +154,8 @@ struct RowBlock {
   const real_t *label;
   /*! \brief With weight: array[size] label of each instance, otherwise nullptr */
   const real_t *weight;
+  /*! \brief field id*/
+  const IndexType *field;
   /*! \brief feature index */
   const IndexType *index;
   /*! \brief feature value, can be NULL, indicating all values are 1 */
@@ -158,6 +171,7 @@ struct RowBlock {
     size_t cost = size * (sizeof(size_t) + sizeof(real_t));
     if (weight != NULL) cost += size * sizeof(real_t);
     size_t ndata = offset[size] - offset[0];
+    if (field != NULL) cost += ndata * sizeof(IndexType);
     if (index != NULL) cost += ndata * sizeof(IndexType);
     if (value != NULL) cost += ndata * sizeof(real_t);
     return cost;
@@ -169,7 +183,7 @@ struct RowBlock {
    * \return the sliced RowBlock
    */
   inline RowBlock Slice(size_t begin, size_t end) const {
-    CHECK_XGB(begin <= end && end <= size);
+    CHECK(begin <= end && end <= size);
     RowBlock ret;
     ret.size = end - begin;
     ret.label = label + begin;
@@ -179,6 +193,7 @@ struct RowBlock {
       ret.weight = NULL;
     }
     ret.offset = offset + begin;
+    ret.field = field;
     ret.index = index;
     ret.value = value;
     return ret;
@@ -309,7 +324,7 @@ struct ParserFactoryReg
 template<typename IndexType>
 inline Row<IndexType>
 RowBlock<IndexType>::operator[](size_t rowid) const {
-  CHECK_XGB(rowid < size);
+  CHECK(rowid < size);
   Row<IndexType> inst;
   inst.label = label[rowid];
   if (weight != NULL) {
@@ -318,6 +333,11 @@ RowBlock<IndexType>::operator[](size_t rowid) const {
     inst.weight = 1.0f;
   }
   inst.length = offset[rowid + 1] - offset[rowid];
+  if (field != NULL) {
+    inst.field = field + offset[rowid];
+  } else {
+    inst.field = NULL;
+  }
   inst.index = index + offset[rowid];
   if (value == NULL) {
     inst.value = NULL;

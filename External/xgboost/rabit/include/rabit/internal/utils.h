@@ -6,6 +6,7 @@
  */
 #ifndef RABIT_INTERNAL_UTILS_H_
 #define RABIT_INTERNAL_UTILS_H_
+#define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
 #include <string>
 #include <cstdlib>
@@ -15,7 +16,7 @@
 #include <cstdarg>
 #endif
 
-#if !defined(__GNUC__)
+#if !defined(__GNUC__) || defined(__FreeBSD__)
 #define fopen64 std::fopen
 #endif
 #ifdef _MSC_VER
@@ -153,17 +154,9 @@ inline void Error(const char *fmt, ...) {
 #endif
 
 /*! \brief replace fopen, report error when the file open fails */
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
 inline std::FILE *FopenCheck(const char *fname, const char *flag) {
-#if defined (_MSC_VER) || defined (_WIN32)
-	std::FILE *fp;
-	errno_t err = fopen_s(&fp,fname, flag);	
-#else
-	std::FILE *fp = fopen64(fname, flag);
-#endif
-	Check(fp != NULL, "can not open file \"%s\"\n", fname);
+  std::FILE *fp = fopen64(fname, flag);
+  Check(fp != NULL, "can not open file \"%s\"\n", fname);
   return fp;
 }
 }  // namespace utils

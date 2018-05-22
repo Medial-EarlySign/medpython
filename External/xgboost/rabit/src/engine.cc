@@ -14,7 +14,6 @@
 #include "../include/rabit/internal/engine.h"
 #include "./allreduce_base.h"
 #include "./allreduce_robust.h"
-#include "./allreduce_mock.h"
 #include "./thread_local.h"
 
 namespace rabit {

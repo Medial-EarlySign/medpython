@@ -35,7 +35,7 @@ for mod_name in MOCK_MODULES:
 # General information about the project.
 project = u'xgboost'
 author = u'%s developers' % project
-copyright = u'2015, %s' % author
+copyright = u'2016, %s' % author
 github_doc_root = 'https://github.com/dmlc/xgboost/tree/master/doc/'
 
 # add markdown parser
@@ -78,6 +78,8 @@ master_doc = 'index'
 # Usually you set "language" from the command line for these cases.
 language = None
 
+autoclass_content = 'both'
+
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
 #today = ''
@@ -117,10 +119,11 @@ todo_include_todos = False
 
 # -- Options for HTML output ----------------------------------------------
 
+html_theme_path = ['_static']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 # html_theme = 'alabaster'
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'xgboost-theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -162,7 +165,18 @@ def setup(app):
     # Add hook for building doxygen xml when needed
     # no c++ API for now
     # app.connect("builder-inited", generate_doxygen_xml)
+
+    # urlretrieve got moved in Python 3.x
+    try:
+      from urllib import urlretrieve
+    except ImportError:
+      from urllib.request import urlretrieve
+    urlretrieve('https://code.jquery.com/jquery-2.2.4.min.js',
+                '_static/jquery.js')
     app.add_config_value('recommonmark_config', {
             'url_resolver': lambda url: github_doc_root + url,
-            }, True)
+            'enable_eval_rst': True,
+            }, True,
+            )
     app.add_transform(AutoStructify)
+    app.add_javascript('jquery.js')

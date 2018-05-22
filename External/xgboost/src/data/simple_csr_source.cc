@@ -41,7 +41,12 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
     if (batch.weight != nullptr) {
       info.weights.insert(info.weights.end(), batch.weight, batch.weight + batch.size);
     }
-    CHECK_XGB(batch.index != nullptr);
+    // Remove the assertion on batch.index, which can be null in the case that the data in this
+    // batch is entirely sparse. Although it's true that this indicates a likely issue with the
+    // user's data workflows, passing XGBoost entirely sparse data should not cause it to fail.
+    // See https://github.com/dmlc/xgboost/issues/1827 for complete detail.
+    // CHECK(batch.index != nullptr);
+
     // update information
     this->info.num_row += batch.size;
     // copy the data over
@@ -62,7 +67,7 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
 
 void SimpleCSRSource::LoadBinary(dmlc::Stream* fi) {
   int tmagic;
-  CHECK_XGB(fi->Read(&tmagic, sizeof(tmagic)) == sizeof(tmagic)) << "invalid input file format";
+  CHECK(fi->Read(&tmagic, sizeof(tmagic)) == sizeof(tmagic)) << "invalid input file format";
   CHECK_EQ(tmagic, kMagic) << "invalid format, magic number mismatch";
   info.LoadBinary(fi);
   fi->Read(&row_ptr_);
