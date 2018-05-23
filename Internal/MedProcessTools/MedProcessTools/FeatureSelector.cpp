@@ -13,7 +13,7 @@
 // Learn : Add required to feature selected by inheriting classes
 //.......................................................................................
 int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
-
+	//MLOG("FeatureSelector::Learn %d features\n", features.data.size());
 	// select, ignoring requirments
 	if (_learn(features, ids) < 0)
 		return -1;
@@ -27,8 +27,10 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// Find Missing
 	vector<string> missingRequired;
 	for (string feature : required) {
-		if (selectedFeatures.find(feature) == selectedFeatures.end())
+		if (selectedFeatures.find(feature) == selectedFeatures.end()) {
 			missingRequired.push_back(feature);
+			MLOG("FeatureSelector::Learn re-inserting removed feature [%s] because it is required!\n", feature.c_str());
+		}
 	}
 
 	// Keep maximum numToSelect ...
@@ -62,7 +64,7 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 // Apply selection : Ignore set of ids
 //.......................................................................................
 int FeatureSelector::Apply(MedFeatures& features, unordered_set<int>& ids) {
-
+	//MLOG("FeatureSelector::Apply %d features\n", features.data.size());
 	unordered_set<string> selectedFeatures;
 	for (string& feature : selected)
 		selectedFeatures.insert(feature);
@@ -816,8 +818,9 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [TagFeatureSelector::init]
-		if (field == "missing_value") missing_value = stof(entry.second);
-		if (field == "selected_tags") boost::split(selected_tags, entry.second, boost::is_any_of(","));
+		if (field == "missing_value") missing_value = med_stof(entry.second);
+		else if (field == "selected_tags") boost::split(selected_tags, entry.second, boost::is_any_of(","));
+		else if (field == "removed_tags") boost::split(removed_tags, entry.second, boost::is_any_of(","));
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
 		//! [TagFeatureSelector::init]
@@ -829,16 +832,44 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
 	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
+	unordered_set<string> r(removed_tags.begin(), removed_tags.end());
 	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
-		bool found_match = false;
-		auto start_it = it->second.begin();
-		while (!found_match && start_it != it->second.end()) {
-			if (s.find(*start_it) != s.end())
-				found_match = true;
-			++start_it;
+		string feature_name = it->first;
+		unordered_set<string> feature_tags = it->second;
+		bool found_remove;
+		if (r.empty())
+			found_remove = false; // empty removed_tags mean do not remove any
+		else{
+			found_remove = false;
+			auto start_it = feature_tags.begin();
+			while (!found_remove && start_it != feature_tags.end()) {
+				for (const string& substring: r){
+					if ((*start_it).find(substring) != std::string::npos) {
+						found_remove = true;
+						MLOG("TagFeatureSelector removing [%s] because of tag [%s] that contains [%s]\n", 
+							feature_name.c_str(), (*start_it).c_str(), substring.c_str());
+					}
+				}
+				++start_it;
+			}
+		}
+		if (found_remove) 
+			continue;
+
+		bool found_match;
+		if (s.empty())
+			found_match = true;// empty selected_tags mean select all
+		else {
+			found_match = false;
+			auto start_it = feature_tags.begin();
+			while (!found_match && start_it != feature_tags.end()) {
+				if (s.find(*start_it) != s.end())
+					found_match = true;
+				++start_it;
+			}
 		}
 		if (found_match)
-			selected.push_back(it->first);
+			selected.push_back(feature_name);
 	}
 	return 0;
 }

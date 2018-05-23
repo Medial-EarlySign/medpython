@@ -662,13 +662,14 @@ void smearBins(vector<int>& bins, int nBins, int reqNbins);
 
 /************************************************************************************//**
 * TagFeatureSelector - selector which leave us only with the selected "tags" given as
-* param
+* param (if empty do nothing) and removes removed_tags (if empty do nothing)
 *
 * To Use this selector specify <b>"tags_selector"</b> in the fp_type
 ****************************************************************************************/
 class TagFeatureSelector : public FeatureSelector {
 public:
 	vector<string> selected_tags; ///< the selected tags
+	vector<string> removed_tags; ///< tags to remove
 	// Constructor
 	TagFeatureSelector() : FeatureSelector() { }
 
