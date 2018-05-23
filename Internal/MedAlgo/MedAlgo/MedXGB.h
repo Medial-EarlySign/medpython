@@ -62,6 +62,7 @@ public:
 
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params);
+	virtual void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);

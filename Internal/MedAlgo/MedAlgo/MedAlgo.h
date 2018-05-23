@@ -193,6 +193,15 @@ public:
 			"isn't supported for " + model_name + " yet.");
 	};
 
+	///Feature contributions explains the prediction on each sample (aka BUT_WHY)
+	virtual void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs) {
+		string model_name = "model_id=" + to_string(classifier_type);
+		if (predictor_type_to_name.find(classifier_type) != predictor_type_to_name.end())
+			model_name = predictor_type_to_name[classifier_type];
+		throw logic_error("ERROR:: operation calc_feature_contribs "
+			"isn't supported for " + model_name + " yet.");
+	};
+
 	/// <summary>
 	/// caliberation for probability using training data
 	/// @param x The training matrix
@@ -247,7 +256,7 @@ public:
 	//int read_from_file(const string &fname); // read and deserialize model //has default
 	//int write_to_file(const string &fname);  // serialize model and write to file
 
-private:
+protected:
 	// some needed helpers
 	void prepare_x_mat(MedMat<float> &x, vector<float> &wgts, int &nsamples, int &nftrs, bool transpose_needed);
 	void predict_thread(void *p);

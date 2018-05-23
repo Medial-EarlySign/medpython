@@ -37,7 +37,7 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 	if (XGDMatrixCreateFromMat(x, nsamples, nftrs, params.missing_value, &h_test) == -1)
 		MTHROW_AND_ERR("failed to XGDMatrixCreateFromMat");
 
-	bst_ulong out_len;
+	xgboost::bst_ulong out_len;
 	const float *out_preds;
 	XGBoosterPredict(my_learner, h_test, 0, 0, &out_len, &out_preds);
 
@@ -47,6 +47,30 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 	XGDMatrixFree(h_test);
 	return 0;
 }
+
+void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_contribs) {
+	int nsamples, nftrs;
+	vector<float> w;
+	prepare_x_mat(mat_x, w, nsamples, nftrs, transpose_for_predict);
+
+	mat_contribs.resize(nsamples, nftrs + 1);
+
+	DMatrixHandle h_test;
+	if (XGDMatrixCreateFromMat(mat_x.data_ptr(), nsamples, nftrs, params.missing_value, &h_test) == -1)
+		MTHROW_AND_ERR("failed to XGDMatrixCreateFromMat");
+
+	xgboost::bst_ulong out_len;
+	const float *out_preds;
+	const int PRED_CONTRIBS = 4; ;
+	XGBoosterPredict(my_learner, h_test, PRED_CONTRIBS, 0, &out_len, &out_preds);
+	for (int i = 0; i < nsamples; i++) {
+		for (int j = 0; j < nftrs; j++)
+			mat_contribs.set(i, j) = out_preds[i*(nftrs + 1) + j];
+		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
+	}
+		
+}
+
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
 	vector<float> w;
 	for (int i = 0; i < nsamples; i++)
@@ -131,7 +155,7 @@ typedef rabit::utils::MemoryBufferStream MemoryBufferStream;
 size_t MedXGB::get_size() {
 
 	const char* out_dptr;
-	bst_ulong len;
+	xgboost::bst_ulong len;
 	XGBoosterGetModelRaw(my_learner, &len, &out_dptr);
 
 	return (int)len + sizeof(int) + MedSerialize::get_size(model_features)
@@ -177,7 +201,7 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 
 	int with_stats = importance_type != "weight"; //if weight than 0
 
-	bst_ulong num_trees;
+	xgboost::bst_ulong num_trees;
 	const char** out_models;
 	XGBoosterDumpModel(my_learner, "", with_stats, &num_trees, &out_models);
 
@@ -190,7 +214,7 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 	if (importance_type != "weight")
 		fCnt.resize((int)features_importance_scores.size());
 	string search_str = importance_type + "=";
-	for (bst_ulong tree_num = 0; tree_num < num_trees; tree_num++)
+	for (xgboost::bst_ulong tree_num = 0; tree_num < num_trees; tree_num++)
 	{
 		vector<string> lines;
 		string tree = out_models[tree_num];
@@ -231,7 +255,7 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 
 size_t MedXGB::serialize(unsigned char *blob) {
 	const char* out_dptr;
-	bst_ulong len;
+	xgboost::bst_ulong len;
 	if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
 		MTHROW_AND_ERR("failed XGBoosterGetModelRaw\n");
 
