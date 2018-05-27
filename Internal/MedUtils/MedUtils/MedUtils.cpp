@@ -419,7 +419,10 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 		char buffer[1000];
 		for (auto it = vm.begin(); it != vm.end(); ++it) {
 			MLOG("%s = %s\n", it->first.c_str(), medial::print::print_any(it->second).c_str());
-			snprintf(buffer, sizeof(buffer), " --%s %s", it->first.c_str(), medial::print::print_any(it->second).c_str());
+			string val = medial::print::print_any(it->second);
+			if (val.empty() || val.find(";") != string::npos)
+				val = "\"" + val + "\"";
+			snprintf(buffer, sizeof(buffer), " --%s %s", it->first.c_str(), val.c_str());
 			full_params += string(buffer);
 		}
 		MLOG("######################################\n\n%s\n", app_logo.c_str());
