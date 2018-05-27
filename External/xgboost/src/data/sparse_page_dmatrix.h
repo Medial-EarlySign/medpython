@@ -1,7 +1,7 @@
 /*!
  * Copyright 2015 by Contributors
- * \file simple_dmatrix.h
- * \brief In-memory version of DMatrix.
+ * \file sparse_page_dmatrix.h
+ * \brief External-memory version of DMatrix.
  * \author Tianqi Chen
  */
 #ifndef XGBOOST_DATA_SPARSE_PAGE_DMATRIX_H_
@@ -40,15 +40,15 @@ class SparsePageDMatrix : public DMatrix {
     return iter;
   }
 
-  bool HaveColAccess() const override {
-    return col_iter_.get() != nullptr;
+  bool HaveColAccess(bool sorted) const override {
+    return col_iter_.get() != nullptr && col_iter_->sorted == sorted;
   }
 
   const RowSet& buffered_rowset() const override {
     return buffered_rowset_;
   }
 
-  size_t GetColSize(size_t cidx) const {
+  size_t GetColSize(size_t cidx) const override {
     return col_size_[cidx];
   }
 
@@ -67,7 +67,7 @@ class SparsePageDMatrix : public DMatrix {
 
   void InitColAccess(const std::vector<bool>& enabled,
                      float subsample,
-                     size_t max_row_perbatch) override;
+                     size_t max_row_perbatch, bool sorted) override;
 
   /*! \brief page size 256 MB */
   static const size_t kPageSize = 256UL << 20UL;
@@ -87,6 +87,8 @@ class SparsePageDMatrix : public DMatrix {
     bool Next() override;
     // initialize the column iterator with the specified index set.
     void Init(const std::vector<bst_uint>& index_set, bool load_all);
+    // If the column features are sorted
+    bool sorted;
 
    private:
     // the temp page.
@@ -111,10 +113,10 @@ class SparsePageDMatrix : public DMatrix {
     std::vector<SparseBatch::Inst> col_data_;
   };
   /*!
-   * \brief Try to intitialize column data.
+   * \brief Try to initialize column data.
    * \return true if data already exists, false if they do not.
    */
-  bool TryInitColData();
+  bool TryInitColData(bool sorted);
   // source data pointer.
   std::unique_ptr<DataSource> source_;
   // the cache prefix

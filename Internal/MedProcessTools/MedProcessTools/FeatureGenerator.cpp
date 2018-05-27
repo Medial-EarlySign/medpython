@@ -337,14 +337,12 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 void BasicFeatGenerator::set_names() {
 	
 	names.clear();
-
-	if (names.empty()) {
-		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
-		//string name = signalName + ".";
-		string set_names = in_set_name;
-		if (set_names == "" && this->sets.size() > 0)
-			set_names = boost::algorithm::join(this->sets, "_");
-		switch (type) {
+	string name = signalName + ".";
+	//string name = signalName + ".";
+	string set_names = in_set_name;
+	if (set_names == "" && this->sets.size() > 0)
+		set_names = boost::algorithm::join(this->sets, "_");
+	switch (type) {
 		case FTR_LAST_VALUE:	name += "last"; break;
 		case FTR_FIRST_VALUE:	name += "first"; break;
 		case FTR_LAST2_VALUE:	name += "last2"; break;
@@ -367,16 +365,16 @@ void BasicFeatGenerator::set_names() {
 		case FTR_FIRST_DAYS:		name += "first_time"; break;
 
 		default: name += "ERROR";
-		}
-
-		name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
-		if (type == FTR_WIN_DELTA_VALUE)
-			name += "_" + std::to_string(d_win_from) + "_" + std::to_string(d_win_to);
-		if (time_channel!=0 || val_channel != 0)
-			name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
-		names.push_back(name);
-		//MLOG("Created %s\n", name.c_str());
 	}
+
+	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
+	if (type == FTR_WIN_DELTA_VALUE)
+		name += "_" + std::to_string(d_win_from) + "_" + std::to_string(d_win_to);
+	if (time_channel!=0 || val_channel != 0)
+		name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
+	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name);
+	tags.push_back(name);
+	//MLOG("Created %s\n", name.c_str());
 
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
 }

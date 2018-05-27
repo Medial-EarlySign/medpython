@@ -118,15 +118,6 @@ class BaseMaker: public TreeUpdater {
     }
     return n.cdefault();
   }
-  /*! \brief get number of omp thread in current context */
-  inline static int get_nthread() {
-    int nthread;
-    #pragma omp parallel
-    {
-      nthread = omp_get_num_threads();
-    }
-    return nthread;
-  }
   //  ------class member helpers---------
   /*! \brief initialize temp data structure */
   inline void InitData(const std::vector<bst_gpair> &gpair,
@@ -149,14 +140,14 @@ class BaseMaker: public TreeUpdater {
       }
       // mark delete for the deleted datas
       for (size_t i = 0; i < position.size(); ++i) {
-        if (gpair[i].hess < 0.0f) position[i] = ~position[i];
+        if (gpair[i].GetHess() < 0.0f) position[i] = ~position[i];
       }
       // mark subsample
       if (param.subsample < 1.0f) {
         std::bernoulli_distribution coin_flip(param.subsample);
         auto& rnd = common::GlobalRandom();
         for (size_t i = 0; i < position.size(); ++i) {
-          if (gpair[i].hess < 0.0f) continue;
+          if (gpair[i].GetHess() < 0.0f) continue;
           if (!coin_flip(rnd)) position[i] = ~position[i];
         }
       }
@@ -267,9 +258,9 @@ class BaseMaker: public TreeUpdater {
         #pragma omp parallel for schedule(static)
         for (bst_omp_uint j = 0; j < ndata; ++j) {
           const bst_uint ridx = col[j].index;
-          const float fvalue = col[j].fvalue;
+          const bst_float fvalue = col[j].fvalue;
           const int nid = this->DecodePosition(ridx);
-          CHECK_XGB(tree[nid].is_leaf());
+          CHECK(tree[nid].is_leaf());
           int pid = tree[nid].parent();
 
           // go back to parent, correct those who are not default
@@ -327,7 +318,7 @@ class BaseMaker: public TreeUpdater {
         #pragma omp parallel for schedule(static)
         for (bst_omp_uint j = 0; j < ndata; ++j) {
           const bst_uint ridx = col[j].index;
-          const float fvalue = col[j].fvalue;
+          const bst_float fvalue = col[j].fvalue;
           const int nid = this->DecodePosition(ridx);
           // go back to parent, correct those who are not default
           if (!tree[nid].is_leaf() && tree[nid].split_index() == fid) {
@@ -350,7 +341,7 @@ class BaseMaker: public TreeUpdater {
                            std::vector<TStats> *p_node_stats) {
     std::vector< std::vector<TStats> > &thread_temp = *p_thread_temp;
     const MetaInfo &info = fmat.info();
-    thread_temp.resize(this->get_nthread());
+    thread_temp.resize(omp_get_max_threads());
     p_node_stats->resize(tree.param.num_nodes);
     #pragma omp parallel
     {

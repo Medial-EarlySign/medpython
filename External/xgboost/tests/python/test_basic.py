@@ -2,12 +2,14 @@
 import numpy as np
 import xgboost as xgb
 import unittest
+import json
 
 dpath = 'demo/data/'
 rng = np.random.RandomState(1994)
 
 
 class TestBasic(unittest.TestCase):
+
     def test_basic(self):
         dtrain = xgb.DMatrix(dpath + 'agaricus.txt.train')
         dtest = xgb.DMatrix(dpath + 'agaricus.txt.test')
@@ -34,10 +36,26 @@ class TestBasic(unittest.TestCase):
         # assert they are the same
         assert np.sum(np.abs(preds2 - preds)) == 0
 
+    def test_record_results(self):
+        dtrain = xgb.DMatrix(dpath + 'agaricus.txt.train')
+        dtest = xgb.DMatrix(dpath + 'agaricus.txt.test')
+        param = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic'}
+        # specify validations set to watch performance
+        watchlist = [(dtest, 'eval'), (dtrain, 'train')]
+        num_round = 2
+        result = {}
+        res2 = {}
+        xgb.train(param, dtrain, num_round, watchlist,
+                  callbacks=[xgb.callback.record_evaluation(result)])
+        xgb.train(param, dtrain, num_round, watchlist,
+                  evals_result=res2)
+        assert result['train']['error'][0] < 0.1
+        assert res2 == result
+
     def test_multiclass(self):
         dtrain = xgb.DMatrix(dpath + 'agaricus.txt.train')
         dtest = xgb.DMatrix(dpath + 'agaricus.txt.test')
-        param = {'max_depth': 2, 'eta': 1, 'silent': 1, 'num_class' : 2}
+        param = {'max_depth': 2, 'eta': 1, 'silent': 1, 'num_class': 2}
         # specify validations set to watch performance
         watchlist = [(dtest, 'eval'), (dtrain, 'train')]
         num_round = 2
@@ -59,7 +77,6 @@ class TestBasic(unittest.TestCase):
         preds2 = bst2.predict(dtest2)
         # assert they are the same
         assert np.sum(np.abs(preds2 - preds)) == 0
-
 
     def test_dmatrix_init(self):
         data = np.random.randn(5, 5)
@@ -91,7 +108,7 @@ class TestBasic(unittest.TestCase):
 
         # reset
         dm.feature_names = None
-        assert dm.feature_names is None
+        self.assertEqual(dm.feature_names, ['f0', 'f1', 'f2', 'f3', 'f4'])
         assert dm.feature_types is None
 
     def test_feature_names(self):
@@ -125,12 +142,62 @@ class TestBasic(unittest.TestCase):
             dm = xgb.DMatrix(dummy, feature_names=list('abcde'))
             self.assertRaises(ValueError, bst.predict, dm)
 
+    def test_dump(self):
+        data = np.random.randn(100, 2)
+        target = np.array([0, 1] * 50)
+        features = ['Feature1', 'Feature2']
+
+        dm = xgb.DMatrix(data, label=target, feature_names=features)
+        params = {'objective': 'binary:logistic',
+                  'eval_metric': 'logloss',
+                  'eta': 0.3,
+                  'max_depth': 1}
+
+        bst = xgb.train(params, dm, num_boost_round=1)
+
+        # number of feature importances should == number of features
+        dump1 = bst.get_dump()
+        self.assertEqual(len(dump1), 1, "Expected only 1 tree to be dumped.")
+        self.assertEqual(len(dump1[0].splitlines()), 3,
+                         "Expected 1 root and 2 leaves - 3 lines in dump.")
+
+        dump2 = bst.get_dump(with_stats=True)
+        self.assertEqual(dump2[0].count('\n'), 3,
+                         "Expected 1 root and 2 leaves - 3 lines in dump.")
+        self.assertGreater(dump2[0].find('\n'), dump1[0].find('\n'),
+                           "Expected more info when with_stats=True is given.")
+
+        dump3 = bst.get_dump(dump_format="json")
+        dump3j = json.loads(dump3[0])
+        self.assertEqual(dump3j["nodeid"], 0, "Expected the root node on top.")
+
+        dump4 = bst.get_dump(dump_format="json", with_stats=True)
+        dump4j = json.loads(dump4[0])
+        self.assertIn("gain", dump4j, "Expected 'gain' to be dumped in JSON.")
+
     def test_load_file_invalid(self):
         self.assertRaises(xgb.core.XGBoostError, xgb.Booster,
                           model_file='incorrect_path')
 
         self.assertRaises(xgb.core.XGBoostError, xgb.Booster,
                           model_file=u'不正なパス')
+
+    def test_dmatrix_numpy_init_omp(self):
+
+        rows = [1000, 11326, 15000]
+        cols = 50
+        for row in rows:
+            X = np.random.randn(row, cols)
+            y = np.random.randn(row).astype('f')
+            dm = xgb.DMatrix(X, y, nthread=0)
+            np.testing.assert_array_equal(dm.get_label(), y)
+            assert dm.num_row() == row
+            assert dm.num_col() == cols
+
+            dm = xgb.DMatrix(X, y, nthread=10)
+            np.testing.assert_array_equal(dm.get_label(), y)
+            assert dm.num_row() == row
+            assert dm.num_col() == cols
 
     def test_dmatrix_numpy_init(self):
         data = np.random.randn(5, 5)
@@ -160,5 +227,14 @@ class TestBasic(unittest.TestCase):
 
         # return np.ndarray
         cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=False)
-        assert isinstance(cv, np.ndarray)
-        assert cv.shape == (10, 4)
+        assert isinstance(cv, dict)
+        assert len(cv) == (4)
+
+    def test_cv_no_shuffle(self):
+        dm = xgb.DMatrix(dpath + 'agaricus.txt.train')
+        params = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic'}
+
+        # return np.ndarray
+        cv = xgb.cv(params, dm, num_boost_round=10, shuffle=False, nfold=10, as_pandas=False)
+        assert isinstance(cv, dict)
+        assert len(cv) == (4)

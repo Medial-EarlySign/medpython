@@ -75,7 +75,7 @@ class CachedInputSplit : public InputSplit {
       delete fo_;
       iter_preproc_ = NULL;
       fo_ = NULL;
-      CHECK_XGB(this->InitCachedIter())
+      CHECK(this->InitCachedIter())
           << "Failed to initialize CachedIter";
     } else {
       iter_cached_.BeforeFirst();
@@ -89,6 +89,9 @@ class CachedInputSplit : public InputSplit {
   }
   virtual void HintChunkSize(size_t chunk_size) {
     buffer_size_ = std::max(chunk_size / sizeof(size_t), buffer_size_);
+  }
+  virtual size_t GetTotalSize(void) {
+    return base_->GetTotalSize();
   }
   // implement next record
   virtual bool NextRecord(Blob *out_rec) {
@@ -172,12 +175,12 @@ inline bool CachedInputSplit::InitCachedIter(void) {
       size_t size;
       size_t nread = fi_->Read(&size, sizeof(size));
       if (nread == 0) return false;
-      CHECK_XGB(nread == sizeof(size))
+      CHECK(nread == sizeof(size))
           << cache_file_ << " has invalid cache file format";
       p->data.resize(size / sizeof(size_t) + 1);
       p->begin = reinterpret_cast<char*>(BeginPtr(p->data));
       p->end = p->begin + size;
-      CHECK_XGB(fi_->Read(p->begin, size) == size)
+      CHECK(fi_->Read(p->begin, size) == size)
           << cache_file_ << " has invalid cache file format";
       return true;
     },

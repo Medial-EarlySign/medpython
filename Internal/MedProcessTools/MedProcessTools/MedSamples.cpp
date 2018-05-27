@@ -103,6 +103,17 @@ int MedSample::parse_from_string(string &s)
 
 }
 
+
+void MedSample::write_to_string(string &s)
+{
+	vector<string> my_attributes, my_str_attributes;
+	for (auto& attr : attributes)
+		my_attributes.push_back(attr.first);
+	for (auto& attr : str_attributes)
+		my_str_attributes.push_back(attr.first);
+	write_to_string(s, my_attributes, my_str_attributes);
+}
+
 // Write to string in new format
 //.......................................................................................
 void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr)

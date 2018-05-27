@@ -12,6 +12,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <numeric>
 #include "./base.h"
 
 namespace xgboost {
@@ -65,7 +66,7 @@ struct MetaInfo {
    * \param i Instance index.
    * \return The weight.
    */
-  inline float GetWeight(size_t i) const {
+  inline bst_float GetWeight(size_t i) const {
     return weights.size() != 0 ?  weights[i] : 1.0f;
   }
   /*!
@@ -75,6 +76,19 @@ struct MetaInfo {
    */
   inline unsigned GetRoot(size_t i) const {
     return root_index.size() != 0 ? root_index[i] : 0U;
+  }
+  /*! \brief get sorted indexes (argsort) of labels by absolute value (used by cox loss) */
+  inline const std::vector<size_t>& LabelAbsSort() const {
+    if (label_order_cache.size() == labels.size()) {
+      return label_order_cache;
+    }
+    label_order_cache.resize(labels.size());
+    std::iota(label_order_cache.begin(), label_order_cache.end(), 0);
+    const auto l = labels;
+    XGBOOST_PARALLEL_SORT(label_order_cache.begin(), label_order_cache.end(),
+              [&l](size_t i1, size_t i2) {return std::abs(l[i1]) < std::abs(l[i2]);});
+
+    return label_order_cache;
   }
   /*! \brief clear all the information */
   void Clear();
@@ -96,6 +110,10 @@ struct MetaInfo {
    * \param num Number of elements in the source array.
    */
   void SetInfo(const char* key, const void* dptr, DataType dtype, size_t num);
+
+ private:
+  /*! \brief argsort of labels */
+  mutable std::vector<size_t> label_order_cache;
 };
 
 /*! \brief read-only sparse instance batch in CSR format */
@@ -127,6 +145,7 @@ struct SparseBatch {
     /*! \brief length of the instance */
     bst_uint length;
     /*! \brief constructor */
+    Inst() : data(0), length(0) {}
     Inst(const Entry *data, bst_uint length) : data(data), length(length) {}
     /*! \brief get i-th pair in the sparse vector*/
     inline const Entry& operator[](size_t i) const {
@@ -225,7 +244,7 @@ struct RowSet {
  *  - Provide a dmlc::Parser and pass into the DMatrix::Create
  *  - Alternatively, if data can be represented by an URL, define a new dmlc::Parser and register by DMLC_REGISTER_DATA_PARSER;
  *      - This works best for user defined data input source, such as data-base, filesystem.
- *  - Provdie a DataSource, that can be passed to DMatrix::Create
+ *  - Provide a DataSource, that can be passed to DMatrix::Create
  *      This can be used to re-use inmemory data structure into DMatrix.
  */
 class DMatrix {
@@ -253,16 +272,18 @@ class DMatrix {
    * \brief check if column access is supported, if not, initialize column access.
    * \param enabled whether certain feature should be included in column access.
    * \param subsample subsample ratio when generating column access.
-   * \param max_row_perbatch auxilary information, maximum row used in each column batch.
+   * \param max_row_perbatch auxiliary information, maximum row used in each column batch.
    *         this is a hint information that can be ignored by the implementation.
+   * \param sorted If column features should be in sorted order           
    * \return Number of column blocks in the column access.
    */
+
   virtual void InitColAccess(const std::vector<bool>& enabled,
                              float subsample,
-                             size_t max_row_perbatch) = 0;
+                             size_t max_row_perbatch, bool sorted) = 0;
   // the following are column meta data, should be able to answer them fast.
   /*! \return whether column access is enabled */
-  virtual bool HaveColAccess() const = 0;
+  virtual bool HaveColAccess(bool sorted) const = 0;
   /*! \return Whether the data columns single column block. */
   virtual bool SingleColBlock() const = 0;
   /*! \brief get number of non-missing entries in column */
@@ -304,7 +325,7 @@ class DMatrix {
   static DMatrix* Create(std::unique_ptr<DataSource>&& source,
                          const std::string& cache_prefix = "");
   /*!
-   * \brief Create a DMatrix by loaidng data from parser.
+   * \brief Create a DMatrix by loading data from parser.
    *  Parser can later be deleted after the DMatrix i created.
    * \param parser The input data parser
    * \param cache_prefix The path to prefix of temporary cache file of the DMatrix when used in external memory mode.
@@ -327,7 +348,7 @@ class DMatrix {
 
 // implementation of inline functions
 inline bst_uint RowSet::operator[](size_t i) const {
-  return rows_.size() == 0 ? (bst_uint)i : rows_[i];
+  return rows_.size() == 0 ? static_cast<bst_uint>(i) : rows_[i];
 }
 
 inline size_t RowSet::size() const {

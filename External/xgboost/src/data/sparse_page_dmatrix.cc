@@ -28,7 +28,7 @@ SparsePageDMatrix::ColPageIter::ColPageIter(
   for (size_t i = 0; i < files_.size(); ++i) {
     dmlc::SeekStream* fi = files_[i].get();
     std::string format;
-    CHECK_XGB(fi->Read(&format)) << "Invalid page format";
+    CHECK(fi->Read(&format)) << "Invalid page format";
     formats_[i].reset(SparsePage::Format::Create(format));
     SparsePage::Format* fmt = formats_[i].get();
     size_t fbegin = fi->Tell();
@@ -94,7 +94,7 @@ void SparsePageDMatrix::ColPageIter::Init(const std::vector<bst_uint>& index_set
 }
 
 dmlc::DataIter<ColBatch>* SparsePageDMatrix::ColIterator() {
-  CHECK_XGB(col_iter_.get() != nullptr);
+  CHECK(col_iter_.get() != nullptr);
   std::vector<bst_uint> col_index;
   size_t ncol = this->info().num_col;
   for (size_t i = 0; i < ncol; ++i) {
@@ -106,7 +106,7 @@ dmlc::DataIter<ColBatch>* SparsePageDMatrix::ColIterator() {
 
 dmlc::DataIter<ColBatch>* SparsePageDMatrix::
 ColIterator(const std::vector<bst_uint>& fset) {
-  CHECK_XGB(col_iter_.get() != nullptr);
+  CHECK(col_iter_.get() != nullptr);
   std::vector<bst_uint> col_index;
   size_t ncol = this->info().num_col;
   for (size_t i = 0; i < fset.size(); ++i) {
@@ -119,7 +119,7 @@ ColIterator(const std::vector<bst_uint>& fset) {
 }
 
 
-bool SparsePageDMatrix::TryInitColData() {
+bool SparsePageDMatrix::TryInitColData(bool sorted) {
   // load meta data.
   std::vector<std::string> cache_shards = common::Split(cache_info_, ':');
   {
@@ -127,8 +127,8 @@ bool SparsePageDMatrix::TryInitColData() {
     std::unique_ptr<dmlc::Stream> fmeta(
         dmlc::Stream::Create(col_meta_name.c_str(), "r", true));
     if (fmeta.get() == nullptr) return false;
-    CHECK_XGB(fmeta->Read(&buffered_rowset_)) << "invalid col.meta file";
-    CHECK_XGB(fmeta->Read(&col_size_)) << "invalid col.meta file";
+    CHECK(fmeta->Read(&buffered_rowset_)) << "invalid col.meta file";
+    CHECK(fmeta->Read(&col_size_)) << "invalid col.meta file";
   }
   // load real data
   std::vector<std::unique_ptr<dmlc::SeekStream> > files;
@@ -140,15 +140,16 @@ bool SparsePageDMatrix::TryInitColData() {
     files.push_back(std::move(fdata));
   }
   col_iter_.reset(new ColPageIter(std::move(files)));
+  // warning: no attempt to check here whether the cached data was sorted
+  col_iter_->sorted = sorted;
   return true;
 }
 
 void SparsePageDMatrix::InitColAccess(const std::vector<bool>& enabled,
                                       float pkeep,
-                                      size_t max_row_perbatch) {
-  if (HaveColAccess()) return;
-  if (TryInitColData()) return;
-
+                                      size_t max_row_perbatch, bool sorted) {
+  if (HaveColAccess(sorted)) return;
+  if (TryInitColData(sorted)) return;
   const MetaInfo& info = this->info();
   if (max_row_perbatch == std::numeric_limits<size_t>::max()) {
     max_row_perbatch = kMaxRowPerBatch;
@@ -169,12 +170,7 @@ void SparsePageDMatrix::InitColAccess(const std::vector<bool>& enabled,
       SparsePage *pcol) {
     pcol->Clear();
     pcol->min_index = buffered_rowset_[begin];
-    int nthread;
-    #pragma omp parallel
-    {
-      nthread = omp_get_num_threads();
-      nthread = std::max(nthread, std::max(omp_get_num_procs() / 2 - 1, 1));
-    }
+    const int nthread = std::max(omp_get_max_threads(), std::max(omp_get_num_procs() / 2 - 1, 1));
     common::ParallelGroupBuilder<SparseBatch::Entry>
     builder(&pcol->offset, &pcol->data);
     builder.InitBudget(info.num_col, nthread);
@@ -202,13 +198,15 @@ void SparsePageDMatrix::InitColAccess(const std::vector<bool>& enabled,
     }
     CHECK_EQ(pcol->Size(), info.num_col);
     // sort columns
-    bst_omp_uint ncol = static_cast<bst_omp_uint>(pcol->Size());
-    #pragma omp parallel for schedule(dynamic, 1) num_threads(nthread)
-    for (bst_omp_uint i = 0; i < ncol; ++i) {
-      if (pcol->offset[i] < pcol->offset[i + 1]) {
-        std::sort(dmlc::BeginPtr(pcol->data) + pcol->offset[i],
-                  dmlc::BeginPtr(pcol->data) + pcol->offset[i + 1],
-                  SparseBatch::Entry::CmpValue);
+    if (sorted) {
+      bst_omp_uint ncol = static_cast<bst_omp_uint>(pcol->Size());
+#pragma omp parallel for schedule(dynamic, 1) num_threads(nthread)
+      for (bst_omp_uint i = 0; i < ncol; ++i) {
+        if (pcol->offset[i] < pcol->offset[i + 1]) {
+          std::sort(dmlc::BeginPtr(pcol->data) + pcol->offset[i],
+            dmlc::BeginPtr(pcol->data) + pcol->offset[i + 1],
+            SparseBatch::Entry::CmpValue);
+        }
       }
     }
   };
@@ -256,43 +254,46 @@ void SparsePageDMatrix::InitColAccess(const std::vector<bool>& enabled,
     name_shards.push_back(prefix + ".col.page");
     format_shards.push_back(SparsePage::Format::DecideFormat(prefix).second);
   }
-  SparsePage::Writer writer(name_shards, format_shards, 6);
-  std::unique_ptr<SparsePage> page;
-  writer.Alloc(&page); page->Clear();
 
-  double tstart = dmlc::GetTime();
-  size_t bytes_write = 0;
-  // print every 4 sec.
-  const double kStep = 4.0;
-  size_t tick_expected = kStep;
+  {
+    SparsePage::Writer writer(name_shards, format_shards, 6);
+    std::shared_ptr<SparsePage> page;
+    writer.Alloc(&page); page->Clear();
 
-  while (make_next_col(page.get())) {
-    for (size_t i = 0; i < page->Size(); ++i) {
-      col_size_[i] += page->offset[i + 1] - page->offset[i];
+    double tstart = dmlc::GetTime();
+    size_t bytes_write = 0;
+    // print every 4 sec.
+    const double kStep = 4.0;
+    size_t tick_expected = kStep;
+
+    while (make_next_col(page.get())) {
+      for (size_t i = 0; i < page->Size(); ++i) {
+        col_size_[i] += page->offset[i + 1] - page->offset[i];
+      }
+
+      bytes_write += page->MemCostBytes();
+      writer.PushWrite(std::move(page));
+      writer.Alloc(&page);
+      page->Clear();
+
+      double tdiff = dmlc::GetTime() - tstart;
+      if (tdiff >= tick_expected) {
+        LOG(CONSOLE) << "Writing col.page file to " << cache_info_
+                     << " in " << ((bytes_write >> 20UL) / tdiff) << " MB/s, "
+                     << (bytes_write >> 20UL) << " MB writen";
+        tick_expected += kStep;
+      }
     }
-
-    bytes_write += page->MemCostBytes();
-    writer.PushWrite(std::move(page));
-    writer.Alloc(&page);
-    page->Clear();
-
-    double tdiff = dmlc::GetTime() - tstart;
-    if (tdiff >= tick_expected) {
-      LOG(CONSOLE) << "Writing col.page file to " << cache_info_
-                   << " in " << ((bytes_write >> 20UL) / tdiff) << " MB/s, "
-                   << (bytes_write >> 20UL) << " MB writen";
-      tick_expected += kStep;
-    }
+    // save meta data
+    std::string col_meta_name = cache_shards[0] + ".col.meta";
+    std::unique_ptr<dmlc::Stream> fo(
+        dmlc::Stream::Create(col_meta_name.c_str(), "w"));
+    fo->Write(buffered_rowset_);
+    fo->Write(col_size_);
+    fo.reset(nullptr);
   }
-  // save meta data
-  std::string col_meta_name = cache_shards[0] + ".col.meta";
-  std::unique_ptr<dmlc::Stream> fo(
-    dmlc::Stream::Create(col_meta_name.c_str(), "w"));
-  fo->Write(buffered_rowset_);
-  fo->Write(col_size_);
-  fo.reset(nullptr);
   // initialize column data
-  CHECK_XGB(TryInitColData());
+  CHECK(TryInitColData(sorted));
 }
 
 }  // namespace data

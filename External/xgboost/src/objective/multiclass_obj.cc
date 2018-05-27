@@ -35,52 +35,54 @@ class SoftmaxMultiClassObj : public ObjFunction {
   void Configure(const std::vector<std::pair<std::string, std::string> >& args) override {
     param_.InitAllowUnknown(args);
   }
-  void GetGradient(const std::vector<float>& preds,
+  void GetGradient(HostDeviceVector<bst_float>* preds,
                    const MetaInfo& info,
                    int iter,
-                   std::vector<bst_gpair>* out_gpair) override {
-    CHECK_NE(info.labels.size(), 0) << "label set cannot be empty";
-    CHECK_XGB(preds.size() == (static_cast<size_t>(param_.num_class) * info.labels.size()))
+                   HostDeviceVector<bst_gpair>* out_gpair) override {
+    CHECK_NE(info.labels.size(), 0U) << "label set cannot be empty";
+    CHECK(preds->size() == (static_cast<size_t>(param_.num_class) * info.labels.size()))
         << "SoftmaxMultiClassObj: label size and pred size does not match";
-    out_gpair->resize(preds.size());
+    std::vector<bst_float>& preds_h = preds->data_h();
+    out_gpair->resize(preds_h.size());
+    std::vector<bst_gpair>& gpair = out_gpair->data_h();
     const int nclass = param_.num_class;
-    const omp_ulong ndata = static_cast<omp_ulong>(preds.size() / nclass);
+    const omp_ulong ndata = static_cast<omp_ulong>(preds_h.size() / nclass);
 
     int label_error = 0;
     #pragma omp parallel
     {
-      std::vector<float> rec(nclass);
+      std::vector<bst_float> rec(nclass);
       #pragma omp for schedule(static)
       for (omp_ulong i = 0; i < ndata; ++i) {
         for (int k = 0; k < nclass; ++k) {
-          rec[k] = preds[i * nclass + k];
+          rec[k] = preds_h[i * nclass + k];
         }
         common::Softmax(&rec);
         int label = static_cast<int>(info.labels[i]);
         if (label < 0 || label >= nclass)  {
           label_error = label; label = 0;
         }
-        const float wt = info.GetWeight(i);
+        const bst_float wt = info.GetWeight(i);
         for (int k = 0; k < nclass; ++k) {
-          float p = rec[k];
-          const float h = 2.0f * p * (1.0f - p) * wt;
+          bst_float p = rec[k];
+          const bst_float h = 2.0f * p * (1.0f - p) * wt;
           if (label == k) {
-            out_gpair->at(i * nclass + k) = bst_gpair((p - 1.0f) * wt, h);
+            gpair[i * nclass + k] = bst_gpair((p - 1.0f) * wt, h);
           } else {
-            out_gpair->at(i * nclass + k) = bst_gpair(p* wt, h);
+            gpair[i * nclass + k] = bst_gpair(p* wt, h);
           }
         }
       }
     }
-    CHECK_XGB(label_error >= 0 && label_error < nclass)
+    CHECK(label_error >= 0 && label_error < nclass)
         << "SoftmaxMultiClassObj: label must be in [0, num_class),"
         << " num_class=" << nclass
         << " but found " << label_error << " in label.";
   }
-  void PredTransform(std::vector<float>* io_preds) override {
+  void PredTransform(HostDeviceVector<bst_float>* io_preds) override {
     this->Transform(io_preds, output_prob_);
   }
-  void EvalTransform(std::vector<float>* io_preds) override {
+  void EvalTransform(HostDeviceVector<bst_float>* io_preds) override {
     this->Transform(io_preds, true);
   }
   const char* DefaultEvalMetric() const override {
@@ -88,23 +90,23 @@ class SoftmaxMultiClassObj : public ObjFunction {
   }
 
  private:
-  inline void Transform(std::vector<float> *io_preds, bool prob) {
-    std::vector<float> &preds = *io_preds;
-    std::vector<float> tmp;
+  inline void Transform(HostDeviceVector<bst_float> *io_preds, bool prob) {
+    std::vector<bst_float> &preds = io_preds->data_h();
+    std::vector<bst_float> tmp;
     const int nclass = param_.num_class;
     const omp_ulong ndata = static_cast<omp_ulong>(preds.size() / nclass);
     if (!prob) tmp.resize(ndata);
 
     #pragma omp parallel
     {
-      std::vector<float> rec(nclass);
+      std::vector<bst_float> rec(nclass);
       #pragma omp for schedule(static)
       for (omp_ulong j = 0; j < ndata; ++j) {
         for (int k = 0; k < nclass; ++k) {
           rec[k] = preds[j * nclass + k];
         }
         if (!prob) {
-          tmp[j] = static_cast<float>(
+          tmp[j] = static_cast<bst_float>(
               common::FindMaxIndex(rec.begin(), rec.end()) - rec.begin());
         } else {
           common::Softmax(&rec);
@@ -122,7 +124,7 @@ class SoftmaxMultiClassObj : public ObjFunction {
   SoftmaxMultiClassParam param_;
 };
 
-// register the ojective functions
+// register the objective functions
 DMLC_REGISTER_PARAMETER(SoftmaxMultiClassParam);
 
 XGBOOST_REGISTER_OBJECTIVE(SoftmaxMultiClass, "multi:softmax")

@@ -26,7 +26,6 @@
 *.exe
 *.out
 *.app
-*~
 config.mk
 *.pyc
 
@@ -40,3 +39,4 @@ config.mk
 .clang_complete
 deps
 recommonmark
+build

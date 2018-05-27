@@ -44,8 +44,8 @@ struct WQSummary {
      * \param eps the tolerate level for violating the relation
      */
     inline void CheckValid(RType eps = 0) const {
-      CHECK_XGB(rmin >= 0 && rmax >= 0 && wmin >= 0) << "nonneg constraint";
-      CHECK_XGB(rmax- rmin - wmin > -eps) <<  "relation constraint: min/max";
+      CHECK(rmin >= 0 && rmax >= 0 && wmin >= 0) << "nonneg constraint";
+      CHECK(rmax- rmin - wmin > -eps) <<  "relation constraint: min/max";
     }
     /*! \return rmin estimation for v strictly bigger than value */
     inline RType rmin_next() const {
@@ -168,8 +168,8 @@ struct WQSummary {
     for (size_t i = 0; i < size; ++i) {
       data[i].CheckValid(eps);
       if (i != 0) {
-        CHECK_XGB(data[i].rmin >= data[i - 1].rmin + data[i - 1].wmin) << "rmin range constraint";
-        CHECK_XGB(data[i].rmax >= data[i - 1].rmax + data[i].wmin) << "rmax range constraint";
+        CHECK(data[i].rmin >= data[i - 1].rmin + data[i - 1].wmin) << "rmin range constraint";
+        CHECK(data[i].rmax >= data[i - 1].rmax + data[i].wmin) << "rmax range constraint";
       }
     }
   }
@@ -196,7 +196,7 @@ struct WQSummary {
       // find first i such that  d < (rmax[i+1] + rmin[i+1]) / 2
       while (i < src.size - 1
              && dx2 >= src.data[i + 1].rmax + src.data[i + 1].rmin) ++i;
-      CHECK_XGB(i != src.size - 1);
+      CHECK(i != src.size - 1);
       if (dx2 < src.data[i].rmin_next() + src.data[i + 1].rmax_prev()) {
         if (i != lastidx) {
           data[size++] = src.data[i]; lastidx = i;
@@ -224,7 +224,7 @@ struct WQSummary {
     if (sb.size == 0) {
       this->CopyFrom(sa); return;
     }
-    CHECK_XGB(sa.size > 0 && sb.size > 0);
+    CHECK(sa.size > 0 && sb.size > 0);
     const Entry *a = sa.data, *a_end = sa.data + sa.size;
     const Entry *b = sb.data, *b_end = sb.data + sb.size;
     // extended rmin value
@@ -276,15 +276,15 @@ struct WQSummary {
                 << ", maxgap=" << err_maxgap
                 << ", wgap=" << err_wgap;
     }
-    CHECK_XGB(size <= sa.size + sb.size) << "bug in combine";
+    CHECK(size <= sa.size + sb.size) << "bug in combine";
   }
   // helper function to print the current content of sketch
   inline void Print() const {
     for (size_t i = 0; i < this->size; ++i) {
-      LOG(INFO) << "[" << i << "] rmin=" << data[i].rmin
-                << ", rmax=" << data[i].rmax
-                << ", wmin=" << data[i].wmin
-                << ", v=" << data[i].value;
+      LOG(CONSOLE) << "[" << i << "] rmin=" << data[i].rmin
+                   << ", rmax=" << data[i].rmax
+                   << ", wmin=" << data[i].wmin
+                   << ", v=" << data[i].value;
     }
   }
   // try to fix rounding error
@@ -321,7 +321,7 @@ struct WQSummary {
     for (size_t i = 0; i < this->size; ++i) {
       if (data[i].rmin + data[i].wmin > data[i].rmax + tol ||
           data[i].rmin < -1e-6f || data[i].rmax < -1e-6f) {
-        LOG(INFO) << "----------check not pass----------";
+        LOG(INFO) << "---------- WQSummary::Check did not pass ----------";
         this->Print();
         return false;
       }
@@ -348,10 +348,12 @@ struct WXQSummary : public WQSummary<DType, RType> {
       this->CopyFrom(src); return;
     }
     RType begin = src.data[0].rmax;
-    size_t n = maxsize - 1, nbig = 0;
+    // n is number of points exclude the min/max points
+    size_t n = maxsize - 2, nbig = 0;
+    // these is the range of data exclude the min/max point
     RType range = src.data[src.size - 1].rmin - begin;
     // prune off zero weights
-    if (range == 0.0f) {
+    if (range == 0.0f || maxsize <= 2) {
       // special case, contain only two effective data pts
       this->data[0] = src.data[0];
       this->data[1] = src.data[src.size - 1];
@@ -360,16 +362,21 @@ struct WXQSummary : public WQSummary<DType, RType> {
     } else {
       range = std::max(range, static_cast<RType>(1e-3f));
     }
+    // Get a big enough chunk size, bigger than range / n
+    // (multiply by 2 is a safe factor)
     const RType chunk = 2 * range / n;
     // minimized range
     RType mrange = 0;
     {
       // first scan, grab all the big chunk
-      // moving block index
+      // moving block index, exclude the two ends.
       size_t bid = 0;
-      for (size_t i = 1; i < src.size; ++i) {
+      for (size_t i = 1; i < src.size - 1; ++i) {
+        // detect big chunk data point in the middle
+        // always save these data points.
         if (CheckLarge(src.data[i], chunk)) {
           if (bid != i - 1) {
+            // accumulate the range of the rest points
             mrange += src.data[i].rmax_prev() - src.data[bid].rmin_next();
           }
           bid = i; ++nbig;
@@ -379,17 +386,18 @@ struct WXQSummary : public WQSummary<DType, RType> {
         mrange += src.data[src.size-1].rmax_prev() - src.data[bid].rmin_next();
       }
     }
-    if (nbig >= n - 1) {
+    // assert: there cannot be more than n big data points
+    if (nbig >= n) {
       // see what was the case
       LOG(INFO) << " check quantile stats, nbig=" << nbig << ", n=" << n;
       LOG(INFO) << " srcsize=" << src.size << ", maxsize=" << maxsize
                 << ", range=" << range << ", chunk=" << chunk;
       src.Print();
-      CHECK_XGB(nbig < n - 1) << "quantile: too many large chunk";
+      CHECK(nbig < n) << "quantile: too many large chunk";
     }
     this->data[0] = src.data[0];
     this->size = 1;
-    // use smaller size
+    // The counter on the rest of points, to be selected equally from small chunks.
     n = n - nbig;
     // find the rest of point
     size_t bid = 0, k = 1, lastidx = 0;
@@ -495,9 +503,8 @@ struct GKSummary {
   /*! \brief used for debug purpose, print the summary */
   inline void Print() const {
     for (size_t i = 0; i < size; ++i) {
-      std::cout << "x=" << data[i].value << "\t"
-                << "[" << data[i].rmin << "," << data[i].rmax << "]"
-                << std::endl;
+      LOG(CONSOLE) << "x=" << data[i].value << "\t"
+                   << "[" << data[i].rmin << "," << data[i].rmax << "]";
     }
   }
   /*!
@@ -536,7 +543,7 @@ struct GKSummary {
     if (sb.size == 0) {
       this->CopyFrom(sa); return;
     }
-    CHECK_XGB(sa.size > 0 && sb.size > 0) << "invalid input for merge";
+    CHECK(sa.size > 0 && sb.size > 0) << "invalid input for merge";
     const Entry *a = sa.data, *a_end = sa.data + sa.size;
     const Entry *b = sb.data, *b_end = sb.data + sb.size;
     this->size = sa.size + sb.size;
@@ -569,7 +576,7 @@ struct GKSummary {
         ++dst; ++b;
       } while (b != b_end);
     }
-    CHECK_XGB(dst == data + size) << "bug in combine";
+    CHECK(dst == data + size) << "bug in combine";
   }
 };
 
@@ -610,7 +617,7 @@ class QuantileSketchTemplate {
      */
     inline void SetMerge(const Summary *begin,
                          const Summary *end) {
-      CHECK_XGB(begin < end) << "can not set combine to empty instance";
+      CHECK(begin < end) << "can not set combine to empty instance";
       size_t len = end - begin;
       if (len == 1) {
         this->Reserve(begin[0].size);
@@ -672,14 +679,14 @@ class QuantileSketchTemplate {
     nlevel = 1;
     while (true) {
       limit_size = static_cast<size_t>(ceil(nlevel / eps)) + 1;
-      size_t n = (1UL << nlevel);
+      size_t n = (1ULL << nlevel);
       if (n * limit_size >= maxn) break;
       ++nlevel;
     }
     // check invariant
-    size_t n = (1UL << nlevel);
-    CHECK_XGB(n * limit_size >= maxn) << "invalid init parameter";
-    CHECK_XGB(nlevel <= limit_size * eps) << "invalid init parameter";
+    size_t n = (1ULL << nlevel);
+    CHECK(n * limit_size >= maxn) << "invalid init parameter";
+    CHECK(nlevel <= limit_size * eps) << "invalid init parameter";
     // lazy reserve the space, if there is only one value, no need to allocate space
     inqueue.queue.resize(1);
     inqueue.qtail = 0;

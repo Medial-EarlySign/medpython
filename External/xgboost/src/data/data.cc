@@ -33,7 +33,7 @@ void MetaInfo::Clear() {
 }
 
 void MetaInfo::SaveBinary(dmlc::Stream *fo) const {
-  int version = kVersion;
+  int32_t version = kVersion;
   fo->Write(&version, sizeof(version));
   fo->Write(&num_row, sizeof(num_row));
   fo->Write(&num_col, sizeof(num_col));
@@ -47,17 +47,17 @@ void MetaInfo::SaveBinary(dmlc::Stream *fo) const {
 
 void MetaInfo::LoadBinary(dmlc::Stream *fi) {
   int version;
-  CHECK_XGB(fi->Read(&version, sizeof(version)) == sizeof(version)) << "MetaInfo: invalid version";
+  CHECK(fi->Read(&version, sizeof(version)) == sizeof(version)) << "MetaInfo: invalid version";
   CHECK_EQ(version, kVersion) << "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&num_row, sizeof(num_row)) == sizeof(num_row)) << "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&num_col, sizeof(num_col)) == sizeof(num_col)) << "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&num_nonzero, sizeof(num_nonzero)) == sizeof(num_nonzero))
+  CHECK(fi->Read(&num_row, sizeof(num_row)) == sizeof(num_row)) << "MetaInfo: invalid format";
+  CHECK(fi->Read(&num_col, sizeof(num_col)) == sizeof(num_col)) << "MetaInfo: invalid format";
+  CHECK(fi->Read(&num_nonzero, sizeof(num_nonzero)) == sizeof(num_nonzero))
       << "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&labels)) <<  "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&group_ptr)) << "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&weights)) << "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&root_index)) << "MetaInfo: invalid format";
-  CHECK_XGB(fi->Read(&base_margin)) << "MetaInfo: invalid format";
+  CHECK(fi->Read(&labels)) <<  "MetaInfo: invalid format";
+  CHECK(fi->Read(&group_ptr)) << "MetaInfo: invalid format";
+  CHECK(fi->Read(&weights)) << "MetaInfo: invalid format";
+  CHECK(fi->Read(&root_index)) << "MetaInfo: invalid format";
+  CHECK(fi->Read(&base_margin)) << "MetaInfo: invalid format";
 }
 
 // try to load group information from file, if exists
@@ -77,12 +77,12 @@ inline bool MetaTryLoadGroup(const std::string& fname,
 
 // try to load weight information from file, if exists
 inline bool MetaTryLoadFloatInfo(const std::string& fname,
-                                 std::vector<float>* data) {
+                                 std::vector<bst_float>* data) {
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(fname.c_str(), "r", true));
   if (fi.get() == nullptr) return false;
   dmlc::istream is(fi.get());
   data->clear();
-  float value;
+  bst_float value;
   while (is >> value) {
     data->push_back(value);
   }
@@ -203,8 +203,6 @@ DMatrix* DMatrix::Load(const std::string& uri,
     }
   }
 
-  std::string ftype = file_format;
-  if (file_format == "auto") ftype = "libsvm";
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
       dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str()));
   DMatrix* dmat = DMatrix::Create(parser.get(), cache_file);
@@ -212,6 +210,10 @@ DMatrix* DMatrix::Load(const std::string& uri,
     LOG(CONSOLE) << dmat->info().num_row << 'x' << dmat->info().num_col << " matrix with "
                  << dmat->info().num_nonzero << " entries loaded from " << uri;
   }
+  /* sync up number of features after matrix loaded.
+   * partitioned data will fail the train/val validation check 
+   * since partitioned data not knowing the real number of features. */
+  rabit::Allreduce<rabit::op::Max>(&dmat->info().num_col, 1);
   // backward compatiblity code.
   if (!load_row_split) {
     MetaInfo& info = dmat->info();
@@ -222,6 +224,10 @@ DMatrix* DMatrix::Load(const std::string& uri,
     if (MetaTryLoadFloatInfo(fname + ".base_margin", &info.base_margin) && !silent) {
       LOG(CONSOLE) << info.base_margin.size()
                    << " base_margin are loaded from " << fname << ".base_margin";
+    }
+    if (MetaTryLoadFloatInfo(fname + ".weight", &info.weights) && !silent) {
+      LOG(CONSOLE) << info.weights.size()
+                   << " weights are loaded from " << fname << ".weight";
     }
   }
   return dmat;

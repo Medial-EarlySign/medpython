@@ -429,6 +429,7 @@ int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 	for (string& feature : removedFeatures) {
 		data.erase(feature);
 		attributes.erase(feature);
+		tags.erase(feature);
 	}
 
 	return 0;

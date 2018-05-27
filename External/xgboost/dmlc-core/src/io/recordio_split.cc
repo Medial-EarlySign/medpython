@@ -13,7 +13,7 @@ size_t RecordIOSplitter::SeekRecordBegin(Stream *fi) {
     if (fi->Read(&v, sizeof(v)) == 0) return nstep;
     nstep += sizeof(v);
     if (v == RecordIOWriter::kMagic) {
-      CHECK_XGB(fi->Read(&lrec, sizeof(lrec)) != 0)
+      CHECK(fi->Read(&lrec, sizeof(lrec)) != 0)
             << "invalid record io format";
       nstep += sizeof(lrec);
       uint32_t cflag = RecordIOWriter::DecodeFlag(lrec);
@@ -25,11 +25,11 @@ size_t RecordIOSplitter::SeekRecordBegin(Stream *fi) {
 }
 const char* RecordIOSplitter::FindLastRecordBegin(const char *begin,
                                                   const char *end) {
-  CHECK_EQ((reinterpret_cast<size_t>(begin) & 3UL), 0);
-  CHECK_EQ((reinterpret_cast<size_t>(end) & 3UL), 0);
+  CHECK_EQ((reinterpret_cast<size_t>(begin) & 3UL), 0U);
+  CHECK_EQ((reinterpret_cast<size_t>(end) & 3UL), 0U);
   const uint32_t *pbegin = reinterpret_cast<const uint32_t *>(begin);
   const uint32_t *p = reinterpret_cast<const uint32_t *>(end);
-  CHECK_XGB(p >= pbegin + 2);
+  CHECK(p >= pbegin + 2);
   for (p = p - 2; p != pbegin; --p) {
     if (p[0] == RecordIOWriter::kMagic) {
       uint32_t cflag = RecordIOWriter::DecodeFlag(p[1]);
@@ -43,10 +43,10 @@ const char* RecordIOSplitter::FindLastRecordBegin(const char *begin,
 
 bool RecordIOSplitter::ExtractNextRecord(Blob *out_rec, Chunk *chunk) {
   if (chunk->begin == chunk->end) return false;
-  CHECK_XGB(chunk->begin + 2 * sizeof(uint32_t) <= chunk->end)
+  CHECK(chunk->begin + 2 * sizeof(uint32_t) <= chunk->end)
       << "Invalid RecordIO Format";
-  CHECK_EQ((reinterpret_cast<size_t>(chunk->begin) & 3UL), 0);
-  CHECK_EQ((reinterpret_cast<size_t>(chunk->end) & 3UL), 0);
+  CHECK_EQ((reinterpret_cast<size_t>(chunk->begin) & 3UL), 0U);
+  CHECK_EQ((reinterpret_cast<size_t>(chunk->end) & 3UL), 0U);
   uint32_t *p = reinterpret_cast<uint32_t *>(chunk->begin);
   uint32_t cflag = RecordIOWriter::DecodeFlag(p[1]);
   uint32_t clen = RecordIOWriter::DecodeLength(p[1]);
@@ -54,16 +54,16 @@ bool RecordIOSplitter::ExtractNextRecord(Blob *out_rec, Chunk *chunk) {
   out_rec->dptr = chunk->begin + 2 * sizeof(uint32_t);
   // move pbegin
   chunk->begin += 2 * sizeof(uint32_t) + (((clen + 3U) >> 2U) << 2U);
-  CHECK_XGB(chunk->begin <= chunk->end) << "Invalid RecordIO Format";
+  CHECK(chunk->begin <= chunk->end) << "Invalid RecordIO Format";
   out_rec->size = clen;
   if (cflag == 0) return true;
   const uint32_t kMagic = RecordIOWriter::kMagic;
   // abnormal path, move data around to make a full part
-  CHECK_XGB(cflag == 1U) << "Invalid RecordIO Format";
+  CHECK(cflag == 1U) << "Invalid RecordIO Format";
   while (cflag != 3U) {
-    CHECK_XGB(chunk->begin + 2 * sizeof(uint32_t) <= chunk->end);
+    CHECK(chunk->begin + 2 * sizeof(uint32_t) <= chunk->end);
     p = reinterpret_cast<uint32_t *>(chunk->begin);
-    CHECK_XGB(p[0] == RecordIOWriter::kMagic);
+    CHECK(p[0] == RecordIOWriter::kMagic);
     cflag = RecordIOWriter::DecodeFlag(p[1]);
     clen = RecordIOWriter::DecodeLength(p[1]);
     // pad kmagic in between

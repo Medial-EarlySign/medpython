@@ -57,7 +57,7 @@ struct XMLIter {
     if (pbegin == NULL || pbegin > cend_) return false;
     content_ = pbegin + begin.size();
     const char *pend = strstr(content_, end.c_str());
-    CHECK_XGB(pend != NULL) << "bad xml format";
+    CHECK(pend != NULL) << "bad xml format";
     value->content_ = content_;
     value->cend_ = pend;
     content_ = pend + end.size();
@@ -177,6 +177,22 @@ size_t WriteStringCallback(char *buf, size_t size, size_t count, void *fp) {
   std::memcpy(BeginPtr(*str) + len, buf, size);
   return size;
 }
+
+std::string getEndpoint(std::string region_name) {
+  // using if elseif chain switching region_name
+
+  if (region_name == "us-east-1") {
+    return "s3.amazonaws.com";
+  } else if (region_name == "cn-north-1") {
+    return "s3.cn-north-1.amazonaws.com.cn";
+  } else {
+    std::string result_endpoint = std::string("s3-");
+    result_endpoint.append(region_name);
+    result_endpoint.append(".amazonaws.com");
+    return result_endpoint;
+  }
+}
+
 
 // useful callback for reading memory
 struct ReadStringStream {
@@ -304,7 +320,7 @@ size_t CURLReadStreamBase::Read(void *ptr, size_t size) {
   if (at_end_ && expect_file_size_ != 0 &&
       curr_bytes_ != expect_file_size_) {
     int nretry = 0;
-    CHECK_EQ(buffer_.length(), 0);
+    CHECK_EQ(buffer_.length(), 0U);
     while (true) {
       LOG(ERROR) << "Re-establishing connection to Amazon S3, retry " << nretry;
       size_t rec_curr_bytes = curr_bytes_;
@@ -346,21 +362,21 @@ void CURLReadStreamBase::Cleanup() {
 }
 
 void CURLReadStreamBase::Init(size_t begin_bytes) {
-  CHECK_XGB(mcurl_ == NULL && ecurl_ == NULL &&
+  CHECK(mcurl_ == NULL && ecurl_ == NULL &&
         slist_ == NULL) << "must call init in clean state";
   // make request
   ecurl_ = curl_easy_init();
   this->InitRequest(begin_bytes, ecurl_, &slist_);
-  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteStringCallback) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &buffer_) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADERFUNCTION, WriteStringCallback) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &header_) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteStringCallback) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &buffer_) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADERFUNCTION, WriteStringCallback) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &header_) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
   mcurl_ = curl_multi_init();
-  CHECK_XGB(curl_multi_add_handle(mcurl_, ecurl_) == CURLM_OK);
+  CHECK(curl_multi_add_handle(mcurl_, ecurl_) == CURLM_OK);
   int nrun;
   curl_multi_perform(mcurl_, &nrun);
-  CHECK_XGB(nrun != 0 || header_.length() != 0 || buffer_.length() != 0);
+  CHECK(nrun != 0 || header_.length() != 0 || buffer_.length() != 0);
   // start running and check header
   this->FillBuffer(1);
   if (FindHttpError(header_)) {
@@ -392,7 +408,7 @@ int CURLReadStreamBase::FillBuffer(size_t nwant) {
     if (curl_timeo < 0) curl_timeo = 980;
     timeout.tv_sec = curl_timeo / 1000;
     timeout.tv_usec = (curl_timeo % 1000) * 1000;
-    CHECK_XGB(curl_multi_fdset(mcurl_, &fdread, &fdwrite, &fdexcep, &maxfd) == CURLM_OK);
+    CHECK(curl_multi_fdset(mcurl_, &fdread, &fdwrite, &fdexcep, &maxfd) == CURLM_OK);
     int rc;
     if (maxfd == -1) {
 #ifdef _WIN32
@@ -408,7 +424,7 @@ int CURLReadStreamBase::FillBuffer(size_t nwant) {
     if (rc != -1) {
       CURLMcode ret = curl_multi_perform(mcurl_, &nrun);
       if (ret ==  CURLM_CALL_MULTI_PERFORM) continue;
-      CHECK_XGB(ret == CURLM_OK);
+      CHECK(ret == CURLM_OK);
       if (nrun == 0) break;
     }
   }
@@ -433,7 +449,7 @@ int CURLReadStreamBase::FillBuffer(size_t nwant) {
 // singleton class for global initialization
 struct CURLGlobal {
   CURLGlobal() {
-    CHECK_XGB(curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK);
+    CHECK(curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK);
   }
   ~CURLGlobal() {
     curl_global_cleanup();
@@ -449,8 +465,9 @@ class ReadStream : public CURLReadStreamBase {
   ReadStream(const URI &path,
              const std::string &aws_id,
              const std::string &aws_key,
+             const std::string &aws_region,
              size_t file_size)
-      : path_(path), aws_id_(aws_id), aws_key_(aws_key) {
+      : path_(path), aws_id_(aws_id), aws_key_(aws_key), aws_region_(aws_region) {
     this->expect_file_size_ = file_size;
   }
   virtual ~ReadStream(void) {}
@@ -465,7 +482,7 @@ class ReadStream : public CURLReadStreamBase {
   // path we are reading
   URI path_;
   // aws access key and id
-  std::string aws_id_, aws_key_;
+  std::string aws_id_, aws_key_, aws_region_;
 };
 
 // initialize the reader at begin bytes
@@ -482,17 +499,26 @@ void ReadStream::InitRequest(size_t begin_bytes,
   std::ostringstream result;
   sauth << "Authorization: AWS " << aws_id_ << ":" << signature;
   sdate << "Date: " << date;
-  surl << "https://" << path_.host << ".s3.amazonaws.com" << '/'
-       << RemoveBeginSlash(path_.name);
+
+  if (path_.host.find('.', 0) == std::string::npos && aws_region_ == "us-east-1") {
+    // for backword compatibility, use virtual host style if no
+    // period in host and no region was set.
+    surl << "https://" << path_.host << ".s3.amazonaws.com" << '/'
+         << RemoveBeginSlash(path_.name);
+  } else {
+    surl << "https://" << getEndpoint(aws_region_) << '/' << path_.host << '/'
+         << RemoveBeginSlash(path_.name);
+  }
+
   srange << "Range: bytes=" << begin_bytes << "-";
   *slist = curl_slist_append(*slist, sdate.str().c_str());
   *slist = curl_slist_append(*slist, srange.str().c_str());
   *slist = curl_slist_append(*slist, sauth.str().c_str());
-  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_HTTPHEADER, *slist) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_HEADER, 0L) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl, CURLOPT_HTTPHEADER, *slist) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl, CURLOPT_HEADER, 0L) == CURLE_OK);
+  CHECK(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
 }
 
 /*! \brief simple http read stream to check */
@@ -504,10 +530,10 @@ class HttpReadStream : public CURLReadStreamBase {
   virtual void InitRequest(size_t begin_bytes,
                            CURL *ecurl,
                            curl_slist **slist) {
-    CHECK_XGB(begin_bytes == 0)
+    CHECK(begin_bytes == 0)
         << " HttpReadStream: do not support Seek";
-    CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_URL, path_.str().c_str()) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl, CURLOPT_URL, path_.str().c_str()) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
   }
 
  private:
@@ -518,9 +544,10 @@ class WriteStream : public Stream {
  public:
   WriteStream(const URI &path,
               const std::string &aws_id,
-              const std::string &aws_key)
+              const std::string &aws_key,
+              const std::string &aws_region)
       : path_(path), aws_id_(aws_id),
-        aws_key_(aws_key), closed_(false) {
+        aws_key_(aws_key), aws_region_(aws_region), closed_(false) {
     const char *buz = getenv("DMLC_S3_WRITE_BUFFER_MB");
     if (buz != NULL) {
       max_buffer_size_ = static_cast<size_t>(atol(buz)) << 20UL;
@@ -561,7 +588,7 @@ class WriteStream : public Stream {
   // path we are reading
   URI path_;
   // aws access key and id
-  std::string aws_id_, aws_key_;
+  std::string aws_id_, aws_key_, aws_region_;
   // easy curl handle used for the request
   CURL *ecurl_;
   // upload_id used by AWS
@@ -637,8 +664,15 @@ void WriteStream::Run(const std::string &method,
   std::ostringstream rheader, rdata;
   sauth << "Authorization: AWS " << aws_id_ << ":" << signature;
   sdate << "Date: " << date;
-  surl << "https://" << path_.host << ".s3.amazonaws.com" << '/'
-       << RemoveBeginSlash(path_.name) << args;
+
+  if (path_.host.find('.', 0) == std::string::npos && aws_region_ == "us-east-1") {
+    // for backword compatibility, use virtual host if no period in host and no region was set.
+    surl << "https://" << path_.host << ".s3.amazonaws.com" << '/'
+         << RemoveBeginSlash(path_.name) << args;
+  } else {
+    surl << "https://" << getEndpoint(aws_region_) << '/' << path_.host << '/'
+         << RemoveBeginSlash(path_.name) << args;
+  }
   scontent << "Content-Type: " << content_type;
   // list
   curl_slist *slist = NULL;
@@ -655,23 +689,23 @@ void WriteStream::Run(const std::string &method,
     // helper for read string
     ReadStringStream ss(data);
     curl_easy_reset(ecurl_);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADER, 0L) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &rdata) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_WRITEHEADER, WriteSStreamCallback) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &rheader) == CURLE_OK);
-    CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADER, 0L) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEDATA, &rdata) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_WRITEHEADER, WriteSStreamCallback) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_HEADERDATA, &rheader) == CURLE_OK);
+    CHECK(curl_easy_setopt(ecurl_, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
     if (method == "POST") {
-      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_POST, 0L) == CURLE_OK);
-      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDSIZE, data.length()) == CURLE_OK);
-      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDS, BeginPtr(data)) == CURLE_OK);
+      CHECK(curl_easy_setopt(ecurl_, CURLOPT_POST, 0L) == CURLE_OK);
+      CHECK(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDSIZE, data.length()) == CURLE_OK);
+      CHECK(curl_easy_setopt(ecurl_, CURLOPT_POSTFIELDS, BeginPtr(data)) == CURLE_OK);
     } else if (method == "PUT") {
-      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_PUT, 1L) == CURLE_OK);
-      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_READDATA, &ss) == CURLE_OK);
-      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_INFILESIZE_LARGE, data.length()) == CURLE_OK);
-      CHECK_XGB(curl_easy_setopt(ecurl_, CURLOPT_READFUNCTION, ReadStringStream::Callback) == CURLE_OK);
+      CHECK(curl_easy_setopt(ecurl_, CURLOPT_PUT, 1L) == CURLE_OK);
+      CHECK(curl_easy_setopt(ecurl_, CURLOPT_READDATA, &ss) == CURLE_OK);
+      CHECK(curl_easy_setopt(ecurl_, CURLOPT_INFILESIZE_LARGE, data.length()) == CURLE_OK);
+      CHECK(curl_easy_setopt(ecurl_, CURLOPT_READFUNCTION, ReadStringStream::Callback) == CURLE_OK);
     }
     CURLcode ret = curl_easy_perform(ecurl_);
     if (ret != CURLE_OK) {
@@ -679,7 +713,7 @@ void WriteStream::Run(const std::string &method,
                 << curl_easy_strerror(ret) << " Progress "
                 << etags_.size() << " uploaded " << " retry=" << num_retry;
       num_retry += 1;
-      CHECK_XGB(num_retry < max_error_retry_) << " maximum retry time reached";
+      CHECK(num_retry < max_error_retry_) << " maximum retry time reached";
       curl_easy_cleanup(ecurl_);
       ecurl_ = curl_easy_init();
     } else {
@@ -700,7 +734,7 @@ void WriteStream::Init(void) {
       "binary/octel-stream", "", &rheader, &rdata);
   XMLIter xml(rdata.c_str());
   XMLIter upid;
-  CHECK_XGB(xml.GetNext("UploadId", &upid)) << "missing UploadId";
+  CHECK(xml.GetNext("UploadId", &upid)) << "missing UploadId";
   upload_id_ = upid.str();
 }
 
@@ -714,11 +748,11 @@ void WriteStream::Upload(bool force_upload_even_if_zero_bytes) {
   Run("PUT", path_, sarg.str(),
       "binary/octel-stream", buffer_, &rheader, &rdata);
   const char *p = strstr(rheader.c_str(), "ETag: ");
-  CHECK_XGB(p != NULL) << "cannot find ETag in header";
+  CHECK(p != NULL) << "cannot find ETag in header";
   p = strchr(p, '\"');
-  CHECK_XGB(p != NULL) << "cannot find ETag in header";
+  CHECK(p != NULL) << "cannot find ETag in header";
   const char *end = strchr(p + 1, '\"');
-  CHECK_XGB(end != NULL) << "cannot find ETag in header";
+  CHECK(end != NULL) << "cannot find ETag in header";
 
   etags_.push_back(std::string(p, end - p + 1));
   part_ids_.push_back(partno);
@@ -730,7 +764,7 @@ void WriteStream::Finish(void) {
   std::string rheader, rdata;
   sarg << "?uploadId=" << upload_id_;
   sdata << "<CompleteMultipartUpload>\n";
-  CHECK_XGB(etags_.size() == part_ids_.size());
+  CHECK(etags_.size() == part_ids_.size());
   for (size_t i = 0; i < etags_.size(); ++i) {
     sdata << " <Part>\n"
           << "  <PartNumber>" << part_ids_[i] << "</PartNumber>\n"
@@ -751,8 +785,9 @@ void WriteStream::Finish(void) {
 void ListObjects(const URI &path,
                  const std::string aws_id,
                  const std::string aws_key,
+                 const std::string aws_region,
                  std::vector<FileInfo> *out_list) {
-  CHECK_XGB(path.host.length() != 0) << "bucket name not specified in s3";
+  CHECK(path.host.length() != 0) << "bucket name not specified in s3";
   out_list->clear();
   std::vector<std::string> amz;
   std::string date = GetDateString();
@@ -763,20 +798,27 @@ void ListObjects(const URI &path,
   std::ostringstream result;
   sauth << "Authorization: AWS " << aws_id << ":" << signature;
   sdate << "Date: " << date;
-  surl << "https://" << path.host << ".s3.amazonaws.com"
-       << "/?delimiter=/&prefix=" << RemoveBeginSlash(path.name);
+
+  if (path.host.find('.', 0) == std::string::npos && aws_region == "us-east-1") {
+    // for backword compatibility, use virtual host if no period in host and no region was set.
+    surl << "https://" << path.host << ".s3.amazonaws.com"
+         << "/?delimiter=/&prefix=" << RemoveBeginSlash(path.name);
+  } else {
+    surl << "https://" << getEndpoint(aws_region) << "/" << path.host
+         << "/?delimiter=/&prefix=" << RemoveBeginSlash(path.name);
+  }
   // make request
   CURL *curl = curl_easy_init();
   curl_slist *slist = NULL;
   slist = curl_slist_append(slist, sdate.str().c_str());
   slist = curl_slist_append(slist, sauth.str().c_str());
-  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result) == CURLE_OK);
-  CHECK_XGB(curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
-  CHECK_XGB(curl_easy_perform(curl) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str()) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteSStreamCallback) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result) == CURLE_OK);
+  CHECK(curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1) == CURLE_OK);
+  CHECK(curl_easy_perform(curl) == CURLE_OK);
   curl_slist_free_all(slist);
   curl_easy_cleanup(curl);
   // parse xml
@@ -788,16 +830,16 @@ void ListObjects(const URI &path,
     // get files
     XMLIter xml(ret.c_str());
     XMLIter data;
-    CHECK_XGB(xml.GetNext("IsTruncated", &data)) << "missing IsTruncated";
-    CHECK_XGB(data.str() == "false") << "the returning list is truncated";
+    CHECK(xml.GetNext("IsTruncated", &data)) << "missing IsTruncated";
+    CHECK(data.str() == "false") << "the returning list is truncated";
     while (xml.GetNext("Contents", &data)) {
       FileInfo info;
       info.path = path;
       XMLIter value;
-      CHECK_XGB(data.GetNext("Key", &value));
+      CHECK(data.GetNext("Key", &value));
       // add root path to be consistent with other filesys convention
       info.path.name = '/' + value.str();
-      CHECK_XGB(data.GetNext("Size", &value));
+      CHECK(data.GetNext("Size", &value));
       info.size = static_cast<size_t>(atol(value.str().c_str()));
       info.type = kFile;
       out_list->push_back(info);
@@ -811,7 +853,7 @@ void ListObjects(const URI &path,
       FileInfo info;
       info.path = path;
       XMLIter value;
-      CHECK_XGB(data.GetNext("Prefix", &value));
+      CHECK(data.GetNext("Prefix", &value));
       // add root path to be consistent with other filesys convention
       info.path.name = '/' + value.str();
       info.size = 0; info.type = kDirectory;
@@ -824,12 +866,24 @@ void ListObjects(const URI &path,
 S3FileSystem::S3FileSystem() {
   const char *keyid = getenv("AWS_ACCESS_KEY_ID");
   const char *seckey = getenv("AWS_SECRET_ACCESS_KEY");
+  const char *region = getenv("AWS_REGION");
   if (keyid == NULL) {
     LOG(FATAL) << "Need to set enviroment variable AWS_ACCESS_KEY_ID to use S3";
   }
   if (seckey == NULL) {
     LOG(FATAL) << "Need to set enviroment variable AWS_SECRET_ACCESS_KEY to use S3";
   }
+
+  if (region == NULL) {
+    LOG(WARNING) << "No AWS Region set, using default region us-east-1";
+    aws_region_ = "us-east-1";
+  } else if (strcmp(region, "") == 0) {
+    LOG(WARNING) << "AWS Region was set to empty string, using default region us-east-1";
+    aws_region_ = "us-east-1";
+  } else {
+    aws_region_ = region;
+  }
+
   aws_access_id_ = keyid;
   aws_secret_key_ = seckey;
 }
@@ -847,7 +901,7 @@ bool S3FileSystem::TryGetPathInfo(const URI &path_, FileInfo *out_info) {
     path.name.resize(path.name.length() - 1);
   }
   std::vector<FileInfo> files;
-  s3::ListObjects(path,  aws_access_id_, aws_secret_key_, &files);
+  s3::ListObjects(path,  aws_access_id_, aws_secret_key_, aws_region_, &files);
   std::string pdir = path.name + '/';
   for (size_t i = 0; i < files.size(); ++i) {
     if (files[i].path.name == path.name) {
@@ -861,36 +915,36 @@ bool S3FileSystem::TryGetPathInfo(const URI &path_, FileInfo *out_info) {
 }
 
 FileInfo S3FileSystem::GetPathInfo(const URI &path) {
-  CHECK_XGB(path.protocol == "s3://")
+  CHECK(path.protocol == "s3://")
       << " S3FileSystem.ListDirectory";
   FileInfo info;
-  CHECK_XGB(TryGetPathInfo(path, &info))
+  CHECK(TryGetPathInfo(path, &info))
       << "S3FileSytem.GetPathInfo cannot find information about " + path.str();
   return info;
 }
 void S3FileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_list) {
-  CHECK_XGB(path.protocol == "s3://")
+  CHECK(path.protocol == "s3://")
       << " S3FileSystem.ListDirectory";
   if (path.name[path.name.length() - 1] == '/') {
     s3::ListObjects(path, aws_access_id_,
-                    aws_secret_key_, out_list);
+                    aws_secret_key_, aws_region_, out_list);
     return;
   }
   std::vector<FileInfo> files;
   std::string pdir = path.name + '/';
   out_list->clear();
   s3::ListObjects(path, aws_access_id_,
-                  aws_secret_key_, &files);
+                  aws_secret_key_, aws_region_, &files);
   for (size_t i = 0; i < files.size(); ++i) {
     if (files[i].path.name == path.name) {
-      CHECK_XGB(files[i].type == kFile);
+      CHECK(files[i].type == kFile);
       out_list->push_back(files[i]);
       return;
     }
     if (files[i].path.name == pdir) {
-      CHECK_XGB(files[i].type == kDirectory);
+      CHECK(files[i].type == kDirectory);
       s3::ListObjects(files[i].path, aws_access_id_,
-                      aws_secret_key_, out_list);
+                      aws_secret_key_, aws_region_, out_list);
       return;
     }
   }
@@ -901,8 +955,8 @@ Stream *S3FileSystem::Open(const URI &path, const char* const flag, bool allow_n
   if (!strcmp(flag, "r") || !strcmp(flag, "rb")) {
     return OpenForRead(path, allow_null);
   } else if (!strcmp(flag, "w") || !strcmp(flag, "wb")) {
-    CHECK_XGB(path.protocol == "s3://") << " S3FileSystem.Open";
-    return new s3::WriteStream(path, aws_access_id_, aws_secret_key_);
+    CHECK(path.protocol == "s3://") << " S3FileSystem.Open";
+    return new s3::WriteStream(path, aws_access_id_, aws_secret_key_, aws_region_);
   } else {
     LOG(FATAL) << "S3FileSytem.Open do not support flag " << flag;
     return NULL;
@@ -914,12 +968,12 @@ SeekStream *S3FileSystem::OpenForRead(const URI &path, bool allow_null) {
   if (!allow_null && (path.protocol == "http://"|| path.protocol == "https://")) {
     return new s3::HttpReadStream(path);
   }
-  CHECK_XGB(path.protocol == "s3://") << " S3FileSystem.Open";
+  CHECK(path.protocol == "s3://") << " S3FileSystem.Open";
   FileInfo info;
   if (TryGetPathInfo(path, &info) && info.type == kFile) {
-    return new s3::ReadStream(path, aws_access_id_, aws_secret_key_, info.size);
+    return new s3::ReadStream(path, aws_access_id_, aws_secret_key_, aws_region_, info.size);
   } else {
-    CHECK_XGB(allow_null) << " S3FileSystem: fail to open \"" << path.str() << "\"";
+    CHECK(allow_null) << " S3FileSystem: fail to open \"" << path.str() << "\"";
     return NULL;
   }
 }
