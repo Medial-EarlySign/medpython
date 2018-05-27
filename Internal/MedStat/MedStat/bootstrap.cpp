@@ -1349,8 +1349,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			}
 			else {
 				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
-					float FOR = float((1.0 - true_rate[i]) * t_sum) /
-						((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum);
+					float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+						((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
 					res[format_working_point("RR@SCORE", score_working_point, false)] =
 						float(ppv / FOR);
 				}
