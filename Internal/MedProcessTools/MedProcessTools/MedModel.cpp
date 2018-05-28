@@ -1238,3 +1238,13 @@ bool medial::process::clean_uneeded_rep_processors(MedModel &m, const vector<str
 	m.rep_processors = afterFiltr;
 	return has_cln;
 }
+
+//.......................................................................................
+int MedModel::write_feature_matrix(const string mat_fname)
+{
+	MedMat<float> x;
+
+	features.get_as_matrix(x);
+
+	return x.write_to_csv_file(mat_fname);
+}
