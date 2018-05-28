@@ -35,6 +35,20 @@ public:
 	/// Utility : maximum number of samples to take for moments calculations
 	int max_samples = 10000;
 
+	ValueCleanerParams() {
+		//defautls
+		quantile = 0;
+		removing_quantile_factor = 1;
+		nbrs_quantile_factor = 0;
+		trimming_quantile_factor = 0;
+		doTrim = doRemove = true;
+		take_log = 0;
+		trimming_sd_num = 7;
+		removing_sd_num = 14;
+		nbrs_sd_num = 0;
+		missing_value = -65336;
+	}
+
 };
 
 /** @file

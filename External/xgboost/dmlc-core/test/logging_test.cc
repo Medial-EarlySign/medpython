@@ -8,7 +8,7 @@ int main(void) {
   } catch (dmlc::Error e) {
     LOG(INFO) << "catch " << e.what();
   }
-  CHECK_XGB(2!=3) << "test";
-  CHECK_XGB(2==3) << "test";
+  CHECK(2!=3) << "test";
+  CHECK(2==3) << "test";
   return 0;
 }

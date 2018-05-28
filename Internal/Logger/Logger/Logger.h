@@ -94,18 +94,18 @@ using namespace std;
 class MedLogger {
 	public:
 		vector<int> levels;
-		vector<FILE *> fds;
+		vector<vector<FILE *>> fds; //each section can write to multipal buffers
 		FILE *out_fd;
 
 		MedLogger();
 		~MedLogger();
 
 		void init_all_levels(int level);
-		void init_all_files(FILE *of);
 		int init_all_files(const string &fname);
 		void init_level(int section, int level);
 		void init_file(int section, FILE *of);
 		int init_file(int section, const string &fname);
+		int add_file(int section, const string &fname);
 
 		void init_out(); //default output (stdout)
 		void init_out(FILE *of);

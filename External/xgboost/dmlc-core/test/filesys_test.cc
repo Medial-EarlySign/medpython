@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   if (!strcmp(argv[1], "cp")) {
-    CHECK_XGB(argc >= 4) << "cp requres source and dest";
+    CHECK(argc >= 4) << "cp requres source and dest";
     Stream *src = Stream::Create(argv[2], "r");
     Stream *dst = Stream::Create(argv[3], "w");
     char buf[32];

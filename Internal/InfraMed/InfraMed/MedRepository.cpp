@@ -695,6 +695,10 @@ void MedRepository::print_vec(void *data, int len, int pid, int sid)
 			STimeRangeVal *v = (STimeRangeVal *)data;
 			MOUT(" %lld - %lld  %f :", v[i].time_start, v[i].time_end, v[i].val);
 		}
+		else if (sigs.type(sid) == T_TimeStamp) {
+			STimeStamp *v = (STimeStamp*)data;
+			MOUT(" %lld :", v[i].time);
+		}
 	}
 	MOUT("\n");
 
@@ -1622,7 +1626,8 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
-			MTHROW_AND_ERR("not supported");
+			MTHROW_AND_ERR("not supported code %d for signal=%s\n", 
+				id, signalHirerchyType.c_str());
 		}
 		if (!name.empty())
 			res = name;

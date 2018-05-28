@@ -9,9 +9,14 @@
 
 #include <dmlc/io.h>
 #include <dmlc/logging.h>
+#include <sys/stat.h>
 #include <cstdio>
 #include <string>
 #include <algorithm>
+
+#if defined(__FreeBSD__)
+#define fopen64 std::fopen
+#endif
 
 namespace dmlc {
 namespace io {
@@ -31,7 +36,7 @@ class SingleFileSplit : public InputSplit {
     }
     if (!use_stdin_) {
       fp_ = fopen64(fname, "rb");
-      CHECK_XGB(fp_ != NULL) << "SingleFileSplit: fail to open " << fname;
+      CHECK(fp_ != NULL) << "SingleFileSplit: fail to open " << fname;
     }
     buffer_.resize(kBufferSize);
   }
@@ -44,11 +49,16 @@ class SingleFileSplit : public InputSplit {
   virtual void HintChunkSize(size_t chunk_size) {
     buffer_size_ = std::max(chunk_size, buffer_size_);
   }
+  virtual size_t GetTotalSize(void) {
+    struct stat buf;
+    fstat(fileno(fp_), &buf);
+    return buf.st_size;
+  }
   virtual size_t Read(void *ptr, size_t size) {
     return std::fread(ptr, 1, size, fp_);
   }
   virtual void ResetPartition(unsigned part_index, unsigned num_parts) {
-    CHECK_XGB(part_index == 0 && num_parts == 1);
+    CHECK(part_index == 0 && num_parts == 1);
     this->BeforeFirst();
   }
   virtual void Write(const void *ptr, size_t size) {

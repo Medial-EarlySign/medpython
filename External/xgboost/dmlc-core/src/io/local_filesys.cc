@@ -17,6 +17,11 @@ extern "C" {
 
 #include "./local_filesys.h"
 
+#if defined(__FreeBSD__)
+#define fopen64 std::fopen
+#endif
+
+
 namespace dmlc {
 namespace io {
 /*! \brief implementation of file i/o stream */
@@ -31,11 +36,11 @@ class FileStream : public SeekStream {
     return std::fread(ptr, 1, size, fp_);
   }
   virtual void Write(const void *ptr, size_t size) {
-    CHECK_XGB(std::fwrite(ptr, 1, size, fp_) == size)
+    CHECK(std::fwrite(ptr, 1, size, fp_) == size)
         << "FileStream.Write incomplete";
   }
   virtual void Seek(size_t pos) {
-    std::fseek(fp_, static_cast<long>(pos), SEEK_SET);  // NOLINT(*)
+    CHECK(!std::fseek(fp_, static_cast<long>(pos), SEEK_SET));  // NOLINT(*)
   }
   virtual size_t Tell(void) {
     return std::ftell(fp_);
@@ -146,7 +151,7 @@ SeekStream *LocalFileSystem::Open(const URI &path,
   if (fp != NULL) {
     return new FileStream(fp, use_stdio);
   } else {
-    CHECK_XGB(allow_null) << " LocalFileSystem: fail to open \"" << path.str() << '\"';
+    CHECK(allow_null) << " LocalFileSystem: fail to open \"" << path.str() << '\"';
     return NULL;
   }
 }

@@ -66,6 +66,9 @@ double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_c
 int get_moments(vector<float>& values, vector<float>& wgts, float missing_value, float& mean, float& sd, bool do_missing = true);
 int get_moments(float *values, float *wgts, int n, float missing_value, float& mean, float& sd, bool do_missing = true);
 
+float med_stof(const string& _Str);
+int med_stoi(const string& _Str);
+
 namespace po = boost::program_options;
 
 /**

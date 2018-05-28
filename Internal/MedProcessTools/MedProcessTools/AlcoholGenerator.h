@@ -25,7 +25,7 @@ class AlcoholGenerator : public FeatureGenerator {
 public:
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
-	string future_ind = "0";
+	string future_ind = "1";
 
 	// Constructor/Destructor
 	AlcoholGenerator() : FeatureGenerator() { generator_type = FTR_GEN_ALCOHOL; req_signals.push_back("Alcohol_quantity"); req_signals.push_back("BYEAR");	}

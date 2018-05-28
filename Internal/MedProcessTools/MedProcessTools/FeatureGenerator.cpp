@@ -5,6 +5,7 @@
 
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
+#include "KpSmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 
@@ -31,6 +32,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
+	else if (generator_name == "kp_smoking")
+		return FTR_GEN_KP_SMOKING;
 	else if (generator_name == "alcohol")
 		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
@@ -119,6 +122,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
+	else if (generator_type == FTR_GEN_KP_SMOKING)
+		return new KpSmokingGenerator;
 	else if (generator_type == FTR_GEN_ALCOHOL)
 		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
@@ -317,7 +322,10 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
 	if (name == "exists")			return FTR_EXISTS;
+	if (name == "max_diff")			return FTR_MAX_DIFF;
+	if (name == "first_time")		return FTR_FIRST_DAYS;
 	if (name == "category_set_first")				return FTR_CATEGORY_SET_FIRST;
+
 
 	if (isInteger(name))
 		return (BasicFeatureTypes)stoi(name);
@@ -329,14 +337,12 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 void BasicFeatGenerator::set_names() {
 	
 	names.clear();
-
-	if (names.empty()) {
-		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
-		//string name = signalName + ".";
-		string set_names = in_set_name;
-		if (set_names == "" && this->sets.size() > 0)
-			set_names = boost::algorithm::join(this->sets, "_");
-		switch (type) {
+	string name = signalName + ".";
+	//string name = signalName + ".";
+	string set_names = in_set_name;
+	if (set_names == "" && this->sets.size() > 0)
+		set_names = boost::algorithm::join(this->sets, "_");
+	switch (type) {
 		case FTR_LAST_VALUE:	name += "last"; break;
 		case FTR_FIRST_VALUE:	name += "first"; break;
 		case FTR_LAST2_VALUE:	name += "last2"; break;
@@ -353,20 +359,22 @@ void BasicFeatGenerator::set_names() {
 		case FTR_CATEGORY_SET_COUNT:	name += "category_set_count_" + set_names; break;
 		case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
 		case FTR_CATEGORY_SET_FIRST:	name += "category_set_first_" + set_names; break;
-		case FTR_NSAMPLES:		name += "nsamples"; break;
-		case FTR_EXISTS:		name += "exists"; break;
+		case FTR_NSAMPLES:			name += "nsamples"; break;
+		case FTR_EXISTS:			name += "exists"; break;
+		case FTR_MAX_DIFF:			name += "max_diff"; break;
+		case FTR_FIRST_DAYS:		name += "first_time"; break;
 
 		default: name += "ERROR";
-		}
-
-		name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
-		if (type == FTR_WIN_DELTA_VALUE)
-			name += "_" + std::to_string(d_win_from) + "_" + std::to_string(d_win_to);
-		if (time_channel!=0 || val_channel != 0)
-			name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
-		names.push_back(name);
-		//MLOG("Created %s\n", name.c_str());
 	}
+
+	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
+	if (type == FTR_WIN_DELTA_VALUE)
+		name += "_" + std::to_string(d_win_from) + "_" + std::to_string(d_win_to);
+	if (time_channel!=0 || val_channel != 0)
+		name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
+	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name);
+	tags.push_back(name);
+	//MLOG("Created %s\n", name.c_str());
 
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
 }
@@ -439,6 +447,8 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time);
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, win_from, win_to);
 	case FTR_EXISTS:			return uget_exists(rec.usv, time, win_from, win_to);
+	case FTR_MAX_DIFF:			return uget_max_diff(rec.usv, time);
+	case FTR_FIRST_DAYS:		return uget_first_time(rec.usv, time);
 	case FTR_CATEGORY_SET_FIRST:		return uget_category_set_first(rec, rec.usv, time);
 
 	default:	return missing_val;
@@ -607,14 +617,57 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	float value;
 	if (rec.usv.len == 0)
 		value = missing_val;
-	else
-		value = (float)((int)(rec.usv.Val(0)));
-
+	else {
+		if (sets.size() == 0)
+		{
+			// Normal Singleton, just return value
+			value = (float)((int)(rec.usv.Val(0)));
+		}
+		else
+		{
+			// Categorial Variable - check whether exists in LUT. Return 0/1
+			value = (float)lut[((int)(rec.usv.Val(0)))];
+		}
+	}
 	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = value;
 
 	return 0;
+}
+
+void SingletonGenerator::set_names()
+{ 
+	if (names.empty()) {
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
+		//string name = signalName + ".";
+		string set_names = in_set_name;
+		if (set_names == "" && this->sets.size() > 0)
+			set_names = boost::algorithm::join(this->sets, "_");
+
+		if (set_names != "")
+			name += "category_set_" + set_names;
+ 
+		names.push_back(name);
+		//MLOG("Created %s\n", name.c_str());
+	}
+}
+
+void SingletonGenerator::init_tables(MedDictionarySections& dict) {
+	MLOG("sets size = %d \n", lut.size());
+	if (sets.size() > 0) {
+		// This is a categorial variable.
+		if (lut.size() == 0) {
+			int section_id = dict.section_id(signalName);
+			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
+			dict.prep_sets_lookup_table(section_id, sets, lut);
+			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
+		}
+	}
+	else
+		lut.clear();
+
+	return;
 }
 
 // Init
@@ -627,6 +680,8 @@ int SingletonGenerator::init(map<string, string>& mapper) {
 		if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "in_set_name") in_set_name = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
 		//! [SingletonGenerator::init]
@@ -964,6 +1019,24 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time)
 				return missing_val;
 	}
 
+	return missing_val;
+}
+
+//.......................................................................................
+float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				return missing_val;
+			else
+				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+		}
+	}
 	return missing_val;
 }
 
@@ -1466,4 +1539,36 @@ void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int 
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
+}
+
+
+//.......................................................................................
+// get the max diiference in values in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	float max_diff = missing_val;
+	vector<float> _vals_vec;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				break;
+			else {
+				if (_vals_vec.size() > 0) {
+					nth_element(_vals_vec.begin(), _vals_vec.begin() + _vals_vec.size() / 2, _vals_vec.end());
+					float median_prev_val = _vals_vec[_vals_vec.size() / 2];
+					//float prev_val = median_prev_val;
+					float prev_val = _vals_vec.back();
+					float diff = usv.Val(i, val_channel) - prev_val;
+					if (diff > max_diff || max_diff == missing_val)
+						max_diff = diff;
+				}
+				_vals_vec.push_back(usv.Val(i, val_channel));
+			}
+		}
+	}
+	return max_diff;
 }

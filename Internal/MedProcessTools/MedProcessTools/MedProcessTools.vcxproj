@@ -86,6 +86,7 @@
     <ClCompile Include="FeatureProcess.cpp" />
     <ClCompile Include="FeatureSelector.cpp" />
     <ClCompile Include="IterativeImputer.cpp" />
+    <ClCompile Include="KpSmokingGenerator.cpp" />
     <ClCompile Include="MedFeatures.cpp" />
     <ClCompile Include="MedModel.cpp" />
     <ClCompile Include="MedModelInitFromJson.cpp" />
@@ -109,6 +110,7 @@
     <ClInclude Include="FeatureGenerator.h" />
     <ClInclude Include="FeatureProcess.h" />
     <ClInclude Include="IterativeImputer.h" />
+    <ClInclude Include="KpSmokingGenerator.h" />
     <ClInclude Include="MedFeatures.h" />
     <ClInclude Include="MedModel.h" />
     <ClInclude Include="MedModelExceptions.h" />
@@ -128,7 +130,9 @@
     <None Include="..\Config_Examples\do_calc_example.json" />
     <None Include="..\Config_Examples\model_json_version2_example.json" />
     <None Include="..\Config_Examples\fragile_config.json" />
+    <None Include="..\Config_Examples\samples_attributes.json" />
     <None Include="..\Config_Examples\signal_json_ranges.json" />
+    <None Include="..\Resources\thin_completion_metadata" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

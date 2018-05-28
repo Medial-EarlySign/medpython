@@ -64,8 +64,8 @@ class CompressArray {
 
 template<typename DType>
 inline void CompressArray<DType>::Read(dmlc::SeekStream* fi) {
-  CHECK_XGB(fi->Read(&raw_chunks_));
-  CHECK_XGB(fi->Read(&encoded_chunks_));
+  CHECK(fi->Read(&raw_chunks_));
+  CHECK(fi->Read(&encoded_chunks_));
   size_t buffer_size = encoded_chunks_.back();
   in_buffer_.resize(buffer_size);
   CHECK_EQ(fi->Read(dmlc::BeginPtr(in_buffer_), buffer_size), buffer_size);
@@ -220,7 +220,7 @@ class SparsePageLZ4Format : public SparsePage::Format {
   }
 
   void Write(const SparsePage& page, dmlc::Stream* fo) override {
-    CHECK_XGB(page.offset.size() != 0 && page.offset[0] == 0);
+    CHECK(page.offset.size() != 0 && page.offset[0] == 0);
     CHECK_EQ(page.offset.back(), page.data.size());
     fo->Write(page.offset);
     min_index_ = page.min_index;

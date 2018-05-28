@@ -85,7 +85,7 @@ class SparsePage {
   inline void Push(const dmlc::RowBlock<uint32_t>& batch) {
     data.reserve(data.size() + batch.offset[batch.size] - batch.offset[0]);
     offset.reserve(offset.size() + batch.size);
-    CHECK_XGB(batch.index != nullptr);
+    CHECK(batch.index != nullptr);
     for (size_t i = 0; i < batch.size; ++i) {
       offset.push_back(offset.back() + batch.offset[i + 1] - batch.offset[i]);
     }
@@ -202,16 +202,16 @@ class SparsePage::Writer {
    * \brief Push a write job to the writer.
    * This function won't block,
    * writing is done by another thread inside writer.
-   * \param page The page to be wriiten
+   * \param page The page to be written
    */
-  void PushWrite(std::unique_ptr<SparsePage>&& page);
+  void PushWrite(std::shared_ptr<SparsePage>&& page);
   /*!
    * \brief Allocate a page to store results.
    *  This function can block when the writer is too slow and buffer pages
    *  have not yet been recycled.
    * \param out_page Used to store the allocated pages.
    */
-  void Alloc(std::unique_ptr<SparsePage>* out_page);
+  void Alloc(std::shared_ptr<SparsePage>* out_page);
 
  private:
   /*! \brief number of allocated pages */
@@ -221,9 +221,9 @@ class SparsePage::Writer {
   /*! \brief writer threads */
   std::vector<std::unique_ptr<std::thread> > workers_;
   /*! \brief recycler queue */
-  dmlc::ConcurrentBlockingQueue<std::unique_ptr<SparsePage> > qrecycle_;
+  dmlc::ConcurrentBlockingQueue<std::shared_ptr<SparsePage> > qrecycle_;
   /*! \brief worker threads */
-  std::vector<dmlc::ConcurrentBlockingQueue<std::unique_ptr<SparsePage> > > qworkers_;
+  std::vector<dmlc::ConcurrentBlockingQueue<std::shared_ptr<SparsePage> > > qworkers_;
 };
 #endif  // DMLC_ENABLE_STD_THREAD
 

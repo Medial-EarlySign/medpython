@@ -90,6 +90,9 @@
     <ClCompile Include="PanelCompleter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="KpSmokingGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -152,6 +155,9 @@
     <ClInclude Include="Calibration.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KpSmokingGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Config_Examples\fragile_config.json">
@@ -170,6 +176,12 @@
       <Filter>Config_Examples</Filter>
     </None>
     <None Include="..\Config_Examples\do_calc_example.json">
+      <Filter>Config_Examples</Filter>
+    </None>
+    <None Include="..\Resources\thin_completion_metadata">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\Config_Examples\samples_attributes.json">
       <Filter>Config_Examples</Filter>
     </None>
   </ItemGroup>

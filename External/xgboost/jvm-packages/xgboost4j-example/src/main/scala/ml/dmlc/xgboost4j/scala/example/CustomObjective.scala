@@ -32,7 +32,7 @@ import org.apache.commons.logging.{LogFactory, Log}
  * function
  *
  */
-class CustomObjective {
+object CustomObjective {
 
   /**
    * loglikelihoode loss obj function
@@ -57,7 +57,7 @@ class CustomObjective {
         case e: XGBoostError =>
           logger.error(e)
           null
-        case _ =>
+        case _: Throwable =>
           null
       }
       val grad = new Array[Float](nrow)
@@ -151,7 +151,8 @@ class CustomObjective {
     val round = 2
     // train a model
     val booster = XGBoost.train(trainMat, params.toMap, round, watches.toMap)
-    XGBoost.train(trainMat, params.toMap, round, watches.toMap, new LogRegObj, new EvalError)
+    XGBoost.train(trainMat, params.toMap, round, watches.toMap,
+      obj = new LogRegObj, eval = new EvalError)
   }
 
 }

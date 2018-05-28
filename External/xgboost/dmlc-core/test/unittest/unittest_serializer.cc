@@ -20,7 +20,7 @@ inline void TestSaveLoad(T data) {
   }
   fs.Seek(0);
   T copy_data;
-  CHECK_XGB(static_cast<dmlc::Stream*>(&fs)->Read(&copy_data));
+  CHECK(static_cast<dmlc::Stream*>(&fs)->Read(&copy_data));
   ASSERT_EQ(data, copy_data);
 }
 

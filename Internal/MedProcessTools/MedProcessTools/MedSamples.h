@@ -26,6 +26,7 @@ public:
 	int outcomeTime = 0;	///< Outcome time (date)
 	vector<float> prediction;	///< Prediction(s) - empty if non given
 	map<string, float> attributes;	///< Attribute(s) - empty if non given
+	map<string, string> str_attributes;	///< Attribute(s) - empty if non given
 
 	/// <summary> Constructor </summary>
 	MedSample() { prediction.clear(); }
@@ -52,10 +53,11 @@ public:
 	/// <returns> 0 upon success, -1 upon failure to parse </returns>
 	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos);
 	/// <summary> Write to string in new format </summary>
-	void write_to_string(string &s, vector<string>& attr);
+	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr);
+	void write_to_string(string &s);
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes)
+	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes, str_attributes)
 };
 
 /// <summary> Comparison functions for sorting by prediction value </summary>
@@ -149,7 +151,7 @@ public:
 	/// fields positions, otherwise - old or new formats are used. 
 	/// </summary>
 	/// <returns>  -1 upon failure to open file, 0 upon success </returns>
-	int read_from_file(const string& file_name);
+	int read_from_file(const string& file_name, bool sort_rows = true);
 
 	/// <summary>  Write to text file in new format  </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
@@ -180,8 +182,7 @@ public:
 	int get_predictions_size(int& nPreds);
 
 	/// <summary> Get all attributes. Return -1 if not-consistent </summary>
-	int get_all_attributes(vector<string>& attributes);
-
+	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes);
 
 	// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);

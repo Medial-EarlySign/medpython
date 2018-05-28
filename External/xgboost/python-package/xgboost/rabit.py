@@ -1,21 +1,27 @@
+# coding: utf-8
+# pylint: disable= invalid-name
+
 """Distributed XGBoost Rabit related API."""
 from __future__ import absolute_import
 import sys
-import atexit
 import ctypes
 import numpy as np
 
 from .core import _LIB, c_str, STRING_TYPES
+from .compat import pickle
+
 
 def _init_rabit():
-    """internal libary initializer."""
+    """internal library initializer."""
     if _LIB is not None:
         _LIB.RabitGetRank.restype = ctypes.c_int
         _LIB.RabitGetWorldSize.restype = ctypes.c_int
+        _LIB.RabitIsDistributed.restype = ctypes.c_int
         _LIB.RabitVersionNumber.restype = ctypes.c_int
 
+
 def init(args=None):
-    """Initialize the rabit libary with arguments"""
+    """Initialize the rabit library with arguments"""
     if args is None:
         args = []
     arr = (ctypes.c_char_p * len(args))()
@@ -65,7 +71,12 @@ def tracker_print(msg):
     """
     if not isinstance(msg, STRING_TYPES):
         msg = str(msg)
-    _LIB.RabitTrackerPrint(c_str(msg))
+    is_dist = _LIB.RabitIsDistributed()
+    if is_dist != 0:
+        _LIB.RabitTrackerPrint(c_str(msg))
+    else:
+        sys.stdout.write(msg)
+        sys.stdout.flush()
 
 
 def get_processor_name():
@@ -120,16 +131,17 @@ def broadcast(data, root):
         del s
     return data
 
+
 # enumeration of dtypes
 DTYPE_ENUM__ = {
-    np.dtype('int8') : 0,
-    np.dtype('uint8') : 1,
-    np.dtype('int32') : 2,
-    np.dtype('uint32') : 3,
-    np.dtype('int64') : 4,
-    np.dtype('uint64') : 5,
-    np.dtype('float32') : 6,
-    np.dtype('float64') : 7
+    np.dtype('int8'): 0,
+    np.dtype('uint8'): 1,
+    np.dtype('int32'): 2,
+    np.dtype('uint32'): 3,
+    np.dtype('int64'): 4,
+    np.dtype('uint64'): 5,
+    np.dtype('float32'): 6,
+    np.dtype('float64'): 7
 }
 
 
@@ -144,7 +156,7 @@ def allreduce(data, op, prepare_fun=None):
         Reduction operators, can be MIN, MAX, SUM, BITOR
     prepare_fun: function
         Lazy preprocessing function, if it is not None, prepare_fun(data)
-        will be called by the function before performing allreduce, to intialize the data
+        will be called by the function before performing allreduce, to initialize the data
         If the result of Allreduce can be recovered directly,
         then prepare_fun will NOT be called
 
@@ -170,7 +182,8 @@ def allreduce(data, op, prepare_fun=None):
                             op, None, None)
     else:
         func_ptr = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
-        def pfunc(args):
+
+        def pfunc(_):
             """prepare function."""
             prepare_fun(data)
         _LIB.RabitAllreduce(buf.ctypes.data_as(ctypes.c_void_p),
@@ -191,6 +204,7 @@ def version_number():
     """
     ret = _LIB.RabitVersionNumber()
     return ret
+
 
 # intialization script
 _init_rabit()

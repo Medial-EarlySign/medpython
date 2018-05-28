@@ -20,10 +20,10 @@ void InputSplitBase::Init(FileSystem *filesys,
   file_offset_[0] = 0;
   for (size_t i = 0; i < files_.size(); ++i) {
     file_offset_[i + 1] = file_offset_[i] + files_[i].size;
-    CHECK_XGB(files_[i].size % align_bytes == 0)
+    CHECK(files_[i].size % align_bytes == 0)
         << "file do not align by " << align_bytes << " bytes";
   }
-  this->align_bytes_ = align_bytes_;
+  this->align_bytes_ = align_bytes;
 }
 
 void InputSplitBase::ResetPartition(unsigned rank,
@@ -47,8 +47,8 @@ void InputSplitBase::ResetPartition(unsigned rank,
   }
   // find the exact ending position
   if (offset_end_ != file_offset_[file_ptr_end_]) {
-    CHECK_XGB(offset_end_ >file_offset_[file_ptr_end_]);
-    CHECK_XGB(file_ptr_end_ < files_.size());
+    CHECK(offset_end_ >file_offset_[file_ptr_end_]);
+    CHECK(file_ptr_end_ < files_.size());
     fs_ = filesys_->OpenForRead(files_[file_ptr_end_].path);
     fs_->Seek(offset_end_ - file_offset_[file_ptr_end_]);
     offset_end_ += SeekRecordBegin(fs_);
@@ -160,7 +160,7 @@ void InputSplitBase::InitInputFileInfo(const std::string& uri) {
       }
     }
   }
-  CHECK_NE(files_.size(), 0)
+  CHECK_NE(files_.size(), 0U)
       << "Cannot find any files that matches the URI patternz " << uri;
 }
 

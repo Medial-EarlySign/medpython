@@ -28,6 +28,7 @@ typedef enum {
 	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator (special case of signleton)
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
+	FTR_GEN_KP_SMOKING,
 	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
@@ -179,7 +180,8 @@ typedef enum {
 	FTR_NSAMPLES = 15, ///<"nsamples" - counts the number of times the signal apear in the time window
 	FTR_EXISTS = 16, ///<"exists" - boolean 0/1 if the signal apears in the time window
 	FTR_CATEGORY_SET_FIRST = 17, ///<"category_set_first" - boolean 0/1 if the signal apears in the time window and did not appear ever before the window
-
+	FTR_MAX_DIFF = 18, ///<maximum diff in window
+	FTR_FIRST_DAYS = 19, ///< time diffrence from prediction time to first time with signal
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -206,6 +208,8 @@ private:
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
 	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
+	float uget_max_diff(UniversalSigVec &usv, int time_point);
+	float uget_first_time(UniversalSigVec &usv, int time_point);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
 
 public:
@@ -327,13 +331,19 @@ public:
 	string signalName;
 	int signalId;
 
+	vector<string> sets = {};		/// list of sets 
+	string in_set_name = "";
+	vector<char> lut;			///< to be used when generating sets*
+
 	// Constructor/Destructor
 	SingletonGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = -1; req_signals.assign(1, signalName); }
 	SingletonGenerator(int _signalId) : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = _signalId; req_signals.assign(1, signalName); }
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName); }
+	void set_names();
 
+	// Init LUT for categorial variable
+	void init_tables(MedDictionarySections& dict);
 	/// The parsed fields from init command.
 	/// @snippet FeatureGenerator.cpp SingletonGenerator::init
 	int init(map<string, string>& mapper);
@@ -349,7 +359,7 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, iGenerateWeights)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights)
 };
 
 

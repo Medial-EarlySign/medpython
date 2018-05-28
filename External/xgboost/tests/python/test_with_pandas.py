@@ -1,15 +1,26 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import xgboost as xgb
+import testing as tm
 import unittest
-import pandas as pd
+
+try:
+    import pandas as pd
+except ImportError:
+    pass
+
+
+tm._skip_if_no_pandas()
+
 
 dpath = 'demo/data/'
 rng = np.random.RandomState(1994)
 
 
 class TestPandas(unittest.TestCase):
+
     def test_pandas(self):
+
         df = pd.DataFrame([[1, 2., True], [2, 3., False]], columns=['a', 'b', 'c'])
         dm = xgb.DMatrix(df, label=pd.Series([1, 2]))
         assert dm.feature_names == ['a', 'b', 'c']
@@ -55,10 +66,9 @@ class TestPandas(unittest.TestCase):
                         [2., 0., 1., 0.],
                         [3., 0., 0., 1.]])
         np.testing.assert_array_equal(result, exp)
-
         dm = xgb.DMatrix(dummies)
         assert dm.feature_names == ['B', 'A_X', 'A_Y', 'A_Z']
-        assert dm.feature_types == ['int', 'float', 'float', 'float']
+        assert dm.feature_types == ['int', 'int', 'int', 'int']
         assert dm.num_row() == 3
         assert dm.num_col() == 4
 
@@ -68,6 +78,23 @@ class TestPandas(unittest.TestCase):
         assert dm.feature_types == ['int', 'int']
         assert dm.num_row() == 3
         assert dm.num_col() == 2
+
+        # test MultiIndex as columns
+        df = pd.DataFrame(
+            [
+                (1, 2, 3, 4, 5, 6),
+                (6, 5, 4, 3, 2, 1)
+            ],
+            columns=pd.MultiIndex.from_tuples((
+                ('a', 1), ('a', 2), ('a', 3),
+                ('b', 1), ('b', 2), ('b', 3),
+            ))
+        )
+        dm = xgb.DMatrix(df)
+        assert dm.feature_names == ['a 1', 'a 2', 'a 3', 'b 1', 'b 2', 'b 3']
+        assert dm.feature_types == ['int', 'int', 'int', 'int', 'int', 'int']
+        assert dm.num_row() == 2
+        assert dm.num_col() == 6
 
     def test_pandas_label(self):
         # label must be a single column
@@ -111,43 +138,55 @@ class TestPandas(unittest.TestCase):
                         u'train-error-mean', u'train-error-std'])
         assert cv.columns.equals(exp)
 
-        params = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic', 'eval_metric': 'auc'}
+        params = {'max_depth': 2, 'eta': 1, 'silent': 1,
+                  'objective': 'binary:logistic', 'eval_metric': 'auc'}
         cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True)
         assert 'eval_metric' in params
         assert 'auc' in cv.columns[0]
 
-        params = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic', 'eval_metric': ['auc']}
+        params = {'max_depth': 2, 'eta': 1, 'silent': 1,
+                  'objective': 'binary:logistic', 'eval_metric': ['auc']}
         cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True)
         assert 'eval_metric' in params
         assert 'auc' in cv.columns[0]
 
-        params = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic', 'eval_metric': ['auc']}
-        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True, early_stopping_rounds=1)
+        params = {'max_depth': 2, 'eta': 1, 'silent': 1,
+                  'objective': 'binary:logistic', 'eval_metric': ['auc']}
+        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10,
+                    as_pandas=True, early_stopping_rounds=1)
         assert 'eval_metric' in params
         assert 'auc' in cv.columns[0]
         assert cv.shape[0] < 10
 
-        params = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic'}
-        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True, metrics='auc')
+        params = {'max_depth': 2, 'eta': 1, 'silent': 1,
+                  'objective': 'binary:logistic'}
+        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10,
+                    as_pandas=True, metrics='auc')
         assert 'auc' in cv.columns[0]
 
-        params = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic'}
-        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True, metrics=['auc'])
+        params = {'max_depth': 2, 'eta': 1, 'silent': 1,
+                  'objective': 'binary:logistic'}
+        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10,
+                    as_pandas=True, metrics=['auc'])
         assert 'auc' in cv.columns[0]
 
-        params = {'max_depth': 2, 'eta': 1, 'silent': 1, 'objective': 'binary:logistic', 'eval_metric': ['auc']}
-        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True, metrics='error')
+        params = {'max_depth': 2, 'eta': 1, 'silent': 1,
+                  'objective': 'binary:logistic', 'eval_metric': ['auc']}
+        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10,
+                    as_pandas=True, metrics='error')
         assert 'eval_metric' in params
         assert 'auc' not in cv.columns[0]
         assert 'error' in cv.columns[0]
 
-        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True, metrics=['error'])
+        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10,
+                    as_pandas=True, metrics=['error'])
         assert 'eval_metric' in params
         assert 'auc' not in cv.columns[0]
         assert 'error' in cv.columns[0]
 
         params = list(params.items())
-        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10, as_pandas=True, metrics=['error'])
+        cv = xgb.cv(params, dm, num_boost_round=10, nfold=10,
+                    as_pandas=True, metrics=['error'])
         assert isinstance(params, list)
         assert 'auc' not in cv.columns[0]
         assert 'error' in cv.columns[0]

@@ -1088,7 +1088,6 @@ size_t MedModel::deserialize(unsigned char *blob) {
 		memcpy(&type, blob + ptr, sizeof(RepProcessorTypes)); ptr += sizeof(RepProcessorTypes);
 		rep_processors[i] = RepProcessor::make_processor(type);
 		ptr += rep_processors[i]->deserialize(blob + ptr);
-
 	}
 
 	// Feature Generators

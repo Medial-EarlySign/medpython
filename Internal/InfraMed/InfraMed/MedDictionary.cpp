@@ -74,8 +74,8 @@ int MedDictionary::read(const string &fname)
 				if (fields[0].compare(0, 3, "DEF") == 0) {
 					int n_id = stoi(fields[1]);
 					if (Name2Id.find(fields[2]) != Name2Id.end())
-						MWARN("Warning::MedDictionary.read read same key name \"%s\" ("
-							"with maybe diffrent id) in dictionary %s\n", fields[2].c_str(),
+						MWARN("Warning::MedDictionary.read read id %d with existing key name \"%s\" ("
+							"with maybe diffrent id) in dictionary %s\n", n_id, fields[2].c_str(),
 							fname.c_str());
 					Name2Id[fields[2]] = n_id;
 					Id2Name[n_id] = fields[2];
@@ -88,8 +88,8 @@ int MedDictionary::read(const string &fname)
 				else if (fields[0].compare(0, 6, "SIGNAL") == 0) {
 					int n_id = stoi(fields[2]);
 					if (Name2Id.find(fields[2]) != Name2Id.end())
-						MWARN("Warning::Signal \"%s\" is defined again ("
-							"with maybe diffrent id) in file %s\n", fields[2].c_str(),
+						MWARN("Warning::Signal \"%s\" is defined again. now with id %d ("
+							"with maybe diffrent id) in file %s\n", fields[2].c_str(), n_id,
 							fname.c_str());
 					Name2Id[fields[1]] = n_id;
 					Id2Name[n_id] = fields[1];
@@ -334,7 +334,7 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 	vector<int> sig_ids;
 	for (auto &name : set_names) {
 		int myid = id(name);
-		if (myid > 0)
+		if (myid >= 0)
 			sig_ids.push_back(myid);
 		else
 			MTHROW_AND_ERR("prep_sets_lookup_table() : Found bad name [%s] :: not found in dictionary()\n", name.c_str());

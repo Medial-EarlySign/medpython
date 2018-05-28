@@ -7,6 +7,7 @@
 #ifndef DMLC_JSON_H_
 #define DMLC_JSON_H_
 
+// This code requires C++11 to compile
 #include <vector>
 #include <iostream>
 #include <cctype>
@@ -15,13 +16,21 @@
 #include <map>
 #include <list>
 #include <utility>
+
 #include "./base.h"
 #include "./logging.h"
 #include "./type_traits.h"
 
 #if DMLC_USE_CXX11
+#include <typeindex>
+#include <typeinfo>
 #include <unordered_map>
-#endif
+#if DMLC_STRICT_CXX11
+#if DMLC_ENABLE_RTTI
+#include "./any.h"
+#endif  // DMLC_ENABLE_RTTI
+#endif  // DMLC_STRICT_CXX11
+#endif  // DMLC_USE_CXX11
 
 namespace dmlc {
 /*!
@@ -203,6 +212,11 @@ class JSONWriter {
   inline void WriteObjectKeyValue(const std::string &key,
                                   const ValueType &value);
   /*!
+   * \brief Write seperator of array, before writing next element.
+   * User can proceed to call writer->Write to write next item
+   */
+  inline void WriteArraySeperator();
+  /*!
    * \brief Write value into array.
    * \param value The value of to be written.
    * \tparam ValueType The value type to be written.
@@ -309,6 +323,22 @@ class JSONObjectReadHelper {
   std::map<std::string, Entry> map_;
 };
 
+#define DMLC_JSON_ENABLE_ANY_VAR_DEF(KeyName)                  \
+  static DMLC_ATTRIBUTE_UNUSED ::dmlc::json::AnyJSONManager&   \
+  __make_AnyJSONType ## _ ## KeyName ## __
+
+/*!
+ * \def DMLC_JSON_ENABLE_ANY
+ * \brief Macro to enable save/load JSON of dmlc:: whose actual type is Type.
+ * Any type will be saved as json array [KeyName, content]
+ *
+ * \param Type The type to be registered.
+ * \param KeyName The Type key assigned to the type, must be same during load.
+ */
+#define DMLC_JSON_ENABLE_ANY(Type, KeyName)                             \
+  DMLC_STR_CONCAT(DMLC_JSON_ENABLE_ANY_VAR_DEF(KeyName), __COUNTER__) = \
+    ::dmlc::json::AnyJSONManager::Global()->EnableType<Type>(#KeyName) \
+
 //! \cond Doxygen_Suppress
 namespace json {
 
@@ -408,13 +438,13 @@ struct Handler<std::pair<K, V> > {
   }
   inline static void Read(JSONReader *reader, std::pair<K, V> *kv) {
     reader->BeginArray();
-    CHECK_XGB(reader->NextArrayItem())
+    CHECK(reader->NextArrayItem())
         << "Expect array of length 2";
     Handler<K>::Read(reader, &(kv->first));
-    CHECK_XGB(reader->NextArrayItem())
+    CHECK(reader->NextArrayItem())
         << "Expect array of length 2";
     Handler<V>::Read(reader, &(kv->second));
-    CHECK_XGB(!reader->NextArrayItem())
+    CHECK(!reader->NextArrayItem())
         << "Expect array of length 2";
   }
 };
@@ -432,7 +462,7 @@ template<typename V>
 struct Handler<std::unordered_map<std::string, V> >
     : public MapHandler<std::unordered_map<std::string, V> > {
 };
-#endif
+#endif  // DMLC_USE_CXX11
 
 template<typename T>
 struct Handler {
@@ -449,6 +479,97 @@ struct Handler {
     THandler::Read(reader, data);
   }
 };
+
+#if DMLC_STRICT_CXX11
+#if DMLC_ENABLE_RTTI
+// Manager to store json serialization strategy.
+class AnyJSONManager {
+ public:
+  template<typename T>
+  inline AnyJSONManager& EnableType(const std::string& type_name) {  // NOLINT(*)
+    std::type_index tp = std::type_index(typeid(T));
+    if (type_name_.count(tp) != 0) {
+      CHECK(type_name_.at(tp) == type_name)
+          << "Type has already been registered as another typename " << type_name_.at(tp);
+      return *this;
+    }
+    CHECK(type_map_.count(type_name) == 0)
+        << "Type name " << type_name << " already registered in registry";
+    Entry e;
+    e.read = ReadAny<T>;
+    e.write = WriteAny<T>;
+    type_name_[tp] = type_name;
+    type_map_[type_name] = e;
+    return *this;
+  }
+  // return global singleton
+  inline static AnyJSONManager* Global() {
+    static AnyJSONManager inst;
+    return &inst;
+  }
+
+ private:
+  AnyJSONManager() {}
+
+  template<typename T>
+  inline static void WriteAny(JSONWriter *writer, const any &data) {
+    writer->Write(dmlc::get<T>(data));
+  }
+  template<typename T>
+  inline static void ReadAny(JSONReader *reader, any* data) {
+    T temp;
+    reader->Read(&temp);
+    *data = std::move(temp);
+  }
+  // data entry to store vtable for any type
+  struct Entry {
+    void (*read)(JSONReader* reader, any *data);
+    void (*write)(JSONWriter* reader, const any& data);
+  };
+
+  template<typename T>
+  friend struct Handler;
+
+  std::unordered_map<std::type_index, std::string> type_name_;
+  std::unordered_map<std::string, Entry> type_map_;
+};
+
+template<>
+struct Handler<any> {
+  inline static void Write(JSONWriter *writer, const any &data) {
+    std::unordered_map<std::type_index, std::string>&
+        nmap = AnyJSONManager::Global()->type_name_;
+    std::type_index id = std::type_index(data.type());
+    auto it = nmap.find(id);
+    CHECK(it != nmap.end() && it->first == id)
+        << "Type " << id.name() << " has not been registered via DMLC_JSON_ENABLE_ANY";
+    std::string type_name = it->second;
+    AnyJSONManager::Entry e = AnyJSONManager::Global()->type_map_.at(type_name);
+    writer->BeginArray(false);
+    writer->WriteArrayItem(type_name);
+    writer->WriteArraySeperator();
+    e.write(writer, data);
+    writer->EndArray();
+  }
+  inline static void Read(JSONReader *reader, any *data) {
+    std::string type_name;
+    reader->BeginArray();
+    CHECK(reader->NextArrayItem()) << "invalid any json format";
+    Handler<std::string>::Read(reader, &type_name);
+    std::unordered_map<std::string, AnyJSONManager::Entry>&
+        tmap = AnyJSONManager::Global()->type_map_;
+    auto it = tmap.find(type_name);
+    CHECK(it != tmap.end() && it->first == type_name)
+        << "Typename " << type_name << " has not been registered via DMLC_JSON_ENABLE_ANY";
+    AnyJSONManager::Entry e = it->second;
+    CHECK(reader->NextArrayItem()) << "invalid any json format";
+    e.read(reader, data);
+    CHECK(!reader->NextArrayItem()) << "invalid any json format";
+  }
+};
+#endif  // DMLC_ENABLE_RTTI
+#endif  // DMLC_STRICT_CXX11
+
 }  // namespace json
 
 // implementations of JSONReader/Writer
@@ -482,10 +603,18 @@ inline void JSONReader::ReadString(std::string *out_str) {
   std::ostringstream os;
   while (true) {
     ch = is_->get();
-    if (ch == '\"') break;
     if (ch == '\\') {
-      os << is_->get();
+      char sch = static_cast<char>(is_->get());
+      switch (sch) {
+        case 'r': os << "\r"; break;
+        case 'n': os << "\n"; break;
+        case '\\': os << "\\"; break;
+        case '\t': os << "\t"; break;
+        case '\"': os << "\""; break;
+        default: LOG(FATAL) << "unknown string escape \\" << sch;
+      }
     } else {
+      if (ch == '\"') break;
       os << static_cast<char>(ch);
     }
     if (ch == EOF || ch == '\r' || ch == '\n') {
@@ -500,7 +629,7 @@ inline void JSONReader::ReadString(std::string *out_str) {
 template<typename ValueType>
 inline void JSONReader::ReadNumber(ValueType *out_value) {
   *is_ >> *out_value;
-  CHECK_XGB(!is_->fail())
+  CHECK(!is_->fail())
       << "Error at" << line_info()
       << ", Expect number";
 }
@@ -622,8 +751,8 @@ inline void JSONWriter::BeginArray(bool multi_line) {
 }
 
 inline void JSONWriter::EndArray() {
-  CHECK_NE(scope_multi_line_.size(), 0);
-  CHECK_NE(scope_counter_.size(), 0);
+  CHECK_NE(scope_multi_line_.size(), 0U);
+  CHECK_NE(scope_counter_.size(), 0U);
   bool newline = scope_multi_line_.back();
   size_t nelem = scope_counter_.back();
   scope_multi_line_.pop_back();
@@ -639,8 +768,8 @@ inline void JSONWriter::BeginObject(bool multi_line) {
 }
 
 inline void JSONWriter::EndObject() {
-  CHECK_NE(scope_multi_line_.size(), 0);
-  CHECK_NE(scope_counter_.size(), 0);
+  CHECK_NE(scope_multi_line_.size(), 0U);
+  CHECK_NE(scope_counter_.size(), 0U);
   bool newline = scope_multi_line_.back();
   size_t nelem = scope_counter_.back();
   scope_multi_line_.pop_back();
@@ -665,14 +794,18 @@ inline void JSONWriter::WriteObjectKeyValue(const std::string &key,
   json::Handler<ValueType>::Write(this, value);
 }
 
-template<typename ValueType>
-inline void JSONWriter::WriteArrayItem(const ValueType &value) {
+inline void JSONWriter::WriteArraySeperator() {
   std::ostream &os = *os_;
   if (scope_counter_.back() != 0) {
     os << ", ";
   }
   scope_counter_.back() += 1;
   WriteSeperator();
+}
+
+template<typename ValueType>
+inline void JSONWriter::WriteArrayItem(const ValueType &value) {
+  this->WriteArraySeperator();
   json::Handler<ValueType>::Write(this, value);
 }
 
@@ -713,7 +846,7 @@ inline void JSONObjectReadHelper::ReadAllFields(JSONReader *reader) {
     for (std::map<std::string, Entry>::iterator
              it = map_.begin(); it != map_.end(); ++it) {
       if (it->second.optional) continue;
-      CHECK_NE(visited.count(it->first), 0)
+      CHECK_NE(visited.count(it->first), 0U)
           << "JSONReader: Missing field \"" << it->first << "\"\n At "
           << reader->line_info();
     }
@@ -728,7 +861,7 @@ inline void JSONObjectReadHelper::ReaderFunction(JSONReader *reader, void *addr)
 template<typename T>
 inline void JSONObjectReadHelper::
 DeclareFieldInternal(const std::string &key, T *addr, bool optional) {
-  CHECK_EQ(map_.count(key), 0)
+  CHECK_EQ(map_.count(key), 0U)
       << "Adding duplicate field " << key;
   Entry e;
   e.func = ReaderFunction<T>;
@@ -740,4 +873,3 @@ DeclareFieldInternal(const std::string &key, T *addr, bool optional) {
 //! \endcond
 }  // namespace dmlc
 #endif  // DMLC_JSON_H_
-
