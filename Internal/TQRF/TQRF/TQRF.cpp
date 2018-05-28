@@ -91,6 +91,7 @@ int TQRF_Params::init(map<string, string>& map)
 		else if (f.first == "min_p") min_p = stof(f.second);
 		else if (f.first == "max_p") max_p = stof(f.second);
 		else if (f.first == "alpha") alpha = stof(f.second);
+		else if (f.first == "wgts_pow") wgts_pow = stof(f.second);
 
 		// lists
 		else if (f.first == "tuning_size") tuning_size = stof(f.second);
@@ -356,6 +357,7 @@ int Quantized_Feat::init(MedFeatures &medf, TQRF_Params &params)
 			for (int i=0; i<y.size(); i++)
 				if (y[i]) wgts[i] = params.case_wgt;
 		}
+		orig_wgts = wgts;
 		probs.resize(y.size());
 		w_to_sum.resize(y.size());
 		sum_over_trees.resize(y.size(), vector<float>(params.ncateg, 0));
@@ -673,8 +675,8 @@ int TQRF_Forest::Train(MedFeatures &medf, const MedMat<float> &Y)
 void TQRF_Forest::print_average_bagging(int _n_time_slices, int _n_categ)
 {
 	// calculating average bagging per tree
-	vector<vector<int>> avg_bag;
-	avg_bag.resize(_n_time_slices, vector<int>(_n_categ, 0));
+	vector<vector<float>> avg_bag;
+	avg_bag.resize(_n_time_slices, vector<float>(_n_categ, 0));
 	for (int i=0; i<params.ntrees; i++) {
 		if (trees[i].nodes.size() > 1)
 			for (int t=0; t<_n_time_slices; t++)
@@ -690,7 +692,7 @@ void TQRF_Forest::print_average_bagging(int _n_time_slices, int _n_categ)
 	MLOG("TQRF_Forest: average bagging report :");
 	for (int t=0; t<_n_time_slices; t++)
 		for (int c=0; c<_n_categ; c++)
-			MLOG(" [t=%d][c=%d] %d :", t, c, avg_bag[t][c]);
+			MLOG(" [t=%d][c=%d] %d :", t, c, (int)avg_bag[t][c]);
 	MLOG("\n");
 }
 
@@ -781,7 +783,7 @@ int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, MedMat<floa
 		int i_t = qf.last_time_slice[idx];
 
 		// summing counts over trees and only on the relevant time point for our idx
-		fill(qf.sum_over_trees[i].begin(), qf.sum_over_trees[i].end(), 0);		
+		fill(qf.sum_over_trees[i].begin(), qf.sum_over_trees[i].end(), (float)0);		
 		for (int i_tree = from_tree; i_tree < to_tree; i_tree++) {
 			TQRF_Node *cnode = trees[i_tree].Get_Node(x, i, params.missing_val);	
 			for (int c=0; c<params.ncateg; c++) {
@@ -798,7 +800,9 @@ int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, MedMat<floa
 		else if (qf.probs[i] > params.max_p) qf.probs[i] = params.max_p;
 
 		//qf.wgts[i] = -log(qf.probs[i]);
-		qf.w_to_sum[i] = pow(-log(1-qf.probs[i]),1.5); // local weights used for calculating alpha
+		qf.w_to_sum[i] = (float)pow(-log(1-qf.probs[i]), params.wgts_pow); // local weights used for calculating alpha
+		//qf.w_to_sum[i] = (float)-log(1-qf.probs[i]); // local weights used for calculating alpha
+		//qf.w_to_sum[i] = (float)1/(1-qf.probs[i]); // local weights used for calculating alpha
 	}
 
 	// update alpha
@@ -807,9 +811,9 @@ int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, MedMat<floa
 		// in this case we want alpha to be estimated using w_to_sum average
 		for (int i=0; i<nsamples; i++) sumw += qf.w_to_sum[i];
 		sumw /= (float)nsamples;
-		if (round == 0) qf.alpha0 = sumw*sumw;
+		if (round == 0) qf.alpha0 = (float)(sumw*sumw);
 		for (int i=round*params.ntrees; i<(round+1)*params.ntrees; i++) 
-			alphas[i] = (float)sumw*sumw/qf.alpha0;
+			alphas[i] = (float)(sumw*sumw)/qf.alpha0;
 	} else {
 		for (int i=round*params.ntrees; i<(round+1)*params.ntrees; i++) {
 			if (round == 0)
@@ -840,7 +844,10 @@ int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, MedMat<floa
 		if (qf.probs[i] < params.min_p) qf.probs[i] = params.min_p;
 		else if (qf.probs[i] > params.max_p) qf.probs[i] = params.max_p;
 
-		qf.wgts[idx] = pow(-log(qf.probs[i]), 2);
+		qf.wgts[idx] = pow(-log(qf.probs[i]), params.wgts_pow);
+		//qf.wgts[idx] = -log(qf.probs[i]);
+		//qf.wgts[idx] = 1/(qf.probs[i]);
+		qf.orig_wgts[idx] = qf.wgts[idx];
 		//if (i<10) MLOG("counts after : %f,%f\n", sample_counts[i][0], sample_counts[i][1]);
 
 	}
@@ -910,7 +917,7 @@ int TQRF_Forest::Predict_Categorial(MedMat<float> &x, vector<float> &preds)
 					sum_over_trees[t][c] += alphas[i_tree] * beta * cnode->time_categ_count[t][c];
 		}
 
-		vector<int> sum_t(params.n_time_slices, 0);
+		vector<float> sum_t(params.n_time_slices, 0);
 		for (int t=0; t<params.n_time_slices; t++)
 			for (int c=0; c<params.ncateg; c++)
 				sum_t[t] += sum_over_trees[t][c];
@@ -1180,6 +1187,7 @@ int TQRF_Split_Weighted_Categorial::prep_histograms(int i_feat, TQRF_Node &node,
 			sums[t][c] = 0;
 	}
 
+
 	// now going over each sample in the node (sometimes we have to sample)
 	// and adding counts for each category.
 
@@ -1246,6 +1254,7 @@ int TQRF_Split_Weighted_Categorial::prep_histograms(int i_feat, TQRF_Node &node,
 			sums_t[t] += sums[t][c];
 		total_sum += sums_t[t];
 	}
+
 
 	return 0;
 }
@@ -1494,8 +1503,8 @@ int TQRF_Split_Weighted_Likelihood::get_best_split(TQRF_Params &params, int &bes
 
 	for (int q=1; q<counts_q-1; q++) {
 
-		fill(lsum.begin(), lsum.end(), 0);
-		fill(rsum.begin(), rsum.end(), 0);
+		fill(lsum.begin(), lsum.end(), (float)0);
+		fill(rsum.begin(), rsum.end(), (float)0);
 
 		// getting the slices counts for left and right
 		for (int t=0; t<nslices; t++) {
@@ -1744,8 +1753,38 @@ float TQRF_Tree::prep_node_counts(int i_curr_node, int use_wgts_flag)
 			int idx = indexes[i];
 			int c = _qfeat->y_i[idx];
 			int t = _qfeat->last_time_slice[idx];
-			nodes[i_curr_node].time_categ_count[t][c]+=_qfeat->wgts[idx];
+			nodes[i_curr_node].time_categ_count[t][c]+=_qfeat->orig_wgts[idx];
 		}
+
+		int auto_adjust_weights = 0;
+
+		if (auto_adjust_weights) {
+
+			// we muliply the weights such that we have a balanced 0/1 weighting.
+			vector<float> cnts(2, 0);
+			for (int i=nodes[i_curr_node].from_idx; i<=nodes[i_curr_node].to_idx; i++) {
+				int idx = indexes[i];
+				if (_qfeat->y_i[idx])
+					cnts[1] += _qfeat->wgts[idx];
+				else
+					cnts[0] += _qfeat->wgts[idx];
+			}
+
+			if (cnts[1] > 0 && cnts[0] > 0) {
+				float s = cnts[0] + cnts[1];
+				float fact0 = s/((float)2*cnts[0]);
+				float fact1 = s/((float)2*cnts[1]);
+				for (int i=nodes[i_curr_node].from_idx; i<=nodes[i_curr_node].to_idx; i++) {
+					int idx = indexes[i];
+					if (_qfeat->y_i[idx])
+						_qfeat->wgts[idx] *= fact1;
+					else
+						_qfeat->wgts[idx] *= fact0;
+				}
+			}
+
+		}
+
 	}
 	else {
 		for (int i=nodes[i_curr_node].from_idx; i<=nodes[i_curr_node].to_idx; i++) {
@@ -1773,12 +1812,12 @@ float TQRF_Tree::prep_node_counts(int i_curr_node, int use_wgts_flag)
 		vector<int> c_for_chi;
 		MLOG("TQRF: Tree %d Node %d cnts[t][c] ::", id, nodes[i_curr_node].node_idx);
 		for (int t=0; t<_qfeat->n_time_slices; t++) {
-			int sum = 0;
+			float sum = 0;
 			for (int c=0; c<_qfeat->ncateg; c++) sum += nodes[i_curr_node].time_categ_count[t][c];
 			for (int c=0; c<_qfeat->ncateg; c++) {
 				float ratio = (sum > 0) ? (float)nodes[i_curr_node].time_categ_count[t][c]/(float)sum : 0;
 				MLOG(" [%d][%d] %f %4.3f :", t, c, nodes[i_curr_node].time_categ_count[t][c], ratio);
-				c_for_chi.push_back(nodes[i_curr_node].time_categ_count[t][c]);
+				c_for_chi.push_back((int)nodes[i_curr_node].time_categ_count[t][c]);
 			}
 		}
 		vector<double> exp_for_chi;
@@ -1850,7 +1889,7 @@ int TQRF_Tree::get_bagged_indexes()
 			int n_t;
 			for (int t=1; t<_params->n_time_slices; t++) {
 				p_t = 0;
-				n_t = (_params->single_sample_per_pid) ? _qfeat->time_categ_pids[t][1].size() : _qfeat->time_categ_idx[t][1].size();
+				n_t = (_params->single_sample_per_pid) ? (int)(_qfeat->time_categ_pids[t][1].size()) : (int)(_qfeat->time_categ_idx[t][1].size());
 				if (n_t > 0)
 					p_t = (float)n1/(float)n_t;
 				time_categ_probs[t][1] = min(_params->bag_prob, p_t);
@@ -1861,7 +1900,7 @@ int TQRF_Tree::get_bagged_indexes()
 
 		// choosing the controls (c=0) -> always using t=0 for those
 		bag_chooser(time_categ_probs[0][0], 0, 0, /* OUT APPEND */ indexes);
-		int nc0 = indexes.size();
+		int nc0 = (int)indexes.size();
 		if (_params->verbosity > 0) MLOG("Tree %d : bagging : 0 : %d chosen : first %d last %d : p %f\n", id, nc0, indexes[0], indexes[nc0-1], time_categ_probs[0][0]);
 
 		// choosing the cases (c=1) for all the different time slices
@@ -1871,7 +1910,7 @@ int TQRF_Tree::get_bagged_indexes()
 			int nc1 = (int)indexes.size() - nc_bef;
 			float actual_ratio = (float)nc0/(nc1+1);
 			if (_params->verbosity > 0) MLOG("Tree %d : bagging : 1 : t=%d : %d chosen : first %d last %d : p %f : ratio %f\n", id, t, nc1, indexes[nc0], indexes[nc1+nc0-1], time_categ_probs[t][1], actual_ratio);
-			nc_bef = indexes.size();
+			nc_bef = (int)indexes.size();
 		}
 
 	}
@@ -2212,12 +2251,12 @@ int TQRF_Forest::tune_betas(Quantized_Feat &qfeat)
 			//MLOG("i=%d j=%d cnode %d\n", i, j, cnode->node_idx);
 			if (cnode->is_terminal || cnode->depth >= params.tune_max_depth) betas_locs.push_back(TreeNodeIdx(i, j));
 			else {
-				int csize = cnode->get_size();
-				int lsize = trees[i].nodes[cnode->left_node].get_size();
-				int rsize = trees[i].nodes[cnode->right_node].get_size();
+				int csize = (int)cnode->get_size();
+				int lsize = (int)trees[i].nodes[cnode->left_node].get_size();
+				int rsize = (int)trees[i].nodes[cnode->right_node].get_size();
 				if (csize >= params.tune_min_node_size && (lsize < params.tune_min_node_size || rsize < params.tune_min_node_size)) {
 					betas_locs.push_back(TreeNodeIdx(i, j));
-					cnode->beta_idx = betas_locs.size();
+					cnode->beta_idx = (int)betas_locs.size();
 				}
 				if (lsize >= params.tune_min_node_size) q.push(cnode->left_node);
 				if (rsize >= params.tune_min_node_size) q.push(cnode->right_node);
@@ -2267,8 +2306,8 @@ int TQRF_Forest::tune_betas(Quantized_Feat &qfeat)
 	qfeat.orig_medf->get_as_matrix(x, {}, gd_idx);
 
 	// 4.2 : we prepare the Ckj and Skj matrices
-	int n_betas = betas_locs.size();
-	int n_samples = gd_idx.size();
+	int n_betas = (int)betas_locs.size();
+	int n_samples = (int)gd_idx.size();
 	MedMat<float> C(n_samples, n_betas), S(n_samples, n_betas);
 	C.zero();
 	S.zero();
@@ -2400,8 +2439,8 @@ int TQRF_Forest::solve_betas_gd(MedMat<float>& C, MedMat<float>& S, vector<float
 		// calculate loss and stop criteria
 		if (1) { // (some niter test)
 			MLOG("Finished epoch %d\n", niter);
-			float epsilon = 0.000001;
-			float stop_err = 0.00001;
+			float epsilon = (float)0.000001;
+			float stop_err = (float)0.00001;
 			// calculating loss
 			b_sq = bf.array()*bf.array();
 

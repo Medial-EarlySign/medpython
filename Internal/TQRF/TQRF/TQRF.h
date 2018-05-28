@@ -131,9 +131,10 @@ public:
 
 	// ada boost mode
 	int nrounds = 1;					/// a single round means simply running TQRF as defined with no boosting applied
-	float min_p = 0.01;					/// minimal probability to trim to when recalculating weights
-	float max_p = 0.99;					/// maximal probability to trip to when recalculating weights
+	float min_p = (float)0.01;			/// minimal probability to trim to when recalculating weights
+	float max_p = (float)0.99;			/// maximal probability to trip to when recalculating weights
 	float alpha = 1;					/// shrinkage factor
+	float wgts_pow = 2;					/// power for the pow(-log(p), wgts_pow) used for adaboost weights
 
 	// lists
 	float tuning_size = 0;				/// size of group to tune tree weights by.
@@ -141,9 +142,9 @@ public:
 	int tune_min_node_size = 0;			/// min node size for a node to have a weight
 
 	// tuning gradient descent parameters
-	float gd_rate = 0.01;				/// gradient descent step size
+	float gd_rate = (float)0.01;		/// gradient descent step size
 	int gd_batch = 1000;				/// gradient descent batch size
-	float gd_momentum = 0.95;			/// gradient descent momentum
+	float gd_momentum = (float)0.95;	/// gradient descent momentum
 	float gd_lambda = 0;				/// regularization
 	int gd_epochs = 0;					/// 0 : stop automatically , Otherwise: do this number of epochs
 
@@ -204,6 +205,7 @@ public:
 
 	// next are helper arrays used when doind adaboost
 	vector<float> wgts;
+	vector<float> orig_wgts;
 	vector<float> probs;
 	vector<float> w_to_sum;
 	vector<vector<float>> sum_over_trees;
