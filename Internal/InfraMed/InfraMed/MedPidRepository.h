@@ -57,7 +57,7 @@ class PidRec {
 		int init_sv();
 
 		// get methods - no need for pid just by signal
-		void *get(string &sig_name, int &len);
+		void *get(const string &sig_name, int &len);
 		void *get(int sid, int &len);
 
 		// universal API
@@ -131,7 +131,7 @@ public:
 	int get_n_versions() { return n_versions; }
 
 	// calling get without version is defined in PidRec and will return the original version
-	void *get(string &sig_name, int version, int &len);
+	void *get(const string &sig_name, int version, int &len);
 	void *get(int sid, int version, int &len);
 	void *get(int sid, int &len) { return PidRec::get(sid, len); }
 

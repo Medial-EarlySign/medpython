@@ -348,7 +348,7 @@ int PidRec::init_sv()
 }
 
 //------------------------------------------------------------------------------------------------------------
-void *PidRec::get(string &sig_name, int &len)
+void *PidRec::get(const string &sig_name, int &len)
 {
 	len = 0;
 	int sid = my_base_rep->sigs.sid(sig_name);
@@ -543,7 +543,7 @@ int PidDynamicRec::set_n_versions(vector<int> &time_points)
 
 
 //..................................................................................................................
-void *PidDynamicRec::get(string &sig_name, int version, int &len)
+void *PidDynamicRec::get(const string &sig_name, int version, int &len)
 {
 	len = 0;
 	int sid = my_base_rep->sigs.sid(sig_name);
