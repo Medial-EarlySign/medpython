@@ -7,7 +7,8 @@ using namespace std;
 
 typedef enum {
 	INPUT_TESTER_TYPE_UNDEFINED = 0,
-	INPUT_TESTER_TYPE_SIMPLE = 1
+	INPUT_TESTER_TYPE_SIMPLE = 1,
+	INPUT_TESTER_TYPE_ATTR = 2
 } InputTesterType;
 
 
@@ -40,6 +41,9 @@ public:
 	// also returns: nvals (if relevant): number of tests in the window time defined in the test
 	//               noutliers (if relevant) : number of outliers found
 	virtual int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers) { return -1; }
+
+	virtual int test_if_ok(MedSample &sample) { return -1; };				// 1: good to go 0: did not pass -1: could not test
+
 
 	// 1: good to go 0: did not pass -1: could not test
 	int test_if_ok(MedRepository &rep, int pid, long long timestamp) {
@@ -75,6 +79,26 @@ public:
 
 };
 //==============================================================================================================
+// InputTesterAttr : an implementation that is able to test the attributes created in the samples file of a model
+// (1) test that the attribute exists (it should be there or an error will be reported)
+// (2) test its value is below some bound (<=)
+//
+// Does this by directly testing the given sample
+//==============================================================================================================
+class InputTesterAttr : public InputTester {
+
+public:
+	string attr_name;
+	float attr_max_val;
+
+	InputTesterAttr() { type = (int)INPUT_TESTER_TYPE_ATTR; }
+
+	void input_from_string(const string &in_str);
+	int init(map<string, string>& mapper);
+	int test_if_ok(MedSample &sample);						// 1: good to go 0: did not pass -1: could not test
+
+};
+//==============================================================================================================
 
 struct InputSanityTesterResult {
 	int external_rc = 0;
@@ -104,6 +128,8 @@ public:
 	~InputSanityTester() { clear(); }
 
 	int read_config(const string &f_conf);
+
+	// tests all simple testers
 	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &res); // tests and stops at first cardinal failed test
 
 	 // tests and stops at first cardinal failed test 
@@ -111,6 +137,9 @@ public:
 		int nvals, noutliers;
 		return test_if_ok(rep, pid, timestamp, nvals, noutliers, res);
 	}
+
+	// tests all attr testers for a single given sample
+	int test_if_ok(MedSample &sample, vector<InputSanityTesterResult> &res);
 
 	void clear() {
 		for (auto &p_it : testers)

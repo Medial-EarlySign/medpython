@@ -111,6 +111,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 			}
 		}
 
+	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
+
 	MLOG("After AddData for all batch\n");
 	// finish rep loading 
 	char *stypes[] ={ "Raw" };
@@ -514,16 +516,14 @@ int main(int argc, char *argv[])
 
 #if 0
 
-	MLOG("SIGNALS IN REP ===========> :: \n");
-	vector<string> print_sigs ={ "Drug" };
-	for (int i=0; i<pids.size(); i++) {
-		for (int j=0; j< print_sigs.size(); j++)
-			rep.print_data_vec(pids[i], print_sigs[j]);
-	}
+	//MLOG("SIGNALS IN REP ===========> :: \n");
+	//vector<string> print_sigs ={ "Drug" };
+	//for (int i=0; i<pids.size(); i++) {
+	//	for (int j=0; j< print_sigs.size(); j++)
+	//		rep.print_data_vec(pids[i], print_sigs[j]);
+	//}
 
-	MedMat<float> xfeat;
-	model.features.get_as_matrix(xfeat);
-	xfeat.write_to_csv_file("direct.csv");
+	model.write_feature_matrix("direct.csv");
 
 #endif
 

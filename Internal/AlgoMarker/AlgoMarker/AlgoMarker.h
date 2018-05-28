@@ -297,16 +297,18 @@ private:
 
 	//vector<string> supported_score_types ={ "Raw" };
 
+	int sort_needed = 1; // in some debug cases we ommit the sort od data at the end of loading to do that this needs to be 0
 
 public:
-	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw");}
-	
+	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
+
 	int Load(const char *config_f);
 	int Unload();
 	int ClearData();
 	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 
+	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
 };
 
 //===============================================================================
