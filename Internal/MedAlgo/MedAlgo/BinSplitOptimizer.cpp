@@ -563,26 +563,25 @@ void medial::process::normalize_feature_to_uniform(const BinSettings &setting, v
 	vector<int> sel;
 	split_feature_to_bins(setting, copy_feature, sel, copy_feature);
 	vector<float> binnned_feature = copy_feature; //a copy of binning
-	sort(copy_feature.begin(), copy_feature.begin()); //lets create hisogram of values:
+	sort(copy_feature.begin(), copy_feature.end()); //lets create hisogram of values:
 	vector<int> ordValue_count;
 	vector<float> ordValues;
 	ordValue_count.reserve(copy_feature.size());
 	ordValues.reserve(copy_feature.size());
 	float prev = copy_feature[0];
-	int idx = 0;
-	++ordValue_count[idx];
-	ordValues[idx] = copy_feature[0];
+	ordValue_count.push_back(1);
+	ordValues.push_back(copy_feature[0]);
 	for (size_t i = 1; i < copy_feature.size(); ++i)
 	{
 		if (prev != copy_feature[i]) {
-			++idx;
 			prev = copy_feature[i];
-			ordValues[idx] = copy_feature[i];
+			ordValues.push_back(copy_feature[i]);
+			ordValue_count.push_back(0);
 		}
-		++ordValue_count[idx];
+		++ordValue_count.back();
 	}
-	float min_val = ordValue_count.front();
-	float max_val = ordValue_count.back();
+	float min_val = ordValues.front();
+	float max_val = ordValues.back();
 	if (min_val == max_val) {
 		MWARN("warning: after binning - all values are the same. doing nothing\n");
 		return;
@@ -599,12 +598,13 @@ void medial::process::normalize_feature_to_uniform(const BinSettings &setting, v
 	}
 	vector<float> min_bin_val(ordValues.size(), (float)INT_MAX),
 		max_bin_val(ordValues.size(), (float)INT_MIN);
-	for (size_t i = 0; i < feature.size(); ++i)
+	for (size_t i = 0; i < binnned_feature.size(); ++i)
 	{
-		float val = feature[i];
+		float val = binnned_feature[i];
 		int idx_val = medial::process::binary_search_index(ordValues.data(), ordValues.data() + ordValues.size() - 1, val);
 		if (idx_val < 0)
-			MTHROW_AND_ERR("ERROR in binary_search\n");
+			MTHROW_AND_ERR("ERROR in binary_search. i=%d, val=%f, full_size=%d\n",
+				(int)i, val, (int)feature.size());
 		if (min_bin_val[idx_val] > val)
 			min_bin_val[idx_val] = val;
 		if (max_bin_val[idx_val] < val)
