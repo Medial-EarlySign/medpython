@@ -611,9 +611,9 @@ void medial::process::normalize_feature_to_uniform(const BinSettings &setting, v
 			max_bin_val[idx_val] = val;
 
 	}
-	for (size_t i = 0; i < feature.size(); ++i)
+	for (size_t i = 0; i < binnned_feature.size(); ++i)
 	{
-		float val = feature[i];
+		float val = binnned_feature[i];
 		int idx_val = medial::process::binary_search_index(ordValues.data(), ordValues.data() + ordValues.size() - 1, val);
 		double start_idx = 0;
 		if (idx_val > 0)
