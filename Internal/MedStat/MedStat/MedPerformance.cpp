@@ -557,6 +557,53 @@ template<class T>float get_preds_auc_q(const vector<T> &preds, const vector<floa
 template float get_preds_auc_q<float>(const vector<float> &preds, const vector<float> &y);
 template float get_preds_auc_q<double>(const vector<double> &preds, const vector<float> &y);
 
+template<class T>float get_preds_auc_q_weighted(const vector<T> &preds, const vector<float> &y, const vector<float> &weights) {
+	vector<T> pred_threshold;
+	unordered_map<T, vector<int>> pred_indexes;
+	double tot_true_labels = 0, tot_false_labels = 0;
+	for (size_t i = 0; i < preds.size(); ++i)
+	{
+		pred_indexes[preds[i]].push_back((int)i);
+		tot_true_labels += int(y[i] > 0) * weights[i];
+		tot_false_labels += int(y[i] <= 0) * weights[i];
+	}
+	pred_threshold.resize((int)pred_indexes.size());
+	auto it = pred_indexes.begin();
+	for (size_t i = 0; i < pred_threshold.size(); ++i)
+	{
+		pred_threshold[i] = it->first;
+		++it;
+	}
+	sort(pred_threshold.begin(), pred_threshold.end());
+
+	//From up to down sort:
+	double t_cnt = 0;
+	double f_cnt = 0;
+	vector<float> true_rate = vector<float>((int)pred_indexes.size());
+	vector<float> false_rate = vector<float>((int)pred_indexes.size());
+	int st_size = (int)pred_threshold.size() - 1;
+	for (int i = st_size; i >= 0; --i)
+	{
+		vector<int> &indexes = pred_indexes[pred_threshold[i]];
+		//calc AUC status for this step:
+		for (int ind : indexes)
+		{
+			bool true_label = y[ind] > 0;
+			t_cnt += int(true_label) * weights[ind];
+			f_cnt += int(!true_label) * weights[ind];
+		}
+		true_rate[st_size - i] = float(t_cnt / tot_true_labels);
+		false_rate[st_size - i] = float(f_cnt / tot_false_labels);
+	}
+
+	float auc = false_rate[0] * true_rate[0] / 2;
+	for (size_t i = 1; i < true_rate.size(); ++i)
+		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
+	return auc;
+}
+template float get_preds_auc_q_weighted<float>(const vector<float> &preds, const vector<float> &y, const vector<float> &weights);
+template float get_preds_auc_q_weighted<double>(const vector<double> &preds, const vector<float> &y, const vector<float> &weights);
+
 // AUC
 //.........................................................................................................................................
 float get_preds_auc(vector<float> &preds, vector<float> &y) {
