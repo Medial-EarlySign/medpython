@@ -128,7 +128,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		return AM_FAIL_RC;
 	}
 
-	string msg_prefix = "reqId: " + string(request->get_request_id()) + " :: ";
+	//string msg_prefix = "reqId: " + string(request->get_request_id()) + " :: ";
+	string msg_prefix = ""; // asked not to put reqId in messages.... (not sure it's a good idea, prev code above in comment)
 	responses->set_request_id(request->get_request_id());
 
 	for (int i=0; i<request->get_n_score_types(); i++) {
@@ -187,7 +188,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		// push messages if there are any
 		AMMessages *msgs = res->get_msgs();
 		for (auto &tres : test_res) {
-			string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
+			//string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
+			string msg = msg_prefix + tres.err_msg; // messages without Internal codes...(prev code in comment above).
 			msgs->insert_message(tres.external_rc, msg.c_str());
 		}
 
@@ -244,7 +246,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 					AMMessages *msgs = res->get_msgs();
 					for (auto &tres : test_res) {
-						string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
+						//string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
+						string msg = msg_prefix + tres.err_msg; // no Internal Code message (prev code in comment above).
 						msgs->insert_message(tres.external_rc, msg.c_str());
 					}
 

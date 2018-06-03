@@ -51,6 +51,8 @@ public:
 		return test_if_ok(rep, pid, timestamp, nvals, noutliers);
 	}
 
+	void print();
+
 	// get a new InputTester
 	static InputTester *make_input_tester(int it_type);
 	static int name_to_input_tester_type(const string &name);

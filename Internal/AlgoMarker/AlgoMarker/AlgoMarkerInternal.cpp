@@ -28,6 +28,13 @@ int InputTester::name_to_input_tester_type(const string &name)
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
+void InputTester::print()
+{
+	MLOG("InputTester: type %d is_warning %d external_rc %d internal_rc %d max_outliers_flag %d err \'%s\' \n",
+		type, is_warning, externl_rc, internal_rc, max_outliers_flag, err_msg.c_str());
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
 void InputTesterSimple::input_from_string(const string &in_str)
 {
 	sf.init_from_string(in_str);
@@ -119,6 +126,7 @@ int InputSanityTester::read_config(const string &f_conf)
 			// MAX_OVERALL_OUTLIERS	<number>
 
 			if (fields[0] == "FILTER") {
+				//MLOG("Parsing FILTER line: %s\n", curr_line.c_str());
 				if (fields.size() >= 2) {
 					int type = InputTester::name_to_input_tester_type(fields[1]);
 					if (type == (int)INPUT_TESTER_TYPE_UNDEFINED) {
@@ -153,6 +161,9 @@ int InputSanityTester::read_config(const string &f_conf)
 					if (fields.size() >= 8) i_test->err_msg = fields[7];
 
 					i_test->input_from_string(i_test->tester_params);
+
+					//i_test->print();
+					//MLOG("testers size is: %d\n", testers.size());
 
 					testers.push_back(i_test);
 				}
@@ -190,12 +201,13 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 
 		int t_nvals, t_noutliers;
 		int rc = test->test_if_ok(rep, pid, timestamp, t_nvals, t_noutliers);
-//		MLOG("###>>> pid %d time %d test %s : nvals %d nout %d rc %d\n", pid, timestamp, test->tester_params.c_str(), t_nvals, t_noutliers, rc);
+		//MLOG("###>>> pid %d time %d test %s : nvals %d nout %d rc %d\n", pid, timestamp, test->tester_params.c_str(), t_nvals, t_noutliers, rc);
 		if (test->max_outliers_flag) outliers_count += t_noutliers;
 		if (rc < 0) {
 			res.external_rc = AM_ELIGIBILITY_ERROR;
 			res.internal_rc = -2;
-			res.err_msg = "Could not run filter on sample. ["+name+"]";
+			//res.err_msg = "Could not run filter on sample. ["+name+"]";
+			res.err_msg = "Could not run filter on sample."; // no name in err message (a request...)
 
 			Results.push_back(res);
 			n_errors++;
@@ -206,7 +218,10 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 			// we failed the test for a good reason and get out
 			res.external_rc = test->externl_rc;
 			res.internal_rc = test->internal_rc;
-			res.err_msg = test->err_msg + "["+name+"]";
+			//res.err_msg = test->err_msg + "["+name+"]";
+			res.err_msg = test->err_msg; // no name in err message (a request...)
+
+			//MLOG("###>>>>>> found an error: %d %d %s\n", res.external_rc, res.internal_rc, res.err_msg.c_str());
 
 			Results.push_back(res);
 
@@ -223,13 +238,14 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 		InputSanityTesterResult res;
 		res.external_rc = AM_ELIGIBILITY_ERROR;
 		res.internal_rc = -3;
-		res.err_msg = "Too many outliers detected (" + to_string(outliers_count) + ") ["+name+"]";
+		//res.err_msg = "Too many outliers detected (" + to_string(outliers_count) + ") ["+name+"]";
+		res.err_msg = "Too many outliers detected (" + to_string(outliers_count) + ")"; // no name in err message (a request...)
 		Results.push_back(res);
 		n_errors++;
 	}
 
 
-	// MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
+	 //MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
 	if (n_errors > 0)
 		return 0;
 
@@ -269,7 +285,8 @@ int InputSanityTester::test_if_ok(MedSample &sample, vector<InputSanityTesterRes
 			// we failed the test
 			res.external_rc = test->externl_rc;
 			res.internal_rc = test->internal_rc;
-			res.err_msg = test->err_msg + "["+name+"]";
+			//res.err_msg = test->err_msg + "["+name+"]";
+			res.err_msg = test->err_msg; // removed name from message... (previous code in comment above).
 
 			Results.push_back(res);
 
