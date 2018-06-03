@@ -78,6 +78,11 @@ namespace medial {
 		/// </returns>
 		void split_feature_to_bins(const BinSettings &setting, vector<float> &feature,
 			const vector<int> &sel_indexes, vector<float> &y);
+		/// <summary>
+		/// normalize feature to be between [0-1] but also change the distribution of values to
+		/// be uniform
+		/// </summary>
+		void normalize_feature_to_uniform(const BinSettings &setting, vector<float> &feature);
 	}
 }
 

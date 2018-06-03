@@ -554,3 +554,81 @@ BinSplitMethod BinSettings::bin_method_name_to_type(const string& bin_method) {
 		}
 	MTHROW_AND_ERR("Not Supported %s bin method\n", bin_method.c_str());
 }
+
+void medial::process::normalize_feature_to_uniform(const BinSettings &setting, vector<float> &feature) {
+	//split the feature to bins first for histogram - afterwards we will change the histogram to uniform:
+	if (feature.empty())
+		MTHROW_AND_ERR("normalize got empty vector\n");
+	vector<float> copy_feature = feature;
+	vector<int> sel;
+	split_feature_to_bins(setting, copy_feature, sel, copy_feature);
+	vector<float> binnned_feature = copy_feature; //a copy of binning
+	sort(copy_feature.begin(), copy_feature.end()); //lets create hisogram of values:
+	vector<int> ordValue_count;
+	vector<float> ordValues;
+	ordValue_count.reserve(copy_feature.size());
+	ordValues.reserve(copy_feature.size());
+	float prev = copy_feature[0];
+	ordValue_count.push_back(1);
+	ordValues.push_back(copy_feature[0]);
+	for (size_t i = 1; i < copy_feature.size(); ++i)
+	{
+		if (prev != copy_feature[i]) {
+			prev = copy_feature[i];
+			ordValues.push_back(copy_feature[i]);
+			ordValue_count.push_back(0);
+		}
+		++ordValue_count.back();
+	}
+	float min_val = ordValues.front();
+	float max_val = ordValues.back();
+	if (min_val == max_val) {
+		MWARN("warning: after binning - all values are the same. doing nothing\n");
+		return;
+	}
+	float width = max_val - min_val;
+	double tot_size = (double)feature.size();
+	//let calc width's:
+	vector<double> bin_widths_cumsum(ordValues.size());
+	bin_widths_cumsum[0] = ordValue_count[0] / tot_size;
+	for (size_t i = 1; i < ordValues.size(); ++i)
+	{
+		double bin_ratio_width = ordValue_count[i] / tot_size; //the current bin_width [min, max]
+		bin_widths_cumsum[i] = bin_widths_cumsum[i - 1] + bin_ratio_width; //cumsum
+	}
+	vector<float> min_bin_val(ordValues.size(), (float)INT_MAX),
+		max_bin_val(ordValues.size(), (float)INT_MIN);
+	for (size_t i = 0; i < binnned_feature.size(); ++i)
+	{
+		float val = binnned_feature[i];
+		int idx_val = medial::process::binary_search_index(ordValues.data(), ordValues.data() + ordValues.size() - 1, val);
+		if (idx_val < 0)
+			MTHROW_AND_ERR("ERROR in binary_search. i=%d, val=%f, full_size=%d\n",
+				(int)i, val, (int)feature.size());
+		if (min_bin_val[idx_val] > val)
+			min_bin_val[idx_val] = val;
+		if (max_bin_val[idx_val] < val)
+			max_bin_val[idx_val] = val;
+
+	}
+	for (size_t i = 0; i < binnned_feature.size(); ++i)
+	{
+		float val = binnned_feature[i];
+		int idx_val = medial::process::binary_search_index(ordValues.data(), ordValues.data() + ordValues.size() - 1, val);
+		double start_idx = 0;
+		if (idx_val > 0)
+			start_idx = bin_widths_cumsum[idx_val - 1];
+		double end_idx = bin_widths_cumsum[idx_val]; //need to get that width between [0,1]
+		//spread val between start_idx to end_idx - linearly
+
+		if (min_bin_val[idx_val] == max_bin_val[idx_val])
+			val = float((start_idx + end_idx) / 2);
+		else
+			val = float(start_idx + (val - min_bin_val[idx_val]) /
+				(max_bin_val[idx_val] - min_bin_val[idx_val]) * (end_idx - start_idx));
+
+		feature[i] = val;
+	}
+
+
+}
