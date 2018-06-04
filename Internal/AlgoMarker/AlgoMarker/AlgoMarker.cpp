@@ -11,6 +11,8 @@ int AMPoint::auto_time_convert(long long ts, int to_type)
 	long long date_t = 0;
 	long long hhmm = 0;
 
+	//MLOG("auto time convert: Date is %d , ts %lld , to_type %d\n", MedTime::Date, ts, to_type);
+
 	if ((ts/(long long)1000000000) == 0) {
 		date_t = ts; // yyyymmdd
 		hhmm = 0;
@@ -31,6 +33,7 @@ int AMPoint::auto_time_convert(long long ts, int to_type)
 	//MLOG("auto_time_converter: ts %lld to_type %d data_t %lld hhmm %lld\n", ts, to_type, date_t, hhmm);
 
 	if (to_type == MedTime::Date) {
+		//MLOG("auto time convert: date_t %d\n", date_t);
 		return (int)date_t;
 	}
 
