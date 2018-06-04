@@ -179,7 +179,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		long long _ts = request->get_timestamp(i);
 
 		// create a response
-		AMResponse *res = responses->create_point_response(_pid, _ts);
+		//AMResponse *res = responses->create_point_response(_pid, _ts);
+		AMResponse *res = responses->get_response_by_point(_pid, (long long)conv_times[i]);
+		if (res == NULL)
+			res = responses->create_point_response(_pid, (long long)conv_times[i]);
 
 		// test this point for eligibility and add errors if needed
 		vector<InputSanityTesterResult> test_res;
@@ -197,6 +200,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			n_bad_scores++;
 		}
 		else {
+			//MLOG("DEBUG ===> i %d _pid %d conv %d _ts %lld size %d\n", i, _pid, conv_times[i], _ts, eligible_pids.size());
 			eligible_pids.push_back(_pid);
 			eligible_timepoints.push_back(conv_times[i]);
 			eligible_ts.push_back(_ts);
@@ -282,11 +286,11 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	if (n_bad_scores > 0) {
 		string msg = msg_prefix + "Failed input tests for " + to_string(n_bad_scores) + " out of " + to_string(n_points) + " scores";
 		if (n_bad_scores < n_points) {
-			shared_msgs->insert_message(AM_GENERAL_NON_FATAL, msg.c_str());
+			shared_msgs->insert_message(AM_RESPONSES_ELIGIBILITY_ERROR, msg.c_str());
 			return AM_OK_RC;
 		}
 
-		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
+		shared_msgs->insert_message(AM_RESPONSES_ELIGIBILITY_ERROR, msg.c_str());
 		return AM_FAIL_RC;
 	}
 
