@@ -37,7 +37,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("amconfig" , po::value<string>()->default_value(""), "algo marker configuration file")
 			("direct_test", "split to a dedicated debug routine")
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
-			("date", po::value<int>()->default_value(20180101), "test date")
+			("date", po::value<long long>()->default_value(20180101), "test date")
 			("egfr_test" , "split to a debug routine for the simple egfr algomarker")
 			;
 
@@ -319,7 +319,7 @@ int debug_me(po::variables_map &vm)
 	// Calculate
 	char *stypes[] ={ "Raw" };
 	vector<int> _pids ={ 1 };
-	vector<long long> _timestamps ={ (long long)vm["date"].as<int>() };
+	vector<long long> _timestamps ={ (long long)vm["date"].as<long long>() };
 	AMRequest *req;
 	MLOG("Creating Request\n");
 	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
@@ -378,7 +378,7 @@ int debug_me(po::variables_map &vm)
 		AM_API_GetResponsePoint(response, &pid, &ts);
 		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 		MLOG("resp_rc = %d\n", resp_rc);
-		MLOG("i %d , pid %d ts %d scr %f\n", i, pid, ts, n_scr, _scr);
+		MLOG("i %d , pid %d ts %lld scr %f\n", i, pid, ts, n_scr, _scr);
 		MLOG("ptr for _scr_type %x\n", _scr_type);
 		if (_scr_type != NULL) MLOG("_scr_type %s\n", _scr_type);
 		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
