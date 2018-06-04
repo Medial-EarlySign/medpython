@@ -95,6 +95,9 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		timer.take_curr_time();
 		MLOG("MedModel::learn() : learn feature generators %g ms\n", timer.diff_milisec());
 	}
+
+	//dprint_process("==> In Learn (2) <==", 0, 2, 0);
+
 	if (end_stage <= MED_MDL_LEARN_FTR_GENERATORS)
 		return 0;
 	
@@ -982,7 +985,7 @@ void MedModel::get_all_features_names(vector<string> &feat_names, int before_pro
 		for (string& name : generators[i]->names)
 			uniq_feat_names.insert(name);
 	}
-	assert(before_process_set < feature_processors.size());
+	assert((before_process_set < feature_processors.size()) || (before_process_set == 0 && feature_processors.size() == 0));
 	for (int i = 0; i < before_process_set; i++) {
 		vector<string> my_names;
 		feature_processors[i]->get_feature_names(my_names);

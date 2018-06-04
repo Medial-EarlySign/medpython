@@ -364,7 +364,10 @@ void BasicFeatGenerator::set_names() {
 		case FTR_MAX_DIFF:			name += "max_diff"; break;
 		case FTR_FIRST_DAYS:		name += "first_time"; break;
 
-		default: name += "ERROR";
+		default: {
+			name += "ERROR";
+			MTHROW_AND_ERR("Got a wrong type in basic feature generator %d\n", type);
+		}
 	}
 
 	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
@@ -373,7 +376,7 @@ void BasicFeatGenerator::set_names() {
 	if (time_channel!=0 || val_channel != 0)
 		name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name);
-	tags.push_back(name);
+	//tags.push_back(name);
 	//MLOG("Created %s\n", name.c_str());
 
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
@@ -387,7 +390,7 @@ void BasicFeatGenerator::init_defaults() {
 	time_unit_sig = MedTime::Undefined;
 	time_unit_win = med_rep_type.windowTimeUnit;
 	string _signalName = ""; 
-	set(_signalName, FTR_LAST, 0, 360000);
+	//set(_signalName, FTR_LAST, 0, 360000);
 };
 
 // Generate
@@ -715,7 +718,10 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_MAX:		name += "max"; break;
 	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" +to_string(check_first)+ sets[0]; break;
-	default: name += "ERROR";
+	default: {
+		name += "ERROR";
+		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
+	}
 	}
 
 	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
