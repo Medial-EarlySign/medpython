@@ -541,7 +541,7 @@ int BinSettings::init(map<string, string>& map) {
 }
 
 const unordered_map<int, string> BinSettings::name_to_method = {
-	{BinSplitMethod::SameValueWidth, "same_width"},
+	{ BinSplitMethod::SameValueWidth, "same_width"},
 	{ BinSplitMethod::PartitaionMover, "partition_mover" },
 	{ BinSplitMethod::IterativeMerge, "iterative_merge" },
 	{ BinSplitMethod::DynamicSplit, "dynamic_split" }
@@ -552,7 +552,9 @@ BinSplitMethod BinSettings::bin_method_name_to_type(const string& bin_method) {
 		if (it->second == bin_method) {
 			return BinSplitMethod(it->first);
 		}
-	MTHROW_AND_ERR("Not Supported %s bin method\n", bin_method.c_str());
+	string opts = medial::io::get_list_op(name_to_method);
+	MTHROW_AND_ERR("Not Supported \"%s\" bin method. options are: %s\n",
+		bin_method.c_str(), opts.c_str());
 }
 
 void medial::process::normalize_feature_to_uniform(const BinSettings &setting, vector<float> &feature) {
