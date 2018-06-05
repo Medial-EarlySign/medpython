@@ -24,6 +24,8 @@ int Calibrator::init(map<string, string>& mapper) {
 
 
 double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot) {
+
+
 	double prob = 1.0;
 	int total_controls_all = 0;
 	for (int i = 0; i < controls_per_time_slot.size(); i++)
@@ -103,7 +105,16 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 	Learn(samples);
 	return 0;
 }
+
 int Calibrator::Learn(const vector<MedSample>& orig_samples ) {
+
+	int do_km;
+	if (estimator_type == "kaplan_meier")
+		do_km = 1;
+	else if (estimator_type == "mean_cases")
+		do_km = 0;
+	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
+
 	cals.clear();
 	float min_pred = 100000.0, max_pred = -100000.0;
 	int cases = 0;
@@ -226,11 +237,17 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples ) {
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
 		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] + cnt_cases[i]);
-		ce.mean_outcome = 1.0f * cnt_cases[i] / (cnt_controls[i] + cnt_cases[i]);
 		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] + cnt_cases[i]) / 2)) / (float)samples.size();
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
-		ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i]);
+		if (do_km) {
+			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i]);
+			ce.mean_outcome = 0.0;
+		}
+		else {
+			ce.kaplan_meier = 0.0;
+			ce.mean_outcome = 1.0f * cnt_cases[i] / (cnt_controls[i] + cnt_cases[i]);
+		}
 		cumul_cnt += ce.cnt_controls + ce.cnt_cases;
 		cals.push_back(ce);
 	}
@@ -318,11 +335,11 @@ int Calibrator::Apply(MedSamples& samples) {
 	int do_km;
 	if (estimator_type == "kaplan_meier") {
 		do_km = 1;
-		MLOG("calibrating [%d] samples using kaplan_meier estimator");
+		MLOG("calibrating [%d] samples using kaplan_meier estimator\n",samples.nSamples());
 	}
 	else if (estimator_type == "mean_cases") {
 		do_km = 0;
-		MLOG("calibrating [%d] samples using mean_cases estimator");
+		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.nSamples());
 	}
 	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
 
@@ -334,5 +351,26 @@ int Calibrator::Apply(MedSamples& samples) {
 			else
 				s.prediction[0] = best.mean_outcome;
 		}
+	}
+}
+
+int Calibrator::Apply(vector<MedSample> & samples) {
+	int do_km;
+	if (estimator_type == "kaplan_meier") {
+		do_km = 1;
+		MLOG("calibrating [%d] samples using kaplan_meier estimator\n", samples.size());
+	}
+	else if (estimator_type == "mean_cases") {
+		do_km = 0;
+		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.size());
+	}
+	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
+
+	for (auto& s : samples) {
+		calibration_entry best = calibrate_pred(s.prediction[0]);
+		if (do_km)
+			s.prediction[0] = best.kaplan_meier;
+		else
+			s.prediction[0] = best.mean_outcome;
 	}
 }

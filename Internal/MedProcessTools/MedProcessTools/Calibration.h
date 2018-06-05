@@ -38,6 +38,7 @@ public:
 	virtual int Learn(const MedSamples& samples);
 	virtual int Learn(const vector <MedSample>& samples);
 	virtual int Apply(MedSamples& samples);
+	virtual int Apply(vector <MedSample>& samples);
 
 	calibration_entry calibrate_pred(float pred);
 
