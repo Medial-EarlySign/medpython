@@ -378,7 +378,7 @@ int debug_me(po::variables_map &vm)
 		AM_API_GetResponsePoint(response, &pid, &ts);
 		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 		MLOG("resp_rc = %d\n", resp_rc);
-		MLOG("i %d , pid %d ts %lld scr %f\n", i, pid, ts, n_scr, _scr);
+		MLOG("i %d , pid %d ts %lld scr %f\n", i, pid, ts, _scr);
 		MLOG("ptr for _scr_type %x\n", _scr_type);
 		if (_scr_type != NULL) MLOG("_scr_type %s\n", _scr_type);
 		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
