@@ -84,7 +84,7 @@ namespace medial {
 		/// \brief printing vector elements in list [] with title to MLOG
 		template<class T> void print_vec(const vector<T> &vec, const string &title, const string &format);
 		/// \brief printing vector elements hist prctiles in list [] with title to MLOG
-		template<class T> void print_hist_vec(const vector<T> &vec, const string &title, const string &format);
+		template<class T> void print_hist_vec(const vector<T> &vec, const string &title, const string &format, const vector<double> *prctile_samples = NULL);
 		/// \brief print boost program options object
 		string print_any(po::variable_value &a);
 	}
