@@ -133,7 +133,7 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	const double start = dmlc::GetTime();
 #pragma omp critical
 	XGBoosterUpdateOneIter(h_booster, 0, h_train[0]);
-	for (int iter = 1; iter<200; iter++)
+	for (int iter = 1; iter<params.num_round; iter++)
 		XGBoosterUpdateOneIter(h_booster, iter, h_train[0]);
 
 	double elapsed = dmlc::GetTime() - start;

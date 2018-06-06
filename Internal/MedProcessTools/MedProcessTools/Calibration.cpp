@@ -304,6 +304,14 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 }
 
 int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
+
+	int do_km;
+	if (estimator_type == "kaplan_meier")
+		do_km = 1;
+	else if (estimator_type == "mean_cases")
+		do_km = 0;
+	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
+
 	cals.clear();
 	float min_pred = 100000.0, max_pred = -100000.0;
 	int cases = 0;
@@ -426,11 +434,17 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
 		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] + cnt_cases[i]);
-		ce.mean_outcome = 1.0f * cnt_cases[i] / (cnt_controls[i] + cnt_cases[i]);
 		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] + cnt_cases[i]) / 2)) / (float)samples.size();
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
-		ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i]);
+		if (do_km) {
+			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i]);
+			ce.mean_outcome = 0.0;
+		}
+		else {
+			ce.kaplan_meier = 0.0;
+			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] + cnt_cases[i]);
+		}
 		cumul_cnt += ce.cnt_controls + ce.cnt_cases;
 		cals.push_back(ce);
 	}
@@ -439,6 +453,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
 		smooth_calibration_entries(cals, smooth_cals);
 		cals = smooth_cals;
 	}
+	return 0;
 }
 
 void learn_binned_probs(vector<float> &x, const vector<float> &y,
@@ -800,6 +815,5 @@ calibration_entry Calibrator::calibrate_pred(float pred) {
 		return res;
 	}
 }
-
 
 
