@@ -798,10 +798,9 @@ calibration_entry Calibrator::calibrate_pred(float pred) {
 		smp.prediction = { pred };
 		smp.outcome = 0; //doesn't matter
 		smp.id = 1; //doesn't matter
-		MLOG("calibrating [%d] samples using kaplan_meier estimator");
+		MedIdSamples smp_id(1);
 		smp_id.samples.push_back(smp);
 		MedSamples samples;
-		MLOG("calibrating [%d] samples using mean_cases estimator");
 		samples.idSamples = { smp_id };
 		Apply(samples);
 		calibration_entry res;
@@ -817,23 +816,3 @@ calibration_entry Calibrator::calibrate_pred(float pred) {
 }
 
 
-int Calibrator::Apply(vector<MedSample> & samples) {
-	int do_km;
-	if (estimator_type == "kaplan_meier") {
-		do_km = 1;
-		MLOG("calibrating [%d] samples using kaplan_meier estimator\n", samples.size());
-	}
-	else if (estimator_type == "mean_cases") {
-		do_km = 0;
-		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.size());
-	}
-	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
-
-	for (auto& s : samples) {
-		calibration_entry best = calibrate_pred(s.prediction[0]);
-		if (do_km)
-			s.prediction[0] = best.kaplan_meier;
-		else
-			s.prediction[0] = best.mean_outcome;
-	}
-}
