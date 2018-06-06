@@ -453,6 +453,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
 		smooth_calibration_entries(cals, smooth_cals);
 		cals = smooth_cals;
 	}
+	return 0;
 }
 
 void learn_binned_probs(vector<float> &x, const vector<float> &y,
