@@ -1085,12 +1085,18 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 	return 0;
 }
 
+#define SANITY_FILTER_DBG 0
+
 // Test filtering criteria
 // Returns one of the codes defined as static in the h file
 //.......................................................................................
 int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &nvals, int &noutliers)
 {
-	//MLOG("SanitySimpleFilter::test_filter() ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+
+#if SANITY_FILTER_DBG
+	MLOG("SanitySimpleFilter::test_filter(1) ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+#endif
+
 	if (sig_id < 0) {
 		if (boost::iequals(sig_name,"Age")) {
 			sig_id = 0;
@@ -1100,7 +1106,9 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			}
 		} else
 			sig_id = rep.sigs.sid(sig_name);
-		//MLOG("SanitySimpleFilter::test_filter() ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+#if SANITY_FILTER_DBG
+		MLOG("SanitySimpleFilter::test_filter(2) ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
+#endif
 	}
 	if (sig_id < 0)
 		return SanitySimpleFilter::Signal_Not_Valid;
@@ -1115,7 +1123,9 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			SVal *sv = (SVal *)rep.get(sample.id, byear_id, len);
 			if (len > 0) {
 				float age = y - sv[0].val;
-				//MLOG("====> AGE : byear %f y %f time %d : age %f min_val %f max_val %f\n", sv[0].val, y, sample.time, age, min_val, max_val);
+#if SANITY_FILTER_DBG
+				MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : byear %f y %f time %d : age %f min_val %f max_val %f\n", sv[0].val, y, sample.time, age, min_val, max_val);
+#endif
 				if (age < min_val || age > max_val)
 					return SanitySimpleFilter::Failed_Age;
 			}
@@ -1130,13 +1140,15 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (section_id < 0 && sig_id > 0) {
 			section_id = rep.dict.section_id(sig_name);
 		}
+		MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
 
 		UniversalSigVec usv;
 
 		rep.uget(sample.id, sig_id, usv);
-		//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
-		//MLOG("id %d sig_id %d len %d min_Nvals %d max_Nvals %d\n", sample.id, sig_id, usv.len, min_Nvals, max_Nvals);
-
+#if SANITY_FILTER_DBG
+		MLOG("SanitySimpleFilter::test_filter(4) id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
+		MLOG("SanitySimpleFilter::test_filter(5) id %d sig_id %d len %d min_Nvals %d max_Nvals %d\n", sample.id, sig_id, usv.len, min_Nvals, max_Nvals);
+#endif
 		nvals = 0;
 		noutliers = 0;
 		int n_not_in_dict = 0;
@@ -1177,7 +1189,9 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 				int i_time = usv.Time(i, time_channel);
 				int i_time_converted = med_time_converter.convert_times(usv.time_unit(), win_time_unit, i_time);
 				int dtime = ref_time - i_time_converted;
-				//MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+#if SANITY_FILTER_DBG
+				MLOG("SanitySimpleFilter::test_filter(6) id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
+#endif
 				if (dtime < win_from) break;
 				if (dtime <= win_to) {
 					nvals++;
@@ -1185,7 +1199,9 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 					float i_val = usv.Val(i, val_channel);
 					if (i_val < min_val || i_val > max_val) noutliers++;
 					else n_left++;
-					//MLOG("i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
+#if SANITY_FILTER_DBG
+					MLOG("SanitySimpleFilter::test_filter(7) i %d id %d i_val %f min %f max %f minNvals %d nvals %d noutliers %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals, nvals, noutliers);
+#endif
 
 					if (values_in_dictionary && section_id > 0) {
 						if (rep.dict.dicts[section_id].Id2Name.find((int)i_val) == rep.dict.dicts[section_id].Id2Name.end())
@@ -1201,8 +1217,10 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			}
 		}
 
-		//	MLOG("###>>> id %d time %d sig %s (len %d) : %f : min %d max %d maxout %d : nvals %d noutliers %d not_in_dict %d not_allowed %d\n",
-		//		sample.id, sample.time, sig_name.c_str(), usv.len, usv.Val(0), min_Nvals, max_Nvals, max_outliers, nvals, noutliers, n_not_in_dict , n_not_allowed);
+#if SANITY_FILTER_DBG
+			MLOG("SanitySimpleFilter::test_filter(8) ###>>> id %d time %d sig %s (len %d) : min %d max %d maxout %d : nvals %d noutliers %d not_in_dict %d not_allowed %d\n",
+				sample.id, sample.time, sig_name.c_str(), usv.len, min_Nvals, max_Nvals, max_outliers, nvals, noutliers, n_not_in_dict , n_not_allowed);
+#endif
 
 		if (min_Nvals >= 0 && nvals < min_Nvals) return SanitySimpleFilter::Failed_Min_Nvals;
 		if (max_Nvals >= 0 && nvals > max_Nvals) return SanitySimpleFilter::Failed_Max_Nvals;
