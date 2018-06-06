@@ -260,6 +260,12 @@ int MedPidRepository::get_pid_rec(int pid, unsigned char *&_data, unsigned int &
 
 	unsigned int size = get_data_size(pid);
 
+	if (size == 0) {
+		MERR("get_pid_rec(): pid %d not in data\n", pid);
+		return -1;
+	}
+
+
 	if (size > 0) {
 		if (_data == NULL || (data_size < size && prec.allow_realloc)) {
 			prec.data = new unsigned char[size];
@@ -275,7 +281,7 @@ int MedPidRepository::get_pid_rec(int pid, unsigned char *&_data, unsigned int &
 		}
 
 		PidIdxRec *pir = pids_idx.get((unsigned int)pid);
-		
+
 		{
 			//lock_guard<mutex> guard(pid_files_lock); // locking here in order to allow for different threads read using the same in_file
 			if (in_files[pir->fnum].read(_data, pir->pos, (unsigned long long)size) < size) {

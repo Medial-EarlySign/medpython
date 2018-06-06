@@ -1100,6 +1100,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			}
 		} else
 			sig_id = rep.sigs.sid(sig_name);
+		//MLOG("SanitySimpleFilter::test_filter() ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
 	}
 	if (sig_id < 0)
 		return SanitySimpleFilter::Signal_Not_Valid;
@@ -1134,7 +1135,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 
 		rep.uget(sample.id, sig_id, usv);
 		//MLOG("id %d sig_id %d len %d %f\n", sample.id, sig_id, usv.len, usv.Val(0));
-		//MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
+		//MLOG("id %d sig_id %d len %d min_Nvals %d max_Nvals %d\n", sample.id, sig_id, usv.len, min_Nvals, max_Nvals);
 
 		nvals = 0;
 		noutliers = 0;

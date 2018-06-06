@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- <meta charset="utf-8" /> -->
+    <!-- <title>Getting started with JSON Form</title> -->
+    <!-- <link rel="stylesheet" style="text/css" href="w3/w3.css" /> -->
+    <link rel="stylesheet" style="text/css" href="../jsonform/css/bootstrap3.css" />
+
+    <script type="text/javascript" src="jsonform/js/jquery.min.js"></script>
+    <script type="text/javascript" src="jsonform/js/underscore.js"></script>
+    <script type="text/javascript" src="jsonform/js/jsv.js"></script>
+    <script type="text/javascript" src="jsonform/js/jsonform.js"></script> 
+	
+    <script type="text/javascript" src="plotly/plotly-latest.min.js"></script> 
+	<style> body { margin: 40px;} </style>
+  </head>
+ 
+  <body>
+    <h1>Patient Viewer</h1>
+    <form></form>
+    <div id="res" class="alert"></div>
+
+	<script type="text/javascript">
+	  var panel_list = [ "drugs_heatmap" , "P_Diabetes" , "P_Cholesterol" , "P_BP" , "P_Renal" , "P_Liver" , "P_IONS" , "P_Red" , "P_White" , "RC"];
+	  <!-- "Drugs", "Diabetes", "Cholesterol", "BP", "Renal", "Liver", "Ions", "Red_Count", "White_Count", "RC" ]; -->
+      $('form').jsonForm({
+        schema: {
+			"pid": { type: 'number' , title: 'Pid' },
+			"date": { type: 'number' , title: 'Date' },
+			"desc": { type: 'string' , title: 'Description' },
+			"panels": { type: 'array', title: "Panels", items: { type: 'string', enum: panel_list, default: panel_list}},
+			"signals": { type: 'string', title: "signal charts"}
+        },
+		<!-- "customFormItems": {"panels2": {"type": "checkboxes", inline: true}}, -->
+		form: [
+			{"key":"pid"}, {"key":"date"}, {"key":"desc"},
+			<!-- {"title": "Submit",  "type": "submit"}], -->
+			{"key": "panels", "type": "checkboxes", inline: true, default: panel_list}, {key: "signals", type: "textarea"}, {"title": "Submit",  "type": "submit"}],
+			<!-- {"key": "panels2", "type": "checkboxes", "activeClass": "btn-success"}], -->
+        onSubmit: function (errors, values) {
+          if (errors) {
+            $('#res').html('<p>I beg your pardon?</p>');
+          }
+          else {
+			<!-- var jstr = $.param(values); -->
+			var jstr = JSON.stringify(values);
+			var request = new XMLHttpRequest();
+			request.onreadystatechange = function() {
+				if (request.readyState == XMLHttpRequest.DONE) {
+					<!-- document.getElementById("reshtml").innerHTML = this.responseText; -->
+					$('#reshtml').html(request.responseText);
+				}
+			}
+			request.open("POST","", true);
+			<!-- request.responseType = 'document'; -->
+			request.send(jstr);
+          }
+        }
+      });
+    </script>
+	<div id="reshtml" class="alert"></div>
+  </body>
+</html>
