@@ -496,15 +496,17 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 
 	// Alterations strings are of the format from::to
 	vector<string> fields;
+	MLOG("Json : replacing ");
 	for (string& alt : alterations) {
 		boost::algorithm::split_regex(fields, alt, boost::regex("::"));
 		if (fields.size() != 2)
 			MTHROW_AND_ERR("Cannot parse alteration string [%s] \n", alt.c_str());
 		vector<string> res;
 		boost::find_all(res, json_contents, fields[0]);
-		MLOG("Json : Replacing [%d] occurrences of [%s] with [%s]\n", res.size(), fields[0].c_str(), fields[1].c_str());
+		MLOG("[%s]*%d -> [%s] ", fields[0].c_str(), res.size(), fields[1].c_str());
 		boost::replace_all(json_contents, fields[0], fields[1]);
 	}
+	MLOG("\n");
 }
 string MedModel::file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
 	if (recursion_level > 3)
@@ -527,12 +529,11 @@ string MedModel::file_to_string(int recursion_level, const string& main_file, ve
 
 	boost::sregex_iterator it(orig.begin(), orig.end(), ip_regex);
 	boost::sregex_iterator end;
-	MLOG("resolving referenced jsons...\n");
 	int last_char = 0;
 	string out_string = "";
 	for (; it != end; ++it) {
 		string json_ref = it->str(1);
-		std::cerr << "found: " << json_ref << "\n";
+		std::cerr << "Json : found " << json_ref << "\n";
 		vector<string> tokens;
 		boost::split(tokens, json_ref, boost::is_any_of(";"));
 		if (tokens.empty())

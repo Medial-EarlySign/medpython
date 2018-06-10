@@ -133,11 +133,11 @@ string FeatureProcessor::resolve_feature_name(MedFeatures& features, string subs
 	for (auto &candidate : features.attributes)
 		if (candidate.first.find(substr) != string::npos) {
 			if (real_feature_name != "")
-				MTHROW_AND_ERR("%s\n", (string("source_feature_name [") + substr + "] matches both [" + real_feature_name + "] and [" + candidate.first + "]").c_str());
+				MTHROW_AND_ERR("%s\n", (string("processor_type [%d] got source_feature_name [") + substr + "] which matches both [" + real_feature_name + "] and [" + candidate.first + "]").c_str());
 			real_feature_name = candidate.first;
 		}
-	if (real_feature_name == "") {
-		string err = string("source_feature_name [") + substr + "] does not match any feature. Tried matching to these features:\n";
+	if (real_feature_name == "") {		
+		string err = string("processor_type [%d] got source_feature_name [") + substr + "] which does not match any feature (did you forget to set duplicate=1?). Tried matching to these features:\n";
 		for (auto candidate : features.attributes)
 			err += candidate.first + "\n";
 		MTHROW_AND_ERR("%s\n", err.c_str());

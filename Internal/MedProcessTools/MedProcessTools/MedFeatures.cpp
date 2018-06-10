@@ -72,7 +72,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
 	int index = 0;
 	for (auto& ss : samples) {
 		RecordData rd;
-		rd.time = (long)ss.outcomeTime; rd.label = ss.outcome; ; rd.split = ss.split; rd.weight = 0.0;
+		rd.outcomeTime = (long)ss.outcomeTime; rd.label = ss.outcome; ; rd.split = ss.split; rd.weight = 0.0;
 		if (index < weights.size())
 			rd.weight = weights[index];
 		if (ss.prediction.size() == 1)
@@ -130,7 +130,7 @@ void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names,
 		//for (auto& ss : samples) {
 		auto &ss = samples[idx[i]];
 		RecordData rd;
-		rd.time = (long)ss.outcomeTime;  rd.weight = 0.0;  rd.label = ss.outcome; ; rd.split = ss.split;
+		rd.outcomeTime = (long)ss.outcomeTime;  rd.weight = 0.0;  rd.label = ss.outcome; ; rd.split = ss.split;
 		if (index < weights.size())
 			rd.weight = weights[index];
 		if (ss.prediction.size() == 1)
@@ -163,7 +163,7 @@ void MedFeatures::set_as_matrix(const MedMat<float>& mat) {
 		smp.id = rd.id; smp.outcome = rd.label; smp.time = rd.date;
 		smp.split = rd.split;
 		smp.prediction.push_back(rd.pred);
-		smp.outcomeTime = rd.time;
+		smp.outcomeTime = rd.outcomeTime;
 		weights.push_back(rd.weight);
 		if (!no_zero_weight)
 			no_zero_weight = rd.weight > 0;
