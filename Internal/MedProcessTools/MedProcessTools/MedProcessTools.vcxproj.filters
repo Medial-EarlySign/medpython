@@ -90,6 +90,9 @@
     <ClCompile Include="PanelCompleter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="KpSmokingGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -150,6 +153,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Calibration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KpSmokingGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

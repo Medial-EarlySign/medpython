@@ -695,6 +695,10 @@ void MedRepository::print_vec(void *data, int len, int pid, int sid)
 			STimeRangeVal *v = (STimeRangeVal *)data;
 			MOUT(" %lld - %lld  %f :", v[i].time_start, v[i].time_end, v[i].val);
 		}
+		else if (sigs.type(sid) == T_TimeStamp) {
+			STimeStamp *v = (STimeStamp*)data;
+			MOUT(" %lld :", v[i].time);
+		}
 	}
 	MOUT("\n");
 

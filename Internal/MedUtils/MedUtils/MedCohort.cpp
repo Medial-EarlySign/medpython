@@ -660,7 +660,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 				int days = med_time_converter.convert_date(MedTime::Days, date);
 				int relative_days = outcome_days - days;
 				int age = date/10000 - byear;
-				bool date_is_in_cohort = (date >= rc.from && date < rc.to);
+				bool date_is_in_cohort = (date >= rc.from && date <= rc.to);
 				bool date_is_in_sample_window = (((rc.outcome == 0) && (relative_days <= from0_days) && (relative_days > to0_days)) ||
 					((rc.outcome != 0) && (relative_days <= from1_days) && (relative_days > to1_days)));
 				bool date_is_in_age_range = ((age >= s_params.min_age) && (age <= s_params.max_age));

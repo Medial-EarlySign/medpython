@@ -123,8 +123,12 @@ public:
 
 	int insert_sample(int pid, int time) { return insert_samples(&pid, &time, 1); }
 
+	//MedSample *get_sample(int idx) { if (idx>=0 && idx<samples.get_size()) return & }
+
 	// normalize samples must be called after finishing inserting all samples.
 	int normalize_samples() { samples.normalize(); return 0; }
+
+	MedSamples *get_samples_ptr() { return &samples; }
 
 	//========================================================
 	// Calculate predictions
@@ -202,5 +206,8 @@ public:
 	// a few more needed APIs
 	//========================================================
 	const char *get_name()	{ return name.c_str();	}
+	
+	void write_features_mat(const string feat_mat) { model.write_feature_matrix(feat_mat); }
+
 };
 

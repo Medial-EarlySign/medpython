@@ -206,34 +206,47 @@ template<class T> void medial::print::print_vec(const vector<T> &vec, const stri
 template void medial::print::print_vec<double>(const vector<double> &vec, const string &title, const string &format);
 template void medial::print::print_vec<float>(const vector<float> &vec, const string &title, const string &format);
 
-template<class T> void medial::print::print_hist_vec(const vector<T> &vec, const string &title, const string &format) {
+template<class T> void medial::print::print_hist_vec(const vector<T> &vec, const string &title,
+	const string &format, const vector<double> *prctile_samples) {
+	vector<double> default_prctiles = { 0, 0.1, 0.2, 0.3,0.4,0.5,0.6,0.7,0.8,0.9 ,1 };
+	if (prctile_samples == NULL)
+		prctile_samples = &default_prctiles;
+
 	if (vec.size() <= 10)
 		print_vec(vec, title, format);
 	vector<T> prcs;
 	map<T, int> uniq_vals;
 	for (size_t i = 0; i < vec.size(); ++i)
 		++uniq_vals[vec[i]];
+	char res[500];
 
 	if (uniq_vals.size() > 10) {
-		medial::process::prctils(vec, { 0, 0.1, 0.2, 0.3,0.4,0.5,0.6,0.7,0.8,0.9 ,1 }, prcs);
-		string bf = print_obj(prcs[0], format);
-		for (size_t i = 1; i < prcs.size(); ++i)
-			bf += ", " + print_obj(prcs[i], format);
+		medial::process::prctils(vec, *prctile_samples, prcs);
+		snprintf(res, sizeof(res), ("%2.1f%%:" + format).c_str(), 100.0*(*prctile_samples)[0], prcs[0]);
+		string bf = string(res);
+
+		for (size_t i = 1; i < prcs.size(); ++i) {
+			snprintf(res, sizeof(res), (", %2.1f%%:" + format).c_str(), 100.0*(*prctile_samples)[i], prcs[i]);
+			bf += string(res);
+		}
 		MLOG("%s: HISTOGRAM[%s]\n", title.c_str(), bf.c_str());
 	}
 	else {
 		auto ii = uniq_vals.begin();
-		string bf = print_obj(ii->first, format) + ":" +
-			print_obj(100 * ii->second / double(vec.size()), "%2.2f");
+		snprintf(res, sizeof(res), (format + ":%2.2f%%").c_str(), ii->first,
+			100 * ii->second / double(vec.size()));
+		string bf = string(res);
 		++ii;
-		for (; ii != uniq_vals.end(); ++ii)
-			bf += ", " + print_obj(ii->first, format) + ":" +
-			print_obj(100 * ii->second / double(vec.size()), "%2.2f");
+		for (; ii != uniq_vals.end(); ++ii) {
+			snprintf(res, sizeof(res), (", " + format + ":%2.2f%%").c_str(), ii->first,
+				100 * ii->second / double(vec.size()));
+			bf += string(res);
+		}
 		MLOG("%s: VALUES[%s]\n", title.c_str(), bf.c_str());
 	}
 }
-template void medial::print::print_hist_vec<double>(const vector<double> &vec, const string &title, const string &format);
-template void medial::print::print_hist_vec<float>(const vector<float> &vec, const string &title, const string &format);
+template void medial::print::print_hist_vec<double>(const vector<double> &vec, const string &title, const string &format, const vector<double> *prctile_samples);
+template void medial::print::print_hist_vec<float>(const vector<float> &vec, const string &title, const string &format, const vector<double> *prctile_samples);
 
 template<typename T> int medial::process::binary_search_index(const T *begin, const T *end, T val) {
 	int maxSize = (int)(end - begin) + 1;
@@ -419,7 +432,10 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 		char buffer[1000];
 		for (auto it = vm.begin(); it != vm.end(); ++it) {
 			MLOG("%s = %s\n", it->first.c_str(), medial::print::print_any(it->second).c_str());
-			snprintf(buffer, sizeof(buffer), " --%s %s", it->first.c_str(), medial::print::print_any(it->second).c_str());
+			string val = medial::print::print_any(it->second);
+			if (val.empty() || val.find(";") != string::npos)
+				val = "\"" + val + "\"";
+			snprintf(buffer, sizeof(buffer), " --%s %s", it->first.c_str(), val.c_str());
 			full_params += string(buffer);
 		}
 		MLOG("######################################\n\n%s\n", app_logo.c_str());

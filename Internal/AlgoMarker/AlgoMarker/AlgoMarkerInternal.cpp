@@ -10,6 +10,8 @@ InputTester *InputTester::make_input_tester(int it_type)
 {
 	if (it_type == (int)INPUT_TESTER_TYPE_SIMPLE)
 		return new InputTesterSimple;
+	if (it_type == (int)INPUT_TESTER_TYPE_ATTR)
+		return new InputTesterAttr;
 
 	return NULL;
 }
@@ -19,8 +21,17 @@ int InputTester::name_to_input_tester_type(const string &name)
 {
 	if ((name == "simple") || (name == "SIMPLE") || (name == "Simple"))
 		return (int)INPUT_TESTER_TYPE_SIMPLE;
+	if ((name == "attr") || (name == "ATTR") || (name == "Attr"))
+		return (int)INPUT_TESTER_TYPE_ATTR;
 
 	return (int)INPUT_TESTER_TYPE_UNDEFINED;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+void InputTester::print()
+{
+	MLOG("InputTester: type %d is_warning %d external_rc %d internal_rc %d max_outliers_flag %d err \'%s\' \n",
+		type, is_warning, externl_rc, internal_rc, max_outliers_flag, err_msg.c_str());
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -28,6 +39,26 @@ void InputTesterSimple::input_from_string(const string &in_str)
 {
 	sf.init_from_string(in_str);
 }
+
+//-------------------------------------------------------------------------------------------------------------------------
+void InputTesterAttr::input_from_string(const string &in_str)
+{
+	this->init_from_string(in_str);
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------------
+int InputTesterAttr::init(map<string, string>& mapper)
+{
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "attr_name" || field == "name") { attr_name = entry.second; }
+		else if (field == "max") attr_max_val = stof(entry.second);
+	}
+
+	return 0;
+}
+
 
 //-------------------------------------------------------------------------------------------------------------------------
 // 1: good to go 0: did not pass -1: could not test
@@ -46,6 +77,23 @@ int InputTesterSimple::test_if_ok(MedRepository &rep, int pid, long long timesta
 	// if we are here the test could not be performed for some reason and we fail making the test, returning -1 in this case
 
 	return -1;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+// (1) test that the attribute exists (it should be there or an error will be reported)
+// (2) test its value is below some bound (<=)
+// Does this by directly testing the given sample
+// returns -1: can't test (no such attr) 0: failed test 1: all ok.
+//-------------------------------------------------------------------------------------------------------------------------
+int InputTesterAttr::test_if_ok(MedSample &sample)
+{
+	if (sample.attributes.find(attr_name) == sample.attributes.end())
+		return -1;
+
+	if (sample.attributes[attr_name] <= attr_max_val)
+		return 1;
+	
+	return 0;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -78,6 +126,7 @@ int InputSanityTester::read_config(const string &f_conf)
 			// MAX_OVERALL_OUTLIERS	<number>
 
 			if (fields[0] == "FILTER") {
+				//MLOG("Parsing FILTER line: %s\n", curr_line.c_str());
 				if (fields.size() >= 2) {
 					int type = InputTester::name_to_input_tester_type(fields[1]);
 					if (type == (int)INPUT_TESTER_TYPE_UNDEFINED) {
@@ -113,6 +162,9 @@ int InputSanityTester::read_config(const string &f_conf)
 
 					i_test->input_from_string(i_test->tester_params);
 
+					//i_test->print();
+					//MLOG("testers size is: %d\n", testers.size());
+
 					testers.push_back(i_test);
 				}
 				else {
@@ -131,13 +183,16 @@ int InputSanityTester::read_config(const string &f_conf)
 
 
 //-------------------------------------------------------------------------------------------------------------------------
-// tests and stops at first cardinal failed test
+// tests all simple testers
+//-------------------------------------------------------------------------------------------------------------------------
 int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &Results)
 {
 	int outliers_count = 0;
 	int n_warnings = 0;
 	int n_errors = 0;
 	for (auto &test : testers) {
+
+		if (test->type == INPUT_TESTER_TYPE_ATTR) continue; // these are tested elsewhere
 
 		InputSanityTesterResult res;
 		res.external_rc = 0;
@@ -146,12 +201,13 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 
 		int t_nvals, t_noutliers;
 		int rc = test->test_if_ok(rep, pid, timestamp, t_nvals, t_noutliers);
-//		MLOG("###>>> pid %d time %d test %s : nvals %d nout %d rc %d\n", pid, timestamp, test->tester_params.c_str(), t_nvals, t_noutliers, rc);
+		//MLOG("###>>> pid %d time %d test %s : nvals %d nout %d rc %d\n", pid, timestamp, test->tester_params.c_str(), t_nvals, t_noutliers, rc);
 		if (test->max_outliers_flag) outliers_count += t_noutliers;
 		if (rc < 0) {
 			res.external_rc = AM_ELIGIBILITY_ERROR;
 			res.internal_rc = -2;
-			res.err_msg = "Could not run filter on sample. ["+name+"]";
+			//res.err_msg = "Could not run filter on sample. ["+name+"]";
+			res.err_msg = "Could not run filter on sample."; // no name in err message (a request...)
 
 			Results.push_back(res);
 			n_errors++;
@@ -162,7 +218,10 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 			// we failed the test for a good reason and get out
 			res.external_rc = test->externl_rc;
 			res.internal_rc = test->internal_rc;
-			res.err_msg = test->err_msg + "["+name+"]";
+			//res.err_msg = test->err_msg + "["+name+"]";
+			res.err_msg = test->err_msg; // no name in err message (a request...)
+
+			//MLOG("###>>>>>> found an error: %d %d %s\n", res.external_rc, res.internal_rc, res.err_msg.c_str());
 
 			Results.push_back(res);
 
@@ -179,13 +238,67 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 		InputSanityTesterResult res;
 		res.external_rc = AM_ELIGIBILITY_ERROR;
 		res.internal_rc = -3;
-		res.err_msg = "Too many outliers detected (" + to_string(outliers_count) + ") ["+name+"]";
+		//res.err_msg = "Too many outliers detected (" + to_string(outliers_count) + ") ["+name+"]";
+		res.err_msg = "Too many outliers detected (" + to_string(outliers_count) + ")"; // no name in err message (a request...)
 		Results.push_back(res);
 		n_errors++;
 	}
 
 
-	// MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
+	 //MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
+	if (n_errors > 0)
+		return 0;
+
+	return 1;
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------------
+// tests all attr testers on a given sample
+//-------------------------------------------------------------------------------------------------------------------------
+int InputSanityTester::test_if_ok(MedSample &sample, vector<InputSanityTesterResult> &Results)
+{
+	int n_warnings = 0;
+	int n_errors = 0;
+
+	for (auto &test : testers) {
+
+		if (test->type != INPUT_TESTER_TYPE_ATTR) continue; // only these tested here
+
+		InputSanityTesterResult res;
+		res.external_rc = 0;
+		res.internal_rc = 0;
+		res.err_msg = "";
+
+		int rc = test->test_if_ok(sample);
+		if (rc < 0) {
+			res.external_rc = AM_ELIGIBILITY_ERROR;
+			res.internal_rc = -2;
+			res.err_msg = "Could not find attribute " + ((InputTesterAttr *)test)->attr_name + ". Are you sure you're using a model that generates it?";
+
+			Results.push_back(res);
+			n_errors++;
+		}
+
+		if (rc == 0) {
+
+			// we failed the test
+			res.external_rc = test->externl_rc;
+			res.internal_rc = test->internal_rc;
+			//res.err_msg = test->err_msg + "["+name+"]";
+			res.err_msg = test->err_msg; // removed name from message... (previous code in comment above).
+
+			Results.push_back(res);
+
+			if (test->is_warning)
+				n_warnings++;
+			else
+				n_errors++;
+		}
+
+		// rc == 1 : nothing to do - passed the test
+	}
+
 	if (n_errors > 0)
 		return 0;
 

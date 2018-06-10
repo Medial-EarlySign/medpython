@@ -102,7 +102,7 @@ void stam() {
 	cout << "bsq:" << endl << bsq << endl;
 
 	MedMat<float> A(3, 2);
-	A.m ={ 1.1,2.2,3.3,4.4,5.5,6.6 };
+	A.m ={ (float)1.1,(float)2.2,(float)3.3,(float)4.4,(float)5.5,(float)6.6 };
 	Map<MatrixXf> Af(&A.m[0], 2, 3);
 
 	cout << "Af:" << endl << Af << endl;

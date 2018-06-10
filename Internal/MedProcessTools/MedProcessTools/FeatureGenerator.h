@@ -28,6 +28,7 @@ typedef enum {
 	FTR_GEN_GENDER, ///< "gender" - creating gender feature - GenderGenerator (special case of signleton)
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
+	FTR_GEN_KP_SMOKING,
 	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
@@ -330,13 +331,19 @@ public:
 	string signalName;
 	int signalId;
 
+	vector<string> sets = {};		/// list of sets 
+	string in_set_name = "";
+	vector<char> lut;			///< to be used when generating sets*
+
 	// Constructor/Destructor
 	SingletonGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = -1; req_signals.assign(1, signalName); }
 	SingletonGenerator(int _signalId) : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = _signalId; req_signals.assign(1, signalName); }
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName); }
+	void set_names();
 
+	// Init LUT for categorial variable
+	void init_tables(MedDictionarySections& dict);
 	/// The parsed fields from init command.
 	/// @snippet FeatureGenerator.cpp SingletonGenerator::init
 	int init(map<string, string>& mapper);

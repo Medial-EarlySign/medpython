@@ -285,6 +285,26 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 	if (unknown_gender > 0)
 		MWARN("Has %d Unknown genders.\n", unknown_gender);
+	if (!debug_file.empty()) {
+		ofstream dbg_file_totals;
+		dbg_file_totals.open(debug_file + ".totals");
+		if (!dbg_file_totals.good())
+			MTHROW_AND_ERR("IOError: Can't open debug file %s to write",
+				(debug_file + ".totals").c_str());
+		dbg_file_totals << "PID" << "\t" << "gender" << "\t" << "age_bin" <<
+			"\t" << "registry_value" << endl;
+		for (size_t i = 0; i < male_pid_seen.size(); ++i)
+			for (auto it = male_pid_seen[i].begin(); it != male_pid_seen[i].end(); ++it)
+				for (int pid_in : it->second)
+					dbg_file_totals << pid_in << "\t" << GENDER_MALE
+					<< "\t" << int(it->first) << "\t" << i << "\n";
+		for (size_t i = 0; i < female_pid_seen.size(); ++i)
+			for (auto it = female_pid_seen[i].begin(); it != female_pid_seen[i].end(); ++it)
+				for (int pid_in : it->second)
+					dbg_file_totals << pid_in << "\t" << GENDER_FEMALE
+					<< "\t" << int(it->first) << "\t" << i << "\n";
+		dbg_file_totals.close();
+	}
 
 	ofstream dbg_file;
 	if (!debug_file.empty()) {

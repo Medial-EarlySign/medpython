@@ -35,7 +35,9 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("samples", po::value<string>()->default_value(""), "medsamples file to use")
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "algo marker configuration file")
-			("direct_test" , "split to a dedicated debug routine")
+			("direct_test", "split to a dedicated debug routine")
+			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
+			("date", po::value<long long>()->default_value(20180101), "test date")
 			("egfr_test" , "split to a debug routine for the simple egfr algomarker")
 			;
 
@@ -110,6 +112,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 				AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals);
 			}
 		}
+
+	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
 
 	MLOG("After AddData for all batch\n");
 	// finish rep loading 
@@ -241,6 +245,50 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	return 0;
 }
 
+//=============================================================================================================================
+int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
+{
+
+	// example format:
+	// Glucose:80.5,123:20100103,20120809;BYEAR:1985;GENDER:1
+
+	vector<string> sigs;
+	boost::split(sigs, sdata, boost::is_any_of(";"));
+
+	for (auto &s : sigs) {
+		vector<string> f;
+		boost::split(f, s, boost::is_any_of(":"));
+		string sig = f[0];
+		// values
+		vector<float> vals;
+		if (f.size() >= 2) {
+			vector<string> svals;
+			boost::split(svals, f[1], boost::is_any_of(","));
+			for (auto v : svals) vals.push_back(stof(v));
+		}
+
+		vector<long long> times;
+		if (f.size() >= 3) {
+			vector<string> tvals;
+			boost::split(tvals, f[2], boost::is_any_of(","));
+			for (auto v : tvals) times.push_back(stoll(v));
+		}
+
+		MLOG("Adding Data: sig %s :: vals: ", sig.c_str());
+		for (auto v : vals) MLOG("%f, ", v);
+		MLOG(" times: ");
+		for (auto v : times) MLOG("%lld, ", v);
+		MLOG("\n");
+
+		long long *pt = NULL;
+		float *pv = NULL;
+		if (times.size() > 0) pt = &times[0];
+		if (vals.size() > 0) pv = &vals[0];
+		AM_API_AddData(am, pid, sig.c_str() , (int)times.size(), pt, (int)vals.size(), pv);
+
+	}
+
+}
 
 
 //=============================================================================================================================
@@ -266,18 +314,12 @@ int debug_me(po::variables_map &vm)
 
 
 	// Load Data
-	vector<long long> times ={ 20160101 };
-	vector<float> vals ={ 6 };
-	AM_API_AddData(test_am, 1, "RBC", (int)times.size(), &times[0], (int)vals.size(), &vals[0]);
-	/*vector<float>*/ vals ={ 1960 };
-	AM_API_AddData(test_am, 1, "BYEAR", 0, NULL, (int)vals.size(), &vals[0]);
-	/*vector<float>*/ vals ={ 1 };
-	//AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
-
+	load_algomarker_from_string(test_am, 1, vm["test_data"].as<string>());
+	
 	// Calculate
 	char *stypes[] ={ "Raw" };
 	vector<int> _pids ={ 1 };
-	vector<long long> _timestamps ={ 20160101 };
+	vector<long long> _timestamps ={ (long long)vm["date"].as<long long>() };
 	AMRequest *req;
 	MLOG("Creating Request\n");
 	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
@@ -317,12 +359,29 @@ int debug_me(po::variables_map &vm)
 	AMResponse *response;
 	for (int i=0; i<n_resp; i++) {
 		MLOG("Getting response no. %d\n", i);
-
 		AM_API_GetResponseAtIndex(resp, i, &response);
+
+		n_shared_msgs = 0;
+		AM_API_GetResponseMessages(response, &n_shared_msgs, &shared_codes, &shared_args);
+		MLOG("Response Messages: %d\n", n_shared_msgs);
+		for (int i=0; i<n_shared_msgs; i++) {
+			MLOG("Response message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
+		}
+
+		n_shared_msgs = 0;
+		AM_API_GetScoreMessages(response, 0, &n_shared_msgs, &shared_codes, &shared_args);
+		MLOG("Score 0 Messages: %d\n", n_shared_msgs);
+		for (int i=0; i<n_shared_msgs; i++) {
+			MLOG("Score 0 message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
+		}
+
 		AM_API_GetResponsePoint(response, &pid, &ts);
 		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 		MLOG("resp_rc = %d\n", resp_rc);
-		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
+		MLOG("i %d , pid %d ts %lld scr %f\n", i, pid, ts, _scr);
+		MLOG("ptr for _scr_type %x\n", _scr_type);
+		if (_scr_type != NULL) MLOG("_scr_type %s\n", _scr_type);
+		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
 	}
 
 
@@ -514,16 +573,14 @@ int main(int argc, char *argv[])
 
 #if 0
 
-	MLOG("SIGNALS IN REP ===========> :: \n");
-	vector<string> print_sigs ={ "Drug" };
-	for (int i=0; i<pids.size(); i++) {
-		for (int j=0; j< print_sigs.size(); j++)
-			rep.print_data_vec(pids[i], print_sigs[j]);
-	}
+	//MLOG("SIGNALS IN REP ===========> :: \n");
+	//vector<string> print_sigs ={ "Drug" };
+	//for (int i=0; i<pids.size(); i++) {
+	//	for (int j=0; j< print_sigs.size(); j++)
+	//		rep.print_data_vec(pids[i], print_sigs[j]);
+	//}
 
-	MedMat<float> xfeat;
-	model.features.get_as_matrix(xfeat);
-	xfeat.write_to_csv_file("direct.csv");
+	model.write_feature_matrix("direct.csv");
 
 #endif
 

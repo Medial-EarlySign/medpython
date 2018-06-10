@@ -5,6 +5,7 @@
 
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
+#include "KpSmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 
@@ -31,6 +32,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_BINNED_LM;
 	else if (generator_name == "smoking")
 		return FTR_GEN_SMOKING;
+	else if (generator_name == "kp_smoking")
+		return FTR_GEN_KP_SMOKING;
 	else if (generator_name == "alcohol")
 		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
@@ -119,6 +122,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new BinnedLmEstimates;
 	else if (generator_type == FTR_GEN_SMOKING)
 		return new SmokingGenerator;
+	else if (generator_type == FTR_GEN_KP_SMOKING)
+		return new KpSmokingGenerator;
 	else if (generator_type == FTR_GEN_ALCOHOL)
 		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
@@ -359,7 +364,10 @@ void BasicFeatGenerator::set_names() {
 		case FTR_MAX_DIFF:			name += "max_diff"; break;
 		case FTR_FIRST_DAYS:		name += "first_time"; break;
 
-		default: name += "ERROR";
+		default: {
+			name += "ERROR";
+			MTHROW_AND_ERR("Got a wrong type in basic feature generator %d\n", type);
+		}
 	}
 
 	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
@@ -368,7 +376,7 @@ void BasicFeatGenerator::set_names() {
 	if (time_channel!=0 || val_channel != 0)
 		name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name);
-	tags.push_back(name);
+	//tags.push_back(name);
 	//MLOG("Created %s\n", name.c_str());
 
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!
@@ -382,7 +390,7 @@ void BasicFeatGenerator::init_defaults() {
 	time_unit_sig = MedTime::Undefined;
 	time_unit_win = med_rep_type.windowTimeUnit;
 	string _signalName = ""; 
-	set(_signalName, FTR_LAST, 0, 360000);
+	//set(_signalName, FTR_LAST, 0, 360000);
 };
 
 // Generate
@@ -612,14 +620,57 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	float value;
 	if (rec.usv.len == 0)
 		value = missing_val;
-	else
-		value = (float)((int)(rec.usv.Val(0)));
-
+	else {
+		if (sets.size() == 0)
+		{
+			// Normal Singleton, just return value
+			value = (float)((int)(rec.usv.Val(0)));
+		}
+		else
+		{
+			// Categorial Variable - check whether exists in LUT. Return 0/1
+			value = (float)lut[((int)(rec.usv.Val(0)))];
+		}
+	}
 	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = value;
 
 	return 0;
+}
+
+void SingletonGenerator::set_names()
+{ 
+	if (names.empty()) {
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
+		//string name = signalName + ".";
+		string set_names = in_set_name;
+		if (set_names == "" && this->sets.size() > 0)
+			set_names = boost::algorithm::join(this->sets, "_");
+
+		if (set_names != "")
+			name += "category_set_" + set_names;
+ 
+		names.push_back(name);
+		//MLOG("Created %s\n", name.c_str());
+	}
+}
+
+void SingletonGenerator::init_tables(MedDictionarySections& dict) {
+	MLOG("sets size = %d \n", lut.size());
+	if (sets.size() > 0) {
+		// This is a categorial variable.
+		if (lut.size() == 0) {
+			int section_id = dict.section_id(signalName);
+			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
+			dict.prep_sets_lookup_table(section_id, sets, lut);
+			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
+		}
+	}
+	else
+		lut.clear();
+
+	return;
 }
 
 // Init
@@ -632,6 +683,8 @@ int SingletonGenerator::init(map<string, string>& mapper) {
 		if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "in_set_name") in_set_name = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
 		//! [SingletonGenerator::init]
@@ -665,7 +718,10 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_MAX:		name += "max"; break;
 	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" +to_string(check_first)+ sets[0]; break;
-	default: name += "ERROR";
+	default: {
+		name += "ERROR";
+		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
+	}
 	}
 
 	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);

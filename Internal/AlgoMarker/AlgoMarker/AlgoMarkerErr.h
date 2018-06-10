@@ -3,6 +3,7 @@
 // External Error Codes
 //=====================================================================
 #define AM_ELIGIBILITY_ERROR						300
+#define AM_RESPONSES_ELIGIBILITY_ERROR				301
 #define AM_INSUFFICIENT_DATA						310
 #define AM_INVALID_DATA								311
 #define AM_OUTLIER_NON_FATAL						320
