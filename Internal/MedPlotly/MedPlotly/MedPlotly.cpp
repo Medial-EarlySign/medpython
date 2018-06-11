@@ -150,15 +150,21 @@ int MedPatientPlotlyDate::add_html_header(string &shtml, const string &mode)
 }
 
 //------------------------------------------------------------------------------------------------
-int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, const vector<ChartTimeSign> &times)
+int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, vector<ChartTimeSign> &times)
 {
 	float age;
 	int len;
+	int death = 0;
 
+	MLOG("add_basic_demographics 1\n");
 	int byear = (int)(((SVal *)rec.get("BYEAR", len))[0].val);
 	int gender = (int)(((SVal *)rec.get("GENDER", len))[0].val);
+	SVal *sv = (SVal *)rec.get("DEATH", len);
+	if (len > 0)
+		death = (int)sv[0].val;
 
 
+	MLOG("add_basic_demographics 2\n");
 	shtml += "<h1> Patient Report </h1>\n";
 
 	shtml += "<h3> pid " + to_string(rec.pid) + " , ";
@@ -167,8 +173,15 @@ int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, con
 	else
 		shtml += "Female ,";
 
-	shtml += "Birth Year : " + to_string(byear) + "</h3>\n";
+	shtml += "Birth Year : " + to_string(byear);
+	if (death > 0) {
+		shtml += " , Death " + to_string(death);
+		ChartTimeSign cts(death, "Death", "'red'");
+		times.push_back(cts);
+	}
+	shtml += "</h3>\n";
 
+	MLOG("add_basic_demographics 3\n");
 	if (times.size() > 0) {
 		shtml += "<h3> Anchor Dates : </h3>\n";
 		for (auto &t : times) {
@@ -183,6 +196,8 @@ int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, con
 		}
 	}
 
+	MLOG("add_basic_demographics 4\n");
+
 	return 0;
 }
 
@@ -193,6 +208,8 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 	string drug_sig = params.dhm_params.drug_sig;
 	int hmap_min_date = params.dhm_params.min_date;
 	int h_lines = (int)drugs.size();
+
+	if (rec.my_base_rep->sigs.sid(drug_sig) < 0) return; // working with a rep with no Drug signal...
 
 	// read drug data
 	UniversalSigVec usv;
@@ -534,12 +551,14 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, PidRec &rec, const Pane
 	// xaxis setup
 	shtml += "\t\t\txaxis: {domain: [0," + to_string(psize) +"], hoverformat: '\%Y/\%m/\%d'},\n";
 	if (times.size() > 0) {
+		shtml += "\t\t\tshapes: [";
 		for (auto &t : times) {
-			shtml += "\t\t\tshapes: [{type: 'line', x0: " + date_to_string(t.time) + ", y0: " + to_string(vmin[0]);
+			shtml += "{type: 'line', x0: " + date_to_string(t.time) + ", y0: " + to_string(vmin[0]);
 			shtml += ", x1: " + date_to_string(t.time) + ", y1: " + to_string(vmax[0]);
-			string color = "'black'";
-			shtml += ", line: { color: " + color + "} }]\n";
+			string color = t.color; //"'black'";
+			shtml += ", line: { color: " + color + "} },";
 		}
+		shtml += "]\n";
 	}
 	shtml += "\t\t};\n";
 
@@ -689,12 +708,15 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 	shtml += "\t\t\ttitle: 'ReadCodes',\n";
 	shtml += "\t\t\tyaxis: {autorange: true},\n";
 	if (times.size() > 0) {
+		shtml += "\t\t\tshapes: [";
 		for (auto &t : times) {
-			shtml += "\t\t\tshapes: [{type: 'line', x0: " + date_to_string(t.time) + ", y0: " + to_string(ymin);
+			shtml += "{type: 'line', x0: " + date_to_string(t.time) + ", y0: " + to_string(ymin);
 			shtml += ", x1: " + date_to_string(t.time) + ", y1: " + to_string(ymax);
-			string color = "'black'";
-			shtml += ", line: { color: " + color + "} }]\n";
+			string color = t.color; //"'black'";
+			shtml += ", line: { color: " + color + "} },";
 		}
+		shtml += "]\n";
+
 	}
 
 	//if (time > 0) shtml += "\t\t\tshapes: [{type: 'line', x0: " + date_to_string(time) + ", y0: " + to_string(ymin) + ", x1: " + date_to_string(time) + ", y1: " + to_string(ymax) + "}]\n";
@@ -787,20 +809,22 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, PidRec &rec, const string 
 	add_html_header(shtml, mode);
 
 
+	vector<ChartTimeSign> local_sign_times = sign_times;
+
 	shtml += "<body>\n";
 
-	add_basic_demographics(shtml, rec, sign_times);
+	add_basic_demographics(shtml, rec, local_sign_times);
 
 	for (auto v : view) {
 		if (v == "demographic") {
-			add_basic_demographics(shtml, rec, sign_times);
+			add_basic_demographics(shtml, rec, local_sign_times);
 		}
 		else if (params.panels.find(v) != params.panels.end()) {
 			// add a panel
-			add_panel_chart(shtml, rec, params.panels[v], sign_times);
+			add_panel_chart(shtml, rec, params.panels[v], local_sign_times);
 		}
 		else if (v == "RC") {
-			add_thin_rc_chart(shtml, rec, sign_times);
+			add_thin_rc_chart(shtml, rec, local_sign_times);
 		}
 		else if (rec.my_base_rep->sigs.sid(v) > 0) {
 			// add a signal (as a simple panel)
@@ -812,7 +836,7 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, PidRec &rec, const string 
 			}
 			PanelInfo pi(v, v, { v }, {}, {}, null_zeros, log_scale);
 			params.panels[v] = pi;
-			add_panel_chart(shtml, rec, params.panels[v], sign_times);
+			add_panel_chart(shtml, rec, params.panels[v], local_sign_times);
 		}
 		else if (v == "drugs_heatmap") {
 			add_drugs_heatmap(shtml, rec);
@@ -821,7 +845,7 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, PidRec &rec, const string 
 	}
 	
 	// add_RCs_to_js(rep, vm, shtml);
-
+	MLOG("Finished preparing\n");
 	shtml += "</body>\n";
 	shtml += "</html>\n";
 

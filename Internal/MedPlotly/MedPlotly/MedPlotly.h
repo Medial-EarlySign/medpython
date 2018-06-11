@@ -169,7 +169,7 @@ public:
 private:
 	// builders for html
 	int add_html_header(string &shtml, const string &mode);
-	int add_basic_demographics(string &shtml, PidRec &rec, const vector<ChartTimeSign> &times);
+	int add_basic_demographics(string &shtml, PidRec &rec, vector<ChartTimeSign> &times);
 	int add_panel_chart(string &shtml, PidRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times);
 	int add_drugs_heatmap(string &shtml, PidRec &rec);
 
