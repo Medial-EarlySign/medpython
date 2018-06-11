@@ -182,8 +182,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		// create a response
 		AMResponse *res = responses->create_point_response(_pid, _ts);
 		//AMResponse *res = responses->get_response_by_point(_pid, (long long)conv_times[i]);
-		if (res == NULL)
-			res = responses->create_point_response(_pid, _ts);
+//		if (res == NULL)
+//			res = responses->create_point_response(_pid, _ts);
 //		res = responses->create_point_response(_pid, (long long)conv_times[i]);
 
 		// test this point for eligibility and add errors if needed
