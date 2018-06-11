@@ -80,8 +80,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	AM_API_ClearData(am);
 
-	//MLOG("=====> now running get_preds_from_algomarker()\n");
-	//MLOG("Going over %d pids\n", pids.size());
+	MLOG("=====> now running get_preds_from_algomarker()\n");
+	MLOG("Going over %d pids\n", pids.size());
 	for (auto pid : pids)
 		for (auto &sig : sigs) {
 			rep.uget(pid, sig, usv);
@@ -194,7 +194,10 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		AM_API_GetResponsePoint(response, &pid, &ts);
 		MedSample s;
 		s.id = pid;
-		s.time = (int)(ts/10000);
+		if (ts > 30000000)
+			s.time = (int)(ts/10000);
+		else
+			s.time = ts;
 		if (resp_rc == AM_OK_RC && n_scores > 0) {
 			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 			//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
