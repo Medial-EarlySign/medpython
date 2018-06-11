@@ -1140,7 +1140,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (section_id < 0 && sig_id > 0) {
 			section_id = rep.dict.section_id(sig_name);
 		}
-		MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
+		//MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
 
 		UniversalSigVec usv;
 
