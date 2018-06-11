@@ -41,7 +41,7 @@ class FeatureProcessor : public SerializableObject {
 public:
 
 	/// Feature name ( + name as appears in MedFeatures) ;
-	string feature_name;
+	string feature_name = "unset_feature_name";
 	string resolved_feature_name;
 
 	// Type

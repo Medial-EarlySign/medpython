@@ -27,14 +27,14 @@
 
 using namespace std;
 
-
+/// TODO: this class should be refactored and merged with MedSample
 class RecordData : public SerializableObject {
 public:
 	RecordData() {};
-	RecordData(int id, int date, long time, int split, float weight, float label, float pred){
+	RecordData(int id, int date, long outcomeTime, int split, float weight, float label, float pred){
 		this->id = id;
 		this->date = date;
-		this->time = time;
+		this->outcomeTime = outcomeTime;
 		this->split = split;
 		this->weight = weight;
 		this->label = label;
@@ -42,14 +42,14 @@ public:
 	}
 	int id;
 	int date;
-	long time;
+	int outcomeTime;
 	int split;
 	float label;
 
 	float pred;
 	float weight;
 
-	ADD_SERIALIZATION_FUNCS(id, date, time, split, label, pred, weight);
+	ADD_SERIALIZATION_FUNCS(id, date, outcomeTime, split, label, pred, weight);
 };
 
 

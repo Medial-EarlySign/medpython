@@ -510,6 +510,7 @@ struct MedQRFParams {
 	int ntry;
 	int get_only_this_categ;
 	int max_depth; ///<maximial depth of tree branches - if 0 no limit
+	bool take_all_samples; ///<use all samples - no sampling in building tree
 
 	// Regression
 	float spread;

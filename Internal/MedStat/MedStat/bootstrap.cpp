@@ -896,6 +896,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
 						fpr_points[curr_wp_fpr_ind], false_rate[i - 1], false_rate[i],
@@ -979,6 +980,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_prev;
+				else
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
@@ -1031,6 +1034,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT SENS=%f, prev_SENS=%f, next_SENS=%f, prev_score=%f, next_score=%f\n",
@@ -1117,6 +1121,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_prev;
+				else
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
@@ -1178,6 +1185,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 #ifdef  WARN_SKIP_WP
 					MWARN("SKIP WORKING POINT PR=%f, prev_PR=%f, next_PR=%f, prev_score=%f, next_score=%f\n",
@@ -1253,6 +1261,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_prev;
+				else
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
@@ -1339,6 +1350,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 				res[format_working_point("OR@SCORE", score_working_point, false)] = float(
 					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+			else
+				res[format_working_point("OR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 
 			if (params->incidence_fix > 0) {
 				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE)

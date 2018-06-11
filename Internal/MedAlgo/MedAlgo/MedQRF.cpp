@@ -46,6 +46,7 @@ void MedQRF::init_defaults()
 	params.quantiles.clear();
 
 	params.collect_oob = 0;
+	params.take_all_samples = false;
 }
 
 //..............................................................................
@@ -77,6 +78,7 @@ int MedQRF::init(void *_in_params)
 
 	params.keep_all_values = in_params->keep_all_values;
 	params.quantiles = in_params->quantiles;
+	params.take_all_samples = in_params->take_all_samples;
 
 	return 0;
 }
@@ -144,6 +146,7 @@ int MedQRF::init(map<string, string>& mapper) {
 		else if (field == "predict_nthreads") params.predict_nthreads = stoi(entry.second);
 		else if (field == "keep_all_values") params.keep_all_values = (bool)(stoi(entry.second) != 0);
 		else if (field == "max_depth") params.max_depth = stoi(entry.second);
+		else if (field == "take_all_samples") params.take_all_samples = (bool)(stoi(entry.second) != 0);
 		else if (field == "quantiles") {
 			vector<string> vals;
 			split(vals, entry.second, boost::is_any_of(","));
@@ -266,6 +269,7 @@ int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	qf.keep_all_values = params.keep_all_values;
 	qf.quantiles = params.quantiles;
 	qf.max_depth = params.max_depth;
+	qf.take_all_samples = params.take_all_samples;
 
 	if (params.type != QRF_REGRESSION_TREE) {
 		for (int i = 0; i < nsamples; i++)
@@ -327,6 +331,7 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs, int _get_c
 	qf.get_only_this_categ = params.get_only_this_categ;
 	qf.get_counts_flag = params.get_count;
 	qf.quantiles = params.quantiles;
+	qf.take_all_samples = params.take_all_samples;
 	return qf.score_samples(x, nftrs, nsamples, preds, _get_count);
 }
 
