@@ -980,6 +980,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
 					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = or_prev;
+				else
+					res[format_working_point("OR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
@@ -1119,6 +1121,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
 					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = or_prev;
+				else
+					res[format_working_point("OR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
@@ -1256,6 +1261,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_c;
 				else if (or_prev != MED_MAT_MISSING_VALUE)
 					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = or_prev;
+				else
+					res[format_working_point("OR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
@@ -1342,6 +1350,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 				res[format_working_point("OR@SCORE", score_working_point, false)] = float(
 					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+			else
+				res[format_working_point("OR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 
 			if (params->incidence_fix > 0) {
 				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE)

@@ -57,7 +57,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 			required_signal_ids.insert(rep.dict.id(signal));
 
 		for (int signalId : required_signal_ids) {
-			if (rep.index.index_table[signalId].is_loaded != 1)
+			if ((!rep.in_mem_mode_active()) && rep.index.index_table[signalId].is_loaded != 1)
 				MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
 					signalId, rep.dict.name(signalId).c_str());;
 		}
@@ -209,8 +209,8 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			required_signal_ids.insert(rep.dict.id(signal));
 
 		for (int signalId : required_signal_ids) {
-			if (rep.index.index_table[signalId].is_loaded != 1)
-				MLOG("MedModel::learn WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
+			if ((!rep.in_mem_mode_active()) && rep.index.index_table[signalId].is_loaded != 1)
+				MLOG("MedModel::apply WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
 					signalId, rep.dict.name(signalId).c_str());;
 		}
 

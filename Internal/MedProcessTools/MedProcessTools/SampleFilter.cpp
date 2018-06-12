@@ -1140,7 +1140,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (section_id < 0 && sig_id > 0) {
 			section_id = rep.dict.section_id(sig_name);
 		}
-		MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
+		//MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
 
 		UniversalSigVec usv;
 
@@ -1204,6 +1204,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 #endif
 
 					if (values_in_dictionary && section_id > 0) {
+						//MLOG("dictionary test: section_id %d sig_name %s i_val %f dsize %d\n", section_id, sig_name.c_str(), i_val, rep.dict.dicts[section_id].Id2Name.size());
 						if (rep.dict.dicts[section_id].Id2Name.find((int)i_val) == rep.dict.dicts[section_id].Id2Name.end())
 							n_not_in_dict++;
 					}
