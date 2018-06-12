@@ -285,19 +285,8 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 		}
 
 		// Update changed signals
-		for (int i = 0; i < changed_signals.size(); i++)
-			fprintf(stderr, "CINFO %d %d %d\n", iver, i, changed_signals[i]);
-		UniversalSigVec usv;
-		rec.uget(1008, iver, usv);
-		for (int i = 0; i < usv.len; i++) fprintf(stderr, "BFR %d %d %d %f\n", iver, i, usv.Time(i), usv.Val(i));
-
 		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
 			return -1;
-
-		for (int jver = 0; jver <= iver; jver++) {
-			rec.uget(1008, jver, usv);
-			for (int i = 0; i < usv.len; i++) fprintf(stderr, "NOW %d %d %d %f\n", jver, i, usv.Time(i), usv.Val(i));
-		}
 
 	}
 

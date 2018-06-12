@@ -481,13 +481,6 @@ int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_
 			rc[j] = processors[j]->apply(rec, time_points, all_attributes_mats[j]);
 		else
 			rc[j] = processors[j]->conditional_apply(rec, time_points, neededSignalIds, all_attributes_mats[j]);
-
-		cerr << "Applied " << processors[j]->processor_type << "\n";
-		UniversalSigVec usv;
-		for (int iver = 0; iver < rec.get_n_versions(); iver++) {
-			rec.uget(1008, iver, usv);
-			for (int i = 0; i < usv.len; i++) fprintf(stderr, "-- %d %d %d %f\n", iver, i, usv.Time(i), usv.Val(i));
-		}
 	}
 
 	for (int r : rc) if (r < 0) return -1;

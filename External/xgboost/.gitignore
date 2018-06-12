@@ -68,7 +68,7 @@ nb-configuration*
 .settings/
 build
 config.mk
-xgboost
+/xgboost
 *.data
 build_plugin
 .idea
