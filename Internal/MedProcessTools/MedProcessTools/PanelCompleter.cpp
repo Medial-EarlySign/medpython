@@ -192,9 +192,9 @@ int RepPanelCompleter::apply_red_line_completer(PidDynamicRec& rec, vector<int>&
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -247,9 +247,9 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -285,8 +285,20 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 		}
 
 		// Update changed signals
+		for (int i = 0; i < changed_signals.size(); i++)
+			fprintf(stderr, "CINFO %d %d %d\n", iver, i, changed_signals[i]);
+		UniversalSigVec usv;
+		rec.uget(1008, iver, usv);
+		for (int i = 0; i < usv.len; i++) fprintf(stderr, "BFR %d %d %d %f\n", iver, i, usv.Time(i), usv.Val(i));
+
 		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
 			return -1;
+
+		for (int jver = 0; jver <= iver; jver++) {
+			rec.uget(1008, jver, usv);
+			for (int i = 0; i < usv.len; i++) fprintf(stderr, "NOW %d %d %d %f\n", jver, i, usv.Time(i), usv.Val(i));
+		}
+
 	}
 
 	return 0;
@@ -304,9 +316,9 @@ int RepPanelCompleter::apply_platelets_completer(PidDynamicRec& rec, vector<int>
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -347,10 +359,9 @@ int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& t
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
 		// Get Signals
@@ -428,9 +439,9 @@ int RepPanelCompleter::apply_eGFR_completer(PidDynamicRec& rec, vector<int>& tim
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -510,9 +521,9 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -606,12 +617,12 @@ void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& p
 		}
 	}
 
-	/* Print Panels
+	/* Print Panels 
 	for (int i = 0; i < panels.size(); i++) {
-	cerr << panel_times[i];
-	for (int j = 0; j < panels[i].size(); j++)
-	cerr << " " << panels[i][j];
-	cerr << "\n";
+		cerr << panel_times[i];
+		for (int j = 0; j < panels[i].size(); j++)
+			cerr << " " << panels[i][j];
+			cerr << "\n";
 	}
 	*/
 
@@ -739,6 +750,7 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 
 	for (int iSig = 0; iSig < sigs_ids.size(); iSig++) {
 		if (changed[iSig]) {
+			cerr << "Changing " << iSig << endl;
 			vector<float> values(panels.size());
 			vector<int> times(panels.size());
 

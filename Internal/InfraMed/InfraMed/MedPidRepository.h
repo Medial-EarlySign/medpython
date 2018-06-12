@@ -198,30 +198,55 @@ private:
 
 
 //
-// Dynamic Version iterator allows backword iteration over versions in two manners -
-// 1. For version-dependent operations - iterate over all versions
-// 2. For verion-independent operations - iterate only over versions that are already different
+// Dynamic Version iterator allows iteration over versions in two manners -
+// 1. For version-dependent operations - forward iterate over all versions
+// 2. For verion-independent operations - backward iterate only over versions that are already different
 //
 // Methods are -
 // constructors
 // init : Get first version to work on
 // next : Get next version to work on
-// next_different : Get next version that points to different data
+// done : have we analyzed all versions ?
 //
 
 class versionIterator {
 
+protected:
 	PidDynamicRec *my_rec;
-	int iVersion, jVersion;
+	int iVersion;
 	set<int> signalIds;
 
 public:
 	versionIterator(PidDynamicRec& _rec, int signalId) { my_rec = &_rec; signalIds = { signalId }; }
 	versionIterator(PidDynamicRec& _rec, set<int>& _signalIds) { my_rec = &_rec; signalIds = _signalIds; }
 
+	virtual int init() {};
+	virtual int next() {};
+	virtual bool done() {};
+};
+
+class allVersionsIterator : public versionIterator {
+
+public:
+	allVersionsIterator(PidDynamicRec& _rec, int signalId) : versionIterator(_rec, signalId) {}
+	allVersionsIterator(PidDynamicRec& _rec, set<int>& _signalIds) : versionIterator(_rec, _signalIds) {}
+
+	int init() { iVersion = 0; return iVersion; }
+	int next() { return ++iVersion; }
+	bool done() { return iVersion >= my_rec->get_n_versions(); }
+};
+
+class differentVersionsIterator : public versionIterator {
+
+	int jVersion;
+
+public:
+	differentVersionsIterator(PidDynamicRec& _rec, int signalId) : versionIterator(_rec, signalId) {}
+	differentVersionsIterator(PidDynamicRec& _rec, set<int>& _signalIds) : versionIterator(_rec, _signalIds) {}
+
 	int init();
-	int next() { return (--iVersion); }
-	int next_different();
+	int next();
+	bool done() { return iVersion <= 0; }
 
 	inline int block_first() { return jVersion+1; }
 	inline int block_last() { return iVersion; }

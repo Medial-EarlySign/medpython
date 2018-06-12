@@ -590,7 +590,7 @@ int PidDynamicRec::set_version_data(int sid, int version, void *datap, int len)
 
 	int size = my_base_rep->sigs.Sid2Info[sid].bytes_len * len;
 
-	if (((unsigned int)pl->pos < data_len) || (len < pl->len)) {
+	if (((unsigned int)pl->pos < data_len) || (len > pl->len)) {
 		// need to create a new place for this version
 		//MLOG("In here : pos %d len %d curr_len %d data_len %d len %d size %d data_size %d\n", pl->pos, pl->len, curr_len, data_len, len, size, data_size);
 		if (curr_len + size > data_size)
@@ -970,17 +970,17 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 //..................................................................................................................
 // VersionsIterator
 //..................................................................................................................
-int versionIterator::init() {
+int differentVersionsIterator::init() {
 
 	// Last Version
 	iVersion = my_rec->get_n_versions() - 1;
 	jVersion = iVersion;
-	return next_different();
+	return next();
 
 }
 
 //..................................................................................................................
-int versionIterator::next_different() {
+int differentVersionsIterator::next() {
 
 	// Point data
 	for (int pVersion = iVersion - 1; pVersion > jVersion; pVersion --) {
