@@ -23,6 +23,7 @@ class PosLen {
   public:
 	int pos;
 	int len;
+	int do_split; // if 1, means that when updating this pos,len we need to move version to a new allocated memory. if 0 , it may move due to other reasons.
 	PosLen& operator =(const int a) { pos = (unsigned long long)a; len=a; return *this; }
 	bool operator==(const PosLen a) { return (pos == a.pos && len == a.len);}
 };
