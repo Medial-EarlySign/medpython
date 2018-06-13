@@ -739,7 +739,7 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 
 	for (int iSig = 0; iSig < sigs_ids.size(); iSig++) {
 		if (changed[iSig]) {
-			cerr << "Changing " << iSig << endl;
+			//cerr << "Changing " << iSig << endl;
 			vector<float> values(panels.size());
 			vector<int> times(panels.size());
 
