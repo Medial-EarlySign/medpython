@@ -989,17 +989,17 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 //..................................................................................................................
 // VersionsIterator
 //..................................................................................................................
-int versionIterator::init() {
+int differentVersionsIterator::init() {
 
 	// Last Version
 	iVersion = my_rec->get_n_versions() - 1;
 	jVersion = iVersion;
-	return next_different();
+	return next();
 
 }
 
 //..................................................................................................................
-int versionIterator::next_different() {
+int differentVersionsIterator::next() {
 
 	// Point data
 	for (int pVersion = iVersion - 1; pVersion > jVersion; pVersion --) {
