@@ -36,6 +36,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "algo marker configuration file")
 			("direct_test", "split to a dedicated debug routine")
+			("single", "run test in single mode, instead of the default batch")
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
 			("date", po::value<long long>()->default_value(20180101), "test date")
 			("egfr_test" , "split to a debug routine for the simple egfr algomarker")
@@ -248,6 +249,204 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	return 0;
 }
 
+
+#if 1
+//=================================================================================================================
+// same test, but running each point in a single mode, rather than batch on whole.
+//=================================================================================================================
+int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res)
+{
+	int print_errors = 0;
+	UniversalSigVec usv;
+
+	int max_vals = 100000;
+	vector<long long> times(max_vals);
+	vector<float> vals(max_vals);
+
+	AM_API_ClearData(am);
+
+	MLOG("=====> now running get_preds_from_algomarker_single()\n");
+	MLOG("Going over %d samples\n", samples.nSamples());
+	int n_tested = 0;
+
+	MedTimer timer;
+	timer.start();
+	for (auto &id : samples.idSamples)
+		for (auto &s : id.samples) {
+
+			// adding all data 
+			for (auto &sig : sigs) {
+				rep.uget(s.id, sig, usv);
+				int nelem = usv.len;
+				if (nelem > 0) {
+					long long *p_times = &times[0];
+					float *p_vals = &vals[0];
+					int i_time = 0;
+					int i_val = 0;
+
+					int nelem_before = 0;
+
+					if (usv.n_time_channels() > 0) {
+						for (int i=0; i<nelem; i++)
+							for (int j=0; j<usv.n_time_channels(); j++) {
+								if (usv.Time(i, j) <= s.time) nelem_before = i+1;
+								else break;
+								p_times[i_time++] = (long long)usv.Time(i, j);
+							}
+					}
+					else
+						p_times = NULL;
+
+					if (usv.n_val_channels() > 0) {
+						if (p_times != NULL) nelem = nelem_before;
+						for (int i=0; i<nelem; i++)
+							for (int j=0; j<usv.n_val_channels(); j++)
+								p_vals[i_val++] = usv.Val(i, j);
+					}
+					else
+						p_vals = NULL;
+
+					//MLOG("Adding data: pid %d time %d sig %s n_times %d n_vals %d\n", s.id, s.time, sig.c_str(), i_time, i_val);
+					if ((i_val > 0) || (i_time > 0))
+						AM_API_AddData(am, s.id, sig.c_str(), i_time, p_times, i_val, p_vals);
+				}
+			}
+
+			// At this point we can send to the algomarker and ask for a score
+
+			// a small technicality
+			((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
+
+			// preparing a request
+			char *stypes[] ={ "Raw" };
+			long long _timestamp = (long long)s.time;
+
+			AMRequest *req;
+			int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &s.id, &_timestamp, 1, &req);
+			if (req == NULL) {
+				MLOG("ERROR: Got a NULL request for pid %d time %d!!\n", s.id, s.time);
+				return -1;
+			}
+
+			// create a response
+			AMResponses *resp;
+			AM_API_CreateResponses(&resp);
+
+			// Calculate
+			int calc_rc = AM_API_Calculate(am, req, resp);
+
+			int n_resp = AM_API_GetResponsesNum(resp);
+
+			//MLOG("pid %d time %d n_resp %d\n", s.id, s.time, n_resp);
+			// get scores
+			if (n_resp == 1) {
+				AMResponse *response;
+				int resp_rc = AM_API_GetResponseAtIndex(resp, 0, &response);
+				int n_scores;
+				AM_API_GetResponseScoresNum(response, &n_scores);
+				if (n_scores == 1) {
+					float _scr;
+					int pid;
+					long long ts;
+					char *_scr_type = NULL;
+					AM_API_GetResponsePoint(response, &pid, &ts);
+
+					MedSample rs;
+					rs.id = pid;
+					if (ts > 30000000)
+						rs.time = (int)(ts/10000);
+					else
+						rs.time = ts;
+
+					if (resp_rc == AM_OK_RC && n_scores > 0) {
+						resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+						//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
+						rs.prediction.push_back(_scr);
+					}
+					else {
+						rs.prediction.push_back((float)AM_UNDEFINED_VALUE);
+					}
+					res.push_back(rs);
+
+					//MLOG("pid %d ts %d scr %f %s\n", pid, ts, _scr, _scr_type);
+				} 
+
+				//int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_type);
+				//MLOG("resp_rc = %d\n", resp_rc);
+
+			}
+			else {
+				MedSample rs = s;
+				rs.prediction.clear();
+				rs.prediction.push_back((float)AM_UNDEFINED_VALUE);
+				res.push_back(rs);
+			}
+
+			if (print_errors) {
+				// print error messages
+				// AM level
+				int n_msgs, *msg_codes;
+				char **msgs_errs;
+				AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+				for (int i=0; i<n_msgs; i++) {
+					MLOG("pid %d time %d Shared Message %d : code %d : err: %s\n", s.id, s.time, n_msgs, msg_codes[i], msgs_errs[i]);
+				}
+
+				n_resp = AM_API_GetResponsesNum(resp);
+				for (int i=0; i<n_resp; i++) {
+					AMResponse *r;
+					AM_API_GetResponseAtIndex(resp, i, &r);
+					int n_scores;
+					AM_API_GetResponseScoresNum(r, &n_scores);
+
+					AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
+					for (int k=0; k<n_msgs; k++) {
+						MLOG("pid %d time %d Response %d : Message %d : code %d : err: %s\n", s.id, s.time, i, k, msg_codes[k], msgs_errs[k]);
+					}
+
+					for (int j=0; j<n_scores; j++) {
+						AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
+						for (int k=0; k<n_msgs; k++) {
+							MLOG("pid %d time %d Response %d : score %d : Message %d : code %d : err: %s\n", s.id, s.time, i, j, k, msg_codes[k], msgs_errs[k]);
+						}
+					}
+				}
+			}
+			// and now need to dispose responses and request
+			AM_API_DisposeRequest(req);
+			AM_API_DisposeResponses(resp);
+
+			// clearing data in algomarker
+			AM_API_ClearData(am);
+
+			float pred = res.back().prediction[0];
+			float compare_pred = compare_res[n_tested].prediction[0];
+
+			if ((pred != (float)AM_UNDEFINED_VALUE) && (pred != compare_pred)) {
+				MLOG("ERROR Found: pid %d time %d : pred %f compared to %f ...\n", s.id, s.time, pred, compare_pred);
+			}
+
+			n_tested++;
+			if ((n_tested % 100) == 0) {
+				timer.take_curr_time();
+				double dt = timer.diff_sec();
+				MLOG("Tested %d samples : time %f sec\n", n_tested, dt);
+				dt = (double)n_tested/dt;
+				MLOG("%f samples/sec\n", dt);
+			}
+		}
+
+
+
+
+
+	MLOG("Finished getting preds from algomarker in a single manner\n");
+	return 0;
+}
+
+
+#endif
+
 //=============================================================================================================================
 int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
 {
@@ -292,6 +491,7 @@ int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
 	}
 
 }
+
 
 
 //=============================================================================================================================
@@ -616,7 +816,11 @@ int main(int argc, char *argv[])
 
 	MLOG("Algomarker %s was loaded with config file %s\n", test_am->get_name(), test_am->get_config());
 	vector<MedSample> res2;
-	get_preds_from_algomarker(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2);
+
+	if (vm.count("single"))
+		get_preds_from_algomarker_single(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1);
+	else
+		get_preds_from_algomarker(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2);
 	for (int i=0; i<min(50, (int)res1.size()); i++) {
 		MLOG("#Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 	}

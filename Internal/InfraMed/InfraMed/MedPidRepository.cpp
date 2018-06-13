@@ -479,12 +479,16 @@ int PidDynamicRec::set_n_versions(int n_ver)
 	sv.get_all_keys(orig_keys);
 	sv_vers.init();
 
+	int do_split = 0;
+	if (n_versions > 1) do_split = 1;
+
 	if (orig_keys.size() > 0) {
 		
 		sv_vers.set_min(orig_keys[0]);
 
 		for (auto key : orig_keys) {
 			PosLen *pl = sv.get(key);
+			(*pl).do_split = do_split;
 			for (int j=0; j<n_versions; j++)
 				sv_vers.insert(key*n_versions+j, *pl); // at start all versions point to the original one
 		}
@@ -519,6 +523,9 @@ int PidDynamicRec::set_n_versions(vector<int> &time_points)
 	sv.get_all_keys(orig_keys);
 	sv_vers.init();
 
+	int do_split = 0;
+	if (n_versions > 1) do_split = 1;
+
 	if (orig_keys.size() > 0) {
 
 		sv_vers.set_min(orig_keys[0]);
@@ -537,6 +544,7 @@ int PidDynamicRec::set_n_versions(vector<int> &time_points)
 				while (tlen < usv.len && usv.Time(tlen) <= time_points[j]) tlen++;
 				int len = (tlen <= 0) ? 0 : tlen - 1;
 				my_pl.len = len;
+				my_pl.do_split = do_split;
 				sv_vers.insert(key*n_versions+j, my_pl); // at start all versions point to the original one
 			}
 		}
@@ -590,7 +598,7 @@ int PidDynamicRec::set_version_data(int sid, int version, void *datap, int len)
 
 	int size = my_base_rep->sigs.Sid2Info[sid].bytes_len * len;
 
-	if (((unsigned int)pl->pos < data_len) || (len < pl->len)) {
+	if (((unsigned int)pl->pos < data_len) || (len > pl->len) || (pl->do_split)) {
 		// need to create a new place for this version
 		//MLOG("In here : pos %d len %d curr_len %d data_len %d len %d size %d data_size %d\n", pl->pos, pl->len, curr_len, data_len, len, size, data_size);
 		if (curr_len + size > data_size)
@@ -598,6 +606,7 @@ int PidDynamicRec::set_version_data(int sid, int version, void *datap, int len)
 		PosLen new_pl;
 		new_pl.pos = curr_len;
 		new_pl.len = len;
+		new_pl.do_split = 0; // since it is now single
 		curr_len += size;
 		//MLOG("In here : NEW pos %d len %d curr_len %d data_len %d len %d size %d version %d\n", new_pl.pos, new_pl.len, curr_len, data_len, len, size, version);
 		memcpy((char *)&data[new_pl.pos], (char *)datap, size);
@@ -670,6 +679,7 @@ int PidDynamicRec::set_version_off_orig(int sid, int version)
 		PosLen new_pl;
 		new_pl.pos = curr_len;
 		new_pl.len = len;
+		new_pl.do_split = 0; // since we allocated a new space for it
 		curr_len += size;
 
 		void *datap = (void *)&data[pl->pos];
@@ -685,14 +695,19 @@ int PidDynamicRec::set_version_off_orig(int sid, int version)
 int PidDynamicRec::point_version_to(int sid, int v_src, int v_dst)
 {
 	lock_guard<mutex> guard(dynamic_pid_rec_mutex_pool[pid & PID_REC_MUTEX_MASK]);
-	PosLen *pl = get_poslen(sid, v_src);
+	PosLen *pl_src = get_poslen(sid, v_src);
 
-	if (pl == NULL)
+	if (pl_src == NULL)
 		return -1;
 	if (v_dst >= n_versions || v_dst < 0)
 		return -1;
 
-	set_poslen(sid, v_dst, *pl);
+	if (pl_src->do_split == 0) {
+		pl_src->do_split = 1;
+		set_poslen(sid, v_src, *pl_src); // to make sure it is do_split=1 now
+	}
+
+	set_poslen(sid, v_dst, *pl_src); // will always be with do_split=1
 	return 0;
 }
 
@@ -724,11 +739,12 @@ int PidDynamicRec::remove(int sid, int v_in, int idx, int v_out)
 	int size =  size1 + size2;
 
 	PosLen new_pl;
-	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len-1)) {
+	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len-1) || (pl_out->do_split)) {
 		// need to create a new place for this version
 		if (curr_len + size > data_size)
 			resize_data(2*(data_size + size));
 		new_pl.pos = curr_len;
+		new_pl.do_split = 0;
 		curr_len += size;
 
 		memcpy(&data[new_pl.pos], &data[pl_in->pos], size1);
@@ -782,11 +798,12 @@ int PidDynamicRec::change(int sid, int v_in, int idx, void *new_elem, int v_out)
 	int size =  sid_byte_len * pl_in->len;
 
 	PosLen new_pl;
-	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len-1)) {
+	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len-1) || (pl_out->do_split)) {
 		// need to create a new place for this version
 		if (curr_len + size > data_size)
 			resize_data(2*(data_size + size));
 		new_pl.pos = curr_len;
+		new_pl.do_split = 0;
 		curr_len += size;
 
 		memcpy(&data[new_pl.pos], &data[pl_in->pos], size);
@@ -935,6 +952,7 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 			PosLen pl;
 			pl.pos = data_len;
 			pl.len = len;
+			pl.do_split = 0;
 			sv.insert(sid_serial, pl);
 			data_len += slen;
 		}
@@ -944,6 +962,7 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 			PosLen pl;
 			pl.pos = 0;
 			pl.len = 0;
+			pl.do_split = 0;
 			sv.insert(sid_serial, pl);
 		}
 	}
@@ -970,17 +989,17 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 //..................................................................................................................
 // VersionsIterator
 //..................................................................................................................
-int versionIterator::init() {
+int differentVersionsIterator::init() {
 
 	// Last Version
 	iVersion = my_rec->get_n_versions() - 1;
 	jVersion = iVersion;
-	return next_different();
+	return next();
 
 }
 
 //..................................................................................................................
-int versionIterator::next_different() {
+int differentVersionsIterator::next() {
 
 	// Point data
 	for (int pVersion = iVersion - 1; pVersion > jVersion; pVersion --) {

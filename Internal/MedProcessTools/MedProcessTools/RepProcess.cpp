@@ -728,8 +728,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 	int len;
 
-	versionIterator vit(rec, signalId);
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	differentVersionsIterator vit(rec, signalId);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		// Clean 
 		rec.uget(signalId, iver, rec.usv); // get into the internal usv obeject - this statistically saves init time
@@ -1106,8 +1106,8 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		return -1;
 	}
 
-	versionIterator vit(rec, reqSignalIds);
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	differentVersionsIterator vit(rec, reqSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		map <int, set<int>> removePoints; // from sid to indices to be removed
 
@@ -1412,8 +1412,8 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points,
 	}
 
 	int len;
-	versionIterator vit(rec, signalId);
-	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
+	allVersionsIterator vit(rec, signalId);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		rec.uget(signalId, iver, rec.usv);
 
@@ -1637,11 +1637,11 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 
 	// Loop on versions
 	set<int> _signalIds(signalIds.begin(), signalIds.end());
-	versionIterator vit(rec, _signalIds);
+	allVersionsIterator vit(rec, _signalIds);
 	vector<UniversalSigVec> usvs(signalIds.size());
 
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		// NOTE : This is not perfect : we assume that the samples' time-unit is med_rep_type.basicTimeUnit
 		int time_point = med_time_converter.convert_times(med_rep_type.basicTimeUnit, window_time_unit, time_points[iver]);

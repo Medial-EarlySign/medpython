@@ -631,13 +631,13 @@ int RepCalcSimpleSignals::_apply_calc_24h_urine_output(PidDynamicRec& rec, vecto
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end()); iteratorSignalIds.insert(v_sid);
-	versionIterator vit(rec, iteratorSignalIds);
+	differentVersionsIterator vit(rec, iteratorSignalIds);
 
 	//auto it = calc2req_sigs.find(V_names[0]);
 	//if (it == calc2req_sigs.end()) //unexpected
 	//	return -1;
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		rec.uget(sigs_ids[0], iver, rec.usvs[0]);
 		int origLen = rec.usvs[0].len;
 
@@ -778,9 +778,9 @@ int RepCalcSimpleSignals::_apply_calc_log(PidDynamicRec& rec, vector<int>& time_
 
 	// Loop on versions of signal
 	set<int> iteratorSignalIds = { i_sid, v_sid };
-	versionIterator vit(rec, iteratorSignalIds);
+	differentVersionsIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		rec.uget(i_sid, iver, rec.usvs[0]); // getting the requested input signal into usv[0]
 
@@ -979,7 +979,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 	if (useTimer)
 		iteratorSignalIds.insert(timer_signal_id);
 
-	versionIterator vit(rec, iteratorSignalIds);
+	allVersionsIterator vit(rec, iteratorSignalIds);
 
 	//auto it = calc2req_sigs.find(calculator);
 	//if (it == calc2req_sigs.end()) {//unexpected
@@ -987,7 +987,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 	//	return -1;
 	//}
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		//componentData will hold the data of component signals after alignment to relevant times
 		//for each time we take the most recent valid data or missing_data otherwise.
 
@@ -1142,7 +1142,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRe
 	if (useTimer)
 		iteratorSignalIds.insert(timer_signal_id);
 
-	versionIterator vit(rec, iteratorSignalIds);
+	allVersionsIterator vit(rec, iteratorSignalIds);
 
 	//auto it = calc2req_sigs.find(calculator);
 	//if (it == calc2req_sigs.end()) {//unexpected
@@ -1150,7 +1150,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRe
 	//	return -1;
 	//}
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next()) {
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		//componentData will hold the data of component signals after alignment to relevant times
 		//for each time we take the most recent valid data or missing_data otherwise.
 
@@ -1328,11 +1328,11 @@ int RepCalcSimpleSignals::_apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time
 	
 	// Loop on versions of Creatinine
 	set<int> iteratorSignalIds ={ Creatinine_sid,v_eGFR_sid };
-	versionIterator vit(rec, iteratorSignalIds);
+	differentVersionsIterator vit(rec, iteratorSignalIds);
 	int gender = -1, byear = -1;
 	int ethnicity = 0; // currently assuming 0, not having a signal for it
 
-	for (int iver = vit.init(); iver>=0; iver = vit.next_different()) {
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		rec.uget(Creatinine_sid, iver, rec.usvs[0]); // getting Creatinine into usv[0]
 	//	MLOG("###>>>> pid %d version %d Creatinine %d , %s :: len %d\n", rec.pid, iver, Creatinine_sid, rec.my_base_rep->sigs.name(Creatinine_sid).c_str(), rec.usvs[0].len);
@@ -1397,11 +1397,11 @@ int RepCalcSimpleSignals::_apply_calc_debug(PidDynamicRec& rec, vector<int>& tim
 
 	// Loop on versions of Creatinine
 	set<int> iteratorSignalIds ={ sid , v_debug_sid };
-	versionIterator vit(rec, iteratorSignalIds);
+	differentVersionsIterator vit(rec, iteratorSignalIds);
 	int gender = -1, byear = -1;
 	int ethnicity = 0; // currently assuming 0, not having a signal for it
 
-	for (int iver = vit.init(); iver>=0; iver = vit.next_different()) {
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		rec.uget(sid, iver, usv); // getting sid into usv[0]
 		//MLOG("###>>>> calc_debug : v_sig %d : pid %d version %d sig  %d , %s :: len %d\n", v_debug_sid, rec.pid, iver, sid, rec.my_base_rep->sigs.name(sid).c_str(), usv.len);
