@@ -254,7 +254,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
-int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res)
+int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res)
 {
 	int print_errors = 0;
 	UniversalSigVec usv;
@@ -418,6 +418,13 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 
 			// clearing data in algomarker
 			AM_API_ClearData(am);
+
+			float pred = res.back().prediction[0];
+			float compare_pred = compare_res[n_tested].prediction[0];
+
+			if ((pred != (float)AM_UNDEFINED_VALUE) && (pred != compare_pred)) {
+				MLOG("ERROR Found: pid %d time %d : pred %f compared to %f ...\n", s.id, s.time, pred, compare_pred);
+			}
 
 			n_tested++;
 			if ((n_tested % 100) == 0) {
@@ -811,7 +818,7 @@ int main(int argc, char *argv[])
 	vector<MedSample> res2;
 
 	if (vm.count("single"))
-		get_preds_from_algomarker_single(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2);
+		get_preds_from_algomarker_single(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1);
 	else
 		get_preds_from_algomarker(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2);
 	for (int i=0; i<min(50, (int)res1.size()); i++) {
