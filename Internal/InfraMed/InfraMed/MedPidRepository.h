@@ -221,9 +221,9 @@ public:
 	versionIterator(PidDynamicRec& _rec, int signalId) { my_rec = &_rec; signalIds = { signalId }; }
 	versionIterator(PidDynamicRec& _rec, set<int>& _signalIds) { my_rec = &_rec; signalIds = _signalIds; }
 
-	virtual int init() {};
-	virtual int next() {};
-	virtual bool done() {};
+	virtual int init() { return 0; };
+	virtual int next() { return 0; };
+	virtual bool done() { return true; };
 };
 
 class allVersionsIterator : public versionIterator {
