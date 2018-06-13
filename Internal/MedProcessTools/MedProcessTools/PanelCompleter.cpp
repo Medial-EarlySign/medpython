@@ -586,6 +586,10 @@ void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& p
 		// Get the next element
 		std::set<pair<int, int>, candidate_compare>::iterator it = candidates.begin();
 
+		// Have we reached the time-limit ?
+		if (time_limit != -1 && it->first > time_limit)
+			break;
+
 		// New Time Point
 		if (it->first != currentTime) {
 			currentTime = it->first;
@@ -606,7 +610,8 @@ void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& p
 		}
 	}
 
-	/* Print Panels 
+	/* Print Panels
+	cerr << "Time Limit = " << time_limit << "\n";
 	for (int i = 0; i < panels.size(); i++) {
 		cerr << panel_times[i];
 		for (int j = 0; j < panels[i].size(); j++)
@@ -739,7 +744,6 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 
 	for (int iSig = 0; iSig < sigs_ids.size(); iSig++) {
 		if (changed[iSig]) {
-			cerr << "Changing " << iSig << endl;
 			vector<float> values(panels.size());
 			vector<int> times(panels.size());
 
