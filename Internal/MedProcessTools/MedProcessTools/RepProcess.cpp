@@ -27,6 +27,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_COMPLETE;
 	else if (processor_name == "req" || processor_name == "requirements")
 		return REP_PROCESS_CHECK_REQ;
+	else if (processor_name == "sim_val" || processor_name == "sim_val_handler")
+		return REP_PROCESS_SIM_VAL;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -74,6 +76,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepPanelCompleter;
 	else if (processor_type == REP_PROCESS_CHECK_REQ)
 		return new RepCheckReq;
+	else if (processor_type == REP_PROCESS_SIM_VAL)
+		return new RepSimValHandler;
 	else
 		return NULL;
 
@@ -164,8 +168,9 @@ int RepProcessor::conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, u
 
 	if (rc == 0) {
 		for (unsigned int i = 0; i < time_points.size(); i++) {
-			for (int j = 0; j < attributes.size(); j++)
+			for (int j = 0; j < attributes.size(); j++) {
 				samples.samples[i].attributes[attributes[j]] += attributes_mat[i][j];
+			}
 		}
 	}
 
@@ -489,7 +494,7 @@ int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_
 	if (!attributes_mat.empty()) {
 		for (int j = 0; j < processors.size(); j++) {
 			for (int i = 0; i < time_points.size(); i++) {
-				for (int k = 0; k < processors[j]->attributes.size(); k++)
+				for (int k = 0; k < processors[j]->attributes.size(); k++) 
 					attributes_mat[i][attributes_map[j][k]] += all_attributes_mats[j][i][k];
 			}
 		}
@@ -648,7 +653,7 @@ void RepBasicOutlierCleaner::init_attributes() {
 	if (!nTrim_attr_suffix.empty()) attributes.push_back(_signal_name + "_" + nTrim_attr_suffix);
 }
 
- // Learn cleaning boundaries
+// Learn cleaning boundaries
 //.......................................................................................
 int RepBasicOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 
@@ -1669,6 +1674,231 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 	}
 
 	return 0;
+}
+
+//=======================================================================================
+// RepSimValHandler - handle multiple simultanous values
+//=======================================================================================
+// Fill req- and aff-signals vectors
+//.......................................................................................
+void RepSimValHandler::init_lists() {
+
+	req_signals.insert(signalName);
+	aff_signals.insert(signalName);
+}
+
+// Init from map
+//.......................................................................................
+int RepSimValHandler::init(map<string, string>& mapper)
+{
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepSimValHandler::init]
+		if (field == "signal") { signalName = entry.second; }
+		else if (field == "type") handler_type = get_sim_val_handle_type(entry.second);
+		else if (field == "time_channels") {
+			vector<string> channels;
+			boost::split(channels, entry.second, boost::is_any_of(","));
+			for (auto& channel : channels)
+				time_channels.push_back(stoi(channel));
+		}
+		else if (field == "attr") nHandle_attr = entry.second;
+		else if (field == "suff") nHandle_attr_suffix = entry.second;
+		//! [RepSimValHandler::init]
+	}
+
+	init_lists();
+}
+
+// init attributes list
+//.......................................................................................
+void RepSimValHandler::init_attributes() {
+
+	string _signal_name = signalName;
+
+	if (time_channels.size() > 1 || (time_channels.size()==1 && time_channels[0] != 0)) {
+		vector<string> channels_s(time_channels.size());
+		for (unsigned int i = 0; i < channels_s.size(); i++)
+			channels_s[i] = to_string(time_channels[i]);
+		_signal_name += "_" + boost::join(channels_s, "_");
+	}
+	
+
+	attributes.clear();
+	if (!nHandle_attr.empty()) attributes.push_back(nHandle_attr);
+	if (!nHandle_attr_suffix.empty()) attributes.push_back(_signal_name + "_" + nHandle_attr_suffix);
+}
+
+// name to SimValHandleTypes
+//.......................................................................................
+SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
+
+	if (name == "first" || name == "first_val")
+		return SIM_VAL_FIRST_VAL;
+	else if (name == "last" || name == "last_val")
+		return SIM_VAL_LAST_VAL;
+	else if (name == "mean" || name == "avg")
+		return SIM_VAL_MEAN;
+	else if (name == "rem" || name == "remvoe")
+		return SIM_VAL_REM;
+	else if (name == "rem_diff" || name == "remove_diff")
+		return SIM_VAL_REM_DIFF;
+	else
+		MTHROW_AND_ERR("Unkwnon sim_val_hand_type \'%s\'\n", name.c_str());
+
+}
+
+// Get time-channels (if empty)
+//.......................................................................................
+void RepSimValHandler::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+
+	if (time_channels.empty()) {
+		int n = sigs.Sid2Info[signalId].n_time_channels;
+		time_channels.resize(n);
+		for (int i = 0; i < n; i++)
+			time_channels[i] = i;
+	}
+
+	nValChannels = sigs.Sid2Info[signalId].n_val_channels;
+}
+
+// Apply
+//.......................................................................................
+int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
+
+	// Sanity check
+	if (signalId == -1) {
+		MERR("Uninitialized signalId\n");
+		return -1;
+	}
+
+	// Check that we have the correct number of dynamic-versions : one per time-point (if given)
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+
+	int len;
+	differentVersionsIterator vit(rec, signalId);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+
+		// Do it 
+		rec.uget(signalId, iver, rec.usv); // get into the internal usv obeject - this statistically saves init time
+
+		len = rec.usv.len;
+		vector<int> remove(len);
+		vector<pair<int, vector<float>>> change(len);
+		int nRemove = 0, nChange = 0, nTimes = 0;
+
+		// Collect
+		int start = 0, end = 0;
+		for (int i = 1; i < len; i++) {
+
+			// No need to clean past the latest relevant time-point (valid only when using a single time-channel == 0)
+			if (time_points.size() != 0 && time_channels.size() == 1 && time_channels[0] == 0 && rec.usv.Time(i) > time_points[iver]) break;
+
+			// Are we simultanous ?
+			bool sim = true;
+			for (int channel : time_channels) {
+				if (rec.usv.Time(i, channel) != rec.usv.Time(i - 1, channel)) {
+					sim = false;
+					break;
+				}
+			}
+
+			if (!sim) {
+				if (end > start)
+					handle_block(start, end, rec.usv, remove, nRemove, change, nChange, nTimes);
+				start = end = i;
+			}
+			else
+				end++;
+		}
+
+		// Handle last block
+		if (end > start)
+			handle_block(start, end, rec.usv, remove, nRemove, change, nChange, nTimes);
+	
+
+		// Apply removals + changes
+		change.resize(nChange);
+		remove.resize(nRemove);
+		if (rec.update(signalId, iver, change, remove) < 0)
+			return -1;
+
+		// Collect atttibutes
+		int idx = 0;
+		if (!nHandle_attr.empty() && !attributes_mat.empty()) {
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = (float)nTimes;
+			idx++;
+		}
+		
+		if (!nHandle_attr_suffix.empty() && !attributes_mat.empty()) {
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = (float)nTimes;
+			idx++;
+		}
+	}
+
+	return 0;
+
+}
+
+// Utility : handle a block
+//.......................................................................................
+void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes) {
+
+	if (handler_type == SIM_VAL_FIRST_VAL) {
+		for (int j = start + 1; j <= end; j++)
+			remove[nRemove++] = j;
+		nTimes++;
+	}
+	else if (handler_type == SIM_VAL_LAST_VAL) {
+		for (int j = start; j < end; j++)
+			remove[nRemove++] = j;
+		nTimes++;
+	}
+	else if (handler_type == SIM_VAL_MEAN) {
+		vector<float> sums(nValChannels, 0);
+		for (int j = start; j < end; j++) {
+			for (int iChannel=0; iChannel < nValChannels; iChannel++)
+				sums[iChannel] += usv.Val(j,iChannel);
+			remove[nRemove++] = j;
+		}
+		pair<int, vector<float>> newChange;
+		newChange.first = end;
+		newChange.second.resize(nValChannels);
+		for (int iChannel=0; iChannel < nValChannels; iChannel++)
+			newChange.second[iChannel] = (sums[iChannel] + usv.Val(end, iChannel)) / (end + 1 - start);
+		change[nChange++] = newChange;
+		nTimes++;
+	}
+	else if (handler_type == SIM_VAL_REM) {
+		for (int j = start; j <= end; j++)
+			remove[nRemove++] = j;
+		nTimes++;
+	}
+	else if (handler_type == SIM_VAL_REM_DIFF) {
+		bool rem = false;
+		for (int j = start + 1; j <= end; j++) {
+			for (int channel = 0; channel < nValChannels; channel++) {
+				if (usv.Val(j, channel) != usv.Val(j - 1, channel)) {
+					rem = true;
+					break;
+				}
+			}
+			if (rem) break;
+		}
+
+		if (rem) {
+			for (int j = start; j <= end; j++)
+				remove[nRemove++] = j;
+			nTimes++;
+		}
+	}
 }
 
 //=======================================================================================
