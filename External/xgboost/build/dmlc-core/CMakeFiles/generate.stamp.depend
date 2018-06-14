@@ -1,0 +1,6 @@
+# CMake generation dependency list for this directory.
+H:/MR/Libs/External/xgboost/dmlc-core/CMakeLists.txt
+H:/MR/Libs/External/xgboost/dmlc-core/cmake/Utils.cmake
+C:/Program Files/CMake/share/cmake-3.11/Modules/FindPythonInterp.cmake
+C:/Program Files/CMake/share/cmake-3.11/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-3.11/Modules/FindPackageMessage.cmake
