@@ -867,6 +867,35 @@ int PidDynamicRec::update(int sid, int v_in, int val_channel, vector<pair<int, f
 }
 
 //..................................................................................................................
+int PidDynamicRec::update(int sid, int v_in, vector<pair<int, vector<float>>>& changes, vector<int>& removes) {
+	// first we make sure we get our copy if we have changes
+	if (changes.size() > 0 || removes.size() > 0) {
+
+		if (set_version_off_orig(sid, v_in) < 0)
+			return -1;
+
+		if (changes.size() > 0) {
+			UniversalSigVec usv;
+			uget(sid, v_in, usv);
+
+			for (auto &change : changes) {
+				for (unsigned int iChannel = 0; iChannel < change.second.size(); iChannel++)
+					usv.SetVal_ch_vec(change.first, iChannel, change.second[iChannel], usv.data);
+			}
+
+		}
+
+		for (int iRemove = 0; iRemove < removes.size(); iRemove++) {
+			if (remove(sid, v_in, removes[iRemove] - iRemove) < 0)
+				return -1;
+		}
+
+	}
+
+	return 0;
+}
+
+//..................................................................................................................
 int PidDynamicRec::print_ver(int sid, int ver)
 {
 

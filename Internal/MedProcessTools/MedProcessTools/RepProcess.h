@@ -26,6 +26,7 @@ typedef enum {
 	REP_PROCESS_CALC_SIGNALS,///<"calc_signals" or "calculator" to activate RepCalcSimpleSignals
 	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
 	REP_PROCESS_CHECK_REQ, ///<check compliance with minimal requirement
+	REP_PROCESS_SIM_VAL, ///< handle multiple simultanous values
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -604,6 +605,70 @@ public:
 };
 
 //.......................................................................................
+/** SimValHandler handles multiple values at the same time **/
+//.......................................................................................
+
+// Modes of handling multiple values at the same time
+typedef enum {
+	SIM_VAL_FIRST_VAL,
+	SIM_VAL_LAST_VAL,
+	SIM_VAL_MEAN,
+	SIM_VAL_REM,
+	SIM_VAL_REM_DIFF,
+	MULT_VAL_LAST
+} SimValHandleTypes;
+
+class RepSimValHandler : public RepProcessor {
+public:
+	string signalName; 	///< name of signal to handle
+	int signalId;	///< id of signal to handle
+	vector<int> time_channels; ///< time channels to consider. All if empty
+	SimValHandleTypes handler_type; ///< type of handling multiple-values
+
+	int nValChannels; ///< number of value-channels, important for rem-diff and mean modes
+
+	string nHandle_attr = ""; ///< Attribute name (in sample) for number of multiple-values handled. not recorded if empty
+	string nHandle_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of multiple-values handled. not recorded if empty
+
+	/// <summary> default constructor </summary>
+	RepSimValHandler() { processor_type = REP_PROCESS_SIM_VAL; }
+	/// <summary> default constructor + setting signal name </summary>
+	RepSimValHandler(const string& _signalName) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_lists(); }
+	/// <summary> default constructor + setting signal name + initialize from string </summary>
+	RepSimValHandler(const string& _signalName, string init_string) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_from_string(init_string); }
+
+	/// <summary> Set signal name and fill affected and required signals sets </summary> 
+	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
+
+	/// <summary> Set signal id </summary>
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+
+	/// The parsed fields from init command.
+	/// @snippet RepProcess.cpp RepBasicOutlierCleaner::init
+	virtual int init(map<string, string>& mapper);
+	
+	/// Fill req- and aff-signals vectors
+	void init_lists();
+
+	/// init tables - get time-channels
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	/// <summary> Init attributes information : Should be implemented for inheriting classes that have attributes </summary>
+	void init_attributes();
+
+	/// <summary> Apply multiple-value handling </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+	void handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes);
+
+	/// <summary> get SimHandleType from name </summary>
+	static SimValHandleTypes get_sim_val_handle_type(string& name);
+
+	/// Serialization
+	int version() { return 0; }
+	ADD_SERIALIZATION_FUNCS(signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
+};
+
+//.......................................................................................
 /** RepPanelCompleter fills-in calculatable signal values. Enriching existing signals
 
 	The available completions are currently -
@@ -699,6 +764,9 @@ public:
 	// Missing value indication
 	float missing_val = MED_MAT_MISSING_VALUE;
 
+	// Handling multiple values
+	SimValHandleTypes sim_val_handler = SIM_VAL_LAST_VAL;
+
 	// Signals meta-data : original and final resolution and factors
 	string metadata_file;
 	vector<vector<float> > original_sig_res, final_sig_res, sig_conversion_factors;
@@ -763,7 +831,7 @@ public:
 	int update_signals(PidDynamicRec& rec, int iver, vector<vector<float>>& panels, vector<int>& panel_times, vector<int>& sigs_ids, vector<int>& changed);
 
 	// serialization. meta-data file is kept for information but not used in apply
-	ADD_SERIALIZATION_FUNCS(panel_signal_names, missing_val, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
+	ADD_SERIALIZATION_FUNCS(panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
 
 private:
 
