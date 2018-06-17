@@ -25,7 +25,7 @@ CMAKE_CXX_FLAGS_DEBUG:STRING=
 //Flags used by the CXX compiler during MINSIZEREL builds.
 CMAKE_CXX_FLAGS_MINSIZEREL:STRING=
 
-//Flags used by the CXX compiler during RELEASE builds.
+//Default flags for Release configuration
 CMAKE_CXX_FLAGS_RELEASE:STRING=
 
 //Flags used by the CXX compiler during RELWITHDEBINFO builds.
@@ -43,7 +43,7 @@ CMAKE_C_FLAGS_DEBUG:STRING=
 //Flags used by the C compiler during MINSIZEREL builds.
 CMAKE_C_FLAGS_MINSIZEREL:STRING=
 
-//Flags used by the C compiler during RELEASE builds.
+//Default flags for Release configuration
 CMAKE_C_FLAGS_RELEASE:STRING=
 
 //Flags used by the C compiler during RELWITHDEBINFO builds.
@@ -249,7 +249,7 @@ CMAKE_CACHE_MAJOR_VERSION:INTERNAL=3
 //Minor version of cmake used to create the current loaded cache
 CMAKE_CACHE_MINOR_VERSION:INTERNAL=11
 //Patch version of cmake used to create the current loaded cache
-CMAKE_CACHE_PATCH_VERSION:INTERNAL=2
+CMAKE_CACHE_PATCH_VERSION:INTERNAL=4
 //Path to CMake executable.
 CMAKE_COMMAND:INTERNAL=C:/Program Files/CMake/bin/cmake.exe
 //Path to cpack program executable.

@@ -6,6 +6,7 @@
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
+#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedStat/MedStat/MedPerformance.h"
 #include "MedStat/MedStat/MedStat.h"
 #include <unordered_set>

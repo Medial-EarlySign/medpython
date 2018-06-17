@@ -516,26 +516,26 @@ class FieldEntryBase : public FieldAccessEntry {
   typedef TEntry EntryType;
   // implement set value
   virtual void Set(void *head, const std::string &value) const {
-    std::istringstream is(value);
-    is >> this->Get(head);
-    if (!is.fail()) {
-      while (!is.eof()) {
-        int ch = is.get();
-        if (ch == EOF) {
-          is.clear(); break;
-        }
-        if (!isspace(ch)) {
-          is.setstate(std::ios::failbit); break;
-        }
-      }
-    }
+	  std::istringstream is(value);
+	  is >> this->Get(head);
+	  if (!is.fail()) {
+		  while (!is.eof()) {
+			  int ch = is.get();
+			  if (ch == EOF) {
+				  is.clear(); break;
+			  }
+			  if (!isspace(ch)) {
+				  is.setstate(std::ios::failbit); break;
+			  }
+		  }
+	  }
 
-    if (is.fail()) {
-      std::ostringstream os;
-      os << "Invalid Parameter format for " << key_
-         << " expect " << type_ << " but value=\'" << value<< '\'';
-      throw dmlc::ParamError(os.str());
-    }
+	  if (is.fail()) {
+		  std::ostringstream os;
+		  os << "Invalid Parameter format for " << key_
+			  << " expect " << type_ << " but value=\'" << value << '\'';
+		  throw dmlc::ParamError(os.str());
+	  }
   }
   virtual std::string GetStringValue(void *head) const {
     std::ostringstream os;
@@ -782,6 +782,41 @@ class FieldEntry<int>
   }
 };
 
+// specialize define for vector<float>
+template<>
+class FieldEntry<std::vector<float> >
+	: public FieldEntryBase<FieldEntry<std::vector<float>>, std::vector<float>> {
+public:
+	// parent class
+	typedef FieldEntryBase<FieldEntry<std::vector<float>>, std::vector<float>> Parent;
+	// override set
+	virtual void Set(void *head, const std::string &value) const {
+		// Comma separated
+		int start = 0;
+		for (size_t end = 1; end < value.length(); end++) {
+			if (value[end] == ',') {
+				float f = stof(value.substr(start, end - start));
+				this->Get(head).push_back(f);
+				start = end + 1;
+			}
+		}
+		float f = stof(value.substr(start, value.length() - start));
+		this->Get(head).push_back(f);
+	}
+
+protected:
+	// override print the value
+	virtual void PrintValue(std::ostream &os, std::vector<float>& value) const { // NOLINT(*)
+		for (float f : value)
+			os << '\'' << f << '\'';
+	}
+
+	// override print default
+	virtual void PrintDefaultValueString(std::ostream &os) const {  // NOLINT(*)
+		for (float f : default_value_)
+			os << '\'' << f << '\'';
+	}
+};
 
 // specialize define for optional<int>(enum)
 template<>

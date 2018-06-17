@@ -30,4 +30,7 @@ void get_all_required_signal_ids(unordered_set<int>& signalIds, vector<RepProces
 void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureGenerator *>& generators, unordered_set<int>& extra_req_signal_ids, 
 	vector<int>& all_req_signal_ids_v, vector<unordered_set<int> >& current_required_signal_ids);
 
+// Feature names
+int find_in_feature_names(vector<string>& names, string& substr);
+
 #endif

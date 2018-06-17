@@ -404,6 +404,29 @@ class ColMaker: public TreeUpdater {
         }
       }
     }
+	// Handle split-penalties
+	inline void get_split_penalties(std::vector<float>& penalties, const std::string desc, int num) {
+
+		penalties.resize(num, 0);
+
+		int start = 0, index = -1;
+		for (size_t i = 0; i < desc.length(); i++) {
+			if (desc[i] == ':') {
+				index = std::stoi(desc.substr(start, i - start));
+				start = i + 1;
+			}
+			else if (desc[i] == ',') {
+				float val = std::stof(desc.substr(start, i - start));
+				penalties[index] = val;
+				start = i + 1;
+			}
+		}
+
+		if (index != -1) {
+			float val = std::stof(desc.substr(start, desc.length() - start));
+			penalties[index] = val;
+		}
+	}
     // update enumeration solution
     inline void UpdateEnumeration(int nid, bst_gpair gstats,
                                   bst_float fvalue, int d_step, bst_uint fid,
@@ -432,6 +455,8 @@ class ColMaker: public TreeUpdater {
                       param, param.monotone_constraints[fid], e.stats, c) -
                   snode[nid].root_gain);
             }
+
+			loss_chg -= split_penalties[fid]; 
             e.best.Update(loss_chg, fid, (fvalue + e.last_fvalue) * 0.5f,
                           d_step == -1);
           }
@@ -649,7 +674,13 @@ class ColMaker: public TreeUpdater {
                           const std::vector<bst_gpair> &gpair,
                           DMatrix *p_fmat,
                           RegTree *p_tree) {
+
       std::vector<bst_uint> feat_set = feat_index;
+
+	  // Take care of split_penalties
+	  if (split_penalties.empty())
+		  get_split_penalties(split_penalties, param.split_penalties_s, (int) feat_index.size());
+
       if (param.colsample_bylevel != 1.0f) {
         std::shuffle(feat_set.begin(), feat_set.end(), common::GlobalRandom());
         unsigned n = std::max(static_cast<unsigned>(1),
@@ -777,8 +808,8 @@ class ColMaker: public TreeUpdater {
       }
     }
     //  --data fields--
-    const TrainParam& param;
-    // number of omp thread used during training
+	const TrainParam& param;
+	// number of omp thread used during training
     const int nthread;
     // Per feature: shuffle index of each feature index
     std::vector<bst_uint> feat_index;
@@ -792,6 +823,8 @@ class ColMaker: public TreeUpdater {
     std::vector<int> qexpand_;
     // constraint value
     std::vector<TConstraint> constraints_;
+	// split penalties
+	std::vector<float> split_penalties;
   };
 };
 

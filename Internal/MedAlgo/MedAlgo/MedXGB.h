@@ -6,6 +6,7 @@
 #include "xgboost/learner.h"
 #include "xgboost/data.h"
 #include <xgboost/c_api.h>
+#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 
 struct MedXGBParams {
 	string booster; // gbtree or gblinear
@@ -27,6 +28,7 @@ struct MedXGBParams {
 	float lambda;
 	float alpha;
 	int seed; // randomization seed
+	string split_penalties; // feature-dependent splitting penalty. string format is "number:value,number:value,..."
 
 
 	MedXGBParams() {
@@ -70,6 +72,8 @@ public:
 
 private:
 	bool _mark_learn_done;
+
+	void translate_split_penalties(string& split_penalties_s);
 };
 
 //=================================================================
