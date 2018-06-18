@@ -155,6 +155,7 @@ public:
 	int change(int sid, int v_in, int idx, void *new_elem, int v_out);	// changing element idx in v_in to *new_elem, and putting it all in v_out
 	int update(int sid, int v_in, vector<pair<int, void *>>& changes, vector<int>& removes); // Apply changes and removals
 	int update(int sid, int v_in, int val_channel, vector<pair<int, float>>& changes, vector<int>& removes); // Apply val changes and removals, unified variant
+	int update(int sid, int v_in, vector<pair<int, vector<float>>>& changes, vector<int>& removes); /// Apply val changes to all channels + removals
 
 	// an API to push a data vector universal signal style , given all its value and time channels
 	// when there are several channels (for time or values) , they should be placed one after the other for each member
