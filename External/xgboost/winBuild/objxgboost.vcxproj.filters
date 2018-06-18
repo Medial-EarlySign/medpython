@@ -258,40 +258,40 @@
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
-      <UniqueIdentifier>{8E2EA08B-873A-35B5-8E99-CDE6CE8E94E5}</UniqueIdentifier>
+      <UniqueIdentifier>{ADCF8E5B-8682-3C93-8F7D-565188D7E2C5}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\xgboost">
-      <UniqueIdentifier>{676A1D43-8163-3497-B611-C79108FE0D51}</UniqueIdentifier>
+      <UniqueIdentifier>{D5F397F4-A896-34D0-B76D-179837628596}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
-      <UniqueIdentifier>{8A5B8F7C-EEAB-300C-A16E-E1C3A6B2F044}</UniqueIdentifier>
+      <UniqueIdentifier>{AC65A47C-A1D8-37D2-8D1F-8F3DCF8BF243}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\c_api">
-      <UniqueIdentifier>{F4A41C09-93E5-3456-A96B-3990F2D3BB4B}</UniqueIdentifier>
+      <UniqueIdentifier>{AF05648C-2ADA-3DB1-BDA5-2060887084A1}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\common">
-      <UniqueIdentifier>{DC1736FE-8FD5-322E-A845-1E81E0520C6F}</UniqueIdentifier>
+      <UniqueIdentifier>{42210941-6430-35E8-B7A0-DFFC5E46578A}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\data">
-      <UniqueIdentifier>{33E8DF4D-16CA-3281-BB95-0896DC2791C2}</UniqueIdentifier>
+      <UniqueIdentifier>{76AF538E-668F-395C-95EF-6AD6BFEBE5CA}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\gbm">
-      <UniqueIdentifier>{4DDCAE15-8D51-3A71-BBB7-32D76D7258FE}</UniqueIdentifier>
+      <UniqueIdentifier>{01B25ABD-2095-336A-8D51-80302D0A11C5}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\linear">
-      <UniqueIdentifier>{88E7E5A7-7303-33FC-9636-3B0DF3374749}</UniqueIdentifier>
+      <UniqueIdentifier>{8BE553E5-C889-315B-8B92-A2C14AD3B59E}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\metric">
-      <UniqueIdentifier>{D734BE8A-6EBB-30FA-9E64-BA3E517BE0CF}</UniqueIdentifier>
+      <UniqueIdentifier>{E94A12AE-66B4-3DD7-AA7C-4084C717F3E7}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\objective">
-      <UniqueIdentifier>{B3F15367-1C24-3802-8441-DB6202424F0C}</UniqueIdentifier>
+      <UniqueIdentifier>{3ED1AA2B-E7CE-3B35-A6B7-F77B08EDAF42}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\predictor">
-      <UniqueIdentifier>{108B82F6-9512-304F-B6ED-B7061AD1F740}</UniqueIdentifier>
+      <UniqueIdentifier>{AE3C38A0-1947-336D-B20C-1946185016A0}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\tree">
-      <UniqueIdentifier>{90D9DC23-227A-3DA3-AB56-1563F9C94250}</UniqueIdentifier>
+      <UniqueIdentifier>{7294C583-A867-3873-BC46-C6CCB1DFBBFA}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\cli_main.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="H:\MR\Libs\External\xgboost\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\c_api.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\c_api_error.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\common.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\hist_util.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\host_device_vector.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\data.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\simple_csr_source.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\simple_dmatrix.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_dmatrix.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_raw_format.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_source.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_writer.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\gblinear.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\gbm.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\gbtree.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\learner.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\linear_updater.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_coordinate.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_shotgun.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\logging.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\elementwise_metric.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\metric.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\multiclass_metric.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\rank_metric.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\multiclass_obj.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\objective.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\rank_obj.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\regression_obj.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\cpu_predictor.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\predictor.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\tree_model.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\tree_updater.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_colmaker.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_fast_hist.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_histmaker.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_prune.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_refresh.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_skmaker.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="H:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_sync.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Object Libraries">
+      <UniqueIdentifier>{61FEFDC6-50CB-3567-8860-76203A7D9422}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{A3B754B7-F1F2-31D6-BA62-40A635101C4A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
