@@ -524,9 +524,9 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [FeatureNormalizer::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
-		else if (field == "normalizeSd") normalizeSd = (stoi(entry.second) != 0);
-		else if (field == "fillMissing") fillMissing = (stoi(entry.second) != 0);
-		else if (field == "max_samples") max_samples = stoi(entry.second);
+		else if (field == "normalizeSd") normalizeSd = (med_stoi(entry.second) != 0);
+		else if (field == "fillMissing") fillMissing = (med_stoi(entry.second) != 0);
+		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 		//! [FeatureNormalizer::init]
@@ -741,10 +741,10 @@ int FeatureImputer::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		if (field == "moment_type") moment_type = getMomentType(entry.second); 
-		else if (field == "min_samples") min_samples = stoi(entry.second);
+		else if (field == "min_samples") min_samples = med_stoi(entry.second);
 		//! [FeatureImputer::init]
 		if (field == "moment_type") moment_type = getMomentType(entry.second);
-		else if (field == "max_samples") max_samples = stoi(entry.second);
+		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addStrata(stratum);
@@ -844,11 +844,11 @@ int OneHotFeatProcessor::init(map<string, string>& mapper) {
 		//! [OneHotFeatProcessor::init]
 		if (field == "name") feature_name = entry.second;
 		else if (field == "prefix") index_feature_prefix = entry.second;
-		else if (field == "remove_origin") rem_origin = (stoi(entry.second) != 0);
-		else if (field == "add_other") add_other = (stoi(entry.second) != 0);
-		else if (field == "allow_other") allow_other = (stoi(entry.second) != 0);
-		else if (field == "remove_last") remove_last = (stoi(entry.second) != 0);
-		else if (field == "max_values") max_values = stoi(entry.second);
+		else if (field == "remove_origin") rem_origin = (med_stoi(entry.second) != 0);
+		else if (field == "add_other") add_other = (med_stoi(entry.second) != 0);
+		else if (field == "allow_other") allow_other = (med_stoi(entry.second) != 0);
+		else if (field == "remove_last") remove_last = (med_stoi(entry.second) != 0);
+		else if (field == "max_values") max_values = med_stoi(entry.second);
 		else 
 			MLOG("Unknown parameter \'%s\' for OneHotFeatProcessor\n", field.c_str());
 		//! [OneHotFeatProcessor::init]

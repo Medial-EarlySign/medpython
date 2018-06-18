@@ -36,7 +36,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator")
-			iGenerateWeights = stoi(entry.second);
+			iGenerateWeights = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for SmokingGenerator\n", field.c_str());
 		//! [SmokingGenerator::init]
