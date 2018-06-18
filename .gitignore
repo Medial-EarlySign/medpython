@@ -80,7 +80,3 @@ documentation_creation_server.log
 documentation_creation_user.log
 Internal/MedUtils/MedUtils.VC.opendb
 !External/LightGBM/LightGBM/CMakeLists.txt
-!External/xgboost/build/*.vcxproj
-!External/xgboost/build/*.vcxproj.filters
-!External/xgboost/CMakeLists.txt
-!External/xgboost/build/*.sln
