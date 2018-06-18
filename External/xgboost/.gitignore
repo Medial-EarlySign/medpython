@@ -97,3 +97,7 @@ winBuild/*
 !winBuild/*.sln
 !winBuild/*.vcxproj*
 !CMakeLists.txt
+!winBuild/dmlc-core
+winBuild/dmlc-core/*
+!winBuild/dmlc-core/*.vcxproj*
+
