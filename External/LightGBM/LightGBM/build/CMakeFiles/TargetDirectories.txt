@@ -1,2 +1,0 @@
-/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/build/CMakeFiles/_lightgbm.dir
-/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/build/CMakeFiles/lightgbm.dir
