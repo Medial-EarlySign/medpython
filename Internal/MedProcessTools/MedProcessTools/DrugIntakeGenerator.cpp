@@ -141,14 +141,14 @@ int DrugIntakeGenerator::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [DrugIntakeGenerator::init]
-		if (field == "win_from") win_from = stoi(entry.second);
-		else if (field == "win_to") win_to = stoi(entry.second);
+		if (field == "win_from") win_from = med_stoi(entry.second);
+		else if (field == "win_to") win_to = med_stoi(entry.second);
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "in_set_name") in_set_name = entry.second;
-		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for DrugIntakeGenerator\n", field.c_str());
 		//! [DrugIntakeGenerator::init]

@@ -161,20 +161,20 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [MedValueCleaner::init]
 		if (field == "type") params.type = get_cleaner_type(entry.second);
-		else if (field == "take_log") params.take_log = stoi(entry.second);
-		else if (field == "missing_value") params.missing_value = stof(entry.second);
-		else if (field == "trimming_sd_num") params.trimming_sd_num = stof(entry.second);
-		else if (field == "removing_sd_num") params.removing_sd_num = stof(entry.second);
-		else if (field == "nbrs_sd_num") params.nbrs_sd_num = stof(entry.second);
-		else if (field == "quantile") params.quantile = stof(entry.second);
-		else if (field == "trimming_quantile_factor") params.trimming_quantile_factor = stof(entry.second);
-		else if (field == "removing_quantile_factor") params.removing_quantile_factor = stof(entry.second);
-		else if (field == "nbrs_quantile_factor") params.nbrs_quantile_factor = stof(entry.second);
-		else if (field == "doTrim") params.doTrim = (stoi(entry.second) != 0);
-		else if (field == "doRemove") params.doRemove = (stoi(entry.second) != 0);
-		else if (field == "range_min") params.range_min = stof(entry.second);
-		else if (field == "range_max") params.range_max = stof(entry.second);
-		else if (field == "max_samples") params.max_samples = stoi(entry.second);
+		else if (field == "take_log") params.take_log = med_stoi(entry.second);
+		else if (field == "missing_value") params.missing_value = med_stof(entry.second);
+		else if (field == "trimming_sd_num") params.trimming_sd_num = med_stof(entry.second);
+		else if (field == "removing_sd_num") params.removing_sd_num = med_stof(entry.second);
+		else if (field == "nbrs_sd_num") params.nbrs_sd_num = med_stof(entry.second);
+		else if (field == "quantile") params.quantile = med_stof(entry.second);
+		else if (field == "trimming_quantile_factor") params.trimming_quantile_factor = med_stof(entry.second);
+		else if (field == "removing_quantile_factor") params.removing_quantile_factor = med_stof(entry.second);
+		else if (field == "nbrs_quantile_factor") params.nbrs_quantile_factor = med_stof(entry.second);
+		else if (field == "doTrim") params.doTrim = (med_stoi(entry.second) != 0);
+		else if (field == "doRemove") params.doRemove = (med_stoi(entry.second) != 0);
+		else if (field == "range_min") params.range_min = med_stof(entry.second);
+		else if (field == "range_max") params.range_max = med_stof(entry.second);
+		else if (field == "max_samples") params.max_samples = med_stoi(entry.second);
 
 		// next are in ignore ... used in level above
 		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&

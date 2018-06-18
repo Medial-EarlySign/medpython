@@ -625,8 +625,8 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		string field = entry.first;
 		//! [RepBasicOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; }
-		else if (field == "time_channel") time_channel = stoi(entry.second);
-		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
@@ -864,8 +864,8 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		string field = entry.first;
 		//! [RepConfiguredOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
-		else if (field == "time_channel") time_channel = stoi(entry.second);
-		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
@@ -1006,16 +1006,16 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 			for (auto sig : aff_signals)  // all affected are of course required
 				req_signals.insert(sig);
 		}
-		else if (field == "time_channel") time_channel = stoi(entry.second);
-		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "addRequiredSignals")addRequiredSignals = stoi(entry.second)!=0;
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
+		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second)!=0;
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
-		else if (field == "tolerance") tolerance = stof(entry.second);
+		else if (field == "tolerance") tolerance = med_stof(entry.second);
 		else if (field == "consideredRules") {
 			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
 			for (auto& rule : rulesStrings) {
-				int ruleNum = stoi(rule);
+				int ruleNum = med_stoi(rule);
 				consideredRules.push_back(ruleNum);
 				if (ruleNum == 0)break;
 			}
@@ -1324,10 +1324,10 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 		string field = entry.first;
 		//! [RepNbrsOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; }
-		else if (field == "time_channel") time_channel = stoi(entry.second);
-		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
-		else if (field == "nbr_time_width") nbr_time_width = stoi(entry.second);
+		else if (field == "nbr_time_width") nbr_time_width = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
@@ -1572,9 +1572,9 @@ int RepCheckReq::init(map<string, string>& mapper)
 		else if (field == "time_unit") 
 			window_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "win_from") 
-			win_from = stoi(entry.second);
+			win_from = med_stoi(entry.second);
 		else if (field == "win_to") 
-			win_to = stoi(entry.second);
+			win_to = med_stoi(entry.second);
 		else if (field == "attr")
 			attrName = entry.second;
 		//! [RepMinimalReq::init]

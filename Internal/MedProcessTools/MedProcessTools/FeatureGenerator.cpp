@@ -205,7 +205,7 @@ int FeatureGenerator::init(map<string, string>& mapper) {
 		if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator")
-			iGenerateWeights = stoi(entry.second);
+			iGenerateWeights = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for FeatureGenerator\n", field.c_str());
 	}
@@ -328,7 +328,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 
 
 	if (isInteger(name))
-		return (BasicFeatureTypes)stoi(name);
+		return (BasicFeatureTypes)med_stoi(name);
 	else
 		MTHROW_AND_ERR("unknown name [%s]\n", name.c_str());
 }
@@ -468,19 +468,19 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [BasicFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
-		else if (field == "win_from") win_from = stoi(entry.second);
-		else if (field == "win_to") win_to = stoi(entry.second);
-		else if (field == "d_win_from") d_win_from = stoi(entry.second);
-		else if (field == "d_win_to") d_win_to = stoi(entry.second);
+		else if (field == "win_from") win_from = med_stoi(entry.second);
+		else if (field == "win_to") win_to = med_stoi(entry.second);
+		else if (field == "d_win_from") d_win_from = med_stoi(entry.second);
+		else if (field == "d_win_to") d_win_to = med_stoi(entry.second);
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
-		else if (field == "time_channel") time_channel = stoi(entry.second);
-		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "sum_channel") sum_channel = stoi(entry.second);
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
+		else if (field == "sum_channel") sum_channel = med_stoi(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "in_set_name") in_set_name = entry.second;
-		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field != "fg_type")
 				MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 		//! [BasicFeatGenerator::init]
@@ -588,7 +588,7 @@ int GenderGenerator::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [SingletonGenerator::init]
 		 if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
-		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
 		//! [SingletonGenerator::init]
@@ -682,7 +682,7 @@ int SingletonGenerator::init(map<string, string>& mapper) {
 		//! [SingletonGenerator::init]
 		if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
-		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
+		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "in_set_name") in_set_name = entry.second;
 		else if (field != "fg_type")
@@ -739,15 +739,15 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [RangeFeatGenerator::init]
 		if (field == "type") { type = name_to_type(entry.second); }
-		else if (field == "win_from") win_from = stoi(entry.second);
-		else if (field == "win_to") win_to = stoi(entry.second);
+		else if (field == "win_from") win_from = med_stoi(entry.second);
+		else if (field == "win_to") win_to = med_stoi(entry.second);
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
 		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
-		else if (field == "val_channel") val_channel = stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
-		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
-		else if (field == "check_first") check_first = stoi(entry.second);
+		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
+		else if (field == "check_first") check_first = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -798,7 +798,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "ever")			return FTR_RANGE_EVER;
 	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
 
-	return (RangeFeatureTypes)stoi(name);
+	return (RangeFeatureTypes)med_stoi(name);
 }
 
 // Generate
@@ -1424,7 +1424,7 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		//! [ModelFeatGenerator::init]
 		if (field == "name") modelName = entry.second;
 		else if (field == "file") modelFile = entry.second;
-		else if (field == "n_preds") n_preds = stoi(entry.second);
+		else if (field == "n_preds") n_preds = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
 		//! [ModelFeatGenerator::init]
