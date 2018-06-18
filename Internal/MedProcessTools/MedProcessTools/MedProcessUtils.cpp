@@ -128,3 +128,26 @@ void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureG
 		get_all_required_signal_ids(current_required_signal_ids[i], processors, (int)i, generators);
 	}
 }
+
+// Handle feature names
+//.......................................................................................
+int find_in_feature_names(vector<string>& names, string& substr) {
+
+	int index = -1;
+	for (int i = 0; i < names.size(); i++) {
+		if (names[i].find(substr) != string::npos) {
+			if (index != -1)
+				MTHROW_AND_ERR("%s\n", (string("Got source_feature_name [") + substr + "] which matches both [" + names[i] + "] and [" + names[index] + "]").c_str());
+			index = i;
+		}
+	}
+
+	if (index == -1) {
+		string err = string("Got source_feature_name [") + substr + "] which does not match any feature (did you forget to set duplicate=1?). Tried matching to these features:\n";
+		for (auto candidate : names)
+			err += candidate + "\n";
+		MTHROW_AND_ERR("%s\n", err.c_str());
+	}
+	else
+		return index;
+}

@@ -1710,6 +1710,7 @@ int RepSimValHandler::init(map<string, string>& mapper)
 	}
 
 	init_lists();
+	return 0;
 }
 
 // init attributes list

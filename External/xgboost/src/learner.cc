@@ -252,7 +252,7 @@ class LearnerImpl : public Learner {
     }
 
     // set number of features correctly.
-    cfg_["num_feature"] = common::ToString(mparam.num_feature);
+	cfg_["num_feature"] = common::ToString(mparam.num_feature);
     cfg_["num_class"] = common::ToString(mparam.num_class);
 
     if (gbm_.get() != nullptr) {

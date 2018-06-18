@@ -123,27 +123,14 @@ int FeatureProcessor::apply(MedFeatures& features) {
 //.......................................................................................
 string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
 
-	string real_feature_name = "";
-
 	// Exact name ?
 	if (features.data.find(substr) != features.data.end())
 		return substr;
-
-	// Or ...
-	for (auto &candidate : features.attributes)
-		if (candidate.first.find(substr) != string::npos) {
-			if (real_feature_name != "")
-				MTHROW_AND_ERR("%s\n", (string("processor_type [%d] got source_feature_name [") + substr + "] which matches both [" + real_feature_name + "] and [" + candidate.first + "]").c_str());
-			real_feature_name = candidate.first;
-		}
-	if (real_feature_name == "") {		
-		string err = string("processor_type [%d] got source_feature_name [") + substr + "] which does not match any feature (did you forget to set duplicate=1?). Tried matching to these features:\n";
-		for (auto candidate : features.attributes)
-			err += candidate.first + "\n";
-		MTHROW_AND_ERR("%s\n", err.c_str());
+	else {
+		vector<string> names;
+		get_feature_names(names);
+		return names[find_in_feature_names(names, substr)];
 	}
-
-	return real_feature_name;
 }
 
 // (De)Serialize

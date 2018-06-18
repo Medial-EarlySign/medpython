@@ -1,5 +1,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ALL_BUILD", "ALL_BUILD.vcxproj", "{6EBC12EA-5AC5-3766-BA18-860179D09C83}"
 	ProjectSection(ProjectDependencies) = postProject
 		{F6D1B97C-21E3-32D3-AD00-3643EBA4763F} = {F6D1B97C-21E3-32D3-AD00-3643EBA4763F}
@@ -11,8 +13,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ALL_BUILD", "ALL_BUILD.vcxp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZERO_CHECK", "ZERO_CHECK.vcxproj", "{F6D1B97C-21E3-32D3-AD00-3643EBA4763F}"
-	ProjectSection(ProjectDependencies) = postProject
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dmlccore", "dmlc-core\dmlccore.vcxproj", "{1863CD1A-1F75-39FF-86BB-971E4BB9E063}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -71,9 +71,10 @@ Global
 		{D496DACD-631D-3256-B0A4-8E6395AFCB4E}.Release|x64.ActiveCfg = Release|x64
 		{D496DACD-631D-3256-B0A4-8E6395AFCB4E}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A16613CB-7BBE-32A8-9BCE-29687AA15C25}
-	EndGlobalSection
-	GlobalSection(ExtensibilityAddIns) = postSolution
 	EndGlobalSection
 EndGlobal

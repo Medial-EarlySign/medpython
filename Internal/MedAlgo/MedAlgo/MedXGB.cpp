@@ -96,6 +96,7 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 
 	return 0;
 }
+
 int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	DMatrixHandle h_train[1];
@@ -130,6 +131,10 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	XGBoosterSetParam(h_booster, "alpha", boost::lexical_cast<std::string>(params.alpha).c_str());
 	XGBoosterSetParam(h_booster, "tree_method", boost::lexical_cast<std::string>(params.tree_method).c_str());
 
+	string split_penalties_s;
+	translate_split_penalties(split_penalties_s);
+	XGBoosterSetParam(h_booster, "split_penalties_s", boost::lexical_cast<std::string>(split_penalties_s).c_str());
+
 	const double start = dmlc::GetTime();
 #pragma omp critical
 	XGBoosterUpdateOneIter(h_booster, 0, h_train[0]);
@@ -147,6 +152,22 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	XGDMatrixFree(h_train[0]);
 	return 0;
+}
+
+void MedXGB::translate_split_penalties(string& split_penalties_s) {
+
+	vector<string> elems;
+	boost::split(elems, params.split_penalties, boost::is_any_of(",:"));
+	if (elems.size() < 2)
+		return;
+
+	vector<string> out_elems;
+	for (unsigned int i = 0; i < elems.size(); i += 2) {
+		int index = find_in_feature_names(model_features, elems[i]);
+		out_elems.push_back(to_string(index) + ":" + elems[i + 1]);
+	}
+
+	split_penalties_s = boost::join(out_elems, ",");
 }
 
 typedef rabit::utils::MemoryFixSizeBuffer MemoryFixSizeBuffer;
@@ -172,7 +193,7 @@ bool split_token(const string &str, const string &search, bool first
 		return false;
 	result = first ? str.substr(0, str.find(search)) : str.substr(str.find(search) + search.size());
 	return true;
-}
+}  
 
 /*
 Importance type can be defined as:
@@ -330,6 +351,7 @@ int MedXGB::init(map<string, string>& mapper) {
 		else if (field == "lambda") params.lambda = stof(entry.second);
 		else if (field == "alpha") params.alpha = stof(entry.second);
 		else if (field == "seed") params.seed = stoi(entry.second);
+		else if (field == "split_penalties") params.split_penalties = entry.second;
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
 		//! [MedXGB::init]
 	}

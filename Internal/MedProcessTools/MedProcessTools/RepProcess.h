@@ -831,6 +831,7 @@ public:
 	int update_signals(PidDynamicRec& rec, int iver, vector<vector<float>>& panels, vector<int>& panel_times, vector<int>& sigs_ids, vector<int>& changed);
 
 	// serialization. meta-data file is kept for information but not used in apply
+	int version() { return 1; }
 	ADD_SERIALIZATION_FUNCS(panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
 
 private:

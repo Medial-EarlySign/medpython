@@ -1,4 +1,4 @@
-project(LightGBM)
+project(windows)
 cmake_minimum_required(VERSION 2.8)
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
@@ -26,7 +26,9 @@ include_directories($ENV{MR_ROOT}/Libs/External/LightGBM/LightGBM/include)
 
 link_directories(/server/Work/Libs/Boost/latest/stage/lib)
 
-add_subdirectory(windows)
+add_subdirectory(dmlc)
+add_subdirectory(rabit)
+add_subdirectory(xgboost)
 
 
 #include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakePrintProperties.txt")
