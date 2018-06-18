@@ -466,6 +466,7 @@ int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
 
 	}
 
+	return 0;
 }
 
 
