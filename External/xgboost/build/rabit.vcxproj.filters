@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="H:\MR\Libs\External\xgboost\rabit\src\allreduce_base.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="H:\MR\Libs\External\xgboost\rabit\src\allreduce_robust.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="H:\MR\Libs\External\xgboost\rabit\src\engine.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="H:\MR\Libs\External\xgboost\rabit\src\c_api.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="H:\MR\Libs\External\xgboost\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{209D7006-28C1-3F00-8134-87AC42BF57F8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

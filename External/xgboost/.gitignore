@@ -93,3 +93,8 @@ lib/
 metastore_db
 
 plugin/updater_gpu/test/cpp/data
+!build
+build/*
+!build/*.sln
+!build/*.vcxproj*
+!CMakeLists.txt
