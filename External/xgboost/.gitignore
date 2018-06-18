@@ -97,4 +97,4 @@ plugin/updater_gpu/test/cpp/data
 build/*
 !build/*.sln
 !build/*.vcxproj*
-!CMakeLists.txt
+!./CMakeLists.txt
