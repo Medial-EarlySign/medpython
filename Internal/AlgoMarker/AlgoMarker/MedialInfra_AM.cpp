@@ -256,17 +256,18 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 					// we now test the attribute tests
 					vector<InputSanityTesterResult> test_res;
-					if (ist.test_if_ok(s, test_res) <= 0) {
+					int test_rc = ist.test_if_ok(s, test_res);
 
-						AMMessages *msgs = res->get_msgs();
-						for (auto &tres : test_res) {
-							//string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
-							string msg = msg_prefix + tres.err_msg; // no Internal Code message (prev code in comment above).
-							msgs->insert_message(tres.external_rc, msg.c_str());
-						}
-
-						n_bad_scores++;
+					AMMessages *msgs = res->get_msgs();
+					for (auto &tres : test_res) {
+						//string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
+						string msg = msg_prefix + tres.err_msg; // no Internal Code message (prev code in comment above).
+						//MLOG("Inserting attr error to pid %d ts %d : %d : %s\n", c_pid, ts, tres.external_rc, msg.c_str());
+						msgs->insert_message(tres.external_rc, msg.c_str());
 					}
+
+					if (test_rc <= 0)
+						n_bad_scores++;
 					else {
 
 						// all is fine, we insert the score into its place
