@@ -7,6 +7,7 @@
 #include "xgboost/data.h"
 #include <xgboost/c_api.h>
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
+#include "MedProcessTools/MedProcessTools/MedSamples.h"
 
 struct MedXGBParams {
 	string booster; // gbtree or gblinear

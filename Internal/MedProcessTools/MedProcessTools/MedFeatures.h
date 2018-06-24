@@ -5,6 +5,7 @@
 
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
+#include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 

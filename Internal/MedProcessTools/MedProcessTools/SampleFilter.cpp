@@ -2,6 +2,7 @@
 #include "Logger/Logger/Logger.h"
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
+#include "MedUtils/MedUtils/MedUtils.h"
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 

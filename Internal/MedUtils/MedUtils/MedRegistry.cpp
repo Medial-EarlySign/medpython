@@ -5,6 +5,8 @@
 #include <random>
 #include <map>
 #include "Logger/Logger/Logger.h"
+#include "MedUtils/MedUtils/MedUtils.h"
+#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
 
