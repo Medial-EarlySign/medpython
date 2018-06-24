@@ -376,7 +376,8 @@ void BasicFeatGenerator::set_names() {
 	if (time_channel!=0 || val_channel != 0)
 		name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name);
-	//tags.push_back(name);
+	// add the undecorated feature name as a tag, so we can later remove/select it with TagFeatureSelector
+	tags.push_back(name); 
 	//MLOG("Created %s\n", name.c_str());
 
 	//time_unit_sig = rep.sigs.Sid2Info[sid].time_unit; !! this is an issue to SOLVE !!

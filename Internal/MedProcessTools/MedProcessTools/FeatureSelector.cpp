@@ -6,6 +6,7 @@
 #include "FeatureProcess.h"
 #include "DoCalcFeatProcessor.h"
 #include <omp.h>
+#include <boost/regex.hpp>
 
 //=======================================================================================
 // FeatureSelector
@@ -55,8 +56,8 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Log
-	//for (string& feature : selected)
-		//MLOG("Feature Selection: Selected %s\n", feature.c_str());
+	for (string& feature : selected)
+		MLOG("Feature Selection: Selected %s\n", feature.c_str());
 
 	return 0;
 }
@@ -833,6 +834,10 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
 	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
 	unordered_set<string> r(removed_tags.begin(), removed_tags.end());
+	for (string sub : r)
+		MLOG("TagFeatureSelector removing features with tag [%s]\n", sub.c_str());
+	for (string sub : s)
+		MLOG("TagFeatureSelector selecting features with tag [%s]\n", sub.c_str());
 	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
 		string feature_name = it->first;
 		unordered_set<string> feature_tags = it->second;
@@ -844,10 +849,12 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			auto start_it = feature_tags.begin();
 			while (!found_remove && start_it != feature_tags.end()) {
 				for (const string& substring: r){
-					if ((*start_it).find(substring) != std::string::npos) {
+					boost::regex regi(substring);
+					if (boost::regex_match(*start_it, regi)){
 						found_remove = true;
 						MLOG("TagFeatureSelector removing [%s] because of tag [%s] that contains [%s]\n", 
 							feature_name.c_str(), (*start_it).c_str(), substring.c_str());
+						break;
 					}
 				}
 				++start_it;
@@ -863,8 +870,16 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			found_match = false;
 			auto start_it = feature_tags.begin();
 			while (!found_match && start_it != feature_tags.end()) {
-				if (s.find(*start_it) != s.end())
-					found_match = true;
+				//MLOG("considering [%s]\n",(*start_it).c_str());
+				for (const string& substring : s) {
+					boost::regex regi(substring);
+					if (boost::regex_match(*start_it, regi)){
+						found_match = true;
+						MLOG("TagFeatureSelector selecting [%s] because of tag [%s] that contains [%s]\n",
+							feature_name.c_str(), (*start_it).c_str(), substring.c_str());
+						break;
+					}
+				}
 				++start_it;
 			}
 		}
