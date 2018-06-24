@@ -3,7 +3,7 @@
 #include <map>
 #include <vector>
 #include <limits.h>
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
 
 using namespace std;
 

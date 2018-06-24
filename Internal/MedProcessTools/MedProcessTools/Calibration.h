@@ -1,9 +1,9 @@
 #pragma once
 #include <vector>
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
-#include "MedFeat/MedFeat/MedOutcome.h"
-#include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "Logger/Logger/Logger.h"
+#include <Logger/Logger/Logger.h>
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedFeat/MedFeat/MedOutcome.h>
 
 using namespace std;
 

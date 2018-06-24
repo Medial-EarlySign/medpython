@@ -1,12 +1,11 @@
 #ifndef __MEDXGB_H__
 #define __MEDXGB_H__
 #pragma once
-#include "MedAlgo.h"
-//#if 1
-#include "xgboost/learner.h"
-#include "xgboost/data.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
+#include <xgboost/learner.h>
+#include <xgboost/data.h>
 #include <xgboost/c_api.h>
-#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 
 struct MedXGBParams {
 	string booster; // gbtree or gblinear

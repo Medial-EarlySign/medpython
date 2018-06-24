@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "MedFeatures.h"
+#include <MedProcessTools/MedProcessTools/MedFeatures.h>
+#include <MedUtils/MedUtils/MedUtils.h>
 #include <random>
 
 #include "Logger/Logger/Logger.h"

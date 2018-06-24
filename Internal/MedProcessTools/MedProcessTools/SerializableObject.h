@@ -20,6 +20,9 @@ public:
 	///implementing class
 	virtual int version() { return  0; }
 
+	// next adds an option to add some actions before a serialization is done
+	virtual void pre_serialization() {};
+
 	// Virtual serialization
 	virtual size_t get_size() { return 0; } ///<Gets bytes sizes for serializations
 	virtual size_t serialize(unsigned char *blob) { return 0; } ///<Serialiazing object to blob memory. return number ob bytes wrote to memory
@@ -64,6 +67,8 @@ namespace MedSerialize {																							\
 * To add automatic serialization to your class you can use the following macro with the list of the \n
 * variables to serialize inside your class. They all should be MedSerialize supported\n
 */
+//size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize(blob, __VA_ARGS__); }		\
+
 #define ADD_SERIALIZATION_FUNCS(...)																\
 	size_t get_size() { return MedSerialize::get_size(__VA_ARGS__); }								\
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob,  __VA_ARGS__);}		\

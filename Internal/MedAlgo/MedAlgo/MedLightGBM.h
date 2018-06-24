@@ -11,7 +11,7 @@
 // 
 //========================================================================================================
 
-#include "MedAlgo.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
 #include <LightGBM/application.h>
 #include <LightGBM/dataset.h>
 #include <LightGBM/boosting.h>

@@ -3,15 +3,15 @@
 #ifndef _MED_CV_H_
 #define _MED_CV_H_
 
-#include "InfraMed/InfraMed/InfraMed.h"
-#include "Logger/Logger/Logger.h"
-#include "MedProcessTools/MedProcessTools/RepProcess.h"
-#include "MedProcessTools/MedProcessTools/FeatureProcess.h"
-#include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
-#include "MedAlgo/MedAlgo/MedAlgo.h"
-#include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "MedProcessTools/MedProcessTools/SampleFilter.h"
-#include "MedProcessTools/MedProcessTools/MedModel.h"
+#include <InfraMed/InfraMed/InfraMed.h>
+#include <Logger/Logger/Logger.h>
+#include <MedProcessTools/MedProcessTools/RepProcess.h>
+#include <MedProcessTools/MedProcessTools/FeatureProcess.h>
+#include <MedProcessTools/MedProcessTools/FeatureGenerator.h>
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedProcessTools/MedProcessTools/SampleFilter.h>
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 
 #define DEFAULT_CV_NTHREADS 8
 

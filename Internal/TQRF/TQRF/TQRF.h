@@ -164,6 +164,13 @@ public:
 
 
 	// Serialization
+	ADD_SERIALIZATION_FUNCS(init_string, samples_time_unit, samples_time_unit_i, ncateg, time_slice_unit, time_slice_unit_i, time_slice_size, n_time_slices,
+		time_slices, time_slices_wgts, censor_cases, max_q, tree_type, ntrees, max_depth, min_node_last_slice, min_node, random_split_prob, ntry, ntry_prob,
+		nsplits, max_node_test_samples, single_sample_per_pid, bag_with_repeats, bag_prob, bag_ratio, bag_feat, qpoints_per_split, nvals_for_categorial, categorial_str,
+		categorial_tags, missing_val, missing_method_str, missing_method, test_for_inf, test_for_missing, only_this_categ, predict_from_slice, predict_to_slice,
+		predict_sum_times, case_wgt, nrounds, min_p, max_p, alpha, wgts_pow, tuning_size, tune_max_depth, tune_min_node_size, gd_rate, gd_batch, gd_momentum,
+		gd_lambda, gd_epochs, verbosity, ids_to_print, debug);
+
 	//ADD_SERIALIZATION_FUNCS(init_string, samples_time_unit, time_slice_unit, time_slice_size, time_slices, max_q, max_q_sample, tree_type, ntrees, max_depth, min_node_last_slice, min_node, )
 };
 
@@ -260,6 +267,9 @@ public:
 
 	// following are never serialized - only for learn time
 	int state = TQRF_Node_State_Initiated; // 0 - created 1 - in process 2 - done with
+
+	ADD_SERIALIZATION_FUNCS(node_idx, i_feat, bound, is_terminal, left_node, right_node, depth, missing_direction, from_idx, to_idx,
+		node_serialization_mask, beta_idx, time_categ_count, state);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -463,6 +473,8 @@ public:
 	float prep_node_counts(int i_curr_node, int use_wgts_flag);
 
 
+	void pre_serialization() { if (keep_indexes == 0) indexes.clear(); }
+	ADD_SERIALIZATION_FUNCS(tree_type, id, keep_indexes, indexes, nodes);
 
 private:
 	Quantized_Feat *_qfeat;
@@ -523,6 +535,9 @@ public:
 	// simple helpers
 	static int get_tree_type(const string &str);
 	static int get_missing_value_method(const string &str);
+
+	ADD_SERIALIZATION_FUNCS(params, trees, alphas, betas);
+
 private:
 
 };
@@ -553,3 +568,7 @@ public:
 //========================================
 // Join the serialization Waggon
 //========================================
+MEDSERIALIZE_SUPPORT(TQRF_Params);
+MEDSERIALIZE_SUPPORT(TQRF_Node);
+MEDSERIALIZE_SUPPORT(TQRF_Tree);
+MEDSERIALIZE_SUPPORT(TQRF_Forest);
