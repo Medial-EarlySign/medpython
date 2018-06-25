@@ -165,7 +165,7 @@ public:
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(init_string, samples_time_unit, samples_time_unit_i, ncateg, time_slice_unit, time_slice_unit_i, time_slice_size, n_time_slices,
-		time_slices, time_slices_wgts, censor_cases, max_q, tree_type, ntrees, max_depth, min_node_last_slice, min_node, random_split_prob, ntry, ntry_prob,
+		time_slices, time_slices_wgts, censor_cases, max_q, tree_type, tree_type_i, ntrees, max_depth, min_node_last_slice, min_node, random_split_prob, ntry, ntry_prob,
 		nsplits, max_node_test_samples, single_sample_per_pid, bag_with_repeats, bag_prob, bag_ratio, bag_feat, qpoints_per_split, nvals_for_categorial, categorial_str,
 		categorial_tags, missing_val, missing_method_str, missing_method, test_for_inf, test_for_missing, only_this_categ, predict_from_slice, predict_to_slice,
 		predict_sum_times, case_wgt, nrounds, min_p, max_p, alpha, wgts_pow, tuning_size, tune_max_depth, tune_min_node_size, gd_rate, gd_batch, gd_momentum,
