@@ -299,7 +299,7 @@ public:
 	//~AgeGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Age"); }
+	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Age"); tags.push_back("Age"); }
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AgeGenerator *>(generator)); }
@@ -379,7 +379,7 @@ public:
 	//~GenderGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("Gender"); }
+	void set_names() { if (names.empty()) names.push_back("Gender"); tags.push_back("Gender");}
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<GenderGenerator *>(generator)); }

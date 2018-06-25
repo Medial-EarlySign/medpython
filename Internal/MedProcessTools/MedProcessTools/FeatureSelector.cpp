@@ -56,8 +56,8 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	// Log
-	for (string& feature : selected)
-		MLOG("Feature Selection: Selected %s\n", feature.c_str());
+	//for (string& feature : selected)
+		//MLOG("Feature Selection: Selected %s\n", feature.c_str());
 
 	return 0;
 }
