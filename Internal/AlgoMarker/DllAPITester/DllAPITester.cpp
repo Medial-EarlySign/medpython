@@ -8,21 +8,26 @@
 
 #define AM_DLL_IMPORT
 
-#include "AlgoMarker/AlgoMarker/AlgoMarker.h"
+#include <AlgoMarker/AlgoMarker/AlgoMarker.h>
 
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
 
 
+#include <Logger/Logger/Logger.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
-#include <Logger/Logger/Logger.h>
+#include <MedUtils/MedUtils/MedIO.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 using namespace std;
 namespace po = boost::program_options;
+namespace pt = boost::property_tree;
 
 //=========================================================================================================
 int read_run_params(int argc, char *argv[], po::variables_map& vm) {
@@ -39,6 +44,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("single", "run test in single mode, instead of the default batch")
 			("print_msgs", "print algomarker messages when testing batches or single (direct test always prints them)")
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
+			("json_data", po::value<string>()->default_value(""), "test json data for --direct_test option")
 			("date", po::value<long long>()->default_value(20180101), "test date")
 			("egfr_test" , "split to a debug routine for the simple egfr algomarker")
 			;
@@ -434,6 +440,8 @@ int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
 	boost::split(sigs, sdata, boost::is_any_of(";"));
 
 	for (auto &s : sigs) {
+		if (s == "") continue;
+
 		vector<string> f;
 		boost::split(f, s, boost::is_any_of(":"));
 		string sig = f[0];
@@ -469,7 +477,52 @@ int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
 	return 0;
 }
 
+//=============================================================================================================================
+int input_json_to_string(string json_fname, string &sdata)
+{
+	sdata = "";
+	string jdata;
+	if (read_file_into_string(json_fname, jdata) < 0) return -1;
+	istringstream s(jdata);
 
+	MLOG("jdata is %s\n", jdata.c_str());
+
+	pt::ptree pt;
+	pt:read_json(s, pt);
+
+	for (auto &p : pt.get_child("signals")) {
+		auto& sig = p.second;
+		string sig_name = sig.get<string>("code");
+		
+		vector<long long> ts;
+		vector<float> vals;
+		for (auto &data :sig.get_child("data")) {
+			for (auto &t : data.second.get_child("timestamp"))
+				ts.push_back(t.second.get_value<long long>());
+			for (auto &v : data.second.get_child("value"))
+				vals.push_back(v.second.get_value<float>());
+		}
+		sdata += sig_name;
+		if (vals.size() > 0) {
+			sdata += ":";
+			for (auto &v : vals) {
+				sdata += to_string(v);
+				if (&v != &vals.back()) sdata += ",";
+			}
+		}
+		if (ts.size() > 0) {
+			sdata += ":";
+			for (auto &t : ts) {
+				sdata += to_string(t);
+				if (&t != &ts.back()) sdata += ",";
+			}
+		}
+		sdata += ";";
+	}
+
+	MLOG("Converted to string: %s\n", sdata.c_str());
+	return 0;
+}
 
 //=============================================================================================================================
 int debug_me(po::variables_map &vm)
@@ -494,7 +547,9 @@ int debug_me(po::variables_map &vm)
 
 
 	// Load Data
-	load_algomarker_from_string(test_am, 1, vm["test_data"].as<string>());
+	string sdata = vm["test_data"].as<string>();
+	if (vm["json_data"].as<string>() != "") input_json_to_string(vm["json_data"].as<string>(), sdata);
+	load_algomarker_from_string(test_am, 1, sdata);
 	
 	// Calculate
 	char *stypes[] ={ "Raw" };
