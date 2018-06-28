@@ -160,7 +160,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	int n_score_types = request->get_n_score_types();
 	for (int i=0; i<n_score_types; i++) {
 		if (!IsScoreTypeSupported(request->get_score_type(i))) {
-			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
+			//string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
+			string msg = msg_prefix + " AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
 			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
 		}
