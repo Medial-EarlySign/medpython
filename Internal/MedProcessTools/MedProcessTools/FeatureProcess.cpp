@@ -353,6 +353,21 @@ void MultiFeatureProcessor::dprint(const string &pref, int fp_flag)
 //=======================================================================================
 // FeatureBasicOutlierCleaner
 //=======================================================================================
+// Init from map
+//.......................................................................................
+int FeatureBasicOutlierCleaner::init(map<string, string>& mapper)
+{
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [FeatureBasicOutlierCleaner::init]
+		if (field == "name") feature_name = entry.second;
+		//! [FeatureBasicOutlierCleaner::init]
+	}
+
+	return MedValueCleaner::init(mapper);
+}
 //.......................................................................................
 int FeatureBasicOutlierCleaner::Learn(MedFeatures& features, unordered_set<int>& ids) {
 

@@ -682,8 +682,6 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, MedSamples& sa
 	get_values(rep, samples, signalId, time_channel, val_channel, params.range_min, params.range_max, values, prev_cleaners);
 	//MLOG("basic Iterative clean Learn: signalName %s signalId %d :: got %d values()\n", signalName.c_str(), signalId, values.size());
 
-
-
 	// Iterative approximation of moments
 	int rc =  get_iterative_min_max(values);
 
