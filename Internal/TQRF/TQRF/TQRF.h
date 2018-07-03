@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __TQRF_H__
+#define __TQRF_H__
 //
 // TQRF
 //
@@ -572,3 +573,5 @@ MEDSERIALIZE_SUPPORT(TQRF_Params);
 MEDSERIALIZE_SUPPORT(TQRF_Node);
 MEDSERIALIZE_SUPPORT(TQRF_Tree);
 MEDSERIALIZE_SUPPORT(TQRF_Forest);
+
+#endif
