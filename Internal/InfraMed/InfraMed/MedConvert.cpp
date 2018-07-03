@@ -10,6 +10,7 @@
 #include "Logger/Logger/Logger.h"
 #include "MedConvert.h"
 #include "Utils.h"
+#include "MedUtils/MedUtils/MedUtils.h"
 #include <stdio.h>
 #include <fstream>
 #include <algorithm>
@@ -17,6 +18,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/replace.hpp>
+
 
 using namespace boost;
 
@@ -465,9 +467,9 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 
 										case T_Value:
 											if (fields.size() == 3)
-												cd.val = stof(fields[2]);
+												cd.val = med_stof(fields[2]);
 											else
-												cd.val = stof(fields[3]); // backward compatible with date 0 trick to load value only data
+												cd.val = med_stof(fields[3]); // backward compatible with date 0 trick to load value only data
 											break;
 
 										case T_DateVal:
@@ -475,19 +477,19 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 												MERR("Convert ERROR : line with too few fields :: %s\n", curr_line.c_str());
 												exit(-1);
 											}
-											cd.date = stoi(fields[2]);
-											cd.val = stof(fields[3]);
+											cd.date = med_stoi(fields[2]);
+											cd.val = med_stof(fields[3]);
 											break;
 
 										case T_DateRangeVal:
-											cd.date = stoi(fields[2]);
-											cd.date2 = stoi(fields[3]);
-											cd.val = stof(fields[4]);
+											cd.date = med_stoi(fields[2]);
+											cd.date2 = med_stoi(fields[3]);
+											cd.val = med_stof(fields[4]);
 											break;
 
 										case T_TimeVal:
 											cd.time = stoll(fields[2]);
-											cd.val = stof(fields[3]);
+											cd.val = med_stof(fields[3]);
 											break;
 
 										case T_TimeRangeVal:
@@ -501,9 +503,9 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_DateVal2:
-											cd.date = stoi(fields[2]);
-											cd.val = stof(fields[3]);
-											cd.val2 = (unsigned short)stoi(fields[4]);
+											cd.date = med_stoi(fields[2]);
+											cd.val = med_stof(fields[3]);
+											cd.val2 = (unsigned short)med_stoi(fields[4]);
 											break;
 
 										case T_TimeLongVal:
@@ -512,26 +514,26 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_DateShort2:
-											cd.date = stoi(fields[2]);
-											cd.val1 = (short)stoi(fields[3]);
-											cd.val2 = (short)stoi(fields[4]);
+											cd.date = med_stoi(fields[2]);
+											cd.val1 = (short)med_stoi(fields[3]);
+											cd.val2 = (short)med_stoi(fields[4]);
 											break;
 
 										case T_ValShort2:
-											cd.val1 = (short)stoi(fields[2]);
-											cd.val2 = (short)stoi(fields[3]);
+											cd.val1 = (short)med_stoi(fields[2]);
+											cd.val2 = (short)med_stoi(fields[3]);
 											break;
 
 										case T_ValShort4:
-											cd.val1 = (short)stoi(fields[2]);
-											cd.val2 = (short)stoi(fields[3]);
-											cd.val3 = (short)stoi(fields[4]);
-											cd.val4 = (short)stoi(fields[5]);
+											cd.val1 = (short)med_stoi(fields[2]);
+											cd.val2 = (short)med_stoi(fields[3]);
+											cd.val3 = (short)med_stoi(fields[4]);
+											cd.val4 = (short)med_stoi(fields[5]);
 											break;
 
 										case T_CompactDateVal:
-											cd.date = (int)stoi(fields[2]);
-											cd.val1 = (unsigned short)stoi(fields[3]);
+											cd.date = (int)med_stoi(fields[2]);
+											cd.val1 = (unsigned short)med_stoi(fields[3]);
 											break;
 
 										default:
@@ -543,10 +545,11 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										curr.raw_data[i].push_back(cd);
 									}
 									catch (...) {
-										MERR("ERROR: bad format in parsing DATA file %s with type=%d in line %d:\n%s\n",
-											curr_fstat.fname.c_str(), sigs.type(sid)
-											, curr_fstat.n_parsed_lines, curr_line.c_str());
-										throw;
+										curr_fstat.n_bad_format_lines++;
+										if (curr_fstat.n_bad_format_lines < 10)
+											MWARN("MedConvert: WARNING: bad format in parsing DATA file %s with type=%d in line %d:\n%s\n",
+												curr_fstat.fname.c_str(), sigs.type(sid)
+												, curr_fstat.n_parsed_lines, curr_line.c_str());
 									}
 								}
 							}
@@ -573,13 +576,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_DateVal:
-											cd.date = stoi(fields[2]);
+											cd.date = med_stoi(fields[2]);
 											vfield = fields[3];
 											break;
 
 										case T_DateRangeVal:
-											cd.date = stoi(fields[2]);
-											cd.date2 = stoi(fields[3]);
+											cd.date = med_stoi(fields[2]);
+											cd.date2 = med_stoi(fields[3]);
 											vfield = fields[4];
 											break;
 
@@ -603,7 +606,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											cd.time = stoll(fields[2]);
 											break;
 										case T_DateShort2:
-											cd.date = stoi(fields[2]);
+											cd.date = med_stoi(fields[2]);
 											vfield = fields[3];
 											vfield2 = fields[4];
 											break;
@@ -647,17 +650,16 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										}
 									}
 									catch (...) {
-										MERR("ERROR: bad format in parsing DATA_S file %s in line %d:\n%s\n",
-											curr_fstat.fname.c_str(), curr_fstat.n_parsed_lines, curr_line.c_str());
+										MERR("ERROR: bad format in parsing DATA_S file %s (file_type=%d) in line %d:\n%s\n",
+											curr_fstat.fname.c_str(), file_type, curr_fstat.n_parsed_lines, curr_line.c_str());
 										throw;
 									}
 								}
 							}
 							else {
 								if (safe_mode) {
-									MERR("MedConvert: ERROR: unrecognized signal name %s (need to add to codes_to_signals file) in file %s :: curr_line is %s\n",
+									MTHROW_AND_ERR("MedConvert: ERROR: unrecognized signal name %s (need to add to codes_to_signals file) in file %s :: curr_line is %s\n",
 										fields[1].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
-									return -1;
 								}
 
 							}
@@ -850,7 +852,8 @@ int MedConvert::create_indexes()
 		// write data to output files
 		if (curr.pid >= 0) {
 			if (write_indexes(curr) < 0) {
-				MERR("MedConvert: create_indexes: curr packet for pid %d was not written...\n", curr.pid);
+				//MERR("MedConvert: create_indexes: curr packet for pid %d was not written...\n", curr.pid);
+
 			}
 			else
 				all_pids.push_back(curr.pid);
@@ -880,21 +883,28 @@ int MedConvert::create_indexes()
 	}
 	if (too_many_missing)
 		MTHROW_AND_ERR("too many missing values...\n");
-
+	for (auto& entry : missing_forced_signals) {
+		MWARN("MedConvert: saw missing_forced_signal [%s] %d times\n", entry.first.c_str(), entry.second);
+		if (safe_mode && 1.0*entry.second / n_pids_extracted > 0.05) {
+			MERR("%d / %d missing_forced_signal is too much... refusing to create repo!\n", entry.second, n_pids_extracted);
+			too_many_missing = true;
+		}
+	}
 	// all files are closed, all are written correctly
 
 	// print statistics for data files
 	MLOG("Statistics for %d data files\n", fstats.size());
 	for (auto& stat : fstats) {
 		float ratio = (float)(stat.n_parsed_lines + 1) / (float)(stat.n_relevant_lines + 1);
-		MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_loaded_lines %d : loaded %g\n",
-			stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_parsed_lines,
+		float bad_ratio = (float)(stat.n_bad_format_lines + 1) / (float)(stat.n_relevant_lines + 1);
+		MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_bad_format_lines %d n_loaded_lines %d : loaded %g\n",
+			stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_bad_format_lines, stat.n_parsed_lines,
 			ratio);
-		if (ratio < 0.01) {
+		if (ratio < 0.01 || bad_ratio > 0.05) {
 			if (stat.n_relevant_lines > 1000) {
-				MTHROW_AND_ERR("only %d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.fname.c_str());
+				MTHROW_AND_ERR("%d/%d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.n_relevant_lines, stat.fname.c_str());
 			}
-			else MWARN("only %d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.fname.c_str());
+			else MWARN("%d/%d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.n_relevant_lines, stat.fname.c_str());
 		}
 
 	}
@@ -1027,7 +1037,7 @@ int MedConvert::write_all_indexes(vector<int> &all_pids)
 int MedConvert::write_indexes(pid_data &curr)
 {
 	if (curr.pid < 0)
-		return 0;
+		MTHROW_AND_ERR("MedConvert::write_indexes negative pid %d", curr.pid);
 	// first we sort all elements by time
 	int i;
 	for (i = 0; i < curr.raw_data.size(); i++) {
@@ -1068,8 +1078,13 @@ int MedConvert::write_indexes(pid_data &curr)
 	// forced signals
 	for (i = 0; i < forced.size(); i++) {
 		if (curr.raw_data[sid2serial[dict.id(forced[i])]].size() != 1) {
-			MLOG("MedConvert: pid %d is missing forced signal %s (%d,%d,%d)\n", curr.pid, forced[i].c_str(),
-				dict.id(forced[i]), sid2serial[dict.id(forced[i])], curr.raw_data[sid2serial[dict.id(forced[i])]].size());
+			if (missing_forced_signals.find(forced[i]) == missing_forced_signals.end())
+				missing_forced_signals[forced[i]] = 1;
+			else
+				missing_forced_signals[forced[i]] += 1;
+			if (missing_forced_signals[forced[i]] < 10)
+				MLOG("MedConvert: pid %d is missing forced signal %s (%d,%d,%d)\n", curr.pid, forced[i].c_str(),
+					dict.id(forced[i]), sid2serial[dict.id(forced[i])], curr.raw_data[sid2serial[dict.id(forced[i])]].size());
 			return -1;
 		}
 	}
