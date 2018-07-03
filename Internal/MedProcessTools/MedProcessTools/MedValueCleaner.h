@@ -21,6 +21,8 @@ public:
 	float missing_value;
 	float range_min = (float)-1e20;
 	float range_max = (float)1e20;
+	float trim_range_min = (float)-1e21;
+	float trim_range_max = (float)1e21;
 
 	// Iterative
 	float trimming_sd_num, removing_sd_num, nbrs_sd_num ;

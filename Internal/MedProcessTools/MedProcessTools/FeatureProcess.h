@@ -206,7 +206,7 @@ public:
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
 	/// The parsed fields from init command.
 	/// @snippet MedValueCleaner.cpp MedValueCleaner::init
-	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
+	int init(map<string, string>& mapper);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureBasicOutlierCleaner *>(processor)); }
