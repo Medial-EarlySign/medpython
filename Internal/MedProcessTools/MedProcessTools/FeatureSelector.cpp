@@ -869,8 +869,9 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		else {
 			found_match = false;
 			auto start_it = feature_tags.begin();
+			//MLOG("considering feature [%s]\n", feature_name.c_str());
 			while (!found_match && start_it != feature_tags.end()) {
-				//MLOG("considering [%s]\n",(*start_it).c_str());
+				//MLOG("considering tag [%s]\n",(*start_it).c_str());
 				for (const string& substring : s) {
 					boost::regex regi(substring);
 					if (boost::regex_match(*start_it, regi)){

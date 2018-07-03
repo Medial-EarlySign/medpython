@@ -19,6 +19,7 @@ void SmokingGenerator::set_names() {
 		if (legal_features.find(s) == legal_features.end())
 			MTHROW_AND_ERR("SmokingGenerator does not know how to generate [%s]", s.c_str());
 		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
+		tags.push_back(s);
 	}
 }
 
