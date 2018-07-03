@@ -336,7 +336,7 @@ public:
 };
 
 //========================================================================================
-// Actual API to be used via C# :: External users should work ONLY with these !!
+// Actual AlgoMarker API to be used via C# :: External users should work ONLY with these !!
 // Any change to the below functions must rely only on exposed API of the above classes.
 //========================================================================================
 
@@ -409,3 +409,41 @@ extern "C" DLL_WORK_MODE void AM_API_DisposeRequest(AMRequest *pRequest);
 
 // Dispose of responses - free all memory
 extern "C" DLL_WORK_MODE void AM_API_DisposeResponses(AMResponses *responses);
+
+
+//========================================================================================
+// Follows is a simple API to allow access to data repositories via c#
+//========================================================================================
+extern "C" class DLL_WORK_MODE RepositoryHandle {
+	public:
+		string fname;
+		vector<int> pids;
+		vector<string> signals;
+		MedRepository rep;
+};
+
+extern "C" class DLL_WORK_MODE SignalDataHandle {
+public:
+	UniversalSigVec usv;
+};
+
+// create a Repository Handle and read data into memory, given file name, pids, and signals return: 0: OK -1: failed
+extern "C" DLL_WORK_MODE int DATA_API_RepositoryHandle_Create(RepositoryHandle **new_rep, char *fname, int *pids, int n_pids, char **sigs, int n_sigs);
+
+// Create a SignalDataHandle : can be reused for each read later, create several if working in parallel
+extern "C" DLL_WORK_MODE int DATA_API_SignalDataHandle_Create(SignalDataHandle **new_sdh);
+
+// Read Data into a signal data handle from a repository, returns len=number of elements read
+extern "C" DLL_WORK_MODE int DATA_API_ReadData(RepositoryHandle *rep_h, int pid, char *sig, SignalDataHandle *sdh, int *len);
+
+// Get a time channel at an index from a loaded SignalDataHandle
+extern "C" DLL_WORK_MODE int DATA_API_GetTime(SignalDataHandle *sdh, int idx, int time_channel, int *time);
+
+// Get a value channel at an index from a loaded SignalDataHandle
+extern "C" DLL_WORK_MODE int DATA_API_GetVal(SignalDataHandle *sdh, int idx, int val_channel, float *val);
+
+// dispose of SignalDataHandle
+extern "C" DLL_WORK_MODE void DATA_API_Dispose_SignalDataHandle(SignalDataHandle *sdh);
+
+// dispose of RepositoryHandle
+extern "C" DLL_WORK_MODE void DATA_API_Dispose_RepositoryHandle(RepositoryHandle *rep_h);
