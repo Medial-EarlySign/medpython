@@ -6,7 +6,7 @@
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
-#include "MedUtils/MedUtils/MedMat.h"
+#include <MedUtils/MedUtils/MedMat.h>
 
 #define DEFAULT_SMPL_FLTR_NTHREADS 8
 

@@ -1,8 +1,8 @@
-#include "MedSamplingStrategy.h"
+#include <MedUtils/MedUtils/MedSamplingStrategy.h>
 #include <fstream>
 #include <string>
 #include <iostream>
-#include "Logger/Logger/Logger.h"
+#include <Logger/Logger/Logger.h>
 
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

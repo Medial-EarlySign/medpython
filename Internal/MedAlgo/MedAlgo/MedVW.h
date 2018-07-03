@@ -1,10 +1,10 @@
 #ifndef __MED_VOWPAL_WABBIT__H_
 #define __MED_VOWPAL_WABBIT__H_
-#include "MedAlgo.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
 
 #if NEW_COMPLIER
-#include "vowpal_wabbit/vowpalwabbit/vw.h"
-#include "vowpal_wabbit/vowpalwabbit/vwdll.h"
+#include <vowpal_wabbit/vowpalwabbit/vw.h>
+#include <vowpal_wabbit/vowpalwabbit/vwdll.h>
 
 /**
 * Vowpal Wabbit library who have been developed in Yahoo Research, It has

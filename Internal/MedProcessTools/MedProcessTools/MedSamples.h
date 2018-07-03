@@ -1,11 +1,12 @@
 // Classes for holding samples
 
-#ifndef _MED_SAMPLES_H_
-#define _MED_SAMPLES_H_
+#ifndef __MED_SAMPLES_H__
+#define __MED_SAMPLES_H__
 
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
-#include "MedTime/MedTime/MedTime.h"
-#include "InfraMed/InfraMed/MedRepositoryType.h"
+
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <MedTime/MedTime/MedTime.h>
+#include <InfraMed/InfraMed/MedRepositoryType.h>
 #include <unordered_set>
 
 class MedFeatures;

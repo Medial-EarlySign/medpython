@@ -343,7 +343,7 @@ public:
 /** Parameters for configured outliers cleaner
 */
 //.......................................................................................
-class confRecord {
+class confRecord : public SerializableObject {
 public:
 	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
     string distLow,distHigh; //"none" "norm" or "log" 

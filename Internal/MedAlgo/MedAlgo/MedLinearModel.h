@@ -1,8 +1,8 @@
 #ifndef __LINEAR_MODEL_H__
 #define __LINEAR_MODEL_H__
-#include "PredictiveModel.h"
-#include "MedAlgo.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <MedAlgo/MedAlgo/PredictiveModel.h>
+#include <MedAlgo/MedAlgo/MedAlgo.h>
 
 using namespace std;
 

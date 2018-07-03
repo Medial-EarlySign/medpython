@@ -1,9 +1,9 @@
 #ifndef __SGD_H__
 #define __SGD_H__
 
-#include "PredictiveModel.h"
+#include <MedAlgo/MedAlgo/PredictiveModel.h>
 #include <random>
-#include<map>
+#include <map>
 
 using namespace std;
 

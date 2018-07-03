@@ -1,5 +1,5 @@
 #pragma once
-#include "FeatureGenerator.h"
+#include <MedProcessTools/MedProcessTools/FeatureGenerator.h>
 
 typedef enum {
 	SMX_KP_CURRENT_SMOKER,

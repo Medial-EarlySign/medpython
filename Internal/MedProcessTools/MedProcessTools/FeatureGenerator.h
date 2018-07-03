@@ -1,14 +1,15 @@
 #ifndef _FTR_GENERATOR_H_
 #define _FTR_GENERATOR_H_
 
-#include "InfraMed/InfraMed/InfraMed.h"
-#include "Logger/Logger/Logger.h"
-#include "MedProcessTools/MedProcessTools/RepProcess.h"
-#include "MedProcessTools/MedProcessTools/MedFeatures.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
-#include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
+#include <InfraMed/InfraMed/InfraMed.h>
+#include <Logger/Logger/Logger.h>
+#include <MedProcessTools/MedProcessTools/RepProcess.h>
+#include <MedProcessTools/MedProcessTools/MedFeatures.h>
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <MedProcessTools/MedProcessTools/MedModelExceptions.h>
 #include <MedTime/MedTime/MedTime.h>
-#include "InfraMed/InfraMed/MedRepositoryType.h"
+#include <InfraMed/InfraMed/MedRepositoryType.h>
+#include <MedAlgo/MedAlgo/MedAlgo.h>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 

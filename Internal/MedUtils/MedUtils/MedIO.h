@@ -47,13 +47,17 @@ template <class T> int read_vector(const string &fname, unsigned long long start
 // write string to file (not appending !!)
 int write_string(const string &fname, string &data);
 
+// read file into a string
+int read_file_into_string(const string &fname, string &data);
+
 // write binary data to file (not appending !!)
 int write_binary_data(const string &fname, unsigned char *data, unsigned long long size);
 int read_binary_data_alloc(const string &fname, unsigned char *&data, unsigned long long &size);
 int read_binary_data_prealloc(const string &fname, unsigned char *&data, unsigned long long &size, unsigned long long max_size);
 
 
-
+// read text file, parse it and get the i-th column string
+int read_text_file_col(string fname, string ignore_pref, string separators, int col_idx, vector<string> &res);
 
 //=============================================================
 // read/write serialized classes

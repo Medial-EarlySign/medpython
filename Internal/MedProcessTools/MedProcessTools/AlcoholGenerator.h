@@ -1,5 +1,6 @@
 #pragma once
-#include "FeatureGenerator.h"
+#include <MedProcessTools/MedProcessTools/FeatureGenerator.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
 
 void generateAlcoholRangeSignal(SDateVal2* rawSignal, SDateRangeVal *outRangeSignal);
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "FeatureProcess.h"
-#include "MedProcessTools/MedProcessTools/MedFeatures.h"
+#include <MedProcessTools/MedProcessTools/FeatureProcess.h>
+#include <MedProcessTools/MedProcessTools/MedFeatures.h>
 
 /**
 * User defined calculations on other features.\n
