@@ -48,12 +48,17 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 	return 0;
 }
 
+
 void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_contribs) {
 	int nsamples, nftrs;
 	vector<float> w;
 	prepare_x_mat(mat_x, w, nsamples, nftrs, transpose_for_predict);
 
 	mat_contribs.resize(nsamples, nftrs + 1);
+	// copy metadata
+	mat_contribs.signals.insert(mat_contribs.signals.end(), mat_x.signals.begin(), mat_x.signals.end());
+	mat_contribs.signals.push_back("b0");
+	mat_contribs.recordsMetadata.insert(mat_contribs.recordsMetadata.end(), mat_x.recordsMetadata.begin(), mat_x.recordsMetadata.end());
 
 	DMatrixHandle h_test;
 	if (XGDMatrixCreateFromMat(mat_x.data_ptr(), nsamples, nftrs, params.missing_value, &h_test) == -1)
@@ -67,8 +72,7 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 		for (int j = 0; j < nftrs; j++)
 			mat_contribs.set(i, j) = out_preds[i*(nftrs + 1) + j];
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
-	}
-		
+	}		
 }
 
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {

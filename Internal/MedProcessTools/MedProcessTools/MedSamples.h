@@ -3,6 +3,7 @@
 #ifndef __MED_SAMPLES_H__
 #define __MED_SAMPLES_H__
 
+
 #include <MedProcessTools/MedProcessTools/SerializableObject.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <InfraMed/InfraMed/MedRepositoryType.h>

@@ -534,7 +534,8 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 					plm_drinking_level = 4;
 				else
 					plm_drinking_level = 5;
-
+				if (__current_alcoholist)
+					plm_drinking_level = 5;
 			}
 			//************************************************** Add to matrix  *********************************************
 		}
