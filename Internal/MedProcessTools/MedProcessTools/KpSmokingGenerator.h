@@ -10,6 +10,7 @@ typedef enum {
 	SMX_KP_DAYS_SINCE_QUITTING,
 	SMX_KP_SMOK_PACK_YEARS_MAX,
 	SMX_KP_SMOK_PACK_YEARS_LAST,
+	NLST_CRITERION,
 	SMX_KP_LAST
 } KpSmokingGeneratorFields;
 
@@ -43,6 +44,8 @@ public:
 
 	// get pointers to data
 	void get_p_data(MedFeatures& features);
+
+	int calcNlst(int age, int unknownSmoker, int daysSinceQuitting, float lastPackYears);
 
 	// Serialization
 	virtual int version() { return  2; } // ihadanny 20170214 - added required_signals to serialization

@@ -80,6 +80,8 @@ struct SamplingParams : SerializableObject {
 	vector<string> stick_to_sigs;		///< only use time points with these signals tested
 	int take_closest = 0;	///< flag: take the sample with requrired-signals that is closest to each target sampling-date
 	int take_all = 0; ///< flag: take all samples with requrired-signal within each sampling period is selected
+	int max_samples_per_id = (int)1e10; ///< maximum samples per ID
+	string max_samples_per_id_method = "last"; ///< determine how to pick samples - 'last' or 'rand'
 
 	/// <summary> Initialize from a map </summary>
 	int init(map<string, string>& map);

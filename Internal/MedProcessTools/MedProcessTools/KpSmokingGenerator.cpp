@@ -7,7 +7,7 @@ using namespace boost;
 
 void KpSmokingGenerator::set_names() {
 	names.clear();
-	unordered_set<string> legal_features({ "Current_Smoker", "Ex_Smoker", "Unknown_Smoker","Never_Smoker", "Passive_Smoker","Smoke_Days_Since_Quitting", "Smoke_Pack_Years_Max", "Smoke_Pack_Years_Last" });
+	unordered_set<string> legal_features({ "Current_Smoker", "Ex_Smoker", "Unknown_Smoker","Never_Smoker", "Passive_Smoker","Smoke_Days_Since_Quitting", "Smoke_Pack_Years_Max", "Smoke_Pack_Years_Last","NLST_Criterion" });
 
 	if (raw_feature_names.size() == 0)
 		MTHROW_AND_ERR("KpSmokingGenerator got no smoking_features");
@@ -39,6 +39,7 @@ int KpSmokingGenerator::init(map<string, string>& mapper) {
 	req_signals.push_back("Smoking_Status");
 	req_signals.push_back("Smoking_Quit_Date");
 	req_signals.push_back("Pack_Years");
+	req_signals.push_back("BDATE");
 	return 0;
 }
 
@@ -46,7 +47,8 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 {
 	int quitTime = (int)missing_val, unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
 	float smokingStatus = missing_val, lastPackYears = missing_val, maxPackYears = missing_val, daysSinceQuitting = missing_val;
-	UniversalSigVec smokingStatusUsv, quitTimeUsv, SmokingPackYearsUsv;
+	UniversalSigVec smokingStatusUsv, quitTimeUsv, SmokingPackYearsUsv, bdateUsv;
+	MedTime &tm = med_time_converter;
 	int version = 0;
 	string prevStatus = "Never";
 	int prevStatusDate = 19000101;
@@ -62,8 +64,13 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 		rec.uget("Smoking_Status", i, smokingStatusUsv);
 		rec.uget("Smoking_Quit_Date", i, quitTimeUsv);
 		rec.uget("Pack_Years", i, SmokingPackYearsUsv);
+		rec.uget("BDATE", i, bdateUsv);
+		int birthDate = bdateUsv.Val(0);
 
 		int testDate = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
+
+		// calc age
+		int age = (int)((float)tm.diff_times(testDate, birthDate, MedTime::Date, MedTime::Days)/365.0);
 		// If Smoking Status vec exists, then status is known.
 		if (smokingStatusUsv.len > 0)
 		{
@@ -190,10 +197,20 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 		if (p_data[SMX_KP_UNKNOWN_SMOKER] != NULL) p_data[SMX_KP_UNKNOWN_SMOKER][index + i] = (float)unknownSmoker;
 		// Passive_Smoker
 		if (p_data[SMX_KP_PASSIVE_SMOKER] != NULL) p_data[SMX_KP_PASSIVE_SMOKER][index + i] = (float)passiveSmoker;
-
+		//NLST_Criterion (only after everything was calculated, we can calc. the NLST criterion)
+		if (p_data[NLST_CRITERION] != NULL) p_data[NLST_CRITERION][index + i] = (float)calcNlst(age, unknownSmoker, daysSinceQuitting, lastPackYears);
 	}
 	return 0;
 }
+
+int KpSmokingGenerator::calcNlst(int age, int unknownSmoker, int daysSinceQuitting, float lastPackYears)
+{
+	if ((unknownSmoker == 1) || (daysSinceQuitting == (int)missing_val) || (lastPackYears == missing_val)) {
+		return missing_val;
+	}
+	return ((age >= 55) && (age <= 74) && (lastPackYears >= 30) && (daysSinceQuitting <= 15 * 365.0));
+}
+
 
 void KpSmokingGenerator::get_p_data(MedFeatures& features) {
 	p_data.resize(SMX_KP_LAST, NULL);
@@ -222,8 +239,9 @@ void KpSmokingGenerator::get_p_data(MedFeatures& features) {
 			p_data[SMX_KP_UNKNOWN_SMOKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Passive_Smoker"))
 			p_data[SMX_KP_PASSIVE_SMOKER] = &(features.data[name][0]);
+		else if (algorithm::ends_with(name, "NLST_Criterion"))
+			p_data[NLST_CRITERION] = &(features.data[name][0]);
 		else
 			MTHROW_AND_ERR("unknown feature name [%s]", name.c_str());
 	}
 }
-
