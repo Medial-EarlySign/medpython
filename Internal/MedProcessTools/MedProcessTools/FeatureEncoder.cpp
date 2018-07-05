@@ -197,9 +197,9 @@ int FeaturePCA::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [FeaturePCA::init]
-		if (field == "pca_cutoff") params.pca_cutoff = stof(entry.second);
-		else if (field == "pca_top") params.pca_top = stoi(entry.second);
-		else if (field == "subsample_count") params.subsample_count = stoi(entry.second);
+		if (field == "pca_cutoff") params.pca_cutoff = med_stof(entry.second);
+		else if (field == "pca_top") params.pca_top = med_stoi(entry.second);
+		else if (field == "subsample_count") params.subsample_count = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeaturePCA\n", field.c_str());
 		//! [FeaturePCA::init]

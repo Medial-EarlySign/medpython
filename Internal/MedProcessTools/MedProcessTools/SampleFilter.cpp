@@ -2,6 +2,7 @@
 #include "Logger/Logger/Logger.h"
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
+#include <MedUtils/MedUtils/MedUtils.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -286,9 +287,9 @@ int MatchingSampleFilter::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 
-		if (field == "priceRatio") eventToControlPriceRatio = stof(entry.second);
-		else if (field == "maxRatio") matchMaxRatio = stof(entry.second);
-		else if (field == "verbose") verbose = stoi(entry.second);
+		if (field == "priceRatio") eventToControlPriceRatio = med_stof(entry.second);
+		else if (field == "maxRatio") matchMaxRatio = med_stof(entry.second);
+		else if (field == "verbose") verbose = med_stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addMatchingStrata(stratum);
@@ -758,7 +759,7 @@ int RequiredSignalFilter::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "signalName") signalName = entry.second;
-		else if (field == "timeWindow") timeWindow = stoi(entry.second);
+		else if (field == "timeWindow") timeWindow = med_stoi(entry.second);
 		else if (field == "timeUnit") windowTimeUnit = med_time_converter.string_to_type(entry.second);
 		else
 			MLOG("Unknonw parameter \'%s\' for RequiredSampleFilter\n", field.c_str());
@@ -1140,7 +1141,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (section_id < 0 && sig_id > 0) {
 			section_id = rep.dict.section_id(sig_name);
 		}
-		MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
+		//MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
 
 		UniversalSigVec usv;
 
@@ -1204,6 +1205,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 #endif
 
 					if (values_in_dictionary && section_id > 0) {
+						//MLOG("dictionary test: section_id %d sig_name %s i_val %f dsize %d\n", section_id, sig_name.c_str(), i_val, rep.dict.dicts[section_id].Id2Name.size());
 						if (rep.dict.dicts[section_id].Id2Name.find((int)i_val) == rep.dict.dicts[section_id].Id2Name.end())
 							n_not_in_dict++;
 					}

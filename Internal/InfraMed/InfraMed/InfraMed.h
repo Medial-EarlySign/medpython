@@ -344,6 +344,7 @@ public:
 
 	inline void *get_in_mem(int pid, int sid, int &len) { return in_mem_rep.get(pid, sid, len); }
 	void switch_to_in_mem_mode() { in_mem_rep.clear(); in_mem_rep.my_rep = (MedRepository *)this; get_ptr = &MedRepository::get_in_mem; }
+	bool in_mem_mode_active() { return (get_ptr == &MedRepository::get_in_mem); }
 
 	//-------------------------------------------------------------------
 	int   read_config(const string &fname);

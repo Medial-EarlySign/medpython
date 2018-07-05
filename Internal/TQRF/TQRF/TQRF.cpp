@@ -877,7 +877,7 @@ int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, MedMat<floa
 //------------------------------------------------------------------------------------------------
 int TQRF_Forest::Predict(MedMat<float> &x, vector<float> &preds)
 {
-	MLOG("TQRF_Forest: Running predict on matrix of %d x %d\n", x.nrows, x.ncols);
+	MLOG("TQRF_Forest: type %d : Running predict on matrix of %d x %d\n", params.tree_type_i, x.nrows, x.ncols);
 
 	if (params.tree_type_i == TQRF_TREE_REGRESSION) {
 		MTHROW_AND_ERR("TQRF Regression Trees not available yet...\n");
@@ -2185,6 +2185,10 @@ TQRF_Node *TQRF_Tree::Get_Node(MedMat<float> &x, int i_row, float missing_val)
 	int beta_idx = cnode->beta_idx;
 	while (1) {
 
+		if (cnode->beta_idx >= 0) beta_idx = cnode->beta_idx;
+		if (cnode->is_terminal)
+			break;
+
 		if (cnode->i_feat >= 0)
 			v = row[cnode->i_feat];
 		else
@@ -2210,10 +2214,9 @@ TQRF_Node *TQRF_Tree::Get_Node(MedMat<float> &x, int i_row, float missing_val)
 		}
 
 		cnode = &nodes[curr_node];
-		if (cnode->beta_idx >= 0) beta_idx = cnode->beta_idx;
+		
 
-		if (cnode->is_terminal)
-			break;
+
 	}
 
 	cnode->beta_idx = beta_idx;

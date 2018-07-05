@@ -1,5 +1,6 @@
-#include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#pragma once
+#include <MedProcessTools/MedProcessTools/FeatureGenerator.h>
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
 
 /**
 * calculate drug coverage of prescription time in defined the time window. a value between 0 to 1.

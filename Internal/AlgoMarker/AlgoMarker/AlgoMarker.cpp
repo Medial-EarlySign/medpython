@@ -614,3 +614,100 @@ int AM_API_GetName(AlgoMarker *pAlgoMarker, char **name)
 }
 //-----------------------------------------------------------------------------------------------------------
 
+
+
+//===========================================================================================================
+// DATA API Implementation
+//===========================================================================================================
+
+//-----------------------------------------------------------------------------------------------------------
+// create a Repository Handle and read data into memory, given file name, pids, and signals return: 0: OK -1: failed
+//-----------------------------------------------------------------------------------------------------------
+int DATA_API_RepositoryHandle_Create(RepositoryHandle **new_rep, char *fname, int *pids, int n_pids, char **sigs, int n_sigs)
+{
+	(*new_rep) = new RepositoryHandle;
+	
+	if ((*new_rep) == NULL) return -1;
+
+	for (int i=0; i<n_pids; i++)
+		(*new_rep)->pids.push_back(pids[i]);
+
+	for (int i=0; i<n_sigs; i++)
+		(*new_rep)->signals.push_back(string(sigs[i]));
+
+	(*new_rep)->fname = string(fname);
+
+	if ((*new_rep)->rep.read_all((*new_rep)->fname, (*new_rep)->pids, (*new_rep)->signals) < 0)
+		return -1;
+
+	return 0;
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// Create a SignalDataHandle : can be reused for each read later, create several if working in parallel
+//-----------------------------------------------------------------------------------------------------------
+int DATA_API_SignalDataHandle_Create(SignalDataHandle **new_sdh)
+{
+	(*new_sdh) = new SignalDataHandle;
+
+	if ((*new_sdh) == NULL) return -1;
+
+	return 0;
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// Read Data into a signal data handle from a repository, returns len=number of elements read
+//-----------------------------------------------------------------------------------------------------------
+int DATA_API_ReadData(RepositoryHandle *rep_h, int pid, char *sig, SignalDataHandle *sdh, int *len)
+{
+	rep_h->rep.uget(pid, string(sig), sdh->usv);
+	(*len) = sdh->usv.len;
+
+	return 0;
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// Get a time channel at an index from a loaded SignalDataHandle
+//-----------------------------------------------------------------------------------------------------------
+int DATA_API_GetTime(SignalDataHandle *sdh, int idx, int time_channel, int *time)
+{
+	(*time) = sdh->usv.Time(idx, time_channel);
+	return 0;
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// Get a value channel at an index from a loaded SignalDataHandle
+//-----------------------------------------------------------------------------------------------------------
+int DATA_API_GetVal(SignalDataHandle *sdh, int idx, int val_channel, float *val)
+{
+	(*val) = sdh->usv.Val(idx, val_channel);
+	return 0;
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// dispose of SignalDataHandle
+//-----------------------------------------------------------------------------------------------------------
+void DATA_API_Dispose_SignalDataHandle(SignalDataHandle *sdh)
+{
+	if (sdh != NULL) delete sdh;
+	sdh = NULL;
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// dispose of RepositoryHandle
+//-----------------------------------------------------------------------------------------------------------
+void DATA_API_Dispose_RepositoryHandle(RepositoryHandle *rep_h)
+{
+	if (rep_h != NULL) {
+		rep_h->rep.clear();
+		delete rep_h;
+	}
+	rep_h = NULL;
+}
+//-----------------------------------------------------------------------------------------------------------

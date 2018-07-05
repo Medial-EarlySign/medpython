@@ -19,6 +19,7 @@ void SmokingGenerator::set_names() {
 		if (legal_features.find(s) == legal_features.end())
 			MTHROW_AND_ERR("SmokingGenerator does not know how to generate [%s]", s.c_str());
 		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
+		tags.push_back(s);
 	}
 }
 
@@ -36,7 +37,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator")
-			iGenerateWeights = stoi(entry.second);
+			iGenerateWeights = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for SmokingGenerator\n", field.c_str());
 		//! [SmokingGenerator::init]

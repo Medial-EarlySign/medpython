@@ -2,6 +2,7 @@
 *.slo
 *.lo
 *.o
+*.d
 *.page
 # Compiled Dynamic libraries
 *.so
@@ -66,9 +67,8 @@ nb-configuration*
 .cproject
 .pydevproject
 .settings/
-build
 config.mk
-xgboost
+/xgboost
 *.data
 build_plugin
 .idea
@@ -93,3 +93,11 @@ lib/
 metastore_db
 
 plugin/updater_gpu/test/cpp/data
+winBuild/*
+!winBuild/*.sln
+!winBuild/*.vcxproj*
+!./CMakeLists.txt
+!winBuild/dmlc-core
+winBuild/dmlc-core/*
+!winBuild/dmlc-core/*.vcxproj*
+

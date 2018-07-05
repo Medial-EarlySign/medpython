@@ -1,11 +1,12 @@
 #ifndef __MEDXGB_H__
 #define __MEDXGB_H__
 #pragma once
-#include "MedAlgo.h"
-//#if 1
-#include "xgboost/learner.h"
-#include "xgboost/data.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
+#include <xgboost/learner.h>
+#include <xgboost/data.h>
 #include <xgboost/c_api.h>
+#include "MedProcessTools/MedProcessTools/MedSamples.h"
 
 struct MedXGBParams {
 	string booster; // gbtree or gblinear
@@ -27,6 +28,7 @@ struct MedXGBParams {
 	float lambda;
 	float alpha;
 	int seed; // randomization seed
+	string split_penalties; // feature-dependent splitting penalty. string format is "number:value,number:value,..."
 
 
 	MedXGBParams() {
@@ -70,6 +72,8 @@ public:
 
 private:
 	bool _mark_learn_done;
+
+	void translate_split_penalties(string& split_penalties_s);
 };
 
 //=================================================================

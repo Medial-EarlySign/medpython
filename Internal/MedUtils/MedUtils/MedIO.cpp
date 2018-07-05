@@ -294,3 +294,48 @@ string fix_filename_chars(string* s, char replace_char) {
 	}
 	return *s;
 }
+
+
+//===================================================================================================
+int read_text_file_col(string fname, string ignore_pref, string separators, int col_idx, vector<string> &res)
+{
+	ifstream inf(fname);
+
+	res.clear();
+	if (!inf) {
+		MERR("MedUtils:MedIO :: read_text_file_col: read: Can't open file %s\n", fname.c_str());
+		return -1;
+	}
+
+	string curr_line;
+	separators += "\r\n";
+//	MLOG("separators %s\n", separators.c_str());
+	while (getline(inf, curr_line)) {
+		//MLOG("curr_line %s\n", curr_line.c_str());
+		
+		if ((curr_line.size() > 1) && (!boost::starts_with(curr_line, ignore_pref))) {
+			vector<string> fields;
+			boost::split(fields, curr_line, boost::is_any_of(separators));
+
+			if ((fields.size() > col_idx) && (fields[col_idx] != ""))
+				res.push_back(fields[col_idx]);
+		}
+		
+	}
+
+	inf.close();
+
+	return 0;
+}
+
+//===================================================================================================
+int read_file_into_string(const string &fname, string &data)
+{
+	vector<char> d;
+
+	if (read_vector<char>(fname, d) < 0) return -1;
+
+	d.push_back(0);
+	data = string(&d[0]);
+	return 0;
+}

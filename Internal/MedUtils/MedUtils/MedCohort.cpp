@@ -1,9 +1,10 @@
-#include "MedCohort.h"
+#include <MedUtils/MedUtils/MedCohort.h>
 
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string.hpp>
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
 #include <fstream>
 #include <algorithm>
 #define LOCAL_SECTION LOG_APP

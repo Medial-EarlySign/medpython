@@ -1,6 +1,7 @@
 #include "MedSamples.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "Logger/Logger/Logger.h"
+#include <MedUtils/MedUtils/MedGenUtils.h>
 #include <boost/crc.hpp>
 #include <random>
 

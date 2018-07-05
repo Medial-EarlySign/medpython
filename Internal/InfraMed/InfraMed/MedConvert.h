@@ -52,8 +52,9 @@ struct file_stat {
 	int n_lines;
 	int n_relevant_lines;
 	int n_parsed_lines;
+	int n_bad_format_lines;
 
-	file_stat() { fname=""; id=-1; n_lines=0; n_relevant_lines=0; n_parsed_lines=0; }
+	file_stat() { fname = ""; id = -1; n_lines = 0; n_relevant_lines = 0; n_parsed_lines = 0; n_bad_format_lines = 0; }
 };
 
 class  MedConvert {
@@ -93,6 +94,7 @@ class  MedConvert {
 
 		// next are for debug and statistics
 		vector<file_stat> fstats;
+		map<string, int> missing_forced_signals;
 
 		// internal variables
 		map<string,string> codes2names;

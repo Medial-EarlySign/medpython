@@ -136,6 +136,9 @@ extern MedLogger global_logger;
 
 #define MTHROW_AND_ERR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL, buff); throw runtime_error(string(buff));}
 
+// next works and compiles also in H files
+#define HMTHROW_AND_ERR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(0, MAX_LOG_LEVEL, buff); throw runtime_error(string(buff));}
+
 
 /**
 * MedTimer - a very simple class to allow very easy time measures

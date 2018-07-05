@@ -39,7 +39,8 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_LIGHTGBM , "lightgbm" },
 	{ MODEL_LINEAR_SGD , "linear_sgd" },
 	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" },
-	{MODEL_VW, "vw"}
+	{ MODEL_VW, "vw" },
+	{ MODEL_TQRF, "tqrf"}
 };
 //=======================================================================================
 // MedPredictor
@@ -101,6 +102,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedSpecificGroupModels;
 	else if (model_type == MODEL_SVM)
 		return new MedSvm;
+	else if (model_type == MODEL_TQRF)
+		return new MedTQRF;
 #if NEW_COMPLIER
 	else if (model_type == MODEL_VW)
 		return new MedVW;
@@ -287,6 +290,9 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) {
 		return med_b->predict(x, preds);
 	}
 
+	if (classifier_type == MODEL_TQRF) {
+		return ((MedTQRF *)this)->Predict(x, preds);
+	}
 
 	if (normalize_for_predict && !x.normalized_flag) {
 		MERR("Predictor Requires normalized matrix. Quitting\n");
@@ -581,6 +587,11 @@ int MedPredictor::learn(MedFeatures& ftrs_data, vector<string>& names) {
 	model_features.clear();
 	for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
 		model_features.push_back(it->first);
+
+
+	if (classifier_type == MODEL_TQRF) {
+		return (((MedTQRF *)this)->Learn(ftrs_data));
+	}
 
 	// Build X
 	MedMat<float> x;

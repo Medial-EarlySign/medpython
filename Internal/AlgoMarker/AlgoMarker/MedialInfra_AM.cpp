@@ -160,7 +160,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	int n_score_types = request->get_n_score_types();
 	for (int i=0; i<n_score_types; i++) {
 		if (!IsScoreTypeSupported(request->get_score_type(i))) {
-			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
+			//string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
+			string msg = msg_prefix + " AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
 			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
 		}
@@ -182,8 +183,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		// create a response
 		AMResponse *res = responses->create_point_response(_pid, _ts);
 		//AMResponse *res = responses->get_response_by_point(_pid, (long long)conv_times[i]);
-		if (res == NULL)
-			res = responses->create_point_response(_pid, _ts);
+//		if (res == NULL)
+//			res = responses->create_point_response(_pid, _ts);
 //		res = responses->create_point_response(_pid, (long long)conv_times[i]);
 
 		// test this point for eligibility and add errors if needed
@@ -256,17 +257,18 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 					// we now test the attribute tests
 					vector<InputSanityTesterResult> test_res;
-					if (ist.test_if_ok(s, test_res) <= 0) {
+					int test_rc = ist.test_if_ok(s, test_res);
 
-						AMMessages *msgs = res->get_msgs();
-						for (auto &tres : test_res) {
-							//string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
-							string msg = msg_prefix + tres.err_msg; // no Internal Code message (prev code in comment above).
-							msgs->insert_message(tres.external_rc, msg.c_str());
-						}
-
-						n_bad_scores++;
+					AMMessages *msgs = res->get_msgs();
+					for (auto &tres : test_res) {
+						//string msg = msg_prefix + tres.err_msg + " Internal Code: " + to_string(tres.internal_rc);
+						string msg = msg_prefix + tres.err_msg; // no Internal Code message (prev code in comment above).
+						//MLOG("Inserting attr error to pid %d ts %d : %d : %s\n", c_pid, ts, tres.external_rc, msg.c_str());
+						msgs->insert_message(tres.external_rc, msg.c_str());
 					}
+
+					if (test_rc <= 0)
+						n_bad_scores++;
 					else {
 
 						// all is fine, we insert the score into its place

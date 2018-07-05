@@ -3,8 +3,8 @@
 
 #include <vector>
 #include <random>
-#include "MedRegistry.h"
-#include "MedProcessTools/MedProcessTools/MedSamples.h"
+#include <MedUtils/MedUtils/MedRegistry.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
 
 class MedRegistryRecord;
 

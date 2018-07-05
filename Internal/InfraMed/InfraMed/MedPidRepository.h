@@ -23,6 +23,7 @@ class PosLen {
   public:
 	int pos;
 	int len;
+	int do_split; // if 1, means that when updating this pos,len we need to move version to a new allocated memory. if 0 , it may move due to other reasons.
 	PosLen& operator =(const int a) { pos = (unsigned long long)a; len=a; return *this; }
 	bool operator==(const PosLen a) { return (pos == a.pos && len == a.len);}
 };
@@ -154,6 +155,7 @@ public:
 	int change(int sid, int v_in, int idx, void *new_elem, int v_out);	// changing element idx in v_in to *new_elem, and putting it all in v_out
 	int update(int sid, int v_in, vector<pair<int, void *>>& changes, vector<int>& removes); // Apply changes and removals
 	int update(int sid, int v_in, int val_channel, vector<pair<int, float>>& changes, vector<int>& removes); // Apply val changes and removals, unified variant
+	int update(int sid, int v_in, vector<pair<int, vector<float>>>& changes, vector<int>& removes); /// Apply val changes to all channels + removals
 
 	// an API to push a data vector universal signal style , given all its value and time channels
 	// when there are several channels (for time or values) , they should be placed one after the other for each member
@@ -198,30 +200,55 @@ private:
 
 
 //
-// Dynamic Version iterator allows backword iteration over versions in two manners -
-// 1. For version-dependent operations - iterate over all versions
-// 2. For verion-independent operations - iterate only over versions that are already different
+// Dynamic Version iterator allows iteration over versions in two manners -
+// 1. For version-dependent operations - forward iterate over all versions
+// 2. For verion-independent operations - backward iterate only over versions that are already different
 //
 // Methods are -
 // constructors
 // init : Get first version to work on
 // next : Get next version to work on
-// next_different : Get next version that points to different data
+// done : have we analyzed all versions ?
 //
 
 class versionIterator {
 
+protected:
 	PidDynamicRec *my_rec;
-	int iVersion, jVersion;
+	int iVersion;
 	set<int> signalIds;
 
 public:
 	versionIterator(PidDynamicRec& _rec, int signalId) { my_rec = &_rec; signalIds = { signalId }; }
 	versionIterator(PidDynamicRec& _rec, set<int>& _signalIds) { my_rec = &_rec; signalIds = _signalIds; }
 
+	virtual int init() { return 0; };
+	virtual int next() { return 0; };
+	virtual bool done() { return true; };
+};
+
+class allVersionsIterator : public versionIterator {
+
+public:
+	allVersionsIterator(PidDynamicRec& _rec, int signalId) : versionIterator(_rec, signalId) {}
+	allVersionsIterator(PidDynamicRec& _rec, set<int>& _signalIds) : versionIterator(_rec, _signalIds) {}
+
+	int init() { iVersion = 0; return iVersion; }
+	int next() { return ++iVersion; }
+	bool done() { return iVersion >= my_rec->get_n_versions(); }
+};
+
+class differentVersionsIterator : public versionIterator {
+
+	int jVersion;
+
+public:
+	differentVersionsIterator(PidDynamicRec& _rec, int signalId) : versionIterator(_rec, signalId) {}
+	differentVersionsIterator(PidDynamicRec& _rec, set<int>& _signalIds) : versionIterator(_rec, _signalIds) {}
+
 	int init();
-	int next() { return (--iVersion); }
-	int next_different();
+	int next();
+	bool done() { return iVersion < 0; }
 
 	inline int block_first() { return jVersion+1; }
 	inline int block_last() { return iVersion; }

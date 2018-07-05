@@ -6,6 +6,7 @@
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
+#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedStat/MedStat/MedPerformance.h"
 #include "MedStat/MedStat/MedStat.h"
 #include <unordered_set>
@@ -205,7 +206,7 @@ public:
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
 	/// The parsed fields from init command.
 	/// @snippet MedValueCleaner.cpp MedValueCleaner::init
-	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); };
+	int init(map<string, string>& mapper);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureBasicOutlierCleaner *>(processor)); }
@@ -663,7 +664,7 @@ void smearBins(vector<int>& bins, int nBins, int reqNbins);
 /************************************************************************************//**
 * TagFeatureSelector - selector which leave us only with the selected "tags" given as
 * param (if empty do nothing) and removes removed_tags (if empty do nothing)
-*
+* note that you can use regex notation to specify the tags
 * To Use this selector specify <b>"tags_selector"</b> in the fp_type
 ****************************************************************************************/
 class TagFeatureSelector : public FeatureSelector {

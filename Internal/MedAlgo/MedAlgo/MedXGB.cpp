@@ -48,12 +48,17 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) {
 	return 0;
 }
 
+
 void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_contribs) {
 	int nsamples, nftrs;
 	vector<float> w;
 	prepare_x_mat(mat_x, w, nsamples, nftrs, transpose_for_predict);
 
 	mat_contribs.resize(nsamples, nftrs + 1);
+	// copy metadata
+	mat_contribs.signals.insert(mat_contribs.signals.end(), mat_x.signals.begin(), mat_x.signals.end());
+	mat_contribs.signals.push_back("b0");
+	mat_contribs.recordsMetadata.insert(mat_contribs.recordsMetadata.end(), mat_x.recordsMetadata.begin(), mat_x.recordsMetadata.end());
 
 	DMatrixHandle h_test;
 	if (XGDMatrixCreateFromMat(mat_x.data_ptr(), nsamples, nftrs, params.missing_value, &h_test) == -1)
@@ -67,8 +72,7 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 		for (int j = 0; j < nftrs; j++)
 			mat_contribs.set(i, j) = out_preds[i*(nftrs + 1) + j];
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
-	}
-		
+	}		
 }
 
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
@@ -96,6 +100,7 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 
 	return 0;
 }
+
 int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	DMatrixHandle h_train[1];
@@ -130,6 +135,10 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	XGBoosterSetParam(h_booster, "alpha", boost::lexical_cast<std::string>(params.alpha).c_str());
 	XGBoosterSetParam(h_booster, "tree_method", boost::lexical_cast<std::string>(params.tree_method).c_str());
 
+	string split_penalties_s;
+	translate_split_penalties(split_penalties_s);
+	XGBoosterSetParam(h_booster, "split_penalties_s", boost::lexical_cast<std::string>(split_penalties_s).c_str());
+
 	const double start = dmlc::GetTime();
 #pragma omp critical
 	XGBoosterUpdateOneIter(h_booster, 0, h_train[0]);
@@ -147,6 +156,22 @@ int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	XGDMatrixFree(h_train[0]);
 	return 0;
+}
+
+void MedXGB::translate_split_penalties(string& split_penalties_s) {
+
+	vector<string> elems;
+	boost::split(elems, params.split_penalties, boost::is_any_of(",:"));
+	if (elems.size() < 2)
+		return;
+
+	vector<string> out_elems;
+	for (unsigned int i = 0; i < elems.size(); i += 2) {
+		int index = find_in_feature_names(model_features, elems[i]);
+		out_elems.push_back(to_string(index) + ":" + elems[i + 1]);
+	}
+
+	split_penalties_s = boost::join(out_elems, ",");
 }
 
 typedef rabit::utils::MemoryFixSizeBuffer MemoryFixSizeBuffer;
@@ -172,7 +197,7 @@ bool split_token(const string &str, const string &search, bool first
 		return false;
 	result = first ? str.substr(0, str.find(search)) : str.substr(str.find(search) + search.size());
 	return true;
-}
+}  
 
 /*
 Importance type can be defined as:
@@ -330,6 +355,7 @@ int MedXGB::init(map<string, string>& mapper) {
 		else if (field == "lambda") params.lambda = stof(entry.second);
 		else if (field == "alpha") params.alpha = stof(entry.second);
 		else if (field == "seed") params.seed = stoi(entry.second);
+		else if (field == "split_penalties") params.split_penalties = entry.second;
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
 		//! [MedXGB::init]
 	}

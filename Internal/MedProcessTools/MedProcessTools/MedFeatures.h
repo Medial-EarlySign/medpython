@@ -1,12 +1,13 @@
 // MedFeatures - holding data as a map from name to vector
 
-#ifndef _MED_FEAT_H_
-#define _MED_FEAT_H_
+#ifndef __MED_FEATURES_H__
+#define __MED_FEATURES_H__
 
-#include "InfraMed/InfraMed/InfraMed.h"
-#include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
-#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
+#include <InfraMed/InfraMed/InfraMed.h>
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedUtils/MedUtils/MedMat.h>
 
 //.......................................................................................
 /**  A structure holding feature attributes

@@ -6,6 +6,7 @@
 #include "FeatureProcess.h"
 #include "DoCalcFeatProcessor.h"
 #include <omp.h>
+#include <boost/regex.hpp>
 
 //=======================================================================================
 // FeatureSelector
@@ -137,15 +138,15 @@ int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [UnivariateFeatureSelector::init]
-		if (field == "missing_value") missing_value = stof(entry.second);
-		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		if (field == "missing_value") missing_value = med_stof(entry.second);
+		else if (field == "numToSelect") numToSelect = med_stoi(entry.second);
 		else if (field == "method") params.method = params.get_method(entry.second);
-		else if (field == "minStat") params.minStat = stof(entry.second);
-		else if (field == "nBins") params.nBins = stoi(entry.second);
+		else if (field == "minStat") params.minStat = med_stof(entry.second);
+		else if (field == "nBins") params.nBins = med_stoi(entry.second);
 		else if (field == "binMethod") params.binMethod = params.get_binning_method(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
-		else if (field == "takeSquare") params.takeSquare = stoi(entry.second);
-		else if (field == "max_samples") params.max_samples = stoi(entry.second);
+		else if (field == "takeSquare") params.takeSquare = med_stoi(entry.second);
+		else if (field == "max_samples") params.max_samples = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 		//! [UnivariateFeatureSelector::init]
@@ -833,6 +834,10 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
 	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
 	unordered_set<string> r(removed_tags.begin(), removed_tags.end());
+	for (string sub : r)
+		MLOG("TagFeatureSelector removing features with tag [%s]\n", sub.c_str());
+	for (string sub : s)
+		MLOG("TagFeatureSelector selecting features with tag [%s]\n", sub.c_str());
 	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
 		string feature_name = it->first;
 		unordered_set<string> feature_tags = it->second;
@@ -844,10 +849,12 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			auto start_it = feature_tags.begin();
 			while (!found_remove && start_it != feature_tags.end()) {
 				for (const string& substring: r){
-					if ((*start_it).find(substring) != std::string::npos) {
+					boost::regex regi(substring);
+					if (boost::regex_match(*start_it, regi)){
 						found_remove = true;
 						MLOG("TagFeatureSelector removing [%s] because of tag [%s] that contains [%s]\n", 
 							feature_name.c_str(), (*start_it).c_str(), substring.c_str());
+						break;
 					}
 				}
 				++start_it;
@@ -862,9 +869,18 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		else {
 			found_match = false;
 			auto start_it = feature_tags.begin();
+			//MLOG("considering feature [%s]\n", feature_name.c_str());
 			while (!found_match && start_it != feature_tags.end()) {
-				if (s.find(*start_it) != s.end())
-					found_match = true;
+				//MLOG("considering tag [%s]\n",(*start_it).c_str());
+				for (const string& substring : s) {
+					boost::regex regi(substring);
+					if (boost::regex_match(*start_it, regi)){
+						found_match = true;
+						MLOG("TagFeatureSelector selecting [%s] because of tag [%s] that contains [%s]\n",
+							feature_name.c_str(), (*start_it).c_str(), substring.c_str());
+						break;
+					}
+				}
 				++start_it;
 			}
 		}
@@ -880,13 +896,13 @@ int ImportanceFeatureSelector::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [ImportanceFeatureSelector::init]
-		if (field == "missing_value") missing_value = stof(entry.second);
+		if (field == "missing_value") missing_value = med_stof(entry.second);
 		else if (field == "predictor") predictor = entry.second;
 		else if (field == "predictor_params") predictor_params = entry.second;
 		else if (field == "importance_params") importance_params = entry.second;
-		else if (field == "minStat") minStat = stof(entry.second);
-		else if (field == "verbose") verbose = stoi(entry.second) > 0;
-		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field == "minStat") minStat = med_stof(entry.second);
+		else if (field == "verbose") verbose = med_stoi(entry.second) > 0;
+		else if (field == "numToSelect") numToSelect = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for ImportanceFeatureSelector\n", field.c_str());
 		//! [ImportanceFeatureSelector::init]

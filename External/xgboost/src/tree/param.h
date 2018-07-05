@@ -42,6 +42,8 @@ struct TrainParam : public dmlc::Parameter<TrainParam> {
   float reg_lambda;
   // L1 regularization factor
   float reg_alpha;
+  // Feature dependent splitting penalty. String format is "Features-Num,num:value,num:value,..."
+  std::string split_penalties_s;
   // default direction choice
   int default_direction;
   // maximum delta update we can add in weight estimation
@@ -121,6 +123,9 @@ struct TrainParam : public dmlc::Parameter<TrainParam> {
         .set_lower_bound(0.0f)
         .set_default(0.0f)
         .describe("L1 regularization on leaf weight");
+	DMLC_DECLARE_FIELD(split_penalties_s)
+		.set_default("")
+		.describe("feature-specific splitting penalties");
     DMLC_DECLARE_FIELD(default_direction)
         .set_default(0)
         .add_enum("learn", 0)

@@ -60,6 +60,9 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 
 	float max_range = params.range_max;
 	float min_range = params.range_min;
+	float trim_max_range = params.trim_range_max;
+	float trim_min_range = params.trim_range_min;
+
 	// Take Log if required
 	if (params.take_log) {
 		for (unsigned int i = 0; i < values.size(); i++) {
@@ -72,6 +75,12 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 		if (min_range <= 0) min_range = (float)0.01;
 		max_range = log(max_range);
 		min_range = log(min_range);
+
+		if (trim_max_range <= 0) trim_max_range = 1;
+		if (trim_min_range <= 0) trim_min_range = (float)0.01;
+		trim_max_range = log(trim_max_range);
+		trim_min_range = log(trim_min_range);
+
 	}
 
 	bool need_to_clean = true;
@@ -94,8 +103,8 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 			return 0;
 		}
 
-		vmax = min(mean + params.trimming_sd_num * sd, max_range);
-		vmin = max(mean - params.trimming_sd_num * sd, min_range);
+		vmax = min(min(mean + params.trimming_sd_num * sd, max_range), trim_max_range);
+		vmin = max(max(mean - params.trimming_sd_num * sd, min_range), trim_min_range);
 
 		// Clean
 		need_to_clean = false;
@@ -120,8 +129,8 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 	nbrsMax = mean + params.nbrs_sd_num * sd; if (params.take_log) nbrsMax = exp(nbrsMax);
 	nbrsMin = mean - params.nbrs_sd_num * sd; if (params.take_log) nbrsMin = exp(nbrsMin);
 
-	trimMax = min(trimMax, params.range_max);
-	trimMin = max(trimMin, params.range_min);
+	trimMax = min(trimMax, params.trim_range_max);
+	trimMin = max(trimMin, params.trim_range_min);
 	removeMax = min(removeMax, params.range_max);
 	removeMin = max(removeMin, params.range_min);
 	nbrsMax = min(nbrsMax, params.range_max);
@@ -161,20 +170,22 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [MedValueCleaner::init]
 		if (field == "type") params.type = get_cleaner_type(entry.second);
-		else if (field == "take_log") params.take_log = stoi(entry.second);
-		else if (field == "missing_value") params.missing_value = stof(entry.second);
-		else if (field == "trimming_sd_num") params.trimming_sd_num = stof(entry.second);
-		else if (field == "removing_sd_num") params.removing_sd_num = stof(entry.second);
-		else if (field == "nbrs_sd_num") params.nbrs_sd_num = stof(entry.second);
-		else if (field == "quantile") params.quantile = stof(entry.second);
-		else if (field == "trimming_quantile_factor") params.trimming_quantile_factor = stof(entry.second);
-		else if (field == "removing_quantile_factor") params.removing_quantile_factor = stof(entry.second);
-		else if (field == "nbrs_quantile_factor") params.nbrs_quantile_factor = stof(entry.second);
-		else if (field == "doTrim") params.doTrim = (stoi(entry.second) != 0);
-		else if (field == "doRemove") params.doRemove = (stoi(entry.second) != 0);
-		else if (field == "range_min") params.range_min = stof(entry.second);
-		else if (field == "range_max") params.range_max = stof(entry.second);
-		else if (field == "max_samples") params.max_samples = stoi(entry.second);
+		else if (field == "take_log") params.take_log = med_stoi(entry.second);
+		else if (field == "missing_value") params.missing_value = med_stof(entry.second);
+		else if (field == "trimming_sd_num") params.trimming_sd_num = med_stof(entry.second);
+		else if (field == "removing_sd_num") params.removing_sd_num = med_stof(entry.second);
+		else if (field == "nbrs_sd_num") params.nbrs_sd_num = med_stof(entry.second);
+		else if (field == "quantile") params.quantile = med_stof(entry.second);
+		else if (field == "trimming_quantile_factor") params.trimming_quantile_factor = med_stof(entry.second);
+		else if (field == "removing_quantile_factor") params.removing_quantile_factor = med_stof(entry.second);
+		else if (field == "nbrs_quantile_factor") params.nbrs_quantile_factor = med_stof(entry.second);
+		else if (field == "doTrim") params.doTrim = (med_stoi(entry.second) != 0);
+		else if (field == "doRemove") params.doRemove = (med_stoi(entry.second) != 0);
+		else if (field == "range_min") params.range_min = med_stof(entry.second);
+		else if (field == "range_max") params.range_max = med_stof(entry.second);
+		else if (field == "trim_range_min") params.trim_range_min = med_stof(entry.second);
+		else if (field == "trim_range_max") params.trim_range_max = med_stof(entry.second);
+		else if (field == "max_samples") params.max_samples = med_stoi(entry.second);
 
 		// next are in ignore ... used in level above
 		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&

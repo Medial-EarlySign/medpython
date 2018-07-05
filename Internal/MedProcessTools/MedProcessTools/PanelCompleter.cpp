@@ -21,6 +21,7 @@ int RepPanelCompleter::init(map<string, string>& mapper)
 		}
 		else if (field == "missing") missing_val = stof(entry.second);
 		else if (field == "config" || field == "metadata") metadata_file = entry.second;
+		else if (field == "sim_val" || field == "sim_val_handler") sim_val_handler = RepSimValHandler::get_sim_val_handle_type(entry.second);
 		else if (field == "panels") {
 			if (update_panels(entry.second) != 0) return -1;
 		}
@@ -192,9 +193,9 @@ int RepPanelCompleter::apply_red_line_completer(PidDynamicRec& rec, vector<int>&
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -247,9 +248,9 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -287,6 +288,7 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 		// Update changed signals
 		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
 			return -1;
+
 	}
 
 	return 0;
@@ -304,9 +306,9 @@ int RepPanelCompleter::apply_platelets_completer(PidDynamicRec& rec, vector<int>
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -347,10 +349,9 @@ int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& t
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
-
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
 		// Get Signals
@@ -428,9 +429,9 @@ int RepPanelCompleter::apply_eGFR_completer(PidDynamicRec& rec, vector<int>& tim
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -510,9 +511,9 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
-	versionIterator vit(rec, iteratorSignalIds);
 
-	for (int iver = vit.init(); iver >= 0; iver = vit.next_different()) {
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		int time_limit = (time_points.size()) ? time_points[iver] : -1;
 
@@ -572,6 +573,7 @@ void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& p
 	// Prepare
 	panels.clear();
 	panel_times.clear();
+	vector<vector<int> > val_counters;
 
 	set<pair<int, int>, candidate_compare> candidates; // Which signal should we insert next ;
 
@@ -586,17 +588,44 @@ void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& p
 		// Get the next element
 		std::set<pair<int, int>, candidate_compare>::iterator it = candidates.begin();
 
+		// Have we reached the time-limit ?
+		if (time_limit != -1 && it->first > time_limit)
+			break;
+
 		// New Time Point
 		if (it->first != currentTime) {
 			currentTime = it->first;
 			panel_times.push_back(it->first);
 			panels.push_back(vector<float>(panel_size, missing_val));
+			if (sim_val_handler == SIM_VAL_MEAN || sim_val_handler == SIM_VAL_REM || sim_val_handler == SIM_VAL_REM_DIFF)
+				val_counters.push_back(vector<int>(panel_size, 0));
 		}
 		int sig_idx = it->second;
 		candidates.erase(it);
 
 		// Update panel
-		panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]++);
+		if (sim_val_handler == SIM_VAL_MEAN) {
+			if (panels.back()[sig_idx] == missing_val)
+				panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]);
+			else
+				panels.back()[sig_idx] += usvs[sig_idx].Val(idx[sig_idx]);
+			val_counters.back()[sig_idx]++;
+		}
+		else if (sim_val_handler == SIM_VAL_REM) {
+			if (val_counters.back()[sig_idx] != 0)
+				panels.back()[sig_idx] = missing_val;
+			else
+				panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]);
+			val_counters.back()[sig_idx]++;
+		} else if (sim_val_handler == SIM_VAL_REM_DIFF) {
+			if (val_counters.back()[sig_idx] != 0 && panels.back()[sig_idx] != usvs[sig_idx].Val(idx[sig_idx]))
+				panels.back()[sig_idx] = missing_val;
+			else
+				panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]);
+			val_counters.back()[sig_idx]++;
+		} else if (sim_val_handler == SIM_VAL_LAST_VAL || panels.back()[sig_idx] == missing_val)
+			panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]);
+		idx[sig_idx]++;
 
 		// New candidate
 		if (usvs[sig_idx].len > idx[sig_idx]) {
@@ -606,12 +635,23 @@ void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& p
 		}
 	}
 
+	// Get Means
+	if (sim_val_handler == SIM_VAL_MEAN) {
+		for (unsigned int i = 0; i < panels.size(); i++) {
+			for (int j = 0; j < panel_size; j++) {
+				if (val_counters[i][j] > 0)
+					panels[i][j] /= val_counters[i][j];
+			}
+		}
+	}
+
 	/* Print Panels
+	cerr << "Time Limit = " << time_limit << "\n";
 	for (int i = 0; i < panels.size(); i++) {
-	cerr << panel_times[i];
-	for (int j = 0; j < panels[i].size(); j++)
-	cerr << " " << panels[i][j];
-	cerr << "\n";
+		cerr << panel_times[i];
+		for (int j = 0; j < panels[i].size(); j++)
+			cerr << " " << panels[i][j];
+			cerr << "\n";
 	}
 	*/
 
@@ -739,18 +779,52 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 
 	for (int iSig = 0; iSig < sigs_ids.size(); iSig++) {
 		if (changed[iSig]) {
-			vector<float> values(panels.size());
-			vector<int> times(panels.size());
 
-			int trueSize = 0;
-			for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
-				if (panels[iPanel][iSig] != missing_val) {
-					values[trueSize] = panels[iPanel][iSig];
-					times[trueSize] = panel_times[iPanel];
-					trueSize++;
+			// We need to take care of the (rare) events of multiple values at the same time.
+			// Look back at the original signal :
+			rec.uget(sigs_ids[iSig], iver);
+			int nEXtra = 0;
+			unordered_map<int, vector<float> > multiple_values;
+			for (unsigned int i = 1; i < rec.usv.len; i++) {
+				int time = rec.usv.Time(i);
+				if (time == rec.usv.Time(i - 1)) {
+					if (multiple_values[time].empty())
+						multiple_values[time].push_back(rec.usv.Val(i-1));
+					multiple_values[time].push_back(rec.usv.Val(i));
+					nEXtra++;
 				}
 			}
 
+			// Generate new data
+			int trueSize = 0;
+			vector<float> values(panels.size() + nEXtra);
+			vector<int> times(panels.size() + nEXtra);
+			if (nEXtra == 0) { // Easy case - no multiple values 			
+				for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
+					if (panels[iPanel][iSig] != missing_val) {
+						values[trueSize] = panels[iPanel][iSig];
+						times[trueSize] = panel_times[iPanel];
+						trueSize++;
+					}
+				}
+			}
+			else { // In case of multiple values, take them
+				for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
+					int time = panel_times[iPanel];
+					if (multiple_values.find(time) != multiple_values.end()) {
+						for (float value : multiple_values[time]) {
+							values[trueSize] = value;
+							times[trueSize] = time;
+							trueSize++;
+						}
+					}
+					else if (panels[iPanel][iSig] != missing_val) {
+						values[trueSize] = panels[iPanel][iSig];
+						times[trueSize] = time;
+						trueSize++;
+					}
+				}
+			}
 
 			if (rec.set_version_universal_data(sigs_ids[iSig], iver, &(times[0]), &(values[0]), trueSize) < 0)
 				return -1;

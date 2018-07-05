@@ -1,14 +1,15 @@
 #ifndef _FTR_GENERATOR_H_
 #define _FTR_GENERATOR_H_
 
-#include "InfraMed/InfraMed/InfraMed.h"
-#include "Logger/Logger/Logger.h"
-#include "MedProcessTools/MedProcessTools/RepProcess.h"
-#include "MedProcessTools/MedProcessTools/MedFeatures.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
-#include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
+#include <InfraMed/InfraMed/InfraMed.h>
+#include <Logger/Logger/Logger.h>
+#include <MedProcessTools/MedProcessTools/RepProcess.h>
+#include <MedProcessTools/MedProcessTools/MedFeatures.h>
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <MedProcessTools/MedProcessTools/MedModelExceptions.h>
 #include <MedTime/MedTime/MedTime.h>
-#include "InfraMed/InfraMed/MedRepositoryType.h"
+#include <InfraMed/InfraMed/MedRepositoryType.h>
+#include <MedAlgo/MedAlgo/MedAlgo.h>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
@@ -299,7 +300,7 @@ public:
 	//~AgeGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Age"); }
+	void set_names() { if (names.empty()) names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Age"); tags.push_back("Age"); }
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AgeGenerator *>(generator)); }
@@ -379,7 +380,7 @@ public:
 	//~GenderGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("Gender"); }
+	void set_names() { if (names.empty()) names.push_back("Gender"); tags.push_back("Gender");}
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<GenderGenerator *>(generator)); }

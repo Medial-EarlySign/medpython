@@ -11,17 +11,18 @@
 #define NEW_COMPLIER false
 #endif
 
-#include "Logger/Logger/Logger.h"
-#include "MedUtils/MedUtils/MedUtils.h"
-#include "MedStat/MedStat/MedStat.h"
-#include "MedFeat/MedFeat/MedFeat.h"
-#include "QRF/QRF/QRF.h"
-#include "gbm/gbm/gbm_utils.h"
-#include "micNet/micNet/micNet.h"
-#include "string.h"
-#include "limits.h"
-#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <Logger/Logger/Logger.h>
+#include <MedUtils/MedUtils/MedUtils.h>
+#include <MedStat/MedStat/MedStat.h>
+#include <MedFeat/MedFeat/MedFeat.h>
+#include <QRF/QRF/QRF.h>
+#include <gbm/gbm/gbm_utils.h>
+#include <micNet/micNet/micNet.h>
+#include <string.h>
+#include <limits.h>
+#include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <TQRF/TQRF/TQRF.h>
 #include "svm.h"
 #include <unordered_map>
 
@@ -79,6 +80,7 @@ typedef enum {
 	MODEL_SVM = 15, ///< Svm model - creates MedSvm 
 	MODEL_LINEAR_SGD = 16, ///< linear model using our customized SGD - creates MedLinearModel
 	MODEL_VW = 17, ///< %VowpalWabbit yahoo reasearch library - creates MedVW
+	MODEL_TQRF = 18, ///< %VowpalWabbit yahoo reasearch library - creates MedVW
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -1065,6 +1067,38 @@ private:
 
 };
 
+
+//========================================================================================
+// TQRF Wrapper
+//========================================================================================
+class MedTQRF : public MedPredictor {
+public:
+	TQRF_Forest _tqrf;
+
+	MedTQRF() { classifier_type = MODEL_TQRF; }
+	~MedTQRF() {};
+
+	void init_defaults() {};
+
+	// initialize using the init_from_string() method (inherited from SerializableObject)
+	
+	virtual int init(map<string, string>& mapper) { return _tqrf.init(mapper); }
+
+	int Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+	HMTHROW_AND_ERR("MedTQRF does not support the Learn(float *x, float *y, float *w, int nsamples, int nftrs). Use Learn(MedFeatures &feats) API instead\n");
+	};
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) {
+	HMTHROW_AND_ERR("MedTQRF does not support the Predict(float *x, float *&preds, int nsamples, int nftrs). Use Predict(MedMat<float> &x, vector<float> &preds) API instead\n");
+	}
+
+	int Learn(MedFeatures &feats) { return _tqrf.Train(feats); }
+	int Predict(MedMat<float> &x, vector<float> &preds) { return _tqrf.Predict(x, preds); }
+
+	ADD_SERIALIZATION_FUNCS(_tqrf);
+	
+};
+//=========================================================================================
+
 /**
 * \brief medial namespace for function
 */
@@ -1094,6 +1128,7 @@ namespace medial {
 //#include "MedLightGBM.h"
 
 
+
 //=================================================================
 // Joining the MedSerialize Wagon
 //=================================================================
@@ -1110,6 +1145,7 @@ MEDSERIALIZE_SUPPORT(MedKNN)
 MEDSERIALIZE_SUPPORT(MedGBM)
 MEDSERIALIZE_SUPPORT(MedMultiClass)
 MEDSERIALIZE_SUPPORT(MedSpecificGroupModels)
+MEDSERIALIZE_SUPPORT(MedTQRF)
 
 
 #endif
