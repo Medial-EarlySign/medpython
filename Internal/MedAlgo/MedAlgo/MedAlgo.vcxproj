@@ -81,7 +81,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BART.h" />
     <ClInclude Include="BinSplitOptimizer.h" />
+    <ClInclude Include="MedBART.h" />
     <ClInclude Include="MedLinearModel.h" />
     <ClInclude Include="MedAlgo.h" />
     <ClInclude Include="MedBooster.h" />
@@ -94,7 +96,9 @@
     <ClInclude Include="svm.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BART.cpp" />
     <ClCompile Include="BinSplitOptimizer.cpp" />
+    <ClCompile Include="MedBART.cpp" />
     <ClCompile Include="MedLinearModel.cpp" />
     <ClCompile Include="MedAlgo.cpp" />
     <ClCompile Include="MedBooster.cpp" />
