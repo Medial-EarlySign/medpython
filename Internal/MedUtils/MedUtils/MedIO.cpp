@@ -331,11 +331,24 @@ int read_text_file_col(string fname, string ignore_pref, string separators, int 
 //===================================================================================================
 int read_file_into_string(const string &fname, string &data)
 {
-	vector<char> d;
+	ifstream inf(fname);
+	if (!inf) {
+		MERR("MedUtils:MedIO :: read_file_inot_string: Can't open file %s\n", fname.c_str());
+		return -1;
+	}
 
-	if (read_vector<char>(fname, d) < 0) return -1;
+	//vector<char> d;
 
-	d.push_back(0);
-	data = string(&d[0]);
+	//if (read_vector<char>(fname, d) < 0) return -1;
+
+	//d.push_back(0);
+	//data = string(&d[0]);
+	//return 0;
+
+	inf.seekg(0, std::ios::end);
+	size_t size = inf.tellg();
+	data.resize(size);
+	inf.seekg(0);
+	inf.read(&data[0], size);
 	return 0;
 }
