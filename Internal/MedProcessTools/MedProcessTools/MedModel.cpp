@@ -310,6 +310,15 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 
+	// if attr_train_weight exists (testing on first sample), we enter weights to features
+	if (features.samples.size() > 0) {
+		if (features.samples[0].attributes.find("attr_train_weight") != features.samples[0].attributes.end()) {
+			features.weights.clear();
+			for (auto &s : features.samples)
+				features.weights.push_back(s.attributes["attr_train_weight"]);
+		}
+	}
+
 	// Resize data vectors and collect pointers
 	int samples_size = (int)features.samples.size();
 	for (auto &generator : _generators) {

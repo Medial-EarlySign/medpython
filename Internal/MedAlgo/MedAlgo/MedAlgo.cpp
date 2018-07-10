@@ -9,6 +9,7 @@
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedLightGBM.h"
 #include "MedLinearModel.h"
+#include "MedBART.h"
 
 #if NEW_COMPLIER
 #include "MedVW.h"
@@ -40,7 +41,8 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_LINEAR_SGD , "linear_sgd" },
 	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" },
 	{ MODEL_VW, "vw" },
-	{ MODEL_TQRF, "tqrf"}
+	{ MODEL_TQRF, "tqrf"},
+	{ MODEL_BART, "bart"}
 };
 //=======================================================================================
 // MedPredictor
@@ -104,6 +106,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedSvm;
 	else if (model_type == MODEL_TQRF)
 		return new MedTQRF;
+	else if (model_type == MODEL_BART)
+		return new MedBART;
 #if NEW_COMPLIER
 	else if (model_type == MODEL_VW)
 		return new MedVW;

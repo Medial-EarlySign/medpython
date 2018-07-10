@@ -80,7 +80,8 @@ typedef enum {
 	MODEL_SVM = 15, ///< Svm model - creates MedSvm 
 	MODEL_LINEAR_SGD = 16, ///< linear model using our customized SGD - creates MedLinearModel
 	MODEL_VW = 17, ///< %VowpalWabbit yahoo reasearch library - creates MedVW
-	MODEL_TQRF = 18, ///< %VowpalWabbit yahoo reasearch library - creates MedVW
+	MODEL_TQRF = 18, ///< TQRF model
+	MODEL_BART = 19, ///< MedBART model using BART
 	MODEL_LAST
 } MedPredictorTypes;
 

@@ -121,14 +121,15 @@ int FeatureProcessor::apply(MedFeatures& features) {
 }
 
 //.......................................................................................
-string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
+string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) { 
 
 	// Exact name ?
 	if (features.data.find(substr) != features.data.end())
 		return substr;
 	else {
 		vector<string> names;
-		get_feature_names(names);
+		for (auto& me: features.data)
+			names.push_back(me.first);
 		return names[find_in_feature_names(names, substr)];
 	}
 }

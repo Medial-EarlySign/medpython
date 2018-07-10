@@ -232,6 +232,9 @@ public:
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalSet::init
 	int init(map<string, string>& map);
+
+	/// Checks if has flags inside or it's empty one
+	bool is_empty() { return Flags.empty(); }
 private:
 	vector<char> Flags;
 };
