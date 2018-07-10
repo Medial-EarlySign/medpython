@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\Models">
+      <UniqueIdentifier>{47fe5ba5-f9a3-40f5-b1a3-447c0f46b911}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Models">
+      <UniqueIdentifier>{bd7a53fc-dbbd-4c00-8767-1079750f8ae4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedAlgo.h">
@@ -46,6 +52,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BinSplitOptimizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BART.h">
+      <Filter>Header Files\Models</Filter>
+    </ClInclude>
+    <ClInclude Include="MedBART.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -117,6 +129,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BinSplitOptimizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BART.cpp">
+      <Filter>Source Files\Models</Filter>
+    </ClCompile>
+    <ClCompile Include="MedBART.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

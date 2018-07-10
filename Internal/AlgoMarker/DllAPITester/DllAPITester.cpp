@@ -46,7 +46,11 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
 			("json_data", po::value<string>()->default_value(""), "test json data for --direct_test option")
 			("date", po::value<long long>()->default_value(20180101), "test date")
-			("egfr_test" , "split to a debug routine for the simple egfr algomarker")
+			("egfr_test", "split to a debug routine for the simple egfr algomarker")
+			("data_api_test", "split to a test of data api")
+			("pid", po::value<int>()->default_value(5000100), "test data_api for this pid, use --data_api_test option")
+			("sig", po::value<string>()->default_value("Creatinine"), "test data_api for this signal, use --data_api_test option")
+
 			;
 
 
@@ -740,6 +744,55 @@ int simple_egfr_test()
 	return 0;
 }
 
+
+//----------------------------------------------------------------------------------------
+int test_data_api(po::variables_map &vm) {
+
+	MedRepository rep;
+	RepositoryHandle *rep_h;
+	SignalDataHandle *sdh;
+
+	string fname = vm["rep"].as<string>();
+	int pid = vm["pid"].as<int>();
+	string sig = vm["sig"].as<string>();
+
+	if (rep.read_all(fname, { pid }, { sig }) < 0) return -1;
+	
+	char *sigs = (char *)sig.c_str();
+	if (DATA_API_RepositoryHandle_Create(&rep_h, (char *)fname.c_str(), &pid, 1, &sigs, 1) < 0) return -1;
+	if (DATA_API_SignalDataHandle_Create(&sdh) < 0) return -1;
+
+	int len;
+	DATA_API_ReadData(rep_h, pid, (char *)sig.c_str(), sdh, &len);
+
+	UniversalSigVec usv;
+	rep.uget(pid, sig, usv);
+
+	MLOG("len %d ulen %d\n", len, usv.len);
+
+	if (len != usv.len) { MERR("ERROR: different lengths\n"); }
+
+	for (int i=0; i<len; i++) {
+
+		for (int t=0; t<usv.n_time_channels(); t++) {
+			int time;
+			DATA_API_GetTime(sdh, i, t, &time);
+			MLOG("Time %d,%d : %d , %d\n", i, t, usv.Time(i, t), time);
+			if (time != usv.Time(i, t)) MERR("ERROR different times\n");
+		}
+
+		for (int v=0; v<usv.n_val_channels(); v++) {
+			float val;
+			DATA_API_GetVal(sdh, i, v, &val);
+			MLOG("Time %d,%d : %f , %f\n", i, v, usv.Val(i, v), val);
+			if (val != usv.Val(i, v)) MERR("ERROR different vals\n");
+		}
+
+	}
+
+	return 0;
+}
+
 //========================================================================================
 // MAIN
 //========================================================================================
@@ -761,6 +814,9 @@ int main(int argc, char *argv[])
 
 	if (vm.count("egfr_test"))
 		return simple_egfr_test();
+
+	if (vm.count("data_api_test"))
+		return test_data_api(vm);
 
 	// read model file
 	MedModel model;

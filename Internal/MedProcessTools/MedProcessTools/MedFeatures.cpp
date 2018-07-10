@@ -275,16 +275,16 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 	if (weights.size()) out_f << ",weight"; // Weight (if given)
 	out_f << ",id,time,outcome,outcome_time,split"; // samples
 
-	// Predictions
+													// Predictions
 	if (samples.size() > 0 && samples[0].prediction.size() > 0) {
 		n_preds = (int)samples[0].prediction.size();
 		for (int j = 0; j < n_preds; j++)
-			out_f << ",pred_" + to_string(j);
+			out_f << ",pred_" << to_string(j);
 	}
 
 	// names of features
 	for (int j = 0; j < col_names.size(); j++)
-		out_f << "," + col_names[j];
+		out_f << "," << col_names[j];
 	out_f << "\n";
 
 	// data
@@ -293,20 +293,20 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 		out_f << to_string(i); // serial
 		if (weights.size()) out_f << "," + to_string(weights[i]); // Weights
 
-		// sample
-		out_f << "," + to_string(samples[i].id);
-		out_f << "," + to_string(samples[i].time);
-		out_f << "," + to_string(samples[i].outcome);
-		out_f << "," + to_string(samples[i].outcomeTime);
-		out_f << "," + to_string(samples[i].split);
+																  // sample
+		out_f << "," << samples[i].id;
+		out_f << "," << samples[i].time;
+		out_f << "," << samples[i].outcome;
+		out_f << "," << samples[i].outcomeTime;
+		out_f << "," << samples[i].split;
 
 		// predictions
 		for (int j = 0; j < n_preds; j++)
-			out_f << "," + to_string(samples[i].prediction[j]);
+			out_f << "," << samples[i].prediction[j];
 
 		// features
 		for (int j = 0; j < col_names.size(); j++)
-			out_f << "," + to_string(data[col_names[j]][i]);
+			out_f << "," << data[col_names[j]][i];
 		out_f << "\n";
 	}
 
