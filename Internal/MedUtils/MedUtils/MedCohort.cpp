@@ -700,7 +700,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 
 			if (dates_to_take.size() > s_params.max_samples_per_id) {
 				if (s_params.max_samples_per_id_method == "last") {
-					sort(dates_to_take.begin(), dates_to_take.end(), std::greater<>()); }
+					sort(dates_to_take.begin(), dates_to_take.end(), std::greater<int>()); }
 				if (s_params.max_samples_per_id_method == "rand") {
 					random_shuffle(dates_to_take.begin(), dates_to_take.end()); }
 			}

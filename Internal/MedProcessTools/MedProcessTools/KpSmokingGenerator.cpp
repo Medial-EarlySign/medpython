@@ -14,11 +14,21 @@ void KpSmokingGenerator::set_names() {
 	for (string s : raw_feature_names) {
 		if (legal_features.find(s) == legal_features.end())
 			MTHROW_AND_ERR("KpSmokingGenerator does not know how to generate [%s]", s.c_str());
-		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
+		if ((s == "NLST_Criterion") && (nonDefaultNlstCriterion == true))
+			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s + "_min_age_" + to_string((int)nlstMinAge) + "_max_age_" + to_string((int)nlstMaxAge) + "_pack_years_" + to_string((int)nlstPackYears));
+		else 
+			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
 	}
 }
 
 int KpSmokingGenerator::init(map<string, string>& mapper) {
+
+	// Set NLST default values:
+	nlstMinAge = 55;
+	nlstMaxAge = 74;
+	nlstPackYears = 30;
+	nlstQuitTimeYears = 15;
+	nonDefaultNlstCriterion = false;
 
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -27,6 +37,22 @@ int KpSmokingGenerator::init(map<string, string>& mapper) {
 			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (entry.first == "min_age") {
+			nlstMinAge = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "max_age") {
+			nlstMaxAge = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "pack_years") {
+			nlstPackYears = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "quit_time_years") {
+			nlstQuitTimeYears = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
 		else if (field == "weights_generator")
 			iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
@@ -34,6 +60,7 @@ int KpSmokingGenerator::init(map<string, string>& mapper) {
 		//! [SmokingGenerator::init]
 
 	}
+
 	set_names();
 	req_signals.clear();
 	req_signals.push_back("Smoking_Status");
@@ -208,9 +235,8 @@ int KpSmokingGenerator::calcNlst(int age, int unknownSmoker, int daysSinceQuitti
 	if ((unknownSmoker == 1) || (daysSinceQuitting == (int)missing_val) || (lastPackYears == missing_val)) {
 		return missing_val;
 	}
-	return ((age >= 55) && (age <= 74) && (lastPackYears >= 30) && (daysSinceQuitting <= 15 * 365.0));
+	return ((age >= nlstMinAge) && (age <= nlstMaxAge) && (lastPackYears >= nlstPackYears) && (daysSinceQuitting <= nlstQuitTimeYears * 365.0));
 }
-
 
 void KpSmokingGenerator::get_p_data(MedFeatures& features) {
 	p_data.resize(SMX_KP_LAST, NULL);
@@ -239,7 +265,7 @@ void KpSmokingGenerator::get_p_data(MedFeatures& features) {
 			p_data[SMX_KP_UNKNOWN_SMOKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Passive_Smoker"))
 			p_data[SMX_KP_PASSIVE_SMOKER] = &(features.data[name][0]);
-		else if (algorithm::ends_with(name, "NLST_Criterion"))
+		else if (algorithm::contains(name, "NLST_Criterion"))
 			p_data[NLST_CRITERION] = &(features.data[name][0]);
 		else
 			MTHROW_AND_ERR("unknown feature name [%s]", name.c_str());

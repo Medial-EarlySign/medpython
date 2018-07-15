@@ -17,10 +17,11 @@ typedef enum {
 #define KP_NEVER_SMOKER_QUIT_TIME (19000101)
 class KpSmokingGenerator : public FeatureGenerator {
 public:
+	float nlstPackYears, nlstQuitTimeYears, nlstMinAge, nlstMaxAge;
+	bool nonDefaultNlstCriterion;
 
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
-
 	// Constructor/Destructor
 	KpSmokingGenerator() : FeatureGenerator() { missing_val = MED_MAT_MISSING_VALUE, generator_type = FTR_GEN_KP_SMOKING; }
 

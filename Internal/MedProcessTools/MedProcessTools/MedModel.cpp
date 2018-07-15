@@ -312,10 +312,10 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 	// if attr_train_weight exists (testing on first sample), we enter weights to features
 	if (features.samples.size() > 0) {
-		if (features.samples[0].attributes.find("attr_train_weight") != features.samples[0].attributes.end()) {
+		if (features.samples[0].attributes.find("train_weight") != features.samples[0].attributes.end()) {
 			features.weights.clear();
 			for (auto &s : features.samples)
-				features.weights.push_back(s.attributes["attr_train_weight"]);
+				features.weights.push_back(s.attributes["train_weight"]);
 		}
 	}
 
