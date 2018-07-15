@@ -66,11 +66,17 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
-	const int PRED_CONTRIBS = 4; ;
-	XGBoosterPredict(my_learner, h_test, PRED_CONTRIBS, 0, &out_len, &out_preds);
+	const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8;
+	// using the old APPROX_CONTRIBS until this bug is resolved:
+	// https://github.com/dmlc/xgboost/issues/3333 NaN SHAP values from Booster.predict with pred_contribs=True
+	XGBoosterPredict(my_learner, h_test, PRED_CONTRIBS | APPROX_CONTRIBS, 0, &out_len, &out_preds);
 	for (int i = 0; i < nsamples; i++) {
-		for (int j = 0; j < nftrs; j++)
-			mat_contribs.set(i, j) = out_preds[i*(nftrs + 1) + j];
+		for (int j = 0; j < nftrs; j++) {
+			float v = out_preds[i*(nftrs + 1) + j];
+			if (isnan(v))
+				MTHROW_AND_ERR("got nan in (%d,%d)\n", i, j);
+			mat_contribs.set(i, j) = v;
+		}
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
 	}		
 }
@@ -79,7 +85,6 @@ int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
 	vector<float> w;
 	for (int i = 0; i < nsamples; i++)
 		w.push_back(1.0);
-
 	return Learn(x, y, &w[0], nsamples, nftrs);
 }
 
@@ -102,7 +107,6 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 }
 
 int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
-
 	DMatrixHandle h_train[1];
 	if (XGDMatrixCreateFromMat(x, nsamples, nftrs, params.missing_value, &h_train[0]) != 0)
 		MTHROW_AND_ERR("failed to XGDMatrixCreateFromMat");
