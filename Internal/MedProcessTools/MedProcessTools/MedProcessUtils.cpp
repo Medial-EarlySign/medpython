@@ -26,8 +26,8 @@ int init_map_from_string(string text, map<string, string>& init_map) {
 	if (initialization_text_to_map(text, init_map) == -1)
 		return -1;
 
-//	for (auto rec : init_map)
-//		MLOG("Initializing with \'%s\' = \'%s\'\n", rec.first.c_str(), rec.second.c_str());
+	//	for (auto rec : init_map)
+	//		MLOG("Initializing with \'%s\' = \'%s\'\n", rec.first.c_str(), rec.second.c_str());
 
 
 	return 0;
@@ -50,12 +50,12 @@ int init_dvec(string& in, vector<int>& out) {
 void get_single_val_from_init_string(string init_s, string attr, string &val_s)
 {
 	val_s = "";
-	if (attr=="") return;
+	if (attr == "") return;
 
 	init_s.erase(remove_if(init_s.begin(), init_s.end(), ::isspace), init_s.end());
 	vector<string> fields;
 	split(fields, init_s, boost::is_any_of(";="));
-	for (int i=0; i<fields.size(); i++) {
+	for (int i = 0; i < fields.size(); i++) {
 		if (fields[i] == attr) {
 			val_s = fields[++i];
 			return;
@@ -146,6 +146,8 @@ int find_in_feature_names(vector<string>& names, string& substr) {
 		string err = string("Got source_feature_name [") + substr + "] which does not match any feature (did you forget to set duplicate=1?). Tried matching to these features:\n";
 		for (auto candidate : names)
 			err += candidate + "\n";
+		if (err.size() >= 300) //out of buffer
+			MWARN("%s\n", err.c_str());
 		MTHROW_AND_ERR("%s\n", err.c_str());
 	}
 	else
