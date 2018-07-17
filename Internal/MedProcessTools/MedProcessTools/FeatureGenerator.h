@@ -326,6 +326,8 @@ public:
 * Singleton
 */
 class SingletonGenerator : public FeatureGenerator {
+private:
+	vector<char> lut;			///< to be used when generating sets*
 public:
 
 	/// Signal Id
@@ -334,7 +336,6 @@ public:
 
 	vector<string> sets = {};		/// list of sets 
 	string in_set_name = "";
-	vector<char> lut;			///< to be used when generating sets*
 
 	// Constructor/Destructor
 	SingletonGenerator() : FeatureGenerator() { generator_type = FTR_GEN_SINGLETON; names.push_back(signalName); signalId = -1; req_signals.assign(1, signalName); }
@@ -360,7 +361,7 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
 };
 
 
