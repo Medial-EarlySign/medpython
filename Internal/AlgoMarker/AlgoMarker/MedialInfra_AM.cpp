@@ -47,13 +47,23 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	// prepare internal ma for work: set name, rep and model
 	ma.set_name(get_name());
 
-	if (ma.init_rep_config(rep_fname.c_str()) < 0)
+	try {
+		if (ma.init_rep_config(rep_fname.c_str()) < 0)
+			return AM_ERROR_LOAD_READ_REP_ERR;
+	}
+	catch (...) {
 		return AM_ERROR_LOAD_READ_REP_ERR;
+	}
 
 	ma.set_time_unit_env(get_time_unit());
 
-	if (ma.init_model_from_file(model_fname.c_str()) < 0)
+	try {
+		if (ma.init_model_from_file(model_fname.c_str()) < 0)
+			return AM_ERROR_LOAD_READ_MODEL_ERR;
+	}
+	catch (...) {
 		return AM_ERROR_LOAD_READ_MODEL_ERR;
+	}
 
 
 	ma.data_load_init();
