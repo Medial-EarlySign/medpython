@@ -7,6 +7,7 @@
 #endif
 
 #include "MedSignals.h"
+#include "InfraMed.h"
 #include "Logger/Logger/Logger.h"
 #include <fstream>
 #include <algorithm>
@@ -138,7 +139,6 @@ int MedSignals::read(vector<string> &sfnames)
 int MedSignals::read(string path, vector<string> &sfnames)
 {
 	int rc = 0;
-
 	for (int i = 0; i < sfnames.size(); i++) {
 		string fname = (path == "") ? sfnames[i] : path + "/" + sfnames[i];
 		try {
@@ -149,7 +149,6 @@ int MedSignals::read(string path, vector<string> &sfnames)
 			throw;
 		}
 	}
-
 	return rc;
 }
 
@@ -208,6 +207,8 @@ int MedSignals::read(const string &fname)
 						si.sid = -1;
 						Sid2Info.resize(sid + 1, si);
 					}
+					if (my_repo != NULL)
+						info.time_unit = my_repo->time_unit;
 					Sid2Info[sid] = info;
 				}
 
@@ -262,6 +263,8 @@ int MedSignals::read_sfile(const string &fname)
 					}
 					Sid2Info[sid].fno = stoi(fields[0]);
 					Sid2Info[sid].sid = sid;
+					if (my_repo != NULL)
+						Sid2Info[sid].time_unit = my_repo->time_unit;
 					//MLOG("read_sfile: %s\n", curr_line.c_str());
 					//MLOG("read_sfile: sid %d fno %d\n", sid, _Sid2Info[sid].fno);
 				}
@@ -381,6 +384,8 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	info.bytes_len = MedRep::get_type_size((SigType)type);
 	info.description = "Virtual Signal";
 	info.virtual_sig = 1;
+	if (my_repo != NULL)
+		info.time_unit = my_repo->time_unit;
 	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
 	MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
 	if (new_sid >= Sid2Info.size()) {

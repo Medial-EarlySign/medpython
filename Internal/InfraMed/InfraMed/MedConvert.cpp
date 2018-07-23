@@ -27,7 +27,7 @@ using namespace boost;
 extern MedLogger global_logger;
 
 //#define MAX_PID_TO_TAKE	1000
-#define MAX_PID_TO_TAKE	100000000
+#define MAX_PID_TO_TAKE	1000000000
 //#define MAX_PID_TO_TAKE	5010000
 
 void MedConvert::clear()
@@ -53,6 +53,7 @@ void MedConvert::clear()
 	serial2sid.clear();
 	forced.clear();
 	safe_mode = 0;
+	time_unit = MedTime::Date;
 }
 
 //------------------------------------------------
@@ -94,10 +95,14 @@ int MedConvert::read_config(const string &fname)
 				if (fields[0].compare("REGISTRY") == 0) registry_fname = fields[1];
 				if (fields[0].compare("DATA") == 0) in_data_fnames.push_back(fields[1]);
 				if (fields[0].compare("DATA_S") == 0) in_strings_data_fnames.push_back(fields[1]);
-				if (fields[0].compare("MODE") == 0) mode = stoi(fields[1]);
-				if (fields[0].compare("SAFE_MODE") == 0) safe_mode = stoi(fields[1]);
+				if (fields[0].compare("MODE") == 0) mode = med_stoi(fields[1]);
+				if (fields[0].compare("SAFE_MODE") == 0) safe_mode = med_stoi(fields[1]);
 				if (fields[0].compare("PREFIX") == 0) rep_files_prefix = fields[1];
 				if (fields[0].compare("RELATIVE") == 0) relative = 1;
+				if (fields[0].compare("TIMEUNIT") == 0 || fields[0].compare("TIME_UNIT") == 0) {
+					time_unit = med_stoi(fields[1]);
+					MLOG("MedConvert: Will convert all dates field to MedTime::[%d] format\n", time_unit);
+				}
 				if (fields[0].compare("DESCRIPTION") == 0) description = fields[1];
 				if (fields[0].compare("FORCE_SIGNAL") == 0) {
 					vector<string> fsigs;
@@ -172,7 +177,7 @@ int MedConvert::read_prefix_names(const string &fname)
 			split(fields, curr_line, boost::is_any_of(" \t"));
 
 			if (fields.size() >= 2) {
-				int fno = stoi(fields[0]);
+				int fno = med_stoi(fields[0]);
 				if (prefix_names.size() < fno + 1)
 					prefix_names.resize(fno + 1);
 				prefix_names[fno] = fields[1];
@@ -207,7 +212,7 @@ int MedConvert::read_signal_to_files(const string &fname)
 			split(fields, curr_line, boost::is_any_of(" \t"));
 
 			if (fields.size() >= 2) {
-				int fno = stoi(fields[0]);
+				int fno = med_stoi(fields[0]);
 				sid = dict.id(fields[1]);
 				if (sid >= 0) {
 					sid2fno[sid] = fno;
@@ -419,7 +424,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 
 					int line_pid;
 					try {
-						line_pid = stoi(fields[0]);
+						line_pid = med_stoi(fields[0]);
 					}
 					catch (...) {
 						MERR("ERROR: bad format in file %s with first token of pid, in line %d:\n%s\n",
@@ -437,14 +442,14 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 							try {
 								// Cancer_Location
 								i = sid2serial[dict.id(string("Cancer_Location"))];
-								cd.date = stoi(fields[2]);
+								cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
 								cd.val = (float)(dict.id(fields[3]));
 								curr.raw_data[i].push_back(cd);
 
 								// Cancer_Stage
 								i = sid2serial[dict.id(string("Cancer_Stage"))];
-								cd.date = stoi(fields[2]);
-								cd.val = (float)(stoi(fields[1]));
+								cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+								cd.val = (float)(med_stoi(fields[1]));
 								curr.raw_data[i].push_back(cd);
 
 								curr_fstat.n_parsed_lines++;
@@ -477,13 +482,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 												MERR("Convert ERROR : line with too few fields :: %s\n", curr_line.c_str());
 												exit(-1);
 											}
-											cd.date = med_stoi(fields[2]);
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);;
 											cd.val = med_stof(fields[3]);
 											break;
 
 										case T_DateRangeVal:
-											cd.date = med_stoi(fields[2]);
-											cd.date2 = med_stoi(fields[3]);
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);;
+											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);;
 											cd.val = med_stof(fields[4]);
 											break;
 
@@ -499,11 +504,11 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_TimeStamp:
-											cd.time = stoll(fields[2]);
+											cd.time = med_time_converter.convert_datetime(time_unit, fields[2]);
 											break;
 
 										case T_DateVal2:
-											cd.date = med_stoi(fields[2]);
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
 											cd.val = med_stof(fields[3]);
 											cd.val2 = (unsigned short)med_stoi(fields[4]);
 											break;
@@ -514,7 +519,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_DateShort2:
-											cd.date = med_stoi(fields[2]);
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
 											cd.val1 = (short)med_stoi(fields[3]);
 											cd.val2 = (short)med_stoi(fields[4]);
 											break;
@@ -532,7 +537,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_CompactDateVal:
-											cd.date = (int)med_stoi(fields[2]);
+											cd.date = (int)med_time_converter.convert_datetime(time_unit, fields[2]);
 											cd.val1 = (unsigned short)med_stoi(fields[3]);
 											break;
 
@@ -576,13 +581,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_DateVal:
-											cd.date = med_stoi(fields[2]);
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
 											vfield = fields[3];
 											break;
 
 										case T_DateRangeVal:
-											cd.date = med_stoi(fields[2]);
-											cd.date2 = med_stoi(fields[3]);
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);
 											vfield = fields[4];
 											break;
 
@@ -603,10 +608,10 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_TimeStamp:
-											cd.time = stoll(fields[2]);
+											cd.time = med_time_converter.convert_datetime(time_unit, fields[2]);
 											break;
 										case T_DateShort2:
-											cd.date = med_stoi(fields[2]);
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
 											vfield = fields[3];
 											vfield2 = fields[4];
 											break;
@@ -641,8 +646,9 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										else {
 											pair<string, string> my_key = make_pair(sigs.name(sid), vfield);
 											if (missing_dict_vals.find(my_key) == missing_dict_vals.end()) {
-												MWARN("MedConvert::get_next_signal: signal string [%s] is missing from dictionary (sig [%s]) : file [%s] : line [%s] \n",
-													vfield.c_str(), sigs.name(sid).c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
+												if (missing_dict_vals.size() < 10)
+													MWARN("MedConvert::get_next_signal: signal string [%s] is missing from dictionary (sig [%s], type %d) : file [%s] : line [%s] \n",
+														vfield.c_str(), sigs.name(sid).c_str(), sigs.type(sid), curr_fstat.fname.c_str(), curr_line.c_str());
 												missing_dict_vals[my_key] = 1;
 											}
 											else
@@ -650,9 +656,8 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										}
 									}
 									catch (...) {
-										MERR("ERROR: bad format in parsing DATA_S file %s (file_type=%d) in line %d:\n%s\n",
+										MTHROW_AND_ERR("ERROR: bad format in parsing DATA_S file %s (file_type=%d) in line %d:\n%s\n",
 											curr_fstat.fname.c_str(), file_type, curr_fstat.n_parsed_lines, curr_line.c_str());
-										throw;
 									}
 								}
 							}
@@ -733,7 +738,7 @@ int MedConvert::create_repository_config()
 	else {
 		repository_config_f << "PREFIX\t" << rep_files_prefix.c_str() << endl;
 	}
-
+	repository_config_f << "TIMEUNIT\t" << time_unit << endl;
 	repository_config_f.close();
 	return 0;
 }
@@ -873,22 +878,19 @@ int MedConvert::create_indexes()
 				time_elapsed / 60, estimate_time / 60.0, n_pids_extracted);
 		}
 	}
-	bool too_many_missing = false;
+	int total_missing = 0;
 	for (auto& entry : missing_dict_vals) {
-		MWARN("MedConvert: saw missing entry [%s]:[%s] %d times\n", entry.first.first.c_str(), entry.first.second.c_str(), entry.second);
-		if (safe_mode && entry.second > 50) {
-			MERR("%d > 50 missing entries is too much... refusing to create repo!\n", entry.second);
-			too_many_missing = true;
+		total_missing += entry.second;
+		MWARN("MedConvert: saw missing entry [%s]:[%s] %d times, total %d missing\n", entry.first.first.c_str(), 
+			entry.first.second.c_str(), entry.second, total_missing);
+		if (safe_mode && total_missing > 50) {
+			MTHROW_AND_ERR("%d > 50 missing entries is too much... refusing to create repo!\n", total_missing);
 		}
 	}
-	if (too_many_missing)
-		MTHROW_AND_ERR("too many missing values...\n");
 	for (auto& entry : missing_forced_signals) {
 		MWARN("MedConvert: saw missing_forced_signal [%s] %d times\n", entry.first.c_str(), entry.second);
-		if (safe_mode && 1.0*entry.second / n_pids_extracted > 0.05) {
-			MERR("%d / %d missing_forced_signal is too much... refusing to create repo!\n", entry.second, n_pids_extracted);
-			too_many_missing = true;
-		}
+		if (safe_mode && 1.0*entry.second / n_pids_extracted > 0.05)
+			MTHROW_AND_ERR("%d / %d missing_forced_signal is too much... refusing to create repo!\n", entry.second, n_pids_extracted);
 	}
 	// all files are closed, all are written correctly
 

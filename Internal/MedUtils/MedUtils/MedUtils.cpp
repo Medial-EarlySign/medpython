@@ -473,7 +473,7 @@ float med_stof(const string& _Str) {
 	try {
 		return stof(_Str);
 	}
-	catch (invalid_argument e) {
+	catch (exception e) {
 		MTHROW_AND_ERR("invalid stof argument [%s]\n", _Str.c_str());
 	}
 }
@@ -482,7 +482,7 @@ int med_stoi(const string& _Str) {
 	try {
 		return stoi(_Str);
 	}
-	catch (invalid_argument e) {
+	catch (exception e) {
 		MTHROW_AND_ERR("invalid stoi argument [%s]\n", _Str.c_str());
 	}
 }

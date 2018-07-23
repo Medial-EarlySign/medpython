@@ -1,4 +1,8 @@
 #include "MedTime.h"
+#include "MedUtils/MedUtils/MedUtils.h"
+
+#define LOCAL_SECTION LOG_MED_UTILS
+#define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 MedTime med_time_converter;
 
@@ -103,6 +107,18 @@ int MedTime::convert_days(int to_type, int in_time)
 	return -1;
 }
 
+/// handles YYYYMMDDHHMI format
+int MedTime::convert_datetime(int to_type, string in_time) {
+	int date_part = med_stoi(in_time.substr(0, 8));
+	if (to_type == MedTime::Minutes) {			
+		int minutes = convert_date(to_type, date_part);
+		minutes += med_stoi(in_time.substr(8, 2))*60;
+		minutes += med_stoi(in_time.substr(10, 2));
+		return minutes;
+	}
+	else return convert_date(to_type, date_part);
+}
+
 //.....................................................................................................
 int MedTime::convert_date(int to_type, int in_time)
 {
@@ -110,8 +126,9 @@ int MedTime::convert_date(int to_type, int in_time)
 	if (to_type == MedTime::Years) return in_time/10000 - 1900;
 	if (to_type == MedTime::Months) return ((in_time/10000)-1900)*12 + (in_time%10000)/100 - 1;
 
-	if (in_time >= 30000000)
-		return convert_days(to_type, 1100 * 365);
+	// ihadanny - removing this obscure code that tries to guess that you actually meant days instead of date
+	//if (in_time >= 30000000)
+	//	return convert_days(to_type, 1100 * 365);
 
 	int ym = in_time/100;
 	int days = (in_time % 100) - 1;
@@ -168,6 +185,20 @@ int MedTime::convert_minutes(int to_type, int in_time)
 	if (to_type == MedTime::Minutes) return in_time;
 	int hours = in_time/60;
 	return convert_hours(to_type, hours);
+}
+
+//.....................................................................................................
+string MedTime::convert_times_S(int from_type, int to_type, int in_time)
+{
+	if (to_type == MedTime::DateTimeString) {
+		int d = convert_times(from_type, MedTime::Date, in_time);
+		int total_m = convert_times(from_type, MedTime::Minutes, in_time);
+		char buff[12];
+		sprintf(buff, "%d%02d%02d", d, (total_m / 60) % 24, total_m % 60);
+		return buff;
+	}
+	else
+		return to_string(convert_times(from_type, to_type, in_time));
 }
 
 //.....................................................................................................

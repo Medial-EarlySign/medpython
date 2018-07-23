@@ -13,6 +13,7 @@
 #include <fstream>
 #include "Logger/Logger/Logger.h"
 #include "MedUtils/MedUtils/MedIO.h"
+#include "MedUtils/MedUtils/MedUtils.h"
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -40,6 +41,7 @@ void MedRepository::clear()
 	data_fnames.clear();
 	index_fnames.clear();
 	format = 0;
+	time_unit = MedTime::Date;
 	index.clear();
 	if (dict.read_state != 1) dict.clear();
 	sigs.clear();
@@ -105,6 +107,9 @@ int MedRepository::read_config(const string &fname)
 			}
 			else if (fields[0].compare("PREFIX") == 0) {
 				rep_files_prefix = fields[1];
+			}
+			else if (fields[0].compare("TIME_UNIT") == 0 || fields[0].compare("TIMEUNIT") == 0) {
+				time_unit = med_stoi(fields[1]);
 			}
 			else if (fields[0].compare("DATA") == 0) {
 				if (fields.size() < 3) {
@@ -595,6 +600,10 @@ void MedRepository::print_data_vec(int pid, const string &sig_name)
 		return;
 	print_data_vec(pid, sid);
 }
+string MedRepository::convert_date(int d, int sid) {
+	return med_time_converter.convert_times_S(
+		sigs.Sid2Info[sid].time_unit, MedTime::DateTimeString, d);
+}
 
 //-----------------------------------------------------------
 void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
@@ -619,15 +628,15 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateVal) {
 			SDateVal *v = (SDateVal *)data;
-			MOUT(" %d %d ", v[i].date, val = (int)v[i].val);
+			MOUT(" %s %d ", convert_date(v[i].date, sid).c_str(), val = (int)v[i].val);
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;
-			MOUT(" %d %d %d ", v[i].date, val = (int)v[i].val, v[i].val2);
+			MOUT(" %s %d %d ", convert_date(v[i].date, sid).c_str(), val = (int)v[i].val, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateRangeVal) {
 			SDateRangeVal *v = (SDateRangeVal *)data;
-			MOUT(" %d %d %d :", v[i].date_start, v[i].date_end, val = (int)v[i].val);
+			MOUT(" %s %s %d :", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), val = (int)v[i].val);
 		}
 		else if (sigs.type(sid) == T_CompactDateVal) {
 			SCompactDateVal *v = (SCompactDateVal *)data;
@@ -635,14 +644,18 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateShort2) {
 			SDateShort2 *v = (SDateShort2 *)data;
-			MOUT(" %d %d %d ", v[i].date, val = (int)v[i].val1, v[i].val2);
+			MOUT(" %s %d %d ", convert_date(v[i].date, sid).c_str(), val = (int)v[i].val1, v[i].val2);
 		}
 
+		int names_printed = 0;
 		if (dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end())
 			for (int j = 0; j < dict.dict(section_id)->Id2Names[val].size(); j++) {
 				string st = dict.dict(section_id)->Id2Names[val][j];
-				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0 || dict.dict(section_id)->Id2Names[val].size() <= 3)
+				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0) {
 					MOUT("|%s", st.c_str());
+					if (++names_printed == 3)
+						break;
+				}
 			}
 		MOUT(" :\n");
 	}
@@ -661,19 +674,19 @@ void MedRepository::print_vec(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateVal) {
 			SDateVal *v = (SDateVal *)data;
-			MOUT(" %d %f :", v[i].date, v[i].val);
+			MOUT(" %s %f :", convert_date(v[i].date, sid).c_str(), v[i].val);
 		}
 		else if (sigs.type(sid) == T_DateRangeVal) {
 			SDateRangeVal *v = (SDateRangeVal *)data;
-			MOUT(" %d %d %f :", v[i].date_start, v[i].date_end, v[i].val);
+			MOUT(" %s %s %f :", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), v[i].val);
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;
-			MOUT(" %d %f %d :", v[i].date, v[i].val, v[i].val2);
+			MOUT(" %s %f %d :", convert_date(v[i].date, sid).c_str(), v[i].val, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateShort2) {
 			SDateShort2 *v = (SDateShort2 *)data;
-			MOUT(" %d %d,%d :", v[i].date, v[i].val1, v[i].val2);
+			MOUT(" %s %d,%d :", convert_date(v[i].date, sid).c_str(), v[i].val1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_ValShort2) {
 			SValShort2 *v = (SValShort2 *)data;
@@ -697,7 +710,7 @@ void MedRepository::print_vec(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_TimeStamp) {
 			STimeStamp *v = (STimeStamp*)data;
-			MOUT(" %lld :", v[i].time);
+			MOUT(" %s :", convert_date(v[i].time, sid).c_str());
 		}
 	}
 	MOUT("\n");

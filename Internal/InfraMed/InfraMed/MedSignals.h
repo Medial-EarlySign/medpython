@@ -568,7 +568,7 @@ class SignalInfo {
 
 		SignalInfo() { fno = -1; };
 };
-
+class MedRepository;
 //===================================================================
 // Signals file handler
 //===================================================================
@@ -582,6 +582,7 @@ class MedSignals {
 		vector<string> signals_names;
 		vector<int>	signals_ids;
 		vector<int> sid2serial; // inverse of signal_ids, -1: empty slots
+		MedRepository* my_repo = NULL; // backward pointer to the owning repo
 
 		void clear() { fnames.clear(); Name2Sid.clear(); Sid2Name.clear(); signals_names.clear(); signals_ids.clear(); }
 

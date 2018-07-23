@@ -73,6 +73,9 @@ class  MedConvert {
 		string signal_to_files_fname;
 		string prefixes_fname;
 		int relative;				// if 1 - we will put "." in dir in .repository in case of OUTDIR
+		int time_unit;				/// internal representation for all dates. 
+									/// MedTime::Date == 1 means store as YYYYMMDD
+									/// MedTime::Minutes == 6 means store as minutes since 01/01/1900
 
 		// next files should be sorted by pid
 		string registry_fname;		// format: pid , date, location(string), stage (number)	// tab delimited 

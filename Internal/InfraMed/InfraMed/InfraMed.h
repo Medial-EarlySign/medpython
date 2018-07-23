@@ -308,7 +308,7 @@ public:
 	string	fsignals_to_files;
 	int min_pid_num;
 	int max_pid_num;
-
+	int time_unit;
 	int format;
 
 	MedIndex index;
@@ -395,7 +395,7 @@ public:
 	// it can not free locked in signals, so in some cases the overall memory usage could be higher
 	int set_max_mem(double gb_mem) { bound_gb = gb_mem; }
 
-	MedRepository() { work_area = NULL; work_size = 0; fsignals_to_files = ""; index.my_rep = this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix = "rep"; bound_gb = 100.0; }
+	MedRepository() { work_area = NULL; work_size = 0; fsignals_to_files = ""; index.my_rep = this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix = "rep"; bound_gb = 100.0; sigs.my_repo = this; }
 	~MedRepository() {
 		//fprintf(stderr, "rep free\n"); fflush(stderr);
 		if (work_area) {
@@ -433,6 +433,7 @@ public:
 	// printing routines (mainly for debugging)
 	void print_vec(void *data, int len, int pid, int sid);
 	void print_vec_dict(void *data, int len, int pid, int sid);
+	string convert_date(int d, int sid);
 	void print_data_vec(int pid, int sid);
 	void print_data_vec_dict(int pid, int sid);
 	void print_csv_vec(void * data, int len, int pid, int sid, bool dict_val);

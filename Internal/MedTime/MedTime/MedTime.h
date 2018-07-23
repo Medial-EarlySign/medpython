@@ -28,6 +28,7 @@ public:
 	const static int Days = 4;				///< days since 1900/01/01
 	const static int Hours = 5;				///< hours since 1900/01/01
 	const static int Minutes = 6;			///< minutes since 1900/01/01
+	const static int DateTimeString = 7;	///< string only format "YYYYMMDDHHMI"
 
 	vector<int> YearsMonths2Days;
 	vector<int> Years2Days;
@@ -53,7 +54,7 @@ public:
 	int convert_times(int from_type, int to_type, double in_time);
 	double convert_times_D(int from_type, int to_type, int in_time);
 	double convert_times_D(int from_type, int to_type, double in_time);
-
+	string convert_times_S(int from_type, int to_type, int in_time);
 	/// <summary>
 	/// init of time table
 	/// </summary>
@@ -68,6 +69,9 @@ public:
 	/// returns the time in new format
 	/// </returns>
 	int convert_date(int to_type, int in_time);
+	/// converts from YYYYMMDDHHMI format
+	int convert_datetime(int to_type, string in_time);
+	
 	int convert_years(int to_type, int in_time);
 	int convert_months(int to_type, int in_time);
 	int convert_days(int to_type, int in_time);
