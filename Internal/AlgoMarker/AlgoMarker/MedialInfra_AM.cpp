@@ -47,13 +47,23 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	// prepare internal ma for work: set name, rep and model
 	ma.set_name(get_name());
 
-	if (ma.init_rep_config(rep_fname.c_str()) < 0)
+	try {
+		if (ma.init_rep_config(rep_fname.c_str()) < 0)
+			return AM_ERROR_LOAD_READ_REP_ERR;
+	}
+	catch (...) {
 		return AM_ERROR_LOAD_READ_REP_ERR;
+	}
 
 	ma.set_time_unit_env(get_time_unit());
 
-	if (ma.init_model_from_file(model_fname.c_str()) < 0)
+	try {
+		if (ma.init_model_from_file(model_fname.c_str()) < 0)
+			return AM_ERROR_LOAD_READ_MODEL_ERR;
+	}
+	catch (...) {
 		return AM_ERROR_LOAD_READ_MODEL_ERR;
+	}
 
 
 	ma.data_load_init();
@@ -161,7 +171,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	for (int i=0; i<n_score_types; i++) {
 		if (!IsScoreTypeSupported(request->get_score_type(i))) {
 			//string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
-			string msg = msg_prefix + " AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
+			string msg = msg_prefix + "AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
 			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
 		}

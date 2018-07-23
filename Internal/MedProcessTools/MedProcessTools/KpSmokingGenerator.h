@@ -10,16 +10,18 @@ typedef enum {
 	SMX_KP_DAYS_SINCE_QUITTING,
 	SMX_KP_SMOK_PACK_YEARS_MAX,
 	SMX_KP_SMOK_PACK_YEARS_LAST,
+	NLST_CRITERION,
 	SMX_KP_LAST
 } KpSmokingGeneratorFields;
 
 #define KP_NEVER_SMOKER_QUIT_TIME (19000101)
 class KpSmokingGenerator : public FeatureGenerator {
 public:
+	float nlstPackYears, nlstQuitTimeYears, nlstMinAge, nlstMaxAge;
+	bool nonDefaultNlstCriterion;
 
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
-
 	// Constructor/Destructor
 	KpSmokingGenerator() : FeatureGenerator() { missing_val = MED_MAT_MISSING_VALUE, generator_type = FTR_GEN_KP_SMOKING; }
 
@@ -43,6 +45,8 @@ public:
 
 	// get pointers to data
 	void get_p_data(MedFeatures& features);
+
+	int calcNlst(int age, int unknownSmoker, int daysSinceQuitting, float lastPackYears);
 
 	// Serialization
 	virtual int version() { return  2; } // ihadanny 20170214 - added required_signals to serialization

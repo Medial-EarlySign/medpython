@@ -6,6 +6,7 @@
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <fstream>
+#include <algorithm>
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -92,6 +93,8 @@ int SamplingParams::init(map<string, string>& map)
 		else if (m.first == "min_age") min_age = stoi(m.second);
 		else if (m.first == "max_age") max_age = stoi(m.second);
 		else if (m.first == "rep") rep_fname = m.second;
+		else if (m.first == "max_samples_per_id") max_samples_per_id = stoi(m.second);
+		else if (m.first == "max_samples_per_id_method") max_samples_per_id_method = m.second;
 		else if (m.first == "take_closest") take_closest = stoi(m.second);
 		else if (m.first == "take_all") take_all = stoi(m.second);
 		else if (m.first == "stick_to" || m.first == "stick_to_sigs") {
@@ -101,7 +104,6 @@ int SamplingParams::init(map<string, string>& map)
 		else {
 			MERR("Unknown variable %s in SamplingParams\n", m.first.c_str());
 		}
-
 	}
 	return 0;
 }
@@ -610,6 +612,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 	if (s_params.train_mask &0x2) train_to_take[2] = 1;
 	if (s_params.train_mask &0x4) train_to_take[3] = 1;
 	vector<int> pids;
+	vector<int> dates_to_take;
 	get_pids(pids);
 	MedRepository rep;
 	vector<string> sigs ={ "BYEAR", "GENDER", "TRAIN" };
@@ -683,7 +686,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 			}
 
 			// Now going over buckets and actually sampling
-			vector<int> dates_to_take;
+			dates_to_take = {};
 			for (auto &bucket : buckets) {
 				if (s_params.take_all)
 					dates_to_take.insert(dates_to_take.end(), bucket.second.begin(), bucket.second.end());
@@ -695,16 +698,27 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 				}
 			}
 
+			if (dates_to_take.size() > s_params.max_samples_per_id) {
+				if (s_params.max_samples_per_id_method == "last") {
+					sort(dates_to_take.begin(), dates_to_take.end(), std::greater<int>()); }
+				if (s_params.max_samples_per_id_method == "rand") {
+					random_shuffle(dates_to_take.begin(), dates_to_take.end()); }
+			}
+			
 			// Now simply pushing into our MedSamples
 			MedIdSamples mis;
 			mis.id = rc.pid;
+		
+			int samples_cnt = 0;
 			for (auto date : dates_to_take) {
+				if (samples_cnt >= s_params.max_samples_per_id) { break; }
 				MedSample ms;
 				ms.id = rc.pid;
 				ms.outcome = rc.outcome;
 				ms.outcomeTime = rc.outcome_date;
 				ms.time = date;
 				nsamp++;
+				samples_cnt++;
 				mis.samples.push_back(ms);
 			}
 			samples.idSamples.push_back(mis);

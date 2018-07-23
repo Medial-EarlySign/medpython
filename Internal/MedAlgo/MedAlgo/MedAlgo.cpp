@@ -1019,8 +1019,9 @@ string medial::models::getParamsInfraModel(void *model) {
 			l1_str = "categorial_chi2";
 		else if (pr_qrf.type == QRF_CATEGORICAL_ENTROPY_TREE)
 			l1_str = "categorial_entropy";
-		snprintf(buff, 2000, "%s: ntrees=%d; maxq=%d; min_node=%d; ntry=%d; spread=%2.3f; type=%s; max_depth=%d",
-			predictor_type_to_name[m->classifier_type].c_str(), pr_qrf.ntrees, pr_qrf.maxq, pr_qrf.min_node, pr_qrf.ntry, pr_qrf.spread, l1_str.c_str(), pr_qrf.max_depth);
+		snprintf(buff, 2000, "%s: ntrees=%d; maxq=%d; min_node=%d; ntry=%d; spread=%2.3f; type=%s; max_depth=%d; learn_nthreads=%d; predict_nthreads=%d; take_all_samples=%d",
+			predictor_type_to_name[m->classifier_type].c_str(), pr_qrf.ntrees, pr_qrf.maxq, pr_qrf.min_node, pr_qrf.ntry, pr_qrf.spread, 
+			l1_str.c_str(), pr_qrf.max_depth, pr_qrf.learn_nthreads, pr_qrf.predict_nthreads, (int)pr_qrf.take_all_samples);
 		break;
 	case MODEL_LIGHTGBM:
 		pr_lightGBM = ((MedLightGBM *)model)->params;
