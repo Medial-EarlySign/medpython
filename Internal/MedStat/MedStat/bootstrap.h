@@ -45,6 +45,11 @@ public:
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
 
 	/// <summary>
+	/// external function to fetch next pred,label couple in the bootstrap process for external implementitions
+	/// </summary>
+	bool fetch_next_external(int thread, float &ret_y, float &ret_pred);
+
+	/// <summary>
 	/// to restart the iterator
 	/// </summary>
 	void restart_iterator(int thread);

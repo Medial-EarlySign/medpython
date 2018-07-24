@@ -189,6 +189,10 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 	}
 }
 
+bool Lazy_Iterator::fetch_next_external(int thread, float &ret_y, float &ret_pred) {
+	return fetch_next(thread, ret_y, ret_pred);
+}
+
 void Lazy_Iterator::restart_iterator(int thread) {
 
 	if (sample_ratio < 1) {
