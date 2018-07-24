@@ -352,3 +352,12 @@ int read_file_into_string(const string &fname, string &data)
 	inf.read(&data[0], size);
 	return 0;
 }
+
+char path_sep()
+{
+#if defined _WIN32 || defined __CYGWIN__
+	return '\\';
+#else
+	return '/';
+#endif
+}

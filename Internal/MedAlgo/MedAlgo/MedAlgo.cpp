@@ -1020,7 +1020,7 @@ string medial::models::getParamsInfraModel(void *model) {
 		else if (pr_qrf.type == QRF_CATEGORICAL_ENTROPY_TREE)
 			l1_str = "categorial_entropy";
 		snprintf(buff, 2000, "%s: ntrees=%d; maxq=%d; min_node=%d; ntry=%d; spread=%2.3f; type=%s; max_depth=%d; learn_nthreads=%d; predict_nthreads=%d; take_all_samples=%d",
-			predictor_type_to_name[m->classifier_type].c_str(), pr_qrf.ntrees, pr_qrf.maxq, pr_qrf.min_node, pr_qrf.ntry, pr_qrf.spread, 
+			predictor_type_to_name[m->classifier_type].c_str(), pr_qrf.ntrees, pr_qrf.maxq, pr_qrf.min_node, pr_qrf.ntry, pr_qrf.spread,
 			l1_str.c_str(), pr_qrf.max_depth, pr_qrf.learn_nthreads, pr_qrf.predict_nthreads, (int)pr_qrf.take_all_samples);
 		break;
 	case MODEL_LIGHTGBM:
@@ -1159,4 +1159,277 @@ vector<float> medial::models::predictInfraModel(void *model, const vector<vector
 	vector<float> preds;
 	m->predict(xTest_m, preds);
 	return preds;
+}
+
+void medial::models::get_pids_cv(MedPredictor *pred, MedFeatures &matrix, int nFolds,
+	mt19937 &generator, vector<float> &preds) {
+	int nSamples = (int)matrix.samples.size();
+	unordered_map<int, int> pid_to_fold;
+	preds.resize(nSamples);
+	if (nFolds > 1) {
+		uniform_int_distribution<> fold_dist(0, nFolds - 1);
+		if (matrix.weights.empty()) {
+			for (int i = 0; i < nSamples; i++)
+				if (pid_to_fold.find(matrix.samples[i].id) == pid_to_fold.end())
+					pid_to_fold[matrix.samples[i].id] = fold_dist(generator);
+		}
+		else {
+			double tot_w = 0;
+			for (size_t i = 0; i < matrix.weights.size(); ++i)
+				tot_w += matrix.weights[i];
+			tot_w = tot_w / nFolds + 1;
+			unordered_map<int, double> pid_to_w;
+			for (int i = 0; i < nSamples; i++)
+				pid_to_w[matrix.samples[i].id] += matrix.weights[i];
+			//split to folds untill each fold reaches tot_w
+			vector<double> folds_w(nFolds);
+			for (int i = 0; i < nSamples; i++)
+				if (pid_to_fold.find(matrix.samples[i].id) == pid_to_fold.end()) {
+					int propose = fold_dist(generator);
+					while (folds_w[propose] >= tot_w)
+						propose = fold_dist(generator);
+
+					pid_to_fold[matrix.samples[i].id] = propose;
+					folds_w[propose] += pid_to_w[matrix.samples[i].id];
+				}
+		}
+
+
+
+		for (size_t iFold = 0; iFold < nFolds; ++iFold)
+		{
+			MedFeatures testMatrix, trainMatrix;
+			medial::process::split_matrix(matrix, pid_to_fold, (int)iFold, trainMatrix, testMatrix);
+
+			pred->learn(trainMatrix);
+			pred->predict(testMatrix);
+
+			int idx = 0;
+			for (int i = 0; i < nSamples; i++)
+				if (pid_to_fold[matrix.samples[i].id] == iFold)
+					preds[i] = testMatrix.samples[idx++].prediction[0];
+		}
+	}
+	else {
+		MedFeatures testMatrix = matrix;
+		pred->learn(testMatrix);
+		pred->predict(testMatrix);
+
+		for (int i = 0; i < nSamples; i++)
+			preds[i] = testMatrix.samples[i].prediction[0];
+	}
+
+}
+
+void medial::models::get_cv(MedPredictor *pred, MedFeatures &matrix, int nFolds,
+	mt19937 &generator, vector<float> &preds) {
+	int nSamples = (int)matrix.samples.size();
+	vector<int> folds(nSamples);
+	preds.resize(nSamples);
+
+	if (nFolds > 1) {
+		uniform_int_distribution<> fold_dist(0, nFolds - 1);
+		if (matrix.weights.empty())
+			for (int i = 0; i < nSamples; i++)
+				folds[i] = fold_dist(generator);
+		else {
+			double tot_w = 0;
+			for (size_t i = 0; i < matrix.weights.size(); ++i)
+				tot_w += matrix.weights[i];
+			tot_w = tot_w / nFolds + 1;
+			//split to folds untill each fold reaches tot_w
+			vector<double> folds_w(nFolds);
+			for (int i = 0; i < nSamples; i++) {
+				int propose = fold_dist(generator);
+				while (folds_w[propose] >= tot_w)
+					propose = fold_dist(generator);
+
+				folds[i] = propose;
+				folds_w[propose] += matrix.weights[i];
+			}
+		}
+
+		for (size_t iFold = 0; iFold < nFolds; ++iFold)
+		{
+			MedFeatures testMatrix, trainMatrix;
+			medial::process::split_matrix(matrix, folds, (int)iFold, trainMatrix, testMatrix);
+
+			pred->learn(trainMatrix);
+			pred->predict(testMatrix);
+
+			int idx = 0;
+			for (int i = 0; i < nSamples; i++)
+				if (folds[i] == iFold)
+					preds[i] = testMatrix.samples[idx++].prediction[0];
+		}
+	}
+	else {
+		MedFeatures testMatrix = matrix;
+		pred->learn(testMatrix);
+		pred->predict(testMatrix);
+
+		for (int i = 0; i < nSamples; i++)
+			preds[i] = testMatrix.samples[i].prediction[0];
+	}
+
+}
+
+bool is_similar(float mean1, float lower1, float upper1, float std1,
+	float mean2, float lower2, float upper2, float std2) {
+	float simlar_range_ratio = (float)0.8;
+	float similar_mean_ratio = (float)0.05;
+
+	float min_range = min(upper1 - lower1, upper2 - lower2);
+	float range = min(upper1, upper2) - max(lower1, lower2);
+	if (range < 0)
+		range = 0;
+	if (min_range <= 0)
+		range = 1;
+	else
+		range = range / min_range;
+	float mean_diff_ratio = 0;
+	if (abs(mean1) > 0)
+		mean_diff_ratio = abs(mean1 - mean2) / abs(mean1);
+
+	return (range >= simlar_range_ratio) && (mean_diff_ratio <= similar_mean_ratio)
+		&& ((mean1 >= lower2 && mean1 <= upper2) ||
+			(mean2 >= lower1 && mean2 <= upper1) ||
+			(lower1 == lower2 && upper1 == upper2)); //means are inside CI of 95. like 2 stds in normal
+}
+template<class T> void commit_selection(vector<T> &vec, const vector<int> &idx) {
+	vector<T> filt(idx.size());
+	for (size_t i = 0; i < idx.size(); ++i)
+		filt[i] = vec[idx[i]];
+	vec.swap(filt);
+}
+
+void medial::process::compare_populations(const MedFeatures &population1, const MedFeatures &population2,
+	const string &name1, const string &name2, const string &output_file,
+	const string &predictor_type, const string &predictor_init) {
+	if (population1.data.size() > population2.data.size())
+		MTHROW_AND_ERR("population matrixes doesn't have same dimentions [%zu, %zu]\n",
+			population1.data.size(), population2.data.size());
+	vector<float> means1(population1.data.size()), means2(population1.data.size());
+	vector<float> std1(population1.data.size()), std2(population1.data.size());
+	vector<float> lower1(population1.data.size()), lower2(population1.data.size());
+	vector<float> upper1(population1.data.size()), upper2(population1.data.size());
+
+	vector<double> prc_vals = { 0.05, 0.95 };
+	int feat_i = 0;
+	for (auto it = population1.data.begin(); it != population1.data.end(); ++it)
+	{
+		if (population2.data.find(it->first) == population2.data.end())
+			MTHROW_AND_ERR("population %s is missing feature %s\n",
+				it->first.c_str(), name2.c_str());
+		means1[feat_i] = medial::stats::mean_vec(it->second, &population1.weights);
+		means2[feat_i] = medial::stats::mean_vec(population2.data.at(it->first), &population2.weights);
+		std1[feat_i] = medial::stats::std_vec(it->second, means1[feat_i], &population1.weights);
+		std2[feat_i] = medial::stats::std_vec(population2.data.at(it->first), means2[feat_i], &population2.weights);
+
+		vector<float> prs;
+		medial::process::prctils(it->second, prc_vals, prs, &population1.weights);
+		lower1[feat_i] = prs[0];
+		upper1[feat_i] = prs[1];
+		prs.clear();
+		medial::process::prctils(population2.data.at(it->first), prc_vals, prs, &population2.weights);
+		lower2[feat_i] = prs[0];
+		upper2[feat_i] = prs[1];
+		++feat_i;
+	}
+
+	ofstream fw;
+	char buffer_s[10000];
+	if (!output_file.empty()) {
+		fw.open(output_file);
+		if (!fw.good())
+			MTHROW_AND_ERR("Can't open %s for writing\n", output_file.c_str());
+	}
+
+	//print each feature dist in each population:
+	snprintf(buffer_s, sizeof(buffer_s), "Comparing populations - %s population has %zu sampels, %s has %zu samples."
+		" Features distributaions:\n", name1.c_str(), population1.samples.size(),
+		name2.c_str(), population2.samples.size());
+	MLOG("%s", string(buffer_s).c_str());
+	if (!output_file.empty())
+		fw << string(buffer_s);
+
+	feat_i = 0;
+	for (auto it = population1.data.begin(); it != population1.data.end(); ++it) {
+		bool res_sim = is_similar(means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i],
+			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i]);
+		string desc_str = res_sim ? "GOOD" : "BAD";
+		snprintf(buffer_s, sizeof(buffer_s), "%s feature %s :: %s mean=%2.3f[%2.3f - %2.3f],std=%2.3f. "
+			"%s mean=%2.3f[%2.3f - %2.3f],std=%2.3f. mean_diff_ratio=%2.3f%%\n", desc_str.c_str(), it->first.c_str(), name1.c_str(),
+			means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i], name2.c_str(),
+			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i],
+			100 * abs(means1[feat_i] - means2[feat_i]) / max(abs(means1[feat_i]), (float)1e-10));
+		MLOG("%s", string(buffer_s).c_str());
+		if (!output_file.empty())
+			fw << string(buffer_s);
+
+		++feat_i;
+	}
+
+	//try diffrentiate between populations:
+	if (!predictor_type.empty() && !predictor_init.empty()) {
+		random_device rd;
+		mt19937 gen(rd());
+		MedFeatures new_data;
+		int max_learn = 1000000;
+		new_data.attributes = population1.attributes;
+		new_data.time_unit = population1.time_unit;
+		new_data.samples.insert(new_data.samples.end(), population1.samples.begin(), population1.samples.end());
+		new_data.samples.insert(new_data.samples.end(), population2.samples.begin(), population2.samples.end());
+		//change outcome to be population label: is population 1?
+		vector<float> labels(new_data.samples.size());
+		for (size_t i = 0; i < new_data.samples.size(); ++i) {
+			new_data.samples[i].outcome = i < population1.samples.size();
+			labels[i] = new_data.samples[i].outcome;
+		}
+		new_data.init_pid_pos_len();
+		if (!population1.weights.empty() || !population2.weights.empty()) {
+			vector<float> temp_weights;
+			const vector<float> *weights = &population1.weights;
+			if (weights->empty()) {
+				temp_weights.resize(population1.samples.size(), 1);
+				weights = &temp_weights;
+			}
+			new_data.weights.insert(new_data.weights.end(), weights->begin(), weights->end());
+			weights = &population2.weights;
+			if (weights->empty()) {
+				temp_weights.resize(population2.samples.size(), 1);
+				weights = &temp_weights;
+			}
+			new_data.weights.insert(new_data.weights.end(), weights->begin(), weights->end());
+		}
+		for (auto it = population1.data.begin(); it != population1.data.end(); ++it)
+		{
+			new_data.data[it->first] = it->second;
+			new_data.data[it->first].insert(new_data.data[it->first].end(),
+				population2.data.at(it->first).begin(), population2.data.at(it->first).end());
+		}
+
+		//lets get auc on this problem:
+		int num_th = omp_get_max_threads();
+		MedPredictor *predictor = MedPredictor::make_predictor(predictor_type, predictor_init);
+		if (new_data.samples.size() > max_learn) {
+			double rt = double(max_learn) / new_data.samples.size();
+			vector<int> sel;
+			medial::process::down_sample(new_data, rt, false, &sel);
+			commit_selection(labels, sel);
+		}
+		//lets fix labels weight that cases will be less common
+		vector<float> preds;
+		medial::models::get_pids_cv(predictor, new_data, 5, gen, preds);
+
+		float auc = medial::stats::get_preds_auc_q(preds, labels, &new_data.weights);
+		snprintf(buffer_s, sizeof(buffer_s),
+			"predictor AUC with CV to diffrentiate between populations is %2.3f\n", auc);
+		MLOG("%s", string(buffer_s).c_str());
+		if (!output_file.empty())
+			fw << string(buffer_s);
+	}
+
+	if (!output_file.empty())
+		fw.close();
 }

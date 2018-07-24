@@ -3,6 +3,7 @@
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <random>
+#include <omp.h>
 
 #include "Logger/Logger/Logger.h"
 #define LOCAL_SECTION LOG_MEDFEAT
@@ -970,3 +971,251 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 		//print_by_year(data_records.samples);
 	}
 }
+
+void medial::process::split_matrix(MedFeatures& matrix, vector<int>& folds, int iFold,
+	MedFeatures& trainMatrix, MedFeatures& testMatrix) {
+	MedFeatures *matrixPtrs[2] = { &trainMatrix, &testMatrix };
+
+	// Prepare
+	vector<string> features;
+	matrix.get_feature_names(features);
+
+	for (const string& ftr : features) {
+		trainMatrix.attributes[ftr] = matrix.attributes[ftr];
+		testMatrix.attributes[ftr] = matrix.attributes[ftr];
+	}
+	//realloc memory:
+	int selection_cnt = 0;
+	for (int i = 0; i < matrix.samples.size(); i++)
+		selection_cnt += int(folds[i] == iFold);
+	trainMatrix.samples.reserve((int)matrix.samples.size() - selection_cnt);
+	testMatrix.samples.reserve(selection_cnt);
+	for (string& ftr : features) {
+		trainMatrix.data[ftr].reserve((int)matrix.samples.size() - selection_cnt);
+		testMatrix.data[ftr].reserve(selection_cnt);
+	}
+	if (!matrix.weights.empty()) {
+		trainMatrix.weights.reserve((int)matrix.samples.size() - selection_cnt);
+		testMatrix.weights.reserve(selection_cnt);
+	}
+
+	// Fill
+	for (int i = 0; i < matrix.samples.size(); i++) {
+		int ptrIdx = (folds[i] == iFold) ? 1 : 0;
+		matrixPtrs[ptrIdx]->samples.push_back(matrix.samples[i]);
+		for (string& ftr : features)
+			matrixPtrs[ptrIdx]->data[ftr].push_back(matrix.data[ftr][i]);
+
+		if (!matrix.weights.empty())
+			matrixPtrs[ptrIdx]->weights.push_back(matrix.weights[i]);
+	}
+}
+
+void medial::process::split_matrix(MedFeatures& matrix, unordered_map<int, int>& folds, int iFold,
+	MedFeatures& trainMatrix, MedFeatures& testMatrix) {
+	MedFeatures *matrixPtrs[2] = { &trainMatrix, &testMatrix };
+
+	// Prepare
+	vector<string> features;
+	matrix.get_feature_names(features);
+
+	for (const string& ftr : features) {
+		trainMatrix.attributes[ftr] = matrix.attributes[ftr];
+		testMatrix.attributes[ftr] = matrix.attributes[ftr];
+	}
+	//realloc memory:
+	int selection_cnt = 0;
+	for (int i = 0; i < matrix.samples.size(); i++)
+		selection_cnt += int(folds[matrix.samples[i].id] == iFold);
+	trainMatrix.samples.reserve((int)matrix.samples.size() - selection_cnt);
+	testMatrix.samples.reserve(selection_cnt);
+	for (string& ftr : features) {
+		trainMatrix.data[ftr].reserve((int)matrix.samples.size() - selection_cnt);
+		testMatrix.data[ftr].reserve(selection_cnt);
+	}
+	if (!matrix.weights.empty()) {
+		trainMatrix.weights.reserve((int)matrix.samples.size() - selection_cnt);
+		testMatrix.weights.reserve(selection_cnt);
+	}
+
+	// Fill
+	for (int i = 0; i < matrix.samples.size(); i++) {
+		int ptrIdx = (folds[matrix.samples[i].id] == iFold) ? 1 : 0;
+		matrixPtrs[ptrIdx]->samples.push_back(matrix.samples[i]);
+		for (string& ftr : features)
+			matrixPtrs[ptrIdx]->data[ftr].push_back(matrix.data[ftr][i]);
+
+		if (!matrix.weights.empty())
+			matrixPtrs[ptrIdx]->weights.push_back(matrix.weights[i]);
+	}
+}
+
+void medial::process::convert_prctile(vector<float> &features_prctiles) {
+	unordered_map<float, vector<int>> val_to_inds;
+	vector<float> sorted_uniqu_vals;
+	for (int k = 0; k < features_prctiles.size(); ++k) {
+		float val = features_prctiles[k];
+		if (val_to_inds.find(val) == val_to_inds.end())
+			sorted_uniqu_vals.push_back(val);
+		val_to_inds[val].push_back(k);
+	}
+	sort(sorted_uniqu_vals.begin(), sorted_uniqu_vals.end());
+	int cum_sum_size = 0;
+	for (size_t k = 0; k < sorted_uniqu_vals.size(); ++k)
+	{
+		float prctile_val = float(cum_sum_size) / features_prctiles.size();
+		//set this prctile val in all indexes:
+		for (int ind : val_to_inds[sorted_uniqu_vals[k]])
+			features_prctiles[ind] = prctile_val;
+		cum_sum_size += (int)val_to_inds[sorted_uniqu_vals[k]].size();
+	}
+}
+
+void medial::process::match_to_prior(const vector<float> &outcome,
+	const vector<float> &group_values, float target_prior, vector<int> &sel_idx) {
+	unordered_map<float, vector<int>> val_to_inds;
+	for (size_t i = 0; i < group_values.size(); ++i)
+		val_to_inds[group_values[i]].push_back((int)i);
+
+	//sub sample each group to match this prior:
+	for (auto it = val_to_inds.begin(); it != val_to_inds.end(); ++it)
+	{
+		double grp_prior = 0;
+		vector<vector<int>> grp_inds(2);
+		for (size_t i = 0; i < it->second.size(); ++i)
+			grp_inds[outcome[it->second[i]] > 0].push_back(it->second[i]);
+		grp_prior = double(grp_inds[1].size()) / it->second.size();
+		int grp_sel = int(grp_prior > target_prior);
+		vector<int> *inds = &grp_inds[grp_sel];
+		int sub_sample_count;
+		if (grp_prior > target_prior)
+			sub_sample_count = target_prior * grp_inds[1 - grp_sel].size() / (1 - target_prior);
+		else
+			sub_sample_count = (1 - target_prior) * grp_inds[1 - grp_sel].size() / target_prior;
+		if (sub_sample_count > inds->size())
+			sub_sample_count = (int)inds->size();
+		random_shuffle(inds->begin(), inds->end());
+		inds->resize(sub_sample_count); //subsample in inds
+
+										//add fully groups
+		sel_idx.insert(sel_idx.end(), grp_inds[0].begin(), grp_inds[0].end());
+		sel_idx.insert(sel_idx.end(), grp_inds[1].begin(), grp_inds[1].end());
+	}
+}
+
+template<class T> float medial::stats::get_preds_auc_q(const vector<T> &preds, const vector<float> &y,
+	const vector<float> *weights) {
+	vector<T> pred_threshold;
+	unordered_map<T, vector<int>> pred_indexes;
+	double tot_true_labels = 0, tot_false_labels = 0;
+	bool has_weights = weights != NULL && !weights->empty();
+	if (has_weights)
+		for (size_t i = 0; i < preds.size(); ++i)
+		{
+			pred_indexes[preds[i]].push_back((int)i);
+			tot_true_labels += int(y[i] > 0) * (*weights)[i];
+			tot_false_labels += int(y[i] <= 0) * (*weights)[i];
+		}
+	else
+		for (size_t i = 0; i < preds.size(); ++i)
+		{
+			pred_indexes[preds[i]].push_back((int)i);
+			tot_true_labels += int(y[i] > 0);
+			tot_false_labels += int(y[i] <= 0);
+		}
+	pred_threshold.resize((int)pred_indexes.size());
+	auto it = pred_indexes.begin();
+	for (size_t i = 0; i < pred_threshold.size(); ++i)
+	{
+		pred_threshold[i] = it->first;
+		++it;
+	}
+	sort(pred_threshold.begin(), pred_threshold.end());
+
+
+	//From up to down sort:
+	double t_cnt = 0;
+	double f_cnt = 0;
+	vector<float> true_rate = vector<float>((int)pred_indexes.size());
+	vector<float> false_rate = vector<float>((int)pred_indexes.size());
+	int st_size = (int)pred_threshold.size() - 1;
+	if (has_weights)
+		for (int i = st_size; i >= 0; --i)
+		{
+			vector<int> &indexes = pred_indexes[pred_threshold[i]];
+			//calc AUC status for this step:
+			for (int ind : indexes)
+			{
+				bool true_label = y[ind] > 0;
+				t_cnt += int(true_label) * (*weights)[ind];
+				f_cnt += int(!true_label) * (*weights)[ind];
+			}
+			true_rate[st_size - i] = float(t_cnt / tot_true_labels);
+			false_rate[st_size - i] = float(f_cnt / tot_false_labels);
+		}
+	else
+		for (int i = st_size; i >= 0; --i)
+		{
+			vector<int> &indexes = pred_indexes[pred_threshold[i]];
+			//calc AUC status for this step:
+			for (int ind : indexes)
+			{
+				bool true_label = y[ind] > 0;
+				t_cnt += int(true_label);
+				f_cnt += int(!true_label);
+			}
+			true_rate[st_size - i] = float(t_cnt / tot_true_labels);
+			false_rate[st_size - i] = float(f_cnt / tot_false_labels);
+		}
+
+	float auc = false_rate[0] * true_rate[0] / 2;
+	for (size_t i = 1; i < true_rate.size(); ++i)
+		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
+	return auc;
+}
+template float medial::stats::get_preds_auc_q<float>(const vector<float> &preds, const vector<float> &y, const vector<float> *weights);
+template float medial::stats::get_preds_auc_q<double>(const vector<double> &preds, const vector<float> &y, const vector<float> *weights);
+
+template<class T> double medial::stats::mean_vec(const vector<T> &v, const vector<float> *weights) {
+	bool has_weights = weights != NULL && !weights->empty();
+
+	double s = 0, c = 0;
+	if (has_weights)
+		for (size_t i = 0; i < v.size(); ++i) {
+			s += v[i] != MED_MAT_MISSING_VALUE ? v[i] * (*weights)[i] : 0;
+			c += (*weights)[i] * int(v[i] != MED_MAT_MISSING_VALUE);
+		}
+	else
+		for (size_t i = 0; i < v.size(); ++i) {
+			s += v[i] != MED_MAT_MISSING_VALUE ? v[i] : 0;
+			c += int(v[i] != MED_MAT_MISSING_VALUE);
+		}
+
+	if (c == 0)
+		return MED_MAT_MISSING_VALUE;
+	return s / c;
+}
+template double medial::stats::mean_vec<float>(const vector<float> &v, const vector<float> *weights);
+template double medial::stats::mean_vec<double>(const vector<double> &v, const vector<float> *weights);
+
+template<class T> double medial::stats::std_vec(const vector<T> &v, T mean, const vector<float> *weights) {
+	bool has_weights = weights != NULL && !weights->empty();
+
+	double s = 0, c = 0;
+	if (has_weights)
+		for (size_t i = 0; i < v.size(); ++i) {
+			s += v[i] != MED_MAT_MISSING_VALUE ? (*weights)[i] * (v[i] - mean) * (v[i] - mean) : 0;
+			c += (*weights)[i] * int(v[i] != MED_MAT_MISSING_VALUE);
+		}
+	else
+		for (size_t i = 0; i < v.size(); ++i) {
+			s += v[i] != MED_MAT_MISSING_VALUE ? (v[i] - mean) * (v[i] - mean) : 0;
+			c += int(v[i] != MED_MAT_MISSING_VALUE);
+		}
+
+	if (c == 0)
+		return MED_MAT_MISSING_VALUE;
+	return sqrt(s / c);
+}
+template double medial::stats::std_vec<float>(const vector<float> &v, float mean, const vector<float> *weights);
+template double medial::stats::std_vec<double>(const vector<double> &v, double mean, const vector<float> *weights);

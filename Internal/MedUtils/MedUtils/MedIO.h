@@ -71,6 +71,7 @@ template <class T> int write_serialized_vector(const string &fname, vector<T> &d
 // read vector of deserializable type T from file
 template <class T> int read_deserialized_vector(const string &fname, vector<T> &data);
 
+char path_sep();
 
 #include "MedIO_imp.h"
 
