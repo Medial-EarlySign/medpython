@@ -107,13 +107,13 @@ int MedTime::convert_days(int to_type, int in_time)
 	return -1;
 }
 
-/// handles YYYYMMDDHHMI format
+/// handles YYYYMMDD and YYYYMMDDHHMI formats
 int MedTime::convert_datetime(int to_type, string in_time) {
 	int date_part = med_stoi(in_time.substr(0, 8));
 	if (to_type == MedTime::Minutes) {			
 		int minutes = convert_date(to_type, date_part);
-		minutes += med_stoi(in_time.substr(8, 2))*60;
-		minutes += med_stoi(in_time.substr(10, 2));
+		if (in_time.size() >= 10) minutes += med_stoi(in_time.substr(8, 2))*60;
+		if (in_time.size() >= 12) minutes += med_stoi(in_time.substr(10, 2));
 		return minutes;
 	}
 	else return convert_date(to_type, date_part);
@@ -192,10 +192,13 @@ string MedTime::convert_times_S(int from_type, int to_type, int in_time)
 {
 	if (to_type == MedTime::DateTimeString) {
 		int d = convert_times(from_type, MedTime::Date, in_time);
-		int total_m = convert_times(from_type, MedTime::Minutes, in_time);
-		char buff[12];
-		sprintf(buff, "%d%02d%02d", d, (total_m / 60) % 24, total_m % 60);
-		return buff;
+		if (from_type == MedTime::Minutes || from_type == MedTime::Hours) {
+			int total_m = convert_times(from_type, MedTime::Minutes, in_time);
+			char buff[12];
+			sprintf(buff, "%d%02d%02d", d, (total_m / 60) % 24, total_m % 60);
+			return buff;
+		}
+		else return to_string(d);
 	}
 	else
 		return to_string(convert_times(from_type, to_type, in_time));
