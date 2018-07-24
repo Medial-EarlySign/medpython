@@ -41,6 +41,7 @@ public:
 	bool sample_patient_label; ///<if true will treat patient+label as the "id" for the sampling
 	int sample_seed; ///<if 0 will use random_device
 	int loopCnt; ///<the bootstrap count
+	bool is_binary_outcome; ///< only used for validating bootstrap input
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
 	bool simTimeWindow;

@@ -68,6 +68,7 @@ MedBootstrap::MedBootstrap()
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 	simTimeWindow = false;
+	is_binary_outcome = true;
 }
 
 MedBootstrap::MedBootstrap(const string &init_string) {
@@ -78,6 +79,7 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 	simTimeWindow = false;
+	is_binary_outcome = true;
 
 	//now read init_string to override default:
 	vector<string> tokens;
@@ -111,6 +113,8 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 		}
 		else if (param_name == "simTimeWindow")
 			simTimeWindow = stoi(param_value) > 0;
+		else if (param_name == "is_binary_outcome")
+			is_binary_outcome = stoi(param_value) > 0;
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
 	}
@@ -278,7 +282,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	if (!simTimeWindow) {
 		return booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
 			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 	}
 	else {
 		//split by each time window after editing each time window samples:
@@ -301,7 +305,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 		if (!cohorts.empty())
 			all_results = booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
 				measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-				preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+				preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 
 		//now lets add each time window result:
 		for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
@@ -315,7 +319,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 
 				auto agg_res = booststrap_analyze(preds, y_changed, *rep_ids, cp_info, cohorts_t,
 					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
-					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 				if (!agg_res.empty()) // if the cohort is too small it does not return results
 					all_results.insert(*agg_res.begin()); //has one key
 			}
