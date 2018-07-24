@@ -492,6 +492,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											cd.val = med_stof(fields[4]);
 											break;
 
+										case T_DateRangeVal2:
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);;
+											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);;
+											cd.val = med_stof(fields[4]);
+											cd.val2 = med_stof(fields[5]);
+											break;
+
 										case T_TimeVal:
 											cd.time = stoll(fields[2]);
 											cd.val = med_stof(fields[3]);
@@ -591,6 +598,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											vfield = fields[4];
 											break;
 
+										case T_DateRangeVal2:
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);
+											vfield = fields[4];
+											vfield2 = fields[5];
+											break;
+
 										case T_TimeVal:
 											cd.time = stoll(fields[2]);
 											vfield = fields[3];
@@ -617,24 +631,27 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
 
 										case T_DateVal2:
-											// NOT SUPPORTED !!!!!
-											MERR("This type is NOT supported in string input mode yet !!!!!\n");
+											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+											vfield = fields[3];
+											vfield2 = fields[4];
 											break;
-
 										default:
-											MERR("MedConvert: get_next_signal: unknown signal type for sid %d\n", sid);
-											return -1;
-
+											MTHROW_AND_ERR("MedConvert: get_next_signal: unknown signal type %d for sid %d\n", 
+												sigs.type(sid), sid);
 										}
 
 										int section = dict.section_id(sigs.name(sid));
-										vid = dict.id(section, vfield);
+										vid = dict.id(section, vfield);										
 										int vid2 = dict.id(section, vfield2);
 										if (vid >= 0) {
 											if (sigs.type(sid) == T_TimeLongVal)
 												cd.longVal = (long long)vid;
 											else if (sigs.type(sid) == T_DateShort2) {
 												cd.val1 = (short)vid;
+												cd.val2 = (short)vid2;
+											}
+											else if (sigs.type(sid) == T_DateVal2) {
+												cd.val = (float)vid;
 												cd.val2 = (short)vid2;
 											}
 											else
@@ -1168,6 +1185,18 @@ int MedConvert::write_indexes(pid_data &curr)
 									sdrv.date_end = curr.raw_data[i][j].date2;
 									sdrv.val = curr.raw_data[i][j].val;
 									data_f[fno]->write((char *)&sdrv, sizeof(SDateRangeVal));
+								}
+							}
+
+							if (sid_type == T_DateRangeVal2) {
+								len = (int)sizeof(SDateRangeVal2)*ilen;
+								SDateRangeVal2 sdrv;
+								for (int j = 0; j < ilen; j++) {
+									sdrv.date_start = curr.raw_data[i][j].date;
+									sdrv.date_end = curr.raw_data[i][j].date2;
+									sdrv.val = curr.raw_data[i][j].val;
+									sdrv.val2 = curr.raw_data[i][j].val2;
+									data_f[fno]->write((char *)&sdrv, sizeof(SDateRangeVal2));
 								}
 							}
 

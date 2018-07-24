@@ -638,6 +638,11 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			SDateRangeVal *v = (SDateRangeVal *)data;
 			MOUT(" %s %s %d :", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), val = (int)v[i].val);
 		}
+		else if (sigs.type(sid) == T_DateRangeVal2) {
+			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
+			MOUT(" %s %s %d %d:", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), 
+				val = (int)v[i].val, v[i].val2);
+		}
 		else if (sigs.type(sid) == T_CompactDateVal) {
 			SCompactDateVal *v = (SCompactDateVal *)data;
 			MOUT(" %d %d ", compact_date_to_date(v[i].compact_date), val = (int)v[i].val);
@@ -679,6 +684,10 @@ void MedRepository::print_vec(void *data, int len, int pid, int sid)
 		else if (sigs.type(sid) == T_DateRangeVal) {
 			SDateRangeVal *v = (SDateRangeVal *)data;
 			MOUT(" %s %s %f :", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), v[i].val);
+		}
+		else if (sigs.type(sid) == T_DateRangeVal2) {
+			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
+			MOUT(" %s %s %f %d:", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), v[i].val, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;
@@ -773,6 +782,13 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 				MOUT("%d,", val = (int)v[i].val);
 			else MOUT("%f,", v[i].val);
 			MOUT("0,%d,%d,0,0,", v[i].date_start, v[i].date_end);
+		}
+		else if (sigs.type(sid) == T_DateRangeVal2) {
+			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("%d,%d,%d,0,0,", v[i].val2, v[i].date_start, v[i].date_end);
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;

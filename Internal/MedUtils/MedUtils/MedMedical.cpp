@@ -92,8 +92,9 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 
 	int evidence = 0;
 
+	if (rep.sigs.sid("Drug") < 0 || rep.sigs.sid("Glucose") < 0 || rep.sigs.sid("HbA1C") < 0)
+		return 1;
 	// assumes rep was already loaded with Glucose , HbA1C and Drugs
-
 	if (data_mode == "") {
 		int dsid = rep.sigs.sid("Drug");
 		int dtype = rep.sigs.Sid2Info[dsid].type;
