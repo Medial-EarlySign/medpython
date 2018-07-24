@@ -93,7 +93,7 @@ namespace medial {
 	*/
 	namespace process {
 		/// \brief calc prctile
-		template<class T> void prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res);
+		template<class T> void prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res, const vector<float> *weights = NULL);
 		/// \brief binary search for index. -1 if not found
 		template<typename T> int binary_search_index(const T *begin, const T *end, T val);
 		/// \brief binary search for position to add new element in sorted manner.

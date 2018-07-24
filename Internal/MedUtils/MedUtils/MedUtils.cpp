@@ -170,27 +170,61 @@ template string medial::print::print_obj<float>(float obj, const string &format)
 template string medial::print::print_obj<double>(double obj, const string &format);
 template string medial::print::print_obj<const char *>(const char *obj, const string &format);
 template string medial::print::print_obj<int>(int obj, const string &format);
-template<class T> void medial::process::prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res) {
+template<class T> void medial::process::prctils(const vector<T> &x, const vector<double> &prc,
+	vector<T> &res, const vector<float> *weights) {
 	if (x.size() == 0)
-		throw invalid_argument("x is empty");
+		MTHROW_AND_ERR("x is empty\n");
+	bool has_weights = weights != NULL && !weights->empty();
+	if (has_weights && x.size() != weights->size())
+		MTHROW_AND_ERR("x and weights are not same size\n");
 
-	vector<T> cp(x);
-	T *data = cp.data();
-	sort(cp.begin(), cp.end());
+	if (!has_weights) {
+		vector<T> cp(x);
+		T *data = cp.data();
+		sort(cp.begin(), cp.end());
 
-	res.resize((int)prc.size());
-	for (size_t i = 0; i < res.size(); ++i)
-	{
-		double pos = prc[i] * (x.size() - 1);
-		int pos_a = (int)pos;
-		T r = data[pos_a];
-		res[i] = r;
-		if (pos_a + 1 < x.size())
-			res[i] = T(res[i] * (1 - (pos - pos_a)) + (pos - pos_a) * data[pos_a + 1]);
+		res.resize((int)prc.size());
+		for (size_t i = 0; i < res.size(); ++i)
+		{
+			double pos = prc[i] * (x.size() - 1);
+			int pos_a = (int)pos;
+			T r = data[pos_a];
+			res[i] = r;
+			if (pos_a + 1 < x.size())
+				res[i] = T(res[i] * (1 - (pos - pos_a)) + (pos - pos_a) * data[pos_a + 1]);
+		}
+	}
+	else {
+		vector<pair<T, float>> cp(x.size());
+		for (size_t i = 0; i < x.size(); ++i)
+		{
+			cp[i].first = x[i];
+			cp[i].second = (*weights)[i];
+		}
+		pair<T, float> *data = cp.data();
+		sort(cp.begin(), cp.end());
+		vector<float> w(weights->size());
+		w[0] = cp.front().second;
+		for (size_t i = 1; i < cp.size(); ++i)
+			w[i] = w[i - 1] + cp[i].second;
+		float total_w = w.back();
+
+		res.resize((int)prc.size());
+		for (size_t i = 0; i < res.size(); ++i)
+		{
+			float pos = float(prc[i] * total_w);
+			int pos_a = medial::process::binary_search_position(w.data(), w.data() + (int)w.size() - 1, pos);
+			pos_a = min(pos_a, (int)cp.size() - 1);
+			//int pos_a = (int)pos;
+			T r = data[pos_a].first;
+			res[i] = r;
+			//if (pos_a + 1 < x.size())
+			//	res[i] = T(res[i] * (1 - (pos - pos_a)) + (pos - pos_a) * data[pos_a + 1]);
+		}
 	}
 }
-template void medial::process::prctils<float>(const vector<float> &x, const vector<double> &prc, vector<float> &res);
-template void medial::process::prctils<double>(const vector<double> &x, const vector<double> &prc, vector<double> &res);
+template void medial::process::prctils<float>(const vector<float> &x, const vector<double> &prc, vector<float> &res, const vector<float> *weights);
+template void medial::process::prctils<double>(const vector<double> &x, const vector<double> &prc, vector<double> &res, const vector<float> *weights);
 
 template<class T> void medial::print::print_vec(const vector<T> &vec, const string &title, const string &format) {
 	if (vec.empty()) {

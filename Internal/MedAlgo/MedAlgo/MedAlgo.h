@@ -25,6 +25,7 @@
 #include <TQRF/TQRF/TQRF.h>
 #include "svm.h"
 #include <unordered_map>
+#include <random>
 
 // #include "MedBooster.h" // this include is at the end of file as it depends on following definitions to come first
 
@@ -1118,6 +1119,22 @@ namespace medial {
 		void learnInfraModel(void *model, const vector<vector<float>> &xTrain, vector<float> &y, vector<float> &weights);
 		/// \brief run predict on the MedPredictor - wrapper api
 		vector<float> predictInfraModel(void *model, const vector<vector<float>> &xTest);
+		/// \brief run cross validation where each pid is in diffrent fold and saves the preds.
+		void get_pids_cv(MedPredictor *pred, MedFeatures &matrix, int nFolds,
+			mt19937 &generator, vector<float> &preds);
+		/// \brief run cross validation where each samples can be in diffrent fold and saves the preds.
+		void get_cv(MedPredictor *pred, MedFeatures &matrix, int nFolds,
+			mt19937 &generator, vector<float> &preds);
+	}
+	/*!
+	*  \brief process namespace
+	*/
+	namespace process {
+		/// \brief compares two matrixes populations. it's also try to seperate between populations
+		/// using the predictor parameters if given
+		void compare_populations(const MedFeatures &population1, const MedFeatures &population2,
+			const string &name1, const string &name2, const string &output_file,
+			const string &predictor_type = "", const string &predictor_init = "");
 	}
 }
 

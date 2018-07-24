@@ -8,6 +8,7 @@
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedUtils/MedUtils/MedMat.h>
+#include <random>
 
 //.......................................................................................
 /**  A structure holding feature attributes
@@ -144,6 +145,32 @@ namespace medial {
 		/// \brief matching by given groups uniq values. returns also the row_ids filtered
 		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
 			vector<int> &filtered_row_ids, float price_ratio, bool print_verbose);
+		/// \brief split matrix to train test based on iFold value. folds is fold id for each sample
+		void split_matrix(MedFeatures& matrix, vector<int>& folds, int iFold,
+			MedFeatures& trainMatrix, MedFeatures& testMatrix);
+		/// \brief split matrix to train test based on iFold value. folds is map from patient id to fold
+		void split_matrix(MedFeatures& matrix, unordered_map<int, int>& folds, int iFold,
+			MedFeatures& trainMatrix, MedFeatures& testMatrix);
+		/// \brief convert feature vector to it's prctil's value in each element
+		void convert_prctile(vector<float> &features_prctiles);
+		/// \brief does matching to specific target_prior. 
+		/// @param outcome is the outcome vector for measure prior in each group
+		/// @param group_values is the groups to split the matching to. it can be year signature or age or unique combination of both
+		/// @param target_prior the target prior
+		/// @param the return value of selected indexes to do the matching
+		void match_to_prior(const vector<float> &outcome,
+			const vector<float> &group_values, float target_prior, vector<int> &sel_idx);
+	}
+	/*!
+	* \brief stats namespace
+	*/
+	namespace stats {
+		/// \brief calculating auc. can have weights
+		template<class T> float get_preds_auc_q(const vector<T> &preds, const vector<float> &y, const vector<float> *weights = NULL);
+		/// \brief calculating mean. can have weights
+		template<class T> double mean_vec(const vector<T> &v, const vector<float> *weights = NULL);
+		/// \brief calculating std. can have weights
+		template<class T> double std_vec(const vector<T> &v, T mean ,const vector<float> *weights = NULL);
 	}
 }
 
