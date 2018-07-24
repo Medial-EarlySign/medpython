@@ -33,6 +33,9 @@ you can also use the search box to find your file/function
  @subsection MedTime MedTime
  * MedTime.h - A library to convert between time units
 
+ @subsection medial_namespace Medial Helper Functions
+ * [medial namespace](namespacemedial.html)
+
   @subsection MedFeat MedFeat
  * MedOutcome - example object, need more documentation
  
