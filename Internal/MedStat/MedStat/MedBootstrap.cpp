@@ -4,7 +4,7 @@
 #include "Logger/Logger/Logger.h"
 #include <boost/algorithm/string.hpp>
 
-#define LOCAL_SECTION LOG_APP
+#define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
 void MedBootstrap::get_cohort_from_arg(const string &single_cohort) {
@@ -220,7 +220,7 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 	int max_range = (int)time_filter.max_range;
 	for (size_t i = 0; i < y_changed.size(); ++i)
 	{
-		if (y[i] > 0){
+		if (y[i] > 0) {
 			if (!filter_range_param(additional_info, (int)i, &time_filter)) {
 				// cases which are long before the outcome (>2*max_range) are considered as controls:
 
@@ -733,6 +733,17 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 	vector<int> pids;
 	map<string, vector<float>> data;
 	unordered_map<int, vector<int>> splits_inds;
+
+	//check we have all signals ececpt Time,Label (will be completed in prepare):
+	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
+		for (const Filter_Param &fp : it->second)
+			if (fp.param_name != "Time-Window" && fp.param_name != "Label"
+				&& features.data.find(fp.param_name) == features.data.end())
+				MTHROW_AND_ERR("ERROR in MedBootstrap::bootstrap - missing "
+					"filter_cohort parameter \"%s\" in cohort \"%s\" in input features.\n"
+					"Please provide the feature in the input for filtering or remove cohort filter\n",
+					fp.param_name.c_str(), it->first.c_str());
+
 
 	if (results_per_split != NULL)
 		prepare_bootstrap(features, preds, y, pids, data, &splits_inds);
