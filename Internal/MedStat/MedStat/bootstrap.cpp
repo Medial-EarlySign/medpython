@@ -1858,7 +1858,7 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 #pragma endregion
 
 #pragma region Parameter Functions
-Filter_Param::Filter_Param(const string &init_string) {
+int Filter_Param::init_from_string(string init_string) {
 	if (init_string.find(':') == string::npos)
 		MTHROW_AND_ERR("Wrong format given \"%s\". expected format is \"PARAM_NAME:min_range,max_range\"\n",
 			init_string.c_str());
@@ -1869,6 +1869,27 @@ Filter_Param::Filter_Param(const string &init_string) {
 			init_string.c_str());
 	min_range = stof(rest.substr(0, rest.find(',')));
 	max_range = stof(rest.substr(rest.find(',') + 1));
+	return 0;
+}
+Filter_Param::Filter_Param(const string &init_string) {
+	init_from_string(init_string);
+}
+int Filter_Param::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		//! [Filter_Param::init]
+		if (it->first == "param_name")
+			param_name = it->second;
+		else if (it->first == "min_range")
+			min_range = stof(it->second);
+		else if (it->first == "max_range")
+			max_range = stof(it->second);
+		//! [Filter_Param::init]
+		else
+			MTHROW_AND_ERR("Error in Filter_Param::init - unknown parameter \"%s\"\n",
+				it->first.c_str());
+	}
+	return 0;
 }
 void Incident_Stats::write_to_text_file(const string &text_file) {
 	ofstream fw(text_file);
@@ -1967,7 +1988,7 @@ void parse_vector(const string &value, vector<float> &output_vec) {
 	for (size_t i = 0; i < vec.size(); ++i)
 		output_vec[i] = stof(vec[i]);
 }
-ROC_Params::ROC_Params(const string &init_string) {
+int ROC_Params::init(map<string, string>& map) {
 	max_diff_working_point = (float)0.05;
 	use_score_working_points = false;
 	working_point_FPR = { (float)0.1, 1, 5, 10,20,30,40,50,55,60,65,70,75,80,85,90,95 };
@@ -1977,17 +1998,12 @@ ROC_Params::ROC_Params(const string &init_string) {
 	score_min_samples = 0;
 	fix_label_to_binary = true;
 
-	//override default with given string:
-	vector<string> tokens;
-	boost::split(tokens, init_string, boost::is_any_of(";"));
-	for (string token : tokens)
+	for (auto it = map.begin(); it != map.end(); ++it)
 	{
-		if (token.find('=') == string::npos)
-			MTHROW_AND_ERR("Wrong token. has no value \"%s\"\n", token.c_str());
-		string param_name = token.substr(0, token.find('='));
-		string param_value = token.substr(token.find('=') + 1);
-		boost::to_lower(param_name);
+		const string &param_name = boost::to_lower_copy(it->first);
+		const string &param_value = it->second;
 
+		//! [ROC_Params::init]
 		if (param_name == "max_diff_working_point")
 			max_diff_working_point = stof(param_value);
 		else if (param_name == "use_score_working_points")
@@ -2010,8 +2026,13 @@ ROC_Params::ROC_Params(const string &init_string) {
 			parse_vector(param_value, working_point_PR);
 		else if (param_name == "working_point_sens")
 			parse_vector(param_value, working_point_SENS);
+		//! [ROC_Params::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
 	}
+	return 0;
+}
+ROC_Params::ROC_Params(const string &init_string) {
+	init_from_string(init_string);
 }
 #pragma endregion

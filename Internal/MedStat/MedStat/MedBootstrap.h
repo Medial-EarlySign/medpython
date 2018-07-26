@@ -86,12 +86,14 @@ public:
 	/// not filtering
 	/// </summary>
 	MedBootstrap();
+	
 	/// <summary>
 	/// Initialization string with format "parameter_name=value;..."
 	/// each paramter_name is same as the class name field. filter_cohort is path to file
 	/// roc_Params is the init string for ROC_PARAMS
+	/// @snippet MedBootstrap.cpp MedBootstrap::init
 	/// </summary>
-	MedBootstrap(const string &init_string);
+	int init(map<string, string>& map);
 
 	/// <summary>
 	/// cleans the initiale "FTR_" from the feature names in MedFeatures created by the infra pipeline

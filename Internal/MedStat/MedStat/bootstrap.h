@@ -206,8 +206,14 @@ public:
 	/// for vectors values use "," between numbers
 	/// </summary>
 	ROC_Params(const string &init_string);
-	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
+	/// <summary>
+	/// Initializing each parameter from string in format: "parameter_name=value;...". \n
+	/// for vectors values use "," between numbers
+	/// @snippet bootstrap.cpp ROC_Params::init
+	/// </summary>
+	int init(map<string, string>& map);
 
+	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
 		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, inc_stats)
 };
@@ -240,6 +246,19 @@ public:
 	/// will create param_name="Age" in range 40 till 80.
 	/// </summary>
 	Filter_Param(const string &init_string);
+
+	/// <summary>
+	/// initializing object in format: "PARAM_NAME:MIN_RANGE,MAX_RANGE". \n
+	/// For example: \n
+	/// Age:40,80 \n
+	/// will create param_name="Age" in range 40 till 80.
+	/// </summary>
+	int init_from_string(string init_string);
+
+	/// default init function for each parameter. not the same as init_from_string!!!
+	/// @snippet bootstrap.cpp Filter_Param::init
+	int init(map<string, string>& map);
+
 	/// <summary>
 	/// default Ctor
 	/// </summary>

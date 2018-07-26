@@ -14,14 +14,17 @@ void MedBootstrap::get_cohort_from_arg(const string &single_cohort) {
 
 void MedBootstrap::parse_cohort_line(const string &line) {
 	if (line.find('\t') == string::npos)
-		MTHROW_AND_ERR("line is in wrong format:\n%s\n",
+		MWARN("Warning MedBootstrap::parse_cohort_line - line has no filters only name: \"%s\"\n",
 			line.c_str());
 
 	string cohort_name = line.substr(0, line.find('\t'));
-	string cohort_definition = line.substr(line.find('\t') + 1);
+	string cohort_definition = "";
+	if (line.find('\t') != string::npos)
+		cohort_definition = line.substr(line.find('\t') + 1);
 	if (cohort_name != "MULTI") {
 		vector<string> params;
-		boost::split(params, cohort_definition, boost::is_any_of(";"));
+		if (!cohort_definition.empty())
+			boost::split(params, cohort_definition, boost::is_any_of(";"));
 		vector<Filter_Param> convert_params((int)params.size());
 		for (size_t i = 0; i < params.size(); ++i)
 			convert_params[i] = Filter_Param(params[i]);
@@ -71,7 +74,7 @@ MedBootstrap::MedBootstrap()
 	is_binary_outcome = true;
 }
 
-MedBootstrap::MedBootstrap(const string &init_string) {
+int MedBootstrap::init(map<string, string>& map) {
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
 	sample_patient_label = false;
@@ -82,16 +85,12 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	is_binary_outcome = true;
 
 	//now read init_string to override default:
-	vector<string> tokens;
-	boost::split(tokens, init_string, boost::is_any_of(";"));
-	for (string token : tokens)
-	{
-		if (token.find('=') == string::npos)
-			MTHROW_AND_ERR("Wrong token. has no value \"%s\"\n", token.c_str());
-		string param_name = token.substr(0, token.find('='));
-		string param_value = token.substr(token.find('=') + 1);
-		boost::to_lower(param_name);
 
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		const string &param_name = boost::to_lower_copy(it->first);
+		const string &param_value = it->second;
+		//! [MedBootstrap::init]
 		if (param_name == "sample_ratio") {
 			sample_ratio = stof(param_value);
 			if (sample_ratio > 1.0 || sample_ratio < 0)
@@ -111,13 +110,16 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 			filter_cohort.clear();
 			parse_cohort_file(param_value);
 		}
-		else if (param_name == "simTimeWindow")
+		else if (param_name == "simtimewindow")
 			simTimeWindow = stoi(param_value) > 0;
 		else if (param_name == "is_binary_outcome")
 			is_binary_outcome = stoi(param_value) > 0;
+		//! [MedBootstrap::init]
 		else
-			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
+			MTHROW_AND_ERR("Unknown paramter \"%s\" for MedBootstrap::init\n", param_name.c_str());
 	}
+
+	return 0;
 }
 
 template<class T> bool has_element(const vector<T> &vec, const T &val) {
