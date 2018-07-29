@@ -364,16 +364,19 @@ vector<bool> empty_bool_arr;
 void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
 	const vector<bool> &indexes) {
+	bool censor_removed = true;
+
 	map<float, vector<int>> pred_indexes;
-	double tot_true_labels = 0;
+	double tot_true_labels = 0, tot_false_labels = 0;
 	double tot_obj = 0;
 	for (size_t i = 0; i < preds.size(); ++i)
 		if (indexes.empty() || indexes[i]) {
 			pred_indexes[preds[i]].push_back((int)i);
 			tot_true_labels += y[i];
+			tot_false_labels += !censor_removed ? (1 - y[i]) : int(y[i] <= 0);
 			++tot_obj;
 		}
-	double tot_false_labels = tot_obj - tot_true_labels;
+	//tot_false_labels = tot_obj - tot_true_labels;
 	if (tot_false_labels == 0 || tot_true_labels == 0) {
 		cerr << "only controls or cases are given." << endl;
 		throw logic_error("only controls or cases are given.\n");
@@ -387,8 +390,8 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 	}
 	sort(pred_threshold.begin(), pred_threshold.end());
 	//From up to down sort:
-	double t_cnt = 0;
-	double f_cnt = 0;
+	double t_sum = 0;
+	double f_sum = 0;
 	true_rate = vector<float>((int)pred_indexes.size());
 	false_rate = vector<float>((int)pred_indexes.size());
 	ppv = vector<float>((int)pred_indexes.size());
@@ -399,12 +402,15 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 		for (int ind : indexes)
 		{
 			float true_label = y[ind];
-			t_cnt += true_label;
-			f_cnt += (1 - true_label);
+			t_sum += true_label;
+			if (!censor_removed)
+				f_sum += (1 - true_label);
+			else
+				f_sum += int(true_label <= 0);
 		}
-		true_rate[i] = float(t_cnt / tot_true_labels);
-		false_rate[i] = float(f_cnt / tot_false_labels);
-		ppv[i] = float(t_cnt / (t_cnt + f_cnt));
+		true_rate[i] = float(t_sum / tot_true_labels);
+		false_rate[i] = float(f_sum / tot_false_labels);
+		ppv[i] = float(t_sum / (t_sum + f_sum));
 	}
 }
 void down_sample_graph(map<float, float> &points, int points_count) {
