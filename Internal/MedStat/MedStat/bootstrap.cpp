@@ -860,7 +860,10 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	}
 
 	if (f_cnt == 0 || t_sum <= 0) {
-		MWARN("no falses or no positives exists in cohort\n");
+		if (t_sum <= 0)
+			MWARN("no positives exists in cohort\n");
+		else
+			MWARN("no falses exists in cohort\n");
 		return res;
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
