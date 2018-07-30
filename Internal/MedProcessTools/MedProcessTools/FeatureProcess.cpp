@@ -121,14 +121,14 @@ int FeatureProcessor::apply(MedFeatures& features) {
 }
 
 //.......................................................................................
-string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) { 
+string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
 
 	// Exact name ?
 	if (features.data.find(substr) != features.data.end())
 		return substr;
 	else {
 		vector<string> names;
-		for (auto& me: features.data)
+		for (auto& me : features.data)
 			names.push_back(me.first);
 		return names[find_in_feature_names(names, substr)];
 	}
@@ -347,7 +347,7 @@ void MultiFeatureProcessor::dprint(const string &pref, int fp_flag)
 	if (fp_flag > 0) {
 		MLOG("%s :: FP MULTI type %d : name %s \n", pref.c_str(), processor_type, feature_name.c_str());
 		for (auto& proc : processors)
-			proc->dprint(pref+"-in-MULTI", fp_flag);
+			proc->dprint(pref + "-in-MULTI", fp_flag);
 	}
 }
 
@@ -629,7 +629,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	int too_small_stratas = 0;
 	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
 
-		strata_sizes[i] = (int) stratifiedValues[i].size();
+		strata_sizes[i] = (int)stratifiedValues[i].size();
 		if (strata_sizes[i] < min_samples) { // Not enough values to make valid imputation
 			too_small_stratas++;
 			if (moment_type == IMPUTE_MMNT_SAMPLE)
@@ -679,6 +679,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 //#pragma omp critical
 //	print();
+	if (verbose_learn)
+		print();
 	return 0;
 }
 
@@ -706,6 +708,7 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	for (int j = 0; j < imputerStrata.nStratas(); j++)
 		strataData[j] = &(features.data[imputerStrata.stratas[j].name]);
 
+	int missing_cnt = 0;
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if (data[i] == missing_value) {
 			int index = 0;
@@ -726,11 +729,16 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 					data[i] = moments[index];
 			}
 			if (!isfinite(data[i]))
-				MTHROW_AND_ERR("[%s] imputed illegal value for row %d moment_type %d index %d strata_sizes[index] %d %f\n", 
+				MTHROW_AND_ERR("[%s] imputed illegal value for row %d moment_type %d index %d strata_sizes[index] %d %f\n",
 					resolved_feature_name.c_str(), i, moment_type, index, strata_sizes[index], default_moment);
+			++missing_cnt;
 		}
 	}
 
+	if (verbose && missing_cnt > 0) {
+		MLOG("FeatureImputer::%s:: with %d imputations out of %zu(%2.2f%%)\n",
+			resolved_feature_name.c_str(), missing_cnt, data.size(), 100.0 * missing_cnt / double(data.size()));
+	}
 	return 0;
 }
 
@@ -743,7 +751,7 @@ int FeatureImputer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		if (field == "moment_type") moment_type = getMomentType(entry.second); 
+		if (field == "moment_type") moment_type = getMomentType(entry.second);
 		else if (field == "min_samples") min_samples = med_stoi(entry.second);
 		//! [FeatureImputer::init]
 		if (field == "moment_type") moment_type = getMomentType(entry.second);
@@ -752,6 +760,10 @@ int FeatureImputer::init(map<string, string>& mapper) {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addStrata(stratum);
 		}
+		else if (field == "verbose")
+			verbose = stoi(entry.second) > 0;
+		else if (field == "verbose_learn")
+			verbose_learn = stoi(entry.second) > 0;
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
 		//! [FeatureImputer::init]
@@ -802,7 +814,9 @@ size_t FeatureImputer::serialize(unsigned char *blob) {
 
 //.......................................................................................
 size_t FeatureImputer::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
+	size_t res = MedSerialize::deserialize(blob, processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram);
+	verbose = true;
+	return res;
 }
 
 
@@ -852,7 +866,7 @@ int OneHotFeatProcessor::init(map<string, string>& mapper) {
 		else if (field == "allow_other") allow_other = (med_stoi(entry.second) != 0);
 		else if (field == "remove_last") remove_last = (med_stoi(entry.second) != 0);
 		else if (field == "max_values") max_values = med_stoi(entry.second);
-		else 
+		else
 			MLOG("Unknown parameter \'%s\' for OneHotFeatProcessor\n", field.c_str());
 		//! [OneHotFeatProcessor::init]
 	}
@@ -886,7 +900,7 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// Remove last one
 	if (remove_last && !value2feature.empty())
 		removed_feature_name = value2feature.rbegin()->second;
-	
+
 	return 0;
 }
 
@@ -899,27 +913,27 @@ int OneHotFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	int samples_size = (int)features.samples.size();
 	for (auto& rec : value2feature) {
 		string feature_name = rec.second;
-		if (feature_name != removed_feature_name) 
-#pragma omp critical
-			{
-				features.data[feature_name].clear();
-				features.data[feature_name].resize(samples_size, 0.0);
-				// Attributes
-				features.attributes[feature_name].normalized = false;
-				features.attributes[feature_name].imputed = true;
-			}
-	}
-
-	
-	if (add_other) {
+		if (feature_name != removed_feature_name)
 #pragma omp critical
 		{
-			features.data[other_feature_name].clear();
-			features.data[other_feature_name].resize(samples_size,0.0);
+			features.data[feature_name].clear();
+			features.data[feature_name].resize(samples_size, 0.0);
 			// Attributes
-			features.attributes[other_feature_name].normalized = false;
-			features.attributes[other_feature_name].imputed = true;
+			features.attributes[feature_name].normalized = false;
+			features.attributes[feature_name].imputed = true;
 		}
+	}
+
+
+	if (add_other) {
+#pragma omp critical
+	{
+		features.data[other_feature_name].clear();
+		features.data[other_feature_name].resize(samples_size, 0.0);
+		// Attributes
+		features.attributes[other_feature_name].normalized = false;
+		features.attributes[other_feature_name].imputed = true;
+	}
 	}
 
 	// Fill it up

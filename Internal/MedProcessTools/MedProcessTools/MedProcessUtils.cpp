@@ -139,6 +139,11 @@ int find_in_feature_names(vector<string>& names, string& substr) {
 			if (index != -1)
 				MTHROW_AND_ERR("%s\n", (string("Got source_feature_name [") + substr + "] which matches both [" + names[i] + "] and [" + names[index] + "]").c_str());
 			index = i;
+			if (names[i] == substr)
+				return index;
+			if (names[i].substr(0, 4) == "FTR_")
+				if (names[i].substr(names[i].find(".") + 1) == substr)
+					return index;
 		}
 	}
 
