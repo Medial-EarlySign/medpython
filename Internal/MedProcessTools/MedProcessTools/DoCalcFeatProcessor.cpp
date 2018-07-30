@@ -80,7 +80,8 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 			raw_source_feature_names = { "Age", "DM_Registry", "HT_Registry", "strokeIndicator", "chfIndicator","Gender","vascIndicator" };
 		}
 		else if (calc_type == "framingham_chd") {
-			raw_source_feature_names = { "Gender","Age", "DM_Registry", "Current_Smoker", "BP.last.win_0_1095", "BP.last.win_0_1095.t0v1","Cholesterol.last.win_0_1095","LDL.last.win_0_1095"};
+			raw_source_feature_names = { "Gender","Age", "DM_Registry", "Current_Smoker", "BP.last.win_0_1095", "BP.last.win_0_1095.t0v1",
+				"Cholesterol.last.win_0_1095","HDL.last.win_0_1095", "Drug.category_set_hypertension_drugs.win_0_1095"};
 		}
 
 	}
@@ -99,7 +100,6 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 }
 
 int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
-	
 	// Get Source Features
 	resolve_feature_names(features);
 

@@ -135,6 +135,10 @@ int find_in_feature_names(vector<string>& names, string& substr) {
 
 	int index = -1;
 	for (int i = 0; i < names.size(); i++) {
+		if (names[i].size() > 11 && names[i].substr(11) == substr) { // exact match
+			index = i; 
+			break;
+		}
 		if (names[i].find(substr) != string::npos) {
 			if (index != -1)
 				MTHROW_AND_ERR("%s\n", (string("Got source_feature_name [") + substr + "] which matches both [" + names[i] + "] and [" + names[index] + "]").c_str());
