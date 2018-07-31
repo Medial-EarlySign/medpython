@@ -2,6 +2,7 @@
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "Logger/Logger/Logger.h"
 #include <MedUtils/MedUtils/MedGenUtils.h>
+#include <MedUtils/MedUtils/MedUtils.h>
 #include <boost/crc.hpp>
 #include <random>
 
@@ -407,7 +408,7 @@ int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& s
 					str_attributes.push_back(attr.first);
 				first = false;
 			}
-			else {				
+			else {
 				vector<string> my_attributes;
 				for (auto& attr : ss.attributes)
 					my_attributes.push_back(attr.first);
@@ -617,6 +618,13 @@ bool MedSamples::same_as(MedSamples &other, int mode) {
 }
 
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {
+	ofstream fo;
+	if (!log_file.empty()) {
+		fo.open(log_file, ios::app);
+		if (!fo.good())
+			MWARN("Warning: can log into file %s\n", log_file.c_str());
+	}
+
 	map<float, int> histCounts, histCountAll;
 	vector<unordered_set<int>> pid_index(2);
 	for (size_t k = 0; k < samples.size(); ++k)
@@ -633,25 +641,35 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 		++histCountAll[samples[k].outcome];
 		pid_index[samples[k].outcome > 0].insert(samples[k].id);
 	}
-	MLOG("Samples has %d records. for uniq_pids = [", (int)samples.size());
+	int total = 0, total_all = 0;
 	for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
-		MLOG(" %d=%d", (int)it->first, it->second);
-	MLOG(" ] all = [");
+		total += it->second;
 	for (auto it = histCountAll.begin(); it != histCountAll.end(); ++it)
-		MLOG(" %d=%d", (int)it->first, it->second);
-	MLOG(" ]\n");
+		total_all += it->second;
 
-	if (!log_file.empty()) {
-		ofstream fo(log_file, ios::app);
-		fo << "Samples has " << samples.size() << " records. for uniq_pids = [";
-		for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
-			fo << " " << it->first << "=" << it->second;
-		fo << " ] all=[";
-		for (auto it = histCountAll.begin(); it != histCountAll.end(); ++it)
-			fo << " " << it->first << "=" << it->second;
-		fo << " ]" << endl;
+	log_with_file(fo, "Samples has %d records. for uniq_pids = [", (int)samples.size());
+	auto iter = histCounts.begin();
+	if (!histCounts.empty())
+		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+			100.0 * iter->second / float(total));
+	++iter;
+	for (; iter != histCounts.end(); ++iter)
+		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second,
+			100.0 * iter->second / float(total));
+
+	log_with_file(fo, "] All = [");
+	iter = histCountAll.begin();
+	if (!histCountAll.empty())
+		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+			100.0 * iter->second / float(total_all));
+	++iter;
+
+	for (; iter != histCountAll.end(); ++iter)
+		log_with_file(fo, ", %d=%d", (int)iter->first, iter->second, iter->second,
+			100.0 * iter->second / float(total_all));
+	log_with_file(fo, "]\n");
+	if (fo.good())
 		fo.close();
-	}
 }
 
 void medial::print::print_samples_stats(const MedSamples &samples, const string &log_file) {
@@ -662,6 +680,13 @@ void medial::print::print_samples_stats(const MedSamples &samples, const string 
 }
 
 void medial::print::print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids, bool take_prediction_time, const string &log_file) {
+	ofstream fo;
+	if (!log_file.empty()) {
+		fo.open(log_file, ios::app);
+		if (!fo.good())
+			MWARN("Warning: can log into file %s\n", log_file.c_str());
+	}
+
 	unordered_map<int, int> count_0, count_1;
 	vector<int> all_years;
 	unordered_set<int> seen_year;
@@ -702,40 +727,22 @@ void medial::print::print_by_year(const vector<MedSample> &data_records, int yea
 	int i = 0;
 	sort(all_years.begin(), all_years.end());
 	if (take_prediction_time)
-		MLOG("Printing by prediction time...\n");
+		log_with_file(fo, "Printing by prediction time...\n");
 	else
-		MLOG("Printing by outcome time...\n");
-	MLOG("Year"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio\n");
+		log_with_file(fo, "Printing by outcome time...\n");
+	log_with_file(fo, "Year"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio\n");
 	for (int year : all_years)
 	{
 		year_total[year] = count_0[year] + count_1[year];
 		year_ratio[year] = count_1[year] / float(count_0[year] + count_1[year]);
 		all_ratios[i] = year_ratio[year];
 		++i;
-		MLOG("%d\t%d\t%d\t%f\n", year, count_0[year], count_1[year],
+		log_with_file(fo, "%d\t%d\t%d\t%f\n", year, count_0[year], count_1[year],
 			count_1[year] / float(count_1[year] + count_0[year]));
 	}
 
-	if (!log_file.empty()) {
-		i = 0;
-		ofstream fo(log_file, ios::app);
-		if (take_prediction_time)
-			fo << "Printing by prediction time..." << endl;
-		else
-			fo << "Printing by outcome time..." << endl;
-		fo << "Year" << "\t" << "Count_0" << "\t" << "Count_1" << "\t" << "ratio" << endl;
-		for (int year : all_years)
-		{
-			year_total[year] = count_0[year] + count_1[year];
-			year_ratio[year] = count_1[year] / float(count_0[year] + count_1[year]);
-			all_ratios[i] = year_ratio[year];
-			++i;
-			fo << year << "\t" << count_0[year] << "\t" << count_1[year] << "\t"
-				<< count_1[year] / float(count_1[year] + count_0[year]) << endl;
-
-		}
+	if (fo.good())
 		fo.close();
-	}
 }
 
 void medial::print::print_by_year(const MedSamples &data_records, int year_bin_size, bool unique_ids, bool take_prediction_time, const string &log_file) {

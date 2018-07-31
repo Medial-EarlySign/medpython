@@ -87,6 +87,8 @@ namespace medial {
 		template<class T> void print_hist_vec(const vector<T> &vec, const string &title, const string &format, const vector<double> *prctile_samples = NULL);
 		/// \brief print boost program options object
 		string print_any(po::variable_value &a);
+
+		void log_with_file(ofstream &fw, const char *format_str, ...);
 	}
 	/*!
 	*  \brief process

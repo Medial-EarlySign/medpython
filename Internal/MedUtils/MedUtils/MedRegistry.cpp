@@ -1441,6 +1441,12 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 }
 
 void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file) {
+	ofstream fo;
+	if (!log_file.empty()) {
+		fo.open(log_file);
+		if (!fo.good())
+			MWARN("Warning: can log into file %s\n", log_file.c_str());
+	}
 	map<float, int> histCounts, histCounts_All;
 	vector<unordered_set<int>> pid_index(2);
 	for (size_t k = 0; k < regRecords.size(); ++k)
@@ -1454,29 +1460,37 @@ void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords,
 		pid_index[regRecords[k].registry_value > 0].insert(regRecords[k].pid);
 		++histCounts_All[regRecords[k].registry_value];
 	}
-	cout << "Registry has " << regRecords.size() << " records. [";
-	string delim = " ";
+	string delim = ", ";
 	if (histCounts.size() > 2)
 		delim = "\n";
+	int total = 0, total_all = 0;
 	for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
-		cout << delim << (int)it->first << "=" << it->second;
-	cout << " ]" << " All = [ ";
+		total += it->second;
 	for (auto it = histCounts_All.begin(); it != histCounts_All.end(); ++it)
-		cout << delim << (int)it->first << "=" << it->second;
-	cout << " ]" << endl;
-	if (!log_file.empty()) {
-		ofstream fo(log_file, ios::app);
-		fo << "Registry has " << regRecords.size() << " records. [";
-		if (histCounts.size() > 2)
-			delim = "\n";
-		for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
-			fo << delim << (int)it->first << "=" << it->second;
-		fo << " ]" << " All = [ ";
-		for (auto it = histCounts_All.begin(); it != histCounts_All.end(); ++it)
-			fo << delim << (int)it->first << "=" << it->second;
-		fo << " ]" << endl;
+		total_all += it->second;
+
+	log_with_file(fo, "Registry has %zu records. [", regRecords.size());
+	auto iter = histCounts.begin();
+	if (!histCounts.empty())
+		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+			100.0 * iter->second / float(total));
+	++iter;
+	for (; iter != histCounts.end(); ++iter)
+		log_with_file(fo, "%s%d=%d(%2.2f%%)", delim.c_str(), (int)iter->first, iter->second,
+			100.0 * iter->second / float(total));
+	log_with_file(fo, "] All = [");
+
+	iter = histCounts_All.begin();
+	if (!histCounts_All.empty())
+		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+			100.0 * iter->second / float(total_all));
+	++iter;
+	for (; iter != histCounts_All.end(); ++iter)
+		log_with_file(fo, "%s%d=%d(%2.2f%%)", delim.c_str(), (int)iter->first, iter->second,
+			100.0 * iter->second / float(total_all));
+	log_with_file(fo, "]\n");
+	if (fo.good())
 		fo.close();
-	}
 }
 
 void medial::io::read_codes_file(const string &file_path, vector<string> &tokens) {

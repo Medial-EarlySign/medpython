@@ -503,6 +503,21 @@ template<class T> string medial::io::get_list_op(const unordered_map<T, string> 
 }
 template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls);
 
+void medial::print::log_with_file(ofstream &fw, const char *format_str, ...) {
+	char buff[10000];
+	va_list argptr;
+	va_start(argptr, format_str);
+	vsnprintf(buff, sizeof(buff), format_str, argptr);
+	va_end(argptr);
+	string final_str = string(buff);
+
+	if (fw.good()) {
+		fw << final_str;
+		fw.flush();
+	}
+	MLOG("%s", final_str.c_str());
+}
+
 float med_stof(const string& _Str) {
 	try {
 		return stof(_Str);
