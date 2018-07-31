@@ -119,7 +119,7 @@ void MedLasso::lasso_regression(vector<float>& b, int nrow_train, int n_ftrs, do
 }
 
 
-void MedLasso::initialize_vars(float *x_in, float *y_in, float *w, vector<float>& b, int nrow_train, int n_ftrs) {
+void MedLasso::initialize_vars(float *x_in, float *y_in, const float *w, vector<float>& b, int nrow_train, int n_ftrs) {
 	trainx = (double **)malloc(n_ftrs * sizeof(double*));
 	for (int j = 0; j < n_ftrs; j++)
 		trainx[j] = (double *)malloc(nrow_train * sizeof(double));
@@ -147,7 +147,7 @@ void MedLasso::initialize_vars(float *x_in, float *y_in, float *w, vector<float>
 
 
 //..............................................................................
-int MedLasso::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedLasso::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	MedLasso::n_ftrs = nftrs;
 	if (w == NULL)
 		return (Learn(x, y, nsamples, nftrs));
@@ -158,12 +158,12 @@ int MedLasso::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedLasso::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedLasso::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	return Predict(x, preds, nsamples, nftrs, 0);
 }
 
 //..............................................................................
-int MedLasso::Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) {
+int MedLasso::Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const {
 
 	if (preds == NULL)
 		preds = new float[nsamples];
@@ -242,7 +242,7 @@ int MedLasso::denormalize_model(float *f_avg, float *f_std, float label_avg, flo
 }
 
 //..............................................................................
-void MedLasso::print(FILE *fp, const string& prefix) {
+void MedLasso::print(FILE *fp, const string& prefix) const {
 
 	fprintf(fp, "%s : Linear Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
 	fprintf(fp, "%s : Linear Model b0 = %f\n", prefix.c_str(), b0);

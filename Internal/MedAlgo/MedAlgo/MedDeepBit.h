@@ -48,10 +48,10 @@ public:
 	~MedDeepBit() {}
 	MedDeepBit(void *_params) { params = *(MedDeepBitParams *)_params; }
 	MedDeepBit(MedDeepBitParams& _params) { params = _params; }
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Learn(float *x, float *y, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
-	virtual void print(FILE *fp, const string& prefix);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
+	virtual void print(FILE *fp, const string& prefix) const;
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
@@ -79,8 +79,8 @@ private:
 	void print_log();
 	void train_model();
 	void predict_train() {}
-	double predict_sample(const vector<double>& x, int niter);
-	double predict_sample(const vector<double>& x);
+	double predict_sample(const vector<double>& x, int niter) const;
+	double predict_sample(const vector<double>& x) const;
 	void get_normalized_col(const vector<char>& col, vector<double>& normalized_col, double& av, double& std);
 	double perform_lasso_iteration(const vector<double>& xk_train, const vector<double>& r, double lambda, double alpha);
 	void get_col_without_na(const vector<double>& col, vector<double>& col_without_na);
@@ -92,7 +92,7 @@ private:
 	double sd(const vector<double>& vec);
 	void transpose(const vector<vector<double>>& before, vector<vector<double>>& after);
 	void init(float *x1, float *y1, int nsamples1, int nftrs1);
-	void predict(const vector<vector<double>>& x, vector<double>& scores);
+	void predict(const vector<vector<double>>& x, vector<double>& scores) const;
 	double get_normalized_val(double x_val, int j);
 	void impute_x(vector<vector<double>>& x, const vector<double>& avx);
 	bool is_viable_01_ratios(int count0, int count1, int count_pos0, int count_pos1);
@@ -102,8 +102,8 @@ private:
 	void mark_grids_and_frequent_vals();
 	void get_categorial_bin_ftr(const vector<double>& col, double val, bool direction, vector<char>& bin_ftr);
 	void get_quant_bin_ftr(const vector<double>& col, double val, bool direction, vector<char>& bin_ftr);
-	int get_categorial_bit(double x_val, double val, bool direction);
-	int get_quant_bit(double x_val, double val, bool direction);
+	int get_categorial_bit(double x_val, double val, bool direction) const;
+	int get_quant_bit(double x_val, double val, bool direction) const;
 	double get_ftr_score(const vector<char>& bin_ftr);
 	void mult_bin_ftrs(const vector<char>& ftr1, vector<char>& ftr2);
 	void get_bin_ftr(int bin_ftr_index, vector<char>& bin_ftr);

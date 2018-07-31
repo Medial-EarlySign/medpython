@@ -110,7 +110,7 @@ netStruct deserializeNetwork(unsigned char *blob);
 size_t networkGetSize(netStruct network); // size of serialized network
 
 
-int MedBP::Learn(float *_x, float *_y, float *_w/*ignored*/, int _nsamples, int _nftrs)
+int MedBP::Learn(float *_x, float *_y, const float *_w/*ignored*/, int _nsamples, int _nftrs)
 {
 	int (*size2)[2];
 	int (*skip2)[2];
@@ -189,7 +189,7 @@ int MedBP::Learn(float *_x, float *_y, float *_w/*ignored*/, int _nsamples, int 
 
 
 
-int MedBP::Predict(float *xPred, float *&preds, int pred_samples,int _nftrs) {
+int MedBP::Predict(float *xPred, float *&preds, int pred_samples,int _nftrs) const {
 	assert(preds);
 	assert(_nftrs==nftrs);
 	

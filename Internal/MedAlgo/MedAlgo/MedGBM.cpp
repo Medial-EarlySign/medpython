@@ -131,7 +131,7 @@ int MedGBM::Learn (float *x, float *y, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedGBM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedGBM::Learn (float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	if (w == NULL) 
 		return (Learn(x,y,nsamples,nftrs));
@@ -159,7 +159,7 @@ int MedGBM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedGBM::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedGBM::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	// transpose x and make it a double to match inner package req
 	MedMat<double> xd;
@@ -200,7 +200,7 @@ size_t MedGBM::deserialize(unsigned char *blob) {
 }
 
 // Printing
-void MedGBM::print(FILE *fp, const string& prefix) {
+void MedGBM::print(FILE *fp, const string& prefix) const {
 	fprintf(fp, "%s: MedGBM (ntrees = %d)\n", prefix.c_str(), gbm_model.ntrees);
 	//write_full_gbm_info(prefix,&gbm_model,stdout) ;
 		

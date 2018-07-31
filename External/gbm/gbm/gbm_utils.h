@@ -67,8 +67,8 @@ int get_gbm_predictor(double *x, double *y, double *w, int nrows, int ncols, dou
 int get_gbm_regressor(double *x, double *y, double *w, int nrows, int ncols, double shrinkage, double bag_p, int ntrees, int depth, int min_obs_in_node, full_gbm_learn_info_t *gbm_info) ;
 
 // Predict
-int gbm_predict(double *x, int nrows, int ncols, gbm_tree *trees, int ntrees, double init_f, int **rcSplits, double *preds) ;
-int gbm_predict(double *x, int nrows, int ncols, int ntrees, full_gbm_learn_info_t *gbm_info, double *preds) ;
+int gbm_predict(double *x, int nrows, int ncols, const gbm_tree *trees, int ntrees, double init_f, int **rcSplits, double *preds) ;
+int gbm_predict(double *x, int nrows, int ncols, int ntrees, const full_gbm_learn_info_t *gbm_info, double *preds) ;
 
 // Clear
 void clear_gbm_info(full_gbm_learn_info_t *gbm_info) ;

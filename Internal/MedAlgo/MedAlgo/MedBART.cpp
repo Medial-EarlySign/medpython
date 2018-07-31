@@ -3,7 +3,7 @@
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
-int MedBART::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedBART::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	_model = BART(ntrees, iter_count, burn_count, restart_count, tree_params);
 
 	vector<float> x_wrapper(x, x + nsamples*nftrs);
@@ -13,7 +13,7 @@ int MedBART::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	return 0;
 }
 
-int MedBART::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedBART::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	vector<float> x_wrapper(x, x + nsamples*nftrs);
 	vector<float> scores; //already allocated
 	_model.predict(x_wrapper, nsamples, scores);

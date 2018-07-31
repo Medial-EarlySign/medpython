@@ -19,14 +19,14 @@ public:
 	subGradientFunction getSubGradients(); ///<Subgradient of RMSE loss function
 	subGradientFunction  getSubGradientsAUC(); ///<Subgradient of smooth auc loss function
 	subGradientFunction  getSubGradientsSvm(); ///<Subgradient of svm loss function
-	double predict(const vector<float> &input);
-	void predict(const vector<vector<float>> &inputs, vector<double> &preds);
-	PredictiveModel *clone();
+	double predict(const vector<float> &input) const;
+	void predict(const vector<vector<float>> &inputs, vector<double> &preds) const;
+	PredictiveModel *clone() const;
 
-	void print(const vector<string> &signalNames);
+	void print(const vector<string> &signalNames) const;
 	void set_normalization(const vector<float> &meanShift, const vector<float> &factors); ///<Normalization
-	void apply_normalization(vector<vector<float>> &input); ///<apply Normalization
-	void get_normalization(vector<float> &meanShift, vector<float> &factors);
+	void apply_normalization(vector<vector<float>> &input) const; ///<apply Normalization
+	void get_normalization(vector<float> &meanShift, vector<float> &factors) const;
 	
 	//Set Loss Fucntions to learn:
 	double(*loss_function)(const vector<double> &got, const vector<float> &y);///<The custom loss_function
@@ -39,8 +39,8 @@ public:
 	bool norm_l1; ///<The blocking norm should be n1 or n2?
 
 	//MedPredictor Api:
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	ADD_SERIALIZATION_FUNCS(model_params, _meanShift, _factor, model_features, features_count)
 

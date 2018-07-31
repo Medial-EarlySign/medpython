@@ -71,14 +71,14 @@ class MedBooster : public MedPredictor {
 		//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 		void init_defaults() { params.init_from_string("boost@booster_type=gradient,loss_func=square,nrounds=10,shrinkage=0.1,internal_model=linear_model@internal_params@rfactor=0.8"); }
 
-		int Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+		int Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 			cerr << "MedBooster:: Learn :: API's with MedMat are preferred....\n";
 			MedMat<float> xmat; xmat.load(x, nsamples, nftrs);
 			MedMat<float> ymat; ymat.load(y, nsamples, 1);
 			return learn(xmat, ymat);
 		}
 
-		int Predict(float *x, float *&preds, int nsamples, int nftrs) {
+		int Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 			cerr << "MedBooster:: Learn :: API's with MedMat are preferred....\n";
 			MedMat<float> xmat; xmat.load(x, nsamples, nftrs);
 			vector<float> vpreds;
@@ -89,7 +89,7 @@ class MedBooster : public MedPredictor {
 		}
 
 		int learn(MedMat<float> &x, MedMat<float> &y);
-		int predict(MedMat<float> &x, vector<float> &preds);
+		int predict(MedMat<float> &x, vector<float> &preds) const;
 
 		// serializations
 		size_t get_size();

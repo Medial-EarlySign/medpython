@@ -6,11 +6,11 @@ struct cat_splits ;
 using namespace std;
 
 // Prediction
-GBMRESULT gbm_pred (double *radX, int rcRows, int rcCols, int cTrees, double rdInitF, gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) ;
-GBMRESULT gbm_pred (double *radX, int irow, int rcRows, int rcCols, gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) ;
+GBMRESULT gbm_pred (double *radX, int rcRows, int rcCols, int cTrees, double rdInitF, const gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) ;
+GBMRESULT gbm_pred (double *radX, int irow, int rcRows, int rcCols, const gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) ;
 
-GBMRESULT gbm_pred (double *radX, int rcRows, int rcCols, int cTrees, double rdInitF, gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF) ;
-GBMRESULT gbm_pred (double *radX, int irow, int rcRows, int rcCols, gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF) ;
+GBMRESULT gbm_pred (double *radX, int rcRows, int rcCols, int cTrees, double rdInitF, const gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF) ;
+GBMRESULT gbm_pred (double *radX, int irow, int rcRows, int rcCols, const gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF) ;
 
 
 // structures management memory

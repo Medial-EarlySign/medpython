@@ -254,7 +254,7 @@ MedQRF::MedQRF(void *_in_params)
 }
 
 //..............................................................................
-int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedQRF::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	if (w != NULL && params.type != QRF_CATEGORICAL_ENTROPY_TREE)
 		MWARN("Weights are not implemented for QRF that is not CATEGORICAL_ENTROPY. Ignoring\n");
@@ -320,23 +320,19 @@ int MedQRF::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 
 	//	if (params.samp_vec.size() > 0) params.sampsize = NULL;
 
+	//prepare for prediction:
+	qf.nthreads = params.predict_nthreads;
+	qf.n_categ = params.n_categ;
 	return 0;
 }
 
 //..............................................................................
-int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs, int _get_count) {
-	qf.nthreads = params.predict_nthreads;
-	qf.get_only_this_categ = params.get_only_this_categ;
-	qf.n_categ = params.n_categ;
-	qf.get_only_this_categ = params.get_only_this_categ;
-	qf.get_counts_flag = params.get_count;
-	qf.quantiles = params.quantiles;
-	qf.take_all_samples = params.take_all_samples;
+int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs, int _get_count) const {
 	return qf.score_samples(x, nftrs, nsamples, preds, _get_count);
 }
 
 //..............................................................................
-int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	return Predict(x, preds, nsamples, nftrs, params.get_count);
 }
 
@@ -372,7 +368,7 @@ size_t MedQRF::deserialize(unsigned char *blob) {
 }
 
 // Printing
-void MedQRF::print(FILE *fp, const string& prefix) {
+void MedQRF::print(FILE *fp, const string& prefix) const {
 	fprintf(fp, "%s: MedQRF of type %d\n", prefix.c_str(), params.type);
 	fprintf(fp, "%s: params = (ntrees=%d, maxq=%d, sampsize=%d, ntry=%d, spread=%f, min_node=%d, n_categ=%d, get_count=%d)\n",
 		prefix.c_str(), params.ntrees, params.maxq, params.sampsize == NULL ? -1 : *params.sampsize, params.ntry, params.spread, params.min_node, params.n_categ, params.get_count);
@@ -380,7 +376,7 @@ void MedQRF::print(FILE *fp, const string& prefix) {
 	if (1) {
 		for (unsigned int i = 0; i < qf.qtrees.size(); i++) {
 			for (unsigned int j = 0; j < qf.qtrees[i].qnodes.size(); j++) {
-				QRF_ResNode& node = qf.qtrees[i].qnodes[j];
+				const QRF_ResNode& node = qf.qtrees[i].qnodes[j];
 
 				fprintf(fp, "Tree %d Node %d ", i, j);
 				if (node.is_leaf)
@@ -428,7 +424,7 @@ string printNode(const vector<string> &modelSignalNames, const vector<QRF_ResNod
 	return out.str();
 }
 
-void MedQRF::printTrees(const vector<string> &modelSignalNames, const string &outputPath) {
+void MedQRF::printTrees(const vector<string> &modelSignalNames, const string &outputPath) const {
 	stringstream treeOut;
 	vector<QRF_ResTree> trees = qf.qtrees;
 	for (size_t i = 0; i < trees.size(); ++i)
@@ -490,7 +486,7 @@ void MedQRF::printTrees(const vector<string> &modelSignalNames, const string &ou
 }
 
 // Prdictions per sample
-int MedQRF::n_preds_per_sample()
+int MedQRF::n_preds_per_sample() const
 {
 	if (params.type == QRF_REGRESSION_TREE) {
 		if (params.get_count == PREDS_REGRESSION_QUANTILE || params.get_count == PREDS_REGRESSION_WEIGHTED_QUANTILE)

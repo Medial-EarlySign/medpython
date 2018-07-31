@@ -29,7 +29,7 @@ void MedSpecificGroupModels::set_group_selection(int featNum, const vector<float
 		MTHROW_AND_ERR("initialize error - predictors size should by feat_ths size + 1");
 }
 
-int MedSpecificGroupModels::selectPredictor(const float *x) {
+int MedSpecificGroupModels::selectPredictor(const float *x) const {
 	float num = x[featNum];
 	int i = 0;
 	while (i < feat_ths.size() && num > feat_ths[i])
@@ -39,7 +39,7 @@ int MedSpecificGroupModels::selectPredictor(const float *x) {
 }
 
 
-int MedSpecificGroupModels::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedSpecificGroupModels::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	if (predictors.empty() || feat_ths.empty())
 		MTHROW_AND_ERR("using uninitialize predictor - please set predictors & feat_ths");
 	vector<vector<float>> predictors_x(predictors.size());
@@ -65,7 +65,7 @@ int MedSpecificGroupModels::Learn(float *x, float *y, float *w, int nsamples, in
 	return 0;
 }
 
-int MedSpecificGroupModels::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedSpecificGroupModels::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	if (predictors.empty() || feat_ths.empty())
 		MTHROW_AND_ERR("using uninitialize predictor - please set predictors & feat_ths");
 	vector<vector<float>> predictors_x(predictors.size());
@@ -115,7 +115,7 @@ MedPredictor *cloneModel(MedPredictor *model) {
 	return newM;
 }
 
-MedSpecificGroupModels *MedSpecificGroupModels::clone() {
+MedSpecificGroupModels *MedSpecificGroupModels::clone() const {
 	MedSpecificGroupModels *res = new MedSpecificGroupModels;
 
 	res->set_group_selection(featNum, feat_ths);
@@ -131,6 +131,6 @@ MedPredictor *MedSpecificGroupModels::get_model(int ind) {
 	return predictors[ind];
 }
 
-int MedSpecificGroupModels::model_cnt() {
+int MedSpecificGroupModels::model_cnt() const {
 	return (int)predictors.size();
 }

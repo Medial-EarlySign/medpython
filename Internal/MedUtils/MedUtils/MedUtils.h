@@ -63,8 +63,8 @@ double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_c
 
 // Moments
 //template <class S> int get_moments(vector<S>& values, vector<float>& wgts, S missing_value, S& mean, S& sd);
-int get_moments(vector<float>& values, vector<float>& wgts, float missing_value, float& mean, float& sd, bool do_missing = true);
-int get_moments(float *values, float *wgts, int n, float missing_value, float& mean, float& sd, bool do_missing = true);
+int get_moments(vector<float>& values, const vector<float>& wgts, float missing_value, float& mean, float& sd, bool do_missing = true);
+int get_moments(float *values, const float *wgts, int n, float missing_value, float& mean, float& sd, bool do_missing = true);
 
 float med_stof(const string& _Str);
 int med_stoi(const string& _Str);

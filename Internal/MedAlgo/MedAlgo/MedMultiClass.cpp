@@ -116,7 +116,7 @@ int MedMultiClass::Learn(float *x, float *y, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedMultiClass::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedMultiClass::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	if (params.method == MODEL_LAST || params.multi_class_type == MULTI_CLASS_LAST) {
 		MERR("MedMultiClass:Learn not properly initialized\n") ;
@@ -167,7 +167,7 @@ int MedMultiClass::Learn(float *x, float *y, float *w, int nsamples, int nftrs) 
 }
 
 //..............................................................................
-int MedMultiClass::n_preds_per_sample() {
+int MedMultiClass::n_preds_per_sample() const {
 	
 	if (params.multi_class_type == MULTI_CLASS_ONE_VS_ALL) {
 		return (int) internal_predictors.size() ;
@@ -176,7 +176,7 @@ int MedMultiClass::n_preds_per_sample() {
 }
 
 //..............................................................................
-int MedMultiClass::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedMultiClass::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	vector<float> class_pred(nsamples) ;
 	float *_preds = &(class_pred[0]);
@@ -252,7 +252,7 @@ size_t MedMultiClass::deserialize(unsigned char *blob) {
 
 // Print
 //..............................................................................
-void MedMultiClass::print(FILE *fp, const string& prefix) {
+void MedMultiClass::print(FILE *fp, const string& prefix) const {
 
 	fprintf(fp,"%s: MedMultiClass - Number of predictors  = %d\n",prefix.c_str(),(int)internal_predictors.size()) ;
 	

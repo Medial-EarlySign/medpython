@@ -63,7 +63,7 @@ void MedDeepBit::impute_x(vector<vector<double>>& x, const vector<double>& avx) 
 				x[j][i] = avx[j];
 }
 
-int MedDeepBit::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedDeepBit::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	return Learn(x, y, nsamples, nftrs);
 }
 
@@ -262,12 +262,12 @@ void MedDeepBit::get_quant_bin_ftr(const vector<double>& col, double val, bool d
 	}
 }
 
-int MedDeepBit::get_categorial_bit(double x_val, double val, bool direction) {
+int MedDeepBit::get_categorial_bit(double x_val, double val, bool direction) const {
 	if ((direction == true && x_val == val) || (direction == false && x_val != val)) return 1;
 	return 0;
 }
 
-int MedDeepBit::get_quant_bit(double x_val, double val, bool direction) {
+int MedDeepBit::get_quant_bit(double x_val, double val, bool direction) const {
 	if ((direction == true && x_val >= val) || (direction == false && x_val < val)) return 1;
 	return 0;
 }
@@ -654,7 +654,7 @@ void MedDeepBit::do_auc_gittering() {
 	}
 }
 
-double MedDeepBit::predict_sample(const vector<double>& x, int niter) {
+double MedDeepBit::predict_sample(const vector<double>& x, int niter) const {
 	double ans = 0;
 	for (int it = 0; it < niter; it++) {
 		int final_bit = 1;
@@ -686,7 +686,7 @@ double MedDeepBit::predict_sample(const vector<double>& x, int niter) {
 	return ans;
 }
 
-double MedDeepBit::predict_sample(const vector<double>& x) {
+double MedDeepBit::predict_sample(const vector<double>& x) const {
 	return predict_sample(x, params.num_iterations);
 }
 
@@ -697,14 +697,14 @@ double MedDeepBit::get_normalized_val(double x_val, int j) {
 	return (x_val - avx[j]) / std;
 }
 
-void MedDeepBit::predict(const vector<vector<double>>& x, vector<double>& scores) {
+void MedDeepBit::predict(const vector<vector<double>>& x, vector<double>& scores) const {
 #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < x.size(); i++) {
 		scores[i] = predict_sample(x[i]);
 	}
 }
 
-int MedDeepBit::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedDeepBit::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	if (preds == NULL)
 		preds = new float[nsamples];
 	vector<vector<double>> x1(nsamples);
@@ -978,7 +978,7 @@ size_t MedDeepBitParams::deserialize(unsigned char *blob) {
 	return ptr;
 }
 
-void MedDeepBit::print(FILE *fp, const string& prefix) {
+void MedDeepBit::print(FILE *fp, const string& prefix) const {
 	fprintf(fp, "%s: MedDeepBit ()\n", prefix.c_str());
 }
 

@@ -119,12 +119,12 @@ double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_c
 }
 
 // Get moments of a vector
-int get_moments(vector<float>& values, vector<float>& wgts, float missing_value, float& mean, float&sd, bool do_missing) {
+int get_moments(vector<float>& values, const vector<float>& wgts, float missing_value, float& mean, float&sd, bool do_missing) {
 
 	return get_moments(&(values[0]), &(wgts[0]), (int)values.size(), missing_value, mean, sd, do_missing);
 }
 
-int get_moments(float *values, float* wgts, int size, float missing_value, float& mean, float&sd, bool do_missing) {
+int get_moments(float *values, const float* wgts, int size, float missing_value, float& mean, float&sd, bool do_missing) {
 	double  n = 0;
 	double s = 0;
 

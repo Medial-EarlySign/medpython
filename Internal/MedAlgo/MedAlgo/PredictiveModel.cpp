@@ -17,7 +17,7 @@ vector<float> takeSignalsForRow(const vector<vector<float>> &inputs, int ind) {
 	return res;
 }
 
- void PredictiveModel::predict(const vector<vector<float>> &inputs, vector<double> &preds) {
+ void PredictiveModel::predict(const vector<vector<float>> &inputs, vector<double> &preds) const {
 	if (inputs.size() == 0) 
 		throw invalid_argument("must have at least one signal");
 	if (preds.size() < inputs[0].size()) 

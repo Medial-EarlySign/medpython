@@ -185,12 +185,12 @@ public:
 	vector<vector<short>> qx;		/// a vector of features that mimics the input x_in features matrix, but coded into quantized values
 	vector<vector<float>> q_to_val; /// from a q value to float value : q=0 is reserved for missing value
 									/// the range for q>0 is : [q_to_val[q], q_to_val[q+1])
-	MedFeatures *orig_medf;			   /// pointer to the original MedFeatures
+	const MedFeatures *orig_medf;			   /// pointer to the original MedFeatures
 
 	int nfeat = 0;					/// just an easy helper that = qx.size()
 	vector<string> feature_names;	/// useful for debugging
 	int ncateg = 0;					/// ncateg 0 is regression, otherwise categories are assumed to be 0 ... ncateg-1
-	vector<vector<float> *> orig_data; /// pointers to the original data given
+	vector<const vector<float> *> orig_data; /// pointers to the original data given
 	vector<string> feat_names;		   /// as given in train
 	vector<float> y;
 	vector<int> y_i;
@@ -219,15 +219,15 @@ public:
 	vector<vector<float>> sum_over_trees;
 	float alpha0;
 
-	int init(MedFeatures &medf, TQRF_Params &params);
+	int init(const MedFeatures &medf, TQRF_Params &params);
 
 	~Quantized_Feat() {  pid2time_categ_idx.clear(); }
 
 private:
 	int quantize_feat(int i_feat, TQRF_Params &params);
-	int init_time_slices(MedFeatures &medf, TQRF_Params &params);
+	int init_time_slices(const MedFeatures &medf, TQRF_Params &params);
 	int init_pre_bagging(TQRF_Params &params);
-	int init_lists(MedFeatures &medf, TQRF_Params &params);
+	int init_lists(const MedFeatures &medf, TQRF_Params &params);
 
 };
 
@@ -445,6 +445,7 @@ public:
 	void init(Quantized_Feat &qfeat, TQRF_Params &params) { _qfeat = &qfeat; _params = &params; }
 	int Train(Quantized_Feat &qfeat, TQRF_Params &params) {	init(qfeat, params); return Train(); }
 
+	const TQRF_Node *Get_Node_for_predict(MedMat<float> &x, int i_row, float missing_val, int &beta_idx) const;
 	TQRF_Node *Get_Node(MedMat<float> &x, int i_row, float missing_val);
 
 	int Train();
@@ -512,10 +513,10 @@ public:
 	/// that is: the X features, the Y outcome, the weights and the samples for each row.
 	/// All of these are needed when calculating a logrank score for example
 	/// The y matrix is added since we may want to use regression with y values given for every time slice ...
-	int Train(MedFeatures &medf, const MedMat<float> &Y);
-	int Train(MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
+	int Train(const MedFeatures &medf, const MedMat<float> &Y);
+	int Train(const MedFeatures &medf) { MedMat<float> dummy; return Train(medf, dummy); }
 
-	int Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y);
+	int Train_AdaBoost(const MedFeatures &medf, const MedMat<float> &Y);
 	int update_counts(vector<vector<float>> &sample_counts, MedMat<float> &x, Quantized_Feat &qf, int zero_counts, int round);
 
 	/// tuning : solving a gd problem of finding the optimal betas for nodes at some certain chosen depth in the trees on a kept-a-side 
@@ -525,10 +526,10 @@ public:
 
 	/// However - the basic predict for this model is MedMat !! , as here it is much simpler :
 	/// we only need to find the terminal nodes in the trees and calculate our scores
-	int Predict(MedMat<float> &x, vector<float> &preds);
-	int n_preds_per_sample();
+	int Predict(MedMat<float> &x, vector<float> &preds) const;
+	int n_preds_per_sample() const;
 
-	int Predict_Categorial(MedMat<float> &x, vector<float> &preds); // currently like this... with time should consider inheritance to do it right.
+	int Predict_Categorial(MedMat<float> &x, vector<float> &preds) const; // currently like this... with time should consider inheritance to do it right.
 
 	// print average bagging reports
 	void print_average_bagging(int _n_time_slices, int _n_categ);

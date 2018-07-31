@@ -126,22 +126,22 @@ public:
 	/// Learn
 	/// should be implemented for each model. This API always assumes the data is already normalized/transposed as needed, 
 	/// and never changes data in x,y,w. method should support calling with w=NULL.
-	virtual int Learn(float *x, float *y, float *w, int n_samples, int n_ftrs) { return 0; };
+	virtual int Learn(float *x, float *y, const float *w, int n_samples, int n_ftrs) { return 0; };
 
 	/// Predict
 	/// should be implemented for each model. This API assumes x is normalized/transposed if needed.
 	/// preds should either be pre-allocated or NULL - in which case the predictor should allocate it to the right size.
-	virtual int Predict(float *x, float *&preds, int n_samples, int n_ftrs) { return 0; }
+	virtual int Predict(float *x, float *&preds, int n_samples, int n_ftrs) const { return 0; }
 
 	virtual size_t get_size() { return 0; }
 	virtual size_t serialize(unsigned char *blob) { return 0; }
 	virtual size_t deserialize(unsigned char *blob) { return 0; }
 
 	// Print
-	virtual void print(FILE *fp, const string& prefix);
+	virtual void print(FILE *fp, const string& prefix) const;
 
 	/// Number of predictions per sample. typically 1 - but some models return several per sample (for example a probability vector)
-	virtual int n_preds_per_sample() { return 1; };
+	virtual int n_preds_per_sample() const { return 1; };
 
 	virtual int denormalize_model(float *f_avg, float *f_std, float label_avg, float label_std) { return 0; };
 
@@ -155,37 +155,37 @@ public:
 
 	/// MedMat x,y : will transpose/normalize x,y if needed by algorithm
 	/// The convention is that untransposed mats are always samples x features, and transposed are features x samples
-	int learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgts);
+	int learn(MedMat<float> &x, MedMat<float> &y, const vector<float> &wgts);
 	/// MedMat x,y : will transpose/normalize x,y if needed by algorithm
 	/// The convention is that untransposed mats are always samples x features, and transposed are features x samples
 	int learn(MedMat<float> &x, MedMat<float> &y) { vector<float> w; return(learn(x, y, w)); }
 
 	/// MedMat x, vector y: will transpose normalize x if needed (y assumed to be normalized)
-	int learn(MedMat<float> &x, vector<float> &y, vector<float> &wgts);
+	int learn(MedMat<float> &x, vector<float> &y, const vector<float> &wgts);
 	/// MedMat x, vector y: will transpose normalize x if needed (y assumed to be normalized)
 	int learn(MedMat<float> &x, vector<float> &y) { vector<float> w; return(learn(x, y, w)); }
 
 	/// vector x,y: transpose/normalizations not done.
-	int learn(vector<float> &x, vector<float> &y, vector<float> &wgts, int n_samples, int n_ftrs);
+	int learn(vector<float> &x, vector<float> &y, const vector<float> &wgts, int n_samples, int n_ftrs);
 	/// vector x,y: transpose/normalizations not done.
 	int learn(vector<float> &x, vector<float> &y, int n_samples, int n_ftrs) { vector<float> w; return learn(x, y, w, n_samples, n_ftrs); }
 
 	// simple c++ style predict
-	int predict(MedMat<float> &x, vector<float> &preds);
-	int predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs);
-	int threaded_predict(MedMat<float> &x, vector<float> &preds, int nthreads);
+	int predict(MedMat<float> &x, vector<float> &preds) const;
+	int predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs) const;
+	int threaded_predict(MedMat<float> &x, vector<float> &preds, int nthreads) const;
 
 	// MedFeaturesData related
 	int learn(MedFeaturesData& data, int isplit);
 
 	int learn(MedFeaturesData& data);
-	int learn(MedFeatures& features);
-	int learn(MedFeatures& features, vector<string>& names);
+	int learn(const MedFeatures& features);
+	int learn(const MedFeatures& features, vector<string>& names);
 	int cross_validate_splits(MedFeaturesData& data);
-	int predict(MedFeaturesData& data, int isplit);
-	int predict_on_train(MedFeaturesData& data, int isplit);
-	int predict(MedFeaturesData& data);
-	int predict(MedFeatures& features);
+	int predict(MedFeaturesData& data, int isplit) const;
+	int predict_on_train(MedFeaturesData& data, int isplit) const;
+	int predict(MedFeaturesData& data) const;
+	int predict(MedFeatures& features) const;
 
 	///Feature Importance - assume called after learn
 	virtual void calc_feature_importance(vector<float> &features_importance_scores,
@@ -228,7 +228,7 @@ public:
 	/// This function - that is used to convert preds to probs
 	/// </summary>
 	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range,
-		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs);
+		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs) const;
 	/// <summary>
 	/// Will create probabilty bins using Platt scale method
 	/// @param x The training matrix
@@ -244,7 +244,7 @@ public:
 	/// <summary>
 	/// Converts probabilty from Platt scale model
 	/// </summary>
-	template<class T, class L> int convert_scores_to_prob(const vector<T> &preds, const vector<double> &params, vector<L> &converted);
+	template<class T, class L> int convert_scores_to_prob(const vector<T> &preds, const vector<double> &params, vector<L> &converted) const;
 
 	// init
 	static MedPredictor *make_predictor(string model_type);
@@ -262,9 +262,9 @@ public:
 
 protected:
 	// some needed helpers
-	void prepare_x_mat(MedMat<float> &x, vector<float> &wgts, int &nsamples, int &nftrs, bool transpose_needed);
-	void predict_thread(void *p);
-	void build_learning_x_mat_for_split(MedFeaturesData & ftrs_data, vector<float>& signal, int isplit, MedMat<float>& x);
+	void prepare_x_mat(MedMat<float> &x, const vector<float> &wgts, int &nsamples, int &nftrs, bool transpose_needed) const;
+	void predict_thread(void *p) const;
+	void build_learning_x_mat_for_split(MedFeaturesData & ftrs_data, vector<float>& signal, int isplit, MedMat<float>& x) const;
 
 };
 
@@ -320,19 +320,19 @@ public:
 	//int learn(MedMat<float> &x, MedMat<float> &y) {return (MedPredictor::learn(x,y));}; 	// Special case - un-normalized Y
 
 	int Learn(float *x, float *y, int nsamples, int nftrs);
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
+	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const;
 
-	void normalize_x_and_y(float *x, float *y, float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std);
+	void normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std);
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
-	void print(FILE *fp, const string& prefix);
+	void print(FILE *fp, const string& prefix) const;
 };
 
 // Ancillary function for string analysis
@@ -385,26 +385,26 @@ public:
 	//int learn(MedMat<float> &x, MedMat<float> &y) {return (MedPredictor::learn(x,y));}; 	// Special case - un-normalized Y
 
 	int Learn(float *x, float *y, int nsamples, int nftrs);
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
+	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const;
 
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
-	void initialize_vars(float *x_in, float *y_in, float *w, vector<float>& b, int nrow_train, int n_ftrs);
+	void initialize_vars(float *x_in, float *y_in, const float *w, vector<float>& b, int nrow_train, int n_ftrs);
 	void lasso_regression(vector<float>& b, int nrow_train, int n_ftrs, double lambda, int num_iterations);
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
-	void print(FILE *fp, const string& prefix);
+	void print(FILE *fp, const string& prefix) const;
 };
 /// Least Square direct iterations solution
-int learn_lm(float *x, float *_y, float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs);
+int learn_lm(float *x, float *_y, const float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs);
 /// Least Square direct iterations solution
-int learn_lm(float *x, float *_y, float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs, float *sumxx);
+int learn_lm(float *x, float *_y, const float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs, float *sumxx);
 
 //==============================================================================================
 // Linear Models2: Linear regression (with Ridge and/or Lasso), using Gradient Descent variants
@@ -463,10 +463,10 @@ public:
 	//int learn(MedMat<float> &x, MedMat<float> &y) {return (MedPredictor::learn(x,y));}; 	// Special case - un-normalized Y
 
 	int Learn(float *x, float *y, int nsamples, int nftrs);
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
+	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const;
 
 	int version() { return  1; }; //increase when changing binary serizlization
 	//version 1: Added version, model_features, features_count to serialization
@@ -474,16 +474,16 @@ public:
 
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
-	void print(FILE *fp, const string& prefix);
+	void print(FILE *fp, const string& prefix) const;
 
 	// actual computation functions
-	int Learn_full(float *x, float *y, float *w, int nsamples, int nftrs); // full non-iterative solution, not supporting lasso
-	int Learn_gd(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Learn_logistic_sgd_threaded(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn_full(float *x, float *y, const float *w, int nsamples, int nftrs); // full non-iterative solution, not supporting lasso
+	int Learn_gd(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Learn_sgd(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int nsamples, int nftrs);
 private:
-	void set_eigen_threads();
+	void set_eigen_threads() const;
 };
 
 void init_default_lm_params(MedLMParams& _parmas);
@@ -552,9 +552,8 @@ public:
 	void init_defaults();
 	QRF_TreeType get_tree_type(string name);
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs, int get_count);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
@@ -566,16 +565,17 @@ public:
 	size_t deserialize(unsigned char *blob);
 
 	// Print
-	void print(FILE *fp, const string& prefix);
-	void printTrees(const vector<string> &modelSignalNames, const string &outputPath);
+	void print(FILE *fp, const string& prefix) const;
+	void printTrees(const vector<string> &modelSignalNames, const string &outputPath) const;
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params);
 
 	// Predictions per sample
-	int n_preds_per_sample();
+	int n_preds_per_sample() const;
 
 private:
 	void set_sampsize(float *y, int nsamples); // checking if there's a need to prep sampsize based on max_samp and samp_factor
+	int Predict(float *x, float *&preds, int nsamples, int nftrs, int get_count) const;
 };
 
 //======================================================================================
@@ -616,14 +616,14 @@ public:
 	//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 	void init_defaults() { mic_params.init_string = ""; mic.params.init_defaults(); }
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 		cerr << "MedMicNet:: Learn :: API's with MedMat are preferred....\n";
 		MedMat<float> xmat; xmat.load(x, nsamples, nftrs);
 		MedMat<float> ymat; ymat.load(y, nsamples, 1);
 		return learn(xmat, ymat);
 	}
 
-	int Predict(float *x, float *&preds, int nsamples, int nftrs) {
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 		cerr << "MedMicNet:: Learn :: API's with MedMat are preferred....\n";
 		MedMat<float> xmat; xmat.load(x, nsamples, nftrs);
 		vector<float> vpreds;
@@ -634,7 +634,7 @@ public:
 	}
 
 	int learn(MedMat<float> &x, MedMat<float> &y) { return mic.learn(x, y); }
-	int predict(MedMat<float> &x, vector<float> &preds) { return mic.predict(x, preds); }
+	int predict(MedMat<float> &x, vector<float> &preds) const { micNet mutable_net = mic; return mutable_net.predict(x, preds); }
 
 	// (De)Serialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	size_t get_size() { return mic.get_size(); }
@@ -645,7 +645,7 @@ public:
 	//void print(FILE *fp, const string& prefix);
 
 	// Predictions per sample
-	int n_preds_per_sample() { return mic.n_preds_per_sample(); }
+	int n_preds_per_sample() const { return mic.n_preds_per_sample(); }
 
 };
 
@@ -709,8 +709,8 @@ public:
 	virtual int init(map<string, string>& mapper);
 	void init_defaults();
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
@@ -720,10 +720,10 @@ public:
 	size_t deserialize(unsigned char *blob);
 
 	// Print
-	void print(FILE *fp, const string& prefix);
+	void print(FILE *fp, const string& prefix) const;
 
 	// Predictions per sample
-	int n_preds_per_sample();
+	int n_preds_per_sample() const;
 };
 
 // Initialization of parameters
@@ -771,9 +771,9 @@ public:
 	~MedGBM();
 
 	int Learn(float *x, float *y, int nsamples, int nftrs);
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	size_t get_size();
@@ -781,7 +781,7 @@ public:
 	size_t deserialize(unsigned char *blob);
 
 	// Print
-	void print(FILE *fp, const string& prefix);
+	void print(FILE *fp, const string& prefix) const;
 };
 
 // Initialization of parameters
@@ -836,8 +836,8 @@ public:
 	knnAveraging get_knn_averaging(string name);
 	knnMetric get_knn_metric(string name);
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
@@ -908,8 +908,8 @@ public:
 	virtual int init(map<string, string>& mapper);
 	~MedBP();
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
@@ -961,9 +961,9 @@ struct MedMultiClass : public MedPredictor {
 	int init_classifier(int index);
 
 	int Learn(float *x, float *y, int nsamples, int nftrs);
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	size_t get_size();
@@ -971,10 +971,10 @@ struct MedMultiClass : public MedPredictor {
 	size_t deserialize(unsigned char *blob);
 
 	// Print
-	void print(FILE *fp, const string& prefix);
+	void print(FILE *fp, const string& prefix) const;
 
 	// Predictions per sample
-	int n_preds_per_sample();
+	int n_preds_per_sample() const;
 };
 
 
@@ -1015,9 +1015,9 @@ public:
 	MedSpecificGroupModels();
 	~MedSpecificGroupModels();
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
-	MedSpecificGroupModels *clone();
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
+	MedSpecificGroupModels *clone() const;
 	ADD_SERIALIZATION_FUNCS(featNum, feat_ths, predictors, model_features, features_count)
 
 		//	void print(FILE *fp, const string& prefix) ;
@@ -1025,12 +1025,12 @@ public:
 		void set_predictors(const vector<MedPredictor *> &predictors); //for each group index
 	void set_group_selection(int featNum, const vector<float> &feat_ths);
 	MedPredictor *get_model(int ind);
-	int model_cnt();
+	int model_cnt() const;
 private:
 	vector<MedPredictor *> predictors;
 	int featNum;
 	vector<float> feat_ths;
-	int selectPredictor(const float *x); //retrieve predictor index
+	int selectPredictor(const float *x) const; //retrieve predictor index
 };
 
 class MedSvm : public MedPredictor {
@@ -1057,8 +1057,8 @@ public:
 	virtual int init(map<string, string>& mapper);
 	int init(struct svm_parameter &params);
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
@@ -1083,21 +1083,21 @@ public:
 	void init_defaults() {};
 
 	// initialize using the init_from_string() method (inherited from SerializableObject)
-	
+
 	virtual int init(map<string, string>& mapper) { return _tqrf.init(mapper); }
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
-	HMTHROW_AND_ERR("MedTQRF does not support the Learn(float *x, float *y, float *w, int nsamples, int nftrs). Use Learn(MedFeatures &feats) API instead\n");
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
+		HMTHROW_AND_ERR("MedTQRF does not support the Learn(float *x, float *y, float *w, int nsamples, int nftrs). Use Learn(MedFeatures &feats) API instead\n");
 	};
-	int Predict(float *x, float *&preds, int nsamples, int nftrs) {
-	HMTHROW_AND_ERR("MedTQRF does not support the Predict(float *x, float *&preds, int nsamples, int nftrs). Use Predict(MedMat<float> &x, vector<float> &preds) API instead\n");
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const {
+		HMTHROW_AND_ERR("MedTQRF does not support the Predict(float *x, float *&preds, int nsamples, int nftrs). Use Predict(MedMat<float> &x, vector<float> &preds) API instead\n");
 	}
 
-	int Learn(MedFeatures &feats) { return _tqrf.Train(feats); }
-	int Predict(MedMat<float> &x, vector<float> &preds) { return _tqrf.Predict(x, preds); }
+	int Learn(const MedFeatures &feats) { return _tqrf.Train(feats); }
+	int Predict(MedMat<float> &x, vector<float> &preds) const { return _tqrf.Predict(x, preds); }
 
 	ADD_SERIALIZATION_FUNCS(_tqrf);
-	
+
 };
 //=========================================================================================
 

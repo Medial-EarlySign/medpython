@@ -84,7 +84,7 @@ MedSvm::MedSvm(struct svm_parameter &params) {
 	init(params);
 }
 
-int MedSvm::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedSvm::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	struct svm_problem problem;
 
@@ -117,7 +117,7 @@ int MedSvm::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	return 0;
 }
 
-int MedSvm::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedSvm::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 #pragma omp parallel for
 	for (int i = 0; i < nsamples; ++i)

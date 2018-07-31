@@ -170,7 +170,7 @@ int TQRF_Params::init(map<string, string>& map)
 int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 {
 	vector<pair<float,int>> curr_data;
-	vector<float> *data;
+	const vector<float> *data;
 	data = orig_data[i_feat];
 
 	//if (params.verbosity > 0) MLOG("Quantized_Feat::quantize_feat :: feat %d %s :: nvals %d\n", i_feat, feat_names[i_feat].c_str(), data->size());
@@ -272,7 +272,7 @@ int Quantized_Feat::quantize_feat(int i_feat, TQRF_Params &params)
 // initializations needed for all trees together, mainly data quantization , time slices, and
 // filling in all the needed variables in Quantized_Feat
 //------------------------------------------------------------------------------------------------
-int Quantized_Feat::init(MedFeatures &medf, TQRF_Params &params)
+int Quantized_Feat::init(const MedFeatures &medf, TQRF_Params &params)
 {
 	// filling in needed variables
 	orig_medf = &medf;
@@ -327,7 +327,7 @@ int Quantized_Feat::init(MedFeatures &medf, TQRF_Params &params)
 		}
 
 		for (int j=0; j<params.categorial_tags.size(); j++) {
-			if (medf.tags[feat_names[i]].find(params.categorial_tags[j]) != medf.tags[feat_names[i]].end()) {
+			if (medf.tags.at(feat_names[i]).find(params.categorial_tags[j]) != medf.tags.at(feat_names[i]).end()) {
 				is_categorial_feat[i] = 1;
 				break;
 			}
@@ -369,7 +369,7 @@ int Quantized_Feat::init(MedFeatures &medf, TQRF_Params &params)
 }
 
 //------------------------------------------------------------------------------------------------
-int Quantized_Feat::init_lists(MedFeatures &medf, TQRF_Params &params)
+int Quantized_Feat::init_lists(const MedFeatures &medf, TQRF_Params &params)
 {
 	lists.resize(2); // currently we may have at 0 the tree training ids and at 1 the weights tuning list
 	if (params.tuning_size <= 0) {
@@ -413,7 +413,7 @@ int Quantized_Feat::init_pre_bagging(TQRF_Params &params)
 
 	for (int l=0; l<lists[0].size(); l++) {
 		int i = lists[0][l];
-		MedSample &s = orig_medf->samples[i];
+		const MedSample &s = orig_medf->samples[i];
 
 		// currently we split categories to 0 and the others, sampling the others as they are (later)
 		// in theory it is possible to improve this and build a mechanism to control the sampling of every category
@@ -454,7 +454,7 @@ int Quantized_Feat::init_pre_bagging(TQRF_Params &params)
 }
 
 //------------------------------------------------------------------------------------------------
-int Quantized_Feat::init_time_slices(MedFeatures &medf, TQRF_Params &params)
+int Quantized_Feat::init_time_slices(const MedFeatures &medf, TQRF_Params &params)
 {
 	if (params.tree_type_i != TQRF_TREE_REGRESSION) {
 		if (params.time_slices.size() == 0) {
@@ -485,7 +485,7 @@ int Quantized_Feat::init_time_slices(MedFeatures &medf, TQRF_Params &params)
 	last_time_slice.resize(medf.samples.size());
 #pragma omp parallel for
 	for (int i=0; i<medf.samples.size(); i++) {
-		MedSample &s = medf.samples[i];
+		const MedSample &s = medf.samples[i];
 		int d1 = med_time_converter.convert_times(params.samples_time_unit_i, params.time_slice_unit_i, (int)s.outcomeTime);
 		int d2 = med_time_converter.convert_times(params.samples_time_unit_i, params.time_slice_unit_i, (int)s.time);
 		int time_diff = d1-d2;
@@ -541,7 +541,7 @@ int Quantized_Feat::init_time_slices(MedFeatures &medf, TQRF_Params &params)
 // TQRF_Forest
 //================================================================================================
 //------------------------------------------------------------------------------------------------
-int TQRF_Forest::n_preds_per_sample()
+int TQRF_Forest::n_preds_per_sample() const
 {
 	if (params.tree_type_i == TQRF_TREE_REGRESSION) {
 		MTHROW_AND_ERR("TQRF Regression trees not available yet...\n");
@@ -617,7 +617,7 @@ void TQRF_Forest::init_tables(Quantized_Feat &qfeat)
 }
 
 //------------------------------------------------------------------------------------------------
-int TQRF_Forest::Train(MedFeatures &medf, const MedMat<float> &Y)
+int TQRF_Forest::Train(const MedFeatures &medf, const MedMat<float> &Y)
 {
 	if (params.nrounds > 1)
 		return Train_AdaBoost(medf, Y);
@@ -668,6 +668,9 @@ int TQRF_Forest::Train(MedFeatures &medf, const MedMat<float> &Y)
 
 	if (params.tuning_size > 0)	tune_betas(qfeat);
 
+	//prepare for predict
+	if (alphas.size() != trees.size()) alphas.resize(trees.size(), 1);
+
 	return 0;
 }
 
@@ -697,7 +700,7 @@ void TQRF_Forest::print_average_bagging(int _n_time_slices, int _n_categ)
 }
 
 //------------------------------------------------------------------------------------------------
-int TQRF_Forest::Train_AdaBoost(MedFeatures &medf, const MedMat<float> &Y)
+int TQRF_Forest::Train_AdaBoost(const MedFeatures &medf, const MedMat<float> &Y)
 {
 	MLOG("==========================TQRF AdaBoost Mode ==================================\n");
 	MLOG("TQRF_Forest: Running with params: %s\n", params.init_string.c_str());
@@ -875,7 +878,7 @@ int TQRF_Forest::update_counts(vector<vector<float>> &sample_counts, MedMat<floa
 }
 
 //------------------------------------------------------------------------------------------------
-int TQRF_Forest::Predict(MedMat<float> &x, vector<float> &preds)
+int TQRF_Forest::Predict(MedMat<float> &x, vector<float> &preds) const
 {
 	MLOG("TQRF_Forest: type %d : Running predict on matrix of %d x %d\n", params.tree_type_i, x.nrows, x.ncols);
 
@@ -892,7 +895,7 @@ int TQRF_Forest::Predict(MedMat<float> &x, vector<float> &preds)
 }
 
 //------------------------------------------------------------------------------------------------
-int TQRF_Forest::Predict_Categorial(MedMat<float> &x, vector<float> &preds)
+int TQRF_Forest::Predict_Categorial(MedMat<float> &x, vector<float> &preds) const
 {
 	MLOG("TQRF_Forest : Predict_Categorial\n");
 	MedTimer timer;
@@ -903,15 +906,16 @@ int TQRF_Forest::Predict_Categorial(MedMat<float> &x, vector<float> &preds)
 	// get preds to the right size (so we can thread it all)
 	preds.resize(x.nrows * n_per_sample, (float)-1);
 
-	if (alphas.size() != trees.size()) alphas.resize(trees.size(), 1);
+	//if (alphas.size() != trees.size()) alphas.resize(trees.size(), 1); //done in Learn
 
 #pragma omp parallel for
 	for (int i=0; i<x.nrows; i++) {
 		vector<vector<float>> sum_over_trees;
 		sum_over_trees.resize(params.n_time_slices, vector<float>(params.ncateg, 0));
 		for (int i_tree = 0; i_tree < trees.size(); i_tree++) {
-			TQRF_Node *cnode = trees[i_tree].Get_Node(x, i, params.missing_val);
-			float beta = (cnode->beta_idx < 0) ? 1 : betas[cnode->beta_idx];
+			int beta_idx;
+			const TQRF_Node *cnode = trees[i_tree].Get_Node_for_predict(x, i, params.missing_val, beta_idx);
+			float beta = (beta_idx < 0) ? 1 : betas[beta_idx];
 			for (int t=0; t<params.n_time_slices; t++)
 				for (int c=0; c<params.ncateg; c++)
 					sum_over_trees[t][c] += alphas[i_tree] * beta * cnode->time_categ_count[t][c];
@@ -2170,6 +2174,52 @@ int TQRF_Tree::Train()
 	return 0;
 }
 
+const TQRF_Node *TQRF_Tree::Get_Node_for_predict(MedMat<float> &x, int i_row, float missing_val, int &beta_idx) const {
+	int curr_node = 0;
+	const TQRF_Node *cnode;
+
+	float *row = &x.m[i_row*x.ncols];
+	cnode = &nodes[curr_node];
+	//	while (cnode->is_terminal == 0) {
+	float v;
+	beta_idx = cnode->beta_idx;
+	while (1) {
+
+		if (cnode->beta_idx >= 0) beta_idx = cnode->beta_idx;
+		if (cnode->is_terminal)
+			break;
+
+		if (cnode->i_feat >= 0)
+			v = row[cnode->i_feat];
+		else
+			v = missing_val;
+
+		if (v == missing_val) {
+			// applying missing val strategy:
+			if (cnode->missing_direction == TQRF_MISSING_DIRECTION_LEFT) curr_node = cnode->left_node;
+			else if (cnode->missing_direction == TQRF_MISSING_DIRECTION_RIGHT) curr_node = cnode->right_node;
+			else if (cnode->missing_direction == TQRF_MISSING_DIRECTION_RAND_EACH_SAMPLE) {
+				if (rand_1() <= 0.5)
+					curr_node = cnode->left_node;
+				else
+					curr_node = cnode->right_node;
+			}
+
+		}
+		else {
+			if (v <= cnode->bound)
+				curr_node = cnode->left_node;
+			else
+				curr_node = cnode->right_node;
+		}
+
+		cnode = &nodes[curr_node];
+
+	}
+
+	return cnode;
+}
+
 //--------------------------------------------------------------------------------------------------------------------
 // get a feature matrix and does the travel on the tree to the terminal node for a specific row
 //--------------------------------------------------------------------------------------------------------------------
@@ -2180,7 +2230,7 @@ TQRF_Node *TQRF_Tree::Get_Node(MedMat<float> &x, int i_row, float missing_val)
 
 	float *row = &x.m[i_row*x.ncols];
 	cnode = &nodes[curr_node];
-//	while (cnode->is_terminal == 0) {
+	//	while (cnode->is_terminal == 0) {
 	float v;
 	int beta_idx = cnode->beta_idx;
 	while (1) {
@@ -2214,8 +2264,6 @@ TQRF_Node *TQRF_Tree::Get_Node(MedMat<float> &x, int i_row, float missing_val)
 		}
 
 		cnode = &nodes[curr_node];
-		
-
 
 	}
 

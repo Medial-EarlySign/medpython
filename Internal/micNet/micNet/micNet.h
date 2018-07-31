@@ -346,7 +346,7 @@ public:
 		return size;
 	}
 
-	int n_preds_per_sample() { return params.n_preds_per_sample; }
+	int n_preds_per_sample() const { return params.n_preds_per_sample; }
 
 };
 

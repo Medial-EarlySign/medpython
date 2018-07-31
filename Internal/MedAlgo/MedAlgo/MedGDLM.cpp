@@ -121,7 +121,7 @@ int MedGDLM::Learn (float *x, float *y, int nsamples, int nftrs) {
 }
 		
 //..............................................................................
-int MedGDLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedGDLM::Learn (float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	if (w == NULL) 
 		return (Learn(x,y,nsamples,nftrs));
@@ -158,13 +158,13 @@ int MedGDLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	return Predict(x,preds,nsamples,nftrs,0);
 }
 
 //..............................................................................
-int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) {
+int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const {
 
 	if (preds == NULL)
 		preds = new float[nsamples];
@@ -172,7 +172,7 @@ int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int trans
 	memset(preds,0,nsamples*sizeof(float)) ;
 	set_eigen_threads();
 
-	Map<MatrixXf> bf(&b[0],nftrs,1);
+	Map<const MatrixXf> bf(&b[0],nftrs,1);
 	Map<MatrixXf> pf(preds,nsamples,1);
 	if (transposed_flag) {
 		Map<MatrixXf> xf(x,nftrs,nsamples);
@@ -226,7 +226,7 @@ int MedGDLM::denormalize_model(float *f_avg, float *f_std, float label_avg, floa
 
 
 //..............................................................................
-void MedGDLM::print(FILE *fp, const string& prefix) {
+void MedGDLM::print(FILE *fp, const string& prefix) const {
 
 	fprintf(fp,"%s : GD_Linear Model : Nftrs = %d\n",prefix.c_str(),n_ftrs) ;
 	fprintf(fp,"%s : GD_Linear Model b0 = %f\n",prefix.c_str(),b0) ;
@@ -235,7 +235,7 @@ void MedGDLM::print(FILE *fp, const string& prefix) {
 		fprintf(fp,"%s : GD_Linear Model b[%d] = %f\n",prefix.c_str(),i,b[i]) ;
 }
 
-void MedGDLM::set_eigen_threads()
+void MedGDLM::set_eigen_threads() const
 {
 	int ncores = std::thread::hardware_concurrency();
 
@@ -248,7 +248,7 @@ void MedGDLM::set_eigen_threads()
 //===============================================================================================
 // Actual Math starts here ----> ......
 //===============================================================================================
-int MedGDLM::Learn_full(float *x, float *y, float *w, int nsamples, int nftrs)
+int MedGDLM::Learn_full(float *x, float *y, const float *w, int nsamples, int nftrs)
 {
 	if (params.l_lasso > 0) {
 		MERR("MedGDLM::Learn : ERROR: methos=full can't learn model with lasso : try use the sgd model instead.\n");
@@ -305,7 +305,7 @@ int MedGDLM::Learn_full(float *x, float *y, float *w, int nsamples, int nftrs)
 }
 
 //===========================================================================================================
-int MedGDLM::Learn_gd(float *x, float *y, float *w, int nsamples, int nftrs)
+int MedGDLM::Learn_gd(float *x, float *y, const float *w, int nsamples, int nftrs)
 {
 	set_eigen_threads();
 	// currently completely ignoring w.... , will add soon....
@@ -394,7 +394,7 @@ int MedGDLM::Learn_gd(float *x, float *y, float *w, int nsamples, int nftrs)
 }
 
 //===============================================================================================
-int MedGDLM::Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
+int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nftrs)
 {
 	set_eigen_threads();
 	// currently completely ignoring w.... , will add soon....
@@ -544,7 +544,7 @@ int MedGDLM::Learn_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
 
 
 //===============================================================================================
-int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int nftrs)
+int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples, int nftrs)
 {
 	if (params.last_is_bias) {
 		MERR("logistic_sgd() : ERROR: last is bias not 0!!! This mode is NOT supported yet\n");
@@ -767,7 +767,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, float *w, int nsamples, int 
 
 // we then choose a random set of N minibatches
 
-int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, float *w, int nsamples, int nftrs)
+int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int nsamples, int nftrs)
 {
 
 	int print_every_iter = 1;
