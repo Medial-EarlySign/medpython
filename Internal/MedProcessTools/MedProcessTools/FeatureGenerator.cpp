@@ -407,7 +407,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 	for (int i = 0; i < num; i++)
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time),
-			med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].outcomeTime));
+			med_time_converter.convert_times(features.time_unit, time_unit_sig, p_samples[i].outcomeTime));
 
 	return 0;
 }
