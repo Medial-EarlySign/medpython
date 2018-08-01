@@ -730,15 +730,15 @@ void medial::print::print_by_year(const vector<MedSample> &data_records, int yea
 		log_with_file(fo, "Printing by prediction time...\n");
 	else
 		log_with_file(fo, "Printing by outcome time...\n");
-	log_with_file(fo, "Year"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio\n");
+	log_with_file(fo, "Year"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "percentage\n");
 	for (int year : all_years)
 	{
 		year_total[year] = count_0[year] + count_1[year];
 		year_ratio[year] = count_1[year] / float(count_0[year] + count_1[year]);
 		all_ratios[i] = year_ratio[year];
 		++i;
-		log_with_file(fo, "%d\t%d\t%d\t%f\n", year, count_0[year], count_1[year],
-			count_1[year] / float(count_1[year] + count_0[year]));
+		log_with_file(fo, "%d\t%d\t%d\t%2.3f%%\n", year, count_0[year], count_1[year],
+			100 * count_1[year] / float(count_1[year] + count_0[year]));
 	}
 
 	if (fo.good())

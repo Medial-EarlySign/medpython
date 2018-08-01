@@ -71,20 +71,31 @@ void MedRegistry::write_text_file(const string &file_path) const {
 }
 
 void MedRegistry::create_registry(MedPidRepository &dataManager) {
-
 	MLOG_D("Creating registry...\n");
+	vector<int> used_sigs;
+	used_sigs.reserve(signalCodes.size());
+	if (need_bdate)
+		used_sigs = signalCodes;
+	else
+		for (size_t i = 0; i < signalCodes.size(); ++i)
+			if (dataManager.sigs.name(signalCodes[i]) != "BDATE")
+				used_sigs.push_back(signalCodes[i]);
 
 	time_t start = time(NULL);
 	time_t last_time_print = start;
 	double duration;
 	int prog_pid = 0;
 	int bDateCode = dataManager.sigs.sid("BDATE");
+	for (size_t i = 0; i < signalCodes.size(); ++i)
+		if (!dataManager.index.index_table[signalCodes[i]].is_loaded)
+			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
+				dataManager.sigs.name(signalCodes[i]).c_str());
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < dataManager.pids.size(); ++i)
 	{
-		vector<UniversalSigVec> sig_vec((int)signalCodes.size());
+		vector<UniversalSigVec> sig_vec((int)used_sigs.size());
 		for (size_t k = 0; k < sig_vec.size(); ++k)
-			dataManager.uget(dataManager.pids[i], signalCodes[k], sig_vec[k]);
+			dataManager.uget(dataManager.pids[i], used_sigs[k], sig_vec[k]);
 		int birth = medial::repository::get_value(dataManager, dataManager.pids[i], bDateCode);
 		vector<MedRegistryRecord> vals;
 		get_registry_records(dataManager.pids[i], birth, sig_vec, vals);
@@ -835,6 +846,12 @@ void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr,
 	signalCodes.clear();
 	for (size_t i = 0; i < signal_conditions.size(); ++i)
 		signalCodes.push_back(rep.sigs.sid(signal_conditions[i]->signalName));
+	signalCodes.push_back(rep.sigs.sid("BDATE"));
+	for (size_t i = 0; i < signal_conditions.size(); ++i)
+		if (signal_conditions[i]->signalName == "BDATE") {
+			need_bdate = true;
+			break;
+		}
 	//the user called init for this signal_conditions
 	signal_filters = signal_conditions;
 }
@@ -1608,6 +1625,12 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 		signalCodes.clear();
 		for (size_t i = 0; i < signal_filters.size(); ++i)
 			signalCodes.push_back(repo.sigs.sid(signal_filters[i]->signalName));
+		signalCodes.push_back(repo.sigs.sid("BDATE"));
+		for (size_t i = 0; i < signal_filters.size(); ++i)
+			if (signal_filters[i]->signalName == "BDATE") {
+				need_bdate = true;
+				break;
+			}
 
 		return 0;
 }

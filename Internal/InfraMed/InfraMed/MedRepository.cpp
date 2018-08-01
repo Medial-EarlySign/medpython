@@ -469,8 +469,10 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 		sort(pids_sort_uniq.begin(), pids_sort_uniq.end());
 		auto it = unique(pids_sort_uniq.begin(), pids_sort_uniq.end());
 		pids_sort_uniq.resize(distance(pids_sort_uniq.begin(), it));
+		unordered_set<int> uniq_set(signals_to_take.begin(), signals_to_take.end());
+		vector<int> uniq_sigs(uniq_set.begin(), uniq_set.end()); 
 
-		if (read_index_tables(pids_sort_uniq, signals_to_take) < 0)
+		if (read_index_tables(pids_sort_uniq, uniq_sigs) < 0)
 			return -1;
 
 		if (read_pid_list() < 0)
@@ -640,7 +642,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateRangeVal2) {
 			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
-			MOUT(" %s %s %d %d:", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), 
+			MOUT(" %s %s %d %d:", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(),
 				val = (int)v[i].val, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_CompactDateVal) {
@@ -1655,7 +1657,7 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
-			MTHROW_AND_ERR("not supported code %d for signal=%s\n", 
+			MTHROW_AND_ERR("not supported code %d for signal=%s\n",
 				id, signalHirerchyType.c_str());
 		}
 		if (!name.empty())

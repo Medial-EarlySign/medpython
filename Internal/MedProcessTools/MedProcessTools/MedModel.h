@@ -32,7 +32,7 @@ typedef enum {
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel : public SerializableObject {
 public:
-	int version() { return 2; }
+	int version() { return 3; } ///< change BasicFeatureGenerator to version 1 - added "bound_outcomeTime"
 	/// remember learning set
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
@@ -65,7 +65,7 @@ public:
 	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
 	~MedModel() { clear(); };
 
-	void clear(); 
+	void clear();
 
 	MedFeatures features;	///< the created matrix - no need to serialize
 
@@ -84,13 +84,13 @@ public:
 	void add_feature_generator(FeatureGenerator *generator) { generators.push_back(generator); }
 	void add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals);
 	void add_feature_generators(FeatureGeneratorTypes type, vector<string>& signals, string init_string);
-	void add_feature_generator(FeatureGeneratorTypes type, string& signal) { vector<string> signals(1,signal) ; add_feature_generators(type, signals); }
-	void add_feature_generators(FeatureGeneratorTypes type, string& signal, string init_string) { vector<string> signals(1,signal) ; add_feature_generators(type, signals, init_string); }
+	void add_feature_generator(FeatureGeneratorTypes type, string& signal) { vector<string> signals(1, signal); add_feature_generators(type, signals); }
+	void add_feature_generators(FeatureGeneratorTypes type, string& signal, string init_string) { vector<string> signals(1, signal); add_feature_generators(type, signals, init_string); }
 
 	void add_feature_generators(string& name, vector<string>& signals) { add_feature_generators(ftr_generator_name_to_type(name), signals); }
 	void add_feature_generators(string& name, vector<string>& signals, string init_string) { add_feature_generators(ftr_generator_name_to_type(name), signals, init_string); }
-	void add_feature_generator(string& name, string& signal) { vector<string> signals(1,signal) ; add_feature_generators(name, signals); }
-	void add_feature_generators(string& name, string& signal, string init_string) { vector<string> signals(1,signal) ; add_feature_generators(name, signals, init_string); }
+	void add_feature_generator(string& name, string& signal) { vector<string> signals(1, signal); add_feature_generators(name, signals); }
+	void add_feature_generators(string& name, string& signal, string init_string) { vector<string> signals(1, signal); add_feature_generators(name, signals, init_string); }
 
 	void add_age() { generators.push_back(new AgeGenerator); }
 	void add_gender() { generators.push_back(new GenderGenerator); }
@@ -105,7 +105,7 @@ public:
 	void add_feature_processors_set(FeatureProcessorTypes type, vector<string>& features);
 	void add_feature_processors_set(FeatureProcessorTypes type, vector<string>& features, string init_string);
 
-	void add_normalizers() {add_feature_processors_set(FTR_PROCESS_NORMALIZER);}
+	void add_normalizers() { add_feature_processors_set(FTR_PROCESS_NORMALIZER); }
 	void add_normalizers(string init_string) { add_feature_processors_set(FTR_PROCESS_NORMALIZER, init_string); }
 	void add_normalizers(vector<string>& features) { add_feature_processors_set(FTR_PROCESS_NORMALIZER, features); }
 	void add_normalizers(vector<string>& features, string init_string) { add_feature_processors_set(FTR_PROCESS_NORMALIZER, features, init_string); }
@@ -133,8 +133,8 @@ public:
 	void set_predictor(MedPredictor *_predictor) { predictor = _predictor; };
 	void set_predictor(MedPredictorTypes type) { predictor = MedPredictor::make_predictor(type); }
 	void set_predictor(string name) { predictor = MedPredictor::make_predictor(name); }
-	void set_predictor(MedPredictorTypes type, string init_string) { predictor = MedPredictor::make_predictor(type,init_string); }
-	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name,init_string); }
+	void set_predictor(MedPredictorTypes type, string init_string) { predictor = MedPredictor::make_predictor(type, init_string); }
+	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name, init_string); }
 
 	// signal ids
 	void set_required_signal_ids(MedDictionarySections& dict);
@@ -158,7 +158,7 @@ public:
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-		
+
 	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();

@@ -118,9 +118,15 @@ public:
 		const string &sampler_args = "conflict_method=max;use_allowed=1;day_jump=365;allowed_time_from=0;"
 		"allowed_time_to=365;start_year=2007;end_year=2012") const;
 
+	/// Default Ctor
+	MedRegistry() {
+		need_bdate = false;
+	}
+
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
 	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
+	bool need_bdate; ///< If true Bdate is also used in registry creation
 private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
@@ -275,6 +281,7 @@ public:
 		start_buffer_duration = 0;
 		end_buffer_duration = 0;
 		max_repo_date = 0;
+		need_bdate = false;
 	}
 
 	/// <summary>
