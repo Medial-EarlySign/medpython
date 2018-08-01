@@ -107,13 +107,20 @@ int MedTime::convert_days(int to_type, int in_time)
 	return -1;
 }
 
-/// handles YYYYMMDD and YYYYMMDDHHMI formats
+/// handles YYYYMMDD and YYYY-MM-DD HH:MI:SS formats
 int MedTime::convert_datetime(int to_type, string in_time) {
-	int date_part = med_stoi(in_time.substr(0, 8));
-	if (to_type == MedTime::Minutes) {			
+	string out_t = in_time;
+	boost::replace_all(out_t, " ", "");
+	boost::replace_all(out_t, "-", "");
+	boost::replace_all(out_t, ":", "");
+	if (out_t.size() > 12)
+		out_t = out_t.substr(0, 12);
+
+	int date_part = med_stoi(out_t.substr(0, 8));
+	if (to_type == MedTime::Minutes) {	
 		int minutes = convert_date(to_type, date_part);
-		if (in_time.size() >= 10) minutes += med_stoi(in_time.substr(8, 2))*60;
-		if (in_time.size() >= 12) minutes += med_stoi(in_time.substr(10, 2));
+		if (out_t.size() >= 10) minutes += med_stoi(out_t.substr(8, 2))*60;
+		if (out_t.size() >= 12) minutes += med_stoi(out_t.substr(10, 2));
 		return minutes;
 	}
 	else return convert_date(to_type, date_part);
