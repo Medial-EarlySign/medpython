@@ -173,11 +173,13 @@ int MedSignals::read(const string &fname)
 	MLOG_D("Working on signals file %s\n", fname.c_str());
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
+			if (curr_line[curr_line.size() - 1] == '\r')
+				curr_line.erase(curr_line.size() - 1);
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
 			MLOG_D("MedSignals: read: file %s line %s\n", fname.c_str(), curr_line.c_str());
-			if (fields.size() >= 4 && fields.size() <= 5 && fields[0].compare(0, 6, "SIGNAL") == 0) {
-				// line format: SIGNAL <name> <signal id> <signal type num> <description>
+			if (fields.size() >= 4 && fields[0].compare(0, 6, "SIGNAL") == 0) {
+				// line format: SIGNAL <name> <signal id> <signal type num> <description> <is_categorical_per_val_channel> <unit_per_val_channel separated by '|' char>
 
 				int sid = stoi(fields[2]);
 				if (Name2Sid.find(fields[1]) != Name2Sid.end() || Sid2Name.find(sid) != Sid2Name.end()) {
@@ -205,7 +207,6 @@ int MedSignals::read(const string &fname)
 						info.description = fields[4];
 					// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
 					MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
-					_Sid2Info[sid] = info;
 					if (sid >= Sid2Info.size()) {
 						SignalInfo si;
 						si.sid = -1;
@@ -213,12 +214,32 @@ int MedSignals::read(const string &fname)
 					}
 					if (my_repo != NULL)
 						info.time_unit = my_repo->time_unit;
+
+					if (fields.size() == 7) {
+						int channel = 0;
+						for (char c : fields[5]) {
+							if (c != '0' && c != '1')
+								MTHROW_AND_ERR("is_categorical_per_val_channel for signal [%s] is [%s], expected a bitmap of 1/0 only\n", 
+									info.name.c_str(),	fields[5].c_str());
+							if (c == '1')
+								info.is_categorical_per_val_channel[channel] = 1;
+							channel++;
+						}
+						vector<string> units;
+						split(units, fields[6], boost::is_any_of("|"));
+						channel = 0;
+						for (string unit : units) {
+							info.unit_of_measurement_per_val_channel[channel] = unit;
+							channel++;
+						}
+					}
 					Sid2Info[sid] = info;
 				}
 
 			}
 			else {
-				MWARN("MedSignals: read: can't parse line: %s (%d)\n", curr_line.c_str(), fields.size());
+				MLOG("[%s]", fields[0].c_str());
+				MTHROW_AND_ERR("MedSignals: read: can't parse line: %s (%d)\n", curr_line.c_str(), fields.size());
 			}
 
 		}
@@ -259,7 +280,6 @@ int MedSignals::read_sfile(const string &fname)
 			if (fields.size() == 2) {
 				if (Name2Sid.find(fields[1]) != Name2Sid.end()) {
 					int sid = Name2Sid[fields[1]];
-					_Sid2Info[sid].fno = stoi(fields[0]);
 					if (sid >= Sid2Info.size()) {
 						SignalInfo si;
 						si.sid = -1;
@@ -319,6 +339,41 @@ int MedSignals::type(int sid)
 		return -1;
 	return Sid2Info[sid].type;
 }
+
+
+
+//-----------------------------------------------------------------------------------------------
+int MedSignals::is_categorical_channel(const string &name, int val_channel)
+{
+	if (Name2Sid.find(name) == Name2Sid.end())
+		return -1;
+	return is_categorical_channel(Name2Sid[name], val_channel);
+}
+
+//-----------------------------------------------------------------------------------------------
+int MedSignals::is_categorical_channel(int sid, int val_channel)
+{
+	if (sid >= Sid2Info.size() || Sid2Info[sid].sid == -1)
+		return -1;
+	return Sid2Info[sid].is_categorical_per_val_channel[val_channel];
+}
+
+//-----------------------------------------------------------------------------------------------
+string MedSignals::unit_of_measurement(const string &name, int val_channel)
+{
+	if (Name2Sid.find(name) == Name2Sid.end())
+		return string("");
+	return unit_of_measurement(Name2Sid[name], val_channel);
+}
+
+//-----------------------------------------------------------------------------------------------
+string MedSignals::unit_of_measurement(int sid, int val_channel)
+{
+	if (sid >= Sid2Info.size() || Sid2Info[sid].sid == -1)
+		return string("");
+	return Sid2Info[sid].unit_of_measurement_per_val_channel[val_channel];
+}
+
 
 //-----------------------------------------------------------------------------------------------
 string MedSignals::desc(const string &name)
@@ -397,7 +452,6 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 		si.sid = -1;
 		Sid2Info.resize(new_sid + 1, si);
 	}
-	_Sid2Info[new_sid] = info;
 	Sid2Info[new_sid] = info;
 
 	// take care of sid2serial

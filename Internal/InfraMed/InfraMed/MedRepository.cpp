@@ -641,7 +641,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		else if (sigs.type(sid) == T_DateRangeVal2) {
 			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
 			MOUT(" %s %s %d %d:", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), 
-				val = (int)v[i].val, v[i].val2);
+				(int)v[i].val, val = (short)v[i].val2);
 		}
 		else if (sigs.type(sid) == T_CompactDateVal) {
 			SCompactDateVal *v = (SCompactDateVal *)data;

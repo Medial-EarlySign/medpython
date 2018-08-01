@@ -107,6 +107,7 @@ class DLLEXTERN MedDictionarySections {
 
 	// use MedDictionary functions for a specific section id
 	int id(int section_id, const string &name)							{ return dicts[section_id].id(name); }
+	int get_id_or_throw(int section_id, const string &name) { int v = dicts[section_id].id(name); if (v < 0) throw invalid_argument(name); else return v; }
 	int id_list(int section_id,vector<string> &names, vector<int> &ids) { return dicts[section_id].id_list(names, ids); }
 	string name(int section_id, int id)									{ return dicts[section_id].name(id); }
 

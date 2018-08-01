@@ -138,8 +138,10 @@ class  MedConvert {
 		int get_next_signal(ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
 		int create_indexes();
 		int create_repository_config() ;
+		int create_signals_config();
 
 		// output files related
+		ofstream signals_config_f;
 		ofstream repository_config_f ;
 		vector<ofstream *> index_f;
 		vector<ofstream *> data_f;

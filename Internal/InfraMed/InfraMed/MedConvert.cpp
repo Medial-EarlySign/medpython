@@ -194,8 +194,9 @@ int MedConvert::read_prefix_names(const string &fname)
 // assumes dictionary is already loaded !
 int MedConvert::read_signal_to_files(const string &fname)
 {
+	MLOG("MedConvert: read_signal_to_files: %s\n", fname.c_str());
 	ifstream inf(fname);
-
+	
 	if (!inf) {
 		MERR("MedConvert: read_signal_to_files: Can't open file %s\n", fname.c_str());
 		return -1;
@@ -336,7 +337,7 @@ int MedConvert::read_all(const string &config_fname)
 			return -1;
 		}
 
-		MLOG("MedConvert: read_all: read signal_to_files file\n");
+		MLOG("MedConvert: read_all: read signal_to_files file [%s]\n", signal_to_files_fname.c_str());
 
 	}
 	else {
@@ -357,30 +358,32 @@ int MedConvert::read_all(const string &config_fname)
 			MLOG("i=%d index %s data %s\n", i, index_fnames[i].c_str(), data_fnames[i].c_str());
 		}
 	}
-	if (add_path_to_name_IM(out_path, repository_config_fname) == -1)
+	if (add_path_to_name_IM(out_path, repository_config_fname) == -1 || 
+		add_path_to_name_IM(out_path, sig_fnames) == -1)
 		return -1;
-
+	
 	// Create repository config file
 	if (create_repository_config() < 0)
 		MTHROW_AND_ERR("MedConvert: read_all(): failed generating repository config file\n");
 
-	// Copy sig and dict file to output directory
-	if (copy_files_IM(path, out_path, sig_fnames) < 0 || copy_files_IM(path, out_path, dict_fnames) < 0)
+	// Copy dict files as-is to output directory
+	if (copy_files_IM(path, out_path, dict_fnames) < 0)
 		MTHROW_AND_ERR("MedConvert : read_all() : failed copying files from in to out directory\n");
 
 	// add path to more files + fix paths
-	if (add_path_to_name_IM(path, sig_fnames) == -1 ||
-		add_path_to_name_IM(path, dict_fnames) == -1 ||
+	if (add_path_to_name_IM(path, dict_fnames) == -1 ||
 		add_path_to_name_IM(out_path, index_fnames) == -1 ||
 		add_path_to_name_IM(out_path, data_fnames) == -1)
 		return -1;
 
 	MLOG("MedConvert: read_all: prepared names\n");
 
-
 	// actually do the work
 	if (create_indexes() < 0)
 		MTHROW_AND_ERR("MedConvert: read_all(): failed generating new data and indexes\n");
+	
+	if (create_signals_config() < 0)
+		MTHROW_AND_ERR("MedConvert: read_all(): failed generating signals config file\n");
 
 	return 0;
 }
@@ -410,10 +413,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 				//if (fpid == 5025392)
 				//	MLOG("fpid %d : %s\n", fpid, curr_line.c_str());
 				vector<string> fields;
-				if (file_type == 1 || file_type == 3)
-					split(fields, curr_line, boost::is_any_of("\t"));
-				else
-					split(fields, curr_line, boost::is_any_of(" \t"));
+				split(fields, curr_line, boost::is_any_of("\t"));
 				curr_fstat.n_relevant_lines++;
 				//if (fpid == 5025392)
 	//				MLOG("working on: (fpid %d) (curr.pid %d) (file_type %d) (f[0] %s) (nfields %d) ##>%s<##\n",fpid,curr.pid,file_type,fields[0].c_str(),fields.size(),curr_line.c_str());
@@ -461,229 +461,164 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 							}
 
 						}
-						else if (file_type == 2) {
-							// regular data file // format: pid , signal_code, date/time/range , value
-							if (codes2names.find(fields[1]) != codes2names.end()) {
-								sid = dict.id(codes2names[fields[1]]);
-								if (sid >= 0 && sids_to_load[sid]) {
-									try {
-										i = sid2serial[sid];
-										switch (sigs.type(sid)) {
-
-										case T_Value:
-											if (fields.size() == 3)
-												cd.val = med_stof(fields[2]);
-											else
-												cd.val = med_stof(fields[3]); // backward compatible with date 0 trick to load value only data
-											break;
-
-										case T_DateVal:
-											if (fields.size() < 4) {
-												MERR("Convert ERROR : line with too few fields :: %s\n", curr_line.c_str());
-												exit(-1);
-											}
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);;
-											cd.val = med_stof(fields[3]);
-											break;
-
-										case T_DateRangeVal:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);;
-											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);;
-											cd.val = med_stof(fields[4]);
-											break;
-
-										case T_DateRangeVal2:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);;
-											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);;
-											cd.val = med_stof(fields[4]);
-											cd.val2 = med_stof(fields[5]);
-											break;
-
-										case T_TimeVal:
-											cd.time = stoll(fields[2]);
-											cd.val = med_stof(fields[3]);
-											break;
-
-										case T_TimeRangeVal:
-											cd.time = stoll(fields[2]);
-											cd.time2 = stoll(fields[3]);
-											cd.val = stof(fields[4]);
-											break;
-
-										case T_TimeStamp:
-											cd.time = med_time_converter.convert_datetime(time_unit, fields[2]);
-											break;
-
-										case T_DateVal2:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
-											cd.val = med_stof(fields[3]);
-											cd.val2 = (unsigned short)med_stoi(fields[4]);
-											break;
-
-										case T_TimeLongVal:
-											cd.time = stoll(fields[2]);
-											cd.longVal = stoll(fields[3]);
-											break;
-
-										case T_DateShort2:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
-											cd.val1 = (short)med_stoi(fields[3]);
-											cd.val2 = (short)med_stoi(fields[4]);
-											break;
-
-										case T_ValShort2:
-											cd.val1 = (short)med_stoi(fields[2]);
-											cd.val2 = (short)med_stoi(fields[3]);
-											break;
-
-										case T_ValShort4:
-											cd.val1 = (short)med_stoi(fields[2]);
-											cd.val2 = (short)med_stoi(fields[3]);
-											cd.val3 = (short)med_stoi(fields[4]);
-											cd.val4 = (short)med_stoi(fields[5]);
-											break;
-
-										case T_CompactDateVal:
-											cd.date = (int)med_time_converter.convert_datetime(time_unit, fields[2]);
-											cd.val1 = (unsigned short)med_stoi(fields[3]);
-											break;
-
-										default:
-											MERR("MedConvert: get_next_signal: unknown signal type for sid %d\n", sid);
-											return -1;
-										}
-
-										curr_fstat.n_parsed_lines++;
-										curr.raw_data[i].push_back(cd);
-									}
-									catch (...) {
-										curr_fstat.n_bad_format_lines++;
-										if (curr_fstat.n_bad_format_lines < 10)
-											MWARN("MedConvert: WARNING: bad format in parsing DATA file %s with type=%d in line %d:\n%s\n",
-												curr_fstat.fname.c_str(), sigs.type(sid)
-												, curr_fstat.n_parsed_lines, curr_line.c_str());
+						else if (file_type >= 2) {
+							if (codes2names.find(fields[1]) == codes2names.end())
+								MTHROW_AND_ERR("MedConvert: ERROR: unrecognized signal name %s (need to add to codes_to_signals file) in file %s :: curr_line is %s\n",
+									fields[1].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
+							sid = dict.id(codes2names[fields[1]]);
+							//MLOG("here001 %s %d %d \n", codes2names[fields[1]].c_str(), sid, sids_to_load[sid]);
+							if (sid < 0 || !sids_to_load[sid])
+								continue;
+							int section = dict.section_id(sigs.name(sid));
+							try {
+								i = sid2serial[sid];
+								SignalInfo& info = sigs.Sid2Info[sid];
+								if (file_type == 3) {
+									// backward compatibility - if file type is DATA_S (3), then all val channels are assumed categorical
+									for (int j = 0; j < info.n_val_channels; j++) {
+										if (info.is_categorical_per_val_channel[j] != 1)
+											info.is_categorical_per_val_channel[j] = 1;
 									}
 								}
+								switch (sigs.type(sid)) {
+
+								case T_Value:
+									cd.date = 0;
+									if (fields.size() == 3)
+										if (sigs.is_categorical_channel(sid, 0))
+											cd.val = dict.get_id_or_throw(section, fields[2]);
+										else cd.val = med_stof(fields[2]);
+									else // backward compatible with date 0 trick to load value only data
+										if (sigs.is_categorical_channel(sid, 0))
+											cd.val = dict.get_id_or_throw(section, fields[3]);
+										else cd.val = med_stof(fields[3]); 
+									break;
+
+								case T_DateVal:
+									cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val = dict.get_id_or_throw(section, fields[3]);
+									else cd.val = med_stof(fields[3]);
+									break;
+
+								case T_TimeVal:
+									cd.time = stoll(fields[2]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val = dict.get_id_or_throw(section, fields[3]);
+									else cd.val = med_stof(fields[3]);
+									break;
+
+								case T_DateRangeVal:
+									cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+									cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val = dict.get_id_or_throw(section, fields[4]);
+									else cd.val = med_stof(fields[4]);
+									break;
+
+								case T_TimeStamp:
+									cd.time = med_time_converter.convert_datetime(time_unit, fields[2]);
+									break;
+
+								case T_TimeRangeVal:
+									cd.time = stoll(fields[2]);
+									cd.time2 = stoll(fields[3]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val = dict.get_id_or_throw(section, fields[4]);
+									else cd.val = med_stof(fields[4]);
+									break;
+
+								case T_DateVal2:
+									cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val = dict.get_id_or_throw(section, fields[3]);
+									else cd.val = med_stof(fields[3]);
+									if (sigs.is_categorical_channel(sid, 1))
+										cd.val2 = dict.get_id_or_throw(section, fields[4]);
+									else cd.val2 = (unsigned short)med_stoi(fields[4]);
+									break;
+
+								case T_TimeLongVal:
+									cd.time = stoll(fields[2]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.longVal = (long long)dict.get_id_or_throw(section, fields[3]);
+									else cd.longVal = med_stof(fields[3]);
+									break;
+
+								case T_DateShort2:
+									cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val1 = dict.get_id_or_throw(section, fields[3]);
+									else cd.val1 = med_stof(fields[3]);
+									if (sigs.is_categorical_channel(sid, 1))
+										cd.val2 = dict.get_id_or_throw(section, fields[4]);
+									else cd.val2 = med_stof(fields[4]);
+									break;
+
+								case T_ValShort2:
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val1 = dict.get_id_or_throw(section, fields[2]);
+									else cd.val1 = med_stof(fields[2]);
+									if (sigs.is_categorical_channel(sid, 1))
+										cd.val2 = dict.get_id_or_throw(section, fields[3]);
+									else cd.val2 = med_stof(fields[3]);
+									break;
+
+								case T_ValShort4:
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val1 = dict.get_id_or_throw(section, fields[2]);
+									else cd.val1 = med_stof(fields[2]);
+									if (sigs.is_categorical_channel(sid, 1))
+										cd.val2 = dict.get_id_or_throw(section, fields[3]);
+									else cd.val2 = med_stof(fields[3]);
+									if (sigs.is_categorical_channel(sid, 2))
+										cd.val3 = dict.get_id_or_throw(section, fields[4]);
+									else cd.val3 = med_stof(fields[4]);
+									if (sigs.is_categorical_channel(sid, 3))
+										cd.val3 = dict.get_id_or_throw(section, fields[5]);
+									else cd.val3 = med_stof(fields[5]);
+									break;
+								case T_CompactDateVal:
+									cd.date = (int)med_time_converter.convert_datetime(time_unit, fields[2]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val1 = dict.get_id_or_throw(section, fields[3]);
+									else cd.val1 = (unsigned short)med_stoi(fields[3]);
+									break;
+
+								case T_DateRangeVal2:
+									cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+									cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val = dict.get_id_or_throw(section, fields[4]);
+									else cd.val = med_stof(fields[4]);
+									if (sigs.is_categorical_channel(sid, 1))
+										cd.val2 = dict.get_id_or_throw(section, fields[5]);
+									else cd.val2 = med_stof(fields[5]);
+									break;
+
+								default:
+									MTHROW_AND_ERR("MedConvert: get_next_signal: unknown signal type %d for sid %d\n", 
+										sigs.type(sid), sid);
+								}
+
+										
+								curr.raw_data[i].push_back(cd);
+								curr_fstat.n_parsed_lines++;
 							}
-							else {
-								if (safe_mode) {
-									MERR("MedConvert: ERROR: unrecognized signal name %s (need to add to codes_to_signals file) in file %s :: curr_line is %s\n",
-										fields[1].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
-									return -1;
+							catch (invalid_argument e) {
+								pair<string, string> my_key = make_pair(sigs.name(sid), string(e.what()));
+								if (missing_dict_vals.find(my_key) == missing_dict_vals.end()) {
+									if (missing_dict_vals.size() < 10)
+										MWARN("MedConvert::get_next_signal: missing from dictionary (sig [%s], type %d) : file [%s] : line [%s] \n",
+											sigs.name(sid).c_str(), sigs.type(sid), curr_fstat.fname.c_str(), curr_line.c_str());
+									missing_dict_vals[my_key] = 1;
 								}
+								else
+									missing_dict_vals[my_key]++;
 							}
-						}
-						else if (file_type == 3) {
-							// String-valued data file // format : pid , signal_code, date/time , string in dictionary
-							if (codes2names.find(fields[1]) != codes2names.end()) {
-								sid = dict.id(codes2names[fields[1]]);
-								if (sid >= 0 && sids_to_load[sid]) {
-									try {
-										i = sid2serial[sid];
-										switch (sigs.type(sid)) {
-
-										case T_Value:
-											cd.date = 0;
-											vfield = fields[2];
-											break;
-
-										case T_DateVal:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
-											vfield = fields[3];
-											break;
-
-										case T_DateRangeVal:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
-											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);
-											vfield = fields[4];
-											break;
-
-										case T_DateRangeVal2:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
-											cd.date2 = med_time_converter.convert_datetime(time_unit, fields[3]);
-											vfield = fields[4];
-											vfield2 = fields[5];
-											break;
-
-										case T_TimeVal:
-											cd.time = stoll(fields[2]);
-											vfield = fields[3];
-											break;
-
-										case T_TimeRangeVal:
-											cd.time = stoll(fields[2]);
-											cd.time2 = stoll(fields[3]);
-											vfield = fields[4];
-											break;
-
-										case T_TimeLongVal:
-											cd.time = stoll(fields[2]);
-											vfield = fields[3];
-											break;
-
-										case T_TimeStamp:
-											cd.time = med_time_converter.convert_datetime(time_unit, fields[2]);
-											break;
-										case T_DateShort2:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
-											vfield = fields[3];
-											vfield2 = fields[4];
-											break;
-
-										case T_DateVal2:
-											cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
-											vfield = fields[3];
-											vfield2 = fields[4];
-											break;
-										default:
-											MTHROW_AND_ERR("MedConvert: get_next_signal: unknown signal type %d for sid %d\n", 
-												sigs.type(sid), sid);
-										}
-
-										int section = dict.section_id(sigs.name(sid));
-										vid = dict.id(section, vfield);										
-										int vid2 = dict.id(section, vfield2);
-										if (vid >= 0) {
-											if (sigs.type(sid) == T_TimeLongVal)
-												cd.longVal = (long long)vid;
-											else if (sigs.type(sid) == T_DateShort2) {
-												cd.val1 = (short)vid;
-												cd.val2 = (short)vid2;
-											}
-											else if (sigs.type(sid) == T_DateVal2) {
-												cd.val = (float)vid;
-												cd.val2 = (short)vid2;
-											}
-											else
-												cd.val = (float)vid;
-											curr.raw_data[i].push_back(cd);
-											curr_fstat.n_parsed_lines++;
-
-										}
-										else {
-											pair<string, string> my_key = make_pair(sigs.name(sid), vfield);
-											if (missing_dict_vals.find(my_key) == missing_dict_vals.end()) {
-												if (missing_dict_vals.size() < 10)
-													MWARN("MedConvert::get_next_signal: signal string [%s] is missing from dictionary (sig [%s], type %d) : file [%s] : line [%s] \n",
-														vfield.c_str(), sigs.name(sid).c_str(), sigs.type(sid), curr_fstat.fname.c_str(), curr_line.c_str());
-												missing_dict_vals[my_key] = 1;
-											}
-											else
-												missing_dict_vals[my_key]++;
-										}
-									}
-									catch (...) {
-										MTHROW_AND_ERR("ERROR: bad format in parsing DATA_S file %s (file_type=%d) in line %d:\n%s\n",
-											curr_fstat.fname.c_str(), file_type, curr_fstat.n_parsed_lines, curr_line.c_str());
-									}
-								}
-							}
-							else {
-								if (safe_mode) {
-									MTHROW_AND_ERR("MedConvert: ERROR: unrecognized signal name %s (need to add to codes_to_signals file) in file %s :: curr_line is %s\n",
-										fields[1].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
-								}
-
+							catch (...) {
+								MTHROW_AND_ERR("ERROR: bad format in parsing file %s (file_type=%d) in line %d:\n%s\n",
+									curr_fstat.fname.c_str(), file_type, curr_fstat.n_parsed_lines, curr_line.c_str());
 							}
 						}
 					}
@@ -715,6 +650,32 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 
 	return 0;
 }
+//------------------------------------------------
+int MedConvert::create_signals_config()
+{
+	assert(sig_fnames.size() == 1);
+	MLOG("MedConvert::create_signals_config [%s]\n", sig_fnames[0].c_str());
+	signals_config_f.open(sig_fnames[0].c_str(), ios::out);
+	for (unsigned int i = 0; i < sig_fnames.size(); i++) {
+		for (SignalInfo& info : this->sigs.Sid2Info) {
+			if (info.sid < 0)
+				continue;
+			signals_config_f << "SIGNAL\t" << info.name << "\t" << info.sid << "\t" << info.type << "\t" << info.description << "\t";
+			for (int j = 0; j < info.n_val_channels; j++)
+				signals_config_f << info.is_categorical_per_val_channel[j];
+			signals_config_f << "\t";
+			for (int j = 0; j < info.n_val_channels; j++) {
+				signals_config_f << info.unit_of_measurement_per_val_channel[j]; 
+				if (j < info.n_val_channels - 1)
+					signals_config_f << '|';
+				
+			}
+			signals_config_f << endl;
+		}
+	}
+	signals_config_f.close();
+	return 0;
+}
 
 //------------------------------------------------
 int MedConvert::create_repository_config()
@@ -741,8 +702,9 @@ int MedConvert::create_repository_config()
 	for (unsigned int i = 0; i < dict_fnames.size(); i++)
 		repository_config_f << "DICTIONARY\t" << dict_fnames[i].c_str() << endl;
 
-	for (unsigned int i = 0; i < sig_fnames.size(); i++)
-		repository_config_f << "SIGNAL\t" << sig_fnames[i].c_str() << endl;
+	// support only a single signals file
+	assert(sig_fnames.size() == 1);
+	repository_config_f << "SIGNAL\t" << sig_fnames[0].c_str() << endl;
 
 	repository_config_f << "MODE\t" << mode << endl;
 	if (mode < 3) {
