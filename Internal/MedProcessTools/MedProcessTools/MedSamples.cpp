@@ -665,7 +665,7 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 	++iter;
 
 	for (; iter != histCountAll.end(); ++iter)
-		log_with_file(fo, ", %d=%d", (int)iter->first, iter->second, iter->second,
+		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second, iter->second,
 			100.0 * iter->second / float(total_all));
 	log_with_file(fo, "]\n");
 	if (fo.good())
