@@ -401,7 +401,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 	collected_data cd;
 	string vfield, vfield2;
 	int i;
-	int sid, vid;
+	int sid;
 	while (get_next) {
 		pos = inf.tellg();
 		if (getline(inf, curr_line)) {

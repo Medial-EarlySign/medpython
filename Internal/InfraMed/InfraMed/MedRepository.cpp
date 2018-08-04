@@ -622,7 +622,6 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 	MOUT(" %d :: ", len);
 	if (sigs.has_any_categorical_channel(sid))
 		MOUT("\n");
-	int val;
 
 	for (int i = 0; i < len; i++) {
 		if (sigs.type(sid) == T_Value) {
