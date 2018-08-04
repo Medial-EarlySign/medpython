@@ -549,7 +549,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, PidRec &rec, const Pane
 		shtml += "},\n";
 	}
 	// xaxis setup
-	shtml += "\t\t\txaxis: {domain: [0," + to_string(psize) +"], hoverformat: '\%Y/\%m/\%d'},\n";
+	shtml += "\t\t\txaxis: {domain: [0," + to_string(psize) +"], hoverformat: '%%Y/%%m/%%d'},\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\tshapes: [";
 		for (auto &t : times) {

@@ -71,20 +71,31 @@ void MedRegistry::write_text_file(const string &file_path) const {
 }
 
 void MedRegistry::create_registry(MedPidRepository &dataManager) {
-
 	MLOG_D("Creating registry...\n");
+	vector<int> used_sigs;
+	used_sigs.reserve(signalCodes.size());
+	if (need_bdate)
+		used_sigs = signalCodes;
+	else
+		for (size_t i = 0; i < signalCodes.size(); ++i)
+			if (dataManager.sigs.name(signalCodes[i]) != "BDATE")
+				used_sigs.push_back(signalCodes[i]);
 
 	time_t start = time(NULL);
 	time_t last_time_print = start;
 	double duration;
 	int prog_pid = 0;
 	int bDateCode = dataManager.sigs.sid("BDATE");
+	for (size_t i = 0; i < signalCodes.size(); ++i)
+		if (!dataManager.index.index_table[signalCodes[i]].is_loaded)
+			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
+				dataManager.sigs.name(signalCodes[i]).c_str());
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < dataManager.pids.size(); ++i)
 	{
-		vector<UniversalSigVec> sig_vec((int)signalCodes.size());
+		vector<UniversalSigVec> sig_vec((int)used_sigs.size());
 		for (size_t k = 0; k < sig_vec.size(); ++k)
-			dataManager.uget(dataManager.pids[i], signalCodes[k], sig_vec[k]);
+			dataManager.uget(dataManager.pids[i], used_sigs[k], sig_vec[k]);
 		int birth = medial::repository::get_value(dataManager, dataManager.pids[i], bDateCode);
 		vector<MedRegistryRecord> vals;
 		get_registry_records(dataManager.pids[i], birth, sig_vec, vals);
@@ -835,6 +846,12 @@ void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr,
 	signalCodes.clear();
 	for (size_t i = 0; i < signal_conditions.size(); ++i)
 		signalCodes.push_back(rep.sigs.sid(signal_conditions[i]->signalName));
+	signalCodes.push_back(rep.sigs.sid("BDATE"));
+	for (size_t i = 0; i < signal_conditions.size(); ++i)
+		if (signal_conditions[i]->signalName == "BDATE") {
+			need_bdate = true;
+			break;
+		}
 	//the user called init for this signal_conditions
 	signal_filters = signal_conditions;
 }
@@ -1441,6 +1458,12 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 }
 
 void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file) {
+	ofstream fo;
+	if (!log_file.empty()) {
+		fo.open(log_file);
+		if (!fo.good())
+			MWARN("Warning: can log into file %s\n", log_file.c_str());
+	}
 	map<float, int> histCounts, histCounts_All;
 	vector<unordered_set<int>> pid_index(2);
 	for (size_t k = 0; k < regRecords.size(); ++k)
@@ -1454,29 +1477,37 @@ void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords,
 		pid_index[regRecords[k].registry_value > 0].insert(regRecords[k].pid);
 		++histCounts_All[regRecords[k].registry_value];
 	}
-	cout << "Registry has " << regRecords.size() << " records. [";
-	string delim = " ";
+	string delim = ", ";
 	if (histCounts.size() > 2)
 		delim = "\n";
+	int total = 0, total_all = 0;
 	for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
-		cout << delim << (int)it->first << "=" << it->second;
-	cout << " ]" << " All = [ ";
+		total += it->second;
 	for (auto it = histCounts_All.begin(); it != histCounts_All.end(); ++it)
-		cout << delim << (int)it->first << "=" << it->second;
-	cout << " ]" << endl;
-	if (!log_file.empty()) {
-		ofstream fo(log_file, ios::app);
-		fo << "Registry has " << regRecords.size() << " records. [";
-		if (histCounts.size() > 2)
-			delim = "\n";
-		for (auto it = histCounts.begin(); it != histCounts.end(); ++it)
-			fo << delim << (int)it->first << "=" << it->second;
-		fo << " ]" << " All = [ ";
-		for (auto it = histCounts_All.begin(); it != histCounts_All.end(); ++it)
-			fo << delim << (int)it->first << "=" << it->second;
-		fo << " ]" << endl;
+		total_all += it->second;
+
+	log_with_file(fo, "Registry has %zu records. [", regRecords.size());
+	auto iter = histCounts.begin();
+	if (!histCounts.empty())
+		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+			100.0 * iter->second / float(total));
+	++iter;
+	for (; iter != histCounts.end(); ++iter)
+		log_with_file(fo, "%s%d=%d(%2.2f%%)", delim.c_str(), (int)iter->first, iter->second,
+			100.0 * iter->second / float(total));
+	log_with_file(fo, "] All = [");
+
+	iter = histCounts_All.begin();
+	if (!histCounts_All.empty())
+		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+			100.0 * iter->second / float(total_all));
+	++iter;
+	for (; iter != histCounts_All.end(); ++iter)
+		log_with_file(fo, "%s%d=%d(%2.2f%%)", delim.c_str(), (int)iter->first, iter->second,
+			100.0 * iter->second / float(total_all));
+	log_with_file(fo, "]\n");
+	if (fo.good())
 		fo.close();
-	}
 }
 
 void medial::io::read_codes_file(const string &file_path, vector<string> &tokens) {
@@ -1594,6 +1625,12 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 		signalCodes.clear();
 		for (size_t i = 0; i < signal_filters.size(); ++i)
 			signalCodes.push_back(repo.sigs.sid(signal_filters[i]->signalName));
+		signalCodes.push_back(repo.sigs.sid("BDATE"));
+		for (size_t i = 0; i < signal_filters.size(); ++i)
+			if (signal_filters[i]->signalName == "BDATE") {
+				need_bdate = true;
+				break;
+			}
 
 		return 0;
 }

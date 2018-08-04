@@ -14,11 +14,11 @@ class PredictiveModel {
 
 public:
 	PredictiveModel(string name); ///<The name of the model
-	virtual double predict(const vector<float> &input) = 0;
+	virtual double predict(const vector<float> &input) const = 0;
 	virtual subGradientFunction getSubGradients();///<Subgradient function to calc directly the gradient descent
-	virtual void predict(const vector<vector<float>> &inputs, vector<double> &preds); ///<virtual to allow more efficeint implemention
-	virtual void print(const vector<string> &signalNames) = 0; ///<print model to stdout
-	virtual PredictiveModel *clone() = 0;///<copy model
+	virtual void predict(const vector<vector<float>> &inputs, vector<double> &preds) const; ///<virtual to allow more efficeint implemention
+	virtual void print(const vector<string> &signalNames) const = 0; ///<print model to stdout
+	virtual PredictiveModel *clone() const = 0;///<copy model
 
 	vector<double> model_params;///<model parameters
 	string model_name;///<model name

@@ -56,11 +56,11 @@ public:
 	~MedXGB() {};
 
 	int validate_me_while_learning(float *x, float *y, int nsamples, int nftrs);
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Learn(float *x, float *y, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
-	virtual void print(FILE *fp, const string& prefix);
+	virtual void print(FILE *fp, const string& prefix) const;
 
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params);

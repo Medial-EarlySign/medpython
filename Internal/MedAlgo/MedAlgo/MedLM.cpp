@@ -155,7 +155,7 @@ int MedLM::Learn (float *x, float *y, int nsamples, int nftrs) {
 }
 		
 //..............................................................................
-int MedLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedLM::Learn (float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	if (params.get_col >= 0)
 		return 0;
@@ -204,13 +204,13 @@ int MedLM::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	return Predict(x,preds,nsamples,nftrs,0);
 }
 
 //..............................................................................
-int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) {
+int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const {
 
 	if (preds == NULL)
 		preds = new float[nsamples];
@@ -237,7 +237,7 @@ int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transpo
 	int ncores = std::thread::hardware_concurrency();
 	Eigen::setNbThreads(3*ncores/4);
 
-	Map<MatrixXf> bf(&b[0],nftrs,1);
+	Map<const MatrixXf> bf(&b[0],nftrs,1);
 	Map<MatrixXf> pf(preds,nsamples,1);
 	if (transposed_flag) {
 		Map<MatrixXf> xf(x,nsamples,nftrs);
@@ -295,7 +295,7 @@ size_t MedLM::deserialize(unsigned char *blob) {
 }
 
 //..............................................................................
-void MedLM::normalize_x_and_y(float *x, float *y, float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std) {
+void MedLM::normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std) {
 
 	// Get moments
 	for (int i = 0; i < nftrs; i++)
@@ -338,7 +338,7 @@ int MedLM::denormalize_model(float *f_avg, float *f_std, float label_avg, float 
 
 
 //..............................................................................
-int learn_lm (float *x, float *_y, float *w, int nsamples, int nftrs, int niter, float eiter , float *rfactors, float *b, float *err, float *corrs) {
+int learn_lm (float *x, float *_y, const float *w, int nsamples, int nftrs, int niter, float eiter , float *rfactors, float *b, float *err, float *corrs) {
 
 	// Prepare
 	float *sumxx ;
@@ -361,7 +361,7 @@ int learn_lm (float *x, float *_y, float *w, int nsamples, int nftrs, int niter,
 }
 
 //..............................................................................
-int learn_lm (float *x, float *_y, float *w, int nsamples, int nftrs, int niter, float eiter , float *rfactors, float *b, float *err, float *corrs, float *sumxx)  {
+int learn_lm (float *x, float *_y, const float *w, int nsamples, int nftrs, int niter, float eiter , float *rfactors, float *b, float *err, float *corrs, float *sumxx)  {
 
 	// Prepare
 	float *y ;
@@ -414,7 +414,7 @@ int learn_lm (float *x, float *_y, float *w, int nsamples, int nftrs, int niter,
 
 
 //..............................................................................
-void MedLM::print(FILE *fp, const string& prefix) {
+void MedLM::print(FILE *fp, const string& prefix) const {
 
 	fprintf(fp,"%s : Linear Model : Nftrs = %d\n",prefix.c_str(),n_ftrs) ;
 	fprintf(fp,"%s : Linear Model b0 = %f\n",prefix.c_str(),b0) ;

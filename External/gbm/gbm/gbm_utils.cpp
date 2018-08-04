@@ -311,7 +311,7 @@ int get_gbm_regressor(double *x, double *y, double *w, int nrows, int ncols, dou
 }
 
 // Predict
-int gbm_predict(double *x, int nrows, int ncols, gbm_tree *trees, int ntrees, double init_f, int **rcSplits, double *preds) {
+int gbm_predict(double *x, int nrows, int ncols, const gbm_tree *trees, int ntrees, double init_f, int **rcSplits, double *preds) {
 
 	int *var_types = (int *) malloc(ncols*sizeof(int)) ;
 	if (var_types == NULL) {
@@ -329,7 +329,7 @@ int gbm_predict(double *x, int nrows, int ncols, gbm_tree *trees, int ntrees, do
 	return 0 ;
 }
 
-int gbm_predict(double *x, int nrows, int ncols, int ntrees, full_gbm_learn_info_t *gbm_info, double *preds) {
+int gbm_predict(double *x, int nrows, int ncols, int ntrees, const full_gbm_learn_info_t *gbm_info, double *preds) {
 
 	if (ntrees > gbm_info->ntrees) {
 		fprintf(stderr,"Required ntrees larger than availble\n") ;

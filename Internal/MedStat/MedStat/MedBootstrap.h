@@ -41,6 +41,7 @@ public:
 	bool sample_patient_label; ///<if true will treat patient+label as the "id" for the sampling
 	int sample_seed; ///<if 0 will use random_device
 	int loopCnt; ///<the bootstrap count
+	bool is_binary_outcome; ///< only used for validating bootstrap input
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
 	bool simTimeWindow;
@@ -85,12 +86,14 @@ public:
 	/// not filtering
 	/// </summary>
 	MedBootstrap();
+	
 	/// <summary>
 	/// Initialization string with format "parameter_name=value;..."
 	/// each paramter_name is same as the class name field. filter_cohort is path to file
 	/// roc_Params is the init string for ROC_PARAMS
+	/// @snippet MedBootstrap.cpp MedBootstrap::init
 	/// </summary>
-	MedBootstrap(const string &init_string);
+	int init(map<string, string>& map);
 
 	/// <summary>
 	/// cleans the initiale "FTR_" from the feature names in MedFeatures created by the infra pipeline

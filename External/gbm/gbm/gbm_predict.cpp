@@ -7,7 +7,7 @@
 #define MISSING_VAL -999999.9
 
 // Prediction
-GBMRESULT gbm_pred (double *radX, int cRows, int cCols, int cTrees, double rdInitF, gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) {
+GBMRESULT gbm_pred (double *radX, int cRows, int cCols, int cTrees, double rdInitF, const gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) {
    	
    unsigned long hr = 0;
    int iTree = 0;
@@ -69,11 +69,11 @@ GBMRESULT gbm_pred (double *radX, int cRows, int cCols, int cTrees, double rdIni
 
 }
 
-GBMRESULT gbm_pred (double *radX, int cRows, int cCols, int cTrees, double rdInitF, gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF) {
+GBMRESULT gbm_pred (double *radX, int cRows, int cCols, int cTrees, double rdInitF, const gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF) {
 	return gbm_pred(radX,cRows,cCols,cTrees,rdInitF,rTrees,rCSplits,raiVarType,radPredF,MISSING_VAL) ;
 }
 
-GBMRESULT gbm_pred (double *radX, int iObs, int cRows, int rcCols, gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF, 
+GBMRESULT gbm_pred (double *radX, int iObs, int cRows, int rcCols, const gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF,
 					double missing_val)
 {
  
@@ -120,7 +120,7 @@ GBMRESULT gbm_pred (double *radX, int iObs, int cRows, int rcCols, gbm_tree *rTr
 	return GBM_OK;
 }
 
-GBMRESULT gbm_pred (double *radX, int iObs, int cRows, int rcCols, gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF) {
+GBMRESULT gbm_pred (double *radX, int iObs, int cRows, int rcCols, const gbm_tree *rTrees, int itree, int **rCSplits, int *raiVarType, double *radPredF) {
 	return gbm_pred(radX,iObs,cRows,rcCols,rTrees,itree,rCSplits,raiVarType,radPredF,MISSING_VAL) ;
 }
 

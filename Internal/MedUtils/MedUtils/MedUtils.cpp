@@ -119,12 +119,12 @@ double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_c
 }
 
 // Get moments of a vector
-int get_moments(vector<float>& values, vector<float>& wgts, float missing_value, float& mean, float&sd, bool do_missing) {
+int get_moments(vector<float>& values, const vector<float>& wgts, float missing_value, float& mean, float&sd, bool do_missing) {
 
 	return get_moments(&(values[0]), &(wgts[0]), (int)values.size(), missing_value, mean, sd, do_missing);
 }
 
-int get_moments(float *values, float* wgts, int size, float missing_value, float& mean, float&sd, bool do_missing) {
+int get_moments(float *values, const float* wgts, int size, float missing_value, float& mean, float&sd, bool do_missing) {
 	double  n = 0;
 	double s = 0;
 
@@ -502,6 +502,21 @@ template<class T> string medial::io::get_list_op(const unordered_map<T, string> 
 	return res;
 }
 template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls);
+
+void medial::print::log_with_file(ofstream &fw, const char *format_str, ...) {
+	char buff[10000];
+	va_list argptr;
+	va_start(argptr, format_str);
+	vsnprintf(buff, sizeof(buff), format_str, argptr);
+	va_end(argptr);
+	string final_str = string(buff);
+
+	if (fw.good()) {
+		fw << final_str;
+		fw.flush();
+	}
+	MLOG("%s", final_str.c_str());
+}
 
 float med_stof(const string& _Str) {
 	try {

@@ -9,7 +9,7 @@
 #define MED_MISSSING_VALUE -65336
 
 //not in use
-double MedLinearModel::predict(const vector<float> &input) {
+double MedLinearModel::predict(const vector<float> &input) const {
 	if (input.size() != model_params.size() - 1) {
 		throw invalid_argument("input has wrong number of signals. expeced" + to_string(model_params.size() - 1) + " got "
 			+ to_string(input.size()));
@@ -23,7 +23,7 @@ double MedLinearModel::predict(const vector<float> &input) {
 	return res;
 }
 
-void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double> &preds) {
+void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double> &preds) const {
 	vector<vector<float>> copy_inp;
 	const vector<float> *access_arr = inputs.data();
 	if (inputs.size() == 0)
@@ -344,7 +344,7 @@ MedLinearModel::MedLinearModel(int numOdSignals) :
 	norm_l1 = false;
 }
 
-void MedLinearModel::print(const vector<string> &signalNames) {
+void MedLinearModel::print(const vector<string> &signalNames) const {
 	cout << "Param0=" << model_params[0] << endl;
 
 	vector<pair<double, int>> tps((int)signalNames.size());
@@ -368,12 +368,12 @@ void MedLinearModel::set_normalization(const vector<float> &meanShift, const vec
 	_factor = factors;
 }
 
-void MedLinearModel::get_normalization(vector<float> &meanShift, vector<float> &factors) {
+void MedLinearModel::get_normalization(vector<float> &meanShift, vector<float> &factors) const {
 	meanShift = _meanShift;
 	factors = _factor;
 }
 
-void MedLinearModel::apply_normalization(vector<vector<float>> &input) {
+void MedLinearModel::apply_normalization(vector<vector<float>> &input) const {
 	for (size_t i = 0; i < input.size(); ++i)
 	{
 		for (size_t j = 0; j < input[i].size(); ++j)
@@ -386,7 +386,7 @@ void MedLinearModel::apply_normalization(vector<vector<float>> &input) {
 	}
 }
 
-PredictiveModel *MedLinearModel::clone() {
+PredictiveModel *MedLinearModel::clone() const {
 	MedLinearModel *copy = new MedLinearModel((int)model_params.size() - 1);
 	random_device rd;
 	mt19937 gen(rd());
@@ -405,7 +405,7 @@ PredictiveModel *MedLinearModel::clone() {
 	return copy;
 }
 
-int MedLinearModel::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedLinearModel::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	for (size_t i = 0; i < nsamples; ++i)
 	{
@@ -547,7 +547,7 @@ void _normalizeSignalToAvg(vector<vector<float>> &xData, vector<float> &meanShif
 	}
 }
 
-int MedLinearModel::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	vector<float> avg_diff, factors;
 	vector<float> yData(y, y + nsamples);

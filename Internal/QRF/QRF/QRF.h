@@ -152,7 +152,7 @@ class QuantizedRF {
 		int n_groups;
 
 
-		int init_all(float *X, int *Y, float *Yr, float *W, int nfeat, int nsamples, int maxq);
+		int init_all(float *X, int *Y, float *Yr, const float *W, int nfeat, int nsamples, int maxq);
 
 		void init_groups(vector<int> &groups_in);
 		// binary problem related
@@ -166,7 +166,7 @@ class QuantizedRF {
 		double get_cross_validation_auc();
 
 		// regresssion problem
-		int init_regression(float *X, float *Y, float *W, int nfeat, int nsamples, int maxq);
+		int init_regression(float *X, float *Y, const float *W, int nfeat, int nsamples, int maxq);
 		int get_regression_Tree(int *sampsize, int ntry, QRF_Tree &tree);
 
 		// categorized, split by chi square problem
@@ -254,17 +254,17 @@ class QRF_Forest {
 		// categorical chi2/entropy problem - Splitting method: QRF_CATEGORICAL_ENTROPY_TREE/QRF_CATEGORICAL_CHI2_TREE
 		// y must be in 0 ... (ncateg-1) values.
 		// sampsize : if NULL all bagging size is the number of samples, otherwise sampsize for each category is expected (sampsize[0]....sampsize[ncateg-1])
-		int get_forest_categorical(float *x, float *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method);
+		int get_forest_categorical(float *x, float *y, const float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method);
 
 		// Predict Methods :
 		//------------------
 
-		int score_samples(float *x, int nfeat, int nsamples, float *&res); // same as next one but get_counts = 0;
+		int score_samples(float *x, int nfeat, int nsamples, float *&res) const; // same as next one but get_counts = 0;
 		// res should be allocated outside.
 		// for classification nsamples x n_categ. get_counts : 0 - average on majority vote of each tree ; 1 - average on probabilities in each tree ; 2 (or otherwise) - average on counts in each tree
 		//													   4 - prediction (based on majority)
 		// for regression nsamples x 1. get_counts : 0 - average prediction ; 1 (or otherwise) - weighted average.
-		int score_samples(float *x_in, int nfeat, int nsamples, float *&res, int get_counts);
+		int score_samples(float *x_in, int nfeat, int nsamples, float *&res, int get_counts) const;
 
 		int score_samples_t(double *x, int nfeat, int nsamples, double *&res); // tailored for predictor formats
 
@@ -288,10 +288,10 @@ class QRF_Forest {
 
 	private:
 		// learn for all modes
-		int get_forest_trees_all_modes(float *x, void *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int mode);
+		int get_forest_trees_all_modes(float *x, void *y, const float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int mode);
 
 		// scoring with threads for all modes
-		void score_with_threads(float *x, int nfeat, int nsamples, float *res);
+		void score_with_threads(float *x, int nfeat, int nsamples, float *res) const;
 
 		// transferring from inner algo data structure to exposed on
 		int transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, int mode);

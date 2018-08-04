@@ -361,7 +361,7 @@ public:
 
 /**
 * Feature Imputer to complete missing values
-* 
+*
 * To Use this selector specify <b>"imputer"</b> in the fp_type
 */
 class FeatureImputer : public FeatureProcessor {
@@ -369,6 +369,8 @@ public:
 
 	// Missing Value
 	float missing_value;
+	bool verbose; ///< If true will print how many missing value were in each feature
+	bool verbose_learn; ///< If true will call print after learn
 
 	// Strata for setting moment
 	featureSetStrata imputerStrata;
@@ -402,7 +404,7 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet FeatureProcess.cpp FeatureImputer::init
 	int init(map<string, string>& mapper);
-	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; moment_type = IMPUTE_MMNT_MEAN;  processor_type = FTR_PROCESS_IMPUTER; };
+	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; moment_type = IMPUTE_MMNT_MEAN;  processor_type = FTR_PROCESS_IMPUTER; verbose = true; verbose_learn = false; };
 	imputeMomentTypes getMomentType(string& entry);
 
 	// Copy
@@ -441,14 +443,14 @@ public:
 	vector<string> selected;
 
 	/// Target number to select (if 0, ignored)
-	int numToSelect = 0 ;
+	int numToSelect = 0;
 
 	// Constructor
 	FeatureSelector() : FeatureProcessor() { missing_value = MED_MAT_MISSING_VALUE; numToSelect = 0; }
 
 	/// Find set of selected features- Calls _learn function, and may be overrided directly
 	virtual int Learn(MedFeatures& features, unordered_set<int>& ids);
-	
+
 	/// Apply selection
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 private:
@@ -457,7 +459,7 @@ private:
 };
 
 /**
-* Feature Selector : lasso 
+* Feature Selector : lasso
 *
 * To Use this selector specify <b>"lasso"</b> in the fp_type
 */
@@ -691,7 +693,7 @@ private:
 
 /** ImportanceFeatureSelector - selector which uses feature importance method for sepcific
 * model to rank the feature importance and select them
-* 
+*
 * To Use this selector specify <b>"importance_selector"</b> in the fp_type
 */
 class ImportanceFeatureSelector : public FeatureSelector {
@@ -735,10 +737,10 @@ public:
 
 	/// Generate set of selected features - calls _learn
 	virtual int Learn(MedFeatures& features, unordered_set<int>& ids);
-	
+
 	/// Apply selection - calls _apply
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
-	
+
 private:
 	/// Specific learner of the encoder
 	virtual int _learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
@@ -778,7 +780,7 @@ public:
 
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeaturePCA *>(processor)); }
 
-	
+
 	ADD_SERIALIZATION_FUNCS(names, params, selected_indexes, W);
 
 private:
@@ -801,7 +803,7 @@ class OneHotFeatProcessor :public FeatureProcessor {
 public:
 
 	string index_feature_prefix = ""; ///< prefix of index features (names are prefix_value)
-	string other_feature_name= ""; ///< name of 'other' feature (if needed)
+	string other_feature_name = ""; ///< name of 'other' feature (if needed)
 	string removed_feature_name = ""; ///< name of feature to remove (if needed)
 	bool rem_origin = true; ///< if true, remove original feature after creating indeices
 	bool add_other = false; ///< if true, add an extra feature for values not in learning-set
@@ -818,7 +820,7 @@ public:
 	/// @snippet FeatureProcessor.cpp OneHotFeatProcessor::init
 	int init(map<string, string>& mapper);
 
-	virtual void init_defaults() { processor_type = FTR_PROCESS_ONE_HOT;}
+	virtual void init_defaults() { processor_type = FTR_PROCESS_ONE_HOT; }
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<OneHotFeatProcessor *>(processor)); }
 
 

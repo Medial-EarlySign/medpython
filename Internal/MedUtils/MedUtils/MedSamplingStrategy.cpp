@@ -146,6 +146,8 @@ int MedSamplingYearly::init(map<string, string>& map) {
 			allowed_time_to = stoi(it->second);
 		else if (it->first == "use_allowed")
 			use_allowed = stoi(it->second) > 0;
+		else if (it->first == "use_time_control_as_case")
+			use_time_control_as_case = stoi(it->second) > 0;
 		else if (it->first == "conflict_method")
 			conflict_method = it->second;
 		else
@@ -162,7 +164,8 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	return 0;
 }
 
-bool in_time_window(int pred_date, const MedRegistryRecord *r, int time_from, int time_to) {
+bool in_time_window(int pred_date, const MedRegistryRecord *r, int time_from, int time_to,
+	bool use_control_as_case_time) {
 	if (time_from == 0 && time_to == 0)
 		return true; //when both 0 - won't use time window filtering
 	int sig_start_date = medial::repository::DateAdd(pred_date, time_from);
@@ -174,9 +177,9 @@ bool in_time_window(int pred_date, const MedRegistryRecord *r, int time_from, in
 		return false;
 
 	if (time_from < 0)
-		return (sig_start_date <= r->end_date) && (r->registry_value > 0 || sig_start_date >= r->start_date);
+		return (sig_start_date <= r->end_date) && (use_control_as_case_time || r->registry_value > 0 || sig_start_date >= r->start_date);
 	else
-		return (sig_end_date >= r->start_date) && (r->registry_value > 0 || sig_end_date <= r->end_date);
+		return (sig_end_date >= r->start_date) && (use_control_as_case_time || r->registry_value > 0 || sig_end_date <= r->end_date);
 }
 
 void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
@@ -237,7 +240,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 						++curr_index;
 				if (use_allowed && curr_index < all_pid_records->size() &&
 					!in_time_window(pred_date, (*all_pid_records)[curr_index],
-						allowed_time_from, allowed_time_to)) {
+						allowed_time_from, allowed_time_to, use_time_control_as_case)) {
 					++curr_index;
 					continue;
 				}
@@ -314,6 +317,8 @@ int MedSamplingAge::init(map<string, string>& map) {
 			conflict_method = it->second;
 		else if (it->first == "use_allowed")
 			use_allowed = stoi(it->second) > 0;
+		else if (it->first == "use_time_control_as_case")
+			use_time_control_as_case = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -368,7 +373,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 						++curr_index;
 				if (use_allowed && curr_index < all_pid_records->size() &&
 					!in_time_window(pred_start_date, (*all_pid_records)[curr_index],
-						0, 365 * age_bin)) {
+						0, 365 * age_bin, use_time_control_as_case)) {
 					++curr_index;
 					continue;
 				}
@@ -496,7 +501,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 							choosed_time >all_pid_records[curr_index]->max_allowed_date))
 						++curr_index;
 				if (use_allowed && curr_index < all_pid_records.size() && !in_time_window(choosed_time, all_pid_records[curr_index],
-					allowed_time_from, allowed_time_to)) {
+					allowed_time_from, allowed_time_to, false)) {
 					++curr_index;
 					continue;
 				}

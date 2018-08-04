@@ -4,7 +4,7 @@
 #include "Logger/Logger/Logger.h"
 #include <boost/algorithm/string.hpp>
 
-#define LOCAL_SECTION LOG_APP
+#define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
 void MedBootstrap::get_cohort_from_arg(const string &single_cohort) {
@@ -14,14 +14,17 @@ void MedBootstrap::get_cohort_from_arg(const string &single_cohort) {
 
 void MedBootstrap::parse_cohort_line(const string &line) {
 	if (line.find('\t') == string::npos)
-		MTHROW_AND_ERR("line is in wrong format:\n%s\n",
+		MWARN("Warning MedBootstrap::parse_cohort_line - line has no filters only name: \"%s\"\n",
 			line.c_str());
 
 	string cohort_name = line.substr(0, line.find('\t'));
-	string cohort_definition = line.substr(line.find('\t') + 1);
+	string cohort_definition = "";
+	if (line.find('\t') != string::npos)
+		cohort_definition = line.substr(line.find('\t') + 1);
 	if (cohort_name != "MULTI") {
 		vector<string> params;
-		boost::split(params, cohort_definition, boost::is_any_of(";"));
+		if (!cohort_definition.empty())
+			boost::split(params, cohort_definition, boost::is_any_of(";"));
 		vector<Filter_Param> convert_params((int)params.size());
 		for (size_t i = 0; i < params.size(); ++i)
 			convert_params[i] = Filter_Param(params[i]);
@@ -68,9 +71,10 @@ MedBootstrap::MedBootstrap()
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 	simTimeWindow = false;
+	is_binary_outcome = true;
 }
 
-MedBootstrap::MedBootstrap(const string &init_string) {
+int MedBootstrap::init(map<string, string>& map) {
 	sample_ratio = (float)1.0;
 	sample_per_pid = 1;
 	sample_patient_label = false;
@@ -78,18 +82,15 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 	loopCnt = 500;
 	filter_cohort["All"] = {};
 	simTimeWindow = false;
+	is_binary_outcome = true;
 
 	//now read init_string to override default:
-	vector<string> tokens;
-	boost::split(tokens, init_string, boost::is_any_of(";"));
-	for (string token : tokens)
-	{
-		if (token.find('=') == string::npos)
-			MTHROW_AND_ERR("Wrong token. has no value \"%s\"\n", token.c_str());
-		string param_name = token.substr(0, token.find('='));
-		string param_value = token.substr(token.find('=') + 1);
-		boost::to_lower(param_name);
 
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		const string &param_name = boost::to_lower_copy(it->first);
+		const string &param_value = it->second;
+		//! [MedBootstrap::init]
 		if (param_name == "sample_ratio") {
 			sample_ratio = stof(param_value);
 			if (sample_ratio > 1.0 || sample_ratio < 0)
@@ -109,11 +110,16 @@ MedBootstrap::MedBootstrap(const string &init_string) {
 			filter_cohort.clear();
 			parse_cohort_file(param_value);
 		}
-		else if (param_name == "simTimeWindow")
+		else if (param_name == "simtimewindow")
 			simTimeWindow = stoi(param_value) > 0;
+		else if (param_name == "is_binary_outcome")
+			is_binary_outcome = stoi(param_value) > 0;
+		//! [MedBootstrap::init]
 		else
-			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
+			MTHROW_AND_ERR("Unknown paramter \"%s\" for MedBootstrap::init\n", param_name.c_str());
 	}
+
+	return 0;
 }
 
 template<class T> bool has_element(const vector<T> &vec, const T &val) {
@@ -216,7 +222,7 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 	int max_range = (int)time_filter.max_range;
 	for (size_t i = 0; i < y_changed.size(); ++i)
 	{
-		if (y[i] > 0){
+		if (y[i] > 0) {
 			if (!filter_range_param(additional_info, (int)i, &time_filter)) {
 				// cases which are long before the outcome (>2*max_range) are considered as controls:
 
@@ -278,7 +284,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	if (!simTimeWindow) {
 		return booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
 			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 	}
 	else {
 		//split by each time window after editing each time window samples:
@@ -301,7 +307,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 		if (!cohorts.empty())
 			all_results = booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
 				measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
-				preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+				preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 
 		//now lets add each time window result:
 		for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
@@ -315,7 +321,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 
 				auto agg_res = booststrap_analyze(preds, y_changed, *rep_ids, cp_info, cohorts_t,
 					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
-					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed);
+					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 				if (!agg_res.empty()) // if the cohort is too small it does not return results
 					all_results.insert(*agg_res.begin()); //has one key
 			}
@@ -729,6 +735,17 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 	vector<int> pids;
 	map<string, vector<float>> data;
 	unordered_map<int, vector<int>> splits_inds;
+
+	//check we have all signals ececpt Time,Label (will be completed in prepare):
+	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
+		for (const Filter_Param &fp : it->second)
+			if (fp.param_name != "Time-Window" && fp.param_name != "Label"
+				&& features.data.find(fp.param_name) == features.data.end())
+				MTHROW_AND_ERR("ERROR in MedBootstrap::bootstrap - missing "
+					"filter_cohort parameter \"%s\" in cohort \"%s\" in input features.\n"
+					"Please provide the feature in the input for filtering or remove cohort filter\n",
+					fp.param_name.c_str(), it->first.c_str());
+
 
 	if (results_per_split != NULL)
 		prepare_bootstrap(features, preds, y, pids, data, &splits_inds);

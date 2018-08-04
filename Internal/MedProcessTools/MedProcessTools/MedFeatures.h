@@ -75,13 +75,13 @@ public:
 	void set_time_unit(int _time_unit) { time_unit = _time_unit; }
 
 	/// <summary> Get a vector of feature names </summary>
-	void get_feature_names(vector<string>& names);
+	void get_feature_names(vector<string>& names) const;
 	/// <summary> Get data (+attributes) as a MedMat </summary>
-	void get_as_matrix(MedMat<float>& mat);
+	void get_as_matrix(MedMat<float>& mat) const;
 	/// <summary> Get subset of data (+attributes) as a MedMat : Only features in 'names' </summary>
-	void get_as_matrix(MedMat<float>& mat, vector<string>& names);
+	void get_as_matrix(MedMat<float>& mat, vector<string>& names) const;
 	/// <summary> Get subset of data (+attributes) as a MetMat: Only features in 'names' and rows in 'idx' </summary>
-	void get_as_matrix(MedMat<float>& mat, const vector<string>& names, vector<int> &idx);
+	void get_as_matrix(MedMat<float>& mat, const vector<string>& names, vector<int> &idx) const;
 
 	/// <summary> Set data (+attributes) from MedMat </summary>
 	void set_as_matrix(const MedMat<float>& mat);
@@ -95,21 +95,21 @@ public:
 	/// <summary> initialize pid_pos_len vector according to samples </summary>
 	void init_pid_pos_len();
 	/// <summary> Return the first row in the virtual matrix for an id (-1 if none) </summary>
-	int get_pid_pos(int pid) { if (pid_pos_len.find(pid) == pid_pos_len.end()) return -1; return (pid_pos_len[pid].first); }
+	int get_pid_pos(int pid) const { if (pid_pos_len.find(pid) == pid_pos_len.end()) return -1; return (pid_pos_len.at(pid).first); }
 	/// <summary> Return the number of rows in the virtual matrix for an id (-1 if none) </summary>
-	int get_pid_len(int pid) { if (pid_pos_len.find(pid) == pid_pos_len.end()) return 0; return (pid_pos_len[pid].second); }
+	int get_pid_len(int pid) const { if (pid_pos_len.find(pid) == pid_pos_len.end()) return 0; return (pid_pos_len.at(pid).second); }
 	/// <summary> Calculate a crc for the data (used for debugging mainly) </summary>
 	unsigned int get_crc();
 	/// <summary> MLOG data in csv format </summary>
-	void print_csv();
+	void print_csv() const;
 	/// <summary> Get the corresponding MedSamples object .  Assuming samples vector in features are ordered  (all id's samples are consecutive) </summary>
-	void get_samples(MedSamples& outSamples);
+	void get_samples(MedSamples& outSamples) const;
 	/// <summary> Return the max serial_id_cnt </summary>
-	int get_max_serial_id_cnt();
+	int get_max_serial_id_cnt() const;
 
 	/// <summary> Write features (samples + weights + data) as csv with a header line  </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
-	int write_as_csv_mat(const string &csv_fname);
+	int write_as_csv_mat(const string &csv_fname) const;
 	/// <summary> Read features (samples + weights + data) from a csv file with a header line </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
 	int read_from_csv_mat(const string &csv_fname);
@@ -146,11 +146,11 @@ namespace medial {
 		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
 			vector<int> &filtered_row_ids, float price_ratio, bool print_verbose);
 		/// \brief split matrix to train test based on iFold value. folds is fold id for each sample
-		void split_matrix(MedFeatures& matrix, vector<int>& folds, int iFold,
-			MedFeatures& trainMatrix, MedFeatures& testMatrix);
+		void split_matrix(const MedFeatures& matrix, vector<int>& folds, int iFold,
+			MedFeatures& trainMatrix, MedFeatures& testMatrix, const vector<string> *selected_features = NULL);
 		/// \brief split matrix to train test based on iFold value. folds is map from patient id to fold
-		void split_matrix(MedFeatures& matrix, unordered_map<int, int>& folds, int iFold,
-			MedFeatures& trainMatrix, MedFeatures& testMatrix);
+		void split_matrix(const MedFeatures& matrix, unordered_map<int, int>& folds, int iFold,
+			MedFeatures& trainMatrix, MedFeatures& testMatrix, const vector<string> *selected_features = NULL);
 		/// \brief convert feature vector to it's prctil's value in each element
 		void convert_prctile(vector<float> &features_prctiles);
 		/// \brief does matching to specific target_prior. 
@@ -170,7 +170,7 @@ namespace medial {
 		/// \brief calculating mean. can have weights
 		template<class T> double mean_vec(const vector<T> &v, const vector<float> *weights = NULL);
 		/// \brief calculating std. can have weights
-		template<class T> double std_vec(const vector<T> &v, T mean ,const vector<float> *weights = NULL);
+		template<class T> double std_vec(const vector<T> &v, T mean, const vector<float> *weights = NULL);
 	}
 }
 

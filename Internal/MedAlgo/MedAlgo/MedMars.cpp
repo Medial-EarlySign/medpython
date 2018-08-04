@@ -111,7 +111,7 @@ MedMars::MedMars(void *_in_params)
 }
 
 //..............................................................................
-int MedMars::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedMars::Learn (float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	if (w != NULL)
 		MWARN("Weights are not implemented for Mars. Ignoring\n") ;
@@ -162,7 +162,7 @@ int MedMars::Learn (float *x, float *y, float *w, int nsamples, int nftrs) {
 }
 
 //..............................................................................
-int MedMars::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedMars::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	// transfer x to double
 	MedMat<double> xd;
@@ -234,12 +234,12 @@ size_t MedMars::deserialize(unsigned char *blob) {
 }
 
 // Printing
-void MedMars::print(FILE *fp, const string& prefix) {
+void MedMars::print(FILE *fp, const string& prefix) const {
 	fprintf(fp,"%s: MedMars : nMaxTerms %d nTerms %d nPreds %d\n",prefix.c_str(), nMaxTerms, nTerms, nPreds) ;
 }
 
 // Prdictions per sample
-int MedMars::n_preds_per_sample() 
+int MedMars::n_preds_per_sample() const
 {
 	return 1;
 }

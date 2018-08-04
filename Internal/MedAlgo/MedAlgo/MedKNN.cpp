@@ -101,7 +101,7 @@ knnMetric MedKNN::get_knn_metric(string name) {
 }
 
 
-int MedKNN::Learn(float *_x, float *_y, float *_w, int _nsamples, int _nftrs) {
+int MedKNN::Learn(float *_x, float *_y, const float *_w, int _nsamples, int _nftrs) {
 	nsamples=_nsamples;
 	nftrs=_nftrs;
 	x=(float *)realloc(x,nftrs*nsamples*sizeof(float));
@@ -123,7 +123,7 @@ int order_ftrs(float *x, int nsamples, int nftrs, float *weights, int *order) ;
 int knn_predict (float *test_x, int ind, float *learn_x, float *learn_y, int nlearn, int nftrs, float *weights, int *order, int *nbrs, double *dists, int k,
 					knnAveraging knnAv,knnMetric knnMetr, float *nbrs_x, float *nbrs_y, float *nbrs_w, float *nbrs_b, float *nbrs_r, float *pred) ;
 
-int MedKNN::Predict(float *xPred, float *&preds, int pred_samples,int _nftrs) {
+int MedKNN::Predict(float *xPred, float *&preds, int pred_samples,int _nftrs) const {
 	assert(preds);
 	assert(_nftrs==nftrs);
 	

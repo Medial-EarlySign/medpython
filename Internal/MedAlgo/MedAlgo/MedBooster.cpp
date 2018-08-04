@@ -251,7 +251,7 @@ int MedBooster::update_round_residuals_single_linear(MedMat<float> &y, vector<fl
 }
 
 //======================================================================================================================
-int MedBooster::predict(MedMat<float> &x, vector<float> &preds)
+int MedBooster::predict(MedMat<float> &x, vector<float> &preds) const
 {
 
 	// first we get predictions for all rounds

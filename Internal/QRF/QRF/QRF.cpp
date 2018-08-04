@@ -242,13 +242,13 @@ int QuantizedRF::init(float *X, int *Y, int nfeat, int nsamples, int maxq)
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QuantizedRF::init_regression(float *X, float *Y, float *W, int nfeat, int nsamples, int maxq)
+int QuantizedRF::init_regression(float *X, float *Y, const float *W, int nfeat, int nsamples, int maxq)
 {
 	return(init_all(X, NULL, Y, W, nfeat, nsamples, maxq));
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QuantizedRF::init_all(float *X, int *Y, float *Yr, float *W, int nfeat, int nsamples, int maxq)
+int QuantizedRF::init_all(float *X, int *Y, float *Yr, const float *W, int nfeat, int nsamples, int maxq)
 {
 	int i;
 
@@ -2040,7 +2040,7 @@ int QRF_Forest::get_forest_regression_trees(float *x, float *y, int nfeat, int n
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QRF_Forest::get_forest_categorical(float *x, float *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method)
+int QRF_Forest::get_forest_categorical(float *x, float *y, const float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int min_node, int ncateg, int splitting_method)
 {
 
 	if (splitting_method != QRF_CATEGORICAL_CHI2_TREE && splitting_method != QRF_CATEGORICAL_ENTROPY_TREE) {
@@ -2063,7 +2063,7 @@ int QRF_Forest::get_forest_categorical(float *x, float *y, float *w, int nfeat, 
 
 //-----------------------------------------------------------------------------------------------------------------------------------
 // in regression and categorical modes the sampsize is sampsize[0]
-int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int tree_mode)
+int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, const float *w, int nfeat, int nsamples, int *sampsize, int ntry, int ntrees, int maxq, int tree_mode)
 {
 	QuantizedRF qrf;
 
@@ -2208,7 +2208,7 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, float *w, int nfea
 //---------------------------------------------------------------------------------------------
 struct qrf_scoring_thread_params {
 	float *x;
-	vector<QRF_ResTree> *trees;
+	const vector<QRF_ResTree> *trees;
 	int from;
 	int to;
 	int nfeat;
@@ -2221,14 +2221,14 @@ struct qrf_scoring_thread_params {
 	int mode;
 	int n_categ;
 	vector<float> *quantiles;
-	vector<float> *sorted_values; 
+	const vector<float> *sorted_values; 
 
 	int get_counts; // for CATEGORICAL runs there's such an option, 0 - don't get, 1 - sum counts 2 - sum probs
 //	thread th_handle;
 };
 
-void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts,
-	vector<float> *quantiles, vector<float> *sorted_values)
+void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, const vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts,
+	vector<float> *quantiles, const vector<float> *sorted_values)
 {
 	tp.clear();
 	tp.resize(nsplit);
@@ -2268,7 +2268,7 @@ void get_score_thread(void *p)
 
 	int node;
 	int nfeat = tp->nfeat;
-	vector<QRF_ResTree> *trees = tp->trees;
+	const vector<QRF_ResTree> *trees = tp->trees;
 	vector<float> *quantiles = tp->quantiles;
 	int n_quantiles = (int)(*quantiles).size();
 	int n_categ = tp->n_categ;
@@ -2438,7 +2438,7 @@ void get_score_thread(void *p)
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *res)
+void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *res) const
 {
 	vector<qrf_scoring_thread_params> stp;
 
@@ -2485,16 +2485,16 @@ void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *re
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res)
+int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res) const
 {
 	return(score_samples(x_in, nfeat, nsamples, res, 0));
 }
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------
-int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res, int get_counts)
+int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res, int get_counts) const
 {
-	get_counts_flag = get_counts;
+	//get_counts_flag = get_counts; //already set in learn
 	if (mode != QRF_BINARY_TREE && mode != QRF_REGRESSION_TREE && mode != QRF_CATEGORICAL_CHI2_TREE && mode != QRF_CATEGORICAL_ENTROPY_TREE) {
 		fprintf(stderr, "qrf: score_samples - mode %d not supported\n", mode); fflush(stderr);
 		return -1;

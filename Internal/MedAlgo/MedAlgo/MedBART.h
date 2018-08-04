@@ -23,7 +23,7 @@ public:
 	/// we first see first observation all features and than second obseravtion all features...
 	/// @param y labels vector for each observation in x
 	/// </summary>
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	/// <summary>
 	/// prediction on x vector which represents matrix
 	/// @param x a vector which represnts matrix. the data is ordered by observations. 
@@ -34,7 +34,7 @@ public:
 	/// <returns>
 	/// @param preds the result scores for each observation
 	/// </returns>
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	/// <summary>
 	/// a simple default ctor

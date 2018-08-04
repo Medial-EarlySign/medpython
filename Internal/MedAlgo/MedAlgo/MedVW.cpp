@@ -32,7 +32,7 @@ int MedVW::init_from_string(string text) {
 	return 0;
 }
 
-int MedVW::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedVW::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	char buff[500];
 	for (int i = 0; i < nsamples; ++i)
 	{
@@ -53,7 +53,7 @@ int MedVW::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
 	return 0;
 }
 
-int MedVW::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedVW::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	char buff[500];
 	for (size_t i = 0; i < nsamples; ++i)
 	{

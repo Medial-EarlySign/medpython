@@ -16,7 +16,7 @@ int MedFeatures::global_serial_id_cnt = 0;
 //=======================================================================================
 // Get a vector of feature names
 //.......................................................................................
-void MedFeatures::get_feature_names(vector<string>& names) {
+void MedFeatures::get_feature_names(vector<string>& names) const {
 
 	names.resize(data.size());
 
@@ -27,14 +27,14 @@ void MedFeatures::get_feature_names(vector<string>& names) {
 
 // Get data (+attributes) as matrix
 //.......................................................................................
-void MedFeatures::get_as_matrix(MedMat<float>& mat) {
+void MedFeatures::get_as_matrix(MedMat<float>& mat) const {
 	vector<string> dummy_names;
 	get_as_matrix(mat, dummy_names);
 }
 
 // Get subset of data (+attributes) as matrix : Only features in 'names'
 //.......................................................................................
-void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
+void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const {
 
 	// Which Features to take ?
 	vector<string> namesToTake;
@@ -51,7 +51,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
 
 	vector<float *> datap;
 	for (string& name : namesToTake)
-		datap.push_back((float *)(&data[name][0]));
+		datap.push_back((float *)(&data.at(name)[0]));
 
 #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < (int)datap.size(); i++) {
@@ -66,9 +66,9 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
 	// Normalization flag
 	mat.normalized_flag = true;
 	for (string& name : namesToTake)
-		mat.normalized_flag &= (int)attributes[name].normalized;
+		mat.normalized_flag &= (int)attributes.at(name).normalized;
 	for (string& name : namesToTake)
-		mat.normalized_flag &= (int)attributes[name].imputed;
+		mat.normalized_flag &= (int)attributes.at(name).imputed;
 
 	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
 	int index = 0;
@@ -89,7 +89,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) {
 
 // Get subset of data (+attributes) as matrix: Only features in 'names' and rows in 'idx'
 //.......................................................................................
-void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names, vector<int> &idx)
+void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names, vector<int> &idx) const
 {
 	// Which Features to take ?
 	vector<string> namesToTake;
@@ -106,7 +106,7 @@ void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names,
 
 	vector<float *> datap;
 	for (string& name : namesToTake)
-		datap.push_back((float *)(&data[name][0]));
+		datap.push_back((float *)(&data.at(name)[0]));
 
 #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < (int)datap.size(); i++) {
@@ -122,9 +122,9 @@ void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names,
 	// Normalization flag
 	mat.normalized_flag = true;
 	for (string& name : namesToTake)
-		mat.normalized_flag &= (int)attributes[name].normalized;
+		mat.normalized_flag &= (int)attributes.at(name).normalized;
 	for (string& name : namesToTake)
-		mat.normalized_flag &= (int)attributes[name].imputed;
+		mat.normalized_flag &= (int)attributes.at(name).imputed;
 
 	int index = 0;
 	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
@@ -243,7 +243,7 @@ unsigned int MedFeatures::get_crc()
 
 // MLOG data in csv format 
 //.......................................................................................
-void MedFeatures::print_csv()
+void MedFeatures::print_csv() const
 {
 	for (auto &vec : data) {
 		MLOG("%s :: ", vec.first.c_str());
@@ -256,7 +256,7 @@ void MedFeatures::print_csv()
 // Write features (samples + weights + data) as csv with a header line
 // Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
-int MedFeatures::write_as_csv_mat(const string &csv_fname)
+int MedFeatures::write_as_csv_mat(const string &csv_fname) const
 {
 	ofstream out_f;
 
@@ -307,7 +307,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname)
 
 		// features
 		for (int j = 0; j < col_names.size(); j++)
-			out_f << "," << data[col_names[j]][i];
+			out_f << "," << data.at(col_names[j])[i];
 		out_f << "\n";
 	}
 
@@ -439,7 +439,7 @@ int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 
 // Get the corresponding MedSamples object .  Assuming samples are ordered in features (all id's samples are consecutive)
 //.......................................................................................
-void MedFeatures::get_samples(MedSamples& outSamples) {
+void MedFeatures::get_samples(MedSamples& outSamples) const {
 
 	for (auto& sample : samples) {
 		if (outSamples.idSamples.size() && outSamples.idSamples.back().id == sample.id)
@@ -457,7 +457,7 @@ void MedFeatures::get_samples(MedSamples& outSamples) {
 
 // Find the max serial_id_cnt
 //.......................................................................................
-int MedFeatures::get_max_serial_id_cnt() {
+int MedFeatures::get_max_serial_id_cnt() const {
 
 	int max = 0;
 	for (auto& rec : data) {
@@ -972,17 +972,20 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	}
 }
 
-void medial::process::split_matrix(MedFeatures& matrix, vector<int>& folds, int iFold,
-	MedFeatures& trainMatrix, MedFeatures& testMatrix) {
+void medial::process::split_matrix(const MedFeatures& matrix, vector<int>& folds, int iFold,
+	MedFeatures& trainMatrix, MedFeatures& testMatrix, const vector<string> *selected_features) {
 	MedFeatures *matrixPtrs[2] = { &trainMatrix, &testMatrix };
 
 	// Prepare
 	vector<string> features;
-	matrix.get_feature_names(features);
+	if (selected_features == NULL || selected_features->empty())
+		matrix.get_feature_names(features);
+	else
+		features = *selected_features;
 
 	for (const string& ftr : features) {
-		trainMatrix.attributes[ftr] = matrix.attributes[ftr];
-		testMatrix.attributes[ftr] = matrix.attributes[ftr];
+		trainMatrix.attributes[ftr] = matrix.attributes.at(ftr);
+		testMatrix.attributes[ftr] = matrix.attributes.at(ftr);
 	}
 	//realloc memory:
 	int selection_cnt = 0;
@@ -1004,24 +1007,27 @@ void medial::process::split_matrix(MedFeatures& matrix, vector<int>& folds, int 
 		int ptrIdx = (folds[i] == iFold) ? 1 : 0;
 		matrixPtrs[ptrIdx]->samples.push_back(matrix.samples[i]);
 		for (string& ftr : features)
-			matrixPtrs[ptrIdx]->data[ftr].push_back(matrix.data[ftr][i]);
+			matrixPtrs[ptrIdx]->data[ftr].push_back(matrix.data.at(ftr)[i]);
 
 		if (!matrix.weights.empty())
 			matrixPtrs[ptrIdx]->weights.push_back(matrix.weights[i]);
 	}
 }
 
-void medial::process::split_matrix(MedFeatures& matrix, unordered_map<int, int>& folds, int iFold,
-	MedFeatures& trainMatrix, MedFeatures& testMatrix) {
+void medial::process::split_matrix(const MedFeatures& matrix, unordered_map<int, int>& folds, int iFold,
+	MedFeatures& trainMatrix, MedFeatures& testMatrix, const vector<string> *selected_features) {
 	MedFeatures *matrixPtrs[2] = { &trainMatrix, &testMatrix };
 
 	// Prepare
 	vector<string> features;
-	matrix.get_feature_names(features);
+	if (selected_features == NULL || selected_features->empty())
+		matrix.get_feature_names(features);
+	else
+		features = *selected_features;
 
 	for (const string& ftr : features) {
-		trainMatrix.attributes[ftr] = matrix.attributes[ftr];
-		testMatrix.attributes[ftr] = matrix.attributes[ftr];
+		trainMatrix.attributes[ftr] = matrix.attributes.at(ftr);
+		testMatrix.attributes[ftr] = matrix.attributes.at(ftr);
 	}
 	//realloc memory:
 	int selection_cnt = 0;
@@ -1043,7 +1049,7 @@ void medial::process::split_matrix(MedFeatures& matrix, unordered_map<int, int>&
 		int ptrIdx = (folds[matrix.samples[i].id] == iFold) ? 1 : 0;
 		matrixPtrs[ptrIdx]->samples.push_back(matrix.samples[i]);
 		for (string& ftr : features)
-			matrixPtrs[ptrIdx]->data[ftr].push_back(matrix.data[ftr][i]);
+			matrixPtrs[ptrIdx]->data[ftr].push_back(matrix.data.at(ftr)[i]);
 
 		if (!matrix.weights.empty())
 			matrixPtrs[ptrIdx]->weights.push_back(matrix.weights[i]);

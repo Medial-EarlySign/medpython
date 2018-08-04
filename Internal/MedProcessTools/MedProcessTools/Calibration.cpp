@@ -534,7 +534,9 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 
 	MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
 	for (size_t i = 0; i < map_prob.size(); ++i)
-		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f\n", min_range[i], max_range[i], map_prob[i]);
+		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n", 
+			min_range[i], max_range[i], map_prob[i],
+			100 * double(bin_cnts[i]) / y.size(), bin_cnts[i], (int)y.size());
 }
 
 void learn_platt_scale(vector<float> x, vector<float> &y,

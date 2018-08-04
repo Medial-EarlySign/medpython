@@ -21,8 +21,8 @@ public:
 	///The initialization parameters - please look at vowpal wabbit documentation
 	int init_from_string(string text);
 
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs);
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	size_t get_size();
 	size_t serialize(unsigned char *blob);

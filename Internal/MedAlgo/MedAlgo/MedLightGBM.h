@@ -43,14 +43,14 @@ namespace LightGBM {
 		int init(map<string, string>& initialization_map);
 
 		// train
-		int InitTrain(float *xdata, float *ydata, float *weight, int nrows, int ncols);
+		int InitTrain(float *xdata, float *ydata, const float *weight, int nrows, int ncols);
 		void Train();
 
 		// predict
-		void Predict(float *x, int nrows, int ncols, float *&preds);
+		void Predict(float *x, int nrows, int ncols, float *&preds) const;
 
 		// initializing the train_data_ object from a float c matrix
-		int InitTrainData(float *xdata, float *ydata, float *weight, int nrows, int ncols);
+		int InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols);
 
 		// string serializations
 		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0; }
@@ -67,7 +67,7 @@ namespace LightGBM {
 		}
 
 		// n_preds 
-		int n_preds_per_sample() {
+		int n_preds_per_sample() const {
 
 			int num_preb_in_one_row = config_.boosting_config.num_class;
 			int is_pred_leaf = config_.io_config.is_predict_leaf_index ? 1 : 0;
@@ -186,7 +186,7 @@ public:
 	~MedLightGBM() {};
 
 	// learn predict
-	int Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 		fprintf(stderr, "Starting a LightGBM train session...\n");
 		mem_app.InitTrain(x, y, w, nsamples, nftrs);
 		mem_app.Train();
@@ -194,7 +194,7 @@ public:
 		return 0;
 	}
 	int Learn(float *x, float *y, int nsamples, int nftrs) { return Learn(x, y, NULL, nsamples, nftrs); }
-	int Predict(float *x, float *&preds, int nsamples, int nftrs) {
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 		//mem_app.InitPredict(x, nsamples, nftrs);
 		mem_app.Predict(x, nsamples, nftrs, preds);
 		return 0;
@@ -206,7 +206,7 @@ public:
 		const string &general_params);
 
 
-	int n_preds_per_sample() { return mem_app.n_preds_per_sample(); }
+	int n_preds_per_sample() const { return mem_app.n_preds_per_sample(); }
 
 
 	// serializations

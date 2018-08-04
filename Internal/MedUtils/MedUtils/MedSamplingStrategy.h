@@ -65,6 +65,7 @@ public:
 	int allowed_time_from; ///< time window settings whem use_allowed is on
 	int allowed_time_to; ///< time window settings whem use_allowed is on
 	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
+	bool use_time_control_as_case; ///< if True will use time window
 
 	///sample by year from year to year by jump and find match in registry
 	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
@@ -82,6 +83,7 @@ public:
 		end_year = 0;
 		allowed_time_to = 0;
 		allowed_time_from = 0;
+		use_time_control_as_case = false;
 	}
 private:
 	random_device rd;
@@ -99,6 +101,7 @@ public:
 	int age_bin; ///< the age bin in years for jumping
 	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
 	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
+	bool use_time_control_as_case; ///< if True will use time window
 
 	///sample by year from age to age by jump and find match in registry
 	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
@@ -109,6 +112,7 @@ public:
 		age_bin = 1;
 		conflict_method = "all";
 		use_allowed = false;
+		use_time_control_as_case = false;
 	}
 
 	int init(map<string, string>& map);

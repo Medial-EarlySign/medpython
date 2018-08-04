@@ -192,31 +192,33 @@ typedef enum {
 class BasicFeatGenerator : public FeatureGenerator {
 private:
 	// actual generators
-	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to); // Added the win as needed to be called on different ones in uget_win_delta
-	float uget_first(UniversalSigVec &usv, int time_point);
-	float uget_last2(UniversalSigVec &usv, int time_point);
-	float uget_avg(UniversalSigVec &usv, int time_point);
-	float uget_max(UniversalSigVec &usv, int time_point);
-	float uget_min(UniversalSigVec &usv, int time_point);
-	float uget_std(UniversalSigVec &usv, int time_point);
-	float uget_last_delta(UniversalSigVec &usv, int time_point);
-	float uget_last_time(UniversalSigVec &usv, int time_point);
-	float uget_last2_time(UniversalSigVec &usv, int time_point);
-	float uget_slope(UniversalSigVec &usv, int time_point);
-	float uget_win_delta(UniversalSigVec &usv, int time_point);
-	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
-	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
-	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
-	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to);
-	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to);
-	float uget_max_diff(UniversalSigVec &usv, int time_point);
-	float uget_first_time(UniversalSigVec &usv, int time_point);
-	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point);
+	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime); // Added the win as needed to be called on different ones in uget_win_delta
+	float uget_first(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_last2(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_avg(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_max(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_min(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_std(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_last_delta(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_last_time(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_last2_time(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_slope(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_win_delta(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime);
+	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime);
+	float uget_max_diff(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_first_time(UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
 
 public:
 	// Feature Descrption
 	string signalName;
 	int signalId;
+
+	int version() { return 1; } ///< added "bound_outcomeTime" in version 1
 
 	// parameters (should be serialized)
 	BasicFeatureTypes type = FTR_LAST;
@@ -231,6 +233,7 @@ public:
 	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and _generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
+	bool bound_outcomeTime; ///< If true will truncate time window till outcomeTime
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
@@ -263,7 +266,7 @@ public:
 
 	/// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
-	float get_value(PidDynamicRec& rec, int index, int time);
+	float get_value(PidDynamicRec& rec, int index, int time, int outcomeTime);
 
 	/// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -274,7 +277,7 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
 		time_unit_win, time_channel, val_channel, sum_channel, signalName, sets,
-		names, req_signals, in_set_name)
+		names, req_signals, in_set_name ,bound_outcomeTime)
 
 };
 
@@ -381,7 +384,7 @@ public:
 	//~GenderGenerator() {};
 
 	// Name
-	void set_names() { if (names.empty()) names.push_back("Gender"); tags.push_back("Gender");}
+	void set_names() { if (names.empty()) names.push_back("Gender"); tags.push_back("Gender"); }
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<GenderGenerator *>(generator)); }

@@ -32,7 +32,7 @@ Learner* Learner::Create(const std::vector<DMatrix*>& cache_data) {
 }
 #endif
 */
-int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) {
+int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	DMatrixHandle h_test;
 	if (XGDMatrixCreateFromMat(x, nsamples, nftrs, params.missing_value, &h_test) == -1)
 		MTHROW_AND_ERR("failed to XGDMatrixCreateFromMat");
@@ -106,7 +106,7 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 	return 0;
 }
 
-int MedXGB::Learn(float *x, float *y, float *w, int nsamples, int nftrs) {
+int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	DMatrixHandle h_train[1];
 	if (XGDMatrixCreateFromMat(x, nsamples, nftrs, params.missing_value, &h_train[0]) != 0)
 		MTHROW_AND_ERR("failed to XGDMatrixCreateFromMat");
@@ -191,7 +191,7 @@ size_t MedXGB::get_size() {
 		+ MedSerialize::get_size(features_count);
 }
 
-void MedXGB::print(FILE *fp, const string& prefix) {
+void MedXGB::print(FILE *fp, const string& prefix) const {
 	fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
 }
 

@@ -95,6 +95,8 @@ DEFINE_CHECK_FUNC(_EQ, ==)
 DEFINE_CHECK_FUNC(_NE, !=)
 
 // Always-on checking
+#undef CHECK
+#undef CHECK_NOTNULL
 #define CHECK(x)                                           \
   if (!(x))                                                \
     dmlc::LogMessageFatal(__FILE__, __LINE__).stream()     \

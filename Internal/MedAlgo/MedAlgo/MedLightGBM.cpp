@@ -53,7 +53,7 @@ namespace LightGBM {
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	int MemApp::InitTrainData(float *xdata, float *ydata, float *weight, int nrows, int ncols)
+	int MemApp::InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols)
 	{
 		MLOG("MedLightGBM:: init train data %d x %d\n", nrows, ncols);
 		if (config_.num_threads > 0) omp_set_num_threads(config_.num_threads);
@@ -122,7 +122,7 @@ namespace LightGBM {
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	int MemApp::InitTrain(float *xdata, float *ydata, float *weight, int nrows, int ncols) {
+	int MemApp::InitTrain(float *xdata, float *ydata, const float *weight, int nrows, int ncols) {
 		if (config_.is_parallel) { Log::Info("parallel mode not supported yet for MedLightGBM !!"); return -1; }
 
 		// create boosting
@@ -168,7 +168,7 @@ namespace LightGBM {
 
 
 	//-------------------------------------------------------------------------------------------------
-	void MemApp::Predict(float *x, int nrows, int ncols, float *&preds)
+	void MemApp::Predict(float *x, int nrows, int ncols, float *&preds) const
 	{
 		auto get_row_fun = RowPairFunctionFromDenseMatric(x, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
 
