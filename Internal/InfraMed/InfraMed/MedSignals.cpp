@@ -215,19 +215,21 @@ int MedSignals::read(const string &fname)
 					if (my_repo != NULL)
 						info.time_unit = my_repo->time_unit;
 
-					if (fields.size() == 7) {
+					if (fields.size() >= 6) {
 						int channel = 0;
 						for (char c : fields[5]) {
 							if (c != '0' && c != '1')
-								MTHROW_AND_ERR("is_categorical_per_val_channel for signal [%s] is [%s], expected a bitmap of 1/0 only\n", 
-									info.name.c_str(),	fields[5].c_str());
+								MTHROW_AND_ERR("is_categorical_per_val_channel for signal [%s] is [%s], expected a bitmap of 1/0 only\n",
+									info.name.c_str(), fields[5].c_str());
 							if (c == '1')
 								info.is_categorical_per_val_channel[channel] = 1;
 							channel++;
 						}
+					}
+					if (fields.size() >= 7) {
 						vector<string> units;
 						split(units, fields[6], boost::is_any_of("|"));
-						channel = 0;
+						int channel = 0;
 						for (string unit : units) {
 							info.unit_of_measurement_per_val_channel[channel] = unit;
 							channel++;
@@ -241,7 +243,6 @@ int MedSignals::read(const string &fname)
 				MLOG("[%s]", fields[0].c_str());
 				MTHROW_AND_ERR("MedSignals: read: can't parse line: %s (%d)\n", curr_line.c_str(), fields.size());
 			}
-
 		}
 	}
 
@@ -257,63 +258,6 @@ int MedSignals::read(const string &fname)
 	fnames.push_back(fname);
 	MLOG_D("Finished reading signals file %s\n", fname.c_str());
 	return 0;
-}
-
-//-----------------------------------------------------------------------------------------------
-int MedSignals::read_sfile(const string &fname)
-{
-	ifstream inf(fname);
-
-	if (!inf) {
-		MERR("MedSignals: read: Can't open file %s\n", fname.c_str());
-		return -1;
-	}
-
-	fnames.push_back(fname); // TBD : check that we didn't already load this file
-	string curr_line;
-	MLOG_D("Working on signals file %s\n", fname.c_str());
-	while (getline(inf, curr_line)) {
-		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
-			vector<string> fields;
-			split(fields, curr_line, boost::is_any_of(" \t"));
-
-			if (fields.size() == 2) {
-				if (Name2Sid.find(fields[1]) != Name2Sid.end()) {
-					int sid = Name2Sid[fields[1]];
-					if (sid >= Sid2Info.size()) {
-						SignalInfo si;
-						si.sid = -1;
-						Sid2Info.resize(sid + 1, si);
-					}
-					Sid2Info[sid].fno = stoi(fields[0]);
-					Sid2Info[sid].sid = sid;
-					if (my_repo != NULL)
-						Sid2Info[sid].time_unit = my_repo->time_unit;
-					//MLOG("read_sfile: %s\n", curr_line.c_str());
-					//MLOG("read_sfile: sid %d fno %d\n", sid, _Sid2Info[sid].fno);
-				}
-				else {
-					MERR("MedSignals:: ERROR: Unrecognized signal %s in file %s\n", fields[1].c_str(), fname.c_str());
-				}
-			}
-		}
-	}
-
-	signals_to_files = fname;
-	return 0;
-}
-
-//-----------------------------------------------------------------------------------------------
-int MedSignals::read_sfile(const string &path, const string &sfile_name)
-{
-	string fname;
-
-	if (path == "")
-		fname = sfile_name;
-	else
-		fname = path + "/" + sfile_name;
-
-	return(read_sfile(fname));
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -338,6 +282,25 @@ int MedSignals::type(int sid)
 	if (sid >= Sid2Info.size() || Sid2Info[sid].sid == -1)
 		return -1;
 	return Sid2Info[sid].type;
+}
+
+//-----------------------------------------------------------------------------------------------
+int MedSignals::has_any_categorical_channel(const string &name)
+{
+	if (Name2Sid.find(name) == Name2Sid.end())
+		return -1;
+	return has_any_categorical_channel(Name2Sid[name]);
+}
+
+//-----------------------------------------------------------------------------------------------
+int MedSignals::has_any_categorical_channel(int sid)
+{
+	if (sid >= Sid2Info.size() || Sid2Info[sid].sid == -1)
+		return -1;
+	for (int val_channel = 0; val_channel < Sid2Info[sid].n_val_channels; val_channel++)
+		if (Sid2Info[sid].is_categorical_per_val_channel[val_channel] == 1)
+			return 1;
+	return 0;
 }
 
 

@@ -424,13 +424,8 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 	}
 
 	if (rep_mode < 2) {
-		if (fsignals_to_files != "" && sigs.read_sfile(path, fsignals_to_files) < 0) {
-			MERR("MedRepository: read_all: error: read signals to files file %s failed\n", fsignals_to_files.c_str());
-			return -1;
-		}
-		MLOG_D("MedRepository: read %d signal files\n", signal_fnames.size());
-	}
-	else {
+		MTHROW_AND_ERR("MedRepository: rep_mode %d is no longer supported\n", rep_mode);
+	} else {
 		// mode 2 TBD !!!
 		generate_fnames_for_prefix();
 	}
@@ -592,149 +587,108 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	return NULL;
 }
 
-//-----------------------------------------------------------
-void MedRepository::print_data_vec(int pid, const string &sig_name)
-{
-	int sid = sigs.sid(sig_name);
-	if (sid < 0)
-		return;
-	print_data_vec(pid, sid);
-}
 string MedRepository::convert_date(int d, int sid) {
 	return med_time_converter.convert_times_S(
 		sigs.Sid2Info[sid].time_unit, MedTime::DateTimeString, d);
 }
-
+void MedRepository::print_channel_helper(int sid, int channel, float val) {
+	if (sigs.is_categorical_channel(sid, channel)) {
+		MOUT(" %d ", (int)val);
+		int section_id = dict.section_id(sigs.name(sid));
+		int drug_sid = sigs.sid("Drug");
+		int drugs_nice_names_section = dict.section_id("Drugs_nice_names");
+		if (sid == drug_sid && drugs_nice_names_section != 0) {
+			// ugly hack: Drug names do not specify ATC category
+			MLOG_D("replacing Drug=[%d] with Drugs_nice_names=[%d]\n", section_id, drugs_nice_names_section);
+			section_id = drugs_nice_names_section;
+		}
+		int names_printed = 0;
+		if (dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end())
+			for (int j = 0; j < dict.dict(section_id)->Id2Names[val].size(); j++) {
+				string st = dict.dict(section_id)->Id2Names[val][j];
+				MOUT("|%s", st.c_str());
+				if (++names_printed == 3)
+					break;
+			}
+	}
+	else
+		MOUT(" %f ", val);
+}
 //-----------------------------------------------------------
 void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 {
 	MOUT("pid %d sid %d %s ::", pid, sid, sigs.name(sid).c_str());
 
-	int drug_sid = sigs.sid("Drug");
-
-	MOUT(" %d ::\n", len);
+	MOUT(" %d :: ", len);
+	if (sigs.has_any_categorical_channel(sid))
+		MOUT("\n");
 	int val;
-	int section_id = dict.section_id(sigs.name(sid));
-	int drugs_nice_names_section = dict.section_id("Drugs_nice_names");
-	if (sid == drug_sid && drugs_nice_names_section != 0) {
-		MLOG("replacing Drug=[%d] with Drugs_nice_names=[%d]\n", section_id, drugs_nice_names_section);
-		section_id = drugs_nice_names_section;
-	}
 
 	for (int i = 0; i < len; i++) {
 		if (sigs.type(sid) == T_Value) {
 			SVal *v = (SVal *)data;
-			MOUT(" %d ", val = (int)v[i].val);
+			print_channel_helper(sid, 0, v[i].val);
 		}
 		else if (sigs.type(sid) == T_DateVal) {
 			SDateVal *v = (SDateVal *)data;
-			MOUT(" %s %d ", convert_date(v[i].date, sid).c_str(), val = (int)v[i].val);
-		}
-		else if (sigs.type(sid) == T_DateVal2) {
-			SDateVal2 *v = (SDateVal2 *)data;
-			MOUT(" %s %d %d ", convert_date(v[i].date, sid).c_str(), val = (int)v[i].val, v[i].val2);
-		}
-		else if (sigs.type(sid) == T_DateRangeVal) {
-			SDateRangeVal *v = (SDateRangeVal *)data;
-			MOUT(" %s %s %d :", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), val = (int)v[i].val);
-		}
-		else if (sigs.type(sid) == T_DateRangeVal2) {
-			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
-			MOUT(" %s %s %d %d:", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), 
-				(int)v[i].val, val = (short)v[i].val2);
-		}
-		else if (sigs.type(sid) == T_CompactDateVal) {
-			SCompactDateVal *v = (SCompactDateVal *)data;
-			MOUT(" %d %d ", compact_date_to_date(v[i].compact_date), val = (int)v[i].val);
-		}
-		else if (sigs.type(sid) == T_DateShort2) {
-			SDateShort2 *v = (SDateShort2 *)data;
-			MOUT(" %s %d %d ", convert_date(v[i].date, sid).c_str(), val = (int)v[i].val1, v[i].val2);
-		}
-
-		int names_printed = 0;
-		if (dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end())
-			for (int j = 0; j < dict.dict(section_id)->Id2Names[val].size(); j++) {
-				string st = dict.dict(section_id)->Id2Names[val][j];
-				if (sid != drug_sid || st.compare(0, 3, "dc:") == 0) {
-					MOUT("|%s", st.c_str());
-					if (++names_printed == 3)
-						break;
-				}
-			}
-		MOUT(" :\n");
-	}
-}
-
-
-//-----------------------------------------------------------
-void MedRepository::print_vec(void *data, int len, int pid, int sid)
-{
-	MOUT("pid %d sid %d %s ::", pid, sid, sigs.name(sid).c_str());
-	MOUT(" %d ::", len);
-	for (int i = 0; i < len; i++) {
-		if (sigs.type(sid) == T_Value) {
-			SVal *v = (SVal *)data;
-			MOUT(" %f :", v[i].val);
-		}
-		else if (sigs.type(sid) == T_DateVal) {
-			SDateVal *v = (SDateVal *)data;
-			MOUT(" %s %f :", convert_date(v[i].date, sid).c_str(), v[i].val);
-		}
-		else if (sigs.type(sid) == T_DateRangeVal) {
-			SDateRangeVal *v = (SDateRangeVal *)data;
-			MOUT(" %s %s %f :", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), v[i].val);
-		}
-		else if (sigs.type(sid) == T_DateRangeVal2) {
-			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
-			MOUT(" %s %s %f %d:", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str(), v[i].val, v[i].val2);
-		}
-		else if (sigs.type(sid) == T_DateVal2) {
-			SDateVal2 *v = (SDateVal2 *)data;
-			MOUT(" %s %f %d :", convert_date(v[i].date, sid).c_str(), v[i].val, v[i].val2);
-		}
-		else if (sigs.type(sid) == T_DateShort2) {
-			SDateShort2 *v = (SDateShort2 *)data;
-			MOUT(" %s %d,%d :", convert_date(v[i].date, sid).c_str(), v[i].val1, v[i].val2);
-		}
-		else if (sigs.type(sid) == T_ValShort2) {
-			SValShort2 *v = (SValShort2 *)data;
-			MOUT(" %d,%d :", v[i].val1, v[i].val2);
-		}
-		else if (sigs.type(sid) == T_ValShort4) {
-			SValShort4 *v = (SValShort4 *)data;
-			MOUT(" %d,%d,%d,%d :", v[i].val1, v[i].val2, v[i].val3, v[i].val4);
-		}
-		else if (sigs.type(sid) == T_CompactDateVal) {
-			SCompactDateVal *v = (SCompactDateVal *)data;
-			MOUT(" %d %d :", compact_date_to_date(v[i].compact_date), v[i].val);
+			MOUT(" %s ", convert_date(v[i].date, sid).c_str());
+			print_channel_helper(sid, 0, v[i].val);
 		}
 		else if (sigs.type(sid) == T_TimeVal) {
 			STimeVal *v = (STimeVal *)data;
-			MOUT(" %lld %f :", v[i].time, v[i].val);
+			MOUT(" %lld ", v[i].time);
+			print_channel_helper(sid, 0, v[i].val);
 		}
-		else if (sigs.type(sid) == T_TimeRangeVal) {
-			STimeRangeVal *v = (STimeRangeVal *)data;
-			MOUT(" %lld - %lld  %f :", v[i].time_start, v[i].time_end, v[i].val);
+		else if (sigs.type(sid) == T_DateRangeVal) {
+			SDateRangeVal *v = (SDateRangeVal *)data;
+			MOUT(" %s %s ", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str());
+			print_channel_helper(sid, 0, v[i].val);
 		}
 		else if (sigs.type(sid) == T_TimeStamp) {
 			STimeStamp *v = (STimeStamp*)data;
-			MOUT(" %s :", convert_date(v[i].time, sid).c_str());
+			MOUT(" %s ", convert_date(v[i].time, sid).c_str());
 		}
+		else if (sigs.type(sid) == T_TimeRangeVal) {
+			STimeRangeVal *v = (STimeRangeVal *)data;
+			MOUT(" %lld - %lld  ", v[i].time_start, v[i].time_end);
+			print_channel_helper(sid, 0, v[i].val);
+		}
+		else if (sigs.type(sid) == T_DateVal2) {
+			SDateVal2 *v = (SDateVal2 *)data;
+			MOUT(" %s ", convert_date(v[i].date, sid).c_str());
+			print_channel_helper(sid, 0, v[i].val);
+			print_channel_helper(sid, 1, v[i].val2);
+		}
+
+		else if (sigs.type(sid) == T_DateShort2) {
+			SDateShort2 *v = (SDateShort2 *)data;
+			MOUT(" %s ", convert_date(v[i].date, sid).c_str());
+			print_channel_helper(sid, 0, v[i].val1);
+			print_channel_helper(sid, 1, v[i].val2);
+		}
+		else if (sigs.type(sid) == T_ValShort2) {
+			SValShort2 *v = (SValShort2 *)data;
+			print_channel_helper(sid, 0, v[i].val1);
+			print_channel_helper(sid, 1, v[i].val2);
+		}
+
+		else if (sigs.type(sid) == T_CompactDateVal) {
+			SCompactDateVal *v = (SCompactDateVal *)data;
+			MOUT(" %d ", compact_date_to_date(v[i].compact_date));
+			print_channel_helper(sid, 0, v[i].val);
+		}
+		else if (sigs.type(sid) == T_DateRangeVal2) {
+			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
+			MOUT(" %s %s ", convert_date(v[i].date_start, sid).c_str(), convert_date(v[i].date_end, sid).c_str());
+			print_channel_helper(sid, 0, v[i].val);
+			print_channel_helper(sid, 1, v[i].val2);
+		}
+		if (sigs.has_any_categorical_channel(sid))
+			MOUT(" :\n");
+		else 
+			MOUT(" : ");
 	}
 	MOUT("\n");
-
-}
-
-//-----------------------------------------------------------
-void MedRepository::print_data_vec(int pid, int sid)
-{
-
-
-	int len = 0;
-	void *data = get(pid, sid, len);
-
-	print_vec(data, len, pid, sid);
 }
 
 //-----------------------------------------------------------

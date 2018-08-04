@@ -902,7 +902,7 @@ int PidDynamicRec::print_ver(int sid, int ver)
 	int len;
 	void *data = get(sid, ver, len);
 	MLOG("VER %d :: ", ver);
-	my_base_rep->print_vec(data, len, pid, sid);
+	my_base_rep->print_vec_dict(data, len, pid, sid);
 	//MLOG("Record size: data_size %d data_len %d curr_len %d\n", data_size, data_len, curr_len);
 	return 0;
 }
@@ -913,7 +913,7 @@ int PidDynamicRec::print_all_vers(int sid)
 	MLOG("ORIG  :: ");
 	int len;
 	void *data = PidRec::get(sid, len);
-	my_base_rep->print_vec(data, len, pid, sid);
+	my_base_rep->print_vec_dict(data, len, pid, sid);
 
 	for (int ver=0; ver<n_versions; ver++)
 		print_ver(sid, ver);

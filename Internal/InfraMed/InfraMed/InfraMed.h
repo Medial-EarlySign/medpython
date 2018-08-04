@@ -431,13 +431,11 @@ public:
 	int contains_sid(int sid);
 
 	// printing routines (mainly for debugging)
-	void print_vec(void *data, int len, int pid, int sid);
 	void print_vec_dict(void *data, int len, int pid, int sid);
+	void print_channel_helper(int sid, int channel, float val);
 	string convert_date(int d, int sid);
-	void print_data_vec(int pid, int sid);
 	void print_data_vec_dict(int pid, int sid);
 	void print_csv_vec(void * data, int len, int pid, int sid, bool dict_val);
-	void print_data_vec(int pid, const string &sig_name);
 
 
 	// getting all the dates for a pid in which there was at least one of the given signals

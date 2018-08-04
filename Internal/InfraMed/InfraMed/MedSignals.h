@@ -626,9 +626,6 @@ class MedSignals {
 		int read(vector<string> &sfnames);
 		int read(string path, vector<string> &sfnames);
 
-		int read_sfile(const string &fname);
-		int read_sfile(const string &path, const string &sfile_name);
-
 		inline int sid(const string &name);
 		string name(int sid);
 		int type(const string &name);
@@ -637,6 +634,8 @@ class MedSignals {
 		string desc(int sid);
 		int fno(const string &sig_name);
 		int fno(int sid);
+		int has_any_categorical_channel(const string &sig_name);
+		int has_any_categorical_channel(int sid);
 		int is_categorical_channel(const string &sig_name, int val_channel);
 		int is_categorical_channel(int sid, int val_channel);
 		string unit_of_measurement(const string &name, int val_channel);
