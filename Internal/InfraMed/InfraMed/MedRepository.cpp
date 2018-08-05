@@ -598,7 +598,7 @@ void MedRepository::print_channel_helper(int sid, int channel, float val) {
 		int drug_sid = sigs.sid("Drug");
 		int drugs_nice_names_section = dict.section_id("Drugs_nice_names");
 		if (sid == drug_sid && drugs_nice_names_section != 0) {
-			// ugly hack: Drug names do not specify ATC category
+			// ugly hack: Drug names do not specify ATC category, so we use Drugs_nice_names instead
 			MLOG_D("replacing Drug=[%d] with Drugs_nice_names=[%d]\n", section_id, drugs_nice_names_section);
 			section_id = drugs_nice_names_section;
 		}

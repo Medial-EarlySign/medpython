@@ -53,7 +53,7 @@ void MedConvert::clear()
 	serial2sid.clear();
 	forced.clear();
 	safe_mode = 0;
-	time_unit = MedTime::Date;
+	default_time_unit = MedTime::Date;
 }
 
 //------------------------------------------------
@@ -100,8 +100,8 @@ int MedConvert::read_config(const string &fname)
 				if (fields[0].compare("PREFIX") == 0) rep_files_prefix = fields[1];
 				if (fields[0].compare("RELATIVE") == 0) relative = 1;
 				if (fields[0].compare("TIMEUNIT") == 0 || fields[0].compare("TIME_UNIT") == 0) {
-					time_unit = med_stoi(fields[1]);
-					MLOG("MedConvert: Will convert all dates field to MedTime::[%d] format\n", time_unit);
+					default_time_unit = med_stoi(fields[1]);
+					MLOG("MedConvert: Will convert all dates field to MedTime::[%d] format\n", default_time_unit);
 				}
 				if (fields[0].compare("DESCRIPTION") == 0) description = fields[1];
 				if (fields[0].compare("FORCE_SIGNAL") == 0) {
@@ -442,13 +442,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 							try {
 								// Cancer_Location
 								i = sid2serial[dict.id(string("Cancer_Location"))];
-								cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+								cd.date = med_time_converter.convert_datetime(default_time_unit, fields[2]);
 								cd.val = (float)(dict.id(fields[3]));
 								curr.raw_data[i].push_back(cd);
 
 								// Cancer_Stage
 								i = sid2serial[dict.id(string("Cancer_Stage"))];
-								cd.date = med_time_converter.convert_datetime(time_unit, fields[2]);
+								cd.date = med_time_converter.convert_datetime(default_time_unit, fields[2]);
 								cd.val = (float)(med_stoi(fields[1]));
 								curr.raw_data[i].push_back(cd);
 
@@ -469,10 +469,11 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 							//MLOG("here001 %s %d %d \n", codes2names[fields[1]].c_str(), sid, sids_to_load[sid]);
 							if (sid < 0 || !sids_to_load[sid])
 								continue;
-							int section = dict.section_id(sigs.name(sid));
+							int section = dict.section_id(sigs.name(sid));							
 							try {
 								i = sid2serial[sid];
 								SignalInfo& info = sigs.Sid2Info[sid];
+								int time_unit = info.time_unit == MedTime::Undefined ? default_time_unit : info.time_unit;
 								if (file_type == 3) {
 									// backward compatibility - if file type is DATA_S (3), then all val channels are assumed categorical
 									for (int j = 0; j < info.n_val_channels; j++) {
@@ -667,9 +668,10 @@ int MedConvert::create_signals_config()
 			for (int j = 0; j < info.n_val_channels; j++) {
 				signals_config_f << info.unit_of_measurement_per_val_channel[j]; 
 				if (j < info.n_val_channels - 1)
-					signals_config_f << '|';
-				
+					signals_config_f << '|';				
 			}
+			if (info.time_unit != MedTime::Undefined)
+				signals_config_f << "\t" << info.time_unit;
 			signals_config_f << endl;
 		}
 	}
@@ -717,7 +719,7 @@ int MedConvert::create_repository_config()
 	else {
 		repository_config_f << "PREFIX\t" << rep_files_prefix.c_str() << endl;
 	}
-	repository_config_f << "TIMEUNIT\t" << time_unit << endl;
+	repository_config_f << "TIMEUNIT\t" << default_time_unit << endl;
 	repository_config_f.close();
 	return 0;
 }

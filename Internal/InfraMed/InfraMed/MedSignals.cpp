@@ -9,6 +9,7 @@
 #include "MedSignals.h"
 #include "InfraMed.h"
 #include "Logger/Logger/Logger.h"
+#include"MedUtils/MedUtils/MedUtils.h"
 #include <fstream>
 #include <algorithm>
 #include <boost/algorithm/string/classification.hpp>
@@ -212,8 +213,6 @@ int MedSignals::read(const string &fname)
 						si.sid = -1;
 						Sid2Info.resize(sid + 1, si);
 					}
-					if (my_repo != NULL)
-						info.time_unit = my_repo->time_unit;
 
 					if (fields.size() >= 6) {
 						int channel = 0;
@@ -235,6 +234,16 @@ int MedSignals::read(const string &fname)
 							channel++;
 						}
 					}
+
+					info.time_unit = MedTime::Undefined;
+					if (my_repo != NULL)
+						info.time_unit = my_repo->time_unit;
+					if (fields.size() >= 8){
+						int time_unit = med_stoi(fields[7]);
+						if (time_unit != MedTime::Undefined)
+							info.time_unit = time_unit;
+					}
+
 					Sid2Info[sid] = info;
 				}
 
@@ -246,7 +255,7 @@ int MedSignals::read(const string &fname)
 		}
 	}
 
-	sort(signals_ids.begin(), signals_ids.end());
+	std::sort(signals_ids.begin(), signals_ids.end());
 	int max_sid = *max_element(signals_ids.begin(), signals_ids.end());
 	sid2serial.clear();
 	sid2serial.resize(max_sid + 1, -1);
