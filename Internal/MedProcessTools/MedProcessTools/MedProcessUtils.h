@@ -27,10 +27,10 @@ string int_to_string_digits(int i, int ndigits);
 // Required signals
 void get_all_required_signal_names(unordered_set<string>& signalNames, vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators);
 void get_all_required_signal_ids(unordered_set<int>& signalIds, vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators);
-void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureGenerator *>& generators, unordered_set<int>& extra_req_signal_ids, 
+void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureGenerator *>& generators, unordered_set<int>& extra_req_signal_ids,
 	vector<int>& all_req_signal_ids_v, vector<unordered_set<int> >& current_required_signal_ids);
 
 // Feature names
-int find_in_feature_names(vector<string>& names, string& substr);
+int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_error = true);
 
 #endif

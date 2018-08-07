@@ -131,17 +131,21 @@ void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureG
 
 // Handle feature names
 //.......................................................................................
-int find_in_feature_names(vector<string>& names, string& substr) {
+int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_error) {
 
 	int index = -1;
 	for (int i = 0; i < names.size(); i++) {
 		if (names[i].size() > 11 && names[i].substr(11) == substr) { // exact match
-			index = i; 
+			index = i;
 			break;
 		}
 		if (names[i].find(substr) != string::npos) {
-			if (index != -1)
-				MTHROW_AND_ERR("%s\n", (string("Got source_feature_name [") + substr + "] which matches both [" + names[i] + "] and [" + names[index] + "]").c_str());
+			if (index != -1) {
+				if (throw_on_error)
+					MTHROW_AND_ERR("%s\n", (string("Got source_feature_name [") + substr + "] which matches both [" + names[i] + "] and [" + names[index] + "]").c_str());
+				return -1;
+			}
+
 			index = i;
 			if (names[i] == substr)
 				return index;
@@ -155,9 +159,12 @@ int find_in_feature_names(vector<string>& names, string& substr) {
 		string err = string("Got source_feature_name [") + substr + "] which does not match any feature (did you forget to set duplicate=1?). Tried matching to these features:\n";
 		for (auto candidate : names)
 			err += candidate + "\n";
-		if (err.size() >= 300) //out of buffer
-			MWARN("%s\n", err.c_str());
-		MTHROW_AND_ERR("%s\n", err.c_str());
+		if (throw_on_error) {
+			if (err.size() >= 300) //out of buffer
+				MWARN("%s\n", err.c_str());
+			MTHROW_AND_ERR("%s\n", err.c_str());
+		}
+		return -1;
 	}
 	else
 		return index;
