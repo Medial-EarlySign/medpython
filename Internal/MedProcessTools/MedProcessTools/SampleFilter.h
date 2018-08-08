@@ -243,7 +243,7 @@ public:
 
 	// helpers
 	int samplesTimeUnit; ///< Time unit of samples
-	int byearId, ageId; ///< signal-id for byear (if given) or age (if directly given)
+	int byearId; ///< signal-id for byear
 
 	/// <summary> Constructor </summary>
 	MatchingSampleFilter() { init_defaults(); };

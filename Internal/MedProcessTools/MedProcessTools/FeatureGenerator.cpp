@@ -389,7 +389,7 @@ void BasicFeatGenerator::init_defaults() {
 	generator_type = FTR_GEN_BASIC;
 	signalId = -1;
 	time_unit_sig = MedTime::Undefined;
-	time_unit_win = med_rep_type.windowTimeUnit;
+	time_unit_win = global_default_time_unit;
 	string _signalName = "";
 	bound_outcomeTime = false;
 	//set(_signalName, FTR_LAST, 0, 360000);
@@ -512,32 +512,26 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 	float *p_feat = p_data[0] + index;
 
 	int len;
-	if (directlyGiven) {
-		rec.uget(signalId, 0);
-		if (rec.usv.len == 0) throw MED_EXCEPTION_NO_AGE_GIVEN;
-		for (int i = 0; i < num; i++)
-			p_feat[i] = rec.usv.Val(0);
-	}
-	else {
-		SVal *sig = (SVal *)rec.get(signalId, len);
-		if (len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, len, signalId, signalName.c_str()); }
-		if (len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
-		if (signalName == "BYEAR") {
-			int byear = (int)(sig[0].val);
-			for (int i = 0; i < num; i++)
-				p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
-		}
-		else if (signalName == "BDATE") {
-			int bdate = (int)(sig[0].val);
-			for (int i = 0; i < num; i++) {
-				int time = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
-				int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
-				p_feat[i] = (float)(1.0 * days_since_birth) / 365;
 
-			}
-		}
-		else MTHROW_AND_ERR("Unknown age signal [%s] \n", signalName.c_str());
+	SVal *sig = (SVal *)rec.get(signalId, len);
+	if (len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, len, signalId, signalName.c_str()); }
+	if (len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
+	if (signalName == "BYEAR") {
+		int byear = (int)(sig[0].val);
+		for (int i = 0; i < num; i++)
+			p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
 	}
+	else if (signalName == "BDATE") {
+		int bdate = (int)(sig[0].val);
+		for (int i = 0; i < num; i++) {
+			int time = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
+			int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
+			p_feat[i] = (float)(1.0 * days_since_birth) / 365;
+
+		}
+	}
+	else MTHROW_AND_ERR("Unknown age signal [%s] \n", signalName.c_str());
+
 	return 0;
 }
 
@@ -554,8 +548,6 @@ int AgeGenerator::init(map<string, string>& mapper) {
 	}
 	set_names();
 
-	if (directlyGiven)
-		signalName = "Age";
 	req_signals.clear();
 	req_signals.push_back(signalName);
 	return 0;
@@ -603,7 +595,7 @@ int GenderGenerator::init(map<string, string>& mapper) {
 	names.clear();
 	set_names();
 
-	req_signals.assign(1, med_rep_type.genderSignalName);
+	req_signals.assign(1, "GENDER");
 
 	return 0;
 }
@@ -786,7 +778,7 @@ void RangeFeatGenerator::init_defaults() {
 	signalId = -1;
 	sets.clear();
 	time_unit_sig = MedTime::Undefined;
-	time_unit_win = med_rep_type.windowTimeUnit;
+	time_unit_win = global_default_time_unit;
 	string _signalName = "";
 	set(_signalName, FTR_RANGE_CURRENT, 0, 360000);
 };

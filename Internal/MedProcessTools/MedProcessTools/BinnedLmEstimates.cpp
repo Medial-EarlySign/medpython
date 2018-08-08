@@ -54,15 +54,14 @@ void BinnedLmEstimates::set(string& _signalName) {
 	set_names();
 
 	req_signals.resize(3);
-	req_signals[0] = med_rep_type.genderSignalName;
-	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
 	req_signals[2] = signalName;
 }
 
 //.......................................................................................
 void BinnedLmEstimates::init_defaults() {
 
-	ageDirectlyGiven = med_rep_type.ageDirectlyGiven;
 	generator_type = FTR_GEN_BINNED_LM;
 
 	params.bin_bounds.resize(def_nbin_bounds);
@@ -78,15 +77,14 @@ void BinnedLmEstimates::init_defaults() {
 		params.estimation_points[i] = def_estimation_points[i];
 
 	req_signals.resize(2);
-	req_signals[0] = med_rep_type.genderSignalName;
-	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
 
 	signalId = -1;
 	byearId = -1;
-	ageId = -1;
 	genderId = -1;
 
-	time_unit_periods = med_rep_type.windowTimeUnit;
+	time_unit_periods = global_default_time_unit;
 }
 
 //.......................................................................................
@@ -103,8 +101,8 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 	set_names();
 
 	req_signals.resize(3);
-	req_signals[0] = med_rep_type.genderSignalName;
-	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[0] = "GENDER" ;
+	req_signals[1] = "BYEAR";
 	req_signals[2] = signalName;
 }
 
@@ -134,7 +132,6 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "time_unit") time_unit_periods = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
-		else if (field == "ageDirectlyGiven") ageDirectlyGiven = (bool)(stoi(entry.second) != 0);
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
@@ -146,8 +143,8 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 	set_names();
 
 	req_signals.resize(3);
-	req_signals[0] = med_rep_type.genderSignalName;
-	req_signals[1] = (ageDirectlyGiven) ? "Age" : "BYEAR";
+	req_signals[0] = "GENDER";
+	req_signals[1] = "BYEAR";
 	req_signals[2] = signalName;
 
 	return 0;
@@ -157,12 +154,8 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 void BinnedLmEstimates::set_signal_ids(MedDictionarySections& dict) {
 
 	signalId = dict.id(signalName);
-	genderId = dict.id(med_rep_type.genderSignalName);
-
-	if (ageDirectlyGiven)
-		ageId = dict.id("Age");
-	else
-		byearId = dict.id("BYEAR");
+	genderId = dict.id("GENDER");
+	byearId = dict.id("BYEAR");
 }
 
 // Learn a generator
@@ -170,7 +163,7 @@ void BinnedLmEstimates::set_signal_ids(MedDictionarySections& dict) {
 int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
 
 	// Sanity check
-	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {
+	if (signalId == -1 || genderId == -1 || byearId == -1) {
 		MERR("Uninitialized signalId\n");
 		return -1;
 	}
@@ -449,7 +442,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
 
 	// Sanity check
-	if (signalId == -1 || genderId == -1 || (ageDirectlyGiven && ageId == -1) || (!ageDirectlyGiven && byearId == -1)) {
+	if (signalId == -1 || genderId == -1 || byearId == -1) {
 		MERR("Uninitialized signalId\n");
 		return -1;
 	}
@@ -637,40 +630,23 @@ int BinnedLmEstimates::filter_features(unordered_set<string>& validFeatures) {
 //.......................................................................................
 void BinnedLmEstimates::prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear) {
 
-	if (ageDirectlyGiven) {
-		rec.uget(ageId, 0, ageUsv);
-		assert(ageUsv.len == 1);
-		age = (int)ageUsv.Val(0, 0);
-	}
-	else {
-		int len;
-		SVal *bYearSignal = (SVal *)rec.get(byearId, len);
-		assert(len == 1);
-		byear = (int)(bYearSignal[0].val);
-	}
+	int len;
+	SVal *bYearSignal = (SVal *)rec.get(byearId, len);
+	assert(len == 1);
+	byear = (int)(bYearSignal[0].val);
 }
 
 void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear) {
 
-	if (ageDirectlyGiven) {
-		rep.uget(id, ageId, ageUsv);
-		assert(ageUsv.len == 1);
-		age = (int)ageUsv.Val(0, 0);
-	}
-	else {
-		int len;
-		SVal *bYearSignal = (SVal *)rep.get(id, byearId, len);
-		assert(len == 1);
-		byear = (int)(bYearSignal[0].val);
-	}
+	int len;
+	SVal *bYearSignal = (SVal *)rep.get(id, byearId, len);
+	assert(len == 1);
+	byear = (int)(bYearSignal[0].val);
+
 }
 
 inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, int byear) {
-
-	if (!ageDirectlyGiven)
-		age = med_time_converter.convert_times(time_unit_from, MedTime::Date, time) / 10000 - byear;
-
-
+	age = med_time_converter.convert_times(time_unit_from, MedTime::Date, time) / 10000 - byear;
 }
 
 

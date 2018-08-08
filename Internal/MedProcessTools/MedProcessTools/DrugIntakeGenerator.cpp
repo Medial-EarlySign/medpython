@@ -31,7 +31,7 @@ void DrugIntakeGenerator::init_defaults() {
 	generator_type = FTR_GEN_DRG_INTAKE;
 	signalId = -1;
 	time_unit_sig = MedTime::Undefined;
-	time_unit_win = med_rep_type.windowTimeUnit;
+	time_unit_win = global_default_time_unit;
 	signalName = "";
 };
 

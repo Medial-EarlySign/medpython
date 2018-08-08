@@ -8,7 +8,7 @@
 #include <MedProcessTools/MedProcessTools/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedModelExceptions.h>
 #include <MedTime/MedTime/MedTime.h>
-#include <InfraMed/InfraMed/MedRepositoryType.h>
+#include <MedProcessTools/MedProcessTools/MedGlobals.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
@@ -286,8 +286,6 @@ public:
 */
 class AgeGenerator : public FeatureGenerator {
 public:
-	/// Is Age Directly given ?
-	bool directlyGiven;
 
 	string signalName;
 	/// Signal Id
@@ -298,7 +296,7 @@ public:
 
 	// Constructor/Destructor
 	AgeGenerator() {
-		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; directlyGiven = med_rep_type.ageDirectlyGiven; signalName = "BYEAR"; req_signals.assign(1, directlyGiven ? "Age" : signalName);
+		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; signalName = "BYEAR"; req_signals.assign(1, signalName);
 	}
 	//~AgeGenerator() {};
 
@@ -378,8 +376,8 @@ public:
 	int genderId;
 
 	// Constructor/Destructor
-	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, med_rep_type.genderSignalName); }
-	GenderGenerator(int _genderId) : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, med_rep_type.genderSignalName); }
+	GenderGenerator() : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = -1; req_signals.assign(1, "GENDER"); }
+	GenderGenerator(int _genderId) : FeatureGenerator() { generator_type = FTR_GEN_GENDER; names.push_back("Gender"); genderId = _genderId; req_signals.assign(1, "GENDER"); }
 
 	//~GenderGenerator() {};
 
@@ -397,8 +395,8 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id(med_rep_type.genderSignalName); }
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(med_rep_type.genderSignalName)); }
+	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id("GENDER"); }
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("GENDER")); }
 
 	// Serialization
 	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights); }
@@ -426,10 +424,7 @@ class BinnedLmEstimates : public FeatureGenerator {
 public:
 	// Feature Descrption
 	string signalName;
-	int signalId, byearId, genderId, ageId;
-
-	/// Is age directly given (Hospital data) or through birth-year (Primary-care data)
-	bool ageDirectlyGiven;
+	int signalId, byearId, genderId;
 
 	BinnedLmEstimatesParams params;
 	vector<MedLM> models;

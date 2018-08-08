@@ -344,7 +344,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 		newStrata.signalName = fields[1];
 		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : (float)1.0;
 		newStrata.timeWindow = (fields.size() > 3) ? (int)stof(fields[3]) : (int)1.0;
-		newStrata.windowTimeUnit = (fields.size() > 4) ? med_time_converter.string_to_type(fields[4]) : med_rep_type.windowTimeUnit;
+		newStrata.windowTimeUnit = (fields.size() > 4) ? med_time_converter.string_to_type(fields[4]) : global_default_time_unit;
 	}
 	else if (fields[0] == "gender") {
 		if (fields.size() != 1) {
@@ -353,10 +353,10 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 		}
 
 		newStrata.match_type = SMPL_MATCH_SIGNAL;
-		newStrata.signalName = med_rep_type.genderSignalName;
+		newStrata.signalName = "GENDER";
 		newStrata.resolution = 1.0;
 		newStrata.timeWindow = 99999999;
-		newStrata.windowTimeUnit =  med_rep_type.windowTimeUnit;
+		newStrata.windowTimeUnit = global_default_time_unit;
 	}
 	else {
 		MERR("Unknown matching strata type %s\n", fields[0].c_str());
@@ -524,19 +524,10 @@ int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedRepository& rep)
 
 	// Age : either as a signal or using BYEAR
 	if (isAgeRequired()) {
-		if (med_rep_type.ageDirectlyGiven) {
-			ageId = rep.dict.id("Age");
-			if (ageId == -1) {
-				MERR("Cannot find signalId for Age\n");
-				return -1;
-			}
-		}
-		else {
-			byearId = rep.dict.id("BYEAR");
-			if (byearId == -1) {
-				MERR("Cannot find signalId for BYEAR\n");
-				return -1;
-			}
+		byearId = rep.dict.id("BYEAR");
+		if (byearId == -1) {
+			MERR("Cannot find signalId for BYEAR\n");
+			return -1;
 		}
 	}
 
@@ -587,14 +578,9 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 	}
 	else if (stratum.match_type == SMPL_MATCH_AGE) {
 		// Take binned age
-		if (med_rep_type.ageDirectlyGiven) {
-			rep.uget(sample.id, ageId, usv);
-			age = (int)usv.Val(0, 0);
-		}
-		else {
-			int byear = (int)((SVal *)rep.get(sample.id, byearId, len))[0].val;
-			age = med_time_converter.convert_times(samplesTimeUnit, MedTime::Date, sample.time) / 10000 - byear;
-		}
+		int byear = (int)((SVal *)rep.get(sample.id, byearId, len))[0].val;
+		age = med_time_converter.convert_times(samplesTimeUnit, MedTime::Date, sample.time) / 10000 - byear;
+		
 		bin = (int)((float)age / stratum.resolution);
 		signature += to_string(bin) + ":";
 	}
@@ -695,12 +681,8 @@ float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, 
 void MatchingSampleFilter::get_required_signals(vector<string>& req_sigs)
 {
 	req_sigs.clear();
-	if (isAgeRequired()) {
-		if (med_rep_type.ageDirectlyGiven)
-			req_sigs.push_back("Age");
-		else
-			req_sigs.push_back("BYEAR");
-	}
+	if (isAgeRequired())
+		req_sigs.push_back("BYEAR");
 
 	for (auto &s : matchingStrata) {
 		if (s.signalName != "")
@@ -773,7 +755,7 @@ int RequiredSignalFilter::init(map<string, string>& mapper) {
 void RequiredSignalFilter::init_defaults() {
 
 	timeWindow = 0;
-	windowTimeUnit = med_rep_type.windowTimeUnit;
+	windowTimeUnit = global_default_time_unit;
 }
 
 // Filter
@@ -884,7 +866,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 {
 	//MLOG("id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
 	if (sig_id < 0) {
-		if (sig_name == "Age" && !med_rep_type.ageDirectlyGiven) {
+		if (sig_name == "Age") {
 			use_byear = 1;
 			sig_id = rep.sigs.sid("BYEAR");
 		}
@@ -903,7 +885,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 
 	// Special handling of age through byear
 	if (use_byear) {
-		int year = 1900 + med_time_converter.convert_times(med_rep_type.basicTimeUnit, MedTime::Years, sample.time);
+		int year = 1900 + med_time_converter.convert_times(global_default_time_unit, MedTime::Years, sample.time);
 		int age = year - (int)usv.Val(0);
 		if (age < min_val || age > max_val)
 			return 0;
@@ -964,7 +946,7 @@ int BasicSampleFilter::init(map<string, string>& mapper)
 				BasicFilteringParams bfp;
 				bfp.init_from_string(f);
 				bfilters.push_back(bfp);
-				if (bfp.sig_name == "Age" && !med_rep_type.ageDirectlyGiven)
+				if (bfp.sig_name == "Age")
 					req_sigs.push_back("BYEAR");
 				else
 					req_sigs.push_back(bfp.sig_name);
@@ -982,7 +964,7 @@ void BasicSampleFilter::get_required_signals(vector<string> &reqs)
 	if (req_sigs.size() == 0) {
 		req_sigs.clear();
 		for (auto &bf : bfilters) {
-			if (bf.sig_name == "Age" && !med_rep_type.ageDirectlyGiven)
+			if (bf.sig_name == "Age")
 				req_sigs.push_back("BYEAR");
 			else
 				req_sigs.push_back(bf.sig_name);
