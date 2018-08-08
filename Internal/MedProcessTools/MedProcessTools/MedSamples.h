@@ -45,16 +45,16 @@ public:
 	/// new format: SAMPLE <id> <time> <outcome> <outcomeTime> <split> <predictions> <br>
 	/// </summary>
 	/// <returns> 0 upon success, -1 if string does not fit any of the formats </returns>
-	int parse_from_string(string &s);
+	int parse_from_string(string &s, int time_unit);
 	/// <summary>
 	/// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split,pred or pred_,attr_NAME) 
 	/// if pos is empty, check old and new formats
 	/// </summary>
 	/// <returns> 0 upon success, -1 upon failure to parse </returns>
-	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos);
+	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit);
 	/// <summary> Write to string in new format </summary>
-	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr);
-	void write_to_string(string &s);
+	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit);
+	void write_to_string(string &s, int time_unit);
 
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes, str_attributes)

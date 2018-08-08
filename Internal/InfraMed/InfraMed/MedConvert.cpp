@@ -618,17 +618,17 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 									missing_dict_vals[my_key]++;
 							}
 							catch (...) {
-								MTHROW_AND_ERR("ERROR: bad format in parsing file %s (file_type=%d) in line %d:\n%s\n",
+								curr_fstat.n_bad_format_lines++;
+								if (curr_fstat.n_bad_format_lines < 10)
+									MWARN("MedConvert::get_next_signal: bad format in parsing file %s (file_type=%d) in line %d:\n%s\n",
 									curr_fstat.fname.c_str(), file_type, curr_fstat.n_parsed_lines, curr_line.c_str());
 							}
 						}
 					}
 					else if (line_pid < fpid) {
 						MWARN("MedConvert: get_next_signal: fpid is %d , but got line: %s\n", fpid, curr_line.c_str());
-						if (safe_mode) {
-							MERR("MedConvert: ERROR: file %s seems to be not sorted by pid\n", curr_fstat.fname.c_str());
-							return -1;
-						}
+						if (safe_mode)
+							MTHROW_AND_ERR("MedConvert: ERROR: file %s seems to be not sorted by pid\n", curr_fstat.fname.c_str());
 					}
 					else {
 						fpid = line_pid;

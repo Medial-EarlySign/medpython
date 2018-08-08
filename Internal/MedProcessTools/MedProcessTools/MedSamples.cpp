@@ -14,9 +14,9 @@
 //=======================================================================================
 // Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split) in addition to pred_pos vector and attr_pos map
 //.......................................................................................
-int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos) {
+int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit) {
 	if (pos.size() == 0)
-		return parse_from_string(s);
+		return parse_from_string(s, time_unit);
 	vector<string> fields;
 	boost::split(fields, s, boost::is_any_of("\t\n\r"));
 	if (fields.size() == 0)
@@ -25,7 +25,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		if (pos["id"] != -1)
 			id = (int)stod(fields[pos["id"]]);
 		if (pos["date"] != -1)
-			time = (int)stod(fields[pos["date"]]);
+			time = med_time_converter.convert_datetime(time_unit,fields[pos["date"]]);
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
@@ -53,7 +53,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 
 // Get sample from tab-delimited string, in old or new format (<split> and <prediction> optional, <predictions> can be several numbers (tab delimited))
 //.......................................................................................
-int MedSample::parse_from_string(string &s)
+int MedSample::parse_from_string(string &s, int time_unit)
 {
 	vector<string> fields;
 	boost::split(fields, s, boost::is_any_of("\t"));
@@ -69,7 +69,7 @@ int MedSample::parse_from_string(string &s)
 	if (fields[0] == "EVENT") {
 		if (fields.size() < 6) return -1;
 		id = stoi(fields[1]);
-		time = stoi(fields[2]);
+		time = med_time_converter.convert_datetime(time_unit, fields[2]);
 		outcome = stof(fields[3]);
 		int dummy_length = stoi(fields[4]);
 		outcomeTime = stoi(fields[5]);
@@ -89,7 +89,7 @@ int MedSample::parse_from_string(string &s)
 	if (fields[0] == "SAMPLE") {
 		if (fields.size() < 5) return -1;
 		id = stoi(fields[1]);
-		time = stoi(fields[2]);
+		time = med_time_converter.convert_datetime(time_unit, fields[2]);
 		outcome = stof(fields[3]);
 		outcomeTime = stoi(fields[4]);
 		if (fields.size() >= 6)
@@ -106,22 +106,22 @@ int MedSample::parse_from_string(string &s)
 }
 
 
-void MedSample::write_to_string(string &s)
+void MedSample::write_to_string(string &s, int time_unit)
 {
 	vector<string> my_attributes, my_str_attributes;
 	for (auto& attr : attributes)
 		my_attributes.push_back(attr.first);
 	for (auto& attr : str_attributes)
 		my_str_attributes.push_back(attr.first);
-	write_to_string(s, my_attributes, my_str_attributes);
+	write_to_string(s, my_attributes, my_str_attributes, time_unit);
 }
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr)
+void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit)
 {
 	s = "";
-	s += "SAMPLE\t" + to_string(id) + "\t" + to_string(time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
+	s += "SAMPLE\t" + to_string(id) + "\t" + med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
 	s += "\t" + to_string(split);
 	for (auto p : prediction)
 		s += "\t" + to_string(p);
@@ -334,7 +334,7 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 				}
 				MedSample sample;
 
-				if (sample.parse_from_string(curr_line, pos, pred_pos, attr_pos) < 0) {
+				if (sample.parse_from_string(curr_line, pos, pred_pos, attr_pos, time_unit) < 0) {
 					MWARN("skipping [%s]\n", curr_line.c_str());
 					skipped_records++;
 					if (read_records > 30 && skipped_records > read_records / 2)
@@ -469,7 +469,7 @@ int MedSamples::write_to_file(const string &fname)
 		for (auto ss : s.samples) {
 			samples++;
 			string sout;
-			ss.write_to_string(sout, attributes, str_attributes);
+			ss.write_to_string(sout, attributes, str_attributes, time_unit);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
 			if (buffer_write > 0 && line >= buffer_write) {
