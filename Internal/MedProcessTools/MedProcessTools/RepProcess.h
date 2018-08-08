@@ -757,8 +757,7 @@ public:
 	vector<vector<int> > panel_signal_ids;
 
 	// Extra signal ids
-	int byearId, genderId, ageId;
-	bool ageDirectlyGiven; // True for inpatients (use ageId) , false for outpatients (use byearId)
+	int byearId, genderId;
 	string genderSignalName;
 
 	// Missing value indication

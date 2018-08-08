@@ -1062,7 +1062,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<
 		for (size_t i = 0; i < nComponents; ++i) {
 			vector<size_t> indices;
 			int max_diff = -1; 
-			int diff_time_unit = med_rep_type.windowTimeUnit;
+			int diff_time_unit = gloabl_default_time_unit;
 			index_targets_in_given_vector(iverTimes, times[i], max_diff, signals_time_unit, diff_time_unit, time_points[iver], indices, onlyPast);
 			const vector<float> & curVals = vals[i];
 
@@ -1225,7 +1225,7 @@ int RepCalcSimpleSignals::_apply_calc_hosp_time_dependent_pointwise(PidDynamicRe
 		for (size_t i = 0; i < nComponents; ++i) {
 			vector<size_t> indices;
 			int max_diff = -1;
-			int diff_time_unit = med_rep_type.windowTimeUnit;
+			int diff_time_unit = gloabl_default_time_unit;
 			index_targets_in_given_vector(iverTimes, times[i], max_diff, signals_time_unit, diff_time_unit, time_points[iver], indices, onlyPast);
 			const vector<float> & curVals = vals[i];
 			const vector<int>& curTimes = times[i];

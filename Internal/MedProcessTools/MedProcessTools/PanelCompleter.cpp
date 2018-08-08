@@ -81,8 +81,7 @@ void RepPanelCompleter::init_defaults() {
 	for (auto& panel : panel2type)
 		panel_signal_names[panel.second] = panel2signals[panel.first];
 
-	ageDirectlyGiven = med_rep_type.ageDirectlyGiven;
-	genderSignalName = med_rep_type.genderSignalName;
+	genderSignalName = "GENDER";
 }
 
 //.......................................................................................
@@ -102,11 +101,7 @@ void RepPanelCompleter::set_signal_ids(MedDictionarySections& dict) {
 	// EGFR Requires age and gender
 	if (panel_signal_names[REP_CMPLT_EGFR_PANEL].size()) {
 		genderId = dict.id(genderSignalName);
-
-		if (ageDirectlyGiven)
-			ageId = dict.id("Age");
-		else
-			byearId = dict.id("BYEAR");
+		byearId = dict.id("BYEAR");
 
 	}
 }
@@ -127,11 +122,7 @@ void RepPanelCompleter::init_lists() {
 
 	if (panel_signal_names[REP_CMPLT_EGFR_PANEL].size()) {
 		req_signals.insert(genderSignalName);
-
-		if (ageDirectlyGiven)
-			req_signals.insert("Age");
-		else
-			req_signals.insert("BYEAR");
+		req_signals.insert("BYEAR");
 
 	}
 }
@@ -449,12 +440,7 @@ int RepPanelCompleter::apply_eGFR_completer(PidDynamicRec& rec, vector<int>& tim
 		vector<int> changed_signals(n_sigs, 0);
 		float current_age;
 		for (size_t i = 0; i < panels.size(); i++) {
-			// Age
-			if (ageDirectlyGiven)
-				current_age = (float)age;
-			else
-				current_age = (float)(1900 + med_time_converter.convert_date(MedTime::Years, panel_times[i]) - bYear);
-
+			current_age = (float)(1900 + med_time_converter.convert_date(MedTime::Years, panel_times[i]) - bYear);
 			egfr_complete(panels[i], current_age, gender, orig_res, final_res, conv, changed_signals);
 		}
 
@@ -477,23 +463,12 @@ int RepPanelCompleter::perpare_for_age_and_gender(PidDynamicRec& rec, int& age, 
 		return -1;
 	}
 	gender = (int)(rec.usv.Val(0));
-
-	if (ageDirectlyGiven) {
-		rec.uget(ageId, 0);
-		if (rec.usv.len == 0) {
-			MERR("No AGE given for %d\n", rec.pid);
-			return -1;
-		}
-		age = (int)(rec.usv.Val(0));
+	rec.uget(byearId, 0);
+	if (rec.usv.len == 0) {
+		MERR("No BYEAR given for %d\n", rec.pid);
+		return -1;
 	}
-	else {
-		rec.uget(byearId, 0);
-		if (rec.usv.len == 0) {
-			MERR("No BYEAR given for %d\n", rec.pid);
-			return -1;
-		}
-		bYear = (int)(rec.usv.Val(0));
-	}
+	bYear = (int)(rec.usv.Val(0));
 
 	return 0;
 }

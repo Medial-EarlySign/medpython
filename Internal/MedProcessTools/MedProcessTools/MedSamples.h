@@ -6,7 +6,7 @@
 
 #include <MedProcessTools/MedProcessTools/SerializableObject.h>
 #include <MedTime/MedTime/MedTime.h>
-#include <InfraMed/InfraMed/MedRepositoryType.h>
+#include <MedProcessTools/MedProcessTools/MedGlobals.h>
 #include <unordered_set>
 
 class MedFeatures;
@@ -118,12 +118,12 @@ public:
 	int time_unit = MedTime::Date;	///< The time unit in which the samples are given. Default: Date
 	vector<MedIdSamples> idSamples; ///< The vector of MedIdSamples
 
-	/// <summary> Constructor. init time_unit according to global med_rep_type </summary>
-	MedSamples() { time_unit = med_rep_type.basicTimeUnit; }
+	/// <summary> Constructor. init time_unit according to default </summary>
+	MedSamples() { time_unit = gloabl_default_time_unit; }
 	~MedSamples() {}
 
-	/// <summary> Clear data and init time_unit according to global med_rep_type </summary>
-	void clear() { time_unit = MedTime::Date; idSamples.clear(); }
+	/// <summary> Clear data and init time_unit according to default </summary>
+	void clear() { time_unit = gloabl_default_time_unit; idSamples.clear(); }
 
 	/// <summary>
 	/// Extract predictions from MedFeatures and insert to corresponding samples <br>

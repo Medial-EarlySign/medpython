@@ -897,7 +897,7 @@ int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
 			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
-			rep.sigs.Sid2Info[new_id].time_unit = med_rep_type.basicTimeUnit; // Currently, time-unit is determined by med_rep_type
+			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
 			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
 		}
 		else {

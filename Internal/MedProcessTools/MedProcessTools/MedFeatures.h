@@ -65,8 +65,8 @@ public:
 
 	/// <summary> Constructor Given time-unit </summary>
 	MedFeatures(int _time_unit) { time_unit = _time_unit; }
-	///<summary>  Constructor setting time-unit according to med_rep_type </summary>
-	MedFeatures() { time_unit = med_rep_type.basicTimeUnit; };
+	///<summary>  Constructor setting time-unit to undef </summary>
+	MedFeatures() { time_unit = MedTime::Undefined; }
 
 	// Initialization
 	/// <summary> Clear all vectors </summary>
