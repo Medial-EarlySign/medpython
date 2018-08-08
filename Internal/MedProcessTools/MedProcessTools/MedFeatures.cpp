@@ -72,6 +72,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 
 	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
 	int index = 0;
+	//mat.time_unit = time_unit;
 	for (auto& ss : samples) {
 		RecordData rd;
 		rd.outcomeTime = (long)ss.outcomeTime; rd.label = ss.outcome; ; rd.split = ss.split; rd.weight = 0.0;
@@ -128,6 +129,7 @@ void MedFeatures::get_as_matrix(MedMat<float> &mat, const vector<string> &names,
 
 	int index = 0;
 	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
+	//mat.time_unit = time_unit;
 	for (int i = 0; i < nrows; i++) {
 		//for (auto& ss : samples) {
 		auto &ss = samples[idx[i]];

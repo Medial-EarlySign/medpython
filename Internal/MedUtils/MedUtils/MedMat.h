@@ -24,6 +24,8 @@
 #include "math.h"
 #include <boost/algorithm/string.hpp>
 #include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <MedTime/MedTime/MedTime.h>
+#include <MedProcessTools/MedProcessTools/MedGlobals.h>
 
 using namespace std;
 
@@ -76,6 +78,7 @@ class MedMat : public SerializableObject {
 		vector<int> row_ids;
 		vector<RecordData> recordsMetadata;
 		vector<string> signals;
+		//int time_unit;
 
 		// Normalization/DeNormalization
 		vector<T> avg;

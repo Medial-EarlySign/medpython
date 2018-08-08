@@ -640,7 +640,8 @@ template <class T> int MedMat<T>::write_to_csv_file(const string &fname) {
 
 	for (int i = 0; i < nrows; i++) {
 		if (with_records)
-			of << recordsMetadata[i].id << "," << recordsMetadata[i].date << "," << recordsMetadata[i].outcomeTime << "," << recordsMetadata[i].split << "," << 
+			of << recordsMetadata[i].id << "," << med_time_converter.convert_times_S(global_default_time_unit, MedTime::DateTimeString, recordsMetadata[i].date)
+			<< "," << recordsMetadata[i].outcomeTime << "," << recordsMetadata[i].split << "," << 
 				recordsMetadata[i].weight << ",";
 		for (int j = 0; j < ncols; j++) {
 			of << get(i, j) << ",";
