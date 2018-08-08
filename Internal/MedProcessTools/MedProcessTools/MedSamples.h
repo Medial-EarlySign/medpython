@@ -119,11 +119,11 @@ public:
 	vector<MedIdSamples> idSamples; ///< The vector of MedIdSamples
 
 	/// <summary> Constructor. init time_unit according to default </summary>
-	MedSamples() { time_unit = gloabl_default_time_unit; }
+	MedSamples() { time_unit = global_default_time_unit; }
 	~MedSamples() {}
 
 	/// <summary> Clear data and init time_unit according to default </summary>
-	void clear() { time_unit = gloabl_default_time_unit; idSamples.clear(); }
+	void clear() { time_unit = global_default_time_unit; idSamples.clear(); }
 
 	/// <summary>
 	/// Extract predictions from MedFeatures and insert to corresponding samples <br>

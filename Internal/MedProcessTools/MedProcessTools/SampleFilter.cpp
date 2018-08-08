@@ -344,7 +344,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 		newStrata.signalName = fields[1];
 		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : (float)1.0;
 		newStrata.timeWindow = (fields.size() > 3) ? (int)stof(fields[3]) : (int)1.0;
-		newStrata.windowTimeUnit = (fields.size() > 4) ? med_time_converter.string_to_type(fields[4]) : gloabl_default_time_unit;
+		newStrata.windowTimeUnit = (fields.size() > 4) ? med_time_converter.string_to_type(fields[4]) : global_default_time_unit;
 	}
 	else if (fields[0] == "gender") {
 		if (fields.size() != 1) {
@@ -356,7 +356,7 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 		newStrata.signalName = "GENDER";
 		newStrata.resolution = 1.0;
 		newStrata.timeWindow = 99999999;
-		newStrata.windowTimeUnit = gloabl_default_time_unit;
+		newStrata.windowTimeUnit = global_default_time_unit;
 	}
 	else {
 		MERR("Unknown matching strata type %s\n", fields[0].c_str());
@@ -755,7 +755,7 @@ int RequiredSignalFilter::init(map<string, string>& mapper) {
 void RequiredSignalFilter::init_defaults() {
 
 	timeWindow = 0;
-	windowTimeUnit = gloabl_default_time_unit;
+	windowTimeUnit = global_default_time_unit;
 }
 
 // Filter
@@ -885,7 +885,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 
 	// Special handling of age through byear
 	if (use_byear) {
-		int year = 1900 + med_time_converter.convert_times(gloabl_default_time_unit, MedTime::Years, sample.time);
+		int year = 1900 + med_time_converter.convert_times(global_default_time_unit, MedTime::Years, sample.time);
 		int age = year - (int)usv.Val(0);
 		if (age < min_val || age > max_val)
 			return 0;

@@ -1647,7 +1647,7 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		// NOTE : This is not perfect : we assume that the samples' time-unit is the default time unit
-		int time_point = med_time_converter.convert_times(gloabl_default_time_unit, window_time_unit, time_points[iver]);
+		int time_point = med_time_converter.convert_times(global_default_time_unit, window_time_unit, time_points[iver]);
 		
 		int nMissing = 0;
 		for (int i = 0; i < signalIds.size(); i++) {

@@ -389,7 +389,7 @@ void BasicFeatGenerator::init_defaults() {
 	generator_type = FTR_GEN_BASIC;
 	signalId = -1;
 	time_unit_sig = MedTime::Undefined;
-	time_unit_win = gloabl_default_time_unit;
+	time_unit_win = global_default_time_unit;
 	string _signalName = "";
 	bound_outcomeTime = false;
 	//set(_signalName, FTR_LAST, 0, 360000);
@@ -778,7 +778,7 @@ void RangeFeatGenerator::init_defaults() {
 	signalId = -1;
 	sets.clear();
 	time_unit_sig = MedTime::Undefined;
-	time_unit_win = gloabl_default_time_unit;
+	time_unit_win = global_default_time_unit;
 	string _signalName = "";
 	set(_signalName, FTR_RANGE_CURRENT, 0, 360000);
 };

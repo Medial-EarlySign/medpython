@@ -1,3 +1,3 @@
 #include "MedGlobals.h"
 
-int gloabl_default_time_unit = MedTime::Date;
+int global_default_time_unit = MedTime::Date;
