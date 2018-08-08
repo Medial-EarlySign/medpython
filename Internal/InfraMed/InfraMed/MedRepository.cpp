@@ -617,7 +617,13 @@ void MedRepository::print_channel_helper(int sid, int channel, float val) {
 //-----------------------------------------------------------
 void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 {
-	MOUT("pid %d sid %d %s ::", pid, sid, sigs.name(sid).c_str());
+	MOUT("pid %d sid %d %s", pid, sid, sigs.name(sid).c_str());
+	for (int channel = 0; channel < sigs.Sid2Info[sid].n_val_channels; channel++) {
+		string u = sigs.unit_of_measurement(sid, 0);
+		if (u != "")
+			MOUT(" %s ", u.c_str());
+	}
+	MOUT(" ::");
 
 	MOUT(" %d :: ", len);
 	if (sigs.has_any_categorical_channel(sid))
