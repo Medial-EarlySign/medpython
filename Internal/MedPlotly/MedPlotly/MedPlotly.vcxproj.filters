@@ -28,5 +28,8 @@
     <Text Include="BasicConfig.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="MimicConfig.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

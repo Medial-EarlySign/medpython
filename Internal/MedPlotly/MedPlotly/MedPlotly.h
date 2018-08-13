@@ -24,6 +24,7 @@
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
+#include <MedTime/MedTime/MedTime.h>
 
 #include <Logger/Logger/Logger.h>
 #define LOCAL_SECTION LOG_APP
@@ -48,6 +49,8 @@ class SignalParams : public SerializableObject {
 public:
 	int null_zeros = 1;
 	int log_scale = 1;
+	int time_chan = 0;
+	int val_chan = 0;
 
 	int init(map<string, string>& _map);
 };
@@ -124,6 +127,9 @@ public:
 	int height_default = 400;
 	int block_mode_default = 1;
 
+	// time unit , currently supporting Date and Minutes
+	int rep_time_unit = MedTime::Date; // default is Date.
+
 	int read_config(const string &config_fname);
 
 
@@ -155,7 +161,6 @@ class MedPatientPlotlyDate {
 
 public:
 	MedPlotlyParams params;
-
 
 	int read_config(const string &config_name) { return params.read_config(config_name); }
 
@@ -189,6 +194,8 @@ private:
 
 	// helpers
 	string  date_to_string(int date);
+	string	time_to_string(int time, int time_unit); 
+	string	time_to_string(int time) { return time_to_string(time, params.rep_time_unit); }
 	void get_usv_min_max(UniversalSigVec &usv, float &vmin, float &vmax);
 
 };

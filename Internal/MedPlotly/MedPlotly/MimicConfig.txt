@@ -1,0 +1,55 @@
+#
+# Configuration example for a MedPlotly object
+#
+
+#
+# comments start with '#' , all delimiters are tabs
+#
+
+# time unit
+TIME_UNIT	Minutes
+
+# default null_zeros_default : if set plotting will ignore 0 values
+NULL_ZEROS	1
+
+# default log scale : draw sigs with log scale when possible (all vals > 0)
+LOG_SCALE	1
+
+# specific signals setup (if different from default)
+# format: SIG	<sig list>	<params: null_zeros=<val>;log_scale=<val>>
+SIG	BP	log_scale=0
+SIG	UrineProduction	log_scale=0;time_chan=1
+SIG	Emesis,GastricOut,PeritonealDialysisOut,PreAdmissionOutput,StoolOut,TFResidualOut,BloodLoss,UrineProduction,CerebralDrain,EstimatedBloodLoss,CalciumDialysisOut,HemoDialysisOut,UltrafiltrateOut,CardiacOutput,WoundVac,DrainOut,ChestTube,DialysisOut,FLUID_INTAKE,NUTRITION	time_chan=1;log_scale=0;null_zeros=0
+SIG	NUTRITION	time_chan=1;val_chan=1;log_scale=0;null_zeros=0
+
+
+# panels definition:
+# format:
+# PANEL <params>
+PANEL	name=Diabetes;sigs=Glucose,HbA1C,BMI
+PANEL	name=Cholesterol_Related;sigs=LDL,Cholesterol,HDL,Triglycerides
+PANEL	name=Outputs;sigs=Emesis,GastricOut,PeritonealDialysisOut,PreAdmissionOutput,StoolOut,TFResidualOut,BloodLoss,UrineProduction,CerebralDrain,EstimatedBloodLoss,CalciumDialysisOut,HemoDialysisOut,UltrafiltrateOut,CardiacOutput,WoundVac,DrainOut,ChestTube,DialysisOut;log_scale=0;null_zeros=0
+PANEL	name=Inputs;sigs=FLUID_INTAKE,NUTRITION;log_scale=0;null_zeros=0
+
+# drugs heatmap def. If no drug groups are given, all those defined above will be used in their given order.
+# format: DRUGS_HEATMAP	<params>
+# <params> : granularity=<days: def is 30>;drugs=<list of groups comma separated>
+
+# DRUGS_HEATMAP
+
+#
+# default view
+# format:
+# lines starting with VIEW following a list of sigs and panels to view	
+# demographics and drugs_heatmap are reserved names
+#
+
+VIEW	demographics
+VIEW	Outputs,Inputs
+#VIEW	Cholesterol_Related,Diabetes
+VIEW	UrineProduction
+
+
+
+
+

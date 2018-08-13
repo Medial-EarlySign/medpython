@@ -128,6 +128,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="BasicConfig.txt" />
+    <Text Include="MimicConfig.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

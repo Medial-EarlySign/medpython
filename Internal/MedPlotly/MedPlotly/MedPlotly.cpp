@@ -11,6 +11,8 @@ int SignalParams::init(map<string, string>& _map)
 		string field = entry.first;
 		if (field == "null_zeros") { null_zeros = stoi(entry.second); }
 		else if (field == "log_scale") { log_scale = stoi(entry.second); }
+		else if (field == "time_chan") { time_chan = stoi(entry.second); }
+		else if (field == "val_chan") { val_chan = stoi(entry.second); }
 
 	}
 
@@ -95,10 +97,13 @@ int MedPlotlyParams::read_config(const string &fname)
 				else if (fields[0] == "SIG") {
 					vector<string> flist;
 					split(flist, fields[1], boost::is_any_of(","));
+					MLOG("%s : %d elements\n", fields[1].c_str(), flist.size());
 					SignalParams sp;
 					sp.init_from_string(fields[2]);
-					for (auto f : flist)
+					for (auto f : flist) {
 						sig_params[f] = sp;
+						MLOG("sig %s time_chan %d loaded\n", f.c_str(), sig_params[f].time_chan);
+					}
 				}
 				else if (fields[0] == "DRUG_GROUP") {
 					vector<string> f;
@@ -125,6 +130,9 @@ int MedPlotlyParams::read_config(const string &fname)
 					vector<string> f;
 					split(f, fields[1], boost::is_any_of(","));
 					js_files.insert(views.end(), f.begin(), f.end());
+				}
+				else if (fields[0] == "TIME_UNIT") {
+					rep_time_unit = med_time_converter.string_to_type(fields[1]);
 				}
 			}
 		}
@@ -355,6 +363,27 @@ string MedPatientPlotlyDate::date_to_string(int date)
 }
 
 //----------------------------------------------------------------------------------------
+string MedPatientPlotlyDate::time_to_string(int time, int time_unit)
+{
+	if (time_unit < 0) {
+		if (time < 21000000)
+			time_unit = MedTime::Date;
+		else
+			time_unit = MedTime::Minutes;
+	}
+
+	if (time_unit == MedTime::Date)
+		return date_to_string(time);
+
+	// left is the minutes case , we want to get to "YYYY-MM-DD hh:mm:ss" ss is always 0
+	string s = med_time_converter.convert_times_S(MedTime::Minutes, MedTime::DateTimeString, time);
+
+	string out_s = "'" + s.substr(0, 4) + "-" + s.substr(4, 2) + "-" + s.substr(6, 2) + " " + s.substr(8, 2) + ":" + s.substr(10, 2) + ":00'";
+
+	return out_s;
+}
+
+//----------------------------------------------------------------------------------------
 void MedPatientPlotlyDate::get_usv_min_max(UniversalSigVec &usv, float &vmin, float &vmax)
 {
 	vmin = (float)1e10;
@@ -373,7 +402,7 @@ void MedPatientPlotlyDate::add_xy_js(string &shtml, UniversalSigVec &usv, int ti
 	// dates
 	shtml += prefix+"x: [";
 	for (int i=0; i<usv.len; i++) {
-		shtml += date_to_string(usv.Time(i, time_chan));
+		shtml += time_to_string(usv.Time(i, time_chan));
 		if (i < usv.len - 1)	shtml += ",";
 	}
 	shtml += "],\n";
@@ -398,7 +427,7 @@ void MedPatientPlotlyDate::add_xy_js(string &shtml, vector<int> &dates, vector<f
 	// dates
 	shtml += prefix+"x: [";
 	for (int i=0; i<dates.size(); i++) {
-		shtml += date_to_string(dates[i]);
+		shtml += time_to_string(dates[i]);
 		if (i < dates.size() - 1)	shtml += ",";
 	}
 	shtml += "],\n";
@@ -472,7 +501,7 @@ void MedPatientPlotlyDate::add_bg_dataset_js(string &shtml, vector<int> &dates, 
 int MedPatientPlotlyDate::add_panel_chart(string &shtml, PidRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times)
 {
 	int pid = rec.pid;
-	int time_chan = 0;
+	int def_time_chan = 0;
 	int pwidth = (pi.width < 0) ? params.width_default : pi.width;
 	int pheight = (pi.height < 0) ? params.height_default : pi.height;
 	int block_mode = (pi.block_mode < 0) ? params.block_mode_default : pi.block_mode;
@@ -497,6 +526,10 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, PidRec &rec, const Pane
 	vector<float> vmin(pi.sigs.size()), vmax(pi.sigs.size());
 	for (int i=0; i<pi.sigs.size(); i++) {
 		rec.uget(pi.sigs[i], usv);
+		int time_chan = def_time_chan;
+		if (params.sig_params.find(pi.sigs[i]) != params.sig_params.end())
+			time_chan = params.sig_params[pi.sigs[i]].time_chan;
+
 		tot_len += usv.len;
 		for (int chan=0; chan<usv.n_val_channels(); chan++) {
 			add_dataset_js(shtml_sets, usv, time_chan, chan, null_zeros, "\t\t", "set" + to_string((++cnt)), i+1, pi.sigs[i]);
@@ -549,7 +582,10 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, PidRec &rec, const Pane
 		shtml += "},\n";
 	}
 	// xaxis setup
-	shtml += "\t\t\txaxis: {domain: [0," + to_string(psize) +"], hoverformat: '%%Y/%%m/%%d'},\n";
+	if (params.rep_time_unit == MedTime::Date)
+		shtml += "\t\t\txaxis: {domain: [0," + to_string(psize) +"], hoverformat: '%%Y/%%m/%%d'},\n";
+	else
+		shtml += "\t\t\txaxis: {domain: [0," + to_string(psize) +"], hoverformat: '%Y/%m/%d %H:%M'},\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\tshapes: [";
 		for (auto &t : times) {
