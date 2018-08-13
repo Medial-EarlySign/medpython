@@ -250,7 +250,7 @@ int MedSignals::read(const string &fname)
 			}
 			else {
 				MLOG("[%s]", fields[0].c_str());
-				MTHROW_AND_ERR("MedSignals: read: can't parse line: %s (%d)\n", curr_line.c_str(), fields.size());
+				MTHROW_AND_ERR("MedSignals: read: can't parse line: %s (%d)\n", curr_line.c_str(), (int)fields.size());
 			}
 		}
 	}
