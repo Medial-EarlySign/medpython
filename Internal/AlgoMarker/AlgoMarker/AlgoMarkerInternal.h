@@ -46,10 +46,7 @@ public:
 
 	// set time_unit env for repositories and models
 	int set_time_unit_env(int time_unit) {
-		if (time_unit == MedTime::Date)
-			med_rep_type.setRepositoryType(REP_TYPE_GP);
-		else
-			med_rep_type.setRepositoryType(REP_TYPE_HOSPITAL);
+		global_default_time_unit = time_unit;
 		return 0;
 	}
 
