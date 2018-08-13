@@ -491,10 +491,10 @@ int input_json_to_string(string json_fname, string &sdata)
 
 	MLOG("jdata is %s\n", jdata.c_str());
 
-	pt::ptree pt;
-	pt:read_json(s, pt);
+	pt::ptree ptree;
+	pt::read_json(s, ptree);
 
-	for (auto &p : pt.get_child("signals")) {
+	for (auto &p : ptree.get_child("signals")) {
 		auto& sig = p.second;
 		string sig_name = sig.get<string>("code");
 		
