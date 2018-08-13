@@ -747,7 +747,7 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 			if (dict_val)
 				MOUT("%d,", val = (int)v[i].val);
 			else MOUT("%f,", v[i].val);
-			MOUT("%d,%d,%d,0,0,", v[i].val2, v[i].date_start, v[i].date_end);
+			MOUT("%f,%d,%d,0,0,", v[i].val2, v[i].date_start, v[i].date_end);
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;

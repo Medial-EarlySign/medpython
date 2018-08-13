@@ -593,8 +593,8 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										cd.val = dict.get_id_or_throw(section, fields[4]);
 									else cd.val = med_stof(fields[4]);
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.val2 = dict.get_id_or_throw(section, fields[5]);
-									else cd.val2 = med_stof(fields[5]);
+										cd.f_val2 = dict.get_id_or_throw(section, fields[5]);
+									else cd.f_val2 = med_stof(fields[5]);
 									break;
 
 								default:
@@ -1159,7 +1159,7 @@ int MedConvert::write_indexes(pid_data &curr)
 									sdrv.date_start = curr.raw_data[i][j].date;
 									sdrv.date_end = curr.raw_data[i][j].date2;
 									sdrv.val = curr.raw_data[i][j].val;
-									sdrv.val2 = curr.raw_data[i][j].val2;
+									sdrv.val2 = curr.raw_data[i][j].f_val2;
 									data_f[fno]->write((char *)&sdrv, sizeof(SDateRangeVal2));
 								}
 							}

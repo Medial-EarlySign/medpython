@@ -28,7 +28,7 @@ enum SigType {T_Value = 0,		// 0 :: single float Value
 			  T_ValShort2,		// 9 :: 2 short values
 			  T_ValShort4,		// 10 :: 4 short values
 			  T_CompactDateVal,	// 11 :: 2 unsigned shorts - first is a compact date (in 16 bits), second in an unsigned short value
-			T_DateRangeVal2,	// 12 :: date start, date end, float value, unsigned short additional value 
+			T_DateRangeVal2,	// 12 :: date start, date end, 2 float values
 				T_Last};		//    :: next free slot for type id
 
 namespace MedRep {
@@ -203,7 +203,7 @@ public:
 	int date_start;
 	int date_end;
 	float val;
-	short val2;
+	float val2;
 
 	// unified API extention
 	static inline int n_time_channels() { return 2; }
