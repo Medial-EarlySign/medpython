@@ -35,7 +35,7 @@ public:
 	vector<int> Days2Years;
 	vector<int> Days2Months;
 	vector<int> Days2Date;
-	vector<int> days2month ={ 0,31,59,90,120,151,181,212,243,273,304,334,365 };
+	vector<int> days2month = { 0,31,59,90,120,151,181,212,243,273,304,334,365 };
 
 	MedTime() { init_time_tables(); }
 
@@ -71,7 +71,11 @@ public:
 	int convert_date(int to_type, int in_time);
 	/// converts from YYYYMMDDHHMI format
 	int convert_datetime(int to_type, string in_time);
-	
+
+	/// converts from YYYYMMDDHHMI format include warning in dates before 1900 - for loading.
+	/// handle_ilegal_date [0 - hanldes quitely truncate to 1900, 1- shows warning and truncate, 2 - throws error] 
+	int convert_datetime_safe(int to_type, string in_time, char handle_ilegal_date = 2);
+
 	int convert_years(int to_type, int in_time);
 	int convert_months(int to_type, int in_time);
 	int convert_days(int to_type, int in_time);

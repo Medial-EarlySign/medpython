@@ -25,7 +25,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		if (pos["id"] != -1)
 			id = (int)stod(fields[pos["id"]]);
 		if (pos["date"] != -1)
-			time = med_time_converter.convert_datetime(time_unit,fields[pos["date"]]);
+			time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 1);
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
@@ -69,7 +69,7 @@ int MedSample::parse_from_string(string &s, int time_unit)
 	if (fields[0] == "EVENT") {
 		if (fields.size() < 6) return -1;
 		id = stoi(fields[1]);
-		time = med_time_converter.convert_datetime(time_unit, fields[2]);
+		time = med_time_converter.convert_datetime_safe(time_unit, fields[2], 1);
 		outcome = stof(fields[3]);
 		int dummy_length = stoi(fields[4]);
 		outcomeTime = stoi(fields[5]);
@@ -89,7 +89,7 @@ int MedSample::parse_from_string(string &s, int time_unit)
 	if (fields[0] == "SAMPLE") {
 		if (fields.size() < 5) return -1;
 		id = stoi(fields[1]);
-		time = med_time_converter.convert_datetime(time_unit, fields[2]);
+		time = med_time_converter.convert_datetime_safe(time_unit, fields[2], 1);
 		outcome = stof(fields[3]);
 		outcomeTime = stoi(fields[4]);
 		if (fields.size() >= 6)
