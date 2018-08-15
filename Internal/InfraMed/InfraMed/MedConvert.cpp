@@ -1016,7 +1016,7 @@ int MedConvert::write_all_indexes(vector<int> &all_pids)
 
 	return 0;
 }
-auto cd_to_tuple(const collected_data & v1) {
+auto cd_to_tuple(const collected_data & v1) -> decltype(std::tie(v1.date, v1.date2, v1.time, v1.time, v1.time2, v1.val, v1.longVal, v1.val1, v1.val2, v1.val3, v1.val4, v1.f_val2)) {
 	return std::tie(v1.date, v1.date2, v1.time, v1.time, v1.time2, v1.val, v1.longVal, v1.val1, v1.val2, v1.val3, v1.val4, v1.f_val2);
 }
 //------------------------------------------------
