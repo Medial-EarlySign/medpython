@@ -1015,7 +1015,9 @@ int MedConvert::write_all_indexes(vector<int> &all_pids)
 
 	return 0;
 }
-
+auto cd_to_tuple(const collected_data & v1) {
+	return std::tie(v1.date, v1.date2, v1.time, v1.time, v1.time2, v1.val, v1.longVal, v1.val1, v1.val2, v1.val3, v1.val4, v1.f_val2);
+}
 //------------------------------------------------
 int MedConvert::write_indexes(pid_data &curr)
 {
@@ -1027,29 +1029,14 @@ int MedConvert::write_indexes(pid_data &curr)
 		sort(curr.raw_data[i].begin(), curr.raw_data[i].end(),
 			[](const collected_data &v1, const collected_data &v2)
 		{
-			if (v1.date == v2.date) {
-				if (v1.date2 == v2.date2) {
-					if (v1.time == v2.time) {
-						if (v1.time2 == v2.time2)
-							return (v1.val < v2.val) || (v1.longVal < v2.longVal);
-						else
-							return v1.time2 < v2.time2;
-					}
-					else
-						return v1.time < v2.time;
-				}
-				else
-					return v1.date2 < v2.date2;
-			}
-			else
-				return v1.date < v2.date;
+			return cd_to_tuple(v1) < cd_to_tuple(v2);
 		});
 	}
 
 	// getting rid of duplicates
 	vector<collected_data>::iterator it;
 	for (i = 0; i < curr.raw_data.size(); i++) {
-		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [](const collected_data &v1, const collected_data &v2) {return ((v1.longVal == v2.longVal) && (v1.val == v2.val) && (v1.date == v2.date) && (v1.date2 == v2.date2) && (v1.time == v2.time) && (v1.time2 == v2.time2) && (v1.val1 == v2.val1) && (v1.val2 == v2.val2)); });
+		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [](const collected_data &v1, const collected_data &v2) {return cd_to_tuple(v1) == cd_to_tuple(v2);});
 		curr.raw_data[i].resize(distance(curr.raw_data[i].begin(), it));
 	}
 
