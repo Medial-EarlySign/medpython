@@ -1,0 +1,8 @@
+universe = vanilla
+rank = memory
+request_memory = 10000
+request_cpus = 7
+should_transfer_files = NO
+#Requirements = ((Machine == "node-01") || (Machine == "node-02") || (Machine == "node-01.medials.local") || (Machine == "node-02.medials.local"))
+#Requirements = ((Machine == "node-03") || (Machine == "node-03.medials.local"))
+
