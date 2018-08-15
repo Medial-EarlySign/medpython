@@ -760,6 +760,7 @@ RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int b
 	buffer_duration = buffer_time;
 	duration_flag = durr_time;
 	take_only_first = take_first;
+	repo = &rep;
 	if (!sets.empty()) {
 		int section_id = rep.dict.section_id(sigName);
 		rep.dict.curr_section = section_id;
@@ -789,7 +790,7 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			buffer_duration = stoi(it->second);
 		else if (it->first == "take_only_first")
 			take_only_first = stoi(it->second) > 0;
-		else if (it->first == "sets")
+		else if (it->first == "sets") //should contain "sets=" which points to file with list of codes
 			sets_arg = it->second;
 		else
 			MTHROW_AND_ERR("unsupported element \"%s\"\n",
@@ -799,28 +800,27 @@ int RegistrySignalSet::init(map<string, string>& map) {
 	//save to end
 	if (!sets_arg.empty()) {
 		std::map<string, string> set_init;
-		//rep=;sets=;
+		//sets=;
 		init_map_from_string(sets_arg, set_init);
-		if (set_init.find("rep") == set_init.end())
-			MTHROW_AND_ERR("sets should contain rep\n");
+		//not possible to have this object without pointer to repo
+		//if (set_init.find("rep") == set_init.end())
+		//	MTHROW_AND_ERR("sets should contain rep\n");
 		if (set_init.find("sets") == set_init.end())
 			MTHROW_AND_ERR("sets should contain sets for file path\n");
 		vector<string> sets;
 		medial::io::read_codes_file(set_init["sets"], sets);
-		MedRepository rep;
-		if (rep.init(set_init["rep"]) < 0)
-			MTHROW_AND_ERR("unabale to init rep by %s\n", set_init["rep"].c_str());
 		if (!sets.empty()) {
-			int section_id = rep.dict.section_id(signalName);
-			rep.dict.curr_section = section_id;
-			rep.dict.default_section = section_id;
-			rep.dict.prep_sets_lookup_table(section_id, sets, Flags);
+			int section_id = repo->dict.section_id(signalName);
+			repo->dict.curr_section = section_id;
+			repo->dict.default_section = section_id;
+			repo->dict.prep_sets_lookup_table(section_id, sets, Flags);
 		}
 	}
 	return 0;
 }
 
 RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets) {
+	repo = &rep;
 	init_from_string(init_string);
 	if (!sets.empty()) {
 		int section_id = rep.dict.section_id(signalName);
@@ -857,7 +857,7 @@ void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr,
 }
 
 RegistrySignalRange::RegistrySignalRange(const string &sigName, int durr_time, int buffer_time,
-	bool take_first, float min_range, float max_range) {
+	bool take_first, float min_range, float max_range, float outcome_val) {
 	signalName = sigName;
 	duration_flag = durr_time;
 	buffer_duration = buffer_time;
@@ -865,10 +865,11 @@ RegistrySignalRange::RegistrySignalRange(const string &sigName, int durr_time, i
 
 	min_value = min_range;
 	max_value = max_range;
+	outcome_value = outcome_val;
 }
 
 float RegistrySignalRange::get_outcome(UniversalSigVec &s, int current_i) {
-	return current_i < s.len && s.Val(current_i) >= min_value && s.Val(current_i) <= max_value;
+	return (current_i < s.len && s.Val(current_i) >= min_value && s.Val(current_i) <= max_value) * outcome_value;
 }
 
 int RegistrySignalRange::init(map<string, string>& map) {
@@ -887,6 +888,8 @@ int RegistrySignalRange::init(map<string, string>& map) {
 			min_value = stof(it->second);
 		else if (it->first == "max_value")
 			max_value = stof(it->second);
+		else if (it->first == "outcome_value")
+			outcome_value = stof(it->second);
 		else
 			MTHROW_AND_ERR("unsupported element \"%s\"\n",
 				it->first.c_str());
@@ -1531,25 +1534,26 @@ void medial::io::read_codes_file(const string &file_path, vector<string> &tokens
 	file.close();
 }
 
-RegistrySignal *RegistrySignal::make_registry_signal(const string &type) {
-	MedRepository rep;
+RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepository &rep) {
 	vector<string> empty_arr;
 	string empty_str = "";
+	//! [RegistrySignal::make_registry_signal]
 	if (type == "set")
 		return new RegistrySignalSet(empty_str, 0, 0, false, rep, empty_arr);
 	else if (type == "range")
 		return new RegistrySignalRange(empty_str, 0, 0, false, 0, 0);
 	else
-		MTHROW_AND_ERR("Unsupported type %s\n", type.c_str());
+		MTHROW_AND_ERR("Error: Unsupported type \"%s\" for RegistrySignal::make_registry_signal\n", type.c_str());
+	//! [RegistrySignal::make_registry_signal]
 }
 
-RegistrySignal *RegistrySignal::make_registry_signal(const string &type, const string &init_string) {
-	RegistrySignal *reg = make_registry_signal(type);
+RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepository &rep, const string &init_string) {
+	RegistrySignal *reg = make_registry_signal(type, rep);
 	reg->init_from_string(init_string);
 	return reg;
 }
 
-void MedRegistryCodesList::parse_registry_rules(const string &reg_cfg, const string &rep_path,
+void RegistrySignal::parse_registry_rules(const string &reg_cfg, MedRepository &rep,
 	vector<RegistrySignal *> &result) {
 	ifstream fr(reg_cfg);
 	if (!fr.good())
@@ -1567,8 +1571,8 @@ void MedRegistryCodesList::parse_registry_rules(const string &reg_cfg, const str
 			MTHROW_AND_ERR("IOERROR: bad file format excepting one [TAB]. got:\n%s\n", line.c_str());
 		string type = tokens[0];
 		string ini = tokens[1];
-		boost::replace_all(ini, "$REP", rep_path);
-		RegistrySignal *reg = RegistrySignal::make_registry_signal(type, ini);
+		boost::replace_all(ini, "$REP", rep.config_fname);
+		RegistrySignal *reg = RegistrySignal::make_registry_signal(type, rep, ini);
 		result.push_back(reg);
 	}
 	fr.close();
@@ -1619,7 +1623,7 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 		if (repo.init(rep_path) < 0)
 			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unable to init repositrory from path %s\n", rep_path.c_str());
 
-		parse_registry_rules(registry_file_path, rep_path, signal_filters);
+		RegistrySignal::parse_registry_rules(registry_file_path, repo, signal_filters);
 		init_called = true;
 
 		signalCodes.clear();
@@ -1633,4 +1637,225 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 			}
 
 		return 0;
+}
+
+MedRegistry *MedRegistry::make_registry(const string &registry_type, const string &init_str) {
+	MedRegistry *registry;
+	//! [MedRegistry::make_registry]
+	if (registry_type == "binary")
+		registry = new MedRegistryCodesList;
+	else if (registry_type == "categories")
+		registry = new MedRegistryCategories;
+	else
+		MTHROW_AND_ERR("Error: Unsupported type \"%s\" for MedRegistry::make_registry\n",
+			registry_type.c_str());
+	//! [MedRegistry::make_registry]
+	if (!init_str.empty())
+		registry->init_from_string(init_str);
+
+	return registry;
+}
+
+int MedRegistryCategories::init(map<string, string>& map) {
+	string repository_path, registry_cfg_path;
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		//! [MedRegistryCategories::init]
+		if (it->first == "rep")
+			repository_path = it->second;
+		else if (it->first == "start_buffer_duration")
+			start_buffer_duration = stoi(it->second);
+		else if (it->first == "end_buffer_duration")
+			end_buffer_duration = stoi(it->second);
+		else if (it->first == "max_repo_date")
+			max_repo_date = stoi(it->second);
+		else if (it->first == "config_signals_rules")
+			registry_cfg_path = it->second;
+		else
+			MTHROW_AND_ERR("Error in MedRegistryCategories::init - Unsupported init param \"%s\"\n",
+				it->first.c_str());
+		//! [MedRegistryCategories::init]
+	}
+
+	if (repository_path.empty())
+		MTHROW_AND_ERR("Error in MedRegistryCategories::init - please provide repository param to init function\n");
+	if (registry_cfg_path.empty())
+		MTHROW_AND_ERR("Error in MedRegistryCategories::init - please provide config_signals_rules param to init function\n");
+
+	MedPidRepository repo;
+	if (repo.init(repository_path) < 0)
+		MTHROW_AND_ERR("Error in MedRegistryCategories::init - Unable to init repositrory from path %s\n", repository_path.c_str());
+
+	vector<RegistrySignal *> all_rules;
+	RegistrySignal::parse_registry_rules(registry_cfg_path, repo, all_rules);
+	//transpose to all_rules -> signals_rules:
+	unordered_map<string, int> signal_name_to_idx;
+	for (size_t i = 0; i < all_rules.size(); ++i)
+	{
+		int current_signal_idx = (int)signals_rules.size();
+		if (signal_name_to_idx.find(all_rules[i]->signalName) == signal_name_to_idx.end()) {
+			signal_name_to_idx[all_rules[i]->signalName] = current_signal_idx;
+			signals_rules.push_back({}); //open new empty signal rules list
+		}
+		else
+			current_signal_idx = signal_name_to_idx[all_rules[i]->signalName];
+		signals_rules[current_signal_idx].push_back(all_rules[i]);
+	}
+
+	signalCodes.clear();
+	for (size_t i = 0; i < signals_rules.size(); ++i)
+		signalCodes.push_back(repo.sigs.sid(signals_rules[i][0]->signalName));
+	signalCodes.push_back(repo.sigs.sid("BDATE"));
+	for (size_t i = 0; i < signals_rules.size(); ++i)
+		if (signals_rules[i][0]->signalName == "BDATE") {
+			need_bdate = true;
+			break;
+		}
+
+	return 0;
+}
+
+void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv,
+	vector<MedRegistryRecord> &results) {
+	if (signals_rules.empty())
+		MTHROW_AND_ERR("Must be initialized by init before use\n");
+	vector<int> signals_indexes_pointers(signals_rules.size()); //all in 0
+	int max_allowed_date = max_repo_date;
+
+	unordered_set<float> outcomes_may_not_use;
+	int last_buffer_duration = -1;
+
+	MedRegistryRecord r;
+	r.pid = pid;
+	r.registry_value = 0;
+	int start_date = -1, last_date = -1;
+	int signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
+	//fetch till passing bdate
+	while (signal_index >= 0 && start_date == -1) {
+		UniversalSigVec &signal = usv[signal_index];
+		int i = signals_indexes_pointers[signal_index] - 1; //the current signal time
+		//find first date if not marked already
+		if (Date_wrapper(signal, i) >= bdate)
+			start_date = Date_wrapper(signal, i);
+		else
+			signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
+	}
+	int min_date = medial::repository::DateAdd(start_date, start_buffer_duration);
+	r.min_allowed_date = min_date;
+	r.start_date = min_date;
+	r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
+
+	bool same_date = false;
+	float rule_activated = 0;
+	while (signal_index >= 0)
+	{
+		UniversalSigVec &signal = usv[signal_index];
+		vector<RegistrySignal *> *all_signal_prop = &signals_rules[signal_index];
+		int i = signals_indexes_pointers[signal_index] - 1; //the current signal time
+
+		//I have start_date
+		int curr_date = Date_wrapper(signal, i);
+		if (max_allowed_date > 0 && curr_date > max_allowed_date)
+			break;
+		last_date = curr_date;
+
+		if (!same_date)
+			rule_activated = 0;
+		for (size_t rule_idx = 0; rule_idx < all_signal_prop->size(); ++rule_idx)
+		{
+			RegistrySignal *signal_prop = (*all_signal_prop)[rule_idx];
+
+			float signal_prop_outcome = signal_prop->get_outcome(signal, i);
+			if (signal_prop_outcome > 0) {
+				if (rule_activated > 0 && rule_activated != signal_prop_outcome) //validates no contradicted rule passes this condition
+					MTHROW_AND_ERR("Error in MedRegistryCategories - specific signal \"%s\" has contradicted"
+						" rules in same time point with diffrent outcomes(pid=%d, time=%d, value=%2.3f)\n",
+						signal_prop->signalName.c_str(), pid, last_date, signal.Val(i));
+				rule_activated = signal_prop_outcome;
+
+				//check if we need to merge this outcome with previous one current state or open new one:
+				if (r.registry_value == signal_prop_outcome) {
+					//same outcome - update end_time:
+					if (last_date < medial::repository::DateAdd(r.end_date,
+						last_buffer_duration - 1)) {
+
+						int new_end_date = medial::repository::DateAdd(last_date, signal_prop->duration_flag);
+						if (new_end_date > r.end_date) {
+							int prev_search = medial::repository::DateAdd(r.end_date, last_buffer_duration - 1);
+							r.end_date = new_end_date;
+							int new_search_date = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+							last_buffer_duration = signal_prop->buffer_duration;
+							if (new_search_date < prev_search)
+								last_buffer_duration += int(365 * medial::repository::DateDiff(new_search_date, prev_search));
+						}
+					}
+					else {
+						//finished time - flush and open new registry with 0 outcome:
+						results.push_back(r);
+						//start new record with 0 outcome:
+						r.registry_value = 0;
+						r.start_date = last_date;
+						r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
+						//r.end_date = medial::repository::DateAdd(r.start_date, 1); //let's start from 1 day
+						//r.max_allowed_date = r.end_date;
+					}
+				}
+				else { //diffrent outcome - no contradiction in same time point:
+					//flush last 
+					int last_date_c = medial::repository::DateAdd(last_date, -signal_prop->buffer_duration);
+					r.end_date = last_date_c;
+					r.max_allowed_date = last_date_c;
+					if (r.end_date > r.start_date)
+						results.push_back(r);
+
+					//skip if may not use
+					if (signal_prop->take_only_first && outcomes_may_not_use.find(signal_prop_outcome) != outcomes_may_not_use.end())
+						continue;
+					//start new record
+					//r.pid = pid;
+					//r.min_allowed_date = min_date;
+					r.max_allowed_date = last_date;
+					r.start_date = last_date;
+					r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
+					r.registry_value = signal_prop_outcome;
+
+					if (signal_prop->take_only_first) {
+						r.end_date = 30000000;
+						//results.push_back(r);
+						outcomes_may_not_use.insert(signal_prop_outcome); //if happens again will ignore and skip
+						last_buffer_duration = -1; //no buffer duration
+						continue; //finished handling!
+					}
+
+					r.end_date = medial::repository::DateAdd(last_date, signal_prop->duration_flag);
+					last_buffer_duration = signal_prop->buffer_duration;
+
+					//results.push_back(r);
+				}
+
+			}
+		}
+
+		if (!same_date && rule_activated == 0 && r.registry_value != 0) {
+			//check if need to close buffer - no rule happend in this time and has outcome in buffer
+			results.push_back(r);
+			//start new record with 0 outcome:
+			r.registry_value = 0;
+			r.start_date = last_date;
+			r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
+			//r.end_date = medial::repository::DateAdd(r.start_date, 1); //let's start from 1 day
+			//r.max_allowed_date = r.end_date;
+		}
+
+		signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
+		if (signal_index >= 0)
+			same_date = last_date == Date_wrapper(usv[signal_index], signals_indexes_pointers[signal_index] - 1);
+	}
+
+	if (r.registry_value == 0)
+		r.end_date = last_date;
+	last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
+	r.max_allowed_date = last_date;
+	if (r.end_date > r.start_date)
+		results.push_back(r);
 }
