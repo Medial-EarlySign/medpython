@@ -18,7 +18,21 @@
 #define CHECK_CRC 0
 
 using namespace boost::property_tree;
-
+void get_prefix_suffix_from_tokens(const string& single_attr_value, string& small_file, string& ref_node, string& prefix, string& suffix) {
+	vector<string> tokens;
+	boost::split(tokens, single_attr_value, boost::is_any_of(";"));
+	for (string token : tokens) {
+		if (boost::starts_with(token, "prefix:"))
+			prefix = token.substr(7);
+		else if (boost::starts_with(token, "suffix:"))
+			suffix = token.substr(7);
+		else if (boost::starts_with(token, "file:"))
+			small_file = tokens[0].substr(5);
+		else if (boost::starts_with(token, "ref:"))
+			ref_node = tokens[0].substr(4);
+		else MTHROW_AND_ERR("dont know how to handle token [%s]\n", token.c_str());
+	}
+}
 void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname) {
 	all_action_attrs.clear();
 	for (ptree::value_type &attr : action) {
@@ -37,16 +51,18 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 		else {
 			vector<string> current_attr_values;
 			if (single_attr_value.length() > 0) {				
+				string small_file = "", ref_node = "", prefix = "", suffix = "";
 				if (boost::starts_with(single_attr_value, "file:")) {
-					//e.g. "signal": "file:my_list.txt" - file can be relative
+					//e.g. "signal": "file:my_list.txt;prefix:ppp;suffix:sss" - file can be relative					
+					get_prefix_suffix_from_tokens(single_attr_value, small_file, ref_node, prefix, suffix);
 					vector<string> my_list;
-					string small_file = single_attr_value.substr(5);
 					fill_list_from_file(make_absolute_path(fname, small_file), my_list);
 					for (string s : my_list)
-						current_attr_values.push_back(parse_key_val(attr_name, s));
+						current_attr_values.push_back(prefix + parse_key_val(attr_name, s) + suffix);
 				}
 				else if (boost::starts_with(single_attr_value, "ref:")) {
-					auto my_ref = root.get_child(single_attr_value.substr(4));
+					get_prefix_suffix_from_tokens(single_attr_value, small_file, ref_node, prefix, suffix);
+					auto my_ref = root.get_child(ref_node);
 					for (auto &r : my_ref)
 						//e.g. "signal": "ref:signals"
 						current_attr_values.push_back(parse_key_val(attr_name, r.second.data()));

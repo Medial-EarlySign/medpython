@@ -1465,7 +1465,8 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 
 	// set names
 	set_names();
-
+	// {name} is magical
+	boost::replace_all(modelFile, "{name}", modelName);
 	// Read Model and get required signal
 	MedModel *_model = new MedModel;
 	if (_model->read_from_file(modelFile) != 0)

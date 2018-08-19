@@ -435,8 +435,7 @@ int MedDictionarySections::read(const string &fname)
 	ifstream inf(fname);
 
 	if (!inf) {
-		MERR("MedDictionarySections: read: Can't open file %s\n", fname.c_str());
-		return -1;
+		MTHROW_AND_ERR("MedDictionarySections: read: Can't open file %s\n", fname.c_str());
 	}
 
 	MLOG_D("MedDictinarySections: read: reading dictionary file %s\n", fname.c_str());
