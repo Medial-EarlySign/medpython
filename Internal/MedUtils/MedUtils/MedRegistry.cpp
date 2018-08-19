@@ -70,7 +70,7 @@ void MedRegistry::write_text_file(const string &file_path) const {
 	MLOG("[Wrote %d registry records to %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
-void MedRegistry::create_registry(MedPidRepository &dataManager) {
+void MedRegistry::create_registry(MedPidRepository &dataManager, medial::repository::fix_method method) {
 	MLOG_D("Creating registry...\n");
 	vector<int> used_sigs;
 	used_sigs.reserve(signalCodes.size());
@@ -90,12 +90,19 @@ void MedRegistry::create_registry(MedPidRepository &dataManager) {
 		if (!dataManager.index.index_table[signalCodes[i]].is_loaded)
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
 				dataManager.sigs.name(signalCodes[i]).c_str());
+	int fixed_cnt = 0;
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < dataManager.pids.size(); ++i)
 	{
-		vector<UniversalSigVec> sig_vec((int)used_sigs.size());
-		for (size_t k = 0; k < sig_vec.size(); ++k)
-			dataManager.uget(dataManager.pids[i], used_sigs[k], sig_vec[k]);
+		vector<UniversalSigVec_mem> sig_vec((int)used_sigs.size());
+		for (size_t k = 0; k < sig_vec.size(); ++k) {
+			UniversalSigVec vv;
+			dataManager.uget(dataManager.pids[i], used_sigs[k], vv);
+			bool did_something = medial::repository::fix_contradictions(vv, method, sig_vec[k]);
+			if (did_something)
+#pragma omp atomic
+				++fixed_cnt;
+		}
 		int birth = medial::repository::get_value(dataManager, dataManager.pids[i], bDateCode);
 		vector<MedRegistryRecord> vals;
 		get_registry_records(dataManager.pids[i], birth, sig_vec, vals);
@@ -118,7 +125,10 @@ void MedRegistry::create_registry(MedPidRepository &dataManager) {
 	}
 
 	duration = difftime(time(NULL), start);
-	MLOG("Finished creating registy in %d seconds\n", (int)duration);
+	string fixed_count_str = "";
+	if (fixed_cnt > 0)
+		fixed_count_str = "(fixed " + to_string(fixed_cnt) + " patient signals)";
+	MLOG("Finished creating registy in %d seconds%s\n", (int)duration, fixed_count_str.c_str());
 	dataManager.clear();
 }
 
@@ -905,7 +915,7 @@ inline int Date_wrapper(UniversalSigVec &signal, int i) {
 		return (int)signal.Val(i);
 }
 
-int medial::repository::fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers) {
+template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers) {
 	int minDate = -1, minDate_index = -1;
 	for (size_t i = 0; i < patientFile.size(); ++i)
 	{
@@ -929,9 +939,11 @@ int medial::repository::fetch_next_date(vector<UniversalSigVec> &patientFile, ve
 		++signalPointers[minDate_index];
 	return minDate_index;
 }
+template int medial::repository::fetch_next_date<UniversalSigVec_mem>(vector<UniversalSigVec_mem> &patientFile, vector<int> &signalPointers);
+template int medial::repository::fetch_next_date<UniversalSigVec>(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers);
 
 void MedRegistryCodesList::get_registry_records(int pid,
-	int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) {
+	int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) {
 	if (!init_called)
 		MTHROW_AND_ERR("Must be initialized by init before use\n");
 	vector<int> signals_indexes_pointers(signal_filters.size()); //all in 0
@@ -1715,7 +1727,7 @@ int MedRegistryCategories::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv,
+void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv,
 	vector<MedRegistryRecord> &results) {
 	if (signals_rules.empty())
 		MTHROW_AND_ERR("Must be initialized by init before use\n");
