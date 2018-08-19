@@ -425,7 +425,8 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 
 	if (rep_mode < 2) {
 		MTHROW_AND_ERR("MedRepository: rep_mode %d is no longer supported\n", rep_mode);
-	} else {
+	}
+	else {
 		// mode 2 TBD !!!
 		generate_fnames_for_prefix();
 	}
@@ -690,7 +691,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		if (sigs.has_any_categorical_channel(sid))
 			MOUT(" :\n");
-		else 
+		else
 			MOUT(" : ");
 	}
 	MOUT("\n");
@@ -1526,20 +1527,27 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 }
 
 float medial::repository::DateDiff(int refDate, int dateSample) {
-	return float((med_time_converter.convert_date(MedTime::Days, dateSample) -
-		med_time_converter.convert_date(MedTime::Days, refDate)) / 365.0);
+	return float((med_time_converter.convert_times(global_default_time_unit, MedTime::Days, dateSample) -
+		med_time_converter.convert_times(global_default_time_unit, MedTime::Days, refDate)) / 365.0);
 }
 
 int medial::repository::DateAdd(int refDate, int daysAdd) {
-	return med_time_converter.convert_days(MedTime::Date,
-		med_time_converter.convert_date(MedTime::Days, refDate) + daysAdd);
+	if (global_default_time_unit == MedTime::Date)
+		return med_time_converter.convert_days(global_default_time_unit,
+			med_time_converter.convert_times(global_default_time_unit, MedTime::Days, refDate) + daysAdd);
+	else
+		return refDate + daysAdd;
 }
 
 int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	int len, gend = -1;
 	void *data = rep.get(pid, sigCode, len);
+
 	if (len > 0)
-		gend = (int)(*(SVal *)data).val;
+		if (rep.sigs.Sid2Info[sigCode].type == T_Value)
+			gend = (int)(*(SVal *)data).val;
+		else if (rep.sigs.Sid2Info[sigCode].type == T_TimeStamp)
+			gend = (int)(*(STimeStamp *)data).time;
 	return gend;
 }
 
@@ -1614,7 +1622,7 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
-			MTHROW_AND_ERR("not supported code %d for signal=%s\n", 
+			MTHROW_AND_ERR("not supported code %d for signal=%s\n",
 				id, signalHirerchyType.c_str());
 		}
 		if (!name.empty())
