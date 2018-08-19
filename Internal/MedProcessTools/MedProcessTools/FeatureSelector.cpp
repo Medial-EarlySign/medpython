@@ -818,10 +818,11 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		string val = boost::trim_copy(entry.second);
 		//! [TagFeatureSelector::init]
 		if (field == "missing_value") missing_value = med_stof(entry.second);
-		else if (field == "selected_tags") boost::split(selected_tags, entry.second, boost::is_any_of(","));
-		else if (field == "removed_tags") boost::split(removed_tags, entry.second, boost::is_any_of(","));
+		else if (field == "selected_tags") if (!val.empty()) boost::split(selected_tags, val, boost::is_any_of(","));
+		else if (field == "removed_tags") if (!val.empty()) boost::split(removed_tags, val, boost::is_any_of(","));
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
 		//! [TagFeatureSelector::init]
@@ -834,10 +835,16 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
 	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
 	unordered_set<string> r(removed_tags.begin(), removed_tags.end());
-	for (string sub : r)
-		MLOG("TagFeatureSelector removing features with tag [%s]\n", sub.c_str());
-	for (string sub : s)
-		MLOG("TagFeatureSelector selecting features with tag [%s]\n", sub.c_str());
+	if (r.empty())
+		MLOG("TagFeatureSelector not removing any features\n");
+	else 
+		for (string sub : r)
+			MLOG("TagFeatureSelector removing features with tag [%s]\n", sub.c_str());
+	if (s.empty())
+		MLOG("TagFeatureSelector selecting all features\n");
+	else
+		for (string sub : s)
+			MLOG("TagFeatureSelector selecting features with tag [%s]\n", sub.c_str());
 	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
 		string feature_name = it->first;
 		unordered_set<string> feature_tags = it->second;
