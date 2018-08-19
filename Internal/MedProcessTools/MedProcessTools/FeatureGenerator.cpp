@@ -638,14 +638,14 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 void SingletonGenerator::set_names()
 {
 	if (names.empty()) {
-		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName ; 
 		//string name = signalName + ".";
 		string set_names = in_set_name;
 		if (set_names == "" && this->sets.size() > 0)
 			set_names = boost::algorithm::join(this->sets, "_");
 
 		if (set_names != "")
-			name += "category_set_" + set_names;
+			name += ".category_set_" + set_names;
 
 		names.push_back(name);
 		//MLOG("Created %s\n", name.c_str());
