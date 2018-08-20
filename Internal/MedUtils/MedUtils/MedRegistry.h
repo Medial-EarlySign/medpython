@@ -64,7 +64,7 @@ public:
 	/// Creates vector of registry using already initialized MedPidRepository with signals
 	/// in parallel manner for each patient
 	/// </summary>
-	void create_registry(MedPidRepository &dataManager);
+	void create_registry(MedPidRepository &dataManager, medial::repository::fix_method method = medial::repository::fix_method::none);
 
 	/// <summary>
 	/// returns the signal codes used to create the registry
@@ -135,7 +135,7 @@ protected:
 	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
 	bool need_bdate; ///< If true Bdate is also used in registry creation
 private:
-	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
+	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
 
 /**
@@ -209,7 +209,7 @@ namespace medial {
 		/// \brief fetches the next date from all signals in patientFile by date order.
 		/// the signalPointers is array of indexes of each signal. it also advances the right index
 		/// returns the signal with the minimal date - "the next date"
-		int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers);
+		template<class T> int fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers);
 	}
 }
 
@@ -226,7 +226,7 @@ public:
 	bool take_only_first; ///< if True will take only first occournce
 
 	/// a function that retrive current outcome based on new time point
-	virtual float get_outcome(UniversalSigVec &s, int current_i) = 0;
+	virtual bool get_outcome(UniversalSigVec &s, int current_i, float &result) = 0;
 
 	/// creates Registry rule. can have "set" for RegistrySignalSet and "range" for RegistrySignalRange.
 	/// /// @snippet MedRegistry.cpp RegistrySignal::make_registry_signal
@@ -252,7 +252,7 @@ public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		MedRepository &rep, const vector<string> &sets);
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
-	float get_outcome(UniversalSigVec &s, int current_i);
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalSet::init
@@ -277,7 +277,7 @@ public:
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		float min_range, float max_range, float outcome_val = 1);
-	float get_outcome(UniversalSigVec &s, int current_i);
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalRange::init
@@ -339,7 +339,7 @@ private:
 	vector<bool> SkipPids; ///< black list of patients mask
 	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
 
-	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
+	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
 	bool init_called; ///< a flag to mark that init was called
 };
 
@@ -372,7 +372,7 @@ public:
 				delete signals_rules[i][j];
 	}
 private:
-	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
+	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
 };
 
 MEDSERIALIZE_SUPPORT(MedRegistryRecord)
