@@ -671,6 +671,7 @@ void smearBins(vector<int>& bins, int nBins, int reqNbins);
 ****************************************************************************************/
 class TagFeatureSelector : public FeatureSelector {
 public:
+	int verbose = 0;
 	vector<string> selected_tags; ///< the selected tags
 	vector<string> removed_tags; ///< tags to remove
 	// Constructor

@@ -50,7 +50,7 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 		}
 		else {
 			vector<string> current_attr_values;
-			if (single_attr_value.length() > 0) {				
+			if (single_attr_value.length() > 0) {
 				string small_file = "", ref_node = "", prefix = "", suffix = "";
 				if (boost::starts_with(single_attr_value, "file:")) {
 					//e.g. "signal": "file:my_list.txt;prefix:ppp;suffix:sss" - file can be relative					
@@ -75,6 +75,8 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 				//e.g. "type": ["last", "slope"]
 				for (ptree::value_type &attr_value : attr.second)
 					current_attr_values.push_back(parse_key_val(attr_name, attr_value.second.data()));
+			if (current_attr_values.empty())
+				MTHROW_AND_ERR("[%s] has an empty val [%s]\n", attr_name.c_str(), single_attr_value.c_str());
 			all_action_attrs.push_back(current_attr_values);
 		}
 	}
@@ -135,7 +137,7 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 				vector<string> all_combinations;
 				concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 				if (all_combinations.empty())
-					MTHROW_AND_ERR("set %d expanded to 0 combinations! did you put an empty list inside a []?!\n", process_set);
+					MTHROW_AND_ERR("[%s] set %d expanded to 0 combinations! did you put an empty list inside a []?!\n", action_type.c_str(), process_set);
 				if (duplicate == 1 && all_combinations.size() != 1)
 					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] set %d has one member which expanded to %d actions\n",
 						action_type.c_str(), process_set, (int)all_combinations.size());
