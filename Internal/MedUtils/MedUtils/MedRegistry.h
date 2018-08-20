@@ -226,7 +226,7 @@ public:
 	bool take_only_first; ///< if True will take only first occournce
 
 	/// a function that retrive current outcome based on new time point
-	virtual float get_outcome(UniversalSigVec &s, int current_i) = 0;
+	virtual bool get_outcome(UniversalSigVec &s, int current_i, float &result) = 0;
 
 	/// creates Registry rule. can have "set" for RegistrySignalSet and "range" for RegistrySignalRange.
 	/// /// @snippet MedRegistry.cpp RegistrySignal::make_registry_signal
@@ -252,7 +252,7 @@ public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		MedRepository &rep, const vector<string> &sets);
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
-	float get_outcome(UniversalSigVec &s, int current_i);
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalSet::init
@@ -277,7 +277,7 @@ public:
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		float min_range, float max_range, float outcome_val = 1);
-	float get_outcome(UniversalSigVec &s, int current_i);
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalRange::init
