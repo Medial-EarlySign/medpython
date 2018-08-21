@@ -502,8 +502,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					selected_rows.push_back((int)i);
 					continue;
 				}
-				int time_df = (med_time_converter.convert_date(MedTime::Days, sim_features.samples[i].outcomeTime)
-					- med_time_converter.convert_date(MedTime::Days, sim_features.samples[i].time));
+				int time_df = (med_time_converter.convert_times(sim_features.time_unit, MedTime::Days, sim_features.samples[i].outcomeTime)
+					- med_time_converter.convert_times(sim_features.time_unit, MedTime::Days, sim_features.samples[i].time));
 				if (time_df > time_filter.max_range) {
 					//search for intersection:
 					const vector<MedRegistryRecord *> &reg_records = pid_to_reg[sim_features.samples[i].id];
@@ -717,8 +717,8 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 			MTHROW_AND_ERR("MedFeautres Prediciton is empty. need to run on MedFeatures with predictions\n");
 		preds[i] = features.samples[i].prediction[0];
 		if (uses_time_window) {
-			int diff_days = (tm.convert_date(MedTime::Days, features.samples[i].outcomeTime)
-				- tm.convert_date(MedTime::Days, features.samples[i].time));
+			int diff_days = (tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].outcomeTime)
+				- tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].time));
 			final_additional_info["Time-Window"][i] = (float)diff_days;
 			final_additional_info["Label"][i] = y[i];
 		}
@@ -781,9 +781,9 @@ void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<flo
 		c = 0;
 		for (size_t i = 0; i < samples.idSamples.size(); ++i)
 			for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
-				int diff_days = (tm.convert_date(MedTime::Days,
+				int diff_days = (tm.convert_times(samples.time_unit, MedTime::Days,
 					samples.idSamples[i].samples[j].outcomeTime)
-					- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
+					- tm.convert_times(samples.time_unit, MedTime::Days, samples.idSamples[i].samples[j].time));
 				additional_info["Time-Window"][c] = (float)diff_days;
 				additional_info["Label"][c] = samples.idSamples[i].samples[j].outcome;
 				++c;
@@ -904,9 +904,9 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 		float max_pred_case = 0, max_pred_control = 0;
 		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
 		{
-			int diff_days = (tm.convert_date(MedTime::Days,
+			int diff_days = (tm.convert_times(samples.time_unit, MedTime::Days,
 				samples.idSamples[i].samples[j].outcomeTime)
-				- tm.convert_date(MedTime::Days, samples.idSamples[i].samples[j].time));
+				- tm.convert_times(samples.time_unit, MedTime::Days, samples.idSamples[i].samples[j].time));
 			//check if valid for time_window:
 			if (samples.idSamples[i].samples[j].outcome > 0) {
 				if ((diff_days >= min_time && diff_days <= max_time) &&
@@ -953,8 +953,8 @@ void MedBootstrap::change_sample_autosim(MedFeatures &features, int min_time, in
 
 		//scan pid indexes
 		for (int i : it->second) {
-			int diff_days = (tm.convert_date(MedTime::Days, features.samples[i].outcomeTime)
-				- tm.convert_date(MedTime::Days, features.samples[i].time));
+			int diff_days = (tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].outcomeTime)
+				- tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].time));
 			//check if valid for time_window:
 			if (features.samples[i].outcome > 0) {
 				if ((diff_days >= min_time && diff_days <= max_time) &&
