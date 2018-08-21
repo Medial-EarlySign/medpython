@@ -372,7 +372,7 @@ template<typename T> int medial::process::binary_search_position(const T *begin,
 		}
 	}
 }
-template<typename T> inline int binary_search_position_last(const T *begin, const T *end, T val, bool reversed) {
+template<typename T> int medial::process::binary_search_position_last(const T *begin, const T *end, T val, bool reversed) {
 	int maxSize = (int)(end - begin) + 1;
 	int mid = int((maxSize - 1) / 2);
 	if (maxSize <= 2) {

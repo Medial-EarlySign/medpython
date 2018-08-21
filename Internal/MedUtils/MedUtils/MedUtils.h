@@ -101,7 +101,7 @@ namespace medial {
 		/// \brief binary search for position to add new element in sorted manner (first position if equal elements found).
 		template<typename T> int binary_search_position(const T *begin, const T *end, T val, bool reversed = false);
 		/// \brief binary search for position to add new element in sorted manner (last position if equal elements found).
-		template<typename T> inline int binary_search_position_last(const T *begin, const T *end, T val, bool reversed = false);
+		template<typename T> int binary_search_position_last(const T *begin, const T *end, T val, bool reversed = false);
 	}
 	/*!
 	*  \brief io

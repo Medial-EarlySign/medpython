@@ -1229,7 +1229,7 @@ template double medial::stats::std_vec<float>(const vector<float> &v, float mean
 template double medial::stats::std_vec<double>(const vector<double> &v, double mean, const vector<float> *weights);
 
 template <typename T, typename S>
-double get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<float> *weights) {
+double medial::stats::get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<float> *weights) {
 	//return kendallTau(preds, y);
 	double tau = 0, cnt = 0;
 	if (weights == NULL) {
@@ -1321,7 +1321,7 @@ double get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<
 					pred_i_bigger = group_weights_cumsum[inside_group_idx][pred_i_bigger_i];
 				else
 					pred_i_bigger = p_size;
-				if (pred_i_smaller < group_weights_cumsum[inside_group_idx].size())
+				if (pred_i_smaller_i < group_weights_cumsum[inside_group_idx].size())
 					pred_i_smaller = group_weights_cumsum[inside_group_idx][pred_i_smaller_i];
 				else
 					pred_i_smaller = p_size;
@@ -1343,12 +1343,12 @@ double get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<
 
 	return tau;
 }
-template double get_kendall_tau<double, double>(const vector<double>& preds, const vector<double>& y, const vector<float> *weights);
-template double get_kendall_tau<float, float>(const vector<float>& preds, const vector<float>& y, const vector<float> *weights);
-template double get_kendall_tau<double, float>(const vector<double>& preds, const vector<float>& y, const vector<float> *weights);
-template double get_kendall_tau<float, double>(const vector<float>& preds, const vector<double>& y, const vector<float> *weights);
+template double medial::stats::get_kendall_tau<double, double>(const vector<double>& preds, const vector<double>& y, const vector<float> *weights);
+template double medial::stats::get_kendall_tau<float, float>(const vector<float>& preds, const vector<float>& y, const vector<float> *weights);
+template double medial::stats::get_kendall_tau<double, float>(const vector<double>& preds, const vector<float>& y, const vector<float> *weights);
+template double medial::stats::get_kendall_tau<float, double>(const vector<float>& preds, const vector<double>& y, const vector<float> *weights);
 
-float get_rmse(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
+float medial::stats::get_rmse(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
 	double res = 0;
 	if (weights == NULL) {
 		for (size_t i = 0; i < y.size(); ++i)
@@ -1368,7 +1368,7 @@ float get_rmse(const vector<float> &preds, const vector<float> &y, const vector<
 	return (float)res;
 }
 
-float get_accuracy(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
+float medial::stats::get_accuracy(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
 	double res = 0;
 	if (weights == NULL) {
 		for (size_t i = 0; i < y.size(); ++i)
