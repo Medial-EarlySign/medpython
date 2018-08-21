@@ -72,6 +72,7 @@ MedBootstrap::MedBootstrap()
 	filter_cohort["All"] = {};
 	simTimeWindow = false;
 	is_binary_outcome = true;
+	use_time_control_as_case = false;
 }
 
 int MedBootstrap::init(map<string, string>& map) {
@@ -114,10 +115,13 @@ int MedBootstrap::init(map<string, string>& map) {
 			simTimeWindow = stoi(param_value) > 0;
 		else if (param_name == "is_binary_outcome")
 			is_binary_outcome = stoi(param_value) > 0;
+		else if (param_name == "use_time_control_as_case")
+			use_time_control_as_case = stoi(param_value) > 0;
 		//! [MedBootstrap::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for MedBootstrap::init\n", param_name.c_str());
 	}
+
 
 	return 0;
 }
@@ -720,7 +724,7 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 			int diff_days = (tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].outcomeTime)
 				- tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].time));
 			final_additional_info["Time-Window"][i] = (float)diff_days;
-			final_additional_info["Label"][i] = y[i];
+			final_additional_info["Label"][i] = !use_time_control_as_case ? y[i] : 1;
 		}
 		if (splits_inds != NULL)
 			(*splits_inds)[features.samples[i].split].push_back((int)i);
@@ -785,7 +789,7 @@ void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<flo
 					samples.idSamples[i].samples[j].outcomeTime)
 					- tm.convert_times(samples.time_unit, MedTime::Days, samples.idSamples[i].samples[j].time));
 				additional_info["Time-Window"][c] = (float)diff_days;
-				additional_info["Label"][c] = samples.idSamples[i].samples[j].outcome;
+				additional_info["Label"][c] = !use_time_control_as_case ? samples.idSamples[i].samples[j].outcome : 1;
 				++c;
 			}
 	}

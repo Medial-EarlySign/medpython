@@ -42,6 +42,7 @@ public:
 	int sample_seed; ///<if 0 will use random_device
 	int loopCnt; ///<the bootstrap count
 	bool is_binary_outcome; ///< only used for validating bootstrap input
+	bool use_time_control_as_case; ///< if True will use time window condition for controls same as cases.
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
 	bool simTimeWindow;
