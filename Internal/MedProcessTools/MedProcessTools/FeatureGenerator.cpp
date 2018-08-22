@@ -1543,7 +1543,8 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 				preds[i*n_preds + j] = new_val;
 			}
 		}
-
+		// release some memory
+		model->features.clear();
 	}
 	if (impute_existing_feature) {
 		FeatureProcessor p;
