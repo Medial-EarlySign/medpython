@@ -98,8 +98,10 @@ namespace medial {
 		template<class T> void prctils(const vector<T> &x, const vector<double> &prc, vector<T> &res, const vector<float> *weights = NULL);
 		/// \brief binary search for index. -1 if not found
 		template<typename T> int binary_search_index(const T *begin, const T *end, T val);
-		/// \brief binary search for position to add new element in sorted manner.
+		/// \brief binary search for position to add new element in sorted manner (first position if equal elements found).
 		template<typename T> int binary_search_position(const T *begin, const T *end, T val, bool reversed = false);
+		/// \brief binary search for position to add new element in sorted manner (last position if equal elements found).
+		template<typename T> int binary_search_position_last(const T *begin, const T *end, T val, bool reversed = false);
 	}
 	/*!
 	*  \brief io

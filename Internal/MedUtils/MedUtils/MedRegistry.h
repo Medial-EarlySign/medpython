@@ -49,6 +49,7 @@ class MedRegistry : public SerializableObject
 {
 public:
 	vector<MedRegistryRecord> registry_records; ///< the registry records vector
+	int time_unit; ///< The time unit
 
 	/// <summary>
 	/// Writes the file to text file in tab delimeted format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue
@@ -63,7 +64,7 @@ public:
 	/// Creates vector of registry using already initialized MedPidRepository with signals
 	/// in parallel manner for each patient
 	/// </summary>
-	void create_registry(MedPidRepository &dataManager);
+	void create_registry(MedPidRepository &dataManager, medial::repository::fix_method method = medial::repository::fix_method::none);
 
 	/// <summary>
 	/// returns the signal codes used to create the registry
@@ -118,9 +119,15 @@ public:
 		const string &sampler_args = "conflict_method=max;use_allowed=1;day_jump=365;allowed_time_from=0;"
 		"allowed_time_to=365;start_year=2007;end_year=2012") const;
 
+	/// creates registry type and initialize it if init_str is not empty
+	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
+	/// @snippet MedRegistry.cpp MedRegistry::make_registry
+	static MedRegistry *make_registry(const string &registry_type, const string &init_str = "");
+
 	/// Default Ctor
 	MedRegistry() {
 		need_bdate = false;
+		time_unit = global_default_time_unit;
 	}
 
 	ADD_SERIALIZATION_FUNCS(registry_records)
@@ -128,7 +135,7 @@ protected:
 	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
 	bool need_bdate; ///< If true Bdate is also used in registry creation
 private:
-	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
+	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
 
 /**
@@ -202,7 +209,7 @@ namespace medial {
 		/// \brief fetches the next date from all signals in patientFile by date order.
 		/// the signalPointers is array of indexes of each signal. it also advances the right index
 		/// returns the signal with the minimal date - "the next date"
-		int fetch_next_date(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers);
+		template<class T> int fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers);
 	}
 }
 
@@ -219,21 +226,33 @@ public:
 	bool take_only_first; ///< if True will take only first occournce
 
 	/// a function that retrive current outcome based on new time point
-	virtual float get_outcome(UniversalSigVec &s, int current_i) = 0;
+	virtual bool get_outcome(UniversalSigVec &s, int current_i, float &result) = 0;
 
-	static RegistrySignal *make_registry_signal(const string &type);
-	static RegistrySignal *make_registry_signal(const string &type, const string &init_string);
+	/// creates Registry rule. can have "set" for RegistrySignalSet and "range" for RegistrySignalRange.
+	/// /// @snippet MedRegistry.cpp RegistrySignal::make_registry_signal
+	static RegistrySignal *make_registry_signal(const string &type, MedRepository &rep);
+	/// creates Registry rule and uses init_string to initialize the type
+	static RegistrySignal *make_registry_signal(const string &type, MedRepository &rep, const string &init_string);
+
+	/// <summary>
+	/// parsing of registry signal rules - each line is new signal rule in this format:\n
+	/// Each line is TAB seperated by RegistrySignal type and RegistrySignal init string calling 
+	/// RegistrySignal::make_registry_signal 
+	/// </summary>
+	static void parse_registry_rules(const string &reg_cfg, MedRepository &rep,
+		vector<RegistrySignal *> &result);
 };
 
 /**
-* A Class that condition a set of codes in dictionary
+* A Class that condition a set of codes in dictionary.
+* use "set" keyword to refernce this class
 */
 class RegistrySignalSet : public RegistrySignal {
 public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		MedRepository &rep, const vector<string> &sets);
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
-	float get_outcome(UniversalSigVec &s, int current_i);
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalSet::init
@@ -243,19 +262,22 @@ public:
 	bool is_empty() { return Flags.empty(); }
 private:
 	vector<char> Flags;
+	MedRepository *repo;
 };
 
 /**
-* A Class that condition a value range
+* A Class that condition a value range.
+* use "range" keyword to refernce this class
 */
 class RegistrySignalRange : public RegistrySignal {
 public:
 	float min_value; ///< the minimal value to turn control into case. greater than or equal
 	float max_value; ///< the maximal value to turn control into case. smaller than or equal
+	float outcome_value; ///< the outcome value when condition holds
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		float min_range, float max_range);
-	float get_outcome(UniversalSigVec &s, int current_i);
+		float min_range, float max_range, float outcome_val = 1);
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalRange::init
@@ -284,13 +306,10 @@ public:
 		need_bdate = false;
 	}
 
-	/// <summary>
-	/// parsing of registry signal rules - each line is new signal rule in this format:\n
-	/// Each line is TAB seperated by RegistrySignal type and RegistrySignal init string calling 
-	/// RegistrySignal::make_registry_signal 
-	/// </summary>
-	static void parse_registry_rules(const string &reg_cfg, const string &rep_path,
-		vector<RegistrySignal *> &result);
+	~MedRegistryCodesList() {
+		for (size_t i = 0; i < signal_filters.size(); ++i)
+			delete signal_filters[i];
+	}
 
 	/// <summary>
 	/// The init function in code API
@@ -320,8 +339,40 @@ private:
 	vector<bool> SkipPids; ///< black list of patients mask
 	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
 
-	void get_registry_records(int pid, int bdate, vector<UniversalSigVec> &usv, vector<MedRegistryRecord> &results);
+	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
 	bool init_called; ///< a flag to mark that init was called
+};
+
+/**
+* A Regsitry creator to create categoriezed outcome by signal rules.
+* Esch signal is condition independence in the rest of the signals.
+*/
+class MedRegistryCategories : public MedRegistry {
+public:
+	int start_buffer_duration; ///< the duration buffer form start
+	int end_buffer_duration; ///< the duration buffer from last date
+	int max_repo_date; ///< the maximal date for the repository
+
+	vector<vector<RegistrySignal *>> signals_rules; ///< the signal rules vectors, first index is signal id, second is list of rules
+
+	/// Initialize class parameters - it also needs repository_path parameter which called "rep".
+	/// @snippet MedRegistry.cpp MedRegistryCategories::init
+	int init(map<string, string>& map);
+
+	MedRegistryCategories() {
+		start_buffer_duration = 0;
+		end_buffer_duration = 0;
+		max_repo_date = 0;
+		need_bdate = false;
+	}
+
+	~MedRegistryCategories() {
+		for (size_t i = 0; i < signals_rules.size(); ++i)
+			for (size_t j = 0; j < signals_rules[i].size(); ++j)
+				delete signals_rules[i][j];
+	}
+private:
+	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
 };
 
 MEDSERIALIZE_SUPPORT(MedRegistryRecord)

@@ -167,6 +167,12 @@ namespace medial {
 	namespace stats {
 		/// \brief calculating auc. can have weights
 		template<class T> float get_preds_auc_q(const vector<T> &preds, const vector<float> &y, const vector<float> *weights = NULL);
+		/// \brief calculating kendall_tau
+		template <typename T, typename S> double get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<float> *weights = NULL);
+		/// \brief calculating RMSE. can have weights
+		float get_rmse(const vector<float> &preds, const vector<float> &y, const vector<float> *weights = NULL);
+		/// \brief calculating accuracy. can have weights
+		float get_accuracy(const vector<float> &preds, const vector<float> &y, const vector<float> *weights = NULL);
 		/// \brief calculating mean. can have weights
 		template<class T> double mean_vec(const vector<T> &v, const vector<float> *weights = NULL);
 		/// \brief calculating std. can have weights

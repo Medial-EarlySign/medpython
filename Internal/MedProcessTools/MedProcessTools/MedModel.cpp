@@ -515,7 +515,10 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 			MTHROW_AND_ERR("Cannot parse alteration string [%s] \n", alt.c_str());
 		vector<string> res;
 		boost::find_all(res, json_contents, fields[0]);
-		MLOG("[%s]*%d -> [%s] ", fields[0].c_str(), res.size(), fields[1].c_str());
+		if (res.size() > 0)
+			MLOG("[%s]*%d -> [%s] ", fields[0].c_str(), res.size(), fields[1].c_str());
+		else
+			MLOG("[%s]*%d ", fields[0].c_str(), res.size());
 		boost::replace_all(json_contents, fields[0], fields[1]);
 	}
 	MLOG("\n");

@@ -1227,3 +1227,158 @@ template<class T> double medial::stats::std_vec(const vector<T> &v, T mean, cons
 }
 template double medial::stats::std_vec<float>(const vector<float> &v, float mean, const vector<float> *weights);
 template double medial::stats::std_vec<double>(const vector<double> &v, double mean, const vector<float> *weights);
+
+template <typename T, typename S>
+double medial::stats::get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<float> *weights) {
+	//return kendallTau(preds, y);
+	double tau = 0, cnt = 0;
+	if (weights == NULL) {
+		unordered_map<S, vector<T>> label_to_scores;
+		for (size_t i = 0; i < y.size(); ++i)
+			label_to_scores[y[i]].push_back(preds[i]);
+		for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+			sort(it->second.begin(), it->second.end());
+		for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+		{
+			auto bg = it;
+			++bg;
+			vector<T> *preds = &it->second;
+			int pred_i_bigger;
+			double pred_i_smaller;
+			for (auto jt = bg; jt != label_to_scores.end(); ++jt)
+			{
+				vector<T> *preds_comp = &jt->second;
+				double p_size = (double)preds_comp->size();
+				for (T pred : *preds)
+				{
+					pred_i_bigger = medial::process::binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+					pred_i_smaller = p_size - medial::process::binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+					if (it->first > jt->first)
+						//tau += pred_i_bigger;
+						tau += pred_i_bigger - pred_i_smaller;
+					else
+						//tau += pred_i_smaller;
+						tau += pred_i_smaller - pred_i_bigger;
+				}
+				cnt += p_size * preds->size();
+			}
+		}
+
+		if (cnt > 1)
+			tau /= cnt;
+
+		return (float)tau;
+	}
+	unordered_map<S, vector<T>> label_to_scores;
+	unordered_map<S, vector<pair<int, T>>> label_to_scores_w;
+	for (size_t i = 0; i < y.size(); ++i)
+		label_to_scores[y[i]].push_back(preds[i]);
+	for (size_t i = 0; i < y.size(); ++i)
+		label_to_scores_w[y[i]].push_back(pair<int, T>((int)i, preds[i]));
+	for (auto it = label_to_scores_w.begin(); it != label_to_scores_w.end(); ++it)
+		sort(it->second.begin(), it->second.end(), ComparePairBySecond<int, T>());
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+		sort(it->second.begin(), it->second.end());
+
+	vector<double> group_weights(label_to_scores.size());
+	vector<vector<double>> group_weights_cumsum(label_to_scores.size());
+	int iter = 0;
+	for (auto it = label_to_scores_w.begin(); it != label_to_scores_w.end(); ++it) {
+		for (size_t i = 0; i < it->second.size(); ++i) {
+			group_weights[iter] += (*weights)[it->second[i].first];
+			group_weights_cumsum[iter].push_back((*weights)[it->second[i].first]);
+		}
+		++iter;
+	}
+	//make cumsum:
+	for (size_t i = 0; i < group_weights_cumsum.size(); ++i)
+		for (size_t j = 1; j < group_weights_cumsum[i].size(); ++j)
+			group_weights_cumsum[i][j] += group_weights_cumsum[i][j - 1];
+
+	iter = 0;
+	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+	{
+		auto bg = it;
+		++bg;
+		vector<T> *preds = &it->second;
+		//double i_size = preds->size();
+		double i_size = group_weights[iter];
+		double pred_i_bigger;
+		double pred_i_smaller;
+		int pred_i_bigger_i;
+		int pred_i_smaller_i;
+		int inside_group_idx = iter + 1;
+		for (auto jt = bg; jt != label_to_scores.end(); ++jt)
+		{
+			vector<T> *preds_comp = &jt->second;
+			//double p_size = (double)preds_comp->size();
+			double p_size = group_weights[inside_group_idx];
+			for (T pred : *preds)
+			{
+				pred_i_bigger_i = medial::process::binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				pred_i_smaller_i = medial::process::binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+				if (pred_i_bigger_i < group_weights_cumsum[inside_group_idx].size())
+					pred_i_bigger = group_weights_cumsum[inside_group_idx][pred_i_bigger_i];
+				else
+					pred_i_bigger = p_size;
+				if (pred_i_smaller_i < group_weights_cumsum[inside_group_idx].size())
+					pred_i_smaller = group_weights_cumsum[inside_group_idx][pred_i_smaller_i];
+				else
+					pred_i_smaller = p_size;
+				if (it->first > jt->first)
+					//tau += pred_i_bigger;
+					tau += pred_i_bigger - (p_size - pred_i_smaller);
+				else
+					//tau += pred_i_smaller;
+					tau += (p_size - pred_i_smaller) - pred_i_bigger;
+			}
+			cnt += p_size * i_size;
+			++inside_group_idx;
+		}
+		++iter;
+	}
+
+	if (cnt > 0)
+		tau /= cnt;
+
+	return tau;
+}
+template double medial::stats::get_kendall_tau<double, double>(const vector<double>& preds, const vector<double>& y, const vector<float> *weights);
+template double medial::stats::get_kendall_tau<float, float>(const vector<float>& preds, const vector<float>& y, const vector<float> *weights);
+template double medial::stats::get_kendall_tau<double, float>(const vector<double>& preds, const vector<float>& y, const vector<float> *weights);
+template double medial::stats::get_kendall_tau<float, double>(const vector<float>& preds, const vector<double>& y, const vector<float> *weights);
+
+float medial::stats::get_rmse(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
+	double res = 0;
+	if (weights == NULL) {
+		for (size_t i = 0; i < y.size(); ++i)
+			res += (y[i] - preds[i]) * (y[i] - preds[i]);
+		res /= y.size();
+		res = sqrt(res);
+		return (float)res;
+	}
+
+	double cnt = 0;
+	for (size_t i = 0; i < y.size(); ++i) {
+		res += (*weights)[i] * (y[i] - preds[i]) * (y[i] - preds[i]);
+		cnt += (*weights)[i];
+	}
+	res /= cnt;
+	res = sqrt(res);
+	return (float)res;
+}
+
+float medial::stats::get_accuracy(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
+	double res = 0;
+	if (weights == NULL) {
+		for (size_t i = 0; i < y.size(); ++i)
+			res += y[i] == preds[i];
+		return float(res / y.size());
+	}
+	double cnt = 0;
+	for (size_t i = 0; i < y.size(); ++i) {
+		res += (*weights)[i] * (y[i] == preds[i]);
+		cnt += (*weights)[i];
+	}
+	return float(res / cnt);
+}
