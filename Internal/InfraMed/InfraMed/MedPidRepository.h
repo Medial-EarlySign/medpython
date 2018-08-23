@@ -63,7 +63,7 @@ class PidRec {
 
 		// universal API
 		UniversalSigVec usv;	// we keep a usv inside, to allow saving of the init() time
-		inline void *uget(int sid, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.type(sid)); return (_usv.data = get(sid, _usv.len)); }
+		inline void *uget(int sid, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.Sid2Info.at(sid)); return (_usv.data = get(sid, _usv.len)); }
 		inline void *uget(int sid) { return uget(sid, usv); }
 		inline void *uget(const string &sig_name, UniversalSigVec &_usv) { return uget(my_base_rep->sigs.sid(sig_name), _usv); }
 		inline void *uget(const string &sig_name) { return uget(sig_name, usv); }
@@ -137,7 +137,7 @@ public:
 	void *get(int sid, int &len) { return PidRec::get(sid, len); }
 
 	// universal API
-	inline void *uget(int sid, int version, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.type(sid)); return (_usv.data = get(sid, version, _usv.len)); }
+	inline void *uget(int sid, int version, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.Sid2Info.at(sid)); return (_usv.data = get(sid, version, _usv.len)); }
 	inline void *uget(int sid, int version) { return uget(sid, version, usv); }
 	inline void *uget(const string &sig_name, int version, UniversalSigVec &_usv) { return uget(my_base_rep->sigs.sid(sig_name), version, _usv); }
 	inline void *uget(const string &sig_name, int version) { return uget(sig_name, version, usv); }

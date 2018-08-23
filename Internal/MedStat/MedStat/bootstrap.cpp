@@ -482,13 +482,24 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	map<string, float> all_final_measures;
 	for (auto it = all_measures.begin(); it != all_measures.end(); ++it)
 	{
-		vector<float> measures = it->second;
+		vector<float> &measures = it->second;
+		if (measures.empty()) {
+			if (it->first.size() > 4 && it->first.substr(it->first.size() - 4) == "_Obs")
+				all_final_measures[it->first] = MED_MAT_MISSING_VALUE;
+			else {
+				all_final_measures[it->first + "_Mean"] = MED_MAT_MISSING_VALUE;
+				all_final_measures[it->first + "_Std"] = MED_MAT_MISSING_VALUE;
+				all_final_measures[it->first + "_CI.Lower.95"] = MED_MAT_MISSING_VALUE;
+				all_final_measures[it->first + "_CI.Upper.95"] = MED_MAT_MISSING_VALUE;
+			}
+			continue;
+		}
 		sort(measures.begin(), measures.end());
 		float meanVal = meanArr(measures);
 		float stdVal = stdArr(measures, meanVal);
 		float lower_ci = measures[(int)round(((1 - ci_bound) / 2) * measures.size())];
 		int max_pos = (int)round((ci_bound + (1 - ci_bound) / 2) * measures.size());
-		if (max_pos > measures.size())
+		if (max_pos >= measures.size())
 			max_pos = (int)measures.size() - 1;
 		float upper_ci = measures[max_pos];
 

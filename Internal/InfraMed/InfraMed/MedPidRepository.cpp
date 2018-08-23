@@ -630,7 +630,7 @@ int PidDynamicRec::set_version_universal_data(int sid, int version, int *_times,
 
 	SignalInfo &info = this->my_base_rep->sigs.Sid2Info[sid];
 
-	usv.init((int)(info.type));
+	usv.init(info);
 
 	vector<char> packed_data(len*info.bytes_len);
 
