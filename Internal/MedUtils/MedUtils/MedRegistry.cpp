@@ -155,7 +155,7 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 		MedRegistryRecord rec;
 		rec.pid = pid;
 		rec.age = -1;
-		rec.start_date = signalVal.Date(i);
+		rec.start_date = signalVal.Time(i);
 		rec.end_date = medial::repository::DateAdd(rec.start_date, 1);
 		rec.registry_value = signalVal.Val(i);
 		res.push_back(rec);
@@ -178,7 +178,7 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 
 			rec2.pid = pid;
 			rec2.age = -1;
-			rec2.start_date = signalVal.Date(i);
+			rec2.start_date = signalVal.Time(i);
 			rec2.end_date = medial::repository::DateAdd(rec2.start_date, 1);
 			rec2.registry_value = (float)nums[k];
 			res.push_back(rec2);
@@ -922,7 +922,7 @@ int RegistrySignalRange::init(map<string, string>& map) {
 
 inline int Date_wrapper(UniversalSigVec &signal, int i) {
 	if (signal.get_type() != T_Value)
-		return signal.Date(i);
+		return signal.Time(i);
 	else
 		return (int)signal.Val(i);
 }
@@ -941,8 +941,8 @@ template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile,
 			}
 		}
 		else {
-			if (minDate_index == -1 || data.Date(signalPointers[i]) < minDate) {
-				minDate = data.Date(signalPointers[i]);
+			if (minDate_index == -1 || data.Time(signalPointers[i]) < minDate) {
+				minDate = data.Time(signalPointers[i]);
 				minDate_index = (int)i;
 			}
 		}

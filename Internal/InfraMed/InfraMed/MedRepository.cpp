@@ -1647,7 +1647,7 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 	p += st_size;
 	for (int i = 1; i < s.len; ++i)
 	{
-		if (s.Date(i) == s.Date(i - 1) && (data_by_dates.back().size() > 1 || s.Val(i) != s.Val(i - 1)))
+		if (s.Time(i) == s.Time(i - 1) && (data_by_dates.back().size() > 1 || s.Val(i) != s.Val(i - 1)))
 			data_by_dates.back().push_back(p);
 		else
 			data_by_dates.push_back({ p });
