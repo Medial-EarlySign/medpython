@@ -601,7 +601,7 @@ inline void *MedRepository::uget(int pid, const string &sig_name, UniversalSigVe
 
 inline void *MedRepository::uget(int pid, int sid, UniversalSigVec &usv)
 {
-	usv.init(sigs.Sid2Info[sid].type);
+	usv.init(sigs.Sid2Info[sid]);
 
 	usv.data = get(pid, sid, usv.len);
 	return usv.data;

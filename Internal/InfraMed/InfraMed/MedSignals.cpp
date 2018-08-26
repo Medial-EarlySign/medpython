@@ -438,12 +438,13 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 //================================================================================================
 // UniversalSigVec
 //================================================================================================
-void UniversalSigVec::init(SigType _type)
+void UniversalSigVec::init(const SignalInfo &info)
 {
-	if (_type == type) return; // no need to init, same type as initiated
+	_time_unit = info.time_unit;
+	if (info.type == (int)type) return; // no need to init, same type as initiated
 
-	type = _type;
-	switch (_type) {
+	type = (SigType)info.type;
+	switch (type) {
 	case T_Value: set_funcs<SVal>(); return;
 	case T_DateVal: set_funcs<SDateVal>(); return;
 	case T_TimeVal: set_funcs<STimeVal>(); return;
@@ -458,7 +459,7 @@ void UniversalSigVec::init(SigType _type)
 	case T_ValShort4: set_funcs<SValShort4>(); return;
 		//case T_CompactDateVal: set_funcs<SCompactDateVal>(); return;
 	default:
-		MTHROW_AND_ERR("UniversalSigVec::init unknown type %d\n", _type);
+		MTHROW_AND_ERR("UniversalSigVec::init unknown type %d\n", info.type);
 	}
 
 	type = T_Last;
