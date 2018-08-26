@@ -638,7 +638,7 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 void SingletonGenerator::set_names()
 {
 	if (names.empty()) {
-		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName ; 
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName;
 		//string name = signalName + ".";
 		string set_names = in_set_name;
 		if (set_names == "" && this->sets.size() > 0)
@@ -1251,7 +1251,7 @@ float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_f
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
-	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time && i - j >= 0)
+	if (i >= 0 && j < usv.len && usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time && i - j >= 0)
 		return 1.0;
 	else return 0.0;
 }
@@ -1584,7 +1584,7 @@ size_t ModelFeatGenerator::get_size() {
 size_t ModelFeatGenerator::serialize(unsigned char *blob) {
 	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
 	size_t ptr2 = model->serialize(blob + ptr1);
-	return ptr2+ptr1;
+	return ptr2 + ptr1;
 }
 
 size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
@@ -1592,7 +1592,7 @@ size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
 	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
 	model = new MedModel;
 	size_t ptr2 = model->deserialize(blob + ptr1);
-	return ptr2+ptr1;
+	return ptr2 + ptr1;
 }
 
 //................................................................................................................
