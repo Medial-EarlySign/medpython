@@ -1450,8 +1450,8 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void
 bool time_range_filter(float outcome, int min_time, int max_time, int time, int outcome_time) {
 	if (med_time.YearsMonths2Days.empty())
 		med_time.init_time_tables();
-	int diff_days = (med_time.convert_date(MedTime::Days, outcome_time) -
-		med_time.convert_date(MedTime::Days, time));
+	int diff_days = (med_time.convert_times(global_default_time_unit, MedTime::Days, outcome_time) -
+		med_time.convert_times(global_default_time_unit, MedTime::Days, time));
 	return ((outcome > 0 && diff_days >= min_time && diff_days <= max_time) ||
 		(outcome <= 0 && diff_days > max_time));
 }

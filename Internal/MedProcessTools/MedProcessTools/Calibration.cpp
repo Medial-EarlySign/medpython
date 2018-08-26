@@ -179,11 +179,11 @@ int Calibrator::apply_time_window(MedSamples& samples) {
 	int do_km;
 	if (estimator_type == "kaplan_meier") {
 		do_km = 1;
-		MLOG("calibrating [%d] samples using kaplan_meier estimator");
+		MLOG("calibrating [%d] samples using kaplan_meier estimator\n",samples.nSamples());
 	}
 	else if (estimator_type == "mean_cases") {
 		do_km = 0;
-		MLOG("calibrating [%d] samples using mean_cases estimator");
+		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.nSamples());
 	}
 	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
 
@@ -203,11 +203,11 @@ int Calibrator::apply_time_window(vector<MedSample>& samples) {
 	int do_km;
 	if (estimator_type == "kaplan_meier") {
 		do_km = 1;
-		MLOG("calibrating [%d] samples using kaplan_meier estimator");
+		MLOG("calibrating [%d] samples using kaplan_meier estimator\n",samples.size());
 	}
 	else if (estimator_type == "mean_cases") {
 		do_km = 0;
-		MLOG("calibrating [%d] samples using mean_cases estimator");
+		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.size());
 	}
 	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
 

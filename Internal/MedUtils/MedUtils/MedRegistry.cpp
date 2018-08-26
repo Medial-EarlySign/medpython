@@ -86,10 +86,13 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	double duration;
 	int prog_pid = 0;
 	int bDateCode = dataManager.sigs.sid("BDATE");
+	if (!dataManager.index.index_table[bDateCode].is_loaded)
+		MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded BDATE for repository which is needed\n");
 	for (size_t i = 0; i < signalCodes.size(); ++i)
 		if (!dataManager.index.index_table[signalCodes[i]].is_loaded)
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
 				dataManager.sigs.name(signalCodes[i]).c_str());
+
 	int fixed_cnt = 0; int example_pid = -1;
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < dataManager.pids.size(); ++i)
