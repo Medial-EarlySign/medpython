@@ -2036,6 +2036,8 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		coeff = {(float)african_american_dict_id };
 	}
 
+	if (signals_time_unit == MedTime::Undefined)
+		MTHROW_AND_ERR("Please provide time unit. use timer field to specify signal\n");
 }
 
 //.......................................................................................

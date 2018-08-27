@@ -958,7 +958,7 @@ public:
 	int timer_signal_id = -1; ///< id of timer-signal (if given)
 	string time_step_str; ///< string to describe time step (if given), and translate to time_step
 	int time_step = -1; ///< add times every time_step starting from the first time (timer or union), if given. must be positive
-	int signals_time_unit; ///< Time unit of timer and all signals 
+	int signals_time_unit = MedTime::Undefined; ///< Time unit of timer and all signals 
 
 	RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
 
@@ -1190,7 +1190,7 @@ private:
 		{ "calc_hosp_BMI",{ "CHART_Weight", "CHART_Height" } },
 		{ "calc_hosp_APRI",{ "LAB_AST", "CHARTLAB_Platelets" } },
 		{ "calc_hosp_SIDA",{ "CHARTLAB_Sodium","CHARTLAB_Potassium","CHARTLAB_Chloride" } },
-		{ "calc_hosp_PaO2_FiO2_ratio",{ "CHART_ART_PaO2","CHART_FiO2" } },
+		{ "calc_hosp_PaO2_FiO2_ratio",{ "Art_PaO2","FiO2" } },
 		{ "calc_hosp_is_african_american",{ "ETHNICITY" } },
 		{ "calc_hosp_is_mechanically_ventilated",{ "CHART_Airway_Size","CHART_Peak_Insp_Pressure","CHART_Plateau_Pressure",
 													"CHART_Plateau_Off", "CHART_Tidal_Volume_Set", "CHART_Vent_Mode", "CHART_Vent_No",
