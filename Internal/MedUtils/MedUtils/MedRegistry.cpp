@@ -1859,12 +1859,12 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 				else { //diffrent outcome - no contradiction in same time point:
 					//flush last 
 					int last_date_c = medial::repository::DateAdd(curr_date, -signal_prop->buffer_duration);
-					if (last_date_c < r.end_date)
+					if (!mark_no_match && last_date_c < r.end_date)
 						r.end_date = last_date_c;
 					//if (r.registry_value == 0)
 					//	r.max_allowed_date = last_date_c;
 
-					if (r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date && !mark_no_match)
+					if (!mark_no_match && r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date)
 						results.push_back(r);
 
 					//skip if may not use
@@ -1899,7 +1899,7 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 
 		if (!same_date && !is_rule_active) {
 			//check if need to close buffer - no rule happend in this time and has outcome in buffer
-			if (r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date && !mark_no_match)
+			if (!mark_no_match && r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date)
 				results.push_back(r);
 			//start new record with 0 outcome:
 			r.registry_value = -1;
