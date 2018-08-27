@@ -130,6 +130,9 @@ public:
 		time_unit = global_default_time_unit;
 	}
 
+	/// A function to clear creation variables that are on memory if needed
+	virtual void clear_create_variables() {};
+
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
 	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
@@ -224,6 +227,7 @@ public:
 	int duration_flag; ///< the duration for each positive to merge time ranges
 	int buffer_duration; ///< a buffer duration between positive to negative
 	bool take_only_first; ///< if True will take only first occournce
+	float outcome_value; ///< the outcome value when condition holds
 
 	/// a function that retrive current outcome based on new time point
 	virtual bool get_outcome(UniversalSigVec &s, int current_i, float &result) = 0;
@@ -250,8 +254,8 @@ public:
 class RegistrySignalSet : public RegistrySignal {
 public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		MedRepository &rep, const vector<string> &sets);
-	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets);
+		MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
+	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
 	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
@@ -273,7 +277,6 @@ class RegistrySignalRange : public RegistrySignal {
 public:
 	float min_value; ///< the minimal value to turn control into case. greater than or equal
 	float max_value; ///< the maximal value to turn control into case. smaller than or equal
-	float outcome_value; ///< the outcome value when condition holds
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		float min_range, float max_range, float outcome_val = 1);
@@ -307,8 +310,7 @@ public:
 	}
 
 	~MedRegistryCodesList() {
-		for (size_t i = 0; i < signal_filters.size(); ++i)
-			delete signal_filters[i];
+		clear_create_variables();
 	}
 
 	/// <summary>
@@ -335,6 +337,9 @@ public:
 	/// @snippet MedRegistry.cpp MedRegistryCodesList::init
 	/// </summary>
 	int init(map<string, string>& map);
+
+	///clears the signal_filters
+	void clear_create_variables();
 private:
 	vector<bool> SkipPids; ///< black list of patients mask
 	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
@@ -366,10 +371,11 @@ public:
 		need_bdate = false;
 	}
 
+	///clears the signals_rules
+	void clear_create_variables();
+
 	~MedRegistryCategories() {
-		for (size_t i = 0; i < signals_rules.size(); ++i)
-			for (size_t j = 0; j < signals_rules[i].size(); ++j)
-				delete signals_rules[i][j];
+		clear_create_variables();
 	}
 private:
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);

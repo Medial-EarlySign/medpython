@@ -772,11 +772,12 @@ inline void init_list(const string &reg_path, vector<bool> &list) {
 }
 
 RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
-	MedRepository &rep, const vector<string> &sets) {
+	MedRepository &rep, const vector<string> &sets, float outcome_val) {
 	signalName = sigName;
 	buffer_duration = buffer_time;
 	duration_flag = durr_time;
 	take_only_first = take_first;
+	outcome_value = outcome_val;
 	repo = &rep;
 	if (!sets.empty()) {
 		int section_id = rep.dict.section_id(sigName);
@@ -787,12 +788,14 @@ RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int b
 }
 
 bool RegistrySignalSet::get_outcome(UniversalSigVec &s, int current_i, float &result) {
+	bool is_active = false;
 	result = 0;
-	if (current_i < 0 || current_i >= s.len
-		|| s.Val(current_i) < 0 || s.Val(current_i) >= Flags.size())
-		return false;
-	result = Flags[(int)s.Val(current_i)];
-	return result > 0;
+	is_active = !(current_i < 0 || current_i >= s.len
+		|| s.Val(current_i) < 0 || s.Val(current_i) >= Flags.size());
+	is_active = is_active && Flags[(int)s.Val(current_i)];
+	if (is_active)
+		result = outcome_value;
+	return is_active;
 }
 
 int RegistrySignalSet::init(map<string, string>& map) {
@@ -809,6 +812,8 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			buffer_duration = stoi(it->second);
 		else if (it->first == "take_only_first")
 			take_only_first = stoi(it->second) > 0;
+		else if (it->first == "outcome_value")
+			outcome_value = stof(it->second);
 		else if (it->first == "sets") //should contain "sets=" which points to file with list of codes
 			sets_arg = it->second;
 		else
@@ -838,9 +843,10 @@ int RegistrySignalSet::init(map<string, string>& map) {
 	return 0;
 }
 
-RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets) {
+RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val) {
 	repo = &rep;
 	init_from_string(init_string);
+	outcome_value = outcome_val;
 	if (!sets.empty()) {
 		int section_id = rep.dict.section_id(signalName);
 		rep.dict.curr_section = section_id;
@@ -1922,4 +1928,17 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 	r.max_allowed_date = last_date;
 	if (r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date && !mark_no_match)
 		results.push_back(r);
+}
+
+void MedRegistryCategories::clear_create_variables() {
+	for (size_t i = 0; i < signals_rules.size(); ++i)
+		for (size_t j = 0; j < signals_rules[i].size(); ++j)
+			delete signals_rules[i][j];
+	signals_rules.clear();
+}
+
+void MedRegistryCodesList::clear_create_variables() {
+	for (size_t i = 0; i < signal_filters.size(); ++i)
+		delete signal_filters[i];
+	signal_filters.clear();
 }
