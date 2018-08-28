@@ -107,7 +107,7 @@ int RepProcessor::learn(MedPidRepository& rep) {
 //.......................................................................................
 int RepProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId)) 
+		if (is_signal_affected(signalId))
 			return _learn(rep, samples, prev_processors);
 	}
 	return 0;
@@ -141,8 +141,8 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 	for (unsigned int i = 0; i < time_points.size(); i++)
 		time_points[i] = samples.samples[i].time;
 
-	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(),0)) ;
-	int rc = apply(rec, time_points,attributes_mat);
+	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(), 0));
+	int rc = apply(rec, time_points, attributes_mat);
 
 	if (rc == 0) {
 		for (unsigned int i = 0; i < time_points.size(); i++) {
@@ -186,7 +186,7 @@ int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_point
 		return apply(rec, time_points, attributes_mat);
 
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId)) 
+		if (is_signal_affected(signalId))
 			return apply(rec, time_points, attributes_mat);
 	}
 
@@ -213,7 +213,7 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames)
 // Add req_signals to set only if processor is required for any of preReqSignalNames
 //.......................................................................................
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames, unordered_set<string> preReqSignalNames) {
-	
+
 	if (unconditional)
 		get_required_signal_names(signalNames);
 	else {
@@ -332,17 +332,25 @@ void RepMultiProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 
 	vector<RepProcessor *> filtered;
+	bool did_something = false;
 	for (auto& processor : processors) {
 		if (!processor->filter(neededSignals))
 			filtered.push_back(processor);
+		else {
+			delete processor;
+			did_something = true;
+		}
 	}
+	if (did_something)
+		MLOG("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
+			filtered.size(), processors.size());
 
 	if (filtered.empty()) {
 		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
 		return true;
 	}
 	else {
-		processors = filtered;
+		processors.swap(filtered);
 		return false;
 	}
 }
@@ -417,7 +425,7 @@ int RepMultiProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& sam
 
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		rc[j] = processors[j]->conditional_learn(rep, samples, prev_processors,neededSignalIds);
+		rc[j] = processors[j]->conditional_learn(rep, samples, prev_processors, neededSignalIds);
 	}
 
 	for (int r : rc) if (r < 0) return -1;
@@ -474,7 +482,7 @@ int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_
 		all_attributes_mats.resize(processors.size());
 		for (int j = 0; j < processors.size(); j++) {
 			all_attributes_mats[j].resize(time_points.size());
-			for (int i = 0; i < time_points.size(); i++) 
+			for (int i = 0; i < time_points.size(); i++)
 				all_attributes_mats[j][i].resize(processors[j]->attributes.size(), 0);
 		}
 	}
@@ -494,7 +502,7 @@ int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_
 	if (!attributes_mat.empty()) {
 		for (int j = 0; j < processors.size(); j++) {
 			for (int i = 0; i < time_points.size(); i++) {
-				for (int k = 0; k < processors[j]->attributes.size(); k++) 
+				for (int k = 0; k < processors[j]->attributes.size(); k++)
 					attributes_mat[i][attributes_map[j][k]] += all_attributes_mats[j][i][k];
 			}
 		}
@@ -541,7 +549,7 @@ void RepMultiProcessor::init_attributes() {
 		for (int j = 0; j < processors[i]->attributes.size(); j++) {
 			if (attributes_pos.find(processors[i]->attributes[j]) == attributes_pos.end()) {
 				attributes.push_back(processors[i]->attributes[j]);
-				attributes_pos[attributes.back()] = (int) attributes.size() - 1;
+				attributes_pos[attributes.back()] = (int)attributes.size() - 1;
 			}
 			attributes_map[i][j] = attributes_pos[processors[i]->attributes[j]];
 		}
@@ -599,7 +607,7 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 	if (rp_flag > 0) {
 		MLOG("%s :: RP MULTI(%d) -->\n", pref.c_str(), processors.size());
 		for (auto& proc : processors) {
-			proc->dprint(pref+"->Multi", rp_flag);
+			proc->dprint(pref + "->Multi", rp_flag);
 		}
 	}
 }
@@ -617,9 +625,9 @@ void RepBasicOutlierCleaner::init_lists() {
 
 // Init from map
 //.......................................................................................
-int RepBasicOutlierCleaner::init(map<string, string>& mapper) 
-{ 
-	init_defaults(); 
+int RepBasicOutlierCleaner::init(map<string, string>& mapper)
+{
+	init_defaults();
 
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -683,7 +691,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, MedSamples& sa
 	//MLOG("basic Iterative clean Learn: signalName %s signalId %d :: got %d values()\n", signalName.c_str(), signalId, values.size());
 
 	// Iterative approximation of moments
-	int rc =  get_iterative_min_max(values);
+	int rc = get_iterative_min_max(values);
 
 	return rc;
 }
@@ -752,16 +760,16 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 			// Identify values to change or remove
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
-//				MLOG("pid %d ver %d time %d %s %f removed\n", rec.pid, iver, itime, signalName.c_str(), ival);
+				//				MLOG("pid %d ver %d time %d %s %f removed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 				remove[nRemove++] = i;
 			}
 			else if (params.doTrim) {
 				if (ival < trimMin) {
-//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
+					//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMin);
 				}
 				else if (ival > trimMax) {
-//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
+					//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMax);
 				}
 			}
@@ -776,8 +784,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		// Collect atttibutes
 		int idx = 0;
 		if (!nRem_attr.empty() && !attributes_mat.empty()) {
-			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
-				attributes_mat[pVersion][idx] = (float) nRemove;
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = (float)nRemove;
 			idx++;
 		}
 
@@ -788,14 +796,14 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		}
 
 		if (!nTrim_attr.empty() && !attributes_mat.empty()) {
-			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
-				attributes_mat[pVersion][idx] = (float) nChange;
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = (float)nChange;
 			idx++;
 		}
 
 		if (!nTrim_attr_suffix.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-				attributes_mat[pVersion][idx] = (float) nChange;
+				attributes_mat[pVersion][idx] = (float)nChange;
 			idx++;
 		}
 	}
@@ -831,15 +839,15 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 	while (!infile.eof()) {
 		getline(infile, thisLine);
 		if (thisLine.back() == '\r') thisLine.pop_back();
-	
+
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));
 		if (f.size() != 7) {
-			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(),thisLine.c_str(),f.size());
+			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 			infile.close();
 			return -1;
 		}
-	
+
 		thisRecord.confirmedLow = thisRecord.logicalLow = (float)atof(f[1].c_str());
 		thisRecord.confirmedHigh = thisRecord.logicalHigh = (float)atof(f[2].c_str());
 
@@ -960,8 +968,8 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 	const float meanShift = 0; // has value when margins are asymetric
 	const float sdNums = 7; // how many standard deviation on each side of the mean.
 
-	int start = (int) round(filteredValues.size()*margin[0]);
-	int stop = (int) round(filteredValues.size()*margin[1]);
+	int start = (int)round(filteredValues.size()*margin[0]);
+	int stop = (int)round(filteredValues.size()*margin[1]);
 	for (vector<float>::iterator el = filteredValues.begin() + start; el < filteredValues.begin() + stop; el++) {
 
 		sum += *el;
@@ -972,8 +980,8 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 	//printf("sum %f sumsq %f  stop %d start %d\n", sum, sumsq, stop, start);
 	var = var / varianceFactor;
 	mean = mean - meanShift*sqrt(var);
-	borderHi = (float) (mean + sdNums*sqrt(var));
-	borderLo = (float) (mean - sdNums*sqrt(var));
+	borderHi = (float)(mean + sdNums*sqrt(var));
+	borderLo = (float)(mean - sdNums*sqrt(var));
 
 
 
@@ -1006,7 +1014,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		}
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "val_channel") val_channel = med_stoi(entry.second);
-		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second)!=0;
+		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "tolerance") tolerance = med_stof(entry.second);
@@ -1027,7 +1035,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		if (std::find(consideredRules.begin(), consideredRules.end(), 0) != consideredRules.end() ||
 			std::find(consideredRules.begin(), consideredRules.end(), rule.first) != consideredRules.end())
 			continue;// rule remains
-		else 
+		else
 			rules2Signals.erase(rule.first);// rule removed
 	}
 
@@ -1038,7 +1046,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 
 				rulesToApply.push_back(rule.first);
 				bool loopBreak = false;
-				for (auto& reqSig : rule.second) {					
+				for (auto& reqSig : rule.second) {
 					bool found = false;
 					for (auto& existReqSig : req_signals) {
 						if (reqSig == existReqSig) {
@@ -1095,14 +1103,14 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 		}
 	}
 }
-	
+
 
 int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
-	
+
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
 	map <int, vector <int>> removePoints; // from signal id to its remove points
-	
+
 	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
@@ -1148,7 +1156,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				for (int i = 1; i < mySids.size(); i++) {
 					while (ruleUsvs[i].Time(sPointer[i], time_channel) < thisTime && sPointer[i] < ruleUsvs[i].len - 1)sPointer[i]++;
 					//printf("before ok_check: %d %d %d %d %d %d\n", i, sPointer[0], sPointer[1], sPointer[2],thisTime, ruleUsvs[i].Time(sPointer[i], time_channel));
-					if (ruleUsvs[i].Time(sPointer[i], time_channel) != thisTime ) {
+					if (ruleUsvs[i].Time(sPointer[i], time_channel) != thisTime) {
 						//printf("before ok_0: %d %d %d %d %d\n", rule, sPointer[0], sPointer[1], sPointer[2]);
 						ok = 0;
 						break;
@@ -1156,28 +1164,28 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				}
 				if (ok) {
 					// if found all signals from same date eliminate doubles and take the last one for comparison
-					for (int i = 0; i < mySids.size(); i++) 
-						while(sPointer[i] < ruleUsvs[i].len - 1)
+					for (int i = 0; i < mySids.size(); i++)
+						while (sPointer[i] < ruleUsvs[i].len - 1)
 							if (ruleUsvs[i].Time(sPointer[i], time_channel) == ruleUsvs[i].Time(sPointer[i] + 1, time_channel)) {
-								if(affected_by_rules[iRule][i])
-										removePoints[mySids[i]].insert(sPointer[i]);
+								if (affected_by_rules[iRule][i])
+									removePoints[mySids[i]].insert(sPointer[i]);
 								sPointer[i]++;
 							}
 							else break;
-					// check rule and mark for removement
-					//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
-					bool ruleFlagged = applyRule(rule, ruleUsvs, sPointer);
-					/*
-					printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
-					for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
-					printf("\n");
-					*/
-					if (ruleFlagged) {
-						
-						for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
-							if (affected_by_rules[iRule][sIndex])
-								removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
-					}
+							// check rule and mark for removement
+							//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
+							bool ruleFlagged = applyRule(rule, ruleUsvs, sPointer);
+							/*
+							printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
+							for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
+							printf("\n");
+							*/
+							if (ruleFlagged) {
+
+								for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
+									if (affected_by_rules[iRule][sIndex])
+										removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
+							}
 				}
 			}
 		}
@@ -1192,7 +1200,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				return -1;
 			if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
 				for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-					attributes_mat[pVersion][idx] = (float) toRemove.size();
+					attributes_mat[pVersion][idx] = (float)toRemove.size();
 				idx++;
 			}
 			nRemove += toRemove.size();
@@ -1201,7 +1209,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		// Collect atttibutes
 		if (!nRem_attr.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-				attributes_mat[pVersion][idx] = (float) nRemove;
+				attributes_mat[pVersion][idx] = (float)nRemove;
 		}
 	}
 
@@ -1242,7 +1250,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 12://HDL_over_Cholesterol=HDL/Cholesterol
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right =round( ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/(float)10.; //resolution in THIN is 0.1
+		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10) / (float)10.; //resolution in THIN is 0.1
 		return(abs(left / right - 1) > tolerance);
 
 	case 6://MPV=Platelets_Hematocrit/Platelets
@@ -1254,7 +1262,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 8://UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/10;//resolution in THIN is 0.1
+		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10) / 10;//resolution in THIN is 0.1
 		return(abs(left / right - 1) > tolerance);
 
 	case 13://HDL_over_LDL=HDL/LDL
@@ -1269,7 +1277,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]) + ruleUsvs[2].Val(sPointer[2]) + ruleUsvs[3].Val(sPointer[3]) + ruleUsvs[4].Val(sPointer[4]);
 		right = ruleUsvs[5].Val(sPointer[5]);
 		return (left*(1 - tolerance) >= right);
-	
+
 	case 19://Albumin<=Protein_Total	
 	case 21://NRBC<=RBC
 	case 22://CHADS2<=CHADS2_VASC
@@ -1281,7 +1289,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 20://FreeT4<=T4
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]);
-		return(left*(1 - tolerance) >= right*1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
+		return(left*(1 - tolerance) >= right * 1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
 
 	case 9://LDL+HDL<=Cholesterol
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]);
@@ -1297,7 +1305,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 17://Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
 		if (ruleUsvs[2].Val(sPointer[1]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right =(float) 1. / ruleUsvs[1].Val(sPointer[1]);
+		right = (float) 1. / ruleUsvs[1].Val(sPointer[1]);
 		return (abs(left / right - 1) > tolerance);
 
 	default: assert(0); return false; // return is never executed but eliminates warning
@@ -1527,7 +1535,7 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points,
 		// Collect atttibutes
 		int idx = 0;
 		if (!nRem_attr.empty() && !attributes_mat.empty())
-			attributes_mat[iver][idx++] = (float) nRemove;
+			attributes_mat[iver][idx++] = (float)nRemove;
 		if (!nRem_attr_suffix.empty() && !attributes_mat.empty())
 			attributes_mat[iver][idx++] = (float)nRemove;
 		if (!nTrim_attr.empty() && !attributes_mat.empty())
@@ -1543,8 +1551,8 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points,
 //.......................................................................................
 void RepNbrsOutlierCleaner::print()
 {
-MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
-	signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin,nbrsMax, nbrsMin);
+	MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
+		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin, nbrsMax, nbrsMin);
 }
 
 //=======================================================================================
@@ -1559,7 +1567,7 @@ int RepCheckReq::init(map<string, string>& mapper)
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepMinimalReq::init]
-		if (field == "signals") 
+		if (field == "signals")
 			boost::split(signalNames, entry.second, boost::is_any_of(","));
 		else if (field == "time_channels") {
 			vector<string> channels;
@@ -1567,11 +1575,11 @@ int RepCheckReq::init(map<string, string>& mapper)
 			for (string& channel : channels)
 				time_channels.push_back(stoi(channel));
 		}
-		else if (field == "time_unit") 
+		else if (field == "time_unit")
 			window_time_unit = med_time_converter.string_to_type(entry.second);
-		else if (field == "win_from") 
+		else if (field == "win_from")
 			win_from = med_stoi(entry.second);
-		else if (field == "win_to") 
+		else if (field == "win_to")
 			win_to = med_stoi(entry.second);
 		else if (field == "attr")
 			attrName = entry.second;
@@ -1632,7 +1640,7 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 			return -1;
 		}
 	}
-	
+
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
@@ -1648,27 +1656,27 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 
 		// NOTE : This is not perfect : we assume that the samples' time-unit is the default time unit
 		int time_point = med_time_converter.convert_times(global_default_time_unit, window_time_unit, time_points[iver]);
-		
+
 		int nMissing = 0;
 		for (int i = 0; i < signalIds.size(); i++) {
 			rec.uget(signalIds[i], iver, usvs[i]);
 
 			bool found = false;
 			for (int j = 0; j < usvs[i].len; j++) {
-				if (usvs[i].Time(j,time_channels[i]) > med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_from))
+				if (usvs[i].Time(j, time_channels[i]) > med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_from))
 					break;
 				if (usvs[i].Time(j, time_channels[i]) >= med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_to)) {
 					found = true;
 					break;
 				}
 			}
-			
+
 			if (!found)
 				nMissing++;
 		}
 
 		// Set attribute
-		attributes_mat[iver][0] = (float) nMissing;
+		attributes_mat[iver][0] = (float)nMissing;
 	}
 
 	return 0;
@@ -1717,13 +1725,13 @@ void RepSimValHandler::init_attributes() {
 
 	string _signal_name = signalName;
 
-	if (time_channels.size() > 1 || (time_channels.size()==1 && time_channels[0] != 0)) {
+	if (time_channels.size() > 1 || (time_channels.size() == 1 && time_channels[0] != 0)) {
 		vector<string> channels_s(time_channels.size());
 		for (unsigned int i = 0; i < channels_s.size(); i++)
 			channels_s[i] = to_string(time_channels[i]);
 		_signal_name += "_" + boost::join(channels_s, "_");
 	}
-	
+
 
 	attributes.clear();
 	if (!nHandle_attr.empty()) attributes.push_back(nHandle_attr);
@@ -1819,7 +1827,7 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		// Handle last block
 		if (end > start)
 			handle_block(start, end, rec.usv, remove, nRemove, change, nChange, nTimes);
-	
+
 
 		// Apply removals + changes
 		change.resize(nChange);
@@ -1834,7 +1842,7 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 				attributes_mat[pVersion][idx] = (float)nTimes;
 			idx++;
 		}
-		
+
 		if (!nHandle_attr_suffix.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
 				attributes_mat[pVersion][idx] = (float)nTimes;
@@ -1863,14 +1871,14 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 	else if (handler_type == SIM_VAL_MEAN) {
 		vector<float> sums(nValChannels, 0);
 		for (int j = start; j < end; j++) {
-			for (int iChannel=0; iChannel < nValChannels; iChannel++)
-				sums[iChannel] += usv.Val(j,iChannel);
+			for (int iChannel = 0; iChannel < nValChannels; iChannel++)
+				sums[iChannel] += usv.Val(j, iChannel);
 			remove[nRemove++] = j;
 		}
 		pair<int, vector<float>> newChange;
 		newChange.first = end;
 		newChange.second.resize(nValChannels);
-		for (int iChannel=0; iChannel < nValChannels; iChannel++)
+		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
 			newChange.second[iChannel] = (sums[iChannel] + usv.Val(end, iChannel)) / (end + 1 - start);
 		change[nChange++] = newChange;
 		nTimes++;
@@ -1966,7 +1974,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 
 		if ((!timer_signal.empty()) && req_signals.find(timer_signal) == req_signals.end())
 			req_signals.insert(timer_signal);
-						
+
 		// add coefficients if needed
 		if (coeff.size() == 0)
 			coeff = calc2coeffs.find(calculator)->second;
@@ -1994,7 +2002,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		// add names to required, affected and virtual_signals
 		aff_signals.clear();
 		virtual_signals.clear();
-		for (int i=0; i<V_names.size(); i++) {
+		for (int i = 0; i < V_names.size(); i++) {
 			aff_signals.insert(V_names[i]);
 			virtual_signals.push_back({ V_names[i], V_types[i] });
 		}
@@ -2021,7 +2029,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	// In the next loop it is VERY important to go over items in the ORDER they are given in calc2req
 	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
-	for (auto &rsig : signals) 
+	for (auto &rsig : signals)
 		sigs_ids.push_back(dict.id(rsig));
 
 	if (!timer_signal.empty()) {
@@ -2033,7 +2041,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	//to be used by the calculator
 	if (calc_type == CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN) {
 		int african_american_dict_id = dict.id("BLACK/AFRICAN AMERICAN");
-		coeff = {(float)african_american_dict_id };
+		coeff = { (float)african_american_dict_id };
 	}
 
 	if (signals_time_unit == MedTime::Undefined)
@@ -2043,7 +2051,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 //.......................................................................................
 void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
 {
-	for (int i=0; i<V_names.size(); i++)
+	for (int i = 0; i < V_names.size(); i++)
 		_virtual_signals[V_names[i]] = V_types[i];
 	//for (auto &vsig : calc2virtual.find(calculator)->second)
 	//	_virtual_signals[vsig.first] = vsig.second;
@@ -2064,10 +2072,10 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	if (calc_type == CALC_TYPE_EGFR)
 		return _apply_calc_eGFR(rec, time_points);
 
-	if (calc_type == CALC_TYPE_DEBUG) 
+	if (calc_type == CALC_TYPE_DEBUG)
 		return _apply_calc_debug(rec, time_points);
 
-	if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT) 
+	if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT)
 		return _apply_calc_24h_urine_output(rec, time_points);
 
 	if (calc_type == CALC_TYPE_LOG)
@@ -2078,37 +2086,37 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
 
 	switch (calc_type) {
-		case CALC_TYPE_HOSP_PROCESSOR: 
-			calcFunc = identity; 
-			if (signals.size() != 1) {
-				//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
-				return -1;
-			}
-			break;
-		case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
-		case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
-		case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
-		case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
-		case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
-		case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
-		case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
-		case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
-		case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
-		case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
-		case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
-		case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
-		case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
-		case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
-		case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
-		case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
-		case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
-		case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
-		case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
-		case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
-		case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
-		case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
-		case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
-		case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;		
+	case CALC_TYPE_HOSP_PROCESSOR:
+		calcFunc = identity;
+		if (signals.size() != 1) {
+			//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
+			return -1;
+		}
+		break;
+	case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
+	case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
+	case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
+	case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
+	case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
+	case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
+	case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
+	case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
+	case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
+	case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
+	case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
+	case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
+	case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
+	case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
+	case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
+	case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
+	case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
+	case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
+	case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
+	case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
+	case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
+	case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
+	case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
+	case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;
 	}
 
 	if (calcFunc) {
@@ -2123,7 +2131,7 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	//of the signals and their reference to the requested times
 	float(*calcTimeFunc)(const vector<pair<int, float> >&, int, const vector<float>&) = NULL;
 
-	switch (calc_type) {	
+	switch (calc_type) {
 	case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
 	case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
 	}
@@ -2152,7 +2160,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 	// Required signals
 	vector<int> req_signal_ids_v;
 	vector<unordered_set<int> > current_required_signal_ids(prev_processors.size());
-	vector<FeatureGenerator *> noGenerators ;
+	vector<FeatureGenerator *> noGenerators;
 	unordered_set<int> extra_req_signal_ids = { signalId };
 	handle_required_signals(prev_processors, noGenerators, extra_req_signal_ids, req_signal_ids_v, current_required_signal_ids);
 
@@ -2164,7 +2172,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 	for (MedIdSamples& idSamples : samples.idSamples) {
 
 		int id = idSamples.id;
-	
+
 		vector<int> time_points;
 		// Special care for virtual signals - use samples 
 		if (signalIsVirtual) {
@@ -2194,7 +2202,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 			vector<vector<float>> dummy_attributes_mat;
 			for (size_t i = 0; i < prev_processors.size(); i++)
 				prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
-		
+
 			// If virtual - we need to get the signal now
 			if (signalIsVirtual)
 				rec.uget(signalId, 0, usv);
@@ -2226,7 +2234,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 			}
 		}
 	}
-	
+
 	return 0;
 }
 
