@@ -580,11 +580,11 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 
 	set_eigen_threads();
 	// currently completely ignoring w.... , will add soon....
-	vector<float> norm_wgts; // if weights are used we make sure their sum is nsamples
+	vector<float> norm_wgts(nsamples,(float)1); // if weights are used we make sure their sum is nsamples
 	if (w != NULL) {
 		float sum_w = 0;
 		for (int i=0; i<nsamples; i++) sum_w += w[i];
-		for (int i=0; i<nsamples; i++) norm_wgts.push_back(w[i]*(float)nsamples/(sum_w + (float)1e-5));
+		for (int i=0; i<nsamples; i++) norm_wgts[i] = w[i]*(float)nsamples/(sum_w + (float)1e-5);
 	}
 
 	// check we are in a binary 0/1 problem
@@ -746,9 +746,9 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 				if ((preds[i]>=0.5 && y[i]==1) || (preds[i]<0.5 && y[i]==0)) nacc++;
 
 				if (y[i] == 1)
-					loss += -log(max(1e-5, (double)preds[i]));
+					loss += -norm_wgts[i]*log(max(1e-5, (double)preds[i]));
 				else
-					loss += -log(max(1e-5, 1.0-(double)preds[i]));
+					loss += -norm_wgts[i]*log(max(1e-5, 1.0-(double)preds[i]));
 			}
 
 			loss /= (double)nsamples;
@@ -763,7 +763,6 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 
 
 			diff = bf - prev_bf;
-			if (w != NULL) for (int j=0; j<nsamples; j++) diff(0, j) = diff(0, j) * norm_wgts[j];
 
 			dnorm = sqrt(diff.array().square().sum() + (b0 - prev_b0)*(b0 - prev_b0))/(float)nftrs;
 			err = (float)abs(prev_loss - loss)/(abs(prev_loss) + 1e-10);
