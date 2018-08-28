@@ -4,6 +4,7 @@
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
+#include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include "MedSamplingStrategy.h"
 
 using namespace std;
@@ -64,7 +65,7 @@ public:
 	/// Creates vector of registry using already initialized MedPidRepository with signals
 	/// in parallel manner for each patient
 	/// </summary>
-	void create_registry(MedPidRepository &dataManager, medial::repository::fix_method method = medial::repository::fix_method::none);
+	void create_registry(MedPidRepository &dataManager, medial::repository::fix_method method = medial::repository::fix_method::none, vector<RepProcessor *> *rep_processors = NULL);
 
 	/// <summary>
 	/// returns the signal codes used to create the registry

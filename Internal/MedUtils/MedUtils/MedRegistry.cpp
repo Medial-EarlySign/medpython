@@ -9,6 +9,7 @@
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
+#include <omp.h>
 
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -70,7 +71,56 @@ void MedRegistry::write_text_file(const string &file_path) const {
 	MLOG("[Wrote %d registry records to %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
-void MedRegistry::create_registry(MedPidRepository &dataManager, medial::repository::fix_method method) {
+void collect_and_add_virtual_signals(MedRepository &rep, vector<RepProcessor *> *rep_processors)
+{
+	bool verbosity = true;
+	// collecting
+	map<string, int> virtual_signals;
+	for (RepProcessor *processor : *rep_processors)
+		processor->add_virtual_signals(virtual_signals);
+
+	// adding to rep
+	for (auto &vsig : virtual_signals) {
+		//MLOG("Attempting to add virtual signal %s type %d (%d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
+		if (rep.sigs.sid(vsig.first) < 0) {
+			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
+			if (verbosity > 0)
+				MLOG("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
+			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
+			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
+			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
+			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
+		}
+		else {
+			if (rep.sigs.sid(vsig.first) < 100)
+				MTHROW_AND_ERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
+		}
+	}
+
+}
+
+void filter_rep_processors(vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors) {
+
+	vector<RepProcessor *> filtered_processors;
+	bool did_something = false;
+	for (unsigned int i = 0; i < rep_processors->size(); i++) {
+		unordered_set<string> current_req_signal_names;
+		if (!(*rep_processors)[i]->filter(current_req_signal_names))
+			filtered_processors.push_back((*rep_processors)[i]);
+		else {//cleaning uneeded rep_processors!:
+			delete (*rep_processors)[i];
+			did_something = true;
+		}
+	}
+	if (did_something)
+		MLOG("Filtering uneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
+			filtered_processors.size(), rep_processors->size());
+
+	rep_processors->swap(filtered_processors);
+}
+
+void MedRegistry::create_registry(MedPidRepository &dataManager, medial::repository::fix_method method, vector<RepProcessor *> *rep_processors) {
 	MLOG_D("Creating registry...\n");
 	vector<int> used_sigs;
 	used_sigs.reserve(signalCodes.size());
@@ -86,6 +136,37 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	double duration;
 	int prog_pid = 0;
 	int bDateCode = dataManager.sigs.sid("BDATE");
+	//update using rep_processors:
+	vector<unordered_set<int> > current_req_signal_ids;
+	if (rep_processors != NULL && !rep_processors->empty()) {
+		collect_and_add_virtual_signals(dataManager, rep_processors);
+		vector<string> rq_signals(signalCodes.size());
+		for (size_t i = 0; i < rq_signals.size(); ++i)
+			rq_signals[i] = dataManager.sigs.name(signalCodes[i]);
+		filter_rep_processors(rq_signals, rep_processors);
+
+		for (RepProcessor *processor : *rep_processors) {
+			processor->set_affected_signal_ids(dataManager.dict);
+			processor->set_required_signal_ids(dataManager.dict);
+			processor->set_signal_ids(dataManager.dict);
+			processor->init_attributes();
+		}
+
+		//vector<RepProcessor *> temp_processors;
+		for (int i = 0; i < rep_processors->size(); i++) {
+			//unordered_set<int> current_req_signal_ids;
+			//for (int k = (int)rep_processors->size() - 1; k > i; --k)
+			//	(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids, current_req_signal_ids);
+			if ((*rep_processors)[i]->learn(dataManager) < 0)
+				MTHROW_AND_ERR("Unable to learn rep_processor\n");
+			//temp_processors.push_back((*rep_processors)[i]);
+		}
+
+		current_req_signal_ids.resize(rep_processors->size());
+		for (unsigned int i = 0; i < rep_processors->size(); i++)
+			(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids[i], current_req_signal_ids[i]);
+	}
+
 	if (!dataManager.index.index_table[bDateCode].is_loaded)
 		MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded BDATE for repository which is needed\n");
 	for (size_t i = 0; i < signalCodes.size(); ++i)
@@ -93,14 +174,31 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
 				dataManager.sigs.name(signalCodes[i]).c_str());
 
+	int N_tot_threads = omp_get_max_threads();
+	vector<PidDynamicRec> idRec(N_tot_threads);
+
 	int fixed_cnt = 0; int example_pid = -1;
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < dataManager.pids.size(); ++i)
 	{
+		int n_th = omp_get_thread_num();
+		if (idRec[n_th].init_from_rep(std::addressof(dataManager), dataManager.pids[i], used_sigs, 1) < 0)
+			MTHROW_AND_ERR("Unable to read repository\n");
+
+		if (rep_processors != NULL && !rep_processors->empty()) {
+			MedIdSamples pid_samples(dataManager.pids[i]);
+			MedSample smp;
+			smp.id = pid_samples.id; smp.time = 0;
+			pid_samples.samples.push_back(smp);
+			for (unsigned int i = 0; i < rep_processors->size(); ++i) {
+				(*rep_processors)[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]);
+			}
+		}
+
 		vector<UniversalSigVec_mem> sig_vec((int)used_sigs.size());
 		for (size_t k = 0; k < sig_vec.size(); ++k) {
 			UniversalSigVec vv;
-			dataManager.uget(dataManager.pids[i], used_sigs[k], vv);
+			idRec[n_th].uget(used_sigs[k], 0, vv);
 			bool did_something = medial::repository::fix_contradictions(vv, method, sig_vec[k]);
 			if (did_something) {
 #pragma omp atomic
@@ -1734,7 +1832,7 @@ int MedRegistryCategories::init(map<string, string>& map) {
 		int current_signal_idx = (int)signals_rules.size();
 		if (signal_name_to_idx.find(all_rules[i]->signalName) == signal_name_to_idx.end()) {
 			signal_name_to_idx[all_rules[i]->signalName] = current_signal_idx;
-			signals_rules.push_back({}); //open new empty signal rules list
+			signals_rules.resize(current_signal_idx + 1); //open new empty signal rules list
 		}
 		else
 			current_signal_idx = signal_name_to_idx[all_rules[i]->signalName];
@@ -1931,9 +2029,11 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 }
 
 void MedRegistryCategories::clear_create_variables() {
-	for (size_t i = 0; i < signals_rules.size(); ++i)
+	for (size_t i = 0; i < signals_rules.size(); ++i) {
 		for (size_t j = 0; j < signals_rules[i].size(); ++j)
 			delete signals_rules[i][j];
+		signals_rules[i].clear();
+	}
 	signals_rules.clear();
 }
 
