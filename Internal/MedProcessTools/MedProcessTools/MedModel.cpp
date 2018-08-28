@@ -434,6 +434,7 @@ void MedModel::filter_rep_processors() {
 			filtered_processors.push_back(rep_processors[i]);
 		else {//cleaning uneeded rep_processors!:
 			delete rep_processors[i];
+			rep_processors[i] = NULL;
 			did_something = true;
 		}
 	}

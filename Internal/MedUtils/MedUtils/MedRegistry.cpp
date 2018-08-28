@@ -104,12 +104,13 @@ void filter_rep_processors(vector<string> &current_req_signal_names, vector<RepP
 
 	vector<RepProcessor *> filtered_processors;
 	bool did_something = false;
+	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());
 	for (unsigned int i = 0; i < rep_processors->size(); i++) {
-		unordered_set<string> current_req_signal_names;
-		if (!(*rep_processors)[i]->filter(current_req_signal_names))
+		if (!(*rep_processors)[i]->filter(req_signal_names))
 			filtered_processors.push_back((*rep_processors)[i]);
 		else {//cleaning uneeded rep_processors!:
 			delete (*rep_processors)[i];
+			(*rep_processors)[i] = NULL;
 			did_something = true;
 		}
 	}

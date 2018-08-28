@@ -338,6 +338,7 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 			filtered.push_back(processor);
 		else {
 			delete processor;
+			processor = NULL;
 			did_something = true;
 		}
 	}
