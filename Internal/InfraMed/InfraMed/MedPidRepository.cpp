@@ -29,18 +29,18 @@ int MedPidRepository::create(string &rep_fname, int from_pid, int to_pid, int ju
 	string path_and_pref;
 
 	// looping over original repository several times, in order to allow not loading all of it to memory.
-	for (int pid_s=from_pid; pid_s<=to_pid; pid_s+=jump) {
+	for (int pid_s = from_pid; pid_s <= to_pid; pid_s += jump) {
 
 		// init our current list of pids to read
 		vector<int> pids_to_load(jump);
-		for (int i=0; i<jump; i++) pids_to_load[i] = pid_s + i;
-		
+		for (int i = 0; i < jump; i++) pids_to_load[i] = pid_s + i;
+
 		// read this portion of the repository
 		MedRepository rep;
 		vector<int> sids;
 		MLOG("Before read_all()\n");
 		if (rep.read_all(rep_fname, pids_to_load, sids) < 0) {
-			MERR("MedPidRepository: ERROR reading %s for pid range %d - %d\n", rep_fname.c_str(), pid_s, pid_s+jump);
+			MERR("MedPidRepository: ERROR reading %s for pid range %d - %d\n", rep_fname.c_str(), pid_s, pid_s + jump);
 			return -1;
 		}
 
@@ -56,16 +56,16 @@ int MedPidRepository::create(string &rep_fname, int from_pid, int to_pid, int ju
 			return -1;
 		}
 		unsigned long long fpos = 0;
-		
+
 		MLOG("MedPidRepository: working on chunk %d for file %s\n", curr_chunk, curr_out_fname.c_str());
 		// go over pids, prepare record, write data to file, and add a record to index
-		for (int i=0; i<rep.pids.size(); i++) {
+		for (int i = 0; i < rep.pids.size(); i++) {
 			int pid = rep.pids[i];
 			int header_len = 0;
 			int data_len = 0;
 			int nsigs = 0;
 			//MLOG("Packing pid %d\n", pid);
-			if (i%10000 == 0) MLOG(".");
+			if (i % 10000 == 0) MLOG(".");
 			//MLOG("%d\n", i);
 
 			// add magic number to header
@@ -73,18 +73,18 @@ int MedPidRepository::create(string &rep_fname, int from_pid, int to_pid, int ju
 			*((int *)&pid_header[header_len]) = pid; header_len += sizeof(int);
 			int *n_sigs = (int *)&pid_header[header_len]; header_len += sizeof(int);
 			int *sig_list = (int *)&pid_header[header_len];
-			for (int j=0; j<rep.sigs.signals_ids.size(); j++) {
+			for (int j = 0; j < rep.sigs.signals_ids.size(); j++) {
 				int sid = rep.sigs.signals_ids[j];
 				int len;
 				unsigned char *sig_data = (unsigned char *)rep.get(pid, sid, len);
 				if (len > 0) {
 					int byte_len = len * rep.sigs.Sid2Info[sid].bytes_len;
-					
+
 					// data copying
 					int pos = data_len;
 					if (data_len + byte_len >= pid_data.size()) {
 						MLOG("Resizing pid_data : pid %d sid %d len %d byte_len %d data_len %d max size %d\n", pid, sid, len, byte_len, data_len, pid_data.size());
-						pid_data.resize(data_len + byte_len + pid_data.size()/4);
+						pid_data.resize(data_len + byte_len + pid_data.size() / 4);
 						//exit(-1);
 					}
 
@@ -105,8 +105,8 @@ int MedPidRepository::create(string &rep_fname, int from_pid, int to_pid, int ju
 			//MLOG("%d pid %d nsigs %d header_len %d data_len %d\n", i,pid,nsigs,header_len,data_len);
 
 			// add header len to all sig records, making it relative position from start
-			for (int j=0; j<nsigs; j++)
-				sig_list[3*j+1] += header_len;
+			for (int j = 0; j < nsigs; j++)
+				sig_list[3 * j + 1] += header_len;
 
 			// writer header
 			if (header_len > 0)
@@ -187,7 +187,7 @@ int MedPidRepository::init(const string &conf_fname)
 
 	// reading pid_idx file and openning all pid_data files
 
-	string idx_fname =  path + "/" + rep_files_prefix +  "__pids__all.pid_idx";
+	string idx_fname = path + "/" + rep_files_prefix + "__pids__all.pid_idx";
 	unsigned char *serialized;
 	unsigned long long size;
 	if (read_bin_file_IM_parallel(idx_fname, serialized, size) < 0) {
@@ -198,16 +198,16 @@ int MedPidRepository::init(const string &conf_fname)
 	delete[] serialized;
 	MLOG_D("Read and deserialized %s\n", idx_fname.c_str());
 
-	for (int i=0; ; i++) {
+	for (int i = 0; ; i++) {
 
-		string data_fname = path + "/" + rep_files_prefix +  "__pids__"+to_string(i)+".pid_data";
+		string data_fname = path + "/" + rep_files_prefix + "__pids__" + to_string(i) + ".pid_data";
 		if (file_exists_IM(data_fname)) {
 			MedBufferedFile mbf;
 			in_files.push_back(mbf);
 			if (in_files.back().open(data_fname) < 0) {
 				MERR("MedPidRepository::init() ERROR failed openning file %s\n", data_fname.c_str());
 				return -1;
-			}			
+			}
 			MLOG_D("Read %s\n", data_fname.c_str());
 		}
 		else
@@ -220,11 +220,16 @@ int MedPidRepository::init(const string &conf_fname)
 		MERR("MedPidRepository: init: failed init of MedRepository side\n");
 		return -1;
 	}
-	
+
 	return 0;
 
 }
 
+MedPidRepository::~MedPidRepository() {
+	for (size_t i = 0; i < in_files.size(); ++i)
+		if (in_files[i].inf != NULL && in_files[i].inf->is_open())
+			in_files[i].close();
+}
 //------------------------------------------------------------------------------------------------------------
 // get data size of a pid (0 => pid not in data)
 unsigned int MedPidRepository::get_data_size(int pid)
@@ -275,7 +280,7 @@ int MedPidRepository::get_pid_rec(int pid, unsigned char *&_data, unsigned int &
 			data_size = size;
 		}
 		else if (data_size < size) {
-			prec.prealloc(size+8);
+			prec.prealloc(size + 8);
 			//MERR("get_pid_rec(): ERROR: Not enough space to read pid %d : need %d and got %d\n", pid, size, data_size);
 			//return -2;
 		}
@@ -295,7 +300,7 @@ int MedPidRepository::get_pid_rec(int pid, unsigned char *&_data, unsigned int &
 		prec.init_sv();
 	}
 
-//	MLOG("### Read pid %d : data_size %d : entries in sv: %d\n", prec.pid, size, prec.sv.data.size());
+	//	MLOG("### Read pid %d : data_size %d : entries in sv: %d\n", prec.pid, size, prec.sv.data.size());
 	return 0;
 
 }
@@ -331,8 +336,8 @@ int PidRec::init_sv()
 
 	// read sigs and initiate sparse vec
 	int n_sigs = *((int *)&buf[len]); len += sizeof(int);
-//	MLOG("### pid %d n_sigs %d\n", pid, n_sigs);
-	for (int i=0; i<n_sigs; i++) {
+	//	MLOG("### pid %d n_sigs %d\n", pid, n_sigs);
+	for (int i = 0; i < n_sigs; i++) {
 		PosLen pl;
 		int sid = *((int *)&buf[len]); len += sizeof(int);
 		int sid_serial = my_base_rep->sigs.sid2serial[sid];
@@ -368,8 +373,8 @@ void *PidRec::get(int sid, int &len)
 {
 	len = 0;
 	int sid_serial = my_base_rep->sigs.sid2serial[sid];
-	
-	PosLen *pl = sv.get((unsigned int)sid_serial); 
+
+	PosLen *pl = sv.get((unsigned int)sid_serial);
 
 	if (pl == NULL)
 		return NULL;
@@ -438,7 +443,7 @@ int PidRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids_to_use
 			int sid_serial = my_base_rep->sigs.sid2serial[sid];
 			int sid_byte_len = my_base_rep->sigs.Sid2Info[sid].bytes_len;
 			int slen = len * sid_byte_len;
-			if (data_len + slen >= data_size) { realloc(2*(data_len+slen)); }
+			if (data_len + slen >= data_size) { realloc(2 * (data_len + slen)); }
 			memcpy(&data[data_len], sig_data, slen);
 			PosLen pl;
 			pl.pos = data_len;
@@ -463,7 +468,7 @@ int PidRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids_to_use
 // this method should always be called AFTER the original version had been read.
 int PidDynamicRec::set_n_versions(int n_ver)
 {
-//	lock_guard<mutex> guard(dynamic_pid_rec_mutex_pool[pid & PID_REC_MUTEX_MASK]);
+	//	lock_guard<mutex> guard(dynamic_pid_rec_mutex_pool[pid & PID_REC_MUTEX_MASK]);
 	if (n_versions > 0)
 		clear_vers();
 
@@ -483,14 +488,14 @@ int PidDynamicRec::set_n_versions(int n_ver)
 	if (n_versions > 1) do_split = 1;
 
 	if (orig_keys.size() > 0) {
-		
+
 		sv_vers.set_min(orig_keys[0]);
 
 		for (auto key : orig_keys) {
 			PosLen *pl = sv.get(key);
 			(*pl).do_split = do_split;
-			for (int j=0; j<n_versions; j++)
-				sv_vers.insert(key*n_versions+j, *pl); // at start all versions point to the original one
+			for (int j = 0; j < n_versions; j++)
+				sv_vers.insert(key*n_versions + j, *pl); // at start all versions point to the original one
 		}
 	}
 
@@ -540,12 +545,12 @@ int PidDynamicRec::set_n_versions(vector<int> &time_points)
 			PidRec::uget(sid);
 
 			int tlen = 0;
-			for (int j=0; j<n_versions; j++) {
+			for (int j = 0; j < n_versions; j++) {
 				while (tlen < usv.len && usv.Time(tlen) <= time_points[j]) tlen++;
 				int len = (tlen <= 0) ? 0 : tlen - 1;
 				my_pl.len = len;
 				my_pl.do_split = do_split;
-				sv_vers.insert(key*n_versions+j, my_pl); // at start all versions point to the original one
+				sv_vers.insert(key*n_versions + j, my_pl); // at start all versions point to the original one
 			}
 		}
 	}
@@ -602,7 +607,7 @@ int PidDynamicRec::set_version_data(int sid, int version, void *datap, int len)
 		// need to create a new place for this version
 		//MLOG("In here : pos %d len %d curr_len %d data_len %d len %d size %d data_size %d\n", pl->pos, pl->len, curr_len, data_len, len, size, data_size);
 		if (curr_len + size > data_size)
-			resize_data(2*(data_size + size));
+			resize_data(2 * (data_size + size));
 		PosLen new_pl;
 		new_pl.pos = curr_len;
 		new_pl.len = len;
@@ -642,7 +647,7 @@ int PidDynamicRec::set_version_universal_data(int sid, int version, int *_times,
 	int inc_time = info.n_time_channels;
 	int inc_vals = info.n_val_channels;
 
-	for (int i=0; i<len; i++) {
+	for (int i = 0; i < len; i++) {
 
 		usv.Set(i, _curr_times, _curr_vals, usv.data);
 
@@ -674,8 +679,8 @@ int PidDynamicRec::set_version_off_orig(int sid, int version)
 		int size = my_base_rep->sigs.Sid2Info[sid].bytes_len * len;
 
 		if (curr_len + size > data_size)
-			resize_data(2*(data_size + size));
-		
+			resize_data(2 * (data_size + size));
+
 		PosLen new_pl;
 		new_pl.pos = curr_len;
 		new_pl.len = len;
@@ -736,13 +741,13 @@ int PidDynamicRec::remove(int sid, int v_in, int idx, int v_out)
 	int sid_byte_len = my_base_rep->sigs.Sid2Info[sid].bytes_len;
 	int size1 = sid_byte_len * idx;
 	int size2 = sid_byte_len * (pl_in->len - 1 - idx);
-	int size =  size1 + size2;
+	int size = size1 + size2;
 
 	PosLen new_pl;
-	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len-1) || (pl_out->do_split)) {
+	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len - 1) || (pl_out->do_split)) {
 		// need to create a new place for this version
 		if (curr_len + size > data_size)
-			resize_data(2*(data_size + size));
+			resize_data(2 * (data_size + size));
 		new_pl.pos = curr_len;
 		new_pl.do_split = 0;
 		curr_len += size;
@@ -758,8 +763,8 @@ int PidDynamicRec::remove(int sid, int v_in, int idx, int v_out)
 		}
 		else {
 			unsigned char *d = &data[pl_out->pos + size1];
-			for (int i=0; i<size2; i++)
-				d[i] = d[i+sid_byte_len];
+			for (int i = 0; i < size2; i++)
+				d[i] = d[i + sid_byte_len];
 		}
 		new_pl = *pl_out;
 
@@ -795,13 +800,13 @@ int PidDynamicRec::change(int sid, int v_in, int idx, void *new_elem, int v_out)
 
 	int sid_byte_len = my_base_rep->sigs.Sid2Info[sid].bytes_len;
 	int pos_to_change = sid_byte_len * idx;
-	int size =  sid_byte_len * pl_in->len;
+	int size = sid_byte_len * pl_in->len;
 
 	PosLen new_pl;
-	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len-1) || (pl_out->do_split)) {
+	if (((unsigned int)pl_out->pos < data_len) || (pl_out->len < pl_in->len - 1) || (pl_out->do_split)) {
 		// need to create a new place for this version
 		if (curr_len + size > data_size)
-			resize_data(2*(data_size + size));
+			resize_data(2 * (data_size + size));
 		new_pl.pos = curr_len;
 		new_pl.do_split = 0;
 		curr_len += size;
@@ -862,7 +867,7 @@ int PidDynamicRec::update(int sid, int v_in, int val_channel, vector<pair<int, f
 		}
 
 	}
-	
+
 	return 0;
 }
 
@@ -915,7 +920,7 @@ int PidDynamicRec::print_all_vers(int sid)
 	void *data = PidRec::get(sid, len);
 	my_base_rep->print_vec_dict(data, len, pid, sid);
 
-	for (int ver=0; ver<n_versions; ver++)
+	for (int ver = 0; ver < n_versions; ver++)
 		print_ver(sid, ver);
 
 	//MLOG("Record size: data_size %d data_len %d curr_len %d\n", data_size, data_len, curr_len);
@@ -929,7 +934,7 @@ int PidDynamicRec::print_all()
 	for (auto sid : my_base_rep->sigs.signals_ids) {
 		int len;
 		get(sid, 0, len);
-		if (len > 0) 
+		if (len > 0)
 			print_ver(sid, 0);
 	}
 
@@ -953,11 +958,11 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 	// clear what was before and init basics
 	sv.clear();
 	sv_vers.clear();
-//	sv_vers.init();
+	//	sv_vers.init();
 	my_rep = NULL;
 	my_base_rep = rep;
 	pid = _pid;
-//	n_versions = _n_versions;
+	//	n_versions = _n_versions;
 
 	data_len = 0;
 	if (data_size < 8) { realloc(1024); }	// making sure we have some work space
@@ -966,7 +971,7 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 
 	// copy data for sids to our data_buffer, and init the relevant records in sv
 	vector<int> sids = sids_to_use;
-//	sort(sids_to_use.begin(), sids_to_use.end()); // sorting sids in preparation for inserts into sv.
+	//	sort(sids_to_use.begin(), sids_to_use.end()); // sorting sids in preparation for inserts into sv.
 	sort(sids.begin(), sids.end()); // sorting sids in preparation for inserts into sv.
 	for (auto sid : sids) {
 		int len;
@@ -976,7 +981,7 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 			int sid_serial = my_base_rep->sigs.sid2serial[sid];
 			int sid_byte_len = my_base_rep->sigs.Sid2Info[sid].bytes_len;
 			int slen = len * sid_byte_len;
-			if (data_len + slen >= data_size) { realloc(2*(data_len+slen)); }
+			if (data_len + slen >= data_size) { realloc(2 * (data_len + slen)); }
 			memcpy(&data[data_len], sig_data, slen);
 			PosLen pl;
 			pl.pos = data_len;
@@ -1012,7 +1017,7 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 
 	// now setting the version number
 	return (set_n_versions(time_points));
-	
+
 }
 
 //..................................................................................................................
@@ -1031,14 +1036,14 @@ int differentVersionsIterator::init() {
 int differentVersionsIterator::next() {
 
 	// Point data
-	for (int pVersion = iVersion - 1; pVersion > jVersion; pVersion --) {
+	for (int pVersion = iVersion - 1; pVersion > jVersion; pVersion--) {
 		for (int signalId : signalIds)
 			my_rec->point_version_to(signalId, iVersion, pVersion);
 	}
 
 	// Iterate
 	iVersion = jVersion;
-	
+
 	// Next Version
 	jVersion = iVersion - 1;
 	while (jVersion >= 0 && my_rec->versions_are_the_same(signalIds, iVersion, jVersion))
