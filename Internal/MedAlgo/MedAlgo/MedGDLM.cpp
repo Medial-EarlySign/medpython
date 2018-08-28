@@ -39,6 +39,7 @@ void MedGDLM::init_defaults()
 	params.err_freq = 10;
 	b0 = 0 ;
 	b.clear() ;
+	n_ftrs = 0;
 }
 //..............................................................................
 int MedGDLM::init(void *_in_params) 
