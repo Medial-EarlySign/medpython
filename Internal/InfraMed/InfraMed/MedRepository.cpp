@@ -44,6 +44,7 @@ void MedRepository::clear()
 	time_unit = MedTime::Date;
 	index.clear();
 	if (dict.read_state != 1) dict.clear();
+	free_all_sigs();
 	sigs.clear();
 	pids.clear();
 	if (work_area != NULL)
