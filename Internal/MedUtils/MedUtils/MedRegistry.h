@@ -131,6 +131,8 @@ public:
 		time_unit = global_default_time_unit;
 	}
 
+	virtual ~MedRegistry() {};
+
 	/// A function to clear creation variables that are on memory if needed
 	virtual void clear_create_variables() {};
 
@@ -246,6 +248,8 @@ public:
 	/// </summary>
 	static void parse_registry_rules(const string &reg_cfg, MedRepository &rep,
 		vector<RegistrySignal *> &result);
+
+	virtual ~RegistrySignal() {};
 };
 
 /**
