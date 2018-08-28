@@ -165,8 +165,12 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 
 		current_req_signal_ids.resize(rep_processors->size());
 		for (unsigned int i = 0; i < rep_processors->size(); i++)
-			(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids[i], current_req_signal_ids[i]);
+			(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids[i]);
 	}
+	unordered_set<int> all_rep_sigs(used_sigs.begin(), used_sigs.end());
+	for (size_t i = 0; i < current_req_signal_ids.size(); ++i)
+		all_rep_sigs.insert(current_req_signal_ids[i].begin(), current_req_signal_ids[i].end());
+	vector<int> final_use_sigs(all_rep_sigs.begin(), all_rep_sigs.end());
 
 	if (!dataManager.index.index_table[bDateCode].is_loaded)
 		MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded BDATE for repository which is needed\n");
@@ -174,6 +178,12 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 		if (!dataManager.index.index_table[signalCodes[i]].is_loaded)
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
 				dataManager.sigs.name(signalCodes[i]).c_str());
+	if (rep_processors != NULL && !rep_processors->empty())
+		for (size_t i = 0; i < rep_processors->size(); ++i)
+			for (auto it = current_req_signal_ids[i].begin(); it != current_req_signal_ids[i].end(); ++it)
+				if (!dataManager.index.index_table[*it].is_loaded)
+					MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed by rep_processor!\n",
+						dataManager.sigs.name(*it).c_str());
 
 	int N_tot_threads = omp_get_max_threads();
 	vector<PidDynamicRec> idRec(N_tot_threads);
@@ -183,13 +193,13 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	for (int i = 0; i < dataManager.pids.size(); ++i)
 	{
 		int n_th = omp_get_thread_num();
-		if (idRec[n_th].init_from_rep(std::addressof(dataManager), dataManager.pids[i], used_sigs, 1) < 0)
+		if (idRec[n_th].init_from_rep(std::addressof(dataManager), dataManager.pids[i], final_use_sigs, 1) < 0)
 			MTHROW_AND_ERR("Unable to read repository\n");
 
 		if (rep_processors != NULL && !rep_processors->empty()) {
 			MedIdSamples pid_samples(dataManager.pids[i]);
 			MedSample smp;
-			smp.id = pid_samples.id; smp.time = 0;
+			smp.id = pid_samples.id; smp.time = INT_MAX;
 			pid_samples.samples.push_back(smp);
 			for (unsigned int i = 0; i < rep_processors->size(); ++i) {
 				(*rep_processors)[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]);
