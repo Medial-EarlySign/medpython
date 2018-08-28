@@ -1007,7 +1007,7 @@ string medial::models::getParamsInfraModel(void *model) {
 	MedLinearModel *lm;
 	MedGDLM *gdlm;
 	char buff[2000];
-	string l1_str;
+	string l1_str, n_categ = "";
 
 	switch (m->classifier_type) {
 	case MODEL_QRF:
@@ -1021,9 +1021,11 @@ string medial::models::getParamsInfraModel(void *model) {
 			l1_str = "categorial_chi2";
 		else if (pr_qrf.type == QRF_CATEGORICAL_ENTROPY_TREE)
 			l1_str = "categorial_entropy";
-		snprintf(buff, 2000, "%s: ntrees=%d; maxq=%d; min_node=%d; ntry=%d; spread=%2.3f; type=%s; max_depth=%d; learn_nthreads=%d; predict_nthreads=%d; take_all_samples=%d",
+		if (pr_qrf.n_categ > 2)
+			n_categ = " ;n_categ=" + to_string(pr_qrf.n_categ);
+		snprintf(buff, 2000, "%s: ntrees=%d; maxq=%d; min_node=%d; ntry=%d; spread=%2.3f; type=%s; max_depth=%d; learn_nthreads=%d; predict_nthreads=%d; take_all_samples=%d%s",
 			predictor_type_to_name[m->classifier_type].c_str(), pr_qrf.ntrees, pr_qrf.maxq, pr_qrf.min_node, pr_qrf.ntry, pr_qrf.spread,
-			l1_str.c_str(), pr_qrf.max_depth, pr_qrf.learn_nthreads, pr_qrf.predict_nthreads, (int)pr_qrf.take_all_samples);
+			l1_str.c_str(), pr_qrf.max_depth, pr_qrf.learn_nthreads, pr_qrf.predict_nthreads, (int)pr_qrf.take_all_samples, n_categ.c_str());
 		break;
 	case MODEL_LIGHTGBM:
 		pr_lightGBM = ((MedLightGBM *)model)->params;

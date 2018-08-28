@@ -425,7 +425,8 @@ int MedRepository::read_all(const string &conf_fname, const vector<int> &pids_to
 
 	if (rep_mode < 2) {
 		MTHROW_AND_ERR("MedRepository: rep_mode %d is no longer supported\n", rep_mode);
-	} else {
+	}
+	else {
 		// mode 2 TBD !!!
 		generate_fnames_for_prefix();
 	}
@@ -690,7 +691,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		if (sigs.has_any_categorical_channel(sid))
 			MOUT(" :\n");
-		else 
+		else
 			MOUT(" : ");
 	}
 	MOUT("\n");
@@ -1526,20 +1527,27 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 }
 
 float medial::repository::DateDiff(int refDate, int dateSample) {
-	return float((med_time_converter.convert_date(MedTime::Days, dateSample) -
-		med_time_converter.convert_date(MedTime::Days, refDate)) / 365.0);
+	return float((med_time_converter.convert_times(global_default_time_unit, MedTime::Days, dateSample) -
+		med_time_converter.convert_times(global_default_time_unit, MedTime::Days, refDate)) / 365.0);
 }
 
 int medial::repository::DateAdd(int refDate, int daysAdd) {
-	return med_time_converter.convert_days(MedTime::Date,
-		med_time_converter.convert_date(MedTime::Days, refDate) + daysAdd);
+	if (global_default_time_unit == MedTime::Date)
+		return med_time_converter.convert_days(global_default_time_unit,
+			med_time_converter.convert_times(global_default_time_unit, MedTime::Days, refDate) + daysAdd);
+	else
+		return refDate + daysAdd;
 }
 
 int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	int len, gend = -1;
 	void *data = rep.get(pid, sigCode, len);
+
 	if (len > 0)
-		gend = (int)(*(SVal *)data).val;
+		if (rep.sigs.Sid2Info[sigCode].type == T_Value)
+			gend = (int)(*(SVal *)data).val;
+		else if (rep.sigs.Sid2Info[sigCode].type == T_TimeStamp)
+			gend = (int)(*(STimeStamp *)data).time;
 	return gend;
 }
 
@@ -1614,7 +1622,7 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 		string name = filter_code_hierarchy(names, signalHirerchyType);
 		if (!name.empty() && !res.empty()) {
 			//more than one option - for now not supported:
-			MTHROW_AND_ERR("not supported code %d for signal=%s\n", 
+			MTHROW_AND_ERR("not supported code %d for signal=%s\n",
 				id, signalHirerchyType.c_str());
 		}
 		if (!name.empty())
@@ -1622,4 +1630,95 @@ string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, 
 	}
 
 	return res;
+}
+
+bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method method,
+	UniversalSigVec_mem &edited) {
+	edited.set(s);
+	edited.manage = false;
+	if (s.get_type() == T_Value || s.get_type() == T_TimeStamp || method == fix_method::none)
+		return false;
+
+	vector<vector<char *>> data_by_dates;
+	char *p = (char *)s.data;
+	int st_size = (int)s.size();
+	if (s.len > 0)
+		data_by_dates.push_back({ p });
+	p += st_size;
+	for (int i = 1; i < s.len; ++i)
+	{
+		if (s.Time(i) == s.Time(i - 1) && (data_by_dates.back().size() > 1 || s.Val(i) != s.Val(i - 1)))
+			data_by_dates.back().push_back(p);
+		else
+			data_by_dates.push_back({ p });
+		p += st_size;
+	}
+
+	bool changed = false;
+	vector<int> to_remove;
+	int curr_pos = 0;
+	float mean_val = 0;
+	for (size_t i = 0; i < data_by_dates.size(); ++i)
+	{
+		vector<char *> &data_group = data_by_dates[i];
+		if (data_group.size() == 1) {
+			curr_pos += (int)data_group.size();
+			continue; //all ok - do nothing
+		}
+
+		changed = true;
+		switch (method)
+		{
+		case medial::repository::drop:
+			for (int k = 0; k < data_group.size(); ++k)
+				to_remove.push_back(curr_pos + k);
+			break;
+		case medial::repository::take_first:
+			for (int k = 1; k < data_group.size(); ++k)
+				to_remove.push_back(curr_pos + k);
+			break;
+		case medial::repository::take_last:
+			for (int k = 0; k < (int)data_group.size() - 1; ++k)
+				to_remove.push_back(curr_pos + k);
+			break;
+		case medial::repository::take_mean:
+			for (int k = 1; k < data_group.size(); ++k)
+				to_remove.push_back(curr_pos + k);
+			//change first to be mean value:
+			mean_val = 0;
+			for (int k = 0; k < data_group.size(); ++k)
+				mean_val += s.Val(curr_pos + k);
+			mean_val /= data_group.size();
+			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
+			break;
+		default:
+			MTHROW_AND_ERR("Error in fix_contradictions - Not Implemented\n");
+		}
+
+		curr_pos += (int)data_group.size();
+	}
+
+	if (!to_remove.empty()) {
+		changed = true;
+		int rem_idx = 0, curr_i = 0;
+		p = (char *)s.data;
+		char *after_filter = new char[(s.len - (int)to_remove.size()) * st_size];
+		for (size_t i = 0; i < s.len; ++i)
+		{
+			if (rem_idx < to_remove.size() && i == to_remove[rem_idx]) {
+				++rem_idx;
+				continue;
+				//remove current
+			}
+			memcpy(after_filter + curr_i*st_size, p + i*st_size, st_size);
+			++curr_i;
+		}
+
+		s.data = after_filter;
+		s.len -= (int)to_remove.size();
+
+		edited.set(s);
+		edited.manage = true;
+	}
+	return changed;
 }

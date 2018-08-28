@@ -581,7 +581,8 @@ public:
 	MedModel *model = NULL; ///< model
 	string modelName = "";
 	int n_preds = 1;
-
+	int impute_existing_feature = 0;
+	int use_overriden_predictions = 0;
 	/// A container for the predictions
 	vector<float> preds;
 
@@ -593,8 +594,8 @@ public:
 	int init(map<string, string>& mapper);
 	int init_from_model(MedModel *_model);
 
-	/// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
-	void load(MedSamples& inSamples, MedSamples& modelSamples);
+	/// Hack - Instead of actually predicting with the model, load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
+	void override_predictions(MedSamples& inSamples, MedSamples& modelSamples);
 
 	/// Do the actual prediction prior to feature generation ...
 	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);

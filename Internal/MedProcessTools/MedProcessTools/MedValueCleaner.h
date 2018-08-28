@@ -87,6 +87,16 @@ public:
 	
 	/// Get Type
 	ValueCleanerType get_cleaner_type(string name);
+
+	///default ctor:
+	MedValueCleaner() {
+		trimMin = numeric_limits<float>().min();
+		trimMax = numeric_limits<float>().max();
+		removeMin = numeric_limits<float>().min();
+		removeMax = numeric_limits<float>().max();
+		nbrsMin = numeric_limits<float>().min();
+		nbrsMax = numeric_limits<float>().max();
+	}
 };
 
 #endif

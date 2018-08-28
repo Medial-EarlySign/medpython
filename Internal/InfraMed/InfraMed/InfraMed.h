@@ -601,7 +601,7 @@ inline void *MedRepository::uget(int pid, const string &sig_name, UniversalSigVe
 
 inline void *MedRepository::uget(int pid, int sid, UniversalSigVec &usv)
 {
-	usv.init(sigs.Sid2Info[sid].type);
+	usv.init(sigs.Sid2Info[sid]);
 
 	usv.data = get(pid, sid, usv.len);
 	return usv.data;
@@ -636,6 +636,16 @@ namespace medial {
 		int DateAdd(int refDate, int daysAdd);
 		/// \brief fetching specifc signal code value
 		int get_value(MedRepository &rep, int pid, int sigCode);
+
+		enum fix_method {
+			none = 0,
+			drop = 1,
+			take_first = 2,
+			take_last = 3,
+			take_mean = 4
+		};
+		/// \brief fix contradicting signal values in same time for same patient. return true if changed data
+		bool fix_contradictions(UniversalSigVec &s, fix_method method, UniversalSigVec_mem &edited);
 	}
 }
 

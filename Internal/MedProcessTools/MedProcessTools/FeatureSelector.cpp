@@ -818,10 +818,12 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
+		string val = boost::trim_copy(entry.second);
 		//! [TagFeatureSelector::init]
 		if (field == "missing_value") missing_value = med_stof(entry.second);
-		else if (field == "selected_tags") boost::split(selected_tags, entry.second, boost::is_any_of(","));
-		else if (field == "removed_tags") boost::split(removed_tags, entry.second, boost::is_any_of(","));
+		else if (field == "selected_tags") { if (!val.empty()) boost::split(selected_tags, val, boost::is_any_of(",")); }
+		else if (field == "removed_tags") { if (!val.empty()) boost::split(removed_tags, val, boost::is_any_of(",")); }
+		else if (field == "verbose") verbose = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for TagFeatureSelector\n", field.c_str());
 		//! [TagFeatureSelector::init]
@@ -834,10 +836,19 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
 	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
 	unordered_set<string> r(removed_tags.begin(), removed_tags.end());
-	for (string sub : r)
-		MLOG("TagFeatureSelector removing features with tag [%s]\n", sub.c_str());
-	for (string sub : s)
-		MLOG("TagFeatureSelector selecting features with tag [%s]\n", sub.c_str());
+	if (r.empty())
+		MLOG("TagFeatureSelector not removing any features\n");
+	else 
+		for (string sub : r)
+			if (verbose)
+				MLOG("TagFeatureSelector removing features with tag [%s]\n", sub.c_str());
+	if (s.empty())
+		MLOG("TagFeatureSelector selecting all features\n");
+	else
+		for (string sub : s)
+			if (verbose)
+				MLOG("TagFeatureSelector selecting features with tag [%s]\n", sub.c_str());
+	int removed_features = 0, selected_features = 0;
 	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
 		string feature_name = it->first;
 		unordered_set<string> feature_tags = it->second;
@@ -852,16 +863,19 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 					boost::regex regi(substring);
 					if (boost::regex_match(*start_it, regi)){
 						found_remove = true;
-						MLOG("TagFeatureSelector removing [%s] because of tag [%s] that contains [%s]\n", 
-							feature_name.c_str(), (*start_it).c_str(), substring.c_str());
+						if (verbose)
+							MLOG("TagFeatureSelector removing [%s] because of tag [%s] that contains [%s]\n", 
+								feature_name.c_str(), (*start_it).c_str(), substring.c_str());
 						break;
 					}
 				}
 				++start_it;
 			}
 		}
-		if (found_remove) 
+		if (found_remove) {
+			removed_features++;
 			continue;
+		}
 
 		bool found_match;
 		if (s.empty())
@@ -875,18 +889,22 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 				for (const string& substring : s) {
 					boost::regex regi(substring);
 					if (boost::regex_match(*start_it, regi)){
-						found_match = true;
-						MLOG("TagFeatureSelector selecting [%s] because of tag [%s] that contains [%s]\n",
-							feature_name.c_str(), (*start_it).c_str(), substring.c_str());
+						found_match = true;						
+						if (verbose)
+							MLOG("TagFeatureSelector selecting [%s] because of tag [%s] that contains [%s]\n",
+								feature_name.c_str(), (*start_it).c_str(), substring.c_str());
 						break;
 					}
 				}
 				++start_it;
 			}
 		}
-		if (found_match)
+		if (found_match) {
+			selected_features++;
 			selected.push_back(feature_name);
+		}
 	}
+	MLOG("TagFeatureSelector selected_features %d removed_features %d\n", selected_features, removed_features);
 	return 0;
 }
 

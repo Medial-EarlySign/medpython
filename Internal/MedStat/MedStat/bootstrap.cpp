@@ -482,13 +482,24 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	map<string, float> all_final_measures;
 	for (auto it = all_measures.begin(); it != all_measures.end(); ++it)
 	{
-		vector<float> measures = it->second;
+		vector<float> &measures = it->second;
+		if (measures.empty()) {
+			if (it->first.size() > 4 && it->first.substr(it->first.size() - 4) == "_Obs")
+				all_final_measures[it->first] = MED_MAT_MISSING_VALUE;
+			else {
+				all_final_measures[it->first + "_Mean"] = MED_MAT_MISSING_VALUE;
+				all_final_measures[it->first + "_Std"] = MED_MAT_MISSING_VALUE;
+				all_final_measures[it->first + "_CI.Lower.95"] = MED_MAT_MISSING_VALUE;
+				all_final_measures[it->first + "_CI.Upper.95"] = MED_MAT_MISSING_VALUE;
+			}
+			continue;
+		}
 		sort(measures.begin(), measures.end());
 		float meanVal = meanArr(measures);
 		float stdVal = stdArr(measures, meanVal);
 		float lower_ci = measures[(int)round(((1 - ci_bound) / 2) * measures.size())];
 		int max_pos = (int)round((ci_bound + (1 - ci_bound) / 2) * measures.size());
-		if (max_pos > measures.size())
+		if (max_pos >= measures.size())
 			max_pos = (int)measures.size() - 1;
 		float upper_ci = measures[max_pos];
 
@@ -1450,8 +1461,8 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void
 bool time_range_filter(float outcome, int min_time, int max_time, int time, int outcome_time) {
 	if (med_time.YearsMonths2Days.empty())
 		med_time.init_time_tables();
-	int diff_days = (med_time.convert_date(MedTime::Days, outcome_time) -
-		med_time.convert_date(MedTime::Days, time));
+	int diff_days = (med_time.convert_times(global_default_time_unit, MedTime::Days, outcome_time) -
+		med_time.convert_times(global_default_time_unit, MedTime::Days, time));
 	return ((outcome > 0 && diff_days >= min_time && diff_days <= max_time) ||
 		(outcome <= 0 && diff_days > max_time));
 }

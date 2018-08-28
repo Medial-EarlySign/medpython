@@ -14,30 +14,30 @@ void MedTime::init_time_tables()
 
 	// date to days tables
 
-	YearsMonths2Days.resize(3001*100, -1);
+	YearsMonths2Days.resize(3001 * 100, -1);
 	Years2Days.resize(3001, -1);
 
-	for (int year = 1900; year<=3000; year++) {
+	for (int year = 1900; year <= 3000; year++) {
 		// Full years
-		int days = 365 * (year-1900);
-		days += (year-1897)/4;
-		days -= (year-1801)/100;
-		days += (year-1601)/400;
+		int days = 365 * (year - 1900);
+		days += (year - 1897) / 4;
+		days -= (year - 1801) / 100;
+		days += (year - 1601) / 400;
 
-		Years2Days[year-1900] = days;
+		Years2Days[year - 1900] = days;
 		//if (year<1905) fprintf(stderr, "y2d[%d] = %d\n", year-1900, days);
-		YearsMonths2Days[year*100 + 0] = days; // month 0
+		YearsMonths2Days[year * 100 + 0] = days; // month 0
 
 		// month 0 - for lazy people !!
-		YearsMonths2Days[year*100] = days;
+		YearsMonths2Days[year * 100] = days;
 
 		// months 1-12
-		for (int month = 1; month<=12; month++) {
-			int ym = year*100 + month;
+		for (int month = 1; month <= 12; month++) {
+			int ym = year * 100 + month;
 
 			// Full Months
-			int d = days + days2month[month-1];
-			if (month>2 && (year%4)==0 && ((year%100)!=0 || (year%400)==0))
+			int d = days + days2month[month - 1];
+			if (month > 2 && (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0))
 				d++;
 			YearsMonths2Days[ym] = d;
 			//if (year<1905) fprintf(stderr, "ym2d[%d] = %d\n", ym, d);
@@ -45,10 +45,10 @@ void MedTime::init_time_tables()
 	}
 
 	// days to dates tables
-	Days2Years.resize(1100*365, -1); // covering dates up to 3000
-	Days2Months.resize(1100*365, -1); // covering dates up to 3000
-	Days2Date.resize(1100*365, -1); // covering dates up to 3000
-	for (int d=0; d<1100*365; d++) {
+	Days2Years.resize(1100 * 365, -1); // covering dates up to 3000
+	Days2Months.resize(1100 * 365, -1); // covering dates up to 3000
+	Days2Date.resize(1100 * 365, -1); // covering dates up to 3000
+	for (int d = 0; d < 1100 * 365; d++) {
 		// Full Years
 		int year = 1900 + d / 365;
 		int days = d % 365;
@@ -83,7 +83,7 @@ void MedTime::init_time_tables()
 			}
 		}
 
-		Days2Months[d] = (year-1900)*12 + month;
+		Days2Months[d] = (year - 1900) * 12 + month;
 
 		days++;
 
@@ -98,13 +98,44 @@ int MedTime::convert_days(int to_type, int in_time)
 {
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Days) return in_time;
-	if (to_type == MedTime::Hours) return in_time*24;
-	if (to_type == MedTime::Minutes) return in_time*24*60;
+	if (to_type == MedTime::Hours) return in_time * 24;
+	if (to_type == MedTime::Minutes) return in_time * 24 * 60;
 	if (to_type == MedTime::Date) return Days2Date[in_time];
 	if (to_type == MedTime::Months) return Days2Months[in_time];
 	if (to_type == MedTime::Years) return Days2Years[in_time];
 
 	return -1;
+}
+
+int MedTime::convert_datetime_safe(int to_type, string in_time, char handle_ilegal_date) {
+	static int warning_count = 0;
+	string out_t = in_time;
+	boost::replace_all(out_t, " ", "");
+	boost::replace_all(out_t, "-", "");
+	boost::replace_all(out_t, ":", "");
+	if (out_t.size() > 12)
+		out_t = out_t.substr(0, 12);
+
+	int date_part = med_stoi(out_t.substr(0, 8));
+	int year_part = int(date_part / 10000);
+	if (year_part < 1900) {
+		if (handle_ilegal_date > 1)
+			MTHROW_AND_ERR("Error in MedTime:convert_datetime_safe - recieved date before 1900. date_part=%d\n",
+				date_part);
+		if (handle_ilegal_date > 0 && warning_count < 5)
+			MWARN("Warning in MedTime:convert_datetime_safe - recieved date before 1900."
+				" date_part=%d, truncating to 19000101\n", date_part);
+		++warning_count;
+		date_part = 19000101;
+	}
+
+	if (to_type == MedTime::Minutes) {
+		int minutes = convert_date(to_type, date_part);
+		if (out_t.size() >= 10) minutes += med_stoi(out_t.substr(8, 2)) * 60;
+		if (out_t.size() >= 12) minutes += med_stoi(out_t.substr(10, 2));
+		return minutes;
+	}
+	else return convert_date(to_type, date_part);
 }
 
 /// handles YYYYMMDD and YYYY-MM-DD HH:MI:SS formats
@@ -117,9 +148,9 @@ int MedTime::convert_datetime(int to_type, string in_time) {
 		out_t = out_t.substr(0, 12);
 
 	int date_part = med_stoi(out_t.substr(0, 8));
-	if (to_type == MedTime::Minutes) {	
+	if (to_type == MedTime::Minutes) {
 		int minutes = convert_date(to_type, date_part);
-		if (out_t.size() >= 10) minutes += med_stoi(out_t.substr(8, 2))*60;
+		if (out_t.size() >= 10) minutes += med_stoi(out_t.substr(8, 2)) * 60;
 		if (out_t.size() >= 12) minutes += med_stoi(out_t.substr(10, 2));
 		return minutes;
 	}
@@ -130,14 +161,14 @@ int MedTime::convert_datetime(int to_type, string in_time) {
 int MedTime::convert_date(int to_type, int in_time)
 {
 	if (to_type == MedTime::Date) return in_time;
-	if (to_type == MedTime::Years) return in_time/10000 - 1900;
-	if (to_type == MedTime::Months) return ((in_time/10000)-1900)*12 + (in_time%10000)/100 - 1;
+	if (to_type == MedTime::Years) return in_time / 10000 - 1900;
+	if (to_type == MedTime::Months) return ((in_time / 10000) - 1900) * 12 + (in_time % 10000) / 100 - 1;
 
 	// ihadanny - removing this obscure code that tries to guess that you actually meant days instead of date
 	//if (in_time >= 30000000)
 	//	return convert_days(to_type, 1100 * 365);
 
-	int ym = in_time/100;
+	int ym = in_time / 100;
 	int days = (in_time % 100) - 1;
 
 	days += YearsMonths2Days[ym];
@@ -150,9 +181,9 @@ int MedTime::convert_date(int to_type, int in_time)
 int MedTime::convert_years(int to_type, int in_time)
 {
 	if (in_time < 0) in_time = 0;
-	if (to_type == MedTime::Date) return ((in_time+1900)*10000 + 101);
+	if (to_type == MedTime::Date) return ((in_time + 1900) * 10000 + 101);
 	if (to_type == MedTime::Years) return in_time;
-	if (to_type == MedTime::Months) return in_time*12;
+	if (to_type == MedTime::Months) return in_time * 12;
 
 	return convert_days(to_type, Years2Days[in_time]);
 }
@@ -163,13 +194,13 @@ int MedTime::convert_months(int to_type, int in_time)
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Months) return in_time;
 
-	int year = 1900 + (in_time/12);
+	int year = 1900 + (in_time / 12);
 	if (to_type == MedTime::Years) return year;
 
 	int month = 1 + (in_time % 12);
 	int ym = year * 100 + month;
 
-	if (to_type == MedTime::Date) return (ym*100 + 1);
+	if (to_type == MedTime::Date) return (ym * 100 + 1);
 
 	int days = YearsMonths2Days[ym];
 	return convert_days(to_type, days);
@@ -180,8 +211,8 @@ int MedTime::convert_hours(int to_type, int in_time)
 {
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Hours) return in_time;
-	if (to_type == MedTime::Minutes) return in_time*60;
-	int days = in_time/24;
+	if (to_type == MedTime::Minutes) return in_time * 60;
+	int days = in_time / 24;
 	return convert_days(to_type, days);
 }
 
@@ -190,7 +221,7 @@ int MedTime::convert_minutes(int to_type, int in_time)
 {
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Minutes) return in_time;
-	int hours = in_time/60;
+	int hours = in_time / 60;
 	return convert_hours(to_type, hours);
 }
 
@@ -201,8 +232,8 @@ string MedTime::convert_times_S(int from_type, int to_type, int in_time)
 		int d = convert_times(from_type, MedTime::Date, in_time);
 		if (from_type == MedTime::Minutes || from_type == MedTime::Hours) {
 			int total_m = convert_times(from_type, MedTime::Minutes, in_time);
-			char buff[12];
-			sprintf(buff, "%d%02d%02d", d, (total_m / 60) % 24, total_m % 60);
+			char buff[14];
+			sprintf(buff, "%d-%02d:%02d", d, (total_m / 60) % 24, total_m % 60);
 			return buff;
 		}
 		else return to_string(d);
@@ -231,7 +262,7 @@ int MedTime::convert_times(int from_type, int to_type, double in_time)
 	if (from_type == MedTime::Minutes) return convert_minutes(to_type, (int)in_time);
 	if (from_type == MedTime::Hours) return convert_minutes(to_type, (int)(60.0*in_time));
 	if (from_type == MedTime::Days) return convert_minutes(to_type, (int)(60.0*24.0*in_time));
-	if (from_type == MedTime::Months) return convert_minutes(to_type, (int)((365.0/12.0)*24.0*60.0*in_time));
+	if (from_type == MedTime::Months) return convert_minutes(to_type, (int)((365.0 / 12.0)*24.0*60.0*in_time));
 	if (from_type == MedTime::Years) return convert_minutes(to_type, (int)(365.0*24.0*60.0*in_time));
 
 	return -1;
@@ -241,7 +272,7 @@ int MedTime::convert_times(int from_type, int to_type, double in_time)
 //.....................................................................................................
 double MedTime::convert_times_D(int from_type, int to_type, int in_time)
 {
-	if (to_type == MedTime::Date || (from_type!=MedTime::Date && to_type>=from_type)) return (double)convert_times(from_type, to_type, in_time);
+	if (to_type == MedTime::Date || (from_type != MedTime::Date && to_type >= from_type)) return (double)convert_times(from_type, to_type, in_time);
 	if (from_type == MedTime::Date && (to_type >= MedTime::Days)) return (double)convert_times(from_type, to_type, in_time);
 
 	int minutes1 = convert_times(from_type, MedTime::Minutes, in_time);
@@ -252,10 +283,10 @@ double MedTime::convert_times_D(int from_type, int to_type, int in_time)
 
 	//fprintf(stderr, "m1 %d it %d m2 %d\n", minutes1, int_time, minutes2);
 
-	if (to_type == MedTime::Years) { res += (double)(minutes1 - minutes2)/(365.0*24.0*60.0); return res; }
-	if (to_type == MedTime::Months) { res += (double)(minutes1 - minutes2)/((365.0/12.0)*24.0*60.0); return res; }
-	if (to_type == MedTime::Days) { res += (double)(minutes1 - minutes2)/(24.0*60.0); return res; }
-	if (to_type == MedTime::Hours) { res += (double)(minutes1 - minutes2)/60.0; return res; }
+	if (to_type == MedTime::Years) { res += (double)(minutes1 - minutes2) / (365.0*24.0*60.0); return res; }
+	if (to_type == MedTime::Months) { res += (double)(minutes1 - minutes2) / ((365.0 / 12.0)*24.0*60.0); return res; }
+	if (to_type == MedTime::Days) { res += (double)(minutes1 - minutes2) / (24.0*60.0); return res; }
+	if (to_type == MedTime::Hours) { res += (double)(minutes1 - minutes2) / 60.0; return res; }
 
 	return -1;
 }
@@ -270,7 +301,7 @@ double MedTime::convert_times_D(int from_type, int to_type, double in_time)
 
 	if (from_type == MedTime::Hours) it = in_time * 60.0;
 	else if (from_type == MedTime::Days) it = in_time * 60.0*24.0;
-	else if (from_type == MedTime::Months) it = in_time * ((365.0/12.0)*24.0*60.0);
+	else if (from_type == MedTime::Months) it = in_time * ((365.0 / 12.0)*24.0*60.0);
 	else if (from_type == MedTime::Years) it = in_time * 365.0*24.0*60.0;
 
 	return (double)convert_minutes(to_type, (int)it);
@@ -301,6 +332,6 @@ int MedTime::diff_times(int d1, int d2, int in_type, int out_type)
 {
 	int t1 = convert_times(in_type, out_type, d1);
 	int t2 = convert_times(in_type, out_type, d2);
-	return (t1-t2);
+	return (t1 - t2);
 }
 
