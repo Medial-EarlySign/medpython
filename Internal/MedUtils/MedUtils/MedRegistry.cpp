@@ -75,13 +75,6 @@ void MedRegistry::write_text_file(const string &file_path) const {
 void MedRegistry::create_registry(MedPidRepository &dataManager, medial::repository::fix_method method, vector<RepProcessor *> *rep_processors) {
 	MLOG_D("Creating registry...\n");
 	vector<int> used_sigs;
-	used_sigs.reserve(signalCodes.size());
-	if (need_bdate)
-		used_sigs = signalCodes;
-	else
-		for (size_t i = 0; i < signalCodes.size(); ++i)
-			if (dataManager.sigs.name(signalCodes[i]) != "BDATE")
-				used_sigs.push_back(signalCodes[i]);
 
 	time_t start = time(NULL);
 	time_t last_time_print = start;
@@ -89,26 +82,47 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	int prog_pid = 0;
 	int bDateCode = dataManager.sigs.sid("BDATE");
 	//update using rep_processors:
-	vector<int> final_use_sigs = medial::repository::prepare_repository(dataManager, signalCodes, rep_processors);
+	vector<string> physical_signals;
+	vector<string> sig_names_use = medial::repository::prepare_repository(dataManager, signalCodes_names,
+		physical_signals, rep_processors);
+	vector<int> final_sigs_to_read(sig_names_use.size());
+	for (size_t i = 0; i < sig_names_use.size(); ++i) {
+		int sid = dataManager.sigs.sid(sig_names_use[i]);
+		if (sid < 0)
+			MTHROW_AND_ERR("Error in MedRegistry::create_registry - Couldn't find signal %s in repository or virtual\n",
+				sig_names_use[i].c_str());
+		final_sigs_to_read[i] = sid;
+	}
+	vector<int> signalCodes(signalCodes_names.size());
+	for (size_t i = 0; i < signalCodes_names.size(); ++i)
+		signalCodes[i] = dataManager.sigs.sid(signalCodes_names[i]);
 	vector<unordered_set<int>> current_req_signal_ids;
 	if (rep_processors != NULL) {
 		current_req_signal_ids.resize(rep_processors->size());
 		for (unsigned int i = 0; i < rep_processors->size(); i++)
 			(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids[i]);
 	}
-	
+
 	if (!dataManager.index.index_table[bDateCode].is_loaded)
 		MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded BDATE for repository which is needed\n");
 	for (size_t i = 0; i < signalCodes.size(); ++i)
-		if (!dataManager.index.index_table[signalCodes[i]].is_loaded)
+		if (!dataManager.index.index_table[signalCodes[i]].is_loaded && !dataManager.sigs.Sid2Info[signalCodes[i]].virtual_sig)
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
 				dataManager.sigs.name(signalCodes[i]).c_str());
 	if (rep_processors != NULL && !rep_processors->empty())
 		for (size_t i = 0; i < rep_processors->size(); ++i)
 			for (auto it = current_req_signal_ids[i].begin(); it != current_req_signal_ids[i].end(); ++it)
-				if (!dataManager.index.index_table[*it].is_loaded)
+				if (!dataManager.index.index_table[*it].is_loaded && !dataManager.sigs.Sid2Info[signalCodes[i]].virtual_sig)
 					MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed by rep_processor!\n",
 						dataManager.sigs.name(*it).c_str());
+
+	used_sigs.reserve(signalCodes.size());
+	if (need_bdate)
+		used_sigs = signalCodes;
+	else
+		for (size_t i = 0; i < signalCodes.size(); ++i)
+			if (dataManager.sigs.name(signalCodes[i]) != "BDATE")
+				used_sigs.push_back(signalCodes[i]);
 
 	int N_tot_threads = omp_get_max_threads();
 	vector<PidDynamicRec> idRec(N_tot_threads);
@@ -118,7 +132,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	for (int i = 0; i < dataManager.pids.size(); ++i)
 	{
 		int n_th = omp_get_thread_num();
-		if (idRec[n_th].init_from_rep(std::addressof(dataManager), dataManager.pids[i], final_use_sigs, 1) < 0)
+		if (idRec[n_th].init_from_rep(std::addressof(dataManager), dataManager.pids[i], final_sigs_to_read, 1) < 0)
 			MTHROW_AND_ERR("Unable to read repository\n");
 
 		if (rep_processors != NULL && !rep_processors->empty()) {
@@ -173,9 +187,9 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	dataManager.clear();
 }
 
-void MedRegistry::get_registry_creation_codes(vector<int> &signal_codes) const
+void MedRegistry::get_registry_creation_codes(vector<string> &signal_codes) const
 {
-	signal_codes = signalCodes;
+	signal_codes = signalCodes_names;
 }
 
 void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
@@ -902,10 +916,10 @@ void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr,
 		init_list(skip_pid_file, SkipPids);
 	if (pid_to_censor_dates != NULL)
 		pid_to_max_allowed = *pid_to_censor_dates;
-	signalCodes.clear();
+	signalCodes_names.clear();
 	for (size_t i = 0; i < signal_conditions.size(); ++i)
-		signalCodes.push_back(rep.sigs.sid(signal_conditions[i]->signalName));
-	signalCodes.push_back(rep.sigs.sid("BDATE"));
+		signalCodes_names.push_back(signal_conditions[i]->signalName);
+	signalCodes_names.push_back("BDATE");
 	for (size_t i = 0; i < signal_conditions.size(); ++i)
 		if (signal_conditions[i]->signalName == "BDATE") {
 			need_bdate = true;
@@ -1699,10 +1713,10 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 		RegistrySignal::parse_registry_rules(registry_file_path, repo, signal_filters);
 		init_called = true;
 
-		signalCodes.clear();
+		signalCodes_names.clear();
 		for (size_t i = 0; i < signal_filters.size(); ++i)
-			signalCodes.push_back(repo.sigs.sid(signal_filters[i]->signalName));
-		signalCodes.push_back(repo.sigs.sid("BDATE"));
+			signalCodes_names.push_back(signal_filters[i]->signalName);
+		signalCodes_names.push_back("BDATE");
 		for (size_t i = 0; i < signal_filters.size(); ++i)
 			if (signal_filters[i]->signalName == "BDATE") {
 				need_bdate = true;
@@ -1775,10 +1789,10 @@ int MedRegistryCategories::init(map<string, string>& map) {
 		signals_rules[current_signal_idx].push_back(all_rules[i]);
 	}
 
-	signalCodes.clear();
+	signalCodes_names.clear();
 	for (size_t i = 0; i < signals_rules.size(); ++i)
-		signalCodes.push_back(repo.sigs.sid(signals_rules[i][0]->signalName));
-	signalCodes.push_back(repo.sigs.sid("BDATE"));
+		signalCodes_names.push_back(signals_rules[i][0]->signalName);
+	signalCodes_names.push_back("BDATE");
 	for (size_t i = 0; i < signals_rules.size(); ++i)
 		if (signals_rules[i][0]->signalName == "BDATE") {
 			need_bdate = true;

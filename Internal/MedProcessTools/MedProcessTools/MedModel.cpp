@@ -1240,7 +1240,7 @@ void filter_rep_processors(const vector<string> &current_req_signal_names, vecto
 }
 
 vector<string> medial::repository::prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
-	vector<RepProcessor *> *rep_processors) {
+	vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors) {
 
 	vector<unordered_set<string>> current_req_signal_names;
 	if (rep_processors != NULL && !rep_processors->empty()) {
@@ -1271,20 +1271,33 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 	for (size_t i = 0; i < current_req_signal_names.size(); ++i)
 		all_rep_sigs.insert(current_req_signal_names[i].begin(), current_req_signal_names[i].end());
 	vector<string> final_use_sigs(all_rep_sigs.begin(), all_rep_sigs.end());
-
+	phisical_signal_read.clear();
+	phisical_signal_read.reserve(final_use_sigs.size());
+	for (size_t i = 0; i < final_use_sigs.size(); ++i)
+	{
+		int sid = rep.sigs.sid(final_use_sigs[i]);
+		if (sid < 0)
+			MWARN("Warning: signal %s not found in prepared repository.\n", final_use_sigs[i].c_str());
+		if (sid >= 0 && !rep.sigs.Sid2Info[sid].virtual_sig)
+			phisical_signal_read.push_back(final_use_sigs[i]);
+	}
 
 	return final_use_sigs;
 }
 
 vector<int> medial::repository::prepare_repository(MedPidRepository &rep, const vector<int> &needed_sigs,
-	vector<RepProcessor *> *rep_processors) {
+	vector<int> &phisical_signal_read, vector<RepProcessor *> *rep_processors) {
 	vector<string> conv_in(needed_sigs.size());
 	for (size_t i = 0; i < needed_sigs.size(); ++i)
 		conv_in[i] = rep.sigs.name(needed_sigs[i]);
-	vector<string> res = prepare_repository(rep, conv_in, rep_processors);
+	vector<string> phisical_sigs;
+	vector<string> res = prepare_repository(rep, conv_in, phisical_sigs, rep_processors);
 	vector<int> conv_res(res.size());
 	for (size_t i = 0; i < conv_res.size(); ++i)
 		conv_res[i] = rep.sigs.sid(res[i]);
+	phisical_signal_read.resize(phisical_sigs.size());
+	for (size_t i = 0; i < phisical_sigs.size(); ++i)
+		phisical_signal_read[i] = rep.sigs.sid(phisical_sigs[i]);
 
 	return conv_res;
 }

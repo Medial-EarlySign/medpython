@@ -202,10 +202,11 @@ namespace medial {
 		/// \brief removes uneeded rep_processors based on needed_sigs and prepares the repository
 		/// returns the signal id's neede to read in the repository. MedRepository must be init to read dicts
 		vector<int> prepare_repository(MedPidRepository &rep, const vector<int> &needed_sigs,
-			vector<RepProcessor *> *rep_processors);
+			vector<int> &phisical_signal_read, vector<RepProcessor *> *rep_processors);
 		/// \brief removes uneeded rep_processors based on needed_sigs and prepares the repository
 		/// returns the signal id's neede to read in the repository. MedRepository must be init to read dicts
-		vector<string> prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs, vector<RepProcessor *> *rep_processors = NULL);
+		vector<string> prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs, 
+			vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors = NULL);
 	}
 }
 

@@ -70,7 +70,7 @@ public:
 	/// <summary>
 	/// returns the signal codes used to create the registry
 	/// </summary>
-	void get_registry_creation_codes(vector<int> &signal_codes) const;
+	void get_registry_creation_codes(vector<string> &signal_codes) const;
 
 	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
@@ -138,7 +138,7 @@ public:
 
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
-	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
+	vector<string> signalCodes_names; ///< the signals codes by name
 	bool need_bdate; ///< If true Bdate is also used in registry creation
 private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
