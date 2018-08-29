@@ -96,12 +96,6 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	vector<int> signalCodes(signalCodes_names.size());
 	for (size_t i = 0; i < signalCodes_names.size(); ++i)
 		signalCodes[i] = dataManager.sigs.sid(signalCodes_names[i]);
-	vector<unordered_set<int>> current_req_signal_ids;
-	if (rep_processors != NULL) {
-		current_req_signal_ids.resize(rep_processors->size());
-		for (unsigned int i = 0; i < rep_processors->size(); i++)
-			(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids[i]);
-	}
 
 	if (!dataManager.index.index_table[bDateCode].is_loaded)
 		MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded BDATE for repository which is needed\n");
@@ -109,12 +103,10 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 		if (!dataManager.index.index_table[signalCodes[i]].is_loaded && !dataManager.sigs.Sid2Info[signalCodes[i]].virtual_sig)
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
 				dataManager.sigs.name(signalCodes[i]).c_str());
-	if (rep_processors != NULL && !rep_processors->empty())
-		for (size_t i = 0; i < rep_processors->size(); ++i)
-			for (auto it = current_req_signal_ids[i].begin(); it != current_req_signal_ids[i].end(); ++it)
-				if (!dataManager.index.index_table[*it].is_loaded && !dataManager.sigs.Sid2Info[signalCodes[i]].virtual_sig)
-					MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed by rep_processor!\n",
-						dataManager.sigs.name(*it).c_str());
+	for (size_t i = 0; i < physical_signals.size(); ++i)
+		if (!dataManager.index.index_table[final_sigs_to_read[i]].is_loaded)
+			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed by rep_processor!\n",
+				physical_signals[i].c_str());
 
 	used_sigs.reserve(signalCodes.size());
 	if (need_bdate)
@@ -141,7 +133,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 			smp.id = pid_samples.id; smp.time = INT_MAX;
 			pid_samples.samples.push_back(smp);
 			for (unsigned int i = 0; i < rep_processors->size(); ++i) {
-				(*rep_processors)[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]);
+				(*rep_processors)[i]->apply(idRec[n_th], pid_samples);
 			}
 		}
 
@@ -1569,8 +1561,15 @@ void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords,
 
 	if (histCounts.size() > 2)
 		log_with_file(fo, "Registry has %zu records:\n", regRecords.size());
-	else
+	else if (!regRecords.empty())
 		log_with_file(fo, "Registry has %zu records. [", regRecords.size());
+	else {
+		log_with_file(fo, "Registry is empty.\n");
+		if (fo.good())
+			fo.close();
+		return;
+	}
+
 	auto iter = histCounts.begin();
 	if (!histCounts.empty())
 		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
