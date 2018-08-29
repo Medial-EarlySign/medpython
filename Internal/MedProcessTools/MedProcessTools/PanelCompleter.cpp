@@ -881,15 +881,22 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 			int val_ch_sz = rec.usv.n_val_channels();
 			int time_ch_sz = rec.usv.n_time_channels();
 			// Generate new data
-			int trueSize = 0;
-			vector<float> values(val_ch_sz * (panels.size() + nEXtra));
+			int trueSize = 0, data_idx = 0;
+			vector<float> values(val_ch_sz * (panels.size() + nEXtra), missing_val);
 			vector<int> times(time_ch_sz * (panels.size() + nEXtra));
 			if (nEXtra == 0) { // Easy case - no multiple values 			
 				for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 					if (panels[iPanel][iSig] != missing_val) {
 						values[trueSize * val_ch_sz] = panels[iPanel][iSig];
 						times[trueSize * time_ch_sz] = panel_times[iPanel];
-						trueSize++;
+						if (data_idx < rec.usv.len && rec.usv.Time(data_idx) == panel_times[iPanel]) {
+							for (int i = 1; i < val_ch_sz; ++i)
+								values[trueSize * val_ch_sz + i] = rec.usv.Val(data_idx, i);
+							for (int i = 1; i < time_ch_sz; ++i)
+								times[trueSize * time_ch_sz + i] = rec.usv.Time(data_idx, i);
+						}
+						++trueSize;
+						data_idx += data_idx < rec.usv.len && rec.usv.Time(data_idx) == panel_times[iPanel]; //move next when reach panel time
 					}
 				}
 			}
@@ -900,23 +907,30 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 						for (float value : multiple_values[time]) {
 							values[trueSize * val_ch_sz] = value;
 							times[trueSize * time_ch_sz] = time;
+							if (data_idx < rec.usv.len && rec.usv.Time(data_idx) == time) {
+								for (int i = 1; i < val_ch_sz; ++i)
+									values[trueSize * val_ch_sz + i] = rec.usv.Val(data_idx, i);
+								for (int i = 1; i < time_ch_sz; ++i)
+									times[trueSize * time_ch_sz + i] = rec.usv.Time(data_idx, i);
+							}
 							trueSize++;
+							data_idx += data_idx < rec.usv.len && rec.usv.Time(data_idx) == time; //move next when reach panel time
 						}
 					}
 					else if (panels[iPanel][iSig] != missing_val) {
 						values[trueSize * val_ch_sz] = panels[iPanel][iSig];
 						times[trueSize * time_ch_sz] = time;
+						if (data_idx < rec.usv.len && rec.usv.Time(data_idx) == time) {
+							for (int i = 1; i < val_ch_sz; ++i)
+								values[trueSize * val_ch_sz + i] = rec.usv.Val(data_idx, i);
+							for (int i = 1; i < time_ch_sz; ++i)
+								times[trueSize * time_ch_sz + i] = rec.usv.Time(data_idx, i);
+						}
 						trueSize++;
+						data_idx += data_idx < rec.usv.len && rec.usv.Time(data_idx) == time; //move next when reach panel time
 					}
 				}
 			}
-			//update to not touch extra channels: complition to extra channels aren't supported right now:
-			for (int i = 1; i < val_ch_sz; ++i)
-				for (int iPanel = 0; iPanel < panels.size() + nEXtra; iPanel++)
-					values[iPanel * val_ch_sz + i] = rec.usv.Val(iPanel, i);
-			for (int i = 1; i < time_ch_sz; ++i)
-				for (int iPanel = 0; iPanel < panels.size() + nEXtra; iPanel++)
-					times[iPanel * time_ch_sz + i] = rec.usv.Time(iPanel, i);
 
 			if (rec.set_version_universal_data(sigs_ids[iSig], iver, &(times[0]), &(values[0]), trueSize) < 0)
 				return -1;
