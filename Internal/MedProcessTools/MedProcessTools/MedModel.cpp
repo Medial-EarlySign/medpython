@@ -893,14 +893,18 @@ void MedModel::get_required_signal_names(vector<string>& signalNames) {
 }
 
 //.......................................................................................
-int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
+void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProcessor *> &rep_processors,
+	map<string, int> *virtual_signals = NULL, bool verbosity = true)
 {
+	map<string, int> temp_m;
+	if (virtual_signals == NULL)
+		virtual_signals = &temp_m;
 	// collecting
 	for (RepProcessor *processor : rep_processors)
-		processor->add_virtual_signals(virtual_signals);
+		processor->add_virtual_signals(*virtual_signals);
 
 	// adding to rep
-	for (auto &vsig : virtual_signals) {
+	for (auto &vsig : *virtual_signals) {
 		//MLOG("Attempting to add virtual signal %s type %d (%d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		if (rep.sigs.sid(vsig.first) < 0) {
 			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
@@ -913,13 +917,16 @@ int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
 		}
 		else {
-			if (rep.sigs.sid(vsig.first) < 100) {
-				MERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
-				return -1;
-			}
+			if (rep.sigs.sid(vsig.first) < 100)
+				MTHROW_AND_ERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		}
 	}
 
+}
+
+int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
+{
+	collect_and_add_virtual_signals_static(rep, rep_processors, &virtual_signals, verbosity);
 	return 0;
 }
 
@@ -1212,55 +1219,74 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
 }
 
-bool clean_uneeded_rep_procc_simple(vector<RepProcessor *> &onlySimples, const unordered_set<string> &needed_sigs) {
-	vector<RepProcessor *> afterFiltr;
-	int original_size = (int)onlySimples.size();
-	for (RepProcessor *rp : onlySimples) {
-		unordered_set<string> sigs = rp->req_signals;
-		bool has_match = false;
-		for (string sig : sigs) {
-			if (needed_sigs.find(sig) != needed_sigs.end()) {
-				has_match = true;
-				break;
-			}
-		}
-		if (has_match) {
-			afterFiltr.push_back(rp);
+void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors) {
+	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());
+	vector<RepProcessor *> filtered_processors;
+	bool did_something = false;
+	for (unsigned int i = 0; i < rep_processors->size(); i++) {
+		if (!(*rep_processors)[i]->filter(req_signal_names))
+			filtered_processors.push_back((*rep_processors)[i]);
+		else {//cleaning uneeded rep_processors!:
+			delete (*rep_processors)[i];
+			(*rep_processors)[i] = NULL;
+			did_something = true;
 		}
 	}
-	onlySimples = afterFiltr;
-	return afterFiltr.size() != original_size;
+	if (did_something)
+		MLOG("Filtering uneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
+			filtered_processors.size(), rep_processors->size());
+
+	rep_processors->swap(filtered_processors);
 }
-bool medial::process::clean_uneeded_rep_processors(MedModel &m, const vector<string> &needed_sigs) {
-	vector<RepProcessor *> afterFiltr;
-	unordered_set<string> need_s;
-	need_s.insert(needed_sigs.begin(), needed_sigs.end());
-	bool has_cln = false;
-	for (RepProcessor *rp : m.rep_processors) {
-		vector<RepProcessor *> to_process;
-		bool cleaned;
-		if (rp->processor_type == REP_PROCESS_MULTI) {
-			RepMultiProcessor *rpc = (RepMultiProcessor *)rp;
-			to_process = rpc->processors;
-			cleaned = clean_uneeded_rep_procc_simple(to_process, need_s);
-			rpc->processors = to_process;
-			if (!to_process.empty())
-				afterFiltr.push_back(rpc);
-		}
-		else {
-			to_process.push_back(rp);
-			cleaned = clean_uneeded_rep_procc_simple(to_process, need_s);
 
-			if (!cleaned) {
-				afterFiltr.push_back(rp);
-			}
+vector<string> medial::repository::prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
+	vector<RepProcessor *> *rep_processors) {
 
+	vector<unordered_set<string>> current_req_signal_names;
+	if (rep_processors != NULL && !rep_processors->empty()) {
+		collect_and_add_virtual_signals_static(rep, *rep_processors);
+		filter_rep_processors(needed_sigs, rep_processors);
+		for (RepProcessor *processor : *rep_processors) {
+			processor->set_affected_signal_ids(rep.dict);
+			processor->set_required_signal_ids(rep.dict);
+			processor->set_signal_ids(rep.dict);
+			processor->init_attributes();
 		}
-		has_cln = has_cln | cleaned;
+
+		//vector<RepProcessor *> temp_processors;
+		for (int i = 0; i < rep_processors->size(); i++) {
+			//unordered_set<int> current_req_signal_ids;
+			//for (int k = (int)rep_processors->size() - 1; k > i; --k)
+			//	(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids, current_req_signal_ids);
+			if ((*rep_processors)[i]->learn(rep) < 0)
+				MTHROW_AND_ERR("Unable to learn rep_processor\n");
+			//temp_processors.push_back((*rep_processors)[i]);
+		}
+
+		current_req_signal_names.resize(rep_processors->size());
+		for (unsigned int i = 0; i < rep_processors->size(); i++)
+			(*rep_processors)[i]->get_required_signal_names(current_req_signal_names[i]);
 	}
+	unordered_set<string> all_rep_sigs(needed_sigs.begin(), needed_sigs.end());
+	for (size_t i = 0; i < current_req_signal_names.size(); ++i)
+		all_rep_sigs.insert(current_req_signal_names[i].begin(), current_req_signal_names[i].end());
+	vector<string> final_use_sigs(all_rep_sigs.begin(), all_rep_sigs.end());
 
-	m.rep_processors = afterFiltr;
-	return has_cln;
+
+	return final_use_sigs;
+}
+
+vector<int> medial::repository::prepare_repository(MedPidRepository &rep, const vector<int> &needed_sigs,
+	vector<RepProcessor *> *rep_processors) {
+	vector<string> conv_in(needed_sigs.size());
+	for (size_t i = 0; i < needed_sigs.size(); ++i)
+		conv_in[i] = rep.sigs.name(needed_sigs[i]);
+	vector<string> res = prepare_repository(rep, conv_in, rep_processors);
+	vector<int> conv_res(res.size());
+	for (size_t i = 0; i < conv_res.size(); ++i)
+		conv_res[i] = rep.sigs.sid(res[i]);
+
+	return conv_res;
 }
 
 //.......................................................................................

@@ -7,6 +7,7 @@
 #include "Logger/Logger/Logger.h"
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <omp.h>
@@ -71,56 +72,6 @@ void MedRegistry::write_text_file(const string &file_path) const {
 	MLOG("[Wrote %d registry records to %s]\n", (int)registry_records.size(), file_path.c_str());
 }
 
-void collect_and_add_virtual_signals(MedRepository &rep, vector<RepProcessor *> *rep_processors)
-{
-	bool verbosity = true;
-	// collecting
-	map<string, int> virtual_signals;
-	for (RepProcessor *processor : *rep_processors)
-		processor->add_virtual_signals(virtual_signals);
-
-	// adding to rep
-	for (auto &vsig : virtual_signals) {
-		//MLOG("Attempting to add virtual signal %s type %d (%d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
-		if (rep.sigs.sid(vsig.first) < 0) {
-			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
-			if (verbosity > 0)
-				MLOG("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
-			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
-			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
-			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
-			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
-			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
-		}
-		else {
-			if (rep.sigs.sid(vsig.first) < 100)
-				MTHROW_AND_ERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
-		}
-	}
-
-}
-
-void filter_rep_processors(vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors) {
-
-	vector<RepProcessor *> filtered_processors;
-	bool did_something = false;
-	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());
-	for (unsigned int i = 0; i < rep_processors->size(); i++) {
-		if (!(*rep_processors)[i]->filter(req_signal_names))
-			filtered_processors.push_back((*rep_processors)[i]);
-		else {//cleaning uneeded rep_processors!:
-			delete (*rep_processors)[i];
-			(*rep_processors)[i] = NULL;
-			did_something = true;
-		}
-	}
-	if (did_something)
-		MLOG("Filtering uneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
-			filtered_processors.size(), rep_processors->size());
-
-	rep_processors->swap(filtered_processors);
-}
-
 void MedRegistry::create_registry(MedPidRepository &dataManager, medial::repository::fix_method method, vector<RepProcessor *> *rep_processors) {
 	MLOG_D("Creating registry...\n");
 	vector<int> used_sigs;
@@ -138,40 +89,14 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	int prog_pid = 0;
 	int bDateCode = dataManager.sigs.sid("BDATE");
 	//update using rep_processors:
-	vector<unordered_set<int> > current_req_signal_ids;
-	if (rep_processors != NULL && !rep_processors->empty()) {
-		collect_and_add_virtual_signals(dataManager, rep_processors);
-		vector<string> rq_signals(signalCodes.size());
-		for (size_t i = 0; i < rq_signals.size(); ++i)
-			rq_signals[i] = dataManager.sigs.name(signalCodes[i]);
-		filter_rep_processors(rq_signals, rep_processors);
-
-		for (RepProcessor *processor : *rep_processors) {
-			processor->set_affected_signal_ids(dataManager.dict);
-			processor->set_required_signal_ids(dataManager.dict);
-			processor->set_signal_ids(dataManager.dict);
-			processor->init_attributes();
-		}
-
-		//vector<RepProcessor *> temp_processors;
-		for (int i = 0; i < rep_processors->size(); i++) {
-			//unordered_set<int> current_req_signal_ids;
-			//for (int k = (int)rep_processors->size() - 1; k > i; --k)
-			//	(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids, current_req_signal_ids);
-			if ((*rep_processors)[i]->learn(dataManager) < 0)
-				MTHROW_AND_ERR("Unable to learn rep_processor\n");
-			//temp_processors.push_back((*rep_processors)[i]);
-		}
-
+	vector<int> final_use_sigs = medial::repository::prepare_repository(dataManager, signalCodes, rep_processors);
+	vector<unordered_set<int>> current_req_signal_ids;
+	if (rep_processors != NULL) {
 		current_req_signal_ids.resize(rep_processors->size());
 		for (unsigned int i = 0; i < rep_processors->size(); i++)
 			(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids[i]);
 	}
-	unordered_set<int> all_rep_sigs(used_sigs.begin(), used_sigs.end());
-	for (size_t i = 0; i < current_req_signal_ids.size(); ++i)
-		all_rep_sigs.insert(current_req_signal_ids[i].begin(), current_req_signal_ids[i].end());
-	vector<int> final_use_sigs(all_rep_sigs.begin(), all_rep_sigs.end());
-
+	
 	if (!dataManager.index.index_table[bDateCode].is_loaded)
 		MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded BDATE for repository which is needed\n");
 	for (size_t i = 0; i < signalCodes.size(); ++i)
