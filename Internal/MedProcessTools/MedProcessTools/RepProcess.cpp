@@ -2045,6 +2045,9 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	}
 
 	if (signals_time_unit == MedTime::Undefined)
+		signals_time_unit = global_default_time_unit;
+
+	if (signals_time_unit == MedTime::Undefined)
 		MTHROW_AND_ERR("Please provide time unit. use timer field to specify signal\n");
 }
 
