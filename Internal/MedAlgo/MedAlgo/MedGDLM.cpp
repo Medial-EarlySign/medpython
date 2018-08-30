@@ -39,6 +39,7 @@ void MedGDLM::init_defaults()
 	params.err_freq = 10;
 	b0 = 0 ;
 	b.clear() ;
+	n_ftrs = 0;
 }
 //..............................................................................
 int MedGDLM::init(void *_in_params) 
@@ -84,7 +85,8 @@ int MedGDLM::init(map<string, string>& mapper) {
 		else if (field == "nthreads") params.nthreads = stoi(entry.second);
 		else if (field == "err_freq") params.err_freq = stoi(entry.second);
 		else if (field == "print") params.print_model = stoi(entry.second);
-		else MLOG("Unknonw parameter \'%s\' for GDLM\n", field.c_str());
+		else if (field == "normalize") params.normalize = stoi(entry.second);
+		else MLOG("Unknown parameter \'%s\' for GDLM\n", field.c_str());
 		//! [MedGDLM::init]
 	}
 
@@ -219,8 +221,8 @@ int MedGDLM::denormalize_model(float *f_avg, float *f_std, float label_avg, floa
 	for (int j=0; j<n_ftrs; j++)
 		b[j] = new_b[j];
 
-	transpose_for_predict = false;
-	normalize_for_predict = false;
+	//transpose_for_predict = false;
+	//normalize_for_predict = false;
 	return 0;
 }
 
@@ -356,23 +358,26 @@ int MedGDLM::Learn_gd(float *x, float *y, const float *w, int nsamples, int nftr
 			grad = grad + params.l_ridge*bf;
 		}
 
-		// lasso 
-		if (params.l_lasso > 0) {
-			for (int i=0; i<nftrs; i++)
-				if (bf(i,0) < 0)
-					sign(i,0) = -1;
-				else if (bf(i,0) > 0)
-						sign(i,0) = 1;
-					else
-						sign(i,0) = 0;
-			
-				grad = grad + params.l_lasso*sign;
-		}
 
 		if (niter > 0)
 			grad = (1-params.momentum)*grad + params.momentum*prev_grad;
 
 		bf = bf - r*grad;
+
+		// lasso 
+		if (params.l_lasso > 0) {
+			for (int i=0; i<nftrs; i++) {
+				float lasso = params.l_lasso/(float)nftrs;
+				if (bf(0, i) > lasso)
+					bf(0, i) -= lasso;
+				else if (bf(0, i) < -lasso)
+					bf(0, i) += lasso;
+				if (bf(0, i) > -lasso && bf(0, i) < lasso)
+					bf(0, i) = 0;
+			}
+		}
+
+
 
 		diff = bf - prev_bf;
 		err = (grad.norm() + diff.norm())/(float)nftrs;
@@ -397,7 +402,27 @@ int MedGDLM::Learn_gd(float *x, float *y, const float *w, int nsamples, int nftr
 int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nftrs)
 {
 	set_eigen_threads();
-	// currently completely ignoring w.... , will add soon....
+
+	// handling weights if needed
+	vector<float> norm_wgts; // if weights are used we make sure their sum is nsamples
+	if (w != NULL) {
+		float sum_w = 0;
+		for (int i=0; i<nsamples; i++) sum_w += w[i];
+		for (int i=0; i<nsamples; i++) norm_wgts.push_back(w[i]*(float)nsamples/(sum_w + (float)1e-5));
+	}
+
+
+	// handling normalization if asked for
+	MedMat<float> normalized_x, normalized_y;
+	if (params.normalize) {
+		normalized_x.load(x, nsamples, nftrs);
+		normalized_x.normalize();
+		normalized_y.load(y, nsamples, 1);
+		normalized_y.normalize();
+		x = normalized_x.data_ptr();
+		y = normalized_y.data_ptr();
+	}
+
 
 	float fact_numeric = (float)1000;
 	// initial guess - we start at 0.
@@ -448,6 +473,7 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 
 			pf = bf * xf - yf;
 			pf.array() += b0;
+			if (w != NULL) for (int j=0; j<len; j++) pf(0, j) = pf(0, j) * norm_wgts[from+j];
 			grad = pf * xt.block(from,0,len,nftrs);
 			grad *= fact_grad; // normalizing gradient to be independent of sample size (to "gradient per sample" units)
 			bias_grad = pf.array().sum();
@@ -470,19 +496,14 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 			bf = bf - r*grad;
 			b0 = b0 - r*bias_grad;
 
-			// lasso
+			// lasso reguralizer step !! (using Tibrishani proximal gradient descent method)
 			if (params.l_lasso > 0) {
-				float lasso = params.l_lasso/(float)nftrs;
-				for (int i=0; i<nftrs; i++) {
-					if (bf(0,i) > lasso)
-						bf(0,i) -= lasso;
-					else if (bf(0,i) < -lasso)
-							bf(0,i) += lasso;
-					if (bf(0,i) > -lasso && bf(0,i) < lasso)
-						bf(0,i) = 0;
-				}
+				float bound = r*params.l_lasso;
+				for (int i=0; i<nftrs; i++)
+					if (bf(0, i) > bound) bf(0, i) -= bound;
+					else if (bf(0, i) < -bound) bf(0, i) += bound;
+					else bf(0, i) = 0;
 			}
-
 
 			prev_grad = grad;
 			prev_bias_grad = bias_grad;
@@ -501,6 +522,8 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 			double loss = 0;
 			
 			diff = y_m - p_m;
+			if (w != NULL) for (int j=0; j<nsamples; j++) diff(0, j) = diff(0, j) * norm_wgts[j];
+
 			loss = diff.array().square().sum();
 
 			for (int i=0; i<nsamples; i++) {
@@ -539,6 +562,10 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 		niter++;
 	}
 
+	if (params.normalize) {
+		denormalize_model(&normalized_x.avg[0], &normalized_x.std[0], normalized_y.avg[0], normalized_y.std[0]);
+	}
+
 	return 0;
 }
 
@@ -553,11 +580,24 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 
 	set_eigen_threads();
 	// currently completely ignoring w.... , will add soon....
+	vector<float> norm_wgts(nsamples,(float)1); // if weights are used we make sure their sum is nsamples
+	if (w != NULL) {
+		float sum_w = 0;
+		for (int i=0; i<nsamples; i++) sum_w += w[i];
+		for (int i=0; i<nsamples; i++) norm_wgts[i] = w[i]*(float)nsamples/(sum_w + (float)1e-5);
+	}
 
 	// check we are in a binary 0/1 problem
 	for (int i=0; i<nsamples; i++) {
 		if (y[i] != 0 && y[i] != 1)
 			MLOG("ERROR: i=%d y %f - only 0/1 values allowed\n", i, y[i]);
+	}
+
+	MedMat<float> normalized_x;
+	if (params.normalize) {
+		normalized_x.load(x, nsamples, nftrs);
+		normalized_x.normalize();
+		x = normalized_x.data_ptr();
 	}
 
 	float fact_numeric = (float)1000;
@@ -644,6 +684,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 			// we add +1 to pf(i), since y is 0/1 this trick transforms the y=0 gradient to the y=1 gradient that is
 			// 1 / (1 + exp (-B*Xi-b0))
 			pf = pf + yf;
+			if (w != NULL) for (int j=0; j<len; j++) pf(0,j) = pf(0,j) * norm_wgts[from+j];
 
 			// summing current pf for the gradient of b0
 			float bias_g = pf.array().sum();
@@ -705,9 +746,9 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 				if ((preds[i]>=0.5 && y[i]==1) || (preds[i]<0.5 && y[i]==0)) nacc++;
 
 				if (y[i] == 1)
-					loss += -log(max(1e-5, (double)preds[i]));
+					loss += -norm_wgts[i]*log(max(1e-5, (double)preds[i]));
 				else
-					loss += -log(max(1e-5, 1.0-(double)preds[i]));
+					loss += -norm_wgts[i]*log(max(1e-5, 1.0-(double)preds[i]));
 			}
 
 			loss /= (double)nsamples;
@@ -748,6 +789,10 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 		prev_b0 = b0;
 		niter++;
 
+	}
+
+	if (params.normalize) {
+		denormalize_model(&normalized_x.avg[0], &normalized_x.std[0], 0, 1);
 	}
 
 	MLOG("Learn_logistic_sgd:: rate %g err %g dnorm %g max_err %g , niter %d max_iter %d\n",

@@ -26,8 +26,21 @@ SIG	NUTRITION	time_chan=1;val_chan=1;log_scale=0;null_zeros=0
 # panels definition:
 # format:
 # PANEL <params>
-PANEL	name=Diabetes;sigs=Glucose,HbA1C,BMI
-PANEL	name=Cholesterol_Related;sigs=LDL,Cholesterol,HDL,Triglycerides
+PANEL	name=Vitals;sigs=Temperature,Heart_Rate,Arterial_BP_Mean,Resp_Rate,SaO2
+PANEL	name=Diabetes;sigs=Glucose,HbA1C,Urine_Glucose
+PANEL	name=Respiratory;sigs=Resp_Rate,O2_Flow,Art_PaO2,Req_O2,SaO2,PCO2,Airway_Type,Resp_Rate_Set,Resp_Rate_Total,Resp_Rate_Spont,Art_PaCO2,Mean_Airway_Pressure
+PANEL	name=Heart;sigs=Heart_Rate,Pulmonary_AP_Sys,NonInvasive_BP_Dia,Cuff_BP_Mean,Pulmonary_AP_Mean,Cuff_BP_Dia,Heart_Rythm,NonInvasive_BP_Mean,Cuff_BP_Sys,Arterial_BP_Dia,Troponin_I,NonInvasive_BP_Sys,Arterial_BP_Mean,Pulmonary_AP_Dia,Troponin_T
+PANEL	name=Cholesterol_Related;sigs=LDL,Cholesterol,HDL,Triglyceride
+PANEL	name=Liver;sigs=Albumin,Direct_Bilirubin,Bilirubin,LDH,GGT,Amylase,Urine_Bilirubin,ALT,AST,Ammonia
+PANEL	name=Renal;sigs=Creatinine,Urine_Total_Protein,BUN,Urine_Albumin_Over_Creatinine,Urine_Albumin,Urine_Creatinine,Urine_Protein,Urate
+PANEL	name=IONS;sigs=Potassium,PH,Sodium,Chloride
+PANEL	name=Temperatures;sigs=RectalTemperature,Temperature
+PANEL	name=Infection;sigs=Urine_Bacteria,WBC,CRP
+PANEL	name=White_Count;sigs=WBC,Lymphocytes,Marcocytes,Eosinophils%,Myelocytes%,Elliptocytes,Nucleated_Erythrocytes%,Basophils%,Neutrophils_Bands%
+PANEL	name=Red_Count;sigs=Hemoglobin,RDW,MCH,MCHC,Hematocrit,RBC,MCV
+PANEL	name=CSF;sigs=CSF_RBC,CSF_Glucose,CSF_Polys%,CSF_WBC,CSF_Monocytes%,CSF_TotalProtein,CSF_Lymphocytes%
+PANEL	name=Urine;sigs=Urine_PH,Urine_Opitaes,Urine_Ketone,Urine_Cocaine,Urine_Epithelial_Cells,Urine_Yeast,Urine_Hemoglobin,Urine_Transitional_Cells,Urine_Glucose,Urine_Bacteria,Urine_WBC
+PANEL	name=Ascites;sigs=Ascites_Glucose,Ascites_WBC,Ascites_Mesothelial%,Ascites_Polys%,Ascites_Macrophage%,Ascites_Monocytes%,Ascites_Total_Protein,Ascites_Albumin,Ascites_Amylase,Ascites_Lactate
 PANEL	name=Outputs;sigs=Emesis,GastricOut,PeritonealDialysisOut,PreAdmissionOutput,StoolOut,TFResidualOut,BloodLoss,UrineProduction,CerebralDrain,EstimatedBloodLoss,CalciumDialysisOut,HemoDialysisOut,UltrafiltrateOut,CardiacOutput,WoundVac,DrainOut,ChestTube,DialysisOut;log_scale=0;null_zeros=0
 PANEL	name=Inputs;sigs=FLUID_INTAKE,NUTRITION;log_scale=0;null_zeros=0
 
@@ -45,7 +58,7 @@ PANEL	name=Inputs;sigs=FLUID_INTAKE,NUTRITION;log_scale=0;null_zeros=0
 #
 
 VIEW	demographics
-VIEW	Outputs,Inputs
+VIEW	Vitals,Respiratory,Heart,Liver,Renal,IONS,Temperatures,Infection,White_Count,Red_Count,CSF,Urine,Ascites,Outputs,Inputs,Diabetes
 #VIEW	Cholesterol_Related,Diabetes
 VIEW	UrineProduction
 

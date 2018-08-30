@@ -638,7 +638,7 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 void SingletonGenerator::set_names()
 {
 	if (names.empty()) {
-		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName ; 
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName;
 		//string name = signalName + ".";
 		string set_names = in_set_name;
 		if (set_names == "" && this->sets.size() > 0)
@@ -1251,7 +1251,7 @@ float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_f
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
-	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time && i - j >= 0)
+	if (i >= 0 && j < usv.len && usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time && i - j >= 0)
 		return 1.0;
 	else return 0.0;
 }
@@ -1432,7 +1432,6 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 
 //................................................................................................................
 void ModelFeatGenerator::set_names() {
-
 	names.clear();
 
 	string name;
@@ -1443,9 +1442,12 @@ void ModelFeatGenerator::set_names() {
 	else
 		name = "ModelPred";
 
-	for (int i = 0; i < n_preds; i++)
-		names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name + "." + to_string(i + 1));
-
+	if (impute_existing_feature)
+		names.push_back(modelName);
+	else {
+		for (int i = 0; i < n_preds; i++)
+			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name + "." + to_string(i + 1));
+	}
 }
 
 // Init from map
@@ -1457,9 +1459,10 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		//! [ModelFeatGenerator::init]
 		if (field == "name") modelName = entry.second;
 		else if (field == "file") modelFile = entry.second;
+		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
 		else if (field != "fg_type")
-			MLOG("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
+			MTHROW_AND_ERR("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
 		//! [ModelFeatGenerator::init]
 	}
 
@@ -1494,7 +1497,7 @@ int ModelFeatGenerator::init_from_model(MedModel *_model) {
 
 /// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
 //.......................................................................................
-void ModelFeatGenerator::load(MedSamples& inSamples, MedSamples& modelSamples) {
+void ModelFeatGenerator::override_predictions(MedSamples& inSamples, MedSamples& modelSamples) {
 
 	// Sanity check ...
 	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples, 0))
@@ -1515,38 +1518,57 @@ void ModelFeatGenerator::load(MedSamples& inSamples, MedSamples& modelSamples) {
 
 	set_names();
 
+	use_overriden_predictions = 1;
+
 }
 
 // Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
-
-	if (preds.empty()) {
+	if (!use_overriden_predictions) {
 		// Predict
-		model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR);
-
+		if (model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
+			MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
 		// Extract predictions
 		if (model->features.samples[0].prediction.size() < n_preds)
-			MTHROW_AND_ERR("Cannot generate feature %s\n", names[model->features.samples[0].prediction.size()].c_str());
+			MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
 
 		preds.resize(n_preds*model->features.samples.size());
-		for (int i = 0; i < model->features.samples.size(); i++) {
-			for (int j = 0; j < n_preds; j++)
-				preds[i*n_preds + j] = model->features.samples[i].prediction[j];
-		}
-	}
 
-	FeatureGenerator::prepare(features, rep, samples);
+		for (int i = 0; i < model->features.samples.size(); i++) {
+			for (int j = 0; j < n_preds; j++) {
+				float new_val = model->features.samples[i].prediction[j];
+				if (!isfinite(new_val))
+					MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s nan in row %d\n", modelName.c_str(), i);
+				preds[i*n_preds + j] = new_val;
+			}
+		}
+		// release some memory
+		model->features.clear();
+	}
+	if (impute_existing_feature) {
+		FeatureProcessor p;
+		string res = p.resolve_feature_name(features, modelName);
+		names.clear();
+		names.push_back(res);
+	}
+	else {
+		FeatureGenerator::prepare(features, rep, samples);
+	}
 }
 
 // Put relevant predictions in place
 //.......................................................................................
 int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
-
-
 	float *p_feat = p_data[0] + index;
-	for (int i = 0; i < num; i++)
-		p_feat[i] = preds[index*n_preds + i];
+	for (int i = 0; i < num; i++) {
+		if (!impute_existing_feature || p_feat[i] == missing_val) {
+			float new_val = preds[index*n_preds + i];
+			if (!isfinite(new_val))
+				MTHROW_AND_ERR("ModelFeatGenerator::_generate nan in row %d\n", index*n_preds + i);
+			p_feat[i] = new_val;
+		}
+	}
 
 	return 0;
 
@@ -1555,21 +1577,22 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 // (De)Serialize
 //.......................................................................................
 size_t ModelFeatGenerator::get_size() {
-	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
 	return size + model->get_size();
 }
 
 size_t ModelFeatGenerator::serialize(unsigned char *blob) {
-	size_t ptr = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
-	ptr += model->serialize(blob + ptr);
-	return ptr;
+	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
+	size_t ptr2 = model->serialize(blob + ptr1);
+	return ptr2 + ptr1;
 }
 
 size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
-	size_t ptr = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals);
+
+	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
 	model = new MedModel;
-	ptr += model->deserialize(blob + ptr);
-	return ptr;
+	size_t ptr2 = model->deserialize(blob + ptr1);
+	return ptr2 + ptr1;
 }
 
 //................................................................................................................

@@ -1233,7 +1233,7 @@ template <typename T, typename S>
 double medial::stats::get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<float> *weights) {
 	//return kendallTau(preds, y);
 	double tau = 0, cnt = 0;
-	if (weights == NULL) {
+	if (weights == NULL || weights->empty()) {
 		unordered_map<S, vector<T>> label_to_scores;
 		for (size_t i = 0; i < y.size(); ++i)
 			label_to_scores[y[i]].push_back(preds[i]);
@@ -1351,7 +1351,7 @@ template double medial::stats::get_kendall_tau<float, double>(const vector<float
 
 float medial::stats::get_rmse(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
 	double res = 0;
-	if (weights == NULL) {
+	if (weights == NULL || weights->empty()) {
 		for (size_t i = 0; i < y.size(); ++i)
 			res += (y[i] - preds[i]) * (y[i] - preds[i]);
 		res /= y.size();
@@ -1371,7 +1371,7 @@ float medial::stats::get_rmse(const vector<float> &preds, const vector<float> &y
 
 float medial::stats::get_accuracy(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
 	double res = 0;
-	if (weights == NULL) {
+	if (weights == NULL || weights->empty()) {
 		for (size_t i = 0; i < y.size(); ++i)
 			res += y[i] == preds[i];
 		return float(res / y.size());

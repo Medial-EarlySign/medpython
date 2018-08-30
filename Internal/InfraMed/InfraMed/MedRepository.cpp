@@ -44,6 +44,7 @@ void MedRepository::clear()
 	time_unit = MedTime::Date;
 	index.clear();
 	if (dict.read_state != 1) dict.clear();
+	free_all_sigs();
 	sigs.clear();
 	pids.clear();
 	if (work_area != NULL)
@@ -1551,6 +1552,34 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	return gend;
 }
 
+template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers) {
+	int minDate = -1, minDate_index = -1;
+	for (size_t i = 0; i < patientFile.size(); ++i)
+	{
+		UniversalSigVec &data = patientFile[i];
+		if (signalPointers[i] >= data.len)
+			continue; //already reached the end for this signal
+		if (data.get_type() == T_Value) {
+			if (minDate_index == -1 || data.Val(signalPointers[i]) < minDate) {
+				minDate = (int)data.Val(signalPointers[i]);
+				minDate_index = (int)i;
+			}
+		}
+		else {
+			if (minDate_index == -1 || data.Time(signalPointers[i]) < minDate) {
+				minDate = data.Time(signalPointers[i]);
+				minDate_index = (int)i;
+			}
+		}
+	}
+	if (minDate_index >= 0)
+		++signalPointers[minDate_index];
+	return minDate_index;
+}
+template int medial::repository::fetch_next_date<UniversalSigVec_mem>(vector<UniversalSigVec_mem> &patientFile, vector<int> &signalPointers);
+template int medial::repository::fetch_next_date<UniversalSigVec>(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers);
+
+
 string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
 	if (vec.empty())
 		return "";
@@ -1647,7 +1676,7 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 	p += st_size;
 	for (int i = 1; i < s.len; ++i)
 	{
-		if (s.Date(i) == s.Date(i - 1) && (data_by_dates.back().size() > 1 || s.Val(i) != s.Val(i - 1)))
+		if (s.Time(i) == s.Time(i - 1) && (data_by_dates.back().size() > 1 || s.Val(i) != s.Val(i - 1)))
 			data_by_dates.back().push_back(p);
 		else
 			data_by_dates.push_back({ p });

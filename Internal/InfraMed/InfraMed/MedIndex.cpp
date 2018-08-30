@@ -40,8 +40,8 @@ int MedBufferedFile::open(const string &fname, const int bsize)
 	buf = new unsigned char[buf_size];
 	//MLOG("MedBufferedFile::open buf [%d] [%s]\n", buf, name.c_str());
 	if (buf == NULL) {
-		MTHROW_AND_ERR("MedBufferedFile: open: Can't allocate buffer of size %d for file %s\n",buf_size,name.c_str());
 		inf->close();
+		MTHROW_AND_ERR("MedBufferedFile: open: Can't allocate buffer of size %d for file %s\n",buf_size,name.c_str());
 		return -1;
 	}
 	buf_len = 0;

@@ -495,119 +495,6 @@ public:
 	static inline size_t size() { return sizeof(T); }
 };
 
-
-class UniversalSigVec {
-public:
-	void *data;
-	int len;		// type len (not bytes len)
-
-	//--------------------------------------------------------------------------------------
-	// function pointers - to be set before using the relevant type (use the init function)
-	//--------------------------------------------------------------------------------------
-	// channels numbers
-	int(*n_time_channels)();
-	int(*n_val_channels)();
-
-	// time unit & unitless time
-	int(*time_unit)();
-	int(*Time_ch_vec)(int, int, void *); // Time(idx,chan)
-
-	// value channels float
-	float(*Val_ch_vec)(int, int, void *);
-	void(*SetVal_ch_vec)(int, int, float, void *);
-
-	// Set() - setting a specific index in data, given all its time channels and val channels
-	// channels are given as an array (of the proper length) or NULL for 0 length channels.
-	void(*Set)(int, int *, float *, void *);
-
-	size_t(*size)();
-
-	// init function : call before using a certain type
-	void init(SigType _type);
-	void init(int _type) { return init((SigType)_type); }
-
-	//--------------------------------------------------------------------------------------
-	// Following are based on the pointed functions above
-	//--------------------------------------------------------------------------------------
-	// Following functions are implemented based on the functions above (and save lots of coding hence)
-	// time channels int
-	inline int Time(int idx, int chan) { return Time_ch_vec(idx, chan, data); }
-	inline float Val(int idx, int chan) { return Val_ch_vec(idx, chan, data); }
-
-	// channel 0 easy API
-	inline int Time(int idx) { return Time(idx, 0); }
-	inline float Val(int idx) { return Val(idx, 0); }
-
-	inline int TimeU(int idx, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx)); }
-	inline int Date(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
-	inline int Years(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
-	inline int Months(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
-	inline int Days(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx)); }
-	inline int Hours(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx)); }
-	inline int Minutes(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
-
-	// general channel API
-	inline int TimeU(int idx, int chan, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx, chan)); }
-	inline int Date(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
-	inline int Years(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
-	inline int Months(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
-	inline int Days(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx, chan)); }
-	inline int Hours(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx, chan)); }
-	inline int Minutes(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx, chan)); }
-
-	template <class S> void set_funcs() {
-		n_time_channels = &S::n_time_channels;
-		n_val_channels = &S::n_val_channels;
-		time_unit = &S::time_unit;
-		Time_ch_vec = &UnifiedSignalsAPIs<S>::Time_ch_vec;
-		Val_ch_vec = &UnifiedSignalsAPIs<S>::Val_ch_vec;
-		SetVal_ch_vec = &UnifiedSignalsAPIs<S>::SetVal_ch_vec;
-		Set = &UnifiedSignalsAPIs<S>::Set;
-		size = &UnifiedSignalsAPIs<S>::size;
-	}
-
-	SigType get_type() const { return type; }
-
-protected:
-	SigType type = T_Last; // type of the embedded signal
-
-};
-
-/**
-* Managed memory version of UniversalSigVec.
-* for example when allocating new virtual records
-*/
-class UniversalSigVec_mem : public UniversalSigVec {
-public:
-	bool manage;
-	UniversalSigVec_mem() {
-		manage = false;
-	}
-
-	~UniversalSigVec_mem() {
-		if (len > 0 && data != NULL && manage) {
-			delete[](char *)data;
-			data = NULL;
-			len = 0;
-		}
-	}
-
-	void set(const UniversalSigVec &s) {
-		data = s.data;
-		len = s.len;
-		manage = false;
-		n_time_channels = s.n_time_channels;
-		n_val_channels = s.n_val_channels;
-		Set = s.Set;
-		SetVal_ch_vec = s.SetVal_ch_vec;
-		size = s.size;
-		Time_ch_vec = s.Time_ch_vec;
-		time_unit = s.time_unit;
-		Val_ch_vec = s.Val_ch_vec;
-		type = s.get_type();
-	}
-};
-
 //==========================================
 // Compact date to normal date conversions.
 //==========================================
@@ -681,6 +568,116 @@ public:
 };
 
 
+class UniversalSigVec {
+public:
+	void *data;
+	int len;		// type len (not bytes len)
+
+					//--------------------------------------------------------------------------------------
+					// function pointers - to be set before using the relevant type (use the init function)
+					//--------------------------------------------------------------------------------------
+					// channels numbers
+	int(*n_time_channels)();
+	int(*n_val_channels)();
+
+	// time unit & unitless time
+	int time_unit() const { return _time_unit; };
+	int(*Time_ch_vec)(int, int, void *); // Time(idx,chan)
+
+										 // value channels float
+	float(*Val_ch_vec)(int, int, void *);
+	void(*SetVal_ch_vec)(int, int, float, void *);
+
+	// Set() - setting a specific index in data, given all its time channels and val channels
+	// channels are given as an array (of the proper length) or NULL for 0 length channels.
+	void(*Set)(int, int *, float *, void *);
+
+	size_t(*size)();
+
+	// init function : call before using a certain type
+	void init(const SignalInfo &info);
+	//void init(int _type) { return init((SigType)_type); }
+
+	//--------------------------------------------------------------------------------------
+	// Following are based on the pointed functions above
+	//--------------------------------------------------------------------------------------
+	// Following functions are implemented based on the functions above (and save lots of coding hence)
+	// time channels int
+	inline int Time(int idx, int chan) { return Time_ch_vec(idx, chan, data); }
+	inline float Val(int idx, int chan) { return Val_ch_vec(idx, chan, data); }
+
+	// channel 0 easy API
+	inline int Time(int idx) { return Time(idx, 0); }
+	inline float Val(int idx) { return Val(idx, 0); }
+
+	inline int TimeU(int idx, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx)); }
+	inline int Date(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
+	inline int Years(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
+	inline int Months(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
+	inline int Days(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx)); }
+	inline int Hours(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx)); }
+	inline int Minutes(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
+
+	// general channel API
+	inline int TimeU(int idx, int chan, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx, chan)); }
+	inline int Date(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
+	inline int Years(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
+	inline int Months(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
+	inline int Days(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx, chan)); }
+	inline int Hours(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx, chan)); }
+	inline int Minutes(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx, chan)); }
+
+	template <class S> void set_funcs() {
+		n_time_channels = &S::n_time_channels;
+		n_val_channels = &S::n_val_channels;
+		Time_ch_vec = &UnifiedSignalsAPIs<S>::Time_ch_vec;
+		Val_ch_vec = &UnifiedSignalsAPIs<S>::Val_ch_vec;
+		SetVal_ch_vec = &UnifiedSignalsAPIs<S>::SetVal_ch_vec;
+		Set = &UnifiedSignalsAPIs<S>::Set;
+		size = &UnifiedSignalsAPIs<S>::size;
+	}
+
+	SigType get_type() const { return type; }
+
+protected:
+	SigType type = T_Last; // type of the embedded signal
+	int _time_unit = MedTime::Undefined;
+};
+
+/**
+* Managed memory version of UniversalSigVec.
+* for example when allocating new virtual records
+*/
+class UniversalSigVec_mem : public UniversalSigVec {
+public:
+	bool manage;
+	UniversalSigVec_mem() {
+		manage = false;
+	}
+
+	~UniversalSigVec_mem() {
+		if (len > 0 && data != NULL && manage) {
+			delete[](char *)data;
+			data = NULL;
+			len = 0;
+		}
+	}
+
+	void set(const UniversalSigVec &s) {
+		data = s.data;
+		len = s.len;
+		manage = false;
+		n_time_channels = s.n_time_channels;
+		n_val_channels = s.n_val_channels;
+		Set = s.Set;
+		SetVal_ch_vec = s.SetVal_ch_vec;
+		size = s.size;
+		Time_ch_vec = s.Time_ch_vec;
+		_time_unit = s.time_unit();
+		Val_ch_vec = s.Val_ch_vec;
+		type = s.get_type();
+	}
+};
 
 //=============================================================================================
 // Inline/templated functions

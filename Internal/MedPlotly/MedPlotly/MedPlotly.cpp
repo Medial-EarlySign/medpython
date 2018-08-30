@@ -36,6 +36,8 @@ int PanelInfo::init(map<string, string>& _map)
 		else if (field == "block_mode") block_mode = stoi(entry.second);
 	}
 
+	if (title == "") title = name;
+
 	return 0;
 }
 
@@ -571,12 +573,18 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, PidRec &rec, const Pane
 
 	shtml += "\t\tvar layout = {\n";
 	shtml += "\t\t\ttitle: '" + pi.title + "',\n";
-	float psize = (float)1.0 - n_yaxis*(float)0.02;
+	//float psize = (float)1.0 - n_yaxis*(float)0.02;
+	float psize = (float)0.98;
+	// deal with multiple yaxis
 	// deal with multiple yaxis
 	for (int i=0; i<n_yaxis; i++) {
-		shtml += "\t\t\tyaxis" + to_string(i+1) +": {title: '" + titles[i] + "', showline: false";
+		if (i == 0)
+			shtml += "\t\t\tyaxis" + to_string(i+1) +": {title: '" + titles[i] + "', showline: false";
+
 		if (i > 0) {
-			shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize+0.02*i) + ", tick: '', showticklabels: false";
+			shtml += "\t\t\tyaxis" + to_string(i+1) +": {showline: false";
+			//shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize+0.02*i) + ", tick: '', showticklabels: false";
+			shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize) + ", tick: '', showticklabels: false";
 		}
 		if (log_scale && vmin[i] > 0 && usv.n_val_channels() < 2) shtml += ",type: 'log', autorange: true";
 		shtml += "},\n";

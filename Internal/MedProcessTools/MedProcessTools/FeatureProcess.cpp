@@ -144,6 +144,8 @@ size_t FeatureProcessor::get_processor_size() {
 size_t FeatureProcessor::processor_serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
+	if (processor_type == FTR_PROCESS_LAST)
+		MTHROW_AND_ERR("programmer error: trying to serialize a feature_processor with an undefined processor_type, must define it in init_defaults and call from ctor\n");
 	memcpy(blob + ptr, &processor_type, sizeof(FeatureProcessorTypes)); ptr += sizeof(FeatureProcessorTypes);
 	ptr += serialize(blob + ptr);
 

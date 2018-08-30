@@ -166,9 +166,7 @@ void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
 	sort(sigs.begin(), sigs.end());
 	auto it = unique(sigs.begin(), sigs.end());
 	sigs.resize(std::distance(sigs.begin(), it));
-	bool clean_rep = medial::process::clean_uneeded_rep_processors(mdl, sigs);
-	if (clean_rep)
-		MWARN("WARNING TT: Cleaned unused Rep_Processors\n");
+	mdl.filter_rep_processors();
 
 	int curr_level = global_logger.levels.front();
 	global_logger.init_all_levels(LOG_DEF_LEVEL);

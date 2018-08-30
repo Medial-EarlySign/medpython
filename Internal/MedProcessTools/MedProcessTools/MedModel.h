@@ -196,11 +196,17 @@ MEDSERIALIZE_SUPPORT(MedModel)
 */
 namespace medial {
 	/*!
-	*  \brief process namespace
+	*  \brief repository namespace
 	*/
-	namespace process {
-		/// \brief cleaning uneeded rep_processors - when no generator is being used
-		bool clean_uneeded_rep_processors(MedModel &m, const vector<string> &needed_sigs);
+	namespace repository {
+		/// \brief removes uneeded rep_processors based on needed_sigs and prepares the repository
+		/// returns the signal id's neede to read in the repository. MedRepository must be init to read dicts
+		vector<int> prepare_repository(MedPidRepository &rep, const vector<int> &needed_sigs,
+			vector<int> &phisical_signal_read, vector<RepProcessor *> *rep_processors);
+		/// \brief removes uneeded rep_processors based on needed_sigs and prepares the repository
+		/// returns the signal id's neede to read in the repository. MedRepository must be init to read dicts
+		vector<string> prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs, 
+			vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors = NULL);
 	}
 }
 

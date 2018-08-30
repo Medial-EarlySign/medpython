@@ -45,6 +45,9 @@ class DLLEXTERN  MedDictionary {
 		void get_member_sets(const string &member, vector<int> &sets);
 		void get_member_sets(int member_id, vector<int> &sets);
 
+		// next function calculates for each member ALL the sets it is contained in , applying all set transitivity
+		void get_members_to_all_sets(vector<int> &members, unordered_map<int, vector<int>> &Member2AllSets);
+
 		int add_def(const string &fname, const string &name, int id);
 		int add_set(const string &fname, const string &member_name, const string &set_name);
 
