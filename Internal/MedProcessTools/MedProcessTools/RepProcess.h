@@ -9,7 +9,6 @@
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
 
-
 #define DEFAULT_REP_CLNR_NTHREADS 8
 
 //.......................................................................................
@@ -644,7 +643,7 @@ public:
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	/// The parsed fields from init command.
-	/// @snippet RepProcess.cpp RepBasicOutlierCleaner::init
+	/// @snippet RepProcess.cpp RepSimValHandler::init
 	virtual int init(map<string, string>& mapper);
 
 	/// Fill req- and aff-signals vectors
@@ -760,6 +759,10 @@ typedef enum {
 	GCS_PNL_LAST
 } GCSPanelSignals;
 
+/**
+* A Repository panel completer for a complete panel of signals that are dependent and given on same time.
+* TODO: add support for look in the past threshold
+*/
 class RepPanelCompleter : public RepProcessor {
 public:
 	// Signals for completions
@@ -782,7 +785,7 @@ public:
 
 	RepPanelCompleter() { processor_type = REP_PROCESS_COMPLETE; init_defaults(); }
 
-	/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
+	/// @snippet RepProcess.cpp RepPanelCompleter::init
 	int init(map<string, string>& mapper);
 
 	/// <summary> initialize to default values :  Should be implemented for inheriting classes that have parameters </summary>
@@ -881,42 +884,6 @@ private:
 //.......................................................................................
 
 
-typedef enum {
-	CALC_TYPE_UNDEF, ///< undefined signal, nothing to do or error
-	CALC_TYPE_HOSP_PROCESSOR,
-	CALC_TYPE_LOG,
-	CALC_TYPE_EGFR, ///< calculates eGFR CKD_EPI signal in each point we have Creatinine , depends on Creatinine, GENDER, BYEAR
-	CALC_TYPE_DEBUG, ///< just here to help when debugging: currently calculates delta Hemoglobin (relative to last test for each test above second)
-	CALC_TYPE_HOSP_MELD, ///< calculates MELD signal. components: CHARTLAB_Bilirubin, CHARTLAB_INR(PT), CHARTLAB_Creatinine, CHARTLAB_Sodium
-	CALC_TYPE_HOSP_BP_SYS,
-	CALC_TYPE_HOSP_BP_DIA,
-	CALC_TYPE_HOSP_BMI,
-	CALC_TYPE_HOSP_APRI,
-	CALC_TYPE_HOSP_SIDA,
-	CALC_TYPE_HOSP_PaO2_FiO2_RATIO,
-	CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN,
-	CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED,
-	CALC_TYPE_HOSP_SOFA_NERVOUS,
-	CALC_TYPE_HOSP_SOFA_LIVER,
-	CALC_TYPE_HOSP_24H_URINE_OUTPUT,
-	CALC_TYPE_HOSP_SOFA_COAGULATION,
-	CALC_TYPE_HOSP_DOPAMINE_PER_KG,
-	CALC_TYPE_HOSP_EPINEPHRINE_PER_KG,
-	CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG,
-	CALC_TYPE_HOSP_DOBUTAMINE_PER_KG,
-	CALC_TYPE_HOSP_QSOFA,
-	CALC_TYPE_HOSP_SIRS,
-	CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR,
-	CALC_TYPE_HOSP_MODS,
-	CALC_TYPE_HOSP_SHOCK_INDEX,
-	CALC_TYPE_HOSP_PULSE_PRESSURE,
-	CALC_TYPE_HOSP_EFGR,
-	CALC_TYPE_HOSP_SOFA_RESPIRATORY,
-	CALC_TYPE_HOSP_SOFA_RENAL,
-	CALC_TYPE_HOSP_SOFA_CARDIO,
-	CALC_TYPE_HOSP_SOFA
-} RepCalcSimpleSignalsType;
-
 //.......................................................................................
 /** RepCalcSimpleSignals is a rep processor containing several calculators to calculate new
 	signals. It supports an internal list of calculators, and the user can select one of them.
@@ -940,29 +907,157 @@ typedef enum {
 
 */
 //.......................................................................................
+/**
+* Abstract class for calculator - has do_calc which recieves vector for values to calculate
+*/
+class SimpleCalculator : public SerializableObject {
+public:
+	float missing_value = (float)MED_MAT_MISSING_VALUE;
+	string calculator_name = "";
+
+	///init function of calculator
+	virtual int init(map<string, string>& mapper) { return 0; };
+	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {}; ///< validates correctness of inputs
+	virtual float do_calc(const vector<float> &vals) const = 0; ///< the calc option
+	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const = 0; ///< list output signals with default naming
+
+	/// @snippet RepProcess.h SimpleCalculator::make_calculator
+	static SimpleCalculator *make_calculator(const string &calc_type);
+};
+
+/**
+* Calcs ratio between 2 inputs signals. has ability to power each signal before dividing and multiply by factor
+* Calc is when we have V = { V1, V2 } as inputs. res := factor * V1^power_mone / V2^power_base
+*/
+class RatioCalculator : public SimpleCalculator {
+public:
+	float factor = 1; ///< factor multiply
+	float power_base = 1; ///< power base input
+	float power_mone = 1; ///< power mone input
+
+	RatioCalculator() { calculator_name = "ratio"; };
+	/// @snippet RepCalculators.cpp RatioCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* eGFR calculator based on Creatinine, Gender and Age.
+* the signals input order is: Creatinine, Gender, Age
+*/
+class eGFRCalculator : public SimpleCalculator {
+public:
+	float ethnicity = 0; ///< ethnicity, for now only support 0
+
+	eGFRCalculator() { calculator_name = "eGFR"; };
+	/// @snippet RepCalculators.cpp eGFRCalculator::init
+	int init(map<string, string>& mapper);
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* does log operation
+*/
+class logCalculator : public SimpleCalculator {
+public:
+	logCalculator() { calculator_name = "log"; };
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+
+	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* does linear sum with factors on vector of input signals, has b0 as constant
+* res := b0 + sum_sigma(i=1..N){ factor[i] * input[i]}
+*/
+class SumCalculator : public SimpleCalculator {
+public:
+	vector<float> factors; ///< the factors given by ","
+	float b0 = 0; ///< a constant
+
+	SumCalculator() { calculator_name = "sum"; };
+	/// @snippet RepCalculators.cpp SumCalculator::init
+	int init(map<string, string>& mapper);
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* A simple Range check that return in_range_val if within range and returns out_range_val
+* if outside range.
+*/
+class RangeCalculator : public SimpleCalculator {
+public:
+	float min_range; ///< min range check
+	float max_range; ///< max range check
+	float in_range_val = 1; ///< return value when within range
+	float out_range_val = 0; ///< return value when not within range
+
+	RangeCalculator() { calculator_name = "range"; min_range = MED_MAT_MISSING_VALUE; max_range = MED_MAT_MISSING_VALUE; };
+	/// @snippet RepCalculators.cpp RangeCalculator::init
+	int init(map<string, string>& mapper);
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* A multiply operation with power on both arguments. V = { V1, V2 }
+* res := V1^power_a * V2^power_b
+*/
+class MultiplyCalculator : public SimpleCalculator {
+public:
+	float power_a = 1; ///< power for first arg
+	float power_b = 1; ///< power for second arg
+
+	MultiplyCalculator() { calculator_name = "multiply"; };
+	/// @snippet RepCalculators.cpp MultiplyCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+
+	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* A simple class for calculating virtual signals. please reffer to SimpleCalculator to see which
+* calculation are supported right now
+*/
 class RepCalcSimpleSignals : public RepProcessor {
 
 public:
 	vector<string> V_names; ///< names of signals created by the calculator (a calculator can create more than a single signal at a time)
-	vector<int> V_types; ///< matching signal types for V_names
 
 	string calculator; ///< calculator asked for by user
-	int calc_type;	///> type of calculator (one of the allowed enum values)
+	//int calc_type;	///> type of calculator (one of the allowed enum values) - To Remove
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
-	vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
+	//vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
 
 	vector<string> signals; ///< it is possible to transfer a vector of required signals, to override default ones.
-	string timer_signal; ///< if given, used to detrmine time-points when virtual signal(s) are calculated
-	int timer_signal_id = -1; ///< id of timer-signal (if given)
-	string time_step_str; ///< string to describe time step (if given), and translate to time_step
-	int time_step = -1; ///< add times every time_step starting from the first time (timer or union), if given. must be positive
+	//string timer_signal; ///< if given, used to detrmine time-points when virtual signal(s) are calculated
+	//int timer_signal_id = -1; ///< id of timer-signal (if given)
+	//string time_step_str; ///< string to describe time step (if given), and translate to time_step
+	//int time_step = -1; ///< add times every time_step starting from the first time (timer or union), if given. must be positive
 	int signals_time_unit = MedTime::Undefined; ///< Time unit of timer and all signals 
 
-	RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
+	int max_time_search_range = 0; ///< how much time we are allowed to look backward to calculate. to look forward we need to fix the function
+	string calculator_init_params = ""; ///< string init params for calculator
 
-	/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
+	RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
+	~RepCalcSimpleSignals();
+
+	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
 	int init(map<string, string>& mapper);
 
 	// making sure V_ids and sigs_ids are initialized
@@ -979,325 +1074,27 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
-	// Utils
-	/// <summary> translate a calculator name to RepCalcSignalsType </summary>
-	int get_calculator_type(const string &calc_name);
-
-	// calculators implementations + helpers
-	static float get_age(int byear, int date);
-	int _apply_calc_eGFR(PidDynamicRec& rec, vector<int>& time_points);
-	int _apply_calc_debug(PidDynamicRec& rec, vector<int>& time_points);
-	static float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity = 0);
-
-	//process io fields in MIMIC style, depending on their type (understood from the name and the type
-	static int process_hosp_signal(const string& name, UniversalSigVec& usv, vector<int>& times, vector<float>& vals);
-
-	void index_targets_in_given_vector(const vector<int> &target, const vector<int> &given, int& max_diff, int signals_time_unit, int diff_time_unit, int& max, vector<size_t>& indices, bool onlyPast = false);
-
-	int _apply_calc_hosp_pointwise(PidDynamicRec& rec, vector<int>& time_points, float(*calcFunc)(const vector<float>&, const vector<float>&), bool onlyPast = false);
-
-	int _apply_calc_log(PidDynamicRec& rec, vector<int>& time_points);
-
-	int _apply_calc_hosp_time_dependent_pointwise(PidDynamicRec& rec, vector<int>& time_points,
-		float(*calcFunc)(const vector<pair<int, float> >&, int, const vector<float>&), bool onlyPast = false);
-
-	int _apply_calc_24h_urine_output(PidDynamicRec& rec, vector<int>& time_points);
-
-	static float calc_hosp_MELD(float bilirubin, float inr, float creatinine, float na, int mode);
-	static float calc_hosp_MELD(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_MELD(args.at(0), args.at(1), args.at(2), args.at(3), (int)(params.at(0)));
-	}
-	//no need for a function for combined blood pressure
-	static float calc_hosp_BMI(float weight, float height);
-	static float calc_hosp_BMI(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_BMI(args.at(0), args.at(1));
-	}
-	static float calc_hosp_APRI(float ast, float plt);
-	static float calc_hosp_APRI(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_APRI(args.at(0), args.at(1));
-	}
-	static float calc_hosp_SIDA(float na, float k, float cl, int mode);
-	static float calc_hosp_SIDA(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SIDA(args.at(0), args.at(1), args.at(2), (int)(params.at(0)));
-	}
-	static float calc_hosp_PaO2_FiO2_ratio(float paO2, float fiO2);
-	static float calc_hosp_PaO2_FiO2_ratio(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_PaO2_FiO2_ratio(args.at(0), args.at(1));
-	}
-	static float calc_hosp_is_african_american(float ethnicity, float african_american_dict_id);
-	static float calc_hosp_is_african_american(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_is_african_american(args.at(0), params.at(0));
-	}
-	//no need for a function for mechanical ventilation
-	static float calc_hosp_SOFA_nervous(float x, bool optimistic);
-	static float calc_hosp_SOFA_nervous(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SOFA_nervous(args.at(0), params.at(0) != 0);
-	}
-	static float calc_hosp_SOFA_liver(float x, bool optimistic);
-	static float calc_hosp_SOFA_liver(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SOFA_liver(args.at(0), params.at(0) != 0);
-	}
-	//no need for a function for 24h urine output
-	static float calc_hosp_SOFA_coagulation(float x, bool optimistic);
-	static float calc_hosp_SOFA_coagulation(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SOFA_coagulation(args.at(0), params.at(0) != 0);
-	}
-	static float calc_hosp_dopamine_per_kg(float medPerKg);
-	static float calc_hosp_dopamine_per_kg(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_dopamine_per_kg(args.at(0));
-	}
-	static float calc_hosp_epinephrine_per_kg(float medPerKg, float med, float kg);
-	static float calc_hosp_epinephrine_per_kg(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_epinephrine_per_kg(args.at(0), args.at(1), args.at(2));
-	}
-	static float calc_hosp_norepinephrine_per_kg(float medPerKg, float med, float kg);
-	static float calc_hosp_norepinephrine_per_kg(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_norepinephrine_per_kg(args.at(0), args.at(1), args.at(2));
-	}
-	static float calc_hosp_dobutamine_per_kg(float medPerKg);
-	static float calc_hosp_dobutamine_per_kg(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_dobutamine_per_kg(args.at(0));
-	}
-	static float calc_hosp_SIRS(float temp, float hr, float resp, float paco2, float wbc, float bands, int mode);
-	static float calc_hosp_SIRS(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SIRS(args.at(0), args.at(1), args.at(2), args.at(3), args.at(4), args.at(5), (int)(params.at(0)));
-	}
-	static float calc_hosp_pressure_adjusted_hr(float hr, float cvp, float map);
-	static float calc_hosp_pressure_adjusted_hr(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_pressure_adjusted_hr(args.at(0), args.at(1), args.at(2));
-	}
-	static float calc_hosp_MODS(float paO2, float fiO2, float plt, float bili, float hr, float cvp, float map, float gcs, float cre);
-	static float calc_hosp_MODS(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_MODS(args.at(0), args.at(1), args.at(2), args.at(3), args.at(4), args.at(5), args.at(6), args.at(7), args.at(8));
-	}
-	static float calc_hosp_shock_index(float hr, float sysBp, float diaBp, int mode);
-	static float calc_hosp_shock_index(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_shock_index(args.at(0), args.at(1), args.at(2), (int)(params.at(0)));
-	}
-	static float calc_hosp_pulse_pressure(float sysBp, float diaBp);
-	static float calc_hosp_pulse_pressure(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_pulse_pressure(args.at(0), args.at(1));
-	}
-	static float calc_hosp_eGFR(float cr, float age, float gender, float isAfricanAmerican, bool useEthnicity, int mode);
-	static float calc_hosp_eGFR(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_eGFR(args.at(0), args.at(1), args.at(2), args.at(3), params.at(0) != 0, (int)(params.at(0)));
-	}
-	static float calc_hosp_SOFA_respiratory(float x, float y, bool optimistic);
-	static float calc_hosp_SOFA_respiratory(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SOFA_respiratory(args.at(0), args.at(1), params.at(0) != 0);
-	}
-	static float calc_hosp_SOFA_renal(float x, float y, bool optimistic);
-	static float calc_hosp_SOFA_renal(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SOFA_renal(args.at(0), args.at(1), params.at(0) != 0);
-	}
-	static float calc_hosp_SOFA_cardio(float x, float y, float z, float u, float v, bool optimistic);
-	static float calc_hosp_SOFA_cardio(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SOFA_cardio(args.at(0), args.at(1), args.at(2), args.at(3), args.at(4), params.at(0) != 0);
-	}
-
-	static float calc_hosp_SOFA(float snerve, float sliver, float scoag, float sresp, float srenal, float scardio, int mode);
-	static float calc_hosp_SOFA(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_SOFA(args.at(0), args.at(1), args.at(2), args.at(3), args.at(4), args.at(5), (int)(params.at(0)));
-	}
-
-	static float calc_hosp_qSOFA(float gcs, float sBp, float resp, int mode);
-	static float calc_hosp_qSOFA(const vector<float>& args, const vector<float>& params) {
-		return calc_hosp_qSOFA(args.at(0), args.at(1), args.at(2), (int)(params.at(0)));
-	}
-
-	static float identity(const vector<float>& args, const vector<float>& params) { return args.at(0); }
-
-	static float med2KgPlusMed(float med2kg, float med, float kg);
-	static float anySeenRecently(const vector<pair<int, float> >& data, int time, const vector<float>& params);
-	static float interleave(const vector<pair<int, float> >& data, int time, const vector<float>& params);
-
-	static bool isNegative(float val) { return (val < 0.0F ? true : false); }
-	static bool isNonPositive(float val) { return (val <= 0.0F ? true : false); }
-	static bool isAny(const vector<float>& vals, bool(*pred)(float)) {
-		for (const auto& e : vals) {
-			if (pred(e))
-				return true;
-		}
-		return false;
-	}
-
-	static float badValue(void) { return (float)MED_MAT_MISSING_VALUE; }
-
-	static bool isMissingValue(float val) { return val == (float)MED_MAT_MISSING_VALUE; }
-	static bool isMissingOrNegative(float val) { return ((val < 0.0F || isMissingValue(val)) ? true : false); }
-	static bool isMissingOrNonPositive(float val) { return ((val <= 0.0F || isMissingValue(val)) ? true : false); }
-	static int beforeEverything() { return numeric_limits<int>::min(); }
-	static int afterEverything() { return numeric_limits<int>::max(); }
-
 	// serialization
-	ADD_SERIALIZATION_FUNCS(calculator, calc_type, coeff, signals, V_names, V_types, req_signals, aff_signals, virtual_signals, timer_signal)
-
+	ADD_SERIALIZATION_FUNCS(calculator, calculator_init_params, max_time_search_range, signals_time_unit,
+		signals, V_names, req_signals, aff_signals, virtual_signals)
 
 private:
-
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
-
-	// calculators where timer-signals should not be given
-	const unordered_set<string> calc_without_timers = { "calc_eGFR","calc_debug","calc_hosp_24h_urine_output","calc_log" };
-
-	/// from a calculator name to a calculator enum type
-	const map<string, int> calc2type = {
-		{"calc_hosp_processor", CALC_TYPE_HOSP_PROCESSOR },
-		{"calc_log", CALC_TYPE_LOG },
-		{"calc_eGFR", CALC_TYPE_EGFR},
-		{"calc_debug", CALC_TYPE_DEBUG},
-		{"calc_hosp_MELD", CALC_TYPE_HOSP_MELD},
-		{ "calc_hosp_BP_sys", CALC_TYPE_HOSP_BP_SYS},
-		{ "calc_hosp_BP_dia", CALC_TYPE_HOSP_BP_DIA},
-		{ "calc_hosp_BMI", CALC_TYPE_HOSP_BMI },
-		{ "calc_hosp_APRI", CALC_TYPE_HOSP_APRI },
-		{ "calc_hosp_SIDA", CALC_TYPE_HOSP_SIDA },
-		{ "calc_hosp_PaO2_FiO2_ratio", CALC_TYPE_HOSP_PaO2_FiO2_RATIO },
-		{ "calc_hosp_is_african_american", CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN },
-		{ "calc_hosp_is_mechanically_ventilated", CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED },
-		{ "calc_hosp_SOFA_nervous", CALC_TYPE_HOSP_SOFA_NERVOUS },
-		{ "calc_hosp_SOFA_liver", CALC_TYPE_HOSP_SOFA_LIVER },
-		{ "calc_hosp_24h_urine_output",CALC_TYPE_HOSP_24H_URINE_OUTPUT },
-		{ "calc_hosp_SOFA_coagulation", CALC_TYPE_HOSP_SOFA_COAGULATION },
-		{ "calc_hosp_dopamine_per_kg", CALC_TYPE_HOSP_DOPAMINE_PER_KG },
-		{ "calc_hosp_epinephrine_per_kg",CALC_TYPE_HOSP_EPINEPHRINE_PER_KG },
-		{ "calc_hosp_norepinephrine_per_kg", CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG },
-		{ "calc_hosp_dobutamine_per_kg", CALC_TYPE_HOSP_DOBUTAMINE_PER_KG },
-		{ "calc_hosp_qSOFA", CALC_TYPE_HOSP_QSOFA },
-		{ "calc_hosp_SIRS", CALC_TYPE_HOSP_SIRS },
-		{ "calc_hosp_pressure_adjusted_hr", CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR },
-		{ "calc_hosp_MODS", CALC_TYPE_HOSP_MODS },
-		{ "calc_hosp_shock_index", CALC_TYPE_HOSP_SHOCK_INDEX },
-		{ "calc_hosp_pulse_pressure", CALC_TYPE_HOSP_PULSE_PRESSURE },
-		{ "calc_hosp_eGFR", CALC_TYPE_HOSP_EFGR },
-		{ "calc_hosp_SOFA_respiratory", CALC_TYPE_HOSP_SOFA_RESPIRATORY },
-		{ "calc_hosp_SOFA_renal", CALC_TYPE_HOSP_SOFA_RENAL },
-		{ "calc_hosp_SOFA_cardio", CALC_TYPE_HOSP_SOFA_CARDIO },
-		{ "calc_hosp_SOFA", CALC_TYPE_HOSP_SOFA }
-	};
 
 	/// from a calculator name to the list of required signals
 	const map<string, vector<string>> calc2req_sigs = {
 		//--------- level 1 - calculated from raw signals (level0)
 		//the general hospital processor's signals must be overridden from outside
-		{ "calc_hosp_processor",{} },
-		{ "calc_log",{} },
-		{ "calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}},
-		{ "calc_debug",{ "Hemoglobin" }},
-		{ "calc_hosp_MELD",{ "CHARTLAB_Bilirubin", "CHARTLAB_INR(PT)", "CHARTLAB_Creatinine", "CHARTLAB_Sodium" }},
-		{ "calc_hosp_BP_sys", {"CHART_Arterial_BP_Sys", "CHART_NonInvasive_BP_Sys"}},
-		{ "calc_hosp_BP_dia", {"CHART_Arterial_BP_Dia", "CHART_NonInvasive_BP_Dia"}},
-		{ "calc_hosp_BMI",{ "CHART_Weight", "CHART_Height" } },
-		{ "calc_hosp_APRI",{ "LAB_AST", "CHARTLAB_Platelets" } },
-		{ "calc_hosp_SIDA",{ "CHARTLAB_Sodium","CHARTLAB_Potassium","CHARTLAB_Chloride" } },
-		{ "calc_hosp_PaO2_FiO2_ratio",{ "Art_PaO2","FiO2" } },
-		{ "calc_hosp_is_african_american",{ "ETHNICITY" } },
-		{ "calc_hosp_is_mechanically_ventilated",{ "CHART_Airway_Size","CHART_Peak_Insp_Pressure","CHART_Plateau_Pressure",
-													"CHART_Plateau_Off", "CHART_Tidal_Volume_Set", "CHART_Vent_Mode", "CHART_Vent_No",
-													"CHART_Vent_Type", "CHART_Resp_Rate_Set" } },
-		{ "calc_hosp_SOFA_nervous",{ "CHART_GCS" } },
-		{ "calc_hosp_SOFA_liver",{ "CHARTLAB_Bilirubin" } },
-		//need to implement "calc_24h_mean_urine_output" with special care - see my module			
-		{ "calc_hosp_24h_urine_output",{ "OUTPUT_UrineProduction" } },
-		{ "calc_hosp_SOFA_coagulation",{ "CHARTLAB_Platelets" } },
-		{ "calc_hosp_dopamine_per_kg",{"INPUT_Dopamine-k_Rate_processed"} },
-		{ "calc_hosp_epinephrine_per_kg",{"INPUT_Epinephrine-k_Rate_processed","INPUT_Epinephrine_Rate_processed","CHART_Weight" } },
-		{ "calc_hosp_norepinephrine_per_kg",{ "INPUT_Norepinephrine-k_Rate_processed","INPUT_Norepinephrine_Rate_processed","CHART_Weight" } },
-		{ "calc_hosp_dobutamine_per_kg",{ "INPUT_Dobutamine-k_Rate_processed" } },
-		{ "calc_hosp_SIRS",{ "CHART_Temperature","CHART_Heart_Rate","CHART_Resp_Rate","CHART_Art_PaCO2",
-								"CHARTLAB_WBC","LAB_Neutrophils_Bands%" } },
-		{ "calc_hosp_pressure_adjusted_hr",{ "CHART_Heart_Rate","CHART_CVP","CHART_Arterial_BP_Mean" } },
-		{ "calc_hosp_MODS",{ "CHART_ART_PaO2","CHART_FiO2","CHARTLAB_Platelets","CHARTLAB_Bilirubin","CHART_Heart_Rate","CHART_CVP",
-								"CHART_Arterial_BP_Mean","CHART_GCS","CHARTLAB_Creatinine" } },
-		//---------- level 2 - calculated from level < 2
-		{ "calc_hosp_shock_index", { "CHART_Heart_Rate", "calc_hosp_BP_sys", "calc_hosp_BP_dia" }},
-		{ "calc_hosp_pulse_pressure", { "calc_hosp_BP_sys", "calc_hosp_BP_dia" } },
-		{ "calc_hosp_eGFR", { "CHARTLAB_Creatinine", "Age", "Gender", "calc_hosp_is_african_american" } },
-		{ "calc_hosp_SOFA_respiratory", { "calc_hosp_PaO2_FiO2_ratio", "calc_hosp_is_mechanically_ventilated" } },
-		{ "calc_hosp_SOFA_renal", {"CHARTLAB_Creatinine", "calc_hosp_24h_urine_output" } },
-		{ "calc_hosp_SOFA_cardio", {"CHART_Arterial_BP_Mean", "calc_hosp_dopamine_per_kg", "calc_hosp_epinephrine_per_kg",
-									"calc_hosp_norepinephrine_per_kg", "calc_hosp_dobutamine_per_kg"} },
-		{ "calc_hosp_qSOFA", {"CHART_GCS", "calc_hosp_BP_sys", "CHART_Resp_Rate"} },
-		//---------- level 3 - calculated from level < 3
-		{ "calc_hosp_SOFA",{ "calc_hosp_SOFA_nervous", "calc_hosp_SOFA_liver", "calc_hosp_SOFA_coagulation", "calc_hosp_SOFA_respiratory",
-							 "calc_hosp_SOFA_renal", "calc_hosp_SOFA_cardio" } }
-	};
-
-	/// from a calculator name to a list of pairs of virtual names and their types created by the calculator
-	/// the virtual names can be changed by the user (but have to be given in the SAME order as here)
-	const map<string, vector<pair<string, int>>> calc2virtual = {
-		{ "calc_hosp_processor",{ { "calc_hosp_processor", T_TimeVal } } },
-		{ "calc_log",{ { "calc_log", T_DateVal } } },
-		{ "calc_eGFR" ,{ { "calc_eGFR", T_DateVal } } },
-		{ "calc_debug" ,{ { "calc_debug", T_DateVal } } },
-		{ "calc_hosp_MELD" ,{ { "calc_hosp_MELD", T_TimeVal } } },
-		{ "calc_hosp_BP_sys",{ { "calc_hosp_BP_sys", T_TimeVal } } },
-		{ "calc_hosp_BP_dia",{ { "calc_hosp_BP_dia", T_TimeVal } } },
-		{ "calc_hosp_BMI",{ { "calc_hosp_BMI", T_TimeVal } } },
-		{ "calc_hosp_APRI",{ { "calc_hosp_APRI", T_TimeVal } } },
-		{ "calc_hosp_SIDA",{ { "calc_hosp_SIDA", T_TimeVal } } },
-		{ "calc_hosp_PaO2_FiO2_ratio",{ { "calc_hosp_PaO2_FiO2_ratio", T_TimeVal } } },
-		{ "calc_hosp_is_african_american",{ { "calc_hosp_is_african_american", T_TimeVal } } },
-		{ "calc_hosp_is_mechanically_ventilated", { { "calc_hosp_is_mechanically_ventilated", T_TimeVal } } },
-		{ "calc_hosp_SOFA_nervous",{ { "calc_hosp_SOFA_nervous", T_TimeVal } } },
-		{ "calc_hosp_SOFA_liver",{ { "calc_hosp_SOFA_liver", T_TimeVal } } },
-		{ "calc_hosp_24h_urine_output",{ { "calc_hosp_24h_urine_output", T_TimeVal } } },
-		{ "calc_hosp_SOFA_coagulation",{ { "calc_hosp_SOFA_coagulation", T_TimeVal } } },
-		{ "calc_hosp_dopamine_per_kg",{ { "calc_hosp_dopamine_per_kg", T_TimeVal } } },
-		{ "calc_hosp_epinephrine_per_kg",{ { "calc_hosp_epinephrine_per_kg", T_TimeVal } } },
-		{ "calc_hosp_norepinephrine_per_kg",{ { "calc_hosp_norepinephrine_per_kg", T_TimeVal } } },
-		{ "calc_hosp_dobutamine_per_kg",{ { "calc_hosp_dobutamine_per_kg", T_TimeVal } } },
-		{ "calc_hosp_qSOFA",{ { "calc_hosp_qSOFA", T_TimeVal } } },
-		{ "calc_hosp_SIRS",{ { "calc_hosp_SIRS", T_TimeVal } } },
-		{ "calc_hosp_pressure_adjusted_hr",{ { "calc_hosp_pressure_adjusted_hr", T_TimeVal } } },
-		{ "calc_hosp_MODS",{ { "calc_hosp_MODS", T_TimeVal } } },
-		{ "calc_hosp_shock_index",{ { "calc_hosp_shock_index", T_TimeVal } } },
-		{ "calc_hosp_pulse_pressure",{ { "calc_hosp_pulse_pressure", T_TimeVal } } },
-		{ "calc_hosp_eGFR",{ { "calc_hosp_eGFR", T_TimeVal } } },
-		{ "calc_hosp_SOFA_respiratory",{ { "calc_hosp_SOFA_respiratory", T_TimeVal } } },
-		{ "calc_hosp_SOFA_renal",{ { "calc_hosp_SOFA_renal", T_TimeVal } } },
-		{ "calc_hosp_SOFA_cardio",{ { "calc_hosp_SOFA_cardio", T_TimeVal } } },
-		{ "calc_hosp_SOFA",{ { "calc_hosp_SOFA", T_TimeVal } } }
-	};
-
-	/// from a calculator name to the default coefficients (parameters) of it. Can of course be empty for a non parametric calculator.
-	const map<string, vector<float>> calc2coeffs = {
-		{"calc_hosp_processor",{} },
-		{ "calc_log",{} },
-		{"calc_eGFR" , {}},
-		{ "calc_debug" ,{}},
-		{"calc_hosp_MELD" ,{1.0F}},
-		{ "calc_hosp_BP_sys",{} },
-		{ "calc_hosp_BP_dia",{} },
-		{ "calc_hosp_BMI",{} },
-		{ "calc_hosp_APRI",{} },
-		{ "calc_hosp_SIDA",{1.0F} },
-		{ "calc_hosp_PaO2_FiO2_ratio",{} },
-		{ "calc_hosp_is_african_american", {} },
-		{ "calc_hosp_is_mechanically_ventilated", {300.0F} },
-		{ "calc_hosp_SOFA_nervous",{ 1.0F } },
-		{ "calc_hosp_SOFA_liver",{ 1.0F } },
-		{ "calc_hosp_24h_urine_output", {} },
-		{ "calc_hosp_SOFA_coagulation",{ 1.0F } },
-		{ "calc_hosp_dopamine_per_kg",{} },
-		{ "calc_hosp_epinephrine_per_kg",{} },
-		{ "calc_hosp_norepinephrine_per_kg",{} },
-		{ "calc_hosp_dobutamine_per_kg",{} },
-		{ "calc_hosp_qSOFA",{ 1.0F } },
-		{ "calc_hosp_SIRS",{ 2.0F } },
-		{ "calc_hosp_pressure_adjusted_hr",{} },
-		{ "calc_hosp_MODS",{} },
-		{ "calc_hosp_shock_index",{ 1.0F } },
-		{ "calc_hosp_pulse_pressure",{} },
-		{ "calc_hosp_eGFR",{ 1.0F } },
-		{ "calc_hosp_SOFA_respiratory",{ 1.0F } },
-		{ "calc_hosp_SOFA_renal",{ 1.0F } },
-		{ "calc_hosp_SOFA_cardio",{ 1.0F } },
-		{ "calc_hosp_SOFA",{ 1.0F } }
+		{ "calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}}
 	};
 
 	vector<int> V_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
 	vector<int> sigs_ids; /// <ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
+	vector<bool> static_input_signals;
+
+	int apply_calc_in_time(PidDynamicRec& rec, vector<int>& time_points);
+
+	SimpleCalculator *calculator_logic = NULL;
 
 };
 
@@ -1330,7 +1127,7 @@ public:
 	/// <summary> constructor </summary>
 	RepCheckReq() { processor_type = REP_PROCESS_CHECK_REQ; unconditional = true; }
 
-	/// <summary> initialize from a map :  Should be implemented for inheriting classes that have parameters </summary>
+	/// @snippet RepProcess.cpp RepCheckReq::init
 	int init(map<string, string>& mapper);
 
 	/// <summary> Set signal id </summary>

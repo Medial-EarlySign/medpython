@@ -211,12 +211,6 @@ namespace medial {
 	namespace io {
 		void read_codes_file(const string &file_path, vector<string> &tokens);
 	}
-	namespace repository {
-		/// \brief fetches the next date from all signals in patientFile by date order.
-		/// the signalPointers is array of indexes of each signal. it also advances the right index
-		/// returns the signal with the minimal date - "the next date"
-		template<class T> int fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers);
-	}
 }
 
 /**
