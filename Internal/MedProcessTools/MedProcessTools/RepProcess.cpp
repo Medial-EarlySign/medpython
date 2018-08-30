@@ -2074,10 +2074,13 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 	//first lets fetch "static" signals without Time field:
 
 	set<int> iteratorSignalIds;
+	vector<int> timed_sigs;
 	for (size_t i = 0; i < sigs_ids.size(); ++i)
-		if (!static_input_signals[i])
+		if (!static_input_signals[i]) {
 			iteratorSignalIds.insert(sigs_ids[i]);
-	vector<int> timed_sigs(iteratorSignalIds.begin(), iteratorSignalIds.end());
+			timed_sigs.push_back(sigs_ids[i]);
+		}
+
 	differentVersionsIterator vit(rec, iteratorSignalIds);
 	rec.usvs.resize(timed_sigs.size());
 
@@ -2116,7 +2119,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 						if (static_input_signals[i])
 							collected_vals[i] = static_signals_values[i];
 						else {
-							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx]-1);
+							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1);
 							++time_idx;
 						}
 					}
