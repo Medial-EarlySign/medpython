@@ -2038,8 +2038,9 @@ void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signal
 }
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
-	int time_range, int time_unit) {
+	int time_range, int time_unit, int &max_diff) {
 	int time = usvs[active_id].TimeU(idx[active_id] - 1, time_unit);
+	max_diff = -1; //if not found
 	for (size_t i = 0; i < idx.size(); ++i)
 	{
 		if (i == active_id)
@@ -2050,6 +2051,8 @@ bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active
 		int ref_time = usvs[i].TimeU(idx[i] - 1, time_unit);
 		if (time - ref_time > time_range)
 			return false;
+		if (max_diff == -1 || max_diff < time - ref_time)
+			max_diff = time - ref_time;
 	}
 	return true;
 }
@@ -2093,38 +2096,51 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		bool all_non_empty = true;
 		for (size_t i = 0; i < rec.usvs.size() && all_non_empty; ++i)
 			all_non_empty = rec.usvs[i].len > 0;
-
+		int last_time = -1, last_diff_in_time = -1;
 		if (all_non_empty) {
-			vector<int> idx(2);
+			vector<int> idx(timed_sigs.size());
 			int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
 			int final_size = 0;
 			vector<float> v_vals;
 			vector<int> v_times;
+			int max_diff = -1;
 			while (active_id >= 0) {
 				//iterate on time ordered of signals - Let's try to calc signal:
-				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit);
-				if (can_calc) {
-					vector<float> collected_vals(rec.usvs.size());
-					--idx[active_id];
+				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit, max_diff);
+				if (can_calc && (last_time == -1 ||
+					last_time != rec.usvs[active_id].Time(idx[active_id] - 1))
+					|| max_diff < last_diff_in_time) {
+					vector<float> collected_vals(sigs_ids.size());
 					int time_idx = 0;
 					for (size_t i = 0; i < sigs_ids.size(); ++i) {
 						if (static_input_signals[i])
 							collected_vals[i] = static_signals_values[i];
 						else {
-							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx]);
+							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx]-1);
 							++time_idx;
 						}
 					}
-					++idx[active_id];
 					if (no_missings(collected_vals, missing_value)) {
+						float prev_val = missing_value;
+						if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+							--final_size; //override last value
+							prev_val = v_vals[final_size];
+						}
 						if (v_times.size() < final_size + 1) {
 							v_times.resize(final_size + 1);
 							v_vals.resize(final_size + 1);
 						}
 						v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 						v_vals[final_size] = calculator_logic->do_calc(collected_vals);
-						if (v_vals[final_size] != missing_value) //insert only legal values (missing_value when ilegal)!
+						if (v_vals[final_size] != missing_value) { //insert only legal values (missing_value when ilegal)!
 							++final_size;
+							last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+							last_diff_in_time = max_diff;
+						}
+						else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+							v_vals[final_size] = prev_val; //return previous val that was not missing
+							++final_size;
+						}
 					}
 				}
 
