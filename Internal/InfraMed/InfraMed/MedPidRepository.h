@@ -109,6 +109,8 @@ class MedPidRepository : public MedRepository {
 	// it is recommended for use with pre allocation of enough space in prec.data when going to reuse the same prec for reads.
 	int get_pid_rec(int pid, PidRec &prec);
 
+	~MedPidRepository();
+
 };
 
 

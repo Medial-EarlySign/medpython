@@ -646,6 +646,11 @@ namespace medial {
 		};
 		/// \brief fix contradicting signal values in same time for same patient. return true if changed data
 		bool fix_contradictions(UniversalSigVec &s, fix_method method, UniversalSigVec_mem &edited);
+
+		/// \brief fetches the next date from all signals in patientFile by date order.
+		/// the signalPointers is array of indexes of each signal. it also advances the right index
+		/// returns the signal with the minimal date - "the next date"
+		template<class T> int fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers);
 	}
 }
 

@@ -4,6 +4,7 @@
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
+#include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include "MedSamplingStrategy.h"
 
 using namespace std;
@@ -64,12 +65,12 @@ public:
 	/// Creates vector of registry using already initialized MedPidRepository with signals
 	/// in parallel manner for each patient
 	/// </summary>
-	void create_registry(MedPidRepository &dataManager, medial::repository::fix_method method = medial::repository::fix_method::none);
+	void create_registry(MedPidRepository &dataManager, medial::repository::fix_method method = medial::repository::fix_method::none, vector<RepProcessor *> *rep_processors = NULL);
 
 	/// <summary>
 	/// returns the signal codes used to create the registry
 	/// </summary>
-	void get_registry_creation_codes(vector<int> &signal_codes) const;
+	void get_registry_creation_codes(vector<string> &signal_codes) const;
 
 	/// <summary>
 	/// calculates table statitics for interrsecting with registry of signal
@@ -130,12 +131,14 @@ public:
 		time_unit = global_default_time_unit;
 	}
 
+	virtual ~MedRegistry() {};
+
 	/// A function to clear creation variables that are on memory if needed
 	virtual void clear_create_variables() {};
 
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
-	vector<int> signalCodes; ///< The signals codes to fetch in create_registry. will be used in get_registry_records
+	vector<string> signalCodes_names; ///< the signals codes by name
 	bool need_bdate; ///< If true Bdate is also used in registry creation
 private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
@@ -208,12 +211,6 @@ namespace medial {
 	namespace io {
 		void read_codes_file(const string &file_path, vector<string> &tokens);
 	}
-	namespace repository {
-		/// \brief fetches the next date from all signals in patientFile by date order.
-		/// the signalPointers is array of indexes of each signal. it also advances the right index
-		/// returns the signal with the minimal date - "the next date"
-		template<class T> int fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers);
-	}
 }
 
 /**
@@ -245,6 +242,8 @@ public:
 	/// </summary>
 	static void parse_registry_rules(const string &reg_cfg, MedRepository &rep,
 		vector<RegistrySignal *> &result);
+
+	virtual ~RegistrySignal() {};
 };
 
 /**

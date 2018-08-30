@@ -338,6 +338,7 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 			filtered.push_back(processor);
 		else {
 			delete processor;
+			processor = NULL;
 			did_something = true;
 		}
 	}
@@ -1566,7 +1567,7 @@ int RepCheckReq::init(map<string, string>& mapper)
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RepMinimalReq::init]
+		//! [RepCheckReq::init]
 		if (field == "signals")
 			boost::split(signalNames, entry.second, boost::is_any_of(","));
 		else if (field == "time_channels") {
@@ -1583,7 +1584,7 @@ int RepCheckReq::init(map<string, string>& mapper)
 			win_to = med_stoi(entry.second);
 		else if (field == "attr")
 			attrName = entry.second;
-		//! [RepMinimalReq::init]
+		//! [RepCheckReq::init]
 	}
 
 	// Take care of time-channels
@@ -1916,104 +1917,92 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 {
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [RepCalcSimpleSignals::init]
 		if (field == "calculator") calculator = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
-		else if (field == "coeffs") {
-			vector<string> fields;
-			boost::split(fields, entry.second, boost::is_any_of(",:"));
-			coeff.clear();
-			for (auto &f : fields) coeff.push_back(stof(f));
-		}
-		else if (field == "names") {
-			boost::split(V_names, entry.second, boost::is_any_of(",:"));
-		}
-		else if (field == "signals") {
-			boost::split(signals, entry.second, boost::is_any_of(",:"));
-		}
-		else if (field == "timer") timer_signal = entry.second;
-		else if (field == "time_step") time_step_str = entry.second;
+		else if (field == "max_time_search_range") max_time_search_range = stoi(entry.second);
+		else if (field == "calculator_init_params") calculator_init_params = entry.second;
+		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
+		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(",:"));
+		else if (field == "signals_time_unit") signals_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepCalcSimpleSignals::init]
+	}
+	if (signals_time_unit == -1 || signals_time_unit == MedTime::Undefined) {
+		MWARN("Warning in RepCalcSimpleSignals::init - using signals_time_unit = Days as defualt time unit\n");
+		signals_time_unit = MedTime::Days;
 	}
 
-	calc_type = get_calculator_type(calculator);
+	//calc_type = get_calculator_type(calculator);
+	calculator_logic = SimpleCalculator::make_calculator(calculator);
+	if (!calculator_init_params.empty())
+		calculator_logic->init_from_string(calculator_init_params);
+	calculator_logic->missing_value = missing_value;
 
-	if (calc_type != CALC_TYPE_UNDEF) {
+	req_signals.clear();
+	if (signals.empty() && calc2req_sigs.find(calculator) != calc2req_sigs.end())
+		signals = calc2req_sigs.at(calculator);
+	if (signals.empty())
+		MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init please provide input signals for \"%s\" calculator. no defaluts\n",
+			calculator.c_str());
 
-		//time_step
-		if (!time_step_str.empty()) {
-			time_step = stoi(time_step_str);
-			if (time_step <= 0) {
-				MERR("Non-positive time_step: %d\n", time_step);
-				return -1;
-			}
-		}
+	for (auto & req_s : signals)
+		req_signals.insert(req_s);
 
-		// Timer
-		// Given when not required
-		if (!timer_signal.empty() && calc_without_timers.find(calculator) != calc_without_timers.end()) {
-			MERR("Caclulator %s must not be given a timer signal\n", calculator.c_str());
-			return -1;
-		}
-
-		// for CALC_TYPE_HOSP_PROCESSOR default timer is signal
-		if (calc_type == CALC_TYPE_HOSP_PROCESSOR) {
-			if (!timer_signal.empty() && timer_signal != signals[0]) {
-				MERR("Calculator %s timer must be the same as signal\n", calculator.c_str());
-				return -1;
-			}
-			timer_signal = signals[0];
-		}
-
-		// add required signals depending on the actual calculator we run
-		// might be overidden from json
-		req_signals.clear();
-		if (signals.size() == 0)
-			signals = calc2req_sigs.find(calculator)->second;
-
-		for (auto & req_s : signals)
-			req_signals.insert(req_s);
-
-		if ((!timer_signal.empty()) && req_signals.find(timer_signal) == req_signals.end())
-			req_signals.insert(timer_signal);
-
-		// add coefficients if needed
-		if (coeff.size() == 0)
-			coeff = calc2coeffs.find(calculator)->second;
-		size_t c_size = calc2coeffs.find(calculator)->second.size();
-		if (coeff.size() != c_size) {
-			MERR("RepCalcSigs: ERROR: calculator %s , expecting %d coefficients and got only %d\n", calculator.c_str(), c_size, coeff.size());
-			return -1;
-		}
-
-		// add V_names
-		if (V_names.size() == 0) {
-			for (auto &vsig : calc2virtual.find(calculator)->second)
-				V_names.push_back(vsig.first);
-		}
-		size_t v_size = calc2virtual.find(calculator)->second.size();
-		if (V_names.size() != v_size) {
-			MERR("RepCalcSigs: ERROR: calculator %s , expecting %d virtual names and got only %d\n", calculator.c_str(), v_size, V_names.size());
-			return -1;
-		}
-
-		// add V_types
-		for (auto &vsig : calc2virtual.find(calculator)->second)
-			V_types.push_back(vsig.second);
-
-		// add names to required, affected and virtual_signals
-		aff_signals.clear();
-		virtual_signals.clear();
-		for (int i = 0; i < V_names.size(); i++) {
-			aff_signals.insert(V_names[i]);
-			virtual_signals.push_back({ V_names[i], V_types[i] });
-		}
-		for (int i = 0; i < signals.size(); i++)
-			req_signals.insert(signals[i]);
-
-		return 0;
+	// add V_names
+	vector<pair<string, int>> default_virtual_signals;
+	calculator_logic->list_output_signals(signals, default_virtual_signals);
+	if (V_names.size() == 0) {
+		//feth from default:
+		V_names.resize(default_virtual_signals.size());
+		for (size_t i = 0; i < default_virtual_signals.size(); ++i)
+			V_names[i] = default_virtual_signals[i].first;
 	}
+
+	// add names to required, affected and virtual_signals
+	aff_signals.clear();
+	virtual_signals.clear();
+	for (int i = 0; i < V_names.size(); i++) {
+		aff_signals.insert(V_names[i]);
+		virtual_signals.push_back({ V_names[i], default_virtual_signals[i].second });
+	}
+	for (int i = 0; i < signals.size(); i++)
+		req_signals.insert(signals[i]);
+
+	calculator_logic->validate_arguments(signals, V_names);
+	return 0;
+
 
 	MERR("RepCalcSigs: ERROR: calculator %s not defined\n", calculator.c_str());
 	return -1;
+}
+
+SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
+	//! [SimpleCalculator::make_calculator]
+	if (calc_type == "ratio" || calc_type == "calc_ratio")
+		return new RatioCalculator();
+	else if (calc_type == "eGFR" || calc_type == "calc_eGFR")
+		return new eGFRCalculator();
+	else if (calc_type == "log" || calc_type == "calc_log")
+		return new logCalculator();
+	else if (calc_type == "sum" || calc_type == "calc_sum")
+		return new SumCalculator();
+	else if (calc_type == "range" || calc_type == "calc_range")
+		return new RangeCalculator();
+	else if (calc_type == "multiply" || calc_type == "calc_multiply")
+		return new MultiplyCalculator();
+	else
+		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
+			calc_type.c_str());
+	//! [SimpleCalculator::make_calculator]
+}
+
+RepCalcSimpleSignals::~RepCalcSimpleSignals() {
+	if (calculator_logic != NULL) {
+		delete calculator_logic;
+		calculator_logic = NULL;
+	}
 }
 
 mutex RepCalcSimpleSignals_init_tables_mutex;
@@ -2021,6 +2010,7 @@ mutex RepCalcSimpleSignals_init_tables_mutex;
 void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs)
 {
 	lock_guard<mutex> guard(RepCalcSimpleSignals_init_tables_mutex);
+	static_input_signals.resize(signals.size());
 
 	V_ids.clear();
 	sigs_ids.clear();
@@ -2031,125 +2021,211 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
 	for (auto &rsig : signals)
 		sigs_ids.push_back(dict.id(rsig));
-
-	if (!timer_signal.empty()) {
-		timer_signal_id = dict.id(timer_signal);
-		signals_time_unit = sigs.Sid2Info[timer_signal_id].time_unit;
-	}
-
-	//hack for saving run-time: code for african american is added on the fly as a coeff,
-	//to be used by the calculator
-	if (calc_type == CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN) {
-		int african_american_dict_id = dict.id("BLACK/AFRICAN AMERICAN");
-		coeff = { (float)african_american_dict_id };
-	}
-
-	if (signals_time_unit == MedTime::Undefined)
-		signals_time_unit = global_default_time_unit;
-
-	if (signals_time_unit == MedTime::Undefined)
-		MTHROW_AND_ERR("Please provide time unit. use timer field to specify signal\n");
+	vector<bool> all_sigs_static(T_Last);
+	all_sigs_static[T_TimeStamp] = true;
+	all_sigs_static[T_Value] = true;
+	all_sigs_static[T_ValShort2] = true;
+	all_sigs_static[T_ValShort4] = true;
+	for (size_t i = 0; i < signals.size(); ++i)
+		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type];
 }
 
 //.......................................................................................
 void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
 {
 	for (int i = 0; i < V_names.size(); i++)
-		_virtual_signals[V_names[i]] = V_types[i];
-	//for (auto &vsig : calc2virtual.find(calculator)->second)
-	//	_virtual_signals[vsig.first] = vsig.second;
+		_virtual_signals[V_names[i]] = virtual_signals[i].second;
 }
 
-//.......................................................................................
-int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
-{
-	if (calc2type.find(calc_name) != calc2type.end())
-		return calc2type.find(calc_name)->second;
-	return CALC_TYPE_UNDEF;
+bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
+	int time_range, int time_unit) {
+	int time = usvs[active_id].TimeU(idx[active_id] - 1, time_unit);
+	for (size_t i = 0; i < idx.size(); ++i)
+	{
+		if (i == active_id)
+			continue;//skip current
+		if (idx[i] == 0) //one signal is not yet started - will be happen in future, so waiting for it!
+			return false;
+
+		int ref_time = usvs[i].TimeU(idx[i] - 1, time_unit);
+		if (time - ref_time > time_range)
+			return false;
+	}
+	return true;
+}
+
+bool no_missings(const vector<float> &vals, float missing_value) {
+	for (size_t i = 0; i < vals.size(); ++i)
+		if (vals[i] == missing_value)
+			return false;
+	return true;
+}
+int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& time_points) {
+	// Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	int factor = 1;
+	int v_out_sid = V_ids[0];
+	//first lets fetch "static" signals without Time field:
+
+	set<int> iteratorSignalIds;
+	for (size_t i = 0; i < sigs_ids.size(); ++i)
+		if (!static_input_signals[i])
+			iteratorSignalIds.insert(sigs_ids[i]);
+	vector<int> timed_sigs(iteratorSignalIds.begin(), iteratorSignalIds.end());
+	differentVersionsIterator vit(rec, iteratorSignalIds);
+	rec.usvs.resize(timed_sigs.size());
+
+	int first_ver = vit.init();
+	vector<float> static_signals_values(sigs_ids.size(), missing_value);
+	for (size_t i = 0; i < static_signals_values.size(); ++i)
+		if (static_input_signals[i]) {
+			UniversalSigVec usv;
+			rec.uget(sigs_ids[i], first_ver, usv);
+			static_signals_values[i] = usv.Val(0);
+		}
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		for (size_t i = 0; i < timed_sigs.size(); ++i)
+			rec.uget(timed_sigs[i], iver, rec.usvs[i]);
+		bool all_non_empty = true;
+		for (size_t i = 0; i < rec.usvs.size() && all_non_empty; ++i)
+			all_non_empty = rec.usvs[i].len > 0;
+
+		if (all_non_empty) {
+			vector<int> idx(2);
+			int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+			int final_size = 0;
+			vector<float> v_vals;
+			vector<int> v_times;
+			while (active_id >= 0) {
+				//iterate on time ordered of signals - Let's try to calc signal:
+				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit);
+				if (can_calc) {
+					vector<float> collected_vals(rec.usvs.size());
+					--idx[active_id];
+					int time_idx = 0;
+					for (size_t i = 0; i < sigs_ids.size(); ++i) {
+						if (static_input_signals[i])
+							collected_vals[i] = static_signals_values[i];
+						else {
+							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx]);
+							++time_idx;
+						}
+					}
+					++idx[active_id];
+					if (no_missings(collected_vals, missing_value)) {
+						if (v_times.size() < final_size + 1) {
+							v_times.resize(final_size + 1);
+							v_vals.resize(final_size + 1);
+						}
+						v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
+						v_vals[final_size] = calculator_logic->do_calc(collected_vals);
+						if (v_vals[final_size] != missing_value) //insert only legal values (missing_value when ilegal)!
+							++final_size;
+					}
+				}
+
+				active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+			}
+			// pushing virtual data into rec (into orig version)
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], final_size);
+		}
+	}
+
+	return 0;
 }
 
 //.......................................................................................
 int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
 {
 	//handle special calculations
-	if (calc_type == CALC_TYPE_EGFR)
-		return _apply_calc_eGFR(rec, time_points);
+	apply_calc_in_time(rec, time_points);
 
-	if (calc_type == CALC_TYPE_DEBUG)
-		return _apply_calc_debug(rec, time_points);
+	//if (calc_type == CALC_TYPE_EGFR)
+	//	return _apply_calc_eGFR(rec, time_points);
 
-	if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT)
-		return _apply_calc_24h_urine_output(rec, time_points);
+	//if (calc_type == CALC_TYPE_RATIO)
+	//	return _apply_calc_ratio(rec, time_points);
 
-	if (calc_type == CALC_TYPE_LOG)
-		return _apply_calc_log(rec, time_points);
+	//if (calc_type == CALC_TYPE_DEBUG)
+	//	return _apply_calc_debug(rec, time_points);
 
-	//handle calculation that are done by first extrapolating each signal to the required 
-	//time points and then performing a pointwise calculation for the values in each time point.
-	float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
+	//if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT)
+	//	return _apply_calc_24h_urine_output(rec, time_points);
 
-	switch (calc_type) {
-	case CALC_TYPE_HOSP_PROCESSOR:
-		calcFunc = identity;
-		if (signals.size() != 1) {
-			//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
-			return -1;
-		}
-		break;
-	case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
-	case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
-	case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
-	case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
-	case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
-	case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
-	case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
-	case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
-	case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
-	case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
-	case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
-	case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
-	case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
-	case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
-	case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
-	case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
-	case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
-	case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
-	case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
-	case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
-	case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
-	case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
-	case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
-	case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;
-	}
+	//if (calc_type == CALC_TYPE_LOG)
+	//	return _apply_calc_log(rec, time_points);
 
-	if (calcFunc) {
-		int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
-		return rv;
-	}
+	////handle calculation that are done by first extrapolating each signal to the required 
+	////time points and then performing a pointwise calculation for the values in each time point.
+	//float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
 
-	//handle time-dependent calculations
-	//calculation are done by first extrapolating each signal to the required 
-	//time points and then performing a pointwise calculation for the values in each time point.
-	//in contrast to previous signals, here the calculation does depend on the orignal times 
-	//of the signals and their reference to the requested times
-	float(*calcTimeFunc)(const vector<pair<int, float> >&, int, const vector<float>&) = NULL;
+	//switch (calc_type) {
+	//case CALC_TYPE_HOSP_PROCESSOR:
+	//	calcFunc = identity;
+	//	if (signals.size() != 1) {
+	//		//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
+	//		return -1;
+	//	}
+	//	break;
+	//case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
+	//case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
+	//case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
+	//case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
+	//case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
+	//case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
+	//case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
+	//case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
+	//case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
+	//case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
+	//case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
+	//case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
+	//case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
+	//case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
+	//case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
+	//case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
+	//case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
+	//case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
+	//case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
+	//case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
+	//case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
+	//case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
+	//case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
+	//case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;
+	//}
 
-	switch (calc_type) {
-	case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
-	case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
-	}
+	//if (calcFunc) {
+	//	int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
+	//	return rv;
+	//}
 
-	if (calcTimeFunc)
-		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, false); //use past/future observations
+	////handle time-dependent calculations
+	////calculation are done by first extrapolating each signal to the required 
+	////time points and then performing a pointwise calculation for the values in each time point.
+	////in contrast to previous signals, here the calculation does depend on the orignal times 
+	////of the signals and their reference to the requested times
+	//float(*calcTimeFunc)(const vector<pair<int, float> >&, int, const vector<float>&) = NULL;
 
-	switch (calc_type) {
-	case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently; break; //special function
-	}
+	//switch (calc_type) {
+	//case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
+	//case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
+	//}
 
-	if (calcTimeFunc)
-		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
+	//if (calcTimeFunc)
+	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, false); //use past/future observations
 
-	return -1;
+	//switch (calc_type) {
+	//case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently; break; //special function
+	//}
+
+	//if (calcTimeFunc)
+	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
+
+	//return -1;
+	return 0;
 }
 
 //=======================================================================================
