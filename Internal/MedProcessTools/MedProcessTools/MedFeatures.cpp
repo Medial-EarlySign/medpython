@@ -400,6 +400,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 					newSample.prediction[i] = stof(fields[field_ind_to_pred_index[i]]);
 			samples.push_back(newSample);
 
+			idx += (max_pred + 1);
 			for (int i = 0; i < names.size(); i++)
 				data[names[i]].push_back(stof(fields[idx + i]));
 		}

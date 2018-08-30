@@ -21,6 +21,9 @@
 
 #include <vector>
 #include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <InfraMed/InfraMed/InfraMed.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
+
 using namespace std;
 
 
@@ -158,6 +161,7 @@ class MedCohort : SerializableObject {
 	/// </summary>
 	/// <returns> 0 upon success. -1 upon failre to read repository </returns>
 	int create_sampling_file(SamplingParams &s_params, string out_sample_file);
+	int create_samples(MedRepository& rep, SamplingParams &s_params, MedSamples& samples);
 
 	/// <summary>
 	/// Generate a samples file from cohort + sampling-params <br>
@@ -166,7 +170,7 @@ class MedCohort : SerializableObject {
 	/// </summary>
 	/// <returns>  0 upon success. -1 upon failre to read repository </returns>
 	int create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file);
-
+	int create_samples_sticked(MedRepository& rep, SamplingParams &s_params, MedSamples& samples);
 };
 
 
