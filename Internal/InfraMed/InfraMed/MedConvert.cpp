@@ -76,7 +76,6 @@ int MedConvert::read_config(const string &fname)
 			split(fields, curr_line, boost::is_any_of(" \t"));
 
 			if (fields.size() >= 2) {
-
 				if (fields[0].compare("DIR") == 0) {
 					path = fields[1];
 					if (path.compare(".") == 0) {
@@ -405,6 +404,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 	char convert_mode = safe_mode > 0 ? 2 : 1;
 	while (get_next) {
 		pos = inf.tellg();
+
 		if (getline(inf, curr_line)) {
 			if (curr_line[curr_line.size() - 1] == '\r')
 				curr_line.erase(curr_line.size() - 1);
@@ -467,8 +467,11 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 								MTHROW_AND_ERR("MedConvert: ERROR: unrecognized signal name %s (need to add to codes_to_signals file) in file %s :: curr_line is %s\n",
 									fields[1].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
 							sid = dict.id(codes2names[fields[1]]);
+							if (sid < 0)
+								MTHROW_AND_ERR("MedConvert: ERROR: signal name %s converted to %s is not in dict in file %s :: curr_line is %s\n",
+									fields[1].c_str(), codes2names[fields[1]].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
 							//MLOG("here001 %s %d %d \n", codes2names[fields[1]].c_str(), sid, sids_to_load[sid]);
-							if (sid < 0 || !sids_to_load[sid])
+							if (!sids_to_load[sid])
 								continue;
 							int section = dict.section_id(sigs.name(sid));
 							try {
@@ -881,7 +884,7 @@ int MedConvert::create_indexes()
 	for (auto& stat : fstats) {
 		float ratio = (float)(stat.n_parsed_lines + 1) / (float)(stat.n_relevant_lines + 1);
 		float bad_ratio = (float)(stat.n_bad_format_lines + 1) / (float)(stat.n_relevant_lines + 1);
-		MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_bad_format_lines %d n_loaded_lines %d : loaded %g\n",
+		MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_bad_format_lines %d n_parsed_lines %d : parsed %g\n",
 			stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_bad_format_lines, stat.n_parsed_lines,
 			ratio);
 		if (ratio < 0.01 || bad_ratio > 0.05) {
