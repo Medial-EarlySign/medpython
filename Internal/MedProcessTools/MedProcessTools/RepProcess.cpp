@@ -2080,7 +2080,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 			timed_sigs.push_back(sigs_ids[i]);
 		}
 
-	differentVersionsIterator vit(rec, iteratorSignalIds);
+	allVersionsIterator vit(rec, iteratorSignalIds);
 	rec.usvs.resize(timed_sigs.size());
 
 	int first_ver = vit.init();
