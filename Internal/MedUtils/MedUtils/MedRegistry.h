@@ -140,6 +140,7 @@ public:
 protected:
 	vector<string> signalCodes_names; ///< the signals codes by name
 	bool need_bdate; ///< If true Bdate is also used in registry creation
+	medial::repository::fix_method resolve_conlicts = medial::repository::fix_method::none; ///< resolve conflicts in registry method
 private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
@@ -287,6 +288,27 @@ public:
 private:
 
 };
+
+/**
+* A Registry operator to handle drugs with condition on drug type and dosage range
+*/
+class RegistrySignalDrug : public RegistrySignal {
+public:
+	RegistrySignalDrug(MedRepository &rep);
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalDrug::init
+	int init(map<string, string>& map);
+
+	/// Checks if has flags inside or it's empty one
+	bool is_empty() { return Flags.empty(); }
+
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+private:
+	vector<char> Flags; ///< first if exists
+	vector<pair<float, float>> Flags_range; ///< range for dosage
+	MedRepository *repo;
+};
+
 
 /**
 * A Class which creates registry based on readcode lists.

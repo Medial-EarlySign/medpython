@@ -1720,6 +1720,26 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 			mean_val /= data_group.size();
 			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
 			break;
+		case medial::repository::take_min:
+			//lets find min;
+			mean_val = s.Val(curr_pos);
+			for (int k = 1; k < data_group.size(); ++k) {
+				if (s.Val(curr_pos + k) < mean_val)
+					mean_val = s.Val(curr_pos + k);
+				to_remove.push_back(curr_pos + k);
+			}
+			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
+			break;
+		case medial::repository::take_max:
+			//lets find min;
+			mean_val = s.Val(curr_pos);
+			for (int k = 1; k < data_group.size(); ++k) {
+				if (s.Val(curr_pos + k) > mean_val)
+					mean_val = s.Val(curr_pos + k);
+				to_remove.push_back(curr_pos + k);
+			}
+			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
+			break;
 		default:
 			MTHROW_AND_ERR("Error in fix_contradictions - Not Implemented\n");
 		}
