@@ -813,13 +813,24 @@ inline void init_list(const string &reg_path, vector<bool> &list) {
 }
 
 RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
-	MedRepository &rep, const vector<string> &sets, float outcome_val) {
+	MedRepository &rep, const vector<string> &sets, float outcome_val, int chan) {
 	signalName = sigName;
 	buffer_duration = buffer_time;
 	duration_flag = durr_time;
 	take_only_first = take_first;
 	outcome_value = outcome_val;
+	channel = chan;
 	repo = &rep;
+	if (!sigName.empty()) {
+		int sid = rep.sigs.sid(sigName);
+		if (sid < 0)
+			MTHROW_AND_ERR("Error in RegistrySignalSet::RegistrySignalSet - couldn't find signal \"%s\" in repo. maybe repo not initialized?\n",
+				sigName.c_str());
+		int max_chan = rep.sigs.Sid2Info[sid].n_val_channels;
+		if (channel >= max_chan)
+			MTHROW_AND_ERR("Error in RegistrySignalSet::RegistrySignalSet - channel %d not exists in signal \"%s\"\n",
+				channel, signalName.c_str());
+	}
 	if (!sets.empty()) {
 		int section_id = rep.dict.section_id(sigName);
 		rep.dict.curr_section = section_id;
@@ -832,8 +843,8 @@ bool RegistrySignalSet::get_outcome(UniversalSigVec &s, int current_i, float &re
 	bool is_active = false;
 	result = 0;
 	is_active = !(current_i < 0 || current_i >= s.len
-		|| s.Val(current_i) < 0 || s.Val(current_i) >= Flags.size());
-	is_active = is_active && Flags[(int)s.Val(current_i)];
+		|| s.Val(current_i, channel) < 0 || s.Val(current_i, channel) >= Flags.size());
+	is_active = is_active && Flags[(int)s.Val(current_i, channel)];
 	if (is_active)
 		result = outcome_value;
 	return is_active;
@@ -841,7 +852,7 @@ bool RegistrySignalSet::get_outcome(UniversalSigVec &s, int current_i, float &re
 
 int RegistrySignalSet::init(map<string, string>& map) {
 
-	string sets_arg = "";
+	string sets_path = "";
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		//! [RegistrySignalSet::init]
@@ -855,25 +866,27 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			take_only_first = stoi(it->second) > 0;
 		else if (it->first == "outcome_value")
 			outcome_value = stof(it->second);
-		else if (it->first == "sets") //should contain "sets=" which points to file with list of codes
-			sets_arg = it->second;
+		else if (it->first == "channel")
+			channel = stoi(it->second);
+		else if (it->first == "sets_path") //should contain "sets_path=" which points to file with list of codes
+			sets_path = it->second;
 		else
-			MTHROW_AND_ERR("unsupported element \"%s\"\n",
+			MTHROW_AND_ERR("Error in RegistrySignalSet::init - unsupported element \"%s\"\n",
 				it->first.c_str());
 		//! [RegistrySignalSet::init]
 	}
+	int sid = repo->sigs.sid(signalName);
+	if (sid < 0)
+		MTHROW_AND_ERR("Error in RegistrySignalSet::init - couldn't find signal \"%s\" in repo. maybe repo not initialized?\n",
+			signalName.c_str());
+	int max_chan = repo->sigs.Sid2Info[sid].n_val_channels;
+	if (channel >= max_chan)
+		MTHROW_AND_ERR("Error in RegistrySignalSet::init - channel %d not exists in signal \"%s\"\n",
+			channel, signalName.c_str());
 	//save to end
-	if (!sets_arg.empty()) {
-		std::map<string, string> set_init;
-		//sets=;
-		init_map_from_string(sets_arg, set_init);
-		//not possible to have this object without pointer to repo
-		//if (set_init.find("rep") == set_init.end())
-		//	MTHROW_AND_ERR("sets should contain rep\n");
-		if (set_init.find("sets") == set_init.end())
-			MTHROW_AND_ERR("sets should contain sets for file path\n");
+	if (!sets_path.empty()) {
 		vector<string> sets;
-		medial::io::read_codes_file(set_init["sets"], sets);
+		medial::io::read_codes_file(sets_path, sets);
 		if (!sets.empty()) {
 			int section_id = repo->dict.section_id(signalName);
 			repo->dict.curr_section = section_id;
@@ -923,7 +936,7 @@ void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr,
 }
 
 RegistrySignalRange::RegistrySignalRange(const string &sigName, int durr_time, int buffer_time,
-	bool take_first, float min_range, float max_range, float outcome_val) {
+	bool take_first, float min_range, float max_range, float outcome_val, int chan) {
 	signalName = sigName;
 	duration_flag = durr_time;
 	buffer_duration = buffer_time;
@@ -932,10 +945,11 @@ RegistrySignalRange::RegistrySignalRange(const string &sigName, int durr_time, i
 	min_value = min_range;
 	max_value = max_range;
 	outcome_value = outcome_val;
+	channel = chan;
 }
 
 bool RegistrySignalRange::get_outcome(UniversalSigVec &s, int current_i, float &result) {
-	bool is_active = current_i < s.len && s.Val(current_i) >= min_value && s.Val(current_i) <= max_value;
+	bool is_active = current_i < s.len && s.Val(current_i, channel) >= min_value && s.Val(current_i, channel) <= max_value;
 	if (is_active)
 		result = outcome_value;
 	return is_active;
@@ -959,8 +973,10 @@ int RegistrySignalRange::init(map<string, string>& map) {
 			max_value = stof(it->second);
 		else if (it->first == "outcome_value")
 			outcome_value = stof(it->second);
+		else if (it->first == "channel")
+			channel = stoi(it->second);
 		else
-			MTHROW_AND_ERR("unsupported element \"%s\"\n",
+			MTHROW_AND_ERR("Error in RegistrySignalRange::init - unsupported element \"%s\"\n",
 				it->first.c_str());
 		//! [RegistrySignalRange::init]
 	}
@@ -978,7 +994,7 @@ RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
 
 int RegistrySignalDrug::init(map<string, string>& map) {
 
-	string sets_arg = "";
+	string sets_path = "";
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		//! [RegistrySignalDrug::init]
@@ -992,25 +1008,17 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 			take_only_first = stoi(it->second) > 0;
 		else if (it->first == "outcome_value")
 			outcome_value = stof(it->second);
-		else if (it->first == "sets") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
-			sets_arg = it->second;
+		else if (it->first == "sets_path") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
+			sets_path = it->second;
 		else
-			MTHROW_AND_ERR("unsupported element \"%s\"\n",
+			MTHROW_AND_ERR("Error in RegistrySignalDrug::init - unsupported element \"%s\"\n",
 				it->first.c_str());
 		//! [RegistrySignalDrug::init]
 	}
 	//save to end
-	if (!sets_arg.empty()) {
-		std::map<string, string> set_init;
-		//sets=;
-		init_map_from_string(sets_arg, set_init);
-		//not possible to have this object without pointer to repo
-		//if (set_init.find("rep") == set_init.end())
-		//	MTHROW_AND_ERR("sets should contain rep\n");
-		if (set_init.find("sets") == set_init.end())
-			MTHROW_AND_ERR("sets should contain sets for file path\n");
+	if (!sets_path.empty()) {
 		vector<string> sets;
-		medial::io::read_codes_file(set_init["sets"], sets);
+		medial::io::read_codes_file(sets_path, sets);
 		vector<int> matched_ids(sets.size());
 		int max_id = 0;
 		if (!sets.empty()) {
@@ -1027,9 +1035,9 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 		Flags_range.resize(max_id + 1);
 		//now parse range part:
 		ifstream file;
-		file.open(set_init["sets"]);
+		file.open(sets_path);
 		if (!file.good())
-			MTHROW_AND_ERR("Unable to open test indexes file:\n%s\n", set_init["sets"].c_str());
+			MTHROW_AND_ERR("Error in RegistrySignalDrug::init - Unable to open test indexes file:\n%s\n", sets_path.c_str());
 		string line;
 		//getline(file, line); //ignore first line
 		int set_id = 0;
@@ -1043,7 +1051,7 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 			boost::split(tokens, line, boost::is_any_of("\t"));
 			if (tokens.size() != 3)
 				MTHROW_AND_ERR("Error in RegistrySignalDrug::init - parsing %s file where each line should contain 3 tokens seprated by TAB. got line:\n%s\n",
-					set_init["sets"].c_str(), line.c_str());
+					sets_path.c_str(), line.c_str());
 			Flags_range[matched_ids[set_id]].first = stof(tokens[1]);
 			Flags_range[matched_ids[set_id]].second = stof(tokens[2]);
 			++set_id;
@@ -1064,6 +1072,50 @@ bool RegistrySignalDrug::get_outcome(UniversalSigVec &s, int current_i, float &r
 	if (is_active)
 		result = outcome_value;
 	return is_active;
+}
+
+bool RegistrySignalAnd::get_outcome(UniversalSigVec &s, int current_i, float &result) {
+	bool is_active = true;
+	result = 0;
+	float temp;
+	for (size_t i = 0; i < conditions.size() && is_active; ++i)
+		is_active = conditions[i]->get_outcome(s, current_i, temp);
+	if (is_active)
+		result = outcome_value;
+	return is_active;
+}
+
+RegistrySignalAnd::RegistrySignalAnd(MedRepository &rep) {
+	repo = &rep;
+	signalName = "";
+	duration_flag = 0;
+	buffer_duration = 0;
+	take_only_first = false;
+	outcome_value = 1;
+	channel = 0;
+}
+
+int RegistrySignalAnd::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		//! [RegistrySignalAnd::init]
+		if (it->first == "signalName")
+			MWARN("Warning in RegistrySignalAnd::init - ignoring signalName argument. this is wrapper operation\n");
+		else if (it->first == "conditions")  //not checking for infinite loop
+			RegistrySignal::parse_registry_rules(it->second, *repo, conditions);
+		else
+			MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - Unsupported Argument %s\n", it->first.c_str());
+		//! [RegistrySignalAnd::init]
+	}
+	if (conditions.empty())
+		MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - conditions is empty. please use conditions to reffer to file with and conditions of signals\n");
+	return 0;
+}
+
+RegistrySignalAnd::~RegistrySignalAnd() {
+	for (size_t i = 0; i < conditions.size(); ++i)
+		delete conditions[i];
+	conditions.clear();
 }
 
 inline int Date_wrapper(UniversalSigVec &signal, int i) {
@@ -1677,7 +1729,7 @@ void medial::io::read_codes_file(const string &file_path, vector<string> &tokens
 	ifstream file;
 	file.open(file_path);
 	if (!file.is_open())
-		throw logic_error("Unable to open test indexes file:\n" + file_path);
+		MTHROW_AND_ERR("Unable to open test indexes file:\n%s\n", file_path.c_str());
 	string line;
 	//getline(file, line); //ignore first line
 	while (getline(file, line)) {
@@ -1703,6 +1755,8 @@ RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepo
 		return new RegistrySignalRange(empty_str, 0, 0, false, 0, 0);
 	else if (type == "drug")
 		return new RegistrySignalDrug(rep);
+	else if (type == "and")
+		return new RegistrySignalAnd(rep);
 	else
 		MTHROW_AND_ERR("Error: Unsupported type \"%s\" for RegistrySignal::make_registry_signal\n", type.c_str());
 	//! [RegistrySignal::make_registry_signal]

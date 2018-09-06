@@ -225,7 +225,18 @@ public:
 	int duration_flag; ///< the duration for each positive to merge time ranges
 	int buffer_duration; ///< a buffer duration between positive to negative
 	bool take_only_first; ///< if True will take only first occournce
+	int channel; ///< the channel number the rule operates on
 	float outcome_value; ///< the outcome value when condition holds
+
+	/// Default init ctor for object, that won't contain garbage when not initialized specifically
+	RegistrySignal() {
+		signalName = "";
+		duration_flag = 0;
+		buffer_duration = 0;
+		take_only_first = false;
+		channel = 0;
+		outcome_value = 1;
+	}
 
 	/// a function that retrive current outcome based on new time point
 	virtual bool get_outcome(UniversalSigVec &s, int current_i, float &result) = 0;
@@ -254,7 +265,7 @@ public:
 class RegistrySignalSet : public RegistrySignal {
 public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
+		MedRepository &rep, const vector<string> &sets, float outcome_val = 1, int chan = 0);
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
 	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
@@ -279,7 +290,7 @@ public:
 	float max_value; ///< the maximal value to turn control into case. smaller than or equal
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		float min_range, float max_range, float outcome_val = 1);
+		float min_range, float max_range, float outcome_val = 1, int chan = 0);
 	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
@@ -309,6 +320,25 @@ private:
 	MedRepository *repo;
 };
 
+/**
+* A Registry Signal class wrapper for AND condition on multiple Registry signal channels.
+* it works only on same signal on the same time point
+*/
+class RegistrySignalAnd: public RegistrySignal {
+public:
+	vector<RegistrySignal *> conditions; ///< the list of conditions to calc AND on them
+
+	RegistrySignalAnd(MedRepository &rep);
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalAnd::init
+	int init(map<string, string>& map);
+
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+
+	~RegistrySignalAnd();
+private:
+	MedRepository *repo;
+};
 
 /**
 * A Class which creates registry based on readcode lists.
