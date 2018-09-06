@@ -24,8 +24,8 @@ typedef enum {
 	REP_PROCESS_RULEBASED_OUTLIER_CLEANER,///<"rulebased_outlier_cleaner" or "rule_cln" to activate RepRuleBasedOutlierCleaner
 	REP_PROCESS_CALC_SIGNALS,///<"calc_signals" or "calculator" to activate RepCalcSimpleSignals
 	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
-	REP_PROCESS_CHECK_REQ, ///<check compliance with minimal requirement
-	REP_PROCESS_SIM_VAL, ///< handle multiple simultanous values
+	REP_PROCESS_CHECK_REQ, ///<"req" or "requirements" check compliance with minimal requirement to activate RepCheckReq
+	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -628,13 +628,14 @@ public:
 
 	string nHandle_attr = ""; ///< Attribute name (in sample) for number of multiple-values handled. not recorded if empty
 	string nHandle_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of multiple-values handled. not recorded if empty
+	bool debug = false; ///<If True will print out till 3 examples for samples have been changed
 
 	/// <summary> default constructor </summary>
 	RepSimValHandler() { processor_type = REP_PROCESS_SIM_VAL; }
 	/// <summary> default constructor + setting signal name </summary>
 	RepSimValHandler(const string& _signalName) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_lists(); }
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
-	RepSimValHandler(const string& _signalName, string init_string) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_from_string(init_string); }
+	RepSimValHandler(const string& _signalName, string init_string) { processor_type = REP_PROCESS_SIM_VAL; signalId = -1; signalName = _signalName; init_from_string(init_string); }
 
 	/// <summary> Set signal name and fill affected and required signals sets </summary> 
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
@@ -657,14 +658,17 @@ public:
 
 	/// <summary> Apply multiple-value handling </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
-	void handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes);
 
 	/// <summary> get SimHandleType from name </summary>
+	/// @snippet RepProcess.cpp RepSimValHandler::get_sim_val_handle_type
 	static SimValHandleTypes get_sim_val_handle_type(string& name);
 
 	/// Serialization
 	int version() { return 0; }
 	ADD_SERIALIZATION_FUNCS(signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
+private:
+	void handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes);
+	int verbose_cnt = 0;
 };
 
 //.......................................................................................

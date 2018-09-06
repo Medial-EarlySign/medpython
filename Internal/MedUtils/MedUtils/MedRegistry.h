@@ -140,6 +140,7 @@ public:
 protected:
 	vector<string> signalCodes_names; ///< the signals codes by name
 	bool need_bdate; ///< If true Bdate is also used in registry creation
+	medial::repository::fix_method resolve_conlicts = medial::repository::fix_method::none; ///< resolve conflicts in registry method
 private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
@@ -224,7 +225,18 @@ public:
 	int duration_flag; ///< the duration for each positive to merge time ranges
 	int buffer_duration; ///< a buffer duration between positive to negative
 	bool take_only_first; ///< if True will take only first occournce
+	int channel; ///< the channel number the rule operates on
 	float outcome_value; ///< the outcome value when condition holds
+
+	/// Default init ctor for object, that won't contain garbage when not initialized specifically
+	RegistrySignal() {
+		signalName = "";
+		duration_flag = 0;
+		buffer_duration = 0;
+		take_only_first = false;
+		channel = 0;
+		outcome_value = 1;
+	}
 
 	/// a function that retrive current outcome based on new time point
 	virtual bool get_outcome(UniversalSigVec &s, int current_i, float &result) = 0;
@@ -253,7 +265,7 @@ public:
 class RegistrySignalSet : public RegistrySignal {
 public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
+		MedRepository &rep, const vector<string> &sets, float outcome_val = 1, int chan = 0);
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
 	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
@@ -278,7 +290,7 @@ public:
 	float max_value; ///< the maximal value to turn control into case. smaller than or equal
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		float min_range, float max_range, float outcome_val = 1);
+		float min_range, float max_range, float outcome_val = 1, int chan = 0);
 	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
@@ -286,6 +298,46 @@ public:
 	int init(map<string, string>& map);
 private:
 
+};
+
+/**
+* A Registry operator to handle drugs with condition on drug type and dosage range
+*/
+class RegistrySignalDrug : public RegistrySignal {
+public:
+	RegistrySignalDrug(MedRepository &rep);
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalDrug::init
+	int init(map<string, string>& map);
+
+	/// Checks if has flags inside or it's empty one
+	bool is_empty() { return Flags.empty(); }
+
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+private:
+	vector<char> Flags; ///< first if exists
+	vector<pair<float, float>> Flags_range; ///< range for dosage
+	MedRepository *repo;
+};
+
+/**
+* A Registry Signal class wrapper for AND condition on multiple Registry signal channels.
+* it works only on same signal on the same time point
+*/
+class RegistrySignalAnd: public RegistrySignal {
+public:
+	vector<RegistrySignal *> conditions; ///< the list of conditions to calc AND on them
+
+	RegistrySignalAnd(MedRepository &rep);
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignalAnd::init
+	int init(map<string, string>& map);
+
+	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+
+	~RegistrySignalAnd();
+private:
+	MedRepository *repo;
 };
 
 /**

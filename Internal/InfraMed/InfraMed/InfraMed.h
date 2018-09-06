@@ -642,7 +642,9 @@ namespace medial {
 			drop = 1,
 			take_first = 2,
 			take_last = 3,
-			take_mean = 4
+			take_mean = 4,
+			take_max = 5,
+			take_min = 6
 		};
 		/// \brief fix contradicting signal values in same time for same patient. return true if changed data
 		bool fix_contradictions(UniversalSigVec &s, fix_method method, UniversalSigVec_mem &edited);

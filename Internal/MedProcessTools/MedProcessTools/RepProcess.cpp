@@ -1705,6 +1705,7 @@ int RepSimValHandler::init(map<string, string>& mapper)
 		//! [RepSimValHandler::init]
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "type") handler_type = get_sim_val_handle_type(entry.second);
+		else if (field == "debug") debug = stoi(entry.second) > 0;
 		else if (field == "time_channels") {
 			vector<string> channels;
 			boost::split(channels, entry.second, boost::is_any_of(","));
@@ -1742,7 +1743,7 @@ void RepSimValHandler::init_attributes() {
 // name to SimValHandleTypes
 //.......................................................................................
 SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 	if (name == "first" || name == "first_val")
 		return SIM_VAL_FIRST_VAL;
 	else if (name == "last" || name == "last_val")
@@ -1755,7 +1756,7 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 		return SIM_VAL_REM_DIFF;
 	else
 		MTHROW_AND_ERR("Unkwnon sim_val_hand_type \'%s\'\n", name.c_str());
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 }
 
 // Get time-channels (if empty)
@@ -1790,6 +1791,7 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 	int len;
 	differentVersionsIterator vit(rec, signalId);
+	int total_nTimes = 0;
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		// Do it 
@@ -1849,8 +1851,14 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 				attributes_mat[pVersion][idx] = (float)nTimes;
 			idx++;
 		}
+		total_nTimes += nTimes;
 	}
 
+	if (debug && total_nTimes > 0 && verbose_cnt < 1) {
+		MLOG("RepSimValHandler for %s - patient %d handled %d samples\n",
+			signalName.c_str(), rec.pid, total_nTimes);
+		++verbose_cnt;
+	}
 	return 0;
 
 }
@@ -2038,9 +2046,9 @@ void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signal
 }
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
-	int time_range, int time_unit, int &max_diff) {
+	int time_range, int time_unit, int &sum_diff) {
 	int time = usvs[active_id].TimeU(idx[active_id] - 1, time_unit);
-	max_diff = -1; //if not found
+	sum_diff = 0; //if not found
 	for (size_t i = 0; i < idx.size(); ++i)
 	{
 		if (i == active_id)
@@ -2051,8 +2059,7 @@ bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active
 		int ref_time = usvs[i].TimeU(idx[i] - 1, time_unit);
 		if (time - ref_time > time_range)
 			return false;
-		if (max_diff == -1 || max_diff < time - ref_time)
-			max_diff = time - ref_time;
+		sum_diff += time - ref_time;
 	}
 	return true;
 }
@@ -2081,7 +2088,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 			timed_sigs.push_back(sigs_ids[i]);
 		}
 
-	differentVersionsIterator vit(rec, iteratorSignalIds);
+	allVersionsIterator vit(rec, iteratorSignalIds);
 	rec.usvs.resize(timed_sigs.size());
 
 	int first_ver = vit.init();
@@ -2099,7 +2106,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		bool all_non_empty = true;
 		for (size_t i = 0; i < rec.usvs.size() && all_non_empty; ++i)
 			all_non_empty = rec.usvs[i].len > 0;
-		int last_time = -1, last_diff_in_time = -1;
+		int last_time = -1;
 		if (all_non_empty) {
 			vector<int> idx(timed_sigs.size());
 			int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
@@ -2110,9 +2117,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 			while (active_id >= 0) {
 				//iterate on time ordered of signals - Let's try to calc signal:
 				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit, max_diff);
-				if (can_calc && (last_time == -1 ||
-					last_time != rec.usvs[active_id].Time(idx[active_id] - 1))
-					|| max_diff < last_diff_in_time) {
+				if (can_calc) {
 					vector<float> collected_vals(sigs_ids.size());
 					int time_idx = 0;
 					for (size_t i = 0; i < sigs_ids.size(); ++i) {
@@ -2138,7 +2143,6 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 						if (v_vals[final_size] != missing_value) { //insert only legal values (missing_value when ilegal)!
 							++final_size;
 							last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
-							last_diff_in_time = max_diff;
 						}
 						else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
 							v_vals[final_size] = prev_val; //return previous val that was not missing
