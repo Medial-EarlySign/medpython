@@ -1705,6 +1705,7 @@ int RepSimValHandler::init(map<string, string>& mapper)
 		//! [RepSimValHandler::init]
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "type") handler_type = get_sim_val_handle_type(entry.second);
+		else if (field == "debug") debug = stoi(entry.second) > 0;
 		else if (field == "time_channels") {
 			vector<string> channels;
 			boost::split(channels, entry.second, boost::is_any_of(","));
@@ -1742,7 +1743,7 @@ void RepSimValHandler::init_attributes() {
 // name to SimValHandleTypes
 //.......................................................................................
 SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 	if (name == "first" || name == "first_val")
 		return SIM_VAL_FIRST_VAL;
 	else if (name == "last" || name == "last_val")
@@ -1755,7 +1756,7 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 		return SIM_VAL_REM_DIFF;
 	else
 		MTHROW_AND_ERR("Unkwnon sim_val_hand_type \'%s\'\n", name.c_str());
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 }
 
 // Get time-channels (if empty)
@@ -1790,6 +1791,7 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 	int len;
 	differentVersionsIterator vit(rec, signalId);
+	int total_nTimes = 0;
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		// Do it 
@@ -1849,8 +1851,14 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 				attributes_mat[pVersion][idx] = (float)nTimes;
 			idx++;
 		}
+		total_nTimes += nTimes;
 	}
 
+	if (debug && total_nTimes > 0 && verbose_cnt < 1) {
+		MLOG("RepSimValHandler for %s - patient %d handled %d samples\n",
+			signalName.c_str(), rec.pid, total_nTimes);
+		++verbose_cnt;
+	}
 	return 0;
 
 }
