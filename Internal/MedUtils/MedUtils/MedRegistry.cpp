@@ -1996,33 +1996,19 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 							signal_prop->signalName.c_str(), pid, curr_date, signal.Val(i));
 					}
 					else if (resolve_conlicts == medial::repository::fix_method::take_first) {
-						signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
-						if (signal_index >= 0)
-							same_date = last_date == Date_wrapper(usv[signal_index], signals_indexes_pointers[signal_index] - 1);
-						continue;
+						break;
 					}
 					else if (resolve_conlicts == medial::repository::fix_method::take_max) {
-						if (rule_activated > signal_prop_outcome) {
-							signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
-							if (signal_index >= 0)
-								same_date = last_date == Date_wrapper(usv[signal_index], signals_indexes_pointers[signal_index] - 1);
+						if (rule_activated > signal_prop_outcome) 
 							continue;
-						}
 					}
 					else if (resolve_conlicts == medial::repository::fix_method::take_min) {
-						if (rule_activated < signal_prop_outcome) {
-							signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
-							if (signal_index >= 0)
-								same_date = last_date == Date_wrapper(usv[signal_index], signals_indexes_pointers[signal_index] - 1);
+						if (rule_activated < signal_prop_outcome)
 							continue;
-						}
 					}
 					else if (resolve_conlicts == medial::repository::fix_method::drop) {
 						mark_no_match = true;
-						signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
-						if (signal_index >= 0)
-							same_date = last_date == Date_wrapper(usv[signal_index], signals_indexes_pointers[signal_index] - 1);
-						continue;
+						break;
 					}
 					else if (resolve_conlicts == medial::repository::fix_method::take_last) {
 						//do nothing - continue
