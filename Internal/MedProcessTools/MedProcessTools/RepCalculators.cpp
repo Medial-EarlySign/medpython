@@ -267,6 +267,56 @@ void MultiplyCalculator::list_output_signals(const vector<string> &input_signals
 float MultiplyCalculator::do_calc(const vector<float> &vals) const {
 	return pow(vals[0], power_a) * pow(vals[1], power_b);
 }
+//.............................SET CALCULATOR.........................................
+int SetCalculator::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [SetCalculator::init]
+		if (it->first == "sets")
+			boost::split(sets, it->second, boost::is_any_of(","));
+		else if (it->first == "sets_file")
+			medial::io::read_codes_file(it->second, sets);
+		else if (it->first == "in_range_val")
+			in_range_val = stof(it->second);
+		else if (it->first == "out_range_val")
+			out_range_val = stof(it->second);
+		else
+			MTHROW_AND_ERR("Error in SumCalculator::init - Unsupported argument \"%s\"\n",
+				it->first.c_str());
+		//! [SetCalculator::init]
+	}
+	if (sets.empty())
+		MTHROW_AND_ERR("ERROR: SetCalculator::init - must provide min_range,max-range arguments\n");
+
+	return 0;
+}
+
+void SetCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
+	if (!(input_signals.size() == 1 && output_signals.size() == 1))
+		MTHROW_AND_ERR("Error SetCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
+}
+
+void SetCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
+	char buff[500];
+
+	snprintf(buff, sizeof(buff), "%s_in_set", input_signals[0].c_str());
+	string o_name = string(buff);
+
+	_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+}
+
+void SetCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {
+	int section_id = dict.section_id(input_signals.front());
+	dict.prep_sets_lookup_table(section_id, sets, Flags);
+}
+
+float SetCalculator::do_calc(const vector<float> &vals) const {
+	float v = vals[0];
+	if (Flags[v])
+		return in_range_val;
+	else
+		return out_range_val;
+}
 //.......................................................................................
 
 //.......................................................................................

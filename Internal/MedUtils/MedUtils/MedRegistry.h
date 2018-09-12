@@ -209,9 +209,6 @@ namespace medial {
 		/// \brief printing registry stats for labels inside of it.
 		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
 	}
-	namespace io {
-		void read_codes_file(const string &file_path, vector<string> &tokens);
-	}
 }
 
 /**

@@ -566,6 +566,27 @@ void medial::print::log_with_file(ofstream &fw, const char *format_str, ...) {
 	MLOG("%s", final_str.c_str());
 }
 
+void medial::io::read_codes_file(const string &file_path, vector<string> &tokens) {
+	tokens.clear();
+	ifstream file;
+	file.open(file_path);
+	if (!file.is_open())
+		MTHROW_AND_ERR("Unable to open test indexes file:\n%s\n", file_path.c_str());
+	string line;
+	//getline(file, line); //ignore first line
+	while (getline(file, line)) {
+		boost::trim(line);
+		if (line.empty())
+			continue;
+		if (line.at(0) == '#')
+			continue;
+		if (line.find('\t') != string::npos)
+			line = line.substr(0, line.find('\t'));
+		tokens.push_back(line);
+	}
+	file.close();
+}
+
 float med_stof(const string& _Str) {
 	try {
 		return stof(_Str);

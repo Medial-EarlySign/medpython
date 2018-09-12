@@ -107,6 +107,8 @@ namespace medial {
 	*  \brief io
 	*/
 	namespace io {
+		/// \brief reads file with codes name to vector
+		void read_codes_file(const string &file_path, vector<string> &tokens);
 		template<class T> string get_list(const unordered_map<string, T> &ls);
 		template<class T> string get_list_op(const unordered_map<T, string> &ls);
 		/**

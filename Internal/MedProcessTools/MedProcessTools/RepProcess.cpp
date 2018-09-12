@@ -2008,6 +2008,8 @@ SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
 		return new RangeCalculator();
 	else if (calc_type == "multiply" || calc_type == "calc_multiply")
 		return new MultiplyCalculator();
+	else if (calc_type == "set" || calc_type == "calc_set")
+		return new SetCalculator();
 	else
 		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
 			calc_type.c_str());
@@ -2044,6 +2046,13 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	all_sigs_static[T_ValShort4] = true;
 	for (size_t i = 0; i < signals.size(); ++i)
 		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type];
+	if (calculator_logic == NULL) { //recover from serialization
+		calculator_logic = SimpleCalculator::make_calculator(calculator);
+		if (!calculator_init_params.empty())
+			calculator_logic->init_from_string(calculator_init_params);
+		calculator_logic->missing_value = missing_value;
+	}
+	calculator_logic->init_tables(dict, sigs, signals);
 }
 
 //.......................................................................................
@@ -2051,13 +2060,6 @@ void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signal
 {
 	for (int i = 0; i < V_names.size(); i++)
 		_virtual_signals[V_names[i]] = virtual_signals[i].second;
-
-	if (calculator_logic == NULL) { //recover from serialization
-		calculator_logic = SimpleCalculator::make_calculator(calculator);
-		if (!calculator_init_params.empty())
-			calculator_logic->init_from_string(calculator_init_params);
-		calculator_logic->missing_value = missing_value;
-	}
 }
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,

@@ -926,6 +926,7 @@ public:
 	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {}; ///< validates correctness of inputs
 	virtual float do_calc(const vector<float> &vals) const = 0; ///< the calc option
 	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const = 0; ///< list output signals with default naming
+	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {}; ///< init operator based on repo if needed
 
 	/// @snippet RepProcess.h SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
@@ -1032,6 +1033,29 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
 
 	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* A is in set operation which return binary output
+* res := in_range_val if is in set otherwise out_range_val
+*/
+class SetCalculator : public SimpleCalculator {
+public:
+	vector<string> sets;
+	float in_range_val = 1; ///< return value when within range
+	float out_range_val = 0; ///< return value when not within range
+
+	SetCalculator() { calculator_name = "set"; };
+	/// @snippet RepCalculators.cpp SetCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
+
+	float do_calc(const vector<float> &vals) const;
+private:
+	vector<char> Flags;
 };
 
 /**

@@ -1724,27 +1724,6 @@ void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords,
 		fo.close();
 }
 
-void medial::io::read_codes_file(const string &file_path, vector<string> &tokens) {
-	tokens.clear();
-	ifstream file;
-	file.open(file_path);
-	if (!file.is_open())
-		MTHROW_AND_ERR("Unable to open test indexes file:\n%s\n", file_path.c_str());
-	string line;
-	//getline(file, line); //ignore first line
-	while (getline(file, line)) {
-		boost::trim(line);
-		if (line.empty())
-			continue;
-		if (line.at(0) == '#')
-			continue;
-		if (line.find('\t') != string::npos)
-			line = line.substr(0, line.find('\t'));
-		tokens.push_back(line);
-	}
-	file.close();
-}
-
 RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepository &rep) {
 	vector<string> empty_arr;
 	string empty_str = "";
