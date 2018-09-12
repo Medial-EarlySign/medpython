@@ -282,7 +282,7 @@ float MultiplyCalculator::do_calc(const vector<float> &vals) const {
 	double res = b0;
 	for (size_t i = 0; i < vals.size(); ++i)
 		res *= pow(vals[i], powers[i]);
-	return b0;
+	return res;
 }
 //.............................SET CALCULATOR.........................................
 int SetCalculator::init(map<string, string>& mapper) {
