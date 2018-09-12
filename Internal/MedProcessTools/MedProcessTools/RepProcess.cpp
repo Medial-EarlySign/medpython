@@ -1714,6 +1714,7 @@ int RepSimValHandler::init(map<string, string>& mapper)
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "type") handler_type = get_sim_val_handle_type(entry.second);
 		else if (field == "debug") debug = stoi(entry.second) > 0;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "time_channels") {
 			vector<string> channels;
 			boost::split(channels, entry.second, boost::is_any_of(","));
@@ -1941,6 +1942,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals_time_unit") signals_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCalcSimpleSignals::init]
@@ -2034,11 +2036,16 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	sigs_ids.clear();
 	for (auto &vsig : V_names)
 		V_ids.push_back(dict.id(vsig));
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
+
 	// In the next loop it is VERY important to go over items in the ORDER they are given in calc2req
 	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
 	for (auto &rsig : signals)
 		sigs_ids.push_back(dict.id(rsig));
+	req_signal_ids.clear();
+	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
 	vector<bool> all_sigs_static(T_Last);
 	all_sigs_static[T_TimeStamp] = true;
 	all_sigs_static[T_Value] = true;
@@ -2274,6 +2281,7 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 		//! [RepDrugRateCompleter::init]
 		if (field == "names") output_name = entry.second;
 		else if (field == "signals") signals = boost::split(signals, entry.second, boost::is_any_of(","));
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepDrugRateCompleter::init]
@@ -2359,6 +2367,7 @@ int RepDrugRateCompleter::init(map<string, string> &mapper) {
 		//! [RepDrugRateCompleter::init]
 		if (field == "names") output_name = entry.second;
 		else if (field == "input_name") input_name = entry.second;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepDrugRateCompleter::init]

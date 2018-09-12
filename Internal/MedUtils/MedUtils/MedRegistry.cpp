@@ -85,13 +85,20 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	vector<string> physical_signals;
 	vector<string> sig_names_use = medial::repository::prepare_repository(dataManager, signalCodes_names,
 		physical_signals, rep_processors);
-	vector<int> final_sigs_to_read(sig_names_use.size());
+	vector<int> final_sigs_to_read(sig_names_use.size()), physical_ids(physical_signals.size());
 	for (size_t i = 0; i < sig_names_use.size(); ++i) {
 		int sid = dataManager.sigs.sid(sig_names_use[i]);
 		if (sid < 0)
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - Couldn't find signal %s in repository or virtual\n",
 				sig_names_use[i].c_str());
 		final_sigs_to_read[i] = sid;
+	}
+	for (size_t i = 0; i < physical_ids.size(); ++i) {
+		int sid = dataManager.sigs.sid(physical_signals[i]);
+		if (sid < 0)
+			MTHROW_AND_ERR("Error in MedRegistry::create_registry - Couldn't find signal %s in repository or virtual\n",
+				physical_signals[i].c_str());
+		physical_ids[i] = sid;
 	}
 	vector<int> signalCodes(signalCodes_names.size());
 	for (size_t i = 0; i < signalCodes_names.size(); ++i)
@@ -104,7 +111,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed\n",
 				dataManager.sigs.name(signalCodes[i]).c_str());
 	for (size_t i = 0; i < physical_signals.size(); ++i)
-		if (!dataManager.index.index_table[final_sigs_to_read[i]].is_loaded)
+		if (!dataManager.index.index_table[physical_ids[i]].is_loaded)
 			MTHROW_AND_ERR("Error in MedRegistry::create_registry - you haven't loaded %s for repository which is needed by rep_processor!\n",
 				physical_signals[i].c_str());
 
@@ -1978,7 +1985,7 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 						break;
 					}
 					else if (resolve_conlicts == medial::repository::fix_method::take_max) {
-						if (rule_activated > signal_prop_outcome) 
+						if (rule_activated > signal_prop_outcome)
 							continue;
 					}
 					else if (resolve_conlicts == medial::repository::fix_method::take_min) {

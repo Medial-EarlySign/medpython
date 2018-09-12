@@ -28,14 +28,13 @@ int RatioCalculator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void RatioCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
+void RatioCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
 	if (input_signals.size() == 2 && output_signals.size() == 1)
 		return;
 	MTHROW_AND_ERR("Error RatioCalculator::validate_arguments - Requires 2 input signals and 1 output signal\n");
 }
 
-void RatioCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
-	//_virtual_signals[""]
+void RatioCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
 	string o_name = input_signals.front();
 	if (power_mone != 1)
 		o_name += "^" + medial::print::print_obj(power_mone, "%2.3f");
@@ -69,7 +68,7 @@ int eGFRCalculator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void eGFRCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
+void eGFRCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
 	//Signals order: "Creatinine", "GENDER", "BYEAR"
 	if (!(input_signals.size() == 3 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Requires 3 input signals and 1 output signal\n");
@@ -79,7 +78,7 @@ void eGFRCalculator::validate_arguments(const vector<string> &input_signals, con
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BYEAR- got \"%s\"\n", input_signals[2].c_str());
 }
 
-void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
+void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
 	_virtual_signals.push_back(pair<string, int>("calc_eGFR", T_DateVal));
 }
 
@@ -117,11 +116,11 @@ float eGFRCalculator::do_calc(const vector<float> &vals) const {
 	return calc_egfr_ckd_epi(vals[0], vals[1], vals[2], ethnicity, missing_value);
 }
 //.................................LOG CALCULATOR.......................................
-void logCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
+void logCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
 	if (!(input_signals.size() == 1 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error logCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
-void logCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
+void logCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
 	_virtual_signals.push_back(pair<string, int>("log_" + input_signals[0], T_DateVal));
 }
 float logCalculator::do_calc(const vector<float> &vals) const {
@@ -151,14 +150,15 @@ int SumCalculator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void SumCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
-	if (!(input_signals.size() < 1 && output_signals.size() == 1))
+void SumCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+	if (!(input_signals.size() >= 1 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error SumCalculator::validate_arguments - Reqiures at least 1 input signals and 1 output signal\n");
-	if (factors.size() < input_signals.size())
-		factors.resize(input_signals.size(), 1);
 }
 
-void SumCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
+void SumCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
+	if (factors.size() < input_signals.size())
+		factors.resize(input_signals.size(), 1);
+
 	char buff[1000];
 	if (factors[0] != 1)
 		snprintf(buff, sizeof(buff), "%2.3f_X_%s", factors[0], input_signals[0].c_str());
@@ -207,12 +207,12 @@ int RangeCalculator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void RangeCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
+void RangeCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
 	if (!(input_signals.size() == 1 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error RangeCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
 
-void RangeCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
+void RangeCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
 	char buff[500];
 	snprintf(buff, sizeof(buff), "%s_in_%2.3f_%2.3f", input_signals[0].c_str(), min_range, max_range);
 	string o_name = string(buff);
@@ -229,14 +229,18 @@ float RangeCalculator::do_calc(const vector<float> &vals) const {
 }
 //.................................MULTIPLY CALCULATOR...................................
 int MultiplyCalculator::init(map<string, string>& mapper) {
-
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		//! [MultiplyCalculator::init]
-		if (it->first == "power_a")
-			power_a = stof(it->second);
-		else if (it->first == "power_b")
-			power_b = stof(it->second);
+		if (it->first == "b0")
+			b0 = stof(it->second);
+		else if (it->first == "powers") {
+			vector<string> tokens;
+			boost::split(tokens, it->second, boost::is_any_of(",;"));
+			powers.resize(tokens.size());
+			for (size_t i = 0; i < tokens.size(); ++i)
+				powers[i] = stof(tokens[i]);
+		}
 		else
 			MTHROW_AND_ERR("Error in MultiplyCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -246,26 +250,39 @@ int MultiplyCalculator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void MultiplyCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
-	if (!(input_signals.size() == 2 && output_signals.size() == 1))
-		MTHROW_AND_ERR("Error MultiplyCalculator::validate_arguments - Requires 2 input signals and 1 output signal\n");
+void MultiplyCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+	if (!(input_signals.size() >= 1 && output_signals.size() == 1))
+		MTHROW_AND_ERR("Error MultiplyCalculator::validate_arguments - Requires at least 1 input signals and 1 output signal\n");
 }
 
-void MultiplyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
-	//_virtual_signals[""]
-	string o_name = input_signals.front();
-	if (power_a != 1)
-		o_name += "^" + medial::print::print_obj(power_a, "%2.3f");
+void MultiplyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
+	if (powers.size() < input_signals.size())
+		powers.resize(input_signals.size(), 1);
+
+	char buff[1000];
+	if (powers[0] != 1)
+		snprintf(buff, sizeof(buff), "%s_^_%2.3f", input_signals[0].c_str(), powers[0]);
+	else
+		snprintf(buff, sizeof(buff), "%s", input_signals[0].c_str());
+	string o_name = string(buff);
+
 	for (size_t i = 1; i < input_signals.size(); ++i) {
-		o_name += "_X_" + input_signals[i];
-		if (power_b != 1)
-			o_name += "^" + medial::print::print_obj(power_b, "%2.3f");
+		if (powers[i] != 1)
+			snprintf(buff, sizeof(buff), "%s_*_%s_^_%2.3f",
+				o_name.c_str(), input_signals[i].c_str(), powers[i]);
+		else
+			snprintf(buff, sizeof(buff), "%s_*_%s", o_name.c_str(), input_signals[i].c_str());
+		o_name = string(buff);
 	}
+
 	_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
 }
 
 float MultiplyCalculator::do_calc(const vector<float> &vals) const {
-	return pow(vals[0], power_a) * pow(vals[1], power_b);
+	double res = b0;
+	for (size_t i = 0; i < vals.size(); ++i)
+		res *= pow(vals[i], powers[i]);
+	return b0;
 }
 //.............................SET CALCULATOR.........................................
 int SetCalculator::init(map<string, string>& mapper) {
@@ -291,12 +308,12 @@ int SetCalculator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void SetCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
+void SetCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
 	if (!(input_signals.size() == 1 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error SetCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
 
-void SetCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {
+void SetCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
 	char buff[500];
 
 	snprintf(buff, sizeof(buff), "%s_in_set", input_signals[0].c_str());

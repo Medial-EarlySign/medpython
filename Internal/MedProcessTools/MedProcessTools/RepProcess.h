@@ -923,12 +923,14 @@ public:
 
 	///init function of calculator
 	virtual int init(map<string, string>& mapper) { return 0; };
-	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {}; ///< validates correctness of inputs
+	///validates correctness of inputs
+	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {};
 	virtual float do_calc(const vector<float> &vals) const = 0; ///< the calc option
-	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const = 0; ///< list output signals with default naming
-	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {}; ///< init operator based on repo if needed
+	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) = 0; ///< list output signals with default naming
+	/// init operator based on repo if needed
+	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
 
-	/// @snippet RepProcess.h SimpleCalculator::make_calculator
+	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
 };
 
@@ -946,8 +948,8 @@ public:
 	/// @snippet RepCalculators.cpp RatioCalculator::init
 	int init(map<string, string>& mapper);
 
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -962,8 +964,8 @@ public:
 	eGFRCalculator() { calculator_name = "eGFR"; };
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -974,8 +976,8 @@ class logCalculator : public SimpleCalculator {
 public:
 	logCalculator() { calculator_name = "log"; };
 
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
 	float do_calc(const vector<float> &vals) const;
 };
@@ -992,8 +994,8 @@ public:
 	SumCalculator() { calculator_name = "sum"; };
 	/// @snippet RepCalculators.cpp SumCalculator::init
 	int init(map<string, string>& mapper);
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -1011,8 +1013,8 @@ public:
 	RangeCalculator() { calculator_name = "range"; min_range = MED_MAT_MISSING_VALUE; max_range = MED_MAT_MISSING_VALUE; };
 	/// @snippet RepCalculators.cpp RangeCalculator::init
 	int init(map<string, string>& mapper);
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -1022,15 +1024,15 @@ public:
 */
 class MultiplyCalculator : public SimpleCalculator {
 public:
-	float power_a = 1; ///< power for first arg
-	float power_b = 1; ///< power for second arg
+	vector<float> powers; ///< power for args
+	float b0 = 1; ///< init value
 
 	MultiplyCalculator() { calculator_name = "multiply"; };
 	/// @snippet RepCalculators.cpp MultiplyCalculator::init
 	int init(map<string, string>& mapper);
 
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
 	float do_calc(const vector<float> &vals) const;
 };
@@ -1049,8 +1051,8 @@ public:
 	/// @snippet RepCalculators.cpp SetCalculator::init
 	int init(map<string, string>& mapper);
 
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
 	float do_calc(const vector<float> &vals) const;
