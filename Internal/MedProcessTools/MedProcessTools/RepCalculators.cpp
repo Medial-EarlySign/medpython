@@ -248,7 +248,7 @@ int MultiplyCalculator::init(map<string, string>& mapper) {
 
 void MultiplyCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {
 	if (!(input_signals.size() == 2 && output_signals.size() == 1))
-		MTHROW_AND_ERR("Error RangeCalculator::validate_arguments - Requires 2 input signals and 1 output signal\n");
+		MTHROW_AND_ERR("Error MultiplyCalculator::validate_arguments - Requires 2 input signals and 1 output signal\n");
 }
 
 void MultiplyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const {

@@ -29,6 +29,10 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CHECK_REQ;
 	else if (processor_name == "sim_val" || processor_name == "sim_val_handler")
 		return REP_PROCESS_SIM_VAL;
+	else if (processor_name == "drug_rate")
+		return REP_PROCESS_DRUG_RATE;
+	else if (processor_name == "combine")
+		return REP_PROCESS_COMBINE;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -78,6 +82,10 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCheckReq;
 	else if (processor_type == REP_PROCESS_SIM_VAL)
 		return new RepSimValHandler;
+	else if (processor_type == REP_PROCESS_DRUG_RATE)
+		return new RepDrugRateCompleter;
+	else if (processor_type == REP_PROCESS_COMBINE)
+		return new RepCombineSignals;
 	else
 		return NULL;
 
@@ -2043,6 +2051,13 @@ void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signal
 {
 	for (int i = 0; i < V_names.size(); i++)
 		_virtual_signals[V_names[i]] = virtual_signals[i].second;
+
+	if (calculator_logic == NULL) { //recover from serialization
+		calculator_logic = SimpleCalculator::make_calculator(calculator);
+		if (!calculator_init_params.empty())
+			calculator_logic->init_from_string(calculator_init_params);
+		calculator_logic->missing_value = missing_value;
+	}
 }
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
@@ -2248,6 +2263,155 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
 
 	//return -1;
+	return 0;
+}
+
+int RepCombineSignals::init(map<string, string> &mapper) {
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepDrugRateCompleter::init]
+		if (field == "names") output_name = entry.second;
+		else if (field == "signals") signals = boost::split(signals, entry.second, boost::is_any_of(","));
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepDrugRateCompleter::init]
+	}
+	if (signals.empty())
+		MTHROW_AND_ERR("Error in RepCombineSignals::init - parameter \"signals\" should be passed.\n");
+	if (output_name.empty()) {
+		output_name = "COMBO_" + signals[0];
+		for (size_t i = 1; i < signals.size(); ++i)
+			output_name += "_" + signals[i];
+	}
+}
+
+int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	//uses each time point - If have only drug amount  (2nd signal) so using second signal value
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	//first lets fetch "static" signals without Time field:
+
+	set<int> set_ids(sigs_ids.begin(), sigs_ids.end());
+	differentVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(sigs_ids.size());
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		for (size_t i = 0; i < sigs_ids.size(); ++i)
+			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+
+
+		vector<int> idx(sigs_ids.size());
+		int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+		int final_size = 0;
+		vector<float> v_vals;
+		vector<int> v_times;
+		int last_time = -1;
+		while (active_id >= 0) {
+			if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+				active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+				continue; //skip same time
+			}
+
+			if (v_times.size() < final_size + 1) {
+				v_times.resize(final_size + 1);
+				v_vals.resize(final_size + 1);
+			}
+			v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
+			v_vals[final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
+			++final_size;
+
+			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+			active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+		}
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], final_size);
+
+	}
+
+	return 0;
+}
+
+void RepCombineSignals::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = T_DateVal;
+}
+
+void RepCombineSignals::set_signal_ids(MedDictionarySections& dict) {
+	v_out_sid = dict.id(output_name);
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCombineSignals::set_signal_ids - virtual output signal %s not found\n",
+			output_name.c_str());
+	for (size_t i = 0; i < signals.size(); ++i)
+	{
+		sigs_ids[i] = dict.id(signals[i]);
+		if (sigs_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepCombineSignals::set_signal_ids - input signal %s not found\n",
+				signals[i].c_str());
+	}
+}
+
+int RepDrugRateCompleter::init(map<string, string> &mapper) {
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepDrugRateCompleter::init]
+		if (field == "names") output_name = entry.second;
+		else if (field == "input_name") input_name = entry.second;
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepDrugRateCompleter::init]
+	}
+	if (input_name.empty())
+		MTHROW_AND_ERR("Error in RepDrugRateCompleter::init - input signal should be passed. drug_amount\n");
+}
+
+void RepDrugRateCompleter::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = T_DateVal;
+}
+
+void RepDrugRateCompleter::set_signal_ids(MedDictionarySections& dict) {
+	v_out_sid = dict.id(output_name);
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepDrugRateCompleter::set_signal_ids - virtual output signal %s not found\n",
+			output_name.c_str());
+	in_sid = dict.id(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepDrugRateCompleter::set_signal_ids - input signal %s not found\n",
+			input_name.c_str());
+}
+
+int RepDrugRateCompleter::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	//uses each time point - I have only drug amount need to tranform into drug_rate
+	MTHROW_AND_ERR("Not Implemented yet\n");
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	//first lets fetch "static" signals without Time field:
+
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	differentVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		int active_id = 0;
+		vector<float> v_vals(rec.usvs[0].len);
+		vector<int> v_times(rec.usvs[0].len);
+		while (active_id < rec.usvs[0].len) {
+			v_times[active_id] = rec.usvs[active_id].Time(active_id - 1);
+			int orig_val = rec.usvs[active_id].Val(active_id - 1);
+			v_vals[active_id] = orig_val; //TODO: manipulate value - change to Micro-gram to time_unit
+
+			++active_id;
+		}
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], active_id);
+
+	}
+
 	return 0;
 }
 

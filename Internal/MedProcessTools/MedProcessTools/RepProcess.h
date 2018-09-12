@@ -26,6 +26,8 @@ typedef enum {
 	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
 	REP_PROCESS_CHECK_REQ, ///<"req" or "requirements" check compliance with minimal requirement to activate RepCheckReq
 	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
+	REP_PROCESS_DRUG_RATE, ///<"drug_rate" combine complition for Drug rate based on Drug amount to actiate RepDrugRateCompleter
+	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -1102,6 +1104,50 @@ private:
 
 };
 
+class RepCombineSignals : public RepProcessor {
+public:
+	string output_name; ///< names of signal created by the processor
+	vector<string> signals; ///< names of input signals used by the processor
+
+	RepCombineSignals() { processor_type = REP_PROCESS_COMBINE; output_name = ""; }
+
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+
+	/// initialize signal ids
+	void set_signal_ids(MedDictionarySections& dict);
+
+	/// @snippet RepProcess.cpp RepDrugRateCompleter::init
+	int init(map<string, string>& mapper);
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+private:
+	int v_out_sid;
+	vector<int> sigs_ids;
+};
+
+class RepDrugRateCompleter : public RepProcessor {
+public:
+	string output_name; ///< names of signals created by the completer
+	string input_name; ///< names of input signals used by the completer
+
+	RepDrugRateCompleter() { processor_type = REP_PROCESS_DRUG_RATE; output_name = { "calc_drug_rate" }; }
+
+	/// @snippet RepProcess.cpp RepDrugRateCompleter::init
+	int init(map<string, string>& mapper);
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+
+	/// initialize signal ids
+	void set_signal_ids(MedDictionarySections& dict);
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+private:
+	int v_out_sid;
+	int in_sid;
+};
 
 //.......................................................................................
 /** RepCheckReq does not actually process the repository but rather check each
