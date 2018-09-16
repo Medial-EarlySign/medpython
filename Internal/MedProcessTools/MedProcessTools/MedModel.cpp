@@ -421,6 +421,35 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, MedSamples& samples) {
 	return 0;
 }
 
+void build_signal_affect_tree(const vector<RepProcessor *> &rep_processors,
+	unordered_map<string, unordered_set<string>> &signal_affect_tree) {
+	for (unsigned int i = 0; i < rep_processors.size(); i++) {
+		vector<RepProcessor *> *no_mult = NULL;
+		vector<RepProcessor *> single = { rep_processors[i] };
+		if (rep_processors[i]->processor_type == REP_PROCESS_MULTI)
+			no_mult = &((RepMultiProcessor *)rep_processors[i])->processors;
+		else
+			no_mult = &single;
+
+		for (size_t k = 0; k < no_mult->size(); ++k)
+			for (const string &req_signal : (*no_mult)[k]->req_signals)
+				signal_affect_tree[req_signal].insert((*no_mult)[k]->aff_signals.begin(),
+					(*no_mult)[k]->aff_signals.end());
+	}
+}
+void expend_signal_effect(const vector<RepProcessor *> &rep_processors,
+	unordered_set<string> &req_signal_names) {
+	bool did_something = true;
+	unordered_map<string, unordered_set<string>> signal_affect_tree;
+	build_signal_affect_tree(rep_processors, signal_affect_tree);
+	while (did_something) {
+		int init_size = (int)req_signal_names.size();
+		for (const string &sig : req_signal_names)
+			req_signal_names.insert(signal_affect_tree[sig].begin(), signal_affect_tree[sig].end());
+		did_something = init_size < req_signal_names.size();
+	}
+}
+
 // Filter rep-processors that are not used, iteratively
 //.......................................................................................
 void MedModel::filter_rep_processors() {
@@ -430,6 +459,7 @@ void MedModel::filter_rep_processors() {
 	for (unsigned int i = 0; i < rep_processors.size(); i++) {
 		unordered_set<string> current_req_signal_names;
 		get_all_required_signal_names(current_req_signal_names, rep_processors, i, generators);
+		expend_signal_effect(rep_processors, current_req_signal_names);
 		if (!rep_processors[i]->filter(current_req_signal_names))
 			filtered_processors.push_back(rep_processors[i]);
 		else {//cleaning uneeded rep_processors!:
@@ -1228,6 +1258,10 @@ void filter_rep_processors(const vector<string> &current_req_signal_names, vecto
 	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());
 	vector<RepProcessor *> filtered_processors;
 	bool did_something = false;
+
+	//complete and flatten all needed signals based on tree:
+	expend_signal_effect(*rep_processors, req_signal_names);
+
 	for (unsigned int i = 0; i < rep_processors->size(); i++) {
 		if (!(*rep_processors)[i]->filter(req_signal_names))
 			filtered_processors.push_back((*rep_processors)[i]);
