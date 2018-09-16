@@ -2324,6 +2324,8 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 	req_signals.insert(signals.begin(), signals.end());
 	virtual_signals.clear();
 	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
+
+	return 0;
 }
 
 int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
@@ -2426,6 +2428,8 @@ int RepSignalRate::init(map<string, string> &mapper) {
 	req_signals.insert(input_name);
 	virtual_signals.clear();
 	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
+
+	return 0;
 }
 
 void RepSignalRate::add_virtual_signals(map<string, int> &_virtual_signals) {

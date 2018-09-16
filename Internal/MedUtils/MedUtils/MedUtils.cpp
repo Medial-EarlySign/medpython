@@ -226,19 +226,31 @@ template<class T> void medial::process::prctils(const vector<T> &x, const vector
 template void medial::process::prctils<float>(const vector<float> &x, const vector<double> &prc, vector<float> &res, const vector<float> *weights);
 template void medial::process::prctils<double>(const vector<double> &x, const vector<double> &prc, vector<double> &res, const vector<float> *weights);
 
-template<class T> void medial::print::print_vec(const vector<T> &vec, const string &title, const string &format) {
+template<class T> void medial::print::print_vec(const vector<T> &vec, const string &title, const string &format, const string &delimeter) {
 	if (vec.empty()) {
 		MLOG("%s: EMPTY\n", title.c_str());
 		return;
 	}
 	string bf = print_obj(vec[0], format);
 	for (size_t i = 1; i < vec.size(); ++i)
-		bf += ", " + print_obj(vec[i], format);
+		bf += delimeter + print_obj(vec[i], format);
 
 	MLOG("%s: [%s]\n", title.c_str(), bf.c_str());
 }
-template void medial::print::print_vec<double>(const vector<double> &vec, const string &title, const string &format);
-template void medial::print::print_vec<float>(const vector<float> &vec, const string &title, const string &format);
+template void medial::print::print_vec<double>(const vector<double> &vec, const string &title, const string &format, const string &delimeter);
+template void medial::print::print_vec<float>(const vector<float> &vec, const string &title, const string &format, const string &delimeter);
+template void medial::print::print_vec<const char *>(const vector<const char *> &vec, const string &title, const string &format, const string &delimeter);
+void medial::print::print_vec(const vector<string> &vec, const string &title, const string &delimeter) {
+	if (vec.empty()) {
+		MLOG("%s: EMPTY\n", title.c_str());
+		return;
+	}
+	string bf = vec[0];
+	for (size_t i = 1; i < vec.size(); ++i)
+		bf += delimeter + vec[i];
+
+	MLOG("%s: [%s]\n", title.c_str(), bf.c_str());
+}
 
 template<class T> void medial::print::print_hist_vec(const vector<T> &vec, const string &title,
 	const string &format, const vector<double> *prctile_samples) {
