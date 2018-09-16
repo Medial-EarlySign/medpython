@@ -26,8 +26,9 @@ typedef enum {
 	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
 	REP_PROCESS_CHECK_REQ, ///<"req" or "requirements" check compliance with minimal requirement to activate RepCheckReq
 	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
-	REP_PROCESS_DRUG_RATE, ///<"drug_rate" combine complition for Drug rate based on Drug amount to actiate RepDrugRateCompleter
+	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to actiate RepSignalRate
 	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
+	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -116,6 +117,9 @@ public:
 	/// <returns> true if affected, false if not </returns>
 	inline bool is_signal_affected(int signalId) { return (aff_signal_ids.find(signalId) != aff_signal_ids.end()); }
 	inline bool is_signal_affected(string& signalName) { return (aff_signals.find(signalName) != aff_signals.end()); }
+
+	///Register section id to section name of new virtual signals
+	virtual void register_virtual_section_name_id(MedDictionarySections& dict) { };
 
 	// check filtering
 	/// <summary> Check if processor (and 'sub'-processors within) should be applied according to set of required signals  </summray>
@@ -229,6 +233,8 @@ public:
 	/// <summary> Affected Signals : Fill the member set aff_signal_ids </summary>
 	void set_affected_signal_ids(MedDictionarySections& dict);
 
+
+	void register_virtual_section_name_id(MedDictionarySections& dict);
 	// check filtering
 	/// <summary> Check if processor (and 'sub'-processors within) should be applied according to set of required signals  </summray>
 	/// <returns> true if processor is not required and can be filtered, false otherwise </returns>
@@ -1130,49 +1136,94 @@ private:
 
 };
 
+/**
+* Combines multiple signals to one signal. has ability to factorize each source signal
+*/
 class RepCombineSignals : public RepProcessor {
 public:
 	string output_name; ///< names of signal created by the processor
 	vector<string> signals; ///< names of input signals used by the processor
+	vector<float> factors; ///< factor for each signal
 
 	RepCombineSignals() { processor_type = REP_PROCESS_COMBINE; output_name = ""; }
 
 	void add_virtual_signals(map<string, int> &_virtual_signals);
 
-	/// initialize signal ids
-	void set_signal_ids(MedDictionarySections& dict);
+	void register_virtual_section_name_id(MedDictionarySections& dict);
 
-	/// @snippet RepProcess.cpp RepDrugRateCompleter::init
+	/// @snippet RepProcess.cpp RepCombineSignals::init
+	int init(map<string, string>& mapper);
+
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+private:
+	int v_out_sid = -1;
+	vector<int> sigs_ids;
+};
+
+/**
+* split signal based on set of values. supports only 2 channel for value, first is used
+* for search in sets (and keeps the same value) 2 is being factorized
+* output signal is haveing 1 time channel and 2 value channels
+*/
+class RepSplitSignal : public RepProcessor {
+public:
+	string input_name; ///< names of input signal used by the processor
+	vector<string> names; ///< names of signal created by the processor
+	vector<float> factors; ///< factor for each output signal
+	vector<string> sets; ///< the sets to check if signal value is in set
+
+	RepSplitSignal() { processor_type = REP_PROCESS_SPLIT; input_name = ""; }
+
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+
+	/// initialize signal ids
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
+
+	/// @snippet RepProcess.cpp RepSplitSignal::init
 	int init(map<string, string>& mapper);
 
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 private:
-	int v_out_sid;
-	vector<int> sigs_ids;
+	int in_sid = -1;
+	vector<int> V_ids;
+	vector<char> Flags;
 };
 
-class RepDrugRateCompleter : public RepProcessor {
+/**
+* Normalize Signal Values by time - divide by time to calculate rate
+*/
+class RepSignalRate : public RepProcessor {
 public:
 	string output_name; ///< names of signals created by the completer
 	string input_name; ///< names of input signals used by the completer
 
-	RepDrugRateCompleter() { processor_type = REP_PROCESS_DRUG_RATE; output_name = { "calc_drug_rate" }; }
+	RepSignalRate() { processor_type = REP_PROCESS_SIGNAL_RATE; output_name = { "calc_drug_rate" }; }
 
-	/// @snippet RepProcess.cpp RepDrugRateCompleter::init
+	/// @snippet RepProcess.cpp RepSignalRate::init
 	int init(map<string, string>& mapper);
 	void add_virtual_signals(map<string, int> &_virtual_signals);
-
-	/// initialize signal ids
-	void set_signal_ids(MedDictionarySections& dict);
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
 
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 private:
-	int v_out_sid;
-	int in_sid;
+	int v_out_sid = -1;
+	int in_sid = -1;
 };
 
 //.......................................................................................

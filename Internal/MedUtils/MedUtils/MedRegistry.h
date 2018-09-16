@@ -125,6 +125,10 @@ public:
 	/// @snippet MedRegistry.cpp MedRegistry::make_registry
 	static MedRegistry *make_registry(const string &registry_type, const string &init_str = "");
 
+	/// creates registry type and initialize it if init_str is not empty
+	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
+	static MedRegistry *make_registry(const string &registry_type, MedRepository &rep, const string &init_str = "");
+
 	/// Default Ctor
 	MedRegistry() {
 		need_bdate = false;
@@ -136,11 +140,16 @@ public:
 	/// A function to clear creation variables that are on memory if needed
 	virtual void clear_create_variables() {};
 
+	/// Sets Repository object to initialize all registry object, if not given will try to use repository path
+	/// to read and initialize repository
+	void set_rep_for_init(MedRepository &rep) { rep_for_init = &rep; }
+
 	ADD_SERIALIZATION_FUNCS(registry_records)
 protected:
 	vector<string> signalCodes_names; ///< the signals codes by name
 	bool need_bdate; ///< If true Bdate is also used in registry creation
 	medial::repository::fix_method resolve_conlicts = medial::repository::fix_method::none; ///< resolve conflicts in registry method
+	MedRepository *rep_for_init = NULL; ///< repository pointer to init dicts
 private:
 	virtual void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) { throw logic_error("Not Implemented"); };
 };
@@ -321,7 +330,7 @@ private:
 * A Registry Signal class wrapper for AND condition on multiple Registry signal channels.
 * it works only on same signal on the same time point
 */
-class RegistrySignalAnd: public RegistrySignal {
+class RegistrySignalAnd : public RegistrySignal {
 public:
 	vector<RegistrySignal *> conditions; ///< the list of conditions to calc AND on them
 

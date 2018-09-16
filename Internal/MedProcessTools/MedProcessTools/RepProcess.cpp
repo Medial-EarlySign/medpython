@@ -29,10 +29,12 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CHECK_REQ;
 	else if (processor_name == "sim_val" || processor_name == "sim_val_handler")
 		return REP_PROCESS_SIM_VAL;
-	else if (processor_name == "drug_rate")
-		return REP_PROCESS_DRUG_RATE;
+	else if (processor_name == "signal_rate")
+		return REP_PROCESS_SIGNAL_RATE;
 	else if (processor_name == "combine")
 		return REP_PROCESS_COMBINE;
+	else if (processor_name == "split")
+		return REP_PROCESS_SPLIT;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -82,10 +84,12 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCheckReq;
 	else if (processor_type == REP_PROCESS_SIM_VAL)
 		return new RepSimValHandler;
-	else if (processor_type == REP_PROCESS_DRUG_RATE)
-		return new RepDrugRateCompleter;
+	else if (processor_type == REP_PROCESS_SIGNAL_RATE)
+		return new RepSignalRate;
 	else if (processor_type == REP_PROCESS_COMBINE)
 		return new RepCombineSignals;
+	else if (processor_type == REP_PROCESS_SPLIT)
+		return new RepSplitSignal;
 	else
 		return NULL;
 
@@ -619,6 +623,11 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 			proc->dprint(pref + "->Multi", rp_flag);
 		}
 	}
+}
+
+void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& dict) {
+	for (size_t i = 0; i < processors.size(); ++i)
+		processors[i]->register_virtual_section_name_id(dict);
 }
 
 //=======================================================================================
@@ -2035,7 +2044,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	V_ids.clear();
 	sigs_ids.clear();
 	for (auto &vsig : V_names)
-		V_ids.push_back(dict.id(vsig));
+		V_ids.push_back(sigs.sid(vsig));
 	aff_signal_ids.clear();
 	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
 
@@ -2043,7 +2052,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
 	for (auto &rsig : signals)
-		sigs_ids.push_back(dict.id(rsig));
+		sigs_ids.push_back(sigs.sid(rsig));
 	req_signal_ids.clear();
 	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
 	vector<bool> all_sigs_static(T_Last);
@@ -2276,23 +2285,38 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 }
 
 int RepCombineSignals::init(map<string, string> &mapper) {
+	vector<string> tokens;
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RepDrugRateCompleter::init]
+		//! [RepCombineSignals::init]
 		if (field == "names") output_name = entry.second;
 		else if (field == "signals") signals = boost::split(signals, entry.second, boost::is_any_of(","));
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
-		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
-		//! [RepDrugRateCompleter::init]
+		else if (field == "factors") {
+			boost::split(tokens, entry.second, boost::is_any_of(","));
+			factors.resize(tokens.size());
+			for (size_t i = 0; i < tokens.size(); ++i)
+				factors[i] = stof(tokens[i]);
+		}
+		else MTHROW_AND_ERR("Error in RepCombineSignals::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepCombineSignals::init]
 	}
 	if (signals.empty())
 		MTHROW_AND_ERR("Error in RepCombineSignals::init - parameter \"signals\" should be passed.\n");
+	factors.resize(signals.size(), 1);
 	if (output_name.empty()) {
 		output_name = "COMBO_" + signals[0];
 		for (size_t i = 1; i < signals.size(); ++i)
 			output_name += "_" + signals[i];
 	}
+
+	aff_signals.clear();
+	aff_signals.insert(output_name);
+	req_signals.clear();
+	req_signals.insert(signals.begin(), signals.end());
+	virtual_signals.clear();
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
 }
 
 int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
@@ -2326,10 +2350,11 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 			if (v_times.size() < final_size + 1) {
 				v_times.resize(final_size + 1);
-				v_vals.resize(final_size + 1);
+				v_vals.resize(final_size + 2);
 			}
 			v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
-			v_vals[final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
+			v_vals[2 * final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
+			v_vals[2 * final_size + 1] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, 1);
 			++final_size;
 
 			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
@@ -2344,56 +2369,93 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 }
 
 void RepCombineSignals::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = T_DateVal;
+	_virtual_signals[output_name] = T_DateVal2;
 }
 
-void RepCombineSignals::set_signal_ids(MedDictionarySections& dict) {
-	v_out_sid = dict.id(output_name);
+void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	v_out_sid = sigs.sid(output_name);
 	if (v_out_sid < 0)
-		MTHROW_AND_ERR("Error in RepCombineSignals::set_signal_ids - virtual output signal %s not found\n",
+		MTHROW_AND_ERR("Error in RepCombineSignals::init_tables - virtual output signal %s not found\n",
 			output_name.c_str());
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid);
+	sigs_ids.resize(signals.size());
 	for (size_t i = 0; i < signals.size(); ++i)
 	{
-		sigs_ids[i] = dict.id(signals[i]);
+		sigs_ids[i] = sigs.sid(signals[i]);
 		if (sigs_ids[i] < 0)
-			MTHROW_AND_ERR("Error in RepCombineSignals::set_signal_ids - input signal %s not found\n",
+			MTHROW_AND_ERR("Error in RepCombineSignals::init_tables - input signal %s not found\n",
+				signals[i].c_str());
+		SignalInfo &si = sigs.Sid2Info[sigs_ids[i]];
+
+		if (si.n_val_channels < 2)
+			MTHROW_AND_ERR("ERROR in RepCombineSignals::init_tables - input signal %s should contain 2 val channels\n",
 				signals[i].c_str());
 	}
+	req_signal_ids.clear();
+	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
 }
 
-int RepDrugRateCompleter::init(map<string, string> &mapper) {
+void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
+	dict.SectionName2Id[output_name] = dict.section_id(signals.front());
+}
+
+int RepSignalRate::init(map<string, string> &mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RepDrugRateCompleter::init]
+		//! [RepSignalRate::init]
 		if (field == "names") output_name = entry.second;
 		else if (field == "input_name") input_name = entry.second;
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
-		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
-		//! [RepDrugRateCompleter::init]
+		else MTHROW_AND_ERR("Error in RepSignalRate::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepSignalRate::init]
 	}
 	if (input_name.empty())
-		MTHROW_AND_ERR("Error in RepDrugRateCompleter::init - input signal should be passed. drug_amount\n");
+		MTHROW_AND_ERR("Error in RepSignalRate::init - input signal should be passed. drug_amount\n");
+	aff_signals.clear();
+	aff_signals.insert(output_name);
+	req_signals.clear();
+	req_signals.insert(input_name);
+	virtual_signals.clear();
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
 }
 
-void RepDrugRateCompleter::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = T_DateVal;
+void RepSignalRate::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = T_DateVal2;
 }
 
-void RepDrugRateCompleter::set_signal_ids(MedDictionarySections& dict) {
-	v_out_sid = dict.id(output_name);
+void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	set_signal_ids(dict);
+	v_out_sid = sigs.sid(output_name);
 	if (v_out_sid < 0)
-		MTHROW_AND_ERR("Error in RepDrugRateCompleter::set_signal_ids - virtual output signal %s not found\n",
+		MTHROW_AND_ERR("Error in RepSignalRate::init_tables - virtual output signal %s not found\n",
 			output_name.c_str());
-	in_sid = dict.id(input_name);
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid);
+	in_sid = sigs.sid(input_name);
 	if (in_sid < 0)
-		MTHROW_AND_ERR("Error in RepDrugRateCompleter::set_signal_ids - input signal %s not found\n",
+		MTHROW_AND_ERR("Error in RepSignalRate::init_tables - input signal %s not found\n",
+			input_name.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);
+
+	SignalInfo &si = sigs.Sid2Info[in_sid];
+
+	if (si.n_time_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain 2 time channels\n",
+			input_name.c_str());
+	if (si.n_val_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain 2 val channels\n",
 			input_name.c_str());
 }
 
-int RepDrugRateCompleter::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
-	//uses each time point - I have only drug amount need to tranform into drug_rate
-	MTHROW_AND_ERR("Not Implemented yet\n");
+void RepSignalRate::register_virtual_section_name_id(MedDictionarySections& dict) {
+	dict.SectionName2Id[output_name] = dict.section_id(input_name);
+}
+
+int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	//uses each time point - I have only signal value need to tranform into signal_rate divide by time unit
 	if (time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
@@ -2408,19 +2470,132 @@ int RepDrugRateCompleter::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		rec.uget(in_sid, iver, rec.usvs[0]);
 
-		int active_id = 0;
-		vector<float> v_vals(rec.usvs[0].len);
+		vector<float> v_vals(2 * rec.usvs[0].len);
 		vector<int> v_times(rec.usvs[0].len);
-		while (active_id < rec.usvs[0].len) {
-			v_times[active_id] = rec.usvs[active_id].Time(active_id - 1);
-			int orig_val = rec.usvs[active_id].Val(active_id - 1);
-			v_vals[active_id] = orig_val; //TODO: manipulate value - change to Micro-gram to time_unit
-
-			++active_id;
+		for (int i = 0; i < rec.usvs[0].len; ++i) {
+			v_times[i] = rec.usvs[0].Time(i);
+			float orig_val = rec.usvs[0].Val(i);
+			int end_time = rec.usvs[0].Time(i, 1);
+			int diff_time = med_time_converter.diff_times(v_times[i], end_time, rec.usvs[0].time_unit(),
+				global_default_time_unit);
+			v_vals[2 * i] = orig_val;
+			v_vals[2 * i + 1] = rec.usvs[0].Val(i, 1) / diff_time;
 		}
 		// pushing virtual data into rec (into orig version)
-		rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], active_id);
+		if (rec.usvs[0].len > 0)
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], rec.usvs[0].len);
 
+	}
+
+	return 0;
+}
+
+int RepSplitSignal::init(map<string, string>& mapper) {
+	vector<string> tokens;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepSplitSignal::init]
+		if (field == "input_name") input_name = entry.second;
+		else if (field == "names") boost::split(names, entry.second, boost::is_any_of(","));
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "factors") {
+			boost::split(tokens, entry.second, boost::is_any_of(","));
+			factors.resize(tokens.size());
+			for (size_t i = 0; i < tokens.size(); ++i)
+				factors[i] = stof(tokens[i]);
+		}
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepSplitSignal::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepSplitSignal::init]
+	}
+	if (input_name.empty())
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide input_name\n");
+	if (names.size() != 2)
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide only 2 names for output\n");
+	if (sets.empty())
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide sets\n");
+	factors.resize(names.size(), 1);
+
+	aff_signals.clear();
+	aff_signals.insert(names.begin(), names.end());
+	req_signals.clear();
+	req_signals.insert(input_name);
+	virtual_signals.clear();
+	for (size_t i = 0; i < names.size(); ++i)
+		virtual_signals.push_back(pair<string, int>(names[i], T_DateVal2));
+
+	return 0;
+}
+
+void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	//init Flags:
+	int section_id = dict.section_id(input_name);
+	dict.prep_sets_lookup_table(section_id, sets, Flags);
+
+	in_sid = sigs.sid(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepSplitSignal::init_tables - input signal %s not found\n",
+			input_name.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);
+
+	V_ids.resize(names.size());
+	for (size_t i = 0; i < V_ids.size(); ++i)
+	{
+		V_ids[i] = sigs.sid(names[i]);
+		if (V_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepSplitSignal::init_tables - virtual output signal %s not found\n",
+				names[i].c_str());
+	}
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
+
+	SignalInfo &si = sigs.Sid2Info[in_sid];
+
+	if (si.n_val_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init_tables - input signal %s should contain 2 val channels\n",
+			input_name.c_str());
+}
+
+void RepSplitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
+	for (size_t i = 0; i < names.size(); ++i)
+		_virtual_signals[names[i]] = T_DateVal2;
+}
+
+void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
+	for (size_t i = 0; i < names.size(); ++i)
+		dict.SectionName2Id[names[i]] = dict.section_id(input_name);
+}
+
+int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	differentVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		vector<vector<int>> v_times(names.size());
+		vector<vector<float>> v_vals(names.size());
+		for (int i = 0; i < rec.usvs[0].len; ++i) {
+			int time = rec.usvs[0].Time(i);
+			float orig_val = rec.usvs[0].Val(i);
+			int idx = Flags[orig_val];
+
+			v_times[idx].push_back(time);
+			v_vals[idx].push_back(orig_val); //chan 0
+			v_vals[idx].push_back(rec.usvs[0].Val(i, 1) * factors[idx]); //chan 1
+		}
+		// pushing virtual data into rec (into orig version)
+		for (size_t i = 0; i < names.size(); ++i)
+			if (!v_vals[i].empty())
+				rec.set_version_universal_data(V_ids[i], iver, &v_times[i][0], &v_vals[i][0], (int)v_vals[i].size());
 	}
 
 	return 0;

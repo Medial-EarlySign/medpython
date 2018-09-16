@@ -902,6 +902,9 @@ void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProces
 	// collecting
 	for (RepProcessor *processor : rep_processors)
 		processor->add_virtual_signals(*virtual_signals);
+	//register section_name to section_id if needed in each rep_processor virtual signal
+	for (RepProcessor *processor : rep_processors)
+		processor->register_virtual_section_name_id(rep.dict);
 
 	// adding to rep
 	for (auto &vsig : *virtual_signals) {
@@ -910,18 +913,20 @@ void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProces
 			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
 			if (verbosity > 0)
 				MLOG("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
+			int add_section = rep.dict.section_id(vsig.first);
+			rep.dict.dicts[add_section].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
-			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
-			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			rep.dict.dicts[add_section].Id2Name[new_id] = vsig.first;
+			rep.dict.dicts[add_section].Id2Names[new_id] = { vsig.first };
 			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
-			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
+			//rep.dict.SectionName2Id[vsig.first] = 0;
+			MLOG("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig.first));
 		}
 		else {
 			if (rep.sigs.sid(vsig.first) < 100)
 				MTHROW_AND_ERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		}
 	}
-
 }
 
 int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
@@ -1247,6 +1252,7 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 		collect_and_add_virtual_signals_static(rep, *rep_processors);
 		filter_rep_processors(needed_sigs, rep_processors);
 		for (RepProcessor *processor : *rep_processors) {
+			processor->init_tables(rep.dict, rep.sigs);
 			processor->set_affected_signal_ids(rep.dict);
 			processor->set_required_signal_ids(rep.dict);
 			processor->set_signal_ids(rep.dict);

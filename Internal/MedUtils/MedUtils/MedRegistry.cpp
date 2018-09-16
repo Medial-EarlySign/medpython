@@ -898,7 +898,14 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			int section_id = repo->dict.section_id(signalName);
 			repo->dict.curr_section = section_id;
 			repo->dict.default_section = section_id;
-			repo->dict.prep_sets_lookup_table(section_id, sets, Flags);
+			try {
+				repo->dict.prep_sets_lookup_table(section_id, sets, Flags);
+			}
+			catch (const exception &) {
+				MERR("ERROR in RegistrySignalSet::init - for signal %s(%d) sets_path=%s\n",
+					signalName.c_str(), sid, sets_path.c_str());
+				throw;
+			}
 		}
 	}
 	return 0;
@@ -1029,10 +1036,23 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 		vector<int> matched_ids(sets.size());
 		int max_id = 0;
 		if (!sets.empty()) {
+			int sid = repo->sigs.sid(signalName);
+			if (sid < 0)
+				MTHROW_AND_ERR("ERROR in RegistrySignalDrug::init - can't find signal %s in repository\n",
+					signalName.c_str());
 			int section_id = repo->dict.section_id(signalName);
 			repo->dict.curr_section = section_id;
 			repo->dict.default_section = section_id;
-			repo->dict.prep_sets_lookup_table(section_id, sets, Flags);
+
+			try {
+				repo->dict.prep_sets_lookup_table(section_id, sets, Flags);
+			}
+			catch (const exception &) {
+				MERR("ERROR in RegistrySignalDrug::init - for signal %s(%d) sets_path=%s\n",
+					signalName.c_str(), sid, sets_path.c_str());
+				throw;
+			}
+
 			for (size_t i = 0; i < matched_ids.size(); ++i) {
 				matched_ids[i] = repo->dict.id(section_id, sets[i]);
 				if (matched_ids[i] > max_id)
@@ -1814,17 +1834,20 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 		else
 			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unsupported init param \"%s\"\n", it->first.c_str());
 		//! [MedRegistryCodesList::init]
-		if (rep_path.empty())
+		if (rep_path.empty() && rep_for_init == NULL)
 			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide rep param to init function\n");
 		if (max_repo_date == 0)
 			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide max_repo_date param to init function\n");
 		if (registry_file_path.empty())
 			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide config_signals_rules param to init function\n");
 
-		if (repo.init(rep_path) < 0)
-			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unable to init repositrory from path %s\n", rep_path.c_str());
+		if (rep_for_init == NULL) {
+			rep_for_init = &repo;
+			if (rep_for_init->init(rep_path) < 0)
+				MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unable to init repositrory from path %s\n", rep_path.c_str());
+		}
 
-		RegistrySignal::parse_registry_rules(registry_file_path, repo, signal_filters);
+		RegistrySignal::parse_registry_rules(registry_file_path, *rep_for_init, signal_filters);
 		init_called = true;
 
 		signalCodes_names.clear();
@@ -1857,6 +1880,16 @@ MedRegistry *MedRegistry::make_registry(const string &registry_type, const strin
 	return registry;
 }
 
+MedRegistry *MedRegistry::make_registry(const string &registry_type, MedRepository &rep, const string &init_str) {
+	MedRegistry *registry = make_registry(registry_type, "");
+	registry->rep_for_init = &rep;
+
+	if (!init_str.empty())
+		registry->init_from_string(init_str);
+
+	return registry;
+}
+
 int MedRegistryCategories::init(map<string, string>& map) {
 	string repository_path, registry_cfg_path;
 	for (auto it = map.begin(); it != map.end(); ++it)
@@ -1878,17 +1911,20 @@ int MedRegistryCategories::init(map<string, string>& map) {
 		//! [MedRegistryCategories::init]
 	}
 
-	if (repository_path.empty())
+	if (repository_path.empty() && rep_for_init == NULL)
 		MTHROW_AND_ERR("Error in MedRegistryCategories::init - please provide repository param to init function\n");
 	if (registry_cfg_path.empty())
 		MTHROW_AND_ERR("Error in MedRegistryCategories::init - please provide config_signals_rules param to init function\n");
 
 	MedPidRepository repo;
-	if (repo.init(repository_path) < 0)
-		MTHROW_AND_ERR("Error in MedRegistryCategories::init - Unable to init repositrory from path %s\n", repository_path.c_str());
+	if (rep_for_init == NULL) {
+		rep_for_init = &repo;
+		if (rep_for_init->init(repository_path) < 0)
+			MTHROW_AND_ERR("Error in MedRegistryCategories::init - Unable to init repositrory from path %s\n", repository_path.c_str());
+	}
 
 	vector<RegistrySignal *> all_rules;
-	RegistrySignal::parse_registry_rules(registry_cfg_path, repo, all_rules);
+	RegistrySignal::parse_registry_rules(registry_cfg_path, *rep_for_init, all_rules);
 	//transpose to all_rules -> signals_rules:
 	unordered_map<string, int> signal_name_to_idx;
 	for (size_t i = 0; i < all_rules.size(); ++i)
