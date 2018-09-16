@@ -1946,6 +1946,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		//! [RepCalcSimpleSignals::init]
 		if (field == "calculator") calculator = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "work_channel") work_channel = stoi(entry.second);
 		else if (field == "max_time_search_range") max_time_search_range = stoi(entry.second);
 		else if (field == "calculator_init_params") calculator_init_params = entry.second;
 		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
@@ -1966,6 +1967,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	if (!calculator_init_params.empty())
 		calculator_logic->init_from_string(calculator_init_params);
 	calculator_logic->missing_value = missing_value;
+	calculator_logic->work_channel = work_channel;
 
 	req_signals.clear();
 	if (signals.empty() && calc2req_sigs.find(calculator) != calc2req_sigs.end())
@@ -2111,6 +2113,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 	}
 	int factor = 1;
 	int v_out_sid = V_ids[0];
+	int n_vals = work_channel + 1;
 	//first lets fetch "static" signals without Time field:
 
 	set<int> iteratorSignalIds;
@@ -2157,7 +2160,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 						if (static_input_signals[i])
 							collected_vals[i] = static_signals_values[i];
 						else {
-							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1);
+							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;
 						}
 					}
@@ -2169,16 +2172,20 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 						}
 						if (v_times.size() < final_size + 1) {
 							v_times.resize(final_size + 1);
-							v_vals.resize(final_size + 1);
+							v_vals.resize(n_vals * final_size + n_vals);
 						}
 						v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
-						v_vals[final_size] = calculator_logic->do_calc(collected_vals);
-						if (v_vals[final_size] != missing_value) { //insert only legal values (missing_value when ilegal)!
+						v_vals[n_vals * final_size + n_vals - 1] = calculator_logic->do_calc(collected_vals);
+						for (int kk = 0; kk < n_vals - 1; ++kk)
+							v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+
+						if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
 							++final_size;
 							last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
 						}
 						else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
-							v_vals[final_size] = prev_val; //return previous val that was not missing
+							v_vals[n_vals * final_size + n_vals - 1] = prev_val; //return previous val that was not missing
+							//Pay attention it still update rest value channels
 							++final_size;
 						}
 					}
@@ -2350,7 +2357,7 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 			if (v_times.size() < final_size + 1) {
 				v_times.resize(final_size + 1);
-				v_vals.resize(final_size + 2);
+				v_vals.resize(2 * final_size + 2);
 			}
 			v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 			v_vals[2 * final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
@@ -2476,7 +2483,7 @@ int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<v
 			v_times[i] = rec.usvs[0].Time(i);
 			float orig_val = rec.usvs[0].Val(i);
 			int end_time = rec.usvs[0].Time(i, 1);
-			int diff_time = med_time_converter.diff_times(v_times[i], end_time, rec.usvs[0].time_unit(),
+			int diff_time = med_time_converter.diff_times(end_time, v_times[i], rec.usvs[0].time_unit(),
 				global_default_time_unit);
 			v_vals[2 * i] = orig_val;
 			v_vals[2 * i + 1] = rec.usvs[0].Val(i, 1) / diff_time;
@@ -2594,8 +2601,8 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 		}
 		// pushing virtual data into rec (into orig version)
 		for (size_t i = 0; i < names.size(); ++i)
-			if (!v_vals[i].empty())
-				rec.set_version_universal_data(V_ids[i], iver, &v_times[i][0], &v_vals[i][0], (int)v_vals[i].size());
+			if (!v_times[i].empty())
+				rec.set_version_universal_data(V_ids[i], iver, &v_times[i][0], &v_vals[i][0], (int)v_times[i].size());
 	}
 
 	return 0;

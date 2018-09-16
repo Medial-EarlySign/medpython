@@ -43,7 +43,13 @@ void RatioCalculator::list_output_signals(const vector<string> &input_signals, v
 		if (power_base != 1)
 			o_name += "^" + medial::print::print_obj(power_base, "%2.3f");
 	}
-	_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	else if (work_channel == 1)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal2));
+	else
+		MTHROW_AND_ERR("ERROR in RatioCalculator::list_output_signals - Unsupported work_channel=%d\n",
+			work_channel);
 }
 
 float RatioCalculator::do_calc(const vector<float> &vals) const {
@@ -79,7 +85,10 @@ void eGFRCalculator::validate_arguments(const vector<string> &input_signals, con
 }
 
 void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
-	_virtual_signals.push_back(pair<string, int>("calc_eGFR", T_DateVal));
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, int>("calc_eGFR", T_DateVal));
+	else
+		MTHROW_AND_ERR("ERROR in eGFRCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
 float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity, float missing_value)
@@ -121,7 +130,12 @@ void logCalculator::validate_arguments(const vector<string> &input_signals, cons
 		MTHROW_AND_ERR("Error logCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
 void logCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
-	_virtual_signals.push_back(pair<string, int>("log_" + input_signals[0], T_DateVal));
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, int>("log_" + input_signals[0], T_DateVal));
+	else if (work_channel == 1)
+		_virtual_signals.push_back(pair<string, int>("log_" + input_signals[0], T_DateVal2));
+	else
+		MTHROW_AND_ERR("ERROR in logCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 float logCalculator::do_calc(const vector<float> &vals) const {
 	if (vals[0] < 0)
@@ -174,7 +188,12 @@ void SumCalculator::list_output_signals(const vector<string> &input_signals, vec
 			snprintf(buff, sizeof(buff), "%s_plus_%s", o_name.c_str(), input_signals[i].c_str());
 		o_name = string(buff);
 	}
-	_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	else if (work_channel == 1)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal2));
+	else
+		MTHROW_AND_ERR("ERROR in SumCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
 float SumCalculator::do_calc(const vector<float> &vals) const {
@@ -217,7 +236,12 @@ void RangeCalculator::list_output_signals(const vector<string> &input_signals, v
 	snprintf(buff, sizeof(buff), "%s_in_%2.3f_%2.3f", input_signals[0].c_str(), min_range, max_range);
 	string o_name = string(buff);
 
-	_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	else if (work_channel == 1)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal2));
+	else
+		MTHROW_AND_ERR("ERROR in RangeCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
 float RangeCalculator::do_calc(const vector<float> &vals) const {
@@ -275,7 +299,12 @@ void MultiplyCalculator::list_output_signals(const vector<string> &input_signals
 		o_name = string(buff);
 	}
 
-	_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	else if (work_channel == 1)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal2));
+	else
+		MTHROW_AND_ERR("ERROR in MultiplyCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
 float MultiplyCalculator::do_calc(const vector<float> &vals) const {
@@ -319,7 +348,12 @@ void SetCalculator::list_output_signals(const vector<string> &input_signals, vec
 	snprintf(buff, sizeof(buff), "%s_in_set", input_signals[0].c_str());
 	string o_name = string(buff);
 
-	_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal));
+	else if (work_channel == 1)
+		_virtual_signals.push_back(pair<string, int>(o_name, T_DateVal2));
+	else
+		MTHROW_AND_ERR("ERROR in SetCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
 void SetCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {

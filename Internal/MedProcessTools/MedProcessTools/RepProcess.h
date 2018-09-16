@@ -924,8 +924,9 @@ private:
 */
 class SimpleCalculator : public SerializableObject {
 public:
-	float missing_value = (float)MED_MAT_MISSING_VALUE;
-	string calculator_name = "";
+	float missing_value = (float)MED_MAT_MISSING_VALUE; ///< missing value 
+	string calculator_name = ""; ///< just for debuging
+	int work_channel = 0; ///< the working channel
 
 	///init function of calculator
 	virtual int init(map<string, string>& mapper) { return 0; };
@@ -1076,7 +1077,7 @@ public:
 	vector<string> V_names; ///< names of signals created by the calculator (a calculator can create more than a single signal at a time)
 
 	string calculator; ///< calculator asked for by user
-	//int calc_type;	///> type of calculator (one of the allowed enum values) - To Remove
+	int work_channel = 0; ///< the channel to work on all singals - and save results to
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
