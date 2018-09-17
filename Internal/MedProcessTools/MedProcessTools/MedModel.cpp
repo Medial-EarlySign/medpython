@@ -459,7 +459,8 @@ void MedModel::filter_rep_processors() {
 	for (unsigned int i = 0; i < rep_processors.size(); i++) {
 		unordered_set<string> current_req_signal_names;
 		get_all_required_signal_names(current_req_signal_names, rep_processors, i, generators);
-		expend_signal_effect(rep_processors, current_req_signal_names);
+		vector<RepProcessor *> no_filter_yet(rep_processors.begin() + i, rep_processors.end());
+		expend_signal_effect(no_filter_yet, current_req_signal_names);
 		if (!rep_processors[i]->filter(current_req_signal_names))
 			filtered_processors.push_back(rep_processors[i]);
 		else {//cleaning uneeded rep_processors!:
@@ -893,7 +894,7 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
-
+	expend_signal_effect(rep_processors, signalNames);
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG("adding virtual signals from rep type %d\n", processor->processor_type);

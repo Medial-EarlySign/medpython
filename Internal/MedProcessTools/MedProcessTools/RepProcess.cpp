@@ -360,6 +360,7 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 
 	if (filtered.empty()) {
 		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
+		processors.clear();
 		return true;
 	}
 	else {
