@@ -432,9 +432,9 @@ void build_signal_affect_tree(const vector<RepProcessor *> &rep_processors,
 			no_mult = &single;
 
 		for (size_t k = 0; k < no_mult->size(); ++k)
-			for (const string &req_signal : (*no_mult)[k]->req_signals)
-				signal_affect_tree[req_signal].insert((*no_mult)[k]->aff_signals.begin(),
-					(*no_mult)[k]->aff_signals.end());
+			for (const string &req_signal : (*no_mult)[k]->aff_signals)
+				signal_affect_tree[req_signal].insert((*no_mult)[k]->req_signals.begin(),
+					(*no_mult)[k]->req_signals.end());
 	}
 }
 void expend_signal_effect(const vector<RepProcessor *> &rep_processors,
