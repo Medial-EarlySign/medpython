@@ -141,7 +141,7 @@ public:
 	MultiFeatureProcessor() { init_defaults(); };
 	~MultiFeatureProcessor() { clear(); };
 
-	void init_defaults() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; };
+	void init_defaults() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; members_type = FTR_PROCESS_LAST; init_string = ""; tag = ""; };
 
 	void clear();
 

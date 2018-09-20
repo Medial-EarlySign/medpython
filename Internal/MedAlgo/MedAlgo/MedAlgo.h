@@ -390,6 +390,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const;
 
+	void normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std);
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
 	void initialize_vars(float *x_in, float *y_in, const float *w, vector<float>& b, int nrow_train, int n_ftrs);
@@ -431,9 +432,11 @@ struct MedGDLMParams : public SerializableObject {
 	int nthreads;  ///< 0 -> auto choose, >0 - user set.
 	int err_freq;  ///< the frequency in which the stopping err on loss will be tested, reccomended > 10
 
+	int normalize = 0;
+
 	MedGDLMParams() {
 		max_iter = 500; stop_at_err = (float)1e-4; max_times_err_grows = 20; method = "logistic_sgd"; batch_size = 512; rate = (float)0.01; rate_decay = (float)1.0; momentum = (float)0.95; last_is_bias = 0;
-		l_ridge = (float)0; l_lasso = (float)0; nthreads = 0; err_freq = 10;
+		l_ridge = (float)0; l_lasso = (float)0; nthreads = 0; err_freq = 10; normalize = 0;
 	}
 
 	ADD_SERIALIZATION_FUNCS(method, last_is_bias, max_iter, stop_at_err, max_times_err_grows, batch_size, rate, rate_decay, l_ridge, l_lasso, nthreads, err_freq);

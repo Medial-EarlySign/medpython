@@ -21,6 +21,7 @@ int RepPanelCompleter::init(map<string, string>& mapper)
 		}
 		else if (field == "missing") missing_val = stof(entry.second);
 		else if (field == "config" || field == "metadata") metadata_file = entry.second;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "sim_val" || field == "sim_val_handler") sim_val_handler = RepSimValHandler::get_sim_val_handle_type(entry.second);
 		else if (field == "panels") {
 			if (update_panels(entry.second) != 0) return -1;
@@ -104,6 +105,35 @@ void RepPanelCompleter::set_signal_ids(MedDictionarySections& dict) {
 		byearId = dict.id("BYEAR");
 
 	}
+	if (panel_signal_names[REP_CMPLT_GCS].size()) {
+		int section_id = dict.section_id(panel_signal_names[REP_CMPLT_GCS].back());
+		if (section_id < 0)
+			MTHROW_AND_ERR("unable to find GCS Section. search for %s signal\n",
+				panel_signal_names[REP_CMPLT_GCS].back().c_str());
+		eye_vals = {
+			{ dict.id(section_id, "GCS_Eye:none") , 1 },
+			{ dict.id(section_id, "GCS_Eye:to_pain"), 2 },
+			{ dict.id(section_id, "GCS_Eye:to_speech"), 3 },
+			{ dict.id(section_id, "GCS_Eye:spontaneously"), 4 }
+		};
+		verbal_vals = {
+			{ dict.id(section_id, "GCS_Verbal:no_response"), 1 },
+			{ dict.id(section_id, "GCS_Verbal:no_response-ett"), 1 },
+			{ dict.id(section_id, "GCS_Verbal:incomprehensible_sounds"), 2 },
+			{ dict.id(section_id, "GCS_Verbal:inappropriate_words"), 3 },
+			{ dict.id(section_id, "GCS_Verbal:confused"), 4 },
+			{ dict.id(section_id, "GCS_Verbal:oriented"), 5 }
+		};
+		motor_vals = {
+			{ dict.id(section_id, "GCS_Motor:no_response"), 1 },
+			{ dict.id(section_id, "GCS_Motor:abnormal_extension"), 2 },
+			{ dict.id(section_id, "GCS_Motor:abnormal_flexion"), 3 },
+			{ dict.id(section_id, "GCS_Motor:flex-withdraws"), 4 },
+			{ dict.id(section_id, "GCS_Motor:localizes_pain"), 5 },
+			{ dict.id(section_id, "GCS_Motor:obeys_commands"), 6 }
+		};
+
+	}
 }
 
 //.......................................................................................
@@ -165,6 +195,11 @@ int RepPanelCompleter::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 	if (panel_signal_ids[REP_CMPLT_BMI_PANEL].size())
 		rc = apply_BMI_completer(rec, time_points);
+	if (rc < 0)
+		return -1;
+
+	if (panel_signal_ids[REP_CMPLT_GCS].size())
+		rc = apply_GCS_completer(rec, time_points);
 	if (rc < 0)
 		return -1;
 
@@ -266,7 +301,7 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 				complete += sum_complete(panels[i], WHITE_PNL_WBC, white_panel_nums, orig_res, final_res, conv, changed_signals);
 
 				// White subtypes - 
-				for (int j = 0; j<white_panel_nums.size(); j++) {
+				for (int j = 0; j < white_panel_nums.size(); j++) {
 					int num_idx = white_panel_nums[j];
 					int perc_idx = white_panel_precs[j];
 
@@ -532,6 +567,79 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 	return 0;
 }
 
+void RepPanelCompleter::convert_gcs_signals(vector<float> &panel) {
+	//convert channels 1,2,3 (Eye, Motor, Verbal) to values if not missing values
+	if (panel[1] != MED_MAT_MISSING_VALUE) {
+		if (eye_vals.find(panel[1]) == eye_vals.end()) {
+			MTHROW_AND_ERR("Missing value %d in GCS_Eye\n", (int)panel[1]);
+		}
+		else {
+			panel[1] = eye_vals[panel[1]];
+		}
+	}
+
+	if (panel[2] != MED_MAT_MISSING_VALUE) {
+		if (motor_vals.find(panel[2]) == motor_vals.end()) {
+			MTHROW_AND_ERR("Missing value %d in GCS_Motor\n", (int)panel[2]);
+		}
+		else {
+			panel[2] = motor_vals[panel[2]];
+		}
+	}
+
+	if (panel[3] != MED_MAT_MISSING_VALUE) {
+		if (verbal_vals.find(panel[3]) == verbal_vals.end()) {
+			MTHROW_AND_ERR("Missing value %d in GCS_Motor\n", (int)panel[3]);
+		}
+		else {
+			panel[3] = verbal_vals[panel[3]];
+		}
+	}
+
+}
+
+int RepPanelCompleter::apply_GCS_completer(PidDynamicRec& rec, vector<int>& time_points) {
+
+	vector<int>& sigs_ids = panel_signal_ids[REP_CMPLT_GCS];
+	int n_sigs = (int)sigs_ids.size();
+
+	vector<float>& orig_res = original_sig_res[REP_CMPLT_GCS];
+	vector<float>& final_res = final_sig_res[REP_CMPLT_GCS];
+	vector<float>& conv = sig_conversion_factors[REP_CMPLT_GCS];
+
+	// Loop on versions
+	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
+
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+
+		int time_limit = (time_points.size()) ? time_points[iver] : -1;
+
+		// Get Signals
+		rec.usvs.resize(n_sigs);
+		for (size_t i = 0; i < n_sigs; ++i)
+			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+
+		// Get Panels
+		vector<int> panel_times;
+		vector<vector<float> > panels;
+		get_panels(rec.usvs, panel_times, panels, time_limit, GCS_PNL_LAST);
+		for (size_t i = 0; i < panels.size(); ++i)
+			convert_gcs_signals(panels[i]);
+
+		// Complete
+		vector<int> changed_signals(GCS_PNL_LAST, 0);
+		for (size_t i = 0; i < panels.size(); i++)
+			sum_complete(panels[i], GCS_PNL, gcs_panel_parts, orig_res, final_res, conv, changed_signals);
+
+		// Update changed signals
+		if (update_signals(rec, iver, panels, panel_times, sigs_ids, changed_signals) < 0)
+			return -1;
+	}
+
+	return 0;
+}
+
 
 // Utilities
 // Generate panels from signals
@@ -592,13 +700,15 @@ void RepPanelCompleter::get_panels(vector<UniversalSigVec>& usvs, vector<int>& p
 			else
 				panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]);
 			val_counters.back()[sig_idx]++;
-		} else if (sim_val_handler == SIM_VAL_REM_DIFF) {
+		}
+		else if (sim_val_handler == SIM_VAL_REM_DIFF) {
 			if (val_counters.back()[sig_idx] != 0 && panels.back()[sig_idx] != usvs[sig_idx].Val(idx[sig_idx]))
 				panels.back()[sig_idx] = missing_val;
 			else
 				panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]);
 			val_counters.back()[sig_idx]++;
-		} else if (sim_val_handler == SIM_VAL_LAST_VAL || panels.back()[sig_idx] == missing_val)
+		}
+		else if (sim_val_handler == SIM_VAL_LAST_VAL || panels.back()[sig_idx] == missing_val)
 			panels.back()[sig_idx] = usvs[sig_idx].Val(idx[sig_idx]);
 		idx[sig_idx]++;
 
@@ -764,22 +874,30 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 				int time = rec.usv.Time(i);
 				if (time == rec.usv.Time(i - 1)) {
 					if (multiple_values[time].empty())
-						multiple_values[time].push_back(rec.usv.Val(i-1));
+						multiple_values[time].push_back(rec.usv.Val(i - 1));
 					multiple_values[time].push_back(rec.usv.Val(i));
 					nEXtra++;
 				}
 			}
-
+			int val_ch_sz = rec.usv.n_val_channels();
+			int time_ch_sz = rec.usv.n_time_channels();
 			// Generate new data
-			int trueSize = 0;
-			vector<float> values(panels.size() + nEXtra);
-			vector<int> times(panels.size() + nEXtra);
+			int trueSize = 0, data_idx = 0;
+			vector<float> values(val_ch_sz * (panels.size() + nEXtra), missing_val);
+			vector<int> times(time_ch_sz * (panels.size() + nEXtra));
 			if (nEXtra == 0) { // Easy case - no multiple values 			
 				for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 					if (panels[iPanel][iSig] != missing_val) {
-						values[trueSize] = panels[iPanel][iSig];
-						times[trueSize] = panel_times[iPanel];
-						trueSize++;
+						values[trueSize * val_ch_sz] = panels[iPanel][iSig];
+						times[trueSize * time_ch_sz] = panel_times[iPanel];
+						if (data_idx < rec.usv.len && rec.usv.Time(data_idx) == panel_times[iPanel]) {
+							for (int i = 1; i < val_ch_sz; ++i)
+								values[trueSize * val_ch_sz + i] = rec.usv.Val(data_idx, i);
+							for (int i = 1; i < time_ch_sz; ++i)
+								times[trueSize * time_ch_sz + i] = rec.usv.Time(data_idx, i);
+						}
+						++trueSize;
+						data_idx += data_idx < rec.usv.len && rec.usv.Time(data_idx) == panel_times[iPanel]; //move next when reach panel time
 					}
 				}
 			}
@@ -788,15 +906,29 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 					int time = panel_times[iPanel];
 					if (multiple_values.find(time) != multiple_values.end()) {
 						for (float value : multiple_values[time]) {
-							values[trueSize] = value;
-							times[trueSize] = time;
+							values[trueSize * val_ch_sz] = value;
+							times[trueSize * time_ch_sz] = time;
+							if (data_idx < rec.usv.len && rec.usv.Time(data_idx) == time) {
+								for (int i = 1; i < val_ch_sz; ++i)
+									values[trueSize * val_ch_sz + i] = rec.usv.Val(data_idx, i);
+								for (int i = 1; i < time_ch_sz; ++i)
+									times[trueSize * time_ch_sz + i] = rec.usv.Time(data_idx, i);
+							}
 							trueSize++;
+							data_idx += data_idx < rec.usv.len && rec.usv.Time(data_idx) == time; //move next when reach panel time
 						}
 					}
 					else if (panels[iPanel][iSig] != missing_val) {
-						values[trueSize] = panels[iPanel][iSig];
-						times[trueSize] = time;
+						values[trueSize * val_ch_sz] = panels[iPanel][iSig];
+						times[trueSize * time_ch_sz] = time;
+						if (data_idx < rec.usv.len && rec.usv.Time(data_idx) == time) {
+							for (int i = 1; i < val_ch_sz; ++i)
+								values[trueSize * val_ch_sz + i] = rec.usv.Val(data_idx, i);
+							for (int i = 1; i < time_ch_sz; ++i)
+								times[trueSize * time_ch_sz + i] = rec.usv.Time(data_idx, i);
+						}
 						trueSize++;
+						data_idx += data_idx < rec.usv.len && rec.usv.Time(data_idx) == time; //move next when reach panel time
 					}
 				}
 			}
@@ -813,8 +945,13 @@ int RepPanelCompleter::update_signals(PidDynamicRec& rec, int iver, vector<vecto
 //.......................................................................................
 void RepPanelCompleter::read_metadata() {
 
-	if (metadata_file.empty())
-		MTHROW_AND_ERR("No metadata file given\n");
+	if (metadata_file.empty()) {
+		original_sig_res.resize(REP_CMPLT_LAST);
+		final_sig_res.resize(REP_CMPLT_LAST);
+		sig_conversion_factors.resize(REP_CMPLT_LAST);
+		MWARN("Warning: No metadata file given for RepPanelCompleter\n");
+		return;
+	}
 
 	// Open
 	ifstream infile;

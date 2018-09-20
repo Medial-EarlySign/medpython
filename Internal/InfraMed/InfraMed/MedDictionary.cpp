@@ -252,6 +252,38 @@ int MedDictionary::is_in_set(int member_id, int set_id)
 	return 0;
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// next function calculates for each member ALL the sets it is contained in , applying all set transitivity
+void MedDictionary::get_members_to_all_sets(vector<int> &members, unordered_map<int, vector<int>> &Member2AllSets)
+{
+	if (members.size() == 0) {
+		for (auto &i : Id2Name) members.push_back(i.first);
+	}
+
+	Member2AllSets.clear();
+#pragma omp parallel for
+	for (int i=0; i<members.size(); i++) {
+		int member = members[i];
+		unordered_set<int> used;
+		queue<int> q;
+		q.push(member);
+		vector<int> v_sets;
+		while (q.size() > 0) {
+			int set_n = q.front();
+			q.pop();
+			if (used.find(set_n) == used.end()) {
+				v_sets.push_back(set_n);
+				used.insert(set_n);
+				for (auto n : Member2Sets[set_n])
+					q.push(n);
+			}
+
+		}
+#pragma omp critical
+		Member2AllSets[member] = v_sets;
+	}
+}
+
 //-----------------------------------------------------------------------------------------------
 void MedDictionary::get_set_members(const string &set, vector<int> &members)
 {

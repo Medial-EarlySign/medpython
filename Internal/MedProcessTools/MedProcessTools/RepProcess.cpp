@@ -29,6 +29,12 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CHECK_REQ;
 	else if (processor_name == "sim_val" || processor_name == "sim_val_handler")
 		return REP_PROCESS_SIM_VAL;
+	else if (processor_name == "signal_rate")
+		return REP_PROCESS_SIGNAL_RATE;
+	else if (processor_name == "combine")
+		return REP_PROCESS_COMBINE;
+	else if (processor_name == "split")
+		return REP_PROCESS_SPLIT;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -78,6 +84,12 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCheckReq;
 	else if (processor_type == REP_PROCESS_SIM_VAL)
 		return new RepSimValHandler;
+	else if (processor_type == REP_PROCESS_SIGNAL_RATE)
+		return new RepSignalRate;
+	else if (processor_type == REP_PROCESS_COMBINE)
+		return new RepCombineSignals;
+	else if (processor_type == REP_PROCESS_SPLIT)
+		return new RepSplitSignal;
 	else
 		return NULL;
 
@@ -107,7 +119,7 @@ int RepProcessor::learn(MedPidRepository& rep) {
 //.......................................................................................
 int RepProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors, unordered_set<int>& neededSignalIds) {
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId)) 
+		if (is_signal_affected(signalId))
 			return _learn(rep, samples, prev_processors);
 	}
 	return 0;
@@ -141,8 +153,8 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 	for (unsigned int i = 0; i < time_points.size(); i++)
 		time_points[i] = samples.samples[i].time;
 
-	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(),0)) ;
-	int rc = apply(rec, time_points,attributes_mat);
+	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(), 0));
+	int rc = apply(rec, time_points, attributes_mat);
 
 	if (rc == 0) {
 		for (unsigned int i = 0; i < time_points.size(); i++) {
@@ -186,7 +198,7 @@ int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_point
 		return apply(rec, time_points, attributes_mat);
 
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId)) 
+		if (is_signal_affected(signalId))
 			return apply(rec, time_points, attributes_mat);
 	}
 
@@ -213,7 +225,7 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames)
 // Add req_signals to set only if processor is required for any of preReqSignalNames
 //.......................................................................................
 void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames, unordered_set<string> preReqSignalNames) {
-	
+
 	if (unconditional)
 		get_required_signal_names(signalNames);
 	else {
@@ -332,17 +344,27 @@ void RepMultiProcessor::set_affected_signal_ids(MedDictionarySections& dict) {
 bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 
 	vector<RepProcessor *> filtered;
+	bool did_something = false;
 	for (auto& processor : processors) {
 		if (!processor->filter(neededSignals))
 			filtered.push_back(processor);
+		else {
+			delete processor;
+			processor = NULL;
+			did_something = true;
+		}
 	}
+	if (did_something)
+		MLOG("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
+			filtered.size(), processors.size());
 
 	if (filtered.empty()) {
 		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
+		processors.clear();
 		return true;
 	}
 	else {
-		processors = filtered;
+		processors.swap(filtered);
 		return false;
 	}
 }
@@ -417,7 +439,7 @@ int RepMultiProcessor::_conditional_learn(MedPidRepository& rep, MedSamples& sam
 
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		rc[j] = processors[j]->conditional_learn(rep, samples, prev_processors,neededSignalIds);
+		rc[j] = processors[j]->conditional_learn(rep, samples, prev_processors, neededSignalIds);
 	}
 
 	for (int r : rc) if (r < 0) return -1;
@@ -474,7 +496,7 @@ int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_
 		all_attributes_mats.resize(processors.size());
 		for (int j = 0; j < processors.size(); j++) {
 			all_attributes_mats[j].resize(time_points.size());
-			for (int i = 0; i < time_points.size(); i++) 
+			for (int i = 0; i < time_points.size(); i++)
 				all_attributes_mats[j][i].resize(processors[j]->attributes.size(), 0);
 		}
 	}
@@ -494,7 +516,7 @@ int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_
 	if (!attributes_mat.empty()) {
 		for (int j = 0; j < processors.size(); j++) {
 			for (int i = 0; i < time_points.size(); i++) {
-				for (int k = 0; k < processors[j]->attributes.size(); k++) 
+				for (int k = 0; k < processors[j]->attributes.size(); k++)
 					attributes_mat[i][attributes_map[j][k]] += all_attributes_mats[j][i][k];
 			}
 		}
@@ -541,7 +563,7 @@ void RepMultiProcessor::init_attributes() {
 		for (int j = 0; j < processors[i]->attributes.size(); j++) {
 			if (attributes_pos.find(processors[i]->attributes[j]) == attributes_pos.end()) {
 				attributes.push_back(processors[i]->attributes[j]);
-				attributes_pos[attributes.back()] = (int) attributes.size() - 1;
+				attributes_pos[attributes.back()] = (int)attributes.size() - 1;
 			}
 			attributes_map[i][j] = attributes_pos[processors[i]->attributes[j]];
 		}
@@ -599,9 +621,14 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 	if (rp_flag > 0) {
 		MLOG("%s :: RP MULTI(%d) -->\n", pref.c_str(), processors.size());
 		for (auto& proc : processors) {
-			proc->dprint(pref+"->Multi", rp_flag);
+			proc->dprint(pref + "->Multi", rp_flag);
 		}
 	}
+}
+
+void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& dict) {
+	for (size_t i = 0; i < processors.size(); ++i)
+		processors[i]->register_virtual_section_name_id(dict);
 }
 
 //=======================================================================================
@@ -617,9 +644,9 @@ void RepBasicOutlierCleaner::init_lists() {
 
 // Init from map
 //.......................................................................................
-int RepBasicOutlierCleaner::init(map<string, string>& mapper) 
-{ 
-	init_defaults(); 
+int RepBasicOutlierCleaner::init(map<string, string>& mapper)
+{
+	init_defaults();
 
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -683,7 +710,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, MedSamples& sa
 	//MLOG("basic Iterative clean Learn: signalName %s signalId %d :: got %d values()\n", signalName.c_str(), signalId, values.size());
 
 	// Iterative approximation of moments
-	int rc =  get_iterative_min_max(values);
+	int rc = get_iterative_min_max(values);
 
 	return rc;
 }
@@ -752,16 +779,16 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 			// Identify values to change or remove
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
-//				MLOG("pid %d ver %d time %d %s %f removed\n", rec.pid, iver, itime, signalName.c_str(), ival);
+				//				MLOG("pid %d ver %d time %d %s %f removed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 				remove[nRemove++] = i;
 			}
 			else if (params.doTrim) {
 				if (ival < trimMin) {
-//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
+					//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMin);
 				}
 				else if (ival > trimMax) {
-//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
+					//					MLOG("pid %d ver %d time %d %s %f trimmed\n", rec.pid, iver, itime, signalName.c_str(), ival);
 					change[nChange++] = pair<int, float>(i, trimMax);
 				}
 			}
@@ -776,8 +803,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		// Collect atttibutes
 		int idx = 0;
 		if (!nRem_attr.empty() && !attributes_mat.empty()) {
-			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
-				attributes_mat[pVersion][idx] = (float) nRemove;
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = (float)nRemove;
 			idx++;
 		}
 
@@ -788,14 +815,14 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		}
 
 		if (!nTrim_attr.empty() && !attributes_mat.empty()) {
-			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++) 
-				attributes_mat[pVersion][idx] = (float) nChange;
+			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
+				attributes_mat[pVersion][idx] = (float)nChange;
 			idx++;
 		}
 
 		if (!nTrim_attr_suffix.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-				attributes_mat[pVersion][idx] = (float) nChange;
+				attributes_mat[pVersion][idx] = (float)nChange;
 			idx++;
 		}
 	}
@@ -831,15 +858,15 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 	while (!infile.eof()) {
 		getline(infile, thisLine);
 		if (thisLine.back() == '\r') thisLine.pop_back();
-	
+
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));
 		if (f.size() != 7) {
-			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(),thisLine.c_str(),f.size());
+			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 			infile.close();
 			return -1;
 		}
-	
+
 		thisRecord.confirmedLow = thisRecord.logicalLow = (float)atof(f[1].c_str());
 		thisRecord.confirmedHigh = thisRecord.logicalHigh = (float)atof(f[2].c_str());
 
@@ -960,8 +987,8 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 	const float meanShift = 0; // has value when margins are asymetric
 	const float sdNums = 7; // how many standard deviation on each side of the mean.
 
-	int start = (int) round(filteredValues.size()*margin[0]);
-	int stop = (int) round(filteredValues.size()*margin[1]);
+	int start = (int)round(filteredValues.size()*margin[0]);
+	int stop = (int)round(filteredValues.size()*margin[1]);
 	for (vector<float>::iterator el = filteredValues.begin() + start; el < filteredValues.begin() + stop; el++) {
 
 		sum += *el;
@@ -972,8 +999,8 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 	//printf("sum %f sumsq %f  stop %d start %d\n", sum, sumsq, stop, start);
 	var = var / varianceFactor;
 	mean = mean - meanShift*sqrt(var);
-	borderHi = (float) (mean + sdNums*sqrt(var));
-	borderLo = (float) (mean - sdNums*sqrt(var));
+	borderHi = (float)(mean + sdNums*sqrt(var));
+	borderLo = (float)(mean - sdNums*sqrt(var));
 
 
 
@@ -1006,7 +1033,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		}
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "val_channel") val_channel = med_stoi(entry.second);
-		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second)!=0;
+		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "tolerance") tolerance = med_stof(entry.second);
@@ -1027,7 +1054,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		if (std::find(consideredRules.begin(), consideredRules.end(), 0) != consideredRules.end() ||
 			std::find(consideredRules.begin(), consideredRules.end(), rule.first) != consideredRules.end())
 			continue;// rule remains
-		else 
+		else
 			rules2Signals.erase(rule.first);// rule removed
 	}
 
@@ -1038,7 +1065,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 
 				rulesToApply.push_back(rule.first);
 				bool loopBreak = false;
-				for (auto& reqSig : rule.second) {					
+				for (auto& reqSig : rule.second) {
 					bool found = false;
 					for (auto& existReqSig : req_signals) {
 						if (reqSig == existReqSig) {
@@ -1095,14 +1122,14 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 		}
 	}
 }
-	
+
 
 int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
-	
+
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
 	map <int, vector <int>> removePoints; // from signal id to its remove points
-	
+
 	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
@@ -1148,7 +1175,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				for (int i = 1; i < mySids.size(); i++) {
 					while (ruleUsvs[i].Time(sPointer[i], time_channel) < thisTime && sPointer[i] < ruleUsvs[i].len - 1)sPointer[i]++;
 					//printf("before ok_check: %d %d %d %d %d %d\n", i, sPointer[0], sPointer[1], sPointer[2],thisTime, ruleUsvs[i].Time(sPointer[i], time_channel));
-					if (ruleUsvs[i].Time(sPointer[i], time_channel) != thisTime ) {
+					if (ruleUsvs[i].Time(sPointer[i], time_channel) != thisTime) {
 						//printf("before ok_0: %d %d %d %d %d\n", rule, sPointer[0], sPointer[1], sPointer[2]);
 						ok = 0;
 						break;
@@ -1156,28 +1183,28 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				}
 				if (ok) {
 					// if found all signals from same date eliminate doubles and take the last one for comparison
-					for (int i = 0; i < mySids.size(); i++) 
-						while(sPointer[i] < ruleUsvs[i].len - 1)
+					for (int i = 0; i < mySids.size(); i++)
+						while (sPointer[i] < ruleUsvs[i].len - 1)
 							if (ruleUsvs[i].Time(sPointer[i], time_channel) == ruleUsvs[i].Time(sPointer[i] + 1, time_channel)) {
-								if(affected_by_rules[iRule][i])
-										removePoints[mySids[i]].insert(sPointer[i]);
+								if (affected_by_rules[iRule][i])
+									removePoints[mySids[i]].insert(sPointer[i]);
 								sPointer[i]++;
 							}
 							else break;
-					// check rule and mark for removement
-					//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
-					bool ruleFlagged = applyRule(rule, ruleUsvs, sPointer);
-					/*
-					printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
-					for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
-					printf("\n");
-					*/
-					if (ruleFlagged) {
-						
-						for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
-							if (affected_by_rules[iRule][sIndex])
-								removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
-					}
+							// check rule and mark for removement
+							//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
+							bool ruleFlagged = applyRule(rule, ruleUsvs, sPointer);
+							/*
+							printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
+							for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
+							printf("\n");
+							*/
+							if (ruleFlagged) {
+
+								for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
+									if (affected_by_rules[iRule][sIndex])
+										removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
+							}
 				}
 			}
 		}
@@ -1192,7 +1219,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				return -1;
 			if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
 				for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-					attributes_mat[pVersion][idx] = (float) toRemove.size();
+					attributes_mat[pVersion][idx] = (float)toRemove.size();
 				idx++;
 			}
 			nRemove += toRemove.size();
@@ -1201,7 +1228,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		// Collect atttibutes
 		if (!nRem_attr.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
-				attributes_mat[pVersion][idx] = (float) nRemove;
+				attributes_mat[pVersion][idx] = (float)nRemove;
 		}
 	}
 
@@ -1242,7 +1269,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 12://HDL_over_Cholesterol=HDL/Cholesterol
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right =round( ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/(float)10.; //resolution in THIN is 0.1
+		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10) / (float)10.; //resolution in THIN is 0.1
 		return(abs(left / right - 1) > tolerance);
 
 	case 6://MPV=Platelets_Hematocrit/Platelets
@@ -1254,7 +1281,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 8://UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
 		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2])*10)/10;//resolution in THIN is 0.1
+		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10) / 10;//resolution in THIN is 0.1
 		return(abs(left / right - 1) > tolerance);
 
 	case 13://HDL_over_LDL=HDL/LDL
@@ -1269,7 +1296,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]) + ruleUsvs[2].Val(sPointer[2]) + ruleUsvs[3].Val(sPointer[3]) + ruleUsvs[4].Val(sPointer[4]);
 		right = ruleUsvs[5].Val(sPointer[5]);
 		return (left*(1 - tolerance) >= right);
-	
+
 	case 19://Albumin<=Protein_Total	
 	case 21://NRBC<=RBC
 	case 22://CHADS2<=CHADS2_VASC
@@ -1281,7 +1308,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 20://FreeT4<=T4
 		left = ruleUsvs[0].Val(sPointer[0]);
 		right = ruleUsvs[1].Val(sPointer[1]);
-		return(left*(1 - tolerance) >= right*1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
+		return(left*(1 - tolerance) >= right * 1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
 
 	case 9://LDL+HDL<=Cholesterol
 		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]);
@@ -1297,7 +1324,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 	case 17://Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
 		if (ruleUsvs[2].Val(sPointer[1]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0]);
-		right =(float) 1. / ruleUsvs[1].Val(sPointer[1]);
+		right = (float) 1. / ruleUsvs[1].Val(sPointer[1]);
 		return (abs(left / right - 1) > tolerance);
 
 	default: assert(0); return false; // return is never executed but eliminates warning
@@ -1527,7 +1554,7 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points,
 		// Collect atttibutes
 		int idx = 0;
 		if (!nRem_attr.empty() && !attributes_mat.empty())
-			attributes_mat[iver][idx++] = (float) nRemove;
+			attributes_mat[iver][idx++] = (float)nRemove;
 		if (!nRem_attr_suffix.empty() && !attributes_mat.empty())
 			attributes_mat[iver][idx++] = (float)nRemove;
 		if (!nTrim_attr.empty() && !attributes_mat.empty())
@@ -1543,8 +1570,8 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points,
 //.......................................................................................
 void RepNbrsOutlierCleaner::print()
 {
-MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
-	signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin,nbrsMax, nbrsMin);
+	MLOG("RepNbrsOutlierCleaner: signal: %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f : removeMin %f : nbrsMax %f : nbrsMin %f\n",
+		signalId, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin, nbrsMax, nbrsMin);
 }
 
 //=======================================================================================
@@ -1558,8 +1585,8 @@ int RepCheckReq::init(map<string, string>& mapper)
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RepMinimalReq::init]
-		if (field == "signals") 
+		//! [RepCheckReq::init]
+		if (field == "signals")
 			boost::split(signalNames, entry.second, boost::is_any_of(","));
 		else if (field == "time_channels") {
 			vector<string> channels;
@@ -1567,15 +1594,15 @@ int RepCheckReq::init(map<string, string>& mapper)
 			for (string& channel : channels)
 				time_channels.push_back(stoi(channel));
 		}
-		else if (field == "time_unit") 
+		else if (field == "time_unit")
 			window_time_unit = med_time_converter.string_to_type(entry.second);
-		else if (field == "win_from") 
+		else if (field == "win_from")
 			win_from = med_stoi(entry.second);
-		else if (field == "win_to") 
+		else if (field == "win_to")
 			win_to = med_stoi(entry.second);
 		else if (field == "attr")
 			attrName = entry.second;
-		//! [RepMinimalReq::init]
+		//! [RepCheckReq::init]
 	}
 
 	// Take care of time-channels
@@ -1632,7 +1659,7 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 			return -1;
 		}
 	}
-	
+
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch\n");
 		return -1;
@@ -1648,27 +1675,27 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 
 		// NOTE : This is not perfect : we assume that the samples' time-unit is the default time unit
 		int time_point = med_time_converter.convert_times(global_default_time_unit, window_time_unit, time_points[iver]);
-		
+
 		int nMissing = 0;
 		for (int i = 0; i < signalIds.size(); i++) {
 			rec.uget(signalIds[i], iver, usvs[i]);
 
 			bool found = false;
 			for (int j = 0; j < usvs[i].len; j++) {
-				if (usvs[i].Time(j,time_channels[i]) > med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_from))
+				if (usvs[i].Time(j, time_channels[i]) > med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_from))
 					break;
 				if (usvs[i].Time(j, time_channels[i]) >= med_time_converter.convert_times(window_time_unit, sig_time_units[i], time_point - win_to)) {
 					found = true;
 					break;
 				}
 			}
-			
+
 			if (!found)
 				nMissing++;
 		}
 
 		// Set attribute
-		attributes_mat[iver][0] = (float) nMissing;
+		attributes_mat[iver][0] = (float)nMissing;
 	}
 
 	return 0;
@@ -1696,6 +1723,8 @@ int RepSimValHandler::init(map<string, string>& mapper)
 		//! [RepSimValHandler::init]
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "type") handler_type = get_sim_val_handle_type(entry.second);
+		else if (field == "debug") debug = stoi(entry.second) > 0;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "time_channels") {
 			vector<string> channels;
 			boost::split(channels, entry.second, boost::is_any_of(","));
@@ -1717,13 +1746,13 @@ void RepSimValHandler::init_attributes() {
 
 	string _signal_name = signalName;
 
-	if (time_channels.size() > 1 || (time_channels.size()==1 && time_channels[0] != 0)) {
+	if (time_channels.size() > 1 || (time_channels.size() == 1 && time_channels[0] != 0)) {
 		vector<string> channels_s(time_channels.size());
 		for (unsigned int i = 0; i < channels_s.size(); i++)
 			channels_s[i] = to_string(time_channels[i]);
 		_signal_name += "_" + boost::join(channels_s, "_");
 	}
-	
+
 
 	attributes.clear();
 	if (!nHandle_attr.empty()) attributes.push_back(nHandle_attr);
@@ -1733,7 +1762,7 @@ void RepSimValHandler::init_attributes() {
 // name to SimValHandleTypes
 //.......................................................................................
 SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 	if (name == "first" || name == "first_val")
 		return SIM_VAL_FIRST_VAL;
 	else if (name == "last" || name == "last_val")
@@ -1746,7 +1775,7 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 		return SIM_VAL_REM_DIFF;
 	else
 		MTHROW_AND_ERR("Unkwnon sim_val_hand_type \'%s\'\n", name.c_str());
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 }
 
 // Get time-channels (if empty)
@@ -1781,6 +1810,7 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 	int len;
 	differentVersionsIterator vit(rec, signalId);
+	int total_nTimes = 0;
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		// Do it 
@@ -1819,7 +1849,7 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		// Handle last block
 		if (end > start)
 			handle_block(start, end, rec.usv, remove, nRemove, change, nChange, nTimes);
-	
+
 
 		// Apply removals + changes
 		change.resize(nChange);
@@ -1834,14 +1864,20 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 				attributes_mat[pVersion][idx] = (float)nTimes;
 			idx++;
 		}
-		
+
 		if (!nHandle_attr_suffix.empty() && !attributes_mat.empty()) {
 			for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
 				attributes_mat[pVersion][idx] = (float)nTimes;
 			idx++;
 		}
+		total_nTimes += nTimes;
 	}
 
+	if (debug && total_nTimes > 0 && verbose_cnt < 1) {
+		MLOG("RepSimValHandler for %s - patient %d handled %d samples\n",
+			signalName.c_str(), rec.pid, total_nTimes);
+		++verbose_cnt;
+	}
 	return 0;
 
 }
@@ -1863,14 +1899,14 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 	else if (handler_type == SIM_VAL_MEAN) {
 		vector<float> sums(nValChannels, 0);
 		for (int j = start; j < end; j++) {
-			for (int iChannel=0; iChannel < nValChannels; iChannel++)
-				sums[iChannel] += usv.Val(j,iChannel);
+			for (int iChannel = 0; iChannel < nValChannels; iChannel++)
+				sums[iChannel] += usv.Val(j, iChannel);
 			remove[nRemove++] = j;
 		}
 		pair<int, vector<float>> newChange;
 		newChange.first = end;
 		newChange.second.resize(nValChannels);
-		for (int iChannel=0; iChannel < nValChannels; iChannel++)
+		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
 			newChange.second[iChannel] = (sums[iChannel] + usv.Val(end, iChannel)) / (end + 1 - start);
 		change[nChange++] = newChange;
 		nTimes++;
@@ -1908,104 +1944,97 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 {
 	for (auto entry : mapper) {
 		string field = entry.first;
+		//! [RepCalcSimpleSignals::init]
 		if (field == "calculator") calculator = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
-		else if (field == "coeffs") {
-			vector<string> fields;
-			boost::split(fields, entry.second, boost::is_any_of(",:"));
-			coeff.clear();
-			for (auto &f : fields) coeff.push_back(stof(f));
-		}
-		else if (field == "names") {
-			boost::split(V_names, entry.second, boost::is_any_of(",:"));
-		}
-		else if (field == "signals") {
-			boost::split(signals, entry.second, boost::is_any_of(",:"));
-		}
-		else if (field == "timer") timer_signal = entry.second;
-		else if (field == "time_step") time_step_str = entry.second;
+		else if (field == "work_channel") work_channel = stoi(entry.second);
+		else if (field == "max_time_search_range") max_time_search_range = stoi(entry.second);
+		else if (field == "calculator_init_params") calculator_init_params = entry.second;
+		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
+		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(",:"));
+		else if (field == "signals_time_unit") signals_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepCalcSimpleSignals::init]
+	}
+	if (signals_time_unit == -1 || signals_time_unit == MedTime::Undefined) {
+		MWARN("Warning in RepCalcSimpleSignals::init - using signals_time_unit = Days as defualt time unit\n");
+		signals_time_unit = MedTime::Days;
 	}
 
-	calc_type = get_calculator_type(calculator);
+	//calc_type = get_calculator_type(calculator);
+	calculator_logic = SimpleCalculator::make_calculator(calculator);
+	if (!calculator_init_params.empty())
+		calculator_logic->init_from_string(calculator_init_params);
+	calculator_logic->missing_value = missing_value;
+	calculator_logic->work_channel = work_channel;
 
-	if (calc_type != CALC_TYPE_UNDEF) {
+	req_signals.clear();
+	if (signals.empty() && calc2req_sigs.find(calculator) != calc2req_sigs.end())
+		signals = calc2req_sigs.at(calculator);
+	if (signals.empty())
+		MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init please provide input signals for \"%s\" calculator. no defaluts\n",
+			calculator.c_str());
 
-		//time_step
-		if (!time_step_str.empty()) {
-			time_step = stoi(time_step_str);
-			if (time_step <= 0) {
-				MERR("Non-positive time_step: %d\n", time_step);
-				return -1;
-			}
-		}
+	for (auto & req_s : signals)
+		req_signals.insert(req_s);
 
-		// Timer
-		// Given when not required
-		if (!timer_signal.empty() && calc_without_timers.find(calculator) != calc_without_timers.end()) {
-			MERR("Caclulator %s must not be given a timer signal\n", calculator.c_str());
-			return -1;
-		}
-
-		// for CALC_TYPE_HOSP_PROCESSOR default timer is signal
-		if (calc_type == CALC_TYPE_HOSP_PROCESSOR) {
-			if (!timer_signal.empty() && timer_signal != signals[0]) {
-				MERR("Calculator %s timer must be the same as signal\n", calculator.c_str());
-				return -1;
-			}
-			timer_signal = signals[0];
-		}
-
-		// add required signals depending on the actual calculator we run
-		// might be overidden from json
-		req_signals.clear();
-		if (signals.size() == 0)
-			signals = calc2req_sigs.find(calculator)->second;
-
-		for (auto & req_s : signals)
-			req_signals.insert(req_s);
-
-		if ((!timer_signal.empty()) && req_signals.find(timer_signal) == req_signals.end())
-			req_signals.insert(timer_signal);
-						
-		// add coefficients if needed
-		if (coeff.size() == 0)
-			coeff = calc2coeffs.find(calculator)->second;
-		size_t c_size = calc2coeffs.find(calculator)->second.size();
-		if (coeff.size() != c_size) {
-			MERR("RepCalcSigs: ERROR: calculator %s , expecting %d coefficients and got only %d\n", calculator.c_str(), c_size, coeff.size());
-			return -1;
-		}
-
-		// add V_names
-		if (V_names.size() == 0) {
-			for (auto &vsig : calc2virtual.find(calculator)->second)
-				V_names.push_back(vsig.first);
-		}
-		size_t v_size = calc2virtual.find(calculator)->second.size();
-		if (V_names.size() != v_size) {
-			MERR("RepCalcSigs: ERROR: calculator %s , expecting %d virtual names and got only %d\n", calculator.c_str(), v_size, V_names.size());
-			return -1;
-		}
-
-		// add V_types
-		for (auto &vsig : calc2virtual.find(calculator)->second)
-			V_types.push_back(vsig.second);
-
-		// add names to required, affected and virtual_signals
-		aff_signals.clear();
-		virtual_signals.clear();
-		for (int i=0; i<V_names.size(); i++) {
-			aff_signals.insert(V_names[i]);
-			virtual_signals.push_back({ V_names[i], V_types[i] });
-		}
-		for (int i = 0; i < signals.size(); i++)
-			req_signals.insert(signals[i]);
-
-		return 0;
+	// add V_names
+	vector<pair<string, int>> default_virtual_signals;
+	calculator_logic->list_output_signals(signals, default_virtual_signals);
+	if (V_names.size() == 0) {
+		//feth from default:
+		V_names.resize(default_virtual_signals.size());
+		for (size_t i = 0; i < default_virtual_signals.size(); ++i)
+			V_names[i] = default_virtual_signals[i].first;
 	}
+
+	// add names to required, affected and virtual_signals
+	aff_signals.clear();
+	virtual_signals.clear();
+	for (int i = 0; i < V_names.size(); i++) {
+		aff_signals.insert(V_names[i]);
+		virtual_signals.push_back({ V_names[i], default_virtual_signals[i].second });
+	}
+	for (int i = 0; i < signals.size(); i++)
+		req_signals.insert(signals[i]);
+
+	calculator_logic->validate_arguments(signals, V_names);
+	return 0;
+
 
 	MERR("RepCalcSigs: ERROR: calculator %s not defined\n", calculator.c_str());
 	return -1;
+}
+
+SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
+	//! [SimpleCalculator::make_calculator]
+	if (calc_type == "ratio" || calc_type == "calc_ratio")
+		return new RatioCalculator();
+	else if (calc_type == "eGFR" || calc_type == "calc_eGFR")
+		return new eGFRCalculator();
+	else if (calc_type == "log" || calc_type == "calc_log")
+		return new logCalculator();
+	else if (calc_type == "sum" || calc_type == "calc_sum")
+		return new SumCalculator();
+	else if (calc_type == "range" || calc_type == "calc_range")
+		return new RangeCalculator();
+	else if (calc_type == "multiply" || calc_type == "calc_multiply")
+		return new MultiplyCalculator();
+	else if (calc_type == "set" || calc_type == "calc_set")
+		return new SetCalculator();
+	else
+		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
+			calc_type.c_str());
+	//! [SimpleCalculator::make_calculator]
+}
+
+RepCalcSimpleSignals::~RepCalcSimpleSignals() {
+	if (calculator_logic != NULL) {
+		delete calculator_logic;
+		calculator_logic = NULL;
+	}
 }
 
 mutex RepCalcSimpleSignals_init_tables_mutex;
@@ -2013,130 +2042,575 @@ mutex RepCalcSimpleSignals_init_tables_mutex;
 void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs)
 {
 	lock_guard<mutex> guard(RepCalcSimpleSignals_init_tables_mutex);
+	static_input_signals.resize(signals.size());
 
 	V_ids.clear();
 	sigs_ids.clear();
 	for (auto &vsig : V_names)
-		V_ids.push_back(dict.id(vsig));
+		V_ids.push_back(sigs.sid(vsig));
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
+
 	// In the next loop it is VERY important to go over items in the ORDER they are given in calc2req
 	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
-	for (auto &rsig : signals) 
-		sigs_ids.push_back(dict.id(rsig));
-
-	if (!timer_signal.empty()) {
-		timer_signal_id = dict.id(timer_signal);
-		signals_time_unit = sigs.Sid2Info[timer_signal_id].time_unit;
+	for (auto &rsig : signals)
+		sigs_ids.push_back(sigs.sid(rsig));
+	req_signal_ids.clear();
+	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
+	vector<bool> all_sigs_static(T_Last);
+	all_sigs_static[T_TimeStamp] = true;
+	all_sigs_static[T_Value] = true;
+	all_sigs_static[T_ValShort2] = true;
+	all_sigs_static[T_ValShort4] = true;
+	for (size_t i = 0; i < signals.size(); ++i)
+		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type];
+	if (calculator_logic == NULL) { //recover from serialization
+		calculator_logic = SimpleCalculator::make_calculator(calculator);
+		if (!calculator_init_params.empty())
+			calculator_logic->init_from_string(calculator_init_params);
+		calculator_logic->missing_value = missing_value;
 	}
-
-	//hack for saving run-time: code for african american is added on the fly as a coeff,
-	//to be used by the calculator
-	if (calc_type == CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN) {
-		int african_american_dict_id = dict.id("BLACK/AFRICAN AMERICAN");
-		coeff = {(float)african_american_dict_id };
-	}
-
+	calculator_logic->init_tables(dict, sigs, signals);
 }
 
 //.......................................................................................
 void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
 {
-	for (int i=0; i<V_names.size(); i++)
-		_virtual_signals[V_names[i]] = V_types[i];
-	//for (auto &vsig : calc2virtual.find(calculator)->second)
-	//	_virtual_signals[vsig.first] = vsig.second;
+	for (int i = 0; i < V_names.size(); i++)
+		_virtual_signals[V_names[i]] = virtual_signals[i].second;
 }
 
-//.......................................................................................
-int RepCalcSimpleSignals::get_calculator_type(const string &calc_name)
-{
-	if (calc2type.find(calc_name) != calc2type.end())
-		return calc2type.find(calc_name)->second;
-	return CALC_TYPE_UNDEF;
+bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
+	int time_range, int time_unit, int &sum_diff) {
+	int time = usvs[active_id].TimeU(idx[active_id] - 1, time_unit);
+	sum_diff = 0; //if not found
+	for (size_t i = 0; i < idx.size(); ++i)
+	{
+		if (i == active_id)
+			continue;//skip current
+		if (idx[i] == 0) //one signal is not yet started - will be happen in future, so waiting for it!
+			return false;
+
+		int ref_time = usvs[i].TimeU(idx[i] - 1, time_unit);
+		if (time - ref_time > time_range)
+			return false;
+		sum_diff += time - ref_time;
+	}
+	return true;
+}
+
+bool no_missings(const vector<float> &vals, float missing_value) {
+	for (size_t i = 0; i < vals.size(); ++i)
+		if (vals[i] == missing_value)
+			return false;
+	return true;
+}
+int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& time_points) {
+	// Check that we have the correct number of dynamic-versions : one per time-point
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	int factor = 1;
+	int v_out_sid = V_ids[0];
+	int n_vals = work_channel + 1;
+	//first lets fetch "static" signals without Time field:
+
+	set<int> iteratorSignalIds;
+	vector<int> timed_sigs;
+	for (size_t i = 0; i < sigs_ids.size(); ++i)
+		if (!static_input_signals[i]) {
+			iteratorSignalIds.insert(sigs_ids[i]);
+			timed_sigs.push_back(sigs_ids[i]);
+		}
+
+	allVersionsIterator vit(rec, iteratorSignalIds);
+	rec.usvs.resize(timed_sigs.size());
+
+	int first_ver = vit.init();
+	vector<float> static_signals_values(sigs_ids.size(), missing_value);
+	for (size_t i = 0; i < static_signals_values.size(); ++i)
+		if (static_input_signals[i]) {
+			UniversalSigVec usv;
+			rec.uget(sigs_ids[i], first_ver, usv);
+			static_signals_values[i] = usv.Val(0);
+		}
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		for (size_t i = 0; i < timed_sigs.size(); ++i)
+			rec.uget(timed_sigs[i], iver, rec.usvs[i]);
+		bool all_non_empty = true;
+		for (size_t i = 0; i < rec.usvs.size() && all_non_empty; ++i)
+			all_non_empty = rec.usvs[i].len > 0;
+		int last_time = -1;
+		if (all_non_empty) {
+			vector<int> idx(timed_sigs.size());
+			int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+			int final_size = 0;
+			vector<float> v_vals;
+			vector<int> v_times;
+			int max_diff = -1;
+			while (active_id >= 0) {
+				//iterate on time ordered of signals - Let's try to calc signal:
+				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit, max_diff);
+				if (can_calc) {
+					vector<float> collected_vals(sigs_ids.size());
+					int time_idx = 0;
+					for (size_t i = 0; i < sigs_ids.size(); ++i) {
+						if (static_input_signals[i])
+							collected_vals[i] = static_signals_values[i];
+						else {
+							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
+							++time_idx;
+						}
+					}
+					if (no_missings(collected_vals, missing_value)) {
+						float prev_val = missing_value;
+						if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+							--final_size; //override last value
+							prev_val = v_vals[final_size];
+						}
+						if (v_times.size() < final_size + 1) {
+							v_times.resize(final_size + 1);
+							v_vals.resize(n_vals * final_size + n_vals);
+						}
+						v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
+						v_vals[n_vals * final_size + n_vals - 1] = calculator_logic->do_calc(collected_vals);
+						for (int kk = 0; kk < n_vals - 1; ++kk)
+							v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+
+						if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
+							++final_size;
+							last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+						}
+						else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+							v_vals[n_vals * final_size + n_vals - 1] = prev_val; //return previous val that was not missing
+							//Pay attention it still update rest value channels
+							++final_size;
+						}
+					}
+				}
+
+				active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+			}
+			// pushing virtual data into rec (into orig version)
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], final_size);
+		}
+	}
+
+	return 0;
 }
 
 //.......................................................................................
 int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
 {
 	//handle special calculations
-	if (calc_type == CALC_TYPE_EGFR)
-		return _apply_calc_eGFR(rec, time_points);
+	apply_calc_in_time(rec, time_points);
 
-	if (calc_type == CALC_TYPE_DEBUG) 
-		return _apply_calc_debug(rec, time_points);
+	//if (calc_type == CALC_TYPE_EGFR)
+	//	return _apply_calc_eGFR(rec, time_points);
 
-	if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT) 
-		return _apply_calc_24h_urine_output(rec, time_points);
+	//if (calc_type == CALC_TYPE_RATIO)
+	//	return _apply_calc_ratio(rec, time_points);
 
-	if (calc_type == CALC_TYPE_LOG)
-		return _apply_calc_log(rec, time_points);
+	//if (calc_type == CALC_TYPE_DEBUG)
+	//	return _apply_calc_debug(rec, time_points);
 
-	//handle calculation that are done by first extrapolating each signal to the required 
-	//time points and then performing a pointwise calculation for the values in each time point.
-	float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
+	//if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT)
+	//	return _apply_calc_24h_urine_output(rec, time_points);
 
-	switch (calc_type) {
-		case CALC_TYPE_HOSP_PROCESSOR: 
-			calcFunc = identity; 
-			if (signals.size() != 1) {
-				//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
-				return -1;
+	//if (calc_type == CALC_TYPE_LOG)
+	//	return _apply_calc_log(rec, time_points);
+
+	////handle calculation that are done by first extrapolating each signal to the required 
+	////time points and then performing a pointwise calculation for the values in each time point.
+	//float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
+
+	//switch (calc_type) {
+	//case CALC_TYPE_HOSP_PROCESSOR:
+	//	calcFunc = identity;
+	//	if (signals.size() != 1) {
+	//		//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
+	//		return -1;
+	//	}
+	//	break;
+	//case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
+	//case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
+	//case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
+	//case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
+	//case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
+	//case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
+	//case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
+	//case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
+	//case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
+	//case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
+	//case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
+	//case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
+	//case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
+	//case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
+	//case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
+	//case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
+	//case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
+	//case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
+	//case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
+	//case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
+	//case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
+	//case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
+	//case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
+	//case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;
+	//}
+
+	//if (calcFunc) {
+	//	int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
+	//	return rv;
+	//}
+
+	////handle time-dependent calculations
+	////calculation are done by first extrapolating each signal to the required 
+	////time points and then performing a pointwise calculation for the values in each time point.
+	////in contrast to previous signals, here the calculation does depend on the orignal times 
+	////of the signals and their reference to the requested times
+	//float(*calcTimeFunc)(const vector<pair<int, float> >&, int, const vector<float>&) = NULL;
+
+	//switch (calc_type) {
+	//case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
+	//case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
+	//}
+
+	//if (calcTimeFunc)
+	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, false); //use past/future observations
+
+	//switch (calc_type) {
+	//case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently; break; //special function
+	//}
+
+	//if (calcTimeFunc)
+	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
+
+	//return -1;
+	return 0;
+}
+
+int RepCombineSignals::init(map<string, string> &mapper) {
+	vector<string> tokens;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepCombineSignals::init]
+		if (field == "names") output_name = entry.second;
+		else if (field == "signals") signals = boost::split(signals, entry.second, boost::is_any_of(","));
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else if (field == "factors") {
+			boost::split(tokens, entry.second, boost::is_any_of(","));
+			factors.resize(tokens.size());
+			for (size_t i = 0; i < tokens.size(); ++i)
+				factors[i] = stof(tokens[i]);
+		}
+		else MTHROW_AND_ERR("Error in RepCombineSignals::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepCombineSignals::init]
+	}
+	if (signals.empty())
+		MTHROW_AND_ERR("Error in RepCombineSignals::init - parameter \"signals\" should be passed.\n");
+	factors.resize(signals.size(), 1);
+	if (output_name.empty()) {
+		output_name = "COMBO_" + signals[0];
+		for (size_t i = 1; i < signals.size(); ++i)
+			output_name += "_" + signals[i];
+	}
+
+	aff_signals.clear();
+	aff_signals.insert(output_name);
+	req_signals.clear();
+	req_signals.insert(signals.begin(), signals.end());
+	virtual_signals.clear();
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
+
+	return 0;
+}
+
+int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	//uses each time point - If have only drug amount  (2nd signal) so using second signal value
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	//first lets fetch "static" signals without Time field:
+
+	set<int> set_ids(sigs_ids.begin(), sigs_ids.end());
+	differentVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(sigs_ids.size());
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		for (size_t i = 0; i < sigs_ids.size(); ++i)
+			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+
+
+		vector<int> idx(sigs_ids.size());
+		int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+		int final_size = 0;
+		vector<float> v_vals;
+		vector<int> v_times;
+		int last_time = -1;
+		while (active_id >= 0) {
+			if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+				active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+				continue; //skip same time
 			}
-			break;
-		case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
-		case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
-		case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
-		case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
-		case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
-		case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
-		case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
-		case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
-		case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
-		case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
-		case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
-		case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
-		case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
-		case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
-		case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
-		case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
-		case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
-		case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
-		case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
-		case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
-		case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
-		case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
-		case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
-		case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;		
+
+			if (v_times.size() < final_size + 1) {
+				v_times.resize(final_size + 1);
+				v_vals.resize(2 * final_size + 2);
+			}
+			v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
+			v_vals[2 * final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
+			v_vals[2 * final_size + 1] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, 1);
+			++final_size;
+
+			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+			active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+		}
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], final_size);
+
 	}
 
-	if (calcFunc) {
-		int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
-		return rv;
+	return 0;
+}
+
+void RepCombineSignals::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = T_DateVal2;
+}
+
+void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	v_out_sid = sigs.sid(output_name);
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCombineSignals::init_tables - virtual output signal %s not found\n",
+			output_name.c_str());
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid);
+	sigs_ids.resize(signals.size());
+	for (size_t i = 0; i < signals.size(); ++i)
+	{
+		sigs_ids[i] = sigs.sid(signals[i]);
+		if (sigs_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepCombineSignals::init_tables - input signal %s not found\n",
+				signals[i].c_str());
+		SignalInfo &si = sigs.Sid2Info[sigs_ids[i]];
+
+		if (si.n_val_channels < 2)
+			MTHROW_AND_ERR("ERROR in RepCombineSignals::init_tables - input signal %s should contain 2 val channels\n",
+				signals[i].c_str());
+	}
+	req_signal_ids.clear();
+	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
+}
+
+void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
+	dict.SectionName2Id[output_name] = dict.section_id(signals.front());
+}
+
+int RepSignalRate::init(map<string, string> &mapper) {
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepSignalRate::init]
+		if (field == "names") output_name = entry.second;
+		else if (field == "input_name") input_name = entry.second;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepSignalRate::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepSignalRate::init]
+	}
+	if (input_name.empty())
+		MTHROW_AND_ERR("Error in RepSignalRate::init - input signal should be passed. drug_amount\n");
+	aff_signals.clear();
+	aff_signals.insert(output_name);
+	req_signals.clear();
+	req_signals.insert(input_name);
+	virtual_signals.clear();
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
+
+	return 0;
+}
+
+void RepSignalRate::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = T_DateVal2;
+}
+
+void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	set_signal_ids(dict);
+	v_out_sid = sigs.sid(output_name);
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepSignalRate::init_tables - virtual output signal %s not found\n",
+			output_name.c_str());
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid);
+	in_sid = sigs.sid(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepSignalRate::init_tables - input signal %s not found\n",
+			input_name.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);
+
+	SignalInfo &si = sigs.Sid2Info[in_sid];
+
+	if (si.n_time_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain 2 time channels\n",
+			input_name.c_str());
+	if (si.n_val_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain 2 val channels\n",
+			input_name.c_str());
+}
+
+void RepSignalRate::register_virtual_section_name_id(MedDictionarySections& dict) {
+	dict.SectionName2Id[output_name] = dict.section_id(input_name);
+}
+
+int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	//uses each time point - I have only signal value need to tranform into signal_rate divide by time unit
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	//first lets fetch "static" signals without Time field:
+
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	differentVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		vector<float> v_vals(2 * rec.usvs[0].len);
+		vector<int> v_times(rec.usvs[0].len);
+		for (int i = 0; i < rec.usvs[0].len; ++i) {
+			v_times[i] = rec.usvs[0].Time(i);
+			float orig_val = rec.usvs[0].Val(i);
+			int end_time = rec.usvs[0].Time(i, 1);
+			int diff_time = med_time_converter.diff_times(end_time, v_times[i], rec.usvs[0].time_unit(),
+				global_default_time_unit);
+			v_vals[2 * i] = orig_val;
+			v_vals[2 * i + 1] = rec.usvs[0].Val(i, 1) / diff_time;
+		}
+		// pushing virtual data into rec (into orig version)
+		if (rec.usvs[0].len > 0)
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], rec.usvs[0].len);
+
 	}
 
-	//handle time-dependent calculations
-	//calculation are done by first extrapolating each signal to the required 
-	//time points and then performing a pointwise calculation for the values in each time point.
-	//in contrast to previous signals, here the calculation does depend on the orignal times 
-	//of the signals and their reference to the requested times
-	float(*calcTimeFunc)(const vector<pair<int, float> >&, int, const vector<float>&) = NULL;
+	return 0;
+}
 
-	switch (calc_type) {	
-	case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
-	case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
+int RepSplitSignal::init(map<string, string>& mapper) {
+	vector<string> tokens;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepSplitSignal::init]
+		if (field == "input_name") input_name = entry.second;
+		else if (field == "names") boost::split(names, entry.second, boost::is_any_of(","));
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "factors") {
+			boost::split(tokens, entry.second, boost::is_any_of(","));
+			factors.resize(tokens.size());
+			for (size_t i = 0; i < tokens.size(); ++i)
+				factors[i] = stof(tokens[i]);
+		}
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepSplitSignal::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepSplitSignal::init]
+	}
+	if (input_name.empty())
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide input_name\n");
+	if (names.size() != 2)
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide only 2 names for output\n");
+	if (sets.empty())
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide sets\n");
+	factors.resize(names.size(), 1);
+
+	aff_signals.clear();
+	aff_signals.insert(names.begin(), names.end());
+	req_signals.clear();
+	req_signals.insert(input_name);
+	virtual_signals.clear();
+	for (size_t i = 0; i < names.size(); ++i)
+		virtual_signals.push_back(pair<string, int>(names[i], T_DateVal2));
+
+	return 0;
+}
+
+void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	//init Flags:
+	int section_id = dict.section_id(input_name);
+	dict.prep_sets_lookup_table(section_id, sets, Flags);
+
+	in_sid = sigs.sid(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepSplitSignal::init_tables - input signal %s not found\n",
+			input_name.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);
+
+	V_ids.resize(names.size());
+	for (size_t i = 0; i < V_ids.size(); ++i)
+	{
+		V_ids[i] = sigs.sid(names[i]);
+		if (V_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepSplitSignal::init_tables - virtual output signal %s not found\n",
+				names[i].c_str());
+	}
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
+
+	SignalInfo &si = sigs.Sid2Info[in_sid];
+
+	if (si.n_val_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init_tables - input signal %s should contain 2 val channels\n",
+			input_name.c_str());
+}
+
+void RepSplitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
+	for (size_t i = 0; i < names.size(); ++i)
+		_virtual_signals[names[i]] = T_DateVal2;
+}
+
+void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
+	for (size_t i = 0; i < names.size(); ++i)
+		dict.SectionName2Id[names[i]] = dict.section_id(input_name);
+}
+
+int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	differentVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		vector<vector<int>> v_times(names.size());
+		vector<vector<float>> v_vals(names.size());
+		for (int i = 0; i < rec.usvs[0].len; ++i) {
+			int time = rec.usvs[0].Time(i);
+			float orig_val = rec.usvs[0].Val(i);
+			int idx = Flags[orig_val];
+
+			v_times[idx].push_back(time);
+			v_vals[idx].push_back(orig_val); //chan 0
+			v_vals[idx].push_back(rec.usvs[0].Val(i, 1) * factors[idx]); //chan 1
+		}
+		// pushing virtual data into rec (into orig version)
+		for (size_t i = 0; i < names.size(); ++i)
+			if (!v_times[i].empty())
+				rec.set_version_universal_data(V_ids[i], iver, &v_times[i][0], &v_vals[i][0], (int)v_times[i].size());
 	}
 
-	if (calcTimeFunc)
-		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, false); //use past/future observations
-
-	switch (calc_type) {
-	case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently; break; //special function
-	}
-
-	if (calcTimeFunc)
-		return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
-
-	return -1;
+	return 0;
 }
 
 //=======================================================================================
@@ -2150,7 +2624,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 	// Required signals
 	vector<int> req_signal_ids_v;
 	vector<unordered_set<int> > current_required_signal_ids(prev_processors.size());
-	vector<FeatureGenerator *> noGenerators ;
+	vector<FeatureGenerator *> noGenerators;
 	unordered_set<int> extra_req_signal_ids = { signalId };
 	handle_required_signals(prev_processors, noGenerators, extra_req_signal_ids, req_signal_ids_v, current_required_signal_ids);
 
@@ -2162,7 +2636,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 	for (MedIdSamples& idSamples : samples.idSamples) {
 
 		int id = idSamples.id;
-	
+
 		vector<int> time_points;
 		// Special care for virtual signals - use samples 
 		if (signalIsVirtual) {
@@ -2192,7 +2666,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 			vector<vector<float>> dummy_attributes_mat;
 			for (size_t i = 0; i < prev_processors.size(); i++)
 				prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
-		
+
 			// If virtual - we need to get the signal now
 			if (signalIsVirtual)
 				rec.uget(signalId, 0, usv);
@@ -2224,7 +2698,7 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 			}
 		}
 	}
-	
+
 	return 0;
 }
 

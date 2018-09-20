@@ -37,9 +37,9 @@ void MedLasso::init_defaults()
 	classifier_type = MODEL_LASSO;
 	transpose_for_learn = false;
 	transpose_for_predict = false;
-	normalize_for_learn = true;
-	normalize_y_for_learn = true;
-	normalize_for_predict = true;
+	normalize_for_learn = false;
+	normalize_y_for_learn = false;
+	normalize_for_predict = false;
 	init_default_lasso_params(params);
 }
 
@@ -92,7 +92,9 @@ double perform_lasso_iteration(double* xk_train, vector<double>& r, float bk, in
 	double bk_hat = 0;
 	for (int i = 0; i < nrow_train; i++)
 		bk_hat += r[i] * xk_train[i];
+
 	bk_hat /= nrow_train;
+
 	bk_hat += bk;
 	if (bk_hat - lambda > 0)
 		bk_hat -= lambda;
@@ -100,6 +102,7 @@ double perform_lasso_iteration(double* xk_train, vector<double>& r, float bk, in
 		bk_hat += lambda;
 	else
 		bk_hat = 0;
+
 	if (bk_hat != bk) {
 		for (int i = 0; i < nrow_train; i++)
 			r[i] += xk_train[i] * (bk - bk_hat);
@@ -115,7 +118,6 @@ void MedLasso::lasso_regression(vector<float>& b, int nrow_train, int n_ftrs, do
 	for (int it = 0; it < num_iterations; it++)
 		for (int k = 0; k < n_ftrs; k++)
 			b[k] = (float)perform_lasso_iteration(trainx[k], r, b[k], nrow_train, lambda);
-
 }
 
 
@@ -149,11 +151,19 @@ void MedLasso::initialize_vars(float *x_in, float *y_in, const float *w, vector<
 //..............................................................................
 int MedLasso::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	MedLasso::n_ftrs = nftrs;
+
 	if (w == NULL)
 		return (Learn(x, y, nsamples, nftrs));
 
+	// Normalization
+	vector<float> x_avg(nftrs), x_std(nftrs);
+	float y_avg, y_std;
+	normalize_x_and_y(x, y, w, nsamples, nftrs, x_avg, x_std, y_avg, y_std);
+
 	initialize_vars(x, y, w, b, nsamples, n_ftrs);
 	lasso_regression(b, nsamples, n_ftrs, params.lambda, params.num_iterations);
+	denormalize_model(&(x_avg[0]), &(x_std[0]), y_avg, y_std);
+
 	return 0;
 }
 
@@ -220,23 +230,45 @@ size_t MedLasso::deserialize(unsigned char *blob) {
 }
 
 //..............................................................................
+void MedLasso::normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std) {
+
+	// Get moments
+	vector<float> v(nsamples);
+	for (int i = 0; i < nftrs; i++) {
+		for (int j = 0; j < nsamples; j++)
+			v[j] = x[nftrs*j + i];
+		get_moments(&(v[0]), w, nsamples, -1, x_avg[i], x_std[i], false);
+	}
+	get_moments(y, w, nsamples, -1, y_avg, y_std, false);
+
+	// Normalize
+	for (int j = 0; j < nsamples; j++) {
+		float *xj = x + j*nftrs;
+		for (int i = 0; i < nftrs; i++)
+			xj[i] = (xj[i] - x_avg[i]) / x_std[i];
+	}
+
+	for (int j = 0; j < nsamples; j++)
+		y[j] = (y[j] - y_avg) / y_std;
+
+}
+//..............................................................................
 int MedLasso::denormalize_model(float *f_avg, float *f_std, float label_avg, float label_std)
 {
 	float new_b0;
 	vector<float> new_b(n_ftrs);
 
 	new_b0 = b0*label_std + label_avg;
-	fill(new_b.begin(), new_b.end(), (float)0);
 	for (int j = 0; j < n_ftrs; j++) {
 		new_b[j] = label_std*b[j] / f_std[j];
 		new_b0 -= label_std*f_avg[j] * b[j] / f_std[j];
 	}
 
 	b0 = new_b0;
-	for (int j = 0; j < n_ftrs; j++)
+	for (int j = 0; j < n_ftrs; j++) 
 		b[j] = new_b[j];
 
-	transpose_for_predict = true;
+	transpose_for_predict = false;
 	normalize_for_predict = false;
 	return 0;
 }

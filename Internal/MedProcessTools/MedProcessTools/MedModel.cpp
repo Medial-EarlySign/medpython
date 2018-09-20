@@ -46,12 +46,12 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Set of signals
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
-		init_all(rep.dict,rep.sigs);
+		init_all(rep.dict, rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
 		required_signal_ids.clear();
-		
+
 		get_required_signal_names(required_signal_names);
 		for (string signal : required_signal_names)
 			required_signal_ids.insert(rep.dict.id(signal));
@@ -100,7 +100,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	if (end_stage <= MED_MDL_LEARN_FTR_GENERATORS)
 		return 0;
-	
+
 	// Generate features
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		features.clear();
@@ -182,8 +182,8 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 
 	// Stage Sanity
-	if (end_stage <  MED_MDL_APPLY_FTR_GENERATORS) {
-		MERR("MedModel apply() : Illegal end stage %d\n",end_stage);
+	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
+		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);
 		return -1;
 	}
 
@@ -198,7 +198,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
 		// Initialize
-		init_all(rep.dict,rep.sigs);
+		init_all(rep.dict, rep.sigs);
 
 		// Required signals
 		required_signal_names.clear();
@@ -241,7 +241,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 
 	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-	
+
 	// Apply predictor
 	if (predictor->predict(features) < 0) {
 		MERR("Predictor failed\n");
@@ -266,7 +266,7 @@ int MedModel::quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samp
 	vector<int> rc(rep_processors.size(), 0);
 
 #pragma omp parallel for schedule(dynamic)
-	for (int i=0; i<rep_processors.size(); i++)
+	for (int i = 0; i < rep_processors.size(); i++)
 		rc[i] = rep_processors[i]->learn(rep, samples);
 
 	for (auto RC : rc) if (RC < 0)	return -1;
@@ -281,8 +281,8 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 
 	vector<int> rc(generators.size(), 0);
 #pragma omp parallel for schedule(dynamic)
-	for (int i = 0; i<generators.size(); i++)
-		rc[i] = generators[i]->learn(rep, ids,rep_processors); //??? why is this done for ALL time points in an id???
+	for (int i = 0; i < generators.size(); i++)
+		rc[i] = generators[i]->learn(rep, ids, rep_processors); //??? why is this done for ALL time points in an id???
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
@@ -296,13 +296,13 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	for (int signalId : required_signal_ids)
 		req_signals.push_back(signalId);
 	for (auto &vsig : virtual_signals) {
-//		MLOG("GENERATE: vsig %s %d\n", vsig.first.c_str(), vsig.second);
+		//		MLOG("GENERATE: vsig %s %d\n", vsig.first.c_str(), vsig.second);
 		req_signals.push_back(rep.sigs.sid(vsig.first));
 	}
 
 	// prepare for generation
 	for (auto& generator : _generators)
-		generator->prepare(features,rep,*samples);
+		generator->prepare(features, rep, *samples);
 
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
@@ -326,7 +326,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		if (generator->iGenerateWeights) {
 			features.weights.resize(samples_size, 0);
 			if (generator->names.size() != 1)
-				MTHROW_AND_ERR("Cannot generate weights using a multi-feature generator (type %d generates %d features)\n", generator->generator_type, (int) generator->names.size());
+				MTHROW_AND_ERR("Cannot generate weights using a multi-feature generator (type %d generates %d features)\n", generator->generator_type, (int)generator->names.size());
 			generator->p_data.push_back(&(features.weights[0]));
 		}
 		else {
@@ -346,7 +346,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	int thrown = 0;
 
 #pragma omp parallel for schedule(dynamic)
-	for (int j = 0; j<samples->idSamples.size(); j++) {
+	for (int j = 0; j < samples->idSamples.size(); j++) {
 		try {
 			MedIdSamples& pid_samples = samples->idSamples[j];
 			int n_th = omp_get_thread_num();
@@ -354,7 +354,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 			// Generate DynamicRec with all relevant signals
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
-			
+
 			// Apply rep-processing
 			for (unsigned int i = 0; i < rep_processors.size(); i++)
 				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
@@ -364,7 +364,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
 
 
-			#pragma omp critical 
+#pragma omp critical 
 			if (rc < 0) RC = -1;
 		}
 		catch (int &i_e) {
@@ -421,19 +421,59 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, MedSamples& samples) {
 	return 0;
 }
 
+void build_signal_affect_tree(const vector<RepProcessor *> &rep_processors,
+	unordered_map<string, unordered_set<string>> &signal_affect_tree) {
+	for (unsigned int i = 0; i < rep_processors.size(); i++) {
+		vector<RepProcessor *> *no_mult = NULL;
+		vector<RepProcessor *> single = { rep_processors[i] };
+		if (rep_processors[i]->processor_type == REP_PROCESS_MULTI)
+			no_mult = &((RepMultiProcessor *)rep_processors[i])->processors;
+		else
+			no_mult = &single;
+
+		for (size_t k = 0; k < no_mult->size(); ++k)
+			for (const string &req_signal : (*no_mult)[k]->aff_signals)
+				signal_affect_tree[req_signal].insert((*no_mult)[k]->req_signals.begin(),
+					(*no_mult)[k]->req_signals.end());
+	}
+}
+void expend_signal_effect(const vector<RepProcessor *> &rep_processors,
+	unordered_set<string> &req_signal_names) {
+	bool did_something = true;
+	unordered_map<string, unordered_set<string>> signal_affect_tree;
+	build_signal_affect_tree(rep_processors, signal_affect_tree);
+	while (did_something) {
+		int init_size = (int)req_signal_names.size();
+		for (const string &sig : req_signal_names)
+			req_signal_names.insert(signal_affect_tree[sig].begin(), signal_affect_tree[sig].end());
+		did_something = init_size < req_signal_names.size();
+	}
+}
+
 // Filter rep-processors that are not used, iteratively
 //.......................................................................................
 void MedModel::filter_rep_processors() {
 
 	vector<RepProcessor *> filtered_processors;
+	bool did_something = false;
 	for (unsigned int i = 0; i < rep_processors.size(); i++) {
 		unordered_set<string> current_req_signal_names;
 		get_all_required_signal_names(current_req_signal_names, rep_processors, i, generators);
-		if (! rep_processors[i]->filter(current_req_signal_names))
+		vector<RepProcessor *> no_filter_yet(rep_processors.begin() + i, rep_processors.end());
+		expend_signal_effect(no_filter_yet, current_req_signal_names);
+		if (!rep_processors[i]->filter(current_req_signal_names))
 			filtered_processors.push_back(rep_processors[i]);
+		else {//cleaning uneeded rep_processors!:
+			delete rep_processors[i];
+			rep_processors[i] = NULL;
+			did_something = true;
+		}
 	}
+	if (did_something)
+		MLOG("Filtering uneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
+			filtered_processors.size(), rep_processors.size());
 
-	rep_processors = filtered_processors;
+	rep_processors.swap(filtered_processors);
 }
 
 // Set ids of required signals
@@ -451,7 +491,7 @@ void MedModel::set_required_signal_ids(MedDictionarySections& dict) {
 }
 
 void MedModel::concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result)
-{	
+{
 	if (vecIndex >= allVecs.size())
 	{
 		result.push_back(strSoFar.substr(0, strSoFar.length() - 1));
@@ -600,14 +640,14 @@ void MedModel::init_from_json_file_with_alterations_version_1(const string &fnam
 	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());
 	this->serialize_learning_set = stoi(ser);
 
-	for(ptree::value_type &p: pt.get_child("processes"))
+	for (ptree::value_type &p : pt.get_child("processes"))
 	{
 		int process_set = -1;
 		int duplicate = 1;
 		vector<vector<string>> all_attr_values;
 		for (ptree::value_type &attr : p.second) {
 			string attr_name = attr.first;
-			string single_attr_value = attr.second.data();			
+			string single_attr_value = attr.second.data();
 			if (attr_name == "process_set")
 				process_set = stoi(single_attr_value);
 			else if (attr_name == "duplicate") {
@@ -626,7 +666,7 @@ void MedModel::init_from_json_file_with_alterations_version_1(const string &fnam
 						vector<string> my_list;
 						string small_file = single_attr_value.substr(5);
 						fill_list_from_file(make_absolute_path(fname, small_file), my_list);
-						for (string s: my_list)
+						for (string s : my_list)
 							current_attr_values.push_back(parse_key_val(attr_name, s));
 					}
 					else if (boost::starts_with(single_attr_value, "ref:")) {
@@ -644,9 +684,9 @@ void MedModel::init_from_json_file_with_alterations_version_1(const string &fnam
 					for (ptree::value_type &attr_value : attr.second)
 						current_attr_values.push_back(parse_key_val(attr_name, attr_value.second.data()));
 				all_attr_values.push_back(current_attr_values);
-			}			
+			}
 		}
-		
+
 		vector<string> all_combinations;
 		concatAllCombinations(all_attr_values, 0, "", all_combinations);
 		for (string c : all_combinations) {
@@ -654,7 +694,7 @@ void MedModel::init_from_json_file_with_alterations_version_1(const string &fnam
 			add_process_to_set(process_set, duplicate, c);
 		}
 	}
-	if (pt.count("predictor") > 0){
+	if (pt.count("predictor") > 0) {
 		auto my_pred = pt.get_child("predictor");
 		auto my_pred_params = pt.get_child("predictor_params");
 		set_predictor(my_pred.data(), my_pred_params.data());
@@ -683,12 +723,12 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 			RepMultiProcessor *mprocessor = new RepMultiProcessor;
 			rep_processors[i_set] = mprocessor;
 			mprocessor->processors.push_back(curr_p);
-		} 
+		}
 	}
 	else {
 		// resize rep_processors
-		rep_processors.resize(i_set+1, NULL);
-		for (int i = 0; i < i_set + 1; i++) 
+		rep_processors.resize(i_set + 1, NULL);
+		for (int i = 0; i < i_set + 1; i++)
 			// put a new empty multi in i_set
 			if (rep_processors[i] == NULL) {
 				MLOG("Adding new rep_processor set [%d]\n", i);
@@ -737,7 +777,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 	}
 	else {
 		// resize feature_processors
-		feature_processors.resize(i_set+1, NULL);
+		feature_processors.resize(i_set + 1, NULL);
 
 		for (int i = 0; i < i_set + 1; i++)
 			// put a new empty multi in i_set
@@ -760,7 +800,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 	get_single_val_from_init_string(init_string, "fp_type", fp_type);
 	FeatureProcessorTypes type = feature_processor_name_to_type(fp_type);
 
-	
+
 	if (feat_names != "" && feat_names != "All") { // Are features given ?
 		vector<string> features;
 		boost::split(features, feat_names, boost::is_any_of(","));
@@ -771,7 +811,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 		((MultiFeatureProcessor *)feature_processors[i_set])->init_string = init_string;
 		((MultiFeatureProcessor *)feature_processors[i_set])->members_type = type;
 		((MultiFeatureProcessor *)feature_processors[i_set])->duplicate = 1;
-	} 
+	}
 	else { // No duplicating and no feature name given (e.g. selector)
 		FeatureProcessor *processor = FeatureProcessor::make_processor(type, init_string);
 		((MultiFeatureProcessor *)feature_processors[i_set])->processors.push_back(processor);
@@ -806,7 +846,7 @@ void MedModel::add_process_to_set(int i_set, int duplicate, const string &init_s
 // Add multi processors
 //.......................................................................................
 void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& signals) {
-	
+
 	RepMultiProcessor *processor = new RepMultiProcessor;
 	processor->add_processors_set(type, signals);
 	add_rep_processor(processor);
@@ -817,7 +857,7 @@ void MedModel::add_rep_processors_set(RepProcessorTypes type, vector<string>& si
 //.......................................................................................
 void MedModel::set_affected_signal_ids(MedDictionarySections& dict) {
 
-	for (RepProcessor *processor : rep_processors) 
+	for (RepProcessor *processor : rep_processors)
 		processor->set_affected_signal_ids(dict);
 }
 
@@ -832,12 +872,12 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 	for (RepProcessor *processor : rep_processors)
 		processor->set_signal_ids(dict);
 
-	for (FeatureGenerator *generator : generators) 
+	for (FeatureGenerator *generator : generators)
 		generator->set_signal_ids(dict);
 
 	// tables
 	for (RepProcessor *processor : rep_processors)
-		processor->init_tables(dict,sigs);
+		processor->init_tables(dict, sigs);
 
 	for (FeatureGenerator *generator : generators)
 		generator->init_tables(dict);
@@ -852,9 +892,9 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 // are required ....
 //.......................................................................................
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
-	
-	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
 
+	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
+	expend_signal_effect(rep_processors, signalNames);
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG("adding virtual signals from rep type %d\n", processor->processor_type);
@@ -884,33 +924,45 @@ void MedModel::get_required_signal_names(vector<string>& signalNames) {
 }
 
 //.......................................................................................
-int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
+void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProcessor *> &rep_processors,
+	map<string, int> *virtual_signals = NULL, bool verbosity = true)
 {
+	map<string, int> temp_m;
+	if (virtual_signals == NULL)
+		virtual_signals = &temp_m;
 	// collecting
 	for (RepProcessor *processor : rep_processors)
-		processor->add_virtual_signals(virtual_signals);
+		processor->add_virtual_signals(*virtual_signals);
+	//register section_name to section_id if needed in each rep_processor virtual signal
+	for (RepProcessor *processor : rep_processors)
+		processor->register_virtual_section_name_id(rep.dict);
 
 	// adding to rep
-	for (auto &vsig : virtual_signals) {
+	for (auto &vsig : *virtual_signals) {
 		//MLOG("Attempting to add virtual signal %s type %d (%d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		if (rep.sigs.sid(vsig.first) < 0) {
 			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
 			if (verbosity > 0)
 				MLOG("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
+			int add_section = rep.dict.section_id(vsig.first);
+			rep.dict.dicts[add_section].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
-			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
-			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			rep.dict.dicts[add_section].Id2Name[new_id] = vsig.first;
+			rep.dict.dicts[add_section].Id2Names[new_id] = { vsig.first };
 			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
-			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
+			//rep.dict.SectionName2Id[vsig.first] = 0;
+			MLOG("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig.first));
 		}
 		else {
-			if (rep.sigs.sid(vsig.first) < 100) {
-				MERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
-				return -1;
-			}
+			if (rep.sigs.sid(vsig.first) < 100)
+				MTHROW_AND_ERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		}
 	}
+}
 
+int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
+{
+	collect_and_add_virtual_signals_static(rep, rep_processors, &virtual_signals, verbosity);
 	return 0;
 }
 
@@ -929,8 +981,8 @@ void MedModel::add_feature_processors_set(FeatureProcessorTypes type) {
 	vector<string> features;
 	get_all_features_names(features, int(feature_processors.size()));
 
-//	for (auto &name : features) 
-//		MLOG("Adding %s to processors of type %d\n", name.c_str(),type);
+	//	for (auto &name : features) 
+	//		MLOG("Adding %s to processors of type %d\n", name.c_str(),type);
 
 	add_feature_processors_set(type, features);
 
@@ -942,7 +994,7 @@ void MedModel::add_feature_processors_set(FeatureProcessorTypes type, string ini
 	vector<string> features;
 	get_all_features_names(features, int(feature_processors.size()));
 
-	add_feature_processors_set(type, features,init_string);
+	add_feature_processors_set(type, features, init_string);
 }
 //.......................................................................................
 void MedModel::add_feature_processors_set(FeatureProcessorTypes type, vector<string>& features) {
@@ -978,7 +1030,7 @@ void MedModel::add_feature_generators(FeatureGeneratorTypes type, vector<string>
 	for (string& signal : signals) {
 		FeatureGenerator *generator;
 		if (signal != "")
-			generator = FeatureGenerator::make_generator(type, init_string + ";signalName="+signal);
+			generator = FeatureGenerator::make_generator(type, init_string + ";signalName=" + signal);
 		else
 			generator = FeatureGenerator::make_generator(type, init_string);
 		add_feature_generator(generator);
@@ -1017,7 +1069,7 @@ size_t MedModel::get_size() {
 	size_t size = 0;
 
 	// Rep-Cleaners
-	size += sizeof(size_t); 
+	size += sizeof(size_t);
 	for (auto& processor : rep_processors)
 		size += processor->get_processor_size();
 
@@ -1028,7 +1080,7 @@ size_t MedModel::get_size() {
 
 	// Features-level cleaners;
 	size += sizeof(size_t);
-	for (auto& processor : feature_processors) 
+	for (auto& processor : feature_processors)
 		size += processor->get_processor_size();
 
 	// Predictor
@@ -1043,7 +1095,7 @@ size_t MedModel::get_size() {
 		MedSamples empty_samples;
 		size += empty_samples.get_size();
 	}
-	  
+
 	return size;
 }
 
@@ -1070,11 +1122,11 @@ size_t MedModel::serialize(unsigned char *blob) {
 	n = feature_processors.size();
 	memcpy(blob + ptr, &n, sizeof(size_t)); ptr += sizeof(size_t);
 
-	for (auto& processor : feature_processors) 
+	for (auto& processor : feature_processors)
 		ptr += processor->processor_serialize(blob + ptr);
 
 	// Predictor
-	ptr += predictor->predictor_serialize(blob+ptr);
+	ptr += predictor->predictor_serialize(blob + ptr);
 
 	memcpy(blob + ptr, &serialize_learning_set, sizeof(serialize_learning_set)); ptr += sizeof(serialize_learning_set);
 
@@ -1095,7 +1147,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	size_t ptr = 0;
 
 	// Rep-Processors
-	size_t n; 
+	size_t n;
 	memcpy(&n, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
 
 	rep_processors.resize(n);
@@ -1119,7 +1171,7 @@ size_t MedModel::deserialize(unsigned char *blob) {
 	}
 
 	// Features-level processors;
-	memcpy(&n, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t); 
+	memcpy(&n, blob + ptr, sizeof(size_t)); ptr += sizeof(size_t);
 
 	feature_processors.resize(n);
 	for (size_t i = 0; i < n; i++) {
@@ -1203,55 +1255,92 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
 }
 
-bool clean_uneeded_rep_procc_simple(vector<RepProcessor *> &onlySimples, const unordered_set<string> &needed_sigs) {
-	vector<RepProcessor *> afterFiltr;
-	int original_size = (int)onlySimples.size();
-	for (RepProcessor *rp : onlySimples) {
-		unordered_set<string> sigs = rp->req_signals;
-		bool has_match = false;
-		for (string sig : sigs) {
-			if (needed_sigs.find(sig) != needed_sigs.end()) {
-				has_match = true;
-				break;
-			}
-		}
-		if (has_match) {
-			afterFiltr.push_back(rp);
+void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors) {
+	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());
+	vector<RepProcessor *> filtered_processors;
+	bool did_something = false;
+
+	//complete and flatten all needed signals based on tree:
+	expend_signal_effect(*rep_processors, req_signal_names);
+
+	for (unsigned int i = 0; i < rep_processors->size(); i++) {
+		if (!(*rep_processors)[i]->filter(req_signal_names))
+			filtered_processors.push_back((*rep_processors)[i]);
+		else {//cleaning uneeded rep_processors!:
+			delete (*rep_processors)[i];
+			(*rep_processors)[i] = NULL;
+			did_something = true;
 		}
 	}
-	onlySimples = afterFiltr;
-	return afterFiltr.size() != original_size;
+	if (did_something)
+		MLOG("Filtering uneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
+			filtered_processors.size(), rep_processors->size());
+
+	rep_processors->swap(filtered_processors);
 }
-bool medial::process::clean_uneeded_rep_processors(MedModel &m, const vector<string> &needed_sigs) {
-	vector<RepProcessor *> afterFiltr;
-	unordered_set<string> need_s;
-	need_s.insert(needed_sigs.begin(), needed_sigs.end());
-	bool has_cln = false;
-	for (RepProcessor *rp : m.rep_processors) {
-		vector<RepProcessor *> to_process;
-		bool cleaned;
-		if (rp->processor_type == REP_PROCESS_MULTI) {
-			RepMultiProcessor *rpc = (RepMultiProcessor *)rp;
-			to_process = rpc->processors;
-			cleaned = clean_uneeded_rep_procc_simple(to_process, need_s);
-			rpc->processors = to_process;
-			if (!to_process.empty())
-				afterFiltr.push_back(rpc);
-		}
-		else {
-			to_process.push_back(rp);
-			cleaned = clean_uneeded_rep_procc_simple(to_process, need_s);
 
-			if (!cleaned) {
-				afterFiltr.push_back(rp);
-			}
+vector<string> medial::repository::prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
+	vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors) {
 
+	vector<unordered_set<string>> current_req_signal_names;
+	if (rep_processors != NULL && !rep_processors->empty()) {
+		collect_and_add_virtual_signals_static(rep, *rep_processors);
+		filter_rep_processors(needed_sigs, rep_processors);
+		for (RepProcessor *processor : *rep_processors) {
+			processor->init_tables(rep.dict, rep.sigs);
+			processor->set_affected_signal_ids(rep.dict);
+			processor->set_required_signal_ids(rep.dict);
+			processor->set_signal_ids(rep.dict);
+			processor->init_attributes();
 		}
-		has_cln = has_cln | cleaned;
+
+		//vector<RepProcessor *> temp_processors;
+		for (int i = 0; i < rep_processors->size(); i++) {
+			//unordered_set<int> current_req_signal_ids;
+			//for (int k = (int)rep_processors->size() - 1; k > i; --k)
+			//	(*rep_processors)[i]->get_required_signal_ids(current_req_signal_ids, current_req_signal_ids);
+			if ((*rep_processors)[i]->learn(rep) < 0)
+				MTHROW_AND_ERR("Unable to learn rep_processor\n");
+			//temp_processors.push_back((*rep_processors)[i]);
+		}
+
+		current_req_signal_names.resize(rep_processors->size());
+		for (unsigned int i = 0; i < rep_processors->size(); i++)
+			(*rep_processors)[i]->get_required_signal_names(current_req_signal_names[i]);
+	}
+	unordered_set<string> all_rep_sigs(needed_sigs.begin(), needed_sigs.end());
+	for (size_t i = 0; i < current_req_signal_names.size(); ++i)
+		all_rep_sigs.insert(current_req_signal_names[i].begin(), current_req_signal_names[i].end());
+	vector<string> final_use_sigs(all_rep_sigs.begin(), all_rep_sigs.end());
+	phisical_signal_read.clear();
+	phisical_signal_read.reserve(final_use_sigs.size());
+	for (size_t i = 0; i < final_use_sigs.size(); ++i)
+	{
+		int sid = rep.sigs.sid(final_use_sigs[i]);
+		if (sid < 0)
+			MWARN("Warning: signal %s not found in prepared repository.\n", final_use_sigs[i].c_str());
+		if (sid >= 0 && !rep.sigs.Sid2Info[sid].virtual_sig)
+			phisical_signal_read.push_back(final_use_sigs[i]);
 	}
 
-	m.rep_processors = afterFiltr;
-	return has_cln;
+	return final_use_sigs;
+}
+
+vector<int> medial::repository::prepare_repository(MedPidRepository &rep, const vector<int> &needed_sigs,
+	vector<int> &phisical_signal_read, vector<RepProcessor *> *rep_processors) {
+	vector<string> conv_in(needed_sigs.size());
+	for (size_t i = 0; i < needed_sigs.size(); ++i)
+		conv_in[i] = rep.sigs.name(needed_sigs[i]);
+	vector<string> phisical_sigs;
+	vector<string> res = prepare_repository(rep, conv_in, phisical_sigs, rep_processors);
+	vector<int> conv_res(res.size());
+	for (size_t i = 0; i < conv_res.size(); ++i)
+		conv_res[i] = rep.sigs.sid(res[i]);
+	phisical_signal_read.resize(phisical_sigs.size());
+	for (size_t i = 0; i < phisical_sigs.size(); ++i)
+		phisical_signal_read[i] = rep.sigs.sid(phisical_sigs[i]);
+
+	return conv_res;
 }
 
 //.......................................................................................

@@ -44,6 +44,7 @@ void MedRepository::clear()
 	time_unit = MedTime::Date;
 	index.clear();
 	if (dict.read_state != 1) dict.clear();
+	free_all_sigs();
 	sigs.clear();
 	pids.clear();
 	if (work_area != NULL)
@@ -1551,6 +1552,34 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	return gend;
 }
 
+template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers) {
+	int minDate = -1, minDate_index = -1;
+	for (size_t i = 0; i < patientFile.size(); ++i)
+	{
+		UniversalSigVec &data = patientFile[i];
+		if (signalPointers[i] >= data.len)
+			continue; //already reached the end for this signal
+		if (data.get_type() == T_Value) {
+			if (minDate_index == -1 || data.Val(signalPointers[i]) < minDate) {
+				minDate = (int)data.Val(signalPointers[i]);
+				minDate_index = (int)i;
+			}
+		}
+		else {
+			if (minDate_index == -1 || data.Time(signalPointers[i]) < minDate) {
+				minDate = data.Time(signalPointers[i]);
+				minDate_index = (int)i;
+			}
+		}
+	}
+	if (minDate_index >= 0)
+		++signalPointers[minDate_index];
+	return minDate_index;
+}
+template int medial::repository::fetch_next_date<UniversalSigVec_mem>(vector<UniversalSigVec_mem> &patientFile, vector<int> &signalPointers);
+template int medial::repository::fetch_next_date<UniversalSigVec>(vector<UniversalSigVec> &patientFile, vector<int> &signalPointers);
+
+
 string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType) {
 	if (vec.empty())
 		return "";
@@ -1647,7 +1676,7 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 	p += st_size;
 	for (int i = 1; i < s.len; ++i)
 	{
-		if (s.Date(i) == s.Date(i - 1) && (data_by_dates.back().size() > 1 || s.Val(i) != s.Val(i - 1)))
+		if (s.Time(i) == s.Time(i - 1) && (data_by_dates.back().size() > 1 || s.Val(i) != s.Val(i - 1)))
 			data_by_dates.back().push_back(p);
 		else
 			data_by_dates.push_back({ p });
@@ -1691,6 +1720,26 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 			mean_val /= data_group.size();
 			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
 			break;
+		case medial::repository::take_min:
+			//lets find min;
+			mean_val = s.Val(curr_pos);
+			for (int k = 1; k < data_group.size(); ++k) {
+				if (s.Val(curr_pos + k) < mean_val)
+					mean_val = s.Val(curr_pos + k);
+				to_remove.push_back(curr_pos + k);
+			}
+			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
+			break;
+		case medial::repository::take_max:
+			//lets find min;
+			mean_val = s.Val(curr_pos);
+			for (int k = 1; k < data_group.size(); ++k) {
+				if (s.Val(curr_pos + k) > mean_val)
+					mean_val = s.Val(curr_pos + k);
+				to_remove.push_back(curr_pos + k);
+			}
+			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
+			break;
 		default:
 			MTHROW_AND_ERR("Error in fix_contradictions - Not Implemented\n");
 		}
@@ -1721,4 +1770,14 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 		edited.manage = true;
 	}
 	return changed;
+}
+
+void medial::repository::set_global_time_unit(const string &repository_path) {
+	MedRepository temp_rep;
+	if (temp_rep.read_config(repository_path) < 0)
+		MTHROW_AND_ERR("Can't read repository %s\n", repository_path.c_str());
+	global_default_time_unit = temp_rep.time_unit;
+	global_default_windows_time_unit = temp_rep.time_unit;
+	if (global_default_time_unit != MedTime::Date)
+		MLOG("model_runner: running on ICU repository\n");
 }
