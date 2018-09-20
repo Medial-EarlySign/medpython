@@ -1820,6 +1820,9 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 					it->second.c_str());
 			string line;
 			while (getline(fr, line)) {
+				boost::trim(line);
+				if (line.empty() || line.at(0) == '#')
+					continue;
 				vector<string> tokens;
 				boost::split(tokens, line, boost::is_any_of("\t"));
 				if (tokens.size() != 2)
@@ -1914,6 +1917,9 @@ int MedRegistryCategories::init(map<string, string>& map) {
 					it->second.c_str());
 			string line;
 			while (getline(fr, line)) {
+				boost::trim(line);
+				if (line.empty() || line.at(0) == '#')
+					continue;
 				vector<string> tokens;
 				boost::split(tokens, line, boost::is_any_of("\t"));
 				if (tokens.size() != 2)
