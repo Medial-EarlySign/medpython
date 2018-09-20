@@ -1825,7 +1825,9 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 				if (tokens.size() != 2)
 					MTHROW_AND_ERR("Error in MedRegistryCodesList::init - in parsing pid_to_censor_dates file"
 						" - %s excpeting TAB for line:\n%s\n", it->second.c_str(), line.c_str());
-				pid_to_max_allowed[stoi(tokens[0])] = stoi(tokens[1]);
+				if (pid_to_max_allowed.find(stoi(tokens[0])) == pid_to_max_allowed.end() ||
+					pid_to_max_allowed[stoi(tokens[0])] > stoi(tokens[1]))
+					pid_to_max_allowed[stoi(tokens[0])] = stoi(tokens[1]);
 			}
 			fr.close();
 		}
@@ -1905,6 +1907,24 @@ int MedRegistryCategories::init(map<string, string>& map) {
 			max_repo_date = stoi(it->second);
 		else if (it->first == "config_signals_rules")
 			registry_cfg_path = it->second;
+		else if (it->first == "pid_to_censor_dates") {
+			ifstream fr(it->second);
+			if (!fr.good())
+				MTHROW_AND_ERR("Error in MedRegistryCategories::init - unable to open %s for reading.",
+					it->second.c_str());
+			string line;
+			while (getline(fr, line)) {
+				vector<string> tokens;
+				boost::split(tokens, line, boost::is_any_of("\t"));
+				if (tokens.size() != 2)
+					MTHROW_AND_ERR("Error in MedRegistryCategories::init - in parsing pid_to_censor_dates file"
+						" - %s excpeting TAB for line:\n%s\n", it->second.c_str(), line.c_str());
+				if (pid_to_max_allowed.find(stoi(tokens[0])) == pid_to_max_allowed.end() ||
+					pid_to_max_allowed[stoi(tokens[0])] > stoi(tokens[1]))
+					pid_to_max_allowed[stoi(tokens[0])] = stoi(tokens[1]);
+			}
+			fr.close();
+		}
 		else
 			MTHROW_AND_ERR("Error in MedRegistryCategories::init - Unsupported init param \"%s\"\n",
 				it->first.c_str());
@@ -1958,6 +1978,11 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 		MTHROW_AND_ERR("Must be initialized by init before use\n");
 	vector<int> signals_indexes_pointers(signals_rules.size()); //all in 0
 	int max_allowed_date = max_repo_date;
+	if (pid_to_max_allowed.find(pid) != pid_to_max_allowed.end())
+		if (pid_to_max_allowed[pid] > 0)
+			max_allowed_date = pid_to_max_allowed[pid];
+		else
+			return;
 
 	unordered_set<float> outcomes_may_not_use;
 	int last_buffer_duration = -1;

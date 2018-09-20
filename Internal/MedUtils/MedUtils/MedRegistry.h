@@ -435,6 +435,8 @@ public:
 		clear_create_variables();
 	}
 private:
+	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
+
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
 };
 
