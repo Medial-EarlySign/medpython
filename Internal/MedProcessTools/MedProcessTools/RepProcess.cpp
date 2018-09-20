@@ -2324,7 +2324,7 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(signals.begin(), signals.end());
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
 
 	return 0;
 }
@@ -2338,7 +2338,7 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	//first lets fetch "static" signals without Time field:
 
 	set<int> set_ids(sigs_ids.begin(), sigs_ids.end());
-	differentVersionsIterator vit(rec, set_ids);
+	allVersionsIterator vit(rec, set_ids);
 	rec.usvs.resize(sigs_ids.size());
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
@@ -2352,22 +2352,25 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		vector<float> v_vals;
 		vector<int> v_times;
 		int last_time = -1;
+		int last_val_ch1 = -1;
 		while (active_id >= 0) {
-			if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+			if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1) &&
+				last_val_ch1 == rec.usvs[active_id].Val(idx[active_id] - 1)) {
 				active_id = medial::repository::fetch_next_date(rec.usvs, idx);
-				continue; //skip same time
+				continue; //skip same time, and same first channel value
 			}
 
-			if (v_times.size() < final_size + 1) {
-				v_times.resize(final_size + 1);
+			if (v_times.size() < 2 * final_size + 1) {
+				v_times.resize(2 * final_size + 2);
 				v_vals.resize(2 * final_size + 2);
 			}
-			v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
+			v_times[2 * final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 			v_vals[2 * final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
 			v_vals[2 * final_size + 1] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, 1);
 			++final_size;
 
 			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+			last_val_ch1 = rec.usvs[active_id].Val(idx[active_id] - 1);
 			active_id = medial::repository::fetch_next_date(rec.usvs, idx);
 		}
 		// pushing virtual data into rec (into orig version)
@@ -2379,7 +2382,7 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 }
 
 void RepCombineSignals::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = T_DateVal2;
+	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -2428,17 +2431,16 @@ int RepSignalRate::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(input_name);
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal2));
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
 
 	return 0;
 }
 
 void RepSignalRate::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = T_DateVal2;
+	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
-	set_signal_ids(dict);
 	v_out_sid = sigs.sid(output_name);
 	if (v_out_sid < 0)
 		MTHROW_AND_ERR("Error in RepSignalRate::init_tables - virtual output signal %s not found\n",
@@ -2476,26 +2478,31 @@ int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<v
 
 	set<int> set_ids;
 	set_ids.insert(in_sid);
-	differentVersionsIterator vit(rec, set_ids);
+	allVersionsIterator vit(rec, set_ids);
 	rec.usvs.resize(1);
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		rec.uget(in_sid, iver, rec.usvs[0]);
 
-		vector<float> v_vals(2 * rec.usvs[0].len);
-		vector<int> v_times(rec.usvs[0].len);
+		vector<float> v_vals;
+		vector<int> v_times;
 		for (int i = 0; i < rec.usvs[0].len; ++i) {
-			v_times[i] = rec.usvs[0].Time(i);
-			float orig_val = rec.usvs[0].Val(i);
+			int start_time = rec.usvs[0].Time(i);
 			int end_time = rec.usvs[0].Time(i, 1);
-			int diff_time = med_time_converter.diff_times(end_time, v_times[i], rec.usvs[0].time_unit(),
+			int diff_time = med_time_converter.diff_times(end_time, start_time, rec.usvs[0].time_unit(),
 				global_default_time_unit);
-			v_vals[2 * i] = orig_val;
-			v_vals[2 * i + 1] = rec.usvs[0].Val(i, 1) / diff_time;
+			if (diff_time == 0 || start_time == 0 && end_time == 0)
+				continue;
+
+			v_times.push_back(start_time);
+			v_times.push_back(end_time);
+			float orig_val = rec.usvs[0].Val(i);
+			v_vals.push_back(orig_val);
+			v_vals.push_back(rec.usvs[0].Val(i, 1) / diff_time);
 		}
 		// pushing virtual data into rec (into orig version)
 		if (rec.usvs[0].len > 0)
-			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], rec.usvs[0].len);
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size() / 2);
 
 	}
 
@@ -2535,7 +2542,7 @@ int RepSplitSignal::init(map<string, string>& mapper) {
 	req_signals.insert(input_name);
 	virtual_signals.clear();
 	for (size_t i = 0; i < names.size(); ++i)
-		virtual_signals.push_back(pair<string, int>(names[i], T_DateVal2));
+		virtual_signals.push_back(pair<string, int>(names[i], T_DateRangeVal2));
 
 	return 0;
 }
@@ -2572,7 +2579,7 @@ void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) 
 
 void RepSplitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
 	for (size_t i = 0; i < names.size(); ++i)
-		_virtual_signals[names[i]] = T_DateVal2;
+		_virtual_signals[names[i]] = virtual_signals[i].second;
 }
 
 void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -2587,7 +2594,7 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 	}
 	set<int> set_ids;
 	set_ids.insert(in_sid);
-	differentVersionsIterator vit(rec, set_ids);
+	allVersionsIterator vit(rec, set_ids);
 	rec.usvs.resize(1);
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
@@ -2601,13 +2608,14 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 			int idx = Flags[orig_val];
 
 			v_times[idx].push_back(time);
+			v_times[idx].push_back(0);
 			v_vals[idx].push_back(orig_val); //chan 0
 			v_vals[idx].push_back(rec.usvs[0].Val(i, 1) * factors[idx]); //chan 1
 		}
 		// pushing virtual data into rec (into orig version)
 		for (size_t i = 0; i < names.size(); ++i)
 			if (!v_times[i].empty())
-				rec.set_version_universal_data(V_ids[i], iver, &v_times[i][0], &v_vals[i][0], (int)v_times[i].size());
+				rec.set_version_universal_data(V_ids[i], iver, &v_times[i][0], &v_vals[i][0], (int)v_times[i].size() / 2);
 	}
 
 	return 0;

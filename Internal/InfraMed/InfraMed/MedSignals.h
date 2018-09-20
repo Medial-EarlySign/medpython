@@ -215,8 +215,8 @@ public:
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val); }
 	inline void SetVal(int chan, float _val) { (chan) ? val2 = (unsigned short)_val : val = _val; };
 
-	inline void Set(int _date_start, int _date_end, float _val, short _val2) { date_start = _date_start; _date_end = date_end; val = _val; val2 = _val2; }
-	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; val2 = (unsigned short)vals[1]; }
+	inline void Set(int _date_start, int _date_end, float _val, float _val2) { date_start = _date_start; _date_end = date_end; val = _val; val2 = _val2; }
+	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; val2 = vals[1]; }
 
 	bool operator<(const SDateRangeVal2& s) {
 		if (this->date_start < s.date_start) return true; if (this->date_start > s.date_start) return false;
