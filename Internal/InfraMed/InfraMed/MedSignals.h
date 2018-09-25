@@ -214,7 +214,7 @@ public:
 	static inline int time_unit() { return MedTime::Date; }
 	inline int Time(int chan) { return ((chan) ? (date_end) : (date_start)); } // assuming minutes span are within the size of an int
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val); }
-	inline void SetVal(int chan, float _val) { (chan) ? val2 = (unsigned short)_val : val = _val; };
+	inline void SetVal(int chan, float _val) { (chan) ? val2 = _val : val = _val; };
 
 	inline void Set(int _date_start, int _date_end, float _val, float _val2) { date_start = _date_start; date_end = _date_end; val = _val; val2 = _val2; }
 	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; val2 = vals[1]; }
@@ -396,7 +396,7 @@ public:
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
 	inline void SetVal(int chan, float _val) { (chan) ? val2 = (short)_val : val1 = (short)_val; };
 
-	inline void Set(int _date, short _val1, short _val2) { date = date; val1 = _val1; val2 = _val2; }
+	inline void Set(int _date, short _val1, short _val2) { date = _date; val1 = _val1; val2 = _val2; }
 	inline void Set(int *times, float *vals) { date = times[0]; val1 = (short)vals[0]; val2 = (short)vals[1]; }
 
 	bool operator<(const SDateShort2& s) {
