@@ -45,6 +45,9 @@ int MedRep::get_type_size(SigType t)
 	case T_DateRangeVal2:
 		return ((int)sizeof(SDateRangeVal2));
 
+	case T_DateFloat2:
+		return ((int)sizeof(SDateFloat2));
+
 	case T_TimeRangeVal:
 		return ((int) sizeof(STimeRangeVal));
 
@@ -95,6 +98,9 @@ int MedRep::get_type_channels(SigType t, int &time_unit, int &n_time_chans, int 
 
 	case T_DateRangeVal2:
 		return MedRep::get_type_channels_info<SDateRangeVal2>(time_unit, n_time_chans, n_val_chans);
+
+	case T_DateFloat2:
+		return MedRep::get_type_channels_info<SDateFloat2>(time_unit, n_time_chans, n_val_chans);
 
 	case T_TimeRangeVal:
 		return MedRep::get_type_channels_info<STimeRangeVal>(time_unit, n_time_chans, n_val_chans);
@@ -450,6 +456,7 @@ void UniversalSigVec::init(const SignalInfo &info)
 	case T_TimeVal: set_funcs<STimeVal>(); return;
 	case T_DateRangeVal: set_funcs<SDateRangeVal>(); return;
 	case T_DateRangeVal2: set_funcs<SDateRangeVal2>(); return;
+	case T_DateFloat2: set_funcs<SDateFloat2>(); return;
 	case T_TimeStamp: set_funcs<STimeStamp>(); return;
 	case T_TimeRangeVal: set_funcs<STimeRangeVal>(); return;
 	case T_DateVal2: set_funcs<SDateVal2>(); return;
@@ -477,6 +484,7 @@ int MedSignalsSingleElemFill(int sig_type, char *buf, int *time_data, float *val
 	case T_TimeVal:				SetSignalElement<STimeVal>(buf, time_data, val_data);			break;
 	case T_DateRangeVal:		SetSignalElement<SDateRangeVal>(buf, time_data, val_data);		break;
 	case T_DateRangeVal2:		SetSignalElement<SDateRangeVal2>(buf, time_data, val_data);		break;
+	case T_DateFloat2:			SetSignalElement<SDateFloat2>(buf, time_data, val_data);		break;
 	case T_TimeStamp:			SetSignalElement<STimeStamp>(buf, time_data, val_data);			break;
 	case T_TimeRangeVal:		SetSignalElement<STimeRangeVal>(buf, time_data, val_data);		break;
 	case T_DateVal2:			SetSignalElement<SDateVal2>(buf, time_data, val_data);			break;
@@ -501,6 +509,7 @@ int MedSignalsPrintVecByType(ostream &os, int sig_type, void* vec, int len_bytes
 	case T_TimeVal:				MedSignalsPrintVec<STimeVal>(os, (STimeVal *)vec, len_bytes / sizeof(STimeVal));						break;
 	case T_DateRangeVal:		MedSignalsPrintVec<SDateRangeVal>(os, (SDateRangeVal *)vec, len_bytes / sizeof(SDateRangeVal));		break;
 	case T_DateRangeVal2:		MedSignalsPrintVec<SDateRangeVal2>(os, (SDateRangeVal2 *)vec, len_bytes / sizeof(SDateRangeVal2));		break;
+	case T_DateFloat2:			MedSignalsPrintVec<SDateFloat2>(os, (SDateFloat2 *)vec, len_bytes / sizeof(SDateFloat2));		break;
 	case T_TimeStamp:			MedSignalsPrintVec<STimeStamp>(os, (STimeStamp *)vec, len_bytes / sizeof(STimeStamp));				break;
 	case T_TimeRangeVal:		MedSignalsPrintVec<STimeRangeVal>(os, (STimeRangeVal *)vec, len_bytes / sizeof(STimeRangeVal));		break;
 	case T_DateVal2:			MedSignalsPrintVec<SDateVal2>(os, (SDateVal2 *)vec, len_bytes / sizeof(SDateVal2));					break;

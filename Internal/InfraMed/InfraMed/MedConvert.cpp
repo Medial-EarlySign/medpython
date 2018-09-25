@@ -601,6 +601,16 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 									else cd.f_val2 = med_stof(fields[5]);
 									break;
 
+								case T_DateFloat2:
+									cd.date = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val = dict.get_id_or_throw(section, fields[3]);
+									else cd.val = med_stof(fields[3]);
+									if (sigs.is_categorical_channel(sid, 1))
+										cd.f_val2 = dict.get_id_or_throw(section, fields[4]);
+									else cd.f_val2 = med_stof(fields[4]);
+									break;
+
 								default:
 									MTHROW_AND_ERR("MedConvert: get_next_signal: unknown signal type %d for sid %d\n",
 										sigs.type(sid), sid);
@@ -1152,6 +1162,17 @@ int MedConvert::write_indexes(pid_data &curr)
 									sdrv.val = curr.raw_data[i][j].val;
 									sdrv.val2 = curr.raw_data[i][j].f_val2;
 									data_f[fno]->write((char *)&sdrv, sizeof(SDateRangeVal2));
+								}
+							}
+
+							if (sid_type == T_DateFloat2) {
+								len = (int)sizeof(SDateFloat2)*ilen;
+								SDateFloat2 sdrv;
+								for (int j = 0; j < ilen; j++) {
+									sdrv.date = curr.raw_data[i][j].date;
+									sdrv.val = curr.raw_data[i][j].val;
+									sdrv.val2 = curr.raw_data[i][j].f_val2;
+									data_f[fno]->write((char *)&sdrv, sizeof(SDateFloat2));
 								}
 							}
 
