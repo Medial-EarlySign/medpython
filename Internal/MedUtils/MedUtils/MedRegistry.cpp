@@ -15,6 +15,25 @@
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+int read_time(int time_unit, const string &p) {
+	int max_date_mark = 30000000;
+	if (time_unit != MedTime::Date)
+		max_date_mark = 2000000000;
+	if (p == to_string(max_date_mark))
+		return max_date_mark;
+
+	return med_time_converter.convert_datetime_safe(time_unit, p, 2);
+}
+string write_time(int time_unit, int time) {
+	int max_date_mark = 30000000;
+	if (time_unit != MedTime::Date)
+		max_date_mark = 2000000000;
+	if (time == max_date_mark)
+		return to_string(max_date_mark);
+
+	return med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, time);
+}
+
 void MedRegistry::read_text_file(const string &file_path) {
 	ifstream fp(file_path);
 	if (!fp.good())
@@ -33,6 +52,12 @@ void MedRegistry::read_text_file(const string &file_path) {
 		}
 		tokens.clear();
 		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() == 2 && tokens[0] == "TIME_UNIT") {
+			MLOG("MedRegistry TIME_UNIT=%s\n", tokens[1].c_str());
+			time_unit = med_time_converter.string_to_type(tokens[1]);
+			continue;
+		}
+
 		if (tokens.size() != 7) {
 			cerr << "Bad File Format in line " << lineNum << " got \"" << line << "\"" << " parsed " << tokens.size() << " tokens" << endl;
 			throw out_of_range("File has bad format");
@@ -41,10 +66,10 @@ void MedRegistry::read_text_file(const string &file_path) {
 
 		MedRegistryRecord pr;
 		pr.pid = stoi(tokens[0]);
-		pr.start_date = stoi(tokens[1]);
-		pr.end_date = stoi(tokens[2]);
-		pr.min_allowed_date = stoi(tokens[3]);
-		pr.max_allowed_date = stoi(tokens[4]);
+		pr.start_date = read_time(time_unit, tokens[1]);
+		pr.end_date = read_time(time_unit, tokens[2]);
+		pr.min_allowed_date = read_time(time_unit, tokens[3]);
+		pr.max_allowed_date = read_time(time_unit, tokens[4]);
 		pr.age = stoi(tokens[5]);
 		pr.registry_value = stof(tokens[6]);
 		registry_records.push_back(pr);
@@ -61,10 +86,15 @@ void MedRegistry::write_text_file(const string &file_path) const {
 		MTHROW_AND_ERR("IOError: can't write file %s\n", file_path.c_str());
 	fw << "# Format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue" << endl;
 	fw << "# Created By Script - Insert Comments following #..." << endl;
+	fw << "TIME_UNIT" << delim << med_time_converter.type_to_string(time_unit) << endl;
 	fw << endl;
 	for (size_t i = 0; i < registry_records.size(); ++i)
-		fw << registry_records[i].pid << delim << registry_records[i].start_date << delim << registry_records[i].end_date << delim
-		<< registry_records[i].min_allowed_date << delim << registry_records[i].max_allowed_date << delim << registry_records[i].age
+		fw << registry_records[i].pid << delim <<
+		write_time(time_unit, registry_records[i].start_date) << delim <<
+		write_time(time_unit, registry_records[i].end_date) << delim
+		<< write_time(time_unit, registry_records[i].min_allowed_date) << delim
+		<< write_time(time_unit, registry_records[i].max_allowed_date) << delim
+		<< registry_records[i].age
 		<< delim << registry_records[i].registry_value << "\n";
 
 	fw.flush();

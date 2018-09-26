@@ -25,11 +25,11 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		if (pos["id"] != -1)
 			id = (int)stod(fields[pos["id"]]);
 		if (pos["date"] != -1)
-			time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 1);
+			time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 2);
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
-			outcomeTime = (int)stod(fields[pos["outcome_date"]]);
+			outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 2);
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
 
@@ -69,10 +69,11 @@ int MedSample::parse_from_string(string &s, int time_unit)
 	if (fields[0] == "EVENT") {
 		if (fields.size() < 6) return -1;
 		id = stoi(fields[1]);
-		time = med_time_converter.convert_datetime_safe(time_unit, fields[2], 1);
+		time = med_time_converter.convert_datetime_safe(time_unit, fields[2], 2);
 		outcome = stof(fields[3]);
 		int dummy_length = stoi(fields[4]);
-		outcomeTime = stoi(fields[5]);
+		//outcomeTime = stoi(fields[5]);
+		outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[5], 2);
 		if (fields.size() >= 7)
 			split = stoi(fields[6]);
 		if (fields.size() >= 8) {
@@ -89,9 +90,10 @@ int MedSample::parse_from_string(string &s, int time_unit)
 	if (fields[0] == "SAMPLE") {
 		if (fields.size() < 5) return -1;
 		id = stoi(fields[1]);
-		time = med_time_converter.convert_datetime_safe(time_unit, fields[2], 1);
+		time = med_time_converter.convert_datetime_safe(time_unit, fields[2], 2);
 		outcome = stof(fields[3]);
-		outcomeTime = stoi(fields[4]);
+		//outcomeTime = stoi(fields[4]);
+		outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[4], 2);
 		if (fields.size() >= 6)
 			split = stoi(fields[5]);
 		if (fields.size() >= 7) {
@@ -121,7 +123,8 @@ void MedSample::write_to_string(string &s, int time_unit)
 void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit)
 {
 	s = "";
-	s += "SAMPLE\t" + to_string(id) + "\t" + med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, time) + "\t" + to_string(outcome) + "\t" + to_string(outcomeTime);
+	s += "SAMPLE\t" + to_string(id) + "\t" + med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, time) + "\t" + to_string(outcome) + "\t"
+		+ med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, outcomeTime);
 	s += "\t" + to_string(split);
 	for (auto p : prediction)
 		s += "\t" + to_string(p);
@@ -328,6 +331,10 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 				else if (fields[0] == "DESC") MLOG("reading DESC = %s\n", fields[1].c_str());
 				else if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
 				else if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
+				else if (fields[0] == "TIME_UNIT") {
+					MLOG("reading TIME_UNIT = %s\n", fields[1].c_str());
+					time_unit = med_time_converter.string_to_type(fields[1]);
+				}
 				else if ((fields[0] == "EVENT_FIELDS" || fields[0] == "pid" || fields[0] == "id") && read_records == 1) {
 					extract_field_pos_from_header(fields, pos, pred_pos, attr_pos);
 					continue;
@@ -463,6 +470,8 @@ int MedSamples::write_to_file(const string &fname)
 	for (string name : str_attributes)
 		of << "\tstr_attr_" << name;
 	of << "\n";
+
+	of << "TIME_UNIT" << "\t" << med_time_converter.type_to_string(time_unit) << "\n";
 
 	int line = 0;
 	for (auto &s : idSamples) {
