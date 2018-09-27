@@ -1208,8 +1208,13 @@ class RepSignalRate : public RepProcessor {
 public:
 	string output_name; ///< names of signals created by the completer
 	string input_name; ///< names of input signals used by the completer
+	int work_channel; ///< which channel to change and divide by time
+	float factor; ///< additional constant factor 
 
-	RepSignalRate() { processor_type = REP_PROCESS_SIGNAL_RATE; output_name = { "calc_drug_rate" }; }
+	RepSignalRate() {
+		processor_type = REP_PROCESS_SIGNAL_RATE; output_name = { "calc_drug_rate" };
+		work_channel = 0;  factor = 1;
+	}
 
 	/// @snippet RepProcess.cpp RepSignalRate::init
 	int init(map<string, string>& mapper);
