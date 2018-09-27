@@ -2115,7 +2115,8 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 							int new_search_date = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
 							last_buffer_duration = signal_prop->buffer_duration;
 							if (new_search_date < prev_search)
-								last_buffer_duration += int(365 * medial::repository::DateDiff(new_search_date, prev_search));
+								last_buffer_duration += med_time_converter.convert_times(global_default_time_unit, global_default_windows_time_unit, prev_search) -
+								med_time_converter.convert_times(global_default_time_unit, global_default_windows_time_unit, new_search_date);
 						}
 					}
 					else {
@@ -2187,15 +2188,17 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 
 		if (!same_date && !is_rule_active) {
 			//check if need to close buffer - no rule happend in this time and has outcome in buffer
-			if (!mark_no_match && r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date)
-				results.push_back(r);
-			//start new record with 0 outcome:
-			r.registry_value = -1;
-			//r.start_date = r.end_date; //continue from where left
-			//r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
-			mark_no_match = true;
-			//r.end_date = medial::repository::DateAdd(r.start_date, 1); //let's start from 1 day
-			//r.max_allowed_date = r.end_date;
+			if (curr_date > r.end_date) { //if need to skip or has passed buffer
+				if (!mark_no_match && r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date)
+					results.push_back(r);
+				//start new record with 0 outcome:
+				r.registry_value = -1;
+				//r.start_date = r.end_date; //continue from where left
+				//r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
+				mark_no_match = true;
+				//r.end_date = medial::repository::DateAdd(r.start_date, 1); //let's start from 1 day
+				//r.max_allowed_date = r.end_date;
+			}
 		}
 
 		last_date = curr_date;

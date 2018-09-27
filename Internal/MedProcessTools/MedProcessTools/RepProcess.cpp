@@ -2498,7 +2498,7 @@ int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<v
 			int end_time = rec.usvs[0].Time(i, 1);
 			int diff_time = med_time_converter.diff_times(end_time, start_time, rec.usvs[0].time_unit(),
 				global_default_time_unit);
-			if (diff_time == 0 || start_time == 0 && end_time == 0)
+			if (diff_time == 0 || start_time == 0 || end_time == 0)
 				continue;
 
 			v_times.push_back(start_time);
