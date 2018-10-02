@@ -51,6 +51,12 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("pid", po::value<int>()->default_value(5000100), "test data_api for this pid, use --data_api_test option")
 			("sig", po::value<string>()->default_value("Creatinine"), "test data_api for this signal, use --data_api_test option")
 
+			("kp_test", "split to a dedicated test for kp data")
+			("kp_demographic", po::value<string>()->default_value(""), "demographic for --kp_test option: each line: <pid> <byear> <F/M>")
+			("kp_data", po::value<string>()->default_value(""), "lab tests for --kp_test option: each line: <pid> <code> <date> <value>")
+			("kp_scores", po::value<string>()->default_value(""), "which scores to generate for  --kp_test option: each line start: <pid> <date> ...")
+			("kp_codes", po::value<string>()->default_value(""), "lab tests codes for --kp_test option: each line: <code> <name>")
+
 			;
 
 
