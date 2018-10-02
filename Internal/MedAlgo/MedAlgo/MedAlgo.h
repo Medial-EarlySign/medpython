@@ -607,7 +607,7 @@ public:
 		cerr << "MedMicNet init_from_string ! :: " << initialization_text << "\n";
 		mic_params.init_string = initialization_text;
 		cerr << "calling init_from_string of micNet\n"; fflush(stderr);
-		return mic.init_net(initialization_text);
+		return mic.init_from_string(initialization_text);
 	}
 
 	///MedMicNet:: init map :: not supported, only init_from_string supported 
@@ -622,11 +622,13 @@ public:
 		cerr << "MedMicNet:: Learn :: API's with MedMat are preferred....\n";
 		MedMat<float> xmat; xmat.load(x, nsamples, nftrs);
 		MedMat<float> ymat; ymat.load(y, nsamples, 1);
-		return learn(xmat, ymat);
+		MedMat<float> wmat;
+		if (w != NULL) wmat.load(w, nsamples, 1);
+		return learn(xmat, ymat, wmat.m);
 	}
 
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const {
-		cerr << "MedMicNet:: Learn :: API's with MedMat are preferred....\n";
+		cerr << "MedMicNet:: Predict :: API's with MedMat are preferred....\n";
 		MedMat<float> xmat; xmat.load(x, nsamples, nftrs);
 		vector<float> vpreds;
 		int rc = predict(xmat, vpreds);
@@ -635,6 +637,7 @@ public:
 		return rc;
 	}
 
+	int learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgt) { return mic.learn(x, y, wgt); }
 	int learn(MedMat<float> &x, MedMat<float> &y) { return mic.learn(x, y); }
 	int predict(MedMat<float> &x, vector<float> &preds) const { micNet mutable_net = mic; return mutable_net.predict(x, preds); }
 
