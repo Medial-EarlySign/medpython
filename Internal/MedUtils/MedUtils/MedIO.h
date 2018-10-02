@@ -58,6 +58,7 @@ int read_binary_data_prealloc(const string &fname, unsigned char *&data, unsigne
 
 // read text file, parse it and get the i-th column string
 int read_text_file_col(string fname, string ignore_pref, string separators, int col_idx, vector<string> &res);
+int read_text_file_cols(string fname, string separators, vector<vector<string>> &res);
 
 //=============================================================
 // read/write serialized classes
