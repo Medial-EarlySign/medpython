@@ -1115,7 +1115,7 @@ public:
 
 	// serialization
 	ADD_SERIALIZATION_FUNCS(calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-		signals, V_names, req_signals, aff_signals, virtual_signals)
+		signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
@@ -1162,6 +1162,8 @@ public:
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	ADD_SERIALIZATION_FUNCS(output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
@@ -1195,6 +1197,8 @@ public:
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	ADD_SERIALIZATION_FUNCS(input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
@@ -1227,6 +1231,8 @@ public:
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	ADD_SERIALIZATION_FUNCS(input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
