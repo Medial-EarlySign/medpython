@@ -211,7 +211,8 @@ int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, const vector<float> 
 	if (classifier_type == MODEL_MIC_NET) {
 		MedMicNet *mic = (MedMicNet *)this;
 		cerr << "running micNet learn()\n";
-		return mic->learn(x, y);
+		vector<float> w = wgts;
+		return mic->learn(x, y, w);
 	}
 	// patch for booster
 	if (classifier_type == MODEL_BOOSTER) {

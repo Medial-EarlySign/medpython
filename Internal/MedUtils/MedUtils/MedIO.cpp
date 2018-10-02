@@ -328,6 +328,37 @@ int read_text_file_col(string fname, string ignore_pref, string separators, int 
 	return 0;
 }
 
+
+//===================================================================================================
+int read_text_file_cols(string fname, string separators, vector<vector<string>> &res)
+{
+	ifstream inf(fname);
+
+	res.clear();
+	if (!inf) {
+		MERR("MedUtils:MedIO :: read_text_file_col: read: Can't open file %s\n", fname.c_str());
+		return -1;
+	}
+
+	string curr_line;
+	separators += "\r\n";
+	//	MLOG("separators %s\n", separators.c_str());
+	while (getline(inf, curr_line)) {
+		//MLOG("curr_line %s\n", curr_line.c_str());
+
+		if (curr_line.size() > 1) {
+			vector<string> fields;
+			boost::split(fields, curr_line, boost::is_any_of(separators));
+			res.push_back(fields);
+		}
+
+	}
+
+	inf.close();
+
+	return 0;
+}
+
 //===================================================================================================
 int read_file_into_string(const string &fname, string &data)
 {

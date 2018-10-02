@@ -699,6 +699,12 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			print_channel_helper(sid, 0, v[i].val);
 			print_channel_helper(sid, 1, v[i].val2);
 		}
+		else if (sigs.type(sid) == T_DateFloat2) {
+			SDateFloat2 *v = (SDateFloat2 *)data;
+			MOUT(" %s ", convert_date(v[i].date, sid).c_str());
+			print_channel_helper(sid, 0, v[i].val);
+			print_channel_helper(sid, 1, v[i].val2);
+		}
 		if (sigs.has_any_categorical_channel(sid))
 			MOUT(" :\n");
 		else
@@ -759,6 +765,13 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 				MOUT("%d,", val = (int)v[i].val);
 			else MOUT("%f,", v[i].val);
 			MOUT("%f,%d,%d,0,0,", v[i].val2, v[i].date_start, v[i].date_end);
+		}
+		else if (sigs.type(sid) == T_DateFloat2) {
+			SDateFloat2 *v = (SDateFloat2 *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("%f,%d,0,0,0,", v[i].val2, v[i].date);
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;

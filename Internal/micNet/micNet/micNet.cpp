@@ -76,12 +76,10 @@ int micNode::fill_input_node(int *perm, int len, MedMat<float> &x_mat, int last_
 	batch_out.resize(len, nfeat+1);
 	float *b_out = batch_out.data_ptr();
 
+	// now going over our 'len' permutated lines and copying each line from x to the batch_out buffer.
 	for (int i=0; i<len; i++) {
 		int ii = perm[i];
-		//if (i==6) x_mat.print_row(stderr, "micNode::fill_input_node", " %5.3f", ii);
-		//MLOG("fill_input:: i %d , ii %d\n", i, ii);
 		memcpy(b_out, &x_mat.m[ii*(x_mat.ncols)], nfeat*sizeof(float));
-		//if (i==6) batch_out.print_row(stderr, "micNode::fill_input_node", " %5.3f", i);
 		b_out[nfeat] = 1; // bias term
 		b_out += nfeat + 1;
 	}
@@ -91,7 +89,7 @@ int micNode::fill_input_node(int *perm, int len, MedMat<float> &x_mat, int last_
 
 //.................................................................................................
 // copies y data (shuffled batch) into an output node
-int micNode::fill_output_node(int *perm, int len, MedMat<float> &y_mat)
+int micNode::fill_output_node(int *perm, int len, MedMat<float> &y_mat, vector<float> &sample_weights)
 {
 	y.resize(len, y_mat.ncols);
 	for (int i=0; i<len; i++) {
@@ -100,14 +98,14 @@ int micNode::fill_output_node(int *perm, int len, MedMat<float> &y_mat)
 			y(i, j) = y_mat(ii, j);
 	}
 
-	/*
-	y.resize(len, 1);
-
-	for (int i=0; i<len; i++) {
-		int ii = perm[i];
-		y(i,0) = y_mat(ii, 0);
+	if (sample_weights.size() > 0) {
+		sweights.resize(len);
+		for (int i=0; i<len; i++)
+			sweights[i] = sample_weights[perm[i]];
 	}
-	*/
+	else
+		sweights.clear();
+
 	return 0;
 }
 
@@ -119,8 +117,9 @@ int micNode::fill_output_node(int *perm, int len, MedMat<float> &y_mat)
 int micNode::get_input_batch(int do_grad_flag)
 {
 	int n_in_dim = 0;
-	for (int i=0; i<ir.n_input_nodes; i++)
-		n_in_dim += ir.in_node_ptr[i]->k_out;
+	for (int i=0; i<ir.n_input_nodes; i++) {
+		n_in_dim += my_net->nodes[ir.in_node_id[i]].k_out;
+	}
 
 	if (n_in_dim != n_in) {
 		MERR("%s :: get_input_batch() :: id %d type %s :: ERROR :: non matching input dimensions %d vs. %d\n", name.c_str(), id, type.c_str(), n_in_dim, n_in);
@@ -133,35 +132,28 @@ int micNode::get_input_batch(int do_grad_flag)
 	}
 
 	//y = ir.in_node_ptr[0]->y; // if there are several input nodes they MUST have the same y for the batch
+
+	// simpler code for just a single input node
 	if (ir.n_input_nodes == 1) {
-//		MLOG("Copying input to batch_in of node %d from batch_out of node %d\n",id,ir.in_node_ptr[0]->id);
-		// simpler code for just a single input node
+
+		// get the input node
+		int j = ir.in_node_id[0];
+		micNode &in_node = my_net->nodes[j];
+
+		// copy batch from input and check it
+		//MLOG("Copying input to batch_in of node %d from batch_out of node %d\n", id, in_node.id);
 		if (ir.mode[0] == "all") {
-			//MLOG("Copying batch_out from node %d to batch_in in node %d\n", ir.in_node_ptr[0]->id, id);
-			batch_in = ir.in_node_ptr[0]->batch_out;
-			dropout_in = ir.in_node_ptr[0]->dropout_out;
+			//MLOG("Copying batch_out from node %d to batch_in in node %d : batch_out is: %d x %d\n", in_node.id, id, in_node.batch_out.nrows, in_node.batch_out.ncols);
+			batch_in = in_node.batch_out;
+			dropout_in = in_node.dropout_out;
 		}
 
 		if (batch_in.ncols-1 != n_in_dim) {
-			MERR("%s :: get_input_batch() :: ERROR :: non matching dimensions %d <-> %d\n", name.c_str(), batch_in.ncols, n_in_dim);
+			MERR("%s :: get_input_batch() :: ERROR :: node %d :: non matching dimensions %d <-> %d\n", name.c_str(), id, batch_in.ncols, n_in_dim);
 			return -1;
 		}
-		if (do_grad_flag && gaussian_dropout_std > 0) { // dropout only in training
 
-			normal_distribution<float> dist((float)1, gaussian_dropout_std);
-			
-			// randomizing the dropout coefficients
-			//vector<float> gdo(n_in);
-			//for (int i=0; i<n_in; i++)
-			//	gdo[i] = dist(gen);
-
-			// multiplying the columns
-			for (int i=0; i<batch_in.nrows; i++)
-				for (int j=0; j<n_in; j++)
-					batch_in(i, j) *= dist(gen);
-
-		}
-
+		// handle dropout: actually randomizing the dropout matrix to decide which weights will be used in this batch
 		if (do_grad_flag && dropout_prob_in < 1) {
 			if (dropout_in.size() == 0) {
 				for (int i=0; i<n_in; i++)
@@ -182,7 +174,8 @@ int micNode::get_input_batch(int do_grad_flag)
 
 			for (int i=0; i<batch_in.nrows; i++)
 				for (int j=0; j<n_in; j++)
-					batch_in(i, j) *= dropout_in[j];
+					batch_in(i, j) *= dropout_in[j]; // this zeros the columns we don't want to sum on. Probably an over kill and could have been 
+													 // computed faster when multiplying weights on batch
 		}
 	}
 	else {
@@ -574,6 +567,10 @@ int micNode::get_backprop_delta()
 					delta(k, j) = fact*batch_out(k, j);
 				delta(k, (int)y(k, 0)) -= fact;
 			}
+			if (sweights.size() != 0)
+				for (k=0; k<n_b; k++)
+					for (int j=0; j<n_in; j++)
+						delta(k, j) *= sweights[k];
 		}
 		else {
 
@@ -604,6 +601,10 @@ int micNode::get_backprop_delta()
 			// classical regression problem
 			for (i=0; i<n_b; i++)
 				delta(i, 0) = fact*(batch_in(i, 0) - y(i, 0));
+			if (sweights.size() != 0)
+				for (i=0; i<n_b; i++)
+					delta(i, 0) *= sweights[i];
+
 
 		}
 		else if (n_in > 1) {
@@ -954,10 +955,9 @@ void micNode::print(const string &prefix, int i_state, int i_in)
 }
 
 //.................................................................................................
-void InputRules::push(int node_id, micNode *node_ptr, const string &_mode)
+void InputRules::push(int node_id, const string &_mode)
 {
 	in_node_id.push_back(node_id);
-	in_node_ptr.push_back(node_ptr);
 	mode.push_back(_mode);
 	n_input_nodes++;
 }
@@ -1155,6 +1155,7 @@ int micNet::init_net(micNetParams &in_params)
 		return init_fully_connected(params);
 	//	return init_autoencoder(params);
 
+
 	return -1;
 }
 
@@ -1171,7 +1172,6 @@ int micNet::add_input_layer()
 	node.k_out = params.nfeat;
 	node.forward_nodes.push_back(1);
 	node.is_terminal = 0;
-	node.gaussian_dropout_std = 0;
 	node.dropout_prob_in = 1;
 	node.dropout_prob_out = 1;
 
@@ -1196,7 +1196,7 @@ int micNet::add_fc_leaky_relu_layer(int in_node, int n_hidden, float dropout_in_
 	node.type = "LeakyReLU";
 	node.n_in = prev_node->k_out;
 	node.k_out = n_hidden;
-	node.ir.push(prev_node->id, prev_node, "all");
+	node.ir.push(prev_node->id, "all");
 	float std = params.weights_init_std;
 	if (params.weights_init_std == 0)
 		std = sqrt((float)2/(float)node.n_in);
@@ -1274,7 +1274,7 @@ int micNet::add_normalization_layer(int in_node)
 	node.type = "Normalization";
 	node.n_in = prev_node->k_out;
 	node.k_out = n_hidden;
-	node.ir.push(node.id-1, prev_node, "all");
+	node.ir.push(node.id-1, "all");
 
 	// initializing wgt matrix to be a unit matrix
 	node.wgt.resize(n_hidden+1, n_hidden+1);
@@ -1323,9 +1323,8 @@ int micNet::add_softmax_output_layer(int in_node)
 	node.loss = params.loss_type;
 	node.n_in = params.n_categ * params.n_per_categ;
 	node.k_out = params.n_categ;
-	node.ir.push(prev_node->id, prev_node, "all");
+	node.ir.push(prev_node->id, "all");
 	node.is_terminal = 1;
-	node.gaussian_dropout_std = 0;
 	node.dropout_prob_in = 1;
 	node.dropout_prob_out = 1;
 
@@ -1369,9 +1368,8 @@ int micNet::add_regression_output_layer(int in_node)
 	node.loss = params.loss_type;
 	node.n_in = params.n_categ * params.n_per_categ;
 	node.k_out = params.n_categ;
-	node.ir.push(prev_node->id, prev_node, "all");
+	node.ir.push(prev_node->id, "all");
 	node.is_terminal = 1;
-	node.gaussian_dropout_std = 0;
 	node.dropout_prob_in = 1;
 	node.dropout_prob_out = 1;
 
@@ -1409,9 +1407,8 @@ int micNet::add_autoencoder_loss(int in_node, int data_node)
 	node.loss = "lsq";
 	node.n_in = prev_node->k_out;
 	node.k_out = n_hidden;
-	node.ir.push(prev_node->id, prev_node, "all");
+	node.ir.push(prev_node->id, "all");
 	node.is_terminal = 1;
-	node.gaussian_dropout_std = 0;
 	node.dropout_prob_in = 1;
 	node.dropout_prob_out = 1;
 
@@ -1509,8 +1506,10 @@ int micNet::init_fully_connected(micNetParams &in_params)
 		if (i == 0)
 			MLOG("\n");
 		else
-			MLOG("prev_id %d\n", nodes[i].ir.in_node_ptr[0]->id);
+			MLOG("prev_id %d\n", nodes[i].ir.in_node_id[0]);
 	}
+
+	for (auto &node : nodes) node.my_net = this;
 
 	return 0;
 }
@@ -1558,7 +1557,7 @@ int micNet::init_autoencoder(micNetParams &in_params)
 		if (i == 0)
 			MLOG("\n");
 		else
-			MLOG("prev_id %d\n", nodes[i].ir.in_node_ptr[0]->id);
+			MLOG("prev_id %d\n", nodes[i].ir.in_node_id[0]);
 	}
 
 	return 0;
@@ -1572,14 +1571,10 @@ int micNet::forward_batch(int do_grad_flag)
 {
 	for (int i=0; i<nodes.size(); i++) {
 		if (nodes[i].type != "Input") {
-//			MLOG("micNET::forward_batch :: before :: node %d\n",i);
-			nodes[i].print("debug forward before", 1, 6);
 			if (nodes[i].forward_batch(do_grad_flag) < 0) {
 				MERR("micNet::forward_batch() error in node %d\n", i);
 				return -1;
 			}
-//			MLOG("micNET::forward_batch :: after :: node %d\n",i);
-			nodes[i].print("debug forward after", 1, 6);
 		}
 	}
 
@@ -1596,8 +1591,8 @@ int micNet::back_prop_batch()
 	for (int i=(int)nodes.size()-1; i>=0; i--) {
 		if (nodes[i].type != "Input") {
 
-			for (int j=0; j<nodes[i].ir.in_node_ptr.size(); j++) {
-				micNode *prev = nodes[i].ir.in_node_ptr[j];
+			for (int j=0; j<nodes[i].ir.in_node_id.size(); j++) {
+				micNode *prev = &nodes[nodes[i].ir.in_node_id[j]];
 
 				//MLOG("back_prop i=%d j=%d : node_id %d prev_id %d\n", i, j, nodes[i].id, prev->id);
 				if (prev->type != "Input") {
@@ -1622,8 +1617,8 @@ int micNet::back_prop_batch()
 	for (int i=(int)nodes.size()-1; i>=0; i--) {
 		if (nodes[i].type != "Input") {
 
-			for (int j=0; j<nodes[i].ir.in_node_ptr.size(); j++) {
-				micNode *prev = nodes[i].ir.in_node_ptr[j];
+			for (int j=0; j<nodes[i].ir.in_node_id.size(); j++) {
+				micNode *prev = &nodes[nodes[i].ir.in_node_id[j]];
 
 				if (prev->type != "Input") {
 
@@ -1682,7 +1677,7 @@ int micNet::get_batch_with_samp_ratio(MedMat<float> &y_train, int batch_len, vec
 }
 
 //.................................................................................................
-int micNet::learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, int last_is_bias_flag)
+int micNet::learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, int last_is_bias_flag)
 {
 	string prefix = "micNet::learn_single_epoch() ::";
 
@@ -1722,13 +1717,13 @@ int micNet::learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, i
 //		MLOG("%s b %d before fill input, from %d to %d len %d\n", prefix.c_str(), b,from,to,len);
 		nodes[0].fill_input_node(taken_to_batch, len, x_train, last_is_bias_flag);
 
-//		nodes[0].print("debug input", 1, 6);
+		//nodes[0].print("debug input", 1, 6);
 		// copy y to output nodes
 //		MLOG("%s b %d before fill output\n", prefix.c_str(), b);
 		for (int i=0; i<nodes.size(); i++)
 			if (nodes[i].is_terminal) {
-				nodes[i].fill_output_node(taken_to_batch, len, y_train);
-//				nodes[i].print("debug output", 1, 6);
+				nodes[i].fill_output_node(taken_to_batch, len, y_train, weights);
+				//nodes[i].print("debug output", 1, 6);
 			}
 
 		// forward
@@ -1745,13 +1740,18 @@ int micNet::learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, i
 }
 
 //..................................................................................................................................................
-int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, MedMat<float> &x_test, MedMat<float> &y_test, int n_epochs, int eval_freq, int last_is_bias_flag)
+int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, 
+	MedMat<float> &x_test, MedMat<float> &y_test, int n_epochs, int eval_freq, int last_is_bias_flag)
 {
 	
 	string prefix = "micNet::learn() ::";
 
 	vector<NetEval> on_train_evals;
 	vector<NetEval> on_test_evals;
+
+	MLOG("%s :: initializing net\n", prefix.c_str());
+	params.nfeat = x_train.ncols - last_is_bias_flag;
+	if (nodes.size() == 0) init_fully_connected(params);
 
 	MLOG("%s starting on x_train %d x %d, y_train %d x %d : x_test %d x %d , y_test %d x %d : nepochs %d : eval_freq %d\n",
 		prefix.c_str(), x_train.nrows, x_train.ncols, y_train.nrows, y_train.ncols, x_test.nrows, x_test.ncols, y_test.nrows, y_test.ncols, n_epochs, eval_freq);
@@ -1761,7 +1761,7 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, MedMat<float> 
 		MedTimer et;
 		et.start();
 
-		if (learn_single_epoch(x_train, y_train, last_is_bias_flag) < 0) {
+		if (learn_single_epoch(x_train, y_train, weights, last_is_bias_flag) < 0) {
 			MERR("%s ERROR: failed learn_single_epoch in epoch %d\n", prefix.c_str(), i_epoch);
 			return -1;
 		}
@@ -1840,6 +1840,7 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, MedMat<float> 
 // predictions taken in the Last Node (pred_node)
 int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_flag)
 {
+	//MLOG("predict(Mat,Mat) API\n");
 	string prefix = "micNet::predict() ::";
 
 	int nsamples = x.nrows;
@@ -1851,6 +1852,7 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 		return -1;
 	}
 
+	//MERR("micNet predict() : n_in %d x: %d x %d , last_is_bias %d\n", nodes[0].n_in, x.nrows, x.ncols, last_is_bias_flag);
 	// first getting a shuffle
 	vector<int> unit(nsamples);
 	for (int i=0; i<nsamples; i++) { unit[i] = i; }
@@ -1862,16 +1864,22 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 	int n_categ = pred_node->k_out;
 	preds.resize(nsamples, n_categ);
 
+	for (auto &node : nodes) node.my_net = this;
+
 	// going over batches
 	for (int b=0; b<n_batches; b++) {
 		int from = b*params.predict_batch_size;
 		int to = min(from+params.predict_batch_size, nsamples);
 		int len = to-from;
 
+		//MLOG("micNet predict: predict batch size %d , batch %d, from %d , to %d , len %d\n", params.predict_batch_size, b, from, to, len);
 		nodes[0].fill_input_node(&unit[from], len, x, last_is_bias_flag);
 
+		//for (auto &node : nodes) node.my_net = this;
+		//MLOG("Before forward batch %d : batch_out %d x %d : %d %d : %x %x\n", b, nodes[0].batch_out.nrows, nodes[0].batch_out.ncols, nodes[1].my_net->nodes.size(), nodes[1].my_net->nodes[0].batch_out.nrows, this, &(nodes[1].my_net));
 		// forward without gradients
 		if (forward_batch(0) < 0) return -1;
+		//MLOG("After forward batch %d\n", b);
 
 		// copy results to preds mat
 		for (int i=from; i<to; i++)
@@ -1887,10 +1895,6 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 void micNet::copy_nodes(vector<micNode> &in_nodes)
 {
 	nodes = in_nodes;
-
-	for (int i=0; i<nodes.size(); i++)
-		for (int j=0; j<nodes[i].ir.n_input_nodes; j++)
-			nodes[i].ir.in_node_ptr[j] = &nodes[nodes[i].ir.in_node_id[j]];
 }
 
 //.................................................................................................
@@ -2106,21 +2110,26 @@ int micNet::init_from_string(string init_str)
 {
 	if (params.init_from_string(init_str) < 0) return -1;
 
+/*
 	if (params.net_type == "fc")
 		return init_fully_connected(params);
 
 	if (params.net_type == "autoencoder")
 		return init_fully_connected(params);
-
+*/
 	return 0;
 }
 
 //--------------------------------------------------------------------------------------
-int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train)
+int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights)
 {
 	string prefix = "micNet::learn(*)";
 	vector<NetEval> on_train_evals;
 	MedTimer et;
+
+	params.nfeat = x_train.ncols;
+	params.params_init_string += ";nfeat=" + to_string(params.nfeat);
+	if (nodes.size() == 0) init_fully_connected(params);
 
 	int i_epoch = 0;
 	int go_on = 1;
@@ -2129,7 +2138,7 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train)
 		et.start();
 
 		// an epoch learn step
-		if (learn_single_epoch(x_train, y_train) < 0) return -1;
+		if (learn_single_epoch(x_train, y_train, weights) < 0) return -1;
 
 		// evaluation on train set
 		NetEval ne;
@@ -2141,15 +2150,11 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train)
 
 		float curr = 0, back = 0, err = -1;
 		if (i_epoch > params.min_epochs && i_epoch > params.n_back) {
-			//if (params.net_type == "fc") {
 			if (params.loss_type == "log") {
-				//curr = on_train_evals[i_epoch].acc_err;
 				curr = on_train_evals[i_epoch].log_loss;
-				//back = on_train_evals[i_epoch-params.n_back].acc_err;
 				back = on_train_evals[i_epoch-params.n_back].log_loss;
 				err = (back - curr)/back;
 			}
-			//if (params.net_type == "autoencoder") {
 			if (params.loss_type == "lsq") {
 				curr = on_train_evals[i_epoch].lsq_loss;
 				back = on_train_evals[i_epoch-params.n_back].lsq_loss;
@@ -2182,6 +2187,7 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train)
 int micNet::predict(MedMat<float> &x, vector<float> &preds)
 {
 
+	MLOG("predict(Mat,vector) API\n");
 	MedMat<float> mpreds;
 
 	if (predict(x, mpreds) < 0) return -1;

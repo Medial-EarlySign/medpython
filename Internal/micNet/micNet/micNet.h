@@ -40,6 +40,7 @@ using namespace std;
 
 
 class micNode;
+class micNet;
 
 #define NET_MODE_TRAIN	1
 #define NET_MODE_TEST	2
@@ -48,13 +49,12 @@ class InputRules {
 public:
 	int n_input_nodes;
 	vector<int> in_node_id;
-	vector<micNode *> in_node_ptr;
 	vector<string> mode;
 
-	void clear() { n_input_nodes=0; in_node_id.clear(); in_node_ptr.clear(); mode.clear(); }
+	void clear() { n_input_nodes=0; in_node_id.clear(); mode.clear(); }
 	InputRules() { clear(); }
 
-	void push(int node_id, micNode *node_ptr, const string &_mode);
+	void push(int node_id, const string &_mode);
 };
 
 
@@ -79,10 +79,9 @@ public:
 	int k_out;		// going out dimension
 
 	MedMat<float> wgt;			// weights. last weight is ALWAYS the bias (in LeakyReLU and Ridge). size (n_in + 1) x (kout + 1), last column is always 0,0,....1 (to transfer 1 forward)
-	//MedMat<float> wgt_test;		// weights. last weight is ALWAYS the bias (in LeakyReLU and Ridge). size (n_in + 1) x (kout + 1), last column is always 0,0,....1 (to transfer 1 forward)
 	vector<float> dropout_in;	// if dropout is used, in each batch we randomize a dropout vector, stating which of the inputs are taken, and which of the outputs.
 	vector<float> dropout_out;	// this one is for the outputs and must be similar to the next layer in.
-	MedMat<int> sparse_bit;
+	MedMat<int> sparse_bit; // ??
 
 	InputRules ir;
 	vector<int> forward_nodes;	// for convience, a list of the node indexes that are forward to this node.
@@ -90,14 +89,13 @@ public:
 
 	// training related
 	MedMat<float> lr_params;	// in LeakyReLU: holds the slopes a,b for each one of the k neurons. size k_out x 2
-	MedMat<float> lambda;		// in Ridge and LeakyReLU, this one holds the regulation coefficient for each neuron. size k_out x 1 .
+	MedMat<float> lambda;		// in Ridge and LeakyReLU, this one holds the ridge regularization coefficient for each neuron. size k_out x 1 .
 	MedMat<float> learn_rates;	// learning rates for wgts, currently size is k_out x 1 , that is a learn rate for each neuron.
 
 	float momentum;					// momentum to use while learning
 	float rate_factor;				// multiplying the learning rate - allowing to manage its decay
 	float max_wgt_norm;				// maximal norm for the weights
 	float min_wgt_norm;				// minimal norm for the weights
-	float gaussian_dropout_std;		// TBD.... currently not for use, in development	
 	float dropout_prob_in;			// probability for dropout of the coming in variables
 	float dropout_prob_out;			// probability for dropout of the coming out variables 
 	float sparse_zero_prob;			// probability for initial constant random sparsness imposed on the weights
@@ -127,7 +125,10 @@ public:
 	micNode *data_node_p;
 
 
+	micNet* my_net; // pointer to the container network
+
 	MedMat<float> y;			// the y values for a batch. This is relevant for output nodes only, and typically will be for a SoftMax
+	vector<float> sweights;		// samples weights for this node
 
 	// next is typically 1, however, we may set a micNode (=a layer) not to update weights during a learn cycle
 	// This is useful when one needs to keep a layer in the middle with no changes, while letting other layers work.
@@ -148,9 +149,9 @@ public:
 	int init_wgts_rand_normal(float mean, float std);	
 
 	int fill_input_node(int *perm, int len, MedMat<float> &x_mat, int last_is_bias_flag);	// copies x into input nodes 
-	int fill_output_node(int *perm, int len, MedMat<float> &y_mat);							// copies y into input nodes 
+	int fill_output_node(int *perm, int len, MedMat<float> &y_mat, vector<float> &sample_weights);							// copies y into input nodes 
 
-	int get_input_batch(int do_grad_flag);
+	int get_input_batch(int do_grad_flag);  // sets batch_in for a node that is not an input node
 	int forward_batch(int do_grad_flag);
 
 	int forward_batch_leaky_relu(int do_grad_flag);
@@ -317,8 +318,8 @@ public:
 	int back_prop_batch();	// assumes forward batch was run before
 
 	// learn, eval and predict
-	int learn(MedMat<float> &x_train, MedMat<float> &y_train, MedMat<float> &x_test, MedMat<float> &y_test, int n_epochs, int eval_freq, int last_is_bias_flag=0);
-	int learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, int last_is_bias_flag=0);
+	int learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, MedMat<float> &x_test, MedMat<float> &y_test, int n_epochs, int eval_freq, int last_is_bias_flag=0);
+	int learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, int last_is_bias_flag=0);
 	int eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval &eval, int last_is_bias_flag=0);
 	int predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_flag=0);
 
@@ -332,7 +333,8 @@ public:
 
 	// API to allow use with MedAlgo
 	int init_from_string(string init_str); 
-	int learn(MedMat<float> &x_train, MedMat<float> &y_train);
+	int learn(MedMat<float> &x_train, MedMat<float> &y_train) { vector<float> w; return learn(x_train, y_train, w); }
+	int learn(MedMat<float> &x_train, MedMat<float> &y_train,  vector<float> &weights);
 	int predict(MedMat<float> &x, vector<float> &preds);
 
 	size_t get_size() { return MedSerialize::get_size(version, params.params_init_string, nodes); }
@@ -343,6 +345,7 @@ public:
 		fprintf(stderr, "micNet deserialize init with %s\n", init_str.c_str());
 		init_net(init_str);
 		size += MedSerialize::deserialize(&blob[size], nodes);
+		for (auto &node : nodes) { node.my_net = this; }
 		return size;
 	}
 
