@@ -84,7 +84,7 @@ void BinnedLmEstimates::init_defaults() {
 	byearId = -1;
 	genderId = -1;
 
-	time_unit_periods = global_default_time_unit;
+	time_unit_periods = global_default_windows_time_unit;
 }
 
 //.......................................................................................

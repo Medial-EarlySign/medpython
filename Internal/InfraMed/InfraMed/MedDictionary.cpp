@@ -101,7 +101,7 @@ int MedDictionary::read(const string &fname)
 				}
 				else if (fields[0].compare(0, 3, "SET") == 0) {
 					if (Name2Id.find(fields[1]) == Name2Id.end() || Name2Id.find(fields[2]) == Name2Id.end()) {
-						MERR("MedDictionary: read: SET line with undefined elements: %s %s\n", fields[1].c_str(), fields[2].c_str());
+						MERR("MedDictionary: read: SET line with undefined elements: [%s] [%s]\n", fields[1].c_str(), fields[2].c_str());
 					}
 					else {
 						int member_n = Name2Id[fields[2]];

@@ -21,6 +21,7 @@ int RepPanelCompleter::init(map<string, string>& mapper)
 		}
 		else if (field == "missing") missing_val = stof(entry.second);
 		else if (field == "config" || field == "metadata") metadata_file = entry.second;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "sim_val" || field == "sim_val_handler") sim_val_handler = RepSimValHandler::get_sim_val_handle_type(entry.second);
 		else if (field == "panels") {
 			if (update_panels(entry.second) != 0) return -1;

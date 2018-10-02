@@ -2,8 +2,6 @@
 
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string.hpp>
-#include <InfraMed/InfraMed/InfraMed.h>
-#include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <fstream>
 #include <algorithm>
@@ -495,13 +493,10 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 //-------------------------------------------------------------------------------------
 int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_file)
 {
+
 	if (s_params.is_continous == 0)
 		return create_sampling_file_sticked(s_params, out_sample_file);
 
-	vector<int> train_to_take ={ 0,0,0,0 };
-	if (s_params.train_mask &0x1) train_to_take[1] = 1;
-	if (s_params.train_mask &0x2) train_to_take[2] = 1;
-	if (s_params.train_mask &0x4) train_to_take[3] = 1;
 	vector<int> pids;
 	get_pids(pids);
 	MedRepository rep;
@@ -511,6 +506,23 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	}
 
 	MedSamples samples;
+	create_samples(rep,s_params, samples);
+	
+	if (samples.write_to_file(out_sample_file) < 0) {
+		MERR("FAILED writing samples file %s\n", out_sample_file.c_str());
+		return -1;
+	}
+	MLOG("Created samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), samples.nSamples(), samples.idSamples.size());
+}
+
+int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedSamples& samples)
+{
+
+	vector<int> train_to_take ={ 0,0,0,0 };
+	if (s_params.train_mask &0x1) train_to_take[1] = 1;
+	if (s_params.train_mask &0x2) train_to_take[2] = 1;
+	if (s_params.train_mask &0x4) train_to_take[3] = 1;
+
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int train_sid = rep.sigs.sid("TRAIN");
@@ -592,11 +604,7 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	}
 
 	samples.sort_by_id_date();
-	if (samples.write_to_file(out_sample_file) < 0) {
-		MERR("FAILED writing samples file %s\n", out_sample_file.c_str());
-		return -1;
-	}
-	MLOG("Created samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), nsamp, samples.idSamples.size());
+
 
 	return 0;
 }
@@ -607,15 +615,11 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 //-------------------------------------------------------------------------------------
 int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out_sample_file)
 {
-	vector<int> train_to_take ={ 0,0,0,0 };
-	if (s_params.train_mask &0x1) train_to_take[1] = 1;
-	if (s_params.train_mask &0x2) train_to_take[2] = 1;
-	if (s_params.train_mask &0x4) train_to_take[3] = 1;
+
 	vector<int> pids;
-	vector<int> dates_to_take;
 	get_pids(pids);
 	MedRepository rep;
-	vector<string> sigs ={ "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
 	sigs.insert(sigs.end(), s_params.stick_to_sigs.begin(), s_params.stick_to_sigs.end());
 	if (rep.read_all(s_params.rep_fname, pids, sigs) < 0) {
 		MERR("FAILED reading repository %s\n", s_params.rep_fname.c_str());
@@ -623,6 +627,22 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 	}
 
 	MedSamples samples;
+	create_samples_sticked(rep, s_params, samples);
+
+	if (samples.write_to_file(out_sample_file) < 0) {
+		MERR("FAILED writing samples file %s\n", out_sample_file.c_str());
+		return -1;
+	}
+	MLOG("Created samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), samples.nSamples(), samples.idSamples.size());
+}
+int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_params, MedSamples& samples)
+{
+	vector<int> train_to_take ={ 0,0,0,0 };
+	if (s_params.train_mask &0x1) train_to_take[1] = 1;
+	if (s_params.train_mask &0x2) train_to_take[2] = 1;
+	if (s_params.train_mask &0x4) train_to_take[3] = 1;
+
+
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int train_sid = rep.sigs.sid("TRAIN");
@@ -630,7 +650,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 	//for (auto &sig : sigs) sids_to_stick.push_back(rep.sigs.sid(sig));
 
 	int len;
-
+	vector<int> dates_to_take;
 
 	int from0_days = (int)(s_params.max_control_years * 365.0f);
 	int to0_days = (int)(s_params.min_control_years * 365.0f);
@@ -640,7 +660,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 	int nsamp = 0;
 
 	for (auto &rc : recs) {
-		bool print = (rc.pid == 5000044);
+		bool print = false;
 		int byear = (int)((((SVal *)rep.get(rc.pid, byear_sid, len))[0]).val);
 		int gender = (int)((((SVal *)rep.get(rc.pid, gender_sid, len))[0]).val);
 		int train = (int)((((SVal *)rep.get(rc.pid, train_sid, len))[0]).val);
@@ -727,11 +747,6 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 	}
 
 	samples.sort_by_id_date();
-	if (samples.write_to_file(out_sample_file) < 0) {
-		MERR("FAILED writing samples file %s\n", out_sample_file.c_str());
-		return -1;
-	}
-	MLOG("Created sticked samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), nsamp, samples.idSamples.size());
 
 	return 0;
 }

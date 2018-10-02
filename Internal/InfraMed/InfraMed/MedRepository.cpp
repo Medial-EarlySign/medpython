@@ -690,6 +690,12 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			print_channel_helper(sid, 0, v[i].val);
 			print_channel_helper(sid, 1, v[i].val2);
 		}
+		else if (sigs.type(sid) == T_DateFloat2) {
+			SDateFloat2 *v = (SDateFloat2 *)data;
+			MOUT(" %s ", convert_date(v[i].date, sid).c_str());
+			print_channel_helper(sid, 0, v[i].val);
+			print_channel_helper(sid, 1, v[i].val2);
+		}
 		if (sigs.has_any_categorical_channel(sid))
 			MOUT(" :\n");
 		else
@@ -750,6 +756,13 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 				MOUT("%d,", val = (int)v[i].val);
 			else MOUT("%f,", v[i].val);
 			MOUT("%f,%d,%d,0,0,", v[i].val2, v[i].date_start, v[i].date_end);
+		}
+		else if (sigs.type(sid) == T_DateFloat2) {
+			SDateFloat2 *v = (SDateFloat2 *)data;
+			if (dict_val)
+				MOUT("%d,", val = (int)v[i].val);
+			else MOUT("%f,", v[i].val);
+			MOUT("%f,%d,0,0,0,", v[i].val2, v[i].date);
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;
@@ -1720,6 +1733,26 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 			mean_val /= data_group.size();
 			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
 			break;
+		case medial::repository::take_min:
+			//lets find min;
+			mean_val = s.Val(curr_pos);
+			for (int k = 1; k < data_group.size(); ++k) {
+				if (s.Val(curr_pos + k) < mean_val)
+					mean_val = s.Val(curr_pos + k);
+				to_remove.push_back(curr_pos + k);
+			}
+			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
+			break;
+		case medial::repository::take_max:
+			//lets find min;
+			mean_val = s.Val(curr_pos);
+			for (int k = 1; k < data_group.size(); ++k) {
+				if (s.Val(curr_pos + k) > mean_val)
+					mean_val = s.Val(curr_pos + k);
+				to_remove.push_back(curr_pos + k);
+			}
+			s.SetVal_ch_vec(curr_pos, 0, mean_val, s.data);
+			break;
 		default:
 			MTHROW_AND_ERR("Error in fix_contradictions - Not Implemented\n");
 		}
@@ -1750,4 +1783,14 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 		edited.manage = true;
 	}
 	return changed;
+}
+
+void medial::repository::set_global_time_unit(const string &repository_path) {
+	MedRepository temp_rep;
+	if (temp_rep.read_config(repository_path) < 0)
+		MTHROW_AND_ERR("Can't read repository %s\n", repository_path.c_str());
+	global_default_time_unit = temp_rep.time_unit;
+	global_default_windows_time_unit = temp_rep.time_unit;
+	if (global_default_time_unit != MedTime::Date)
+		MLOG("model_runner: running on ICU repository\n");
 }

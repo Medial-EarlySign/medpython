@@ -30,6 +30,7 @@ enum SigType {
 	T_ValShort4,		// 10 :: 4 short values
 	T_CompactDateVal,	// 11 :: 2 unsigned shorts - first is a compact date (in 16 bits), second in an unsigned short value
 	T_DateRangeVal2,	// 12 :: date start, date end, 2 float values
+	T_DateFloat2,	// 13 :: date + 2 float values
 	T_Last
 };		//    :: next free slot for type id
 
@@ -183,7 +184,7 @@ public:
 	inline float Val(int chan) { return val; }
 	inline void SetVal(int chan, float _val) { val = _val; };
 
-	inline void Set(int _date_start, int _date_end, float _val) { date_start = _date_start; _date_end = date_end; val = _val; }
+	inline void Set(int _date_start, int _date_end, float _val) { date_start = _date_start; date_end = _date_end; val = _val; }
 	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; }
 
 	bool operator<(const SDateRangeVal& s) {
@@ -213,10 +214,10 @@ public:
 	static inline int time_unit() { return MedTime::Date; }
 	inline int Time(int chan) { return ((chan) ? (date_end) : (date_start)); } // assuming minutes span are within the size of an int
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val); }
-	inline void SetVal(int chan, float _val) { (chan) ? val2 = (unsigned short)_val : val = _val; };
+	inline void SetVal(int chan, float _val) { (chan) ? val2 = _val : val = _val; };
 
-	inline void Set(int _date_start, int _date_end, float _val, short _val2) { date_start = _date_start; _date_end = date_end; val = _val; val2 = _val2; }
-	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; val2 = (unsigned short)vals[1]; }
+	inline void Set(int _date_start, int _date_end, float _val, float _val2) { date_start = _date_start; date_end = _date_end; val = _val; val2 = _val2; }
+	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; val2 = vals[1]; }
 
 	bool operator<(const SDateRangeVal2& s) {
 		if (this->date_start < s.date_start) return true; if (this->date_start > s.date_start) return false;
@@ -227,6 +228,37 @@ public:
 	bool operator==(const SDateRangeVal2& s) { return (this->val == s.val && this->val2 == s.val2 && this->date_start == s.date_start && this->date_end == s.date_end); }
 
 	friend ostream& operator<<(ostream& os, const SDateRangeVal2& s) { os << s.date_start << "-" << s.date_end << ":" << s.val << "," << s.val2; return os; }
+
+};
+
+//===================================
+// SDateFloat2
+//===================================
+class SDateFloat2 : public UnifiedSig {
+public:
+	int date;
+	float val;
+	float val2;
+
+	// unified API extention
+	static inline int n_time_channels() { return 1; }
+	static inline int n_val_channels() { return 2; }
+	static inline int time_unit() { return MedTime::Date; }
+	inline int Time(int chan) { return date; } // assuming minutes span are within the size of an int
+	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val); }
+	inline void SetVal(int chan, float _val) { (chan) ? val2 = _val : val = _val; };
+
+	inline void Set(int _date, float _val, float _val2) { date = _date; val = _val; val2 = _val2; }
+	inline void Set(int *times, float *vals) { date = times[0]; val = vals[0]; val2 = vals[1]; }
+
+	bool operator<(const SDateFloat2& s) {
+		if (this->date < s.date) return true; if (this->date > s.date) return false;
+		if (this->val < s.val) return true; if (this->val > val) return false;
+		return (this->val2 < s.val2);
+	}
+	bool operator==(const SDateFloat2& s) { return (this->val == s.val && this->val2 == s.val2 && this->date == s.date); }
+
+	friend ostream& operator<<(ostream& os, const SDateFloat2& s) { os << s.date << ":" << s.val << "," << s.val2; return os; }
 
 };
 
@@ -364,7 +396,7 @@ public:
 	inline float Val(int chan) { return ((chan) ? (float)val2 : (float)val1); }
 	inline void SetVal(int chan, float _val) { (chan) ? val2 = (short)_val : val1 = (short)_val; };
 
-	inline void Set(int _date, short _val1, short _val2) { date = date; val1 = _val1; val2 = _val2; }
+	inline void Set(int _date, short _val1, short _val2) { date = _date; val1 = _val1; val2 = _val2; }
 	inline void Set(int *times, float *vals) { date = times[0]; val1 = (short)vals[0]; val2 = (short)vals[1]; }
 
 	bool operator<(const SDateShort2& s) {

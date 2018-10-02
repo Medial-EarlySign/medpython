@@ -24,8 +24,11 @@ typedef enum {
 	REP_PROCESS_RULEBASED_OUTLIER_CLEANER,///<"rulebased_outlier_cleaner" or "rule_cln" to activate RepRuleBasedOutlierCleaner
 	REP_PROCESS_CALC_SIGNALS,///<"calc_signals" or "calculator" to activate RepCalcSimpleSignals
 	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
-	REP_PROCESS_CHECK_REQ, ///<check compliance with minimal requirement
-	REP_PROCESS_SIM_VAL, ///< handle multiple simultanous values
+	REP_PROCESS_CHECK_REQ, ///<"req" or "requirements" check compliance with minimal requirement to activate RepCheckReq
+	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
+	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to actiate RepSignalRate
+	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
+	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -114,6 +117,9 @@ public:
 	/// <returns> true if affected, false if not </returns>
 	inline bool is_signal_affected(int signalId) { return (aff_signal_ids.find(signalId) != aff_signal_ids.end()); }
 	inline bool is_signal_affected(string& signalName) { return (aff_signals.find(signalName) != aff_signals.end()); }
+
+	///Register section id to section name of new virtual signals
+	virtual void register_virtual_section_name_id(MedDictionarySections& dict) { };
 
 	// check filtering
 	/// <summary> Check if processor (and 'sub'-processors within) should be applied according to set of required signals  </summray>
@@ -227,6 +233,8 @@ public:
 	/// <summary> Affected Signals : Fill the member set aff_signal_ids </summary>
 	void set_affected_signal_ids(MedDictionarySections& dict);
 
+
+	void register_virtual_section_name_id(MedDictionarySections& dict);
 	// check filtering
 	/// <summary> Check if processor (and 'sub'-processors within) should be applied according to set of required signals  </summray>
 	/// <returns> true if processor is not required and can be filtered, false otherwise </returns>
@@ -628,13 +636,14 @@ public:
 
 	string nHandle_attr = ""; ///< Attribute name (in sample) for number of multiple-values handled. not recorded if empty
 	string nHandle_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of multiple-values handled. not recorded if empty
+	bool debug = false; ///<If True will print out till 3 examples for samples have been changed
 
 	/// <summary> default constructor </summary>
 	RepSimValHandler() { processor_type = REP_PROCESS_SIM_VAL; }
 	/// <summary> default constructor + setting signal name </summary>
 	RepSimValHandler(const string& _signalName) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_lists(); }
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
-	RepSimValHandler(const string& _signalName, string init_string) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_from_string(init_string); }
+	RepSimValHandler(const string& _signalName, string init_string) { processor_type = REP_PROCESS_SIM_VAL; signalId = -1; signalName = _signalName; init_from_string(init_string); }
 
 	/// <summary> Set signal name and fill affected and required signals sets </summary> 
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
@@ -657,14 +666,17 @@ public:
 
 	/// <summary> Apply multiple-value handling </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
-	void handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes);
 
 	/// <summary> get SimHandleType from name </summary>
+	/// @snippet RepProcess.cpp RepSimValHandler::get_sim_val_handle_type
 	static SimValHandleTypes get_sim_val_handle_type(string& name);
 
 	/// Serialization
 	int version() { return 0; }
 	ADD_SERIALIZATION_FUNCS(signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
+private:
+	void handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes);
+	int verbose_cnt = 0;
 };
 
 //.......................................................................................
@@ -912,16 +924,20 @@ private:
 */
 class SimpleCalculator : public SerializableObject {
 public:
-	float missing_value = (float)MED_MAT_MISSING_VALUE;
-	string calculator_name = "";
+	float missing_value = (float)MED_MAT_MISSING_VALUE; ///< missing value 
+	string calculator_name = ""; ///< just for debuging
+	int work_channel = 0; ///< the working channel
 
 	///init function of calculator
 	virtual int init(map<string, string>& mapper) { return 0; };
-	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) {}; ///< validates correctness of inputs
+	///validates correctness of inputs
+	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {};
 	virtual float do_calc(const vector<float> &vals) const = 0; ///< the calc option
-	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const = 0; ///< list output signals with default naming
+	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) = 0; ///< list output signals with default naming
+	/// init operator based on repo if needed
+	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
 
-	/// @snippet RepProcess.h SimpleCalculator::make_calculator
+	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
 };
 
@@ -939,8 +955,8 @@ public:
 	/// @snippet RepCalculators.cpp RatioCalculator::init
 	int init(map<string, string>& mapper);
 
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -955,8 +971,8 @@ public:
 	eGFRCalculator() { calculator_name = "eGFR"; };
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -967,8 +983,8 @@ class logCalculator : public SimpleCalculator {
 public:
 	logCalculator() { calculator_name = "log"; };
 
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
 	float do_calc(const vector<float> &vals) const;
 };
@@ -985,8 +1001,8 @@ public:
 	SumCalculator() { calculator_name = "sum"; };
 	/// @snippet RepCalculators.cpp SumCalculator::init
 	int init(map<string, string>& mapper);
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -1004,8 +1020,8 @@ public:
 	RangeCalculator() { calculator_name = "range"; min_range = MED_MAT_MISSING_VALUE; max_range = MED_MAT_MISSING_VALUE; };
 	/// @snippet RepCalculators.cpp RangeCalculator::init
 	int init(map<string, string>& mapper);
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	float do_calc(const vector<float> &vals) const;
 };
 
@@ -1015,17 +1031,40 @@ public:
 */
 class MultiplyCalculator : public SimpleCalculator {
 public:
-	float power_a = 1; ///< power for first arg
-	float power_b = 1; ///< power for second arg
+	vector<float> powers; ///< power for args
+	float b0 = 1; ///< init value
 
 	MultiplyCalculator() { calculator_name = "multiply"; };
 	/// @snippet RepCalculators.cpp MultiplyCalculator::init
 	int init(map<string, string>& mapper);
 
-	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals);
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) const;
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
 	float do_calc(const vector<float> &vals) const;
+};
+
+/**
+* A is in set operation which return binary output
+* res := in_range_val if is in set otherwise out_range_val
+*/
+class SetCalculator : public SimpleCalculator {
+public:
+	vector<string> sets;
+	float in_range_val = 1; ///< return value when within range
+	float out_range_val = 0; ///< return value when not within range
+
+	SetCalculator() { calculator_name = "set"; };
+	/// @snippet RepCalculators.cpp SetCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
+
+	float do_calc(const vector<float> &vals) const;
+private:
+	vector<char> Flags;
 };
 
 /**
@@ -1038,7 +1077,7 @@ public:
 	vector<string> V_names; ///< names of signals created by the calculator (a calculator can create more than a single signal at a time)
 
 	string calculator; ///< calculator asked for by user
-	//int calc_type;	///> type of calculator (one of the allowed enum values) - To Remove
+	int work_channel = 0; ///< the channel to work on all singals - and save results to
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1076,7 +1115,7 @@ public:
 
 	// serialization
 	ADD_SERIALIZATION_FUNCS(calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-		signals, V_names, req_signals, aff_signals, virtual_signals)
+		signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
@@ -1098,6 +1137,106 @@ private:
 
 };
 
+/**
+* Combines multiple signals to one signal. has ability to factorize each source signal
+*/
+class RepCombineSignals : public RepProcessor {
+public:
+	string output_name; ///< names of signal created by the processor
+	vector<string> signals; ///< names of input signals used by the processor
+	vector<float> factors; ///< factor for each signal
+
+	RepCombineSignals() { processor_type = REP_PROCESS_COMBINE; output_name = ""; }
+
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+
+	/// @snippet RepProcess.cpp RepCombineSignals::init
+	int init(map<string, string>& mapper);
+
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	ADD_SERIALIZATION_FUNCS(output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
+private:
+	int v_out_sid = -1;
+	vector<int> sigs_ids;
+};
+
+/**
+* split signal based on set of values. supports only 2 channel for value, first is used
+* for search in sets (and keeps the same value) 2 is being factorized
+* output signal is haveing 1 time channel and 2 value channels
+*/
+class RepSplitSignal : public RepProcessor {
+public:
+	string input_name; ///< names of input signal used by the processor
+	vector<string> names; ///< names of signal created by the processor
+	vector<float> factors; ///< factor for each output signal
+	vector<string> sets; ///< the sets to check if signal value is in set
+
+	RepSplitSignal() { processor_type = REP_PROCESS_SPLIT; input_name = ""; }
+
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+
+	/// initialize signal ids
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
+
+	/// @snippet RepProcess.cpp RepSplitSignal::init
+	int init(map<string, string>& mapper);
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	ADD_SERIALIZATION_FUNCS(input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
+private:
+	int in_sid = -1;
+	vector<int> V_ids;
+	vector<char> Flags;
+};
+
+/**
+* Normalize Signal Values by time - divide by time to calculate rate
+*/
+class RepSignalRate : public RepProcessor {
+public:
+	string output_name; ///< names of signals created by the completer
+	string input_name; ///< names of input signals used by the completer
+	int work_channel; ///< which channel to change and divide by time
+	float factor; ///< additional constant factor 
+
+	RepSignalRate() {
+		processor_type = REP_PROCESS_SIGNAL_RATE; output_name = { "calc_drug_rate" };
+		work_channel = 0;  factor = 1;
+	}
+
+	/// @snippet RepProcess.cpp RepSignalRate::init
+	int init(map<string, string>& mapper);
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	ADD_SERIALIZATION_FUNCS(input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
+private:
+	int v_out_sid = -1;
+	int in_sid = -1;
+};
 
 //.......................................................................................
 /** RepCheckReq does not actually process the repository but rather check each

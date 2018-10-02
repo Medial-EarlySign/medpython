@@ -29,6 +29,12 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CHECK_REQ;
 	else if (processor_name == "sim_val" || processor_name == "sim_val_handler")
 		return REP_PROCESS_SIM_VAL;
+	else if (processor_name == "signal_rate")
+		return REP_PROCESS_SIGNAL_RATE;
+	else if (processor_name == "combine")
+		return REP_PROCESS_COMBINE;
+	else if (processor_name == "split")
+		return REP_PROCESS_SPLIT;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -78,6 +84,12 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCheckReq;
 	else if (processor_type == REP_PROCESS_SIM_VAL)
 		return new RepSimValHandler;
+	else if (processor_type == REP_PROCESS_SIGNAL_RATE)
+		return new RepSignalRate;
+	else if (processor_type == REP_PROCESS_COMBINE)
+		return new RepCombineSignals;
+	else if (processor_type == REP_PROCESS_SPLIT)
+		return new RepSplitSignal;
 	else
 		return NULL;
 
@@ -348,6 +360,7 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 
 	if (filtered.empty()) {
 		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
+		processors.clear();
 		return true;
 	}
 	else {
@@ -611,6 +624,11 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 			proc->dprint(pref + "->Multi", rp_flag);
 		}
 	}
+}
+
+void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& dict) {
+	for (size_t i = 0; i < processors.size(); ++i)
+		processors[i]->register_virtual_section_name_id(dict);
 }
 
 //=======================================================================================
@@ -1705,6 +1723,8 @@ int RepSimValHandler::init(map<string, string>& mapper)
 		//! [RepSimValHandler::init]
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "type") handler_type = get_sim_val_handle_type(entry.second);
+		else if (field == "debug") debug = stoi(entry.second) > 0;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "time_channels") {
 			vector<string> channels;
 			boost::split(channels, entry.second, boost::is_any_of(","));
@@ -1742,7 +1762,7 @@ void RepSimValHandler::init_attributes() {
 // name to SimValHandleTypes
 //.......................................................................................
 SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 	if (name == "first" || name == "first_val")
 		return SIM_VAL_FIRST_VAL;
 	else if (name == "last" || name == "last_val")
@@ -1755,7 +1775,7 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 		return SIM_VAL_REM_DIFF;
 	else
 		MTHROW_AND_ERR("Unkwnon sim_val_hand_type \'%s\'\n", name.c_str());
-
+	//! [RepSimValHandler::get_sim_val_handle_type]
 }
 
 // Get time-channels (if empty)
@@ -1790,6 +1810,7 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 	int len;
 	differentVersionsIterator vit(rec, signalId);
+	int total_nTimes = 0;
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
 		// Do it 
@@ -1849,8 +1870,14 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 				attributes_mat[pVersion][idx] = (float)nTimes;
 			idx++;
 		}
+		total_nTimes += nTimes;
 	}
 
+	if (debug && total_nTimes > 0 && verbose_cnt < 1) {
+		MLOG("RepSimValHandler for %s - patient %d handled %d samples\n",
+			signalName.c_str(), rec.pid, total_nTimes);
+		++verbose_cnt;
+	}
 	return 0;
 
 }
@@ -1920,11 +1947,13 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		//! [RepCalcSimpleSignals::init]
 		if (field == "calculator") calculator = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "work_channel") work_channel = stoi(entry.second);
 		else if (field == "max_time_search_range") max_time_search_range = stoi(entry.second);
 		else if (field == "calculator_init_params") calculator_init_params = entry.second;
 		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals_time_unit") signals_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCalcSimpleSignals::init]
@@ -1939,6 +1968,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	if (!calculator_init_params.empty())
 		calculator_logic->init_from_string(calculator_init_params);
 	calculator_logic->missing_value = missing_value;
+	calculator_logic->work_channel = work_channel;
 
 	req_signals.clear();
 	if (signals.empty() && calc2req_sigs.find(calculator) != calc2req_sigs.end())
@@ -1992,6 +2022,8 @@ SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
 		return new RangeCalculator();
 	else if (calc_type == "multiply" || calc_type == "calc_multiply")
 		return new MultiplyCalculator();
+	else if (calc_type == "set" || calc_type == "calc_set")
+		return new SetCalculator();
 	else
 		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
 			calc_type.c_str());
@@ -2015,12 +2047,17 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	V_ids.clear();
 	sigs_ids.clear();
 	for (auto &vsig : V_names)
-		V_ids.push_back(dict.id(vsig));
+		V_ids.push_back(sigs.sid(vsig));
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
+
 	// In the next loop it is VERY important to go over items in the ORDER they are given in calc2req
 	// This is since we create a vector of sids (sigs_ids) that matches it exactly, and enables a much
 	// more efficient code without going to this map for every pid. (See for example the egfr calc function)
 	for (auto &rsig : signals)
-		sigs_ids.push_back(dict.id(rsig));
+		sigs_ids.push_back(sigs.sid(rsig));
+	req_signal_ids.clear();
+	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
 	vector<bool> all_sigs_static(T_Last);
 	all_sigs_static[T_TimeStamp] = true;
 	all_sigs_static[T_Value] = true;
@@ -2028,6 +2065,13 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	all_sigs_static[T_ValShort4] = true;
 	for (size_t i = 0; i < signals.size(); ++i)
 		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type];
+	if (calculator_logic == NULL) { //recover from serialization
+		calculator_logic = SimpleCalculator::make_calculator(calculator);
+		if (!calculator_init_params.empty())
+			calculator_logic->init_from_string(calculator_init_params);
+		calculator_logic->missing_value = missing_value;
+	}
+	calculator_logic->init_tables(dict, sigs, signals);
 }
 
 //.......................................................................................
@@ -2038,8 +2082,9 @@ void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signal
 }
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
-	int time_range, int time_unit) {
+	int time_range, int time_unit, int &sum_diff) {
 	int time = usvs[active_id].TimeU(idx[active_id] - 1, time_unit);
+	sum_diff = 0; //if not found
 	for (size_t i = 0; i < idx.size(); ++i)
 	{
 		if (i == active_id)
@@ -2050,6 +2095,7 @@ bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active
 		int ref_time = usvs[i].TimeU(idx[i] - 1, time_unit);
 		if (time - ref_time > time_range)
 			return false;
+		sum_diff += time - ref_time;
 	}
 	return true;
 }
@@ -2068,14 +2114,18 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 	}
 	int factor = 1;
 	int v_out_sid = V_ids[0];
+	int n_vals = work_channel + 1;
 	//first lets fetch "static" signals without Time field:
 
 	set<int> iteratorSignalIds;
+	vector<int> timed_sigs;
 	for (size_t i = 0; i < sigs_ids.size(); ++i)
-		if (!static_input_signals[i])
+		if (!static_input_signals[i]) {
 			iteratorSignalIds.insert(sigs_ids[i]);
-	vector<int> timed_sigs(iteratorSignalIds.begin(), iteratorSignalIds.end());
-	differentVersionsIterator vit(rec, iteratorSignalIds);
+			timed_sigs.push_back(sigs_ids[i]);
+		}
+
+	allVersionsIterator vit(rec, iteratorSignalIds);
 	rec.usvs.resize(timed_sigs.size());
 
 	int first_ver = vit.init();
@@ -2093,38 +2143,52 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		bool all_non_empty = true;
 		for (size_t i = 0; i < rec.usvs.size() && all_non_empty; ++i)
 			all_non_empty = rec.usvs[i].len > 0;
-
+		int last_time = -1;
 		if (all_non_empty) {
-			vector<int> idx(2);
+			vector<int> idx(timed_sigs.size());
 			int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
 			int final_size = 0;
 			vector<float> v_vals;
 			vector<int> v_times;
+			int max_diff = -1;
 			while (active_id >= 0) {
 				//iterate on time ordered of signals - Let's try to calc signal:
-				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit);
+				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit, max_diff);
 				if (can_calc) {
-					vector<float> collected_vals(rec.usvs.size());
-					--idx[active_id];
+					vector<float> collected_vals(sigs_ids.size());
 					int time_idx = 0;
 					for (size_t i = 0; i < sigs_ids.size(); ++i) {
 						if (static_input_signals[i])
 							collected_vals[i] = static_signals_values[i];
 						else {
-							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx]);
+							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;
 						}
 					}
-					++idx[active_id];
 					if (no_missings(collected_vals, missing_value)) {
+						float prev_val = missing_value;
+						if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+							--final_size; //override last value
+							prev_val = v_vals[final_size];
+						}
 						if (v_times.size() < final_size + 1) {
 							v_times.resize(final_size + 1);
-							v_vals.resize(final_size + 1);
+							v_vals.resize(n_vals * final_size + n_vals);
 						}
 						v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
-						v_vals[final_size] = calculator_logic->do_calc(collected_vals);
-						if (v_vals[final_size] != missing_value) //insert only legal values (missing_value when ilegal)!
+						v_vals[n_vals * final_size + n_vals - 1] = calculator_logic->do_calc(collected_vals);
+						for (int kk = 0; kk < n_vals - 1; ++kk)
+							v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+
+						if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
 							++final_size;
+							last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+						}
+						else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+							v_vals[n_vals * final_size + n_vals - 1] = prev_val; //return previous val that was not missing
+							//Pay attention it still update rest value channels
+							++final_size;
+						}
 					}
 				}
 
@@ -2225,6 +2289,345 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
 
 	//return -1;
+	return 0;
+}
+
+int RepCombineSignals::init(map<string, string> &mapper) {
+	vector<string> tokens;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepCombineSignals::init]
+		if (field == "names") output_name = entry.second;
+		else if (field == "signals") signals = boost::split(signals, entry.second, boost::is_any_of(","));
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else if (field == "factors") {
+			boost::split(tokens, entry.second, boost::is_any_of(","));
+			factors.resize(tokens.size());
+			for (size_t i = 0; i < tokens.size(); ++i)
+				factors[i] = stof(tokens[i]);
+		}
+		else MTHROW_AND_ERR("Error in RepCombineSignals::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepCombineSignals::init]
+	}
+	if (signals.empty())
+		MTHROW_AND_ERR("Error in RepCombineSignals::init - parameter \"signals\" should be passed.\n");
+	factors.resize(signals.size(), 1);
+	if (output_name.empty()) {
+		output_name = "COMBO_" + signals[0];
+		for (size_t i = 1; i < signals.size(); ++i)
+			output_name += "_" + signals[i];
+	}
+
+	aff_signals.clear();
+	aff_signals.insert(output_name);
+	req_signals.clear();
+	req_signals.insert(signals.begin(), signals.end());
+	virtual_signals.clear();
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+
+	return 0;
+}
+
+int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	//uses each time point - If have only drug amount  (2nd signal) so using second signal value
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	//first lets fetch "static" signals without Time field:
+
+	set<int> set_ids(sigs_ids.begin(), sigs_ids.end());
+	allVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(sigs_ids.size());
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		for (size_t i = 0; i < sigs_ids.size(); ++i)
+			rec.uget(sigs_ids[i], iver, rec.usvs[i]);
+
+
+		vector<int> idx(sigs_ids.size());
+		int active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+		int final_size = 0;
+		vector<float> v_vals;
+		vector<int> v_times;
+		int last_time = -1;
+		int last_val_ch1 = -1;
+		while (active_id >= 0) {
+			if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1) &&
+				last_val_ch1 == rec.usvs[active_id].Val(idx[active_id] - 1)) {
+				active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+				continue; //skip same time, and same first channel value
+			}
+
+			if (v_times.size() < 2 * final_size + 1) {
+				v_times.resize(2 * final_size + 2);
+				v_vals.resize(2 * final_size + 2);
+			}
+			v_times[2 * final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
+			v_vals[2 * final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
+			v_vals[2 * final_size + 1] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, 1);
+			++final_size;
+
+			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+			last_val_ch1 = rec.usvs[active_id].Val(idx[active_id] - 1);
+			active_id = medial::repository::fetch_next_date(rec.usvs, idx);
+		}
+		// pushing virtual data into rec (into orig version)
+		rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], final_size);
+
+	}
+
+	return 0;
+}
+
+void RepCombineSignals::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = virtual_signals.front().second;
+}
+
+void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	v_out_sid = sigs.sid(output_name);
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCombineSignals::init_tables - virtual output signal %s not found\n",
+			output_name.c_str());
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid);
+	sigs_ids.resize(signals.size());
+	for (size_t i = 0; i < signals.size(); ++i)
+	{
+		sigs_ids[i] = sigs.sid(signals[i]);
+		if (sigs_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepCombineSignals::init_tables - input signal %s not found\n",
+				signals[i].c_str());
+		SignalInfo &si = sigs.Sid2Info[sigs_ids[i]];
+
+		if (si.n_val_channels < 2)
+			MTHROW_AND_ERR("ERROR in RepCombineSignals::init_tables - input signal %s should contain 2 val channels\n",
+				signals[i].c_str());
+	}
+	req_signal_ids.clear();
+	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
+}
+
+void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
+	dict.SectionName2Id[output_name] = dict.section_id(signals.front());
+}
+
+int RepSignalRate::init(map<string, string> &mapper) {
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepSignalRate::init]
+		if (field == "names") output_name = entry.second;
+		else if (field == "input_name") input_name = entry.second;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "work_channel") work_channel = stoi(entry.second);
+		else if (field == "factor") factor = stof(entry.second);
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepSignalRate::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepSignalRate::init]
+	}
+	if (input_name.empty())
+		MTHROW_AND_ERR("Error in RepSignalRate::init - input signal should be passed\n");
+	if (work_channel > 1)
+		MTHROW_AND_ERR("Error in RepSignalRate::init - unsupported work_channel > 1\n");
+	aff_signals.clear();
+	aff_signals.insert(output_name);
+	req_signals.clear();
+	req_signals.insert(input_name);
+	virtual_signals.clear();
+	if (work_channel == 0)
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
+	else
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+
+	return 0;
+}
+
+void RepSignalRate::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = virtual_signals.front().second;
+}
+
+void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	v_out_sid = sigs.sid(output_name);
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepSignalRate::init_tables - virtual output signal %s not found\n",
+			output_name.c_str());
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid);
+	in_sid = sigs.sid(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepSignalRate::init_tables - input signal %s not found\n",
+			input_name.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);
+
+	SignalInfo &si = sigs.Sid2Info[in_sid];
+
+	if (si.n_time_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain 2 time channels\n",
+			input_name.c_str());
+	if (si.n_val_channels < work_channel + 1)
+		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain %d val channels\n",
+			input_name.c_str(), work_channel + 1);
+}
+
+void RepSignalRate::register_virtual_section_name_id(MedDictionarySections& dict) {
+	dict.SectionName2Id[output_name] = dict.section_id(input_name);
+}
+
+int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	//uses each time point - I have only signal value need to tranform into signal_rate divide by time unit
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	//first lets fetch "static" signals without Time field:
+
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	allVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		vector<float> v_vals;
+		vector<int> v_times;
+		for (int i = 0; i < rec.usvs[0].len; ++i) {
+			int start_time = rec.usvs[0].Time(i);
+			int end_time = rec.usvs[0].Time(i, 1);
+			int diff_time = med_time_converter.diff_times(end_time, start_time, rec.usvs[0].time_unit(),
+				global_default_time_unit);
+			if (diff_time == 0 || start_time == 0 || end_time == 0)
+				continue;
+
+			v_times.push_back(start_time);
+			v_times.push_back(end_time);
+
+			//add previous channels
+			for (int k = 0; k < work_channel; ++k)
+				v_vals.push_back(rec.usvs[0].Val(i, k));
+			//update current channel to be rate
+			v_vals.push_back(factor * rec.usvs[0].Val(i, work_channel) / diff_time);
+		}
+		// pushing virtual data into rec (into orig version)
+		if (rec.usvs[0].len > 0)
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size() / (work_channel + 1));
+
+	}
+
+	return 0;
+}
+
+int RepSplitSignal::init(map<string, string>& mapper) {
+	vector<string> tokens;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepSplitSignal::init]
+		if (field == "input_name") input_name = entry.second;
+		else if (field == "names") boost::split(names, entry.second, boost::is_any_of(","));
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "factors") {
+			boost::split(tokens, entry.second, boost::is_any_of(","));
+			factors.resize(tokens.size());
+			for (size_t i = 0; i < tokens.size(); ++i)
+				factors[i] = stof(tokens[i]);
+		}
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepSplitSignal::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepSplitSignal::init]
+	}
+	if (input_name.empty())
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide input_name\n");
+	if (names.size() != 2)
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide only 2 names for output\n");
+	if (sets.empty())
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init - must provide sets\n");
+	factors.resize(names.size(), 1);
+
+	aff_signals.clear();
+	aff_signals.insert(names.begin(), names.end());
+	req_signals.clear();
+	req_signals.insert(input_name);
+	virtual_signals.clear();
+	for (size_t i = 0; i < names.size(); ++i)
+		virtual_signals.push_back(pair<string, int>(names[i], T_DateRangeVal2));
+
+	return 0;
+}
+
+void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	//init Flags:
+	int section_id = dict.section_id(input_name);
+	dict.prep_sets_lookup_table(section_id, sets, Flags);
+
+	in_sid = sigs.sid(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepSplitSignal::init_tables - input signal %s not found\n",
+			input_name.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);
+
+	V_ids.resize(names.size());
+	for (size_t i = 0; i < V_ids.size(); ++i)
+	{
+		V_ids[i] = sigs.sid(names[i]);
+		if (V_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepSplitSignal::init_tables - virtual output signal %s not found\n",
+				names[i].c_str());
+	}
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
+
+	SignalInfo &si = sigs.Sid2Info[in_sid];
+
+	if (si.n_val_channels < 2)
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init_tables - input signal %s should contain 2 val channels\n",
+			input_name.c_str());
+}
+
+void RepSplitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
+	for (size_t i = 0; i < names.size(); ++i)
+		_virtual_signals[names[i]] = virtual_signals[i].second;
+}
+
+void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
+	for (size_t i = 0; i < names.size(); ++i)
+		dict.SectionName2Id[names[i]] = dict.section_id(input_name);
+}
+
+int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	allVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		vector<vector<int>> v_times(names.size());
+		vector<vector<float>> v_vals(names.size());
+		for (int i = 0; i < rec.usvs[0].len; ++i) {
+			int time = rec.usvs[0].Time(i);
+			float orig_val = rec.usvs[0].Val(i);
+			int idx = Flags[orig_val];
+
+			v_times[idx].push_back(time);
+			v_times[idx].push_back(0);
+			v_vals[idx].push_back(orig_val); //chan 0
+			v_vals[idx].push_back(rec.usvs[0].Val(i, 1) * factors[idx]); //chan 1
+		}
+		// pushing virtual data into rec (into orig version)
+		for (size_t i = 0; i < names.size(); ++i)
+			if (!v_times[i].empty())
+				rec.set_version_universal_data(V_ids[i], iver, &v_times[i][0], &v_vals[i][0], (int)v_times[i].size() / 2);
+	}
+
 	return 0;
 }
 

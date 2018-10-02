@@ -421,6 +421,35 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, MedSamples& samples) {
 	return 0;
 }
 
+void build_signal_affect_tree(const vector<RepProcessor *> &rep_processors,
+	unordered_map<string, unordered_set<string>> &signal_affect_tree) {
+	for (unsigned int i = 0; i < rep_processors.size(); i++) {
+		vector<RepProcessor *> *no_mult = NULL;
+		vector<RepProcessor *> single = { rep_processors[i] };
+		if (rep_processors[i]->processor_type == REP_PROCESS_MULTI)
+			no_mult = &((RepMultiProcessor *)rep_processors[i])->processors;
+		else
+			no_mult = &single;
+
+		for (size_t k = 0; k < no_mult->size(); ++k)
+			for (const string &req_signal : (*no_mult)[k]->aff_signals)
+				signal_affect_tree[req_signal].insert((*no_mult)[k]->req_signals.begin(),
+					(*no_mult)[k]->req_signals.end());
+	}
+}
+void expend_signal_effect(const vector<RepProcessor *> &rep_processors,
+	unordered_set<string> &req_signal_names) {
+	bool did_something = true;
+	unordered_map<string, unordered_set<string>> signal_affect_tree;
+	build_signal_affect_tree(rep_processors, signal_affect_tree);
+	while (did_something) {
+		int init_size = (int)req_signal_names.size();
+		for (const string &sig : req_signal_names)
+			req_signal_names.insert(signal_affect_tree[sig].begin(), signal_affect_tree[sig].end());
+		did_something = init_size < req_signal_names.size();
+	}
+}
+
 // Filter rep-processors that are not used, iteratively
 //.......................................................................................
 void MedModel::filter_rep_processors() {
@@ -430,6 +459,8 @@ void MedModel::filter_rep_processors() {
 	for (unsigned int i = 0; i < rep_processors.size(); i++) {
 		unordered_set<string> current_req_signal_names;
 		get_all_required_signal_names(current_req_signal_names, rep_processors, i, generators);
+		vector<RepProcessor *> no_filter_yet(rep_processors.begin() + i, rep_processors.end());
+		expend_signal_effect(no_filter_yet, current_req_signal_names);
 		if (!rep_processors[i]->filter(current_req_signal_names))
 			filtered_processors.push_back(rep_processors[i]);
 		else {//cleaning uneeded rep_processors!:
@@ -863,7 +894,7 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	get_all_required_signal_names(signalNames, rep_processors, -1, generators);
-
+	expend_signal_effect(rep_processors, signalNames);
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG("adding virtual signals from rep type %d\n", processor->processor_type);
@@ -902,6 +933,9 @@ void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProces
 	// collecting
 	for (RepProcessor *processor : rep_processors)
 		processor->add_virtual_signals(*virtual_signals);
+	//register section_name to section_id if needed in each rep_processor virtual signal
+	for (RepProcessor *processor : rep_processors)
+		processor->register_virtual_section_name_id(rep.dict);
 
 	// adding to rep
 	for (auto &vsig : *virtual_signals) {
@@ -910,18 +944,20 @@ void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProces
 			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
 			if (verbosity > 0)
 				MLOG("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
+			int add_section = rep.dict.section_id(vsig.first);
+			rep.dict.dicts[add_section].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
-			rep.dict.dicts[0].Id2Name[new_id] = vsig.first;
-			rep.dict.dicts[0].Id2Names[new_id] = { vsig.first };
+			rep.dict.dicts[add_section].Id2Name[new_id] = vsig.first;
+			rep.dict.dicts[add_section].Id2Names[new_id] = { vsig.first };
 			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
-			MLOG("updated dict 0 : %d\n", rep.dict.dicts[0].id(vsig.first));
+			//rep.dict.SectionName2Id[vsig.first] = 0;
+			MLOG("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig.first));
 		}
 		else {
 			if (rep.sigs.sid(vsig.first) < 100)
 				MTHROW_AND_ERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		}
 	}
-
 }
 
 int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
@@ -1223,6 +1259,10 @@ void filter_rep_processors(const vector<string> &current_req_signal_names, vecto
 	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());
 	vector<RepProcessor *> filtered_processors;
 	bool did_something = false;
+
+	//complete and flatten all needed signals based on tree:
+	expend_signal_effect(*rep_processors, req_signal_names);
+
 	for (unsigned int i = 0; i < rep_processors->size(); i++) {
 		if (!(*rep_processors)[i]->filter(req_signal_names))
 			filtered_processors.push_back((*rep_processors)[i]);
@@ -1247,6 +1287,7 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 		collect_and_add_virtual_signals_static(rep, *rep_processors);
 		filter_rep_processors(needed_sigs, rep_processors);
 		for (RepProcessor *processor : *rep_processors) {
+			processor->init_tables(rep.dict, rep.sigs);
 			processor->set_affected_signal_ids(rep.dict);
 			processor->set_required_signal_ids(rep.dict);
 			processor->set_signal_ids(rep.dict);

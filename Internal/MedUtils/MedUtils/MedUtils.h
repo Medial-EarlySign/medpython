@@ -82,7 +82,9 @@ namespace medial {
 		/// \brief general print to string woth format
 		template<class T> string print_obj(T obj, const string &format);
 		/// \brief printing vector elements in list [] with title to MLOG
-		template<class T> void print_vec(const vector<T> &vec, const string &title, const string &format);
+		template<class T> void print_vec(const vector<T> &vec, const string &title, const string &format, const string &delimeter = ", ");
+		/// \brief printing vector elements in list [] with title to MLOG
+		void print_vec(const vector<string> &vec, const string &title, const string &delimeter = ", ");
 		/// \brief printing vector elements hist prctiles in list [] with title to MLOG
 		template<class T> void print_hist_vec(const vector<T> &vec, const string &title, const string &format, const vector<double> *prctile_samples = NULL);
 		/// \brief print boost program options object
@@ -107,6 +109,8 @@ namespace medial {
 	*  \brief io
 	*/
 	namespace io {
+		/// \brief reads file with codes name to vector
+		void read_codes_file(const string &file_path, vector<string> &tokens);
 		template<class T> string get_list(const unordered_map<string, T> &ls);
 		template<class T> string get_list_op(const unordered_map<T, string> &ls);
 		/**
