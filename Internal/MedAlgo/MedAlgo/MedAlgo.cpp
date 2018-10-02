@@ -1099,6 +1099,7 @@ void *medial::models::copyInfraModel(void *model, bool delete_old) {
 			delete ((MedLightGBM *)model);
 		newM = new MedLightGBM;
 		((MedLightGBM *)newM)->params = pr_lightGBM;
+		initialization_text_to_map(pr_lightGBM.defaults + ";" + pr_lightGBM.user_params, empty_m);
 		((MedLightGBM *)newM)->init(empty_m);
 		break;
 	case MODEL_XGB:
