@@ -301,6 +301,7 @@ public:
 	string desc;
 	string config_fname;
 	string path;
+	string metadata_path;
 	vector<string> dictionary_fnames;
 	vector<string> signal_fnames;
 	vector<string> data_fnames;
@@ -395,7 +396,7 @@ public:
 	// it can not free locked in signals, so in some cases the overall memory usage could be higher
 	int set_max_mem(double gb_mem) { bound_gb = gb_mem; }
 
-	MedRepository() { work_area = NULL; work_size = 0; fsignals_to_files = ""; index.my_rep = this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix = "rep"; bound_gb = 100.0; sigs.my_repo = this; }
+	MedRepository() { path = ""; metadata_path = ""; work_area = NULL; work_size = 0; fsignals_to_files = ""; index.my_rep = this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix = "rep"; bound_gb = 100.0; sigs.my_repo = this; }
 	~MedRepository() {
 		//fprintf(stderr, "rep free\n"); fflush(stderr);
 		if (work_area) {

@@ -144,7 +144,7 @@ public:
 	/// to read and initialize repository
 	void set_rep_for_init(MedRepository &rep) { rep_for_init = &rep; }
 
-	ADD_SERIALIZATION_FUNCS(registry_records)
+	ADD_SERIALIZATION_FUNCS(time_unit, registry_records)
 protected:
 	vector<string> signalCodes_names; ///< the signals codes by name
 	bool need_bdate; ///< If true Bdate is also used in registry creation

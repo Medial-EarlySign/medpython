@@ -211,7 +211,8 @@ int MedPredictor::learn(MedMat<float> &x, MedMat<float> &y, const vector<float> 
 	if (classifier_type == MODEL_MIC_NET) {
 		MedMicNet *mic = (MedMicNet *)this;
 		cerr << "running micNet learn()\n";
-		return mic->learn(x, y);
+		vector<float> w = wgts;
+		return mic->learn(x, y, w);
 	}
 	// patch for booster
 	if (classifier_type == MODEL_BOOSTER) {
@@ -1098,6 +1099,7 @@ void *medial::models::copyInfraModel(void *model, bool delete_old) {
 			delete ((MedLightGBM *)model);
 		newM = new MedLightGBM;
 		((MedLightGBM *)newM)->params = pr_lightGBM;
+		initialization_text_to_map(pr_lightGBM.defaults + ";" + pr_lightGBM.user_params, empty_m);
 		((MedLightGBM *)newM)->init(empty_m);
 		break;
 	case MODEL_XGB:

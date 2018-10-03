@@ -89,6 +89,7 @@ class MedBooster : public MedPredictor {
 		}
 
 		int learn(MedMat<float> &x, MedMat<float> &y);
+		int learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgt) { return learn(x, y); }
 		int predict(MedMat<float> &x, vector<float> &preds) const;
 
 		// serializations

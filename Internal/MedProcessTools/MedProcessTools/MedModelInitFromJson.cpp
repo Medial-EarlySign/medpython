@@ -83,7 +83,7 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 }
 
 void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
-	string json_contents = file_to_string(0, fname, alterations);
+	string json_contents = json_file_to_string(0, fname, alterations);
 
 	if (init_from_json_string(json_contents,fname) == 1)
 		init_from_json_file_with_alterations_version_1(fname, alterations);

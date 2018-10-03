@@ -1,6 +1,7 @@
 #include "MedGenUtils.h"
 #include "Logger/Logger/Logger.h"
 #include <algorithm>
+#include <boost/algorithm/string.hpp>
 
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -179,6 +180,8 @@ int initialization_text_to_map(const string& text, map<string, string>& init_map
 			fprintf(stderr, "Cannot parse \'%s\' from \'%s\'\n", field.c_str(), text.c_str());
 			return -1;
 		}
+		boost::trim(sub_fields[0]);
+		boost::trim(sub_fields[1]);
 		init_map[sub_fields[0]] = sub_fields[1];
 	}
 

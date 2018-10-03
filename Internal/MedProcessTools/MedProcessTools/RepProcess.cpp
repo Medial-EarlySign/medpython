@@ -2420,18 +2420,25 @@ int RepSignalRate::init(map<string, string> &mapper) {
 		if (field == "names") output_name = entry.second;
 		else if (field == "input_name") input_name = entry.second;
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "work_channel") work_channel = stoi(entry.second);
+		else if (field == "factor") factor = stof(entry.second);
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepSignalRate::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepSignalRate::init]
 	}
 	if (input_name.empty())
-		MTHROW_AND_ERR("Error in RepSignalRate::init - input signal should be passed. drug_amount\n");
+		MTHROW_AND_ERR("Error in RepSignalRate::init - input signal should be passed\n");
+	if (work_channel > 1)
+		MTHROW_AND_ERR("Error in RepSignalRate::init - unsupported work_channel > 1\n");
 	aff_signals.clear();
 	aff_signals.insert(output_name);
 	req_signals.clear();
 	req_signals.insert(input_name);
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+	if (work_channel == 0)
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
+	else
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
 
 	return 0;
 }
@@ -2459,9 +2466,9 @@ void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
 	if (si.n_time_channels < 2)
 		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain 2 time channels\n",
 			input_name.c_str());
-	if (si.n_val_channels < 2)
-		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain 2 val channels\n",
-			input_name.c_str());
+	if (si.n_val_channels < work_channel + 1)
+		MTHROW_AND_ERR("ERROR in RepSignalRate::init_tables - input signal %s should contain %d val channels\n",
+			input_name.c_str(), work_channel + 1);
 }
 
 void RepSignalRate::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -2491,18 +2498,21 @@ int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<v
 			int end_time = rec.usvs[0].Time(i, 1);
 			int diff_time = med_time_converter.diff_times(end_time, start_time, rec.usvs[0].time_unit(),
 				global_default_time_unit);
-			if (diff_time == 0 || start_time == 0 && end_time == 0)
+			if (diff_time == 0 || start_time == 0 || end_time == 0)
 				continue;
 
 			v_times.push_back(start_time);
 			v_times.push_back(end_time);
-			float orig_val = rec.usvs[0].Val(i);
-			v_vals.push_back(orig_val);
-			v_vals.push_back(rec.usvs[0].Val(i, 1) / diff_time);
+
+			//add previous channels
+			for (int k = 0; k < work_channel; ++k)
+				v_vals.push_back(rec.usvs[0].Val(i, k));
+			//update current channel to be rate
+			v_vals.push_back(factor * rec.usvs[0].Val(i, work_channel) / diff_time);
 		}
 		// pushing virtual data into rec (into orig version)
 		if (rec.usvs[0].len > 0)
-			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size() / 2);
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size() / (work_channel + 1));
 
 	}
 

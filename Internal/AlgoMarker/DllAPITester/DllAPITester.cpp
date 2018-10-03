@@ -51,6 +51,13 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("pid", po::value<int>()->default_value(5000100), "test data_api for this pid, use --data_api_test option")
 			("sig", po::value<string>()->default_value("Creatinine"), "test data_api for this signal, use --data_api_test option")
 
+			("kp_test", "split to a dedicated test for kp data")
+			("kp_demographic", po::value<string>()->default_value(""), "demographic for --kp_test option: each line: <pid> <byear> <F/M>")
+			("kp_data", po::value<string>()->default_value(""), "lab tests for --kp_test option: each line: <pid> <code> <date> <value>")
+			("kp_scores", po::value<string>()->default_value(""), "which scores to generate for  --kp_test option: each line start: <pid> <date> ...")
+			("kp_codes", po::value<string>()->default_value(""), "lab tests codes for --kp_test option: each line: <code> <name>")
+			("kp_fout", po::value<string>()->default_value(""), "output file  for --kp_test option")
+
 			;
 
 
@@ -793,6 +800,169 @@ int test_data_api(po::variables_map &vm) {
 	return 0;
 }
 
+
+//----------------------------------------------------------------------------------------
+int test_kp_format(po::variables_map &vm) {
+
+	MLOG("Testing model %s in kp format\n", vm["model"].as<string>().c_str());
+	
+	// read model file
+	MedModel model;
+	if (model.read_from_file(vm["model"].as<string>()) < 0) {
+		MERR("Could not read model file %s\n", vm["model"].as<string>().c_str());
+		return -1;
+	}
+	MLOG("Read model file %s\n", vm["model"].as<string>().c_str());
+
+
+	// read demographic file
+	vector<vector<string>> raw_demographics;
+	if (read_text_file_cols(vm["kp_demographic"].as<string>(), " \t", raw_demographics) < 0) {
+		MERR("Could not read demographics file %s\n", vm["kp_demographic"].as<string>().c_str());
+		return -1;
+	}
+	MLOG("Read %d lines from demographics file %s\n", raw_demographics.size(), vm["kp_demographic"].as<string>().c_str());
+	unordered_map<string, int> name_to_pid;
+	unordered_map<int, string> pid_to_name;
+
+	int curr_id = 1000000;
+	for (auto &v : raw_demographics)
+		if (v.size() >= 2) {
+			if (name_to_pid.find(v[0]) != name_to_pid.end()) {
+				MERR("ERROR: Got the same pid %s twice in demographics file.\n", v[0].c_str());
+				return -1;
+			}
+			name_to_pid[v[0]] = curr_id;
+			pid_to_name[curr_id] = v[0];
+			curr_id++;
+		}
+
+
+	// read data file 
+	vector<vector<string>> raw_data;
+	if (read_text_file_cols(vm["kp_data"].as<string>(), " \t", raw_data) < 0) {
+		MERR("Could not read lab tests data file %s\n", vm["kp_data"].as<string>().c_str());
+		return -1;
+	}
+	MLOG("Read %d lines from data file %s\n", raw_data.size(), vm["kp_data"].as<string>().c_str());
+
+	// read scores file
+	vector<vector<string>> raw_scores;
+	if (read_text_file_cols(vm["kp_scores"].as<string>(), " \t", raw_scores) < 0) {
+		MERR("Could not read scores file %s\n", vm["kp_scores"].as<string>().c_str());
+		return -1;
+	}
+	MLOG("Read %d lines from scores file %s\n", raw_scores.size(), vm["kp_scores"].as<string>().c_str());
+
+
+	// read code file
+	vector<vector<string>> raw_codes;
+	if (read_text_file_cols(vm["kp_codes"].as<string>(), " \t", raw_codes) < 0) {
+		MERR("Could not read lab codes file %s\n", vm["kp_codes"].as<string>().c_str());
+		return -1;
+	}
+	MLOG("Read %d lines from codes file %s\n", raw_codes.size(), vm["kp_codes"].as<string>().c_str());
+
+	// prepare codes map
+	unordered_map<string, string> codes;
+	for (auto &v : raw_codes) {
+		if (v.size() > 1)
+			codes[v[0]] = v[1];
+	}
+
+	// prepare MedSamples
+	MedSamples samples;
+	for (auto &v : raw_scores)
+		if (v.size() >= 2) {
+			if (name_to_pid.find(v[0]) == name_to_pid.end()) {
+				MERR("ERROR: pid %s appears in scores file but not in demographics file\n", v[0].c_str());
+				return -1;
+			}
+			samples.insertRec(name_to_pid[v[0]], stoi(v[1]));
+		}
+	samples.normalize();
+	MLOG("Prepared MedSamples\n");
+
+	// Read (empty) repository 
+	MedPidRepository rep;
+	if (rep.read_config(vm["rep"].as<string>()) < 0) {
+		MERR("Could not read repository definitions from %s\n", vm["rep"].as<string>().c_str());
+		return -1;
+	}
+	MLOG("Read repository definitions from %s\n", vm["rep"].as<string>().c_str());
+
+	// move to in_mem mode and push all data into it
+	rep.switch_to_in_mem_mode();
+
+	// load BYEAR and GENDER
+	for (auto &v : raw_demographics) {
+		if (v.size() >= 3) {
+			int pid = name_to_pid[v[0]];
+			float byear = stof(v[1]);
+			float gender = (float)1.0;
+			if (v[2] == "F") gender = (float)2.0;
+			rep.in_mem_rep.insertData(pid, "BYEAR", NULL, &byear, 0, 1);
+			rep.in_mem_rep.insertData(pid, "GENDER", NULL, &gender, 0, 1);
+		}
+	}
+	MLOG("Loaded demographics into repository\n");
+
+	// load lab tests
+	int n = 0;
+	for (auto &v : raw_data) {
+		if (v.size() >= 4) {
+			if (name_to_pid.find(v[0]) == name_to_pid.end()) {
+				MERR("ERROR: pid %s appears in data file but not in demographics file ... ignoring it\n", v[0].c_str());
+				continue;
+			}
+			if (codes.find(v[1]) == codes.end()) {
+				MERR("ERROR: code %s in data file is undefined... ignoring it\n", v[1].c_str());
+				continue;
+			}
+
+			int pid = name_to_pid[v[0]];
+			int date = stoi(v[2]);
+			float val = stof(v[3]);
+			rep.in_mem_rep.insertData(pid, codes[v[1]].c_str(), &date, &val, 1, 1);
+			n++;
+			if (n % 500000 == 0)
+				MLOG("Loaded %d lab tests into in_mem_rep\n", n);
+		}
+	}
+	MLOG("Loaded %d data lines into repository\n", n);
+
+
+	// sort in_mem , before using it
+	rep.in_mem_rep.sortData();
+	MLOG("Repository ready\n");
+
+	// apply model
+	model.apply(rep, samples);
+	MLOG("Model applied\n");
+
+	// write results to output file
+	string sout;
+	int no = 0;
+	int ni = 0;
+	for (auto &ids : samples.idSamples) {
+		ni++;
+		for (auto &s : ids.samples) {
+			sout += pid_to_name[s.id] + " " + to_string(s.time) + " " + to_string(s.prediction[0]) + "\n";
+			no++;
+		}
+	}
+
+	
+	if (write_string(vm["kp_fout"].as<string>(), sout) < 0) {
+		MERR("Could not write results to output file %s\n", vm["kp_fout"].as<string>().c_str());
+		return -1;
+	}
+
+	MLOG("Wrote %d predictions (for %d different ids) to file %s\n", no, ni, vm["kp_fout"].as<string>().c_str());
+
+	return 0;
+}
+
 //========================================================================================
 // MAIN
 //========================================================================================
@@ -817,6 +987,9 @@ int main(int argc, char *argv[])
 
 	if (vm.count("data_api_test"))
 		return test_data_api(vm);
+
+	if (vm.count("kp_test"))
+		return test_kp_format(vm);
 
 	// read model file
 	MedModel model;

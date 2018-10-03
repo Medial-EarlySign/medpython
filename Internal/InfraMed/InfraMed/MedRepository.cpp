@@ -92,6 +92,14 @@ int MedRepository::read_config(const string &fname)
 					path = fixed_name.substr(0, found);
 				}
 			}
+			else if (fields[0].compare("METADATA_DIR") == 0) {
+				metadata_path = fields[1];
+				if (metadata_path.compare(".") == 0) {
+					// in this case we fix our path to be from where we were called
+					size_t found = fixed_name.find_last_of("/\\");
+					metadata_path = fixed_name.substr(0, found);
+				}
+			}
 			else if (fields[0].compare("DICTIONARY") == 0) {
 				dictionary_fnames.push_back(fields[1]);
 			}
@@ -129,9 +137,10 @@ int MedRepository::read_config(const string &fname)
 
 		}
 	}
-
+	if (path != "" && metadata_path == "")
+		metadata_path = path; 
 	// adding path to names + fixing paths.
-	if (add_path_to_name_IM(path, dictionary_fnames) == -1 || add_path_to_name_IM(path, signal_fnames) == -1 || add_path_to_name_IM(path, data_fnames) == -1 || add_path_to_name_IM(path, index_fnames) == -1)
+	if (add_path_to_name_IM(metadata_path, dictionary_fnames) == -1 || add_path_to_name_IM(metadata_path, signal_fnames) == -1 || add_path_to_name_IM(path, data_fnames) == -1 || add_path_to_name_IM(path, index_fnames) == -1)
 		return -1;
 
 	config_fname = fname;

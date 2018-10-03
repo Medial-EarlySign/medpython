@@ -86,6 +86,9 @@ public:
 	///Convert string to type
 	int string_to_type(const string &str);
 
+	///Converts type to string
+	string type_to_string(int type);
+
 	int diff_times(int d1, int d2, int in_type, int out_type);
 };
 

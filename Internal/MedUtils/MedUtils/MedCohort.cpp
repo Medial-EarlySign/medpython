@@ -513,6 +513,7 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 		return -1;
 	}
 	MLOG("Created samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), samples.nSamples(), samples.idSamples.size());
+	return 0;
 }
 
 int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedSamples& samples)
@@ -634,6 +635,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 		return -1;
 	}
 	MLOG("Created samples file %s : %d samples for %d ids\n", out_sample_file.c_str(), samples.nSamples(), samples.idSamples.size());
+	return 0;
 }
 int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_params, MedSamples& samples)
 {

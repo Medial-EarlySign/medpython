@@ -318,6 +318,41 @@ int MedTime::string_to_type(const string &str)
 	if (str == "Minutes" || str == "minutes" || str == "Minute" || str == "minute") return MedTime::Minutes;
 	return -1;
 }
+string MedTime::type_to_string(int type)
+{
+	string res = "Unknown";
+	switch (type)
+	{
+	case MedTime::Date:
+		res = "Date";
+		break;
+	case MedTime::Years:
+		res = "Years";
+		break;
+
+	case MedTime::Months:
+		res = "Months";
+		break;
+	case MedTime::Days:
+		res = "Days";
+		break;
+	case MedTime::Hours:
+		res = "Hours";
+		break;
+	case MedTime::Minutes:
+		res = "Minutes";
+		break;
+	case MedTime::Undefined:
+		res = "Undefined";
+		break;
+	case MedTime::DateTimeString:
+		res = "DateTimeString";
+		break;
+	default:
+		MTHROW_AND_ERR("Error in MedTime::type_to_string - not implement name for %d\n", type);
+	}
+	return res;
+}
 //.....................................................................................................
 int MedTime::add_subtruct_days(int in_time, int delta_days) {
 	int in_time_n = convert_times(Date, Days, in_time);
