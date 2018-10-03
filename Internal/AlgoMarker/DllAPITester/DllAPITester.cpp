@@ -885,7 +885,7 @@ int test_kp_format(po::variables_map &vm) {
 
 	// Read (empty) repository 
 	MedPidRepository rep;
-	if (rep.read_config(vm["rep"].as<string>()) < 0) {
+	if (rep.MedRepository::init(vm["rep"].as<string>()) < 0) {
 		MERR("Could not read repository definitions from %s\n", vm["rep"].as<string>().c_str());
 		return -1;
 	}
