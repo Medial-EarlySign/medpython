@@ -471,7 +471,8 @@ int MedSamples::write_to_file(const string &fname)
 		of << "\tstr_attr_" << name;
 	of << "\n";
 
-	of << "TIME_UNIT" << "\t" << med_time_converter.type_to_string(time_unit) << "\n";
+	//removing this line since it creates something which isn't a csv, and I can't read it with python later...
+	//of << "TIME_UNIT" << "\t" << med_time_converter.type_to_string(time_unit) << "\n";
 
 	int line = 0;
 	for (auto &s : idSamples) {
