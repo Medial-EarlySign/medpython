@@ -1,0 +1,234 @@
+#include "MPSamples.h"
+#include "MPFeatures.h"
+
+#include "InfraMed/InfraMed/MedConvert.h"
+#include "InfraMed/InfraMed/InfraMed.h"
+#include "InfraMed/InfraMed/Utils.h"
+#include "MedUtils/MedUtils/MedUtils.h"
+#include "InfraMed/InfraMed/MedPidRepository.h"
+#include "MedProcessTools/MedProcessTools/MedModel.h"
+#include "MedProcessTools/MedProcessTools/SampleFilter.h"
+#include "MedProcessTools/MedProcessTools/MedSamples.h"
+
+
+/******************** MPSample ****************/
+
+MPSample::MPSample() { o = new MedSample(); };
+MPSample::~MPSample() { if (o_owned) delete o; };
+MPSample::MPSample(const MPSample& other) { o_owned = other.o_owned; o = other.o; };
+MPSample::MPSample(MedSample* from_ptr) { o_owned = false; o = from_ptr; };
+
+int MPSample::MEDPY_GET_id() { return o->id; };
+void MPSample::MEDPY_SET_id(int new_id) { o->id = new_id; };
+
+int MPSample::MEDPY_GET_split() { return o->split; };
+void MPSample::MEDPY_SET_split(int new_sp) { o->split = new_sp; };
+
+int MPSample::MEDPY_GET_time() { return o->time; };
+void MPSample::MEDPY_SET_time(int new_time) { o->time = new_time; };
+
+int MPSample::MEDPY_GET_outcome() { return o->outcome; };
+void MPSample::MEDPY_SET_outcome(int new_outcome) { o->outcome = new_outcome; };
+
+MPIdSamplesVectorAdaptor MPSamples::MEDPY_GET_idSamples() { return MPIdSamplesVectorAdaptor(&(o->idSamples)); };
+
+int MPSample::MEDPY_GET_outcomeTime() { return o->outcomeTime; };
+void MPSample::MEDPY_SET_outcomeTime(int new_outcome_time) { o->outcomeTime = new_outcome_time; };
+
+void MPSample::MEDPY_GET_prediction(MEDPY_NP_OUTPUT(float** out_predbuf, int* out_predbuf_len)) {
+	*out_predbuf_len = (int)o->prediction.size();
+	int bufsize = sizeof(float)*(*out_predbuf_len);
+	*out_predbuf = (float*)malloc(bufsize);
+	memcpy((void*)(*out_predbuf), (void*)(o->prediction.data()), bufsize);
+}
+
+void MPSample::MEDPY_SET_prediction(MEDPY_NP_INPUT(float* in_predbuf, int in_predbuf_len)) {
+	if (in_predbuf_len <= 0) {
+		o->prediction.clear();
+		return;
+	}
+	o->prediction.resize(in_predbuf_len);
+	memcpy((void*)(o->prediction.data()), (void*)(in_predbuf), sizeof(float)*in_predbuf_len);
+}
+void MPSample::print_(const string prefix) { o->print(prefix); };
+void MPSample::print_() { o->print(); };
+
+int MPSample::parse_from_string(string &s, int time_unit) { return o->parse_from_string(s, time_unit); };
+void MPSample::write_to_string(string &s, int time_unit) { return o->write_to_string(s, time_unit); };
+
+MPSample MPSample::__copy__() {
+	MPSample ret;
+	*(ret.o) = *(o);
+	return ret;
+}
+
+
+/************ MPIdSamples ************/
+
+
+int MPIdSamples::MEDPY_GET_id() { return o->id; };
+void MPIdSamples::MEDPY_SET_id(int new_id) { o->id = new_id; };
+
+int MPIdSamples::MEDPY_GET_split() { return o->split; };
+void MPIdSamples::MEDPY_SET_split(int new_sp) { o->split = new_sp; };
+MPSampleVectorAdaptor MPIdSamples::MEDPY_GET_samples() { return MPSampleVectorAdaptor(&(o->samples)); }
+
+MPIdSamples::MPIdSamples(int _id) { o = new MedIdSamples(_id); };
+MPIdSamples::MPIdSamples() { o = new MedIdSamples(); };
+MPIdSamples::MPIdSamples(MedIdSamples* ptr) { o_owned = false; o = ptr; };
+MPIdSamples::MPIdSamples(const MPIdSamples& other) { o_owned = false; o = other.o; };
+MPIdSamples::~MPIdSamples() { if (o_owned) delete o; };
+
+void MPIdSamples::set_split(int _split) { o->set_split(_split); };
+bool MPIdSamples::same_as(MPIdSamples &other, int mode) { return o->same_as(*(other.o), mode); };
+
+/************ MPSampleVectorAdaptor ************/
+
+
+MPSampleVectorAdaptor::MPSampleVectorAdaptor() { o = new vector<MedSample>(); };
+MPSampleVectorAdaptor::MPSampleVectorAdaptor(vector<MedSample>* ptr) { o_owned = false; o = ptr; };
+MPSampleVectorAdaptor::MPSampleVectorAdaptor(const MPSampleVectorAdaptor& other) { 
+	o_owned = other.o_owned;
+	if (!other.o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new vector<MedSample>();
+		*o = *other.o;
+	}
+};
+MPSampleVectorAdaptor::~MPSampleVectorAdaptor() { if (o_owned) delete o; };
+int MPSampleVectorAdaptor::__len__() { return (int)o->size(); };
+MPSample MPSampleVectorAdaptor::__getitem__(int i) { return MPSample(&(o->at(i))); };
+void MPSampleVectorAdaptor::__setitem__(int i, MPSample val) { o->at(i) = *(val.o); };
+void MPSampleVectorAdaptor::append(MPSample val) { o->push_back(*(val.o)); };
+
+/************ MPSamples ************/
+
+MPSamples::MPSamples() { o = new MedSamples(); };
+MPSamples::MPSamples(MedSamples* ptr) { o_owned = false; o = ptr;};
+MPSamples::MPSamples(const MPSamples& other) {
+	o_owned = other.o_owned;
+	if (!other.o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new MedSamples();
+		*o = *other.o;
+	}
+};
+MPSamples::~MPSamples() { if(o_owned) delete o; o = nullptr; };
+
+void MPSamples::append(MPSamples& newSamples) { o->idSamples.insert(o->idSamples.end(), newSamples.o->idSamples.begin(), newSamples.o->idSamples.end()); }
+
+int MPSamples::read_from_bin_file(const string& file_name) { return o->read_from_bin_file(file_name); }
+int MPSamples::write_to_bin_file(const string& file_name) { return o->write_to_bin_file(file_name); }
+
+int MPSamples::read_from_file(const string& file_name) { return o->read_from_file(file_name); };
+int MPSamples::write_to_file(const string& file_name) { return o->write_to_file(file_name); };
+
+void MPSamples::get_preds(MEDPY_NP_OUTPUT(float** preds_buf, int* preds_buf_len)) {
+	vector<float> ret;
+	o->get_preds(ret);
+	vector_to_buf(ret, preds_buf, preds_buf_len);
+}
+void MPSamples::get_y(MEDPY_NP_OUTPUT(float** y_buf, int* y_buf_len)) {
+	vector<float> ret;
+	o->get_y(ret);
+	vector_to_buf(ret, y_buf, y_buf_len);
+}
+void MPSamples::get_categs(MEDPY_NP_OUTPUT(float** categs_buf, int* categs_buf_len)) {
+	vector<float> ret;
+	o->get_categs(ret);
+	vector_to_buf(ret, categs_buf, categs_buf_len);
+}
+
+MPSampleVectorAdaptor MPSamples::export_to_sample_vec() {
+	MPSampleVectorAdaptor ret;
+	o->export_to_sample_vec(*(ret.o));
+	return ret;
+}
+
+int MPSamples::get_predictions_size() {
+	int ret1, ret2;
+	ret1 = o->get_predictions_size(ret2);
+	if (ret1 == -1)
+		return ret1;
+	return ret2;
+}
+
+//int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes);
+std::vector<string> MPSamples::get_attributes() 
+{
+	std::vector<string> attr, str_attr;
+	o->get_all_attributes(attr, str_attr);
+	return attr;
+};
+std::vector<string> MPSamples::get_str_attributes() {
+	std::vector<string> attr, str_attr;
+	o->get_all_attributes(attr, str_attr);
+	return str_attr;
+};
+
+
+void MPSamples::dilute(float prob) { return o->dilute((float)prob); };
+int MPSamples::MEDPY_GET_time_unit() { return o->time_unit; };
+void MPSamples::MEDPY_SET_time_unit(int new_time_unit) { o->time_unit = new_time_unit; };
+
+void MPSamples::get_ids(MEDPY_NP_OUTPUT(int** ids, int* num_ids)) {
+	/*
+	vector<int> ids_vec;
+	o->get_ids(ids_vec);
+	*ids = (int*)malloc(sizeof(double)*ids_vec.size());
+	*num_ids = (int)ids_vec.size();
+	memcpy(*ids, ids_vec.data(), sizeof(double)*ids_vec.size());
+	*/
+	vector<int> ids_vec;
+	o->get_ids(ids_vec);
+	vector_to_buf(ids_vec, ids, num_ids);
+}
+
+void MPSamples::clear() { o->clear(); };
+int MPSamples::insert_preds(MPFeatures& featuresData) { o->insert_preds(*(featuresData.o)); };
+
+void MPSamples::sort_by_id_date() { o->sort_by_id_date(); };
+void MPSamples::normalize() { o->normalize(); };
+bool MPSamples::same_as(MPSamples &other, int mode) { return o->same_as(*(other.o), mode); };
+int MPSamples::nSamples() { return o->nSamples(); };
+
+void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime) { o->insertRec(pid, time, outcome, outcomeTime); };
+void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred) { o->insertRec(pid, time, outcome, outcomeTime, pred); };
+void MPSamples::insertRec(int pid, int time) { o->insertRec(pid, time); };
+int MPSamples::version() { return o->version(); };
+
+
+//void MPSamples::get_ids_v(int* out_pidvec_1, int out_pidvec_n_1) {  vector<int> ids; o->get_ids(ids); memcpy(out_pidvec_1, &ids[0], out_pidvec_n_1); };
+//int MPSamples::get_ids_n() { return (int)o->idSamples.size(); };
+
+
+/************ MPIdSamplesVectorAdaptor ************/
+
+MPIdSamplesVectorAdaptor::MPIdSamplesVectorAdaptor() { o = new vector<MedIdSamples>(); };
+MPIdSamplesVectorAdaptor::MPIdSamplesVectorAdaptor(vector<MedIdSamples>* ptr) { o_owned = false; o = ptr; };
+MPIdSamplesVectorAdaptor::MPIdSamplesVectorAdaptor(const MPIdSamplesVectorAdaptor& other) 
+{
+	o_owned = other.o_owned;
+	if (!other.o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new vector<MedIdSamples>();
+		*o = *other.o;
+	}
+};
+MPIdSamplesVectorAdaptor::~MPIdSamplesVectorAdaptor() { if (o_owned) delete o; };
+int MPIdSamplesVectorAdaptor::__len__() { return (int)o->size(); };
+MPIdSamples MPIdSamplesVectorAdaptor::__getitem__(int i) { return MPIdSamples(&(o->at(i))); };
+void MPIdSamplesVectorAdaptor::__setitem__(int i, MPIdSamples val) { o->at(i) = *(val.o); };
+void MPIdSamplesVectorAdaptor::append(MPIdSamples val) { o->push_back(*(val.o)); };
+
+
+
+
+
+
