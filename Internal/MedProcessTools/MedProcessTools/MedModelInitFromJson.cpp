@@ -84,10 +84,17 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 
 void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
 	string json_contents = file_to_string(0, fname, alterations);
+
+	if (init_from_json_string(json_contents,fname) == 1)
+		init_from_json_file_with_alterations_version_1(fname, alterations);
+}
+
+int MedModel::init_from_json_string(string& json_contents, const string& fname) {
 	istringstream no_comments_stream(json_contents);
 
 	int i = 5;
 	MLOG("init model from json file [%s], stripping comments and displaying first %d lines:\n", fname.c_str(), i);
+
 	string my_line;
 	while (i-- > 0 && getline(no_comments_stream, my_line))
 		MLOG("%s\n", my_line.c_str());
@@ -110,10 +117,9 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 	}
 	this->model_json_version = pt.get<int>("model_json_version", model_json_version);
 	MLOG("\nmodel_json_version [%d]\n", model_json_version);
-	if (model_json_version <= 1) {
-		init_from_json_file_with_alterations_version_1(fname, alterations);
-		return;
-	}
+	if (model_json_version <= 1)
+		return 1;
+
 	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());	
 	this->serialize_learning_set = stoi(ser);
 	int rp_set = 0, fp_set = 0;
@@ -186,4 +192,6 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 		set_predictor(my_pred.data(), my_pred_params.data());
 	}
 	else MWARN("NOTE: no [predictor] node found in file\n");
+
+	return 0;
 }

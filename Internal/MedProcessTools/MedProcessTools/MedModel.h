@@ -118,6 +118,7 @@ public:
 
 	// general adders for easier handling of config files/lines
 	// the idea is to add to a specific set and let the adder create a multi if needed
+	int init_from_json_string(string& json_string, const string& fname);
 	void init_from_json_file(const string& fname) { vector<string> dummy;  init_from_json_file_with_alterations(fname, dummy); }
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
