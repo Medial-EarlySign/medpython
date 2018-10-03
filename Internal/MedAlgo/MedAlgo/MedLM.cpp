@@ -157,8 +157,14 @@ int MedLM::Learn (float *x, float *y, int nsamples, int nftrs) {
 //..............................................................................
 int MedLM::Learn (float *x, float *y, const float *w, int nsamples, int nftrs) {
 
-	if (params.get_col >= 0)
+	if (params.get_col >= 0) {
+		b0 = 0;
+		b.resize(nftrs, 0);
+		b[params.get_col] = 1;
+
 		return 0;
+	}
+
 
 	if (w == NULL) 
 		return (Learn(x,y,nsamples,nftrs));
@@ -214,7 +220,7 @@ int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transpo
 
 	if (preds == NULL)
 		preds = new float[nsamples];
-
+/*
 	if (params.get_col >= 0) {
 
 		//MLOG("nsamples %d get_col %d nftrs %d transposed %d\n", nsamples, params.get_col, nftrs, transposed_flag);
@@ -228,7 +234,7 @@ int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transpo
 		}
 		return 0;
 	}
-
+*/
 	if (preds == NULL)
 		preds = new float[nsamples];
 
