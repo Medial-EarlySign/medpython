@@ -322,9 +322,9 @@ double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y
 	return res + REG_LAMBDA * reg;
 }
 
-MedLinearModel::MedLinearModel(int numOdSignals) :
-	PredictiveModel("LinearModel(" + to_string(numOdSignals) + ")"), MedPredictor() {
-	model_params = vector<double>(numOdSignals + 1); //for bias
+MedLinearModel::MedLinearModel() :
+	PredictiveModel("LinearModel"), MedPredictor() {
+	//model_params = vector<double>(numOdSignals + 1); //for bias
 	mark_learn_finish = false;
 	loss_function = _linear_loss_target_auc; //default target function, can be changed programitaclly
 	loss_function_step = _linear_loss_step_auc; //default gradient function (with regularzation), can be changed programitaclly
@@ -337,7 +337,8 @@ MedLinearModel::MedLinearModel(int numOdSignals) :
 	normalize_for_learn = false; //doing internal and not with MedMat to save normalization params for predict
 	normalize_for_predict = false;
 	classifier_type = MODEL_LINEAR_SGD;
-	sample_count = numOdSignals * 15;
+	//sample_count = numOdSignals * 15;
+	sample_count = -1; //default
 	tot_steps = 10000;
 	learning_rate = 3 * 1e-7;
 	block_num = 1.0;
@@ -387,7 +388,10 @@ void MedLinearModel::apply_normalization(vector<vector<float>> &input) const {
 }
 
 PredictiveModel *MedLinearModel::clone() const {
-	MedLinearModel *copy = new MedLinearModel((int)model_params.size() - 1);
+	MedLinearModel *copy = new MedLinearModel;
+	copy->model_params.resize((int)model_params.size() - 1);
+	copy->model_name = "LinearModel(" + to_string((int)model_params.size()-1) + ")";
+
 	random_device rd;
 	mt19937 gen(rd());
 	uniform_real_distribution<> rand_gen;
@@ -548,6 +552,10 @@ void _normalizeSignalToAvg(vector<vector<float>> &xData, vector<float> &meanShif
 }
 
 int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
+	model_params.resize(nftrs + 1); //1 for bias
+	if (sample_count == -1)
+		sample_count = 15 * nftrs;
+	this->model_name = "LinearModel(" + to_string(nftrs) + ")";
 
 	vector<float> avg_diff, factors;
 	vector<float> yData(y, y + nsamples);
