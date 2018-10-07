@@ -594,9 +594,9 @@ MedSamplingStrategy *MedSamplingStrategy::make_sampler(const string &sampler_nam
 int MedSamplingFixedTime::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
-		if (it->first == "start_time") 
+		if (it->first == "start_time")
 			start_time = stoi(it->second);
-		else if (it->first == "end_time") 
+		else if (it->first == "end_time")
 			end_time = stoi(it->second);
 		else if (it->first == "time_jump") {
 			time_jump = stoi(it->second);
@@ -631,7 +631,7 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
 	if (time_jump <= 0)
 		MTHROW_AND_ERR("time_jump must be positive > 0\n");
-	
+
 	int random_back_dur = 1;
 	bool use_random = back_random_duration > 0;
 	if (use_random)
@@ -649,9 +649,24 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it)
 	{
 		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
-		
+
 		long start_date = start_time;
 		long end_date = end_time;
+		if (start_date == 0 && !all_pid_records->empty()) {
+			//select min{min_allowed on all_pid_records}
+			start_date = all_pid_records->front()->min_allowed_date;
+			for (size_t i = 1; i < all_pid_records->size(); ++i)
+				if (start_date > all_pid_records->at(i)->min_allowed_date)
+					start_date = all_pid_records->at(i)->min_allowed_date;
+		}
+		if (end_date == 0 && !all_pid_records->empty()) {
+			//select max{max_allowed on all_pid_records}
+			end_date = all_pid_records->front()->max_allowed_date;
+			for (size_t i = 1; i < all_pid_records->size(); ++i)
+				if (end_date < all_pid_records->at(i)->max_allowed_date)
+					end_date = all_pid_records->at(i)->max_allowed_date;
+		}
+
 		if (pid_to_ind.find(it->first) == pid_to_ind.end()) {
 			pid_to_ind[it->first] = (int)idSamples.size();
 			MedIdSamples pid_sample(it->first);
