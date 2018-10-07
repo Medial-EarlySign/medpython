@@ -29,7 +29,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
-			outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 2);
+			outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 1);
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
 
