@@ -18,7 +18,9 @@ public:
 	/// The sampling method to be implemented
 	virtual void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) = 0;
 
+	/// @snippet MedSamplingStrategy.cpp MedSamplingStrategy::make_sampler
 	static MedSamplingStrategy *make_sampler(const string &sampler_name);
+	/// @snippet MedSamplingStrategy.cpp MedSamplingStrategy::make_sampler
 	static MedSamplingStrategy *make_sampler(const string &sampler_name, const string &init_params);
 };
 
@@ -150,5 +152,43 @@ private:
 	mt19937 gen;
 };
 
+
+/**
+* A Class which samples from start_time to end_time by jump and find match in registry.
+* also suitble for incidence calculation
+*/
+class MedSamplingFixedTime : public MedSamplingStrategy {
+public:
+	int start_time; ///< The start time to sample from. If 0 will use min time of pid
+	int end_time; ///< The end time to sample from. If 0 will use max time of pid
+	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
+	int time_jump; ///< the time jump, how much jump from each prediciton date
+	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
+	int allowed_time_from; ///< time window settings when use_allowed is on
+	int allowed_time_to; ///< time window settings when use_allowed is on
+	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
+	bool use_time_control_as_case; ///< if True will use time window
+
+								   ///sample by year from year to year by jump and find match in registry
+	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
+
+	int init(map<string, string>& map);
+
+	MedSamplingFixedTime() {
+		gen = mt19937(rd());
+		conflict_method = "drop"; //default
+		back_random_duration = 0; //default
+		time_jump = 0;
+		use_allowed = false;
+		start_time = 0;
+		end_time = 0;
+		allowed_time_to = 0;
+		allowed_time_from = 0;
+		use_time_control_as_case = false;
+	}
+private:
+	random_device rd;
+	mt19937 gen;
+};
 
 #endif
