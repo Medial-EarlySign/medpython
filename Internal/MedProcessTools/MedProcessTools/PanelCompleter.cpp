@@ -198,7 +198,7 @@ int RepPanelCompleter::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	if (rc < 0)
 		return -1;
 
-	if (panel_signal_ids[REP_CMPLT_GCS].size())
+	if (panel_signal_ids.size() > REP_CMPLT_GCS && panel_signal_ids[REP_CMPLT_GCS].size())
 		rc = apply_GCS_completer(rec, time_points);
 	if (rc < 0)
 		return -1;
