@@ -70,9 +70,11 @@ help(med.PidRepository)
 ```
 
 # Addional examples
-* [Example of Test+Train model][1] - A partial translation of Flow's TestTrain class to Python
-* [Iterating over a Signal][2] - This is not the proper way to work with Python, since Python loops are very slow, however, it's nice as a poc. 
+* [get_sig() example][1] - Reading a signal from repository, doing Albumin Value Analysis and exploration using Pandas/matplotlib
+* [Model Test+Train example][2] - A partial translation of Flow's TestTrain class to Python.
+* [Iterating over a Signal][3] - This is not the proper way to work with Python, since Python loops are very slow, however, it's nice as a poc.
 
-[1]: http://node-02:8888/notebooks/Shlomi/NewAPI/learn.ipynb
-[2]: http://node-02:8888/notebooks/Shlomi/NewAPI/USig_Iterate.ipynb
+[1]: http://node-02:8888/notebooks/Shlomi/NewAPI/get_sig.ipynb
+[2]: http://node-02:8888/notebooks/Shlomi/NewAPI/learn.ipynb
+[3]: http://node-02:8888/notebooks/Shlomi/NewAPI/USig_Iterate.ipynb
 
