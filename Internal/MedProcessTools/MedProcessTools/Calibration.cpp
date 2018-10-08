@@ -550,7 +550,7 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 	vector<float> probs;
 	apply_binned_prob(x, min_range, max_range, map_prob, probs);
 	//probs is the new Y - lets learn A, B:
-	MedLinearModel lm(poly_rank); //B is param[0], A is param[1]
+	MedLinearModel lm; //B is param[0], A is param[1]
 
 	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
 		double res = 0;

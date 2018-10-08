@@ -567,6 +567,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 MedSamplingStrategy *MedSamplingStrategy::make_sampler(const string &sampler_name) {
 	MedSamplingStrategy *sampler;
 
+	//! [MedSamplingStrategy::make_sampler]
 	if (sampler_name == "time_window")
 		sampler = new MedSamplingTimeWindow;
 	else if (sampler_name == "yearly")
@@ -575,8 +576,11 @@ MedSamplingStrategy *MedSamplingStrategy::make_sampler(const string &sampler_nam
 		sampler = new MedSamplingAge;
 	else if (sampler_name == "dates")
 		sampler = new MedSamplingDates;
+	else if (sampler_name == "fixed_time")
+		sampler = new MedSamplingFixedTime;
 	else
 		MTHROW_AND_ERR("Unsupported Sampling method %s\n", sampler_name.c_str());
+	//! [MedSamplingStrategy::make_sampler]
 
 	return sampler;
 }
@@ -585,4 +589,174 @@ MedSamplingStrategy *MedSamplingStrategy::make_sampler(const string &sampler_nam
 	MedSamplingStrategy *sampler = make_sampler(sampler_name);
 	sampler->init_from_string(init_params);
 	return sampler;
+}
+
+int MedSamplingFixedTime::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "start_time")
+			start_time = stoi(it->second);
+		else if (it->first == "end_time")
+			end_time = stoi(it->second);
+		else if (it->first == "time_jump") {
+			time_jump = stoi(it->second);
+			if (time_jump <= 0)
+				MTHROW_AND_ERR("time_jump must be positive > 0\n");
+		}
+		else if (it->first == "back_random_duration")
+			back_random_duration = stoi(it->second);
+		else if (it->first == "allowed_time_from")
+			allowed_time_from = stoi(it->second);
+		else if (it->first == "allowed_time_to")
+			allowed_time_to = stoi(it->second);
+		else if (it->first == "use_allowed")
+			use_allowed = stoi(it->second) > 0;
+		else if (it->first == "use_time_control_as_case")
+			use_time_control_as_case = stoi(it->second) > 0;
+		else if (it->first == "conflict_method")
+			conflict_method = it->second;
+		else
+			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
+	}
+
+	if (!(conflict_method == "drop" || conflict_method == "max" ||
+		conflict_method == "all"))
+		MTHROW_AND_ERR("Unsuported conflcit method - please choose: drop,all,max\n");
+	if (back_random_duration < 0)
+		MTHROW_AND_ERR("back_random_duration must be positive\n");
+
+	return 0;
+}
+
+void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
+	if (time_jump <= 0)
+		MTHROW_AND_ERR("time_jump must be positive > 0\n");
+
+	int random_back_dur = 1;
+	bool use_random = back_random_duration > 0;
+	if (use_random)
+		random_back_dur = back_random_duration;
+
+	uniform_int_distribution<> rand_int(0, random_back_dur);
+	unordered_map<int, int> pid_to_ind;
+	vector<MedIdSamples> idSamples;
+
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs;
+	for (size_t i = 0; i < registry.size(); ++i)
+		pid_to_regs[registry[i].pid].push_back(&registry[i]);
+
+	int conflict_count = 0, done_count = 0;
+	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it)
+	{
+		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
+
+		long start_date = start_time;
+		long end_date = end_time;
+		if (start_date == 0 && !all_pid_records->empty()) {
+			//select min{min_allowed on all_pid_records}
+			start_date = all_pid_records->front()->min_allowed_date;
+			for (size_t i = 1; i < all_pid_records->size(); ++i)
+				if (start_date > all_pid_records->at(i)->min_allowed_date)
+					start_date = all_pid_records->at(i)->min_allowed_date;
+		}
+		if (end_date == 0 && !all_pid_records->empty()) {
+			//select max{max_allowed on all_pid_records}
+			end_date = all_pid_records->front()->max_allowed_date;
+			for (size_t i = 1; i < all_pid_records->size(); ++i)
+				if (end_date < all_pid_records->at(i)->max_allowed_date)
+					end_date = all_pid_records->at(i)->max_allowed_date;
+		}
+
+		if (pid_to_ind.find(it->first) == pid_to_ind.end()) {
+			pid_to_ind[it->first] = (int)idSamples.size();
+			MedIdSamples pid_sample(it->first);
+			idSamples.push_back(pid_sample);
+		}
+
+		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, time_jump)) {
+			//search for match in all regs:
+			int pred_date = date;
+			if (use_random)
+				pred_date = medial::repository::DateAdd(pred_date, -rand_int(gen));
+
+			MedSample smp;
+			smp.id = it->first;
+			smp.time = pred_date;
+			int curr_index = 0, final_selected = -1;
+			float reg_val = -1;
+			int reg_time = -1;
+			//run on all matches:
+			while (curr_index < all_pid_records->size()) {
+				if (!use_allowed)
+					while (curr_index < all_pid_records->size() &&
+						(pred_date < (*all_pid_records)[curr_index]->start_date ||
+							pred_date >(*all_pid_records)[curr_index]->end_date))
+						++curr_index;
+				else
+					while (curr_index < all_pid_records->size() &&
+						(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
+							pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
+						++curr_index;
+				if (use_allowed && curr_index < all_pid_records->size() &&
+					!in_time_window(pred_date, (*all_pid_records)[curr_index],
+						allowed_time_from, allowed_time_to, use_time_control_as_case)) {
+					++curr_index;
+					continue;
+				}
+				if (curr_index >= all_pid_records->size())
+					break; //skip if no match
+						   //found match:
+				if (reg_time == -1) { //first match
+					reg_val = (*all_pid_records)[curr_index]->registry_value;
+					reg_time = (*all_pid_records)[curr_index]->end_date;
+					final_selected = curr_index;
+				}
+				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
+					//if already found and conflicting:
+					if (conflict_method == "drop") {
+						reg_val = -1;
+						reg_time = -1;
+						final_selected = -1;
+						break;
+					}
+					else if (conflict_method == "max") {
+						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
+							reg_val = (*all_pid_records)[curr_index]->registry_value;
+							reg_time = (*all_pid_records)[curr_index]->end_date;
+							final_selected = curr_index;
+						}
+					}
+					else {
+						//insert current and update next:
+						smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
+						smp.outcome = reg_val;
+						idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
+						++done_count;
+						reg_val = (*all_pid_records)[curr_index]->registry_value;
+						reg_time = (*all_pid_records)[curr_index]->end_date;
+						final_selected = curr_index;
+					}
+					++conflict_count;
+					break;
+				}
+
+				++curr_index;
+			}
+
+			if (reg_time != -1) {
+				smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[final_selected]->start_date : reg_time;
+				smp.outcome = reg_val;
+				idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
+				++done_count;
+			}
+		}
+	}
+
+	if (conflict_count > 0)
+		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
+	//keep non empty pids:
+	for (int i = (int)idSamples.size() - 1; i >= 0; --i)
+		if (!idSamples[i].samples.empty())
+			samples.idSamples.push_back(idSamples[i]);
+	samples.sort_by_id_date();
 }

@@ -108,6 +108,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedTQRF;
 	else if (model_type == MODEL_BART)
 		return new MedBART;
+	else if (model_type == MODEL_LINEAR_SGD)
+		return new MedLinearModel;
 #if NEW_COMPLIER
 	else if (model_type == MODEL_VW)
 		return new MedVW;
@@ -758,7 +760,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	vector<float> probs;
 	convert_scores_to_prob(preds, min_range, max_range, map_prob, probs);
 	//probs is the new Y - lets learn A, B:
-	MedLinearModel lm(poly_rank); //B is param[0], A is param[1]
+	MedLinearModel lm; //B is param[0], A is param[1]
 
 	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
 		double res = 0;

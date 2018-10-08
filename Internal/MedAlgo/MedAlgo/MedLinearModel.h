@@ -12,7 +12,7 @@ using namespace std;
 class MedLinearModel : public MedPredictor, public PredictiveModel
 {
 public:
-	MedLinearModel(int numOdSignals);
+	MedLinearModel();
 	/// The parsed fields from init command.
 	/// @snippet MedLinearModel.cpp MedLinearModel::init
 	int init(map<string, string>& mapper) { set_params(mapper); }

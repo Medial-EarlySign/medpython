@@ -32,7 +32,7 @@ typedef enum {
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel : public SerializableObject {
 public:
-	int version() { return 3; } ///< change BasicFeatureGenerator to version 1 - added "bound_outcomeTime"
+	int version() { return 4; } ///< change BasicFeatureGenerator to version 1 - added "bound_outcomeTime"
 	/// remember learning set
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
