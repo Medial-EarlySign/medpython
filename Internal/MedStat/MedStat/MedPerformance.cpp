@@ -38,6 +38,42 @@ Measurement::Measurement(const string& qParam) {
 }
 
 //.........................................................................................................................................
+// Read from file
+void Measurement::read_from_file(string& fileName, vector<Measurement>& msrs) {
+
+	ifstream inf(fileName);
+	if (!inf)
+		MTHROW_AND_ERR("Cannot open %s for reading\n", fileName.c_str());
+
+	string line;
+	vector<string> fields;
+	while (getline(inf, line)) {
+		boost::split(fields, line, boost::is_any_of(" \t"));
+		if (fields.size() == 1) {
+			string qParam = fields[0];
+			Measurement newMsr(qParam);
+			msrs.push_back(newMsr);
+		}
+		else if (fields.size() == 2) {
+			string qParam = fields[0];
+			float sValue = stof(fields[1]);
+			Measurement newMsr(qParam, sValue);
+			msrs.push_back(newMsr);
+		}
+		else if (fields.size() == 3) {
+			string qParam = fields[0];
+			string sParam = fields[1];
+			float sValue = stof(fields[2]);
+			Measurement newMsr(qParam, sParam, sValue);
+			msrs.push_back(newMsr);
+		}
+		else
+			MTHROW_AND_ERR("Cannot parse measurement entry \'%s\'\n", line.c_str());
+	}
+
+}
+
+//.........................................................................................................................................
 // Initialize
 void MedClassifierPerformance::init() {
 

@@ -15,7 +15,8 @@ public:
 	/// an initialization for model
 	/// @snippet MedBART.cpp MedBART::init
 	/// </summary>
-	int init(map<string, string>& mapper);
+	void init_defaults() {};
+	int set_params(map<string, string>& mapper);
 
 	/// <summary>
 	/// learning on x vector which represents matrix. y is the labels

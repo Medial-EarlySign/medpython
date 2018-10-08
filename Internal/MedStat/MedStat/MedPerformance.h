@@ -56,6 +56,8 @@ public:
 				(queriedParam == otherMeasuemrent.queriedParam && setValue == otherMeasuemrent.setValue && setParam < otherMeasuemrent.setParam)) ;
 
 	}
+
+	static void read_from_file(string& fileName, vector<Measurement>& msrs);
 } ;
 
 class MedClassifierPerformance {

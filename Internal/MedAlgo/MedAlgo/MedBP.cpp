@@ -46,9 +46,7 @@ MedBP::MedBP(void *_in_params) {
 */
 
 //..............................................................................
-int MedBP::init(map<string, string>& mapper) {
-
-	init_defaults();
+int MedBP::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;

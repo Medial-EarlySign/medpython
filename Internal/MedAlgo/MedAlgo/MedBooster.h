@@ -68,6 +68,11 @@ class MedBooster : public MedPredictor {
 			return -1;
 		}
 
+		int set_params(map<string, string>& mapper) {
+			cerr << "MedBooster:: init map :: not supported, only init_from_string supported....\n";
+			return -1;
+		}
+
 		//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 		void init_defaults() { params.init_from_string("boost@booster_type=gradient,loss_func=square,nrounds=10,shrinkage=0.1,internal_model=linear_model@internal_params@rfactor=0.8"); }
 

@@ -24,7 +24,7 @@ int MedBART::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	return 0;
 }
 
-int MedBART::init(map<string, string>& mapper) {
+int MedBART::set_params(map<string, string>& mapper) {
 	//! [MedBART::init]
 	unordered_map<string, int> map_types = {
 		{ "classification", bart_data_prior_type::classification },

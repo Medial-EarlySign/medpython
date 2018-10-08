@@ -44,9 +44,7 @@ GBM_LossFunctions MedGBM::get_loss_function(string name) {
 }
 	
 //..............................................................................
-int MedGBM::init(map<string, string>& mapper) {
-
-	init_defaults();
+int MedGBM::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;

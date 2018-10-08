@@ -119,7 +119,8 @@ public:
 	// Init
 	virtual int init(void *classifier_params) { return 0; };
 	int init_from_string(string initialization_text);
-	virtual int init(map<string, string>& mapper) { return 0; };
+	virtual int init(map<string, string>& mapper);
+	virtual int set_params(map<string, string>& mapper) { return 0; };
 	virtual void init_defaults() {};
 
 
@@ -314,7 +315,7 @@ public:
 	int init(void *params);
 	/// The parsed fields from init command.
 	/// @snippet MedLM.cpp MedLM::init
-	virtual int init(map<string, string>& mapper);
+	virtual int set_params(map<string, string>& mapper);
 	void init_defaults();
 
 	//int learn(MedMat<float> &x, MedMat<float> &y) {return (MedPredictor::learn(x,y));}; 	// Special case - un-normalized Y
@@ -379,7 +380,7 @@ public:
 	int init(void *params);
 	/// The parsed fields from init command.
 	/// @snippet MedLasso.cpp MedLasso::init
-	int init(map<string, string>& mapper);
+	int set_params(map<string, string>& mapper);
 	void init_defaults();
 
 	//int learn(MedMat<float> &x, MedMat<float> &y) {return (MedPredictor::learn(x,y));}; 	// Special case - un-normalized Y
@@ -459,7 +460,7 @@ public:
 	MedGDLM(MedGDLMParams& params);
 	/// The parsed fields from init command.
 	/// @snippet MedGDLM.cpp MedGDLM::init
-	int init(map<string, string>& mapper); ;
+	int set_params(map<string, string>& mapper);
 	int init(void *params);
 	void init_defaults();
 
@@ -550,7 +551,7 @@ public:
 	int init(void *params);
 	/// The parsed fields from init command.
 	/// @snippet MedQRF.cpp MedQRF::init
-	virtual int init(map<string, string>& mapper);
+	virtual int set_params(map<string, string>& mapper);
 	//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 	void init_defaults();
 	QRF_TreeType get_tree_type(string name);
@@ -613,6 +614,10 @@ public:
 
 	///MedMicNet:: init map :: not supported, only init_from_string supported 
 	int init(map<string, string>& mapper) {
+		cerr << "MedMicNet:: init map :: not supported, only init_from_string supported....\n";
+		return -1;
+	}
+	int set_params(map<string, string>& mapper) {
 		cerr << "MedMicNet:: init map :: not supported, only init_from_string supported....\n";
 		return -1;
 	}
@@ -712,7 +717,7 @@ public:
 	int init(void *params);
 	/// The parsed fields from init command.
 	/// @snippet MedMars.cpp MedMars::init
-	virtual int init(map<string, string>& mapper);
+	virtual int set_params(map<string, string>& mapper);
 	void init_defaults();
 
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
@@ -771,7 +776,7 @@ public:
 	int init(void *params);
 	/// The parsed fields from init command.
 	/// @snippet MedGBM.cpp MedGBM::init
-	virtual int init(map<string, string>& mapper); ;
+	virtual int set_params(map<string, string>& mapper);
 	void init_defaults();
 	GBM_LossFunctions get_loss_function(string name);
 	~MedGBM();
@@ -836,7 +841,7 @@ public:
 	MedKNN(MedKNNParams& params);
 	/// The parsed fields from init command.
 	/// @snippet MedKNN.cpp MedKNN::init
-	virtual int init(map<string, string>& mapper); ;
+	virtual int set_params(map<string, string>& mapper);
 	int init(void *params);
 	~MedKNN();
 	knnAveraging get_knn_averaging(string name);
@@ -911,7 +916,7 @@ public:
 	int init(void *params);
 	/// The parsed fields from init command.
 	/// @snippet MedBP.cpp MedBP::init
-	virtual int init(map<string, string>& mapper);
+	virtual int set_params(map<string, string>& mapper);
 	~MedBP();
 
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
@@ -1060,7 +1065,7 @@ public:
 	int init(void *params);
 	/// The parsed fields from init command.
 	/// @snippet MedSvm.cpp MedSvm::init
-	virtual int init(map<string, string>& mapper);
+	virtual int set_params(map<string, string>& mapper);
 	int init(struct svm_parameter &params);
 
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
@@ -1091,6 +1096,7 @@ public:
 	// initialize using the init_from_string() method (inherited from SerializableObject)
 
 	virtual int init(map<string, string>& mapper) { return _tqrf.init(mapper); }
+	virtual int set_params(map<string, string>& mapper) { return _tqrf.init(mapper); }
 
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 		HMTHROW_AND_ERR("MedTQRF does not support the Learn(float *x, float *y, float *w, int nsamples, int nftrs). Use Learn(MedFeatures &feats) API instead\n");

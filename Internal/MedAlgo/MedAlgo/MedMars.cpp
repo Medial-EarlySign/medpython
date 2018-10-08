@@ -56,9 +56,7 @@ void MedMars::init_defaults()
 }
 
 //..............................................................................
-int MedMars::init(map<string, string>& mapper) {
-
-	init_defaults();
+int MedMars::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;

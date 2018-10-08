@@ -173,6 +173,11 @@ int MedPredictor::init_from_string(string text) {
 	return 0;
 }
 
+int MedPredictor::init(map<string, string>& mapper) {
+	init_defaults();
+	return set_params(mapper);
+}
+
 //.......................................................................................
 void MedPredictor::prepare_x_mat(MedMat<float> &x, const vector<float> &wgts, int &nsamples, int &nftrs, bool transpose_needed) const
 {

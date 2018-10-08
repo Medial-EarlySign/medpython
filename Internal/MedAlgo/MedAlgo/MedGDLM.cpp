@@ -64,9 +64,8 @@ int MedGDLM::init(void *_in_params)
 	return 0 ;
 }
 
-int MedGDLM::init(map<string, string>& mapper) {
-
-	init_defaults();
+//..............................................................................
+int MedGDLM::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;

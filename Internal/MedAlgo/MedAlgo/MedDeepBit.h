@@ -43,7 +43,7 @@ public:
 	int init(void *classifier_params) { this->params = *((MedDeepBitParams*)classifier_params); return 0; };
 	/// The parsed fields from init command.
 	/// @snippet MedDeepBit.cpp MedDeepBit::init
-	int init(map<string, string>& initialization_map);
+	int set_params(map<string, string>& initialization_map);
 	MedDeepBit() { classifier_type = MODEL_DEEP_BIT; init_defaults(); }
 	~MedDeepBit() {}
 	MedDeepBit(void *_params) { params = *(MedDeepBitParams *)_params; }

@@ -60,9 +60,7 @@ int MedKNN::init(void *_in_params) {
 	return 0 ;
 }
 
-int MedKNN::init(map<string, string>& mapper) {
-
-	init_defaults();
+int MedKNN::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
