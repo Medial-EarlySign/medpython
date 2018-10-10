@@ -152,6 +152,15 @@ public:
 
 };
 
+class LocalViewsParams {
+public:
+	LocalViewsParams() {};
+	LocalViewsParams(int _pid, int _from, int _to) { pid = _pid; from_date = _from; to_date = _to; }
+	int pid = 0;
+	int from_date = 0;
+	int to_date = 0;
+};
+
 //=========================================================================================================
 // MedPatientPlotlyDate:
 // - Built to handle date based repositories
@@ -166,16 +175,16 @@ public:
 
 	// gets a pid record and returns a string representing the html for its view page based on configuration
 	// mode is either file (for an html file:/// version) or server (for use with a web server returning it)
-	int get_rec_html(string &shtml, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times, const vector<string> &view);
-	int get_rec_html(string &shtml, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times) { 
-		return get_rec_html(shtml, rec, mode, sign_times, params.views); 
+	int get_rec_html(string &shtml, LocalViewsParams &lvp, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times, const vector<string> &view);
+	int get_rec_html(string &shtml, LocalViewsParams &lvp, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times) { 
+		return get_rec_html(shtml, lvp, rec, mode, sign_times, params.views); 
 	}
 
 private:
 	// builders for html
 	int add_html_header(string &shtml, const string &mode);
 	int add_basic_demographics(string &shtml, PidRec &rec, vector<ChartTimeSign> &times);
-	int add_panel_chart(string &shtml, PidRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times);
+	int add_panel_chart(string &shtml, LocalViewsParams &lvp, PidRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times);
 	int add_drugs_heatmap(string &shtml, PidRec &rec);
 
 	// THIN_RC report

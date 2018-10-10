@@ -31,5 +31,8 @@
     <Text Include="MimicConfig.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="RambamConfig.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

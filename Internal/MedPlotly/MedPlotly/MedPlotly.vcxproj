@@ -129,6 +129,7 @@
   <ItemGroup>
     <Text Include="BasicConfig.txt" />
     <Text Include="MimicConfig.txt" />
+    <Text Include="RambamConfig.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

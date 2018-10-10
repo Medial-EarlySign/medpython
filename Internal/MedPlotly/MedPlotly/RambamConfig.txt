@@ -17,29 +17,31 @@ LOG_SCALE	1
 
 # specific signals setup (if different from default)
 # format: SIG	<sig list>	<params: null_zeros=<val>;log_scale=<val>>
-SIG	BP	log_scale=0
+#SIG	BP	log_scale=0
 #SIG	UrineProduction	log_scale=0;time_chan=1
 #SIG	Emesis,GastricOut,PeritonealDialysisOut,PreAdmissionOutput,StoolOut,TFResidualOut,BloodLoss,UrineProduction,CerebralDrain,EstimatedBloodLoss,CalciumDialysisOut,HemoDialysisOut,UltrafiltrateOut,CardiacOutput,WoundVac,DrainOut,ChestTube,DialysisOut,FLUID_INTAKE,NUTRITION	time_chan=1;log_scale=0;null_zeros=0
 #SIG	NUTRITION	time_chan=1;val_chan=1;log_scale=0;null_zeros=0
+SIG	SaO2_OXIGEN,Heart_Rate	time_chan=0
 
 
 # panels definition:
 # format:
 # PANEL <params>
-PANEL	name=Liver;sigs=ALP,ALT,Amylase,Amylase-UR,Bilirubin_Direct-BL,GGT,LDH
-PANEL	name=Diabetes;sigs=Glucose,Glucose-UR,HbA1CPERC
-PANEL	name=Blood_Pressure;sigs=Diastolic,Systolic;log_scale=0
-PANEL	name=Renal;sigs=Creatinine,creatinine-BL,Creatinine-UR_24h,Urea,UrineTotalProtein
-PANEL	name=Fats;sigs=Cholesterol,LDL,HDL,Triglycerides
-PANEL	name=WhiteCounts;sigs=WBC,Bands_abs,BasNum,BLASTS,EosNum,LymphNum,MonNum,NeutNum,LUC
+PANEL	name=Liver;sigs=ALT,ALK,AST,Amylase,Bilirubin,Direct_Bilirubin,GGT,LDH,Albumin
+PANEL	name=Diabetes;sigs=Glucose,Urine_Glucose,HbA1C
+PANEL	name=Blood_Pressure;sigs=Arterial_BP_Dia,Arterial_BP_Mean,Arterial_BP_Sys,VENOUS_BP,ABP,CVP;log_scale=0
+PANEL	name=Renal;sigs=Creatinine,Urine_Creatinine_24h,BUN,Urate,Urine_Total_Protein;
+PANEL	name=Fats;sigs=Cholesterol,LDL,HDL,Triglyceride
+PANEL	name=WhiteCounts;sigs=WBC,Bands_abs,BasNum,BLASTS,EosNum,Lymphocytes,MonNum,NeutNum,LUC
 PANEL	name=RedCounts;sigs=Hemoglobin,HDW,Hematocrit,MCH,MCHC,MCV,MPV,NRBC,PDW,RBC,RDW
 PANEL	name=Glubolins;sigs=Alpha1Globulin,Alpha2Globulin,BetaGlobulin,GammaGlobulin,IgA,IGFL,IgG,IgM
-PANEL	name=IONS;sigs=Potassium,Na,Calcium,Calcium++,Chloride,Magnesium,Magnesium++,PO2,Bicarbonate
-PANEL	name=Vitals;sigs=PULSE,Tempearture_PO,Temperature_Periferal,Temperature_PR,TempPA,RR,SAT_OXIGEN,SAT_ROOMAIR,SAT_VENTILATED
-#PANEL	name=Diabetes;sigs=Glucose,HbA1C,BMI
-#PANEL	name=Cholesterol_Related;sigs=LDL,Cholesterol,HDL,Triglycerides
-#PANEL	name=Outputs;sigs=Emesis,GastricOut,PeritonealDialysisOut,PreAdmissionOutput,StoolOut,TFResidualOut,BloodLoss,UrineProduction,CerebralDrain,EstimatedBloodLoss,CalciumDialysisOut,HemoDialysisOut,UltrafiltrateOut,CardiacOutput,WoundVac,DrainOut,ChestTube,DialysisOut;log_scale=0;null_zeros=0
-#PANEL	name=Inputs;sigs=FLUID_INTAKE,NUTRITION;log_scale=0;null_zeros=0
+PANEL	name=Vitamins_and_Iron;sigs=Cobalamin,Ferritin,Folate,Iron,Transferrin
+PANEL	name=AcuteHeart;sigs=BNP,Creatinine_Kinase,Troponin_I
+PANEL	name=Thiroid;sigs=C3,C4,Free_T4,TSH
+PANEL	name=Inflamation;sigs=CRP,WBC
+PANEL	name=Coagulation;sigs=Fibrinogen,INR_PT_,PT
+PANEL	name=IONS;sigs=Potassium,Sodium,Calcium,freeCalcium,Chloride,Magnesium,Magnesium++,Art_PaO2,Bicarbonate
+PANEL	name=Vitals;sigs=Temperature_PO,Temperature_Periferal,Temperature_PR,Temperature_PA,Resp_Rate,SO2,SaO2_OXIGEN,SaO2_ROOMAIR,SaO2_VENTILATED,Heart_Rate
 
 # drugs heatmap def. If no drug groups are given, all those defined above will be used in their given order.
 # format: DRUGS_HEATMAP	<params>
@@ -54,8 +56,9 @@ PANEL	name=Vitals;sigs=PULSE,Tempearture_PO,Temperature_Periferal,Temperature_PR
 # demographics and drugs_heatmap are reserved names
 #
 
-VIEW	demographics
-VIEW	Liver,Diabetes,Blood_Pressure,Renal,Fats,WhiteCounts,RedCounts,IONS,Vitals
+#VIEW	demographics
+#VIEW	Liver
+#VIEW	Liver,Diabetes,Blood_Pressure,Renal,Fats,WhiteCounts,RedCounts,IONS,Vitals,Glubolin,Vitamins_and_Iron,AcuteHeart,Coagulation,Inflamation
 #VIEW	Diabetes
 #VIEW	Outputs,Inputs
 #VIEW	Cholesterol_Related,Diabetes
