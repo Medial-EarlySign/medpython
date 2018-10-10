@@ -1,5 +1,10 @@
 # Medial Python Binding
 
+## Basic usage and HOWTO
+
+For basic usage and howto please refer to __HOWTO.md__ file.
+The following document contains c++-low-level details needed to further develop the binding.
+
 ## Objectives
 
 __Allow us to__
