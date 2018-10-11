@@ -5,7 +5,7 @@
 #ifndef __MED_ALGO_H__
 #define __MED_ALGO_H__
 
-#if __GNUC__  >= 5 || defined(_MSC_VER)
+#if __GNUC__  >= 5 || (defined(_MSC_VER) && !defined(_DEBUG))
 #define NEW_COMPLIER true
 #else
 #define NEW_COMPLIER false
