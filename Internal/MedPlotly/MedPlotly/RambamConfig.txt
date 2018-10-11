@@ -58,7 +58,7 @@ PANEL	name=Vitals;sigs=Temperature_PO,Temperature_Periferal,Temperature_PR,Tempe
 
 #VIEW	demographics
 #VIEW	Liver
-#VIEW	Liver,Diabetes,Blood_Pressure,Renal,Fats,WhiteCounts,RedCounts,IONS,Vitals,Glubolin,Vitamins_and_Iron,AcuteHeart,Coagulation,Inflamation
+VIEW	Liver,Diabetes,Blood_Pressure,Renal,Fats,WhiteCounts,RedCounts,IONS,Vitals,Glubolins,Vitamins_and_Iron,AcuteHeart,Coagulation,Inflamation
 #VIEW	Diabetes
 #VIEW	Outputs,Inputs
 #VIEW	Cholesterol_Related,Diabetes
