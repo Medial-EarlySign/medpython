@@ -659,20 +659,22 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 
 	log_with_file(fo, "Samples has %d records. for uniq_pids = [", (int)samples.size());
 	auto iter = histCounts.begin();
-	if (!histCounts.empty())
+	if (!histCounts.empty()) {
 		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
 			100.0 * iter->second / float(total));
-	++iter;
+		++iter;
+	}
 	for (; iter != histCounts.end(); ++iter)
 		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second,
 			100.0 * iter->second / float(total));
 
 	log_with_file(fo, "] All = [");
 	iter = histCountAll.begin();
-	if (!histCountAll.empty())
+	if (!histCountAll.empty()) {
 		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
 			100.0 * iter->second / float(total_all));
-	++iter;
+		++iter;
+	}
 
 	for (; iter != histCountAll.end(); ++iter)
 		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second, iter->second,
