@@ -2735,7 +2735,7 @@ void update_collected(vector<float> &collected, vector<int> collected_times[], i
 	{
 		int start = collected_times[0][i];
 		int end = collected_times[1][i];
-		if (start < end_time && end > start_time) {
+		if (start <= end_time && end > start_time) {
 			sel_vals.push_back(collected[i]);
 			sel_times[0].push_back(start);
 			sel_times[1].push_back(end);

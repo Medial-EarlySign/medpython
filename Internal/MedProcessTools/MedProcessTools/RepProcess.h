@@ -28,8 +28,8 @@ typedef enum {
 	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
 	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to actiate RepSignalRate
 	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
-	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units
-	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function
+	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units.  to actiate RepSplitSignal
+	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
