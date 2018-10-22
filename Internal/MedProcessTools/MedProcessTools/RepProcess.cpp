@@ -2769,7 +2769,9 @@ float calc_value(const vector<int> collected_times[], const vector<float> &colle
 		if (start > start_time)
 			real_start = start;
 		int peroid_len = real_end - real_start;
-		float ratio_weight = peroid_len / float(curr_len);
+		float ratio_weight = 1;
+		if (curr_len > 0)
+			ratio_weight = peroid_len / float(curr_len);
 
 		res += ratio_weight*v;
 		if (i == 0)
@@ -2783,7 +2785,9 @@ float calc_value(const vector<int> collected_times[], const vector<float> &colle
 		prev_start = real_start;
 		prev_end = real_end;
 	}
-	float missing_rate = 1 - coverage / float(window_len);
+	float missing_rate = 0;
+	if (window_len > 0)
+		missing_rate = 1 - coverage / float(window_len);
 	if (missing_rate > threshold)
 		return MED_MAT_MISSING_VALUE;
 	return res;
