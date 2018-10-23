@@ -16,7 +16,7 @@ struct MedXGBParams {
 	int min_child_weight; // minimum sum of instance weight(hessian) needed in a child
 	int max_depth; // maximum depth of a tree
 	int num_round; // the number of rounds to do boosting
-	string eval_metric; // when not silent, report this metric
+	vector<string> eval_metric; // when not silent, report this metric
 	int silent; // debug mode
 	float missing_value; // which value in the input is representing missing
 	int num_class; // needed for multi:softmax
@@ -28,15 +28,19 @@ struct MedXGBParams {
 	float lambda;
 	float alpha;
 	int seed; // randomization seed
+	int verbose_eval;
+	float validate_frac; // how much of the training set is used as validation  for evaluation. should be between 0 and 1.
 	string split_penalties; // feature-dependent splitting penalty. string format is "number:value,number:value,..."
 
 
 	MedXGBParams() {
 		booster = "gbtree"; objective = "binary:logistic"; eta = 1.0; gamma = 1.0;
-		min_child_weight = 1; max_depth = 3; num_round = 500; silent = 1; eval_metric = "auc"; missing_value = MED_DEFAULT_MISSING_VALUE;
+		min_child_weight = 1; max_depth = 3; num_round = 500; silent = 1; eval_metric.push_back("auc"); missing_value = MED_DEFAULT_MISSING_VALUE;
 		num_class = 2;
 		colsample_bytree = 1.0; colsample_bylevel = 1.0; subsample = 1.0; scale_pos_weight = 1.0; tree_method = "auto"; lambda = 1; alpha = 0;
 		seed = 0;
+		verbose_eval = 0;
+		validate_frac = 0;
 	}
 };
 
@@ -59,6 +63,7 @@ public:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Learn(float *x, float *y, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
+	void prepare_mat_handle(float *x, float *y, const float *w, int nsamples, int nftrs, DMatrixHandle &matrix_handle);
 
 	virtual void print(FILE *fp, const string& prefix) const;
 
