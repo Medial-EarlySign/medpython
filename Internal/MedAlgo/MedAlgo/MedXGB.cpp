@@ -133,7 +133,7 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 		int nsamples_train = nsamples - nsamples_test;
 
 		prepare_mat_handle(x, y, w, nsamples_train, nftrs, matrix_handles[0]);
-		prepare_mat_handle(x + nsamples_train, y + nsamples_train, (w == NULL ) ? NULL : w + nsamples_train, nsamples_test, nftrs, matrix_handles[1]);
+		prepare_mat_handle(x + nsamples_train*nftrs, y + nsamples_train, (w == NULL ) ? NULL : w + nsamples_train, nsamples_test, nftrs, matrix_handles[1]);
 	}
 	else {
 		prepare_mat_handle(x, y, w, nsamples, nftrs, matrix_handles[0]);
