@@ -90,6 +90,10 @@ public:
 	string type_to_string(int type);
 
 	int diff_times(int d1, int d2, int in_type, int out_type);
+	double diff_times_D(int d1, int type1, int d2, int type2, int out_type);
+	int diff_times(int d1, int type1, int d2, int type2, int out_type);
+
+	double get_age(int t, int type_t, int byear);
 };
 
 /// <summary>

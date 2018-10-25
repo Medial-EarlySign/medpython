@@ -370,3 +370,30 @@ int MedTime::diff_times(int d1, int d2, int in_type, int out_type)
 	return (t1 - t2);
 }
 
+//.....................................................................................................
+double MedTime::diff_times_D(int d1, int type1, int d2, int type2, int out_type)
+{
+	double t1 = convert_times_D(type1, type2, d1);
+	double d = t1 - (double)d2;
+	double t = convert_times_D(type2, out_type, d);
+
+	return t;	
+}
+
+//.....................................................................................................
+int MedTime::diff_times(int d1, int type1, int d2, int type2, int out_type)
+{
+	int t1 = convert_times(type1, type2, d1);
+	int d = t1 - d2;
+	int t = convert_times(type2, out_type, d);
+
+	return t;
+}
+
+//.....................................................................................................
+double MedTime::get_age(int t, int type_t, int byear)
+{
+	double years1 = convert_times_D(type_t, MedTime::Years, (double)t);
+	double years2 = (double)byear - 1900 + 0.5;
+	return (years1-years2);
+}
