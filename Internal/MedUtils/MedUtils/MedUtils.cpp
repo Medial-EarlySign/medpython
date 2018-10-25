@@ -551,6 +551,18 @@ template<class T> string medial::io::get_list(const unordered_map<string, T> &ls
 	return res;
 }
 template string medial::io::get_list<int>(const unordered_map<string, int> &ls);
+template<class ContainerType> string medial::io::get_list(const ContainerType &ls) {
+	string res = "";
+	for (auto it = ls.begin(); it != ls.end(); ++it)
+		if (it == ls.begin())
+			res += *it;
+		else
+			res += "," + *it;
+	return res;
+}
+template string medial::io::get_list(const set<string> &ls);
+template string medial::io::get_list(const unordered_set<string> &ls);
+template string medial::io::get_list(const vector<string> &ls);
 
 template<class T> string medial::io::get_list_op(const unordered_map<T, string> &ls) {
 	string res = "";

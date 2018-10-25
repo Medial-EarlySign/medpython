@@ -35,6 +35,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_COMBINE;
 	else if (processor_name == "split")
 		return REP_PROCESS_SPLIT;
+	else if (processor_name == "aggregate")
+		return REP_PROCESS_AGGREGATE;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -90,6 +92,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCombineSignals;
 	else if (processor_type == REP_PROCESS_SPLIT)
 		return new RepSplitSignal;
+	else if (processor_type == REP_PROCESS_AGGREGATE)
+		return new RepAggregateSignal;
 	else
 		return NULL;
 
@@ -2202,6 +2206,14 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 	return 0;
 }
 
+void RepCalcSimpleSignals::print() {
+	MLOG("RepCalcSimpleSignals: calculator: %s : calculator_init_params %s : max_time_search_range %d signals_time_unit %s signals: %s, V_names: %, req_signals: %s, aff_signals: %s, work_channel: %d\n",
+		calculator.c_str(), calculator_init_params.c_str(), max_time_search_range, med_time_converter.type_to_string(signals_time_unit).c_str(),
+		medial::io::get_list(signals).c_str(), medial::io::get_list(V_names).c_str(),
+		medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str(),
+		work_channel);
+}
+
 //.......................................................................................
 int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
 {
@@ -2413,6 +2425,12 @@ void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& 
 	dict.SectionName2Id[output_name] = dict.section_id(signals.front());
 }
 
+void RepCombineSignals::print() {
+	MLOG("RepCombineSignals: output_name: %s : signals %s : req_signals %s aff_signals %s\n",
+		output_name.c_str(), medial::io::get_list(signals).c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
+}
+
+
 int RepSignalRate::init(map<string, string> &mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -2517,6 +2535,11 @@ int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<v
 	}
 
 	return 0;
+}
+
+void RepSignalRate::print() {
+	MLOG("RepSignalRate: input_name: %s, output_name: %s : factor: %f, work_channel: %d, req_signals %s aff_signals %s\n",
+		input_name.c_str(), output_name.c_str(), factor, work_channel, medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
 }
 
 int RepSplitSignal::init(map<string, string>& mapper) {
@@ -2629,6 +2652,208 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 	}
 
 	return 0;
+}
+
+void RepSplitSignal::print() {
+	MLOG("RepSplitSignal: input_name: %s, names: %s, req_signals %s aff_signals %s\n",
+		input_name.c_str(), medial::io::get_list(names).c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
+}
+
+int RepAggregateSignal::init(map<string, string> &mapper) {
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepAggregateSignal::init]
+		if (field == "output_name") output_name = entry.second;
+		else if (field == "signal") signalName = entry.second;
+		else if (field == "unconditional") unconditional = med_stoi(entry.second) > 0;
+		else if (field == "work_channel") work_channel = med_stoi(entry.second);
+		else if (field == "start_time_channel") start_time_channel = med_stoi(entry.second);
+		else if (field == "end_time_channel") end_time_channel = med_stoi(entry.second);
+		else if (field == "time_window") time_window = med_stoi(entry.second);
+		else if (field == "time_unit") time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "factor") factor = med_stof(entry.second);
+		else if (field == "drop_missing_rate") drop_missing_rate = med_stof(entry.second);
+		else if (field == "buffer_first") buffer_first = med_stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepAggregateSignal::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepAggregateSignal::init]
+	}
+	if (signalName.empty())
+		MTHROW_AND_ERR("Error in RepAggregateSignal::init - signal should be passed\n");
+	if (time_window == 0)
+		MTHROW_AND_ERR("Error in RepAggregateSignal::init - time_window should be passed\n");
+	if (output_name.empty())
+		MTHROW_AND_ERR("Error in RepAggregateSignal::init - output_name should be passed\n");
+
+	aff_signals.clear();
+	aff_signals.insert(output_name);
+	req_signals.clear();
+	req_signals.insert(signalName);
+	virtual_signals.clear();
+	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal));
+
+	return 0;
+}
+
+void RepAggregateSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = virtual_signals.front().second;
+}
+
+void RepAggregateSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	v_out_sid = sigs.sid(output_name);
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepAggregateSignal::init_tables - virtual output signal %s not found\n",
+			output_name.c_str());
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid);
+	in_sid = sigs.sid(signalName);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepAggregateSignal::init_tables - input signal %s not found\n",
+			signalName.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);
+
+	SignalInfo &si = sigs.Sid2Info[in_sid];
+
+	if (si.n_time_channels <= max(end_time_channel, start_time_channel))
+		MTHROW_AND_ERR("ERROR in RepAggregateSignal::init_tables - input signal %s should contain [%d, %d] time channels\n",
+			signalName.c_str(), start_time_channel, end_time_channel);
+	if (si.n_val_channels < work_channel + 1)
+		MTHROW_AND_ERR("ERROR in RepAggregateSignal::init_tables - input signal %s should contain %d val channels\n",
+			signalName.c_str(), work_channel + 1);
+}
+
+void RepAggregateSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
+	dict.SectionName2Id[output_name] = dict.section_id(signalName);
+}
+
+void update_collected(vector<float> &collected, vector<int> collected_times[], int start_time, int end_time) {
+	//iterate throght collected and remove indexes with no intersect with start_time->end_time
+	vector<float> sel_vals;
+	vector<int> sel_times[2];
+	for (int i = 0; i < collected.size(); ++i)
+	{
+		int start = collected_times[0][i];
+		int end = collected_times[1][i];
+		if (start <= end_time && end > start_time) {
+			sel_vals.push_back(collected[i]);
+			sel_times[0].push_back(start);
+			sel_times[1].push_back(end);
+		}
+	}
+	//comit selection:
+	collected.swap(sel_vals);
+	collected_times[0].swap(sel_times[0]);
+	collected_times[1].swap(sel_times[1]);
+}
+
+float calc_value(const vector<int> collected_times[], const vector<float> &collected,
+	int start_time, int end_time, float threshold) {
+	float res = 0;
+
+	int window_len = end_time - start_time;
+	//asuume sorted by collected_times[0] which is start_time
+	int coverage = 0;
+	int prev_start = 0, prev_end = 0;
+	for (int i = 0; i < collected.size(); ++i)
+	{
+		int start = collected_times[0][i];
+		int end = collected_times[1][i];
+		int curr_len = end - start;
+		float v = collected[i];
+
+		int real_end = end_time;
+		int real_start = start_time;
+		if (end < end_time)
+			real_end = end;
+		if (start > start_time)
+			real_start = start;
+		int peroid_len = real_end - real_start;
+		float ratio_weight = 1;
+		if (curr_len > 0)
+			ratio_weight = peroid_len / float(curr_len);
+
+		res += ratio_weight*v;
+		if (i == 0)
+			coverage += peroid_len;
+		else {
+			if (real_start >= prev_end)
+				coverage += peroid_len;
+			else if (real_end >= prev_end)
+				coverage += real_end - prev_end;
+		}
+		prev_start = real_start;
+		prev_end = real_end;
+	}
+	float missing_rate = 0;
+	if (window_len > 0)
+		missing_rate = 1 - coverage / float(window_len);
+	if (missing_rate > threshold)
+		return MED_MAT_MISSING_VALUE;
+	return res;
+}
+
+int RepAggregateSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	//first lets fetch "static" signals without Time field:
+
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	allVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		vector<float> v_vals;
+		vector<int> v_times;
+		vector<float> collected;
+		vector<int> collected_times[2];
+		int first_time = 0;
+		for (int i = 0; i < rec.usvs[0].len; ++i) {
+			int end_time = rec.usvs[0].Time(i, end_time_channel);
+			int start_time = rec.usvs[0].Time(i, start_time_channel);
+			if (start_time <= 0 || end_time <= 0)
+				continue;
+			if (first_time == 0)
+				first_time = med_time_converter.convert_times(global_default_time_unit, time_unit, rec.usvs[0].Time(i, start_time_channel));
+
+			int end_win_time = med_time_converter.convert_times(global_default_time_unit, time_unit, end_time);
+			int start_win_time = end_win_time - time_window;
+
+			collected.push_back(rec.usvs[0].Val(i, work_channel));
+			collected_times[0].push_back(med_time_converter.convert_times(global_default_time_unit, time_unit, start_time));
+			collected_times[1].push_back(end_win_time);
+
+			update_collected(collected, collected_times, start_win_time, end_win_time);
+			if (buffer_first && collected_times[0].back() - first_time < time_window)
+				continue; //do not add - wait till buffer filled
+			//get value:
+			float val = calc_value(collected_times, collected, start_win_time, end_win_time, drop_missing_rate);
+			if (val != MED_MAT_MISSING_VALUE) {
+				val *= factor;
+				v_times.push_back(end_time);
+				v_vals.push_back(val);
+			}
+		}
+		// pushing virtual data into rec (into orig version)
+		if (rec.usvs[0].len > 0)
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
+
+	}
+
+	return 0;
+}
+
+void RepAggregateSignal::print() {
+	MLOG("RepAggregateSignal:: signal:%s, output_name:%s, work_channel=%d, factor=%2.4f, time_window=%d, time_unit=%s"
+		", start_time_channel=%d, end_time_channel=%d, drop_missing_rate=%2.4f, buffer_first=%d\n", signalName.c_str(), output_name.c_str(),
+		work_channel, factor, time_window, med_time_converter.type_to_string(time_unit).c_str(),
+		start_time_channel, end_time_channel, drop_missing_rate, buffer_first);
 }
 
 //=======================================================================================

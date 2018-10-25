@@ -28,7 +28,8 @@ typedef enum {
 	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
 	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to actiate RepSignalRate
 	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
-	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units
+	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units.  to actiate RepSplitSignal
+	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -857,6 +858,7 @@ public:
 
 	// serialization. meta-data file is kept for information but not used in apply
 	int version() { return 1; }
+	void print();
 	ADD_SERIALIZATION_FUNCS(panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
 
 private:
@@ -1113,6 +1115,8 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void print();
+
 	// serialization
 	ADD_SERIALIZATION_FUNCS(calculator, calculator_init_params, max_time_search_range, signals_time_unit,
 		signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
@@ -1163,6 +1167,8 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void print();
+
 	ADD_SERIALIZATION_FUNCS(output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
@@ -1198,6 +1204,8 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void print();
+
 	ADD_SERIALIZATION_FUNCS(input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int in_sid = -1;
@@ -1232,7 +1240,62 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void print();
+
 	ADD_SERIALIZATION_FUNCS(input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
+private:
+	int v_out_sid = -1;
+	int in_sid = -1;
+};
+
+/**
+* An Aggregator for signal in sliding time window
+*/
+class RepAggregateSignal : public RepProcessor {
+public:
+	string signalName; ///< the name of inout signal
+	string output_name; ///< the name of virtual signal
+	int work_channel; ///< channel for value
+	int start_time_channel;; ///< time channel for start time
+	int end_time_channel; ///< time channel for end time
+	float factor; ///< final factor to multiply
+	int time_window; ///< back time window to search for
+	int time_unit; ///< time unit
+	float drop_missing_rate; ///< If missing time points beyond this threshold will drop measurement
+	bool buffer_first; ///< If true will wait for first buffer to complete
+
+	RepAggregateSignal() {
+		processor_type = REP_PROCESS_AGGREGATE;
+		work_channel = 0;
+		start_time_channel = 0;
+		end_time_channel = 0;
+		factor = 1;
+		time_unit = global_default_windows_time_unit;
+		drop_missing_rate = 1;
+
+		output_name = "calc_aggregate";
+		time_window = 0;
+		buffer_first = true;
+	}
+
+	/// @snippet RepProcess.cpp RepAggregateSignal::init
+	int init(map<string, string>& mapper);
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be 
+	/// implemented for all inheriting classes 
+	/// </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	void print();
+
+	ADD_SERIALIZATION_FUNCS(signalName, output_name, work_channel, factor, time_window, time_unit,
+		start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
