@@ -106,20 +106,41 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 	return 0;
 }
 
-int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
-	DMatrixHandle h_train[1];
-	if (XGDMatrixCreateFromMat(x, nsamples, nftrs, params.missing_value, &h_train[0]) != 0)
+void MedXGB::prepare_mat_handle(float *x, float *y, const float *w, int nsamples, int nftrs, DMatrixHandle &matrix_handle)
+{
+	if (XGDMatrixCreateFromMat(x, nsamples, nftrs, params.missing_value, &matrix_handle) != 0)
 		MTHROW_AND_ERR("failed to XGDMatrixCreateFromMat");
 
-	if (XGDMatrixSetFloatInfo(h_train[0], "label", y, nsamples) != 0)
+	if (XGDMatrixSetFloatInfo(matrix_handle, "label", y, nsamples) != 0)
 		MTHROW_AND_ERR("failed XGDMatrixSetFloatInfo label");
+
 	if (w != NULL) {
-		if (XGDMatrixSetFloatInfo(h_train[0], "weight", w, nsamples) != 0)
+		if (XGDMatrixSetFloatInfo(matrix_handle, "weight", w, nsamples) != 0)
 			MTHROW_AND_ERR("failed XGDMatrixSetFloatInfo weight");
 	}
+}
 
+int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
+	DMatrixHandle matrix_handles[2];
+
+	if ((params.verbose_eval > 0) & (params.validate_frac > 0))
+	{
+		//divide to x_train and x_test
+		if ((params.validate_frac < 0) || (params.validate_frac > 1))
+			MTHROW_AND_ERR("Validation fraction %f is invalid \n", params.validate_frac);
+
+		int nsamples_test = int(params.validate_frac*nsamples);
+		int nsamples_train = nsamples - nsamples_test;
+
+		prepare_mat_handle(x, y, w, nsamples_train, nftrs, matrix_handles[0]);
+		prepare_mat_handle(x + nsamples_train*nftrs, y + nsamples_train, (w == NULL ) ? NULL : w + nsamples_train, nsamples_test, nftrs, matrix_handles[1]);
+	}
+	else {
+		prepare_mat_handle(x, y, w, nsamples, nftrs, matrix_handles[0]);
+	}
+ 	
 	BoosterHandle h_booster;
-	if (XGBoosterCreate(h_train, 1, &h_booster) != 0)
+	if (XGBoosterCreate(&matrix_handles[0], 1, &h_booster) != 0)
 		MTHROW_AND_ERR("failed XGBoosterCreate weight");
 
 	XGBoosterSetParam(h_booster, "seed", boost::lexical_cast<std::string>(params.seed).c_str());
@@ -130,7 +151,6 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	XGBoosterSetParam(h_booster, "min_child_weight", boost::lexical_cast<std::string>(params.min_child_weight).c_str());
 	XGBoosterSetParam(h_booster, "max_depth", boost::lexical_cast<std::string>(params.max_depth).c_str());
 	XGBoosterSetParam(h_booster, "silent", boost::lexical_cast<std::string>(params.silent).c_str());
-	XGBoosterSetParam(h_booster, "eval_metric", params.eval_metric.c_str());
 	XGBoosterSetParam(h_booster, "colsample_bytree", boost::lexical_cast<std::string>(params.colsample_bytree).c_str());
 	XGBoosterSetParam(h_booster, "colsample_bylevel", boost::lexical_cast<std::string>(params.colsample_bylevel).c_str());
 	XGBoosterSetParam(h_booster, "subsample", boost::lexical_cast<std::string>(params.subsample).c_str());
@@ -138,16 +158,34 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	XGBoosterSetParam(h_booster, "lambda", boost::lexical_cast<std::string>(params.lambda).c_str());
 	XGBoosterSetParam(h_booster, "alpha", boost::lexical_cast<std::string>(params.alpha).c_str());
 	XGBoosterSetParam(h_booster, "tree_method", boost::lexical_cast<std::string>(params.tree_method).c_str());
+	XGBoosterSetParam(h_booster, "verbose_eval", boost::lexical_cast<std::string>(params.verbose_eval).c_str());
 
+	for (auto it : params.eval_metric)
+	{
+		XGBoosterSetParam(h_booster, "eval_metric", it.c_str());
+	}
+	
 	string split_penalties_s;
 	translate_split_penalties(split_penalties_s);
 	XGBoosterSetParam(h_booster, "split_penalties_s", boost::lexical_cast<std::string>(split_penalties_s).c_str());
 
 	const double start = dmlc::GetTime();
+	const char *evnames[2] = {"train", "test"};
+  	const char *out_result;
+
 #pragma omp critical
-	XGBoosterUpdateOneIter(h_booster, 0, h_train[0]);
-	for (int iter = 1; iter<params.num_round; iter++)
-		XGBoosterUpdateOneIter(h_booster, iter, h_train[0]);
+	XGBoosterUpdateOneIter(h_booster, 0, matrix_handles[0]);
+	for (int iter = 1; iter < params.num_round; iter++)
+	{
+		XGBoosterUpdateOneIter(h_booster, iter, matrix_handles[0]);
+		if (params.verbose_eval > 0)
+		{ 
+			if (params.validate_frac > 0) { XGBoosterEvalOneIter(h_booster, iter, matrix_handles, evnames, 2, &out_result); }
+			else { XGBoosterEvalOneIter(h_booster, iter, matrix_handles, evnames, 1, &out_result); }
+
+			MLOG("Performance: %s \n", out_result);
+		}
+	}
 
 	double elapsed = dmlc::GetTime() - start;
 	if (params.silent == 0)
@@ -158,7 +196,7 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	this->my_learner = h_booster;
 	_mark_learn_done = true;
 
-	XGDMatrixFree(h_train[0]);
+	XGDMatrixFree(matrix_handles[0]);
 	return 0;
 }
 
@@ -341,7 +379,7 @@ int MedXGB::set_params(map<string, string>& mapper) {
 		//! [MedXGB::init]
 		if (field == "booster") params.booster = entry.second;
 		else if (field == "objective") params.objective = entry.second;
-		else if (field == "eval_metric") params.eval_metric = entry.second;
+		else if (field == "eval_metric") split(params.eval_metric, entry.second, boost::is_any_of(","));  
 		else if (field == "eta") params.eta = stof(entry.second);
 		else if (field == "gamma") params.gamma = stof(entry.second);
 		else if (field == "min_child_weight") params.min_child_weight = stoi(entry.second);
@@ -358,7 +396,10 @@ int MedXGB::set_params(map<string, string>& mapper) {
 		else if (field == "lambda") params.lambda = stof(entry.second);
 		else if (field == "alpha") params.alpha = stof(entry.second);
 		else if (field == "seed") params.seed = stoi(entry.second);
+		else if (field == "verbose_eval") params.verbose_eval = stoi(entry.second);
 		else if (field == "split_penalties") params.split_penalties = entry.second;
+		else if (field == "validate_frac") params.validate_frac = stof(entry.second);
+		
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
 		//! [MedXGB::init]
 	}

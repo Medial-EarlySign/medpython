@@ -113,6 +113,7 @@ namespace medial {
 		void read_codes_file(const string &file_path, vector<string> &tokens);
 		template<class T> string get_list(const unordered_map<string, T> &ls);
 		template<class T> string get_list_op(const unordered_map<T, string> &ls);
+		template<class ContainerType> string get_list(const ContainerType &ls);
 		/**
 		* A basic class wrapper to parse command args
 		* has default "h", "help", "debug" and "base_config" for reading all arguments from file

@@ -415,6 +415,9 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 				//	MLOG("fpid %d : %s\n", fpid, curr_line.c_str());
 				vector<string> fields;
 				split(fields, curr_line, boost::is_any_of("\t"));
+				if (fields.size() == 1)
+					split(fields, curr_line, boost::is_any_of(" ")); // bypass for files that were space delimited
+
 				curr_fstat.n_relevant_lines++;
 				//if (fpid == 5025392)
 	//				MLOG("working on: (fpid %d) (curr.pid %d) (file_type %d) (f[0] %s) (nfields %d) ##>%s<##\n",fpid,curr.pid,file_type,fields[0].c_str(),fields.size(),curr_line.c_str());
@@ -489,10 +492,11 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 
 								case T_Value:
 									cd.date = 0;
-									if (fields.size() == 3)
+									if (fields.size() == 3) {
 										if (sigs.is_categorical_channel(sid, 0))
 											cd.val = dict.get_id_or_throw(section, fields[2]);
 										else cd.val = med_stof(fields[2]);
+									} 
 									else // backward compatible with date 0 trick to load value only data
 										if (sigs.is_categorical_channel(sid, 0))
 											cd.val = dict.get_id_or_throw(section, fields[3]);

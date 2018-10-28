@@ -291,7 +291,7 @@ typedef enum {
 	IMPUTE_MMNT_LAST
 } imputeMomentTypes;
 
-class featureStrata {
+class featureStrata :SerializableObject {
 public:
 	string name;
 	float resolution, min, max;
@@ -326,7 +326,7 @@ public:
 /// e.g. when "strata": "Age,40,80,5:Gender,1,2,1"
 /// starta [Age] factor [1] starta [Gender] factor[9]
 /// for a total of [18] stratas
-class featureSetStrata {
+class featureSetStrata :SerializableObject {
 public:
 	vector<featureStrata> stratas;
 	vector<int> factors;
@@ -528,7 +528,7 @@ typedef enum {
 	UNIV_SLCT_LAST
 } UnivariateSelectionMethod;
 
-class univariateSelectionParams {
+class univariateSelectionParams : SerializableObject {
 public:
 	UnivariateSelectionMethod method;
 	float minStat;
@@ -569,6 +569,8 @@ public:
 		else
 			return BIN_LAST;
 	}
+
+	ADD_SERIALIZATION_FUNCS(method, minStat, nBins, binMethod, takeSquare, pDistance, max_samples)
 };
 
 /**
@@ -852,4 +854,5 @@ MEDSERIALIZE_SUPPORT(FeaturePCA)
 MEDSERIALIZE_SUPPORT(TagFeatureSelector)
 MEDSERIALIZE_SUPPORT(ImportanceFeatureSelector)
 MEDSERIALIZE_SUPPORT(OneHotFeatProcessor)
+MEDSERIALIZE_SUPPORT(univariateSelectionParams)
 #endif

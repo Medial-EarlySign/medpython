@@ -29,7 +29,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
-			outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 2);
+			outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 1);
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
 
@@ -659,20 +659,22 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 
 	log_with_file(fo, "Samples has %d records. for uniq_pids = [", (int)samples.size());
 	auto iter = histCounts.begin();
-	if (!histCounts.empty())
+	if (!histCounts.empty()) {
 		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
 			100.0 * iter->second / float(total));
-	++iter;
+		++iter;
+	}
 	for (; iter != histCounts.end(); ++iter)
 		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second,
 			100.0 * iter->second / float(total));
 
 	log_with_file(fo, "] All = [");
 	iter = histCountAll.begin();
-	if (!histCountAll.empty())
+	if (!histCountAll.empty()) {
 		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
 			100.0 * iter->second / float(total_all));
-	++iter;
+		++iter;
+	}
 
 	for (; iter != histCountAll.end(); ++iter)
 		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second, iter->second,

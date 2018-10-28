@@ -1,0 +1,107 @@
+#
+# Configuration example for a MedPlotly object
+#
+
+#
+# comments start with '#' , all delimiters are tabs
+#
+
+#
+# JavaScript home directory, and files
+#
+JSDIR	//nas1/UsersData/avi/MR/Libs/Internal/MedPlotly/JavaScript
+JSFILES	plotly/plotly-latest.min.js
+
+
+# default null_zeros_default : if set plotting will ignore 0 values
+NULL_ZEROS	1
+
+# default log scale : draw sigs with log scale when possible (all vals > 0)
+LOG_SCALE	1
+
+# default width, height, block_mode for panels
+WIDTH	600
+HEIGHT	400
+BLOCK_MODE	1
+
+# specific signals setup (if different from default)
+# format: SIG	<sig list>	<params: null_zeros=<val>;log_scale=<val>>
+SIG	BP	log_scale=0
+SIG	CKD_State,DM_Registry	null_zeros=0;log_scale=0
+
+#
+# drug groups definitions
+# format:
+# DRUG_GROUP	<name> <list of codes>
+#
+DRUG_GROUP	Diabetes	ATC_A10_____
+DRUG_GROUP	Insulin	ATC_A10A____
+DRUG_GROUP	Non-Insulin	ATC_A10B____
+DRUG_GROUP	Metformin	ATC_A10B_A__,ATC_A10B_G__
+DRUG_GROUP	Sulphinil_Urea	ATC_A10B_B__,ATC_A10B_C__,ATC_A10B_H__
+DRUG_GROUP	alphaGlucosidaseI	ATC_A10B_F__
+DRUG_GROUP	glp1	ATC_A10B_J__
+DRUG_GROUP	sglt2I	ATC_A10B_K__
+DRUG_GROUP	Statins	ATC_C10A_A__
+DRUG_GROUP	Antithrombotic	ATC_B01_____
+DRUG_GROUP	Aspirin	ATC_B01A_C__
+DRUG_GROUP	Warfarin	ATC_B01A_A03
+DRUG_GROUP	Heparin	ATC_B01A_B__
+DRUG_GROUP	Antihemorrhagics	ATC_B02_____
+DRUG_GROUP	Diuretics	ATC_C03_____
+DRUG_GROUP	Beta_blockers	ATC_C07_____
+DRUG_GROUP	Calcium_channels	ATC_C08_____
+DRUG_GROUP	AceI	ATC_C09_____
+DRUG_GROUP	Thyroid	ATC_H03_____
+DRUG_GROUP	Endoctrine	ATC_L02_____
+DRUG_GROUP	Immunosuppresors	ATC_L04_____
+DRUG_GROUP	Antidepressants	ATC_N06A____
+DRUG_GROUP	Antibiotics	ATC_J01_____
+DRUG_GROUP	Opioids	ATC_N02A____
+DRUG_GROUP	Antipyretics	ATC_N02B____
+DRUG_GROUP	Hormonal	ATC_G03_____
+DRUG_GROUP	H.Contraceptives	ATC_G03A____
+DRUG_GROUP	AntiAcid	ATC_A02_____
+DRUG_GROUP	Obstructive airway	ATC_R03_____
+DRUG_GROUP	AntiAnemic	ATC_B03_____
+
+
+# if in any of the following a drug group is used that is not defined, it's codes and names will be exactly the group given
+
+# panels definition:
+# format:
+# PANEL <params>
+PANEL	name=P_Diabetes;title=Diabetes_Panel;sigs=Glucose,HbA1C,BMI;drugs=Insulin,Non-Insulin;width=900;height=600
+PANEL	name=P_Cholesterol;title=Cholesterol_Panel;sigs=LDL,Cholesterol,HDL,Triglycerides;drugs=Statins;width=900;height=600
+PANEL	name=P_BP;title=BP_Panel;sigs=BP,PULSE;drugs=Diuretics,Beta_blockers,Calcium_channels,AceI;width=900;height=600;log_scale=0
+PANEL	name=P_Renal;title=Renal;sigs=Creatinine,Urea,eGFR,GFR;width=900;height=600
+PANEL	name=P_Liver;title=Liver;sigs=ALT,GGT,AST,Albumin;width=900;height=600;
+PANEL	name=P_IONS;title=Ions;sigs=K+,Ca,Cl,Na,Phosphore;width=900;height=600;
+PANEL	name=P_Red;title=Red_Count;sigs=Hemoglobin,RBC,MCV,MCH;drugs=AntiAnemic;width=900;height=600;
+PANEL	name=P_White;title=White_Count;sigs=WBC,Eosinophils#,Monocytes#,Basophils#,Lymphocytes#,Neutrophils#;drugs=Antibiotics;null_zeros=0;log_scale=0;width=900;height=600;
+PANEL	name=P_Lung;title=Fev_tests;sigs=Fev1,Fev1/Fvc;width=900;height=600
+
+# drugs heatmap def. If no drug groups are given, all those defined above will be used in their given order.
+# format: DRUGS_HEATMAP	<params>
+# <params> : granularity=<days: def is 30>;drugs=<list of groups comma separated>
+
+# DRUGS_HEATMAP
+
+#
+# default view
+# format:
+# lines starting with VIEW following a list of sigs and panels to view	
+# demographics and drugs_heatmap are reserved names
+#
+
+VIEW	demographics
+#VIEW	Platelets,K+,Albumin
+#VIEW	drugs_heatmap
+VIEW	P_Diabetes,P_Cholesterol,P_Renal,P_Liver,P_IONS,P_Red,P_White
+#VIEW	RC
+VIEW	Fev1,Fev1/Fvc
+
+
+
+
+

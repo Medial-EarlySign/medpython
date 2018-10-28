@@ -21,19 +21,21 @@
     <div id="res" class="alert"></div>
 
 	<script type="text/javascript">
-	  var panel_list = [ "Liver","Diabetes","Blood_Pressure","Renal,Fats","WhiteCounts","RedCounts","IONS","Vitals"];
+	  var panel_list = [ "Liver","Diabetes","Blood_Pressure","Renal","Fats","WhiteCounts","RedCounts","IONS","Vitals","Glubolins","Vitamins_and_Iron","AcuteHeart","Coagulation","Inflamation"];
 	  <!-- "Drugs", "Diabetes", "Cholesterol", "BP", "Renal", "Liver", "Ions", "Red_Count", "White_Count", "RC" ]; -->
       $('form').jsonForm({
         schema: {
 			"pid": { type: 'number' , title: 'Pid' },
 			"date": { type: 'number' , title: 'Date' },
 			"desc": { type: 'string' , title: 'Description' },
+			"from_date": { type: 'number' , title: 'From Date'},
+			"to_date": { type: 'number' , title: 'To Date'},
 			"panels": { type: 'array', title: "Panels", items: { type: 'string', enum: panel_list, default: panel_list}},
 			"signals": { type: 'string', title: "signal charts"}
         },
 		<!-- "customFormItems": {"panels2": {"type": "checkboxes", inline: true}}, -->
 		form: [
-			{"key":"pid"}, {"key":"date"}, {"key":"desc"},
+			{"key":"pid"}, {"key":"date"}, {"key":"desc"}, {"key" : "from_date"}, {"key" : "to_date"},
 			<!-- {"title": "Submit",  "type": "submit"}], -->
 			{"key": "panels", "type": "checkboxes", inline: true, default: panel_list}, {key: "signals", type: "textarea"}, {"title": "Submit",  "type": "submit"}],
 			<!-- {"key": "panels2", "type": "checkboxes", "activeClass": "btn-success"}], -->

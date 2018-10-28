@@ -546,8 +546,11 @@ int PidDynamicRec::set_n_versions(vector<int> &time_points)
 
 			int tlen = 0;
 			for (int j = 0; j < n_versions; j++) {
-				while (tlen < usv.len && usv.Time(tlen) <= time_points[j]) tlen++;
-				int len = (tlen <= 0) ? 0 : tlen - 1;
+				int len = my_pl.len;
+				if (usv.n_time_channels() > 0) {
+					while (tlen < usv.len && usv.Time(tlen) <= time_points[j]) tlen++;
+					len = (tlen <= 0) ? 0 : tlen - 1;
+				}
 				my_pl.len = len;
 				my_pl.do_split = do_split;
 				sv_vers.insert(key*n_versions + j, my_pl); // at start all versions point to the original one
@@ -842,6 +845,8 @@ int PidDynamicRec::update(int sid, int v_in, vector<pair<int, void *>>& changes,
 		if (remove(sid, v_in, removes[iRemove] - iRemove) < 0)
 			return -1;
 	}
+
+	return 0;
 }
 
 //..................................................................................................................

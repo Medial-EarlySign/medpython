@@ -1017,3 +1017,21 @@ void RepPanelCompleter::read_metadata() {
 
 	infile.close();
 }
+
+void RepPanelCompleter::print() {
+	string panels = "";
+	vector<string> reverse_map(REP_CMPLT_LAST);
+	for (auto it = panel2type.begin(); it != panel2type.end(); ++it)
+		reverse_map[it->second] = it->first;
+
+	for (int i = 0; i < panel_signal_names.size(); ++i)
+		if (!panel_signal_names[i].empty()) {
+			if (!panels.empty())
+				panels += ",";
+			panels += reverse_map[i];
+		}
+	string req_ls = medial::io::get_list(req_signals);
+	string aff_ls = medial::io::get_list(aff_signals);
+	MLOG("RepPanelCompleter: panels=%s, missing_val=%2.4f, sim_val_handler=%d, metadata_file=%s\n",
+		panels.c_str(), missing_val, sim_val_handler, metadata_file.c_str(), req_ls.c_str(), aff_ls.c_str());
+}
