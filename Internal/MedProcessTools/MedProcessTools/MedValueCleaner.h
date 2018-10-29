@@ -42,7 +42,7 @@ public:
 		quantile = 0;
 		removing_quantile_factor = 1;
 		nbrs_quantile_factor = 0;
-		trimming_quantile_factor = 0;
+		trimming_quantile_factor = 1;
 		doTrim = doRemove = true;
 		take_log = 0;
 		trimming_sd_num = 7;
