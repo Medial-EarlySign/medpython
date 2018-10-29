@@ -246,13 +246,16 @@ Importance type can be defined as:
 'weight' - the number of times a feature is used to split the data across all trees.
 'gain' - the average gain of the feature when it is used in trees
 'cover' - the average coverage of the feature when it is used in trees
+'gain_total' - sum of gain the of the feature when it is used in trees (not normalized by number)
 */
 void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 	const string &general_params) {
 	if (!_mark_learn_done)
 		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 	map<string, string> params;
-	unordered_set<string> legal_types = { "weight", "gain","cover" };
+	unordered_set<string> legal_types = { "weight", "gain","cover","gain_total" };
+	bool do_average = false;
+	
 	initialization_text_to_map(general_params, params);
 	string importance_type = "gain";
 	for (auto it = params.begin(); it != params.end(); ++it)
@@ -261,10 +264,12 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 		else
 			MTHROW_AND_ERR("Unsupported calc_feature_importance param \"%s\"\n", it->first.c_str());
 
+	if ((importance_type == "gain") || (importance_type == "cover"))
+		do_average = true;
 
 	if (legal_types.find(importance_type) == legal_types.end())
 		MTHROW_AND_ERR("Ilegal importance_type value \"%s\" "
-			"- should by one of [weight, gain, cover]\n", importance_type.c_str());
+			"- should by one of [weight, gain, cover, gain_total]\n", importance_type.c_str());
 
 	int with_stats = importance_type != "weight"; //if weight than 0
 
@@ -280,7 +285,9 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
 	if (importance_type != "weight")
 		fCnt.resize((int)features_importance_scores.size());
-	string search_str = importance_type + "=";
+
+	string search_str = ((importance_type  == "gain_total") ? "gain" : importance_type) + "=";
+	
 	for (xgboost::bst_ulong tree_num = 0; tree_num < num_trees; tree_num++)
 	{
 		vector<string> lines;
@@ -308,16 +315,19 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 					MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
 				if (!split_token(fids, ",", true, mid_token))
 					MTHROW_AND_ERR("format error in line \"%s\"\n", line.c_str());
+
 				g = stof(mid_token);
 				features_importance_scores[fid] += g;
 			}
 		}
 	}
 
-	if (importance_type != "weight")
+	if (do_average)
 		for (size_t i = 0; i < features_importance_scores.size(); ++i)
 			if (fCnt[i])
+			{
 				features_importance_scores[i] /= fCnt[i];
+			}
 }
 
 size_t MedXGB::serialize(unsigned char *blob) {
