@@ -56,6 +56,10 @@ public:
 				(queriedParam == otherMeasuemrent.queriedParam && setValue == otherMeasuemrent.setValue && setParam < otherMeasuemrent.setParam)) ;
 
 	}
+
+	static void get_from_name(string& fileName, Measurement& msrs);
+	static void read_from_file(string& fileName, vector<Measurement>& msrs);
+	string name();
 } ;
 
 class MedClassifierPerformance {
@@ -67,6 +71,7 @@ public:
 	// counters
 	vector<int> npos,nneg ;
 	vector<vector<int> > tps,fps ;
+	
 	// Performance
 	vector<map<string, vector<float> > > PerformanceValues ;
 	map<Measurement,vector<float> > MeasurementValues ;

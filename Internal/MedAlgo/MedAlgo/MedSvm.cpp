@@ -26,8 +26,7 @@ void MedSvm::init_defaults() {
 	params.nr_weight = 0;
 }
 
-int MedSvm::init(map<string, string>& mapper) {
-	init_defaults();
+int MedSvm::set_params(map<string, string>& mapper) {
 
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{

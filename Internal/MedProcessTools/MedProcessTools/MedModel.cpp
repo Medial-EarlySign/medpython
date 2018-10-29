@@ -563,7 +563,7 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 	}
 	MLOG("\n");
 }
-string MedModel::file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
+string MedModel::json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
 	if (recursion_level > 3)
 		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
 	string fname;
@@ -616,7 +616,7 @@ string MedModel::file_to_string(int recursion_level, const string& main_file, ve
 				my_alterations.push_back(alt);
 		}
 		out_string += orig.substr(last_char, it->position() - last_char);
-		out_string += file_to_string(recursion_level + 1, main_file, my_alterations, small_file);
+		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file);
 		last_char = (int)it->position() + (int)it->str(0).size();
 	}
 	out_string += orig.substr(last_char);
@@ -625,7 +625,7 @@ string MedModel::file_to_string(int recursion_level, const string& main_file, ve
 
 void MedModel::init_from_json_file_with_alterations_version_1(const string &fname, vector<string>& alterations) {
 	MWARN("USING DEPRECATED MODEL JSON VERSION 1, PLEASE UPGRADE TO model_json_version: 2\n");
-	string json_contents = file_to_string(0, fname, alterations);
+	string json_contents = json_file_to_string(0, fname, alterations);
 	istringstream no_comments_stream(json_contents);
 
 	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());

@@ -82,8 +82,7 @@ void MedDeepBit::init_defaults() {
 	normalize_y_for_learn = false;
 }
 
-int MedDeepBit::init(map<string, string>& mapper) {
-	init_defaults();
+int MedDeepBit::set_params(map<string, string>& mapper) {
 	for (auto& entry : mapper) {
 		string field = entry.first;
 		//! [MedDeepBit::init]

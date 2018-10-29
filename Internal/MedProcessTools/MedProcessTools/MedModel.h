@@ -118,6 +118,7 @@ public:
 
 	// general adders for easier handling of config files/lines
 	// the idea is to add to a specific set and let the adder create a multi if needed
+	int init_from_json_string(string& json_string, const string& fname);
 	void init_from_json_file(const string& fname) { vector<string> dummy;  init_from_json_file_with_alterations(fname, dummy); }
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
@@ -182,7 +183,7 @@ private:
 	void fill_list_from_file(const string& fname, vector<string>& list);
 	string make_absolute_path(const string& main_file, const string& small_file);
 	void alter_json(string &json_contents, vector<string>& alterations);
-	string file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "");
+	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "");
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
 };
 

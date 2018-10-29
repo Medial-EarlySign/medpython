@@ -584,7 +584,7 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 	return 0;
 }
 
-int MedLinearModel::init(map<string, string>& mapper) {
+int MedLinearModel::set_params(map<string, string>& mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		//! [MedLinearModel::init]

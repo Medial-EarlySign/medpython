@@ -382,8 +382,7 @@ void MedXGB::init_defaults()
 	_mark_learn_done = false;
 }
 
-int MedXGB::init(map<string, string>& mapper) {
-	init_defaults();
+int MedXGB::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;

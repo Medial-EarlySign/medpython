@@ -15,7 +15,9 @@ public:
 	MedLinearModel();
 	/// The parsed fields from init command.
 	/// @snippet MedLinearModel.cpp MedLinearModel::init
-	int init(map<string, string>& mapper);
+	int init(map<string, string>& mapper) { set_params(mapper); }
+	int set_params(map<string, string>& mapper);
+
 	subGradientFunction getSubGradients(); ///<Subgradient of RMSE loss function
 	subGradientFunction  getSubGradientsAUC(); ///<Subgradient of smooth auc loss function
 	subGradientFunction  getSubGradientsSvm(); ///<Subgradient of svm loss function

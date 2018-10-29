@@ -60,8 +60,7 @@ int MedLM::init(void *_in_params)
 }
 
 //..............................................................................
-int MedLM::init(map<string, string>& mapper) {
-	init_defaults();
+int MedLM::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;

@@ -122,12 +122,9 @@ vector<string> fields;
 //	return 0;
 //}
 
-
 //..............................................................................
-int MedQRF::init(map<string, string>& mapper) {
-
-	init_defaults();
-
+int MedQRF::set_params(map<string, string>& mapper) {
+	
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [MedQRF::init]

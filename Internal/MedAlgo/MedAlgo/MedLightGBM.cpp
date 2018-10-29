@@ -41,7 +41,7 @@ namespace LightGBM {
 	std::function<std::vector<double>(int row_idx)>	RowFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major);
 	std::function<std::vector<std::pair<int, double>>(int row_idx)> RowPairFunctionFromDenseMatric(const void* data, int num_row, int num_col, int data_type, int is_row_major);
 	//-------------------------------------------------------------------------------------------------
-	int MemApp::init(map<string, string>& init_params)
+	int MemApp::set_params(map<string, string>& init_params)
 	{
 		unordered_map<string, string> params;
 		for (auto &e : init_params) params[e.first] = e.second;

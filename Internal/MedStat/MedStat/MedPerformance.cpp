@@ -38,6 +38,67 @@ Measurement::Measurement(const string& qParam) {
 }
 
 //.........................................................................................................................................
+// Get name of measurement
+string Measurement::name() {
+
+	if (queriedParam == "AUC") {
+		if (setValue == 1.0)
+			return "AUC";
+		else
+			return "Partial_AUC_" + to_string(setValue);
+	}
+	else if (setParam == "NONE")
+		return queriedParam + "_" + to_string(setValue);
+	else
+		return queriedParam + "@" + setParam + to_string(setValue);
+}
+
+//.........................................................................................................................................
+// Init from name
+void Measurement::get_from_name(string& name, Measurement& msr) {
+
+	vector<string> fields;
+	boost::split(fields, name, boost::is_any_of(" \t"));
+	if (fields.size() == 1) {
+		string qParam = fields[0];
+		Measurement newMsr(qParam);
+		msr = newMsr;
+	}
+	else if (fields.size() == 2) {
+		string qParam = fields[0];
+		float sValue = stof(fields[1]);
+		Measurement newMsr(qParam, sValue);
+		msr = newMsr;
+	}
+	else if (fields.size() == 3) {
+		string qParam = fields[0];
+		string sParam = fields[1];
+		float sValue = stof(fields[2]);
+		Measurement newMsr(qParam, sParam, sValue);
+		msr = newMsr;
+	}
+	else
+		MTHROW_AND_ERR("Cannot parse measurement entry \'%s\'\n", name.c_str());
+}
+
+//.........................................................................................................................................
+// Read from file
+void Measurement::read_from_file(string& fileName, vector<Measurement>& msrs) {
+
+	ifstream inf(fileName);
+	if (!inf)
+		MTHROW_AND_ERR("Cannot open %s for reading\n", fileName.c_str());
+
+	string line;
+	while (getline(inf, line)) {
+		Measurement tmpMsr;
+		Measurement::get_from_name(line, tmpMsr);
+		msrs.push_back(tmpMsr);
+	}
+
+}
+
+//.........................................................................................................................................
 // Initialize
 void MedClassifierPerformance::init() {
 
@@ -63,26 +124,36 @@ MedClassifierPerformance::MedClassifierPerformance() {
 void MedClassifierPerformance::_load(MedSamples& samples) {
 
 	// First pass to check for splits
-	int maxSplits = -1, missingSplit = -1;
+	set<int> splits;
+	int missingSplit = -1;
 	for (auto& idSamples : samples.idSamples) {
 		int split = idSamples.split;
-		if (split > maxSplits)
-			maxSplits = split;
 		if (split == -1)
 			missingSplit = 1;
+		else
+			splits.insert(split);
 	}
-	assert(missingSplit == -1 || maxSplits == -1); // Can't have both splits and non-splits !
+
+	if (missingSplit != -1 && (!(splits.empty())))
+		MTHROW_AND_ERR("Cannot have both split and non-split samples\n");
 
 	// Fill
-	preds.resize(maxSplits + 2);
+	int nSplits = splits.size();
+	map<int, int> split_idx;
+	int idx = 0;
+	for (int split : splits)
+		split_idx[split] = ++idx;
+	split_idx[-1] = 0;
+
+	preds.resize(nSplits+1);
 	for (auto& idSamples : samples.idSamples) {
 		int split = idSamples.split;
 		for (auto& sample : idSamples.samples)
-			preds[split+1].push_back({ sample.prediction.back(),sample.outcome });
+			preds[split_idx[split]].push_back({ sample.prediction.back(),sample.outcome });
 	}
 
 	// Are there any splits ?
-	if (maxSplits > -1)
+	if (nSplits>0)
 		SplitsToComplete();
 }
 
@@ -254,7 +325,7 @@ void MedClassifierPerformance::getPerformanceValues() {
 // Queries
 // Parameter at point determined by another parameters (e.g. PPV at Specificity = 0.99 is GetPerformanceParam("PPV","Spec",0.99,outPPV). setParams = (Score,Sens,Spec), queriedParams = (Score,Sens,Spec,PPV,NPV,OR)
 int MedClassifierPerformance::GetPerformanceParam(const string& setParam, const string& queriedParam, float setValue) {
-
+	
 	pair<string, float> set(setParam, setValue);
 	Measurement inMeasurement(queriedParam, setParam, setValue);
 	if (MeasurementValues.find(inMeasurement) != MeasurementValues.end())
@@ -301,6 +372,7 @@ int MedClassifierPerformance::GetPerformanceParam(const string& qParam) {
 }
 
 int MedClassifierPerformance::GetPerformanceParam(Measurement& inMeasurement) {
+
 	if (inMeasurement.setParam == "NONE")
 		return GetPerformanceParam(inMeasurement.queriedParam, inMeasurement.setValue);
 	else
@@ -372,8 +444,10 @@ int MedClassifierPerformance::getPerformanceValues(pair<string, float>& set, con
 	}
 
 	if (PerformancePointers[index].find(set) == PerformancePointers[index].end()) {
-		if (getPerformancePointer(set, index) < 0)
+		if (getPerformancePointer(set, index) < 0) {
+			fprintf(stderr, "Cannot find pointer for %s:%f for index = %d\n", set.first.c_str(), set.second, index);
 			return -1;
+		}
 	}
 
 	int start = PerformancePointers[index][set].first;

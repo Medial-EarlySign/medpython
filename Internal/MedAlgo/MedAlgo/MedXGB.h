@@ -53,7 +53,7 @@ public:
 	virtual int init(void *classifier_params) { this->params = *((MedXGBParams*)classifier_params); return 0; };
 	/// The parsed fields from init command.
 	/// @snippet MedXGB.cpp MedXGB::init
-	virtual int init(map<string, string>& initialization_map);
+	virtual int set_params(map<string, string>& initialization_map);
 
 	// Function
 	MedXGB() { init_defaults(); };

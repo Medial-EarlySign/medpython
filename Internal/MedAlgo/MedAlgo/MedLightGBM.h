@@ -40,7 +40,8 @@ namespace LightGBM {
 		MemApp() : Application::Application(0, NULL) {}
 		//~MemApp() { Application::~Application(); };
 
-		int init(map<string, string>& initialization_map);
+		int init(map<string, string>& initialization_map) {set_params(initialization_map);};
+		int set_params(map<string, string>& initialization_map);
 
 		// train
 		int InitTrain(float *xdata, float *ydata, const float *weight, int nrows, int ncols);

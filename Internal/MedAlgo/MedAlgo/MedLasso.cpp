@@ -16,9 +16,7 @@ void init_default_lasso_params(MedLassoParams& _params) {
 	_params.num_iterations = LASSO_NITER;
 }
 
-int MedLasso::init(map<string, string>& mapper) {
-
-	init_defaults();
+int MedLasso::set_params(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
