@@ -15,7 +15,8 @@
 //.......................................................................................
 int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	//MLOG("FeatureSelector::Learn %d features\n", features.data.size());
-	// select, ignoring requirments
+	
+	// select, possibly ignoring requirments
 	if (_learn(features, ids) < 0)
 		return -1;
 
@@ -575,6 +576,14 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	features.get_feature_names(names);
 	int nFeatures = (int)names.size();
 
+	// Required features
+	vector<int> lax_indices;
+	unordered_set<string> lax_lasso_features_set(lax_lasso_features.begin(), lax_lasso_features.end());
+	for (int i = 0; i < nFeatures; i++) {
+		if (lax_lasso_features_set.find(names[i]) != lax_lasso_features_set.end())
+			lax_indices.push_back(i);
+	}
+
 	if (numToSelect > nFeatures)
 		MTHROW_AND_ERR("Cannot select %d out of %d", numToSelect, nFeatures);
 
@@ -594,7 +603,8 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Initialize
 	int found = 0;
-	vector<double> lambdas(nthreads);
+	vector< vector<float> > lambdas(nthreads);
+	vector<float> base_lambdas(nthreads);
 	float minLambda = 0.0, maxLambda = initMaxLambda;
 	//	vector<MedLasso> predictors(nthreads);
 	vector<MedGDLM> predictors(nthreads);
@@ -611,24 +621,28 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Search
 	while (!found) {
-		if (nthreads == 1)
-			lambdas[0] = maxLambda;
+		if (nthreads == 1) {
+			base_lambdas[0] = maxLambda;
+			lambdas[0].assign(nFeatures, maxLambda);
+		}
 		else {
 			float step = (maxLambda - minLambda) / (nthreads - 1);
-			for (int i = 0; i < nthreads; i++)
-				lambdas[i] = minLambda + step *i;
+			for (int i = 0; i < nthreads; i++) {
+				base_lambdas[i] = minLambda + step *i;
+				lambdas[i].assign(nFeatures, base_lambdas[i]);
+				for (int idx : lax_indices)
+					lambdas[i][idx] = base_lambdas[i] * lambdaRatio;
+			}
 		}
 
 		for (int i = 0; i < nthreads; i++) {
-			predictors[i].init_from_string("method = logistic_sgd; last_is_bias = 0; stop_at_err = 1e-4; batch_size = 2048; momentum = 0.95; rate = 0.01; rate_decay = 1; l_ridge = 0; l_lasso = " + to_string(lambdas[i]) + "; err_freq = 10; nthreads = 12");
-			predictors[i].params.l_lasso = (float)lambdas[i];
-			//			predictors[i].params.lambda = lambdas[i];
-			//			predictors[i].initialize_vars(x.data_ptr(), y.data_ptr(), &(w[0]), predictors[i].b, x.nrows, x.ncols);
+			predictors[i].init_from_string(
+				"method = logistic_sgd; last_is_bias = 0; stop_at_err = 1e-4; batch_size = 2048; momentum = 0.95; rate = 0.01; rate_decay = 1; l_ridge = 0; ; err_freq = 10; nthreads = 12;l_lasso = 0");
+			predictors[i].params.ls_lasso = lambdas[i];
 		}
 
 #pragma omp parallel for 
 		for (int i = 0; i < nthreads; i++) {
-			//			predictors[i].lasso_regression(predictors[i].b, x.nrows, x.ncols, lambdas[i], predictors[i].params.num_iterations);
 			predictors[i].learn(x, y);
 
 			// Identify non-zero parameters
@@ -639,7 +653,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			}
 		}
 
-		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", lambdas[0], lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1], nStuck);
+		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", base_lambdas[0], base_lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1], nStuck);
 
 		if (nthreads == 1) { // Special care
 			if (nSelected[0] == numToSelect) {
@@ -664,7 +678,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 		else {
 			for (int j = 0; j < nthreads; j++)
-				MLOG("N[%.12f] = %d\n", lambdas[j], nSelected[j]);
+				MLOG("N[%.12f] = %d\n", base_lambdas[j], nSelected[j]);
 
 			//			float ratio;
 			if (nSelected[nthreads - 1] > numToSelect) { // MaxLambda is still too low
@@ -682,8 +696,8 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 						break;
 					}
 					else if (nSelected[i] < numToSelect) {
-						minLambda = (float)lambdas[i - 1];
-						maxLambda = (float)lambdas[i];
+						minLambda = (float)base_lambdas[i - 1];
+						maxLambda = (float)base_lambdas[i];
 						break;
 					}
 				}
@@ -745,6 +759,8 @@ int LassoSelector::init(map<string, string>& mapper) {
 		else if (field == "initMaxLambda") initMaxLambda = stof(entry.second);
 		else if (field == "nthreads") nthreads = stoi(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
+		else if (field == "lax_lasso_features") boost::split(lax_lasso_features, entry.second, boost::is_any_of(","));
+		else if (field == "lambdaRatio") lambdaRatio = stof(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 		//! [LassoSelector::init]

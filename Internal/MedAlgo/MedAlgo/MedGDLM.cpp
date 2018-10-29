@@ -35,6 +35,8 @@ void MedGDLM::init_defaults()
 	params.last_is_bias = 0;
 	params.l_ridge=0; 
 	params.l_lasso=0;
+	params.ls_ridge.clear();
+	params.ls_lasso.clear();
 	params.nthreads=0;
 	params.err_freq = 10;
 	b0 = 0 ;
@@ -59,6 +61,8 @@ int MedGDLM::init(void *_in_params)
 	params.last_is_bias = in_params->last_is_bias;
 	params.l_ridge = in_params->l_ridge; 
 	params.l_lasso = in_params->l_lasso;
+	params.ls_ridge = in_params->ls_ridge;
+	params.ls_lasso = in_params->ls_lasso;
 	params.nthreads = in_params->nthreads;
 
 	return 0 ;
@@ -66,6 +70,8 @@ int MedGDLM::init(void *_in_params)
 
 //..............................................................................
 int MedGDLM::set_params(map<string, string>& mapper) {
+
+	vector<string> fields;
 
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -81,6 +87,16 @@ int MedGDLM::set_params(map<string, string>& mapper) {
 		else if (field == "last_is_bias") params.last_is_bias = stoi(entry.second);
 		else if (field == "l_ridge") params.l_ridge = stof(entry.second);
 		else if (field == "l_lasso") params.l_lasso = stof(entry.second);
+		else if (field == "ls_ridge") {
+			boost::split(fields, entry.second, boost::is_any_of(","));
+			for (string l : fields)
+				params.ls_ridge.push_back(stof(l));
+		}
+		else if (field == "ls_lasso") {
+			boost::split(fields, entry.second, boost::is_any_of(","));
+			for (string l : fields)
+				params.ls_lasso.push_back(stof(l));
+		}
 		else if (field == "nthreads") params.nthreads = stoi(entry.second);
 		else if (field == "err_freq") params.err_freq = stoi(entry.second);
 		else if (field == "print") params.print_model = stoi(entry.second);
@@ -255,10 +271,28 @@ int MedGDLM::Learn_full(float *x, float *y, const float *w, int nsamples, int nf
 		MERR("MedGDLM::Learn : ERROR: methos=full can't learn model with lasso : try use the sgd model instead.\n");
 		return -1;
 	}
+
+	for (float l : params.ls_lasso) {
+		if (l > 0) {
+			MERR("MedGDLM::Learn : ERROR: methos=full can't learn model with lasso : try use the sgd model instead.\n");
+			return -1;
+		}
+	}
+
 	if (params.last_is_bias != 0) {
 		MERR("MedGDLM:: Learn : ERROR: method=full supports only last_is_bias==0 case... \n");
 		return -1;
 	}
+
+	// Exapnd lambda ridge to a vector
+	if (params.l_ridge > 0 && !params.ls_ridge.empty()) {
+		MERR("MedGDLM:Either l_ridge or ls_ridge may be given.\n");
+		return -1;
+	}
+
+	if (params.ls_ridge.empty())
+		params.ls_ridge.resize(nftrs, params.l_ridge);
+	Map<VectorXf> ridge(params.ls_ridge.data(), nftrs);
 
 	set_eigen_threads();
 
@@ -280,9 +314,8 @@ int MedGDLM::Learn_full(float *x, float *y, const float *w, int nsamples, int nf
 		float sq_fact = fact*fact;
 		xf *= fact;
 		xtx = xf * xf.transpose();
-		if (params.l_ridge > 0) {
-			xtx.diagonal().array() += params.l_ridge;//*sq_fact;
-		}
+		xtx.diagonal().array() += ridge.array();//*sq_fact;
+
 		xtx.conservativeResize(nftrs+1, nftrs+1);
 		xtx(nftrs, nftrs) = (float)nsamples*sq_fact;
 		for (int i=0; i<nftrs; i++) {
@@ -335,6 +368,16 @@ int MedGDLM::Learn_gd(float *x, float *y, const float *w, int nsamples, int nftr
 	MatrixXf xtf = xf.transpose();
 	float r = params.rate;
 
+	// Exapnd lambdas to vectors
+	if (params.ls_ridge.empty())
+		params.ls_ridge.resize(nftrs, params.l_ridge/nftrs);
+	Map<MatrixXf> ridge(params.ls_ridge.data(), 1, nftrs);
+
+	if (params.ls_lasso.empty())
+		params.ls_lasso.resize(nftrs, params.l_lasso/nftrs);
+	Map<MatrixXf> lasso(params.ls_lasso.data(), 1, nftrs);
+
+
 	float fact_grad = (float)1/((float)nsamples);
 	prev_grad.array().setZero();
 	
@@ -353,30 +396,22 @@ int MedGDLM::Learn_gd(float *x, float *y, const float *w, int nsamples, int nftr
 		grad *= fact_grad; // normalizing gradient to be independent of sample size (to "gradient per sample" units)
 
 		// ridge
-		if (params.l_ridge > 0) {
-			grad = grad + params.l_ridge*bf;
-		}
-
+		grad = grad + ridge.cwiseProduct(bf);
 
 		if (niter > 0)
 			grad = (1-params.momentum)*grad + params.momentum*prev_grad;
 
 		bf = bf - r*grad;
 
-		// lasso 
-		if (params.l_lasso > 0) {
-			for (int i=0; i<nftrs; i++) {
-				float lasso = params.l_lasso/(float)nftrs;
-				if (bf(0, i) > lasso)
-					bf(0, i) -= lasso;
-				else if (bf(0, i) < -lasso)
-					bf(0, i) += lasso;
-				if (bf(0, i) > -lasso && bf(0, i) < lasso)
-					bf(0, i) = 0;
-			}
+		// lasso
+		for (int i=0; i<nftrs; i++) {
+			if (bf(0, i) > lasso(0,i))
+				bf(0, i) -= lasso(0,i);
+			else if (bf(0, i) < -lasso(0, i))
+				bf(0, i) += lasso(0, i);
+			if (bf(0, i) > -lasso(0, i) && bf(0, i) < lasso(0, i))
+				bf(0, i) = 0;
 		}
-
-
 
 		diff = bf - prev_bf;
 		err = (grad.norm() + diff.norm())/(float)nftrs;
@@ -410,6 +445,14 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 		for (int i=0; i<nsamples; i++) norm_wgts.push_back(w[i]*(float)nsamples/(sum_w + (float)1e-5));
 	}
 
+	// Exapnd lambdas to vectors
+	if (params.ls_ridge.empty())
+		params.ls_ridge.resize(nftrs, params.l_ridge / nftrs);
+	Map<MatrixXf> ridge(params.ls_ridge.data(), 1, nftrs);
+
+	if (params.ls_lasso.empty())
+		params.ls_lasso.resize(nftrs, params.l_lasso / nftrs);
+	Map<MatrixXf> lasso(params.ls_lasso.data(), 1, nftrs);
 
 	// handling normalization if asked for
 	MedMat<float> normalized_x, normalized_y;
@@ -479,10 +522,7 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 			bias_grad *= fact_grad;
 
 			// ridge
-			if (params.l_ridge > 0) {
-				grad = grad + params.l_ridge*bf;
-			}
-
+			grad = grad + ridge.cwiseProduct(bf);
 
 			// momentum
 			if (first_time) { prev_grad = grad; prev_bias_grad = bias_grad; first_time = 0; }
@@ -496,12 +536,11 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 			b0 = b0 - r*bias_grad;
 
 			// lasso reguralizer step !! (using Tibrishani proximal gradient descent method)
-			if (params.l_lasso > 0) {
-				float bound = r*params.l_lasso;
-				for (int i=0; i<nftrs; i++)
-					if (bf(0, i) > bound) bf(0, i) -= bound;
-					else if (bf(0, i) < -bound) bf(0, i) += bound;
-					else bf(0, i) = 0;
+			for (int i = 0; i < nftrs; i++) {
+				float bound = r*lasso(0,i);
+				if (bf(0, i) > bound) bf(0, i) -= bound;
+				else if (bf(0, i) < -bound) bf(0, i) += bound;
+				else bf(0, i) = 0;
 			}
 
 			prev_grad = grad;
@@ -531,13 +570,11 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 
 			loss /= (double)nsamples;
 
-			if (params.l_ridge > 0) {
-				loss += params.l_ridge * (bf.array().square().sum());
-			}
-
-			if (params.l_lasso > 0) {
-				loss += params.l_lasso* (bf.array().abs().sum());
-			}
+			// ridge
+			loss += (ridge.array() * bf.array().square()).sum();
+			
+			// lasso
+			loss += (lasso.array() * bf.array().abs()).sum();
 
 			err = (float)(abs(prev_loss - loss)/(abs(prev_loss) + 1e-10));
 			prev_loss = loss;
@@ -600,6 +637,15 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 	}
 
 	float fact_numeric = (float)1000;
+
+	// Exapnd lambdas to vectors
+	if (params.ls_ridge.empty())
+		params.ls_ridge.resize(nftrs, params.l_ridge);
+	Map<MatrixXf> ridge(params.ls_ridge.data(),1, nftrs);
+
+	if (params.ls_lasso.empty())
+		params.ls_lasso.resize(nftrs, params.l_lasso);
+	Map<MatrixXf> lasso(params.ls_lasso.data(), 1, nftrs);
 
 	// initial guess - we start at 0. (should we try random?)
 	b0 = 0;
@@ -698,9 +744,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 			if (grad.norm() > 1e10) { MLOG("grad norm too big\n"); }
 
 			// ridge reguralizer
-			if (params.l_ridge > 0) {
-				grad = grad + params.l_ridge*bf;
-			}
+			grad = grad + ridge.cwiseProduct(bf);
 
 			// initialize prev_grad in first iter
 			if (niter == 0) {
@@ -719,16 +763,15 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 			b0 = b0 - r*bias_grad;
 
 			// lasso reguralizer step !! (using Tibrishani proximal gradient descent method)
-			if (params.l_lasso > 0) {
-				float bound = r*params.l_lasso;
-				for (int i=0; i<nftrs; i++)
-					if (bf(0, i) > bound) bf(0, i) -= bound; 
-					else if (bf(0, i) < -bound) bf(0, i) += bound; 
-					else bf(0, i) = 0;
+			for (int i = 0; i < nftrs; i++) {
+				float bound = r*lasso(0,i);
+				if (bf(0, i) > bound) bf(0, i) -= bound;
+				else if (bf(0, i) < -bound) bf(0, i) += bound;
+				else bf(0, i) = 0;
 			}
 
 			// update prev
-			prev_grad = grad;
+			prev_grad = grad;   
 			prev_bias_grad = bias_grad;
 		}
 
@@ -752,14 +795,11 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 
 			loss /= (double)nsamples;
 
-			if (params.l_ridge > 0) {
-				loss += params.l_ridge * (bf.array().square().sum());
-			}
+			// ridge
+			loss += (ridge.array() * bf.array().square()).sum();
 
-			if (params.l_lasso > 0) {
-				loss += params.l_lasso* (bf.array().abs().sum());
-			}
-
+			// lasso
+			loss += (lasso.array() * bf.array().abs()).sum();
 
 			diff = bf - prev_bf;
 
@@ -840,6 +880,10 @@ int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int
 	Map<MatrixXf> x_all(x,nftrs,nsamples);
 	MatrixXf xt = x_all.transpose();
 
+	// Exapnd lambdas to vectors
+	if (params.ls_ridge.empty())
+		params.ls_ridge.resize(nftrs, params.l_ridge / nftrs);
+	Map<MatrixXf> ridge(params.ls_ridge.data(),1, nftrs);
 
 	// setting the framework
 	int n_threads = params.nthreads;
@@ -855,7 +899,7 @@ int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int
 
 	MLOG("parallel logistic sgd :: x %d x %d , n_th %d batch_size %d n_batches_per_thread %d n_batches %d n_summed %d n_rounds_per_epoch %d\n",
 		nsamples, nftrs, n_threads, batch_size, n_batches_per_thread, n_batches, n_summed, n_rounds_per_epoch);
-	MLOG("parallel logistic sgd :: rate = %g , momentum = %g , min_err = %g , ridge = %g\n",r,momentum,params.stop_at_err,params.l_ridge);
+	MLOG("parallel logistic sgd :: rate = %g , momentum = %g , min_err = %g , ridge = %g\n",r,momentum,params.stop_at_err,ridge.array().mean());
 
 	vector<float> vpf(batch_size*n_threads);
 	int niter = 0;
@@ -915,9 +959,8 @@ int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int
 					if (grads.row(th).norm() > 1e10) {MLOG("grad norm too big\n");}
 					// ridge
 					if (params.l_ridge > 0) {
-						float ridge = params.l_ridge*(float)1/(float)nftrs; // trying to normalize ridge to be independent of feature num.
 						float bias = grads(th,nftrs-1);
-						grads.row(th) = grads.row(th) + ridge*bfs.row(th);
+						grads.row(th) = grads.row(th) + ridge.cwiseProduct(bfs.row(th));
 						if (params.last_is_bias)
 							grads(th,nftrs-1) = bias;
 					}
