@@ -318,6 +318,8 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 	map<string, int> pos;
 	vector<int> pred_pos;
 	map<string, int> attr_pos;
+	time_unit = global_default_time_unit;
+
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
