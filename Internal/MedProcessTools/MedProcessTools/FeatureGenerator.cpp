@@ -1461,10 +1461,13 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
+		else if (field == "medSamples_path") medSamples_path = entry.second;
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
 		//! [ModelFeatGenerator::init]
 	}
+	if (!medSamples_path.empty() && !modelFile.empty())
+		MTHROW_AND_ERR("Error in ModelFeatGenerator - please provide either medSamples_path or modelFile\n");
 
 	// set names
 	set_names();
@@ -1472,10 +1475,18 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 	boost::replace_all(modelFile, "{name}", modelName);
 	// Read Model and get required signal
 	MedModel *_model = new MedModel;
-	if (_model->read_from_file(modelFile) != 0)
-		MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
+	if (medSamples_path.empty()) {
+		if (_model->read_from_file(modelFile) != 0)
+			MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
+		init_from_model(_model);
+	}
+	else {
+		if (_preloaded.read_from_file(medSamples_path) < 0)
+			MTHROW_AND_ERR("Cannot read samples from file %s\n", medSamples_path.c_str());
+		use_overriden_predictions = 1;
+	}
 
-	init_from_model(_model);
+
 	return 0;
 }
 
@@ -1522,6 +1533,39 @@ void ModelFeatGenerator::override_predictions(MedSamples& inSamples, MedSamples&
 
 }
 
+void ModelFeatGenerator::find_predictions(MedSamples& requestSamples, MedFeatures &features) {
+	//prepare preds for generation
+	preds.reserve(requestSamples.nSamples());
+	int p_i = 0, p_j;
+	for (size_t i = 0; i < requestSamples.idSamples.size(); ++i)
+	{
+		int pid = requestSamples.idSamples[i].id;
+		//find pid in preloaded whihc is sorted:
+		while (p_i < _preloaded.idSamples.size() && _preloaded.idSamples[p_i].id < pid)
+			++p_i;
+		if (p_i >= _preloaded.idSamples.size() || _preloaded.idSamples[p_i].id != pid)
+			MTHROW_AND_ERR("Error in ModelFeatGenerator - preloaded is missing pid=%d\n", pid);
+		p_j = 0;
+		for (size_t j = 0; j < requestSamples.idSamples[i].samples.size(); ++j)
+		{
+			int time = requestSamples.idSamples[i].samples[j].time;
+			//search in preloaded:
+			while (p_j < _preloaded.idSamples[p_i].samples.size() && _preloaded.idSamples[p_i].samples[p_j].time < time)
+				++p_j;
+			if (p_j >= _preloaded.idSamples[p_i].samples.size() || _preloaded.idSamples[p_i].samples[p_j].time != time)
+				MTHROW_AND_ERR("Error in ModelFeatGenerator - preloaded is missing time for pid=%d, in time=%d\n",
+					pid, time);
+			MedSample &matched = _preloaded.idSamples[p_i].samples[p_j];
+			//copy from matched.predicitions to preds
+			if (matched.prediction.size() < n_preds)
+				MTHROW_AND_ERR("Error in ModelFeatGenerator - preloaded has %zu predictions and request %d\n",
+					matched.prediction.size(), n_preds);
+			for (size_t k = 0; k < n_preds; ++k)
+				preds.push_back(matched.prediction[k]);
+		}
+	}
+}
+
 // Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
@@ -1545,6 +1589,10 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 		}
 		// release some memory
 		model->features.clear();
+	}
+	else {
+		//find id, time in preloaded samples:
+		find_predictions(samples, features);
 	}
 	if (impute_existing_feature) {
 		FeatureProcessor p;
@@ -1577,22 +1625,27 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 // (De)Serialize
 //.......................................................................................
 size_t ModelFeatGenerator::get_size() {
-	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
+	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, medSamples_path);
 	return size + model->get_size();
 }
 
 size_t ModelFeatGenerator::serialize(unsigned char *blob) {
-	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
+	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, medSamples_path);
 	size_t ptr2 = model->serialize(blob + ptr1);
 	return ptr2 + ptr1;
 }
 
 size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
 
-	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
+	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, medSamples_path);
 	model = new MedModel;
 	size_t ptr2 = model->deserialize(blob + ptr1);
 	return ptr2 + ptr1;
+}
+
+ModelFeatGenerator::~ModelFeatGenerator() {
+	if (model != NULL) delete model;
+	model = NULL;
 }
 
 //................................................................................................................
