@@ -277,7 +277,7 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
 		time_unit_win, time_channel, val_channel, sum_channel, signalName, sets,
-		names, req_signals, in_set_name ,bound_outcomeTime)
+		names, req_signals, in_set_name, bound_outcomeTime)
 
 };
 
@@ -579,12 +579,12 @@ public:
 
 	string modelFile = ""; ///<  File for serialized model
 	MedModel *model = NULL; ///< model
-	string modelName = "";
-	int n_preds = 1;
-	int impute_existing_feature = 0;
+	string modelName = ""; ///< name of final feature
+	int n_preds = 1;  ///< how many features to create
+	int impute_existing_feature = 0; ///< If true will impute using model feature, otherwise using preds
 	int use_overriden_predictions = 0;
+	string medSamples_path = ""; ///< If provided will override predictions using samples
 	/// A container for the predictions
-	vector<float> preds;
 
 	/// Naming 
 	void set_names();
@@ -608,6 +608,13 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
+	//dctor:
+	~ModelFeatGenerator();
+private:
+	vector<float> preds;
+	MedSamples _preloaded;
+
+	void find_predictions(MedSamples& requestSamples, MedFeatures &features);
 };
 
 
