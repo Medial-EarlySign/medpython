@@ -138,7 +138,7 @@ void MedClassifierPerformance::_load(MedSamples& samples) {
 		MTHROW_AND_ERR("Cannot have both split and non-split samples\n");
 
 	// Fill
-	int nSplits = splits.size();
+	int nSplits = (int)splits.size();
 	map<int, int> split_idx;
 	int idx = 0;
 	for (int split : splits)
