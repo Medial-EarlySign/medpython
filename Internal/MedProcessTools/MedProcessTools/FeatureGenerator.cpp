@@ -1625,19 +1625,19 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 // (De)Serialize
 //.......................................................................................
 size_t ModelFeatGenerator::get_size() {
-	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, medSamples_path);
+	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded);
 	return size + model->get_size();
 }
 
 size_t ModelFeatGenerator::serialize(unsigned char *blob) {
-	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, medSamples_path);
+	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded);
 	size_t ptr2 = model->serialize(blob + ptr1);
 	return ptr2 + ptr1;
 }
 
 size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
 
-	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, medSamples_path);
+	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded);
 	model = new MedModel;
 	size_t ptr2 = model->deserialize(blob + ptr1);
 	return ptr2 + ptr1;
