@@ -5,32 +5,32 @@
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-unordered_map<int, string> caliberation_method_to_name = {
+unordered_map<int, string> calibration_method_to_name = {
 	{probabilty_time_window, "time_window"},
 	{ probabilty_binning, "binning" },
 	{ probabilty_platt_scale, "platt_scale" }
 };
 
-CaliberationTypes cliberation_name_to_type(const string& caliberation_name) {
-	for (auto it = caliberation_method_to_name.begin(); it != caliberation_method_to_name.end(); ++it)
-		if (it->second == caliberation_name)
+CaliberationTypes cliberation_name_to_type(const string& calibration_name) {
+	for (auto it = calibration_method_to_name.begin(); it != calibration_method_to_name.end(); ++it)
+		if (it->second == calibration_name)
 			return CaliberationTypes(it->first);
-	string opts = medial::io::get_list_op(caliberation_method_to_name);
-	MTHROW_AND_ERR("unknown caliberation_name \"%s\"\nOptions Are:%s\n",
-		caliberation_name.c_str(), opts.c_str());
+	string opts = medial::io::get_list_op(calibration_method_to_name);
+	MTHROW_AND_ERR("unknown calibration_name \"%s\"\nOptions Are:%s\n",
+		calibration_name.c_str(), opts.c_str());
 }
 
 int Calibrator::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [Calibrator::init]
-		if (field == "caliberation_type") caliberation_type = cliberation_name_to_type(entry.second);
+		if (field == "calibration_type") calibration_type = cliberation_name_to_type(entry.second);
 		else if (field == "estimator_type") estimator_type = entry.second;
 		else if (field == "binning_method") binning_method = entry.second;
 		else if (field == "bins_num") bins_num = stoi(entry.second);
-		else if (field == "pos_sample_min_days_before_case") pos_sample_min_days_before_case = stoi(entry.second);
-		else if (field == "pos_sample_max_days_before_case") pos_sample_max_days_before_case = stoi(entry.second);
-		else if (field == "km_time_resolution_in_days") km_time_resolution_in_days = stoi(entry.second);
+		else if (field == "pos_sample_min_time_before_case") pos_sample_min_time_before_case = stoi(entry.second);
+		else if (field == "pos_sample_max_time_before_case") pos_sample_max_time_before_case = stoi(entry.second);
+		else if (field == "km_time_resolution") km_time_resolution = stoi(entry.second);
 		else if (field == "do_calibration_smoothing") do_calibration_smoothing = stoi(entry.second);
 		else if (field == "min_cases_for_calibration_smoothing_pct") min_cases_for_calibration_smoothing_pct = stoi(entry.second);
 		else if (field == "min_preds_in_bin") min_preds_in_bin = stoi(entry.second);
@@ -48,15 +48,17 @@ int Calibrator::init(map<string, string>& mapper) {
 
 double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot) {
 	double prob = 1.0;
-	int total_controls_all = 0;
+	int total_all = 0;
 	for (int i = 0; i < controls_per_time_slot.size(); i++)
-		total_controls_all += controls_per_time_slot[i];
+		total_all += controls_per_time_slot[i] + cases_per_time_slot[i] ;
 	//MLOG("size %d total_controls_all %d\n", controls_per_time_slot.size(), total_controls_all);
 	for (int i = 0; i < controls_per_time_slot.size(); i++) {
-		if (total_controls_all <= 0)
-			MTHROW_AND_ERR("calc_kaplan_meier left without controls in time slot [%d]\n", i);
-		prob *= (double)total_controls_all / (cases_per_time_slot[i] + total_controls_all);
-		total_controls_all -= controls_per_time_slot[i];
+		if (total_all == 0) {
+			MWARN("Reached 0 samples at time slot [%d]. Quitting\n", i);
+			break;
+		}
+		prob *= (1.0 - ((float) cases_per_time_slot[i]) / total_all);
+		total_all -= (controls_per_time_slot[i] + cases_per_time_slot[i]);
 	}
 	return 1.0 - prob;
 }
@@ -176,48 +178,49 @@ template void apply_platt_scale<float, double>(const vector<float> &preds, const
 template void apply_platt_scale<float, float>(const vector<float> &preds, const vector<double> &params, vector<float> &converted);
 
 int Calibrator::apply_time_window(MedSamples& samples) {
-	int do_km;
+	
+	int type;
 	if (estimator_type == "kaplan_meier") {
-		do_km = 1;
+		type = 1;
 		MLOG("calibrating [%d] samples using kaplan_meier estimator\n",samples.nSamples());
 	}
 	else if (estimator_type == "mean_cases") {
-		do_km = 0;
+		type = 0;
 		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.nSamples());
+	}
+	else if (estimator_type == "bin") {
+		type = 2;
+		MLOG("calibrating [%d] samples using bin estimator\n", samples.nSamples());
 	}
 	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
 
 	for (auto &pat : samples.idSamples) {
-		for (auto& s : pat.samples) {
-			calibration_entry best = calibrate_pred(s.prediction[0]);
-			if (do_km)
-				s.prediction[0] = best.kaplan_meier;
-			else
-				s.prediction[0] = best.mean_outcome;
-		}
+		for (auto& s : pat.samples)
+			s.prediction[0] = calibrate_pred(s.prediction[0], type);
 	}
 	return 0;
 }
 
 int Calibrator::apply_time_window(vector<MedSample>& samples) {
-	int do_km;
+
+	int type;
 	if (estimator_type == "kaplan_meier") {
-		do_km = 1;
-		MLOG("calibrating [%d] samples using kaplan_meier estimator\n",samples.size());
+		type = 1;
+		MLOG("calibrating [%d] samples using kaplan_meier estimator\n", samples.size());
 	}
 	else if (estimator_type == "mean_cases") {
-		do_km = 0;
+		type = 0;
 		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.size());
+	}
+	else if (estimator_type == "bin") {
+		type = 2;
+		MLOG("calibrating [%d] samples using bin estimator\n", samples.size());
 	}
 	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
 
-	for (auto& s : samples) {
-		calibration_entry best = calibrate_pred(s.prediction[0]);
-		if (do_km)
-			s.prediction[0] = best.kaplan_meier;
-		else
-			s.prediction[0] = best.mean_outcome;
-	}
+	for (auto& s : samples)
+		s.prediction[0] = calibrate_pred(s.prediction[0], type);
+
 
 	return 0;
 }
@@ -245,8 +248,9 @@ void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 
 
 int Calibrator::Apply(MedSamples& samples) {
+	
 	vector<float> preds, labels, probs;
-	switch (caliberation_type)
+	switch (calibration_type)
 	{
 	case CaliberationTypes::probabilty_time_window:
 		return apply_time_window(samples);
@@ -263,15 +267,15 @@ int Calibrator::Apply(MedSamples& samples) {
 		write_to_predicition(samples, probs);
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported implementation for learning caliberation method %s\n",
-			caliberation_method_to_name[caliberation_type].c_str());
+		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
+			calibration_method_to_name[calibration_type].c_str());
 	}
 	return 0;
 }
 
 int Calibrator::Apply(vector <MedSample>& samples) {
 	vector<float> preds, labels, probs;
-	switch (caliberation_type)
+	switch (calibration_type)
 	{
 	case CaliberationTypes::probabilty_time_window:
 		return apply_time_window(samples);
@@ -288,8 +292,8 @@ int Calibrator::Apply(vector <MedSample>& samples) {
 		write_to_predicition(samples, probs);
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported implementation for learning caliberation method %s\n",
-			caliberation_method_to_name[caliberation_type].c_str());
+		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
+			calibration_method_to_name[calibration_type].c_str());
 	}
 	return 0;
 }
@@ -299,11 +303,11 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 	for (const auto& pat : orig_samples.idSamples)
 		for (const auto& s : pat.samples)
 			samples.push_back(s);
-	Learn(samples);
+	Learn(samples,orig_samples.time_unit);
 	return 0;
 }
 
-int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
+int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit) {
 
 	int do_km;
 	if (estimator_type == "kaplan_meier")
@@ -324,11 +328,11 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
 			min_pred = e.prediction[0];
 		if (e.prediction[0] > max_pred)
 			max_pred = e.prediction[0];
-		int gap = get_day_approximate(e.outcomeTime) - get_day_approximate(e.time);
-		if (gap < pos_sample_min_days_before_case)
+		int gap = med_time_converter.convert_times(samples_time_unit, time_unit, e.outcomeTime) - med_time_converter.convert_times(samples_time_unit, time_unit, e.time);
+		if (gap < pos_sample_min_time_before_case)
 			// too close to outcome date or censor date (chance for peeking, or even beyond the outcome date)
 			continue;
-		if (e.outcome >= 1 && gap > pos_sample_max_days_before_case)
+		if (e.outcome >= 1 && gap > pos_sample_max_time_before_case)
 			// too far case is considered as control
 			e.outcome = 0;
 		if (e.outcome >= 1)
@@ -368,7 +372,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
 	vector<float> bin_sum_preds;
 	vector<vector<int>> bin_controls_per_time_slot;
 	vector<vector<int>> bin_cases_per_time_slot;
-	int km_time_slots = (pos_sample_max_days_before_case - pos_sample_min_days_before_case) / km_time_resolution_in_days;
+	int km_time_slots = (pos_sample_max_time_before_case - pos_sample_min_time_before_case) / km_time_resolution;
 	if (km_time_slots <= 0)
 		km_time_slots = 1;
 	MLOG("km_time_slots [%d] \n", km_time_slots);
@@ -391,8 +395,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
 	int cnt = 0, bin = 1;
 	float prev_pred = min_pred;
 	for (auto &o : samples) {
-		// TODO: use medtime
-		int gap = get_day_approximate(o.outcomeTime) - get_day_approximate(o.time);
+		int gap = med_time_converter.convert_times(samples_time_unit, time_unit, o.outcomeTime) - med_time_converter.convert_times(samples_time_unit, time_unit, o.time);
 		if (
 			(bin < bins_num)
 			&&
@@ -407,10 +410,10 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples) {
 			bin_min_preds[bin] = o.prediction[0];
 		}
 		int time_slot;
-		if (gap > pos_sample_max_days_before_case)
+		if (gap > pos_sample_max_time_before_case)
 			time_slot = km_time_slots;
 		else
-			time_slot = (gap - pos_sample_min_days_before_case) / km_time_resolution_in_days;
+			time_slot = (gap - pos_sample_min_time_before_case) / km_time_resolution;
 
 		if (o.outcome >= 1) {
 			cnt_cases[bin] ++;
@@ -617,12 +620,12 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 		double(tot_pos) / y.size(), loss_model, loss_prior);
 }
 
-int Calibrator::Learn(const vector<MedSample>& orig_samples) {
+int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_unit) {
 	vector<float> preds, labels;
-	switch (caliberation_type)
+	switch (calibration_type)
 	{
 	case CaliberationTypes::probabilty_time_window:
-		learn_time_window(orig_samples);
+		learn_time_window(orig_samples, sample_time_unit);
 		break;
 	case CaliberationTypes::probabilty_binning:
 		collect_preds_labels(orig_samples, preds, labels);
@@ -635,8 +638,8 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples) {
 			min_score_res, min_prob_res, fix_pred_order);
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported implementation for learning caliberation method %s\n",
-			caliberation_method_to_name[caliberation_type].c_str());
+		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
+			calibration_method_to_name[calibration_type].c_str());
 	}
 	return 0;
 }
@@ -670,7 +673,7 @@ void Calibrator::write_calibration_time_window(const string & calibration_table_
 
 void Calibrator::write_calibration_table(const string & calibration_table_file) {
 	ofstream of;
-	switch (caliberation_type)
+	switch (calibration_type)
 	{
 	case probabilty_time_window:
 		write_calibration_time_window(calibration_table_file);
@@ -696,8 +699,8 @@ void Calibrator::write_calibration_table(const string & calibration_table_file) 
 		MLOG("wrote [%d] bins into [%s]\n", (int)platt_params.size(), calibration_table_file.c_str());
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported implementation for writing caliberation method %s\n",
-			caliberation_method_to_name[caliberation_type].c_str());
+		MTHROW_AND_ERR("Unsupported implementation for writing calibration method %s\n",
+			calibration_method_to_name[calibration_type].c_str());
 	}
 }
 
@@ -742,7 +745,7 @@ void Calibrator::read_calibration_table(const string& fname) {
 	ifstream f;
 	string curr_line;
 	vector<string> tokens;
-	switch (caliberation_type)
+	switch (calibration_type)
 	{
 	case probabilty_time_window:
 		read_calibration_time_window(fname);
@@ -782,13 +785,29 @@ void Calibrator::read_calibration_table(const string& fname) {
 		MLOG("read [%d] bins into [%s]\n", (int)platt_params.size(), fname.c_str());
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported implementation for reading caliberation method %s\n",
-			caliberation_method_to_name[caliberation_type].c_str());
+		MTHROW_AND_ERR("Unsupported implementation for reading calibration method %s\n",
+			calibration_method_to_name[calibration_type].c_str());
 	}
 }
 
+float Calibrator::calibrate_pred(float pred, int type) {
+
+	int start = 0;
+	for (int i = 0; i < cals.size(); i++) {
+		if (pred >= cals[i].min_pred)
+			start = i;
+	}
+
+	if (type == 0)
+		return cals[start].mean_outcome;
+	else if (type == 1)
+		return cals[start].kaplan_meier;
+	else
+		return (float)start;
+}
+
 calibration_entry Calibrator::calibrate_pred(float pred) {
-	if (caliberation_type == probabilty_time_window) {
+	if (calibration_type == probabilty_time_window) {
 		int start = 0;
 		for (int i = 0; i < cals.size(); i++) {
 			if (pred >= cals[i].min_pred)
@@ -817,5 +836,6 @@ calibration_entry Calibrator::calibrate_pred(float pred) {
 		return res;
 	}
 }
+
 
 

@@ -983,8 +983,10 @@ int MedRepository::load(const string &sig_name, vector<int> &pids_to_take)
 //--------------------------------------------------------------------------------------
 int MedRepository::load(const vector<string> &sig_names, vector<int> &pids_to_take)
 {
+	unordered_set<string> sig_set;
+	for (auto &s : sig_names) sig_set.insert(s);
 	int rc = 0;
-	for (auto &sname : sig_names)
+	for (auto &sname : sig_set)
 		rc += load(sname, pids_to_take);
 	return rc;
 }
@@ -992,8 +994,10 @@ int MedRepository::load(const vector<string> &sig_names, vector<int> &pids_to_ta
 //--------------------------------------------------------------------------------------
 int MedRepository::load(const vector<int> &sids, vector<int> &pids_to_take)
 {
+	unordered_set<int> sid_set;
+	for (auto s : sids) sid_set.insert(s);
 	int rc = 0;
-	for (int sid : sids)
+	for (int sid : sid_set)
 		rc += load(sid, pids_to_take);
 	return rc;
 }

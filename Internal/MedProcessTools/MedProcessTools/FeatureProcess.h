@@ -476,6 +476,10 @@ public:
 	/// Initial lambda
 	float initMaxLambda = (float)0.005;
 
+	/// Features less controled in the selection stage (set labmda -> lambda*lambdaRatio)
+	float lambdaRatio = (float)0.1;
+	vector<string> lax_lasso_features;
+
 	int nthreads = 12;
 
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_LASSO_SELECTOR; };
