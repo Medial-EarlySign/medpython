@@ -488,6 +488,8 @@ public:
 	int Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int nsamples, int nftrs);
 private:
 	void set_eigen_threads() const;
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params);
 };
 
 void init_default_lm_params(MedLMParams& _parmas);
