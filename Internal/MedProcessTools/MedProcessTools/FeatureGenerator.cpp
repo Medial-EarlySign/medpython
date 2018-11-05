@@ -232,10 +232,10 @@ size_t FeatureGenerator::generator_serialize(unsigned char *blob) {
 // Set required signal ids
 //.......................................................................................
 void FeatureGenerator::set_required_signal_ids(MedDictionarySections& dict) {
-	if (req_signals.empty()) {
+	/*if (req_signals.empty()) {
 		dprint("", 1);
 		MTHROW_AND_ERR("FeatureGenerator::set_required_signal_ids got empty req_signals\n");
-	}
+	}*/
 	req_signal_ids.resize(req_signals.size());
 
 	for (unsigned int i = 0; i < req_signals.size(); i++)
@@ -1484,6 +1484,9 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		if (_preloaded.read_from_file(medSamples_path) < 0)
 			MTHROW_AND_ERR("Cannot read samples from file %s\n", medSamples_path.c_str());
 		use_overriden_predictions = 1;
+		model = _model;
+		if (model->predictor == NULL)
+			model->set_predictor("gdlm");
 	}
 
 
