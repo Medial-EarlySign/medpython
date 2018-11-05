@@ -110,6 +110,14 @@ int MedGDLM::set_params(map<string, string>& mapper) {
 }
 
 //..............................................................................
+void MedGDLM::calc_feature_importance(vector<float> &features_importance_scores,
+	const string &general_params)
+{	
+	for (auto coef : b) { features_importance_scores.push_back(-1.0 * coef); }
+	features_importance_scores.push_back(-1.0* b0);
+}
+
+//..............................................................................
 MedGDLM::MedGDLM () 
 {
 	init_defaults();
