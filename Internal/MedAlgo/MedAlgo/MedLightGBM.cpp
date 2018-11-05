@@ -48,6 +48,8 @@ namespace LightGBM {
 		ParameterAlias::KeyAliasTransform(&params);
 		// load configs
 		config_.Set(params);
+		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL)
+			Log::ResetLogLevel(LogLevel::Warning);
 		Log::Info("Finished loading parameters");
 		return 0;
 	}

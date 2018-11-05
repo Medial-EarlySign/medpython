@@ -40,7 +40,7 @@ namespace LightGBM {
 		MemApp() : Application::Application(0, NULL) {}
 		//~MemApp() { Application::~Application(); };
 
-		int init(map<string, string>& initialization_map) {return set_params(initialization_map);};
+		int init(map<string, string>& initialization_map) { return set_params(initialization_map); };
 		int set_params(map<string, string>& initialization_map);
 
 		// train
@@ -188,7 +188,7 @@ public:
 
 	// learn predict
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
-		fprintf(stderr, "Starting a LightGBM train session...\n");
+		global_logger.log(LOG_MEDALGO, LOG_DEF_LEVEL, "Starting a LightGBM train session...\n");
 		mem_app.InitTrain(x, y, w, nsamples, nftrs);
 		mem_app.Train();
 		_mark_learn_done = true;
