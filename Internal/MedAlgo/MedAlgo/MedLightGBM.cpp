@@ -43,13 +43,22 @@ namespace LightGBM {
 	//-------------------------------------------------------------------------------------------------
 	int MemApp::set_params(map<string, string>& init_params)
 	{
+		bool need_to_silence = false;
+		need_to_silence = init_params.find("verbose") != init_params.end()
+			&& stoi(init_params.at("verbose")) <= 0;
+		need_to_silence |= init_params.find("verbosity") != init_params.end()
+			&& stoi(init_params.at("verbosity")) <= 0;
+		need_to_silence |= init_params.find("silent") != init_params.end()
+			&& stoi(init_params.at("silent")) > 0;
+		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || need_to_silence)
+			Log::ResetLogLevel(LogLevel::Warning);
+
 		unordered_map<string, string> params;
 		for (auto &e : init_params) params[e.first] = e.second;
 		ParameterAlias::KeyAliasTransform(&params);
 		// load configs
 		config_.Set(params);
-		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL)
-			Log::ResetLogLevel(LogLevel::Warning);
+
 		Log::Info("Finished loading parameters");
 		return 0;
 	}
