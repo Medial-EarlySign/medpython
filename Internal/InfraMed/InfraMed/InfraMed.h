@@ -433,9 +433,12 @@ public:
 
 	// printing routines (mainly for debugging)
 	void print_vec_dict(void *data, int len, int pid, int sid);
+	void long_print_vec_dict(void *data, int len, int pid, int sid);
 	void print_channel_helper(int sid, int channel, float val);
+	string get_channel_info(int sid, int channel, float val);
 	string convert_date(int d, int sid);
 	void print_data_vec_dict(int pid, int sid);
+	void long_print_data_vec_dict(int pid, int sid);
 	void print_csv_vec(void * data, int len, int pid, int sid, bool dict_val);
 
 
