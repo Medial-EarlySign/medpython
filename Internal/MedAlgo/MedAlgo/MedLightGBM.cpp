@@ -43,14 +43,14 @@ namespace LightGBM {
 	//-------------------------------------------------------------------------------------------------
 	int MemApp::set_params(map<string, string>& init_params)
 	{
-		bool need_to_silence = false;
-		need_to_silence = init_params.find("verbose") != init_params.end()
+		is_silent = false;
+		is_silent = init_params.find("verbose") != init_params.end()
 			&& stoi(init_params.at("verbose")) <= 0;
-		need_to_silence |= init_params.find("verbosity") != init_params.end()
-			&& stoi(init_params.at("verbosity")) <= 0;
-		need_to_silence |= init_params.find("silent") != init_params.end()
-			&& stoi(init_params.at("silent")) > 0;
-		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || need_to_silence)
+		is_silent |= (init_params.find("verbosity") != init_params.end()
+			&& stoi(init_params.at("verbosity")) <= 0);
+		is_silent |= (init_params.find("silent") != init_params.end()
+			&& stoi(init_params.at("silent")) > 0);
+		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
 			Log::ResetLogLevel(LogLevel::Warning);
 
 		unordered_map<string, string> params;
@@ -66,7 +66,9 @@ namespace LightGBM {
 	//-------------------------------------------------------------------------------------------------
 	int MemApp::InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols)
 	{
-		MLOG("MedLightGBM:: init train data %d x %d\n", nrows, ncols);
+		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
+			Log::ResetLogLevel(LogLevel::Warning);
+		Log::Info("init train data %d x %d\n", nrows, ncols);
 		if (config_.num_threads > 0) omp_set_num_threads(config_.num_threads);
 
 		std::unique_ptr<Dataset> ret;
@@ -116,9 +118,9 @@ namespace LightGBM {
 			train_data_->SetFloatField("weight", weight, nrows);
 
 		// create training metric
-		MLOG("training eval bit %d\n", config_.boosting_config.is_provide_training_metric);
+		Log::Info("training eval bit %d\n", config_.boosting_config.is_provide_training_metric);
 		if (config_.boosting_config.is_provide_training_metric) {
-			MLOG("Creating training metrics: types %d\n", config_.metric_types.size());
+			Log::Info("Creating training metrics: types %d\n", config_.metric_types.size());
 			for (auto metric_type : config_.metric_types) {
 				auto metric = std::unique_ptr<Metric>(Metric::CreateMetric(metric_type, config_.metric_config));
 				if (metric == nullptr) { continue; }
@@ -128,12 +130,14 @@ namespace LightGBM {
 		}
 		train_metric_.shrink_to_fit();
 
-		MLOG("MedLightGBM:: finished loading train mat\n");
+		Log::Info("finished loading train mat\n");
 		return 0;
 	}
 
 	//-------------------------------------------------------------------------------------------------
 	int MemApp::InitTrain(float *xdata, float *ydata, const float *weight, int nrows, int ncols) {
+		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
+			Log::ResetLogLevel(LogLevel::Warning);
 		if (config_.is_parallel) { Log::Info("parallel mode not supported yet for MedLightGBM !!"); return -1; }
 
 		// create boosting
@@ -161,6 +165,8 @@ namespace LightGBM {
 
 	//-------------------------------------------------------------------------------------------------
 	void MemApp::Train() {
+		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
+			Log::ResetLogLevel(LogLevel::Warning);
 		Log::Info("Started training...");
 		int total_iter = config_.boosting_config.num_iterations;
 		bool is_finished = false;
