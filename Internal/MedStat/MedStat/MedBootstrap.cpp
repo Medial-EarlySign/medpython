@@ -248,7 +248,7 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 }
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
-	const map<string, vector<float>> &additional_info) {
+	const vector<float> *weights, const map<string, vector<float>> &additional_info) {
 
 	map<string, FilterCohortFunc> cohorts;
 	map<string, void *> cohort_params;
@@ -284,7 +284,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	}
 
 	if (!simTimeWindow) {
-		return booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
+		return booststrap_analyze(preds, y, weights, *rep_ids, additional_info, cohorts,
 			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
 			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 	}
@@ -307,7 +307,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 				MWARN("Cohort \"%s\" name already exists - skip additional\n");
 
 		if (!cohorts.empty())
-			all_results = booststrap_analyze(preds, y, *rep_ids, additional_info, cohorts,
+			all_results = booststrap_analyze(preds, y, weights, *rep_ids, additional_info, cohorts,
 				measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
 				preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 
@@ -321,7 +321,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 				medial::process::make_sim_time_window(it->first, it->second,
 					y, additional_info, y_changed, cp_info, cohorts_t, cohort_params_t);
 
-				auto agg_res = booststrap_analyze(preds, y_changed, *rep_ids, cp_info, cohorts_t,
+				auto agg_res = booststrap_analyze(preds, y_changed, weights, *rep_ids, cp_info, cohorts_t,
 					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
 					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 				if (!agg_res.empty()) // if the cohort is too small it does not return results
@@ -570,7 +570,7 @@ void MedBootstrap::clean_feature_name_prefix(map<string, vector<float>> &feature
 }
 
 void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<float> &y,
-	const vector<int> &pids, const map<string, vector<float>> &data,
+	const vector<int> &pids, const vector<float> *weights, const map<string, vector<float>> &data,
 	const unordered_map<int, vector<int>> &splits_inds,
 	map<int, map<string, map<string, float>>> &results_per_split) {
 
@@ -594,7 +594,7 @@ void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<f
 				split_data[jt->first][i] = jt->second[it->second[i]];
 		}
 		results_per_split[split_id] =
-			bootstrap_base(split_preds, split_y, split_pids, split_data);
+			bootstrap_base(split_preds, split_y, split_pids, weights, split_data);
 	}
 
 }
@@ -755,9 +755,9 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 		prepare_bootstrap(features, preds, y, pids, data);
 
 	if (results_per_split != NULL)
-		add_splits_results(preds, y, pids, data, splits_inds, *results_per_split);
+		add_splits_results(preds, y, pids, &features.weights, data, splits_inds, *results_per_split);
 
-	return bootstrap_base(preds, y, pids, data);
+	return bootstrap_base(preds, y, pids, &features.weights, data);
 }
 
 void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids,
