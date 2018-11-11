@@ -131,7 +131,7 @@ void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureG
 
 // Handle feature names
 //.......................................................................................
-int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_error) {
+int find_in_feature_names(const vector<string>& names, const string& substr, bool throw_on_error) {
 
 	int index = -1;
 	for (int i = 0; i < names.size(); i++) {
@@ -141,8 +141,14 @@ int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_e
 		}
 		if (names[i].find(substr) != string::npos) {
 			if (index != -1) {
-				if (throw_on_error)
-					MTHROW_AND_ERR("%s\n", (string("Got source_feature_name [") + substr + "] which matches both [" + names[i] + "] and [" + names[index] + "]").c_str());
+				if (throw_on_error) {
+					MTHROW_AND_ERR("Got source_feature_name [%s] which matches both [%s] and [%s]",
+						substr.c_str(), names[i].c_str(), names[index].c_str());
+				}
+				else {
+					MWARN("Got source_feature_name [%s] which matches both [%s] and [%s]",
+						substr.c_str(), names[i].c_str(), names[index].c_str());
+				}
 				return -1;
 			}
 
