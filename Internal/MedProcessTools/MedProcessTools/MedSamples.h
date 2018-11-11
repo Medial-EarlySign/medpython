@@ -97,6 +97,9 @@ public:
 	/// <returns> true if equal , false otherwise </returns>
 	bool same_as(MedIdSamples &other, int mode);
 
+	/// <summary> get a vector of all times for the pid
+	void get_times(vector<int> &times) { times.clear(); for (auto &s : samples) times.push_back(s.time); }
+
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(id, split, samples)
 

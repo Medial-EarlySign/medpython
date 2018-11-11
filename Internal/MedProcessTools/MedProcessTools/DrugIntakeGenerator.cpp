@@ -37,7 +37,7 @@ void DrugIntakeGenerator::init_defaults() {
 
 // Generate
 //.......................................................................................
-int DrugIntakeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int DrugIntakeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	string& name = names[0];
 

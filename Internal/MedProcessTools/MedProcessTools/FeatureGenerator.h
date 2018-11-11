@@ -64,12 +64,13 @@ public:
 	// Naming
 	virtual void set_names() { names.clear(); }
 
-	// Helper - pointers to data vectors in MedFeatures (to save time in generatin)
+	// Helper - pointers to data vectors in MedFeatures (to save time in generation)
 	vector <float *> p_data;
 
 	// Prepare for feature generation
 	virtual void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
-	virtual void get_p_data(MedFeatures& features);
+	virtual void get_p_data(MedFeatures& features, vector<float *> &_p_data);
+	void get_p_data(MedFeatures& features) { get_p_data(features, p_data); }
 
 	// Constructor/Destructor
 	FeatureGenerator() { learn_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS; pred_nthreads = DEFAULT_FEAT_GNRTR_NTHREADS;  missing_val = MED_MAT_MISSING_VALUE; serial_id = ++MedFeatures::global_serial_id_cnt; };
@@ -99,7 +100,13 @@ public:
 
 	// generate feature data from repository
 	// We assume the corresponding MedSamples have been inserted to MedFeatures : either at the end or at position index
-	virtual int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return 0; }
+	int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features, index, num, p_data); }
+
+	// the following is the MAIN generation routine to implement.
+	// note that it is given a p_data of its own. This is in order to allow different records to write results to different places.
+	// the default run will use it with the generator p_data.
+	virtual int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num, vector<float *> &_p_data) { return 0; }
+
 	int generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features, index, num); }
 	int generate(PidDynamicRec& in_rep, MedFeatures& features);
 	int generate(MedPidRepository& rep, int id, MedFeatures& features);
@@ -265,7 +272,7 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	/// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 	float get_value(PidDynamicRec& rec, int index, int time, int outcomeTime);
 
 	/// Signal Ids
@@ -310,7 +317,7 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -355,7 +362,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<SingletonGenerator *>(generator)); }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -392,7 +399,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id("GENDER"); }
@@ -461,13 +468,13 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
 
 	/// generate new feature(s)
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	/// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
 	int filter_features(unordered_set<string>& validFeatures);
 
 	// get pointers to data
-	void get_p_data(MedFeatures& features);
+	void get_p_data(MedFeatures& features, vector<float *> &_p_data);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict);
@@ -558,7 +565,7 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 	float get_value(PidDynamicRec& rec, int index, int date);
 
 	// Signal Ids
@@ -601,7 +608,7 @@ public:
 	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);
 
 	/// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// (De)Serialize
 	size_t get_size();

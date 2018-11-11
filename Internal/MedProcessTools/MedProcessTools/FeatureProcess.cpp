@@ -738,7 +738,7 @@ int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	if (verbose && missing_cnt > 0) {
-		MLOG("FeatureImputer::%s:: with %d imputations out of %zu(%2.2f%%)\n",
+		MLOG_D("FeatureImputer::%s:: with %d imputations out of %zu(%2.2f%%)\n",
 			resolved_feature_name.c_str(), missing_cnt, data.size(), 100.0 * missing_cnt / double(data.size()));
 	}
 	return 0;
