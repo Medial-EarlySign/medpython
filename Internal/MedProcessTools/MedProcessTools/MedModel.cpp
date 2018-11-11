@@ -1052,6 +1052,10 @@ void MedModel::get_all_features_names(vector<string> &feat_names, int before_pro
 	}
 	assert((before_process_set < feature_processors.size()) || (before_process_set == 0 && feature_processors.size() == 0));
 	for (int i = 0; i < before_process_set; i++) {
+		//if (feature_processors[i]->is_selector()) {
+		//	FeatureSelector *fs = (FeatureSelector *)feature_processors[i];
+		//	uniq_feat_names = fs->selected;
+		//}
 		vector<string> my_names;
 		feature_processors[i]->get_feature_names(my_names);
 		for (string& name : my_names)
@@ -1061,6 +1065,7 @@ void MedModel::get_all_features_names(vector<string> &feat_names, int before_pro
 	for (auto f : uniq_feat_names)
 		feat_names.push_back(f);
 }
+
 
 //.......................................................................................
 // De(Serialize)
@@ -1352,3 +1357,197 @@ int MedModel::write_feature_matrix(const string mat_fname)
 
 	return x.write_to_csv_file(mat_fname);
 }
+
+#if 0
+//...................................................................................................
+int MedModel::init_for_apply_rec(MedPidRepository &rep)
+{
+	// init virtual signals
+	if (collect_and_add_virtual_signals(rep) < 0) {
+		MERR("FAILED collect_and_add_virtual_signals\n");
+		return -1;
+	}
+
+	// Initialize
+	init_all(rep.dict, rep.sigs);
+
+	// Required signals
+	required_signal_names.clear();
+	required_signal_ids.clear();
+
+	get_required_signal_names(required_signal_names);
+	for (string signal : required_signal_names)
+		required_signal_ids.insert(rep.dict.id(signal));
+
+	for (int signalId : required_signal_ids) {
+		if ((!rep.in_mem_mode_active()) && rep.index.index_table[signalId].is_loaded != 1)
+			MLOG("MedModel::apply WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
+				signalId, rep.dict.name(signalId).c_str());;
+	}
+
+	// prepare for generation
+	MedSamples samples;
+	for (auto& generator : generators) {
+		if (generator->generator_type == FTR_GEN_MODEL)
+			MTHROW_AND_ERR("MedModel::init_for_apply_rec() does not support FTR_GEN_MODEL type in this version\n");
+		generator->prepare(features, rep, samples);
+	}
+
+
+}
+
+//...................................................................................................
+int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag)
+{
+	int start_stage = MED_MDL_APPLY_FTR_GENERATORS;
+	int end_stage = MED_MDL_END;
+
+	// Stage Sanity
+	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
+		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);
+		return -1;
+	}
+
+
+	// drec copy if needed
+	PidDynamicRec &rec = drec;
+	PidDynamicRec copy_rec;
+	if (copy_rec_flag) {
+		copy_rec = drec;
+		copy_rec.set_data_to_buffer();
+		rec = copy_rec;
+	}
+
+
+	UniversalSigVec usv; rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+
+	//dprint_process("==> In Apply (1) <==", 2, 0, 0);
+
+	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+
+
+		// Currently this implementation ignores the savings that can be made using conditional apply, 
+		// Mainly for clarity and simplicity.
+		// It is to be done later
+
+		// _feat initializations
+		// not supporting weights attributes in this code... again for simplicity
+		_feat = features; // copy template features that was already initialized
+		MLOG("apply_rec 1.2\n");
+		MLOG("rep time_unit is: %d\n", rec.my_base_rep->time_unit);
+		_feat.set_time_unit(rec.my_base_rep->time_unit);
+		MLOG("apply_rec 1.3\n");
+		_feat.append_samples(idSamples);
+
+		for (auto &s : _feat.samples)
+			MLOG("pid %d time %d\n", s.id, s.time);
+
+		MLOG("apply_rec 1.5\n");
+
+		_feat.init_pid_pos_len();
+
+
+		MLOG("apply_rec 2\n");
+		// Apply rep-processing
+		vector<vector<float>> attr_vals;
+		vector<int> times;
+		idSamples.get_times(times);
+
+		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+		for (unsigned int i = 0; i < rep_processors.size(); i++)
+			if (rep_processors[i]->_apply(rec, times, attr_vals) < 0) {
+				MERR("MedModel: FAILED apply_rec() for pid %d , rep_processor %d \n", idSamples.id, i);
+				rep_processors[i]->print();
+				MLOG("\n");
+				return -1;
+			}
+
+		MLOG("apply_rec 3\n");
+
+		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+		MLOG("apply_rec 4\n");
+
+		// Resize data vectors and collect pointers
+		int samples_size = (int)idSamples.samples.size();
+		vector<vector<float *>> _pdata(generators.size());
+		_feat.print_csv();
+		float jj = 0;
+		for (auto &generator : generators) {
+			for (string& name : generator->names) {
+				MLOG("stage 4: name %s size %d j resize %d %f\n", name.c_str(), _feat.data[name].size(), samples_size, jj);
+				_feat.data[name].resize(samples_size, jj++);
+			}
+		}
+
+		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+		int k = 0;
+		for (auto &generator : generators)
+			generator->get_p_data(_feat, _pdata[k++]);
+
+		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+		MLOG("apply_rec 5\n");
+		_feat.print_csv();
+
+		// Get Required signals per processor (set)
+		vector<unordered_set<int> > current_req_signal_ids(rep_processors.size());
+		for (unsigned int i = 0; i < rep_processors.size(); i++) {
+			get_all_required_signal_ids(current_req_signal_ids[i], rep_processors, i, generators);
+			MLOG("i %d : cuur_req (%d) : ", i, current_req_signal_ids[i].size());
+			for (auto r : current_req_signal_ids[i])
+				MLOG("%d ", r);
+			MLOG("\n");
+		}
+
+		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+		int rc = 0;
+		MLOG("apply_rec 6\n");
+
+		vector<vector<float>> attr;
+		// Apply rep-processing
+		for (unsigned int i = 0; i < rep_processors.size(); i++)
+			if (rep_processors[i]->conditional_apply(rec, idSamples, current_req_signal_ids[i]) < 0)
+			//if (rep_processors[i]->_apply(rec, times, attr) < 0)
+				return -1;
+
+		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+		MLOG("apply_rec 7\n");
+
+		// Generate Features
+		k = 0;
+		for (auto& generator : generators) {
+			MLOG("generating: generator %s \n", generator->names[0].c_str());
+			if (generator->_generate(rec, _feat, 0, samples_size, _pdata[k++]) < 0)
+				return -1;
+		}
+		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
+
+	}
+
+	MLOG("apply_rec 8\n");
+
+	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
+		return 0;
+
+	// Process Features
+	for (auto& processor : feature_processors) {
+		if (processor->apply(_feat) < 0) 
+			return -1;
+	}
+
+	MLOG("apply_rec 9\n");
+
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
+		return 0;
+
+	// Apply predictor
+	_feat.print_csv();
+	if (predictor->predict(_feat) < 0) {
+		MERR("Predictor failed\n");
+		return -1;
+	}
+
+	MLOG("apply_rec 10\n");
+
+	return 0;
+}
+#endif
