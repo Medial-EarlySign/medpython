@@ -47,6 +47,7 @@ public:
 
 	/// Init from string
 	int init_from_string(string init_string);
+	int init_params_from_file(string init_file);
 	virtual int init(map<string, string>& map) { return 0; } ///<Virtual to init object from parsed fields
 };
 

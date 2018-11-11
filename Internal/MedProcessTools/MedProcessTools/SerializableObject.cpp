@@ -6,6 +6,8 @@
 #include <boost/crc.hpp>
 #include <chrono>
 #include <thread>
+#include <boost/algorithm/string/replace.hpp>
+
 
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -78,7 +80,19 @@ int SerializableObject::init_from_string(string init_string) {
 
 	map<string, string> map;
 	if (init_map_from_string(init_string, map) < 0) return -1;
+	if (map.size() == 1 && map.begin()->first == "pFile") {
+		return init_params_from_file(map.begin()->second);
+	}
 	if (init(map) < 0) return -1;
 
 	return 0;
+}
+
+// Init from file
+int SerializableObject::init_params_from_file(string fname)
+{
+	string data;
+	if (read_file_into_string(fname, data) < 0) return -1;
+	boost::replace_all(data, "\n", "");
+	return init_from_string(data);
 }
