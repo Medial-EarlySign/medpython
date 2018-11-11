@@ -597,6 +597,7 @@ public:
 	// this option allows adding new signals definitions to the class, that were not defined in the files.
 	// this is useful when using repositories to calculate new features, etc.
 	int insert_virtual_signal(const string &sig_name, int type);
+	int get_sids(vector<string> &sigs, vector<int> &sids);
 };
 
 
