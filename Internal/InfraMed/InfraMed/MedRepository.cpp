@@ -986,8 +986,11 @@ int MedRepository::load(const vector<string> &sig_names, vector<int> &pids_to_ta
 	unordered_set<string> sig_set;
 	for (auto &s : sig_names) sig_set.insert(s);
 	int rc = 0;
-	for (auto &sname : sig_set)
-		rc += load(sname, pids_to_take);
+	for (auto &sname : sig_set) {
+		int local_rc = load(sname, pids_to_take);
+		if (local_rc < 0) MERR("MedRepository::load() : ERROR: Failed reading signal %s\n", sname.c_str());
+		rc += local_rc;
+	}
 	return rc;
 }
 
