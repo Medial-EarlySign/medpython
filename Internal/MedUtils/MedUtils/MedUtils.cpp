@@ -525,6 +525,7 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 		global_logger.init_format(LOG_APP , full_log_format);
 		global_logger.init_format(LOG_DEF, full_log_format);
 		global_logger.init_format(LOG_MED_MODEL, full_log_format);
+		global_logger.init_format(LOG_MEDALGO, full_log_format);
 		MLOG("Debug Running With:\n");
 		string full_params = string(argv[0]);
 		char buffer[1000];
