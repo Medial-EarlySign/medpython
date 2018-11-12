@@ -85,12 +85,14 @@ def ___fix_vecmap_iter():
     glob = globals()
     for i in glob:
         o = glob[i]
-        if (isclass(o) and '__len__' in dir(o) and '__getitem__' in dir(o) and not '__iter__' in dir(o) 
-            and i.endswith('VectorAdaptor')) :
-            setattr(o, '__iter__', lambda x: IntIndexIter(x))
-        elif (isclass(o) and '__getitem__' in dir(o) and 'keys' in dir(o) and not '__iter__' in dir(o) 
-            and i.endswith('MapAdaptor')) :
-            setattr(o, '__iter__', lambda x: MapAdaptorKeyIter(x))
+        try:
+          if (isclass(o) and '__len__' in dir(o) and '__getitem__' in dir(o) and not '__iter__' in dir(o) 
+              and i.endswith('VectorAdaptor')) :
+              setattr(o, '__iter__', lambda x: IntIndexIter(x))
+          elif (isclass(o) and '__getitem__' in dir(o) and 'keys' in dir(o) and not '__iter__' in dir(o) 
+              and i.endswith('MapAdaptor')) :
+              setattr(o, '__iter__', lambda x: MapAdaptorKeyIter(x))
+        except: pass
 
 ___fix_vecmap_iter()
 
@@ -102,12 +104,27 @@ External Methods in addition to api
 
 
 def __export_to_pandas(self, sig_name_str):
-    """get_sig(signame) -> Pandas DataFrame """
+    """get_sig_no_cat_conv(signame) -> Pandas DataFrame """
     from pandas import DataFrame
     return DataFrame.from_dict(dict(self.export_to_numpy(sig_name_str))) 
 
+def __export_to_pandas2(self, sig_name_str, translate=True):
+    """get_sig(signame [, translate=True]) -> Pandas DataFrame """
+    import pandas as pd
+    sigexporter = self.export_to_numpy(sig_name_str)
+    df = pd.DataFrame.from_dict(dict(sigexporter))
+    if not translate:
+      return df
+    for field in sigexporter.get_categorical_fields():
+        sigexporter.get_categorical_field_dict(field)
+        ckey = sigexporter.get_categorical_keys()
+        cval = sigexporter.get_categorical_values()
+        df[field] = df[field].map(
+            pd.Series({ v:k for k,v in enumerate(ckey) })).astype('category').cat.rename_categories(cval)
+    return df
+
 def __bind_external_methods():
-    setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
+    setattr(globals()['PidRepository'],'get_sig', __export_to_pandas2)
 
 __bind_external_methods()
 

@@ -37,17 +37,17 @@ public:
 	/// @param seed if 0 will use random device to select seed for randomization
 	/// </summary>
 	Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
-		const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed);
+		const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed);
 
 	/// <summary>
 	/// Inline function to fetch next pred,label couple in the bootstrap process
 	/// </summary>
-	inline bool fetch_next(int thread, float &ret_y, float &ret_pred);
+	inline bool fetch_next(int thread, float &ret_y, float &ret_pred, float &weight);
 
 	/// <summary>
 	/// external function to fetch next pred,label couple in the bootstrap process for external implementitions
 	/// </summary>
-	bool fetch_next_external(int thread, float &ret_y, float &ret_pred);
+	bool fetch_next_external(int thread, float &ret_y, float &ret_pred, float &weight);
 
 	/// <summary>
 	/// to restart the iterator
@@ -59,7 +59,7 @@ public:
 	/// @param p_preds a pointer to array predictions
 	/// @param thread_num an access point to the bootstrap state - thread_numbeer or bootstrap loop count
 	/// </summary>
-	void set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num);
+	void set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, int thread_num);
 
 	~Lazy_Iterator();
 
@@ -85,10 +85,12 @@ private:
 	vector<int> vec_size;
 	vector<const float *> vec_y;
 	vector<const float *> vec_preds;
+	vector<const float *> vec_weights;
 
 	//original vectors
 	const float *preds;
 	const float *y;
+	const float *weights;
 	const vector<int> *pids;
 
 
@@ -343,8 +345,8 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params);
 /// Returns a map from each cohort name to the measurments results. each measurments results
 /// is also a map from each measurement name to it's value
 /// </returns>
-map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
-	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
+map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<float> *weights
+	, const vector<int> &pids, const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
 	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
 	const map<string, void *> *cohort_params = NULL, const vector<void *> *function_params = NULL,
 	ProcessMeasurementParamFunc process_measurments_params = NULL,

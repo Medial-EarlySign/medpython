@@ -78,6 +78,8 @@ float DrugIntakeGenerator::get_value(PidDynamicRec &rec, UniversalSigVec &usv, i
 	if (sig_outcomeTime < max_time)
 		max_time = sig_outcomeTime;
 
+	if (max_time < min_time)
+		return MED_MAT_MISSING_VALUE;
 	// Check Drugs
 	vector<vector<pair<int, int> > > drugIntakePeriods(sets.size());
 

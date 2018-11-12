@@ -238,5 +238,19 @@ public:
 	std::vector<std::string> keys();
 };
 
+class MPIntStringMapAdaptor {
+	bool o_owned = true;
+	std::map<int, string>* o;
+public:
+	MPIntStringMapAdaptor();
+	MEDPY_IGNORE(MPIntStringMapAdaptor(const MPIntStringMapAdaptor& other));
+	MEDPY_IGNORE(MPIntStringMapAdaptor(std::map<int, string>* ptr));
+	~MPIntStringMapAdaptor();
+	int __len__();
+	std::string __getitem__(int i);
+	void __setitem__(int i, const string& val);
+	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len));
+};
+
 
 #endif // !__MED_PY_COMMON_H

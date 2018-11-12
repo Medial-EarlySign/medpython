@@ -193,6 +193,15 @@ typedef enum {
 	FTR_LAST
 } BasicFeatureTypes;
 
+/** @enum
+* TimeRangeTypes determines how the time window depends on a time-range determined by another signal
+*/
+typedef enum {
+	TIME_RANGE_CURRENT = 0, ///<"current" - consider only the current time-range
+	TIME_RANGE_BEFORE = 1, ///< "before" - consider anything before the current time-range
+	TIME_RANGE_LAST
+} TimeRangeTypes ;
+
 /**
 * A Basic Stats Generator for calcing simple statics on time window
 */
@@ -200,32 +209,44 @@ class BasicFeatGenerator : public FeatureGenerator {
 private:
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime); // Added the win as needed to be called on different ones in uget_win_delta
-	float uget_first(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_last2(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_avg(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_max(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_min(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_std(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_last_delta(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_last_time(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_last2_time(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_slope(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_win_delta(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_first(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_last2(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_avg(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_max(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_min(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_std(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_last_delta(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_last_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_last2_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_slope(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_win_delta(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int _d_win_from, int _d_win_to, int outcomeTime);
+	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime);
 	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime);
-	float uget_max_diff(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_first_time(UniversalSigVec &usv, int time_point, int outcomeTime);
-	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int outcomeTime);
+	float uget_max_diff(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_first_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+
+	// update time window according to time-range signal
+	void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time, int& updated_win_from, int& updated_win_to, bool delta_win,
+		int& updated_d_win_from, int& updated_d_win_to);
+	void get_updated_time_window(TimeRangeTypes type, int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to);
 
 public:
 	// Feature Descrption
 	string signalName;
 	int signalId;
 
-	int version() { return 1; } ///< added "bound_outcomeTime" in version 1
+	int version() { return 2; } ///< added "bound_outcomeTime" in version 1
+								///< added time_range_signal in version 2
+
+	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
+	string timeRangeSignalName = "";
+	int timeRangeSignalId;
+	TimeRangeTypes timeRangeType = TIME_RANGE_CURRENT;
+	int time_unit_range_sig = MedTime::Undefined;		///< the time init in which the range signal is given. (set correctly from Repository in learn and _generate)
 
 	// parameters (should be serialized)
 	BasicFeatureTypes type = FTR_LAST;
@@ -251,14 +272,27 @@ public:
 	// Constructor/Destructor
 	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
 	//~BasicFeatGenerator() {};
-	void set(string& _signalName, BasicFeatureTypes _type) { set(_signalName, _type, 0, 360000); req_signals.assign(1, signalName); }
+	void set(string& _signalName, BasicFeatureTypes _type) { 
+		set(_signalName, _type, 0, 360000); 
+		req_signals.assign(1, signalName); 
+		if (timeRangeSignalName != "")
+			req_signals.push_back(timeRangeSignalName);
+	}
+	
 	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) {
 		signalName = _signalName; type = _type; win_from = _time_win_from; win_to = _time_win_to;
-		set_names(); req_signals.assign(1, signalName);
+		set_names();
+		req_signals.assign(1, signalName);
+		if (timeRangeSignalName != "")
+			req_signals.push_back(timeRangeSignalName);
 	}
 
 	/// Converts a name to type - please reffer to BasicFeatureTypes
 	BasicFeatureTypes name_to_type(const string &name);
+
+	/// Conversion between time-range type and name
+	TimeRangeTypes time_range_name_to_type(const string& name);
+	string time_range_type_to_name(TimeRangeTypes type);
 
 	/// The parsed fields from init command.
 	/// @snippet FeatureGenerator.cpp BasicFeatGenerator::init
@@ -269,14 +303,19 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
 
 	/// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
+		time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit;
+		if (timeRangeSignalName != "")
+			time_unit_range_sig = rep.sigs.Sid2Info[rep.sigs.sid(timeRangeSignalName)].time_unit;
+		return 0;
+	}
 
 	/// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 	float get_value(PidDynamicRec& rec, int index, int time, int outcomeTime);
 
 	/// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); timeRangeSignalId = dict.id(timeRangeSignalName); }
 
 	/// Init required tables
 	void init_tables(MedDictionarySections& dict);
@@ -284,7 +323,7 @@ public:
 	// Serialization
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
 		time_unit_win, time_channel, val_channel, sum_channel, signalName, sets,
-		names, req_signals, in_set_name, bound_outcomeTime)
+		names, req_signals, in_set_name ,bound_outcomeTime, timeRangeSignalName, timeRangeType)
 
 };
 

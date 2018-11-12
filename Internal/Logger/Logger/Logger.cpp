@@ -6,9 +6,17 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <cctype>
+#include <thread>
+#include <ctime>
 #include "Logger.h"
 
 MedLogger global_logger;
+
+vector<string> log_section_to_name = { "APP", "DEFAULT", "INFRA", "REP", "INDEX", "DICT", "SIG", "CONVERT", "MED_UTILS",
+"MEDMAT", "MEDIO", "DATA_STRUCTURES", "MEDALGO", "MEDFEAT", "MEDSTAT", "REPCLEANER", "FTRGNRTR", "CV", "FEATCLEANER",
+"VALCLNR", "MED_SAMPLES_CV", "FEAT_SELECTOR", "SMPL_FILTER", "SRL", "MED_MODEL", "REPTYPE" };
+vector<string> log_level_to_name = { "min_level", "", "", "DEBUG", "", "INFO", "", "", "", "WARN", "ERROR" };
 
 //-----------------------------------------------------------------------------------------------
 void MedLogger::init_out()
@@ -38,6 +46,7 @@ MedLogger::MedLogger()
 {
 	levels.resize(MAX_LOG_SECTION);
 	fds.resize(MAX_LOG_SECTION);
+	format.resize(MAX_LOG_SECTION, "%s");
 
 	for (int i = 0; i < MAX_LOG_SECTION; i++) {
 		levels[i] = LOG_DEF_LEVEL;
@@ -143,6 +152,65 @@ int MedLogger::add_file(int section, const string &fname) {
 	return 0;
 }
 
+void init_vars(string &str, int section, int print_level) {
+	//search for all $ as sepcial char in format
+	size_t idx = str.find("$");
+	char buff[100];
+	while (idx != string::npos) {
+		//read till space:
+		int var_idx = 0;
+		while (var_idx < sizeof(buff) - 1 && !isspace(str[idx + 1 + var_idx])) {
+			buff[var_idx] = tolower(str[idx + 1 + var_idx]);
+			++var_idx;
+		}
+		buff[var_idx] = '\0';
+		string var_name = string(buff);
+		if (var_name == "time") {
+			time_t theTime = time(NULL);
+			struct tm *now;
+#if defined(__unix__)
+			now = localtime(&theTime);
+#else
+			struct tm now_m;
+			now = &now_m;
+			localtime_s(now, &theTime);
+#endif
+
+			snprintf(buff, sizeof(buff), "[%d-%02d-%02d %02d:%02d:%02d]",
+				now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min, now->tm_sec);
+
+		}
+		else if (var_name == "level") {
+			if (print_level < log_level_to_name.size())
+				snprintf(buff, sizeof(buff), "[%s]", log_level_to_name[print_level].c_str());
+			else
+				snprintf(buff, sizeof(buff), "[Unknown_level]");
+		}
+		else if (var_name == "section") {
+			if (section < log_section_to_name.size())
+				snprintf(buff, sizeof(buff), "[%s]", log_section_to_name[section].c_str());
+			else
+				snprintf(buff, sizeof(buff), "[Unknown_section]");
+		}
+		else
+			throw invalid_argument("Invalid log format: " + str);
+
+		str.replace(idx, var_idx + 1, buff);
+
+		idx = str.find("$");
+	}
+}
+
+void MedLogger::init_format(int section, const string &new_format) {
+	if (section < MAX_LOG_SECTION)
+		format[section] = new_format;
+}
+
+void MedLogger::init_all_formats(int section, const string &new_format) {
+	for (int i = 0; i < MAX_LOG_SECTION; i++)
+		format[i] = new_format;
+}
+
 //-----------------------------------------------------------------------------------------------
 int MedLogger::log(int section, int print_level, char *fmt, ...)
 {
@@ -153,6 +221,10 @@ int MedLogger::log(int section, int print_level, char *fmt, ...)
 		return 1;
 
 	bool wrote_log = false;
+	char buff[5000];
+	//prepare format:
+	string format_e = format[section];
+	init_vars(format_e, section, print_level);
 	for (size_t i = 0; i < fds[section].size(); ++i)
 	{
 		if (fds[section][i] == NULL)
@@ -160,8 +232,10 @@ int MedLogger::log(int section, int print_level, char *fmt, ...)
 		wrote_log = true;
 		va_list args;
 		va_start(args, fmt);
-		vfprintf(fds[section][i], fmt, args);
+		//vfprintf(fds[section][i], fmt, args);
+		vsnprintf(buff, sizeof(buff), fmt, args);
 		va_end(args);
+		fprintf(fds[section][i], format_e.c_str(), buff);
 		fflush(fds[section][i]);
 	}
 

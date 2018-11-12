@@ -207,7 +207,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(BOOST_HOME);%(SolutionDir)..\..\zlib\zlib;$(VLDIncludeDir);./win32;%(AdditionalIncludeDirectories);%(SolutionDir)..\rapidjson\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BOOST_HOME);%(SolutionDir)..\..\zlib\zlib;$(VLDIncludeDir);%(AdditionalIncludeDirectories);%(SolutionDir)..\rapidjson\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/D "_CRT_SECURE_NO_WARNINGS"  /D "_CRT_NONSTDC_NO_DEPRECATE" %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion Condition="'$(Configuration)'=='Release'">AnySuitable</InlineFunctionExpansion>
@@ -227,7 +227,8 @@
       <SuppressStartupBanner Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SuppressStartupBanner>
     </Link>
     <PreBuildEvent>
-      <Command>win32\make_config_h.exe</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <PropertyGroup Condition="'$(Platform)'=='x64'">
