@@ -452,6 +452,8 @@ int MedSignals::get_sids(vector<string> &sigs, vector<int> &sids)
 		else
 			sids.push_back(_sid);
 	}
+
+	return rc;
 }
 
 //================================================================================================
