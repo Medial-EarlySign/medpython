@@ -162,6 +162,12 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points only if required : May be implemented for inheriting classes </summary>
 	virtual int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds, vector<vector<float>>& attributes_vals);
 
+	// next is needed for efficient applying of a single records
+	virtual int _apply_simple(PidDynamicRec& rec, vector<int>& time_points) {
+		vector<vector<float>> attributes_vals;
+		return _apply(rec, time_points, attributes_vals);
+	}
+
 	// Applying envelopes - Here because of issues with overloading and inheritance
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points</summary>
 	int apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_vals) { return _apply(rec, time_points, attributes_vals); }
@@ -212,6 +218,7 @@ public:
 
 	void clear();
 
+
 	/// <summary> Add processors to set  </summary>
 	void add_processors_set(RepProcessorTypes type, vector<string>& signals);
 	/// <summary> Add processors to set with initialization string  </summary>
@@ -256,6 +263,7 @@ public:
 
 	/// <summary> Apply processors </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_vals);
+	int _apply_simple(PidDynamicRec& rec, vector<int>& time_points);
 	/// <summary> Apply processors that affect any of the needed signals </summary>
 	int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignals, vector<vector<float>>& attributes_mat);
 

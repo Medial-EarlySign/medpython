@@ -1358,7 +1358,7 @@ int MedModel::write_feature_matrix(const string mat_fname)
 	return x.write_to_csv_file(mat_fname);
 }
 
-#if 0
+#if 1
 //...................................................................................................
 int MedModel::init_for_apply_rec(MedPidRepository &rep)
 {
@@ -1393,10 +1393,16 @@ int MedModel::init_for_apply_rec(MedPidRepository &rep)
 		generator->prepare(features, rep, samples);
 	}
 
-
+	return 0;
 }
 
 //...................................................................................................
+// important:
+// currently this implementation DOES NOT support weights and runs ALL rep_processors without
+// the mechanisms for conditional_apply. Also Does not support attributes at the moment.
+// Both should be added in the future.
+// Main usage for now : allow most well defined models to be run rec by rec, with a natural way of 
+// combining them in other models.
 int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag)
 {
 	int start_stage = MED_MDL_APPLY_FTR_GENERATORS;
@@ -1419,10 +1425,6 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 	}
 
 
-	UniversalSigVec usv; rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
-
-	//dprint_process("==> In Apply (1) <==", 2, 0, 0);
-
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 
 
@@ -1433,97 +1435,38 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 		// _feat initializations
 		// not supporting weights attributes in this code... again for simplicity
 		_feat = features; // copy template features that was already initialized
-		MLOG("apply_rec 1.2\n");
-		MLOG("rep time_unit is: %d\n", rec.my_base_rep->time_unit);
 		_feat.set_time_unit(rec.my_base_rep->time_unit);
-		MLOG("apply_rec 1.3\n");
 		_feat.append_samples(idSamples);
-
-		for (auto &s : _feat.samples)
-			MLOG("pid %d time %d\n", s.id, s.time);
-
-		MLOG("apply_rec 1.5\n");
-
 		_feat.init_pid_pos_len();
 
-
-		MLOG("apply_rec 2\n");
-		// Apply rep-processing
-		vector<vector<float>> attr_vals;
 		vector<int> times;
 		idSamples.get_times(times);
-
-		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
-		for (unsigned int i = 0; i < rep_processors.size(); i++)
-			if (rep_processors[i]->_apply(rec, times, attr_vals) < 0) {
-				MERR("MedModel: FAILED apply_rec() for pid %d , rep_processor %d \n", idSamples.id, i);
-				rep_processors[i]->print();
-				MLOG("\n");
-				return -1;
-			}
-
-		MLOG("apply_rec 3\n");
-
-		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
-		MLOG("apply_rec 4\n");
 
 		// Resize data vectors and collect pointers
 		int samples_size = (int)idSamples.samples.size();
 		vector<vector<float *>> _pdata(generators.size());
-		_feat.print_csv();
 		float jj = 0;
 		for (auto &generator : generators) {
-			for (string& name : generator->names) {
-				MLOG("stage 4: name %s size %d j resize %d %f\n", name.c_str(), _feat.data[name].size(), samples_size, jj);
+			for (string& name : generator->names)
 				_feat.data[name].resize(samples_size, jj++);
-			}
 		}
 
-		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
 		int k = 0;
 		for (auto &generator : generators)
 			generator->get_p_data(_feat, _pdata[k++]);
 
-		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
-		MLOG("apply_rec 5\n");
-		_feat.print_csv();
-
-		// Get Required signals per processor (set)
-		vector<unordered_set<int> > current_req_signal_ids(rep_processors.size());
-		for (unsigned int i = 0; i < rep_processors.size(); i++) {
-			get_all_required_signal_ids(current_req_signal_ids[i], rep_processors, i, generators);
-			MLOG("i %d : cuur_req (%d) : ", i, current_req_signal_ids[i].size());
-			for (auto r : current_req_signal_ids[i])
-				MLOG("%d ", r);
-			MLOG("\n");
-		}
-
-		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
-		int rc = 0;
-		MLOG("apply_rec 6\n");
-
-		vector<vector<float>> attr;
 		// Apply rep-processing
 		for (unsigned int i = 0; i < rep_processors.size(); i++)
-			if (rep_processors[i]->conditional_apply(rec, idSamples, current_req_signal_ids[i]) < 0)
-			//if (rep_processors[i]->_apply(rec, times, attr) < 0)
-				return -1;
-
-		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
-		MLOG("apply_rec 7\n");
+			if (rep_processors[i]->_apply_simple(rec, times) < 0)
+					return -1;
 
 		// Generate Features
 		k = 0;
 		for (auto& generator : generators) {
-			MLOG("generating: generator %s \n", generator->names[0].c_str());
 			if (generator->_generate(rec, _feat, 0, samples_size, _pdata[k++]) < 0)
 				return -1;
 		}
-		rec.uget("Hemoglobin", 0, usv); MLOG("#Hemoglobin length : %d\n", usv.len);
-
 	}
-
-	MLOG("apply_rec 8\n");
 
 	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
 		return 0;
@@ -1534,19 +1477,14 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 			return -1;
 	}
 
-	MLOG("apply_rec 9\n");
-
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
 	// Apply predictor
-	_feat.print_csv();
 	if (predictor->predict(_feat) < 0) {
 		MERR("Predictor failed\n");
 		return -1;
 	}
-
-	MLOG("apply_rec 10\n");
 
 	return 0;
 }

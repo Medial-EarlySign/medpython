@@ -97,9 +97,6 @@ public:
 
 	void get_all_features_names(vector<string> &feat_names, int before_process_set);
 
-	// for a trained model, the following calculates the names that will stay in MedFeatures in the order they will appear in the generated matrix.
-	void get_final_feature_names(vector<string> &feat_names);
-
 	// Add Feature Processors
 	void add_feature_processor(FeatureProcessor *processor) { feature_processors.push_back(processor); };
 

@@ -487,6 +487,16 @@ int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	return 0;
 }
 
+//.......................................................................................
+int RepMultiProcessor::_apply_simple(PidDynamicRec& rec, vector<int>& time_points) 
+{
+	for (auto p : processors) {
+		if ((p->_apply_simple(rec, time_points)) < 0)
+			return -1;
+	}
+	return 0;
+}
+
 // Apply processors that affect any of the needed signals
 //.......................................................................................
 int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignalIds, vector<vector<float>>& attributes_mat) {
