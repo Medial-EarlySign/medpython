@@ -540,7 +540,44 @@ void MPSigExporter::get_all_data() {
 	}
 	break;
 
+	//Export SDateFloat2
 
+	case SigType::T_DateFloat2:
+	{
+		data_keys = vector<string>({ "pid","date","val","val2" });
+
+		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
+		int* date_vec = (int*)malloc(sizeof(int)*this->record_count);
+		float* val_vec = (float*)malloc(sizeof(float)*this->record_count);
+		float* val2_vec = (float*)malloc(sizeof(float)*this->record_count);
+
+		int len;
+		SDateFloat2 *sdv = nullptr;
+		int cur_row = 0;
+		for (int pid : o->all_pids_list) {
+			sdv = (SDateFloat2 *)o->get(pid, this->sig_id, len);
+			if (len == 0)
+				continue;
+			for (int i = 0; i < len; i++) {
+				pid_vec[cur_row] = pid;
+				date_vec[cur_row] = sdv[i].date;
+				val_vec[cur_row] = sdv[i].val;
+				val2_vec[cur_row] = sdv[i].val2;
+				cur_row++;
+			}
+		}
+		data_column.push_back(pid_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
+		data_column.push_back(date_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
+		data_column.push_back(val_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		data_column.push_back(val2_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
+		gen_cat_dict("val2", 1);
+	}
+	break;
 
 	default:
 		throw runtime_error("MedPy: sig type not supported");
