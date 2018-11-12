@@ -31,6 +31,6 @@ void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureG
 	vector<int>& all_req_signal_ids_v, vector<unordered_set<int> >& current_required_signal_ids);
 
 // Feature names
-int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_error = true);
+int find_in_feature_names(const vector<string>& names,const string& substr, bool throw_on_error = true);
 
 #endif
