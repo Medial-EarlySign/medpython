@@ -159,3 +159,41 @@ std::vector<std::string> MPStringUOSetStringMapAdaptor::keys() {
 
 
 
+/************************************************************************************/
+
+
+MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor() { o = new std::map<int, std::vector<int> >(); };
+#include <iostream>
+MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor(const MPIntVecIntMapAdaptor& other) {
+	o_owned = other.o_owned;
+	if (!other.o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new std::map<int, std::vector<int> >();
+		//*o = *other.o;
+		for (auto& i : *other.o) {
+			o->insert(i);
+		}
+	}
+	std::cerr << "copy ctor from: " << o->size() << "\n";
+	std::cerr << "copy ctor   to: " << other.o->size() << "\n";
+};
+MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor(std::map<int, std::vector<int> >* ptr) { o_owned = false; o = ptr; };
+MPIntVecIntMapAdaptor::~MPIntVecIntMapAdaptor() { if (o_owned) delete o; };
+int MPIntVecIntMapAdaptor::__len__() { return (int)o->size(); };
+void MPIntVecIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len)) {
+	auto& fvec = o->operator[](key);
+	vector_to_buf(fvec, int_out_buf, int_out_buf_len);
+};
+void MPIntVecIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len)) {
+	vector<int> fvec;
+	buf_to_vector(int_in_buf, int_in_buf_len, fvec);
+	o->insert(o->begin(), std::pair<int, vector<int> >(key, fvec));
+};
+std::vector<int> MPIntVecIntMapAdaptor::keys() {
+	vector<int> ret;
+	ret.reserve(o->size());
+	for (const auto& rec : *o) ret.push_back(rec.first);
+	return ret;
+};

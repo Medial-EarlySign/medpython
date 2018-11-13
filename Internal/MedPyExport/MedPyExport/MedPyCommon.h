@@ -253,4 +253,20 @@ public:
 };
 
 
+class MPIntVecIntMapAdaptor {
+	bool o_owned = true;
+public:
+	std::map<int, std::vector<int> >* o;
+	MPIntVecIntMapAdaptor();
+	MEDPY_IGNORE(MPIntVecIntMapAdaptor(const MPIntVecIntMapAdaptor& other));
+	MEDPY_IGNORE(MPIntVecIntMapAdaptor(std::map<int, std::vector<int> >* ptr));
+	~MPIntVecIntMapAdaptor();
+	int __len__();
+	void __getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len));
+	void __setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len));
+	std::vector<int> keys();
+};
+
+
+
 #endif // !__MED_PY_COMMON_H
