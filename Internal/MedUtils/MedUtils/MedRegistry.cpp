@@ -876,7 +876,7 @@ RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int b
 	}
 }
 
-bool RegistrySignalSet::get_outcome(UniversalSigVec &s, int current_i, float &result) {
+bool RegistrySignalSet::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
 	bool is_active = false;
 	result = 0;
 	is_active = !(current_i < 0 || current_i >= s.len
@@ -992,7 +992,7 @@ RegistrySignalRange::RegistrySignalRange(const string &sigName, int durr_time, i
 	channel = chan;
 }
 
-bool RegistrySignalRange::get_outcome(UniversalSigVec &s, int current_i, float &result) {
+bool RegistrySignalRange::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
 	bool is_active = current_i < s.len && s.Val(current_i, channel) >= min_value && s.Val(current_i, channel) <= max_value;
 	if (is_active)
 		result = outcome_value;
@@ -1118,7 +1118,7 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 	return 0;
 }
 
-bool RegistrySignalDrug::get_outcome(UniversalSigVec &s, int current_i, float &result) {
+bool RegistrySignalDrug::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
 	bool is_active = false;
 	result = 0;
 	is_active = !(current_i < 0 || current_i >= s.len
@@ -1131,7 +1131,7 @@ bool RegistrySignalDrug::get_outcome(UniversalSigVec &s, int current_i, float &r
 	return is_active;
 }
 
-bool RegistrySignalAnd::get_outcome(UniversalSigVec &s, int current_i, float &result) {
+bool RegistrySignalAnd::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
 	bool is_active = true;
 	result = 0;
 	float temp;
@@ -1175,7 +1175,7 @@ RegistrySignalAnd::~RegistrySignalAnd() {
 	conditions.clear();
 }
 
-inline int Date_wrapper(UniversalSigVec &signal, int i) {
+inline int Date_wrapper(const UniversalSigVec &signal, int i) {
 	if (signal.get_type() != T_Value)
 		return signal.Time(i);
 	else
@@ -1198,13 +1198,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	int signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
 	while (signal_index >= 0)
 	{
-		UniversalSigVec &signal = usv[signal_index];
+		const UniversalSigVec *signal = &usv[signal_index];
 		RegistrySignal *signal_prop = signal_filters[signal_index];
 		int i = signals_indexes_pointers[signal_index] - 1; //the current signal time
 		//find first date if not marked already
 		if (start_date == -1) {
-			if (Date_wrapper(signal, i) >= bdate) {
-				start_date = Date_wrapper(signal, i);
+			if (Date_wrapper(*signal, i) >= bdate) {
+				start_date = Date_wrapper(*signal, i);
 				r.start_date = medial::repository::DateAdd(start_date, start_buffer_duration);
 			}
 			else {
@@ -1217,13 +1217,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 		r.registry_value = 0;
 		//I have start_date
-		if (Date_wrapper(signal, i) > max_allowed_date)
+		if (Date_wrapper(*signal, i) > max_allowed_date)
 			break;
-		last_date = Date_wrapper(signal, i);
+		last_date = Date_wrapper(*signal, i);
 		float registry_outcome_result;
-		if (signal_prop->get_outcome(signal, i, registry_outcome_result)) {
+		if (signal_prop->get_outcome(*signal, i, registry_outcome_result)) {
 			//flush buffer
-			int last_date_c = medial::repository::DateAdd(Date_wrapper(signal, i), -signal_prop->buffer_duration);
+			int last_date_c = medial::repository::DateAdd(Date_wrapper(*signal, i), -signal_prop->buffer_duration);
 			r.end_date = last_date_c;
 			r.max_allowed_date = last_date_c;
 			if (r.end_date > r.start_date)
@@ -1232,9 +1232,9 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//start new record
 			//r.pid = pid;
 			r.min_allowed_date = min_date;
-			r.max_allowed_date = Date_wrapper(signal, i);
-			r.start_date = Date_wrapper(signal, i);
-			r.age = (int)medial::repository::DateDiff(bdate, Date_wrapper(signal, i));
+			r.max_allowed_date = Date_wrapper(*signal, i);
+			r.start_date = Date_wrapper(*signal, i);
+			r.age = (int)medial::repository::DateDiff(bdate, Date_wrapper(*signal, i));
 			r.registry_value = registry_outcome_result;
 			if (signal_prop->take_only_first) {
 				r.end_date = 30000000;
@@ -1242,13 +1242,13 @@ void MedRegistryCodesList::get_registry_records(int pid,
 				return;
 			}
 			else
-				r.end_date = medial::repository::DateAdd(Date_wrapper(signal, i), signal_prop->duration_flag);
+				r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
 			int max_search = medial::repository::DateAdd(r.end_date,
 				signal_prop->buffer_duration - 1);
 			//advanced till passed end_date + buffer with no reapeating RC:
-			while (signal_index >= 0 && Date_wrapper(signal, i) < max_search) {
-				if (signal_prop->get_outcome(signal, i, registry_outcome_result)) {
-					r.end_date = medial::repository::DateAdd(Date_wrapper(signal, i), signal_prop->duration_flag);
+			while (signal_index >= 0 && Date_wrapper(*signal, i) < max_search) {
+				if (signal_prop->get_outcome(*signal, i, registry_outcome_result)) {
+					r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
 					max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
 				}
 
@@ -1257,7 +1257,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 					break;
 				i = signals_indexes_pointers[signal_index] - 1; //the current signal time
 				signal_prop = signal_filters[signal_index];
-				signal = usv[signal_index];
+				signal = &usv[signal_index];
 			}
 			results.push_back(r);
 			if (signal_index < 0) {
@@ -1267,7 +1267,7 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//prepare for next:
 			r.min_allowed_date = min_date;
 			r.registry_value = 0;
-			r.start_date = Date_wrapper(signal, i); //already after duration and buffer. can start new control
+			r.start_date = Date_wrapper(*signal, i); //already after duration and buffer. can start new control
 			r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 			continue; //dont call fetch_next again
 		}
@@ -2052,7 +2052,7 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 	bool mark_no_match = true;
 	while (signal_index >= 0)
 	{
-		UniversalSigVec &signal = usv[signal_index];
+		const UniversalSigVec &signal = usv[signal_index];
 		vector<RegistrySignal *> *all_signal_prop = &signals_rules[signal_index];
 		int i = signals_indexes_pointers[signal_index] - 1; //the current signal time
 

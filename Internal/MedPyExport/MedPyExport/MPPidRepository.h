@@ -54,7 +54,7 @@ public:
 	MPSigVectorAdaptor uget(int pid, int sid);
 
 	MEDPY_DOC(dict_section_id, "dict_section_id(str_secName) -> int\n"
-	"  returns dection id number for a given section name");
+	"  returns section id number for a given section name");
 	int dict_section_id(const std::string &secName);
 
 	MEDPY_DOC(dict_name, "dict_name(int_section_id, int_id) -> string\n"

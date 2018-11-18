@@ -245,7 +245,7 @@ public:
 	}
 
 	/// a function that retrive current outcome based on new time point
-	virtual bool get_outcome(UniversalSigVec &s, int current_i, float &result) = 0;
+	virtual bool get_outcome(const UniversalSigVec &s, int current_i, float &result) = 0;
 
 	/// creates Registry rule. can have "set" for RegistrySignalSet and "range" for RegistrySignalRange.
 	/// /// @snippet MedRegistry.cpp RegistrySignal::make_registry_signal
@@ -273,7 +273,7 @@ public:
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		MedRepository &rep, const vector<string> &sets, float outcome_val = 1, int chan = 0);
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
-	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalSet::init
@@ -297,7 +297,7 @@ public:
 
 	RegistrySignalRange(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		float min_range, float max_range, float outcome_val = 1, int chan = 0);
-	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalRange::init
@@ -319,7 +319,7 @@ public:
 	/// Checks if has flags inside or it's empty one
 	bool is_empty() { return Flags.empty(); }
 
-	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 private:
 	vector<char> Flags; ///< first if exists
 	vector<pair<float, float>> Flags_range; ///< range for dosage
@@ -339,7 +339,7 @@ public:
 	/// @snippet MedRegistry.cpp RegistrySignalAnd::init
 	int init(map<string, string>& map);
 
-	bool get_outcome(UniversalSigVec &s, int current_i, float &result);
+	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 
 	~RegistrySignalAnd();
 private:
