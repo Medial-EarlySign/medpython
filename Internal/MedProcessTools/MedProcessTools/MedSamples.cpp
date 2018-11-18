@@ -14,7 +14,7 @@
 //=======================================================================================
 // Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split) in addition to pred_pos vector and attr_pos map
 //.......................................................................................
-int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit) {
+int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit, int raw_format) {
 	if (pos.size() == 0)
 		return parse_from_string(s, time_unit);
 	vector<string> fields;
@@ -24,8 +24,12 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 	try {
 		if (pos["id"] != -1)
 			id = (int)stod(fields[pos["id"]]);
-		if (pos["date"] != -1)
-			time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 2);
+		if (pos["date"] != -1) {
+			if (raw_format) 
+				time = stoi(fields[pos["date"]]);
+			else 
+				time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 2);
+		}
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
 		if (pos["outcome_date"] != -1)
@@ -333,47 +337,56 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 				else if (fields[0] == "DESC") MLOG("reading DESC = %s\n", fields[1].c_str());
 				else if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
 				else if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
+				else if (fields[0] == "RAW_FORMAT") {
+					MLOG("reading RAW_FORMAT = %s\n", fields[1].c_str()); 
+					raw_format = stoi(fields[1]);
+					MLOG("raw_format is %d\n", raw_format);
+				}
 				else if (fields[0] == "TIME_UNIT") {
 					MLOG("reading TIME_UNIT = %s\n", fields[1].c_str());
 					time_unit = med_time_converter.string_to_type(fields[1]);
+					MLOG("time unit is %d\n", time_unit);
 				}
 				else if ((fields[0] == "EVENT_FIELDS" || fields[0] == "pid" || fields[0] == "id") && read_records == 1) {
 					extract_field_pos_from_header(fields, pos, pred_pos, attr_pos);
 					continue;
 				}
-				MedSample sample;
 
-				if (sample.parse_from_string(curr_line, pos, pred_pos, attr_pos, time_unit) < 0) {
-					MWARN("skipping [%s]\n", curr_line.c_str());
-					skipped_records++;
-					if (read_records > 30 && skipped_records > read_records / 2)
-						MTHROW_AND_ERR("skipped %d/%d first records, exiting\n", skipped_records, read_records);
-					continue;
-				}
-				if (sample.id != curr_id) {
-					if (seen_ids.find(sample.id) != seen_ids.end()) {
-						MERR("ERROR: Wrong MedSample format in line \"%s\"", curr_line.c_str());
-						MTHROW_AND_ERR("Sample id [%d] records are not consecutive\n", sample.id);
+				else {
+					MedSample sample;
+
+					if (sample.parse_from_string(curr_line, pos, pred_pos, attr_pos, time_unit, raw_format) < 0) {
+						MWARN("skipping [%s]\n", curr_line.c_str());
+						skipped_records++;
+						if (read_records > 30 && skipped_records > read_records / 2)
+							MTHROW_AND_ERR("skipped %d/%d first records, exiting\n", skipped_records, read_records);
+						continue;
 					}
-					seen_ids.insert(sample.id);
-					// new idSample
-					MedIdSamples mis;
-					mis.id = sample.id;
-					mis.split = sample.split;
-					mis.samples.push_back(sample);
-					curr_id = sample.id;
-					idSamples.push_back(mis);
-				}
-				else if (sample.id == curr_id) {
-					// another sample for the current MedIdSamples
-					if (idSamples.back().id != sample.id || idSamples.back().split != sample.split) {
-						MERR("ERROR: Wrong MedSample format in line \"%s\"", curr_line.c_str());
-						MERR("Got conflicting split : %d,%d vs. %d,%d\n", idSamples.back().id, idSamples.back().split, sample.id, sample.split);
-						return -1;
+					if (sample.id != curr_id) {
+						if (seen_ids.find(sample.id) != seen_ids.end()) {
+							MERR("ERROR: Wrong MedSample format in line \"%s\"", curr_line.c_str());
+							MTHROW_AND_ERR("Sample id [%d] records are not consecutive\n", sample.id);
+						}
+						seen_ids.insert(sample.id);
+						// new idSample
+						MedIdSamples mis;
+						mis.id = sample.id;
+						mis.split = sample.split;
+						mis.samples.push_back(sample);
+						curr_id = sample.id;
+						idSamples.push_back(mis);
 					}
-					idSamples.back().samples.push_back(sample);
+					else if (sample.id == curr_id) {
+						// another sample for the current MedIdSamples
+						if (idSamples.back().id != sample.id || idSamples.back().split != sample.split) {
+							MERR("ERROR: Wrong MedSample format in line \"%s\"", curr_line.c_str());
+							MERR("Got conflicting split : %d,%d vs. %d,%d\n", idSamples.back().id, idSamples.back().split, sample.id, sample.split);
+							return -1;
+						}
+						idSamples.back().samples.push_back(sample);
+					}
+					samples++;
 				}
-				samples++;
 			}
 		}
 	}
