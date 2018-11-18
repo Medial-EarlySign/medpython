@@ -1,10 +1,14 @@
 #include "MedSparseMat.h"
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
 #include <Logger/Logger/Logger.h>
 #include <omp.h>
 #include <mutex>
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+
+using namespace std;
 
 mutex m_sparse_mat;
 
@@ -71,8 +75,13 @@ int MedSparseMat::write_to_files(string mat_file, string meta_file, string dict_
 
 		mat_f << "row,col,data\n";
 		for (int i=0; i<lines.size(); i++) {
-			for (auto &p : lines[i])
-				mat_f << i << "," << p.first << "," << p.second << "\n";
+			for (auto &p : lines[i]) {
+				int ival = (int)p.second;
+				if (p.second == (float)ival)
+					mat_f << i << "," << p.first << "," << ival << "\n";
+				else
+					mat_f << i << "," << p.first << "," << p.second << "\n";
+			}
 		}
 		mat_f.close();
 
@@ -108,6 +117,60 @@ int MedSparseMat::write_to_files(string mat_file, string meta_file, string dict_
 		dict_f.close();
 	}
 
+	return 0;
+}
+
+int MedSparseMat::read_from_files(string mat_file, string meta_file)
+{
+	lines.clear();
+	meta.clear();
+
+	// read mat file
+	ifstream mat_f(mat_file);
+
+	if (!mat_f) {
+		MERR("MedSparseMat: read: Can't open file %s\n", mat_file.c_str());
+		return -1;
+	}
+
+	string curr_line;
+	while (getline(mat_f, curr_line)) {
+		if ((curr_line.size() > 1) && (curr_line[0] != 'r')) {
+			vector<string> fields;
+			boost::split(fields, curr_line, boost::is_any_of(","));
+			int row = stoi(fields[0]);
+			int col = stoi(fields[1]);
+			int val = stof(fields[2]);
+			if (lines.size() < row+1) lines.resize(row+1);
+			lines[row].push_back(pair<int, float>(col, val));
+		}
+	}
+
+	mat_f.close();
+
+	// read meta file
+	ifstream meta_f(meta_file);
+
+	if (!meta_f) {
+		MERR("MedSparseMat: read: Can't open file %s\n", meta_file.c_str());
+		return -1;
+	}
+
+	while (getline(meta_f, curr_line)) {
+		if ((curr_line.size() > 1) && (curr_line[0] != 'l')) {
+			vector<string> fields;
+			boost::split(fields, curr_line, boost::is_any_of(","));
+			int line = stoi(fields[0]);
+			int pid= stoi(fields[1]);
+			int time = stoi(fields[2]);
+			SparseMatRowMetaData m;
+			m.pid = pid;
+			m.time = time;
+			meta.push_back(m);
+		}
+	}
+
+	meta_f.close();
 	return 0;
 }
 

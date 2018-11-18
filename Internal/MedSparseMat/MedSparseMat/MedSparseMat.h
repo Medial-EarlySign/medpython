@@ -45,6 +45,8 @@ public:
 
 	int write_to_files(string mat_file, string meta_file, string dict_file);
 
+	int read_from_files(string mat_file, string meta_file);
+
 	// the following writes only the mat to a bin file with len at the start and then 3 arrays of length len for row , col and val.
 	// this allows for an easier and faster transfer to python.
 	int write_to_bin_file(string bin_file);
