@@ -44,13 +44,13 @@ public:
 	// It is highly recommended to use models creating matrices that are imputed AND normalized.
 	// the features generated will be copied into the sparse matrix
 	// features generated like this are never shrunk
-	MedModel model;
+	MedModel *model;
 	string model_file = "";
+	vector<int> model_sids;
+	MedFeatures feat;
+	map<pair<int, int>, int> pid_time2idx;
 
-	// model initiations
-	int init_model_from_model_file();
-	int init_model_features_list();
-
+	int get_feat_for_model(MedPidRepository &rep, vector<pair<int, int>> &pids_times);
 
 	// for categorials only : all sets of a value
 	unordered_map<int, vector<int>> sig_members2sets;
@@ -125,8 +125,10 @@ public:
 	// major helper func:
 	// gets a usv for a signal, a time and a win_len, and adds the relevant data to output lines
 	// later and elsewhere these lines will be added atomically and by order to a sparse mat (to allow for easy threading code)
-	int add_sig_to_lines(EmbeddingSig &es, UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, int>> &out_lines);
-
+	int add_sig_to_lines(EmbeddingSig &es, UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines);
+	int add_model_feats_to_lines(EmbeddingSig &es, PidDynamicRec &pdr, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines);
+	int add_model_feats_to_lines(EmbeddingSig &es, int pid, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines);
+	
 	// adding all the needed lines for a pid. Written for a dynamic record, to allow easy connection to MedProcessTools
 	int add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vector<int> &times, int use_shrink);
 
@@ -136,7 +138,7 @@ public:
 	int get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>> &pids_times, int use_shrink, MedSparseMat &smat);
 
 	// helper for es preparation 
-	void prep_memebers_to_sets(MedRepository &rep, EmbeddingSig &es);
+	void prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig &es);
 
 	// shrinking calculation
 	// gets an smat that had been produced with the non shrinked dictionary,
