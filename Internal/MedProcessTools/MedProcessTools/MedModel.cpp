@@ -1403,10 +1403,10 @@ int MedModel::init_for_apply_rec(MedPidRepository &rep)
 // Both should be added in the future.
 // Main usage for now : allow most well defined models to be run rec by rec, with a natural way of 
 // combining them in other models.
-int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag)
+int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag, int end_stage)
 {
 	int start_stage = MED_MDL_APPLY_FTR_GENERATORS;
-	int end_stage = MED_MDL_END;
+	//int end_stage = MED_MDL_APPLY_FTR_PROCESSORS;// MED_MDL_END;
 
 	// Stage Sanity
 	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {

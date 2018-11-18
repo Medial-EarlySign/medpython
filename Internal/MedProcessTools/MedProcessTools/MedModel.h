@@ -160,7 +160,7 @@ public:
 	// Then for each record use : apply_rec , there's a flag for using a copy of the rec rather than the record itself.
 	// Calling apply_rec is thread safe, and hence each call returns its own MedFeatures.
 	int init_for_apply_rec(MedPidRepository &rep);
-	int apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag);
+	int apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag, int end_stage = MED_MDL_APPLY_FTR_PROCESSORS);
 
 	// De(Serialize)
 	size_t get_size();
