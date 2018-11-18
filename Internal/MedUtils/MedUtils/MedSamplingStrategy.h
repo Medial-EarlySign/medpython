@@ -1,3 +1,5 @@
+/// @file
+/// Sampling methods over MedRegistry Object
 #ifndef __MED_SAMPLING_STRATEGY_H__
 #define __MED_SAMPLING_STRATEGY_H__
 
@@ -9,6 +11,26 @@
 class MedRegistryRecord;
 
 using namespace std;
+
+/// @enum
+/// Sampling options
+enum SamplingMode {
+	Case_Control = 0,///< "case_control" - cases need to pass start_time of registry. controls need to be within start_time to before end_time
+	Pass = 1, ///< "pass" - cases need to pass start_time of registry. controls need to pass start_time. controls are like cases in case_control
+	Within = 2, ///< "within" - cases need to be within start_time and end_time. controls need to be within start_time and end_time. cases are like control in case_control
+};
+extern vector<string> SamplingMode_to_name;
+SamplingMode SamplingMode_name_to_type(const string& SamplingMode_name);
+
+/// @enum
+/// Conflicting options
+enum ConflictMode {
+	All = 0,///< "all" - take all
+	Drop = 1, ///< "drop" - drop when conflcit
+	Max = 2, ///< "max" - take max on conflict 
+};
+extern vector<string> ConflictMode_to_name;
+ConflictMode ConflictMode_name_to_type(const string& ConflictMode_name);
 
 /**
 * An abstract class with sampling methods over registry records to convert to MedSamples
@@ -63,11 +85,10 @@ public:
 	int prediction_month_day; ///< the prediciton month_day in each year
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int day_jump; ///< the years bin, how many years to jump backward from each prediciton date
-	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
-	int allowed_time_from; ///< time window settings whem use_allowed is on
-	int allowed_time_to; ///< time window settings whem use_allowed is on
-	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
-	bool use_time_control_as_case; ///< if True will use time window
+	SamplingMode mode; ///< sampling mode
+	int time_from; ///< time window settings from
+	int time_to; ///< time window settings to
+	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 
 	///sample by year from year to year by jump and find match in registry
 	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
@@ -76,16 +97,15 @@ public:
 
 	MedSamplingYearly() {
 		gen = mt19937(rd());
-		conflict_method = "drop"; //default
+		conflict_method = Drop; //default
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
 		day_jump = 0;
-		use_allowed = false;
+		mode = Case_Control;
 		start_year = 0;
 		end_year = 0;
-		allowed_time_to = 0;
-		allowed_time_from = 0;
-		use_time_control_as_case = false;
+		time_to = 0;
+		time_from = 0;
 	}
 private:
 	random_device rd;
@@ -101,9 +121,8 @@ public:
 	int start_age; ///< The start age to sample from
 	int end_age; ///< The end age to sample from
 	int age_bin; ///< the age bin in years for jumping
-	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
-	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
-	bool use_time_control_as_case; ///< if True will use time window
+	SamplingMode mode; ///< sampling mode
+	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 
 	///sample by year from age to age by jump and find match in registry
 	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
@@ -112,9 +131,8 @@ public:
 		start_age = 0;
 		end_age = 120;
 		age_bin = 1;
-		conflict_method = "all";
-		use_allowed = false;
-		use_time_control_as_case = false;
+		conflict_method = All;
+		mode = Case_Control;
 	}
 
 	int init(map<string, string>& map);
@@ -129,10 +147,10 @@ private:
 class MedSamplingDates : public MedSamplingStrategy {
 public:
 	int take_count; ///< How many samples to take in each date
-	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
-	int allowed_time_from; ///< time window settings whem use_allowed is on
-	int allowed_time_to; ///< time window settings whem use_allowed is on
-	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
+	SamplingMode mode; ///< sampling mode
+	int time_from; ///< time window settings from
+	int time_to; ///< time window settings to
+	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 	vector<vector<pair<int, int>>> samples_list_pid_dates; ///< All sample options for pid,date to sample from. row is sample with all options to sample from 
 
 	///sample Take_Count samples for each record in samples_list_pid_dates.
@@ -143,8 +161,8 @@ public:
 	int init(map<string, string>& map);
 
 	MedSamplingDates() {
-		gen = mt19937(rd()); take_count = 1; use_allowed = false;
-		conflict_method = "all"; allowed_time_from = 0; allowed_time_to = 0;
+		gen = mt19937(rd()); take_count = 1; mode = Case_Control;
+		conflict_method = All; time_from = 0; time_to = 0;
 	}
 
 private:
@@ -163,28 +181,26 @@ public:
 	int end_time; ///< The end time to sample from. If 0 will use max time of pid
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int time_jump; ///< the time jump, how much jump from each prediciton date
-	bool use_allowed; ///< If True will check for registry time window intersection with min_allowed=>max_allowed. instead start=>end
-	int allowed_time_from; ///< time window settings when use_allowed is on
-	int allowed_time_to; ///< time window settings when use_allowed is on
-	string conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
-	bool use_time_control_as_case; ///< if True will use time window
+	SamplingMode mode; ///< sampling mode
+	int time_from; ///< time window settings from
+	int time_to; ///< time window settings to
+	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 
-								   ///sample by year from year to year by jump and find match in registry
+	///sample by year from year to year by jump and find match in registry
 	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
 
 	int init(map<string, string>& map);
 
 	MedSamplingFixedTime() {
 		gen = mt19937(rd());
-		conflict_method = "drop"; //default
+		conflict_method = Drop; //default
 		back_random_duration = 0; //default
 		time_jump = 0;
-		use_allowed = false;
+		mode = Case_Control;
 		start_time = 0;
 		end_time = 0;
-		allowed_time_to = 0;
-		allowed_time_from = 0;
-		use_time_control_as_case = false;
+		time_to = 0;
+		time_from = 0;
 	}
 private:
 	random_device rd;

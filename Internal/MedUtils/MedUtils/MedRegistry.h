@@ -355,6 +355,7 @@ public:
 	int start_buffer_duration; ///< the duration buffer form start
 	int end_buffer_duration; ///< the duration buffer from last date
 	int max_repo_date; ///< the maximal date for the repository
+	bool allow_prediciton_in_case; ///< If True will allow to give prediciton after\in case time range
 
 	vector<RegistrySignal *> signal_filters; ///< the signal filters
 
@@ -364,6 +365,7 @@ public:
 		end_buffer_duration = 0;
 		max_repo_date = 0;
 		need_bdate = false;
+		allow_prediciton_in_case = false;
 	}
 
 	~MedRegistryCodesList() {

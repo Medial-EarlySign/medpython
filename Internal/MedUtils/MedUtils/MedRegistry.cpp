@@ -962,6 +962,7 @@ void MedRegistryCodesList::init(MedRepository &rep, int start_dur, int end_durr,
 	start_buffer_duration = start_dur;
 	end_buffer_duration = end_durr;
 	max_repo_date = max_repo;
+	allow_prediciton_in_case = false;
 	if (!skip_pid_file.empty())
 		init_list(skip_pid_file, SkipPids);
 	if (pid_to_censor_dates != NULL)
@@ -1187,6 +1188,9 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	if (!init_called)
 		MTHROW_AND_ERR("Must be initialized by init before use\n");
 	vector<int> signals_indexes_pointers(signal_filters.size()); //all in 0
+	int max_date_mark = 30000000;
+	if (time_unit != MedTime::Date)
+		max_date_mark = 2000000000;
 
 	int max_allowed_date = max_repo_date;
 	if (pid_to_max_allowed.find(pid) != pid_to_max_allowed.end())
@@ -1237,7 +1241,9 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			r.age = (int)medial::repository::DateDiff(bdate, Date_wrapper(*signal, i));
 			r.registry_value = registry_outcome_result;
 			if (signal_prop->take_only_first) {
-				r.end_date = 30000000;
+				r.end_date = max_date_mark;
+				if (allow_prediciton_in_case)
+					r.max_allowed_date = r.end_date;
 				results.push_back(r);
 				return;
 			}
@@ -1259,9 +1265,11 @@ void MedRegistryCodesList::get_registry_records(int pid,
 				signal_prop = signal_filters[signal_index];
 				signal = &usv[signal_index];
 			}
+			if (allow_prediciton_in_case)
+				r.max_allowed_date = r.end_date;
 			results.push_back(r);
 			if (signal_index < 0) {
-				r.start_date = 30000000; //no more control times, reached the end
+				r.start_date = max_date_mark; //no more control times, reached the end
 				break;
 			}
 			//prepare for next:
@@ -1843,6 +1851,8 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 			end_buffer_duration = stoi(it->second);
 		else if (it->first == "max_repo_date")
 			max_repo_date = stoi(it->second);
+		else if (it->first == "allow_prediciton_in_case")
+			allow_prediciton_in_case = stoi(it->second) > 0;
 		else if (it->first == "pid_to_censor_dates") {
 			ifstream fr(it->second);
 			if (!fr.good())
