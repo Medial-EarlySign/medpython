@@ -27,10 +27,9 @@ public:
 	int min_allowed_date; ///< min time for sampling
 	int max_allowed_date; ///< max time for sampling
 
-	int age; ///< optional mark for record age. the age in start_date
 	float registry_value; ///< the registry value/state
 
-	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, min_allowed_date, max_allowed_date, age, registry_value)
+	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, min_allowed_date, max_allowed_date, registry_value)
 };
 
 static unordered_set<float> default_empty_set;
@@ -355,6 +354,7 @@ public:
 	int start_buffer_duration; ///< the duration buffer form start
 	int end_buffer_duration; ///< the duration buffer from last date
 	int max_repo_date; ///< the maximal date for the repository
+	bool allow_prediciton_in_case; ///< If True will allow to give prediciton after\in case time range
 
 	vector<RegistrySignal *> signal_filters; ///< the signal filters
 
@@ -364,6 +364,7 @@ public:
 		end_buffer_duration = 0;
 		max_repo_date = 0;
 		need_bdate = false;
+		allow_prediciton_in_case = false;
 	}
 
 	~MedRegistryCodesList() {

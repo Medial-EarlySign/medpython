@@ -40,7 +40,7 @@ you can also use the search box to find your file/function
  * MedOutcome - example object, need more documentation
  
  @subsection Logger Logger
- * Several macros command for logging
+ * MedLogger - logging infra
 
  @section external Extrenal Libs
 

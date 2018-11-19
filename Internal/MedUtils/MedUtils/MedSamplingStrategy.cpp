@@ -7,6 +7,26 @@
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+vector<string> SamplingMode_to_name = { "before", "pass", "within" };
+vector<string> ConflictMode_to_name = { "all", "drop", "max" };
+
+SamplingMode SamplingMode_name_to_type(const string& SamplingMode_name) {
+	for (int i = 0; i < SamplingMode_to_name.size(); ++i)
+		if (SamplingMode_to_name[i] == SamplingMode_name) {
+			return SamplingMode(i);
+		}
+	MTHROW_AND_ERR("Error in SamplingMode_name_to_type - Unsupported \"%s\". options are: %s\n",
+		SamplingMode_name.c_str(), medial::io::get_list(SamplingMode_to_name).c_str());
+}
+ConflictMode ConflictMode_name_to_type(const string& ConflictMode_name) {
+	for (int i = 0; i < ConflictMode_to_name.size(); ++i)
+		if (ConflictMode_to_name[i] == ConflictMode_name) {
+			return ConflictMode(i);
+		}
+	MTHROW_AND_ERR("Error in SamplingMode_name_to_type - Unsupported \"%s\". options are: %s\n",
+		ConflictMode_name.c_str(), medial::io::get_list(ConflictMode_to_name).c_str());
+}
+
 int MedSamplingTimeWindow::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
@@ -34,6 +54,25 @@ int MedSamplingTimeWindow::init(map<string, string>& map) {
 	return 0;
 }
 
+void get_bdates(MedPidRepository &rep, unordered_map<int, int> &bdates) {
+	int bDateCode = rep.sigs.sid("BDATE");
+	if (rep.pids.empty() || bDateCode <= 0)
+		MTHROW_AND_ERR("Error MedSamplingStrategy::get_bdates - repository wasn't initialized and contains BDATE\n");
+	if (!rep.index.index_table[bDateCode].is_loaded)
+		MTHROW_AND_ERR("Error MedSamplingStrategy::get_bdates - repository wasn't loaded with BDATE\n");
+	for (size_t i = 0; i < rep.pids.size(); ++i)
+	{
+		int pid = rep.pids[i];
+		int bdate_val = medial::repository::get_value(rep, pid, bDateCode);
+		bdates[pid] = bdate_val;
+	}
+	MLOG_D("MedSamplingStrategy::get_bdates - loaded %zu patients\n", bdates.size());
+}
+
+void MedSamplingTimeWindow::init_sampler(MedPidRepository &rep) {
+	get_bdates(rep, pids_bdates);
+}
+
 void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
 	int random_back_dur = 1;
 	int diff_window_cases = maximal_time_case - minimal_time_case;
@@ -42,7 +81,7 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 
 	//create samples file:
 	unordered_map<int, int> pid_to_ind;
-	int skip_end_smaller_start = 0;
+	int skip_end_smaller_start = 0, skip_no_bdate = 0, example_pid = -1;
 	for (MedRegistryRecord rec : registry)
 	{
 		bool addNew = false;
@@ -57,9 +96,17 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 			diff_window = diff_window_controls;
 		}
 
+		int pid_bdate = -1;
+		if (pids_bdates.find(rec.pid) != pids_bdates.end())
+			pid_bdate = pids_bdates.at(rec.pid);
+		else {
+			++skip_no_bdate;
+			example_pid = rec.pid;
+			continue;
+		}
 		float year_diff_to_first_pred;
 		if (rec.min_allowed_date <= 0) //has no limit - if "max" go back until date of birth
-			year_diff_to_first_pred = medial::repository::DateDiff(rec.start_date, currDate) + rec.age;
+			year_diff_to_first_pred = medial::repository::DateDiff(pid_bdate, currDate);
 		else
 			year_diff_to_first_pred = medial::repository::DateDiff(rec.min_allowed_date, currDate);
 		if (year_diff_to_first_pred < 0 || rec.end_date <= rec.start_date || rec.end_date <= rec.min_allowed_date) {
@@ -67,7 +114,7 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 			if (skip_end_smaller_start < 5) {
 				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d], pred_dates=[%d => %d], outcome=%f, age=%d\n",
 					rec.pid, rec.start_date, rec.end_date, rec.min_allowed_date, rec.max_allowed_date,
-					rec.registry_value, rec.age);
+					rec.registry_value, (int)medial::repository::DateDiff(pid_bdate, currDate));
 			}
 			continue;
 		}
@@ -114,6 +161,8 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 	}
 	samples.sort_by_id_date();
 
+	if (skip_no_bdate > 0)
+		MLOG("WARNING :: Skipped %d registry records because no bdate: example pid=%d\n", skip_no_bdate, example_pid);
 	if (skip_end_smaller_start > 0)
 		MLOG("WARNING :: Skipped %d registry records because end_date<start_date\n", skip_end_smaller_start);
 }
@@ -140,23 +189,20 @@ int MedSamplingYearly::init(map<string, string>& map) {
 			prediction_month_day = stoi(it->second);
 		else if (it->first == "back_random_duration")
 			back_random_duration = stoi(it->second);
-		else if (it->first == "allowed_time_from")
-			allowed_time_from = stoi(it->second);
-		else if (it->first == "allowed_time_to")
-			allowed_time_to = stoi(it->second);
-		else if (it->first == "use_allowed")
-			use_allowed = stoi(it->second) > 0;
-		else if (it->first == "use_time_control_as_case")
-			use_time_control_as_case = stoi(it->second) > 0;
+		else if (it->first == "time_from")
+			time_from = stoi(it->second);
+		else if (it->first == "time_to")
+			time_to = stoi(it->second);
+		else if (it->first == "mode_cases")
+			mode_cases = SamplingMode_name_to_type(it->second);
+		else if (it->first == "mode_controls")
+			mode_controls = SamplingMode_name_to_type(it->second);
 		else if (it->first == "conflict_method")
-			conflict_method = it->second;
+			conflict_method = ConflictMode_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
 
-	if (!(conflict_method == "drop" || conflict_method == "max" ||
-		conflict_method == "all"))
-		MTHROW_AND_ERR("Unsuported conflcit method - please choose: drop,all,max\n");
 	if (prediction_month_day < 100 || prediction_month_day % 100 > 31)
 		MTHROW_AND_ERR("prediction_month_day must be positive >= 100 <=1231\n");
 	if (back_random_duration < 0)
@@ -164,22 +210,43 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	return 0;
 }
 
+bool in_time_window_simple(int pred_date, int start_time, int end_time, bool reverse, SamplingMode mode) {
+	switch (mode)
+	{
+	case SamplingMode::All_:
+		return true;
+	case Before:
+		if (reverse)
+			return pred_date >= start_time;
+		else
+			return pred_date <= end_time;
+	case Pass:
+		if (reverse)
+			return (pred_date <= end_time);
+		else
+			return (pred_date >= start_time);
+	case Within:
+		return  (pred_date >= start_time) && (pred_date <= end_time);
+	default:
+		MTHROW_AND_ERR("Error in in_time_window - unsupported mode - %d\n", mode);
+	}
+}
+
+// testing for time_window - for specific registry_value. has rule for pred_date - which is from_time_window 
+// time and rules for outcome
 bool in_time_window(int pred_date, const MedRegistryRecord *r, int time_from, int time_to,
-	bool use_control_as_case_time) {
-	if (time_from == 0 && time_to == 0)
-		return true; //when both 0 - won't use time window filtering
+	SamplingMode mode, SamplingMode mode_prediction = SamplingMode::Within) {
 	int sig_start_date = medial::repository::DateAdd(pred_date, time_from);
 	int sig_end_date = medial::repository::DateAdd(pred_date, time_to);
 	int reffer_date = sig_start_date;
 	if (time_from < 0) //if looking backward force end_date to be in allowed
 		reffer_date = sig_end_date;
-	if (reffer_date > r->max_allowed_date || reffer_date < r->min_allowed_date)
-		return false;
+	bool reverse = time_from < 0;
+	//if (reffer_date > r->max_allowed_date || reffer_date < r->min_allowed_date)
+	if (!in_time_window_simple(reffer_date, r->min_allowed_date, r->max_allowed_date, reverse, mode_prediction))
+		return false; //can't give prediction
 
-	if (time_from < 0)
-		return (sig_start_date <= r->end_date) && (use_control_as_case_time || r->registry_value > 0 || sig_start_date >= r->start_date);
-	else
-		return (sig_end_date >= r->start_date) && (use_control_as_case_time || r->registry_value > 0 || sig_end_date <= r->end_date);
+	return in_time_window_simple(reffer_date, r->start_date, r->end_date, reverse, mode);
 }
 
 void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
@@ -213,7 +280,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			MedIdSamples pid_sample(it->first);
 			idSamples.push_back(pid_sample);
 		}
-
+		SamplingMode mode;
 		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, day_jump)) {
 			//search for match in all regs:
 			int pred_date = date;
@@ -228,19 +295,15 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
-				if (!use_allowed)
-					while (curr_index < all_pid_records->size() &&
-						(pred_date < (*all_pid_records)[curr_index]->start_date ||
-							pred_date >(*all_pid_records)[curr_index]->end_date))
-						++curr_index;
-				else
-					while (curr_index < all_pid_records->size() &&
-						(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
-							pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
-						++curr_index;
-				if (use_allowed && curr_index < all_pid_records->size() &&
+				while (curr_index < all_pid_records->size() &&
+					(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
+						pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
+					++curr_index;
+				if (curr_index < all_pid_records->size())
+					mode = (*all_pid_records)[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
+				if (curr_index < all_pid_records->size() &&
 					!in_time_window(pred_date, (*all_pid_records)[curr_index],
-						allowed_time_from, allowed_time_to, use_time_control_as_case)) {
+						time_from, time_to, mode)) {
 					++curr_index;
 					continue;
 				}
@@ -254,13 +317,13 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 				}
 				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
 					//if already found and conflicting:
-					if (conflict_method == "drop") {
+					if (conflict_method == Drop) {
 						reg_val = -1;
 						reg_time = -1;
 						final_selected = -1;
 						break;
 					}
-					else if (conflict_method == "max") {
+					else if (conflict_method == Max) {
 						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
 							reg_val = (*all_pid_records)[curr_index]->registry_value;
 							reg_time = (*all_pid_records)[curr_index]->end_date;
@@ -303,7 +366,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 }
 
 int MedSamplingAge::init(map<string, string>& map) {
-	conflict_method = "drop"; //default
+	conflict_method = Drop; //default
 	age_bin = 1; //deafult
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
@@ -314,18 +377,19 @@ int MedSamplingAge::init(map<string, string>& map) {
 		else if (it->first == "age_bin")
 			age_bin = stoi(it->second);
 		else if (it->first == "conflict_method")
-			conflict_method = it->second;
-		else if (it->first == "use_allowed")
-			use_allowed = stoi(it->second) > 0;
-		else if (it->first == "use_time_control_as_case")
-			use_time_control_as_case = stoi(it->second) > 0;
+			conflict_method = ConflictMode_name_to_type(it->second);
+		else if (it->first == "mode_cases")
+			mode_cases = SamplingMode_name_to_type(it->second);
+		else if (it->first == "mode_controls")
+			mode_controls = SamplingMode_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
-	if (!(conflict_method == "drop" || conflict_method == "max" ||
-		conflict_method == "all"))
-		MTHROW_AND_ERR("Unsuported conflcit method - please choose: drop,all,max\n");
 	return 0;
+}
+
+void MedSamplingAge::init_sampler(MedPidRepository &rep) {
+	get_bdates(rep, pids_bdates);
 }
 
 void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
@@ -340,7 +404,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 	unordered_map<int, int> pid_to_ind;
 	vector<MedIdSamples> idSamples;
 
-	int conflict_count = 0, done_count = 0;
+	int conflict_count = 0, done_count = 0, skip_no_bdate = 0, example_pid = -1;
 	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it) {
 		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
 		if (pid_to_ind.find(it->first) == pid_to_ind.end()) {
@@ -348,9 +412,18 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			MedIdSamples pid_sample(it->first);
 			idSamples.push_back(pid_sample);
 		}
+		int pid_bdate = -1;
+		if (pids_bdates.find(it->first) != pids_bdates.end())
+			pid_bdate = pids_bdates.at(it->first);
+		else {
+			++skip_no_bdate;
+			example_pid = it->first;
+			continue;
+		}
+		SamplingMode mode;
 		for (int age = start_age; age <= end_age; age += age_bin) {
 			//search for match in all regs:
-			int pred_start_date = medial::repository::DateAdd(all_pid_records->front()->start_date, -365 * (all_pid_records->front()->age - age)); //mark start date in age_bin to age
+			int pred_start_date = medial::repository::DateAdd(pid_bdate, 365 * age); //mark start date in age_bin to age
 			int pred_end_date = medial::repository::DateAdd(pred_start_date, 365 * age_bin); //end date in age_bin
 
 			MedSample smp;
@@ -361,19 +434,16 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
-				if (!use_allowed)
-					while (curr_index < all_pid_records->size() &&
-						(pred_end_date < (*all_pid_records)[curr_index]->start_date ||
-							pred_start_date >(*all_pid_records)[curr_index]->end_date))
-						++curr_index;
-				else
-					while (curr_index < all_pid_records->size() &&
-						(pred_end_date < (*all_pid_records)[curr_index]->min_allowed_date ||
-							pred_start_date >(*all_pid_records)[curr_index]->max_allowed_date))
-						++curr_index;
-				if (use_allowed && curr_index < all_pid_records->size() &&
+
+				while (curr_index < all_pid_records->size() &&
+					(pred_end_date < (*all_pid_records)[curr_index]->min_allowed_date ||
+						pred_start_date >(*all_pid_records)[curr_index]->max_allowed_date))
+					++curr_index;
+				if (curr_index < all_pid_records->size())
+					mode = (*all_pid_records)[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
+				if (curr_index < all_pid_records->size() &&
 					!in_time_window(pred_start_date, (*all_pid_records)[curr_index],
-						0, 365 * age_bin, use_time_control_as_case)) {
+						0, 365 * age_bin, mode)) {
 					++curr_index;
 					continue;
 				}
@@ -387,13 +457,13 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 				}
 				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
 					//if already found and conflicting:
-					if (conflict_method == "drop") {
+					if (conflict_method == Drop) {
 						reg_val = -1;
 						reg_time = -1;
 						final_selected = -1;
 						break;
 					}
-					else if (conflict_method == "max") {
+					else if (conflict_method == Max) {
 						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
 							reg_val = (*all_pid_records)[curr_index]->registry_value;
 							reg_time = (*all_pid_records)[curr_index]->end_date;
@@ -426,6 +496,8 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 		}
 	}
 
+	if (skip_no_bdate > 0)
+		MLOG("WARNING :: Skipped %d registry records because no bdate: example pid=%d\n", skip_no_bdate, example_pid);
 	if (conflict_count > 0)
 		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
 	//keep non empty pids:
@@ -436,27 +508,26 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 }
 
 int MedSamplingDates::init(map<string, string>& map) {
-	conflict_method = "drop"; //default
+	conflict_method = Drop; //default
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "take_count")
 			take_count = stoi(it->second);
-		else if (it->first == "use_allowed")
-			use_allowed = stoi(it->second) > 0;
-		else if (it->first == "allowed_time_from")
-			allowed_time_from = stoi(it->second);
-		else if (it->first == "allowed_time_to")
-			allowed_time_to = stoi(it->second);
+		else if (it->first == "mode_cases")
+			mode_cases = SamplingMode_name_to_type(it->second);
+		else if (it->first == "mode_controls")
+			mode_controls = SamplingMode_name_to_type(it->second);
+		else if (it->first == "time_from")
+			time_from = stoi(it->second);
+		else if (it->first == "time_to")
+			time_to = stoi(it->second);
 		else if (it->first == "conflict_method")
-			conflict_method = it->second;
+			conflict_method = ConflictMode_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
 	if (take_count <= 0)
 		MTHROW_AND_ERR("take_count must be positive > 0\n");
-	if (!(conflict_method == "drop" || conflict_method == "max" ||
-		conflict_method == "all"))
-		MTHROW_AND_ERR("Unsuported conflcit method - please choose: drop,all,max\n");
 	return 0;
 }
 
@@ -472,6 +543,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 		if (all_sample_options.empty())
 			continue;
 		uniform_int_distribution<> current_rand(0, (int)all_sample_options.size() - 1);
+		SamplingMode mode;
 		for (size_t k = 0; k < take_count; ++k)
 		{
 			int choosed_index = current_rand(gen);
@@ -490,18 +562,15 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records.size()) {
-				if (!use_allowed)
-					while (curr_index < all_pid_records.size() &&
-						(choosed_time < all_pid_records[curr_index]->start_date ||
-							choosed_time >all_pid_records[curr_index]->end_date))
-						++curr_index;
-				else
-					while (curr_index < all_pid_records.size() &&
-						(choosed_time < all_pid_records[curr_index]->min_allowed_date ||
-							choosed_time >all_pid_records[curr_index]->max_allowed_date))
-						++curr_index;
-				if (use_allowed && curr_index < all_pid_records.size() && !in_time_window(choosed_time, all_pid_records[curr_index],
-					allowed_time_from, allowed_time_to, false)) {
+
+				while (curr_index < all_pid_records.size() &&
+					(choosed_time < all_pid_records[curr_index]->min_allowed_date ||
+						choosed_time >all_pid_records[curr_index]->max_allowed_date))
+					++curr_index;
+				if (curr_index < all_pid_records.size())
+					mode = all_pid_records[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
+				if (curr_index < all_pid_records.size() && !in_time_window(choosed_time, all_pid_records[curr_index],
+					time_from, time_to, mode)) {
 					++curr_index;
 					continue;
 				}
@@ -517,12 +586,12 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 				}
 				else if (reg_val != all_pid_records[curr_index]->registry_value) {
 					//if already found and conflicting:
-					if (conflict_method == "drop") {
+					if (conflict_method == Drop) {
 						reg_val = -1;
 						reg_time = -1;
 						break;
 					}
-					else if (conflict_method == "max") {
+					else if (conflict_method == Max) {
 						if (reg_val < all_pid_records[curr_index]->registry_value) {
 							reg_val = all_pid_records[curr_index]->registry_value;
 							reg_time = all_pid_records[curr_index]->end_date;
@@ -605,23 +674,19 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 		}
 		else if (it->first == "back_random_duration")
 			back_random_duration = stoi(it->second);
-		else if (it->first == "allowed_time_from")
-			allowed_time_from = stoi(it->second);
-		else if (it->first == "allowed_time_to")
-			allowed_time_to = stoi(it->second);
-		else if (it->first == "use_allowed")
-			use_allowed = stoi(it->second) > 0;
-		else if (it->first == "use_time_control_as_case")
-			use_time_control_as_case = stoi(it->second) > 0;
+		else if (it->first == "time_from")
+			time_from = stoi(it->second);
+		else if (it->first == "time_to")
+			time_to = stoi(it->second);
+		else if (it->first == "mode_cases")
+			mode_cases = SamplingMode_name_to_type(it->second);
+		else if (it->first == "mode_controls")
+			mode_controls = SamplingMode_name_to_type(it->second);
 		else if (it->first == "conflict_method")
-			conflict_method = it->second;
+			conflict_method = ConflictMode_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
-
-	if (!(conflict_method == "drop" || conflict_method == "max" ||
-		conflict_method == "all"))
-		MTHROW_AND_ERR("Unsuported conflcit method - please choose: drop,all,max\n");
 	if (back_random_duration < 0)
 		MTHROW_AND_ERR("back_random_duration must be positive\n");
 
@@ -673,6 +738,7 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 			idSamples.push_back(pid_sample);
 		}
 
+		SamplingMode mode;
 		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, time_jump)) {
 			//search for match in all regs:
 			int pred_date = date;
@@ -687,19 +753,15 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
-				if (!use_allowed)
-					while (curr_index < all_pid_records->size() &&
-						(pred_date < (*all_pid_records)[curr_index]->start_date ||
-							pred_date >(*all_pid_records)[curr_index]->end_date))
-						++curr_index;
-				else
-					while (curr_index < all_pid_records->size() &&
-						(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
-							pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
-						++curr_index;
-				if (use_allowed && curr_index < all_pid_records->size() &&
+				while (curr_index < all_pid_records->size() &&
+					(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
+						pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
+					++curr_index;
+				if (curr_index < all_pid_records->size())
+					mode = (*all_pid_records)[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
+				if (curr_index < all_pid_records->size() &&
 					!in_time_window(pred_date, (*all_pid_records)[curr_index],
-						allowed_time_from, allowed_time_to, use_time_control_as_case)) {
+						time_from, time_to, mode)) {
 					++curr_index;
 					continue;
 				}
@@ -713,13 +775,13 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 				}
 				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
 					//if already found and conflicting:
-					if (conflict_method == "drop") {
+					if (conflict_method == Drop) {
 						reg_val = -1;
 						reg_time = -1;
 						final_selected = -1;
 						break;
 					}
-					else if (conflict_method == "max") {
+					else if (conflict_method == Max) {
 						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
 							reg_val = (*all_pid_records)[curr_index]->registry_value;
 							reg_time = (*all_pid_records)[curr_index]->end_date;
