@@ -14,7 +14,7 @@ using namespace std;
 
 /// @enum
 /// Sampling options
-enum SamplingMode {
+enum class SamplingMode {
 	Before = 0, ///< "before" - need to be before end_time of registry
 	Pass = 1, ///< "pass" - need to pass start_time of registry
 	Within = 2, ///< "within" - need to be within start_time and end_time - contained fully time window. 
@@ -40,7 +40,7 @@ class MedSamplingStrategy : public SerializableObject {
 public:
 	virtual void init_sampler(MedPidRepository &rep) {};
 	/// The sampling method to be implemented
-	virtual void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) = 0;
+	virtual void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry = NULL) = 0;
 
 	/// @snippet MedSamplingStrategy.cpp MedSamplingStrategy::make_sampler
 	static MedSamplingStrategy *make_sampler(const string &sampler_name);
@@ -65,7 +65,7 @@ public:
 	void init_sampler(MedPidRepository &rep);
 
 	///sample random using Environment variable. params: [Random_Duration, Back_Time_Window_Years, Jump_Time_Period_Years]
-	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
+	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry = NULL);
 
 	int init(map<string, string>& map);
 
@@ -97,7 +97,7 @@ public:
 	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 
 	///sample by year from year to year by jump and find match in registry
-	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
+	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry = NULL);
 
 	int init(map<string, string>& map);
 
@@ -107,8 +107,8 @@ public:
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
 		day_jump = 0;
-		mode_cases = Pass;
-		mode_controls = Before;
+		mode_cases = SamplingMode::Pass;
+		mode_controls = SamplingMode::Before;
 		start_year = 0;
 		end_year = 0;
 		time_to = 0;
@@ -134,15 +134,15 @@ public:
 	void init_sampler(MedPidRepository &rep);
 
 	///sample by year from age to age by jump and find match in registry
-	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
+	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry = NULL);
 
 	MedSamplingAge() {
 		start_age = 0;
 		end_age = 120;
 		age_bin = 1;
 		conflict_method = ConflictMode::All;
-		mode_cases = Pass;
-		mode_controls = Before;
+		mode_cases = SamplingMode::Pass;
+		mode_controls = SamplingMode::Before;
 	}
 
 	int init(map<string, string>& map);
@@ -167,12 +167,12 @@ public:
 	///sample Take_Count samples for each record in samples_list_pid_dates.
 	///each record is vector<pair<int, int>> which is list of all options to choose from
 	/// each record in the options is (pid, prediction_time)				
-	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
+	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry = NULL);
 
 	int init(map<string, string>& map);
 
 	MedSamplingDates() {
-		gen = mt19937(rd()); take_count = 1; mode_cases = Pass; mode_controls = Before;
+		gen = mt19937(rd()); take_count = 1; mode_cases = SamplingMode::Pass; mode_controls = SamplingMode::Before;
 		conflict_method = ConflictMode::All; time_from = 0; time_to = 0;
 	}
 
@@ -199,17 +199,17 @@ public:
 	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 
 	///sample by year from year to year by jump and find match in registry
-	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples);
+	void do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry = NULL);
 
 	int init(map<string, string>& map);
 
 	MedSamplingFixedTime() {
 		gen = mt19937(rd());
-		conflict_method = Drop; //default
+		conflict_method = ConflictMode::Drop; //default
 		back_random_duration = 0; //default
 		time_jump = 0;
-		mode_cases = Pass;
-		mode_controls = Before;
+		mode_cases = SamplingMode::Pass;
+		mode_controls = SamplingMode::Before;
 		start_time = 0;
 		end_time = 0;
 		time_to = 0;
@@ -219,5 +219,44 @@ private:
 	random_device rd;
 	mt19937 gen;
 };
+
+/**
+* \brief medial namespace for function
+*/
+namespace medial {
+	/*!
+	*  \brief process namespace
+	*/
+	namespace process {
+		/// <summary>
+		/// checks for time range intersection
+		/// @param pred_date prediction time
+		/// @param start_time start time of window
+		/// @param end_time end time of window
+		/// @param reverse If we are in reverse window - looking backward in time
+		/// @param mode the intersection method test
+		/// </summary>
+		/// <returns>
+		/// If has intersection with time window
+		/// </returns>
+		bool in_time_window_simple(int pred_date, int start_time, int end_time, bool reverse, SamplingMode mode);
+
+		/// <summary>
+		/// checks for time range intersection
+		/// @param pred_date prediction time
+		/// @param r_outcome the registry record for label
+		/// @param r_censor all the patient registry records for censoring. if empty - no censoring
+		/// @param time_from the time window from - to check with censoring date
+		/// @param time_to the time window to - to check with outcome registry
+		/// @param mode the intersection method test for outcome
+		/// @param mode_prediction the intersection method test for censoring
+		/// </summary>
+		/// <returns>
+		/// If has intersection with time window
+		/// </returns>
+		bool in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
+			int time_from, int time_to, SamplingMode mode, SamplingMode mode_prediction = SamplingMode::Within);
+	}
+}
 
 #endif

@@ -73,21 +73,43 @@ void MedSamplingTimeWindow::init_sampler(MedPidRepository &rep) {
 	get_bdates(rep, pids_bdates);
 }
 
-void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
+void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry) {
 	int random_back_dur = 1;
 	int diff_window_cases = maximal_time_case - minimal_time_case;
 	int diff_window_controls = maximal_time_control - minimal_time_control;
 	bool use_random = !take_max && (diff_window_cases > 1 || diff_window_controls > 1);
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_censor_dates;
+	if (censor_registry != NULL)
+		for (const MedRegistryRecord &rec : *censor_registry)
+			pid_censor_dates[rec.pid].push_back(&rec);
+	else
+		MWARN("Warning MedSamplingTimeWindow::do_sample - no censor registry\n");
 
 	//create samples file:
 	unordered_map<int, int> pid_to_ind;
-	int skip_end_smaller_start = 0, skip_no_bdate = 0, example_pid = -1;
-	for (MedRegistryRecord rec : registry)
+	int skip_end_smaller_start = 0, skip_no_bdate = 0, example_pid = -1, no_censor = 0;
+	for (const MedRegistryRecord &rec : registry)
 	{
+		vector<const MedRegistryRecord *> *pid_dates = NULL;
+		if (pid_censor_dates.find(rec.pid) != pid_censor_dates.end())
+			pid_dates = &pid_censor_dates[rec.pid];
+		else
+			++no_censor;
+		int max_allowed_date = rec.end_date;
+		int min_allowed_date = rec.start_date;
+		if (pid_dates != NULL) {
+			for (size_t i = 0; i < pid_dates->size(); ++i)
+				if ((*pid_dates)[i]->end_date > max_allowed_date)
+					max_allowed_date = (*pid_dates)[i]->end_date;
+			for (size_t i = 0; i < pid_dates->size(); ++i)
+				if ((*pid_dates)[i]->start_date < min_allowed_date)
+					min_allowed_date = (*pid_dates)[i]->start_date;
+		}
+
 		bool addNew = false;
 		int currDate = rec.end_date;
-		if (currDate > rec.max_allowed_date)
-			currDate = rec.max_allowed_date;
+		if (currDate > max_allowed_date)
+			currDate = max_allowed_date;
 		int diff_window = diff_window_cases;
 		if (rec.registry_value > 0)
 			currDate = medial::repository::DateAdd(currDate, -minimal_time_case);
@@ -105,16 +127,16 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 			continue;
 		}
 		float year_diff_to_first_pred;
-		if (rec.min_allowed_date <= 0) //has no limit - if "max" go back until date of birth
+		if (min_allowed_date <= 0) //has no limit - if "max" go back until date of birth
 			year_diff_to_first_pred = medial::repository::DateDiff(pid_bdate, currDate);
 		else
-			year_diff_to_first_pred = medial::repository::DateDiff(rec.min_allowed_date, currDate);
-		if (year_diff_to_first_pred < 0 || rec.end_date <= rec.start_date || rec.end_date <= rec.min_allowed_date) {
+			year_diff_to_first_pred = medial::repository::DateDiff(min_allowed_date, currDate);
+		if (year_diff_to_first_pred < 0 || rec.end_date <= rec.start_date || rec.end_date <= min_allowed_date) {
 			++skip_end_smaller_start;
 			if (skip_end_smaller_start < 5) {
-				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d], pred_dates=[%d => %d], outcome=%f, age=%d\n",
-					rec.pid, rec.start_date, rec.end_date, rec.min_allowed_date, rec.max_allowed_date,
-					rec.registry_value, (int)medial::repository::DateDiff(pid_bdate, currDate));
+				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d],  outcome=%f, age=%d\n",
+					rec.pid, rec.start_date, rec.end_date, rec.registry_value,
+					(int)medial::repository::DateDiff(pid_bdate, currDate));
 			}
 			continue;
 		}
@@ -161,6 +183,8 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 	}
 	samples.sort_by_id_date();
 
+	if (no_censor > 0)
+		MLOG("WARNING MedSamplingTimeWindow:do_sample - has %d samples with no censor dates\n", no_censor);
 	if (skip_no_bdate > 0)
 		MLOG("WARNING :: Skipped %d registry records because no bdate: example pid=%d\n", skip_no_bdate, example_pid);
 	if (skip_end_smaller_start > 0)
@@ -210,22 +234,22 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	return 0;
 }
 
-bool in_time_window_simple(int pred_date, int start_time, int end_time, bool reverse, SamplingMode mode) {
+bool medial::process::in_time_window_simple(int pred_date, int start_time, int end_time, bool reverse, SamplingMode mode) {
 	switch (mode)
 	{
 	case SamplingMode::All_:
 		return true;
-	case Before:
+	case SamplingMode::Before:
 		if (reverse)
 			return pred_date >= start_time;
 		else
 			return pred_date <= end_time;
-	case Pass:
+	case SamplingMode::Pass:
 		if (reverse)
 			return (pred_date <= end_time);
 		else
 			return (pred_date >= start_time);
-	case Within:
+	case SamplingMode::Within:
 		return  (pred_date >= start_time) && (pred_date <= end_time);
 	default:
 		MTHROW_AND_ERR("Error in in_time_window - unsupported mode - %d\n", mode);
@@ -234,8 +258,8 @@ bool in_time_window_simple(int pred_date, int start_time, int end_time, bool rev
 
 // testing for time_window - for specific registry_value. has rule for pred_date - which is from_time_window 
 // time and rules for outcome
-bool in_time_window(int pred_date, const MedRegistryRecord *r, int time_from, int time_to,
-	SamplingMode mode, SamplingMode mode_prediction = SamplingMode::Within) {
+bool medial::process::in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
+	int time_from, int time_to, SamplingMode mode, SamplingMode mode_prediction) {
 	int sig_start_date = medial::repository::DateAdd(pred_date, time_from);
 	int sig_end_date = medial::repository::DateAdd(pred_date, time_to);
 	int reffer_date = sig_start_date;
@@ -243,13 +267,23 @@ bool in_time_window(int pred_date, const MedRegistryRecord *r, int time_from, in
 		reffer_date = sig_end_date;
 	bool reverse = time_from < 0;
 	//if (reffer_date > r->max_allowed_date || reffer_date < r->min_allowed_date)
-	if (!in_time_window_simple(reffer_date, r->min_allowed_date, r->max_allowed_date, reverse, mode_prediction))
+
+	int idx_time = 0;
+	bool can_have_pred = r_censor.empty();
+	while (idx_time < r_censor.size() && !can_have_pred) {
+		can_have_pred = in_time_window_simple(reffer_date, r_censor[idx_time]->start_date,
+			r_censor[idx_time]->end_date, reverse, mode_prediction);
+		++idx_time;
+	}
+	if (!can_have_pred)
 		return false; //can't give prediction
 
-	return in_time_window_simple(reffer_date, r->start_date, r->end_date, reverse, mode);
+
+	return in_time_window_simple(reffer_date, r_outcome->start_date, r_outcome->end_date, reverse, mode);
 }
 
-void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
+void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples,
+	const vector<MedRegistryRecord> *censor_registry) {
 	if (day_jump <= 0)
 		MTHROW_AND_ERR("day_jump must be positive > 0\n");
 	if (end_year <= 1900 || end_year >= 2100 || start_year <= 1900 || start_year >= 2100)
@@ -262,12 +296,16 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 	uniform_int_distribution<> rand_int(0, random_back_dur);
 	unordered_map<int, int> pid_to_ind;
 	vector<MedIdSamples> idSamples;
+	vector<const MedRegistryRecord *> empty_censor;
 
-	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs;
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs, pid_to_censor;
 	for (size_t i = 0; i < registry.size(); ++i)
 		pid_to_regs[registry[i].pid].push_back(&registry[i]);
+	if (censor_registry != NULL)
+		for (size_t i = 0; i < censor_registry->size(); ++i)
+			pid_to_censor[(*censor_registry)[i].pid].push_back(&(*censor_registry)[i]);
 
-	int conflict_count = 0, done_count = 0;
+	int conflict_count = 0, done_count = 0, no_censor = 0;
 	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it)
 	{
 		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
@@ -281,6 +319,11 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			idSamples.push_back(pid_sample);
 		}
 		SamplingMode mode;
+		vector<const MedRegistryRecord *> *r_censor = &empty_censor;
+		if (pid_to_censor.find(it->first) != pid_to_censor.end())
+			r_censor = &pid_to_censor[it->first];
+		else
+			++no_censor;
 		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, day_jump)) {
 			//search for match in all regs:
 			int pred_date = date;
@@ -295,14 +338,10 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
-				while (curr_index < all_pid_records->size() &&
-					(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
-						pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
-					++curr_index;
 				if (curr_index < all_pid_records->size())
 					mode = (*all_pid_records)[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
 				if (curr_index < all_pid_records->size() &&
-					!in_time_window(pred_date, (*all_pid_records)[curr_index],
+					!medial::process::in_time_window(pred_date, (*all_pid_records)[curr_index], *r_censor,
 						time_from, time_to, mode)) {
 					++curr_index;
 					continue;
@@ -356,6 +395,8 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 		}
 	}
 
+	if (no_censor > 0)
+		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
 	if (conflict_count > 0)
 		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
 	//keep non empty pids:
@@ -392,19 +433,23 @@ void MedSamplingAge::init_sampler(MedPidRepository &rep) {
 	get_bdates(rep, pids_bdates);
 }
 
-void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
+void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry) {
 	if (start_age < 0 || end_age < 0 || end_age > 120 || start_age > 120)
 		MTHROW_AND_ERR("start_age,end_age must be initialize between 0 to 120\n");
 	if (age_bin <= 0)
 		MTHROW_AND_ERR("age_bin must be positive > 0\n");
-	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs;
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs, pid_to_censor;
 	for (size_t i = 0; i < registry.size(); ++i)
 		pid_to_regs[registry[i].pid].push_back(&registry[i]);
+	if (censor_registry != NULL)
+		for (size_t i = 0; i < censor_registry->size(); ++i)
+			pid_to_censor[(*censor_registry)[i].pid].push_back(&(*censor_registry)[i]);
 
 	unordered_map<int, int> pid_to_ind;
 	vector<MedIdSamples> idSamples;
+	vector<const MedRegistryRecord *> empty_censor;
 
-	int conflict_count = 0, done_count = 0, skip_no_bdate = 0, example_pid = -1;
+	int conflict_count = 0, done_count = 0, skip_no_bdate = 0, no_censor = 0, example_pid = -1;
 	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it) {
 		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
 		if (pid_to_ind.find(it->first) == pid_to_ind.end()) {
@@ -421,6 +466,11 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			continue;
 		}
 		SamplingMode mode;
+		vector<const MedRegistryRecord *> *r_censor = &empty_censor;
+		if (pid_to_censor.find(it->first) != pid_to_censor.end())
+			r_censor = &pid_to_censor[it->first];
+		else
+			++no_censor;
 		for (int age = start_age; age <= end_age; age += age_bin) {
 			//search for match in all regs:
 			int pred_start_date = medial::repository::DateAdd(pid_bdate, 365 * age); //mark start date in age_bin to age
@@ -434,15 +484,10 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
-
-				while (curr_index < all_pid_records->size() &&
-					(pred_end_date < (*all_pid_records)[curr_index]->min_allowed_date ||
-						pred_start_date >(*all_pid_records)[curr_index]->max_allowed_date))
-					++curr_index;
 				if (curr_index < all_pid_records->size())
 					mode = (*all_pid_records)[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
 				if (curr_index < all_pid_records->size() &&
-					!in_time_window(pred_start_date, (*all_pid_records)[curr_index],
+					!medial::process::in_time_window(pred_start_date, (*all_pid_records)[curr_index], *r_censor,
 						0, 365 * age_bin, mode)) {
 					++curr_index;
 					continue;
@@ -496,6 +541,8 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 		}
 	}
 
+	if (no_censor > 0)
+		MLOG("WARNING MedSamplingAge:do_sample - has %d samples with no censor dates\n", no_censor);
 	if (skip_no_bdate > 0)
 		MLOG("WARNING :: Skipped %d registry records because no bdate: example pid=%d\n", skip_no_bdate, example_pid);
 	if (conflict_count > 0)
@@ -531,12 +578,17 @@ int MedSamplingDates::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
-	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs;
+void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry) {
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs, pid_to_censor;
 	for (size_t i = 0; i < registry.size(); ++i)
 		pid_to_regs[registry[i].pid].push_back(&registry[i]);
+	if (censor_registry != NULL)
+		for (size_t i = 0; i < censor_registry->size(); ++i)
+			pid_to_censor[(*censor_registry)[i].pid].push_back(&(*censor_registry)[i]);
+	vector<const MedRegistryRecord *> empty_censor;
 
 	unordered_map<int, MedIdSamples> map_pid_samples;
+	int no_censor = 0;
 	for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
 	{
 		const vector<pair<int, int>> &all_sample_options = samples_list_pid_dates[i];
@@ -556,21 +608,21 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 			if (map_pid_samples.find(choosed_pid) == map_pid_samples.end())
 				map_pid_samples[choosed_pid] = sample_id;
 			//find registry match for the selected option:
+			vector<const MedRegistryRecord *> *r_censor = &empty_censor;
+			if (pid_to_censor.find(choosed_pid) != pid_to_censor.end())
+				r_censor = &pid_to_censor[choosed_pid];
+			else
+				++no_censor;
 
 			int curr_index = 0;
 			float reg_val = -1;
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records.size()) {
-
-				while (curr_index < all_pid_records.size() &&
-					(choosed_time < all_pid_records[curr_index]->min_allowed_date ||
-						choosed_time >all_pid_records[curr_index]->max_allowed_date))
-					++curr_index;
 				if (curr_index < all_pid_records.size())
 					mode = all_pid_records[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
-				if (curr_index < all_pid_records.size() && !in_time_window(choosed_time, all_pid_records[curr_index],
-					time_from, time_to, mode)) {
+				if (curr_index < all_pid_records.size() && !medial::process::in_time_window(choosed_time, all_pid_records[curr_index],
+					*r_censor, time_from, time_to, mode)) {
 					++curr_index;
 					continue;
 				}
@@ -626,6 +678,9 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 			}
 		}
 	}
+
+	if (no_censor > 0)
+		MLOG("Warning MedSamplingDates:do_sample - has %d samples with no censor dates\n", no_censor);
 
 	for (auto it = map_pid_samples.begin(); it != map_pid_samples.end(); ++it)
 		if (!it->second.samples.empty())
@@ -693,7 +748,7 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples) {
+void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples, const vector<MedRegistryRecord> *censor_registry) {
 	if (time_jump <= 0)
 		MTHROW_AND_ERR("time_jump must be positive > 0\n");
 
@@ -705,32 +760,49 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 	uniform_int_distribution<> rand_int(0, random_back_dur);
 	unordered_map<int, int> pid_to_ind;
 	vector<MedIdSamples> idSamples;
+	vector<const MedRegistryRecord *> empty_censor;
 
-	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs;
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_regs, pid_to_censor;
 	for (size_t i = 0; i < registry.size(); ++i)
 		pid_to_regs[registry[i].pid].push_back(&registry[i]);
+	if (censor_registry != NULL)
+		for (size_t i = 0; i < censor_registry->size(); ++i)
+			pid_to_censor[(*censor_registry)[i].pid].push_back(&(*censor_registry)[i]);
 
-	int conflict_count = 0, done_count = 0;
+	int conflict_count = 0, done_count = 0, no_censor = 0;
 	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it)
 	{
 		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
+		vector<const MedRegistryRecord *> *r_censor = &empty_censor;
+		if (pid_to_censor.find(it->first) != pid_to_censor.end())
+			r_censor = &pid_to_censor[it->first];
 
 		long start_date = start_time;
 		long end_date = end_time;
-		if (start_date == 0 && !all_pid_records->empty()) {
+
+		//vector<const MedRegistryRecord *> *selected_p = all_pid_records;
+		vector<const MedRegistryRecord *> *selected_p = r_censor;
+		if (r_censor->empty()) {
+			selected_p = all_pid_records;
+			++no_censor;
+		}
+
+		if (start_date == 0 && !selected_p->empty()) {
 			//select min{min_allowed on all_pid_records}
-			start_date = all_pid_records->front()->min_allowed_date;
-			for (size_t i = 1; i < all_pid_records->size(); ++i)
-				if (start_date > all_pid_records->at(i)->min_allowed_date)
-					start_date = all_pid_records->at(i)->min_allowed_date;
+			start_date = selected_p->front()->start_date;
+			for (size_t i = 1; i < selected_p->size(); ++i)
+				if (start_date > selected_p->at(i)->start_date)
+					start_date = selected_p->at(i)->start_date;
 		}
-		if (end_date == 0 && !all_pid_records->empty()) {
+		if (end_date == 0 && !selected_p->empty()) {
 			//select max{max_allowed on all_pid_records}
-			end_date = all_pid_records->front()->max_allowed_date;
-			for (size_t i = 1; i < all_pid_records->size(); ++i)
-				if (end_date < all_pid_records->at(i)->max_allowed_date)
-					end_date = all_pid_records->at(i)->max_allowed_date;
+			end_date = selected_p->front()->end_date;
+			for (size_t i = 1; i < selected_p->size(); ++i)
+				if (end_date < selected_p->at(i)->end_date)
+					end_date = selected_p->at(i)->end_date;
 		}
+
+
 
 		if (pid_to_ind.find(it->first) == pid_to_ind.end()) {
 			pid_to_ind[it->first] = (int)idSamples.size();
@@ -753,14 +825,10 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 			int reg_time = -1;
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
-				while (curr_index < all_pid_records->size() &&
-					(pred_date < (*all_pid_records)[curr_index]->min_allowed_date ||
-						pred_date >(*all_pid_records)[curr_index]->max_allowed_date))
-					++curr_index;
 				if (curr_index < all_pid_records->size())
 					mode = (*all_pid_records)[curr_index]->registry_value > 0 ? mode_cases : mode_controls;
 				if (curr_index < all_pid_records->size() &&
-					!in_time_window(pred_date, (*all_pid_records)[curr_index],
+					!medial::process::in_time_window(pred_date, (*all_pid_records)[curr_index], *r_censor,
 						time_from, time_to, mode)) {
 					++curr_index;
 					continue;
@@ -813,7 +881,8 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 			}
 		}
 	}
-
+	if (no_censor > 0)
+		MLOG("Sampled registry with %d missing censoring pid dates\n", no_censor);
 	if (conflict_count > 0)
 		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
 	//keep non empty pids:

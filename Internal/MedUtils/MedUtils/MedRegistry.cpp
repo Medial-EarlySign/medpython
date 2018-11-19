@@ -42,7 +42,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 	string line;
 	int lineNum = 0;
 	vector<string> tokens;
-	tokens.reserve(7);
+	tokens.reserve(4);
 	//Format: [ PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue ]
 	while (getline(fp, line))
 	{
@@ -58,7 +58,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 			continue;
 		}
 
-		if (tokens.size() != 7) {
+		if (tokens.size() != 4) {
 			cerr << "Bad File Format in line " << lineNum << " got \"" << line << "\"" << " parsed " << tokens.size() << " tokens" << endl;
 			throw out_of_range("File has bad format");
 		}
@@ -68,9 +68,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 		pr.pid = stoi(tokens[0]);
 		pr.start_date = read_time(time_unit, tokens[1]);
 		pr.end_date = read_time(time_unit, tokens[2]);
-		pr.min_allowed_date = read_time(time_unit, tokens[3]);
-		pr.max_allowed_date = read_time(time_unit, tokens[4]);
-		pr.registry_value = stof(tokens[5]);
+		pr.registry_value = stof(tokens[3]);
 		registry_records.push_back(pr);
 
 	}
@@ -91,8 +89,6 @@ void MedRegistry::write_text_file(const string &file_path) const {
 		fw << registry_records[i].pid << delim <<
 		write_time(time_unit, registry_records[i].start_date) << delim <<
 		write_time(time_unit, registry_records[i].end_date) << delim
-		<< write_time(time_unit, registry_records[i].min_allowed_date) << delim
-		<< write_time(time_unit, registry_records[i].max_allowed_date) << delim
 		<< delim << registry_records[i].registry_value << "\n";
 
 	fw.flush();
@@ -260,27 +256,6 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 	}
 }
 
-/// test that sig_start is in allowed range (means signal date is in allowed time).
-/// If looking backward - checks that end_date is in allowed range (backward search).
-/// use_whole changes the check to "contain" - which is relevents for controls to not passed reg_end_date.
-/// In cases we don't need it
-bool date_intersection(int min_allowed_date, int max_allowed_date, int reg_start, int reg_end, int sig_date,
-	int time_window_from, int time_window_to, bool use_whole) {
-	//Registry, Signal
-	int sig_start_date = medial::repository::DateAdd(sig_date, time_window_from);
-	int sig_end_date = medial::repository::DateAdd(sig_date, time_window_to);
-	int reffer_date = sig_start_date;
-	if (time_window_from < 0) //if looking backward force end_date to be in allowed
-		reffer_date = sig_end_date;
-	if (reffer_date > max_allowed_date || reffer_date < min_allowed_date)
-		return false;
-
-	if (time_window_from < 0)
-		return (sig_start_date <= reg_end) && (!use_whole || sig_start_date >= reg_start);
-	else
-		return (sig_end_date >= reg_start) && (!use_whole || sig_end_date <= reg_end);
-}
-
 void update_loop(int pos, int ageBin_index, float ageBin, const MedRegistryRecord &sigRec,
 	map<float, map<float, vector<int>>> &signalToStats, vector<unordered_map<float, int>> &val_seen_pid_pos) {
 	if ((pos == 3 && val_seen_pid_pos[ageBin_index][sigRec.registry_value] / 2 > 0) ||
@@ -303,10 +278,17 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	MedSamplingStrategy &sampler,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
-	const string &debug_file, const unordered_set<float> &debug_vals) const {
+	const string &debug_file, const unordered_set<float> &debug_vals,
+	const MedRegistry *censoring, unordered_map<float, SamplingMode> *mode_outcome, unordered_map<float, SamplingMode> *mode_censor) const {
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
+	unordered_map<float, SamplingMode> def_mode_outcome = { { (float)0, SamplingMode::Before }, { (float)1, SamplingMode::Pass   } };
+	unordered_map<float, SamplingMode> def_mode_censor = { { (float)0, SamplingMode::Within }, { (float)1, SamplingMode::Within } };
+	if (mode_outcome == NULL)
+		mode_outcome = &def_mode_outcome;
+	if (mode_censor == NULL)
+		mode_censor = &def_mode_censor;
 
 	if (time_window_from > time_window_to) {
 		MWARN("Warning: you gave time window params in wrong order [%d, %d]."
@@ -320,7 +302,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	MedSamples incidence_samples;
 
 	MLOG("Sampling for incidence stats...\n");
-	sampler.do_sample(registry_records, incidence_samples);
+	sampler.do_sample(registry_records, incidence_samples, censoring == NULL ? NULL : &censoring->registry_records);
 	incidence_samples.get_ids(pids);
 	duration = (int)difftime(time(NULL), start);
 	MLOG("Done in %d seconds!\n", duration);
@@ -346,6 +328,11 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	unordered_map<int, vector<int>> registryPidToInds;
 	for (int i = 0; i < registry_records.size(); ++i)
 		registryPidToInds[registry_records[i].pid].push_back(i);
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_censor;
+	if (censoring != NULL)
+		for (size_t i = 0; i < censoring->registry_records.size(); ++i)
+			pid_to_censor[censoring->registry_records[i].pid].push_back(&censoring->registry_records[i]);
+	vector<const MedRegistryRecord *> empty_arr;
 
 	unordered_map<float, vector<int>> male_total_prevalence; //key=age
 	unordered_map<float, vector<int>> female_total_prevalence; //key=age
@@ -463,6 +450,9 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 			for (int indReg : *registry_inds)
 			{
 				const MedRegistryRecord &regRec = registry_records.at(indReg);
+				vector<const MedRegistryRecord *> *r_censor = &empty_arr;
+				if (pid_to_censor.find(pid) != pid_to_censor.end())
+					r_censor = &pid_to_censor[pid];
 				if (regRec.registry_value < 0) {
 					has_intr = true;//censored out - mark as done, no valid registry records for pid
 					break;
@@ -478,9 +468,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					ageBin_index = age_bin_count - 1;*/
 				pos = 2;
 
-				bool intersect = date_intersection(regRec.min_allowed_date, regRec.max_allowed_date,
-					regRec.start_date, regRec.end_date, sigRec.start_date,
-					time_window_from, time_window_to, regRec.registry_value <= 0);
+				bool intersect = medial::process::in_time_window(regRec.start_date, &regRec, *r_censor, time_window_from, time_window_to,
+					mode_outcome->at(regRec.registry_value), mode_censor->at(regRec.registry_value));
 				if (intersect) {
 					has_intr = true;
 					//pos += 1; //registry_value > 0 - otherwise skip this
@@ -1211,7 +1200,6 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			}
 		}
 		int min_date = medial::repository::DateAdd(start_date, start_buffer_duration);
-		r.min_allowed_date = min_date; //at least 1 year data
 		r.registry_value = 0;
 		//I have start_date
 		if (Date_wrapper(*signal, i) > max_allowed_date)
@@ -1222,20 +1210,15 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//flush buffer
 			int last_date_c = medial::repository::DateAdd(Date_wrapper(*signal, i), -signal_prop->buffer_duration);
 			r.end_date = last_date_c;
-			r.max_allowed_date = last_date_c;
 			if (r.end_date > r.start_date)
 				results.push_back(r);
 
 			//start new record
 			//r.pid = pid;
-			r.min_allowed_date = min_date;
-			r.max_allowed_date = Date_wrapper(*signal, i);
 			r.start_date = Date_wrapper(*signal, i);
 			r.registry_value = registry_outcome_result;
 			if (signal_prop->take_only_first) {
 				r.end_date = max_date_mark;
-				if (allow_prediciton_in_case)
-					r.max_allowed_date = r.end_date;
 				results.push_back(r);
 				return;
 			}
@@ -1257,15 +1240,12 @@ void MedRegistryCodesList::get_registry_records(int pid,
 				signal_prop = signal_filters[signal_index];
 				signal = &usv[signal_index];
 			}
-			if (allow_prediciton_in_case)
-				r.max_allowed_date = r.end_date;
 			results.push_back(r);
 			if (signal_index < 0) {
 				r.start_date = max_date_mark; //no more control times, reached the end
 				break;
 			}
 			//prepare for next:
-			r.min_allowed_date = min_date;
 			r.registry_value = 0;
 			r.start_date = Date_wrapper(*signal, i); //already after duration and buffer. can start new control
 			continue; //dont call fetch_next again
@@ -1276,7 +1256,6 @@ void MedRegistryCodesList::get_registry_records(int pid,
 
 	r.end_date = last_date;
 	last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
-	r.max_allowed_date = last_date;
 	if (r.end_date > r.start_date)
 		results.push_back(r);
 }
@@ -2043,7 +2022,6 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 			signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
 	}
 	int min_date = medial::repository::DateAdd(start_date, start_buffer_duration);
-	r.min_allowed_date = min_date;
 	r.start_date = min_date;
 
 	bool same_date = false;
@@ -2133,13 +2111,12 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 							continue;
 						}
 
-						if (r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date)
+						if (r.end_date > r.start_date)
 							results.push_back(r);
 						//start new record with 0 outcome:
 						//r.registry_value = signal_prop_outcome; //left the same no need
 						r.start_date = curr_date; //continue from where left
 						//r.end_date = medial::repository::DateAdd(r.start_date, 1); //let's start from 1 day
-						r.max_allowed_date = curr_date;
 						r.end_date = medial::repository::DateAdd(curr_date, signal_prop->duration_flag);
 						last_buffer_duration = signal_prop->buffer_duration;
 					}
@@ -2152,7 +2129,7 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 					//if (r.registry_value == 0)
 					//	r.max_allowed_date = last_date_c;
 
-					if (!mark_no_match && r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date)
+					if (!mark_no_match && r.end_date > r.start_date)
 						results.push_back(r);
 
 					//skip if may not use
@@ -2161,7 +2138,6 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 					//start new record
 					//r.pid = pid;
 					//r.min_allowed_date = min_date;
-					r.max_allowed_date = curr_date;
 					r.start_date = curr_date;
 					r.registry_value = signal_prop_outcome;
 
@@ -2187,7 +2163,7 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 		if (!same_date && !is_rule_active) {
 			//check if need to close buffer - no rule happend in this time and has outcome in buffer
 			if (curr_date > r.end_date) { //if need to skip or has passed buffer
-				if (!mark_no_match && r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date)
+				if (!mark_no_match && r.end_date > r.start_date)
 					results.push_back(r);
 				//start new record with 0 outcome:
 				r.registry_value = -1;
@@ -2208,8 +2184,7 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 	if (mark_no_match)
 		r.end_date = last_date;
 	last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
-	r.max_allowed_date = last_date;
-	if (r.end_date > r.start_date && r.max_allowed_date > r.min_allowed_date && !mark_no_match)
+	if (r.end_date > r.start_date && !mark_no_match)
 		results.push_back(r);
 }
 

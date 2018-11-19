@@ -179,14 +179,19 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 	MedSamplingStrategy &sampler, map<string, vector<float>> &data_for_filtering,
 	vector<MedSample> &inc_smps) {
 	MedSamples inc_samples;
+	MedPidRepository rep;
+	vector<int> pids_to_take;
+	unordered_set<int> seen_id;
+	for (size_t i = 0; i < registry_records.size(); ++i)
+		seen_id.insert(registry_records[i].pid);
+	pids_to_take.insert(pids_to_take.end(), seen_id.begin(), seen_id.end());
+	MedModel mdl;
+	init_model(mdl, rep, json_model, rep_path, pids_to_take);
+
+	sampler.init_sampler(rep);
 	sampler.do_sample(registry_records, inc_samples);
 	MLOG("Done sampling for incidence by year. has %d patients\n",
 		(int)inc_samples.idSamples.size());
-	vector<int> pids_to_take;
-	inc_samples.get_ids(pids_to_take);
-	MedModel mdl;
-	MedPidRepository rep;
-	init_model(mdl, rep, json_model, rep_path, pids_to_take);
 
 	if (mdl.learn(rep, &inc_samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
 		MTHROW_AND_ERR("Error creating age,gender for samples\n");
@@ -349,11 +354,14 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 	unordered_map<string, int> cohort_to_time_res, cohort_to_time_filter_index;
 	unordered_map<int, vector<int>> sorted_times;
 	unordered_map<int, vector<vector<int>>> times_indexes;
-	unordered_map<int, vector<MedRegistryRecord *>> pid_to_reg;
+	unordered_map<int, vector<MedRegistryRecord *>> pid_to_reg, pid_to_censor;
 	MedFeatures *final_features = &features_mat;
 	if (simTimeWindow) {
 		for (size_t i = 0; i < registry->registry_records.size(); ++i)
 			pid_to_reg[registry->registry_records[i].pid].push_back(&registry->registry_records[i]);
+		if (args.registry_censor != NULL)
+			for (size_t i = 0; i < args.registry_censor->registry_records.size(); ++i)
+				pid_to_censor[args.registry_censor->registry_records[i].pid].push_back(&(args.registry_censor->registry_records)[i]);
 	}
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
 		int from_w = 0, to_w = 0;
@@ -492,12 +500,14 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 
 		map<string, map<string, float>> part_res;
 		MedFeatures sim_features;
+		vector<MedRegistryRecord *> empty_arr;
 		if (simTimeWindow) {
 			MLOG("Censoring using MedRegistry for sim_time_window\n");
 			sim_features = features_mat; //full copy
 											//check for features_final - MedRegistry allowed if simTime - and filter
 			vector<int> selected_rows;
 			selected_rows.reserve(sim_features.samples.size());
+			int no_censoring = 0;
 			for (size_t i = 0; i < sim_features.samples.size(); ++i)
 			{
 				if (sim_features.samples[i].outcome <= 0 || time_filter.param_name.empty()) {
@@ -509,14 +519,19 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 				if (time_df > time_filter.max_range) {
 					//search for intersection:
 					const vector<MedRegistryRecord *> &reg_records = pid_to_reg[sim_features.samples[i].id];
-					bool is_legal = false;
-					for (size_t k = 0; k < reg_records.size(); ++k)
+					const vector<MedRegistryRecord *> *reg_censor = &empty_arr;
+					if (pid_to_censor.find(sim_features.samples[i].id) != pid_to_censor.end())
+						reg_censor = &pid_to_censor[sim_features.samples[i].id];
+					else
+						++no_censoring;
+					bool is_legal = reg_censor->empty();
+					for (size_t k = 0; k < reg_censor->size(); ++k)
 					{
-						if (reg_records[k]->registry_value > 0)
+						if (reg_censor->at(k)->registry_value > 0)
 							continue;
 						int diff_to_allowed = int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
-							reg_records[k]->max_allowed_date)));
-						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_records[k]->min_allowed_date) {
+							reg_censor->at(k)->end_date)));
+						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_censor->at(k)->start_date) {
 							is_legal = true;
 							break;
 						}
@@ -529,6 +544,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 			}
 			medial::process::filter_row_indexes(sim_features, selected_rows);
 			final_features = &sim_features;
+			if (no_censoring > 0)
+				MWARN("Warning in bootstarp has %d pids without censor registry\n", no_censoring);
 		}
 
 		map<int, map<string, map<string, float>>> part_results_per_split;

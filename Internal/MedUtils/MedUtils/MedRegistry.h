@@ -10,6 +10,7 @@
 using namespace std;
 
 class MedSamplingStrategy;
+enum class SamplingMode;
 
 /**
 * A class which represnt a registry record of patient in time range from start_date to end_date
@@ -23,13 +24,10 @@ public:
 	//defines the registry value apply date range
 	int start_date; ///< the start_date range for the record
 	int end_date; ///< the end_date range for the record
-	//defines the allowed sampling date range for the record
-	int min_allowed_date; ///< min time for sampling
-	int max_allowed_date; ///< max time for sampling
 
 	float registry_value; ///< the registry value/state
 
-	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, min_allowed_date, max_allowed_date, registry_value)
+	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, registry_value)
 };
 
 static unordered_set<float> default_empty_set;
@@ -94,7 +92,9 @@ public:
 		MedSamplingStrategy &sampler,
 		map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
-		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set) const;
+		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set,
+		const MedRegistry *censoring = NULL,
+		unordered_map<float, SamplingMode> *mode_outcome = NULL, unordered_map<float, SamplingMode> *mode_censor = NULL) const;
 
 	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
