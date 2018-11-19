@@ -27,10 +27,9 @@ public:
 	int min_allowed_date; ///< min time for sampling
 	int max_allowed_date; ///< max time for sampling
 
-	int age; ///< optional mark for record age. the age in start_date
 	float registry_value; ///< the registry value/state
 
-	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, min_allowed_date, max_allowed_date, age, registry_value)
+	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, min_allowed_date, max_allowed_date, registry_value)
 };
 
 static unordered_set<float> default_empty_set;

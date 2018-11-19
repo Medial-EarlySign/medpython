@@ -70,8 +70,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 		pr.end_date = read_time(time_unit, tokens[2]);
 		pr.min_allowed_date = read_time(time_unit, tokens[3]);
 		pr.max_allowed_date = read_time(time_unit, tokens[4]);
-		pr.age = stoi(tokens[5]);
-		pr.registry_value = stof(tokens[6]);
+		pr.registry_value = stof(tokens[5]);
 		registry_records.push_back(pr);
 
 	}
@@ -94,7 +93,6 @@ void MedRegistry::write_text_file(const string &file_path) const {
 		write_time(time_unit, registry_records[i].end_date) << delim
 		<< write_time(time_unit, registry_records[i].min_allowed_date) << delim
 		<< write_time(time_unit, registry_records[i].max_allowed_date) << delim
-		<< registry_records[i].age
 		<< delim << registry_records[i].registry_value << "\n";
 
 	fw.flush();
@@ -232,7 +230,6 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 	{
 		MedRegistryRecord rec;
 		rec.pid = pid;
-		rec.age = -1;
 		rec.start_date = signalVal.Time(i);
 		rec.end_date = medial::repository::DateAdd(rec.start_date, 1);
 		rec.registry_value = signalVal.Val(i);
@@ -255,7 +252,6 @@ void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &
 			MedRegistryRecord rec2;
 
 			rec2.pid = pid;
-			rec2.age = -1;
 			rec2.start_date = signalVal.Time(i);
 			rec2.end_date = medial::repository::DateAdd(rec2.start_date, 1);
 			rec2.registry_value = (float)nums[k];
@@ -471,10 +467,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					has_intr = true;//censored out - mark as done, no valid registry records for pid
 					break;
 				}
-				if (regRec.age != -1 && regRec.registry_value > 0)
-					ageBin = float(ageBinValue * floor(double(regRec.age) / ageBinValue));
-				else
-					ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, sigRec.start_date)) / ageBinValue));
+
+				ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, sigRec.start_date)) / ageBinValue));
 				ageBin_index = int((ageBin - min_age) / ageBinValue);
 				if (ageBin < min_age || ageBin > max_age)
 					continue; //skip out of range...
@@ -1218,7 +1212,6 @@ void MedRegistryCodesList::get_registry_records(int pid,
 		}
 		int min_date = medial::repository::DateAdd(start_date, start_buffer_duration);
 		r.min_allowed_date = min_date; //at least 1 year data
-		r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 		r.registry_value = 0;
 		//I have start_date
 		if (Date_wrapper(*signal, i) > max_allowed_date)
@@ -1238,7 +1231,6 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			r.min_allowed_date = min_date;
 			r.max_allowed_date = Date_wrapper(*signal, i);
 			r.start_date = Date_wrapper(*signal, i);
-			r.age = (int)medial::repository::DateDiff(bdate, Date_wrapper(*signal, i));
 			r.registry_value = registry_outcome_result;
 			if (signal_prop->take_only_first) {
 				r.end_date = max_date_mark;
@@ -1276,7 +1268,6 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			r.min_allowed_date = min_date;
 			r.registry_value = 0;
 			r.start_date = Date_wrapper(*signal, i); //already after duration and buffer. can start new control
-			r.age = int(medial::repository::DateDiff(bdate, r.start_date));
 			continue; //dont call fetch_next again
 		}
 
@@ -2054,7 +2045,6 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 	int min_date = medial::repository::DateAdd(start_date, start_buffer_duration);
 	r.min_allowed_date = min_date;
 	r.start_date = min_date;
-	r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
 
 	bool same_date = false;
 	float rule_activated = 0;
@@ -2148,7 +2138,6 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 						//start new record with 0 outcome:
 						//r.registry_value = signal_prop_outcome; //left the same no need
 						r.start_date = curr_date; //continue from where left
-						r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
 						//r.end_date = medial::repository::DateAdd(r.start_date, 1); //let's start from 1 day
 						r.max_allowed_date = curr_date;
 						r.end_date = medial::repository::DateAdd(curr_date, signal_prop->duration_flag);
@@ -2174,7 +2163,6 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 					//r.min_allowed_date = min_date;
 					r.max_allowed_date = curr_date;
 					r.start_date = curr_date;
-					r.age = (int)medial::repository::DateDiff(bdate, r.start_date);
 					r.registry_value = signal_prop_outcome;
 
 					if (signal_prop->take_only_first) {
