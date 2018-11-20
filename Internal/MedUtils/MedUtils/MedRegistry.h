@@ -450,6 +450,37 @@ private:
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
 };
 
+/**
+* Keep Alive registry - use for censoring "dead" times
+*/
+class MedRegistryKeepAlive : public MedRegistry {
+public:
+	int duration; ///< the duration buffer form start
+	int max_repo_date; ///< the maximal date for the repository
+	int start_buffer_duration; ///< the buffer duration from first signal
+	int secondry_start_buffer_duration; ///< the buffer duration from new signal region
+	int end_buffer_duration; ///< the buffer duration from last signal
+	vector<string> signal_list; ///< list of signals to fetch for keep alive time ranges
+
+	MedRegistryKeepAlive() {
+		duration = 0;
+		max_repo_date = 0;
+		need_bdate = false;
+		start_buffer_duration = 0;
+		end_buffer_duration = 0;
+		secondry_start_buffer_duration = 0;
+	}
+
+	/// <summary>
+	/// @snippet MedRegistry.cpp MedRegistryKeepAlive::init
+	/// </summary>
+	int init(map<string, string>& map);
+private:
+	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
+
+	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
+};
+
 MEDSERIALIZE_SUPPORT(MedRegistryRecord)
 MEDSERIALIZE_SUPPORT(MedRegistry)
 

@@ -50,22 +50,33 @@ public:
 	}
 
 	TimeWindowMode *operator[] (float x) {
-		return interaction_mode[x];
+		if (interaction_mode.find(x) != interaction_mode.end() || !has_default_mode)
+			return interaction_mode[x];
+		//has_default_mode is true and not exist
+		return default_modes;
 	}
 
 	bool find(const float x) {
-		return interaction_mode.find(x) != interaction_mode.end();
+		return has_default_mode || interaction_mode.find(x) != interaction_mode.end();
 	}
 
 	const TimeWindowMode *at(float x) const {
-		return interaction_mode.at(x);
+		if (interaction_mode.find(x) != interaction_mode.end() || !has_default_mode)
+			return interaction_mode.at(x);
+		return default_modes;
 	}
 
 	void set_default(TimeWindowMode defaults_m[2]) {
 		if (has_default_mode)
 			HMTHROW_AND_ERR("Error - TimeWindowInteraction has already default\n");
+		has_default_mode = true;
 		default_modes[0] = defaults_m[0];
 		default_modes[1] = defaults_m[1];
+	}
+
+	void reset_for_init() {
+		has_default_mode = false;
+		interaction_mode.clear();
 	}
 };
 

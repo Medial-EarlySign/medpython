@@ -1915,6 +1915,8 @@ MedRegistry *MedRegistry::make_registry(const string &registry_type, const strin
 		registry = new MedRegistryCodesList;
 	else if (registry_type == "categories")
 		registry = new MedRegistryCategories;
+	else if (registry_type == "keep_alive")
+		registry = new MedRegistryKeepAlive;
 	else
 		MTHROW_AND_ERR("Error: Unsupported type \"%s\" for MedRegistry::make_registry\n",
 			registry_type.c_str());
@@ -2254,4 +2256,124 @@ void MedRegistryCodesList::clear_create_variables() {
 	for (size_t i = 0; i < signal_filters.size(); ++i)
 		delete signal_filters[i];
 	signal_filters.clear();
+}
+
+int MedRegistryKeepAlive::init(map<string, string>& map) {
+	string repository_path;
+	for (auto it = map.begin(); it != map.end(); ++it) {
+		//! [MedRegistryKeepAlive::init]
+		if (it->first == "duration")
+			duration = med_stoi(it->second);
+		else if (it->first == "rep")
+			repository_path = it->second;
+		else if (it->first == "max_repo_date")
+			max_repo_date = med_stoi(it->second);
+		else if (it->first == "secondry_start_buffer_duration")
+			secondry_start_buffer_duration = med_stoi(it->second);
+		else if (it->first == "start_buffer_duration")
+			start_buffer_duration = med_stoi(it->second);
+		else if (it->first == "end_buffer_duration")
+			end_buffer_duration = med_stoi(it->second);
+		else if (it->first == "signal_list")
+			boost::split(signal_list, it->second, boost::is_any_of(",;"));
+		else if (it->first == "pid_to_censor_dates") {
+			ifstream fr(it->second);
+			if (!fr.good())
+				MTHROW_AND_ERR("Error in MedRegistryCodesList::init - unable to open %s for reading.",
+					it->second.c_str());
+			string line;
+			while (getline(fr, line)) {
+				boost::trim(line);
+				if (line.empty() || line.at(0) == '#')
+					continue;
+				vector<string> tokens;
+				boost::split(tokens, line, boost::is_any_of("\t"));
+				if (tokens.size() != 2)
+					MTHROW_AND_ERR("Error in MedRegistryCodesList::init - in parsing pid_to_censor_dates file"
+						" - %s excpeting TAB for line:\n%s\n", it->second.c_str(), line.c_str());
+				if (pid_to_max_allowed.find(stoi(tokens[0])) == pid_to_max_allowed.end() ||
+					pid_to_max_allowed[stoi(tokens[0])] > stoi(tokens[1]))
+					pid_to_max_allowed[stoi(tokens[0])] = stoi(tokens[1]);
+			}
+			fr.close();
+		}
+		else
+			MTHROW_AND_ERR("Error in MedRegistryKeepAlive::init - unknown parameter %s\n", it->first.c_str());
+		//! [MedRegistryKeepAlive::init]
+	}
+
+	MedPidRepository repo;
+	if (rep_for_init == NULL) {
+		rep_for_init = &repo;
+		if (rep_for_init->init(repository_path) < 0)
+			MTHROW_AND_ERR("Error in MedRegistryKeepAlive::init - Unable to init repositrory from path %s\n", repository_path.c_str());
+	}
+
+	signalCodes_names = signal_list;
+	signalCodes_names.push_back("BDATE");
+	for (size_t i = 0; i < signal_list.size(); ++i)
+		if (signal_list[i] == "BDATE") {
+			need_bdate = true;
+			break;
+		}
+
+	return 0;
+}
+
+void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results) {
+	vector<int> signals_indexes_pointers(usv.size()); //all in 0
+
+	int max_allowed_date = max_repo_date;
+	if (pid_to_max_allowed.find(pid) != pid_to_max_allowed.end())
+		max_allowed_date = pid_to_max_allowed[pid];
+
+	MedRegistryRecord r;
+	r.pid = pid;
+	r.registry_value = 1; //we mark only the legal time range for sampling
+	r.start_date = 0;
+	int start_date = -1, last_date = -1;
+	int signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
+	while (signal_index >= 0)
+	{
+		const UniversalSigVec *signal = &usv[signal_index];
+		int i = signals_indexes_pointers[signal_index] - 1; //the current signal time
+															//find first date if not marked already
+		if (start_date == -1) {
+			if (Date_wrapper(*signal, i) >= bdate) {
+				start_date = Date_wrapper(*signal, i);
+				r.start_date = medial::repository::DateAdd(start_date, start_buffer_duration);
+			}
+			else {
+				signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
+				continue;
+			}
+		}
+		int min_date = medial::repository::DateAdd(start_date, start_buffer_duration);
+		if (r.start_date <= 0) {
+			r.start_date = min_date;
+			r.end_date = medial::repository::DateAdd(start_date, duration);
+		}
+		//I have start_date
+		int curr_date = Date_wrapper(*signal, i);
+		if (max_allowed_date != 0 && curr_date > max_allowed_date)
+			break;
+
+		if (curr_date < r.end_date)
+			r.end_date = medial::repository::DateAdd(curr_date, duration);
+		else {
+			//has dead region - close buffer and open new one:
+			//r.end_date = medial::repository::DateAdd(r.end_date, -end_buffer_duration);
+			if (r.end_date > r.start_date)
+				results.push_back(r);
+			r.start_date = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+			r.end_date = medial::repository::DateAdd(curr_date, duration);
+		}
+
+		last_date = curr_date;
+		signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
+	}
+
+	r.end_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
+	if (r.end_date > r.start_date)
+		results.push_back(r);
 }

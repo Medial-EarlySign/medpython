@@ -299,6 +299,7 @@ bool medial::process::in_time_window(int pred_date, const MedRegistryRecord *r_o
 }
 
 void medial::sampling::init_time_window_mode(const string &init, TimeWindowInteraction &mode) {
+	mode.reset_for_init();
 	vector<string> tokens;
 	boost::split(tokens, init, boost::is_any_of("|"));
 	for (size_t i = 0; i < tokens.size(); ++i)
@@ -374,6 +375,8 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			r_censor = &pid_to_censor[it->first];
 		else
 			++no_censor;
+		if (censor_registry != NULL && pid_to_censor.find(it->first) == pid_to_censor.end())
+			continue; //filter sample
 		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, day_jump)) {
 			//search for match in all regs:
 			int pred_date = date;
@@ -467,7 +470,10 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 	if (no_rule > 0)
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
-		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+		if (censor_registry != NULL)
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+		else
+			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 	if (conflict_count > 0)
 		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
 	//keep non empty pids:
@@ -543,6 +549,8 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			r_censor = &pid_to_censor[it->first];
 		else
 			++no_censor;
+		if (censor_registry != NULL && pid_to_censor.find(it->first) == pid_to_censor.end())
+			continue; //filter sample
 		for (int age = start_age; age <= end_age; age += age_bin) {
 			//search for match in all regs:
 			int pred_start_date = medial::repository::DateAdd(pid_bdate, 365 * age); //mark start date in age_bin to age
@@ -635,7 +643,10 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 	if (no_rule > 0)
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
-		MLOG("WARNING MedSamplingAge:do_sample - has %d samples with no censor dates\n", no_censor);
+		if (censor_registry != NULL)
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+		else
+			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 	if (skip_no_bdate > 0)
 		MLOG("WARNING :: Skipped %d registry records because no bdate: example pid=%d\n", skip_no_bdate, example_pid);
 	if (conflict_count > 0)
@@ -707,6 +718,8 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 				r_censor = &pid_to_censor[choosed_pid];
 			else
 				++no_censor;
+			if (censor_registry != NULL && pid_to_censor.find(choosed_pid) == pid_to_censor.end())
+				continue; //filter sample
 
 			int curr_index = 0;
 			float reg_val = -1;
@@ -795,7 +808,10 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 	if (no_rule > 0)
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
-		MLOG("Warning MedSamplingDates:do_sample - has %d samples with no censor dates\n", no_censor);
+		if (censor_registry != NULL)
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+		else
+			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 
 	for (auto it = map_pid_samples.begin(); it != map_pid_samples.end(); ++it)
 		if (!it->second.samples.empty())
@@ -891,6 +907,10 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 		vector<const MedRegistryRecord *> *r_censor = &empty_censor;
 		if (pid_to_censor.find(it->first) != pid_to_censor.end())
 			r_censor = &pid_to_censor[it->first];
+		else
+			++no_censor;
+		if (censor_registry != NULL && pid_to_censor.find(it->first) == pid_to_censor.end())
+			continue; //filter sample
 
 		long start_date = start_time;
 		long end_date = end_time;
@@ -1020,7 +1040,10 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 	if (no_rule > 0)
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
-		MLOG("Sampled registry with %d missing censoring pid dates\n", no_censor);
+		if (censor_registry != NULL)
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+		else
+			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 	if (conflict_count > 0)
 		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
 	//keep non empty pids:
