@@ -802,6 +802,76 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 }
 
 //-----------------------------------------------------------
+void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid, int from, int to)
+{
+
+	string signal_name = sigs.name(sid);
+
+	for (int i = 0; i < len; i++) {
+		string out = to_string(pid) + "\t" + to_string(sid) + "\t" + signal_name + "\t";
+		if (sigs.type(sid) == T_Value) {
+			SVal *v = (SVal *)data;
+			out += "0 " + get_channel_info(sid, 0, v[i].val);
+		}
+		else if (sigs.type(sid) == T_DateVal) {
+			SDateVal *v = (SDateVal *)data;
+			if (v[i].date < from || v[i].date > to) continue;
+			out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val);
+		}
+		else if (sigs.type(sid) == T_TimeVal) {
+			STimeVal *v = (STimeVal *)data;
+			out += to_string(v[i].time) + " " + get_channel_info(sid, 0, v[i].val);
+		}
+		else if (sigs.type(sid) == T_DateRangeVal) {
+			SDateRangeVal *v = (SDateRangeVal *)data;
+			if (v[i].date_start < from || v[i].date_start > to) continue;
+			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + " " + get_channel_info(sid, 0, v[i].val);
+		}
+		else if (sigs.type(sid) == T_TimeStamp) {
+			STimeStamp *v = (STimeStamp*)data;
+			out += convert_date(v[i].time, sid);
+		}
+		else if (sigs.type(sid) == T_TimeRangeVal) {
+			STimeRangeVal *v = (STimeRangeVal *)data;
+			if (v[i].time_start < from || v[i].time_start > to) continue;
+			out += to_string(v[i].time_start) + " " + to_string(v[i].time_end) + " " + get_channel_info(sid, 0, v[i].val);
+		}
+		else if (sigs.type(sid) == T_DateVal2) {
+			SDateVal2 *v = (SDateVal2 *)data;
+			if (v[i].date < from || v[i].date > to) continue;
+			out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+		}
+		else if (sigs.type(sid) == T_DateShort2) {
+			SDateShort2 *v = (SDateShort2 *)data;
+			if (v[i].date < from || v[i].date > to) continue;
+			out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val1) + " " + get_channel_info(sid, 1, v[i].val2);
+		}
+		else if (sigs.type(sid) == T_ValShort2) {
+			SValShort2 *v = (SValShort2 *)data;
+			out += "0 " + get_channel_info(sid, 0, v[i].val1) + " " + get_channel_info(sid, 1, v[i].val2);
+		}
+
+		else if (sigs.type(sid) == T_CompactDateVal) {
+			SCompactDateVal *v = (SCompactDateVal *)data;
+			if (v[i].compact_date < from || v[i].compact_date > to) continue;
+			out += to_string(compact_date_to_date(v[i].compact_date)) + " " + get_channel_info(sid, 1, v[i].val);
+		}
+		else if (sigs.type(sid) == T_DateRangeVal2) {
+			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
+			if (v[i].date_start < from || v[i].date_start > to) continue;
+			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+		}
+		else if (sigs.type(sid) == T_DateFloat2) {
+			SDateFloat2 *v = (SDateFloat2 *)data;
+			if (v[i].date < from || v[i].date > to) continue;
+			out += convert_date(v[i].date, sid).c_str() + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+		}
+		MOUT("%s\n", out.c_str());
+	}
+
+}
+
+//-----------------------------------------------------------
 void MedRepository::print_data_vec_dict(int pid, int sid)
 {
 
@@ -821,6 +891,16 @@ void MedRepository::long_print_data_vec_dict(int pid, int sid)
 	void *data = get(pid, sid, len);
 
 	long_print_vec_dict(data, len, pid, sid);
+}
+
+void MedRepository::long_print_data_vec_dict(int pid, int sid, int from, int to )
+{
+
+
+	int len = 0;
+	void *data = get(pid, sid, len);
+
+	long_print_vec_dict(data, len, pid, sid,from,to);
 }
 
 //-----------------------------------------------------------
@@ -1082,8 +1162,10 @@ int MedRepository::load(const string &sig_name, vector<int> &pids_to_take)
 //--------------------------------------------------------------------------------------
 int MedRepository::load(const vector<string> &sig_names, vector<int> &pids_to_take)
 {
+	unordered_set<string> sig_set;
+	for (auto &s : sig_names) sig_set.insert(s);
 	int rc = 0;
-	for (auto &sname : sig_names)
+	for (auto &sname : sig_set)
 		rc += load(sname, pids_to_take);
 	return rc;
 }
@@ -1091,8 +1173,10 @@ int MedRepository::load(const vector<string> &sig_names, vector<int> &pids_to_ta
 //--------------------------------------------------------------------------------------
 int MedRepository::load(const vector<int> &sids, vector<int> &pids_to_take)
 {
+	unordered_set<int> sid_set;
+	for (auto s : sids) sid_set.insert(s);
 	int rc = 0;
-	for (int sid : sids)
+	for (int sid : sid_set)
 		rc += load(sid, pids_to_take);
 	return rc;
 }

@@ -63,6 +63,7 @@ public:
 	vector<float> min_range, max_range, map_prob; ///< for "binning"
 	vector<double> platt_params; ///< for "platt_scale"
 
+	/// @snippet Calibration.cpp Calibrator::init
 	virtual int init(map<string, string>& mapper);
 	virtual int Learn(const MedSamples& samples);
 	virtual int Learn(const vector<MedSample>& samples) { return Learn(samples, global_default_time_unit); }

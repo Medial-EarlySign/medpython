@@ -99,7 +99,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes processor_type, string init_string) {
 
 	FeatureProcessor *newProcessor = make_processor(processor_type);
-	newProcessor->init_from_string(init_string);
+	if (newProcessor->init_from_string(init_string) < 0)
+		MTHROW_AND_ERR("Cannot init FeatureProcessor of type %d with init string \'%s\'\n", processor_type, init_string.c_str());
 	return newProcessor;
 }
 
@@ -117,7 +118,33 @@ int FeatureProcessor::apply(MedFeatures& features) {
 
 	// All Ids - mark as an empty set
 	unordered_set<int> temp;
-	return Apply(features, temp);
+	return _apply(features, temp);
+}
+
+//.......................................................................................
+int FeatureProcessor::apply(MedFeatures& features, unordered_set<int>& ids) {
+	return _apply(features, ids);
+}
+
+//.......................................................................................
+int FeatureProcessor::apply(MedFeatures& features, unordered_set<string>& req_features) {
+
+	// All Ids - mark as an empty set
+	unordered_set<int> temp;
+	return _conditional_apply(features, temp, req_features);
+}
+
+//.......................................................................................
+int FeatureProcessor::apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
+	return _conditional_apply(features, ids, req_features);
+}
+
+//.......................................................................................
+int FeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
+
+	if (are_features_affected(req_features))
+		return _apply(features, ids);
+	return 0;
 }
 
 //.......................................................................................
@@ -173,6 +200,8 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 			if (tag == "" || features.tags[name].find(tag) != features.tags[name].end())
 				features_to_process.push_back(name);
 		}
+		MLOG("MultiFeautreProcessor - using duplicate to create %zu processors of type %d\n",
+			features_to_process.size(), members_type);
 		add_processors_set(members_type, features_to_process, init_string);
 	}
 
@@ -193,12 +222,26 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 }
 
 //.......................................................................................
-int MultiFeatureProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
+int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	int RC = 0;
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
-		int rc = processors[j]->Apply(features, ids);
+		int rc = processors[j]->_apply(features, ids);
+#pragma omp critical
+		if (rc < 0) RC = -1;
+	}
+
+	return RC;
+}
+
+//.......................................................................................
+int MultiFeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
+
+	int RC = 0;
+#pragma omp parallel for schedule(dynamic)
+	for (int j = 0; j < processors.size(); j++) {
+		int rc = processors[j]->_conditional_apply(features, ids, req_features);
 #pragma omp critical
 		if (rc < 0) RC = -1;
 	}
@@ -268,7 +311,7 @@ void MultiFeatureProcessor::copy(FeatureProcessor *processor) {
 	}
 }
 
-
+// Clear
 //.......................................................................................
 void MultiFeatureProcessor::clear()
 {
@@ -279,6 +322,35 @@ void MultiFeatureProcessor::clear()
 		}
 	}
 	processors.clear();
+}
+
+/// check if a set of features is affected by the current processor
+//.......................................................................................
+bool MultiFeatureProcessor::are_features_affected(unordered_set<string>& out_req_features) {
+	
+	// Empty set == all features
+	if (out_req_features.empty())
+		return true;
+
+	for (auto& processor : processors) {
+		if (processor->are_features_affected(out_req_features))
+			return true;
+	}
+
+	return false;
+}
+
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void MultiFeatureProcessor::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
+
+	in_req_features.clear();
+	for (auto& processor : processors) {
+		unordered_set<string> _in_req_features;
+		processor->update_req_features_vec(out_req_features, _in_req_features);
+		for (string ftr : _in_req_features)
+			in_req_features.insert(ftr);
+	}
 }
 
 // Init 
@@ -417,7 +489,7 @@ int FeatureBasicOutlierCleaner::quantileLearn(MedFeatures& features, unordered_s
 
 // Clean
 //.......................................................................................
-int FeatureBasicOutlierCleaner::Apply(MedFeatures& features, unordered_set<int>& ids) {
+int FeatureBasicOutlierCleaner::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
@@ -485,7 +557,7 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 // Apply
 //.......................................................................................
-int FeatureNormalizer::Apply(MedFeatures& features, unordered_set<int>& ids) {
+int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
@@ -688,7 +760,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 // Apply
 //.......................................................................................
-int FeatureImputer::Apply(MedFeatures& features, unordered_set<int>& ids) {
+int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
@@ -803,6 +875,20 @@ void FeatureImputer::addStrata(string& init_string) {
 
 }
 
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void FeatureImputer::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
+
+	in_req_features = out_req_features;
+
+	// Check if imputer is actually applied
+	if (out_req_features.find(feature_name) != out_req_features.end()) {
+		// Add signals required for imputation
+		for (int i = 0; i < imputerStrata.nStratas(); i++)
+			in_req_features.insert(imputerStrata.stratas[i].name);
+	}
+}
+
 // (De)Serialization
 //.......................................................................................
 size_t FeatureImputer::get_size() {
@@ -820,7 +906,6 @@ size_t FeatureImputer::deserialize(unsigned char *blob) {
 	verbose = true;
 	return res;
 }
-
 
 //.......................................................................................
 size_t featureSetStrata::get_size() {
@@ -906,10 +991,7 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	return 0;
 }
 
-int OneHotFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
-
-	// Resolve
-	resolved_feature_name = resolve_feature_name(features, feature_name);
+int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Prepare new Features
 	int samples_size = (int)features.samples.size();
@@ -963,6 +1045,44 @@ int OneHotFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	return 0;
 }
+
+/// check if a set of features is affected by the current processor
+//.......................................................................................
+bool OneHotFeatProcessor::are_features_affected(unordered_set<string>& out_req_features) {
+
+	// If empty = all features are required
+	if (out_req_features.empty())
+		return true;
+
+	// Otherwise - check in generated features
+	for (auto& rec : value2feature) {
+		string feature_name = rec.second;
+		if (out_req_features.find(feature_name) != out_req_features.end())
+			return true;
+	}
+
+	if (add_other &&out_req_features.find(other_feature_name) != out_req_features.end())
+		return true;
+
+	return false;
+}
+
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void OneHotFeatProcessor::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
+
+	// If empty, keep as is
+	if (out_req_features.empty())
+		in_req_features.clear();
+	else {
+		out_req_features = in_req_features;
+		// If active, than add original 
+		if (are_features_affected(out_req_features))
+			in_req_features.insert(resolved_feature_name);
+	}
+}
+			
+
 
 //=======================================================================================
 // Utilities

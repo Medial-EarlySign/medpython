@@ -83,7 +83,7 @@ void MedTime::init_time_tables()
 			}
 		}
 
-		Days2Months[d] = (year - 1900) * 12 + month;
+		Days2Months[d] = (year - 1900) * 12 + month - 1 ;
 
 		days++;
 

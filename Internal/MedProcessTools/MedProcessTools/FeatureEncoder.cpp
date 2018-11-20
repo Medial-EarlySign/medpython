@@ -6,25 +6,37 @@
 #define LOCAL_SECTION LOG_FEATCLEANER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-int FeatureEncoder::Learn(MedFeatures& features, unordered_set<int>& ids) {
-	// learn encoder...
-	time_t start = time(NULL);
-	if (_learn(features, ids) < 0)
-		return -1;
-	MLOG("Learn Feature Encoder: Generated %d features. took %d seconds\n",
-		(int)names.size(), (int)(difftime(time(NULL), start)));
+//-------------------------------------------------------------------------------
+// Feature Encoder
+//-------------------------------------------------------------------------------
 
-	return 0;
+/// check if a set of features is affected by the current processor
+//.......................................................................................
+bool FeatureEncoder::are_features_affected(unordered_set<string>& out_req_features) {
+
+	// If empty = all features are required
+	if (out_req_features.empty())
+		return true;
+	
+	// Otherwise - check in names
+	for (string ftr : names) {
+		if (out_req_features.find(ftr) != out_req_features.end())
+			return true;
+	}
+
+	return false;
 }
 
-int FeatureEncoder::Apply(MedFeatures& features, unordered_set<int>& ids) {
-	time_t start = time(NULL);
-	if (_apply(features, ids) < 0)
-		return -1;
-	MLOG("Apply Feature Encoder: Generated %d features. took %d seconds\n",
-		(int)names.size(), (int)(difftime(time(NULL), start)));
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void FeatureEncoder::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
 
-	return 0;
+	if (are_features_affected(out_req_features))
+		// If active, than everything before is required
+		in_req_features.clear();
+	else
+		// If not, do nothing
+		in_req_features = out_req_features;
 }
 
 //-------------------------------------------------------------------------------

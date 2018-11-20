@@ -78,7 +78,7 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 			mat_contribs.set(i, j) = v;
 		}
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
-	}		
+	}
 }
 
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
@@ -133,12 +133,12 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 		int nsamples_train = nsamples - nsamples_test;
 
 		prepare_mat_handle(x, y, w, nsamples_train, nftrs, matrix_handles[0]);
-		prepare_mat_handle(x + nsamples_train*nftrs, y + nsamples_train, (w == NULL ) ? NULL : w + nsamples_train, nsamples_test, nftrs, matrix_handles[1]);
+		prepare_mat_handle(x + nsamples_train*nftrs, y + nsamples_train, (w == NULL) ? NULL : w + nsamples_train, nsamples_test, nftrs, matrix_handles[1]);
 	}
 	else {
 		prepare_mat_handle(x, y, w, nsamples, nftrs, matrix_handles[0]);
 	}
- 	
+
 	BoosterHandle h_booster;
 	if (XGBoosterCreate(&matrix_handles[0], 1, &h_booster) != 0)
 		MTHROW_AND_ERR("failed XGBoosterCreate weight");
@@ -164,22 +164,22 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	{
 		XGBoosterSetParam(h_booster, "eval_metric", it.c_str());
 	}
-	
+
 	string split_penalties_s;
 	translate_split_penalties(split_penalties_s);
 	XGBoosterSetParam(h_booster, "split_penalties_s", boost::lexical_cast<std::string>(split_penalties_s).c_str());
 
 	const double start = dmlc::GetTime();
-	const char *evnames[2] = {"train", "test"};
-  	const char *out_result;
+	const char *evnames[2] = { "train", "test" };
+	const char *out_result;
 
 #pragma omp critical
 	XGBoosterUpdateOneIter(h_booster, 0, matrix_handles[0]);
 	for (int iter = 1; iter < params.num_round; iter++)
 	{
 		XGBoosterUpdateOneIter(h_booster, iter, matrix_handles[0]);
-		if (params.verbose_eval > 0)
-		{ 
+		if (params.verbose_eval > 0 && iter % params.verbose_eval == 0)
+		{
 			if (params.validate_frac > 0) { XGBoosterEvalOneIter(h_booster, iter, matrix_handles, evnames, 2, &out_result); }
 			else { XGBoosterEvalOneIter(h_booster, iter, matrix_handles, evnames, 1, &out_result); }
 
@@ -239,7 +239,7 @@ bool split_token(const string &str, const string &search, bool first
 		return false;
 	result = first ? str.substr(0, str.find(search)) : str.substr(str.find(search) + search.size());
 	return true;
-}  
+}
 
 /*
 Importance type can be defined as:
@@ -255,7 +255,7 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 	map<string, string> params;
 	unordered_set<string> legal_types = { "weight", "gain","cover","gain_total" };
 	bool do_average = false;
-	
+
 	initialization_text_to_map(general_params, params);
 	string importance_type = "gain";
 	for (auto it = params.begin(); it != params.end(); ++it)
@@ -286,8 +286,8 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 	if (importance_type != "weight")
 		fCnt.resize((int)features_importance_scores.size());
 
-	string search_str = ((importance_type  == "gain_total") ? "gain" : importance_type) + "=";
-	
+	string search_str = ((importance_type == "gain_total") ? "gain" : importance_type) + "=";
+
 	for (xgboost::bst_ulong tree_num = 0; tree_num < num_trees; tree_num++)
 	{
 		vector<string> lines;
@@ -389,7 +389,7 @@ int MedXGB::set_params(map<string, string>& mapper) {
 		//! [MedXGB::init]
 		if (field == "booster") params.booster = entry.second;
 		else if (field == "objective") params.objective = entry.second;
-		else if (field == "eval_metric") split(params.eval_metric, entry.second, boost::is_any_of(","));  
+		else if (field == "eval_metric") split(params.eval_metric, entry.second, boost::is_any_of(","));
 		else if (field == "eta") params.eta = stof(entry.second);
 		else if (field == "gamma") params.gamma = stof(entry.second);
 		else if (field == "min_child_weight") params.min_child_weight = stoi(entry.second);
@@ -409,7 +409,7 @@ int MedXGB::set_params(map<string, string>& mapper) {
 		else if (field == "verbose_eval") params.verbose_eval = stoi(entry.second);
 		else if (field == "split_penalties") params.split_penalties = entry.second;
 		else if (field == "validate_frac") params.validate_frac = stof(entry.second);
-		
+
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());
 		//! [MedXGB::init]
 	}

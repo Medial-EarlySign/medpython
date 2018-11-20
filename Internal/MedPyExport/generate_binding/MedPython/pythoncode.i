@@ -85,12 +85,14 @@ def ___fix_vecmap_iter():
     glob = globals()
     for i in glob:
         o = glob[i]
-        if (isclass(o) and '__len__' in dir(o) and '__getitem__' in dir(o) and not '__iter__' in dir(o) 
-            and i.endswith('VectorAdaptor')) :
-            setattr(o, '__iter__', lambda x: IntIndexIter(x))
-        elif (isclass(o) and '__getitem__' in dir(o) and 'keys' in dir(o) and not '__iter__' in dir(o) 
-            and i.endswith('MapAdaptor')) :
-            setattr(o, '__iter__', lambda x: MapAdaptorKeyIter(x))
+        try:
+          if (isclass(o) and '__len__' in dir(o) and '__getitem__' in dir(o) and not '__iter__' in dir(o) 
+              and i.endswith('VectorAdaptor')) :
+              setattr(o, '__iter__', lambda x: IntIndexIter(x))
+          elif (isclass(o) and '__getitem__' in dir(o) and 'keys' in dir(o) and not '__iter__' in dir(o) 
+              and i.endswith('MapAdaptor')) :
+              setattr(o, '__iter__', lambda x: MapAdaptorKeyIter(x))
+        except: pass
 
 ___fix_vecmap_iter()
 

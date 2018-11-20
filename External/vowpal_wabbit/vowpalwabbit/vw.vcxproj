@@ -202,7 +202,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>./win32;%(AdditionalIncludeDirectories);%(SolutionDir)..\rapidjson\include;$(WindowsSDK_IncludePath);$(UniversalCRT_IncludePath);$(BOOST_HOME)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);%(SolutionDir)..\rapidjson\include;$(WindowsSDK_IncludePath);$(UniversalCRT_IncludePath);$(BOOST_HOME)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/D "_CRT_SECURE_NO_WARNINGS"  /D "_CRT_NONSTDC_NO_DEPRECATE" %(AdditionalOptions)</AdditionalOptions>
       <InlineFunctionExpansion Condition="'$(Configuration)'=='Release'">AnySuitable</InlineFunctionExpansion>

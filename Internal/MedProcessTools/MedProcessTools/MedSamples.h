@@ -212,6 +212,12 @@ namespace medial {
 		void print_samples_stats(const vector<MedSample> &samples, const string &log_file = "");
 		/// \brief print samples stats
 		void print_samples_stats(const MedSamples &samples, const string &log_file = "");
+		/// \brief print samples stats by group
+		void print_by(const vector<MedSample> &data_records, const vector<string> &groups,
+			bool unique_ids = false, const string &log_file = "");
+		/// \brief print samples stats by group
+		void print_by(const MedSamples &data_records, const vector<string> &groups,
+			bool unique_ids = false, const string &log_file = "");
 		/// \brief print samples stats by year
 		void print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids = false,
 			bool take_prediction_time = true, const string &log_file = "");

@@ -36,11 +36,12 @@ namespace LightGBM {
 
 	class MemApp : public Application {
 	public:
-		MemApp(int argc, char **argv) : Application::Application(argc, argv) {};
-		MemApp() : Application::Application(0, NULL) {}
+		bool is_silent;
+		MemApp(int argc, char **argv) : Application::Application(argc, argv) { is_silent = false; };
+		MemApp() : Application::Application(0, NULL) { is_silent = false; }
 		//~MemApp() { Application::~Application(); };
 
-		int init(map<string, string>& initialization_map) {set_params(initialization_map);};
+		int init(map<string, string>& initialization_map) { return set_params(initialization_map); };
 		int set_params(map<string, string>& initialization_map);
 
 		// train
@@ -188,7 +189,8 @@ public:
 
 	// learn predict
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
-		fprintf(stderr, "Starting a LightGBM train session...\n");
+		if (!mem_app.is_silent)
+			global_logger.log(LOG_MEDALGO, LOG_DEF_LEVEL, "Starting a LightGBM train session...\n");
 		mem_app.InitTrain(x, y, w, nsamples, nftrs);
 		mem_app.Train();
 		_mark_learn_done = true;

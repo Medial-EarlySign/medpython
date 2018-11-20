@@ -78,18 +78,22 @@ public:
 	int learn(MedFeatures& features);
 	int learn(MedFeatures& features, unordered_set<int>& ids) { return Learn(features, ids); }
 
-	// Apply cleaning model
-	virtual int Apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
+	// Apply feature processing
+	virtual int _apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
+	virtual int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features);
 
 	/// <summary>
-	/// PostProcess of MedFeatures - on all ids. apply the post process on the
-	/// new features. calls virtaul function "Apply" for the specific implementation
+	/// PostProcess of MedFeatures - on all or a subset of the ids
+	/// calls virtaul function "_apply/_conditional_apply" for the specific implementation
+	/// 
 	/// </summary>
 	/// <returns>
 	/// 0 if succesfull, otherwise errorcode -1
 	/// </returns>
 	int apply(MedFeatures& features);
-	int apply(MedFeatures& features, unordered_set<int>& ids) { return Apply(features, ids); }
+	int apply(MedFeatures& features, unordered_set<string>& req_features);
+	int apply(MedFeatures& features, unordered_set<int>& ids);
+	int apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features);
 
 	// Init
 	static FeatureProcessor *make_processor(string processor_name);
@@ -106,14 +110,20 @@ public:
 	/// Utility : get corresponding name in MedFeatures
 	string resolve_feature_name(MedFeatures& features, string substr);
 
+	/// check if a set of features is affected by the current processor
+	virtual bool are_features_affected(unordered_set<string>& out_req_features) { return (out_req_features.empty() || out_req_features.find(resolved_feature_name) != out_req_features.end()); }
+
+	/// update sets of required as input according to set required as output to processor
+	/// Empty sets = require everything.
+	/// Default behaviour of simple processor - leave set as is
+	virtual void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) { in_req_features = out_req_features; };
+
 	// Serialization (including type)
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
 
-
 	// debug prints
 	virtual void dprint(const string &pref, int rp_flag);
-
 };
 
 // Utilities
@@ -156,7 +166,8 @@ public:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Apply cleaning model
-	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
+	int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features);
 
 	virtual void get_feature_names(vector<string>& feature_names);
 
@@ -169,6 +180,12 @@ public:
 
 	// debug print
 	void dprint(const string &pref, int fp_flag);
+
+	/// check if a set of features is affected by the current processor
+	bool are_features_affected(unordered_set<string>& out_req_features);
+
+	/// update sets of required as input according to set required as output to processor
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	// Serialization
 	size_t get_size();
@@ -219,7 +236,7 @@ public:
 	int quantileLearn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Apply cleaning model
-	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
 	size_t get_size();
@@ -260,7 +277,7 @@ public:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Apply cleaning model
-	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
 
 	/// The parsed fields from init command.
 	/// @snippet FeatureProcess.cpp FeatureNormalizer::init
@@ -324,8 +341,7 @@ public:
 };
 /// When building startas on a set of several features, we build a cartesian product of their combinations:
 /// e.g. when "strata": "Age,40,80,5:Gender,1,2,1"
-/// starta [Age] factor [1] starta [Gender] factor[9]
-/// for a total of [18] stratas
+/// 9 Age bins X 2 Gender bins = a total of [18] strata
 class featureSetStrata :SerializableObject {
 public:
 	vector<featureStrata> stratas;
@@ -409,6 +425,9 @@ public:
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; moment_type = IMPUTE_MMNT_MEAN;  processor_type = FTR_PROCESS_IMPUTER; verbose = true; verbose_learn = false; };
 	imputeMomentTypes getMomentType(string& entry);
 
+	/// update sets of required as input according to set required as output to processor
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
+
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureImputer *>(processor)); }
 
@@ -416,7 +435,7 @@ public:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Apply cleaning model
-	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
 	int version() { return  1; }
@@ -454,7 +473,15 @@ public:
 	virtual int Learn(MedFeatures& features, unordered_set<int>& ids);
 
 	/// Apply selection
-	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	virtual int _apply(MedFeatures& features, unordered_set<int>& ids);
+	virtual int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& out_req_features);
+
+	/// check if a set of features is affected by the current processor
+	bool are_features_affected(unordered_set<string>& out_req_features);
+
+	/// update sets of required as input according to set required as output to processor
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
+
 private:
 	/// Find set of selected features
 	virtual int _learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
@@ -746,17 +773,12 @@ public:
 	// Constructor
 	FeatureEncoder() : FeatureProcessor() { init_defaults(); }
 
-	/// Generate set of selected features - calls _learn
-	virtual int Learn(MedFeatures& features, unordered_set<int>& ids);
+	/// check if a set of features is affected by the current processor
+	bool are_features_affected(unordered_set<string>& out_req_features);
 
-	/// Apply selection - calls _apply
-	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	/// update sets of required as input according to set required as output to processor
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
-private:
-	/// Specific learner of the encoder
-	virtual int _learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
-	/// Specific apply of the encoder
-	virtual int _apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
 };
 
 /**
@@ -800,7 +822,7 @@ private:
 
 	int _learn(MedFeatures& features, unordered_set<int>& ids);
 
-	// Apply selection
+	// Apply encoding
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
 };
 
@@ -834,11 +856,16 @@ public:
 	void init_defaults() { processor_type = FTR_PROCESS_ONE_HOT; }
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<OneHotFeatProcessor *>(processor)); }
 
+	/// check if a set of features is affected by the current processor
+	bool are_features_affected(unordered_set<string>& out_req_features);
 
-	ADD_SERIALIZATION_FUNCS(feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
+	/// update sets of required as input according to set required as output to processor
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
+
+	ADD_SERIALIZATION_FUNCS(feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
 private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
-	int Apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
 };
 
 

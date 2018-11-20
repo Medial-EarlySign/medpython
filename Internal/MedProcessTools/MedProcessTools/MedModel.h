@@ -165,11 +165,13 @@ public:
 	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
 	int generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features);
-	int generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features) { return generate_features(rep, samples, generators, features); }
+	int generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features, unordered_set<string>& req_feature_generators);
 	int learn_and_apply_feature_processors(MedFeatures &features);
 	int learn_feature_processors(MedFeatures &features);
 	int apply_feature_processors(MedFeatures &features);
-
+	int apply_feature_processors(MedFeatures &features, vector<unordered_set<string>>& req_features_vec);
+	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec);
+	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators);
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag);

@@ -34,6 +34,7 @@ typedef enum {
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
 	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
+	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -618,12 +619,12 @@ public:
 
 	string modelFile = ""; ///<  File for serialized model
 	MedModel *model = NULL; ///< model
-	string modelName = "";
-	int n_preds = 1;
-	int impute_existing_feature = 0;
+	string modelName = ""; ///< name of final feature
+	int n_preds = 1;  ///< how many features to create
+	int impute_existing_feature = 0; ///< If true will impute using model feature, otherwise using preds
 	int use_overriden_predictions = 0;
+	string medSamples_path = ""; ///< If provided will override predictions using samples
 	/// A container for the predictions
-	vector<float> preds;
 
 	/// Naming 
 	void set_names();
@@ -647,6 +648,68 @@ public:
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
+	//dctor:
+	~ModelFeatGenerator();
+private:
+	vector<float> preds;
+	MedSamples _preloaded;
+
+	void find_predictions(MedSamples& requestSamples, MedFeatures &features);
+};
+
+
+/**
+* Time Feature Generator: creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
+*/
+
+typedef enum {
+	FTR_TIME_YEAR = 0, ///< Year (as is)
+	FTR_TIME_MONTH = 1, ///< Month of year (0-11)
+	FTR_TIME_DAY_IN_MONTH = 2, ///< Day of the month (0-30)
+	FTR_TIME_DAY_IN_WEEK = 3, ///< Day of the week (0-6)
+	FTR_TIME_HOUR = 4, ///< Hour of the day (0-23)
+	FTR_TIME_MINUTE = 5, ///< Minute of the hout (0-59)
+	FTR_TIME_LAST,
+} TimeFeatTypes;
+
+
+class TimeFeatGenerator : public FeatureGenerator {
+public:
+
+	// Time Unit
+	TimeFeatTypes time_unit = FTR_TIME_LAST;
+
+	// Binning of time units
+	vector<int> time_bins;
+	vector<string> time_bin_names;
+	
+	// Constructor/Destructor
+	TimeFeatGenerator() { generator_type = FTR_GEN_TIME; }
+	~TimeFeatGenerator() {}
+
+	// Naming 
+	void set_names();
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp TimeFeatGenerator::init
+	int init(map<string, string>& mapper);
+	int get_time_unit(string name);
+	int get_time_bins(string& binsInfo);
+	int get_nBins();
+	void set_default_bins();
+	string time_unit_to_string(TimeFeatTypes time_unit);
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<TimeFeatGenerator *>(generator)); }
+
+	// Learn a generator
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+
+	// generate a new feature
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(names, time_unit, time_bins, time_bin_names)
 };
 
 

@@ -22,6 +22,9 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Add required signals
 	// Collect selected
+	vector<string> ftrs;
+	features.get_feature_names(ftrs);
+
 	unordered_set<string> selectedFeatures;
 	for (string& feature : selected)
 		selectedFeatures.insert(feature);
@@ -29,9 +32,10 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// Find Missing
 	vector<string> missingRequired;
 	for (string feature : required) {
-		if (selectedFeatures.find(feature) == selectedFeatures.end()) {
-			missingRequired.push_back(feature);
-			MLOG("FeatureSelector::Learn re-inserting removed feature [%s] because it is required!\n", feature.c_str());
+		string resolved = resolve_feature_name(features, feature);
+		if (selectedFeatures.find(resolved) == selectedFeatures.end()) {
+			missingRequired.push_back(resolved);
+			MLOG("FeatureSelector::Learn re-inserting removed feature [%s] because it is required!\n", resolved.c_str());
 		}
 	}
 
@@ -65,13 +69,43 @@ int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 // Apply selection : Ignore set of ids
 //.......................................................................................
-int FeatureSelector::Apply(MedFeatures& features, unordered_set<int>& ids) {
+int FeatureSelector::_apply(MedFeatures& features, unordered_set<int>& ids) {
+
+	unordered_set<string> empty_set;
+	return _conditional_apply(features, ids, empty_set);
+}
+
+//.......................................................................................
+int FeatureSelector::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& out_req_features) {
+	
 	//MLOG("FeatureSelector::Apply %d features\n", features.data.size());
 	unordered_set<string> selectedFeatures;
-	for (string& feature : selected)
-		selectedFeatures.insert(feature);
+	for (string& feature : selected) {
+		if (out_req_features.empty() || (out_req_features.find(feature) != out_req_features.end()))
+			selectedFeatures.insert(feature);
+	}
 
 	return features.filter(selectedFeatures);
+}
+
+/// check if a set of features is affected by the current processor
+//.......................................................................................
+bool FeatureSelector::are_features_affected(unordered_set<string>& out_req_features) {
+
+	// Always true . The selected features are all that's left so they must be in the out_req_features
+	return true;
+}
+
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void FeatureSelector::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
+
+	// Only selected features are required ...
+	in_req_features.clear();
+	for (string ftr : selected) {
+		if (out_req_features.empty() || out_req_features.find(ftr) != out_req_features.end())
+			in_req_features.insert(ftr);
+	}
 }
 
 //=======================================================================================
@@ -620,6 +654,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	int prevMaxN = -1, prevMinN = -1;
 
 	// Search
+	float upperBound = -1;
 	while (!found) {
 		if (nthreads == 1) {
 			base_lambdas[0] = maxLambda;
@@ -680,10 +715,13 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			for (int j = 0; j < nthreads; j++)
 				MLOG("N[%.12f] = %d\n", base_lambdas[j], nSelected[j]);
 
-			//			float ratio;
+			// float ratio;
 			if (nSelected[nthreads - 1] > numToSelect) { // MaxLambda is still too low
 				minLambda = maxLambda;
-				maxLambda *= 2.0;
+				if (upperBound == -1)
+					maxLambda *= 2.0;
+				else
+					maxLambda = upperBound;
 			}
 			else { // in between ...
 				for (int i = 0; i < nthreads; i++) {
@@ -696,8 +734,14 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 						break;
 					}
 					else if (nSelected[i] < numToSelect) {
-						minLambda = (float)base_lambdas[i - 1];
-						maxLambda = (float)base_lambdas[i];
+						minLambda = base_lambdas[i - 1];
+						upperBound = base_lambdas[i];
+
+						// take care of nthreads = 2  
+						if (nthreads == 2)
+							maxLambda = base_lambdas[i - 1] + (base_lambdas[i] - base_lambdas[i - 1]) / 2.0;
+						else
+							maxLambda = base_lambdas[i];
 						break;
 					}
 				}
@@ -769,7 +813,6 @@ int LassoSelector::init(map<string, string>& mapper) {
 	return 0;
 
 }
-
 
 
 //=======================================================================================

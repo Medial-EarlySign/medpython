@@ -39,7 +39,7 @@ public:
 	/// @snippet DoCalcFeatProcessor.cpp DoCalcFeatProcessor::init
 	int init(map<string, string>& mapper);
 
-	virtual int Apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Specific Functions
 	void sum(vector<float*> p_sources, float *p_out, int n_samples);
@@ -52,6 +52,12 @@ public:
 	// Single Input Functions
 	void _log(vector<float*> p_sources, float *p_out, int n_samples);
 	void do_threshold(vector<float*> p_sources, float *p_out, int n_samples);
+
+	/// check if a set of features is affected by the current processor
+	bool are_features_affected(unordered_set<string>& out_req_features);
+
+	/// update sets of required as input according to set required as output to processor
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatProcessor *>(processor)); }

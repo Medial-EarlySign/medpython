@@ -105,7 +105,9 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 
 	//MLOG("Processor type is %d\n", (int)processor_type);
 	RepProcessor *newRepProcessor = make_processor(processor_type);
-	newRepProcessor->init_from_string(init_string);
+	if (newRepProcessor->init_from_string(init_string) < 0)
+		MTHROW_AND_ERR("Cannot init RepProcessor of type %d with init string \'%s\'\n", processor_type, init_string.c_str());
+
 	return newRepProcessor;
 }
 
@@ -1969,8 +1971,12 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 
 	//calc_type = get_calculator_type(calculator);
 	calculator_logic = SimpleCalculator::make_calculator(calculator);
-	if (!calculator_init_params.empty())
-		calculator_logic->init_from_string(calculator_init_params);
+	
+	if (!calculator_init_params.empty()) {
+		if (calculator_logic->init_from_string(calculator_init_params) < 0)
+			return -1;
+	}
+	
 	calculator_logic->missing_value = missing_value;
 	calculator_logic->work_channel = work_channel;
 
@@ -2071,8 +2077,11 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type];
 	if (calculator_logic == NULL) { //recover from serialization
 		calculator_logic = SimpleCalculator::make_calculator(calculator);
-		if (!calculator_init_params.empty())
-			calculator_logic->init_from_string(calculator_init_params);
+
+		if (!calculator_init_params.empty()) {
+			if (calculator_logic->init_from_string(calculator_init_params) < 0)
+				MTHROW_AND_ERR("Cannot init calculator from \'%s\'\n", calculator_init_params.c_str());
+		}
 		calculator_logic->missing_value = missing_value;
 	}
 	calculator_logic->init_tables(dict, sigs, signals);

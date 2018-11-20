@@ -318,6 +318,8 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 	map<string, int> pos;
 	vector<int> pred_pos;
 	map<string, int> attr_pos;
+	time_unit = global_default_time_unit;
+
 	while (getline(inf, curr_line)) {
 		//MLOG("--> %s\n",curr_line.c_str());
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -691,6 +693,84 @@ void medial::print::print_samples_stats(const MedSamples &samples, const string 
 	print_samples_stats(smps, log_file);
 }
 
+void medial::print::print_by(const vector<MedSample> &data_records, const vector<string> &groups,
+	bool unique_ids, const string &log_file) {
+	ofstream fo;
+	if (data_records.size() != groups.size())
+		MTHROW_AND_ERR("Error in medial::print::print_b - data_records and groups should be same size\n");
+	if (!log_file.empty()) {
+		fo.open(log_file, ios::app);
+		if (!fo.good())
+			MWARN("Warning: can log into file %s\n", log_file.c_str());
+	}
+
+	unordered_map<string, int> count_0, count_1;
+	vector<string> all_groups;
+	unordered_set<string> seen_group;
+	vector<unordered_map<string, unordered_set<int>>> year_to_seen_pid(2); //of_predicition
+	for (size_t i = 0; i < data_records.size(); ++i)
+	{
+		int label = int(data_records[i].outcome > 0);
+
+		if ((label > 0) && seen_group.find(groups[i]) == seen_group.end()) {
+			all_groups.push_back(groups[i]);
+			seen_group.insert(groups[i]);
+		}
+
+		if (label > 0) {
+			if (!unique_ids ||
+				year_to_seen_pid[1][groups[i]].find(data_records[i].id) == year_to_seen_pid[1][groups[i]].end()) {
+				++count_1[groups[i]];
+				year_to_seen_pid[1][groups[i]].insert(data_records[i].id);
+			}
+		}
+		else {
+			if (!unique_ids ||
+				year_to_seen_pid[0][groups[i]].find(data_records[i].id) == year_to_seen_pid[0][groups[i]].end()) {
+				++count_0[groups[i]];
+				year_to_seen_pid[0][groups[i]].insert(data_records[i].id);
+			}
+		}
+	}
+
+	unordered_map<string, int> group_total;
+	unordered_map<string, float>  group_ratio;
+	int i = 0;
+	sort(all_groups.begin(), all_groups.end());
+	log_with_file(fo, "Group"  "\t"  "Controls"  "\t"  "Cases"  "\t"  "outcome_percentage\n");
+	for (const string &grp : all_groups)
+	{
+		group_total[grp] = count_0[grp] + count_1[grp];
+		group_ratio[grp] = count_1[grp] / float(count_0[grp] + count_1[grp]);
+		++i;
+		log_with_file(fo, "%s\t%d\t%d\t%2.3f%%\n", grp.c_str(), count_0[grp], count_1[grp],
+			100 * count_1[grp] / float(count_1[grp] + count_0[grp]));
+	}
+	//special case for binary: show work point and AUC:
+	if (all_groups.size() == 2) {
+		float fpr = count_0[all_groups[1]] / float(count_0[all_groups[0]] + count_0[all_groups[1]]);
+		float tpr = count_1[all_groups[1]] / float(count_1[all_groups[0]] + count_1[all_groups[1]]);
+		float prior = (count_1[all_groups[0]] + count_1[all_groups[1]]) / float(data_records.size());
+		float auc = 0.5*(fpr*tpr + (1 - fpr)*(1 + tpr));
+		float lift = 0;
+		if (group_ratio[all_groups[0]] > 0)
+			lift = group_ratio[all_groups[1]] / group_ratio[all_groups[0]];
+		log_with_file(fo, "FPR=%2.4f%%, TPR=%2.4f%%, AUC=%2.4f, prior=%2.4f%%, lift_between=%2.4f\n",
+			100.0*fpr, 100.0*tpr, auc, 100.0*prior, lift);
+	}
+
+	if (fo.good())
+		fo.close();
+}
+
+void medial::print::print_by(const MedSamples &data_records, const vector<string> &groups,
+	bool unique_ids, const string &log_file) {
+	vector<MedSample> vec;
+	for (size_t i = 0; i < data_records.idSamples.size(); ++i)
+		vec.insert(vec.end(), data_records.idSamples[i].samples.begin(), data_records.idSamples[i].samples.end());
+	print_by(vec, groups, unique_ids, log_file);
+}
+
 void medial::print::print_by_year(const vector<MedSample> &data_records, int year_bin_size, bool unique_ids, bool take_prediction_time, const string &log_file) {
 	ofstream fo;
 	if (!log_file.empty()) {
@@ -735,7 +815,6 @@ void medial::print::print_by_year(const vector<MedSample> &data_records, int yea
 
 	unordered_map<int, int> year_total;
 	unordered_map<int, float> year_ratio;
-	vector<float> all_ratios((int)all_years.size());
 	int i = 0;
 	sort(all_years.begin(), all_years.end());
 	if (take_prediction_time)
@@ -747,7 +826,6 @@ void medial::print::print_by_year(const vector<MedSample> &data_records, int yea
 	{
 		year_total[year] = count_0[year] + count_1[year];
 		year_ratio[year] = count_1[year] / float(count_0[year] + count_1[year]);
-		all_ratios[i] = year_ratio[year];
 		++i;
 		log_with_file(fo, "%d\t%d\t%d\t%2.3f%%\n", year, count_0[year], count_1[year],
 			100 * count_1[year] / float(count_1[year] + count_0[year]));
