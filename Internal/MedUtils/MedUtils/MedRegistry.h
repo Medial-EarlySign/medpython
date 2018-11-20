@@ -4,13 +4,15 @@
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
+#include "MedProcessTools/MedProcessTools/MedModel.h"
 #include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include "MedSamplingStrategy.h"
 
 using namespace std;
 
 class MedSamplingStrategy;
-enum class SamplingMode;
+class TimeWindowInteraction;
+class MedModel;
 
 /**
 * A class which represnt a registry record of patient in time range from start_date to end_date
@@ -94,7 +96,7 @@ public:
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
 		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set,
 		const MedRegistry *censoring = NULL,
-		unordered_map<float, SamplingMode> *mode_outcome = NULL, unordered_map<float, SamplingMode> *mode_censor = NULL) const;
+		TimeWindowInteraction *mode_outcome = NULL, TimeWindowInteraction *mode_censor = NULL) const;
 
 	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
@@ -127,6 +129,13 @@ public:
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
 	static MedRegistry *make_registry(const string &registry_type, MedRepository &rep, const string &init_str = "");
+
+	/// <summary>
+	/// Creates vector of registry records - handles everything for you
+	/// in parallel manner for each patient - uses create_registry
+	/// </summary>
+	static MedRegistry *create_registry_full(const string &registry_type, const string &init_str, 
+		const string &repository_path, MedModel &model_with_rep_processor ,medial::repository::fix_method method = medial::repository::fix_method::none);
 
 	/// Default Ctor
 	MedRegistry() {

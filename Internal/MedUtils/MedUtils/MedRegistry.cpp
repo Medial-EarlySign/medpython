@@ -89,7 +89,7 @@ void MedRegistry::write_text_file(const string &file_path) const {
 		fw << registry_records[i].pid << delim <<
 		write_time(time_unit, registry_records[i].start_date) << delim <<
 		write_time(time_unit, registry_records[i].end_date) << delim
-		<< delim << registry_records[i].registry_value << "\n";
+		<< registry_records[i].registry_value << "\n";
 
 	fw.flush();
 	fw.close();
@@ -279,12 +279,14 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
 	const string &debug_file, const unordered_set<float> &debug_vals,
-	const MedRegistry *censoring, unordered_map<float, SamplingMode> *mode_outcome, unordered_map<float, SamplingMode> *mode_censor) const {
+	const MedRegistry *censoring, TimeWindowInteraction *mode_outcome, TimeWindowInteraction *mode_censor) const {
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
-	unordered_map<float, SamplingMode> def_mode_outcome = { { (float)0, SamplingMode::Before }, { (float)1, SamplingMode::Pass   } };
-	unordered_map<float, SamplingMode> def_mode_censor = { { (float)0, SamplingMode::Within }, { (float)1, SamplingMode::Within } };
+	TimeWindowInteraction def_mode_outcome;
+	TimeWindowInteraction def_mode_censor;
+	medial::sampling::init_time_window_mode("0:all,before|1:before_start,pass", def_mode_outcome);
+	medial::sampling::init_time_window_mode("all:within,within", def_mode_censor);
 	if (mode_outcome == NULL)
 		mode_outcome = &def_mode_outcome;
 	if (mode_censor == NULL)
@@ -299,13 +301,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	}
 
 	vector<int> pids;
-	MedSamples incidence_samples;
-
-	MLOG("Sampling for incidence stats...\n");
-	sampler.do_sample(registry_records, incidence_samples, censoring == NULL ? NULL : &censoring->registry_records);
-	incidence_samples.get_ids(pids);
-	duration = (int)difftime(time(NULL), start);
-	MLOG("Done in %d seconds!\n", duration);
+	get_pids(pids);
 
 	vector<int> readSignals;
 	readSignals.push_back(signalCode);
@@ -322,6 +318,13 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	if (dataManager.read_all(repository_path, pids, readSignals) < 0)
 		MTHROW_AND_ERR("error reading from repository %s\n", repository_path.c_str());
 	vector<int> &all_pids = dataManager.pids;
+
+	MLOG("Sampling for incidence stats...\n");
+	MedSamples incidence_samples;
+	sampler.init_sampler(dataManager);
+	sampler.do_sample(registry_records, incidence_samples, censoring == NULL ? NULL : &censoring->registry_records);
+	duration = (int)difftime(time(NULL), start);
+	MLOG("Done in %d seconds!\n", duration);
 
 	start = time(NULL);
 
@@ -413,7 +416,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 	int age_bin_count = (max_age - min_age) / ageBinValue + 1;
 	time_t last_time_print = start;
-	int prog_pid = 0;
+	int prog_pid = 0, no_rule = 0;
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < all_pids.size(); ++i) {
 		int pid = all_pids[i];
@@ -467,9 +470,30 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 				if (ageBin > max_age)
 					ageBin_index = age_bin_count - 1;*/
 				pos = 2;
+				const TimeWindowMode *mode = NULL;
+				const TimeWindowMode  *mode_censoring = NULL;
+				if (mode_outcome->find(regRec.registry_value))
+					mode = mode_outcome->at(regRec.registry_value);
+				else {
+#pragma omp atomic
+					++no_rule;
+					if (no_rule < 5)
+						MWARN("Warning: missing rule for %f - skipping!!\n", regRec.registry_value);
+					continue;
+				}
+
+				if (mode_censor->find(regRec.registry_value))
+					mode_censoring = mode_censor->at(regRec.registry_value);
+				else {
+#pragma omp atomic
+					++no_rule;
+					if (no_rule < 5)
+						MWARN("Warning: missing censor rule for %f - skipping!!\n", regRec.registry_value);
+					continue;
+				}
 
 				bool intersect = medial::process::in_time_window(regRec.start_date, &regRec, *r_censor, time_window_from, time_window_to,
-					mode_outcome->at(regRec.registry_value), mode_censor->at(regRec.registry_value));
+					mode, mode_censoring);
 				if (intersect) {
 					has_intr = true;
 					//pos += 1; //registry_value > 0 - otherwise skip this
@@ -502,6 +526,9 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 				<< endl;
 		}
 	}
+
+	if (no_rule > 0)
+		MWARN("Warning has %d records with no rules for labels\n", no_rule);
 	if (!debug_file.empty())
 		dbg_file.close();
 	unordered_set<float> vals;
@@ -568,11 +595,7 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 	int age_bin, int min_age, int max_age, int time_period, bool use_kaplan_meir,
 	const string &sampler_name, const string &sampler_args) const {
 	MedSamplingStrategy *sampler = MedSamplingStrategy::make_sampler(sampler_name, sampler_args);
-	MedSamples incidence_samples;
-	MLOG("Sampling for incidence stats...\n");
-	sampler->do_sample(registry_records, incidence_samples);
-	MLOG("Done...\n");
-	delete sampler;
+
 	MedRepository rep;
 	vector<int> pids;
 	get_pids(pids);
@@ -580,6 +603,12 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 	if (rep.read_all(rep_path, pids, signal_to_read) < 0)
 		MTHROW_AND_ERR("FAILED reading repository %s\n", rep_path.c_str());
 	min_age = int(min_age / age_bin) * age_bin;
+	MedSamples incidence_samples;
+	sampler->init_sampler(rep);
+	MLOG("Sampling for incidence stats...\n");
+	sampler->do_sample(registry_records, incidence_samples);
+	MLOG("Done...\n");
+	delete sampler;
 
 	vector<int> all_cnts = { 0,0 };
 	int bin_counts = (max_age - min_age) / age_bin + 1;
@@ -1901,6 +1930,29 @@ MedRegistry *MedRegistry::make_registry(const string &registry_type, MedReposito
 
 	if (!init_str.empty())
 		registry->init_from_string(init_str);
+
+	return registry;
+}
+
+MedRegistry *MedRegistry::create_registry_full(const string &registry_type, const string &init_str,
+	const string &repository_path, MedModel &model_with_rep_processor, medial::repository::fix_method method) {
+	MedPidRepository rep;
+	rep.init(repository_path);
+	model_with_rep_processor.collect_and_add_virtual_signals(rep);
+
+	MedRegistry *registry = MedRegistry::make_registry(registry_type, rep, init_str);
+
+	vector<int> pids;
+	vector<string> sig_codes;
+	registry->get_pids(pids);
+	registry->get_registry_creation_codes(sig_codes);
+	vector<string> physical_signal;
+	medial::repository::prepare_repository(rep, sig_codes, physical_signal, &model_with_rep_processor.rep_processors);
+
+	if (rep.read_all(repository_path, pids, physical_signal) < 0)
+		MTHROW_AND_ERR("Can't read repo\n");
+	registry->create_registry(rep, method, &model_with_rep_processor.rep_processors);
+	registry->clear_create_variables();
 
 	return registry;
 }
