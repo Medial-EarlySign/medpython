@@ -23,4 +23,4 @@ NEW_RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/Release/$
 RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release/MedPython
 mkdir -p ${NEW_RELEASE_PATH}
 cp ${RELEASE_PATH}/medpython.py ${RELEASE_PATH}/_medpython.so ${NEW_RELEASE_PATH}
-
+echo "Extension files copied to ${NEW_RELEASE_PATH}"
