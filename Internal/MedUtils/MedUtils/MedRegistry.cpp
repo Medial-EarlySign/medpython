@@ -43,7 +43,7 @@ void MedRegistry::read_text_file(const string &file_path) {
 	int lineNum = 0;
 	vector<string> tokens;
 	tokens.reserve(4);
-	//Format: [ PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue ]
+	//Format: [ PID, Start_Date, End_Date, RegistryValue ]
 	while (getline(fp, line))
 	{
 		++lineNum;
@@ -81,7 +81,7 @@ void MedRegistry::write_text_file(const string &file_path) const {
 	ofstream fw(file_path);
 	if (!fw.good())
 		MTHROW_AND_ERR("IOError: can't write file %s\n", file_path.c_str());
-	fw << "# Format: PID, Start_Date, End_Date, min_allowed_date, max_allowed_date, Age, RegistryValue" << endl;
+	fw << "# Format: PID, Start_Date, End_Date, RegistryValue" << endl;
 	fw << "# Created By Script - Insert Comments following #..." << endl;
 	fw << "TIME_UNIT" << delim << med_time_converter.type_to_string(time_unit) << endl;
 	fw << endl;

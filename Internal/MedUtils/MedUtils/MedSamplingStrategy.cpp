@@ -60,10 +60,11 @@ void get_bdates(MedRepository &rep, unordered_map<int, int> &bdates) {
 	int use_code = bDateCode;
 	if (rep.pids.empty() || bDateCode <= 0)
 		MTHROW_AND_ERR("Error MedSamplingStrategy::get_bdates - repository wasn't initialized and contains BDATE\n");
-	if (!rep.index.index_table[bDateCode].is_loaded)
+	if (!rep.index.index_table[bDateCode].is_loaded) {
 		use_code = bYearCode;
-	if (!rep.index.index_table[bYearCode].is_loaded)
-		MTHROW_AND_ERR("Error MedSamplingStrategy::get_bdates - repository wasn't loaded with BDATE or BYEAR\n");
+		if (!rep.index.index_table[bYearCode].is_loaded)
+			MTHROW_AND_ERR("Error MedSamplingStrategy::get_bdates - repository wasn't loaded with BDATE or BYEAR\n");
+	}
 	for (size_t i = 0; i < rep.pids.size(); ++i)
 	{
 		int pid = rep.pids[i];
