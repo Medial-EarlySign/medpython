@@ -11,8 +11,23 @@
 #include "MedProcessTools/MedProcessTools/MedModel.h"
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
 
-MPSigExporter MPPidRepository::export_to_numpy(string signame) {
-	return MPSigExporter(*this, signame);
+
+MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids) : o(rep.o), sig_name(signame_str) {
+	if (rep.loadsig(signame_str) != 0)
+		throw runtime_error("could not load signal");
+	sig_id = rep.sig_id(sig_name);
+	if (sig_id == -1)
+		throw runtime_error("bad sig id");
+	sig_type = rep.sig_type(sig_name);
+	if (use_all_pids)
+		this->pids = o->all_pids_list;
+	else if (num_pids_to_take == 0)
+		this->pids = o->pids;
+	else
+		buf_to_vector(pids_to_take, num_pids_to_take, this->pids);
+
+	update_record_count();
+	get_all_data();
 }
 
 
@@ -81,7 +96,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -114,7 +129,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -145,7 +160,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (STimeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -180,7 +195,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateRangeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SDateRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -218,7 +233,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeRangeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (STimeRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -254,7 +269,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeStamp *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (STimeStamp *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -285,7 +300,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateVal2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SDateVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -323,7 +338,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeLongVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (STimeLongVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -358,7 +373,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateShort2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SDateShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -396,7 +411,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SValShort2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SValShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -433,7 +448,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SValShort4 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SValShort4 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -476,7 +491,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SCompactDateVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SCompactDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -512,7 +527,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateRangeVal2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SDateRangeVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -554,7 +569,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateFloat2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->pids) {
+		for (int pid : this->pids) {
 			sdv = (SDateFloat2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -592,7 +607,7 @@ void MPSigExporter::update_record_count() {
 		this->record_count = 0;
 		return;
 	}
-	for (int pid : o->pids)
+	for (int pid : this->pids)
 	{
 		o->get(pid, this->sig_id, rec_len);
 		total_len += rec_len;

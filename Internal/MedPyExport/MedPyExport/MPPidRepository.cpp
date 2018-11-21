@@ -1,4 +1,5 @@
 #include "MPPidRepository.h"
+#include "MPSigExporter.h"
 #include "MPDictionary.h"
 
 #include <time.h>
@@ -53,6 +54,9 @@ std::vector<bool> MPPidRepository::dict_prep_sets_lookup_table(int section_id, c
 	return lut_bvec;
 }
 
+MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids) {
+	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids);
+}
 
 // ****************************** MPSig      *********************************
 MPSig::MPSig(UniversalSigVec* _o, int index) : o(_o), idx(index) {  };

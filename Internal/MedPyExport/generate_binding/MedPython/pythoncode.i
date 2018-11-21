@@ -108,10 +108,19 @@ def __export_to_pandas(self, sig_name_str):
     from pandas import DataFrame
     return DataFrame.from_dict(dict(self.export_to_numpy(sig_name_str))) 
 
-def __export_to_pandas2(self, sig_name_str, translate=True):
-    """get_sig(signame [, translate=True]) -> Pandas DataFrame """
+def __export_to_pandas2(self, sig_name_str, translate=True, pids=None):
+    """get_sig(signame [, translate=True][, pids=None]) -> Pandas DataFrame
+         translate : If True, will decode categorical fields into a readable representation in Pandas
+         pid : If list is provided, will load only pids from the given list
+               If 'All' is provided, will use all available pids
+    """
     import pandas as pd
-    sigexporter = self.export_to_numpy(sig_name_str)
+    use_all_pids = 0
+    if isinstance(pids, str) and pids.upper()=='ALL':
+      use_all_pids = 1
+      pids=list()
+    if pids is None: pids=list()
+    sigexporter = self.export_to_numpy(sig_name_str, pids, use_all_pids)
     df = pd.DataFrame.from_dict(dict(sigexporter))
     if not translate:
       return df
