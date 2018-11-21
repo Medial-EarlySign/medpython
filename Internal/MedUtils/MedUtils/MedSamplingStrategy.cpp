@@ -355,12 +355,12 @@ void medial::sampling::init_time_window_mode(const string &init, TimeWindowInter
 		vector<string> tokens_inner, tokens_rules, intersection_tokens;
 		//Format of tokens[i] is: "label:start,end"
 		boost::split(tokens_inner, tokens[i], boost::is_any_of(":"));
-		if (tokens_inner.size() != 2 && tokens_inner.size() != 3)
+		if (tokens_inner.size() != 2)
 			MTHROW_AND_ERR("Error in medial::sampling::init_time_window_mode - reading token \"%s\" and missing"
 				" \":\". format should be label:start,end(,num-num as optional)\n", tokens[i].c_str());
 		const string &label = tokens_inner[0];
 		boost::split(tokens_rules, tokens_inner[1], boost::is_any_of(","));
-		if (tokens_rules.size() != 2)
+		if (tokens_rules.size() != 2 && tokens_rules.size() != 3)
 			MTHROW_AND_ERR("Error in medial::sampling::init_time_window_mode - reading token \"%s\" and missing"
 				" \",\". format should be start,end. full_token = \"%s\"\n", tokens_inner[1].c_str(), tokens[i].c_str());
 		if (label == "all") {
@@ -375,13 +375,13 @@ void medial::sampling::init_time_window_mode(const string &init, TimeWindowInter
 			mode[med_stof(label)][0] = TimeWindow_name_to_type(tokens_rules[0]);
 			mode[med_stof(label)][1] = TimeWindow_name_to_type(tokens_rules[1]);
 		}
-		if (tokens_inner.size() == 3) {
+		if (tokens_rules.size() == 3) {
 			//aditional args for intersection:
-			boost::split(intersection_tokens, tokens_inner[2], boost::is_any_of("-"));
+			boost::split(intersection_tokens, tokens_rules[2], boost::is_any_of("-"));
 			if (intersection_tokens.size() != 2)
 				MTHROW_AND_ERR("Error in medial::sampling::init_time_window_mode - reading token \"%s\" and missing"
 					" \",\". format should be number-number. full_token = \"%s\"\n",
-					tokens_inner[2].c_str(), tokens[i].c_str());
+					tokens_rules[2].c_str(), tokens[i].c_str());
 			if (label != "all") {
 				mode.intersection_range_condition[med_stof(label)].first = med_stof(intersection_tokens[0]);
 				mode.intersection_range_condition[med_stof(label)].second = med_stof(intersection_tokens[1]);
