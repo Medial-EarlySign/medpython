@@ -37,13 +37,10 @@ MPIntVecIntMapAdaptor MPDictionary::get_members_to_all_sets(int section_id, MEDP
 	vector<int> members;
 	buf_to_vector(members_array, members_size, members);
 	unordered_map<int, std::vector<int>> Member2AllSets;
-	cerr << "members size: " << members.size() << "\n";
 	o->dict.dict(section_id)->get_members_to_all_sets(members, Member2AllSets);
-	cerr << "result size: " << Member2AllSets.size() << "\n";
 	MPIntVecIntMapAdaptor ret;
 	for (auto& i : Member2AllSets) {
 		ret.o->insert(i);
 	}
-	cerr << "result2 size: " << ret.o->size() << "\n";
 	return ret;
 }

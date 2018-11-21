@@ -162,24 +162,25 @@ std::vector<std::string> MPStringUOSetStringMapAdaptor::keys() {
 /************************************************************************************/
 
 
+
+
 MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor() { o = new std::map<int, std::vector<int> >(); };
-#include <iostream>
+
 MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor(const MPIntVecIntMapAdaptor& other) {
 	o_owned = other.o_owned;
-	if (!other.o_owned) {
+	if (!o_owned) {
 		o = other.o;
 	}
 	else {
 		o = new std::map<int, std::vector<int> >();
-		//*o = *other.o;
-		for (auto& i : *other.o) {
-			o->insert(i);
-		}
+
+		*o = *other.o;
 	}
-	std::cerr << "copy ctor from: " << o->size() << "\n";
-	std::cerr << "copy ctor   to: " << other.o->size() << "\n";
 };
-MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor(std::map<int, std::vector<int> >* ptr) { o_owned = false; o = ptr; };
+MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor(std::map<int, std::vector<int> >* ptr) { 
+	o_owned = false; o = ptr; 
+};
+
 MPIntVecIntMapAdaptor::~MPIntVecIntMapAdaptor() { if (o_owned) delete o; };
 int MPIntVecIntMapAdaptor::__len__() { return (int)o->size(); };
 void MPIntVecIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len)) {
@@ -197,3 +198,19 @@ std::vector<int> MPIntVecIntMapAdaptor::keys() {
 	for (const auto& rec : *o) ret.push_back(rec.first);
 	return ret;
 };
+
+MPIntVecIntMapAdaptor& MPIntVecIntMapAdaptor::operator=(const MPIntVecIntMapAdaptor& other)
+{
+	if (&other == this)
+		return *this;
+	o_owned = other.o_owned;
+	if (!o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new std::map<int, std::vector<int> >();
+		*o = *(other.o);
+	}
+	return *this;
+}
+
