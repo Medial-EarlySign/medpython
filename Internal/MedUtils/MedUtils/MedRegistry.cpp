@@ -606,7 +606,6 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 	MedSamples incidence_samples;
 	sampler->init_sampler(rep);
 	MLOG("Sampling for incidence stats...\n");
-	/// @todo support censoring time for registry records in incidence. get censor registry and pass to sampler->do_sample
 	sampler->do_sample(registry_records, incidence_samples, censor_registry);
 	MLOG("Done...\n");
 	delete sampler;

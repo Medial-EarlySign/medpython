@@ -189,7 +189,6 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 	init_model(mdl, rep, json_model, rep_path, pids_to_take);
 
 	sampler.init_sampler(rep);
-	/// @todo support censoring time for registry records in incidence. get censor registry and pass to sampler->do_sample
 	sampler.do_sample(registry_records, inc_samples, censor_registry == NULL ? NULL : &censor_registry->registry_records);
 	MLOG("Done sampling for incidence by year. has %d patients\n",
 		(int)inc_samples.idSamples.size());
