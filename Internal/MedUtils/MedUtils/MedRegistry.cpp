@@ -593,7 +593,7 @@ void MedRegistry::get_pids(vector<int> &pids) const {
 
 void MedRegistry::create_incidence_file(const string &file_path, const string &rep_path,
 	int age_bin, int min_age, int max_age, int time_period, bool use_kaplan_meir,
-	const string &sampler_name, const string &sampler_args) const {
+	const string &sampler_name, const string &sampler_args, const vector<MedRegistryRecord> *censor_registry) const {
 	MedSamplingStrategy *sampler = MedSamplingStrategy::make_sampler(sampler_name, sampler_args);
 
 	MedRepository rep;
@@ -607,7 +607,7 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 	sampler->init_sampler(rep);
 	MLOG("Sampling for incidence stats...\n");
 	/// @todo support censoring time for registry records in incidence. get censor registry and pass to sampler->do_sample
-	sampler->do_sample(registry_records, incidence_samples);
+	sampler->do_sample(registry_records, incidence_samples, censor_registry);
 	MLOG("Done...\n");
 	delete sampler;
 

@@ -118,8 +118,10 @@ public:
 	/// </summary>
 	void create_incidence_file(const string &file_path, const string &rep_path, int age_bin, int min_age,
 		int max_age, int time_period = 365, bool use_kaplan_meir = false, const string &sampler_name = "yearly",
-		const string &sampler_args = "conflict_method=max;use_allowed=1;day_jump=365;allowed_time_from=0;"
-		"allowed_time_to=365;start_year=2007;end_year=2012") const;
+		const string &sampler_args = "conflict_method=max;day_jump=365;time_from=0;"
+		"time_to=365;start_year=2007;end_year=2012;prediction_month_day=101;"
+		"outcome_interaction_mode=0:all,before|1:all,pass;censor_interaction_mode=all:within,all",
+		const vector<MedRegistryRecord> *censor_registry = NULL) const;
 
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.

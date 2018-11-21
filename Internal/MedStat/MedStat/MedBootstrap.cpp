@@ -177,7 +177,7 @@ void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
 void get_data_for_filter(const string &json_model, const string &rep_path,
 	MedBootstrap &single_cohort, const vector<MedRegistryRecord> &registry_records,
 	MedSamplingStrategy &sampler, map<string, vector<float>> &data_for_filtering,
-	vector<MedSample> &inc_smps) {
+	vector<MedSample> &inc_smps, const MedRegistry *censor_registry = NULL) {
 	MedSamples inc_samples;
 	MedPidRepository rep;
 	vector<int> pids_to_take;
@@ -190,7 +190,7 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 
 	sampler.init_sampler(rep);
 	/// @todo support censoring time for registry records in incidence. get censor registry and pass to sampler->do_sample
-	sampler.do_sample(registry_records, inc_samples);
+	sampler.do_sample(registry_records, inc_samples, censor_registry == NULL ? NULL : &censor_registry->registry_records);
 	MLOG("Done sampling for incidence by year. has %d patients\n",
 		(int)inc_samples.idSamples.size());
 
@@ -406,7 +406,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 		sampler_year->time_from = time_res.first;
 		sampler_year->time_to = time_res.second;
 		get_data_for_filter(args.json_model, args.rep_path, single_cohort,
-			registry->registry_records, *sampler_year, window_to_data[time_res], window_to_smps[time_res]);
+			registry->registry_records, *sampler_year, window_to_data[time_res], window_to_smps[time_res],
+			args.registry_censor);
 		MLOG("Done preparing matrix of incidence for filtering with %d width...\n", time_res);
 		if (args.do_kaplan_meir) {
 			for (size_t i = 0; i < window_to_smps[time_res].size(); ++i) {
@@ -464,7 +465,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					for (int i : index_order)
 						if (filter_range_params(window_to_data[time_res], (int)i, &ii->second))
 							if (window_to_smps[time_res][i].outcome <= 0)
-							++total_controls_all;
+								++total_controls_all;
 							else
 								++total_cases;
 				}

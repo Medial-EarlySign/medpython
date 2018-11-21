@@ -298,18 +298,65 @@ bool medial::process::in_time_window(int pred_date, const MedRegistryRecord *r_o
 	return has_interact;
 }
 
+float interect_time_window(int pred_date, int time_from, int time_to,
+	const MedRegistryRecord *r_outcome) {
+	int sig_start_date = medial::repository::DateAdd(pred_date, time_from);
+	int sig_end_date = medial::repository::DateAdd(pred_date, time_to);
+	int start_window = min(sig_start_date, sig_end_date);
+	int end_window = max(sig_start_date, sig_end_date);
+	int window_size = abs(time_to - time_from);
+
+	int max_start = max(start_window, r_outcome->start_date);
+	int min_end = max(end_window, r_outcome->end_date);
+	int interact_size = min_end - max_start;
+	if (interact_size < 0)
+		interact_size = 0;
+
+	return float(interact_size) / window_size;
+}
+
+bool medial::process::in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
+	int time_from, int time_to, const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
+	bool filter_no_censor) {
+	const TimeWindowMode *mode = NULL;
+	const TimeWindowMode  *mode_censor = NULL;
+	if (mode_outcome.find(r_outcome->registry_value))
+		mode = mode_outcome.at(r_outcome->registry_value);
+	if (mode_censoring.find(r_outcome->registry_value))
+		mode_censor = mode_censoring.at(r_outcome->registry_value);
+
+	float min_range, max_range;
+	bool has_interact = in_time_window(pred_date, r_outcome, r_censor, time_from, time_to, mode, mode_censor);
+	if (mode_outcome.get_inresection_range_cond(r_outcome->registry_value, min_range, max_range)) {
+		float intersect_rate = interect_time_window(pred_date, time_from, time_to, r_outcome);
+		has_interact &= intersect_rate >= min_range && intersect_rate <= max_range;
+	}
+	if (mode_censoring.get_inresection_range_cond(r_outcome->registry_value, min_range, max_range)) {
+		bool any = r_censor.empty() && !filter_no_censor;
+		for (size_t i = 0; i < r_censor.size() && !any; ++i)
+		{
+			float intersect_rate = interect_time_window(pred_date, time_from, time_to, r_censor[i]);
+			any = intersect_rate >= min_range && intersect_rate <= max_range;
+
+		}
+		has_interact &= any;
+	}
+
+	return has_interact;
+}
+
 void medial::sampling::init_time_window_mode(const string &init, TimeWindowInteraction &mode) {
 	mode.reset_for_init();
 	vector<string> tokens;
 	boost::split(tokens, init, boost::is_any_of("|"));
 	for (size_t i = 0; i < tokens.size(); ++i)
 	{
-		vector<string> tokens_inner, tokens_rules;
+		vector<string> tokens_inner, tokens_rules, intersection_tokens;
 		//Format of tokens[i] is: "label:start,end"
 		boost::split(tokens_inner, tokens[i], boost::is_any_of(":"));
-		if (tokens_inner.size() != 2)
+		if (tokens_inner.size() != 2 && tokens_inner.size() != 3)
 			MTHROW_AND_ERR("Error in medial::sampling::init_time_window_mode - reading token \"%s\" and missing"
-				" \":\". format should be label:start,end\n", tokens[i].c_str());
+				" \":\". format should be label:start,end(,num-num as optional)\n", tokens[i].c_str());
 		const string &label = tokens_inner[0];
 		boost::split(tokens_rules, tokens_inner[1], boost::is_any_of(","));
 		if (tokens_rules.size() != 2)
@@ -326,6 +373,20 @@ void medial::sampling::init_time_window_mode(const string &init, TimeWindowInter
 		else {
 			mode[med_stof(label)][0] = TimeWindow_name_to_type(tokens_rules[0]);
 			mode[med_stof(label)][1] = TimeWindow_name_to_type(tokens_rules[1]);
+		}
+		if (tokens_inner.size() == 3) {
+			//aditional args for intersection:
+			boost::split(intersection_tokens, tokens_inner[2], boost::is_any_of("-"));
+			if (intersection_tokens.size() != 2)
+				MTHROW_AND_ERR("Error in medial::sampling::init_time_window_mode - reading token \"%s\" and missing"
+					" \",\". format should be number-number. full_token = \"%s\"\n",
+					tokens_inner[2].c_str(), tokens[i].c_str());
+			if (label != "all") {
+				mode.intersection_range_condition[med_stof(label)].first = med_stof(intersection_tokens[0]);
+				mode.intersection_range_condition[med_stof(label)].second = med_stof(intersection_tokens[1]);
+			}
+			else
+				mode.set_default_range(med_stof(intersection_tokens[0]), med_stof(intersection_tokens[1]));
 		}
 	}
 
@@ -368,8 +429,6 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			MedIdSamples pid_sample(it->first);
 			idSamples.push_back(pid_sample);
 		}
-		const TimeWindowMode *mode = NULL;
-		const TimeWindowMode  *mode_censor = NULL;
 		vector<const MedRegistryRecord *> *r_censor = &empty_censor;
 		if (pid_to_censor.find(it->first) != pid_to_censor.end())
 			r_censor = &pid_to_censor[it->first];
@@ -392,9 +451,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
 				if (curr_index < all_pid_records->size()) {
-					if (outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value))
-						mode = outcome_interaction_mode.at((*all_pid_records)[curr_index]->registry_value);
-					else {
+					if (!outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
@@ -402,9 +459,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 						continue;
 					}
 
-					if (censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value))
-						mode_censor = censor_interaction_mode.at((*all_pid_records)[curr_index]->registry_value);
-					else {
+					if (!censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing censor rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
@@ -414,7 +469,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 				}
 				if (curr_index < all_pid_records->size() &&
 					!medial::process::in_time_window(pred_date, (*all_pid_records)[curr_index], *r_censor,
-						time_from, time_to, mode, mode_censor)) {
+						time_from, time_to, outcome_interaction_mode, censor_interaction_mode)) {
 					++curr_index;
 					continue;
 				}
@@ -471,7 +526,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
 		if (censor_registry != NULL)
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
 		else
 			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 	if (conflict_count > 0)
@@ -542,8 +597,6 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			example_pid = it->first;
 			continue;
 		}
-		const TimeWindowMode *mode = NULL;
-		const TimeWindowMode  *mode_censor = NULL;
 		vector<const MedRegistryRecord *> *r_censor = &empty_censor;
 		if (pid_to_censor.find(it->first) != pid_to_censor.end())
 			r_censor = &pid_to_censor[it->first];
@@ -565,9 +618,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
 				if (curr_index < all_pid_records->size()) {
-					if (outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value))
-						mode = outcome_interaction_mode.at((*all_pid_records)[curr_index]->registry_value);
-					else {
+					if (!outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
@@ -575,9 +626,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 						continue;
 					}
 
-					if (censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value))
-						mode_censor = censor_interaction_mode.at((*all_pid_records)[curr_index]->registry_value);
-					else {
+					if (!censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing censor rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
@@ -587,7 +636,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 				}
 				if (curr_index < all_pid_records->size() &&
 					!medial::process::in_time_window(pred_start_date, (*all_pid_records)[curr_index], *r_censor,
-						0, 365 * age_bin, mode, mode_censor)) {
+						0, 365 * age_bin, outcome_interaction_mode, censor_interaction_mode)) {
 					++curr_index;
 					continue;
 				}
@@ -644,7 +693,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
 		if (censor_registry != NULL)
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
 		else
 			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 	if (skip_no_bdate > 0)
@@ -699,8 +748,6 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 		if (all_sample_options.empty())
 			continue;
 		uniform_int_distribution<> current_rand(0, (int)all_sample_options.size() - 1);
-		const TimeWindowMode *mode = NULL;
-		const TimeWindowMode *mode_censor = NULL;
 		for (size_t k = 0; k < take_count; ++k)
 		{
 			int choosed_index = current_rand(gen);
@@ -727,9 +774,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 			//run on all matches:
 			while (curr_index < all_pid_records.size()) {
 				if (curr_index < all_pid_records.size()) {
-					if (outcome_interaction_mode.find(all_pid_records[curr_index]->registry_value))
-						mode = outcome_interaction_mode.at(all_pid_records[curr_index]->registry_value);
-					else {
+					if (!outcome_interaction_mode.find(all_pid_records[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing rule for %f - skipping!!\n", all_pid_records[curr_index]->registry_value);
@@ -737,9 +782,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 						continue;
 					}
 
-					if (censor_interaction_mode.find(all_pid_records[curr_index]->registry_value))
-						mode_censor = censor_interaction_mode.at(all_pid_records[curr_index]->registry_value);
-					else {
+					if (!censor_interaction_mode.find(all_pid_records[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing censor rule for %f - skipping!!\n", all_pid_records[curr_index]->registry_value);
@@ -748,7 +791,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 					}
 				}
 				if (curr_index < all_pid_records.size() && !medial::process::in_time_window(choosed_time, all_pid_records[curr_index],
-					*r_censor, time_from, time_to, mode, mode_censor)) {
+					*r_censor, time_from, time_to, outcome_interaction_mode, censor_interaction_mode)) {
 					++curr_index;
 					continue;
 				}
@@ -809,7 +852,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
 		if (censor_registry != NULL)
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
 		else
 			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 
@@ -945,8 +988,6 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 			idSamples.push_back(pid_sample);
 		}
 
-		const TimeWindowMode *mode = NULL;
-		const TimeWindowMode *mode_censor = NULL;
 		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, time_jump)) {
 			//search for match in all regs:
 			int pred_date = date;
@@ -962,9 +1003,7 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 			//run on all matches:
 			while (curr_index < all_pid_records->size()) {
 				if (curr_index < all_pid_records->size()) {
-					if (outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value))
-						mode = outcome_interaction_mode.at((*all_pid_records)[curr_index]->registry_value);
-					else {
+					if (!outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
@@ -972,9 +1011,7 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 						continue;
 					}
 
-					if (censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value))
-						mode_censor = censor_interaction_mode.at((*all_pid_records)[curr_index]->registry_value);
-					else {
+					if (!censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
 						++no_rule;
 						if (no_rule < 5)
 							MWARN("Warning: missing censor rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
@@ -984,7 +1021,7 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 				}
 				if (curr_index < all_pid_records->size() &&
 					!medial::process::in_time_window(pred_date, (*all_pid_records)[curr_index], *r_censor,
-						time_from, time_to, mode, mode_censor)) {
+						time_from, time_to, outcome_interaction_mode, censor_interaction_mode)) {
 					++curr_index;
 					continue;
 				}
@@ -1041,7 +1078,7 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
 		if (censor_registry != NULL)
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no censor dates\n", no_censor);
+			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
 		else
 			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
 	if (conflict_count > 0)

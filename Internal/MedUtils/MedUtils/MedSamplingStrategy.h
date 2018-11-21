@@ -40,13 +40,17 @@ ConflictMode ConflictMode_name_to_type(const string& ConflictMode_name);
 class TimeWindowInteraction {
 private:
 	bool has_default_mode;
+	bool has_default_range;
 	TimeWindowMode default_modes[2];
+	pair<float, float> default_intersection_range;
 
 public:
-	unordered_map<float, TimeWindowMode[2]> interaction_mode;
+	unordered_map<float, TimeWindowMode[2]> interaction_mode; ///< map from label value to interaction rules
+	unordered_map<float, pair<float, float>> intersection_range_condition; ///< intersection rate range with registry condition
 
 	TimeWindowInteraction() {
 		has_default_mode = false;
+		has_default_range = false;
 	}
 
 	TimeWindowMode *operator[] (float x) {
@@ -56,7 +60,7 @@ public:
 		return default_modes;
 	}
 
-	bool find(const float x) {
+	bool find(const float x) const {
 		return has_default_mode || interaction_mode.find(x) != interaction_mode.end();
 	}
 
@@ -74,9 +78,31 @@ public:
 		default_modes[1] = defaults_m[1];
 	}
 
+	void set_default_range(float min_range, float max_range) {
+		default_intersection_range.first = min_range;
+		default_intersection_range.second = max_range;
+		has_default_range = true;
+	}
+
+	bool get_inresection_range_cond(float x, float &min_range, float &max_range) const {
+		if (intersection_range_condition.find(x) != intersection_range_condition.end()) {
+			min_range = intersection_range_condition.at(x).first;
+			max_range = intersection_range_condition.at(x).second;
+			return true;
+		}
+		else if (has_default_range) {
+			min_range = default_intersection_range.first;
+			max_range = default_intersection_range.second;
+			return true;
+		}
+		return false;
+	}
+
 	void reset_for_init() {
 		has_default_mode = false;
+		has_default_range = false;
 		interaction_mode.clear();
+		intersection_range_condition.clear();
 	}
 };
 
@@ -116,6 +142,24 @@ namespace medial {
 		/// </returns>
 		bool in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
 			int time_from, int time_to, const TimeWindowMode mode[2], const TimeWindowMode mode_prediction[2]);
+
+		/// <summary>
+		/// checks for time range intersection
+		/// @param pred_date prediction time
+		/// @param r_outcome the registry record for label
+		/// @param r_censor all the patient registry records for censoring. if empty - no censoring
+		/// @param time_from the time window from - to check with censoring date
+		/// @param time_to the time window to - to check with outcome registry
+		/// @param mode_outcome the intersection method test for outcome
+		/// @param mode_censoring the intersection method test for censoring
+		/// @param filter_no_censor what to do when no censoring record options are given
+		/// </summary>
+		/// <returns>
+		/// If has intersection with time window
+		/// </returns>
+		bool in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
+			int time_from, int time_to, const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
+			bool filter_no_censor = true);
 	}
 
 	/*!
@@ -124,6 +168,7 @@ namespace medial {
 	namespace sampling {
 		/// <summary>
 		/// Supports reading of complex map object in format: registry_val:mode_for_start,mode_for_end. use "|" to seperate labels
+		/// has ability to give 3rd tokens in format number-number to specify range for intersection rate condition
 		/// Example: "0:all,before|1:before_start,pass"
 		/// for complex labels has keyword "all" to activate rule on all labels till specific override
 		/// </summary>
