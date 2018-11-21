@@ -81,7 +81,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -114,7 +114,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -145,7 +145,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (STimeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -180,7 +180,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateRangeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SDateRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -218,7 +218,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeRangeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (STimeRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -254,7 +254,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeStamp *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (STimeStamp *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -285,7 +285,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateVal2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SDateVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -323,7 +323,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeLongVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (STimeLongVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -358,7 +358,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateShort2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SDateShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -396,7 +396,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SValShort2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SValShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -433,7 +433,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SValShort4 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SValShort4 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -476,7 +476,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SCompactDateVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SCompactDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -512,7 +512,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateRangeVal2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SDateRangeVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -554,7 +554,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateFloat2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : o->pids) {
 			sdv = (SDateFloat2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -592,7 +592,7 @@ void MPSigExporter::update_record_count() {
 		this->record_count = 0;
 		return;
 	}
-	for (int pid : o->all_pids_list)
+	for (int pid : o->pids)
 	{
 		o->get(pid, this->sig_id, rec_len);
 		total_len += rec_len;
