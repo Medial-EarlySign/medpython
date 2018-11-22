@@ -121,7 +121,7 @@ public:
 		const string &sampler_args = "conflict_method=max;day_jump=365;time_from=0;"
 		"time_to=365;start_year=2007;end_year=2012;prediction_month_day=101;"
 		"outcome_interaction_mode=0:all,before|1:before_start,pass;censor_interaction_mode=all:within,all",
-		const vector<MedRegistryRecord> *censor_registry = NULL) const;
+		const vector<MedRegistryRecord> *censor_registry = NULL, const string &debug_file = "") const;
 
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.

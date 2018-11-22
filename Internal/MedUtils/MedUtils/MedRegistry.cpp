@@ -593,7 +593,8 @@ void MedRegistry::get_pids(vector<int> &pids) const {
 
 void MedRegistry::create_incidence_file(const string &file_path, const string &rep_path,
 	int age_bin, int min_age, int max_age, int time_period, bool use_kaplan_meir,
-	const string &sampler_name, const string &sampler_args, const vector<MedRegistryRecord> *censor_registry) const {
+	const string &sampler_name, const string &sampler_args, const vector<MedRegistryRecord> *censor_registry,
+	const string &debug_file) const {
 	MedSamplingStrategy *sampler = MedSamplingStrategy::make_sampler(sampler_name, sampler_args);
 
 	MedRepository rep;
@@ -609,6 +610,9 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 	sampler->do_sample(registry_records, incidence_samples, censor_registry);
 	MLOG("Done...\n");
 	delete sampler;
+	ofstream fw_debug;
+	if (!debug_file.empty())
+		fw_debug.open(debug_file);
 
 	vector<int> all_cnts = { 0,0 };
 	int bin_counts = (max_age - min_age) / age_bin + 1;
@@ -660,6 +664,14 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 						incidence_samples.idSamples[i].samples[j].time,
 						incidence_samples.idSamples[i].samples[j].outcomeTime);*/
 			}
+			if (!debug_file.empty()) {
+				//Debug: pid, year, outcome, age, gender
+				fw_debug << incidence_samples.idSamples[i].samples[j].id << "\t"
+					<< incidence_samples.idSamples[i].samples[j].time << "\t"
+					<< incidence_samples.idSamples[i].samples[j].outcome << "\t"
+					<< age << "\t" << gender << "\n";
+			}
+
 			if (use_kaplan_meir) {
 				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
 					incidence_samples.idSamples[i].samples[j].outcomeTime));
@@ -700,6 +712,8 @@ void MedRegistry::create_incidence_file(const string &file_path, const string &r
 			}
 	}
 
+	if (!debug_file.empty())
+		fw_debug.close();
 
 	if (use_kaplan_meir) {
 		bool warn_shown = false;
