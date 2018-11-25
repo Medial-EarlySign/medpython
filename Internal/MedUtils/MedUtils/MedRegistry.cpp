@@ -492,7 +492,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					continue;
 				}
 
-				bool intersect = medial::process::in_time_window(regRec.start_date, &regRec, *r_censor, time_window_from, time_window_to,
+				bool intersect = medial::process::in_time_window(sigRec.start_date, &regRec, *r_censor, time_window_from, time_window_to,
 					mode, mode_censoring);
 				if (intersect) {
 					has_intr = true;
