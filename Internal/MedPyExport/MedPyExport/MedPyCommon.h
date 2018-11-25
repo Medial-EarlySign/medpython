@@ -193,6 +193,7 @@ public:
 	int __getitem__(int i);
 	void __setitem__(int i, int val);
 	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len));
+	MEDPY_IGNORE(MPIntIntMapAdaptor& operator=(const MPIntIntMapAdaptor& other));
 };
 
 class MPStringVecFloatMapAdaptor {
@@ -207,6 +208,7 @@ public:
 	void __getitem__(std::string key, MEDPY_NP_OUTPUT(float** float_out_buf, int* float_out_buf_len));
 	void __setitem__(std::string key, MEDPY_NP_INPUT(float* float_in_buf, int float_in_buf_len));
 	std::vector<std::string> keys();
+	MEDPY_IGNORE(MPStringVecFloatMapAdaptor& operator=(const MPStringVecFloatMapAdaptor& other));
 };
 
 class MPIntPairIntIntMapAdaptor {
@@ -221,6 +223,7 @@ public:
 	void __getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len));
 	void __setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len));
 	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len));
+	MEDPY_IGNORE(MPIntPairIntIntMapAdaptor& operator=(const MPIntPairIntIntMapAdaptor& other));
 };
 
 
@@ -236,6 +239,7 @@ public:
 	std::vector<std::string> __getitem__(std::string key);
 	void __setitem__(std::string key, std::vector<std::string> val);
 	std::vector<std::string> keys();
+	MEDPY_IGNORE(MPStringUOSetStringMapAdaptor& operator=(const MPStringUOSetStringMapAdaptor& other));
 };
 
 class MPIntStringMapAdaptor {
@@ -249,7 +253,8 @@ public:
 	int __len__();
 	std::string __getitem__(int i);
 	void __setitem__(int i, const string& val);
-	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len));
+	std::vector<int> keys();
+	MEDPY_IGNORE(MPIntStringMapAdaptor& operator=(const MPIntStringMapAdaptor& other));
 };
 
 
