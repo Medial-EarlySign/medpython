@@ -285,7 +285,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	int duration;
 	TimeWindowInteraction def_mode_outcome;
 	TimeWindowInteraction def_mode_censor;
-	medial::sampling::init_time_window_mode("0:all,before|1:before_start,pass", def_mode_outcome);
+	medial::sampling::init_time_window_mode("0:all,before_end|1:before_start,after_start", def_mode_outcome);
 	medial::sampling::init_time_window_mode("all:within,within", def_mode_censor);
 	if (mode_outcome == NULL)
 		mode_outcome = &def_mode_outcome;

@@ -7,7 +7,7 @@
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-vector<string> TimeWindow_to_name = { "before", "before_start" ,"pass", "within", "all" };
+vector<string> TimeWindow_to_name = { "before_end", "before_start" ,"after_start", "within", "all" };
 vector<string> ConflictMode_to_name = { "all", "drop", "max" };
 
 TimeWindowMode TimeWindow_name_to_type(const string& TimeWindow_name) {
@@ -246,7 +246,7 @@ bool medial::process::in_time_window_simple(int pred_date, int start_time, int e
 	{
 	case TimeWindowMode::All_:
 		return true;
-	case TimeWindowMode::Before:
+	case TimeWindowMode::Before_End:
 		if (reverse)
 			return pred_date >= start_time;
 		else
@@ -256,7 +256,7 @@ bool medial::process::in_time_window_simple(int pred_date, int start_time, int e
 			return pred_date >= end_time;
 		else
 			return pred_date <= start_time;
-	case TimeWindowMode::Pass:
+	case TimeWindowMode::After_Start:
 		if (reverse)
 			return (pred_date <= end_time);
 		else

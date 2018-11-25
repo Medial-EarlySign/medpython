@@ -15,11 +15,12 @@ using namespace std;
 /// @enum
 /// Sampling options
 enum class TimeWindowMode {
-	Before = 0, ///< "before" - need to be before end_time of registry
-	Before_Start = 1, ///< "before_start"
-	Pass = 2, ///< "pass" - need to pass start_time of registry
+	Before_End = 0, ///< "before_end" - need to be before end_time of registry
+	Before_Start = 1, ///< "before_start" - need to be before start_time of registry
+	After_Start = 2, ///< "after_start" - need to be after start_time of registry
 	Within = 3, ///< "within" - need to be within start_time and end_time - contained fully time window. 
 	All_ = 4 ///< "all" - takes all not testing for anything
+	//no None, after_end - useless for now
 };
 extern vector<string> TimeWindow_to_name;
 TimeWindowMode TimeWindow_name_to_type(const string& TimeWindow_name);
@@ -169,7 +170,7 @@ namespace medial {
 		/// <summary>
 		/// Supports reading of complex map object in format: registry_val:mode_for_start,mode_for_end. use "|" to seperate labels
 		/// has ability to give 3rd tokens in format number-number to specify range for intersection rate condition
-		/// Example: "0:all,before|1:before_start,pass"
+		/// Example: "0:all,before_end|1:before_start,after_start"
 		/// for complex labels has keyword "all" to activate rule on all labels till specific override
 		/// </summary>
 		void init_time_window_mode(const string &init, TimeWindowInteraction &mode);
@@ -250,7 +251,7 @@ public:
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
 		day_jump = 0;
-		medial::sampling::init_time_window_mode("0:all,before|1:before_start,pass", outcome_interaction_mode);
+		medial::sampling::init_time_window_mode("0:all,before_end|1:before_start,after_start", outcome_interaction_mode);
 		medial::sampling::init_time_window_mode("all:within,within", censor_interaction_mode);
 		start_year = 0;
 		end_year = 0;
@@ -284,7 +285,7 @@ public:
 		end_age = 120;
 		age_bin = 1;
 		conflict_method = ConflictMode::All;
-		medial::sampling::init_time_window_mode("0:all,before|1:before_start,pass", outcome_interaction_mode);
+		medial::sampling::init_time_window_mode("0:all,before_end|1:before_start,after_start", outcome_interaction_mode);
 		medial::sampling::init_time_window_mode("all:within,within", censor_interaction_mode);
 	}
 
@@ -316,7 +317,7 @@ public:
 
 	MedSamplingDates() {
 		gen = mt19937(rd()); take_count = 1;
-		medial::sampling::init_time_window_mode("0:all,before|1:before_start,pass", outcome_interaction_mode);
+		medial::sampling::init_time_window_mode("0:all,before_end|1:before_start,after_start", outcome_interaction_mode);
 		medial::sampling::init_time_window_mode("all:within,within", censor_interaction_mode);
 		conflict_method = ConflictMode::All; time_from = 0; time_to = 0;
 	}
@@ -353,7 +354,7 @@ public:
 		conflict_method = ConflictMode::Drop; //default
 		back_random_duration = 0; //default
 		time_jump = 0;
-		medial::sampling::init_time_window_mode("0:all,before|1:before_start,pass", outcome_interaction_mode);
+		medial::sampling::init_time_window_mode("0:all,before_end|1:before_start,after_start", outcome_interaction_mode);
 		medial::sampling::init_time_window_mode("all:within,within", censor_interaction_mode);
 		start_time = 0;
 		end_time = 0;
