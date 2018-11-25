@@ -4,12 +4,15 @@
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/SerializableObject.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
+#include "MedProcessTools/MedProcessTools/MedModel.h"
 #include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include "MedSamplingStrategy.h"
 
 using namespace std;
 
 class MedSamplingStrategy;
+class TimeWindowInteraction;
+class MedModel;
 
 /**
 * A class which represnt a registry record of patient in time range from start_date to end_date
@@ -23,13 +26,10 @@ public:
 	//defines the registry value apply date range
 	int start_date; ///< the start_date range for the record
 	int end_date; ///< the end_date range for the record
-	//defines the allowed sampling date range for the record
-	int min_allowed_date; ///< min time for sampling
-	int max_allowed_date; ///< max time for sampling
 
 	float registry_value; ///< the registry value/state
 
-	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, min_allowed_date, max_allowed_date, registry_value)
+	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, registry_value)
 };
 
 static unordered_set<float> default_empty_set;
@@ -94,7 +94,9 @@ public:
 		MedSamplingStrategy &sampler,
 		map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
-		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set) const;
+		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set,
+		const MedRegistry *censoring = NULL,
+		TimeWindowInteraction *mode_outcome = NULL, TimeWindowInteraction *mode_censor = NULL) const;
 
 	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
@@ -116,8 +118,10 @@ public:
 	/// </summary>
 	void create_incidence_file(const string &file_path, const string &rep_path, int age_bin, int min_age,
 		int max_age, int time_period = 365, bool use_kaplan_meir = false, const string &sampler_name = "yearly",
-		const string &sampler_args = "conflict_method=max;use_allowed=1;day_jump=365;allowed_time_from=0;"
-		"allowed_time_to=365;start_year=2007;end_year=2012") const;
+		const string &sampler_args = "conflict_method=max;day_jump=365;time_from=0;"
+		"time_to=365;start_year=2007;end_year=2012;prediction_month_day=101;"
+		"outcome_interaction_mode=0:all,before_end|1:before_start,after_start;censor_interaction_mode=all:within,all",
+		const vector<MedRegistryRecord> *censor_registry = NULL, const string &debug_file = "") const;
 
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
@@ -127,6 +131,13 @@ public:
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
 	static MedRegistry *make_registry(const string &registry_type, MedRepository &rep, const string &init_str = "");
+
+	/// <summary>
+	/// Creates vector of registry records - handles everything for you
+	/// in parallel manner for each patient - uses create_registry
+	/// </summary>
+	static MedRegistry *create_registry_full(const string &registry_type, const string &init_str, 
+		const string &repository_path, MedModel &model_with_rep_processor ,medial::repository::fix_method method = medial::repository::fix_method::none);
 
 	/// Default Ctor
 	MedRegistry() {
@@ -435,6 +446,37 @@ public:
 	~MedRegistryCategories() {
 		clear_create_variables();
 	}
+private:
+	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
+
+	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
+};
+
+/**
+* Keep Alive registry - use for censoring "dead" times
+*/
+class MedRegistryKeepAlive : public MedRegistry {
+public:
+	int duration; ///< the duration buffer form start
+	int max_repo_date; ///< the maximal date for the repository
+	int start_buffer_duration; ///< the buffer duration from first signal
+	int secondry_start_buffer_duration; ///< the buffer duration from new signal region
+	int end_buffer_duration; ///< the buffer duration from last signal
+	vector<string> signal_list; ///< list of signals to fetch for keep alive time ranges
+
+	MedRegistryKeepAlive() {
+		duration = 0;
+		max_repo_date = 0;
+		need_bdate = false;
+		start_buffer_duration = 0;
+		end_buffer_duration = 0;
+		secondry_start_buffer_duration = 0;
+	}
+
+	/// <summary>
+	/// @snippet MedRegistry.cpp MedRegistryKeepAlive::init
+	/// </summary>
+	int init(map<string, string>& map);
 private:
 	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
 

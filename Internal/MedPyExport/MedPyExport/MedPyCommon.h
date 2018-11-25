@@ -265,6 +265,7 @@ public:
 	void __getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len));
 	void __setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len));
 	std::vector<int> keys();
+	MEDPY_IGNORE(MPIntVecIntMapAdaptor& operator=(const MPIntVecIntMapAdaptor& other));
 };
 
 

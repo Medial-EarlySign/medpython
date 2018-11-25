@@ -17,22 +17,14 @@ class MPSigExporter {
 	void gen_cat_dict(const string& field_name, int channel);
 	std::vector<std::string> ret_cat_values;
 	std::vector<int> ret_cat_keys;
+	std::vector<int> pids;
 public:
 	std::vector<std::string> keys() { return data_keys; }
 	std::string sig_name;
 	int sig_id = -1;
 	int sig_type = -1;
 	int record_count = -1;
-	MPSigExporter(MPPidRepository& rep, std::string signame_str) : o(rep.o), sig_name(signame_str) {
-		if (rep.loadsig(signame_str) != 0)
-			throw runtime_error("could not load signal");
-		sig_id = rep.sig_id(sig_name);
-		if (sig_id == -1)
-			throw runtime_error("bad sig id");
-		sig_type = rep.sig_type(sig_name);
-		update_record_count();
-		get_all_data();
-	}
+	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids);
 	void update_record_count();
 	void get_all_data();
 	void clear() {

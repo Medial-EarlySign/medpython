@@ -177,16 +177,21 @@ void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
 void get_data_for_filter(const string &json_model, const string &rep_path,
 	MedBootstrap &single_cohort, const vector<MedRegistryRecord> &registry_records,
 	MedSamplingStrategy &sampler, map<string, vector<float>> &data_for_filtering,
-	vector<MedSample> &inc_smps) {
+	vector<MedSample> &inc_smps, const MedRegistry *censor_registry = NULL) {
 	MedSamples inc_samples;
-	sampler.do_sample(registry_records, inc_samples);
+	MedPidRepository rep;
+	vector<int> pids_to_take;
+	unordered_set<int> seen_id;
+	for (size_t i = 0; i < registry_records.size(); ++i)
+		seen_id.insert(registry_records[i].pid);
+	pids_to_take.insert(pids_to_take.end(), seen_id.begin(), seen_id.end());
+	MedModel mdl;
+	init_model(mdl, rep, json_model, rep_path, pids_to_take);
+
+	sampler.init_sampler(rep);
+	sampler.do_sample(registry_records, inc_samples, censor_registry == NULL ? NULL : &censor_registry->registry_records);
 	MLOG("Done sampling for incidence by year. has %d patients\n",
 		(int)inc_samples.idSamples.size());
-	vector<int> pids_to_take;
-	inc_samples.get_ids(pids_to_take);
-	MedModel mdl;
-	MedPidRepository rep;
-	init_model(mdl, rep, json_model, rep_path, pids_to_take);
 
 	if (mdl.learn(rep, &inc_samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
 		MTHROW_AND_ERR("Error creating age,gender for samples\n");
@@ -333,6 +338,17 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	}
 }
 
+struct pair_hash {
+	template <class T1, class T2>
+	std::size_t operator () (const std::pair<T1, T2> &p) const {
+		auto h1 = std::hash<T1>{}(p.first);
+		auto h2 = std::hash<T2>{}(p.second);
+
+		// Mainly for demonstration purposes, i.e. works but is overly simple
+		// In the real world, use sth. like boost.hash_combine
+		return h1 ^ h2;
+	}
+};
 map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatures &features_mat,
 	const with_registry_args& args, map<int, map<string, map<string, float>>> *results_per_split) {
 	MedBootstrap single_cohort = *this; //copy
@@ -343,17 +359,21 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 	MLOG("Done reading %d record for registry\n", (int)registry->registry_records.size());
 	MedSamplingYearly *sampler_year = args.sampler;
 	//sample for each diffrent window_width in 3month res:
-	unordered_map<int, map<string, vector<float>>> window_to_data;
-	unordered_map<int, vector<MedSample>> window_to_smps;
-	unordered_set<int> all_windows;
-	unordered_map<string, int> cohort_to_time_res, cohort_to_time_filter_index;
-	unordered_map<int, vector<int>> sorted_times;
-	unordered_map<int, vector<vector<int>>> times_indexes;
-	unordered_map<int, vector<MedRegistryRecord *>> pid_to_reg;
+	unordered_map<pair<int, int>, map<string, vector<float>>, pair_hash> window_to_data;
+	unordered_map<pair<int, int>, vector<MedSample>, pair_hash> window_to_smps;
+	unordered_set<pair<int, int>, pair_hash> all_windows;
+	unordered_map<string, pair<int, int>> cohort_to_time_res;
+	unordered_map<string, int> cohort_to_time_filter_index;
+	unordered_map<pair<int, int>, vector<int>, pair_hash> sorted_times;
+	unordered_map<pair<int, int>, vector<vector<int>>, pair_hash> times_indexes;
+	unordered_map<int, vector<MedRegistryRecord *>> pid_to_reg, pid_to_censor;
 	MedFeatures *final_features = &features_mat;
 	if (simTimeWindow) {
 		for (size_t i = 0; i < registry->registry_records.size(); ++i)
 			pid_to_reg[registry->registry_records[i].pid].push_back(&registry->registry_records[i]);
+		if (args.registry_censor != NULL)
+			for (size_t i = 0; i < args.registry_censor->registry_records.size(); ++i)
+				pid_to_censor[args.registry_censor->registry_records[i].pid].push_back(&(args.registry_censor->registry_records)[i]);
 	}
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it) {
 		int from_w = 0, to_w = 0;
@@ -367,9 +387,9 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 			}
 		if (found) {
 			//int time_res = ((to_w - from_w) / 90) * 90; //time window resultaion in 3 month's
-			int time_res = to_w - from_w;
-			all_windows.insert(time_res);
-			cohort_to_time_res[it->first] = time_res;
+			//int time_res = to_w - from_w;
+			all_windows.insert(pair<int, int>(from_w, to_w));
+			cohort_to_time_res[it->first] = pair<int, int>(from_w, to_w);
 		}
 		else
 			MWARN("Warning: No Time-Window in cohort \"%s\"\n", it->first.c_str());
@@ -379,17 +399,20 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 	for (auto it = all_windows.begin(); it != all_windows.end(); ++it)
 	{
 		unordered_set<int> all_times;
-		int time_res = *it;
-		MLOG("Running Incidence calc for time Res %d\n", time_res);
-		sampler_year->day_jump = time_res;
+		pair<int, int> time_res = *it;
+		MLOG("Running Incidence calc for time Res %d to %d\n", time_res.first, time_res.second);
+		sampler_year->day_jump = time_res.second - time_res.first;
+		sampler_year->time_from = time_res.first;
+		sampler_year->time_to = time_res.second;
 		get_data_for_filter(args.json_model, args.rep_path, single_cohort,
-			registry->registry_records, *sampler_year, window_to_data[time_res], window_to_smps[time_res]);
+			registry->registry_records, *sampler_year, window_to_data[time_res], window_to_smps[time_res],
+			args.registry_censor);
 		MLOG("Done preparing matrix of incidence for filtering with %d width...\n", time_res);
 		if (args.do_kaplan_meir) {
 			for (size_t i = 0; i < window_to_smps[time_res].size(); ++i) {
 				int time_diff = (int)window_to_data[time_res][time_window_term][i];
-				if (time_diff > time_res)
-					time_diff = time_res;
+				if (time_diff > time_res.second)
+					time_diff = time_res.second;
 				if (all_times.find(time_diff) == all_times.end()) {
 					sorted_times[time_res].push_back(time_diff);
 					all_times.insert(time_diff);
@@ -400,14 +423,14 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 			for (size_t i = 0; i < window_to_smps[time_res].size(); ++i)
 			{
 				int time_diff = (int)window_to_data[time_res][time_window_term][i];
-				if (time_diff > time_res)
-					time_diff = time_res;
+				if (time_diff > time_res.second)
+					time_diff = time_res.second;
 				int ind = medial::process::binary_search_index(sorted_times[time_res].data(),
 					sorted_times[time_res].data() + sorted_times[time_res].size() - 1, time_diff);
 				//if (ind < 0 || ind >= sorted_times.size())
 				//	MTHROW_AND_ERR("BUG: bug in binary search\n");
 				//skip cases after time window - will not occour, so skip
-				if (window_to_smps[time_res][i].outcome <= 0 || (int)window_to_data[time_res][time_window_term][i] <= time_res)
+				if (window_to_smps[time_res][i].outcome <= 0 || (int)window_to_data[time_res][time_window_term][i] <= time_res.second)
 					times_indexes[time_res][ind].push_back((int)i);
 			}
 		}
@@ -428,21 +451,24 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 
 		//save incidence_fix in ROC_Params
 		if (cohort_to_time_res.find(ii->first) != cohort_to_time_res.end()) {
-			int time_res = cohort_to_time_res[ii->first];
+			const pair<int, int> &time_res = cohort_to_time_res[ii->first];
 			int time_filter_index = cohort_to_time_filter_index[ii->first];
 			double controls = 0, cases = 0, prob = 1;
 			if (args.do_kaplan_meir) {
-				double total_controls_all = 0;
+				double total_controls_all = 0, total_cases = 0;
 				for (size_t sort_ind = 0; sort_ind < sorted_times[time_res].size(); ++sort_ind) {
 					const vector<int> &index_order = times_indexes[time_res][sort_ind];
 					ii->second[time_filter_index].max_range = (float)sorted_times[time_res][sort_ind];
 					//update only controls count for time window - do for all time windows
 					//to get total count from all time windows kaplna meir
 					for (int i : index_order)
-						if (window_to_smps[time_res][i].outcome <= 0 &&
-							filter_range_params(window_to_data[time_res], (int)i, &ii->second))
-							++total_controls_all;
+						if (filter_range_params(window_to_data[time_res], (int)i, &ii->second))
+							if (window_to_smps[time_res][i].outcome <= 0)
+								++total_controls_all;
+							else
+								++total_cases;
 				}
+				double total_ctrl_save = total_controls_all;
 
 				for (size_t sort_ind = 0; sort_ind < sorted_times[time_res].size(); ++sort_ind) {
 					const vector<int> &index_order = times_indexes[time_res][sort_ind];
@@ -470,8 +496,11 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 				}
 				if (prob > 0 && prob < 1)
 					single_cohort.roc_Params.incidence_fix = 1 - prob;
-				MLOG("Incidence for %s cohort is %2.2f%% (kaplan meir)\n",
-					ii->first.c_str(), single_cohort.roc_Params.incidence_fix * 100);
+				else
+					MWARN("In MedBootstrap::bootstrap_using_registry - Has no cases/controls in Incidence - please check registry or sampling args\n");
+
+				MLOG("Incidence for %s cohort is %2.4f%% (kaplan meir) - totals: (%d, %d)\n",
+					ii->first.c_str(), single_cohort.roc_Params.incidence_fix * 100, (int)total_ctrl_save, (int)total_cases);
 			}
 			else {
 				for (size_t i = 0; i < window_to_smps[time_res].size(); ++i)
@@ -482,6 +511,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 							++controls;
 				if (cases > 0)
 					single_cohort.roc_Params.incidence_fix = cases / (cases + controls);
+				else
+					MWARN("In MedBootstrap::bootstrap_using_registry - Has no cases in Incidence - please check registry or sampling args\n");
 				MLOG("Incidence for %s cohort is %2.2f%% (%d, %d)\n",
 					ii->first.c_str(), single_cohort.roc_Params.incidence_fix * 100,
 					(int)controls, (int)cases);
@@ -492,12 +523,14 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 
 		map<string, map<string, float>> part_res;
 		MedFeatures sim_features;
+		vector<MedRegistryRecord *> empty_arr;
 		if (simTimeWindow) {
 			MLOG("Censoring using MedRegistry for sim_time_window\n");
 			sim_features = features_mat; //full copy
 											//check for features_final - MedRegistry allowed if simTime - and filter
 			vector<int> selected_rows;
 			selected_rows.reserve(sim_features.samples.size());
+			int no_censoring = 0;
 			for (size_t i = 0; i < sim_features.samples.size(); ++i)
 			{
 				if (sim_features.samples[i].outcome <= 0 || time_filter.param_name.empty()) {
@@ -509,14 +542,19 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 				if (time_df > time_filter.max_range) {
 					//search for intersection:
 					const vector<MedRegistryRecord *> &reg_records = pid_to_reg[sim_features.samples[i].id];
-					bool is_legal = false;
-					for (size_t k = 0; k < reg_records.size(); ++k)
+					const vector<MedRegistryRecord *> *reg_censor = &empty_arr;
+					if (pid_to_censor.find(sim_features.samples[i].id) != pid_to_censor.end())
+						reg_censor = &pid_to_censor[sim_features.samples[i].id];
+					else
+						++no_censoring;
+					bool is_legal = reg_censor->empty();
+					for (size_t k = 0; k < reg_censor->size(); ++k)
 					{
-						if (reg_records[k]->registry_value > 0)
+						if (reg_censor->at(k)->registry_value > 0)
 							continue;
 						int diff_to_allowed = int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
-							reg_records[k]->max_allowed_date)));
-						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_records[k]->min_allowed_date) {
+							reg_censor->at(k)->end_date)));
+						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_censor->at(k)->start_date) {
 							is_legal = true;
 							break;
 						}
@@ -529,6 +567,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 			}
 			medial::process::filter_row_indexes(sim_features, selected_rows);
 			final_features = &sim_features;
+			if (no_censoring > 0)
+				MWARN("Warning in bootstarp has %d pids without censor registry\n", no_censoring);
 		}
 
 		map<int, map<string, map<string, float>>> part_results_per_split;

@@ -17,12 +17,16 @@
 class with_registry_args {
 public:
 	MedRegistry *registry; ///< the registry of records
+	MedRegistry *registry_censor; ///< the registry censor of records
 	MedSamplingYearly *sampler; ///< the sampler for calculating incidence for example yearly from year to year
 	bool do_kaplan_meir; ///< If true will do kaplan meier
 	string rep_path; ///< repository path
 	string json_model; ///< The json_model path to create matrix to calc incidence and filter cohort
 	with_registry_args() {
 		do_kaplan_meir = true;
+		registry_censor = NULL;
+		registry = NULL;
+		sampler = NULL;
 	}
 };
 
