@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <set>
 #include <unordered_map>
+#include <typeinfo>
 
 using namespace std;
 
@@ -19,6 +20,15 @@ public:
 	///Relevant for serializations. if changing serialization, increase version number for the 
 	///implementing class
 	virtual int version() { return  0; }
+
+	/// For better handling of serializations it is highly recommended that each SerializableObject inheriting class will 
+	/// implement the next method. It is a must when one needs to support the new_polymorphic method.
+	/// One can simply add the macro ADD_CLASS_NAME(class) as a public member in the class.
+	virtual string my_class_name() { return "SerializableObject"; }
+
+	/// for polymorphic classes that want to be able to serialize/deserialize a pointer * to the derived class given its type
+	/// one needs to implement this function to return a new to the derived class given its type (as in my_type)
+	virtual void *new_polymorphic(string derived_name) { return NULL; }
 
 	// next adds an option to add some actions before a serialization is done
 	virtual void pre_serialization() {};
@@ -74,6 +84,9 @@ namespace MedSerialize {																							\
 	size_t get_size() { return MedSerialize::get_size(__VA_ARGS__); }								\
 	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob,  __VA_ARGS__);}		\
 	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, __VA_ARGS__); }
+
+
+#define ADD_CLASS_NAME(Type)	string my_class_name() {return string(#Type);}
 
 #include "SerializableObject_imp.h"
 
