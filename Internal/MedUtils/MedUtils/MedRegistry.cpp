@@ -324,7 +324,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	sampler.init_sampler(dataManager);
 	sampler.do_sample(registry_records, incidence_samples, censoring == NULL ? NULL : &censoring->registry_records);
 	duration = (int)difftime(time(NULL), start);
-	MLOG("Done in %d seconds!\n", duration);
+	MLOG("Done in %d seconds with %zu patient ids!\n", duration, incidence_samples.idSamples.size());
 
 	start = time(NULL);
 

@@ -147,9 +147,12 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 			}
 			continue;
 		}
+		year_diff_to_first_pred *= 365; //now time in days - convert to time unit
+		year_diff_to_first_pred = med_time_converter.convert_days(global_default_windows_time_unit, (int)year_diff_to_first_pred);
+
 		int min_pred_date; //how many years to go back
-		if (diff_window > 365 * year_diff_to_first_pred) //validate we wont go back too far
-			diff_window = int(365 * year_diff_to_first_pred); //window passed max allowed - so cut in max
+		if (diff_window > year_diff_to_first_pred) //validate we wont go back too far
+			diff_window = int(year_diff_to_first_pred); //window passed max allowed - so cut in max
 		min_pred_date = medial::repository::DateAdd(currDate, -diff_window); //how many years to go back
 		MedIdSamples patient_samples(rec.pid);
 		if (pid_to_ind.find(rec.pid) == pid_to_ind.end()) {
@@ -607,12 +610,12 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			continue; //filter sample
 		for (int age = start_age; age <= end_age; age += age_bin) {
 			//search for match in all regs:
-			int pred_start_date = medial::repository::DateAdd(pid_bdate, 365 * age); //mark start date in age_bin to age
-			int pred_end_date = medial::repository::DateAdd(pred_start_date, 365 * age_bin); //end date in age_bin
+			int pred_start_date = medial::repository::DateAdd(pid_bdate, med_time_converter.convert_days(global_default_windows_time_unit, 365 * age)); //mark start date in age_bin to age
+			int pred_end_date = medial::repository::DateAdd(pred_start_date, med_time_converter.convert_days(global_default_windows_time_unit, 365 * age_bin)); //end date in age_bin
 
 			MedSample smp;
 			smp.id = it->first;
-			smp.time = medial::repository::DateAdd(pred_start_date, age_bin * 365 / 2); //choose middle
+			smp.time = medial::repository::DateAdd(pred_start_date, med_time_converter.convert_days(global_default_windows_time_unit, age_bin * 365 / 2)); //choose middle
 			int curr_index = 0, final_selected = -1;
 			float reg_val = -1;
 			int reg_time = -1;
@@ -637,7 +640,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 				}
 				if (curr_index < all_pid_records->size() &&
 					!medial::process::in_time_window(pred_start_date, (*all_pid_records)[curr_index], *r_censor,
-						0, 365 * age_bin, outcome_interaction_mode, censor_interaction_mode)) {
+						0, med_time_converter.convert_days(global_default_windows_time_unit, 365 * age_bin), outcome_interaction_mode, censor_interaction_mode)) {
 					++curr_index;
 					continue;
 				}
