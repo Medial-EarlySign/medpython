@@ -538,42 +538,71 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 		vals.insert(it->first);
 
 	//update values prevalence
+	int warn_cnt = 0; int max_warns = 5;
 	for (auto it = vals.begin(); it != vals.end(); ++it)
 	{
 		if (maleSignalToStats.find(*it) != maleSignalToStats.end())
-			for (auto jt = maleSignalToStats[*it].begin(); jt != maleSignalToStats[*it].end(); ++jt) {
-				if (male_total_prevalence.find(jt->first) == male_total_prevalence.end())
-					MTHROW_AND_ERR("Sample is too small - no incidences for age_bin=%f in males\n", jt->first);
-				/*if (male_total_prevalence[jt->first][1] < maleSignalToStats[*it][jt->first][3])
-					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[1,3]. Males, age_bin=%f"
-						, jt->first);
-				if (male_total_prevalence[jt->first][0] < maleSignalToStats[*it][jt->first][2])
-					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[0,2]. Males, age_bin=%f"
-						, jt->first);*/
+			for (auto jt = maleSignalToStats[*it].begin(); jt != maleSignalToStats[*it].end(); ) {
+				if (male_total_prevalence.find(jt->first) == male_total_prevalence.end()) {
+					if (warn_cnt < max_warns) {
+						++warn_cnt;
+						MWARN("Warning: MedRegistry::calc_signal_stats - Sample is too small, no incidences for age_bin=%d in males (value was=%f, cnts=[%d, %d])\n"
+							, int(jt->first), *it, maleSignalToStats[*it][jt->first][2], maleSignalToStats[*it][jt->first][3]);
+					}
+					jt = maleSignalToStats[*it].erase(jt);
+					continue;
+				}
 				maleSignalToStats[*it][jt->first][0] = male_total_prevalence[jt->first][0] - maleSignalToStats[*it][jt->first][2];
 				maleSignalToStats[*it][jt->first][1] = male_total_prevalence[jt->first][1] - maleSignalToStats[*it][jt->first][3];
-				if (maleSignalToStats[*it][jt->first][0] < 0)
+				if (maleSignalToStats[*it][jt->first][0] < 0) {
 					maleSignalToStats[*it][jt->first][0] = 0;
-				if (maleSignalToStats[*it][jt->first][1] < 0)
+					if (warn_cnt < max_warns) {
+						++warn_cnt;
+						MWARN("Warning: MedRegistry::calc_signal_stats - Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+							int(jt->first), *it, male_total_prevalence[jt->first][0], maleSignalToStats[*it][jt->first][2]);
+					}
+				}
+				if (maleSignalToStats[*it][jt->first][1] < 0) {
 					maleSignalToStats[*it][jt->first][1] = 0;
-
+					if (warn_cnt < max_warns) {
+						++warn_cnt;
+						MWARN("Warning: MedRegistry::calc_signal_stats - Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+							int(jt->first), *it, male_total_prevalence[jt->first][1], maleSignalToStats[*it][jt->first][3]);
+					}
+				}
+				++jt;
 			}
 		if (femaleSignalToStats.find(*it) != femaleSignalToStats.end())
-			for (auto jt = femaleSignalToStats[*it].begin(); jt != femaleSignalToStats[*it].end(); ++jt) {
-				if (female_total_prevalence.find(jt->first) == female_total_prevalence.end())
-					MTHROW_AND_ERR("Sample is too small - no incidences for age_bin=%f in females\n", jt->first);
-				/*if (female_total_prevalence[jt->first][1] < femaleSignalToStats[*it][jt->first][3])
-					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[1,3]. Females, age_bin=%f"
-						, jt->first);
-				if (female_total_prevalence[jt->first][0] < femaleSignalToStats[*it][jt->first][2])
-					MTHROW_AND_ERR("Bug in sampling by age or registry - not found[0,2]. Females, age_bin=%f"
-						, jt->first);*/
+			for (auto jt = femaleSignalToStats[*it].begin(); jt != femaleSignalToStats[*it].end();) {
+				if (female_total_prevalence.find(jt->first) == female_total_prevalence.end()) {
+
+					if (warn_cnt < max_warns) {
+						++warn_cnt;
+						MWARN("Warning: MedRegistry::calc_signal_stats - Sample is too small, no incidences for age_bin=%d in females (value was=%f, cnts=[%d, %d])\n"
+							, int(jt->first), *it, femaleSignalToStats[*it][jt->first][2], femaleSignalToStats[*it][jt->first][3]);
+					}
+					jt = femaleSignalToStats[*it].erase(jt);
+					continue;
+				}
 				femaleSignalToStats[*it][jt->first][0] = female_total_prevalence[jt->first][0] - femaleSignalToStats[*it][jt->first][2];
 				femaleSignalToStats[*it][jt->first][1] = female_total_prevalence[jt->first][1] - femaleSignalToStats[*it][jt->first][3];
-				if (femaleSignalToStats[*it][jt->first][0] < 0)
+				if (femaleSignalToStats[*it][jt->first][0] < 0) {
 					femaleSignalToStats[*it][jt->first][0] = 0;
-				if (femaleSignalToStats[*it][jt->first][1] < 0)
+					if (warn_cnt < max_warns) {
+						++warn_cnt;
+						MWARN("Warning: MedRegistry::calc_signal_stats - Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+							int(jt->first), *it, female_total_prevalence[jt->first][0], femaleSignalToStats[*it][jt->first][2]);
+					}
+				}
+				if (femaleSignalToStats[*it][jt->first][1] < 0) {
 					femaleSignalToStats[*it][jt->first][1] = 0;
+					if (warn_cnt < max_warns) {
+						++warn_cnt;
+						MWARN("Warning: MedRegistry::calc_signal_stats - Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+							int(jt->first), *it, female_total_prevalence[jt->first][1], femaleSignalToStats[*it][jt->first][3]);
+					}
+				}
+				++jt;
 			}
 	}
 
