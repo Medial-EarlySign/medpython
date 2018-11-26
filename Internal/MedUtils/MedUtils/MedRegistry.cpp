@@ -2387,6 +2387,6 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 	}
 
 	r.end_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
-	if (r.end_date > r.start_date)
+	if (start_date > 0 && r.end_date > r.start_date)
 		results.push_back(r);
 }
