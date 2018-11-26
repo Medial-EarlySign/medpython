@@ -558,7 +558,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					maleSignalToStats[*it][jt->first][0] = 0;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedRegistry::calc_signal_stats - Control Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, male_total_prevalence[jt->first][0], maleSignalToStats[*it][jt->first][2]);
 					}
 				}
@@ -566,7 +566,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					maleSignalToStats[*it][jt->first][1] = 0;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedRegistry::calc_signal_stats - Cases Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, male_total_prevalence[jt->first][1], maleSignalToStats[*it][jt->first][3]);
 					}
 				}
@@ -590,7 +590,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					femaleSignalToStats[*it][jt->first][0] = 0;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedRegistry::calc_signal_stats - Control Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, female_total_prevalence[jt->first][0], femaleSignalToStats[*it][jt->first][2]);
 					}
 				}
@@ -598,7 +598,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 					femaleSignalToStats[*it][jt->first][1] = 0;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedRegistry::calc_signal_stats - Cases Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, female_total_prevalence[jt->first][1], femaleSignalToStats[*it][jt->first][3]);
 					}
 				}
