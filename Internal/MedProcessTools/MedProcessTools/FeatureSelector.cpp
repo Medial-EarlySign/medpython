@@ -611,7 +611,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	vector<int> nSelected(nthreads);
 	vector<float> w(x.nrows, 1.0);
 
-	MLOG("Lasso Feature Selection : From %d to %d\n", nFeatures, numToSelect);
+	MLOG("Lasso Feature Selection : From %d to [ %d , %d ] \n", nFeatures, numToSelect - numToSelectDelta, numToSelect + numToSelectDelta);
 	selected.clear();
 	float lowerBoundLambda = 0.0, upperBoundLambda = -1.0;
 
@@ -636,8 +636,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 
 		for (int i = 0; i < nthreads; i++) {
-			predictors[i].init_from_string(
-				"method = logistic_sgd; last_is_bias = 0; stop_at_err = 1e-4; batch_size = 2048; momentum = 0.95; rate = 0.01; rate_decay = 1; l_ridge = 0; ; err_freq = 10; nthreads = 12;l_lasso = 0");
+			predictors[i].init_from_string("method = logistic_sgd; last_is_bias = 0; batch_size = 2048; rate_decay = 1; l_ridge = 0; ; err_freq = 10; nthreads = 12;l_lasso = 0" + string(";stop_at_err = ") + to_string(stop_at_err) + string(";rate = ") + to_string(rate) + string(";momentum = ") + to_string(momentum));
 			predictors[i].params.ls_lasso = lambdas[i];
 		}
 
@@ -656,14 +655,14 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", base_lambdas[0], base_lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1], nStuck);
 
 		if (nthreads == 1) { // Special care
-			if (nSelected[0] == numToSelect) {
+			if ((nSelected[0] >= numToSelect - numToSelectDelta) && (nSelected[0] <= numToSelect + numToSelectDelta)) {
 				found = 1;
 				for (int j = 0; j < nFeatures; j++) {
 					if (predictors[0].b[j] != 0)
 						selected.push_back(names[j]);
 				}
 			}
-			else if (nSelected[0] > numToSelect) {
+			else if (nSelected[0] > numToSelect + numToSelectDelta) {
 				lowerBoundLambda = maxLambda;
 				if (upperBoundLambda != -1.0)
 					maxLambda = (upperBoundLambda + maxLambda) / (float)2.0;
@@ -756,16 +755,20 @@ int LassoSelector::init(map<string, string>& mapper) {
 		//! [LassoSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field == "numToSelectDelta") numToSelect = stoi(entry.second);
 		else if (field == "initMaxLambda") initMaxLambda = stof(entry.second);
 		else if (field == "nthreads") nthreads = stoi(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
 		else if (field == "lax_lasso_features") boost::split(lax_lasso_features, entry.second, boost::is_any_of(","));
 		else if (field == "lambdaRatio") lambdaRatio = stof(entry.second);
+		else if (field == "rate") rate = stof(entry.second);
+		else if (field == "momentum") momentum = stof(entry.second);
+		else if (field == "stop_at_err") stop_at_err = stof(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 		//! [LassoSelector::init]
 	}
-
+	
 	return 0;
 
 }
