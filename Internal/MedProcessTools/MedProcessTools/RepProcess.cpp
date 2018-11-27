@@ -175,9 +175,8 @@ int RepProcessor::apply(PidDynamicRec& rec, MedIdSamples& samples) {
 //.......................................................................................
 int RepProcessor::conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, unordered_set<int>& neededSignalIds) {
 
-	vector<int> time_points(samples.samples.size());
-	for (unsigned int i = 0; i < time_points.size(); i++)
-		time_points[i] = samples.samples[i].time;
+	vector<int> time_points;
+	samples.get_times(time_points);
 
 	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(), 0));
 	int rc = conditional_apply(rec, time_points, neededSignalIds, attributes_mat);
@@ -485,6 +484,16 @@ int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		}
 	}
 
+	return 0;
+}
+
+//.......................................................................................
+int RepMultiProcessor::_apply_simple(PidDynamicRec& rec, vector<int>& time_points) 
+{
+	for (auto p : processors) {
+		if ((p->_apply_simple(rec, time_points)) < 0)
+			return -1;
+	}
 	return 0;
 }
 

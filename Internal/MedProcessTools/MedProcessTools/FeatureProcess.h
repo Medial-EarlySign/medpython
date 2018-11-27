@@ -106,6 +106,9 @@ public:
 	/// Utility : get corresponding name in MedFeatures
 	string resolve_feature_name(MedFeatures& features, string substr);
 
+	/// allows testing if this feature processor is a selector
+	virtual bool is_selector() { return false; }
+
 	// Serialization (including type)
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
@@ -458,6 +461,9 @@ public:
 
 	/// Apply selection
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
+
+	bool is_selctor() { return true; }
+
 private:
 	/// Find set of selected features
 	virtual int _learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }

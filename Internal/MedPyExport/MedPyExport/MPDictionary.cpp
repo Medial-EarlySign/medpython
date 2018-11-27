@@ -33,3 +33,14 @@ void MPDictionary::prep_sets_lookup_table(int section_id, const std::vector<stri
 	memcpy(*lut_array, lut.data(), lut.size());
 }
 
+MPIntVecIntMapAdaptor MPDictionary::get_members_to_all_sets(int section_id, MEDPY_NP_INPUT(int* members_array, int members_size)) {
+	vector<int> members;
+	buf_to_vector(members_array, members_size, members);
+	unordered_map<int, std::vector<int>> Member2AllSets;
+	o->dict.dict(section_id)->get_members_to_all_sets(members, Member2AllSets);
+	MPIntVecIntMapAdaptor ret;
+	for (auto& i : Member2AllSets) {
+		ret.o->insert(i);
+	}
+	return ret;
+}

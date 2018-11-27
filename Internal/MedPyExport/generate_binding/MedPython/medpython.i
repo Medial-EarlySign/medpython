@@ -56,6 +56,11 @@ typedef std::vector vector;
 
 %include "apply_directives.i"
 
+%typemap(in) int %{
+  $1 = PyLong_AsLong($input);
+%}
+
+
 %include "MedPython.h"
 
 %include "pythoncode.i"

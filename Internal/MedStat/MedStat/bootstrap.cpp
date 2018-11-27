@@ -69,18 +69,20 @@ string printVec(const vector<float> &v, int from, int to) {
 random_device Lazy_Iterator::rd;
 
 Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
-	const vector<float> *p_y, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed) {
+	const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed) {
 	sample_per_pid = p_sample_per_pid;
 	//sample_ratio = p_sample_ratio;
 	sample_ratio = 1.0; //no support for smaller size for now - need to fix Std for smaller sizes
 	sample_all_no_sampling = false;
 	pids = p_pids;
+	weights = (p_w == NULL || p_w->empty()) ? NULL : p_w->data();
 	y = p_y->data();
 	preds = p_preds->data();
 	maxThreadCount = max_loops;
 	vec_size.resize(maxThreadCount);
 	vec_y.resize(maxThreadCount);
 	vec_preds.resize(maxThreadCount);
+	vec_weights.resize(maxThreadCount);
 	vec_size.back() = (int)p_pids->size();
 	vec_y.back() = y;
 	vec_preds.back() = preds;
@@ -127,16 +129,17 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	sel_pid_index.resize(maxThreadCount, -1);
 }
 
-void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, int thread_num) {
+void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, int thread_num) {
 #pragma omp critical 
 {
 	vec_size[thread_num] = (int)p_y->size();
 	vec_y[thread_num] = p_y->data();
 	vec_preds[thread_num] = p_preds->data();
+	vec_weights[thread_num] = (p_w == NULL || p_w->empty()) ? NULL : p_w->data();
 }
 }
 
-bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
+bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float &weight) {
 	if (sample_per_pid > 0) {
 		//choose pid:
 		int selected_pid_index = int(current_pos[thread] / sample_per_pid);
@@ -149,6 +152,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
 		ret_y = y[selected_index];
 		ret_pred = preds[selected_index];
+		weight = weights == NULL ? -1 : weights[selected_index];
 #pragma omp atomic
 		++current_pos[thread];
 		return current_pos[thread] < sample_per_pid * cohort_size;
@@ -158,6 +162,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 			//iterate on all!:
 			ret_y = vec_y[thread][current_pos[thread]];
 			ret_pred = vec_preds[thread][current_pos[thread]];
+			weight = vec_weights[thread] == NULL ? -1 : vec_weights[thread][current_pos[thread]];
 #pragma omp atomic
 			++current_pos[thread];
 			return current_pos[thread] < vec_size[thread];
@@ -175,6 +180,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 		int final_index = (*inds)[inner_pos[thread]];
 		ret_y = y[final_index];
 		ret_pred = preds[final_index];
+		weight = weights == NULL ? -1 : weights[final_index];
 		//take all inds:
 #pragma omp atomic
 		++inner_pos[thread];
@@ -189,8 +195,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred) {
 	}
 }
 
-bool Lazy_Iterator::fetch_next_external(int thread, float &ret_y, float &ret_pred) {
-	return fetch_next(thread, ret_y, ret_pred);
+bool Lazy_Iterator::fetch_next_external(int thread, float &ret_y, float &ret_pred, float &weight) {
+	return fetch_next(thread, ret_y, ret_pred, weight);
 }
 
 void Lazy_Iterator::restart_iterator(int thread) {
@@ -327,7 +333,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	const vector<MeasurementFunctions> &meas_functions, const vector<void *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
-	const vector<int> &pids_full, const vector<int> &filter_indexes, FilterCohortFunc cohort_def, void *cohort_params, int seed = 0) {
+	const vector<int> &pids_full, const vector<float> *weights, const vector<int> &filter_indexes, FilterCohortFunc cohort_def, void *cohort_params, int seed = 0) {
 	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
@@ -345,9 +351,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 #ifdef USE_MIN_THREADS
-	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, omp_get_max_threads(), seed); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, weights, sample_ratio, sample_per_pid, omp_get_max_threads(), seed); //for Obs
 #else
-	Lazy_Iterator iterator(&pids, &preds, &y, sample_ratio, sample_per_pid, loopCnt + 1, seed); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, weights, sample_ratio, sample_per_pid, loopCnt + 1, seed); //for Obs
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
@@ -454,7 +460,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 			}
 
-			iterator.set_static(&selected_y, &selected_preds, i);
+			iterator.set_static(&selected_y, &selected_preds, weights, i);
 #ifdef USE_MIN_THREADS
 			int th_num = omp_get_thread_num();
 #else
@@ -518,7 +524,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	return all_final_measures;
 }
 
-map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
+map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<float> *weights, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort
 	, const vector<MeasurementFunctions> &meas_functions, const map<string, void *> *cohort_params,
 	const vector<void *> *function_params, ProcessMeasurementParamFunc process_measurments_params,
@@ -593,7 +599,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, filtered_indexes, it->second, c_params, seed);
+			process_measurments_params, additional_info, y, pids, weights, filtered_indexes, it->second, c_params, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 	}
@@ -736,10 +742,10 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void 
 	map<string, float> res;
 
 	map<float, int> cnts;
-	float y, pred;
-	while (iterator->fetch_next(thread_num, y, pred))
-		cnts[y] += 1;
-	cnts[y] += 1; //last one
+	float y, pred, w;
+	while (iterator->fetch_next(thread_num, y, pred, w))
+		cnts[y] += w != -1 ? w : 1;
+	cnts[y] += w != -1 ? w : 1; //last one
 
 	res["NPOS"] = (float)cnts[(float)1.0];
 	res["NNEG"] = (float)cnts[(float)0];
@@ -752,22 +758,31 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *
 
 	vector<float> pred_threshold;
 	unordered_map<float, vector<float>> pred_to_labels;
-	int tot_true_labels = 0;
-	float y, pred;
-	int tot_cnt = 0;
-	while (iterator->fetch_next(thread_num, y, pred)) {
+	unordered_map<float, vector<float>> pred_to_weights;
+	double tot_true_labels = 0;
+	float y, pred, weight;
+	double tot_cnt = 0;
+	while (iterator->fetch_next(thread_num, y, pred, weight)) {
 		pred_to_labels[pred].push_back(y);
-		tot_true_labels += int(y > 0);
-		++tot_cnt;
+		if (weight != -1)
+			pred_to_weights[pred].push_back(weight);
+		else
+			weight = 1;
+		tot_true_labels += int(y > 0) * weight;
+		tot_cnt += weight;
 	}
 	//last one
 	pred_to_labels[pred].push_back(y);
-	tot_true_labels += int(y > 0);
-	++tot_cnt;
+	if (weight != -1)
+		pred_to_weights[pred].push_back(weight);
+	else
+		weight = 1;
+	tot_true_labels += int(y > 0)* weight;
+	tot_cnt += weight;
 
-	int tot_false_labels = tot_cnt - tot_true_labels;
+	double tot_false_labels = tot_cnt - tot_true_labels;
 	if (tot_true_labels == 0 || tot_false_labels == 0)
-		throw invalid_argument("only falses or positives exists in cohort");
+		MTHROW_AND_ERR("Error in bootstrap::calc_only_auc - only falses or positives exists in cohort");
 	pred_threshold = vector<float>((int)pred_to_labels.size());
 	unordered_map<float, vector<float>>::iterator it = pred_to_labels.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
@@ -777,24 +792,40 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *
 	}
 	sort(pred_threshold.begin(), pred_threshold.end());
 	//From up to down sort:
-	int t_cnt = 0;
-	int f_cnt = 0;
+	double t_cnt = 0;
+	double f_cnt = 0;
 	vector<float> true_rate = vector<float>((int)pred_to_labels.size());
 	vector<float> false_rate = vector<float>((int)pred_to_labels.size());
 	int st_size = (int)pred_threshold.size() - 1;
-	for (int i = st_size; i >= 0; --i)
-	{
-		vector<float> *indexes = &pred_to_labels[pred_threshold[i]];
-		//calc AUC status for this step:
-		for (float y : *indexes)
+	if (pred_to_weights.empty())
+		for (int i = st_size; i >= 0; --i)
 		{
-			bool true_label = y > 0;
-			t_cnt += int(true_label);
-			f_cnt += int(!true_label);
+			vector<float> *y_vals = &pred_to_labels[pred_threshold[i]];
+			//calc AUC status for this step:
+			for (float y : *y_vals)
+			{
+				bool true_label = y > 0;
+				t_cnt += int(true_label);
+				f_cnt += int(!true_label);
+			}
+			true_rate[st_size - i] = float(t_cnt / tot_true_labels);
+			false_rate[st_size - i] = float(f_cnt / tot_false_labels);
 		}
-		true_rate[st_size - i] = float(t_cnt) / tot_true_labels;
-		false_rate[st_size - i] = float(f_cnt) / tot_false_labels;
-	}
+	else
+		for (int i = st_size; i >= 0; --i)
+		{
+			vector<float> *y_vals = &pred_to_labels[pred_threshold[i]];
+			vector<float> *w_vals = &pred_to_weights[pred_threshold[i]];
+			//calc AUC status for this step:
+			for (int y_ind = 0; y_ind < y_vals->size(); ++y_ind)
+			{
+				bool true_label = (*y_vals)[y_ind] > 0;
+				t_cnt += int(true_label) * (*w_vals)[y_ind];
+				f_cnt += int(!true_label)* (*w_vals)[y_ind];
+			}
+			true_rate[st_size - i] = float(t_cnt / tot_true_labels);
+			false_rate[st_size - i] = float(f_cnt / tot_false_labels);
+		}
 
 	float auc = false_rate[0] * true_rate[0] / 2;
 	for (size_t i = 1; i < true_rate.size(); ++i)
@@ -829,11 +860,17 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		pr_points[i] /= 100.0;
 
 	unordered_map<float, vector<float>> thresholds_labels;
+	unordered_map<float, vector<float>> thresholds_weights;
 	vector<float> unique_scores;
-	float y, pred;
-	while (iterator->fetch_next(thread_num, y, pred))
+	float y, pred, weight;
+	while (iterator->fetch_next(thread_num, y, pred, weight)) {
 		thresholds_labels[pred].push_back(y);
+		if (weight != -1)
+			thresholds_weights[pred].push_back(weight);
+	}
 	thresholds_labels[pred].push_back(y); //last one
+	if (weight != -1)
+		thresholds_weights[pred].push_back(weight);
 
 	unique_scores.resize((int)thresholds_labels.size());
 	int ind_p = 0;
@@ -846,29 +883,50 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 	//calc measures on each bucket of scores as possible threshold:
 	double t_sum = 0, f_sum = 0, tt_cnt = 0;
-	int f_cnt = 0;
-	int t_cnt = 0;
+	double f_cnt = 0;
+	double t_cnt = 0;
 	vector<float> true_rate((int)unique_scores.size());
 	vector<float> false_rate((int)unique_scores.size());
 	int st_size = (int)unique_scores.size() - 1;
-	for (int i = st_size; i >= 0; --i)
-	{
-		vector<float> *labels = &thresholds_labels[unique_scores[i]];
-		for (float y : *labels)
+	if (thresholds_weights.empty())
+		for (int i = st_size; i >= 0; --i)
 		{
-			float true_label = params->fix_label_to_binary ? y > 0 : y;
-			t_sum += true_label;
-			tt_cnt += true_label > 0 ? true_label : 0;
-			if (!censor_removed)
-				f_sum += (1 - true_label);
-			else
-				f_sum += int(true_label <= 0);
-			f_cnt += int(true_label <= 0);
-			t_cnt += int(true_label > 0);
+			vector<float> *labels = &thresholds_labels[unique_scores[i]];
+			for (float y : *labels)
+			{
+				float true_label = params->fix_label_to_binary ? y > 0 : y;
+				t_sum += true_label;
+				tt_cnt += true_label > 0 ? true_label : 0;
+				if (!censor_removed)
+					f_sum += (1 - true_label);
+				else
+					f_sum += int(true_label <= 0);
+				f_cnt += int(true_label <= 0);
+				t_cnt += int(true_label > 0);
+			}
+			true_rate[st_size - i] = float(t_sum);
+			false_rate[st_size - i] = float(f_sum);
 		}
-		true_rate[st_size - i] = float(t_sum);
-		false_rate[st_size - i] = float(f_sum);
-	}
+	else
+		for (int i = st_size; i >= 0; --i)
+		{
+			vector<float> *labels = &thresholds_labels[unique_scores[i]];
+			vector<float> *weights = &thresholds_weights[unique_scores[i]];
+			for (int y_i = 0; y_i < labels->size(); ++y_i)
+			{
+				float true_label = params->fix_label_to_binary ? (*labels)[y_i] > 0 : (*labels)[y_i];
+				t_sum += true_label * (*weights)[y_i];
+				tt_cnt += true_label > 0 ? true_label : 0;
+				if (!censor_removed)
+					f_sum += (1 - true_label) * (*weights)[y_i];
+				else
+					f_sum += int(true_label <= 0) * (*weights)[y_i];
+				f_cnt += int(true_label <= 0) * (*weights)[y_i];
+				t_cnt += int(true_label > 0) * (*weights)[y_i];
+			}
+			true_rate[st_size - i] = float(t_sum);
+			false_rate[st_size - i] = float(f_sum);
+		}
 
 	if (f_cnt == 0 || t_sum <= 0) {
 		if (t_sum <= 0)
@@ -1307,11 +1365,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_pr_ind;
 				continue;
-			}
+		}
 			++i;
 		}
 
-	}
+}
 	else {
 		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)
@@ -1412,38 +1470,107 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void
 	map<string, float> res;
 
 	double tau = 0, cnt = 0;
-	float y, pred;
+	float y, pred, weight;
 	//vector<float> scores, labels;
 	unordered_map<float, vector<float>> label_to_scores;
-	while (iterator->fetch_next(thread_num, y, pred))
+	unordered_map<float, vector<float>> label_to_weights;
+	while (iterator->fetch_next(thread_num, y, pred, weight)) {
 		label_to_scores[y].push_back(pred);
+		if (weight != -1)
+			label_to_weights[y].push_back(pred);
+	}
 	label_to_scores[y].push_back(pred);// last one
+	if (weight != -1)
+		label_to_weights[y].push_back(pred);
+
 	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
 		sort(it->second.begin(), it->second.end());
 
-	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
-	{
-		auto bg = it;
-		++bg;
-		vector<float> *preds = &it->second;
-		int pred_i_bigger;
-		double pred_i_smaller;
-		for (auto jt = bg; jt != label_to_scores.end(); ++jt)
+	if (label_to_weights.empty())
+		for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
 		{
-			vector<float> *preds_comp = &jt->second;
-			double p_size = (double)preds_comp->size();
-			for (float pred : *preds)
+			auto bg = it;
+			++bg;
+			vector<float> *preds = &it->second;
+			int pred_i_bigger;
+			double pred_i_smaller;
+			for (auto jt = bg; jt != label_to_scores.end(); ++jt)
 			{
-				pred_i_bigger = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
-				pred_i_smaller = p_size - binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
-				if (it->first > jt->first)
-					//tau += pred_i_bigger;
-					tau += pred_i_bigger - pred_i_smaller;
-				else
-					//tau += pred_i_smaller;
-					tau += pred_i_smaller - pred_i_bigger;
+				vector<float> *preds_comp = &jt->second;
+				double p_size = (double)preds_comp->size();
+				for (float pred : *preds)
+				{
+					pred_i_bigger = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+					pred_i_smaller = p_size - binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+					if (it->first > jt->first)
+						//tau += pred_i_bigger;
+						tau += pred_i_bigger - pred_i_smaller;
+					else
+						//tau += pred_i_smaller;
+						tau += pred_i_smaller - pred_i_bigger;
+				}
+				cnt += p_size * preds->size();
 			}
-			cnt += p_size * preds->size();
+		}
+	else {
+		vector<double> group_weights(label_to_scores.size());
+		vector<vector<double>> group_weights_cumsum(label_to_scores.size());
+		int iter = 0;
+		for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it) {
+			vector<float> *weights = &label_to_weights[it->first];
+			for (size_t i = 0; i < it->second.size(); ++i) {
+				group_weights[iter] += (*weights)[i];
+				group_weights_cumsum[iter].push_back((*weights)[i]);
+			}
+			++iter;
+		}
+		//make cumsum:
+		for (size_t i = 0; i < group_weights_cumsum.size(); ++i)
+			for (size_t j = 1; j < group_weights_cumsum[i].size(); ++j)
+				group_weights_cumsum[i][j] += group_weights_cumsum[i][j - 1];
+
+		iter = 0;
+		for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
+		{
+			auto bg = it;
+			++bg;
+			vector<float> *preds = &it->second;
+			double i_size = group_weights[iter];
+
+			double pred_i_bigger;
+			double pred_i_smaller;
+			int pred_i_bigger_i;
+			int pred_i_smaller_i;
+			int inside_group_idx = iter + 1;
+			for (auto jt = bg; jt != label_to_scores.end(); ++jt)
+			{
+				vector<float> *preds_comp = &jt->second;
+				//double p_size = (double)preds_comp->size();
+				double p_size = group_weights[inside_group_idx];
+				for (float pred : *preds)
+				{
+					pred_i_bigger_i = binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+					pred_i_smaller_i = binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
+					if (pred_i_bigger_i < group_weights_cumsum[inside_group_idx].size())
+						pred_i_bigger = group_weights_cumsum[inside_group_idx][pred_i_bigger_i];
+					else
+						pred_i_bigger = p_size;
+					if (pred_i_smaller_i < group_weights_cumsum[inside_group_idx].size())
+						pred_i_smaller = group_weights_cumsum[inside_group_idx][pred_i_smaller_i];
+					else
+						pred_i_smaller = p_size;
+
+					if (it->first > jt->first)
+						//tau += pred_i_bigger;
+						tau += pred_i_bigger - (p_size - pred_i_smaller);
+					else
+						//tau += pred_i_smaller;
+						tau += (p_size - pred_i_smaller) - pred_i_bigger;
+				}
+				cnt += p_size * preds->size();
+				++inside_group_idx;
+			}
+			++iter;
 		}
 	}
 

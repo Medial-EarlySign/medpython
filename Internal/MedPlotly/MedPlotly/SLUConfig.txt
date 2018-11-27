@@ -1,0 +1,66 @@
+#
+# Configuration example for a MedPlotly object
+#
+
+#
+# comments start with '#' , all delimiters are tabs
+#
+
+#
+# JavaScript home directory, and files
+#
+JSDIR	//nas1/UsersData/avi/MR/Libs/Internal/MedPlotly/JavaScript
+JSFILES	plotly/plotly-latest.min.js
+
+
+# default null_zeros_default : if set plotting will ignore 0 values
+NULL_ZEROS	1
+
+# default log scale : draw sigs with log scale when possible (all vals > 0)
+LOG_SCALE	1
+
+# default width, height, block_mode for panels
+WIDTH	600
+HEIGHT	400
+BLOCK_MODE	1
+
+# specific signals setup (if different from default)
+# format: SIG	<sig list>	<params: null_zeros=<val>;log_scale=<val>>
+
+#
+# drug groups definitions
+# format:
+# DRUG_GROUP	<name> <list of codes>
+#
+
+# if in any of the following a drug group is used that is not defined, it's codes and names will be exactly the group given
+
+# panels definition:
+# format:
+# PANEL <params>
+PANEL	name=P_LGI;title=LGI_Summary;sigs=LGI_Score,Hemoglobin,WBC,Platelets;width=900;height=600;
+PANEL	name=P_Red;title=Red_Count;sigs=Hemoglobin,RBC,RDW,MCV,MCH,LGI_Score;drugs=AntiAnemic;width=900;height=600;
+PANEL	name=P_White;title=White_Count;sigs=WBC,Eosinophils#,Monocytes#,Basophils#,Lymphocytes#,Neutrophils#,LGI_Score;drugs=Antibiotics;null_zeros=0;log_scale=0;width=900;height=600;
+PANEL	name=P_White%;title=White_Percent;sigs=Eosinophils%,Monocytes%,Basophils%,Lymphocytes%,Neutrophils%,LGI_Score;drugs=Antibiotics;null_zeros=0;log_scale=0;width=900;height=600;
+PANEL	name=P_Platelets;title=Platelets;sigs=Platelets,MPV,LGI_Score;width=900;height=600;
+
+# drugs heatmap def. If no drug groups are given, all those defined above will be used in their given order.
+# format: DRUGS_HEATMAP	<params>
+# <params> : granularity=<days: def is 30>;drugs=<list of groups comma separated>
+
+# DRUGS_HEATMAP
+
+#
+# default view
+# format:
+# lines starting with VIEW following a list of sigs and panels to view	
+# demographics and drugs_heatmap are reserved names
+#
+
+VIEW	demographics
+VIEW	P_LGI,P_Red,P_White,P_White%,P_Platelets
+
+
+
+
+

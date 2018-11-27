@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <string>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <chrono>
@@ -91,28 +92,44 @@ using namespace std;
 #define VERBOSE_LOG_LEVEL	10
 
 
+extern vector<string> log_section_to_name;
+extern vector<string> log_level_to_name;
+
 class MedLogger {
-	public:
-		vector<int> levels;
-		vector<vector<FILE *>> fds; //each section can write to multipal buffers
-		FILE *out_fd;
+public:
+	vector<int> levels;
+	vector<vector<FILE *>> fds; //each section can write to multipal buffers
+	FILE *out_fd;
+	vector<string> format; ///< log format for each section - the message is %s, reset is variables with $: time,section,level
 
-		MedLogger();
-		~MedLogger();
+	MedLogger();
+	~MedLogger();
 
-		void init_all_levels(int level);
-		int init_all_files(const string &fname);
-		void init_level(int section, int level);
-		void init_file(int section, FILE *of);
-		int init_file(int section, const string &fname);
-		int add_file(int section, const string &fname);
+	void init_all_levels(int level);
+	int init_all_files(const string &fname);
+	void init_level(int section, int level);
+	void init_file(int section, FILE *of);
+	int init_file(int section, const string &fname);
+	int add_file(int section, const string &fname);
 
-		void init_out(); //default output (stdout)
-		void init_out(FILE *of);
-		void init_out(const string &fname);
+	void init_out(); //default output (stdout)
+	void init_out(FILE *of);
+	void init_out(const string &fname);
 
-		int log(int section, int print_level,char *fmt,...);
-		void out(char *fmt,...);
+	int log(int section, int print_level, char *fmt, ...);
+	void out(char *fmt, ...);
+
+	/// <summary>
+	/// sets log format. it has the following variables: time,section,level
+	/// to use variable use $ before the varaible name. example:
+	/// init_format("$time $level $section %s")
+	/// </summary>
+	void init_format(int section, const string &new_format);
+
+	/// <summary>
+	/// sets log format for all sections - refer to init_format for more details
+	/// </summary>
+	void init_all_formats(int section, const string &new_format);
 };
 
 extern MedLogger global_logger;
@@ -144,25 +161,25 @@ extern MedLogger global_logger;
 * MedTimer - a very simple class to allow very easy time measures
 */
 class MedTimer {
-	public:
-		string name;
-		chrono::high_resolution_clock::time_point t[2];
-		unsigned long long diff;
+public:
+	string name;
+	chrono::high_resolution_clock::time_point t[2];
+	unsigned long long diff;
 
-		MedTimer(const string &tname) {name = tname;}
-		MedTimer() {name = string("");}
+	MedTimer(const string &tname) { name = tname; }
+	MedTimer() { name = string(""); }
 
-		void start() {t[0] = chrono::high_resolution_clock::now();}
-		void take_curr_time() {t[1] = chrono::high_resolution_clock::now(); diff = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(t[1]-t[0]).count());}
-		unsigned long long get_clock_micro() { 
-			auto t_now = chrono::high_resolution_clock::now(); 
-			auto micro = chrono::duration_cast<chrono::microseconds>(t_now.time_since_epoch());
-			return (unsigned long long)(micro.count());
-		}
+	void start() { t[0] = chrono::high_resolution_clock::now(); }
+	void take_curr_time() { t[1] = chrono::high_resolution_clock::now(); diff = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(t[1] - t[0]).count()); }
+	unsigned long long get_clock_micro() {
+		auto t_now = chrono::high_resolution_clock::now();
+		auto micro = chrono::duration_cast<chrono::microseconds>(t_now.time_since_epoch());
+		return (unsigned long long)(micro.count());
+	}
 
-		double diff_microsec() {return (double)diff;}
-		double diff_milisec() {return (double)diff/1000.0;}
-		double diff_sec() {return (double)diff/1000000.0;}
+	double diff_microsec() { return (double)diff; }
+	double diff_milisec() { return (double)diff / 1000.0; }
+	double diff_sec() { return (double)diff / 1000000.0; }
 
 };
 

@@ -1,3 +1,16 @@
+#!/bin/bash
+
+DIST_NAME="unknown"
+if [[ ${PYTHON_INCLUDE_DIR} == "/opt/medial/dist"* ]]; then DIST_NAME="medial-python36"
+elif [[ ${PYTHON_INCLUDE_DIR} == "/opt/medial/python27"* ]]; then DIST_NAME="medial-python27"
+elif [[ ${PYTHON_INCLUDE_DIR} == *"anaconda2"* ]]; then DIST_NAME="anaconda2"
+elif [[ ${PYTHON_INCLUDE_DIR} == "/usr"* ]]; then DIST_NAME="rh-python27"
+fi
+
+echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"
+echo "(II) Python Library: '${PYTHON_LIBRARY}'"
+echo "(II) Compiling Python distribution: '${DIST_NAME}'"
+
 cp SWIG.CMakeLists.txt CMakeLists.txt
 cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
 mkdir -p $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release
@@ -5,3 +18,9 @@ pushd $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Relea
 cmake ../../../
 make -j 8;
 popd
+
+NEW_RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/Release/${DIST_NAME}
+RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release/MedPython
+mkdir -p ${NEW_RELEASE_PATH}
+cp ${RELEASE_PATH}/medpython.py ${RELEASE_PATH}/_medpython.so ${NEW_RELEASE_PATH}
+echo "Extension files copied to ${NEW_RELEASE_PATH}"

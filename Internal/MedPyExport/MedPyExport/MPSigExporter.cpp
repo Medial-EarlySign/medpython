@@ -11,9 +11,70 @@
 #include "MedProcessTools/MedProcessTools/MedModel.h"
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
 
-MPSigExporter MPPidRepository::export_to_numpy(string signame) {
-	return MPSigExporter(*this, signame);
+
+MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids) : o(rep.o), sig_name(signame_str) {
+	if (rep.loadsig(signame_str) != 0)
+		throw runtime_error("could not load signal");
+	sig_id = rep.sig_id(sig_name);
+	if (sig_id == -1)
+		throw runtime_error("bad sig id");
+	sig_type = rep.sig_type(sig_name);
+	if (use_all_pids)
+		this->pids = o->all_pids_list;
+	else if (num_pids_to_take == 0)
+		this->pids = o->pids;
+	else
+		buf_to_vector(pids_to_take, num_pids_to_take, this->pids);
+
+	update_record_count();
+	get_all_data();
 }
+
+
+int MPSigExporter::__get_key_id_or_throw(const string& key) {
+	for (int i = 0; i < data_keys.size();++i)
+		if (data_keys[i] == key) return i;
+	throw runtime_error("Unknown row");
+}
+
+void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
+	int key_index = __get_key_id_or_throw(field_name);
+	if (!o->sigs.is_categorical_channel(sig_id, channel))
+		return;
+	int section_id = o->dict.section_id(sig_name);
+	void* arr = data_column[key_index];
+	int arr_sz = this->record_count;
+	int arr_npytype = data_column_nptype[key_index];
+	std::unordered_set<int> values;
+	switch (arr_npytype) {
+	case (int)MED_NPY_TYPES::NPY_FLOAT: 
+		{float* tarr = (float*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		break;
+	case (int)MED_NPY_TYPES::NPY_USHORT: 
+		{unsigned short* tarr = (unsigned short*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		break;
+	case (int)MED_NPY_TYPES::NPY_LONGLONG: 
+		{long long* tarr = (long long*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		break;
+	case (int)MED_NPY_TYPES::NPY_SHORT: 
+		{short* tarr = (short*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		break;
+	default:
+		throw runtime_error("MedPy: categorical value type not supported, we only have values of types float, unsigned short, long long, short");
+		break;
+	}
+	auto& Id2Names = o->dict.dict(section_id)->Id2Names;
+	std::map<int, std::string> cat_dict;
+	for (int raw_val : values) {
+		if (!Id2Names.count(raw_val)) continue;
+		auto& names = Id2Names[raw_val];
+		if (names.size() == 0) { cat_dict[raw_val] = ""; continue; }
+		cat_dict[raw_val] = names[0];
+		for (int j = 1; j < names.size() && j < 3; j++)
+			cat_dict[raw_val] += string("|") + names[j];
+	}
+	categories[field_name] = cat_dict;
+};
 
 void MPSigExporter::get_all_data() {
 
@@ -35,7 +96,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -52,6 +113,7 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
 		data_column.push_back(val_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
 	}
 	break;
 
@@ -67,7 +129,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -81,6 +143,7 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
 		data_column.push_back(val_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
 	}
 	break;
 
@@ -97,7 +160,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (STimeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -114,6 +177,7 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_LONGLONG);
 		data_column.push_back(val_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
 	}
 	break;
 
@@ -131,7 +195,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateRangeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SDateRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -151,6 +215,7 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
 		data_column.push_back(val_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
 	}
 	break;
 
@@ -168,7 +233,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeRangeVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (STimeRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -188,6 +253,7 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_LONGLONG);
 		data_column.push_back(val_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
 	}
 	break;
 
@@ -203,7 +269,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeStamp *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (STimeStamp *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -234,7 +300,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateVal2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SDateVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -254,6 +320,8 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
 		data_column.push_back(val2_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_USHORT);
+		gen_cat_dict("val", 0);
+		gen_cat_dict("val2", 1);
 	}
 	break;
 
@@ -270,7 +338,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		STimeLongVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (STimeLongVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -287,6 +355,7 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_LONGLONG);
 		data_column.push_back(val_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_LONGLONG);
+		gen_cat_dict("val", 0);
 	}
 	break;
 
@@ -304,7 +373,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateShort2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SDateShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -324,6 +393,8 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
 		data_column.push_back(val2_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		gen_cat_dict("val1", 0);
+		gen_cat_dict("val2", 1);
 	}
 	break;
 
@@ -340,7 +411,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SValShort2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SValShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -357,6 +428,8 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
 		data_column.push_back(val2_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		gen_cat_dict("val1", 0);
+		gen_cat_dict("val2", 1);
 	}
 	break;
 
@@ -375,7 +448,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SValShort4 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SValShort4 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -398,6 +471,10 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
 		data_column.push_back(val4_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		gen_cat_dict("val1", 0);
+		gen_cat_dict("val2", 1);
+		gen_cat_dict("val3", 2);
+		gen_cat_dict("val4", 3);
 	}
 	break;
 
@@ -414,7 +491,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SCompactDateVal *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SCompactDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -431,6 +508,7 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_USHORT);
 		data_column.push_back(val_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_USHORT);
+		gen_cat_dict("val", 0);
 	}
 	break;
 
@@ -449,7 +527,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateRangeVal2 *sdv = nullptr;
 		int cur_row = 0;
-		for (int pid : o->all_pids_list) {
+		for (int pid : this->pids) {
 			sdv = (SDateRangeVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -472,10 +550,49 @@ void MPSigExporter::get_all_data() {
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
 		data_column.push_back(val2_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
+		gen_cat_dict("val2", 1);
 	}
 	break;
 
+	//Export SDateFloat2
 
+	case SigType::T_DateFloat2:
+	{
+		data_keys = vector<string>({ "pid","date","val","val2" });
+
+		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
+		int* date_vec = (int*)malloc(sizeof(int)*this->record_count);
+		float* val_vec = (float*)malloc(sizeof(float)*this->record_count);
+		float* val2_vec = (float*)malloc(sizeof(float)*this->record_count);
+
+		int len;
+		SDateFloat2 *sdv = nullptr;
+		int cur_row = 0;
+		for (int pid : this->pids) {
+			sdv = (SDateFloat2 *)o->get(pid, this->sig_id, len);
+			if (len == 0)
+				continue;
+			for (int i = 0; i < len; i++) {
+				pid_vec[cur_row] = pid;
+				date_vec[cur_row] = sdv[i].date;
+				val_vec[cur_row] = sdv[i].val;
+				val2_vec[cur_row] = sdv[i].val2;
+				cur_row++;
+			}
+		}
+		data_column.push_back(pid_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
+		data_column.push_back(date_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
+		data_column.push_back(val_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		data_column.push_back(val2_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+		gen_cat_dict("val", 0);
+		gen_cat_dict("val2", 1);
+	}
+	break;
 
 	default:
 		throw runtime_error("MedPy: sig type not supported");
@@ -490,7 +607,7 @@ void MPSigExporter::update_record_count() {
 		this->record_count = 0;
 		return;
 	}
-	for (int pid : o->all_pids_list)
+	for (int pid : this->pids)
 	{
 		o->get(pid, this->sig_id, rec_len);
 		total_len += rec_len;
@@ -501,14 +618,7 @@ void MPSigExporter::update_record_count() {
 void MPSigExporter::transfer_column(const std::string& key,
 	MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype))
 {
-	int key_index = -1;
-	int i = 0;
-	for (auto str : data_keys) {
-		if (str == key) key_index = i;
-		i++;
-	}
-	if (key_index == -1)
-		throw runtime_error("Unknown row");
+	int key_index = __get_key_id_or_throw(key);
 	*outarr1 = data_column[key_index];
 	*outarr1_sz = this->record_count;
 	*outarr1_npytype = data_column_nptype[key_index];
@@ -516,26 +626,6 @@ void MPSigExporter::transfer_column(const std::string& key,
 	data_column_nptype[key_index] = (int)MED_NPY_TYPES::NPY_NOTYPE;
 	data_keys[key_index] = "";
 
-	/*
-	*outarr1_sz = 0;
-
-	if (key == "pid")
-	{
-	*outarr1 = (void*)malloc(sizeof(int) * 20);
-	*outarr1_sz = 20;
-	*outarr1_npytype = (int)MED_NPY_TYPES::NPY_INT;
-	for (int i = 0; i < 20; i++)
-	((*(int**)outarr1))[i] = i * 5;
-	}
-	else if (key == "val")
-	{
-	*outarr1 = (void*)malloc(sizeof(double) * 20);
-	*outarr1_sz = 20;
-	*outarr1_npytype = (int)MED_NPY_TYPES::NPY_DOUBLE;
-	for (int i = 0; i < 20; i++)
-	((*(double**)outarr1))[i] = i * 2.5;
-	}
-	*/
 }
 
 MPSigExporter_iter MPSigExporter::__iter__() { return MPSigExporter_iter(*this, this->data_keys); };

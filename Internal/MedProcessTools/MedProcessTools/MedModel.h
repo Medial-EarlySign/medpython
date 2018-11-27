@@ -155,6 +155,13 @@ public:
 	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
+	// Apply on a given Rec : this is needed when someone outside the model runs on Records. No matching method for learn.
+	// The process is started with an initialization using init_for_apply_rec
+	// Then for each record use : apply_rec , there's a flag for using a copy of the rec rather than the record itself.
+	// Calling apply_rec is thread safe, and hence each call returns its own MedFeatures.
+	int init_for_apply_rec(MedPidRepository &rep);
+	int apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag, int end_stage = MED_MDL_APPLY_FTR_PROCESSORS);
+
 	// De(Serialize)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
@@ -169,7 +176,6 @@ public:
 	int learn_and_apply_feature_processors(MedFeatures &features);
 	int learn_feature_processors(MedFeatures &features);
 	int apply_feature_processors(MedFeatures &features);
-
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag);
