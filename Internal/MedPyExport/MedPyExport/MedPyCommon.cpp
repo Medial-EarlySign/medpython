@@ -108,18 +108,21 @@ MPIntPairIntIntMapAdaptor::~MPIntPairIntIntMapAdaptor() { if (o_owned) delete o;
 int MPIntPairIntIntMapAdaptor::__len__() { return (int)o->size(); };
 
 void MPIntPairIntIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len)) {
-	vector<int> ret;
-	ret.push_back(o->operator[](key).first);
-	ret.push_back(o->operator[](key).second);
-	vector_to_buf(ret, int_out_buf, int_out_buf_len);
+	if (o->count(key) < 1)
+		throw runtime_error(string("Key Error:")+std::to_string(key));
+	*int_out_buf = (int*)malloc(sizeof(int)*2);
+	*int_out_buf_len = 2;
+	auto& v = o->at(key);
+	(*int_out_buf)[0] = v.first;
+	(*int_out_buf)[1] = v.second;
 }
 
 void MPIntPairIntIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len)) {
-	vector<int> ret;
 	if (int_in_buf_len <= 1 || int_in_buf == nullptr)
 		throw runtime_error("map value type is a 2 item array");
-	ret.push_back(o->operator[](key).first);
-	ret.push_back(o->operator[](key).second);
+	auto& v = o->operator[](key);
+	v.first = int_in_buf[0];
+	v.second = int_in_buf[1];
 }
 
 void MPIntPairIntIntMapAdaptor::keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len))

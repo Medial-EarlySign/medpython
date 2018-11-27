@@ -56,8 +56,15 @@ typedef std::vector vector;
 
 %include "apply_directives.i"
 
+/* This was added to avoid SWIG's CheckLong which fails on numpy.int64/32 */
+
 %typemap(in) int %{
   $1 = PyLong_AsLong($input);
+  if ($1 == -1 && PyErr_Occurred()) {
+    PyErr_Clear();
+    PyErr_Format(PyExc_TypeError, "Parameter must be an integer type, but got %s", Py_TYPE($input)->tp_name);
+    return NULL;
+  }
 %}
 
 
