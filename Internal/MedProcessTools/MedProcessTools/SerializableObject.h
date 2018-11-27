@@ -15,6 +15,7 @@ using namespace std;
 /** @file
 * An Abstract class that can be serialized and written/read from file
 */
+
 class SerializableObject {
 public:
 	///Relevant for serializations. if changing serialization, increase version number for the 
