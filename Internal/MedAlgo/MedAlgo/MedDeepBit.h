@@ -7,7 +7,7 @@ extern MedLogger global_logger;
 
 //Deep Bit
 
-struct MedDeepBitParams {
+struct MedDeepBitParams : public SerializableObject {
 	int max_depth;
 	int num_iterations;
 	int num_ftrs_per_round;
@@ -29,11 +29,14 @@ struct MedDeepBitParams {
 		niter_auc_gitter = 0;  grid_fraction = 0.003; min_fraction_zeros_ones = 0.003;
 		frac_continuous_frequent = 0.1; frac_categorial_frequent = 0.1; lambda = 20; fraction_auc = 1; internal_test_ratio = 10, min_cor_bin_ftr = 0.05;
 	}
+	ADD_CLASS_NAME(MedDeepBitParams)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 	string to_string();
 };
+
+MEDSERIALIZE_SUPPORT(MedDeepBitParams)
 
 class MedDeepBit : public MedPredictor {	
 
@@ -52,6 +55,7 @@ public:
 	int Learn(float *x, float *y, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 	virtual void print(FILE *fp, const string& prefix) const;
+	ADD_CLASS_NAME(MedDeepBit)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
@@ -117,11 +121,7 @@ private:
 	double special_auc(const vector<double>& all_predictions, const vector<int>& all_label, bool is_weighted = false, int nparts = 1);
 };
 
-
-
-
-
-
+MEDSERIALIZE_SUPPORT(MedDeepBit)
 
 
 

@@ -71,6 +71,7 @@ public:
 		const string &general_params);
 	virtual void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
+	ADD_CLASS_NAME(MedXGB)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);

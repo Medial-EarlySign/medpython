@@ -306,7 +306,7 @@ namespace LightGBM {
 		const string &general_params, int max_feature_idx_) {
 
 		map<string, string> params;
-		init_map_from_string(general_params, params);
+		MedSerialize::init_map_from_string(general_params, params);
 		string importance_type = "gain"; //"frequency"; //"gain";
 		if (params.find("importance_type") != params.end())
 			importance_type = params.at("importance_type");
@@ -336,6 +336,7 @@ void MedLightGBM::calc_feature_importance(vector<float> &features_importance_sco
 size_t MedLightGBM::get_size()
 {
 	size_t size = 0;
+	size += MedSerialize::get_size(classifier_type);
 	size += MedSerialize::get_size(params);
 	string str;
 	if (mem_app.serialize_to_string(str) < 0)
@@ -351,7 +352,8 @@ size_t MedLightGBM::serialize(unsigned char *blob)
 {
 	size_t size = 0;
 
-	size += MedSerialize::serialize(blob, params);
+	size += MedSerialize::serialize(blob, classifier_type);
+	size += MedSerialize::serialize(blob + size, params);
 	string str;
 	if (mem_app.serialize_to_string(str) < 0)
 		MERR("MedLightGBM::serialize() failed moving model to string\n");
@@ -363,7 +365,8 @@ size_t MedLightGBM::serialize(unsigned char *blob)
 //------------------------------------------------------------------------------------------------------------------------------------------
 size_t MedLightGBM::deserialize(unsigned char *blob)
 {
-	size_t size = MedSerialize::deserialize(blob, params);
+	size_t size = MedSerialize::deserialize(blob, classifier_type);
+	size += MedSerialize::deserialize(blob + size, params);
 	init_from_string(""); //loading the params as they were saved
 	string str;
 	size += MedSerialize::deserialize(blob + size, str);

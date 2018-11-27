@@ -270,36 +270,6 @@ int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transpo
 }
 
 //..............................................................................
-size_t MedLM::get_size() {
-	return sizeof(int) + (n_ftrs+1) * sizeof(float) ;
-}
-
-//..............................................................................
-size_t MedLM::serialize(unsigned char *blob) {
-
-	size_t ptr = 0 ;
-
-	memcpy(blob+ptr,&n_ftrs,sizeof(int)) ; ptr += sizeof(int) ;
-	memcpy(blob+ptr,&b0,sizeof(float)); ptr += sizeof(float) ;
-	memcpy(blob+ptr,&(b[0]),n_ftrs*sizeof(float)) ; ptr += n_ftrs*sizeof(float) ;
-
-	return ptr ;
-}
-
-//..............................................................................
-size_t MedLM::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0 ;
-	memcpy(&n_ftrs,blob+ptr,sizeof(int)) ; ptr += sizeof(int) ;
-	memcpy(&b0,blob+ptr,sizeof(float)) ; ptr += sizeof(float) ;
-
-	b.resize(n_ftrs) ;
-	memcpy(&(b[0]),blob+ptr,n_ftrs*sizeof(float)) ; ptr += n_ftrs*sizeof(float) ;
-	
-	return ptr ;
-}
-
-//..............................................................................
 void MedLM::normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std) {
 
 	// Get moments

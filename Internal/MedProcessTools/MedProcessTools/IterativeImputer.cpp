@@ -378,64 +378,6 @@ int IterativeImputer::Apply(MedFeatures &mfd)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-size_t IterativeImputer::get_size()
-{
-	size_t size = 0;
-
-	size += MedSerialize::get_size(params, feats, first_round_imputers, predictors_order);
-	int n_feats = (int)feats.size();
-	for (int i=0; i<params.max_iterations; i++) {
-		for (int j=0; j<n_feats; j++) {
-			if (feats[i].predictor_type != 0) {
-				size += MedSerialize::get_size(predictors[i][j]->classifier_type);
-				size += predictors[i][j]->get_size();
-			}
-		}
-	}
-
-	return size;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-size_t IterativeImputer::serialize(unsigned char *blob)
-{
-	size_t size = 0;
-	size += MedSerialize::serialize(blob, params, feats, first_round_imputers, predictors_order);
-	int n_feats = (int)feats.size();
-	for (int i=0; i<params.max_iterations; i++) {
-		for (int j=0; j<n_feats; j++) {
-			if (feats[i].predictor_type != 0) {
-				size += MedSerialize::serialize(&blob[size], predictors[i][j]->classifier_type);
-				size += predictors[i][j]->serialize(&blob[size]);
-			}
-		}
-	}
-
-	return size;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-size_t IterativeImputer::deserialize(unsigned char *blob)
-{
-	size_t size = 0;
-	size += MedSerialize::deserialize(blob, params, feats, first_round_imputers, predictors_order);
-	int n_feats = (int)feats.size();
-	predictors.resize(params.max_iterations);
-	for (int i=0; i<params.max_iterations; i++) {
-		predictors[i].resize(n_feats, 0);
-		for (int j=0; j<n_feats; j++) {
-			if (feats[i].predictor_type != 0) {
-				int classifier_type;
-				size += MedSerialize::deserialize(&blob[size], classifier_type);
-				predictors[i][j] = MedPredictor::make_predictor((MedPredictorTypes)classifier_type);
-				size += predictors[i][j]->deserialize(&blob[size]);
-			}
-		}
-	}
-	return size;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 int IterativeImputer::learn_iteration(MedFeatures &mfd, int iter)
 {
 	vector<MedPredictor *> predictors_vec;

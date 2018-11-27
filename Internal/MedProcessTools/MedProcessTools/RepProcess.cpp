@@ -41,6 +41,26 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_LAST;
 }
 
+// rep processors get a new derived class
+//.......................................................................................
+void *RepProcessor::new_polymorphic(string dname)
+{
+	CONDITIONAL_NEW_CLASS(dname, RepMultiProcessor);
+	CONDITIONAL_NEW_CLASS(dname, RepBasicOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepNbrsOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepConfiguredOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepRuleBasedOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepCalcSimpleSignals);
+	CONDITIONAL_NEW_CLASS(dname, RepPanelCompleter);
+	CONDITIONAL_NEW_CLASS(dname, RepCheckReq);
+	CONDITIONAL_NEW_CLASS(dname, RepSimValHandler);
+	CONDITIONAL_NEW_CLASS(dname, RepSignalRate);
+	CONDITIONAL_NEW_CLASS(dname, RepCombineSignals);
+	CONDITIONAL_NEW_CLASS(dname, RepSplitSignal);
+	CONDITIONAL_NEW_CLASS(dname, RepAggregateSignal);
+	return NULL;
+}
+
 // Create processor from params string (type must be given within string)
 //.......................................................................................
 RepProcessor *RepProcessor::create_processor(string &params)
@@ -581,51 +601,6 @@ void RepMultiProcessor::init_attributes() {
 			attributes_map[i][j] = attributes_pos[processors[i]->attributes[j]];
 		}
 	}
-}
-
-// (De)Serialization
-//.......................................................................................
-size_t RepMultiProcessor::get_size() {
-
-	size_t size = sizeof(int); // Number of cleaners
-	for (auto& processor : processors)
-		size += processor->get_processor_size();
-
-	return size;
-}
-
-//.......................................................................................
-size_t RepMultiProcessor::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	int nProcessors = (int)processors.size();
-	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
-
-	for (auto& processor : processors) {
-		ptr += processor->processor_serialize(blob + ptr);
-	}
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t RepMultiProcessor::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	int nProcessors;
-
-	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
-
-	processors.resize(nProcessors);
-	for (int i = 0; i < nProcessors; i++) {
-		RepProcessorTypes type;
-		memcpy(&type, blob + ptr, sizeof(RepProcessorTypes)); ptr += sizeof(RepProcessorTypes);
-		processors[i] = RepProcessor::make_processor(type);
-		ptr += processors[i]->deserialize(blob + ptr);
-	}
-
-	return ptr;
 }
 
 //.......................................................................................

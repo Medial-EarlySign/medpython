@@ -94,6 +94,10 @@ public:
 	virtual void get_required_signals(vector<string>& req_sigs) {return; }
 
 	// Serialization (including type)
+	ADD_CLASS_NAME(SampleFilter)
+	ADD_SERIALIZATION_FUNCS(filter_type)
+	virtual void *new_polymorphic(string derived_class_name);
+
 	/// <summary> get size of filter + filter_type </summary>
 	size_t get_filter_size();
 	/// <summary> seialize filter + filter_type </summary>
@@ -117,6 +121,8 @@ public:
 
 	/// <summary> Filter without repository </summary>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
+	ADD_CLASS_NAME(BasicTrainFilter)
+	ADD_SERIALIZATION_FUNCS(filter_type)
 };
 
 //.......................................................................................
@@ -133,6 +139,9 @@ public:
 
 	/// <summary> Filter without repository </summary>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
+
+	ADD_CLASS_NAME(BasicTestFilter)
+	ADD_SERIALIZATION_FUNCS(filter_type)
 };
 
 #define SMPL_FLTR_TRIMMING_SD_NUM 7
@@ -175,9 +184,8 @@ public:
 	};
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(OutlierSampleFilter)
+	ADD_SERIALIZATION_FUNCS(filter_type, params.take_log, removeMax, removeMin)
 };
 
 //.......................................................................................
@@ -195,7 +203,7 @@ typedef enum {
 /** MatchingParams defines a specific matching criterion
 */
 //.......................................................................................
-class matchingParams {
+class matchingParams : public SerializableObject {
 public:
 
 	SampleMatchingType match_type; ///< matching criterion
@@ -212,9 +220,8 @@ public:
 	int signalTimeUnit; ///< matching signal time-unit
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(matchingParams)
+	ADD_SERIALIZATION_FUNCS(match_type, signalName, timeWindow, matchingTimeUnit, resolution)
 };
 
 //.......................................................................................
@@ -285,9 +292,8 @@ public:
 	float get_pairing_ratio(map<string, pair<int, int>> cnts, float w);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(MatchingSampleFilter)
+	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, matchMaxRatio)
 };
 
 //.......................................................................................
@@ -318,9 +324,9 @@ public:
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(RequiredSignalFilter)
+	ADD_SERIALIZATION_FUNCS(filter_type, signalName, timeWindow, windowTimeUnit)
+
 };
 
 //.......................................................................................
@@ -343,6 +349,7 @@ struct BasicFilteringParams : public SerializableObject {
 	/// <returns> 1 if passing and 0 otherwise </returns>
 	int test_filter(MedSample &sample, MedRepository &rep, int win_time_unit);
 
+	ADD_CLASS_NAME(BasicFilteringParams)
 	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals)
 
 private:
@@ -381,7 +388,8 @@ public:
 	/// <returns>  -1 if repository is required, 0 othereise (when bfilters is empty) </returns>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
-	ADD_SERIALIZATION_FUNCS(min_sample_time, max_sample_time, bfilters, winsTimeUnit)
+	ADD_CLASS_NAME(BasicSampleFilter)
+	ADD_SERIALIZATION_FUNCS(filter_type, min_sample_time, max_sample_time, bfilters, winsTimeUnit)
 };
 
 //...........................................................................................................
@@ -438,7 +446,7 @@ public:
 	const static int Failed_Dictionary_Test = 9;
 	const static int Failed_Not_Enough_Non_Outliers_Left = 10;
 
-
+	ADD_CLASS_NAME(SanitySimpleFilter)
 	ADD_SERIALIZATION_FUNCS(sig_name, time_channel, val_channel, win_from, win_to, min_val, max_val, min_Nvals, max_Nvals, allowed_values, values_in_dictionary, max_outliers, win_time_unit)
 
 private:
@@ -450,11 +458,15 @@ private:
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================
-MEDSERIALIZE_SUPPORT(SanitySimpleFilter);
-MEDSERIALIZE_SUPPORT(BasicFilteringParams);
-MEDSERIALIZE_SUPPORT(BasicSampleFilter);
-MEDSERIALIZE_SUPPORT(MatchingSampleFilter);
-MEDSERIALIZE_SUPPORT(BasicTrainFilter);
-MEDSERIALIZE_SUPPORT(BasicTestFilter);
+MEDSERIALIZE_SUPPORT(SampleFilter)
+MEDSERIALIZE_SUPPORT(SanitySimpleFilter)
+MEDSERIALIZE_SUPPORT(BasicFilteringParams)
+MEDSERIALIZE_SUPPORT(BasicSampleFilter)
+MEDSERIALIZE_SUPPORT(MatchingSampleFilter)
+MEDSERIALIZE_SUPPORT(BasicTrainFilter)
+MEDSERIALIZE_SUPPORT(BasicTestFilter)
+MEDSERIALIZE_SUPPORT(OutlierSampleFilter)
+MEDSERIALIZE_SUPPORT(matchingParams)
+MEDSERIALIZE_SUPPORT(RequiredSignalFilter)
 
 #endif

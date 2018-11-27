@@ -142,7 +142,7 @@ int MedSparseMat::read_from_files(string mat_file, string meta_file)
 			int col = stoi(fields[1]);
 			int val = stof(fields[2]);
 			if (lines.size() < row+1) lines.resize(row+1);
-			lines[row].push_back(pair<int, float>(col, val));
+			lines[row].push_back(pair<int, float>(col, (float)val));
 		}
 	}
 
@@ -196,5 +196,5 @@ int MedSparseMat::write_to_bin_file(string bin_file)
 	MLOG("NedSparseMat::write_to_bin_file : get_size %d\n", (int)size);
 	vector<unsigned char> data(size);
 	MedSerialize::serialize(&data[0], rows, cols, vals);
-	return write_binary_data(bin_file, &data[0], size);
+	return MedSerialize::write_binary_data(bin_file, &data[0], size);
 }
