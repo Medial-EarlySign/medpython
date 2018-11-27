@@ -655,6 +655,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", base_lambdas[0], base_lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1], nStuck);
 
 		if (nthreads == 1) { // Special care
+			
 			if ((nSelected[0] >= numToSelect - numToSelectDelta) && (nSelected[0] <= numToSelect + numToSelectDelta)) {
 				found = 1;
 				for (int j = 0; j < nFeatures; j++) {
@@ -755,7 +756,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 		//! [LassoSelector::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
-		else if (field == "numToSelectDelta") numToSelect = stoi(entry.second);
+		else if (field == "numToSelectDelta") numToSelectDelta = stoi(entry.second);
 		else if (field == "initMaxLambda") initMaxLambda = stof(entry.second);
 		else if (field == "nthreads") nthreads = stoi(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
