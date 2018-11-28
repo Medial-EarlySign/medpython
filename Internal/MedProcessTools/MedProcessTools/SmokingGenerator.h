@@ -50,7 +50,6 @@ public:
 	void get_p_data(MedFeatures& features, vector<float *> &_p_data);
 
 	// Serialization
-	virtual int version() { return  2; } // ihadanny 20170214 - added required_signals to serialization
 	ADD_CLASS_NAME(SmokingGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind, req_signals)
 };

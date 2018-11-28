@@ -421,7 +421,6 @@ public:
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
-	int version() { return  1; }
 	ADD_CLASS_NAME(FeatureImputer)
 	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram)
 

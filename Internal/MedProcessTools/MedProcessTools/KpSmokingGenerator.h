@@ -49,7 +49,6 @@ public:
 	int calcNlst(int age, int unknownSmoker, int daysSinceQuitting, float lastPackYears);
 
 	// Serialization
-	virtual int version() { return  2; } // ihadanny 20170214 - added required_signals to serialization
 	ADD_CLASS_NAME(KpSmokingGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, raw_feature_names, names, tags, iGenerateWeights, req_signals)
 };

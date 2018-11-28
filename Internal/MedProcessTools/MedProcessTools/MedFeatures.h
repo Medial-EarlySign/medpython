@@ -122,7 +122,6 @@ public:
 	ADD_CLASS_NAME(MedFeatures)
 	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes)
 
-	int version() { return  1; };
 };
 
 MEDSERIALIZE_SUPPORT(MedFeatures)

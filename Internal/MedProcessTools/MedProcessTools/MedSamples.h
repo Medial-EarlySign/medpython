@@ -198,9 +198,6 @@ public:
 	void insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
 	void insertRec(int pid, int time) { insertRec(pid, time, -1, 0); }
 
-	// Version for serialization
-	int version() { return  2; };
-
 	//Serialization, version 1: Added version, model_features, features_count to serialization
 	//				 version 2: Added attributes
 	ADD_CLASS_NAME(MedSamples)

@@ -56,7 +56,7 @@ public:
 	// Signal Ids
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("Alcohol_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
 	}
-	virtual int version() { return  2; } // ihadanny 20170214 - added required_signals to serialization
+
 	// Serialization
 	ADD_CLASS_NAME(AlcoholGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, future_ind, req_signals)

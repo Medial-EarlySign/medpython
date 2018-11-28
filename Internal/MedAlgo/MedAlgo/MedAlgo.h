@@ -472,9 +472,6 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const;
 
-	int version() { return  2; }; //increase when changing binary serizlization
-	//version 1: Added version, model_features, features_count to serialization
-	//version 2: ls_lambda and ls_ridge to params
 	ADD_CLASS_NAME(MedGDLM)
 	ADD_SERIALIZATION_FUNCS(classifier_type, params, n_ftrs, b, b0, model_features, features_count)
 
@@ -564,8 +561,6 @@ public:
 
 	//int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std) {return 0;};
 
-	int version() { return  2; }; //increase when changing binary serizlization
-	//version 1: Added model_features, features_count to serialization
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedQRF)
 	//ADD_SERIALIZATION_FUNCS(qf, model_features, features_count)

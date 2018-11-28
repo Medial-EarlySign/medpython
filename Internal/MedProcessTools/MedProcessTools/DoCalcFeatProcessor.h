@@ -57,7 +57,6 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DoCalcFeatProcessor *>(processor)); }
 
 	// Serialization
-	virtual int version() { return  1; } // ihadanny 20180227 - added parameters
 	ADD_CLASS_NAME(DoCalcFeatProcessor)
 	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights, parameters)
 

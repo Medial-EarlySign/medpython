@@ -243,9 +243,6 @@ public:
 	string signalName;
 	int signalId;
 
-	int version() { return 2; } ///< added "bound_outcomeTime" in version 1
-								///< added time_range_signal in version 2
-
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
 	int timeRangeSignalId;
@@ -367,7 +364,6 @@ public:
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Serialization
-	int version() { return 1; }
 	ADD_CLASS_NAME(AgeGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, signalName, req_signals)
 
@@ -620,7 +616,6 @@ public:
 
 	// Serialization
 	// Serialization
-	virtual int version() { return  1; };	// ihadanny 20171206 - added sets
 	ADD_CLASS_NAME(RangeFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first)
 };

@@ -351,7 +351,6 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	/// Serialization
-	int version() { return 2; }
 	ADD_CLASS_NAME(RepBasicOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 		trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
@@ -409,7 +408,6 @@ public:
 
 
 	/// Serialization
-	int version() { return 2; }
 	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 		trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParams, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
@@ -538,7 +536,6 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	/// Serialization
-	int version() { return 2; }
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channel, val_channel, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
 
@@ -618,7 +615,6 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	// Serialization
-	int version() { return 2; }
 	ADD_CLASS_NAME(RepNbrsOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 		trimMax, trimMin, removeMax, removeMin, nbr_time_unit, nbr_time_width, nbrsMax, nbrsMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
@@ -688,7 +684,6 @@ public:
 	static SimValHandleTypes get_sim_val_handle_type(string& name);
 
 	/// Serialization
-	int version() { return 0; }
 	ADD_CLASS_NAME(RepSimValHandler)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
 private:
@@ -873,7 +868,6 @@ public:
 	int update_signals(PidDynamicRec& rec, int iver, vector<vector<float>>& panels, vector<int>& panel_times, vector<int>& sigs_ids, vector<int>& changed);
 
 	// serialization. meta-data file is kept for information but not used in apply
-	int version() { return 1; }
 	void print();
 	ADD_CLASS_NAME(RepPanelCompleter)
 	ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
