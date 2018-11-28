@@ -7,33 +7,11 @@
 #include <random>
 #include <MedUtils/MedUtils/MedRegistry.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include "MedEnums.h"
 
 class MedRegistryRecord;
 
 using namespace std;
-
-/// @enum
-/// Sampling options
-enum class TimeWindowMode {
-	Before_End = 0, ///< "before_end" - need to be before end_time of registry
-	Before_Start = 1, ///< "before_start" - need to be before start_time of registry
-	After_Start = 2, ///< "after_start" - need to be after start_time of registry
-	Within = 3, ///< "within" - need to be within start_time and end_time - contained fully time window. 
-	All_ = 4 ///< "all" - takes all not testing for anything
-	//no None, after_end - useless for now
-};
-extern vector<string> TimeWindow_to_name;
-TimeWindowMode TimeWindow_name_to_type(const string& TimeWindow_name);
-
-/// @enum
-/// Conflicting options
-enum ConflictMode {
-	All = 0,///< "all" - take all
-	Drop = 1, ///< "drop" - drop when conflcit
-	Max = 2 ///< "max" - take max on conflict 
-};
-extern vector<string> ConflictMode_to_name;
-ConflictMode ConflictMode_name_to_type(const string& ConflictMode_name);
 
 /**
 * A warpper class for initializing rules for time window interaction
@@ -174,6 +152,26 @@ namespace medial {
 		/// for complex labels has keyword "all" to activate rule on all labels till specific override
 		/// </summary>
 		void init_time_window_mode(const string &init, TimeWindowInteraction &mode);
+
+		/// <summary>
+		/// checks for time range intersection
+		/// @param pred_time prediction time
+		/// @param pid_records the registry records of patient which are candidated for labeling
+		/// @param r_censor all the patient registry records for censoring. if empty - no censoring
+		/// @param time_from the time window from - to check with censoring date
+		/// @param time_to the time window to - to check with outcome registry
+		/// @param mode_outcome the intersection method test for outcome
+		/// @param mode_censoring the intersection method test for censoring
+		/// @param filter_no_censor what to do when no censoring record options are given
+		/// </summary>
+		/// <returns>
+		/// If has intersection with time window
+		/// </returns>
+		void get_label_for_sample(int pred_time, const vector<const MedRegistryRecord *> &pid_records
+			, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to,
+			const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
+			ConflictMode conflict_mode, vector<MedSample> &idSamples,
+			int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor = true);
 	}
 }
 
@@ -247,7 +245,7 @@ public:
 
 	MedSamplingYearly() {
 		gen = mt19937(rd());
-		conflict_method = Drop; //default
+		conflict_method = ConflictMode::Drop; //default
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
 		day_jump = 0;

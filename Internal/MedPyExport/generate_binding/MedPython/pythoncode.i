@@ -59,12 +59,14 @@ class MapAdaptorKeyIter:
         self.i = 0
         self.prev_i = None
         self.max_i = len(self.obj)
-    def next(self):
+    def __next__(self):
         if self.i >= self.max_i:
             raise StopIteration
         else:
             self.prev_i, self.i = self.i, self.i+1
             return self.obj[self.prev_i]
+    def next(self):
+        return self.__next__()
 
 
 class IntIndexIter:
@@ -73,12 +75,14 @@ class IntIndexIter:
         self.i = 0
         self.prev_i = None
         self.max_i = len(o)
-    def next(self):
+    def __next__(self):
         if self.i >= self.max_i:
             raise StopIteration
         else:
             self.prev_i, self.i = self.i, self.i+1
             return self.obj[self.prev_i]
+    def next(self):
+        return self.__next__()
 
 def ___fix_vecmap_iter():
     from inspect import isclass

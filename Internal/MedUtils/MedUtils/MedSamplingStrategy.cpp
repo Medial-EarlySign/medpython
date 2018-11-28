@@ -7,26 +7,6 @@
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-vector<string> TimeWindow_to_name = { "before_end", "before_start" ,"after_start", "within", "all" };
-vector<string> ConflictMode_to_name = { "all", "drop", "max" };
-
-TimeWindowMode TimeWindow_name_to_type(const string& TimeWindow_name) {
-	for (int i = 0; i < TimeWindow_to_name.size(); ++i)
-		if (TimeWindow_to_name[i] == TimeWindow_name) {
-			return TimeWindowMode(i);
-		}
-	MTHROW_AND_ERR("Error in SamplingMode_name_to_type - Unsupported \"%s\". options are: %s\n",
-		TimeWindow_name.c_str(), medial::io::get_list(TimeWindow_to_name).c_str());
-}
-ConflictMode ConflictMode_name_to_type(const string& ConflictMode_name) {
-	for (int i = 0; i < ConflictMode_to_name.size(); ++i)
-		if (ConflictMode_to_name[i] == ConflictMode_name) {
-			return ConflictMode(i);
-		}
-	MTHROW_AND_ERR("Error in SamplingMode_name_to_type - Unsupported \"%s\". options are: %s\n",
-		ConflictMode_name.c_str(), medial::io::get_list(ConflictMode_to_name).c_str());
-}
-
 int MedSamplingTimeWindow::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
@@ -397,6 +377,97 @@ void medial::sampling::init_time_window_mode(const string &init, TimeWindowInter
 
 }
 
+void medial::sampling::get_label_for_sample(int pred_time, const vector<const MedRegistryRecord *> &pid_records
+	, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to,
+	const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
+	ConflictMode conflict_mode, vector<MedSample> &idSamples,
+	int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor) {
+	int curr_index = 0, final_selected = -1;
+	float reg_val = -1;
+	int reg_time = -1;
+	if (pid_records.empty())
+		return;
+	MedSample smp;
+	smp.time = pred_time;
+	smp.id = pid_records.front()->pid;
+
+	//run on all matches:
+	while (curr_index < pid_records.size()) {
+		if (curr_index < pid_records.size()) {
+			if (!mode_outcome.find(pid_records[curr_index]->registry_value)) {
+#pragma omp atomic
+				++no_rule_found;
+				if (no_rule_found < 5)
+					MWARN("Warning: missing rule for %f - skipping!!\n", pid_records[curr_index]->registry_value);
+				++curr_index;
+				continue;
+			}
+
+			if (!mode_censoring.find(pid_records[curr_index]->registry_value)) {
+#pragma omp atomic
+				++no_rule_found;
+				if (no_rule_found < 5)
+					MWARN("Warning: missing censor rule for %f - skipping!!\n", pid_records[curr_index]->registry_value);
+				++curr_index;
+				continue;
+			}
+		}
+		if (curr_index < pid_records.size() &&
+			!medial::process::in_time_window(pred_time, pid_records[curr_index], r_censor,
+				time_from, time_to, mode_outcome, mode_censoring, filter_no_censor)) {
+			++curr_index;
+			continue;
+		}
+		if (curr_index >= pid_records.size())
+			break; //skip if no match
+				   //found match:
+		if (reg_time == -1) { //first match
+			reg_val = pid_records[curr_index]->registry_value;
+			reg_time = pid_records[curr_index]->end_date;
+			final_selected = curr_index;
+		}
+		else if (reg_val != pid_records[curr_index]->registry_value) {
+			//if already found and conflicting:
+			if (conflict_mode == ConflictMode::Drop) {
+				reg_val = -1;
+				reg_time = -1;
+				final_selected = -1;
+				break;
+			}
+			else if (conflict_mode == ConflictMode::Max) {
+				if (reg_val < pid_records[curr_index]->registry_value) {
+					reg_val = pid_records[curr_index]->registry_value;
+					reg_time = pid_records[curr_index]->end_date;
+					final_selected = curr_index;
+				}
+			}
+			else {
+				//insert current and update next:
+				smp.outcomeTime = reg_val > 0 ? pid_records[curr_index]->start_date : reg_time;
+				smp.outcome = reg_val;
+				idSamples.push_back(smp);
+#pragma omp atomic
+				++done_count;
+				reg_val = pid_records[curr_index]->registry_value;
+				reg_time = pid_records[curr_index]->end_date;
+				final_selected = curr_index;
+			}
+#pragma omp atomic
+			++conflict_count;
+			break;
+		}
+
+		++curr_index;
+	}
+
+	if (reg_time != -1) {
+		smp.outcomeTime = reg_val > 0 ? pid_records[final_selected]->start_date : reg_time;
+		smp.outcome = reg_val;
+		idSamples.push_back(smp);
+		++done_count;
+	}
+}
+
 void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, MedSamples &samples,
 	const vector<MedRegistryRecord> *censor_registry) {
 	if (day_jump <= 0)
@@ -423,7 +494,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 	int conflict_count = 0, done_count = 0, no_censor = 0, no_rule = 0;
 	for (auto it = pid_to_regs.begin(); it != pid_to_regs.end(); ++it)
 	{
-		vector<const MedRegistryRecord *> *all_pid_records = &it->second;
+		const vector<const MedRegistryRecord *> *all_pid_records = &it->second;
 		int min_date = start_year;
 		int max_date = end_year;
 		long start_date = min_date * 10000 + prediction_month_day;
@@ -446,83 +517,9 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 			if (use_random)
 				pred_date = medial::repository::DateAdd(pred_date, -rand_int(gen));
 
-			MedSample smp;
-			smp.id = it->first;
-			smp.time = pred_date;
-			int curr_index = 0, final_selected = -1;
-			float reg_val = -1;
-			int reg_time = -1;
-			//run on all matches:
-			while (curr_index < all_pid_records->size()) {
-				if (curr_index < all_pid_records->size()) {
-					if (!outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-
-					if (!censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing censor rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-				}
-				if (curr_index < all_pid_records->size() &&
-					!medial::process::in_time_window(pred_date, (*all_pid_records)[curr_index], *r_censor,
-						time_from, time_to, outcome_interaction_mode, censor_interaction_mode)) {
-					++curr_index;
-					continue;
-				}
-				if (curr_index >= all_pid_records->size())
-					break; //skip if no match
-				//found match:
-				if (reg_time == -1) { //first match
-					reg_val = (*all_pid_records)[curr_index]->registry_value;
-					reg_time = (*all_pid_records)[curr_index]->end_date;
-					final_selected = curr_index;
-				}
-				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
-					//if already found and conflicting:
-					if (conflict_method == Drop) {
-						reg_val = -1;
-						reg_time = -1;
-						final_selected = -1;
-						break;
-					}
-					else if (conflict_method == Max) {
-						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
-							reg_val = (*all_pid_records)[curr_index]->registry_value;
-							reg_time = (*all_pid_records)[curr_index]->end_date;
-							final_selected = curr_index;
-						}
-					}
-					else {
-						//insert current and update next:
-						smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
-						smp.outcome = reg_val;
-						idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
-						++done_count;
-						reg_val = (*all_pid_records)[curr_index]->registry_value;
-						reg_time = (*all_pid_records)[curr_index]->end_date;
-						final_selected = curr_index;
-					}
-					++conflict_count;
-					break;
-				}
-
-				++curr_index;
-			}
-
-			if (reg_time != -1) {
-				smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[final_selected]->start_date : reg_time;
-				smp.outcome = reg_val;
-				idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
-				++done_count;
-			}
+			medial::sampling::get_label_for_sample(pred_date, *all_pid_records, *r_censor,
+				time_from, time_to, outcome_interaction_mode, censor_interaction_mode, conflict_method,
+				idSamples[pid_to_ind.at(it->first)].samples, no_rule, conflict_count, done_count);
 		}
 	}
 
@@ -543,7 +540,7 @@ void MedSamplingYearly::do_sample(const vector<MedRegistryRecord> &registry, Med
 }
 
 int MedSamplingAge::init(map<string, string>& map) {
-	conflict_method = Drop; //default
+	conflict_method = ConflictMode::Drop; //default
 	age_bin = 1; //deafult
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
@@ -613,93 +610,21 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 			int pred_start_date = medial::repository::DateAdd(pid_bdate, med_time_converter.convert_days(global_default_windows_time_unit, 365 * age)); //mark start date in age_bin to age
 			int pred_end_date = medial::repository::DateAdd(pred_start_date, med_time_converter.convert_days(global_default_windows_time_unit, 365 * age_bin)); //end date in age_bin
 
-			MedSample smp;
-			smp.id = it->first;
-			smp.time = medial::repository::DateAdd(pred_start_date, med_time_converter.convert_days(global_default_windows_time_unit, age_bin * 365 / 2)); //choose middle
-			int curr_index = 0, final_selected = -1;
-			float reg_val = -1;
-			int reg_time = -1;
-			//run on all matches:
-			while (curr_index < all_pid_records->size()) {
-				if (curr_index < all_pid_records->size()) {
-					if (!outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-
-					if (!censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing censor rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-				}
-				if (curr_index < all_pid_records->size() &&
-					!medial::process::in_time_window(pred_start_date, (*all_pid_records)[curr_index], *r_censor,
-						0, med_time_converter.convert_days(global_default_windows_time_unit, 365 * age_bin), outcome_interaction_mode, censor_interaction_mode)) {
-					++curr_index;
-					continue;
-				}
-				if (curr_index >= all_pid_records->size())
-					break; //skip if no match
-				//found match:
-				if (reg_time == -1) { //first match
-					reg_val = (*all_pid_records)[curr_index]->registry_value;
-					reg_time = (*all_pid_records)[curr_index]->end_date;
-					final_selected = curr_index;
-				}
-				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
-					//if already found and conflicting:
-					if (conflict_method == Drop) {
-						reg_val = -1;
-						reg_time = -1;
-						final_selected = -1;
-						break;
-					}
-					else if (conflict_method == Max) {
-						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
-							reg_val = (*all_pid_records)[curr_index]->registry_value;
-							reg_time = (*all_pid_records)[curr_index]->end_date;
-							final_selected = curr_index;
-						}
-					}
-					else {
-						//insert current and update next:
-						smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
-						smp.outcome = reg_val;
-						idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
-						++done_count;
-						reg_val = (*all_pid_records)[curr_index]->registry_value;
-						reg_time = (*all_pid_records)[curr_index]->end_date;
-						final_selected = curr_index;
-					}
-					++conflict_count;
-					break;
-				}
-
-				++curr_index;
-			}
-
-			if (reg_time != -1) {
-				smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[final_selected]->start_date : reg_time;
-				smp.outcome = reg_val;
-				idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
-				++done_count;
-			}
+			int middle_pred_date = medial::repository::DateAdd(pred_start_date, med_time_converter.convert_days(global_default_windows_time_unit, age_bin * 365 / 2)); //choose middle
+			int wind_len = med_time_converter.convert_days(global_default_windows_time_unit, 365 * age_bin);
+			medial::sampling::get_label_for_sample(middle_pred_date, *all_pid_records, *r_censor,
+				-wind_len / 2, wind_len / 2, outcome_interaction_mode, censor_interaction_mode, conflict_method,
+				idSamples[pid_to_ind.at(it->first)].samples, no_rule, conflict_count, done_count);
 		}
 	}
 
 	if (no_rule > 0)
-		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
+		MLOG("WARNING MedSamplingAge:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
 		if (censor_registry != NULL)
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
+			MLOG("WARNING MedSamplingAge:do_sample - has %d patients with no censor dates\n", no_censor);
 		else
-			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
+			MLOG("WARNING MedSamplingAge:do_sample - no censoring time region was given\n");
 	if (skip_no_bdate > 0)
 		MLOG("WARNING :: Skipped %d registry records because no bdate: example pid=%d\n", skip_no_bdate, example_pid);
 	if (conflict_count > 0)
@@ -712,7 +637,7 @@ void MedSamplingAge::do_sample(const vector<MedRegistryRecord> &registry, MedSam
 }
 
 int MedSamplingDates::init(map<string, string>& map) {
-	conflict_method = Drop; //default
+	conflict_method = ConflictMode::Drop; //default
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "take_count")
@@ -745,7 +670,7 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 	vector<const MedRegistryRecord *> empty_censor;
 
 	unordered_map<int, MedIdSamples> map_pid_samples;
-	int no_censor = 0, no_rule = 0;
+	int no_censor = 0, no_rule = 0, conflict_count = 0, done_count = 0;
 	for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
 	{
 		const vector<pair<int, int>> &all_sample_options = samples_list_pid_dates[i];
@@ -772,93 +697,19 @@ void MedSamplingDates::do_sample(const vector<MedRegistryRecord> &registry, MedS
 			if (censor_registry != NULL && pid_to_censor.find(choosed_pid) == pid_to_censor.end())
 				continue; //filter sample
 
-			int curr_index = 0;
-			float reg_val = -1;
-			int reg_time = -1;
-			//run on all matches:
-			while (curr_index < all_pid_records.size()) {
-				if (curr_index < all_pid_records.size()) {
-					if (!outcome_interaction_mode.find(all_pid_records[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing rule for %f - skipping!!\n", all_pid_records[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-
-					if (!censor_interaction_mode.find(all_pid_records[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing censor rule for %f - skipping!!\n", all_pid_records[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-				}
-				if (curr_index < all_pid_records.size() && !medial::process::in_time_window(choosed_time, all_pid_records[curr_index],
-					*r_censor, time_from, time_to, outcome_interaction_mode, censor_interaction_mode)) {
-					++curr_index;
-					continue;
-				}
-				if (curr_index >= all_pid_records.size())
-					break; //skip if no match
-						   //found match:
-				if (reg_time == -1) { //first match
-					reg_val = all_pid_records[curr_index]->registry_value;
-					if (reg_val <= 0)
-						reg_time = all_pid_records[curr_index]->end_date; //control take end_time
-					else
-						reg_time = all_pid_records[curr_index]->start_date; // case take start_time
-				}
-				else if (reg_val != all_pid_records[curr_index]->registry_value) {
-					//if already found and conflicting:
-					if (conflict_method == Drop) {
-						reg_val = -1;
-						reg_time = -1;
-						break;
-					}
-					else if (conflict_method == Max) {
-						if (reg_val < all_pid_records[curr_index]->registry_value) {
-							reg_val = all_pid_records[curr_index]->registry_value;
-							reg_time = all_pid_records[curr_index]->end_date;
-						}
-					}
-					else {
-						MedSample smp;
-						smp.id = choosed_pid;
-						smp.time = choosed_time;
-
-						smp.outcomeTime = reg_time;
-						smp.outcome = reg_val;
-						map_pid_samples[choosed_pid].samples.push_back(smp);
-
-						reg_val = all_pid_records[curr_index]->registry_value;
-						reg_time = all_pid_records[curr_index]->end_date;
-					}
-				}
-
-				++curr_index;
-			}
-			//if found has value in reg_val, reg_time else -1
-			if (reg_time != -1) {
-
-				MedSample smp;
-				smp.id = choosed_pid;
-				smp.time = choosed_time;
-
-				smp.outcomeTime = reg_time;
-				smp.outcome = reg_val;
-				map_pid_samples[choosed_pid].samples.push_back(smp);
-			}
+			medial::sampling::get_label_for_sample(choosed_time, all_pid_records, *r_censor,
+				time_from, time_to, outcome_interaction_mode, censor_interaction_mode, conflict_method,
+				map_pid_samples[choosed_pid].samples, no_rule, conflict_count, done_count);
 		}
 	}
 
 	if (no_rule > 0)
-		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
+		MLOG("WARNING MedSamplingDates:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
 		if (censor_registry != NULL)
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
+			MLOG("WARNING MedSamplingDates:do_sample - has %d patients with no censor dates\n", no_censor);
 		else
-			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
+			MLOG("WARNING MedSamplingDates:do_sample - no censoring time region was given\n");
 
 	for (auto it = map_pid_samples.begin(); it != map_pid_samples.end(); ++it)
 		if (!it->second.samples.empty())
@@ -998,93 +849,19 @@ void MedSamplingFixedTime::do_sample(const vector<MedRegistryRecord> &registry, 
 			if (use_random)
 				pred_date = medial::repository::DateAdd(pred_date, -rand_int(gen));
 
-			MedSample smp;
-			smp.id = it->first;
-			smp.time = pred_date;
-			int curr_index = 0, final_selected = -1;
-			float reg_val = -1;
-			int reg_time = -1;
-			//run on all matches:
-			while (curr_index < all_pid_records->size()) {
-				if (curr_index < all_pid_records->size()) {
-					if (!outcome_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-
-					if (!censor_interaction_mode.find((*all_pid_records)[curr_index]->registry_value)) {
-						++no_rule;
-						if (no_rule < 5)
-							MWARN("Warning: missing censor rule for %f - skipping!!\n", (*all_pid_records)[curr_index]->registry_value);
-						++curr_index;
-						continue;
-					}
-				}
-				if (curr_index < all_pid_records->size() &&
-					!medial::process::in_time_window(pred_date, (*all_pid_records)[curr_index], *r_censor,
-						time_from, time_to, outcome_interaction_mode, censor_interaction_mode)) {
-					++curr_index;
-					continue;
-				}
-				if (curr_index >= all_pid_records->size())
-					break; //skip if no match
-						   //found match:
-				if (reg_time == -1) { //first match
-					reg_val = (*all_pid_records)[curr_index]->registry_value;
-					reg_time = (*all_pid_records)[curr_index]->end_date;
-					final_selected = curr_index;
-				}
-				else if (reg_val != (*all_pid_records)[curr_index]->registry_value) {
-					//if already found and conflicting:
-					if (conflict_method == Drop) {
-						reg_val = -1;
-						reg_time = -1;
-						final_selected = -1;
-						break;
-					}
-					else if (conflict_method == Max) {
-						if (reg_val < (*all_pid_records)[curr_index]->registry_value) {
-							reg_val = (*all_pid_records)[curr_index]->registry_value;
-							reg_time = (*all_pid_records)[curr_index]->end_date;
-							final_selected = curr_index;
-						}
-					}
-					else {
-						//insert current and update next:
-						smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[curr_index]->start_date : reg_time;
-						smp.outcome = reg_val;
-						idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
-						++done_count;
-						reg_val = (*all_pid_records)[curr_index]->registry_value;
-						reg_time = (*all_pid_records)[curr_index]->end_date;
-						final_selected = curr_index;
-					}
-					++conflict_count;
-					break;
-				}
-
-				++curr_index;
-			}
-
-			if (reg_time != -1) {
-				smp.outcomeTime = reg_val > 0 ? (*all_pid_records)[final_selected]->start_date : reg_time;
-				smp.outcome = reg_val;
-				idSamples[pid_to_ind.at(it->first)].samples.push_back(smp);
-				++done_count;
-			}
+			medial::sampling::get_label_for_sample(pred_date, *all_pid_records, *r_censor,
+				time_from, time_to, outcome_interaction_mode, censor_interaction_mode, conflict_method,
+				idSamples[pid_to_ind.at(it->first)].samples, no_rule, conflict_count, done_count);
 		}
 	}
 
 	if (no_rule > 0)
-		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
+		MLOG("WARNING MedSamplingFixedTime:do_sample - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0)
 		if (censor_registry != NULL)
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
+			MLOG("WARNING MedSamplingFixedTime:do_sample - has %d patients with no censor dates\n", no_censor);
 		else
-			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
+			MLOG("WARNING MedSamplingFixedTime:do_sample - no censoring time region was given\n");
 	if (conflict_count > 0)
 		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
 	//keep non empty pids:

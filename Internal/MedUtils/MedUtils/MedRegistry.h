@@ -1,3 +1,5 @@
+/// @file
+/// registry methods over MedRegistry Object
 #ifndef __MED_REGISTRY_H__
 #define __MED_REGISTRY_H__
 #include <vector>
@@ -7,6 +9,7 @@
 #include "MedProcessTools/MedProcessTools/MedModel.h"
 #include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include "MedSamplingStrategy.h"
+#include "MedEnums.h"
 
 using namespace std;
 
@@ -96,7 +99,8 @@ public:
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
 		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set,
 		const MedRegistry *censoring = NULL,
-		TimeWindowInteraction *mode_outcome = NULL, TimeWindowInteraction *mode_censor = NULL) const;
+		TimeWindowInteraction *mode_outcome = NULL, TimeWindowInteraction *mode_censor = NULL,
+		ConflictMode conflict_mode = ConflictMode::All) const;
 
 	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
@@ -136,8 +140,8 @@ public:
 	/// Creates vector of registry records - handles everything for you
 	/// in parallel manner for each patient - uses create_registry
 	/// </summary>
-	static MedRegistry *create_registry_full(const string &registry_type, const string &init_str, 
-		const string &repository_path, MedModel &model_with_rep_processor ,medial::repository::fix_method method = medial::repository::fix_method::none);
+	static MedRegistry *create_registry_full(const string &registry_type, const string &init_str,
+		const string &repository_path, MedModel &model_with_rep_processor, medial::repository::fix_method method = medial::repository::fix_method::none);
 
 	/// Default Ctor
 	MedRegistry() {
