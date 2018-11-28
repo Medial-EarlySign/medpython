@@ -95,6 +95,7 @@
     <ClInclude Include="MedCohort.h" />
     <ClInclude Include="MedCrypt.h" />
     <ClInclude Include="MedDataStructures.h" />
+    <ClInclude Include="MedEnums.h" />
     <ClInclude Include="MedGenUtils.h" />
     <ClInclude Include="MedGenUtils_imp.h" />
     <ClInclude Include="MedGlobalRNG.h" />
@@ -117,6 +118,7 @@
     <ClCompile Include="MedArchiver.cpp" />
     <ClCompile Include="MedCohort.cpp" />
     <ClCompile Include="MedDataStructures.cpp" />
+    <ClCompile Include="MedEnums.cpp" />
     <ClCompile Include="MedGenUtils.cpp" />
     <ClCompile Include="MedIO.cpp" />
     <ClCompile Include="MedMat.cpp" />
