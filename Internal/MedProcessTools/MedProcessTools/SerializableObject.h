@@ -65,10 +65,15 @@ public:
 	/// serialize model and write to file
 	virtual int write_to_file(const string &fname);
 
+	/// read and deserialize model without checking version number - unsafe read
+	virtual int read_from_file_unsafe(const string &fname);
+
 	/// Init from string
 	int init_from_string(string init_string);
 	int init_params_from_file(string init_file);
 	virtual int init(map<string, string>& map) { return 0; } ///<Virtual to init object from parsed fields
+private:
+	void _read_from_file(const string &fname, bool throw_on_version_error);
 };
 
 /*! @def MEDSERIALIZE_SUPPORT(Type)
