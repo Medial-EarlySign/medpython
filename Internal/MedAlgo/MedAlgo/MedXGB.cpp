@@ -219,16 +219,6 @@ void MedXGB::translate_split_penalties(string& split_penalties_s) {
 typedef rabit::utils::MemoryFixSizeBuffer MemoryFixSizeBuffer;
 typedef rabit::utils::MemoryBufferStream MemoryBufferStream;
 
-size_t MedXGB::get_size() {
-
-	const char* out_dptr;
-	xgboost::bst_ulong len;
-	XGBoosterGetModelRaw(my_learner, &len, &out_dptr);
-
-	return (int)len + sizeof(int) + MedSerialize::get_size(classifier_type) + MedSerialize::get_size(model_features)
-		+ MedSerialize::get_size(features_count);
-}
-
 void MedXGB::print(FILE *fp, const string& prefix) const {
 	fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
 }
@@ -330,41 +320,6 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 			}
 }
 
-size_t MedXGB::serialize(unsigned char *blob) {
-	const char* out_dptr;
-	xgboost::bst_ulong len;
-	if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
-		MTHROW_AND_ERR("failed XGBoosterGetModelRaw\n");
-
-	*((int*)blob) = (int)len; //save xgb_model size
-	size_t s = sizeof(int);
-	memcpy(blob + s, out_dptr, len); //save model
-	s += len;
-	s += MedSerialize::serialize(blob + s, classifier_type);
-	s += MedSerialize::serialize(blob + s, model_features);
-	s += MedSerialize::serialize(blob + s, features_count);
-
-	return s;
-}
-
-size_t MedXGB::deserialize(unsigned char *blob) {
-
-	int size = *((int*)blob);
-	size_t s = sizeof(int);
-	if (this->my_learner != NULL)
-		XGBoosterFree(this->my_learner);
-	DMatrixHandle h_train_empty[1];
-	if (XGBoosterCreate(h_train_empty, 0, &my_learner) != 0)
-		MTHROW_AND_ERR("failed XGBoosterCreate\n");;
-	if (XGBoosterLoadModelFromBuffer(my_learner, blob + s, size) != 0)
-		MTHROW_AND_ERR("failed XGBoosterLoadModelFromBuffer\n");
-	s += size;
-	s += MedSerialize::deserialize(blob + s, classifier_type);
-	s += MedSerialize::deserialize(blob + s, model_features);
-	s += MedSerialize::deserialize(blob + s, features_count);
-	_mark_learn_done = true;
-	return s;
-}
 
 void MedXGB::init_defaults()
 {

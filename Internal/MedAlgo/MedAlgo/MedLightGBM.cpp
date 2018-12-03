@@ -317,6 +317,10 @@ namespace LightGBM {
 
 }
 
+//===============================================================================================
+// MedLightGBM
+//===============================================================================================
+
 void MedLightGBM::calc_feature_importance(vector<float> &features_importance_scores,
 	const string &general_params) {
 	//if (!_mark_learn_done)
@@ -326,55 +330,4 @@ void MedLightGBM::calc_feature_importance(vector<float> &features_importance_sco
 		(model_features.empty() ? features_count : (int)model_features.size()));
 }
 
-//===============================================================================================
-// MedLightGBM
-//===============================================================================================
-
-// serializations
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-size_t MedLightGBM::get_size()
-{
-	size_t size = 0;
-	size += MedSerialize::get_size(classifier_type);
-	size += MedSerialize::get_size(params);
-	string str;
-	if (mem_app.serialize_to_string(str) < 0)
-		MERR("MedLightGBM::get_size() failed moving model to string\n");
-	size += MedSerialize::get_size(str);
-
-	size += MedSerialize::get_size(model_features);
-	size += MedSerialize::get_size(features_count);
-	return size;
-}
-//------------------------------------------------------------------------------------------------------------------------------------------
-size_t MedLightGBM::serialize(unsigned char *blob)
-{
-	size_t size = 0;
-
-	size += MedSerialize::serialize(blob, classifier_type);
-	size += MedSerialize::serialize(blob + size, params);
-	string str;
-	if (mem_app.serialize_to_string(str) < 0)
-		MERR("MedLightGBM::serialize() failed moving model to string\n");
-	size += MedSerialize::serialize(blob + size, str);
-	size += MedSerialize::serialize(blob + size, model_features);
-	size += MedSerialize::serialize(blob + size, features_count);
-	return size;
-}
-//------------------------------------------------------------------------------------------------------------------------------------------
-size_t MedLightGBM::deserialize(unsigned char *blob)
-{
-	size_t size = MedSerialize::deserialize(blob, classifier_type);
-	size += MedSerialize::deserialize(blob + size, params);
-	init_from_string(""); //loading the params as they were saved
-	string str;
-	size += MedSerialize::deserialize(blob + size, str);
-	if (mem_app.deserialize_from_string(str) < 0)
-		MERR("MedLightGBM::deserialize() failed moving model to string\n");
-	size += MedSerialize::deserialize(blob + size, model_features);
-	size += MedSerialize::deserialize(blob + size, features_count);
-	_mark_learn_done = true;
-	return size;
-}
 

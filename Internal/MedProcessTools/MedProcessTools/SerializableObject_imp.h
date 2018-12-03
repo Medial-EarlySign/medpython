@@ -58,16 +58,20 @@ namespace MedSerialize {
 	//.........................................................................................
 	template <class T> size_t serialize(unsigned char *blob, T &elem)
 	{
-		//cout << "inside simple serialize with type " << typeid(T).name() << endl;
+		//cout << "inside simple serialize with type " << typeid(T).name() << " with sizeof " << sizeof(T) << endl;
 		memcpy(blob, &elem, sizeof(T));
+		//unsigned char *pelem = (unsigned char *)(&elem);
+		//SRL_LOG("simple serialize: %02x %02x %02x %02x\n", blob[0], blob[1], blob[2], blob[3]);
 		return sizeof(T);
 	}
 
 	//.........................................................................................
 	template <class T> size_t deserialize(unsigned char *blob, T &elem)
 	{
-		//cout << "inside simple deserialize with type " << typeid(T).name() << endl;
+		//cerr << "inside simple deserialize with type " << typeid(T).name() << " with sizeof " << sizeof(T) << endl;
 		memcpy(&elem, blob, sizeof(T));
+		//unsigned char *pelem = (unsigned char *)(&elem);
+		//SRL_LOG("simple deserialize: %02x %02x %02x %02x\n", blob[0], blob[1], blob[2], blob[3]);
 		return sizeof(T);
 	}
 	
@@ -509,21 +513,21 @@ namespace MedSerialize {
 	// last stage serializer :  the last element : size, name, serialization
 	template<class T> size_t serializer(unsigned char *blob, int counter, vector<string> &names, T &elem)
 	{
-		//cerr << "last_serializer: blob " << blob " name " << counter << " is " << names[counter] << "\n";
+		//SRL_LOG("last_serializaer: blob %x counter %d name %s\n", blob, counter, names[counter].c_str());
 
 		// keep size_t place for size
 		size_t pos = 0;
 		pos += MedSerialize::serialize(blob+pos, pos);
 
-		//cerr << "(1) blob " << blob << " pos " << pos << "\n";
+		//SRL_LOG("last_serializer(1) :  blob %x size %d name %s\n", blob, pos, names[counter].c_str());
 		// serialize string : the name of the variable
 		pos += MedSerialize::serialize(blob+pos, names[counter]);
 
-		//cerr << "(2) blob " << blob << " pos " << pos "\n";
+		//SRL_LOG("last_serializer(2) :  blob %x size %d name %s\n", blob, pos, names[counter].c_str());
 		// serialize elem
 		pos += MedSerialize::serialize(blob+pos, elem);
 
-		//cerr << "(3) blob " << blob << " pos " << pos << "\n";
+		//SRL_LOG("last_serializer(3) :  blob %x size %d name %s\n", blob, pos, names[counter].c_str());
 		
 		// going back to 0 and writing the size
 		MedSerialize::serialize(blob, pos);
@@ -536,18 +540,18 @@ namespace MedSerialize {
 	// mid level serializer : looping through the elements to serialize
 	template<class T, class... Ts> size_t serializer(unsigned char *blob, int counter, vector<string> &names, T &elem, Ts&...args)
 	{
-		//cerr << "mid_serializer: name " << counter " is " << names[counter] << "\n";
+		//SRL_LOG("mid_serializer: name %d is %s\n", counter, names[counter].c_str());
 
 		size_t pos = 0;
 		// serialize elem
 		pos += MedSerialize::serializer(blob, counter, names, elem);
 
-		//cerr << "mid(1) " << blob << " pos " << pos << "\n";
+		//SRL_LOG("mid(1) name %s blob %x pos %d\n", names[counter].c_str(), blob, pos);
 
 		// recursive call to the next elements
 		pos += MedSerialize::serializer(blob + pos, counter+1, names, args...);
 
-		//cerr << "mid(2) " << blob << " pos " << "\n";
+		//SRL_LOG("mid(2) name %s blob %x pos %d\n", names[counter].c_str(), blob, pos);
 
 		// return serialized size
 		return pos;
@@ -564,6 +568,8 @@ namespace MedSerialize {
 		if (name2pos.find(name) != name2pos.end()) {
 			//cerr << "last_deserializer: name " << name << " name2pos " << name2pos[name] << "\n";
 			pos += MedSerialize::deserialize(blob+name2pos[name], elem);
+			//unsigned char *p = blob + name2pos[name];
+			//SRL_LOG("=====> size is %02x %02x %02x %02x\n", p[0], p[1], p[2], p[3]);
 		}
 		else {
 			cerr << "WARNING: element " << name << " not serialized... will be deserialized to its default\n";
@@ -577,7 +583,7 @@ namespace MedSerialize {
 	template<class T, class... Ts> size_t deserializer(unsigned char *blob, int counter, vector<string> &names, map<string, size_t> &name2pos, T &elem, Ts&...args)
 	{
 		string name = names[counter];
-		//cerr << "mid_deserializer: name " << counter " is " << name << "\n";
+		//cerr << "mid_deserializer: name " << counter << " is " << name << "\n";
 
 		size_t pos = 0;
 
@@ -671,7 +677,7 @@ namespace MedSerialize {
 	// preparing for deserializer: (1) get names (2) prepare a map of the names + positions inside blob at this level
 	template<class... Ts> size_t deserialize_top(unsigned char *blob, char *list_of_args, Ts&...args) {
 
-		//cerr << "deserialize_top\n";
+		//SRL_LOG("deserialize_top\n");
 
 		// get names
 		vector<string> names;
@@ -680,7 +686,7 @@ namespace MedSerialize {
 		// get total size
 		size_t tot_size = 0, pos = 0;
 		pos += MedSerialize::deserialize(blob, tot_size);
-		//cerr << "dtop(1) pos " << pos << " tot_size " << tot_size << "\n";
+		//SRL_LOG("dtop(1) pos %d tot_size %d\n", pos, tot_size);
 
 		// prepare the map
 		map<string, size_t> name2pos;
@@ -689,16 +695,16 @@ namespace MedSerialize {
 			// read curr_size
 			size_t curr_size;
 			size_t orig_curr_pos = pos;
-			//cerr << "dtop(2) pos " << pos << "\n";
+			//SRL_LOG("dtop(2) pos %d\n", pos);
 			pos += MedSerialize::deserialize(blob+pos, curr_size);
 
 			// read name
 			string name;
-			//cerr << "dtop(3) pos " << pos << " curr_size " << curr_size << "\n";
+			//SRL_LOG("dtop(3) pos %d curr_size %d\n", pos, curr_size);
 			pos += MedSerialize::deserialize(blob+pos, name);
 
 			// add to map
-			//cerr << "dtop(4) pos " << pos << " curr_size " << curr_size << " name " << name << "\n";
+			//SRL_LOG("dtop(4) pos %d curr_size %d name %s\n", pos, curr_size, name.c_str());
 			name2pos[name] = pos;
 
 			// advance pos to next element
@@ -707,6 +713,10 @@ namespace MedSerialize {
 
 		}
 
+#if 0
+		for (auto &e : name2pos)
+			SRL_LOG("dtop(5.5) name2pos [ %s ]  =  %d\n", e.first.c_str(), e.second);
+#endif
 		// ready for deserializer (note that all name2pos addresses are relative to the original blob)
 		MedSerialize::deserializer(blob, 0, names, name2pos, args...);
 

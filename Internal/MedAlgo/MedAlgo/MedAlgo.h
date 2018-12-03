@@ -342,8 +342,8 @@ int init_darray(string& in, int **out);
 // Linear Model: Linear Regression (+ Lasso)
 //======================================================================================
 
-#define LASSO_LAMBDA 0;
-#define LASSO_NITER 1000;
+#define LASSO_LAMBDA 0
+#define LASSO_NITER 1000
 
 struct MedLassoParams {
 
@@ -502,7 +502,7 @@ void init_default_lm_params(MedLMParams& _parmas);
 #define MED_QRF_DEF_PREDICT_NTHREADS 8
 #define MED_QRF_DEF_SPREAD	0.1
 
-struct MedQRFParams {
+struct MedQRFParams : public SerializableObject {
 
 	// Required
 	int ntrees;
@@ -533,6 +533,12 @@ struct MedQRFParams {
 	// For Prediction
 	int get_count;
 	vector<float> quantiles; ///< For quantile regression
+
+	ADD_CLASS_NAME(MedQRFParams)
+	ADD_SERIALIZATION_FUNCS(ntrees, maxq, learn_nthreads, predict_nthreads, type, max_samp, samp_factor, samp_vec, 
+			ntry, get_only_this_categ, max_depth, take_all_samples, spread, keep_all_values, min_node, n_categ, collect_oob, get_count, quantiles)
+	void post_deserialization() { if (samp_vec.size()==0) sampsize=NULL;  else sampsize = &samp_vec[0]; }
+
 };
 
 class MedQRF : public MedPredictor {
@@ -563,10 +569,7 @@ public:
 
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedQRF)
-	//ADD_SERIALIZATION_FUNCS(qf, model_features, features_count)
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(classifier_type, qf, params, model_features, features_count)
 
 	// Print
 	void print(FILE *fp, const string& prefix) const;
@@ -1173,6 +1176,7 @@ MEDSERIALIZE_SUPPORT(MedLM)
 MEDSERIALIZE_SUPPORT(MedLasso)
 MEDSERIALIZE_SUPPORT(MedGDLMParams)
 MEDSERIALIZE_SUPPORT(MedGDLM)
+MEDSERIALIZE_SUPPORT(MedQRFParams)
 MEDSERIALIZE_SUPPORT(MedQRF)
 MEDSERIALIZE_SUPPORT(MedMicNet)
 MEDSERIALIZE_SUPPORT(MedBP)

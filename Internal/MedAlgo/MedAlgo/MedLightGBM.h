@@ -55,7 +55,7 @@ namespace LightGBM {
 		int InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols);
 
 		// string serializations
-		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0; }
+		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0;}
 		int deserialize_from_string(string &str) {
 			std::unique_ptr<Boosting> ret;
 			string type = config_.boosting_type;
@@ -214,12 +214,25 @@ public:
 
 
 	// serializations
+	void pre_serialization() { 
+		model_as_string = "";  
+		if (mem_app.serialize_to_string(model_as_string) < 0)
+			global_logger.log(LOG_MEDALGO, MAX_LOG_LEVEL, "MedLightGBM::serialize() failed moving model to string\n");
+	}
+
+	void post_deserialization() {
+		init_from_string("");
+		if (mem_app.deserialize_from_string(model_as_string) < 0)
+			global_logger.log(LOG_MEDALGO, MAX_LOG_LEVEL, "MedLightGBM::deserialize() failed moving model to string\n");
+		model_as_string = "";
+	}
+
 	ADD_CLASS_NAME(MedLightGBM)
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_SERIALIZATION_FUNCS(classifier_type, params, model_as_string, model_features, features_count, _mark_learn_done)
+
 private:
 	bool _mark_learn_done;
+	string model_as_string;
 };
 
 

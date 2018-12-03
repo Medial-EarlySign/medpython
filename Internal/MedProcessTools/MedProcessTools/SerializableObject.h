@@ -40,8 +40,9 @@ public:
 	/// one needs to implement this function to return a new to the derived class given its type (as in my_type)
 	virtual void *new_polymorphic(string derived_name) { return NULL; }
 
-	// next adds an option to add some actions before a serialization is done
+	// next adds an option to add some actions before and after a serialization is done
 	virtual void pre_serialization() {};
+	virtual void post_deserialization() {};
 
 	// Virtual serialization
 	virtual size_t get_size() { return 0; } ///<Gets bytes sizes for serializations
@@ -49,8 +50,10 @@ public:
 	virtual size_t deserialize(unsigned char *blob) { return 0; } ///<Deserialiazing blob to object. returns number of bytes read
 
 	// APIs for vectors
-	size_t serialize(vector<unsigned char> &blob) { size_t size = get_size(); blob.resize(size); return serialize(&blob[0]); }
-	size_t deserialize(vector<unsigned char> &blob) { return deserialize(&blob[0]); }
+	size_t serialize_vec(vector<unsigned char> &blob) { size_t size = get_size(); blob.resize(size); return serialize(&blob[0]); }
+	size_t deserialize_vec(vector<unsigned char> &blob) { return deserialize(&blob[0]); }
+	virtual size_t serialize(vector<unsigned char> &blob) { return serialize_vec(blob); }
+	virtual size_t deserialize(vector<unsigned char> &blob) { return deserialize_vec(blob); }
 
 
 	//template <class T> void copy_object(T* dst) { 
@@ -93,7 +96,7 @@ namespace MedSerialize {																							\
 #define ADD_SERIALIZATION_FUNCS(...)																\
 	virtual size_t get_size() { pre_serialization(); return MedSerialize::get_size_top(#__VA_ARGS__, __VA_ARGS__); }								\
 	virtual size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
-	virtual size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); }
+	virtual size_t deserialize(unsigned char *blob) { size_t size = MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization(); return size;}
 
 // in some cases we must add the serializations in the implementation file due to forward declerations issues
 // the following is the same as the previous but should be placed in the cpp file
@@ -105,7 +108,7 @@ namespace MedSerialize {																							\
 #define ADD_SERIALIZATION_FUNCS_CPP(ClassName,...)																\
 	size_t ClassName::get_size() { pre_serialization(); return MedSerialize::get_size_top(#__VA_ARGS__, __VA_ARGS__); }								\
 	size_t ClassName::serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
-	size_t ClassName::deserialize(unsigned char *blob) { return MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); }
+	size_t ClassName::deserialize(unsigned char *blob) { return MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization();}
 
 
 #define ADD_CLASS_NAME(Type)	string my_class_name() {return string(#Type);}
