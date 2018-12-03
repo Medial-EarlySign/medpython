@@ -118,7 +118,7 @@ void MedSamplingTimeWindow::do_sample(const vector<MedRegistryRecord> &registry,
 			year_diff_to_first_pred = medial::repository::DateDiff(pid_bdate, currDate);
 		else
 			year_diff_to_first_pred = medial::repository::DateDiff(min_allowed_date, currDate);
-		if (year_diff_to_first_pred < 0 || rec.end_date <= rec.start_date || rec.end_date <= min_allowed_date) {
+		if (year_diff_to_first_pred < 0 || rec.end_date < rec.start_date || rec.end_date < min_allowed_date) {
 			++skip_end_smaller_start;
 			if (skip_end_smaller_start < 5) {
 				MLOG("Exampled Row Skipped: pid=%d, reg_dates=[%d => %d],  outcome=%f, age=%d\n",
