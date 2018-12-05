@@ -165,6 +165,8 @@ public:
 	void get_categs(vector<float> &categs);
 	/// <summary> Get all MedSamples as a single vector </summary>
 	void export_to_sample_vec(vector<MedSample> &vec_samples);
+	/// <summary> Set MedSamples from a single vector </summary>
+	void import_from_sample_vec(vector<MedSample> &vec_samples, bool allow_split_inconsistency=false);	
 
 	/// <summary> Sort by id and then date </summary>
 	void sort_by_id_date();

@@ -1,0 +1,140 @@
+#mkdir InfraMed 
+cd InfraMed
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/InfraMed/InfraMed/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libInfraMed.so.1  *.o -o libInfraMed.so.1.0
+cp -f libInfraMed.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libInfraMed.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libInfraMed.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libInfraMed.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libInfraMed.so
+cd ..
+
+#mkdir Logger
+cd Logger
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/Logger/Logger/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libLogger.so.1  *.o -o libLogger.so.1.0
+cp -f libLogger.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libLogger.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libLogger.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libLogger.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libLogger.so
+cd ..
+
+#mkdir Mars
+cd Mars
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/External/Mars/Mars/*.cpp /nas1/UsersData/yaron/MR/Libs/External/Mars/Mars/*/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libMars.so.1  *.o -o libMars.so.1.0
+cp -f libMars.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMars.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMars.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMars.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMars.so
+cd ..
+
+#mkdir MedFeat
+cd MedFeat
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/MedFeat/MedFeat/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libMedFeat.so.1  *.o -o libMedFeat.so.1.0
+cp -f libMedFeat.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedFeat.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedFeat.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedFeat.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedFeat.so
+cd ..
+
+#mkdir MedStat
+cd MedStat
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/MedStat/MedStat/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libMedStat.so.1  *.o -o libMedStat.so.1.0
+cp -f libMedStat.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedStat.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedStat.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedStat.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedStat.so
+cd ..
+
+#mkdir MedUtils
+cd MedUtils
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/MedUtils/MedUtils/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libMedUtils.so.1  *.o -o libMedUtils.so.1.0
+cp -f libMedUtils.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedUtils.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedUtils.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedUtils.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedUtils.so
+cd ..
+
+#mkdir QRF
+cd QRF
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/QRF/QRF/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libQRF.so.1  *.o -o libQRF.so.1.0
+cp -f libQRF.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libQRF.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libQRF.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libQRF.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libQRF.so
+cd ..
+
+#mkdir TQRF
+cd TQRF
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/TQRF/TQRF/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libTQRF.so.1  *.o -o libTQRF.so.1.0
+cp -f libTQRF.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libTQRF.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libTQRF.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libTQRF.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libTQRF.so
+cd ..
+
+#mkdir micNet
+cd micNet
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/micNet/micNet/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libmicNet.so.1  *.o -o libmicNet.so.1.0
+cp -f libmicNet.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libmicNet.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libmicNet.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libmicNet.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libmicNet.so
+cd ..
+
+#mkdir MedTime
+cd MedTime
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/MedTime/MedTime/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libMedTime.so.1  *.o -o libMedTime.so.1.0
+cp -f libMedTime.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedTime.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedTime.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedTime.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedTime.so
+cd ..
+
+#mkdir MedAlgo
+cd MedAlgo
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/MedAlgo/MedAlgo/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libMedAlgo.so.1  *.o -o libMedAlgo.so.1.0
+cp -f libMedAlgo.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedAlgo.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedAlgo.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedAlgo.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedAlgo.so
+cd ..
+
+#mkdir MedProcessTools
+cd MedProcessTools
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/MedProcessTools/MedProcessTools/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libMedProcessTools.so.1  *.o -o libMedProcessTools.so.1.0
+cp -f libMedProcessTools.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedProcessTools.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedProcessTools.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libMedProcessTools.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libMedProcessTools.so
+cd ..
+
+#mkdir gbm
+cd gbm
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/External/gbm/gbm/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libgbm.so.1  *.o -o libgbm.so.1.0
+cp -f libgbm.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libgbm.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libgbm.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libgbm.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libgbm.so
+cd ..
+
+#mkdir AlgoMarker
+cd AlgoMarker
+#/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3 -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include -fPIC -c /nas1/UsersData/yaron/MR/Libs/Internal/AlgoMarker/AlgoMarker/*.cpp
+/usr/bin/c++ -shared -Wl,-soname,libAlgoMarker.so.1  *.o -Wl,-whole-archive -L/nas1/UsersData/yaron/MR/Libs/Internal/AlgoMarker/LinuxSharedLib/ -lxgboost -llight_gbm -lboost_regex -lboost_program_options -lboost_filesystem -lboost_system -lMars -lLogger -lInfraMed -lMedStat -lMedFeat -lQRF -lTQRF -lmicNet -lMedUtils -lMedTime -lMedProcessTools -lMedAlgo -lgbm -Wl,-no-whole-archive -o libAlgoMarker.so.1.0
+cp -f libAlgoMarker.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libAlgoMarker.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libAlgoMarker.so.1
+ln -sf /nas1/Work/SharedLibs/linux/lib64/Release/libAlgoMarker.so.1.0 /nas1/Work/SharedLibs/linux/lib64/Release/libAlgoMarker.so
+cd ..
+
+/usr/bin/c++ --std=c++11 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -fomit-frame-pointer -O3  -I/nas1/UsersData/yaron/MR/Libs -I/nas1/UsersData/yaron/MR/Libs/External -I/nas1/UsersData/yaron/MR/Libs/Internal -I/nas1/UsersData/yaron/MR/Libs/InternalOrig -I/server/Work/Applications/R/R-Latest/include -I/usr/include/libxl -I/server/UsersData/yaron/MR/Libs/Internal/AlgoMarker -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/src -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/rabit/include -I/nas1/UsersData/yaron/MR/Libs/External/xgboost/dmlc-core/include -I/nas1/UsersData/yaron/MR/Libs/External/LightGBM/LightGBM/include /nas1/UsersData/yaron/MR/Libs/Internal/AlgoMarker/DllAPITester/DllAPITester.cpp -lboost_program_options -lAlgoMarker -o DllAPITester
+
+#cp /nas1/Work/SharedLibs/linux/lib64/Release/libxgboost.so .
+#cp /nas1/Work/SharedLibs/linux/lib64/Release/lib_lightgbm.so liblight_gbm.so
+
+#/usr/bin/c++ -shared -Wl,-soname,libAlgoMarker.so.1  *.o -Wl,-whole-archive -L/nas1/UsersData/yaron/MR/Libs/Internal/AlgoMarker/LinuxSharedLib/ -lxgboost -llight_gbm -lboost_regex -lboost_program_options -lboost_filesystem -lboost_system -Wl,-no-whole-archive -o libAlgoMarker.so.1.0
+
+#
+
+#\rm libAlgoMarker.so.1 libAlgoMarker.so
+#ln -s libAlgoMarker.so.1.0 libAlgoMarker.so.1
+#ln -s libAlgoMarker.so.1.0 libAlgoMarker.so
+
+ #

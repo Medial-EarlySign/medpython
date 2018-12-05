@@ -20,6 +20,12 @@ public:
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
 
+	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
+	string timeRangeSignalName = "";
+	int timeRangeSignalId;
+	TimeRangeTypes timeRangeType = TIME_RANGE_CURRENT;
+	int time_unit_range_sig = MedTime::Undefined;		///< the time unit in which the range signal is given. (set correctly from Repository in learn and _generate)
+
 	// helpers
 	vector<unsigned char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
 
@@ -43,7 +49,7 @@ public:
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
-	float get_value(PidDynamicRec &rec, UniversalSigVec &usv, int time, int sig_outcomeTime);
+	float get_value(PidDynamicRec &rec, int idx, int time, int sig_outcomeTime);
 
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
@@ -52,7 +58,7 @@ public:
 	void init_tables(MedDictionarySections& dict);
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights)
+	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights, timeRangeSignalName, timeRangeType)
 };
 
 MEDSERIALIZE_SUPPORT(DrugIntakeGenerator);

@@ -147,6 +147,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 	req_signals[1] = "BYEAR";
 	req_signals[2] = signalName;
 
+
 	return 0;
 }
 
@@ -175,7 +176,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
 	// Required signals
-
 	vector<int> all_req_signal_ids_v;
 	vector<unordered_set<int> > current_required_signal_ids(processors.size());
 	vector<FeatureGenerator *> generators = { this };
@@ -449,6 +449,7 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
+
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1 << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
@@ -569,44 +570,6 @@ void BinnedLmEstimates::get_p_data(MedFeatures &features) {
 	return;
 }
 
-// (De)Serialization
-//.......................................................................................
-size_t BinnedLmEstimates::get_size() {
-
-	size_t size = 0;
-
-	size += MedSerialize::get_size(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights);
-	size += MedSerialize::get_size(params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
-	size += MedSerialize::get_size(xmeans, xsdvs, ymeans, means[0], means[1], models);
-
-	return size;
-
-}
-
-//.......................................................................................
-size_t BinnedLmEstimates::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	ptr += MedSerialize::serialize(blob + ptr, generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights);
-	ptr += MedSerialize::serialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
-	ptr += MedSerialize::serialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t BinnedLmEstimates::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	ptr += MedSerialize::deserialize(blob + ptr, generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights);
-	ptr += MedSerialize::deserialize(blob + ptr, params.bin_bounds, params.min_period, params.max_period, params.rfactor, params.estimation_points);
-	ptr += MedSerialize::deserialize(blob + ptr, xmeans, xsdvs, ymeans, means[0], means[1], models);
-
-	return ptr;
-}
-
 //.......................................................................................
 // Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
 int BinnedLmEstimates::filter_features(unordered_set<string>& validFeatures) {
@@ -649,7 +612,8 @@ inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, i
 	age = med_time_converter.convert_times(time_unit_from, MedTime::Date, time) / 10000 - byear;
 }
 
-
+// Print predictor
+//.......................................................................................
 void BinnedLmEstimates::print()
 {
 	string prefix = "BinnedLmEstimates(" + signalName + ") :: ";
