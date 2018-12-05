@@ -18,6 +18,33 @@
 #define CHECK_CRC 0
 
 using namespace boost::property_tree;
+
+void parse_my_json_to_pt(istringstream &no_comments_stream, ptree &pt);
+
+void parse_my_json_to_pt(string &str, ptree &pt) {
+	istringstream i_str(str);
+	parse_my_json_to_pt(i_str, pt);
+}
+
+void parse_my_json_to_pt(istringstream &no_comments_stream, ptree &pt)
+{
+	string my_line;
+	try {
+		read_json(no_comments_stream, pt);
+	}
+	catch (json_parser_error e) {
+		no_comments_stream.clear();
+		no_comments_stream.seekg(0);
+		MLOG("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
+		for (int i = 1; getline(no_comments_stream, my_line); i++) {
+			if (abs((int)e.line() - i) < 3)
+				MLOG("%d\t%s\n", i, my_line.c_str());
+		}
+		MTHROW_AND_ERR("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
+	}
+}
+
+
 void get_prefix_suffix_from_tokens(const string& single_attr_value, string& small_file, string& ref_node, string& prefix, string& suffix) {
 	vector<string> tokens;
 	boost::split(tokens, single_attr_value, boost::is_any_of(";"));
@@ -102,19 +129,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 	no_comments_stream.seekg(0);
 
 	ptree pt;
-	try {
-		read_json(no_comments_stream, pt);
-	}
-	catch (json_parser_error e) {
-		no_comments_stream.clear();
-		no_comments_stream.seekg(0);
-		MLOG("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
-		for (int i = 1; getline(no_comments_stream, my_line); i++) {
-			if (abs((int)e.line() - i) < 3)
-				MLOG("%d\t%s\n", i, my_line.c_str());
-		}
-		MTHROW_AND_ERR("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
-	}
+	parse_my_json_to_pt(no_comments_stream, pt);
 	this->model_json_version = pt.get<int>("model_json_version", model_json_version);
 	MLOG("\nmodel_json_version [%d]\n", model_json_version);
 	if (model_json_version <= 1)
@@ -194,4 +209,47 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 	else MWARN("NOTE: no [predictor] node found in file\n");
 
 	return 0;
+}
+
+//-----------------------------------------------------------------------------------------------------
+// next option gets a separate json with just pre_processors inside it and adds them to pre_processors
+// at the moment only direct serial processing is allowed, as there's no learn in pre_processors
+// and we anyway parallelize on the pids level
+//
+// format for pre_processors is very much like the format for rep_processors
+//
+// format in general is :
+// { "pre_processors" : [ {"rp_type": "history_limit", ...} , ... ] }
+//
+// use "" and a file name to start from a file, or a string and empty or given fname to start from a string
+//-----------------------------------------------------------------------------------------------------
+void MedModel::add_pre_processors_json_string_to_model(string in_json, string fname)
+{
+	string json_contents = in_json;
+	if (json_contents == "") {
+		vector<string> dummy_alts;
+		json_contents = json_file_to_string(0, fname, dummy_alts);
+	}
+	ptree pt;
+	parse_my_json_to_pt(json_contents, pt);
+
+	for (auto &p : pt.get_child("pre_processors")) {
+		vector<vector<string>> all_action_attrs;
+		auto& action = p.second;
+		//string action_type = action.get<string>("action_type").c_str();
+		int duplicate = 0;
+		parse_action(action, all_action_attrs, duplicate, pt, fname);
+		if (duplicate == 1)
+			MTHROW_AND_ERR("duplicate action requested and not inside a set!");
+		vector<string> all_combinations;
+		concatAllCombinations(all_action_attrs, 0, "", all_combinations);
+		if (all_combinations.empty())
+			MTHROW_AND_ERR("pre processor expanded to 0 combinations! did you put an empty list inside a []?!\n");
+		for (string c : all_combinations) {
+			MLOG("Adding pre_processor: %s\n", c.c_str());
+			add_pre_processor(c);
+		}
+		MLOG("added %d pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
+	}
+	MLOG("Succesfully added %d pre_processors\n", pre_processors.size());
 }
