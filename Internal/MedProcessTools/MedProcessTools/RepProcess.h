@@ -30,6 +30,7 @@ typedef enum {
 	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
 	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units.  to actiate RepSplitSignal
 	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
+	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -1368,6 +1369,42 @@ public:
 	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channels, win_from, win_to, window_time_unit, attrName, req_signals)
 };
 
+//----------------------------------------------------------------------------------------
+// RepHistoryLimit : given a signal : chomps history to be at a given window relative
+//                   to prediction points
+//----------------------------------------------------------------------------------------
+class RepHistoryLimit : public RepProcessor {
+public:
+	string signalName; 	///< name of signal to clean
+	int signalId;	///< id of signal to clean
+	int time_channel = 0; ///< time channel to consider in cleaning
+	int win_time_unit = global_default_windows_time_unit;
+	int rep_time_unit = global_default_time_unit; // we assume this is also the samples time unit
+	int win_from;
+	int win_to;
+
+	// preparations
+	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+
+	// learn - nothing to do
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor) { return 0; }
+
+	// apply
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	// params parser
+	int init(map<string, string>& mapper);
+
+	// helper
+	int get_sub_usv_data(UniversalSigVec &usv, int from_time, int to_time, vector<char> &data, int &len);
+
+
+
+	ADD_CLASS_NAME(RepHistoryLimit)
+	ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to)
+
+};
+
 //.......................................................................................
 //.......................................................................................
 // Utility Functions
@@ -1397,4 +1434,5 @@ MEDSERIALIZE_SUPPORT(RepSplitSignal)
 MEDSERIALIZE_SUPPORT(RepSignalRate)
 MEDSERIALIZE_SUPPORT(RepAggregateSignal)
 MEDSERIALIZE_SUPPORT(RepCheckReq)
+MEDSERIALIZE_SUPPORT(RepHistoryLimit)
 #endif

@@ -138,7 +138,7 @@ void logCalculator::list_output_signals(const vector<string> &input_signals, vec
 		MTHROW_AND_ERR("ERROR in logCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 float logCalculator::do_calc(const vector<float> &vals) const {
-	if (vals[0] < 0)
+	if (vals[0] <= 0)
 		return missing_value;
 	return log(vals[0]);
 }
