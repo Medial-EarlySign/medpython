@@ -451,7 +451,7 @@ void MedModel::build_req_features_vec(vector<unordered_set<string>>& req_feature
 	req_features_vec.resize(feature_processors.size() + 1);
 	req_features_vec[0] = {};
 	for (int i = 1; i <= feature_processors.size(); i++) {
-		int idx = feature_processors.size() - i;
+		size_t idx = feature_processors.size() - i;
 		feature_processors[idx]->update_req_features_vec(req_features_vec[i - 1], req_features_vec[i]);
 	}
 

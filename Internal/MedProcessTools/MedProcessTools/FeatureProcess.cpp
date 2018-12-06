@@ -809,6 +809,7 @@ void FeatureImputer::addStrata(string& init_string) {
 		MLOG("Cannot initialize strata from \'%s\'. Ignoring\n", init_string.c_str());
 	else
 		addStrata(fields[0], stof(fields[3]), stof(fields[1]), stof(fields[2]));
+}
 
 /// update sets of required as input according to set required as output to processor
 //.......................................................................................
@@ -822,8 +823,6 @@ void FeatureImputer::update_req_features_vec(unordered_set<string>& out_req_feat
 		for (int i = 0; i < imputerStrata.nStratas(); i++)
 			in_req_features.insert(imputerStrata.stratas[i].name);
 	}
-}
-
 }
 
 //=======================================================================================

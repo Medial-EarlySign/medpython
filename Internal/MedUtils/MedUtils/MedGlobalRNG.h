@@ -12,7 +12,7 @@ class globalRNG
   static void srand(std::minstd_rand::result_type val) {getInstance()._rng.seed(val);};
   static const std::minstd_rand::result_type max() {return getInstance()._rng.max();};
 
- private:
+private:
   std::minstd_rand _rng;
 
   static globalRNG& getInstance()

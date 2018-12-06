@@ -96,3 +96,4 @@ private:
 	void read_calibration_time_window(const string& fname);
 };
 
+#endif

@@ -172,7 +172,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rep.sigs.Sid2Info[signalId].time_unit;
 
 	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
+	size_t nmodels = 1ll << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
 	// Required signals
@@ -451,7 +451,7 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 
 	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
+	size_t nmodels = 1ll << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
 	int iperiod = (int)nperiods;

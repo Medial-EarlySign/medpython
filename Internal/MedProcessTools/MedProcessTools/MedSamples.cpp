@@ -616,7 +616,7 @@ void MedSamples::import_from_sample_vec(vector<MedSample> &vec_samples, bool all
 	
 	for (MedSample& sample : vec_samples) {
 		if (id2idx.find(sample.id) == id2idx.end()) {
-			id2idx[sample.id] = idSamples.size(); 
+			id2idx[sample.id] = (int) idSamples.size(); 
 
 			idSamples.resize(idSamples.size()+1);
 			idSamples.back().id = sample.id ;

@@ -234,11 +234,6 @@ private:
 	float uget_first_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 
-	// update time window according to time-range signal
-	void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time, int& updated_win_from, int& updated_win_to, bool delta_win,
-		int& updated_d_win_from, int& updated_d_win_to);
-	void get_updated_time_window(TimeRangeTypes type, int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to);
-
 public:
 	// Feature Descrption
 	string signalName;
@@ -637,6 +632,7 @@ public:
 	string modelName = ""; ///< name of final feature
 	int n_preds = 1;  ///< how many features to create
 	int impute_existing_feature = 0; ///< If true will use model to impute an existing feature (determined by model name. Otherwise - generate new feature(s)
+	int use_overriden_predictions = 0; ///< Use a given vector of predictions instead of applying model
 
 	/// Naming 
 	void set_names();
@@ -645,6 +641,9 @@ public:
 	/// @snippet FeatureGenerator.cpp ModelFeatGenerator::init
 	int init(map<string, string>& mapper);
 	int init_from_model(MedModel *_model);
+
+	/// Use a given vector of predictions instead of applying model
+	void override_predictions(MedSamples& inSamples, MedSamples& modelSamples);
 
 	/// Do the actual prediction prior to feature generation ...
 	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);

@@ -1375,108 +1375,6 @@ float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win
 }
 
 //.......................................................................................
-// update time window according to time-range signal
-void BasicFeatGenerator::get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time, int& updated_win_from, int& updated_win_to, bool delta_win, 
-	int& updated_d_win_from, int& updated_d_win_to) {
-
-	// Identify relevant range
-	int range_from = -1, range_to = -1;
-	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig,time_unit_win,time));
-	
-	for (int i = 0; i < time_range_usv.len; i++) {
-		int fromTime = time_range_usv.Time(i, 0);
-		int toTime = time_range_usv.Time(i, 1);
-
-		if (fromTime > time_to_check)
-			break;
-		else if (toTime >= time_to_check) {
-			range_from = fromTime;
-			range_to = toTime;
-			break;
-		}
-	}
-
-	// Handle cases
-	get_updated_time_window(type, range_from, range_to, time_to_check, win_from, win_to, updated_win_from, updated_win_to);
-	if (delta_win)
-		get_updated_time_window(type, range_from, range_to, time_to_check, d_win_from, d_win_to, updated_d_win_from, updated_d_win_to);
-}
-
-void BasicFeatGenerator::get_updated_time_window(TimeRangeTypes type,
-	int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to) {
-
-	if (type == TIME_RANGE_CURRENT) {
-		// Intersection is empty
-		if (range_from == -1 || win_from > time - range_from || win_to < time - range_to) {
-			updated_win_from = win_from;
-			updated_win_to = updated_win_from - 1; // Empty window ...
-		}
-		else {
-			if (win_to > time - range_from) // win_to points before range
-				updated_win_to = time - range_from;
-			else
-				updated_win_to = win_to;
-
-			if (win_from < time - range_to) // win_from is negative (points to the future) and after range-to
-				updated_win_from = time - range_to;
-			else
-				updated_win_from = win_from;
-		}
-	}
-	else if (type == TIME_RANGE_BEFORE) {
-		if (range_from == -1) {
-			updated_win_from = win_from;
-			updated_win_to = win_to;
-		}
-		else {
-			if (win_from < time - range_from)
-				updated_win_from = time - range_from;
-			else
-				updated_win_from = win_from;
-
-			if (win_to < time - range_from)
-				updated_win_to = time - range_from;
-			else
-				updated_win_to = win_to;
-
-		}
-	}
-}
-
-//.......................................................................................
-// get the max difference in values in the window [win_to, win_from] before time
-float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
-{
-	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
-
-	float max_diff = missing_val;
-	vector<float> _vals_vec;
-	for (int i = 0; i < usv.len; i++) {
-		int itime = usv.Time(i, time_channel);
-		if (itime >= min_time) {
-			if (itime > max_time)
-				break;
-			else {
-				if (_vals_vec.size() > 0) {
-					nth_element(_vals_vec.begin(), _vals_vec.begin() + _vals_vec.size() / 2, _vals_vec.end());
-					float median_prev_val = _vals_vec[_vals_vec.size() / 2];
-					//float prev_val = median_prev_val;
-					float prev_val = _vals_vec.back();
-					float diff = usv.Val(i, val_channel) - prev_val;
-					if (diff > max_diff || max_diff == missing_val)
-						max_diff = diff;
-				}
-				_vals_vec.push_back(usv.Val(i, val_channel));
-			}
-		}
-	}
-	return max_diff;
-}
-
-//.......................................................................................
 // get values for RangeFeatGenerator
 //.......................................................................................
 // get the value in a range that includes time - win_from, if available
@@ -1904,30 +1802,59 @@ int ModelFeatGenerator::init_from_model(MedModel *_model) {
 	return 0;
 }
 
+/// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
+//.......................................................................................
+void ModelFeatGenerator::override_predictions(MedSamples& inSamples, MedSamples& modelSamples) {
+
+	// Sanity check ...
+	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples, 0))
+		MTHROW_AND_ERR("inSamples is not identical to model samples in ModelFeatGenerator::load\n");
+
+	preds.resize(inSamples.nSamples()*n_preds);
+
+	int idx = 0;
+	for (auto& idSamples : inSamples.idSamples) {
+		for (auto& sample : idSamples.samples) {
+			if (sample.prediction.size() < n_preds)
+				MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds);
+
+			for (int i = 0; i < n_preds; i++)
+				preds[idx++] = sample.prediction[i];
+		}
+	}
+
+	set_names();
+
+	use_overriden_predictions = 1;
+
+}
+
 // Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
 		
-	// Predict
-	if (model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
-		MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
-		
-	// Extract predictions
-	if (model->features.samples[0].prediction.size() < n_preds)
-		MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
+	if (!use_overriden_predictions) {
+		// Predict
+		if (model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
+			MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
 
-	preds.resize(n_preds*model->features.samples.size());
-	for (int i = 0; i < model->features.samples.size(); i++) {
-		for (int j = 0; j < n_preds; j++) {
-			float new_val = model->features.samples[i].prediction[j];
-			if (!isfinite(new_val))
-				MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s nan in row %d\n", modelName.c_str(), i);
-			preds[i*n_preds + j] = new_val;
+		// Extract predictions
+		if (model->features.samples[0].prediction.size() < n_preds)
+			MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
+
+		preds.resize(n_preds*model->features.samples.size());
+		for (int i = 0; i < model->features.samples.size(); i++) {
+			for (int j = 0; j < n_preds; j++) {
+				float new_val = model->features.samples[i].prediction[j];
+				if (!isfinite(new_val))
+					MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s nan in row %d\n", modelName.c_str(), i);
+				preds[i*n_preds + j] = new_val;
+			}
 		}
-	}
 
-	// release some memory
-	model->features.clear();
+		// release some memory
+		model->features.clear();
+	}
 
 	// Generate a new feature or identify feature to impute.
 	if (impute_existing_feature) {
@@ -1984,7 +1911,7 @@ string time_range_type_to_name(TimeRangeTypes type)
 	MTHROW_AND_ERR("unknown type [%d]\n", (int)type);
 }
 
-float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int outcomeTime)
+TimeRangeTypes time_range_name_to_type(const string& name) {
 
 	if (name == "current")			return TIME_RANGE_CURRENT;
 	if (name == "before")			return TIME_RANGE_BEFORE;
@@ -2001,8 +1928,8 @@ void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes typ
 	 int win_from, int& updated_win_from, int win_to, int& updated_win_to, bool delta_win, int d_win_from, int& updated_d_win_from, int d_win_to, int& updated_d_win_to) {
 
 	// Identify relevant range
-	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	int range_from = -1, range_to;
+	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig, time_unit_win, time));
 
 	for (int i = 0; i < time_range_usv.len; i++) {
 		int fromTime = time_range_usv.Time(i, 0);
