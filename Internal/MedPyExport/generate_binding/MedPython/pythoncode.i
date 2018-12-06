@@ -59,12 +59,14 @@ class MapAdaptorKeyIter:
         self.i = 0
         self.prev_i = None
         self.max_i = len(self.obj)
-    def next(self):
+    def __next__(self):
         if self.i >= self.max_i:
             raise StopIteration
         else:
             self.prev_i, self.i = self.i, self.i+1
             return self.obj[self.prev_i]
+    def next(self):
+        return self.__next__()
 
 
 class IntIndexIter:
@@ -73,12 +75,14 @@ class IntIndexIter:
         self.i = 0
         self.prev_i = None
         self.max_i = len(o)
-    def next(self):
+    def __next__(self):
         if self.i >= self.max_i:
             raise StopIteration
         else:
             self.prev_i, self.i = self.i, self.i+1
             return self.obj[self.prev_i]
+    def next(self):
+        return self.__next__()
 
 def ___fix_vecmap_iter():
     from inspect import isclass
@@ -102,11 +106,26 @@ ___fix_vecmap_iter()
 External Methods in addition to api
 """
 
+def __export_to_pandas(self, sig_name_str, translate=True, pids=None):
+    """get_sig(signame [, translate=True][, pids=None]) -> Pandas DataFrame
+         translate : If True, will decode categorical fields into a readable representation in Pandas
+         pid : If list is provided, will load only pids from the given list
+               If 'All' is provided, will use all available pids
+    """
+    import pandas as pd
+    use_all_pids = 0
+    if isinstance(pids, str) and pids.upper()=='ALL':
+      use_all_pids = 1
+      pids=list()
+    if pids is None: pids=list()
+    sigexporter = self.export_to_numpy(sig_name_str, pids, use_all_pids)
+    df = pd.DataFrame.from_dict(dict(sigexporter))
+    if not translate:
+      return df
+    for field in sigexporter.get_categorical_fields():
+        df[field] = df[field].astype('category').cat.rename_categories(dict(sigexporter.get_categorical_field_dict(field)))
+    return df
 
-def __export_to_pandas(self, sig_name_str):
-    """get_sig(signame) -> Pandas DataFrame """
-    from pandas import DataFrame
-    return DataFrame.from_dict(dict(self.export_to_numpy(sig_name_str))) 
 
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)

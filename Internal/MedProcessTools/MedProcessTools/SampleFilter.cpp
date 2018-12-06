@@ -46,6 +46,20 @@ SampleFilter * SampleFilter::make_filter(string filter_name, string init_string)
 	return make_filter(sample_filter_name_to_type(filter_name), init_string);
 }
 
+//.......................................................................................
+void *SampleFilter::new_polymorphic(string dname)
+{
+	CONDITIONAL_NEW_CLASS(dname, BasicTrainFilter);
+	CONDITIONAL_NEW_CLASS(dname, BasicTestFilter);
+	CONDITIONAL_NEW_CLASS(dname, OutlierSampleFilter);
+	CONDITIONAL_NEW_CLASS(dname, MatchingSampleFilter);
+	CONDITIONAL_NEW_CLASS(dname, RequiredSignalFilter);
+	CONDITIONAL_NEW_CLASS(dname, BasicSampleFilter);
+
+	return NULL;
+}
+
+
 // Initialization : given filter type
 //.......................................................................................
 SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type) {
@@ -238,42 +252,6 @@ void OutlierSampleFilter::get_values(MedSamples& samples, vector<float>& values)
 		for (MedSample& sample : idSample.samples)
 			values.push_back(sample.outcome);
 	}
-}
-
-// (De)Serialization
-//.......................................................................................
-size_t OutlierSampleFilter::get_size() {
-
-	size_t size = 0;
-
-	size += sizeof(int); // int take_log
-	size += 2 * sizeof(float); // float removeMax, removeMin;
-
-	return size;
-}
-
-//.......................................................................................
-size_t OutlierSampleFilter::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	memcpy(blob + ptr, &params.take_log, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob + ptr, &removeMax, sizeof(float)); ptr += sizeof(float);
-	memcpy(blob + ptr, &removeMin, sizeof(float)); ptr += sizeof(float);
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t OutlierSampleFilter::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	memcpy(&params.take_log, blob + ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&removeMax, blob + ptr, sizeof(float)); ptr += sizeof(float);
-	memcpy(&removeMin, blob + ptr, sizeof(float)); ptr += sizeof(float);
-
-	return ptr;
 }
 
 //=======================================================================================
@@ -695,38 +673,6 @@ void MatchingSampleFilter::get_required_signals(vector<string>& req_sigs)
 
 }
 
-// (De)Serialization
-//.......................................................................................
-size_t MatchingSampleFilter::get_size() {
-	return MedSerialize::get_size(matchingStrata, eventToControlPriceRatio, matchMaxRatio);
-}
-
-//.......................................................................................
-size_t MatchingSampleFilter::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, matchingStrata, eventToControlPriceRatio, matchMaxRatio);
-}
-
-//.......................................................................................
-size_t MatchingSampleFilter::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, matchingStrata, eventToControlPriceRatio, matchMaxRatio);
-}
-
-// (De)Serialization of matchingParams
-//.......................................................................................
-size_t matchingParams::get_size() {
-	return MedSerialize::get_size(match_type,signalName,timeWindow,matchingTimeUnit,resolution);
-}
-
-//.......................................................................................
-size_t matchingParams::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, match_type, signalName, timeWindow, matchingTimeUnit, resolution);
-}
-
-//.......................................................................................
-size_t matchingParams::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, match_type, signalName, timeWindow, matchingTimeUnit, resolution);
-}
-
 //=======================================================================================
 // Required Signal Filter 
 //	- Keep only samples with a required signal appearing in a time-window.
@@ -809,23 +755,6 @@ int RequiredSignalFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 	MERR("A repository is required for Required-Signal Filter\n"); 
 	return -1; 
 }
-
-// (De)Serialization
-//.......................................................................................
-size_t RequiredSignalFilter::get_size() {
-	return MedSerialize::get_size(signalName,timeWindow,windowTimeUnit);
-}
-
-//.......................................................................................
-size_t RequiredSignalFilter::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, signalName, timeWindow, windowTimeUnit);
-}
-
-//.......................................................................................
-size_t RequiredSignalFilter::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, signalName, timeWindow, windowTimeUnit);
-}
-
 
 //=======================================================================================
 // A general filter to allow the following basics:

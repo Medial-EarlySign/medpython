@@ -44,16 +44,14 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// get pointers to data
-	void get_p_data(MedFeatures& features);
+	void get_p_data(MedFeatures& features, vector<float *> &_p_data);
 
 	// Serialization
-	virtual int version() { return  2; } // ihadanny 20170214 - added required_signals to serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind, req_signals); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind, req_signals); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind, req_signals); }
+	ADD_CLASS_NAME(SmokingGenerator)
+	ADD_SERIALIZATION_FUNCS(generator_type, raw_feature_names, names, tags, iGenerateWeights, smoking_method, future_ind, req_signals)
 };
 
 MEDSERIALIZE_SUPPORT(SmokingGenerator)

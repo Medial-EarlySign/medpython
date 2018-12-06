@@ -152,7 +152,7 @@ class MedCohort : SerializableObject {
 	/// Outcome - incidence per age-bin - is written to file 
 	/// </summary>
 	/// <returns> -1 if writing to file failed, 0 upon success </returns>
-	int create_incidence_file(IncidenceParams &i_params, string out_file);
+	int create_incidence_file(IncidenceParams &i_params, string out_file, const string &debug_file = "");
 
 	/// <summary>
 	/// Generate a samples file from cohort + sampling-params <br>

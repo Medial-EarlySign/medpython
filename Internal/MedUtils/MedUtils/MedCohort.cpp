@@ -5,6 +5,7 @@
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <fstream>
 #include <algorithm>
+#include <fstream>
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -184,7 +185,7 @@ int MedCohort::write_to_file(string fname)
 		return -1;
 	}
 
-	for (auto &rc: recs) {
+	for (auto &rc : recs) {
 		string sout;
 		rc.get_string(sout);
 		of << sout << endl;
@@ -208,14 +209,14 @@ void MedCohort::get_pids(vector<int> &pids)
 // Outcome - incidence per age-bin - is written to file
 // Return 0 upon success. -1 upon failre to read repository
 //-------------------------------------------------------------------------------------
-int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
+int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file, const string &debug_file)
 {
 	//string inc_params; // from_to_fname,pids_to_use_fname,from_year,to_year,min_age,max_age,bin_size,inc_file
 
-	vector<int> train_to_take ={ 0,0,0,0 };
-	if (i_params.train_mask &0x1) train_to_take[1] = 1;
-	if (i_params.train_mask &0x2) train_to_take[2] = 1;
-	if (i_params.train_mask &0x4) train_to_take[3] = 1;
+	vector<int> train_to_take = { 0,0,0,0 };
+	if (i_params.train_mask & 0x1) train_to_take[1] = 1;
+	if (i_params.train_mask & 0x2) train_to_take[2] = 1;
+	if (i_params.train_mask & 0x4) train_to_take[3] = 1;
 
 	vector<int> pids;
 	get_pids(pids);
@@ -244,7 +245,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	int train_sid = rep.sigs.sid("TRAIN");
 	int len;
 
-	vector<int> all_cnts ={ 0,0 };
+	vector<int> all_cnts = { 0,0 };
 
 	//
 	// To Estimate the annual statistics for the given time window we do the following:
@@ -257,6 +258,9 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 	// (2) If the 1.1.YYYY is contained in the 0 period AND the outcomedate for 1 is IN YYYY (or after if measuring longer periods) we count it as 1.
 	//
 
+	ofstream fw_debug;
+	if (!debug_file.empty())
+		fw_debug.open(debug_file);
 
 	if (i_params.start_date == 101) {
 
@@ -269,7 +273,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 			if (crec.outcome != 0) to_date = crec.outcome_date;
 			else {
 				if (i_params.incidence_days_win < 0)
-					to_date -= i_params.incidence_years_window*10000;
+					to_date -= i_params.incidence_years_window * 10000;
 				else {
 					int days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
 					days -= i_params.incidence_days_win;
@@ -292,11 +296,13 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 							++male_counts[bin].first;
 						else if (gender == GENDER_FEMALE)
 							++female_counts[bin].first;
+
+						bool count_this_year = crec.outcome == 0;
 						if (crec.outcome != 0) {
 							// handlind cases
 							// first we will calculate if 1.1.year is indeed at most incidence_years or incindence_days BEFORE the outcome date
 
-							bool count_this_year = false;
+
 							if (i_params.incidence_days_win < 0) {
 								// case1 : we use years:
 								count_this_year = (year > tyear - i_params.incidence_years_window);
@@ -304,7 +310,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 							else {
 								// case2 : we use days (remember to_date now is the date of the case event)
 								int to_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, to_date);
-								int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, year*10000+101);
+								int curr_days = med_time_converter.convert_times(MedTime::Date, MedTime::Days, year * 10000 + 101);
 								count_this_year = (to_days - curr_days <= i_params.incidence_days_win);
 							}
 
@@ -315,6 +321,14 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 								else if (gender == GENDER_FEMALE)
 									++female_counts[bin].second;
 							}
+
+
+						}
+
+						if (!debug_file.empty() && count_this_year && age >= i_params.from_age && age <= i_params.to_age) {
+							//Debug: pid, year, outcome, age, gender
+							fw_debug << crec.pid << "\t" << year << "\t" << crec.outcome << "\t" << age << "\t" << gender
+								<< "\n";
 						}
 					}
 				}
@@ -345,10 +359,10 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 				to_date = med_time_converter.convert_times(MedTime::Days, MedTime::Date, days);
 			}
 
-			int year = crec.from/10000;
+			int year = crec.from / 10000;
 			int edate = 0;
 			while (edate < to_date) {
-				edate = year*10000 + i_params.start_date;
+				edate = year * 10000 + i_params.start_date;
 				if (edate >= crec.from && edate < to_date) {
 					edates.push_back(edate);
 					if (crec.outcome == 0)
@@ -375,8 +389,8 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 			int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
 			int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
 			int train = (int)((((SVal *)rep.get(crec.pid, train_sid, len))[0]).val);
-			for (int i=0; i<edates.size(); i++) {
-				int year = edates[i]/10000;
+			for (int i = 0; i < edates.size(); i++) {
+				int year = edates[i] / 10000;
 				if ((gender & i_params.gender_mask) && (train_to_take[train]))
 					if (year >= i_params.from_year && year <= i_params.to_year) {
 
@@ -406,6 +420,8 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file)
 
 	}
 
+	if (!debug_file.empty())
+		fw_debug.close();
 
 	MLOG("Total counts: 0: %d 1: %d : inc %f\n", all_cnts[0], all_cnts[1], (float)all_cnts[1] / all_cnts[0]);
 
@@ -506,8 +522,8 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	}
 
 	MedSamples samples;
-	create_samples(rep,s_params, samples);
-	
+	create_samples(rep, s_params, samples);
+
 	if (samples.write_to_file(out_sample_file) < 0) {
 		MERR("FAILED writing samples file %s\n", out_sample_file.c_str());
 		return -1;
@@ -519,10 +535,10 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedSamples& samples)
 {
 
-	vector<int> train_to_take ={ 0,0,0,0 };
-	if (s_params.train_mask &0x1) train_to_take[1] = 1;
-	if (s_params.train_mask &0x2) train_to_take[2] = 1;
-	if (s_params.train_mask &0x4) train_to_take[3] = 1;
+	vector<int> train_to_take = { 0,0,0,0 };
+	if (s_params.train_mask & 0x1) train_to_take[1] = 1;
+	if (s_params.train_mask & 0x2) train_to_take[2] = 1;
+	if (s_params.train_mask & 0x4) train_to_take[3] = 1;
 
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
@@ -582,7 +598,7 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 					ms.time = rand_date;
 					nsamp++;
 
-					int age = (rand_date/10000) - byear;
+					int age = (rand_date / 10000) - byear;
 
 					//MLOG("pid %d age %d delta %d \n", rc.pid, age, delta);
 					if (age >= s_params.min_age && age <= s_params.max_age)
@@ -639,10 +655,10 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 }
 int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_params, MedSamples& samples)
 {
-	vector<int> train_to_take ={ 0,0,0,0 };
-	if (s_params.train_mask &0x1) train_to_take[1] = 1;
-	if (s_params.train_mask &0x2) train_to_take[2] = 1;
-	if (s_params.train_mask &0x4) train_to_take[3] = 1;
+	vector<int> train_to_take = { 0,0,0,0 };
+	if (s_params.train_mask & 0x1) train_to_take[1] = 1;
+	if (s_params.train_mask & 0x2) train_to_take[2] = 1;
+	if (s_params.train_mask & 0x4) train_to_take[3] = 1;
 
 
 	int byear_sid = rep.sigs.sid("BYEAR");
@@ -685,17 +701,17 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 			for (auto date : dates_with_sigs) {
 				int days = med_time_converter.convert_date(MedTime::Days, date);
 				int relative_days = outcome_days - days;
-				int age = date/10000 - byear;
+				int age = date / 10000 - byear;
 				bool date_is_in_cohort = (date >= rc.from && date <= rc.to);
 				bool date_is_in_sample_window = (((rc.outcome == 0) && (relative_days <= from0_days) && (relative_days > to0_days)) ||
 					((rc.outcome != 0) && (relative_days <= from1_days) && (relative_days > to1_days)));
 				bool date_is_in_age_range = ((age >= s_params.min_age) && (age <= s_params.max_age));
 				int bucket_num = 0;
 				if (relative_days > 0)
-					bucket_num = relative_days/s_params.jump_days;
+					bucket_num = relative_days / s_params.jump_days;
 				else
-					bucket_num = -((-relative_days)/s_params.jump_days)-1;
-				if (print) MLOG("pid %d date %d days %d relative_days %d age %d in_cohort %d in_win %d in age %d bucket %d\n", 
+					bucket_num = -((-relative_days) / s_params.jump_days) - 1;
+				if (print) MLOG("pid %d date %d days %d relative_days %d age %d in_cohort %d in_win %d in age %d bucket %d\n",
 					rc.pid, date, days, relative_days, age, date_is_in_cohort, date_is_in_sample_window, date_is_in_age_range);
 
 				if (date_is_in_cohort && date_is_in_sample_window && date_is_in_age_range) {
@@ -722,15 +738,17 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 
 			if (dates_to_take.size() > s_params.max_samples_per_id) {
 				if (s_params.max_samples_per_id_method == "last") {
-					sort(dates_to_take.begin(), dates_to_take.end(), std::greater<int>()); }
+					sort(dates_to_take.begin(), dates_to_take.end(), std::greater<int>());
+				}
 				if (s_params.max_samples_per_id_method == "rand") {
-					random_shuffle(dates_to_take.begin(), dates_to_take.end()); }
+					random_shuffle(dates_to_take.begin(), dates_to_take.end());
+				}
 			}
-			
+
 			// Now simply pushing into our MedSamples
 			MedIdSamples mis;
 			mis.id = rc.pid;
-		
+
 			int samples_cnt = 0;
 			for (auto date : dates_to_take) {
 				if (samples_cnt >= s_params.max_samples_per_id) { break; }

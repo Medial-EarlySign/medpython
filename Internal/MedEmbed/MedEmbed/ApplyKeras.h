@@ -1,0 +1,86 @@
+#pragma once
+
+//
+// A simple class to enable:
+// (1) reading a (simple) keras model from a text file (prepared in the training scripts in the print_layers function)
+// (2) Applying it to a given sparse mat, or a line to get the embedding layer (currently always one before the last)
+// (3) serialize/deserialize it via MedSerialize (to enable upper classes put it inside a model)
+//
+// Currently only supports : 
+// (1) dense (fully connected, with bias) , with linear or relu or sigmoid activation
+// (2) LeakyReLU activation (typically right AFTER a dense layer)
+// (3) Dropout (nothing to do, may need to multiply by a factor)
+// (4) batch normalization
+//
+
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+
+//===================================================================================================
+
+enum KerasLayerTypes { K_UNKNOWN = 0, K_DENSE, K_LEAKY, K_DROPOUT, K_BN };
+enum KerasActivations { A_UNKNOWN = 0, A_LINEAR, A_SIGMOID , A_RELU, A_LEAKY};
+
+//===================================================================================================
+class KerasLayer : public SerializableObject {
+
+public:
+
+	int type = K_UNKNOWN;
+	string name = "";
+
+	// for dense
+	int in_dim = 0;
+	int out_dim = 0;
+	int n_bias = 0;
+	int activation = A_UNKNOWN;
+
+	// bn
+	int dim;
+
+	// dropout
+	float drop_rate;
+
+	// leaky
+	float leaky_alpha;
+
+	// weights
+	vector<vector<float>> wgts;
+
+	// biases
+	vector<float> bias;
+
+	// helpers
+	unordered_map<string, int> name_to_type ={ { "dense" , K_DENSE } ,{ "leaky", K_LEAKY } ,{ "dropout" , K_DROPOUT },{ "batch_normalization" , K_BN } };
+	unordered_map<string, int> name_to_activation ={ { "linear" , A_LINEAR } ,{ "relu", A_RELU } ,{ "leaky" , A_LEAKY },{ "sigmoid" , A_SIGMOID } };
+
+
+	// appliers for a single sample
+	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output);
+	int apply(vector<float> &in, vector<float> &out);
+	int apply_bn(vector<float> &in, vector<float> &out);
+	int apply_activation(vector<float> &in, vector<float> &out); // for in place send same vector for in/out
+
+	// initialization from string
+	int init(map<string, string>& _map);
+
+	ADD_CLASS_NAME(KerasLayer)
+	ADD_SERIALIZATION_FUNCS(type, name, in_dim, out_dim, n_bias, activation, dim, drop_rate, leaky_alpha, wgts, bias)
+};
+
+
+//===================================================================================================
+class ApplyKeras : public SerializableObject {
+
+public:
+	vector<KerasLayer> layers;
+
+	int init_from_text_file(string layers_file);
+
+	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer);
+
+	ADD_CLASS_NAME(ApplyKeras)
+	ADD_SERIALIZATION_FUNCS(layers)
+};
+
+MEDSERIALIZE_SUPPORT(KerasLayer)
+MEDSERIALIZE_SUPPORT(ApplyKeras)

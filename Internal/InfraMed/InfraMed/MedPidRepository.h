@@ -75,11 +75,12 @@ class PidRec {
 		void prealloc(unsigned int len);
 		int realloc(unsigned int len);
 		int resize_data(unsigned int len) { return realloc(len); }
+		void set_data_to_buffer() { data = &data_buffer[0]; }
 		void free();
 
 	private:
 		vector<unsigned char> data_buffer;	// the actual holder of the data when using prealloc/realloc/resize_data
-											// this makes for much easier data collection (no need for free)
+											// this makes for much easier data garbage collection (no need for free)
 };
 
 

@@ -619,7 +619,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	shtml += "\t\t\txaxis: { omain: [0," + to_string(psize) +"], ";
 	if (from_t != "") shtml += "range: [" + from_t + "," + to_t + "], ";
 	if (params.rep_time_unit == MedTime::Date) 
-		shtml += "hoverformat: '%%Y/%%m/%%d'},\n";
+		shtml += "hoverformat: '%Y/%m/%d'},\n";
 	else
 		shtml += "hoverformat: '%Y/%m/%d %H:%M'},\n";
 	if (times.size() > 0) {

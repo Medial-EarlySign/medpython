@@ -179,6 +179,7 @@ size_t MedMars::get_size() {
 
 	size_t size = 0;
 
+	size += sizeof(int);							// classifier_type;
 	size += sizeof(int);							// nMaxTerms;
 	size += sizeof(int);							// nTerms;
 	size += sizeof(int);							// nPreds;
@@ -195,7 +196,8 @@ size_t MedMars::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	memcpy(blob+ptr,&nMaxTerms,sizeof(int)); ptr += sizeof(int);
+	memcpy(blob+ptr, &classifier_type, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob+ptr, &nMaxTerms, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob+ptr,&nTerms,sizeof(int)); ptr += sizeof(int);
 	memcpy(blob+ptr,&nPreds,sizeof(int)); ptr += sizeof(int);
 	memcpy(blob+ptr,BestSet,sizeof(bool) * nMaxTerms); ptr += sizeof(bool) * nMaxTerms;
@@ -211,7 +213,8 @@ size_t MedMars::deserialize(unsigned char *blob) {
 	
 	size_t ptr = 0;
 
-	memcpy(&nMaxTerms,blob+ptr,sizeof(int)); ptr += sizeof(int);
+	memcpy(&classifier_type, blob+ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&nMaxTerms, blob+ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&nTerms,blob+ptr,sizeof(int)); ptr += sizeof(int);
 	memcpy(&nPreds,blob+ptr,sizeof(int)); ptr += sizeof(int);
 

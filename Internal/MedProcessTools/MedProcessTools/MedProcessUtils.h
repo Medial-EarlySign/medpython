@@ -18,7 +18,6 @@ class FeatureGenerator;
 
 using namespace std;
 
-int init_map_from_string(string text, map<string, string>& map);
 int init_dvec(string& in, vector<int>& out);
 void get_single_val_from_init_string(string init_s, string attr, string &val_s);
 
@@ -31,6 +30,6 @@ void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureG
 	vector<int>& all_req_signal_ids_v, vector<unordered_set<int> >& current_required_signal_ids);
 
 // Feature names
-int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_error = true);
+int find_in_feature_names(const vector<string>& names,const string& substr, bool throw_on_error = true);
 
 #endif

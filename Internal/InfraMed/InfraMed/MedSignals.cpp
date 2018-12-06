@@ -440,6 +440,21 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	return new_sid; // returning the new sid (always positive) as the rc
 }
 
+//-----------------------------------------------------------------------------------------------
+int MedSignals::get_sids(vector<string> &sigs, vector<int> &sids)
+{
+	int rc = 0;
+	sids.clear();
+	for (auto &s : sigs) {
+		int _sid = sid(s);
+		if (_sid < 0)
+			rc = -1;
+		else
+			sids.push_back(_sid);
+	}
+
+	return rc;
+}
 
 //================================================================================================
 // UniversalSigVec

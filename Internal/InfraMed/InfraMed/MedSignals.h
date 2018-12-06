@@ -597,6 +597,7 @@ public:
 	// this option allows adding new signals definitions to the class, that were not defined in the files.
 	// this is useful when using repositories to calculate new features, etc.
 	int insert_virtual_signal(const string &sig_name, int type);
+	int get_sids(vector<string> &sigs, vector<int> &sids);
 };
 
 
@@ -635,29 +636,29 @@ public:
 	//--------------------------------------------------------------------------------------
 	// Following functions are implemented based on the functions above (and save lots of coding hence)
 	// time channels int
-	inline int Time(int idx, int chan) { return Time_ch_vec(idx, chan, data); }
-	inline float Val(int idx, int chan) { return Val_ch_vec(idx, chan, data); }
+	inline int Time(int idx, int chan) const { return Time_ch_vec(idx, chan, data); }
+	inline float Val(int idx, int chan) const { return Val_ch_vec(idx, chan, data); }
 
 	// channel 0 easy API
-	inline int Time(int idx) { return Time(idx, 0); }
-	inline float Val(int idx) { return Val(idx, 0); }
+	inline int Time(int idx) const { return Time(idx, 0); }
+	inline float Val(int idx) const { return Val(idx, 0); }
 
-	inline int TimeU(int idx, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx)); }
-	inline int Date(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
-	inline int Years(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
-	inline int Months(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
-	inline int Days(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx)); }
-	inline int Hours(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx)); }
-	inline int Minutes(int idx) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
+	inline int TimeU(int idx, int to_time_unit) const { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx)); }
+	inline int Date(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
+	inline int Years(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
+	inline int Months(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
+	inline int Days(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx)); }
+	inline int Hours(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx)); }
+	inline int Minutes(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
 
 	// general channel API
-	inline int TimeU(int idx, int chan, int to_time_unit) { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx, chan)); }
-	inline int Date(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
-	inline int Years(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
-	inline int Months(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
-	inline int Days(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx, chan)); }
-	inline int Hours(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx, chan)); }
-	inline int Minutes(int idx, int chan) { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx, chan)); }
+	inline int TimeU(int idx, int chan, int to_time_unit) const { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx, chan)); }
+	inline int Date(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
+	inline int Years(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
+	inline int Months(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
+	inline int Days(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx, chan)); }
+	inline int Hours(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx, chan)); }
+	inline int Minutes(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx, chan)); }
 
 	template <class S> void set_funcs() {
 		n_time_channels = &S::n_time_channels;

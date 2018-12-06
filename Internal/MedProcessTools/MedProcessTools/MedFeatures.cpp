@@ -475,22 +475,6 @@ int MedFeatures::get_max_serial_id_cnt() const {
 	return max;
 }
 
-// (De)Serialization
-//.......................................................................................
-size_t MedFeatures::get_size() {
-	return MedSerialize::get_size(data, weights, samples, attributes);
-}
-
-//.......................................................................................
-size_t  MedFeatures::serialize(unsigned char *blob) {
-	return MedSerialize::serialize(blob, data, weights, samples, attributes);
-}
-
-//.......................................................................................
-size_t MedFeatures::deserialize(unsigned char *blob) {
-	return MedSerialize::deserialize(blob, data, weights, samples, attributes);
-}
-
 void medial::process::filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag) {
 	MedFeatures filtered;
 	filtered.time_unit = dataMat.time_unit;

@@ -9,7 +9,7 @@
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 
-#include "MedProcessTools/MedProcessTools/MedModel.h"
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -74,14 +74,14 @@ void FeatureGenerator::prepare(MedFeatures &features, MedPidRepository& rep, Med
 
 // Get pointers to data vectors
 //.......................................................................................
-void FeatureGenerator::get_p_data(MedFeatures &features) {
+void FeatureGenerator::get_p_data(MedFeatures &features, vector<float *> &_p_data) {
 
 	p_data.clear();
 	if (iGenerateWeights)
-		p_data.push_back(&(features.weights[0]));
+		_p_data.push_back(&(features.weights[0]));
 	else {
 		for (string& name : names)
-			p_data.push_back(&(features.data[name][0]));
+			_p_data.push_back(&(features.data[name][0]));
 	}
 
 	return;
@@ -108,6 +108,24 @@ FeatureGenerator *FeatureGenerator::make_generator(string generator_name, string
 	//MLOG("making generator %s , %s\n", generator_name.c_str(), init_string.c_str());
 	return make_generator(ftr_generator_name_to_type(generator_name), init_string);
 }
+
+//.......................................................................................
+void *FeatureGenerator::new_polymorphic(string dname) {
+
+	CONDITIONAL_NEW_CLASS(dname, BasicFeatGenerator);
+	CONDITIONAL_NEW_CLASS(dname, AgeGenerator);
+	CONDITIONAL_NEW_CLASS(dname, GenderGenerator);
+	CONDITIONAL_NEW_CLASS(dname, SingletonGenerator);
+	CONDITIONAL_NEW_CLASS(dname, BinnedLmEstimates);
+	CONDITIONAL_NEW_CLASS(dname, SmokingGenerator);
+	CONDITIONAL_NEW_CLASS(dname, KpSmokingGenerator);
+	CONDITIONAL_NEW_CLASS(dname, AlcoholGenerator);
+	CONDITIONAL_NEW_CLASS(dname, RangeFeatGenerator);
+	CONDITIONAL_NEW_CLASS(dname, DrugIntakeGenerator);
+	CONDITIONAL_NEW_CLASS(dname, ModelFeatGenerator);
+	return NULL;
+}
+
 
 //.......................................................................................
 FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generator_type) {
@@ -338,6 +356,26 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 		MTHROW_AND_ERR("unknown name [%s]\n", name.c_str());
 }
 
+TimeRangeTypes BasicFeatGenerator::time_range_name_to_type(const string &name)
+{
+
+	if (name == "current")			return TIME_RANGE_CURRENT;
+	if (name == "before")			return TIME_RANGE_BEFORE;
+
+	if (isInteger(name))
+		return (TimeRangeTypes)med_stoi(name);
+	else
+		MTHROW_AND_ERR("unknown name [%s]\n", name.c_str());
+}
+
+string BasicFeatGenerator::time_range_type_to_name(TimeRangeTypes type)
+{
+	if (type == TIME_RANGE_CURRENT) return "current";
+	if (type == TIME_RANGE_BEFORE) return "before";
+
+	MTHROW_AND_ERR("unknown type [%d]\n", (int) type);
+}
+
 //.......................................................................................
 void BasicFeatGenerator::set_names() {
 
@@ -406,14 +444,15 @@ void BasicFeatGenerator::init_defaults() {
 
 // Generate
 //.......................................................................................
-int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 	if (timeRangeSignalName != "" && time_unit_range_sig == MedTime::Undefined)
 		time_unit_range_sig = rec.my_base_rep->sigs.Sid2Info[timeRangeSignalId].time_unit;
 
 
-	float *p_feat = p_data[0] + index;
+
+	float *p_feat = _p_data[0] + index;
 	MedSample *p_samples = &(features.samples[index]);
 
 	for (int i = 0; i < num; i++)
@@ -527,13 +566,13 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 //=======================================================================================
 // Age
 //=======================================================================================
-int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	// Sanity check
 	if (signalId == -1)
 		MTHROW_AND_ERR("Uninitialized signalId in age generation\n");
 
-	float *p_feat = p_data[0] + index;
+	float *p_feat = _p_data[0] + index;
 
 	int len;
 
@@ -580,7 +619,7 @@ int AgeGenerator::init(map<string, string>& mapper) {
 //=======================================================================================
 // Gender
 //=======================================================================================
-int GenderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int GenderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	// Sanity check
 	if (genderId == -1) {
@@ -592,7 +631,7 @@ int GenderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int in
 	if (rec.usv.len == 0) throw MED_EXCEPTION_NO_GENDER_GIVEN;
 	int gender = (int)(rec.usv.Val(0));
 
-	float *p_feat = p_data[0] + index;
+	float *p_feat = _p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = (float)gender;
 
@@ -628,7 +667,7 @@ int GenderGenerator::init(map<string, string>& mapper) {
 //=======================================================================================
 // Singleton
 //=======================================================================================
-int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	// Sanity check
 	if (signalId == -1) {
@@ -652,7 +691,7 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 			value = (float)lut[((int)(rec.usv.Val(0)))];
 		}
 	}
-	float *p_feat = p_data[0] + index;
+	float *p_feat = _p_data[0] + index;
 	for (int i = 0; i < num; i++)
 		p_feat[i] = value;
 
@@ -833,13 +872,13 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 
 // Generate
 //.......................................................................................
-int RangeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int RangeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 	if (timeRangeSignalName != "" && time_unit_range_sig == MedTime::Undefined)
 		time_unit_range_sig = rec.my_base_rep->sigs.Sid2Info[timeRangeSignalId].time_unit;
 
-	float *p_feat = p_data[0] + index;
+	float *p_feat = _p_data[0] + index;
 	MedSample *p_samples = &(features.samples[index]);
 
 	for (int i = 0; i < num; i++)
@@ -889,8 +928,10 @@ float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_fro
 	if (bound_outcomeTime && outcomeTime < max_time)
 		max_time = outcomeTime;
 
+	//MLOG("min_time %d max_time %d usv.len %d time %d\n", min_time, max_time, usv.len, time);
 	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
+		//MLOG("%d,%d,%f\n", i, itime, usv.Val(i, val_channel));
 		if (itime <= max_time) {
 			if (itime >= min_time)
 				return usv.Val(i, val_channel);
@@ -1298,6 +1339,108 @@ float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_f
 	if (i >= 0 && j < usv.len && usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time && i - j >= 0)
 		return 1.0;
 	else return 0.0;
+}
+
+//.......................................................................................
+// get the max difference in values in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	if (bound_outcomeTime && outcomeTime < max_time)
+		max_time = outcomeTime;
+
+	float max_diff = missing_val;
+	vector<float> _vals_vec;
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime >= min_time) {
+			if (itime > max_time)
+				break;
+			else {
+				if (_vals_vec.size() > 0) {
+					nth_element(_vals_vec.begin(), _vals_vec.begin() + _vals_vec.size() / 2, _vals_vec.end());
+					float median_prev_val = _vals_vec[_vals_vec.size() / 2];
+					//float prev_val = median_prev_val;
+					float prev_val = _vals_vec.back();
+					float diff = usv.Val(i, val_channel) - prev_val;
+					if (diff > max_diff || max_diff == missing_val)
+						max_diff = diff;
+				}
+				_vals_vec.push_back(usv.Val(i, val_channel));
+			}
+		}
+	}
+	return max_diff;
+}
+
+//.......................................................................................
+// update time window according to time-range signal
+void BasicFeatGenerator::get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time, int& updated_win_from, int& updated_win_to, bool delta_win, 
+	int& updated_d_win_from, int& updated_d_win_to) {
+
+	// Identify relevant range
+	int range_from = -1, range_to = -1;
+	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig,time_unit_win,time));
+	
+	for (int i = 0; i < time_range_usv.len; i++) {
+		int fromTime = time_range_usv.Time(i, 0);
+		int toTime = time_range_usv.Time(i, 1);
+
+		if (fromTime > time_to_check)
+			break;
+		else if (toTime >= time_to_check) {
+			range_from = fromTime;
+			range_to = toTime;
+			break;
+		}
+	}
+
+	// Handle cases
+	get_updated_time_window(type, range_from, range_to, time_to_check, win_from, win_to, updated_win_from, updated_win_to);
+	if (delta_win)
+		get_updated_time_window(type, range_from, range_to, time_to_check, d_win_from, d_win_to, updated_d_win_from, updated_d_win_to);
+}
+
+void BasicFeatGenerator::get_updated_time_window(TimeRangeTypes type,
+	int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to) {
+
+	if (type == TIME_RANGE_CURRENT) {
+		// Intersection is empty
+		if (range_from == -1 || win_from > time - range_from || win_to < time - range_to) {
+			updated_win_from = win_from;
+			updated_win_to = updated_win_from - 1; // Empty window ...
+		}
+		else {
+			if (win_to > time - range_from) // win_to points before range
+				updated_win_to = time - range_from;
+			else
+				updated_win_to = win_to;
+
+			if (win_from < time - range_to) // win_from is negative (points to the future) and after range-to
+				updated_win_from = time - range_to;
+			else
+				updated_win_from = win_from;
+		}
+	}
+	else if (type == TIME_RANGE_BEFORE) {
+		if (range_from == -1) {
+			updated_win_from = win_from;
+			updated_win_to = win_to;
+		}
+		else {
+			if (win_from < time - range_from)
+				updated_win_from = time - range_from;
+			else
+				updated_win_from = win_from;
+
+			if (win_to < time - range_from)
+				updated_win_to = time - range_from;
+			else
+				updated_win_to = win_to;
+
+		}
+	}
 }
 
 //.......................................................................................
@@ -1800,8 +1943,8 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 
 // Put relevant predictions in place
 //.......................................................................................
-int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
-	float *p_feat = p_data[0] + index;
+int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
+	float *p_feat = _p_data[0] + index;
 	for (int i = 0; i < num; i++) {
 		if (!impute_existing_feature || p_feat[i] == missing_val) {
 			float new_val = preds[index*n_preds + i];
@@ -1815,33 +1958,13 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 }
 
-// (De)Serialize
-//.......................................................................................
-size_t ModelFeatGenerator::get_size() {
-
-	size_t size = MedSerialize::get_size(generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
-	return size + model->get_size();
-}
-
-size_t ModelFeatGenerator::serialize(unsigned char *blob) {
-	size_t ptr1 = MedSerialize::serialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
-	size_t ptr2 = model->serialize(blob + ptr1);
-	return ptr2 + ptr1;
-}
-
-size_t ModelFeatGenerator::deserialize(unsigned char *blob) {
-
-	size_t ptr1 = MedSerialize::deserialize(blob, generator_type, tags, modelFile, modelName, n_preds, names, req_signals, impute_existing_feature);
-	model = new MedModel;
-	size_t ptr2 = model->deserialize(blob + ptr1);
-	return ptr2 + ptr1;
-}
 
 ModelFeatGenerator::~ModelFeatGenerator() {
 	if (model != NULL) delete model;
 	model = NULL;
 }
 
+ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, model)
 //................................................................................................................
 // Helper function for time conversion
 //................................................................................................................
@@ -1851,9 +1974,8 @@ void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int 
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
 }
 
-//................................................................................................................
 // Helper functions for time-range signals
-//................................................................................................................
+//.......................................................................................
 string time_range_type_to_name(TimeRangeTypes type)
 {
 	if (type == TIME_RANGE_CURRENT) return "current";
@@ -1862,8 +1984,7 @@ string time_range_type_to_name(TimeRangeTypes type)
 	MTHROW_AND_ERR("unknown type [%d]\n", (int)type);
 }
 
-TimeRangeTypes time_range_name_to_type(const string &name)
-{
+float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int outcomeTime)
 
 	if (name == "current")			return TIME_RANGE_CURRENT;
 	if (name == "before")			return TIME_RANGE_BEFORE;
@@ -1880,8 +2001,8 @@ void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes typ
 	 int win_from, int& updated_win_from, int win_to, int& updated_win_to, bool delta_win, int d_win_from, int& updated_d_win_from, int d_win_to, int& updated_d_win_to) {
 
 	// Identify relevant range
-	int range_from = -1, range_to;
-	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig, time_unit_win, time));
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	for (int i = 0; i < time_range_usv.len; i++) {
 		int fromTime = time_range_usv.Time(i, 0);

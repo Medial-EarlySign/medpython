@@ -59,7 +59,7 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 
 
 
-int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 
 
@@ -540,33 +540,33 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 			//************************************************** Add to matrix  *********************************************
 		}
 		// Current Drinker
-		if (p_data[ALC_CURRENT_DRINKER] != NULL) p_data[ALC_CURRENT_DRINKER][index + i] = (float)__current_drinker;
+		if (_p_data[ALC_CURRENT_DRINKER] != NULL) _p_data[ALC_CURRENT_DRINKER][index + i] = (float)__current_drinker;
 		// Ex Drinker
-		if (p_data[ALC_EX_DRINKER] != NULL) p_data[ALC_EX_DRINKER][index + i] = (float)__ex_drinker;
+		if (_p_data[ALC_EX_DRINKER] != NULL) _p_data[ALC_EX_DRINKER][index + i] = (float)__ex_drinker;
 		// Drinker_Years_Since_Quitting
-		if (p_data[ALC_DRINKER_YEARS_SINCE_QUITTING] != NULL) p_data[ALC_DRINKER_YEARS_SINCE_QUITTING][index + i] = (float)__years_since_quitting;
+		if (_p_data[ALC_DRINKER_YEARS_SINCE_QUITTING] != NULL) _p_data[ALC_DRINKER_YEARS_SINCE_QUITTING][index + i] = (float)__years_since_quitting;
 		// Drinker_Years
-		if (p_data[ALC_DRINKING_YEARS] != NULL) p_data[ALC_DRINKING_YEARS][index + i] = (float)__drinker_years;
+		if (_p_data[ALC_DRINKING_YEARS] != NULL) _p_data[ALC_DRINKING_YEARS][index + i] = (float)__drinker_years;
 		// Drink_Unit_Years
-		if (p_data[ALC_DRINKING_UNIT_YEARS] != NULL) p_data[ALC_DRINKING_UNIT_YEARS][index + i] = (float)__unit_years;
+		if (_p_data[ALC_DRINKING_UNIT_YEARS] != NULL) _p_data[ALC_DRINKING_UNIT_YEARS][index + i] = (float)__unit_years;
 		// PLM_Drinking_Level
-		if (p_data[ALC_PLM_DRINKING_LEVEL] != NULL) p_data[ALC_PLM_DRINKING_LEVEL][index + i] = (float)plm_drinking_level;
+		if (_p_data[ALC_PLM_DRINKING_LEVEL] != NULL) _p_data[ALC_PLM_DRINKING_LEVEL][index + i] = (float)plm_drinking_level;
 		// Never_Drinker
-		if (p_data[ALC_NEVER_DRINKER] != NULL) p_data[ALC_NEVER_DRINKER][index + i] = (float)__never_drinker;
+		if (_p_data[ALC_NEVER_DRINKER] != NULL) _p_data[ALC_NEVER_DRINKER][index + i] = (float)__never_drinker;
 		// Unknown_Drinker
-		if (p_data[ALC_UNKNOWN_DRINKER] != NULL) p_data[ALC_UNKNOWN_DRINKER][index + i] = (float)__unknown_drinker;
+		if (_p_data[ALC_UNKNOWN_DRINKER] != NULL) _p_data[ALC_UNKNOWN_DRINKER][index + i] = (float)__unknown_drinker;
 		// Drinker_Quantity
-		if (p_data[ALC_DRINKER_QUANTITY] != NULL) p_data[ALC_DRINKER_QUANTITY][index + i] = (float)__drinker_quantity;
+		if (_p_data[ALC_DRINKER_QUANTITY] != NULL) _p_data[ALC_DRINKER_QUANTITY][index + i] = (float)__drinker_quantity;
 		// Current_Alcoholic
-		if (p_data[ALC_CURRENT_ALCOHOLIC] != NULL) p_data[ALC_CURRENT_ALCOHOLIC][index + i] = (float)__current_alcoholist;
+		if (_p_data[ALC_CURRENT_ALCOHOLIC] != NULL) _p_data[ALC_CURRENT_ALCOHOLIC][index + i] = (float)__current_alcoholist;
 		// Ex_Alcoholic
-		if (p_data[ALC_EX_ALCOHOLIC] != NULL) p_data[ALC_EX_ALCOHOLIC][index + i] = (float)__ex_alcoholist;
+		if (_p_data[ALC_EX_ALCOHOLIC] != NULL) _p_data[ALC_EX_ALCOHOLIC][index + i] = (float)__ex_alcoholist;
 	}
 
 	return 0;
 }
 
-void AlcoholGenerator::get_p_data(MedFeatures& features) {
+void AlcoholGenerator::get_p_data(MedFeatures& features, vector<float *> &_p_data) {
 
 	p_data.resize(ALC_LAST, NULL);
 
@@ -579,27 +579,27 @@ void AlcoholGenerator::get_p_data(MedFeatures& features) {
 		
 	for (string &name : names) {
 		if (algorithm::ends_with(name, "Current_Drinker"))
-			p_data[ALC_CURRENT_DRINKER] = &(features.data[name][0]);
+			_p_data[ALC_CURRENT_DRINKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Ex_Drinker"))
-			p_data[ALC_EX_DRINKER] = &(features.data[name][0]);
+			_p_data[ALC_EX_DRINKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Drinker_Years_Since_Quitting"))
-			p_data[ALC_DRINKER_YEARS_SINCE_QUITTING] = &(features.data[name][0]);
+			_p_data[ALC_DRINKER_YEARS_SINCE_QUITTING] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Drinker_Years"))
-			p_data[ALC_DRINKING_YEARS] = &(features.data[name][0]);
+			_p_data[ALC_DRINKING_YEARS] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Drink_Unit_Years"))
-			p_data[ALC_DRINKING_UNIT_YEARS] = &(features.data[name][0]);
+			_p_data[ALC_DRINKING_UNIT_YEARS] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "PLM_Drinking_Level"))
-			p_data[ALC_PLM_DRINKING_LEVEL] = &(features.data[name][0]);
+			_p_data[ALC_PLM_DRINKING_LEVEL] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Never_Drinker"))
-			p_data[ALC_NEVER_DRINKER] = &(features.data[name][0]);
+			_p_data[ALC_NEVER_DRINKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Unknown_Drinker"))
-			p_data[ALC_UNKNOWN_DRINKER] = &(features.data[name][0]);
+			_p_data[ALC_UNKNOWN_DRINKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Drinker_Quantity"))
-			p_data[ALC_DRINKER_QUANTITY] = &(features.data[name][0]);
+			_p_data[ALC_DRINKER_QUANTITY] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Current_Alcoholic"))
-			p_data[ALC_CURRENT_ALCOHOLIC] = &(features.data[name][0]);
+			_p_data[ALC_CURRENT_ALCOHOLIC] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Ex_Alcoholic"))
-			p_data[ALC_EX_ALCOHOLIC] = &(features.data[name][0]);
+			_p_data[ALC_EX_ALCOHOLIC] = &(features.data[name][0]);
 		else
 			MTHROW_AND_ERR("unknown feature name [%s]", name.c_str());
 	}

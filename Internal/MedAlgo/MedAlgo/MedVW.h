@@ -24,6 +24,7 @@ public:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
+	ADD_CLASS_NAME(MedVW)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
@@ -37,6 +38,8 @@ private:
 	vw* _v;
 
 };
+
+MEDSERIALIZE_SUPPORT(MedVW)
 
 #endif
 #endif

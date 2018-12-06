@@ -12,22 +12,17 @@ class MPSigExporter {
 	std::vector<std::string> data_keys;
 	std::vector<void*> data_column;
 	std::vector<int> data_column_nptype;
+	std::map<std::string, std::map<int, std::string> > categories;
+	int __get_key_id_or_throw(const string& key);
+	void gen_cat_dict(const string& field_name, int channel);
+	std::vector<int> pids;
 public:
 	std::vector<std::string> keys() { return data_keys; }
 	std::string sig_name;
 	int sig_id = -1;
 	int sig_type = -1;
 	int record_count = -1;
-	MPSigExporter(MPPidRepository& rep, std::string signame_str) : o(rep.o), sig_name(signame_str) {
-		if (rep.loadsig(signame_str) != 0)
-			throw runtime_error("could not load signal");
-		sig_id = rep.sig_id(sig_name);
-		if (sig_id == -1)
-			throw runtime_error("bad sig id");
-		sig_type = rep.sig_type(sig_name);
-		update_record_count();
-		get_all_data();
-	}
+	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids);
 	void update_record_count();
 	void get_all_data();
 	void clear() {
@@ -44,9 +39,25 @@ public:
 	void __getitem__(const std::string& key,
 		MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype))
 	{
-		return transfer_column(key, outarr1, outarr1_sz, outarr1_npytype);
+		transfer_column(key, outarr1, outarr1_sz, outarr1_npytype);
 	};
 	MPSigExporter_iter __iter__();
+	
+	MPIntStringMapAdaptor get_categorical_field_dict(const std::string& field)
+	{
+		if (categories.count(field) == 0)
+			throw runtime_error("MedPy: Not categorical key");		
+		return MPIntStringMapAdaptor(&categories[field]);
+	};
+	std::vector<std::string> get_categorical_fields() {
+		std::vector<std::string> ret;
+		for (const auto& key : categories) {
+			ret.push_back(key.first);
+		}
+		return ret;
+	}
+
+
 };
 
 class MPSigExporter_iter {

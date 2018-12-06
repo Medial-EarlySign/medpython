@@ -54,7 +54,7 @@ public:
 	MPSigVectorAdaptor uget(int pid, int sid);
 
 	MEDPY_DOC(dict_section_id, "dict_section_id(str_secName) -> int\n"
-	"  returns dection id number for a given section name");
+	"  returns section id number for a given section name");
 	int dict_section_id(const std::string &secName);
 
 	MEDPY_DOC(dict_name, "dict_name(int_section_id, int_id) -> string\n"
@@ -67,7 +67,7 @@ public:
 	
 	MEDPY_DOC(export_to_numpy, "export_to_numpy(str_signame) -> SigExporter\n"
 	"  Returns the signal data represented as a list of numpy arrays, one for each field");
-	MPSigExporter export_to_numpy(string signame);
+	MPSigExporter export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids);
 };
 
 

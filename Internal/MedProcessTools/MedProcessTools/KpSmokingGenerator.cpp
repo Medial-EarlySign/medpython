@@ -70,7 +70,7 @@ int KpSmokingGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num)
+int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data)
 {
 	int quitTime = (int)missing_val, unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
 	float smokingStatus = missing_val, lastPackYears = missing_val, maxPackYears = missing_val, daysSinceQuitting = missing_val;
@@ -209,23 +209,23 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 		// Add data to matrix:
 		// Current_Smoker
-		if (p_data[SMX_KP_CURRENT_SMOKER] != NULL) p_data[SMX_KP_CURRENT_SMOKER][index + i] = (float)currentSmoker;
+		if (_p_data[SMX_KP_CURRENT_SMOKER] != NULL) _p_data[SMX_KP_CURRENT_SMOKER][index + i] = (float)currentSmoker;
 		// Ex_Smoker
-		if (p_data[SMX_KP_EX_SMOKER] != NULL) p_data[SMX_KP_EX_SMOKER][index + i] = (float)formerSmoker;
+		if (_p_data[SMX_KP_EX_SMOKER] != NULL) _p_data[SMX_KP_EX_SMOKER][index + i] = (float)formerSmoker;
 		// Smoke_Days_Since_Quitting
-		if (p_data[SMX_KP_DAYS_SINCE_QUITTING] != NULL) p_data[SMX_KP_DAYS_SINCE_QUITTING][index + i] = (float)daysSinceQuitting;
+		if (_p_data[SMX_KP_DAYS_SINCE_QUITTING] != NULL) _p_data[SMX_KP_DAYS_SINCE_QUITTING][index + i] = (float)daysSinceQuitting;
 		// Smok_Pack_Years_max
-		if (p_data[SMX_KP_SMOK_PACK_YEARS_MAX] != NULL) p_data[SMX_KP_SMOK_PACK_YEARS_MAX][index + i] = (float)maxPackYears;
+		if (_p_data[SMX_KP_SMOK_PACK_YEARS_MAX] != NULL) _p_data[SMX_KP_SMOK_PACK_YEARS_MAX][index + i] = (float)maxPackYears;
 		// last pack years
-		if (p_data[SMX_KP_SMOK_PACK_YEARS_LAST] != NULL) p_data[SMX_KP_SMOK_PACK_YEARS_LAST][index + i] = (float)lastPackYears;
+		if (_p_data[SMX_KP_SMOK_PACK_YEARS_LAST] != NULL) _p_data[SMX_KP_SMOK_PACK_YEARS_LAST][index + i] = (float)lastPackYears;
 		// Never_Smoker
-		if (p_data[SMX_KP_NEVER_SMOKER] != NULL) p_data[SMX_KP_NEVER_SMOKER][index + i] = (float)neverSmoker;
+		if (_p_data[SMX_KP_NEVER_SMOKER] != NULL) _p_data[SMX_KP_NEVER_SMOKER][index + i] = (float)neverSmoker;
 		// Unknown_Smoker
-		if (p_data[SMX_KP_UNKNOWN_SMOKER] != NULL) p_data[SMX_KP_UNKNOWN_SMOKER][index + i] = (float)unknownSmoker;
+		if (_p_data[SMX_KP_UNKNOWN_SMOKER] != NULL) _p_data[SMX_KP_UNKNOWN_SMOKER][index + i] = (float)unknownSmoker;
 		// Passive_Smoker
-		if (p_data[SMX_KP_PASSIVE_SMOKER] != NULL) p_data[SMX_KP_PASSIVE_SMOKER][index + i] = (float)passiveSmoker;
+		if (_p_data[SMX_KP_PASSIVE_SMOKER] != NULL) _p_data[SMX_KP_PASSIVE_SMOKER][index + i] = (float)passiveSmoker;
 		//NLST_Criterion (only after everything was calculated, we can calc. the NLST criterion)
-		if (p_data[NLST_CRITERION] != NULL) p_data[NLST_CRITERION][index + i] = (float)calcNlst(age, unknownSmoker, daysSinceQuitting, lastPackYears);
+		if (_p_data[NLST_CRITERION] != NULL) _p_data[NLST_CRITERION][index + i] = (float)calcNlst(age, unknownSmoker, daysSinceQuitting, lastPackYears);
 	}
 	return 0;
 }
@@ -238,7 +238,7 @@ int KpSmokingGenerator::calcNlst(int age, int unknownSmoker, int daysSinceQuitti
 	return ((age >= nlstMinAge) && (age <= nlstMaxAge) && (lastPackYears >= nlstPackYears) && (daysSinceQuitting <= nlstQuitTimeYears * 365.0));
 }
 
-void KpSmokingGenerator::get_p_data(MedFeatures& features) {
+void KpSmokingGenerator::get_p_data(MedFeatures& features, vector<float *> &_p_data) {
 	p_data.resize(SMX_KP_LAST, NULL);
 
 	if (iGenerateWeights) {
@@ -250,23 +250,23 @@ void KpSmokingGenerator::get_p_data(MedFeatures& features) {
 
 	for (string &name : names) {
 		if (algorithm::ends_with(name, "Current_Smoker"))
-			p_data[SMX_KP_CURRENT_SMOKER] = &(features.data[name][0]);
+			_p_data[SMX_KP_CURRENT_SMOKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Ex_Smoker"))
-			p_data[SMX_KP_EX_SMOKER] = &(features.data[name][0]);
+			_p_data[SMX_KP_EX_SMOKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Smoke_Days_Since_Quitting"))
-			p_data[SMX_KP_DAYS_SINCE_QUITTING] = &(features.data[name][0]);
+			_p_data[SMX_KP_DAYS_SINCE_QUITTING] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Smoke_Pack_Years_Max"))
-			p_data[SMX_KP_SMOK_PACK_YEARS_MAX] = &(features.data[name][0]);
+			_p_data[SMX_KP_SMOK_PACK_YEARS_MAX] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Smoke_Pack_Years_Last"))
-			p_data[SMX_KP_SMOK_PACK_YEARS_LAST] = &(features.data[name][0]);
+			_p_data[SMX_KP_SMOK_PACK_YEARS_LAST] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Never_Smoker"))
-			p_data[SMX_KP_NEVER_SMOKER] = &(features.data[name][0]);
+			_p_data[SMX_KP_NEVER_SMOKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Unknown_Smoker"))
-			p_data[SMX_KP_UNKNOWN_SMOKER] = &(features.data[name][0]);
+			_p_data[SMX_KP_UNKNOWN_SMOKER] = &(features.data[name][0]);
 		else if (algorithm::ends_with(name, "Passive_Smoker"))
-			p_data[SMX_KP_PASSIVE_SMOKER] = &(features.data[name][0]);
+			_p_data[SMX_KP_PASSIVE_SMOKER] = &(features.data[name][0]);
 		else if (algorithm::contains(name, "NLST_Criterion"))
-			p_data[NLST_CRITERION] = &(features.data[name][0]);
+			_p_data[NLST_CRITERION] = &(features.data[name][0]);
 		else
 			MTHROW_AND_ERR("unknown feature name [%s]", name.c_str());
 	}

@@ -48,7 +48,7 @@ public:
 	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 	float get_value(PidDynamicRec &rec, int idx, int time, int sig_outcomeTime);
 
 	// Signal Ids
@@ -58,6 +58,7 @@ public:
 	void init_tables(MedDictionarySections& dict);
 
 	// Serialization
+	ADD_CLASS_NAME(DrugIntakeGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights, timeRangeSignalName, timeRangeType)
 };
 

@@ -98,6 +98,7 @@ class MedBooster : public MedPredictor {
 		int predict(MedMat<float> &x, vector<float> &preds) const;
 
 		// serializations
+		ADD_CLASS_NAME(MedBooster)
 		size_t get_size();
 		size_t serialize(unsigned char *blob);
 		size_t deserialize(unsigned char *blob);

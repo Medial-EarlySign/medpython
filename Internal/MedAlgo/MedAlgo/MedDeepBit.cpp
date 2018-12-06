@@ -783,6 +783,7 @@ size_t MedDeepBit::get_size() {
 	ptr += params.get_size();
 	ptr += sizeof(int);
 	ptr += sizeof(int);
+	ptr += sizeof(int);
 	ptr += sizeof(double);
 	ptr += nftrs * sizeof(double);
 	//memcpy(blob + ptr, &(ftr_names[0]), nftrs * sizeof(string)); ptr += nftrs * sizeof(string);
@@ -853,6 +854,7 @@ void MedDeepBit::print_model() {
 size_t MedDeepBit::serialize(unsigned char *blob) {
 	size_t ptr = 0;
 	ptr += params.serialize(blob);
+	memcpy(blob + ptr, &classifier_type, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &nftrs, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &num_bin_ftrs, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, &(avy), sizeof(double)); ptr += sizeof(double);
@@ -893,6 +895,7 @@ size_t MedDeepBit::serialize(unsigned char *blob) {
 size_t MedDeepBit::deserialize(unsigned char *blob) {
 	size_t ptr = 0;
 	ptr += params.deserialize(blob);
+	memcpy(&classifier_type, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&nftrs, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&num_bin_ftrs, blob + ptr, sizeof(int)); ptr += sizeof(int);
 	memcpy(&(avy), blob + ptr, sizeof(double)); ptr += sizeof(double);

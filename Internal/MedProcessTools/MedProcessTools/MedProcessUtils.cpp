@@ -14,26 +14,6 @@
 char signalName_c[MAX_NAME_LEN + 1];
 
 //..............................................................................
-int init_map_from_string(string text, map<string, string>& init_map) {
-
-	if (text == "") return 0;
-
-	// parse text of the format "Name = Value ; Name = Value ; ..."
-
-	// remove white spaces
-	text.erase(remove_if(text.begin(), text.end(), ::isspace), text.end());
-
-	if (initialization_text_to_map(text, init_map) == -1)
-		return -1;
-
-	//	for (auto rec : init_map)
-	//		MLOG("Initializing with \'%s\' = \'%s\'\n", rec.first.c_str(), rec.second.c_str());
-
-
-	return 0;
-}
-
-//..............................................................................
 int init_dvec(string& in, vector<int>& out) {
 
 	vector<string> vals;
@@ -131,7 +111,7 @@ void handle_required_signals(vector<RepProcessor *>& processors, vector<FeatureG
 
 // Handle feature names
 //.......................................................................................
-int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_error) {
+int find_in_feature_names(const vector<string>& names, const string& substr, bool throw_on_error) {
 
 	int index = -1;
 	for (int i = 0; i < names.size(); i++) {
@@ -141,8 +121,14 @@ int find_in_feature_names(vector<string>& names, string& substr, bool throw_on_e
 		}
 		if (names[i].find(substr) != string::npos) {
 			if (index != -1) {
-				if (throw_on_error)
-					MTHROW_AND_ERR("%s\n", (string("Got source_feature_name [") + substr + "] which matches both [" + names[i] + "] and [" + names[index] + "]").c_str());
+				if (throw_on_error) {
+					MTHROW_AND_ERR("Got source_feature_name [%s] which matches both [%s] and [%s]",
+						substr.c_str(), names[i].c_str(), names[index].c_str());
+				}
+				else {
+					MWARN("Got source_feature_name [%s] which matches both [%s] and [%s]",
+						substr.c_str(), names[i].c_str(), names[index].c_str());
+				}
 				return -1;
 			}
 

@@ -34,6 +34,7 @@ public:
 	MPFeatureAttr __getitem__(std::string key);
 	void __setitem__(std::string key, MPFeatureAttr& val);
 	std::vector<std::string> keys();
+	MEDPY_IGNORE(MPStringFeatureAttrMapAdaptor& operator=(const MPStringFeatureAttrMapAdaptor& other));
 };
 
 

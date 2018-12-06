@@ -51,12 +51,13 @@ public:
 	/// if pos is empty, check old and new formats
 	/// </summary>
 	/// <returns> 0 upon success, -1 upon failure to parse </returns>
-	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit);
+	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit, int raw_format);
 	/// <summary> Write to string in new format </summary>
 	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit);
 	void write_to_string(string &s, int time_unit);
 
 	// Serialization
+	ADD_CLASS_NAME(MedSample)
 	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes, str_attributes)
 };
 
@@ -97,7 +98,11 @@ public:
 	/// <returns> true if equal , false otherwise </returns>
 	bool same_as(MedIdSamples &other, int mode);
 
+	/// <summary> get a vector of all times for the pid
+	void get_times(vector<int> &times) { times.clear(); for (auto &s : samples) times.push_back(s.time); }
+
 	// Serialization
+	ADD_CLASS_NAME(MedIdSamples)
 	ADD_SERIALIZATION_FUNCS(id, split, samples)
 
 };
@@ -117,6 +122,7 @@ class MedSamples : public SerializableObject {
 public:
 	int time_unit = MedTime::Date;	///< The time unit in which the samples are given. Default: Date
 	vector<MedIdSamples> idSamples; ///< The vector of MedIdSamples
+	int raw_format = 0; // read times as is, no conversions
 
 	/// <summary> Constructor. init time_unit according to default </summary>
 	MedSamples() { time_unit = global_default_time_unit; }
@@ -194,11 +200,9 @@ public:
 	void insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
 	void insertRec(int pid, int time) { insertRec(pid, time, -1, 0); }
 
-	// Version for serialization
-	int version() { return  2; };
-
 	//Serialization, version 1: Added version, model_features, features_count to serialization
 	//				 version 2: Added attributes
+	ADD_CLASS_NAME(MedSamples)
 	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 };
 

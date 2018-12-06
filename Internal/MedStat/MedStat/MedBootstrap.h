@@ -17,12 +17,16 @@
 class with_registry_args {
 public:
 	MedRegistry *registry; ///< the registry of records
+	MedRegistry *registry_censor; ///< the registry censor of records
 	MedSamplingYearly *sampler; ///< the sampler for calculating incidence for example yearly from year to year
 	bool do_kaplan_meir; ///< If true will do kaplan meier
 	string rep_path; ///< repository path
 	string json_model; ///< The json_model path to create matrix to calc incidence and filter cohort
 	with_registry_args() {
 		do_kaplan_meir = true;
+		registry_censor = NULL;
+		registry = NULL;
+		sampler = NULL;
 	}
 };
 
@@ -87,7 +91,7 @@ public:
 	/// not filtering
 	/// </summary>
 	MedBootstrap();
-	
+
 	/// <summary>
 	/// Initialization string with format "parameter_name=value;..."
 	/// each paramter_name is same as the class name field. filter_cohort is path to file
@@ -230,15 +234,16 @@ public:
 	/// </returns>
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
 
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow);
+	ADD_CLASS_NAME(MedBootstrap)
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow)
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
-		const map<string, vector<float>> &additional_info);
+		const vector<float> *weights, const map<string, vector<float>> &additional_info);
 	map<string, map<string, float>> bootstrap_using_registry(MedFeatures &features_mat,
 		const with_registry_args& args, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 	void add_splits_results(const vector<float> &preds, const vector<float> &y,
-		const vector<int> &pids, const map<string, vector<float>> &data,
+		const vector<int> &pids, const vector<float> *weights, const map<string, vector<float>> &data,
 		const unordered_map<int, vector<int>> &splits_inds,
 		map<int, map<string, map<string, float>>> &results_per_split);
 	bool use_time_window();
@@ -311,6 +316,7 @@ public:
 	/// </summary>
 	void read_results_to_text_file(const string &path, bool pivot_format = true);
 
+	ADD_CLASS_NAME(MedBootstrapResult)
 	ADD_SERIALIZATION_FUNCS(bootstrap_params, bootstrap_results)
 private:
 	bool find_in_range(const vector<float> &vec, float search, float th);
