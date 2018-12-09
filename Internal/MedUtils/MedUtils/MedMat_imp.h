@@ -821,3 +821,11 @@ template <class T> void MedMat<T>::print_row(FILE *fout, const string &prefix, c
 }
 
 
+template <class T> void MedMat<T>::set_signals(vector<string> & sigs)
+{
+	signals.clear();
+	for (auto &sig : sigs)
+	{
+		signals.push_back(sig);
+	}
+}

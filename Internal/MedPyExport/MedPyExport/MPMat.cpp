@@ -84,6 +84,8 @@ void MPMat::MEDPY_GET_std(MEDPY_NP_OUTPUT(int** std_buf, int* std_buf_len)) {
 	vector_to_buf(o->std, std_buf, std_buf_len);
 }
 
+void MPMat::set_signals(std::vector<std::string> & sigs) { o->set_signals(sigs); };
+
 std::vector<std::string> MPMat::MEDPY_GET_signals() { return o->signals; }
 
 int MPMat::MEDPY_GET_normalized_flag() { return o->normalized_flag; };

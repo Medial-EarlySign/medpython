@@ -160,6 +160,8 @@ class MedMat : public SerializableObject {
 
 		void print_row(FILE *fout, const string &prefix, const string &format, int i_row);
 
+		void set_signals(vector<string> & sigs);
+
 		//return true iff the matrix contains only valid floating point vals (not nan/infinite)
 		//if the type of the matrix is not floating point, always returns true
 		//if output = true, output the first invalid entry encountered to cerr
