@@ -475,6 +475,18 @@ int MedFeatures::get_max_serial_id_cnt() const {
 	return max;
 }
 
+template<class T> void medial::process::commit_selection(vector<T> &vec, const vector<int> &idx) {
+	vector<T> filt(idx.size());
+	for (size_t i = 0; i < idx.size(); ++i)
+		filt[i] = vec[idx[i]];
+	vec.swap(filt);
+}
+template void medial::process::commit_selection<MedSample *>(vector<MedSample *> &vec, const vector<int> &idx);
+template void medial::process::commit_selection<const MedSample *>(vector<const MedSample *> &vec, const vector<int> &idx);
+template void medial::process::commit_selection<float>(vector<float> &vec, const vector<int> &idx);
+template void medial::process::commit_selection<double>(vector<double> &vec, const vector<int> &idx);
+template void medial::process::commit_selection<int>(vector<int> &vec, const vector<int> &idx);
+
 void medial::process::filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag) {
 	MedFeatures filtered;
 	filtered.time_unit = dataMat.time_unit;
@@ -1095,6 +1107,71 @@ void medial::process::match_to_prior(const vector<float> &outcome,
 		sel_idx.insert(sel_idx.end(), grp_inds[1].begin(), grp_inds[1].end());
 	}
 }
+
+void medial::process::match_to_prior(MedSamples &samples, float target_prior, vector<int> &sel_idx) {
+	int size_f = samples.nSamples();
+	if (size_f == 0)
+		MTHROW_AND_ERR("Error : sampels is empty\n");
+	vector<float> fetched_labels; fetched_labels.reserve(size_f);
+	vector<float> all_in_same(size_f);
+	vector<MedSample *> pointers_to_smps; pointers_to_smps.reserve(size_f);
+	double pr = 0;
+	for (size_t i = 0; i < samples.idSamples.size(); ++i)
+		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
+		{
+			fetched_labels.push_back(samples.idSamples[i].samples[j].outcome);
+			pr += int(samples.idSamples[i].samples[j].outcome > 0);
+			pointers_to_smps.push_back(&samples.idSamples[i].samples[j]);
+		}
+	pr /= size_f;
+	if (pr < target_prior) {
+		vector<MedIdSamples> to_change;
+		medial::process::match_to_prior(fetched_labels, all_in_same, target_prior, sel_idx);
+		medial::process::commit_selection(pointers_to_smps, sel_idx);
+		//sort by pid:
+		sort(pointers_to_smps.begin(), pointers_to_smps.end(), [](MedSample *a, MedSample *b) {
+			int pos = 0;
+			if (a->id == b->id)
+				return b->time > a->time;
+			return b->id > a->id;
+		});
+		//aggregate pointers_to_smps into to_change:
+		for (size_t i = 0; i < pointers_to_smps.size(); ++i)
+		{
+			if (to_change.empty() || to_change.back().id != pointers_to_smps[i]->id) {
+				MedIdSamples smp(pointers_to_smps[i]->id);
+				to_change.push_back(smp);
+			}
+			to_change.back().samples.push_back(*pointers_to_smps[i]);
+		}
+		MLOG("Changing prior: was %2.3f%% and changed to %2.3f%%\n", 100 * pr, 100 * target_prior);
+		samples.idSamples.swap(to_change);
+		medial::print::print_samples_stats(samples);
+	}
+}
+
+void medial::process::match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx) {
+	int size_f = (int)features.samples.size();
+	if (size_f == 0)
+		MTHROW_AND_ERR("Error : sampels is empty\n");
+	vector<float> fetched_labels; fetched_labels.reserve(size_f);
+	vector<float> all_in_same(size_f);
+	double pr = 0;
+	for (size_t i = 0; i < features.samples.size(); ++i) {
+		fetched_labels.push_back(features.samples[i].outcome);
+		pr += int(features.samples[i].outcome > 0);
+	}
+	pr /= size_f;
+	if (pr < target_prior) {
+		vector<MedIdSamples> to_change;
+		medial::process::match_to_prior(fetched_labels, all_in_same, target_prior, sel_idx);
+		medial::process::filter_row_indexes(features, sel_idx);
+		
+		MLOG("Changing prior: was %2.3f%% and changed to %2.3f%%\n", 100 * pr, 100 * target_prior);
+		medial::print::print_samples_stats(features.samples);
+	}
+}
+
 
 template<class T> float medial::stats::get_preds_auc_q(const vector<T> &preds, const vector<float> &y,
 	const vector<float> *weights) {

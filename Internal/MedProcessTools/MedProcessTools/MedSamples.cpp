@@ -549,7 +549,7 @@ void MedSamples::normalize() {
 
 // Count samples
 //.......................................................................................
-int MedSamples::nSamples()
+int MedSamples::nSamples() const
 {
 	int n = 0;
 	for (auto& idSample : idSamples)
