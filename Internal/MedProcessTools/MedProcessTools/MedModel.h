@@ -32,10 +32,13 @@ typedef enum {
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel : public SerializableObject {
 public:
-	int version() { return 4; } ///< change BasicFeatureGenerator to version 1 - added "bound_outcomeTime"
 	/// remember learning set
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
+
+	/// pre_processors are rep processors that can be added to a trained model to be applied before everything starts
+	vector<RepProcessor *> pre_processors;
+
 	/// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
 
@@ -74,6 +77,10 @@ public:
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);
+
+	// Add Pre Processors (Remember , pre processors are NOT serialized with the model !!!)
+	void clear_pre_processors(); // get rid of them
+	void add_pre_processor(string init_string);
 
 	// Add Rep Processors
 	void add_rep_processor(RepProcessor *processor) { rep_processors.push_back(processor); };
@@ -122,6 +129,7 @@ public:
 	void init_from_json_file(const string& fname) { vector<string> dummy;  init_from_json_file_with_alterations(fname, dummy); }
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
+	void add_pre_processors_json_string_to_model(string in_json, string fname);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
 	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);	// fp_type and feature name are must have parameters
@@ -163,9 +171,9 @@ public:
 	int apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures &_feat, bool copy_rec_flag, int end_stage = MED_MDL_APPLY_FTR_PROCESSORS);
 
 	// De(Serialize)
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
+	ADD_CLASS_NAME(MedModel)
+	ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, serialize_learning_set, LearningSet)
 
 	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);

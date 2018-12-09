@@ -44,16 +44,16 @@ class FeatureGenerator : public SerializableObject {
 public:
 
 	/// Type
-	FeatureGeneratorTypes generator_type;
+	FeatureGeneratorTypes generator_type = FTR_GEN_LAST;
 
 	/// Feature name
 	vector<string> names;
 
 	// Threading
-	int learn_nthreads, pred_nthreads;
+	int learn_nthreads = 16, pred_nthreads = 16;
 
 	/// Missing value
-	float missing_val;
+	float missing_val = (float)MED_MAT_MISSING_VALUE;
 
 	/// Tags - for defining labels or groups. may be used later for filtering for example
 	vector<string> tags;
@@ -139,6 +139,10 @@ public:
 	virtual int filter_features(unordered_set<string>& validFeatures);
 
 	// Serialization
+	ADD_CLASS_NAME(FeatureGenerator)
+	ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
+	void *new_polymorphic(string derived_class_name);
+
 	size_t get_generator_size();
 	size_t generator_serialize(unsigned char *blob);
 
@@ -239,9 +243,6 @@ public:
 	string signalName;
 	int signalId;
 
-	int version() { return 2; } ///< added "bound_outcomeTime" in version 1
-								///< added time_range_signal in version 2
-
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
 	int timeRangeSignalId;
@@ -321,6 +322,7 @@ public:
 	void init_tables(MedDictionarySections& dict);
 
 	// Serialization
+	ADD_CLASS_NAME(BasicFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
 		time_unit_win, time_channel, val_channel, sum_channel, signalName, sets,
 		names, req_signals, in_set_name ,bound_outcomeTime, timeRangeSignalName, timeRangeType)
@@ -362,10 +364,9 @@ public:
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	// Serialization
-	int version() { return 1; }
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights, signalName, req_signals); }
+	ADD_CLASS_NAME(AgeGenerator)
+	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, signalName, req_signals)
+
 	virtual int init(map<string, string>& mapper);
 };
 
@@ -408,6 +409,7 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
 
 	// Serialization
+	ADD_CLASS_NAME(SingletonGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
 };
 
@@ -445,21 +447,22 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("GENDER")); }
 
 	// Serialization
-	size_t get_size() { return MedSerialize::get_size(generator_type, names, tags, iGenerateWeights); }
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, generator_type, names, tags, iGenerateWeights); }
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, generator_type, names, tags, iGenerateWeights); }
+	ADD_CLASS_NAME(GenderGenerator)
+	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights)
 };
 
 /**
 * BinnedLinearModels : parameters
 */
-struct BinnedLmEstimatesParams {
+struct BinnedLmEstimatesParams : public SerializableObject {
 	vector<int> bin_bounds;
 	int min_period;
 	int max_period;
 	float rfactor;
 
 	vector<int> estimation_points;
+	ADD_CLASS_NAME(BinnedLmEstimatesParams)
+	ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor)
 
 };
 
@@ -475,7 +478,7 @@ public:
 	BinnedLmEstimatesParams params;
 	vector<MedLM> models;
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
-	vector<float> means[2];
+	vector<vector<float>> means = { {}, {} };
 
 	int time_unit_periods = MedTime::Undefined;		///< the time unit in which the periods are given. Default: Undefined
 	int time_unit_sig = MedTime::Undefined;			///< the time init in which the signal is given. Default: Undefined
@@ -524,9 +527,9 @@ public:
 	inline void get_age(int time, int time_unit_from, int& age, int byear);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(BinnedLmEstimates)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, \
+							params, xmeans, xsdvs, ymeans, means, models)
 
 	// print 
 	void print();
@@ -613,7 +616,7 @@ public:
 
 	// Serialization
 	// Serialization
-	virtual int version() { return  1; };	// ihadanny 20171206 - added sets
+	ADD_CLASS_NAME(RangeFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first)
 };
 
@@ -650,9 +653,9 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// (De)Serialize
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(ModelFeatGenerator)
+	ADD_SERIALIZATION_HEADERS()
+	//ADD_SERIALIZATION_FUNCS(generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded, model)
 
 	//dctor:
 	~ModelFeatGenerator();
@@ -674,10 +677,14 @@ void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int 
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================
+MEDSERIALIZE_SUPPORT(FeatureGenerator)
 MEDSERIALIZE_SUPPORT(BasicFeatGenerator)
 MEDSERIALIZE_SUPPORT(AgeGenerator)
 MEDSERIALIZE_SUPPORT(GenderGenerator)
+MEDSERIALIZE_SUPPORT(SingletonGenerator)
+MEDSERIALIZE_SUPPORT(BinnedLmEstimatesParams)
 MEDSERIALIZE_SUPPORT(BinnedLmEstimates)
 MEDSERIALIZE_SUPPORT(RangeFeatGenerator)
+MEDSERIALIZE_SUPPORT(ModelFeatGenerator)
 
 #endif

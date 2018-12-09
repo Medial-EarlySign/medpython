@@ -44,7 +44,8 @@ public:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
-	ADD_SERIALIZATION_FUNCS(model_params, _meanShift, _factor, model_features, features_count)
+	ADD_CLASS_NAME(MedLinearModel)
+	ADD_SERIALIZATION_FUNCS(classifier_type, model_params, _meanShift, _factor, model_features, features_count)
 
 private:
 	vector<float> _meanShift;

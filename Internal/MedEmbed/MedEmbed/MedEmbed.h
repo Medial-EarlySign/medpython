@@ -44,7 +44,7 @@ public:
 	// It is highly recommended to use models creating matrices that are imputed AND normalized.
 	// the features generated will be copied into the sparse matrix
 	// features generated like this are never shrunk
-	MedModel *model;
+	MedModel *model = NULL;
 	string model_file = "";
 	vector<int> model_sids;
 	MedFeatures feat;
@@ -94,8 +94,9 @@ public:
 
 	string print_to_string(int verbosity);
 
+	ADD_CLASS_NAME(EmbeddingSig)
 	ADD_SERIALIZATION_FUNCS(sig, type, add_hierarchy, do_shrink, ranges, time_chan, val_chan, win_from, win_to, 
-		sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode);
+		sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode, model);
 };
 
 
@@ -162,6 +163,7 @@ public:
 	// printing object to string
 	string print_to_string(int verbosity);
 
+	ADD_CLASS_NAME(EmbedMatCreator)
 	ADD_SERIALIZATION_FUNCS(sigs_to_load, rep_time_unit, win_time_unit, byear_time_unit, embed_sigs);
 
 private:

@@ -46,7 +46,7 @@ public:
 	string resolved_feature_name;
 
 	// Type
-	FeatureProcessorTypes processor_type;
+	FeatureProcessorTypes processor_type = FTR_PROCESS_LAST;
 
 	// Threading
 	int learn_nthreads, clean_nthreads;
@@ -110,6 +110,10 @@ public:
 	virtual bool is_selector() { return false; }
 
 	// Serialization (including type)
+	ADD_CLASS_NAME(FeatureProcessor)
+	ADD_SERIALIZATION_FUNCS(feature_name, resolved_feature_name, processor_type)
+	void *new_polymorphic(string derived_class_name);
+
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
 
@@ -174,9 +178,8 @@ public:
 	void dprint(const string &pref, int fp_flag);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(MultiFeatureProcessor)
+	ADD_SERIALIZATION_FUNCS(processor_type, members_type, init_string, duplicate, tag, processors)
 };
 
 #define DEF_FTR_TRIMMING_SD_NUM 7
@@ -225,9 +228,8 @@ public:
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(FeatureBasicOutlierCleaner)
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin)
 
 };
 
@@ -274,9 +276,8 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureNormalizer *>(processor)); }
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(FeatureNormalizer)
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, normalizeSd, fillMissing)
 
 };
 
@@ -320,9 +321,8 @@ public:
 	}
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(featureStrata)
+	ADD_SERIALIZATION_FUNCS(name, resolution, min, max, nValues)
 
 };
 /// When building startas on a set of several features, we build a cartesian product of their combinations:
@@ -359,9 +359,8 @@ public:
 	}
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(featureSetStrata)
+	ADD_SERIALIZATION_FUNCS(stratas, factors)
 };
 
 /**
@@ -422,10 +421,8 @@ public:
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
-	int version() { return  1; }
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(FeatureImputer)
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram)
 
 	/// debug and print
 	void print();
@@ -439,7 +436,7 @@ class FeatureSelector : public FeatureProcessor {
 public:
 
 	/// Missing Value
-	float missing_value;
+	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
 	/// Required Features
 	unordered_set<string> required;
@@ -463,6 +460,9 @@ public:
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
 	bool is_selctor() { return true; }
+
+	ADD_CLASS_NAME(FeatureSelector)
+	ADD_SERIALIZATION_FUNCS(processor_type, missing_value, required, selected, numToSelect)
 
 private:
 	/// Find set of selected features
@@ -506,7 +506,8 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<LassoSelector *>(processor)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(initMaxLambda, nthreads, missing_value, required, selected, numToSelect)
+	ADD_CLASS_NAME(LassoSelector)
+	ADD_SERIALIZATION_FUNCS(processor_type, initMaxLambda, nthreads, missing_value, required, selected, numToSelect)
 
 private:
 	// Find set of selected features
@@ -536,7 +537,8 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<DgnrtFeatureRemvoer *>(processor)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(percentage, missing_value, selected)
+	ADD_CLASS_NAME(DgnrtFeatureRemvoer)
+	ADD_SERIALIZATION_FUNCS(processor_type, percentage, missing_value, selected)
 
 private:
 	// Find set of selected features
@@ -592,6 +594,7 @@ public:
 			return BIN_LAST;
 	}
 
+	ADD_CLASS_NAME(univariateSelectionParams)
 	ADD_SERIALIZATION_FUNCS(method, minStat, nBins, binMethod, takeSquare, pDistance, max_samples)
 };
 
@@ -618,7 +621,8 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<UnivariateFeatureSelector *>(processor)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(params, missing_value, required, selected, numToSelect)
+	ADD_CLASS_NAME(UnivariateFeatureSelector)
+	ADD_SERIALIZATION_FUNCS(processor_type, params, missing_value, required, selected, numToSelect)
 
 private:
 	// Scores 
@@ -660,7 +664,8 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<MRMRFeatureSelector *>(processor)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
+	ADD_CLASS_NAME(MRMRFeatureSelector)
+	ADD_SERIALIZATION_FUNCS(processor_type, params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
 
 private:
 	// Find set of selected features
@@ -714,7 +719,8 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<TagFeatureSelector *>(processor)); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(selected_tags, selected)
+	ADD_CLASS_NAME(TagFeatureSelector)
+	ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, selected)
 private:
 	// Find set of selected features
 	int _learn(MedFeatures& features, unordered_set<int>& ids);
@@ -745,7 +751,8 @@ public:
 
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(predictor, predictor_params, importance_params, minStat, selected)
+	ADD_CLASS_NAME(ImportanceFeatureSelector)
+	ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, importance_params, minStat, selected)
 
 private:
 	// Find set of selected features
@@ -770,6 +777,9 @@ public:
 	/// Apply selection - calls _apply
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
 
+	ADD_CLASS_NAME(FeatureEncoder)
+	ADD_SERIALIZATION_FUNCS(processor_type, names)
+
 private:
 	/// Specific learner of the encoder
 	virtual int _learn(MedFeatures& features, unordered_set<int>& ids) { return 0; }
@@ -786,6 +796,7 @@ public:
 	float pca_cutoff;///<PCA variance threshold to stop
 	int subsample_count;///<subsample in the pca rows to speed up
 
+	ADD_CLASS_NAME(FeaturePCAParams)
 	ADD_SERIALIZATION_FUNCS(pca_top, pca_cutoff)
 };
 
@@ -809,8 +820,8 @@ public:
 
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeaturePCA *>(processor)); }
 
-
-	ADD_SERIALIZATION_FUNCS(names, params, selected_indexes, W);
+	ADD_CLASS_NAME(FeaturePCA)
+	ADD_SERIALIZATION_FUNCS(processor_type, names, params, selected_indexes, W)
 
 private:
 	MedMat<float> W;
@@ -852,8 +863,8 @@ public:
 	void init_defaults() { processor_type = FTR_PROCESS_ONE_HOT; }
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<OneHotFeatProcessor *>(processor)); }
 
-
-	ADD_SERIALIZATION_FUNCS(feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
+	ADD_CLASS_NAME(OneHotFeatProcessor)
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
 private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 	int Apply(MedFeatures& features, unordered_set<int>& ids);
@@ -863,14 +874,19 @@ private:
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================
+MEDSERIALIZE_SUPPORT(FeatureProcessor)
 MEDSERIALIZE_SUPPORT(MultiFeatureProcessor)
 MEDSERIALIZE_SUPPORT(FeatureBasicOutlierCleaner)
 MEDSERIALIZE_SUPPORT(FeatureNormalizer)
 MEDSERIALIZE_SUPPORT(featureStrata)
 MEDSERIALIZE_SUPPORT(featureSetStrata)
 MEDSERIALIZE_SUPPORT(FeatureImputer)
+MEDSERIALIZE_SUPPORT(FeatureSelector)
+MEDSERIALIZE_SUPPORT(LassoSelector)
+MEDSERIALIZE_SUPPORT(DgnrtFeatureRemvoer)
 MEDSERIALIZE_SUPPORT(UnivariateFeatureSelector)
 MEDSERIALIZE_SUPPORT(MRMRFeatureSelector)
+MEDSERIALIZE_SUPPORT(FeatureEncoder)
 MEDSERIALIZE_SUPPORT(FeaturePCAParams)
 MEDSERIALIZE_SUPPORT(FeaturePCA)
 MEDSERIALIZE_SUPPORT(TagFeatureSelector)

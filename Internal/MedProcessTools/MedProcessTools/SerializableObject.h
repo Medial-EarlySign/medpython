@@ -1,27 +1,48 @@
 #ifndef _SERIALIZABLE_OBJECT_H_
 #define _SERIALIZABLE_OBJECT_H_
 
-#include "Logger/Logger/Logger.h"
-#include "MedUtils/MedUtils/MedIO.h"
+#include <Logger/Logger/Logger.h>
+//#include <MedUtils/MedUtils/MedIO.h>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/crc.hpp>
 
 #include <cstring>
 #include <unordered_set>
 #include <set>
 #include <unordered_map>
+#include <typeinfo>
+#include <map>
 
 using namespace std;
+
+#define SRL_LOG(...)	global_logger.log(LOG_SRL, LOG_DEF_LEVEL, __VA_ARGS__)
+#define SRL_LOG_D(...)	global_logger.log(LOG_SRL, DEBUG_LOG_LEVEL, __VA_ARGS__)
+#define SRL_ERR(...)	global_logger.log(LOG_SRL, MAX_LOG_LEVEL, __VA_ARGS__)
 
 /** @file
 * An Abstract class that can be serialized and written/read from file
 */
+
 class SerializableObject {
 public:
 	///Relevant for serializations. if changing serialization, increase version number for the 
 	///implementing class
 	virtual int version() { return  0; }
 
-	// next adds an option to add some actions before a serialization is done
+	/// For better handling of serializations it is highly recommended that each SerializableObject inheriting class will 
+	/// implement the next method. It is a must when one needs to support the new_polymorphic method.
+	/// One can simply add the macro ADD_CLASS_NAME(class) as a public member in the class.
+	virtual string my_class_name() { return "SerializableObject"; }
+
+	/// for polymorphic classes that want to be able to serialize/deserialize a pointer * to the derived class given its type
+	/// one needs to implement this function to return a new to the derived class given its type (as in my_type)
+	virtual void *new_polymorphic(string derived_name) { return NULL; }
+
+	// next adds an option to add some actions before and after a serialization is done
 	virtual void pre_serialization() {};
+	virtual void post_deserialization() {};
 
 	// Virtual serialization
 	virtual size_t get_size() { return 0; } ///<Gets bytes sizes for serializations
@@ -29,8 +50,10 @@ public:
 	virtual size_t deserialize(unsigned char *blob) { return 0; } ///<Deserialiazing blob to object. returns number of bytes read
 
 	// APIs for vectors
-	size_t serialize(vector<unsigned char> &blob) { size_t size = get_size(); blob.resize(size); return serialize(&blob[0]); }
-	size_t deserialize(vector<unsigned char> &blob) { return deserialize(&blob[0]); }
+	size_t serialize_vec(vector<unsigned char> &blob) { size_t size = get_size(); blob.resize(size); return serialize(&blob[0]); }
+	size_t deserialize_vec(vector<unsigned char> &blob) { return deserialize(&blob[0]); }
+	virtual size_t serialize(vector<unsigned char> &blob) { return serialize_vec(blob); }
+	virtual size_t deserialize(vector<unsigned char> &blob) { return deserialize_vec(blob); }
 
 
 	//template <class T> void copy_object(T* dst) { 
@@ -45,10 +68,15 @@ public:
 	/// serialize model and write to file
 	virtual int write_to_file(const string &fname);
 
+	/// read and deserialize model without checking version number - unsafe read
+	virtual int read_from_file_unsafe(const string &fname);
+
 	/// Init from string
 	int init_from_string(string init_string);
 	int init_params_from_file(string init_file);
 	virtual int init(map<string, string>& map) { return 0; } ///<Virtual to init object from parsed fields
+private:
+	void _read_from_file(const string &fname, bool throw_on_version_error);
 };
 
 /*! @def MEDSERIALIZE_SUPPORT(Type)
@@ -71,9 +99,28 @@ namespace MedSerialize {																							\
 //size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize(blob, __VA_ARGS__); }		\
 
 #define ADD_SERIALIZATION_FUNCS(...)																\
-	size_t get_size() { return MedSerialize::get_size(__VA_ARGS__); }								\
-	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob,  __VA_ARGS__);}		\
-	size_t deserialize(unsigned char *blob) { return MedSerialize::deserialize(blob, __VA_ARGS__); }
+	virtual size_t get_size() { pre_serialization(); return MedSerialize::get_size_top(#__VA_ARGS__, __VA_ARGS__); }								\
+	virtual size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
+	virtual size_t deserialize(unsigned char *blob) { size_t size = MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization(); return size;}
+
+// in some cases we must add the serializations in the implementation file due to forward declerations issues
+// the following is the same as the previous but should be placed in the cpp file
+#define ADD_SERIALIZATION_HEADERS()																\
+	virtual size_t get_size(); \
+	virtual size_t serialize(unsigned char *blob); \
+	virtual size_t deserialize(unsigned char *blob);
+
+#define ADD_SERIALIZATION_FUNCS_CPP(ClassName,...)																\
+	size_t ClassName::get_size() { pre_serialization(); return MedSerialize::get_size_top(#__VA_ARGS__, __VA_ARGS__); }								\
+	size_t ClassName::serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
+	size_t ClassName::deserialize(unsigned char *blob) { return MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization();}
+
+
+#define ADD_CLASS_NAME(Type)	string my_class_name() {return string(#Type);}
+
+#define CONDITIONAL_NEW_CLASS(s,c) \
+	if (s == string(#c)) return new c;
+
 
 #include "SerializableObject_imp.h"
 

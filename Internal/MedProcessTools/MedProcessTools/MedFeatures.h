@@ -119,12 +119,12 @@ public:
 	int filter(unordered_set<string>& selectedFeatures);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(MedFeatures)
+	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes)
 
-	int version() { return  1; };
 };
+
+MEDSERIALIZE_SUPPORT(MedFeatures)
 
 /**
 * \brief medial namespace for function

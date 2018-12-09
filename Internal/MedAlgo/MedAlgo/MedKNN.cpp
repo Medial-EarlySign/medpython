@@ -185,13 +185,14 @@ int MedKNN::Predict(float *xPred, float *&preds, int pred_samples,int _nftrs) co
 
 
 size_t MedKNN::get_size() {
-	return sizeof(MedKNN) + 3*nftrs*nsamples* sizeof(float) ;
+	return MedSerialize::get_size(classifier_type) + sizeof(MedKNN) + 3*nftrs*nsamples* sizeof(float) ;
 }
 
 size_t MedKNN::serialize(unsigned char *blob) {
 //assumes blob already assined to get_size()
 	size_t ptr = 0 ;
 	size_t advance;
+	ptr += MedSerialize::serialize(blob, classifier_type);
  	memcpy(blob+ptr,this,advance=sizeof(*this)) ; ptr +=advance;
 	memcpy(blob+ptr,x,advance=sizeof(float)*nftrs*nsamples); ptr += advance ;
 	memcpy(blob+ptr,y,advance=sizeof(float)*nftrs*nsamples) ; ptr += advance;
@@ -204,6 +205,7 @@ size_t MedKNN::deserialize(unsigned char *blob) {
 	
 	size_t ptr = 0 ;
 	size_t advance;
+	ptr += MedSerialize::deserialize(blob, classifier_type);
 	memcpy(this,blob+ptr,advance=sizeof(*this)) ; ptr +=advance ;
 	size_t mySize=nsamples*nftrs*sizeof(float);
 	if(!(x=(float *)malloc(mySize)))return(-1);

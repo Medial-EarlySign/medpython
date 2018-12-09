@@ -63,7 +63,8 @@ public:
 	// initialization from string
 	int init(map<string, string>& _map);
 
-	ADD_SERIALIZATION_FUNCS(type, name, in_dim, out_dim, n_bias, activation, dim, drop_rate, leaky_alpha, wgts, bias);
+	ADD_CLASS_NAME(KerasLayer)
+	ADD_SERIALIZATION_FUNCS(type, name, in_dim, out_dim, n_bias, activation, dim, drop_rate, leaky_alpha, wgts, bias)
 };
 
 
@@ -77,5 +78,9 @@ public:
 
 	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer);
 
-
+	ADD_CLASS_NAME(ApplyKeras)
+	ADD_SERIALIZATION_FUNCS(layers)
 };
+
+MEDSERIALIZE_SUPPORT(KerasLayer)
+MEDSERIALIZE_SUPPORT(ApplyKeras)

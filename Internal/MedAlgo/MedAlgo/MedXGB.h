@@ -8,7 +8,7 @@
 #include <xgboost/c_api.h>
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 
-struct MedXGBParams {
+struct MedXGBParams : public SerializableObject {
 	string booster; // gbtree or gblinear
 	string objective; // binary:logistic is logistic regression loss function for binary classification
 	float eta; // step size shrinkage
@@ -42,6 +42,10 @@ struct MedXGBParams {
 		verbose_eval = 0;
 		validate_frac = 0;
 	}
+
+	ADD_CLASS_NAME(MedXGBParams)
+	ADD_SERIALIZATION_FUNCS(booster, objective, eta, gamma, min_child_weight, max_depth, num_round, eval_metric, silent, missing_value, num_class, 
+		colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties)
 };
 
 class MedXGB : public MedPredictor {
@@ -71,20 +75,40 @@ public:
 		const string &general_params);
 	virtual void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	void pre_serialization() {
+		const char* out_dptr;
+		xgboost::bst_ulong len;
+		if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
+			throw runtime_error("failed XGBoosterGetModelRaw\n");
+		serial_xgb.resize(len);
+		memcpy(&serial_xgb[0], out_dptr, len);
+	}
+
+	void post_deserialization() {
+		if (this->my_learner != NULL)
+			XGBoosterFree(this->my_learner);
+		DMatrixHandle h_train_empty[1];
+		if (XGBoosterCreate(h_train_empty, 0, &my_learner) != 0)
+			throw runtime_error("failed XGBoosterCreate\n");
+		if (XGBoosterLoadModelFromBuffer(my_learner, &serial_xgb[0], serial_xgb.size()) != 0)
+			throw runtime_error("failed XGBoosterLoadModelFromBuffer\n");
+		serial_xgb.clear();
+	}
+
+	ADD_CLASS_NAME(MedXGB)
+	ADD_SERIALIZATION_FUNCS(classifier_type, serial_xgb, params, model_features, features_count, _mark_learn_done)
 
 private:
 	bool _mark_learn_done;
 
 	void translate_split_penalties(string& split_penalties_s);
+	vector<char> serial_xgb;
 };
 
 //=================================================================
 // Joining the MedSerialize Wagon
 //=================================================================
-
+MEDSERIALIZE_SUPPORT(MedXGBParams)
 MEDSERIALIZE_SUPPORT(MedXGB)
 
 //#endif

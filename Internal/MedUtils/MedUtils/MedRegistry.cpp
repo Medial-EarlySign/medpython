@@ -63,7 +63,6 @@ void MedRegistry::read_text_file(const string &file_path) {
 			throw out_of_range("File has bad format");
 		}
 
-
 		MedRegistryRecord pr;
 		pr.pid = stoi(tokens[0]);
 		pr.start_date = read_time(time_unit, tokens[1]);
@@ -279,7 +278,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
 	const string &debug_file, const unordered_set<float> &debug_vals,
-	const MedRegistry *censoring, TimeWindowInteraction *mode_outcome, TimeWindowInteraction *mode_censor) const {
+	const MedRegistry *censoring, TimeWindowInteraction *mode_outcome, TimeWindowInteraction *mode_censor,
+	ConflictMode conflict_mode) const {
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
@@ -328,9 +328,9 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 	start = time(NULL);
 
-	unordered_map<int, vector<int>> registryPidToInds;
+	unordered_map<int, vector<const MedRegistryRecord *>> registryPidToReg;
 	for (int i = 0; i < registry_records.size(); ++i)
-		registryPidToInds[registry_records[i].pid].push_back(i);
+		registryPidToReg[registry_records[i].pid].push_back(&registry_records[i]);
 	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_censor;
 	if (censoring != NULL)
 		for (size_t i = 0; i < censoring->registry_records.size(); ++i)
@@ -416,14 +416,13 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 	int age_bin_count = (max_age - min_age) / ageBinValue + 1;
 	time_t last_time_print = start;
-	int prog_pid = 0, no_rule = 0;
+	int prog_pid = 0, no_rule = 0, conflict_count = 0, done_count = 0;
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < all_pids.size(); ++i) {
 		int pid = all_pids[i];
-		vector<int> *registry_inds = NULL;
-		if (registryPidToInds.find(pid) != registryPidToInds.end()) {
-			registry_inds = &registryPidToInds.at(pid);
-		}
+		const vector<const MedRegistryRecord *> *registry_recs = NULL;
+		if (registryPidToReg.find(pid) != registryPidToReg.end())
+			registry_recs = &registryPidToReg.at(pid);
 		else {
 #pragma omp atomic
 			++prog_pid;
@@ -439,7 +438,12 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 		medial::signal_hierarchy::getRecords_Hir(pid, patientFile, dataManager.dict, signalHirerchyType, signal_vals);
 
 		vector<unordered_map<float, int>> val_seen_pid_pos(age_bin_count); //for age bin index and value (it's for same pid so gender doesnt change) - if i saw the value already
+		vector<const MedRegistryRecord *> *r_censor = &empty_arr;
+		if (pid_to_censor.find(pid) != pid_to_censor.end())
+			r_censor = &pid_to_censor[pid];
 
+		if (censoring != NULL && pid_to_censor.find(pid) == pid_to_censor.end())
+			continue; //filter sample
 		for (MedRegistryRecord sigRec : signal_vals)
 		{
 			if (sigRec.registry_value <= 0) {
@@ -450,67 +454,32 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 			float ageBin;
 			int ageBin_index;
 			bool has_intr = false;
-			for (int indReg : *registry_inds)
+
+			ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, sigRec.start_date)) / ageBinValue));
+			ageBin_index = int((ageBin - min_age) / ageBinValue);
+			if (ageBin < min_age || ageBin > max_age)
+				continue; //skip out of range...
+
+			vector<MedSample> found_samples;
+			medial::sampling::get_label_for_sample(sigRec.start_date, *registry_recs, *r_censor, time_window_from, time_window_to,
+				*mode_outcome, *mode_censor, conflict_mode, found_samples, no_rule, conflict_count, done_count);
+			for (const MedSample &smp : found_samples)
 			{
-				const MedRegistryRecord &regRec = registry_records.at(indReg);
-				vector<const MedRegistryRecord *> *r_censor = &empty_arr;
-				if (pid_to_censor.find(pid) != pid_to_censor.end())
-					r_censor = &pid_to_censor[pid];
-				if (regRec.registry_value < 0) {
-					has_intr = true;//censored out - mark as done, no valid registry records for pid
-					break;
-				}
-
-				ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, sigRec.start_date)) / ageBinValue));
-				ageBin_index = int((ageBin - min_age) / ageBinValue);
-				if (ageBin < min_age || ageBin > max_age)
-					continue; //skip out of range...
-				/*if (ageBin < min_age)
-					ageBin_index = 0;
-				if (ageBin > max_age)
-					ageBin_index = age_bin_count - 1;*/
 				pos = 2;
-				const TimeWindowMode *mode = NULL;
-				const TimeWindowMode  *mode_censoring = NULL;
-				if (mode_outcome->find(regRec.registry_value))
-					mode = mode_outcome->at(regRec.registry_value);
-				else {
-#pragma omp atomic
-					++no_rule;
-					if (no_rule < 5)
-						MWARN("Warning: missing rule for %f - skipping!!\n", regRec.registry_value);
-					continue;
-				}
-
-				if (mode_censor->find(regRec.registry_value))
-					mode_censoring = mode_censor->at(regRec.registry_value);
-				else {
-#pragma omp atomic
-					++no_rule;
-					if (no_rule < 5)
-						MWARN("Warning: missing censor rule for %f - skipping!!\n", regRec.registry_value);
-					continue;
-				}
-
-				bool intersect = medial::process::in_time_window(sigRec.start_date, &regRec, *r_censor, time_window_from, time_window_to,
-					mode, mode_censoring);
-				if (intersect) {
-					has_intr = true;
-					//pos += 1; //registry_value > 0 - otherwise skip this
-					pos += int(regRec.registry_value > 0);
-					if (gender == 1)
-						update_loop(pos, ageBin_index, ageBin, sigRec, maleSignalToStats, val_seen_pid_pos);
-					else
-						update_loop(pos, ageBin_index, ageBin, sigRec, femaleSignalToStats, val_seen_pid_pos);
-					if (!debug_file.empty() && debug_vals.find(sigRec.registry_value) != debug_vals.end()) {
+				has_intr = true;
+				//pos += 1; //registry_value > 0 - otherwise skip this
+				pos += int(smp.outcome > 0);
+				if (gender == 1)
+					update_loop(pos, ageBin_index, ageBin, sigRec, maleSignalToStats, val_seen_pid_pos);
+				else
+					update_loop(pos, ageBin_index, ageBin, sigRec, femaleSignalToStats, val_seen_pid_pos);
+				if (!debug_file.empty() && debug_vals.find(sigRec.registry_value) != debug_vals.end()) {
 #pragma omp critical
-						dbg_file << pid << "\t" << sigRec.start_date << "\t" << sigRec.registry_value
-							<< "\t" << regRec.start_date << "\t" << regRec.end_date
-							<< "\t" << gender << "\t" << ageBin << "\t" << regRec.registry_value
-							<< "\n";
-					}
+					dbg_file << pid << "\t" << sigRec.start_date << "\t" << sigRec.registry_value
+						<< "\t" << smp.time << "\t" << smp.outcomeTime
+						<< "\t" << gender << "\t" << ageBin << "\t" << smp.outcome
+						<< "\n";
 				}
-
 			}
 		}
 
@@ -529,6 +498,8 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 
 	if (no_rule > 0)
 		MWARN("Warning has %d records with no rules for labels\n", no_rule);
+	if (conflict_count > 0)
+		MWARN("has %d records with conflicts\n", conflict_count);
 	if (!debug_file.empty())
 		dbg_file.close();
 	unordered_set<float> vals;

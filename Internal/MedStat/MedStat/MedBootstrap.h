@@ -234,6 +234,7 @@ public:
 	/// </returns>
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
 
+	ADD_CLASS_NAME(MedBootstrap)
 	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow)
 
 private:
@@ -315,6 +316,7 @@ public:
 	/// </summary>
 	void read_results_to_text_file(const string &path, bool pivot_format = true);
 
+	ADD_CLASS_NAME(MedBootstrapResult)
 	ADD_SERIALIZATION_FUNCS(bootstrap_params, bootstrap_results)
 private:
 	bool find_in_range(const vector<float> &vec, float search, float th);

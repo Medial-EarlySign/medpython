@@ -158,7 +158,7 @@ int MedQRF::set_params(map<string, string>& mapper) {
 			for (int j = 0; j < vals.size(); j++)
 				params.samp_vec[j] = stoi(vals[j]);
 
-			if (vals.size() == 1 && params.samp_vec[0] <= 0) params.sampsize = NULL;
+			if (vals.size() == 1 && params.samp_vec[0] <= 0) { params.samp_vec.clear(); params.sampsize = NULL; }
 			else {
 				params.sampsize = &params.samp_vec[0];
 			}
@@ -330,39 +330,10 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs, int _get_c
 
 //..............................................................................
 int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
+	//MLOG("MedQRF: Predict of %d x %d get_count %d\n", nsamples, nftrs, params.get_count);
 	return Predict(x, preds, nsamples, nftrs, params.get_count);
 }
 
-//..............................................................................
-size_t MedQRF::get_size() {
-	return qf.get_size()
-		+ MedSerialize::get_size(model_features) + MedSerialize::get_size(features_count);
-}
-
-//..............................................................................
-size_t MedQRF::serialize(unsigned char *blob) {
-	size_t size = qf.serialize(blob);
-	size += MedSerialize::serialize(blob + size, model_features);
-	size += MedSerialize::serialize(blob + size, features_count);
-	return size;
-}
-
-//..............................................................................
-size_t MedQRF::deserialize(unsigned char *blob) {
-	size_t s = qf.deserialize(blob);
-	if ((int)s < 0)
-		return -1;
-	params.ntrees = (int)qf.qtrees.size();
-	params.n_categ = qf.n_categ;
-	params.type = (QRF_TreeType)qf.mode;
-	params.get_only_this_categ = qf.get_only_this_categ;
-	params.get_count = qf.get_counts_flag;
-	params.quantiles = qf.quantiles;
-
-	s += MedSerialize::deserialize(blob + s, model_features);
-	s += MedSerialize::deserialize(blob + s, features_count);
-	return s;
-}
 
 // Printing
 void MedQRF::print(FILE *fp, const string& prefix) const {
@@ -413,7 +384,7 @@ string printNode(const vector<string> &modelSignalNames, const vector<QRF_ResNod
 		out << "(pred=" << nodes[n].pred;
 	}
 
-	out << ", size=" << nodes[n].size;
+	out << ", size=" << nodes[n].n_size;
 	if (!nodes[n].is_leaf) {
 		out << ", split=" << nodes[n].split_val << ")";
 	}

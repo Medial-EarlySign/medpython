@@ -7,6 +7,7 @@
 #ifndef __QRF__H__
 #define __QRF__H__
 
+#include <MedProcessTools/MedProcessTools/SerializableObject.h>
 #include <vector>
 #include <map>
 #include <random>
@@ -101,30 +102,35 @@ struct OOB_Result {
 	vector<float> probs ;
 };
 
-class QRF_ResNode {
+class QRF_ResNode : public SerializableObject {
 	// this class is designed to hold the minimal needed information in a node in order to use a tree as a predictor
 	public:
+		int mode;
 		short ifeat;
 		float split_val;
 		int is_leaf;
 		int left;
 		int right;
 		float pred;
-		int size;
+		int n_size;
 		vector<int> counts;		// none for regression, 2 for binary, ncateg (defined in QRF_Forest) for categorized case
 //		vector<float> values;  // Actual values of learning set in regression learning
 		vector<int> values; // Counting of values in learning set in regression learning
 		int tot_n_values;
 		int majority;			// for categories cases
 
-		size_t serialized_size(int mode);
-		size_t serialize(unsigned char *buf, int mode);
-		size_t deserialize(unsigned char *buf, int mode, int n_categ);
+		ADD_CLASS_NAME(QRF_ResNode)
+		ADD_SERIALIZATION_FUNCS(n_size, mode, ifeat, split_val, is_leaf, left, right, pred, counts, values, tot_n_values, majority)
+
 };
 
-class QRF_ResTree {
+
+class QRF_ResTree : public SerializableObject {
 	public:
 		vector<QRF_ResNode> qnodes;
+
+		ADD_CLASS_NAME(QRF_ResTree)
+		ADD_SERIALIZATION_FUNCS(qnodes)
 };
 
 class QuantizedRF {
@@ -205,7 +211,7 @@ class QuantizedRF {
 
 
 //============================================================================================================================
-class QRF_Forest {
+class QRF_Forest : public SerializableObject {
 	public:
 		int mode;				// 0 - regular mode (only QRF) 
 		int min_node_size;		// for stop criteria - min size of a node above which we keep on splitting (for categorical or regression)
@@ -273,12 +279,12 @@ class QRF_Forest {
 		//int collect_Tree_oob_scores_threaded(float *x, int nfeat, QRF_ResTree &resTree, vector<int>& sample_ids);
 
 
+		// serialization
+		ADD_CLASS_NAME(QRF_Forest)
+		ADD_SERIALIZATION_FUNCS(qtrees, mode, min_node_size, min_spread, n_categ, get_counts_flag, get_only_this_categ, keep_all_values, quantiles, sorted_values, nthreads, take_all_samples, max_depth)
+
 		// IO Methods :
 		//-------------
-
-		size_t get_size();	// serialize size in bytes
-		size_t serialize(unsigned char * &model);  // if model == NULL will allocate needed space, returns size in bytes (or -1 if fails)
-		size_t deserialize(unsigned char *model);  // deserialized into qtrees, ready to predict.
 		void write(FILE *fp) ;
 
 		// Variable Importance:
@@ -296,5 +302,10 @@ class QRF_Forest {
 		// transferring from inner algo data structure to exposed on
 		int transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, int mode);
 };
+
+
+MEDSERIALIZE_SUPPORT(QRF_ResNode)
+MEDSERIALIZE_SUPPORT(QRF_ResTree)
+MEDSERIALIZE_SUPPORT(QRF_Forest)
 
 #endif

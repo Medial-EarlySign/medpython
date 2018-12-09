@@ -196,60 +196,6 @@ int MedMultiClass::Predict(float *x, float *&preds, int nsamples, int nftrs) con
 
 }
 
-// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
-//..............................................................................
-size_t MedMultiClass::get_size() {
-
-	size_t size = 0;
-
-	size += sizeof(int);							// number of classes
-	size += sizeof(MedPredictorTypes) ;
-	size += sizeof(MedMultiClassType) ;
-
-	for (unsigned int i=0; i<internal_predictors.size(); i++)
-		size += internal_predictors[i]->get_size() ;
-
-	return size;
-
-}
-
-//..............................................................................
-size_t MedMultiClass::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	int npreds = (int) internal_predictors.size() ;
-
-	memcpy(blob+ptr,&npreds,sizeof(int)); ptr += sizeof(int);
-	memcpy(blob+ptr,&(params.method),sizeof(MedPredictorTypes)) ; ptr += sizeof(MedPredictorTypes) ;
-	memcpy(blob+ptr,&(params.multi_class_type),sizeof(MedMultiClassType)) ; ptr+=sizeof(MedMultiClassType) ;
-
-	for (unsigned int i=0; i<internal_predictors.size(); i++) 
-		ptr += internal_predictors[i]->serialize(blob+ptr) ;
-
-
-	return ptr ;
-}
-
-//..............................................................................
-size_t MedMultiClass::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	int npreds ;
-	memcpy(&npreds,blob+ptr,sizeof(int)); ptr += sizeof(int);
-	memcpy(&(params.method),blob+ptr,sizeof(MedPredictorTypes)) ; ptr += sizeof(MedPredictorTypes) ;
-	memcpy(&(params.multi_class_type),blob+ptr,sizeof(MedMultiClassType)) ; ptr+=sizeof(MedMultiClassType) ;
-
-	internal_predictors.resize(npreds) ;
-	for (unsigned int i=0; i<internal_predictors.size(); i++) {
-		internal_predictors[i] = MedPredictor::make_predictor(params.method) ;
-		ptr += internal_predictors[i]->deserialize(blob+ptr) ;
-	}
-
-	return ptr;
-}
-
 // Print
 //..............................................................................
 void MedMultiClass::print(FILE *fp, const string& prefix) const {

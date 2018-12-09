@@ -36,6 +36,7 @@ public:
 
 	int init(map<string, string>& mapper);
 
+	ADD_CLASS_NAME(IterativeImputerParams)
 	ADD_SERIALIZATION_FUNCS(features_to_impute, regressor, regressor_params, multi_categ_classifier, multi_categ_classifier_params, add_ncateg_var_name,
 		round1_strata, do_round1, round1_moment, categorial_bound, max_iterations, p_validation, min_vals_for_training, missing_value,
 		round_to_resolution, verbose, missing_bound);
@@ -76,6 +77,7 @@ public:
 			name.c_str(), full_name.c_str(), data_len, n_missing, (float)100 * n_missing / (float)data_len, n_with_values, n_with_non_zero_values, n_diff_vals, is_categorial, min, max, resolution);
 	}
 
+	ADD_CLASS_NAME(feature_info)
 	ADD_SERIALIZATION_FUNCS(name, full_name, n_diff_vals, is_categorial, min, max, resolution, predictor_type, inds_for_pred);
 };
 
@@ -135,9 +137,8 @@ public:
 	int Apply(MedFeatures &mfd);
 
 	// Serialization
-	size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+	ADD_CLASS_NAME(IterativeImputer)
+	ADD_SERIALIZATION_FUNCS(params, feats, first_round_imputers, predictors_order, predictors)
 
 };
 
@@ -167,7 +168,8 @@ public:
 	int Apply(MedFeatures& features) { return imputer.Apply(features); }
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(processor_type, imputer);
+	ADD_CLASS_NAME(FeatureIterativeImputer)
+	ADD_SERIALIZATION_FUNCS(processor_type, imputer)
 
 };
 
@@ -175,7 +177,8 @@ public:
 //=======================================================
 // Join the MedSerialize Wagon
 //=======================================================
-MEDSERIALIZE_SUPPORT(IterativeImputerParams);
-MEDSERIALIZE_SUPPORT(feature_info);
-MEDSERIALIZE_SUPPORT(FeatureIterativeImputer);
+MEDSERIALIZE_SUPPORT(IterativeImputerParams)
+MEDSERIALIZE_SUPPORT(feature_info)
+MEDSERIALIZE_SUPPORT(IterativeImputer)
+MEDSERIALIZE_SUPPORT(FeatureIterativeImputer)
 #endif

@@ -150,3 +150,18 @@ std::vector<std::string> MPStringFeatureAttrMapAdaptor::keys() {
 	return ret;
 };
 
+MPStringFeatureAttrMapAdaptor& MPStringFeatureAttrMapAdaptor::operator=(const MPStringFeatureAttrMapAdaptor& other)
+{
+	if (&other == this)
+		return *this;
+	o_owned = other.o_owned;
+	if (!o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new std::map<std::string, FeatureAttr>();
+		*o = *(other.o);
+	}
+	return *this;
+}
+

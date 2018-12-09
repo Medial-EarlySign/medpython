@@ -216,12 +216,14 @@ int MedBP::Predict(float *xPred, float *&preds, int pred_samples,int _nftrs) con
 
 size_t MedBP::get_size() {
 	
-	return(sizeof(*this)+networkGetSize(network));
+	return(sizeof(*this)+MedSerialize::get_size(classifier_type) + networkGetSize(network));
 }
 
 size_t MedBP::serialize(unsigned char *blob) {
 //assumes blob already assined to get_size()
 	size_t ptr = 0 ;
+
+	ptr += MedSerialize::serialize(blob, classifier_type);
 	size_t advance;
  	memcpy(blob+ptr,this,advance=sizeof(*this)) ; ptr +=advance;
 
@@ -233,9 +235,11 @@ size_t MedBP::serialize(unsigned char *blob) {
 
 size_t MedBP::deserialize(unsigned char *blob) {
 
-	memcpy(this,blob,sizeof(*this));
-	this->network=deserializeNetwork(blob+sizeof(*this));
-	return sizeof(*this);
+	size_t ptr = 0;
+	ptr += MedSerialize::deserialize(blob, classifier_type);
+	memcpy(this,blob+ptr,sizeof(*this));
+	this->network=deserializeNetwork(blob+ptr+sizeof(*this));
+	return ptr + sizeof(*this);
 }
 
 

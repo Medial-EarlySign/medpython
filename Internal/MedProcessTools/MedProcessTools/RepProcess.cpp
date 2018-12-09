@@ -37,8 +37,31 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_SPLIT;
 	else if (processor_name == "aggregate")
 		return REP_PROCESS_AGGREGATE;
+	else if (processor_name == "limit_history" || processor_name == "history_limit")
+		return REP_PROCESS_HISTORY_LIMIT;
 	else
 		return REP_PROCESS_LAST;
+}
+
+// rep processors get a new derived class
+//.......................................................................................
+void *RepProcessor::new_polymorphic(string dname)
+{
+	CONDITIONAL_NEW_CLASS(dname, RepMultiProcessor);
+	CONDITIONAL_NEW_CLASS(dname, RepBasicOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepNbrsOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepConfiguredOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepRuleBasedOutlierCleaner);
+	CONDITIONAL_NEW_CLASS(dname, RepCalcSimpleSignals);
+	CONDITIONAL_NEW_CLASS(dname, RepPanelCompleter);
+	CONDITIONAL_NEW_CLASS(dname, RepCheckReq);
+	CONDITIONAL_NEW_CLASS(dname, RepSimValHandler);
+	CONDITIONAL_NEW_CLASS(dname, RepSignalRate);
+	CONDITIONAL_NEW_CLASS(dname, RepCombineSignals);
+	CONDITIONAL_NEW_CLASS(dname, RepSplitSignal);
+	CONDITIONAL_NEW_CLASS(dname, RepAggregateSignal);
+	CONDITIONAL_NEW_CLASS(dname, RepHistoryLimit);
+	return NULL;
 }
 
 // Create processor from params string (type must be given within string)
@@ -94,6 +117,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepSplitSignal;
 	else if (processor_type == REP_PROCESS_AGGREGATE)
 		return new RepAggregateSignal;
+	else if (processor_type == REP_PROCESS_HISTORY_LIMIT)
+		return new RepHistoryLimit;
 	else
 		return NULL;
 
@@ -581,51 +606,6 @@ void RepMultiProcessor::init_attributes() {
 			attributes_map[i][j] = attributes_pos[processors[i]->attributes[j]];
 		}
 	}
-}
-
-// (De)Serialization
-//.......................................................................................
-size_t RepMultiProcessor::get_size() {
-
-	size_t size = sizeof(int); // Number of cleaners
-	for (auto& processor : processors)
-		size += processor->get_processor_size();
-
-	return size;
-}
-
-//.......................................................................................
-size_t RepMultiProcessor::serialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-
-	int nProcessors = (int)processors.size();
-	memcpy(blob + ptr, &nProcessors, sizeof(int)); ptr += sizeof(int);
-
-	for (auto& processor : processors) {
-		ptr += processor->processor_serialize(blob + ptr);
-	}
-
-	return ptr;
-}
-
-//.......................................................................................
-size_t RepMultiProcessor::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	int nProcessors;
-
-	memcpy(&nProcessors, blob + ptr, sizeof(int)); ptr += sizeof(int);
-
-	processors.resize(nProcessors);
-	for (int i = 0; i < nProcessors; i++) {
-		RepProcessorTypes type;
-		memcpy(&type, blob + ptr, sizeof(RepProcessorTypes)); ptr += sizeof(RepProcessorTypes);
-		processors[i] = RepProcessor::make_processor(type);
-		ptr += processors[i]->deserialize(blob + ptr);
-	}
-
-	return ptr;
 }
 
 //.......................................................................................
@@ -1976,6 +1956,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		signals_time_unit = MedTime::Days;
 	}
 
+	//MLOG("DBG===> in RepCalcSimpleSignals init: calculator %s , time %d\n", calculator.c_str(), signals_time_unit);
 	//calc_type = get_calculator_type(calculator);
 	calculator_logic = SimpleCalculator::make_calculator(calculator);
 	if (!calculator_init_params.empty())
@@ -2014,6 +1995,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		req_signals.insert(signals[i]);
 
 	calculator_logic->validate_arguments(signals, V_names);
+
 	return 0;
 
 
@@ -2121,14 +2103,17 @@ bool no_missings(const vector<float> &vals, float missing_value) {
 }
 int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& time_points) {
 	// Check that we have the correct number of dynamic-versions : one per time-point
-	if (time_points.size() != rec.get_n_versions()) {
-		MERR("nversions mismatch\n");
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
+		MERR("RepCalcSimpleSignals::apply_calc_in_time nversions mismatch\n");
+		HMTHROW_AND_ERR("Bad versions in pid %d : time_points %d n_versions %d\n", rec.pid, time_points.size(), rec.get_n_versions());
 		return -1;
 	}
 	int factor = 1;
 	int v_out_sid = V_ids[0];
 	int n_vals = work_channel + 1;
 	//first lets fetch "static" signals without Time field:
+
+	//MLOG("DBG3===>: apply_calc_in_time: pid %d\n", rec.pid);
 
 	set<int> iteratorSignalIds;
 	vector<int> timed_sigs;
@@ -2864,6 +2849,72 @@ void RepAggregateSignal::print() {
 		work_channel, factor, time_window, med_time_converter.type_to_string(time_unit).c_str(),
 		start_time_channel, end_time_channel, drop_missing_rate, buffer_first);
 }
+
+
+//----------------------------------------------------------------------------------------
+// RepHistoryLimit : given a signal : chomps history to be at a given window relative
+//                   to prediction points
+//----------------------------------------------------------------------------------------
+// Init from map
+//.......................................................................................
+int RepHistoryLimit::init(map<string, string>& mapper)
+{
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepBasicOutlierCleaner::init]
+		if (field == "signal") { signalName = entry.second; }
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "win_from") win_from = med_stoi(entry.second);
+		else if (field == "win_to") win_to = med_stoi(entry.second);
+		else if (field == "rep_time_unit") rep_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
+	}
+
+}
+
+int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int to_time, vector<char> &data, int &len)
+{
+	data.clear();
+	len = 0;
+	char *udata = (char *)usv.data;
+	int element_size = usv.size();
+	for (int i=0; i<usv.len; i++) {
+		int i_time = usv.Time(i, time_channel);
+		if (i_time > from_time && i_time <= to_time) {
+			for (int j=element_size*i; j<element_size*(i+1); j++)
+				data.push_back(udata[j]);
+			len++;
+		}
+	}
+	return 0;
+}
+
+//---------------------------------------------------------------------------------------------------------------
+int RepHistoryLimit::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
+{
+
+	// goal : for each time_points[i] generate the signal i version to contain only data within the given time window
+
+	int len = 0;
+	UniversalSigVec usv;
+	vector<char> data;
+
+	for (int ver=0; ver<time_points.size(); ver++) {
+		rec.uget(signalId, ver, usv);
+		int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
+		int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);
+		int to_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_from);
+		get_sub_usv_data(usv, from_time, to_time, data, len);
+		if (len < usv.len) {
+			rec.set_version_data(signalId, ver, &data[0], len);
+		}
+	}
+
+	return 0;
+}
+
 
 //=======================================================================================
 // Utility Functions
