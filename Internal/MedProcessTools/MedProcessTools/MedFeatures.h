@@ -134,6 +134,8 @@ namespace medial {
 	*  \brief process namespace
 	*/
 	namespace process {
+		/// \brief commit selection of indexes on vector
+		template<class T> void commit_selection(vector<T> &vec, const vector<int> &idx);
 		/// \brief filtering MedFeatures by selected indexes rows
 		void filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag = false);
 		/// \brief down sampling with ratio
@@ -160,6 +162,12 @@ namespace medial {
 		/// @param the return value of selected indexes to do the matching
 		void match_to_prior(const vector<float> &outcome,
 			const vector<float> &group_values, float target_prior, vector<int> &sel_idx);
+
+		/// \brief does matching to specific prior for MedSamples
+		void match_to_prior(MedSamples &samples, float target_prior, vector<int> &sel_idx);
+
+		/// \brief does matching to specific prior for MedFeatures
+		void match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx);
 	}
 	/*!
 	* \brief stats namespace

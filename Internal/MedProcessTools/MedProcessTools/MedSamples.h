@@ -182,7 +182,7 @@ public:
 	bool same_as(MedSamples &other, int mode);
 
 	/// <summary> Return number of samples </summary>
-	int nSamples();
+	int nSamples() const;
 
 	/// <summary> Get predictions vector size. Return -1 if not-consistent </summary>
 	int get_predictions_size(int& nPreds);
