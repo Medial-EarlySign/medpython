@@ -160,12 +160,18 @@ public:
 	int init(map<string, string>& mapper) { return imputer.init(mapper); }
 
 	// Learn imputing model
-	int Learn(MedFeatures& features, unordered_set<int>& ids) { return imputer.Learn(features); }
+	int Learn(MedFeatures& features, unordered_set<int>& ids);
 	int Learn(MedFeatures& features) { return imputer.Learn(features); }
 
 	// Apply cleaning model
-	int Apply(MedFeatures& features, unordered_set<int>& ids) { return imputer.Apply(features); }
-	int Apply(MedFeatures& features) { return imputer.Apply(features); }
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features) { return imputer.Apply(features); }
+
+	/// check if a set of features is affected by the current processor
+	bool are_features_affected(unordered_set<string>& out_req_features);
+
+	/// update sets of required as input according to set required as output to processor
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureIterativeImputer)

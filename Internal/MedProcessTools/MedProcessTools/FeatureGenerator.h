@@ -34,6 +34,7 @@ typedef enum {
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
 	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
+	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -232,11 +233,6 @@ private:
 	float uget_max_diff(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_first_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
-
-	// update time window according to time-range signal
-	void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time, int& updated_win_from, int& updated_win_to, bool delta_win,
-		int& updated_d_win_from, int& updated_d_win_to);
-	void get_updated_time_window(TimeRangeTypes type, int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to);
 
 public:
 	// Feature Descrption
@@ -558,12 +554,12 @@ typedef enum {
 class RangeFeatGenerator : public FeatureGenerator {
 private:
 	// actual generators
-	float uget_range_current(UniversalSigVec &usv, int time_point);
-	float uget_range_latest(UniversalSigVec &usv, int time_point);
-	float uget_range_min(UniversalSigVec &usv, int time_point);
-	float uget_range_max(UniversalSigVec &usv, int time_point);
-	float uget_range_ever(UniversalSigVec &usv, int time_point);
-	float uget_range_time_diff(UniversalSigVec &usv, int time_point);
+	float uget_range_current(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_latest(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_min(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_max(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 public:
 
 	string signalName; ///< Signal to consider
@@ -577,8 +573,13 @@ public:
 	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
 	int check_first = 1;						///< if 1 choose first occurance of check_val otherwise choose last
 
-
 	vector<char> lut;							///< to be used when generating FTR_RANGE_EVER
+
+	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
+	string timeRangeSignalName = "";
+	int timeRangeSignalId;
+	TimeRangeTypes timeRangeType = TIME_RANGE_CURRENT;
+	int time_unit_range_sig = MedTime::Undefined;		///< the time unit in which the range signal is given. (set correctly from Repository in learn and _generate)
 
 
 
@@ -617,7 +618,7 @@ public:
 	// Serialization
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType)
 };
 
 /**
@@ -630,10 +631,8 @@ public:
 	MedModel *model = NULL; ///< model
 	string modelName = ""; ///< name of final feature
 	int n_preds = 1;  ///< how many features to create
-	int impute_existing_feature = 0; ///< If true will impute using model feature, otherwise using preds
-	int use_overriden_predictions = 0;
-	string medSamples_path = ""; ///< If provided will override predictions using samples
-	/// A container for the predictions
+	int impute_existing_feature = 0; ///< If true will use model to impute an existing feature (determined by model name. Otherwise - generate new feature(s)
+	int use_overriden_predictions = 0; ///< Use a given vector of predictions instead of applying model
 
 	/// Naming 
 	void set_names();
@@ -643,7 +642,7 @@ public:
 	int init(map<string, string>& mapper);
 	int init_from_model(MedModel *_model);
 
-	/// Hack - Instead of actually predicting with the model, load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
+	/// Use a given vector of predictions instead of applying model
 	void override_predictions(MedSamples& inSamples, MedSamples& modelSamples);
 
 	/// Do the actual prediction prior to feature generation ...
@@ -661,9 +660,61 @@ public:
 	~ModelFeatGenerator();
 private:
 	vector<float> preds;
-	MedSamples _preloaded;
+};
 
-	void find_predictions(MedSamples& requestSamples, MedFeatures &features);
+
+/**
+* Time Feature Generator: creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
+*/
+
+typedef enum {
+	FTR_TIME_YEAR = 0, ///< Year (as is)
+	FTR_TIME_MONTH = 1, ///< Month of year (0-11)
+	FTR_TIME_DAY_IN_MONTH = 2, ///< Day of the month (0-30)
+	FTR_TIME_DAY_IN_WEEK = 3, ///< Day of the week (0-6)
+	FTR_TIME_HOUR = 4, ///< Hour of the day (0-23)
+	FTR_TIME_MINUTE = 5, ///< Minute of the hout (0-59)
+	FTR_TIME_LAST,
+} TimeFeatTypes;
+
+
+class TimeFeatGenerator : public FeatureGenerator {
+public:
+
+	// Time Unit
+	TimeFeatTypes time_unit = FTR_TIME_LAST;
+
+	// Binning of time units
+	vector<int> time_bins;
+	vector<string> time_bin_names;
+	
+	// Constructor/Destructor
+	TimeFeatGenerator() { generator_type = FTR_GEN_TIME; }
+	~TimeFeatGenerator() {}
+
+	// Naming 
+	void set_names();
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp TimeFeatGenerator::init
+	int init(map<string, string>& mapper);
+	int get_time_unit(string name);
+	int get_time_bins(string& binsInfo);
+	int get_nBins();
+	void set_default_bins();
+	string time_unit_to_string(TimeFeatTypes time_unit);
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<TimeFeatGenerator *>(generator)); }
+
+	// Learn a generator
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+
+	// generate a new feature
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Serialization
+	ADD_SERIALIZATION_FUNCS(names, time_unit, time_bins, time_bin_names)
 };
 
 
@@ -673,6 +724,16 @@ private:
 
 /// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
 void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
+
+/// Conversion between time-range type and name
+TimeRangeTypes time_range_name_to_type(const string& name);
+string time_range_type_to_name(TimeRangeTypes type);
+
+// update time window according to time-range signal
+void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time_unit_range_sig, int time_unit_win, int time_unit_sig, int time,
+	int win_from, int& updated_win_from, int win_to, int& updated_win_to, bool delta_win, int d_win_from, int& updated_d_win_from, int d_win_to, int& updated_d_win_to);
+void get_updated_time_window(TimeRangeTypes type, int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to);
+
 
 //=======================================
 // Joining the MedSerialze wagon

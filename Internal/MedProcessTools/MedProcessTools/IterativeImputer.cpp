@@ -302,7 +302,8 @@ int IterativeImputer::learn_first_round(MedFeatures &mfd)
 			string init_str = "moment_type=" + to_string(params.round1_moment) + ";strata=" + params.round1_strata;
 			basic_imputer.feature_name = fi.name;
 			if (params.verbose) MLOG("IterativeImputer learn_first_round: feature %s init %s\n", fi.name.c_str(), init_str.c_str());
-			basic_imputer.init_from_string(init_str);
+			if (basic_imputer.init_from_string(init_str) < 0)
+				MTHROW_AND_ERR("Cannot init FeatureImputer  with init string \'%s\'\n", init_str.c_str());
 
 			if (basic_imputer.learn(mfd, train_ids) < 0) {
 				MERR("IterativeImputer : Failed 1st round basic imputer Learn on feature %s.... \n", fi.name.c_str());
@@ -521,4 +522,51 @@ int IterativeImputer::feats_for_pred_inds_to_names(feature_info &fi)
 		fi.feats_for_pred.push_back(feats[i].full_name);
 
 	return 0;
+}
+
+
+/// check if a set of features is affected by the current processor
+//.......................................................................................
+bool FeatureIterativeImputer::are_features_affected(unordered_set<string>& out_req_features) {
+
+	// If empty = all features are required
+	if (out_req_features.empty())
+		return true;
+
+	if (imputer.params.features_to_impute.empty())
+		return true;
+
+	// Check intersections
+	for (string ftr : imputer.params.features_to_impute) {
+		if (out_req_features.find(ftr) != out_req_features.end())
+			return true;
+	}
+
+	return false;
+}
+
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void FeatureIterativeImputer::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
+
+	if (are_features_affected(out_req_features))
+		// If active, than everything before is required
+		in_req_features.clear();
+	else
+		// If not, do nothing
+		in_req_features = out_req_features;
+}
+
+/// Apply imputing model on subset of ids (TBI)
+//.......................................................................................
+int FeatureIterativeImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
+	MERR("iterativeImputer on subset of ids is not implemented yet\n"); 
+	return -1;
+}
+
+/// Learn imputing model on subset of ids (TBI)
+//.......................................................................................
+int FeatureIterativeImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
+	MERR("iterativeImputer on subset of ids is not implemented yet\n"); 
+	return -1; 
 }

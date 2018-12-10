@@ -130,7 +130,9 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, st
 
 	//MLOG("Processor type is %d\n", (int)processor_type);
 	RepProcessor *newRepProcessor = make_processor(processor_type);
-	newRepProcessor->init_from_string(init_string);
+	if (newRepProcessor->init_from_string(init_string) < 0)
+		MTHROW_AND_ERR("Cannot init RepProcessor of type %d with init string \'%s\'\n", processor_type, init_string.c_str());
+
 	return newRepProcessor;
 }
 
@@ -513,7 +515,7 @@ int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 }
 
 //.......................................................................................
-int RepMultiProcessor::_apply_simple(PidDynamicRec& rec, vector<int>& time_points) 
+int RepMultiProcessor::_apply_simple(PidDynamicRec& rec, vector<int>& time_points)
 {
 	for (auto p : processors) {
 		if ((p->_apply_simple(rec, time_points)) < 0)
@@ -1959,8 +1961,12 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	//MLOG("DBG===> in RepCalcSimpleSignals init: calculator %s , time %d\n", calculator.c_str(), signals_time_unit);
 	//calc_type = get_calculator_type(calculator);
 	calculator_logic = SimpleCalculator::make_calculator(calculator);
-	if (!calculator_init_params.empty())
-		calculator_logic->init_from_string(calculator_init_params);
+	
+	if (!calculator_init_params.empty()) {
+		if (calculator_logic->init_from_string(calculator_init_params) < 0)
+			return -1;
+	}
+	
 	calculator_logic->missing_value = missing_value;
 	calculator_logic->work_channel = work_channel;
 
@@ -2062,8 +2068,11 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type];
 	if (calculator_logic == NULL) { //recover from serialization
 		calculator_logic = SimpleCalculator::make_calculator(calculator);
-		if (!calculator_init_params.empty())
-			calculator_logic->init_from_string(calculator_init_params);
+
+		if (!calculator_init_params.empty()) {
+			if (calculator_logic->init_from_string(calculator_init_params) < 0)
+				MTHROW_AND_ERR("Cannot init calculator from \'%s\'\n", calculator_init_params.c_str());
+		}
 		calculator_logic->missing_value = missing_value;
 	}
 	calculator_logic->init_tables(dict, sigs, signals);
@@ -2871,6 +2880,7 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
 	}
 
+	return 0;
 }
 
 int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int to_time, vector<char> &data, int &len)
@@ -2882,7 +2892,7 @@ int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int t
 	for (int i=0; i<usv.len; i++) {
 		int i_time = usv.Time(i, time_channel);
 		if (i_time > from_time && i_time <= to_time) {
-			for (int j=element_size*i; j<element_size*(i+1); j++)
+			for (int j = element_size*i; j < element_size*(i + 1); j++)
 				data.push_back(udata[j]);
 			len++;
 		}
@@ -2900,7 +2910,7 @@ int RepHistoryLimit::_apply(PidDynamicRec& rec, vector<int>& time_points, vector
 	UniversalSigVec usv;
 	vector<char> data;
 
-	for (int ver=0; ver<time_points.size(); ver++) {
+	for (int ver = 0; ver < time_points.size(); ver++) {
 		rec.uget(signalId, ver, usv);
 		int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
 		int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);

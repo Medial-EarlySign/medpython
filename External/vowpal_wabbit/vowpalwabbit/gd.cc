@@ -20,6 +20,10 @@ license as described in the file LICENSE.
 #  endif
 #endif
 
+#if (defined(__SSE2__) || defined(_M_AMD64) || defined(_M_X64))
+#include <xmmintrin.h>
+#endif
+
 #include "gd.h"
 #include "accumulate.h"
 #include "reductions.h"

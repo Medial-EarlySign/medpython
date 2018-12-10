@@ -63,6 +63,14 @@ void MPFeatures::init_all_samples(MPIdSamplesVectorAdaptor &in_samples) {
 	o->init_all_samples(*(in_samples.o));
 }
 
+void MPFeatures::append_samples(MPSamples& in_samples) {
+	for (auto &idSample : (*(in_samples.o)).idSamples)
+	{
+		o->append_samples(idSample);
+	}
+}
+
+
 void MPFeatures::init_pid_pos_len() { o->init_pid_pos_len(); }
 
 int MPFeatures::get_pid_pos(int pid) const { return o->get_pid_pos(pid); };

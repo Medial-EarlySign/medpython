@@ -1,3 +1,6 @@
+#ifndef __CALIBRATION_H__
+#define __CALIBRATION_H__
+
 #include <vector>
 #include <Logger/Logger/Logger.h>
 #include <MedProcessTools/MedProcessTools/SerializableObject.h>
@@ -49,6 +52,7 @@ public:
 	int km_time_resolution = 1;
 	int min_cases_for_calibration_smoothing_pct = 10;
 	int do_calibration_smoothing = 1;
+	int censor_controls = 0; ///< censor controls without long-enough followup even in mean-outcome mode
 
 	int min_preds_in_bin = 100; ///< minimal number of obseravtion to create bin
 	float min_score_res = 0; ///< score resulotion value to round to and merge similar
@@ -76,7 +80,7 @@ public:
 
 	ADD_CLASS_NAME(Calibrator)
 	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
-		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing,
+		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
 		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank,
 		cals, min_range, max_range, map_prob, platt_params)
 
@@ -92,4 +96,4 @@ private:
 	void read_calibration_time_window(const string& fname);
 };
 
-MEDSERIALIZE_SUPPORT(Calibrator)
+#endif

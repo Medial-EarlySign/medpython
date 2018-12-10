@@ -99,7 +99,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 	return 0;
 }
 
-int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
+int DoCalcFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	// Get Source Features
 	resolve_feature_names(features);
 
@@ -153,6 +153,38 @@ int DoCalcFeatProcessor::Apply(MedFeatures& features, unordered_set<int>& ids) {
 		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
 
 	return 0;
+}
+
+/// check if a set of features is affected by the current processor
+//.......................................................................................
+bool DoCalcFeatProcessor::are_features_affected(unordered_set<string>& out_req_features) {
+
+	// If empty = all features are required
+	if (out_req_features.empty())
+		return true;
+
+	// Otherwise - check  generated features
+	if (out_req_features.find(feature_name) != out_req_features.end())
+			return true;
+
+	return false;
+}
+
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void DoCalcFeatProcessor::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
+
+	// If empty, keep as is
+	if (out_req_features.empty())
+		in_req_features.clear();
+	else {
+		in_req_features = out_req_features;
+		// If active, add originals 
+		if (are_features_affected(out_req_features)) {
+			for (string& ftr : source_feature_names)
+				in_req_features.insert(ftr);
+		}
+	}
 }
 
 // Out = Sum(In) or Sum(In*W)

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <CustomBuild Include="H:\MR\Libs\External\xgboost\winBuild\CMakeFiles\3a65d20fb2b28e490bbd60fbac8cdcd2\dmlccore_lint.rule">
       <Filter>CMake Rules</Filter>

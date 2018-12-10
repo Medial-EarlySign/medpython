@@ -147,6 +147,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 	req_signals[1] = "BYEAR";
 	req_signals[2] = signalName;
 
+
 	return 0;
 }
 
@@ -171,11 +172,10 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rep.sigs.Sid2Info[signalId].time_unit;
 
 	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
+	size_t nmodels = 1ll << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
 	// Required signals
-
 	vector<int> all_req_signal_ids_v;
 	vector<unordered_set<int> > current_required_signal_ids(processors.size());
 	vector<FeatureGenerator *> generators = { this };
@@ -449,8 +449,9 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
+
 	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1 << nperiods;
+	size_t nmodels = 1ll << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
 	int iperiod = (int)nperiods;
@@ -611,7 +612,8 @@ inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, i
 	age = med_time_converter.convert_times(time_unit_from, MedTime::Date, time) / 10000 - byear;
 }
 
-
+// Print predictor
+//.......................................................................................
 void BinnedLmEstimates::print()
 {
 	string prefix = "BinnedLmEstimates(" + signalName + ") :: ";

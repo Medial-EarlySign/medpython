@@ -96,6 +96,7 @@ public:
 	void normalize(MEDPY_NP_INPUT(float* external_avg, int external_avg_n), MEDPY_NP_INPUT(float* external_std, int external_std_n), int norm_type = 1);
 
 	void get_cols_avg_std(MEDPY_NP_OUTPUT(float** buf_avg, int* buf_avg_n), MEDPY_NP_OUTPUT(float** buf_std, int* buf_std_n));
+	void set_signals(std::vector<std::string> & sigs);
 
 	void load(float *IN_ARRAY2, int DIM1, int DIM2);
 	void load_transposed(float *IN_ARRAY2, int DIM1, int DIM2);

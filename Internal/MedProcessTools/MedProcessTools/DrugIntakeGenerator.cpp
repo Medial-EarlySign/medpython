@@ -19,6 +19,8 @@ void DrugIntakeGenerator::set_names() {
 			set_names = boost::algorithm::join(this->sets, "_");
 
 		name += set_names + ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
+		if (timeRangeSignalName != "")
+			name += ".time_range_" + timeRangeSignalName + "_" + time_range_type_to_name(timeRangeType);
 		names.push_back(name);
 		//MLOG("Created %s\n", name.c_str());
 	}
@@ -33,25 +35,8 @@ void DrugIntakeGenerator::init_defaults() {
 	time_unit_sig = MedTime::Undefined;
 	time_unit_win = global_default_windows_time_unit;
 	signalName = "";
+	timeRangeSignalId = -1;
 };
-
-// Generate
-//.......................................................................................
-int DrugIntakeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
-
-	string& name = names[0];
-
-	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
-
-	float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[name][index]);
-	for (int i = 0; i < num; i++) {
-		rec.uget(signalId, i);
-		p_feat[i] = get_value(rec, rec.usv, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time),
-			med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].outcomeTime));
-	}
-
-	return 0;
-}
 
 // Init look-up table
 //.......................................................................................
@@ -68,28 +53,59 @@ void DrugIntakeGenerator::init_tables(MedDictionarySections& dict) {
 	return;
 }
 
+// Generate
+//.......................................................................................
+int DrugIntakeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
+
+	string& name = names[0];
+
+	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
+	if (timeRangeSignalName != "" && time_unit_range_sig == MedTime::Undefined)
+		time_unit_range_sig = rec.my_base_rep->sigs.Sid2Info[timeRangeSignalId].time_unit;
+
+	float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[name][index]);
+	for (int i = 0; i < num; i++) {
+		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time),
+			med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].outcomeTime));
+	}
+
+	return 0;
+}
+
 // Get Value
 //.......................................................................................
-float DrugIntakeGenerator::get_value(PidDynamicRec &rec, UniversalSigVec &usv, int time, int sig_outcomeTime)
+float DrugIntakeGenerator::get_value(PidDynamicRec &rec, int idx, int time, int sig_outcomeTime)
 {
 
-	int min_time = time - win_to;
-	int max_time = time - win_from;
+	rec.uget(signalId, idx);
+
+	int updated_win_from = win_from, updated_win_to = win_to;
+	int updated_d_win_from, updated_d_win_to;
+	if (timeRangeSignalId != -1) {
+		UniversalSigVec time_range_usv;
+		rec.uget(timeRangeSignalId, idx, time_range_usv);
+		get_updated_time_window(time_range_usv, timeRangeType, time_unit_range_sig, time_unit_win, time_unit_sig, time,
+			win_from, updated_win_from, win_to, updated_win_to, false, 0, updated_d_win_from, 0, updated_d_win_to);
+	}
+
+	int min_time = time - updated_win_to;
+	int max_time = time - updated_win_from;
 	if (sig_outcomeTime < max_time)
 		max_time = sig_outcomeTime;
 
 	if (max_time < min_time)
 		return MED_MAT_MISSING_VALUE;
+
 	// Check Drugs
 	vector<vector<pair<int, int> > > drugIntakePeriods(sets.size());
 
-	// Collect period of administration per drug
-	for (int i = 0; i < usv.len; i++) {
-		if (lut[(int)usv.Val(i,0)] > 0) {
-			int setId = lut[(int)usv.Val(i, 0)] - 1;
-			int currentTime = med_time_converter.convert_times(time_unit_sig,time_unit_win,usv.Time(i));
+	// Collect periods of administration per drug
+	for (int i = 0; i < rec.usv.len; i++) {
+		if (lut[(int)rec.usv.Val(i,0)] > 0) {
+			int setId = lut[(int)rec.usv.Val(i, 0)] - 1;
+			int currentTime = med_time_converter.convert_times(time_unit_sig,time_unit_win,rec.usv.Time(i));
 		
-			int period = (int)usv.Val(i,1);
+			int period = (int)rec.usv.Val(i,1);
 
 			if (drugIntakePeriods[setId].empty() || currentTime > drugIntakePeriods[setId].back().second)
 				drugIntakePeriods[setId].push_back({ currentTime,currentTime + period - 1 });
@@ -101,7 +117,7 @@ float DrugIntakeGenerator::get_value(PidDynamicRec &rec, UniversalSigVec &usv, i
 		}
 	}
 
-	// Collect total period of administrating anti-coagulants
+	// Collect total period of administrating drugs
 	vector<pair<int, int> > periods;
 	for (int i = 0; i < drugIntakePeriods.size(); i++)
 		periods.insert(periods.end(), drugIntakePeriods[i].begin(), drugIntakePeriods[i].end());
@@ -151,6 +167,8 @@ int DrugIntakeGenerator::init(map<string, string>& mapper) {
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "in_set_name") in_set_name = entry.second;
 		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
+		else if (field == "time_range_signal") timeRangeSignalName = entry.second;
+		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for DrugIntakeGenerator\n", field.c_str());
 		//! [DrugIntakeGenerator::init]
@@ -160,6 +178,8 @@ int DrugIntakeGenerator::init(map<string, string>& mapper) {
 	set_names();
 
 	req_signals.assign(1, signalName);
+	if (timeRangeSignalName != "")
+		req_signals.push_back(timeRangeSignalName);
 
 	return 0;
 }

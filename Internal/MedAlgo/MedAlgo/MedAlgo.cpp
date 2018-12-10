@@ -1336,12 +1336,6 @@ bool is_similar(float mean1, float lower1, float upper1, float std1,
 			(mean2 >= lower1 && mean2 <= upper1) ||
 			(lower1 == lower2 && upper1 == upper2)); //means are inside CI of 95. like 2 stds in normal
 }
-template<class T> void commit_selection(vector<T> &vec, const vector<int> &idx) {
-	vector<T> filt(idx.size());
-	for (size_t i = 0; i < idx.size(); ++i)
-		filt[i] = vec[idx[i]];
-	vec.swap(filt);
-}
 
 void medial::process::compare_populations(const MedFeatures &population1, const MedFeatures &population2,
 	const string &name1, const string &name2, const string &output_file,
@@ -1456,7 +1450,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			double rt = double(max_learn) / new_data.samples.size();
 			vector<int> sel;
 			medial::process::down_sample(new_data, rt, false, &sel);
-			commit_selection(labels, sel);
+			medial::process::commit_selection(labels, sel);
 		}
 		//lets fix labels weight that cases will be less common
 		vector<float> preds;

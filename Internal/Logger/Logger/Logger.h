@@ -72,9 +72,9 @@ using namespace std;
 // MedModel section
 #define LOG_MED_MODEL 24
 // RepositoryType section
-#define LOG_REPTYPE 24
+#define LOG_REPTYPE 25
 
-#define MAX_LOG_SECTION	25
+#define MAX_LOG_SECTION	26
 
 
 /// logs get printed if their given level (which can be different for different code sections)\n

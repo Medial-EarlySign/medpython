@@ -42,6 +42,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_DRG_INTAKE;
 	else if (generator_name == "model")
 		return FTR_GEN_MODEL;
+	else if (generator_name == "time")
+		return FTR_GEN_TIME;
 	else MTHROW_AND_ERR("unknown generator name [%s]", generator_name.c_str());
 }
 
@@ -150,6 +152,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new DrugIntakeGenerator;
 	else if (generator_type == FTR_GEN_MODEL)
 		return new ModelFeatGenerator;
+	else if (generator_type == FTR_GEN_TIME)
+		return new TimeFeatGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
@@ -159,7 +163,8 @@ FeatureGenerator * FeatureGenerator::make_generator(FeatureGeneratorTypes genera
 
 	//MLOG("making generator %d , %s\n", (int)generator_type, init_string.c_str());
 	FeatureGenerator *newFtrGenerator = make_generator(generator_type);
-	newFtrGenerator->init_from_string(init_string);
+	if (newFtrGenerator->init_from_string(init_string) < 0)
+		MTHROW_AND_ERR("Cannot init FeatureGenerator of type %d with init string \'%s\'\n", generator_type, init_string.c_str());
 	return newFtrGenerator;
 }
 
@@ -441,10 +446,10 @@ void BasicFeatGenerator::init_defaults() {
 //.......................................................................................
 int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
-
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 	if (timeRangeSignalName != "" && time_unit_range_sig == MedTime::Undefined)
 		time_unit_range_sig = rec.my_base_rep->sigs.Sid2Info[timeRangeSignalId].time_unit;
+
 
 
 	float *p_feat = _p_data[0] + index;
@@ -485,7 +490,8 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int o
 	if (timeRangeSignalId != -1) {
 		UniversalSigVec time_range_usv;
 		rec.uget(timeRangeSignalId, idx, time_range_usv);
-		get_updated_time_window(time_range_usv, timeRangeType, time, updated_win_from, updated_win_to, (type==FTR_WIN_DELTA_VALUE), updated_d_win_from, updated_d_win_to);
+		get_updated_time_window(time_range_usv, timeRangeType, time_unit_range_sig, time_unit_win, time_unit_sig, time, 
+			win_from, updated_win_from, win_to, updated_win_to, (type==FTR_WIN_DELTA_VALUE), d_win_from, updated_d_win_from, d_win_to, updated_d_win_to);
 	}
 
 	switch (type) {
@@ -781,6 +787,10 @@ void RangeFeatGenerator::set_names() {
 	if (val_channel != 0)
 		name += ".v" + std::to_string(val_channel);
 	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name);
+
+	if (timeRangeSignalName != "")
+		name += ".time_range_" + timeRangeSignalName + "_" + time_range_type_to_name(timeRangeType);
+
 	// add the undecorated feature name as a tag, so we can later remove/select it with TagFeatureSelector
 	tags.push_back(name);
 }
@@ -802,6 +812,8 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field == "check_first") check_first = med_stoi(entry.second);
+		else if (field == "time_range_signal") timeRangeSignalName = entry.second;
+		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -811,6 +823,8 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 	set_names();
 
 	req_signals.assign(1, signalName);
+	if (timeRangeSignalName != "")
+		req_signals.push_back(timeRangeSignalName);
 
 	return 0;
 }
@@ -838,6 +852,7 @@ void RangeFeatGenerator::init_defaults() {
 	time_unit_win = global_default_windows_time_unit;
 	string _signalName = "";
 	set(_signalName, FTR_RANGE_CURRENT, 0, 360000);
+	timeRangeSignalId = -1;
 };
 
 // Get type from name
@@ -860,6 +875,8 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 int RangeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	if (time_unit_sig == MedTime::Undefined)	time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
+	if (timeRangeSignalName != "" && time_unit_range_sig == MedTime::Undefined)
+		time_unit_range_sig = rec.my_base_rep->sigs.Sid2Info[timeRangeSignalId].time_unit;
 
 	float *p_feat = _p_data[0] + index;
 	MedSample *p_samples = &(features.samples[index]);
@@ -875,13 +892,22 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 
 	rec.uget(signalId, idx);
 
+	int updated_win_from = win_from, updated_win_to = win_to;
+	int updated_d_win_from, updated_d_win_to;
+	if (timeRangeSignalId != -1) {
+		UniversalSigVec time_range_usv;
+		rec.uget(timeRangeSignalId, idx, time_range_usv);
+		get_updated_time_window(time_range_usv, timeRangeType, time_unit_range_sig, time_unit_win, time_unit_sig, time,
+			win_from, updated_win_from, win_to, updated_win_to, false, 0, updated_d_win_from, 0, updated_d_win_to);
+	}
+
 	switch (type) {
-	case FTR_RANGE_CURRENT:	return uget_range_current(rec.usv, time);
-	case FTR_RANGE_LATEST:	return uget_range_latest(rec.usv, time);
-	case FTR_RANGE_MIN:	return uget_range_min(rec.usv, time);
-	case FTR_RANGE_MAX:		return uget_range_max(rec.usv, time);
-	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, time);
-	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, time);
+	case FTR_RANGE_CURRENT:	return uget_range_current(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_LATEST:	return uget_range_latest(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_MIN:	return uget_range_min(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_MAX:		return uget_range_max(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, updated_win_from, updated_win_to, time);
 
 	default:	return missing_val;
 	}
@@ -1349,82 +1375,13 @@ float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win
 }
 
 //.......................................................................................
-// update time window according to time-range signal
-void BasicFeatGenerator::get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time, int& updated_win_from, int& updated_win_to, bool delta_win, 
-	int& updated_d_win_from, int& updated_d_win_to) {
-
-	// Identify relevant range
-	int range_from = -1, range_to = -1;
-	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig,time_unit_win,time));
-	
-	for (int i = 0; i < time_range_usv.len; i++) {
-		int fromTime = time_range_usv.Time(i, 0);
-		int toTime = time_range_usv.Time(i, 1);
-
-		if (fromTime > time_to_check)
-			break;
-		else if (toTime >= time_to_check) {
-			range_from = fromTime;
-			range_to = toTime;
-			break;
-		}
-	}
-
-	// Handle cases
-	get_updated_time_window(type, range_from, range_to, time_to_check, win_from, win_to, updated_win_from, updated_win_to);
-	if (delta_win)
-		get_updated_time_window(type, range_from, range_to, time_to_check, d_win_from, d_win_to, updated_d_win_from, updated_d_win_to);
-}
-
-void BasicFeatGenerator::get_updated_time_window(TimeRangeTypes type,
-	int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to) {
-
-	if (type == TIME_RANGE_CURRENT) {
-		// Intersection is empty
-		if (range_from == -1 || win_from > time - range_from || win_to < time - range_to) {
-			updated_win_from = win_from;
-			updated_win_to = updated_win_from - 1; // Empty window ...
-		}
-		else {
-			if (win_to > time - range_from) // win_to points before range
-				updated_win_to = time - range_from;
-			else
-				updated_win_to = win_to;
-
-			if (win_from < time - range_to) // win_from is negative (points to the future) and after range-to
-				updated_win_from = time - range_to;
-			else
-				updated_win_from = win_from;
-		}
-	}
-	else if (type == TIME_RANGE_BEFORE) {
-		if (range_from == -1) {
-			updated_win_from = win_from;
-			updated_win_to = win_to;
-		}
-		else {
-			if (win_from < time - range_from)
-				updated_win_from = time - range_from;
-			else
-				updated_win_from = win_from;
-
-			if (win_to < time - range_from)
-				updated_win_to = time - range_from;
-			else
-				updated_win_to = win_to;
-
-		}
-	}
-}
-
-//.......................................................................................
 // get values for RangeFeatGenerator
 //.......................................................................................
 // get the value in a range that includes time - win_from, if available
-float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int time)
+float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int dummy_time, time_to_check;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, dummy_time, time_to_check);
+	get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check);
 
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
@@ -1441,10 +1398,10 @@ float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int time)
 
 //.......................................................................................
 // get the value in the latest range that intersets with time-win_to to time-win_from
-float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int time)
+float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	float val = missing_val;
 	for (int i = 0; i < usv.len; i++) {
@@ -1464,10 +1421,10 @@ float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int time)
 
 //.......................................................................................
 // get the minimal value in a range that intersets with time-win_to to time-win_from
-float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int time)
+float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	float min_val = (float)1e20;
 
@@ -1491,10 +1448,10 @@ float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int time)
 
 //.......................................................................................
 // get the maximal value in a range that intersets with time-win_to to time-win_from
-float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int time)
+float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	float max_val = (float)-1e10;
 
@@ -1518,10 +1475,10 @@ float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int time)
 
 //.......................................................................................
 // returns 1 if the range ever (up to time) had the value signalValue
-float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int time)
+float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
@@ -1538,10 +1495,10 @@ float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int time)
 
 //.......................................................................................
 // returns time diff if the range ever (up to time) had the value signalValue
-float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
+float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 	int no_lut_ind = 0;
 	float time_diff = missing_val;
@@ -1588,6 +1545,193 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int time)
 	}
 }
 
+//=======================================================================================
+// TimeFeatGenerator: creating sample-time features (e.g. differentiate between 
+//	times of day, season of year, days of the week, etc.)
+//=======================================================================================
+
+// Set name
+//................................................................................................................
+void TimeFeatGenerator::set_names() {
+	names.clear();
+
+	string name = "FTR_" + int_to_string_digits(serial_id, 6) + ".Time." + time_unit_to_string(time_unit);
+	for (string bin_name : time_bin_names)
+		name += "." + bin_name;
+	names.push_back(name);
+}
+
+// Time Unit Name
+//................................................................................................................
+string TimeFeatGenerator::time_unit_to_string(TimeFeatTypes time_unit) {
+
+	switch (time_unit) {
+	case FTR_TIME_YEAR: return "Year";
+	case FTR_TIME_MONTH: return "Month";
+	case FTR_TIME_DAY_IN_MONTH: return "Day_in_Month";
+	case FTR_TIME_DAY_IN_WEEK: return "Day_in_Week";
+	case FTR_TIME_HOUR: return "Hour";
+	case FTR_TIME_MINUTE: return "Minute";
+	default: return "Undef";
+	}
+}
+
+// Init
+//.......................................................................................
+int TimeFeatGenerator::init(map<string, string>& mapper) {
+
+	string time_bins_string = "";
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RangeFeatGenerator::init]
+		if (field == "time_unit") {
+			if (get_time_unit(entry.second) < 0) {
+				MERR("Cannot parse time unit \'%s\'\n", entry.second.c_str());
+				return -1;
+			}
+		}
+		else if (field == "time_bins") time_bins_string = entry.second;
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+		//! [RangeFeatGenerator::init]
+	}
+
+	// Parse time_bins_string
+	if (time_bins_string!="" && get_time_bins(time_bins_string) < 0) {
+		MERR("Cannot parse time bins \'%s\'\n", time_bins_string.c_str());
+		return -1;
+	}
+
+	// set names and required signals
+	set_names();
+
+	return 0;
+}
+
+// Parse time-binning info.
+// Required format = name:val1,val2,...,val,name:val,...
+//.......................................................................................
+int TimeFeatGenerator::get_time_bins(string& binsInfo) {
+
+	int nBins = get_nBins();
+	time_bins.assign(nBins, -1);
+
+	int start = 0;
+	string name = "";
+	int bin = -1;
+	for (int i=0; i<binsInfo.size(); i++) {
+		if (binsInfo[i] == ':') {
+			time_bin_names.push_back(binsInfo.substr(start, i - start));
+			start = i + 1;
+			bin++;
+		} else if (binsInfo[i] == ',') {
+			int index = stoi(binsInfo.substr(start, i - start));
+			if (bin == -1 || index < 0 || index >= nBins)
+				return -1;
+			time_bins[index] = bin;
+			start = i + 1;
+		}
+	}
+
+	int index = stoi(binsInfo.substr(start, binsInfo.size() - start));
+	if (bin == -1 || index < 0 || index >= nBins)
+		return -1;
+	time_bins[index] = bin;
+	
+	if (bin == 0) {
+		MERR("Only one bin given for TimeFeatGenerator\n");
+		return -1;
+	}
+
+	for (int i = 0; i < nBins; i++) {
+		if (time_bins[i] == -1) {
+			MERR("%d not coverd in time_bins for TimeFeatGenerator\n",i);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+//.......................................................................................
+int TimeFeatGenerator::get_time_unit(string name) {
+
+	boost::algorithm::to_lower(name);
+
+	if (name == "year") time_unit = FTR_TIME_YEAR;
+	else if (name =="month") time_unit = FTR_TIME_MONTH;
+	else if (name == "day_in_month") time_unit = FTR_TIME_DAY_IN_MONTH;
+	else if (name == "day_in_week") time_unit = FTR_TIME_DAY_IN_WEEK;
+	else if (name == "hour") time_unit = FTR_TIME_HOUR;
+	else if (name == "minute") time_unit = FTR_TIME_MINUTE;
+	
+	if (time_unit != FTR_TIME_LAST) {
+		set_default_bins();
+		return 0;
+	}
+	else
+		return -1;
+}
+
+//.......................................................................................
+int TimeFeatGenerator::get_nBins() {
+
+	switch (time_unit) {
+	case FTR_TIME_YEAR: return 0;
+	case FTR_TIME_MONTH: return 12;
+	case FTR_TIME_DAY_IN_MONTH: return 31;
+	case FTR_TIME_DAY_IN_WEEK: return 7;
+	case FTR_TIME_HOUR: return 24;
+	case FTR_TIME_MINUTE: return 60;
+	default: return 0;
+	}
+}
+
+//.......................................................................................
+void TimeFeatGenerator::set_default_bins() {
+
+	int nBins = get_nBins();
+
+	time_bins.resize(nBins);
+	time_bin_names.resize(nBins);
+	
+	for (int i = 0; i < nBins; i++) {
+		time_bins[i] = i;
+		time_bin_names[i] = to_string(i);
+	}
+}
+
+// Generate
+//.......................................................................................
+int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+
+	float *p_feat = p_data[0] + index;
+
+	// Special care of year
+	if (time_unit == FTR_TIME_YEAR) {
+		for (int i = 0; i < num; i++)
+			p_feat[i] = med_time_converter.convert_times(features.time_unit, MedTime::Years, features.samples[index + i].time) + 1900;
+
+		return 0;
+	}
+
+	int target_time_unit, mod, shift;
+	switch (time_unit) {
+	case FTR_TIME_MONTH: target_time_unit = MedTime::Months; mod = 12; shift = 0; break;
+	case FTR_TIME_DAY_IN_MONTH: target_time_unit = MedTime::Date; mod = 100; shift = 0; break;
+	case FTR_TIME_DAY_IN_WEEK: target_time_unit = MedTime::Days; mod = 7; shift = 1; break; // 01/01/1900 was monday (==1)
+	case FTR_TIME_HOUR: target_time_unit = MedTime::Hours; mod = 24; shift = 0; break;
+	case FTR_TIME_MINUTE: target_time_unit = MedTime::Minutes; mod = 60; shift = 0; break;  
+	default:
+		MTHROW_AND_ERR("TimeFeatGenerator: Unknown time-unit = %d\n", time_unit);
+	}
+	
+	for (int i = 0; i < num; i++)
+		p_feat[i] = time_bins[(med_time_converter.convert_times(features.time_unit, target_time_unit, features.samples[index + i].time) + shift) % mod];
+
+	return 0;
+}
+
 // ModelFeatureGenerator
 //=======================================================================================
 
@@ -1622,13 +1766,10 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
-		else if (field == "medSamples_path") medSamples_path = entry.second;
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
 		//! [ModelFeatGenerator::init]
 	}
-	if (!medSamples_path.empty() && !modelFile.empty())
-		MTHROW_AND_ERR("Error in ModelFeatGenerator - please provide either medSamples_path or modelFile\n");
 
 	// set names
 	set_names();
@@ -1636,25 +1777,16 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 	boost::replace_all(modelFile, "{name}", modelName);
 	// Read Model and get required signal
 	MedModel *_model = new MedModel;
-	if (medSamples_path.empty()) {
-		if (_model->read_from_file(modelFile) != 0)
-			MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
-		init_from_model(_model);
-	}
-	else {
-		if (_preloaded.read_from_file(medSamples_path) < 0)
-			MTHROW_AND_ERR("Cannot read samples from file %s\n", medSamples_path.c_str());
-		use_overriden_predictions = 1;
-		model = _model;
-		if (model->predictor == NULL)
-			model->set_predictor("gdlm");
-	}
+	if (_model->read_from_file(modelFile) != 0)
+		MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
+	init_from_model(_model);
 
+	generator_type = FTR_GEN_MODEL;
 
 	return 0;
 }
 
-// Copy Model and get required signal
+// Copy Model and get required signals
 //.......................................................................................
 int ModelFeatGenerator::init_from_model(MedModel *_model) {
 
@@ -1697,52 +1829,20 @@ void ModelFeatGenerator::override_predictions(MedSamples& inSamples, MedSamples&
 
 }
 
-void ModelFeatGenerator::find_predictions(MedSamples& requestSamples, MedFeatures &features) {
-	//prepare preds for generation
-	preds.reserve(requestSamples.nSamples());
-	int p_i = 0, p_j;
-	for (size_t i = 0; i < requestSamples.idSamples.size(); ++i)
-	{
-		int pid = requestSamples.idSamples[i].id;
-		//find pid in preloaded whihc is sorted:
-		while (p_i < _preloaded.idSamples.size() && _preloaded.idSamples[p_i].id < pid)
-			++p_i;
-		if (p_i >= _preloaded.idSamples.size() || _preloaded.idSamples[p_i].id != pid)
-			MTHROW_AND_ERR("Error in ModelFeatGenerator - preloaded is missing pid=%d\n", pid);
-		p_j = 0;
-		for (size_t j = 0; j < requestSamples.idSamples[i].samples.size(); ++j)
-		{
-			int time = requestSamples.idSamples[i].samples[j].time;
-			//search in preloaded:
-			while (p_j < _preloaded.idSamples[p_i].samples.size() && _preloaded.idSamples[p_i].samples[p_j].time < time)
-				++p_j;
-			if (p_j >= _preloaded.idSamples[p_i].samples.size() || _preloaded.idSamples[p_i].samples[p_j].time != time)
-				MTHROW_AND_ERR("Error in ModelFeatGenerator - preloaded is missing time for pid=%d, in time=%d\n",
-					pid, time);
-			MedSample &matched = _preloaded.idSamples[p_i].samples[p_j];
-			//copy from matched.predicitions to preds
-			if (matched.prediction.size() < n_preds)
-				MTHROW_AND_ERR("Error in ModelFeatGenerator - preloaded has %zu predictions and request %d\n",
-					matched.prediction.size(), n_preds);
-			for (size_t k = 0; k < n_preds; ++k)
-				preds.push_back(matched.prediction[k]);
-		}
-	}
-}
-
 // Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
+		
 	if (!use_overriden_predictions) {
 		// Predict
 		if (model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
 			MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
+
 		// Extract predictions
 		if (model->features.samples[0].prediction.size() < n_preds)
 			MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
 
 		preds.resize(n_preds*model->features.samples.size());
-
 		for (int i = 0; i < model->features.samples.size(); i++) {
 			for (int j = 0; j < n_preds; j++) {
 				float new_val = model->features.samples[i].prediction[j];
@@ -1751,13 +1851,12 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 				preds[i*n_preds + j] = new_val;
 			}
 		}
+
 		// release some memory
 		model->features.clear();
 	}
-	else {
-		//find id, time in preloaded samples:
-		find_predictions(samples, features);
-	}
+
+	// Generate a new feature or identify feature to impute.
 	if (impute_existing_feature) {
 		FeatureProcessor p;
 		string res = p.resolve_feature_name(features, modelName);
@@ -1786,12 +1885,13 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 }
 
+
 ModelFeatGenerator::~ModelFeatGenerator() {
 	if (model != NULL) delete model;
 	model = NULL;
 }
 
-ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded, model)
+ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, model)
 //................................................................................................................
 // Helper function for time conversion
 //................................................................................................................
@@ -1800,3 +1900,93 @@ void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int 
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
 }
+
+// Helper functions for time-range signals
+//.......................................................................................
+string time_range_type_to_name(TimeRangeTypes type)
+{
+	if (type == TIME_RANGE_CURRENT) return "current";
+	if (type == TIME_RANGE_BEFORE) return "before";
+
+	MTHROW_AND_ERR("unknown type [%d]\n", (int)type);
+}
+
+TimeRangeTypes time_range_name_to_type(const string& name) {
+
+	if (name == "current")			return TIME_RANGE_CURRENT;
+	if (name == "before")			return TIME_RANGE_BEFORE;
+
+	if (isInteger(name))
+		return (TimeRangeTypes)med_stoi(name);
+	else
+		MTHROW_AND_ERR("unknown name [%s]\n", name.c_str());
+}
+
+//.......................................................................................
+// update time window according to time-range signal
+void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes type, int time_unit_range_sig, int time_unit_win, int time_unit_sig, int time,
+	 int win_from, int& updated_win_from, int win_to, int& updated_win_to, bool delta_win, int d_win_from, int& updated_d_win_from, int d_win_to, int& updated_d_win_to) {
+
+	// Identify relevant range
+	int range_from = -1, range_to;
+	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig, time_unit_win, time));
+
+	for (int i = 0; i < time_range_usv.len; i++) {
+		int fromTime = time_range_usv.Time(i, 0);
+		int toTime = time_range_usv.Time(i, 1);
+
+		if (fromTime > time_to_check)
+			break;
+		else if (toTime >= time_to_check) {
+			range_from = fromTime;
+			range_to = toTime;
+			break;
+		}
+	}
+
+	// Handle cases
+	get_updated_time_window(type, range_from, range_to, time_to_check, win_from, win_to, updated_win_from, updated_win_to);
+	if (delta_win)
+		get_updated_time_window(type, range_from, range_to, time_to_check, d_win_from, d_win_to, updated_d_win_from, updated_d_win_to);
+}
+
+void get_updated_time_window(TimeRangeTypes type, int range_from, int range_to, int time, int _win_from, int _win_to, int& updated_win_from, int& updated_win_to) {
+
+	if (type == TIME_RANGE_CURRENT) {
+		// Intersection is empty
+		if (range_from == -1 || _win_from > time - range_from || _win_to < time - range_to) {
+			updated_win_from = _win_from;
+			updated_win_to = updated_win_from - 1; // Empty window ...
+		}
+		else {
+			if (_win_to > time - range_from) // win_to points before range
+				updated_win_to = time - range_from;
+			else
+				updated_win_to = _win_to;
+
+			if (_win_from < time - range_to) // win_from is negative (points to the future) and after range-to
+				updated_win_from = time - range_to;
+			else
+				updated_win_from = _win_from;
+		}
+	}
+	else if (type == TIME_RANGE_BEFORE) {
+		if (range_from == -1) {
+			updated_win_from = _win_from;
+			updated_win_to = _win_to;
+		}
+		else {
+			if (_win_from < time - range_from)
+				updated_win_from = time - range_from;
+			else
+				updated_win_from = _win_from;
+
+			if (_win_to < time - range_from)
+				updated_win_to = time - range_from;
+			else
+				updated_win_to = _win_to;
+
+		}
+	}
+}
+

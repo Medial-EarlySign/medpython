@@ -38,10 +38,11 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "min_prob_res") min_prob_res = stof(entry.second);
 		else if (field == "fix_pred_order") fix_pred_order = stoi(entry.second) > 0;
 		else if (field == "poly_rank") poly_rank = stoi(entry.second);
+		else if (field == "censor_controls") censor_controls = stoi(entry.second);
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
 		//! [Calibrator::init]
 	}
-
+	  
 	return 0;
 }
 
@@ -331,6 +332,9 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		int gap = med_time_converter.convert_times(samples_time_unit, time_unit, e.outcomeTime) - med_time_converter.convert_times(samples_time_unit, time_unit, e.time);
 		if (gap < pos_sample_min_time_before_case)
 			// too close to outcome date or censor date (chance for peeking, or even beyond the outcome date)
+			continue;
+		if (censor_controls && e.outcome == 0 && gap < pos_sample_max_time_before_case)
+			// In censor_controls mode - remove controls without long-enough followup time
 			continue;
 		if (e.outcome >= 1 && gap > pos_sample_max_time_before_case)
 			// too far case is considered as control

@@ -147,6 +147,15 @@ float get_pearson_corr(vector<float> &v1, vector<float> &v2); // {return get_pea
 // Pearson Correaltion after removing missing values. return number of values left in n.
 float get_pearson_corr(vector<float> &v1, vector<float> &v2, int &n, float missing_val) ;
 
+// Kendell rank correlation : an envelope for kendallTau
+float get_kendell_tau(float *v1, float *v2, int len);
+float get_kendell_tau(vector<float> &v1, vector<float> &v2); // Kendell rank correlation after removing missing values. return number of values left in n.														  
+float get_kendell_tau(vector<float> &v1, vector<float> &v2, int &n, float missing_val);
+
+// Spearman correlation
+float get_spearman_corr(float *v1, float *v2, int len);
+float get_spearman_corr(vector<float> &v1, vector<float> &v2); // Kendell rank correlation after removing missing values. return number of values left in n.														  
+float get_spearman_corr(vector<float> &v1, vector<float> &v2, int &n, float missing_val);
 
 // n x m contigency table expected and chi2 score
 double get_chi2_n_x_m(vector<int> &cnts, int n, int m, vector<double> &exp);

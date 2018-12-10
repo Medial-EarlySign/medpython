@@ -969,13 +969,13 @@ float get_pearson_corr(float *v1, float *v2, int len)
 	sxy /= fact*n;
 
 	double c1 = sxy - sx*sy;
-	double c2 = sxx - sx*sx;
-	double c3 = syy - sy*sy;
+	double c2 = sqrt(sxx - sx*sx);
+	double c3 = sqrt(syy - sy*sy);
 
-	double epsilon = 1e-8;
+	double epsilon = 1e-12;
 	if (c2 < epsilon || c3 < epsilon)
 		return 0;
-	return (float)(c1 / (sqrt(c2)*sqrt(c3)));
+	return (float)(c1 / (c2*c3));
 }
 
 float get_pearson_corr(vector<float> &v1, vector<float> &v2) {
@@ -996,6 +996,92 @@ float get_pearson_corr(vector<float> &v1, vector<float> &v2, int &n, float missi
 	n = (int)clean_v1.size(); 
 	return get_pearson_corr(VEC_DATA(clean_v1), VEC_DATA(clean_v2), (int)clean_v1.size());
 }
+
+// Kendell rank correlation coefficient (tau)
+//.........................................................................................................................................
+float get_kendell_tau(float *v1, float *v2, int len)
+{
+
+	if (len == 0)
+		return -2.0;
+
+	vector<float> _v1(len), _v2(len);
+	for (int i = 0; i < len; i++) {
+		_v1[i] = v1[i];
+		_v2[i] = v2[i];
+	}
+	return (float)kendallTau(_v1, _v2);
+}
+
+float get_kendell_tau(vector<float> &v1, vector<float> &v2) {
+	return get_kendell_tau(VEC_DATA(v1), VEC_DATA(v2), (int)v1.size());
+}
+
+// Kendell rank correlatio after removing missing values. return number of values left in n.
+float get_kendell_tau(vector<float> &v1, vector<float> &v2, int &n, float missing_val) {
+
+	vector<float> clean_v1, clean_v2;
+	for (unsigned int i = 0; i < v1.size(); i++) {
+		if (v1[i] != missing_val && v2[i] != missing_val) {
+			clean_v1.push_back(v1[i]);
+			clean_v2.push_back(v2[i]);
+		}
+	}
+
+	n = (int)clean_v1.size();
+	return get_kendell_tau(VEC_DATA(clean_v1), VEC_DATA(clean_v2), (int)clean_v1.size());
+}
+
+// Spearman correlation coefficient
+//.........................................................................................................................................
+float get_spearman_corr(float *v1, float *v2, int len)
+{
+
+	if (len == 0)
+		return -2.0;
+
+	// Sort v1 and v2
+	vector<pair<float, int> > v1_i(len), v2_i(len);
+
+	for (int i = 0; i < len; i++) {
+		v1_i[i] = { v1[i],i };
+		v2_i[i] = { v2[i],i };
+	}
+
+	sort(v1_i.begin(), v1_i.end(), [](const pair<float, int>& left, const pair<float, int>& right) { return left.first < right.first; });
+	sort(v2_i.begin(), v2_i.end(), [](const pair<float, int>& left, const pair<float, int>& right) { return left.first < right.first; });
+
+	// Pearson correlation
+	vector<float> v1_v(len), v2_v(len);
+
+	for (int i = 0; i < len; i++) {
+		v1_v[v1_i[i].second] = (float)i;
+		v2_v[v2_i[i].second] = (float)i;
+	}
+
+	return get_pearson_corr(v1_v, v2_v);
+
+}
+
+float get_spearman_corr(vector<float> &v1, vector<float> &v2) {
+	return get_spearman_corr(VEC_DATA(v1), VEC_DATA(v2), (int)v1.size());
+}
+
+// Spearma correlation after removing missing values. return number of values left in n.
+float get_spearman_corr(vector<float> &v1, vector<float> &v2, int &n, float missing_val) {
+
+	vector<float> clean_v1, clean_v2;
+	for (unsigned int i = 0; i < v1.size(); i++) {
+		if (v1[i] != missing_val && v2[i] != missing_val) {
+			clean_v1.push_back(v1[i]);
+			clean_v2.push_back(v2[i]);
+		}
+	}
+
+	n = (int)clean_v1.size();
+	return get_spearman_corr(VEC_DATA(clean_v1), VEC_DATA(clean_v2), (int)clean_v1.size());
+}
+
 
 // Mutual information of binned-vectors
 //.........................................................................................................................................

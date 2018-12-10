@@ -549,7 +549,7 @@ void MedSamples::normalize() {
 
 // Count samples
 //.......................................................................................
-int MedSamples::nSamples()
+int MedSamples::nSamples() const
 {
 	int n = 0;
 	for (auto& idSample : idSamples)
@@ -604,6 +604,33 @@ void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 			vec_samples.push_back(samp);
 		}
 	}
+}
+
+// Create a MedSamples object from a vector of MedSample
+//.......................................................................................
+void MedSamples::import_from_sample_vec(vector<MedSample> &vec_samples, bool allow_split_inconsistency) {
+
+	idSamples.clear() ;
+	map<int,int> id2idx ;
+	map<int,int> id2split ;
+	
+	for (MedSample& sample : vec_samples) {
+		if (id2idx.find(sample.id) == id2idx.end()) {
+			id2idx[sample.id] = (int) idSamples.size(); 
+
+			idSamples.resize(idSamples.size()+1);
+			idSamples.back().id = sample.id ;
+			idSamples.back().split = sample.split ;
+		}
+		
+		int idx = id2idx[sample.id];
+		if (! allow_split_inconsistency && idSamples[idx].split != sample.split)
+			MTHROW_AND_ERR("Split incosistency for pid=%d\n",sample.id);
+		idSamples[idx].samples.push_back(sample);
+	}
+	
+	// Sort
+	sort_by_id_date();
 }
 
 //.......................................................................................

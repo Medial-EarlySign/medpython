@@ -69,6 +69,7 @@ External/xgboost/xgboost
 External/LightGBM/LightGBM/windows/x64/DLL/LightGBM.tlog/CL.command.1.tlog
 External/LightGBM/LightGBM/windows/x64/
 *.so
+*.so.*
 External/LightGBM/LightGBM/lightgbm
 *.tlog
 Internal/MedProcessTools/MedProcessTools/x64/DLL-Release/
@@ -80,5 +81,9 @@ documentation_creation_server.log
 documentation_creation_user.log
 Internal/MedUtils/MedUtils.VC.opendb
 !External/LightGBM/LightGBM/CMakeLists.txt
-External/LightGBM/LightGBM/CMakeLists.txt
 External/xgboost/winBuild/
+*.db-shm
+*.gch
+*.db-wal
+*.o
+

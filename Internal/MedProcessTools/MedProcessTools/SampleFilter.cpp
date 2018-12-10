@@ -87,6 +87,8 @@ SampleFilter * SampleFilter::make_filter(SampleFilterTypes filter_type, string i
 
 	SampleFilter *newSampleFilter = make_filter(filter_type);
 	newSampleFilter->init_from_string(init_string);
+	if (newSampleFilter->init_from_string(init_string) < 0)
+		MTHROW_AND_ERR("Cannot init SampleFilter of type %d with init string \'%s\'\n", filter_type, init_string.c_str());
 	return newSampleFilter;
 }
 
