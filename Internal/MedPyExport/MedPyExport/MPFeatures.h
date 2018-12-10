@@ -74,6 +74,7 @@ public:
 
 	void set_as_matrix(MPMat& mat);
 	void append_samples(MPIdSamples& in_samples);
+	void append_samples(MPSamples& in_samples);
 	void insert_samples(MPIdSamples& in_samples, int index);
 	void init_all_samples(MPIdSamplesVectorAdaptor &in_samples);
 	void init_pid_pos_len();
