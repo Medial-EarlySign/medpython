@@ -969,13 +969,13 @@ float get_pearson_corr(float *v1, float *v2, int len)
 	sxy /= fact*n;
 
 	double c1 = sxy - sx*sy;
-	double c2 = sxx - sx*sx;
-	double c3 = syy - sy*sy;
+	double c2 = sqrt(sxx - sx*sx);
+	double c3 = sqrt(syy - sy*sy);
 
-	double epsilon = 1e-8;
+	double epsilon = 1e-12;
 	if (c2 < epsilon || c3 < epsilon)
 		return 0;
-	return (float)(c1 / (sqrt(c2)*sqrt(c3)));
+	return (float)(c1 / (c2*c3));
 }
 
 float get_pearson_corr(vector<float> &v1, vector<float> &v2) {
