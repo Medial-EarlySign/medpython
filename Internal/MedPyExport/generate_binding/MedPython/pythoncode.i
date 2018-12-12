@@ -1,6 +1,8 @@
 
 %pythoncode %{
 
+__all__ = ['Model','Sample','PidRepository','Dictionary','FeatureAttr','Features','IdSamples','Mat','ModelStage','Samples','Sig','Split','Time']
+
 """
 Enable stderr capturing under ipynb
 """
@@ -131,5 +133,10 @@ def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
 
 __bind_external_methods()
+
+"""
+Remove SWIG's global variable access which makes issues for reflection actions
+del __dict__['cvar']
+"""
 
 %}

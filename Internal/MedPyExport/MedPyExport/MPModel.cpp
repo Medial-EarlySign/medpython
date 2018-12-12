@@ -19,6 +19,7 @@ const int MPModelStage::APPLY_PREDICTOR = MED_MDL_APPLY_PREDICTOR;
 const int MPModelStage::INSERT_PREDS = MED_MDL_INSERT_PREDS;
 const int MPModelStage::END = MED_MDL_END;
 
+static_assert(MPModelStage::END == 8, "med model was changed");
 
 MPModel::MPModel() { o = new MedModel(); };
 MPModel::~MPModel() { delete o; o = nullptr; };
@@ -71,7 +72,12 @@ int MPModel::quick_learn_rep_processors(MPPidRepository& rep, MPSamples& samples
 int MPModel::learn_rep_processors(MPPidRepository& rep, MPSamples& samples) { return o->learn_rep_processors(*(rep.o), *(samples.o)); };
 void MPModel::filter_rep_processors() { o->filter_rep_processors(); };
 int MPModel::learn_feature_generators(MPPidRepository &rep, MPSamples *learn_samples) { return o->learn_feature_generators(*(rep.o), (*learn_samples).o); };
-int MPModel::generate_all_features(MPPidRepository &rep, MPSamples *samples, MPFeatures &features) { return o->generate_all_features(*(rep.o), (*samples).o, *(features.o)); };
+int MPModel::generate_all_features(MPPidRepository &rep, MPSamples *samples, MPFeatures &features, std::vector<std::string> req_feature_generators) { 
+	unordered_set<string> req_feature_generators_uos;
+	for (auto& s : req_feature_generators)
+		req_feature_generators_uos.emplace(s);
+	return o->generate_all_features(*(rep.o), (*samples).o, *(features.o), req_feature_generators_uos);
+};
 int MPModel::learn_and_apply_feature_processors(MPFeatures &features) { return o->learn_and_apply_feature_processors(*(features.o)); };
 int MPModel::learn_feature_processors(MPFeatures &features) { return o->learn_feature_processors(*(features.o)); };
 int MPModel::apply_feature_processors(MPFeatures &features) { return o->apply_feature_processors(*(features.o)); };
