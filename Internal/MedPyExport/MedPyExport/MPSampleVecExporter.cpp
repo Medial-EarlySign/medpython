@@ -2,6 +2,7 @@
 
 #include <time.h>
 #include <string>
+#include <unordered_set>
 
 #include "InfraMed/InfraMed/MedConvert.h"
 #include "InfraMed/InfraMed/InfraMed.h"
@@ -68,20 +69,48 @@ void MPSampleVecExporter::gen_cat_dict(const string& field_name, int channel) {
 void MPSampleVecExporter::get_all_data() {
 	update_record_count();
 	data_keys = vector<string>({ "id","split","time","outcome","outcomeTime" });
+	
 	int max_predictions = 0;
-	for (auto& samp : *o) {
-		if (samp.prediction.size() > max_predictions)
-			max_predictions = (int)samp.prediction.size();
+	vector<string> attribute_names;
+	vector<string> str_attribute_names;
+
+	{
+		unordered_set<string> attribute_names_set;
+		unordered_set<string> str_attribute_names_set;
+
+		for (auto& samp : *o) {
+			if (samp.prediction.size() > max_predictions)
+				max_predictions = (int)samp.prediction.size();
+			if (samp.attributes.size() != 0)
+				for (auto& entry : samp.attributes)
+					attribute_names_set.insert(entry.first);
+			if (samp.str_attributes.size() != 0)
+				for (auto& entry : samp.str_attributes)
+					str_attribute_names_set.insert(entry.first);
+		}
+		copy(attribute_names_set.begin(), attribute_names_set.end(), attribute_names.end());
+		copy(str_attribute_names_set.begin(), str_attribute_names_set.end(), attribute_names.end());
+		//for (auto& s : attribute_names_set) attribute_names.push_back(s);
+		//for (auto& s : str_attribute_names_set) str_attribute_names.push_back(s);
 	}
+
 	int* id_vec = (int*)malloc(sizeof(int)*this->record_count);
 	int* split_vec = (int*)malloc(sizeof(int)*this->record_count);
 	int* time_vec = (int*)malloc(sizeof(int)*this->record_count);
 	float* outcome_vec = (float*)malloc(sizeof(float)*this->record_count);
 	int* outcome_time_vec = (int*)malloc(sizeof(int)*this->record_count);
+	
 	vector<float*> pred_vecs;
 	for (int i = 0; i < max_predictions; i++) {
 		pred_vecs.push_back((float*)malloc(sizeof(float)*this->record_count));
 		data_keys.push_back((string)"pred_"+to_string(i));
+	}
+
+	int attr_num = (int)attribute_names.size();
+	vector<float*> attr_vecs;
+	for (int i = 0; i < attr_num; i++) {
+		attr_vecs.push_back((float*)malloc(sizeof(float)*this->record_count));
+		data_keys.push_back((string)"attr_" + attribute_names[i]);
 	}
 
 	int cur_row = 0;
@@ -94,9 +123,14 @@ void MPSampleVecExporter::get_all_data() {
 		if (max_predictions > 0)
 			for (int i = 0; i < max_predictions; i++)
 				pred_vecs[i][cur_row] = i < samp.prediction.size() ? samp.prediction[i] : -1;
+		if (attr_num > 0)
+			for (int i = 0; i < attr_num; ++i)
+				attr_vecs[i][cur_row] = GetOrDefault(samp.attributes, attribute_names[i], -1.0f);
+				//string attr_name = attribute_names[i];
+				//attr_vecs[i][cur_row] = i < samp.attributes.count(attr_name) ? samp.attributes[attr_name] : -1;
+				
 		cur_row++;
 	}
-
 	
 	data_column.push_back(id_vec);
 	data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
@@ -113,6 +147,12 @@ void MPSampleVecExporter::get_all_data() {
 		data_column.push_back(pred_vecs[i]);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
 	}
+
+	for (int i = 0; i < attr_num; i++) {
+		data_column.push_back(attr_vecs[i]);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_FLOAT);
+	}
+
 
 	//gen_cat_dict("val", 0);
 }

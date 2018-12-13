@@ -172,6 +172,14 @@ inline void buf_to_vector<char, bool>(char* buf, int buf_size, vector<bool>& vec
 	}
 }
 
+template <template<class, class, class...> class C, typename K, typename V, typename... Args>
+V GetOrDefault(const C<K, V, Args...>& m, K const& key, const V & defval)
+{
+	typename C<K, V, Args...>::const_iterator it = m.find(key);
+	if (it == m.end())
+		return defval;
+	return it->second;
+}
 
 #endif // !SWIG
 
