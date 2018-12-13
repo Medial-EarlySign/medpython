@@ -13,6 +13,7 @@
 #include "MPPidRepository.h"
 #include "MPDictionary.h"
 #include "MPSigExporter.h"
+#include "MPSampleVecExporter.h"
 #include "MPModel.h"
 #include "MPSplit.h"
 #include "MPTime.h"

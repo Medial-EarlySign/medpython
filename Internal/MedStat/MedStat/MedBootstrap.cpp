@@ -541,7 +541,6 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					- med_time_converter.convert_times(sim_features.time_unit, MedTime::Days, sim_features.samples[i].time));
 				if (time_df > time_filter.max_range) {
 					//search for intersection:
-					const vector<MedRegistryRecord *> &reg_records = pid_to_reg[sim_features.samples[i].id];
 					const vector<MedRegistryRecord *> *reg_censor = &empty_arr;
 					if (pid_to_censor.find(sim_features.samples[i].id) != pid_to_censor.end())
 						reg_censor = &pid_to_censor[sim_features.samples[i].id];
@@ -550,10 +549,9 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					bool is_legal = reg_censor->empty();
 					for (size_t k = 0; k < reg_censor->size(); ++k)
 					{
-						if (reg_censor->at(k)->registry_value > 0)
-							continue;
-						int diff_to_allowed = med_time_converter.convert_days(global_default_windows_time_unit, int(365 * (medial::repository::DateDiff(sim_features.samples[i].time,
-							reg_censor->at(k)->end_date))));
+						int diff_to_allowed = med_time_converter.convert_days(global_default_windows_time_unit,
+							int(365 * (medial::repository::DateDiff(sim_features.samples[i].time, reg_censor->at(k)->end_date))));
+
 						if (diff_to_allowed >= time_filter.max_range && sim_features.samples[i].time >= reg_censor->at(k)->start_date) {
 							is_legal = true;
 							break;
