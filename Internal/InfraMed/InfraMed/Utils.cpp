@@ -182,7 +182,7 @@ int read_bin_file_IM_parallel(string &fname, unsigned char* &data, unsigned long
 		inf_read = fopen(fname.c_str(), "rb");
 		if (inf_read == NULL)
 			MERR("Can't open file %s\n", fname.c_str());
-		size_t nread = (1<<k);
+		size_t nread = ((size_t)1<<k);
 		if (i==n_blocks)
 			nread = size & mask;
 #if defined (_MSC_VER) || defined (_WIN32)

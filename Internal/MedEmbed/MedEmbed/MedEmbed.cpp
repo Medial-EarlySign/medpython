@@ -202,6 +202,8 @@ int EmbeddingSig::get_feat_for_model(MedPidRepository &rep, vector<pair<int, int
 	model->features.clear();
 	MLOG("get_feat_for_model : pid_times %d , feat %d x %d , pid_time2idx %d\n", pids_times.size(), feat.data.size(), feat.data.begin()->second.size(), pid_time2idx.size());
 
+	return 0;
+
 }
 
 
