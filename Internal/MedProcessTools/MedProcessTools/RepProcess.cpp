@@ -2114,7 +2114,6 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("RepCalcSimpleSignals::apply_calc_in_time nversions mismatch\n");
-		HMTHROW_AND_ERR("Bad versions in pid %d : time_points %d n_versions %d\n", rec.pid, time_points.size(), rec.get_n_versions());
 		return -1;
 	}
 	int factor = 1;
@@ -2820,8 +2819,8 @@ int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int t
 	data.clear();
 	len = 0;
 	char *udata = (char *)usv.data;
-	int element_size = usv.size();
-	for (int i = 0; i < usv.len; i++) {
+	int element_size = (int)usv.size();
+	for (int i=0; i<usv.len; i++) {
 		int i_time = usv.Time(i, time_channel);
 		if (i_time > from_time && i_time <= to_time) {
 			for (int j = element_size*i; j < element_size*(i + 1); j++)

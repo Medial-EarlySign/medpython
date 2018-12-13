@@ -75,7 +75,7 @@ public:
 	int learn_rep_processors(MPPidRepository& rep, MPSamples& samples);
 	void filter_rep_processors();
 	int learn_feature_generators(MPPidRepository &rep, MPSamples *learn_samples);
-	int generate_all_features(MPPidRepository &rep, MPSamples *samples, MPFeatures &features);
+	int generate_all_features(MPPidRepository &rep, MPSamples *samples, MPFeatures &features, std::vector<std::string> req_feature_generators);
 	int learn_and_apply_feature_processors(MPFeatures &features);
 	int learn_feature_processors(MPFeatures &features);
 	int apply_feature_processors(MPFeatures &features);

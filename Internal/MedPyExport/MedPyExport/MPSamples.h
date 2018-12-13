@@ -9,6 +9,7 @@ class MedSample;
 class MedIdSamples;
 class MedSamples;
 class MPFeatures;
+class MPSampleVecExporter;
 
 class MPSample  {
 	bool o_owned = true;
@@ -132,8 +133,9 @@ public:
 	void get_preds(MEDPY_NP_OUTPUT(float** preds_buf, int* preds_buf_len));
 	void get_y(MEDPY_NP_OUTPUT(float** y_buf, int* y_buf_len));
 	void get_categs(MEDPY_NP_OUTPUT(float** categs_buf, int* categs_buf_len));
-	//void export_to_sample_vec(vector<MedSample> &vec_samples);
+	
 	MPSampleVectorAdaptor export_to_sample_vec();
+	MPSampleVecExporter export_to_pandas_df();
 
 	void sort_by_id_date();
 	void normalize();
