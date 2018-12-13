@@ -1383,6 +1383,9 @@ public:
 	int win_from;
 	int win_to;
 
+	// default init
+	void init_defaults() { processor_type = REP_PROCESS_HISTORY_LIMIT; }
+
 	// preparations
 	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
@@ -1398,7 +1401,8 @@ public:
 	// helper
 	int get_sub_usv_data(UniversalSigVec &usv, int from_time, int to_time, vector<char> &data, int &len);
 
-
+	/// Fill req- and aff-signals vectors
+	void init_lists();
 
 	ADD_CLASS_NAME(RepHistoryLimit)
 	ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to)

@@ -29,18 +29,18 @@ public:
 
 MEDSERIALIZE_SUPPORT(calibration_entry)
 
-enum CaliberationTypes {
+enum CalibrationTypes {
 	probabilty_time_window = 0, ///< "time_window" bining, but also doing time window\kaplan meir
 	probabilty_binning = 1, ///< "binning" - binning
 	probabilty_platt_scale = 2 ///< "platt_scale" - platt scale method - sigmoid on pred score and optimize factors
 };
 
 extern unordered_map<int, string> calibration_method_to_name;
-static CaliberationTypes cliberation_name_to_type(const string& calibration_name);
+static CalibrationTypes clibration_name_to_type(const string& calibration_name);
 
 class Calibrator : public PostProcessor {
 public:
-	CaliberationTypes calibration_type = probabilty_time_window;
+	CalibrationTypes calibration_type = probabilty_time_window;
 
 	int time_unit = MedTime::Days;
 

@@ -36,9 +36,6 @@ public:
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
 
-	/// pre_processors are rep processors that can be added to a trained model to be applied before everything starts
-	vector<RepProcessor *> pre_processors;
-
 	/// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
 
@@ -78,14 +75,11 @@ public:
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);
 
-	// Add Pre Processors (Remember , pre processors are NOT serialized with the model !!!)
-	void clear_pre_processors(); // get rid of them
-	void add_pre_processor(string init_string);
-
-	// Add Rep Processors
+	// Add Rep Processorsep
 	void add_rep_processor(RepProcessor *processor) { rep_processors.push_back(processor); };
 	void add_rep_processors_set(RepProcessorTypes type, vector<string>& signals);
 	void add_rep_processors_set(RepProcessorTypes type, vector<string>& signals, string init_string);
+	void insert_rep_processor(string init_string, int index);
 
 	// Add Feature Generators
 	void add_feature_generator(FeatureGenerator *generator) { generators.push_back(generator); }
