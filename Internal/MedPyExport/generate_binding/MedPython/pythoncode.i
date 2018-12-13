@@ -128,9 +128,14 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None):
         df[field] = df[field].astype('category').cat.rename_categories(dict(sigexporter.get_categorical_field_dict(field)))
     return df
 
+def __sample_export_to_pandas(self):
+    import pandas as pd
+    df = pd.DataFrame.from_dict(dict(self.export_to_pandas_df()))
+    return df
 
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
+    setattr(globals()['Samples'],'as_df', __sample_export_to_pandas)
 
 __bind_external_methods()
 
