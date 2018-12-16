@@ -233,6 +233,7 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 	ptree pt;
 	parse_my_json_to_pt(json_contents, pt);
 
+	size_t n = 0;
 	for (auto &p : pt.get_child("pre_processors")) {
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
@@ -245,11 +246,14 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 		concatAllCombinations(all_action_attrs, 0, "", all_combinations);
 		if (all_combinations.empty())
 			MTHROW_AND_ERR("pre processor expanded to 0 combinations! did you put an empty list inside a []?!\n");
-		for (string c : all_combinations) {
+
+		for (int idx = 0; idx < all_combinations.size(); idx++) {
+			string c = all_combinations[idx];
 			MLOG("Adding pre_processor: %s\n", c.c_str());
-			add_pre_processor(c);
+			insert_rep_processor(c, idx);
 		}
 		MLOG("added %d pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
+		n += all_combinations.size();
 	}
-	MLOG("Succesfully added %d pre_processors\n", pre_processors.size());
+	MLOG("Succesfully added %d pre_processors\n", n);
 }

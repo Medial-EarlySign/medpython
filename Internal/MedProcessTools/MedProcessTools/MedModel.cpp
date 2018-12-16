@@ -41,7 +41,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		return -1;
 	}
 
-	// Filter unneeded repository processors
+	// Filter un-needed repository processors
 	filter_rep_processors();
 
 	// Set of signals
@@ -380,10 +380,6 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			// Generate DynamicRec with all relevant signals
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 
-			// Apply pre processors
-			for (auto p : pre_processors)
-				if ( (p->apply(idRec[n_th], pid_samples) < 0) ) rc = -1;
-
 			// Apply rep-processing
 			for (unsigned int i = 0; i < rep_processors.size(); i++)
 				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
@@ -459,7 +455,7 @@ void MedModel::build_req_features_vec(vector<unordered_set<string>>& req_feature
 		feature_processors[idx]->update_req_features_vec(req_features_vec[i - 1], req_features_vec[i]);
 	}
 
-	return ;
+	return;
 }
 
 // Learn rep-processors iteratively, must be serial...
@@ -477,35 +473,6 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, MedSamples& samples) {
 	return 0;
 }
 
-void build_signal_affect_tree(const vector<RepProcessor *> &rep_processors,
-	unordered_map<string, unordered_set<string>> &signal_affect_tree) {
-	for (unsigned int i = 0; i < rep_processors.size(); i++) {
-		vector<RepProcessor *> *no_mult = NULL;
-		vector<RepProcessor *> single = { rep_processors[i] };
-		if (rep_processors[i]->processor_type == REP_PROCESS_MULTI)
-			no_mult = &((RepMultiProcessor *)rep_processors[i])->processors;
-		else
-			no_mult = &single;
-
-		for (size_t k = 0; k < no_mult->size(); ++k)
-			for (const string &req_signal : (*no_mult)[k]->aff_signals)
-				signal_affect_tree[req_signal].insert((*no_mult)[k]->req_signals.begin(),
-					(*no_mult)[k]->req_signals.end());
-	}
-}
-void expend_signal_effect(const vector<RepProcessor *> &rep_processors,
-	unordered_set<string> &req_signal_names) {
-	bool did_something = true;
-	unordered_map<string, unordered_set<string>> signal_affect_tree;
-	build_signal_affect_tree(rep_processors, signal_affect_tree);
-	while (did_something) {
-		int init_size = (int)req_signal_names.size();
-		for (const string &sig : req_signal_names)
-			req_signal_names.insert(signal_affect_tree[sig].begin(), signal_affect_tree[sig].end());
-		did_something = init_size < req_signal_names.size();
-	}
-}
-
 // Filter rep-processors that are not used, iteratively
 //.......................................................................................
 void MedModel::filter_rep_processors() {
@@ -515,8 +482,6 @@ void MedModel::filter_rep_processors() {
 	for (unsigned int i = 0; i < rep_processors.size(); i++) {
 		unordered_set<string> current_req_signal_names;
 		get_all_required_signal_names(current_req_signal_names, rep_processors, i, generators);
-		vector<RepProcessor *> no_filter_yet(rep_processors.begin() + i, rep_processors.end());
-		expend_signal_effect(no_filter_yet, current_req_signal_names);
 		if (!rep_processors[i]->filter(current_req_signal_names))
 			filtered_processors.push_back(rep_processors[i]);
 		else {//cleaning uneeded rep_processors!:
@@ -759,21 +724,15 @@ void MedModel::init_from_json_file_with_alterations_version_1(const string &fnam
 
 }
 
-// release and clear all pre_processors
-void MedModel::clear_pre_processors()
-{
-	for (auto p : pre_processors)
-		if (p != NULL)
-			delete p;
-	pre_processors.clear();
-}
-
-// adding a new rep_processor from string
-void MedModel::add_pre_processor(string init_string)
+// inserting a new rep-processor from string at a given position
+//.......................................................................................
+void MedModel::insert_rep_processor(string init_string, int idx)
 {
 	RepProcessor *rep_proc = RepProcessor::create_processor(init_string);
-	pre_processors.push_back(rep_proc);
+	rep_processors.insert(rep_processors.begin() + idx, rep_proc);
 }
+
+// generalized adder
 
 // generalized adder
 // type and signal are must have parameters in this case
@@ -944,9 +903,6 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 	set_affected_signal_ids(dict);
 	set_required_signal_ids(dict);
 
-	for (auto p : pre_processors)
-		p->set_signal_ids(dict);
-
 	for (RepProcessor *processor : rep_processors)
 		processor->set_signal_ids(dict);
 
@@ -981,8 +937,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	// Identify required signals
 	get_all_required_signal_names(signalNames, rep_processors, -1, applied_generators);
-	expend_signal_effect(rep_processors, signalNames);
-	
+
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG("adding virtual signals from rep type %d\n", processor->processor_type);
@@ -1214,16 +1169,18 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
 }
 
+//.......................................................................................
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors) {
 	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());
 	vector<RepProcessor *> filtered_processors;
 	bool did_something = false;
 
-	//complete and flatten all needed signals based on tree:
-	expend_signal_effect(*rep_processors, req_signal_names);
-
 	for (unsigned int i = 0; i < rep_processors->size(); i++) {
-		if (!(*rep_processors)[i]->filter(req_signal_names))
+		unordered_set<string> current_req_signal_names(req_signal_names.begin(), req_signal_names.end());
+		for (int k = (int)rep_processors->size() - 1; k > i; k--)
+			rep_processors->at(k)->get_required_signal_names(current_req_signal_names, current_req_signal_names);
+
+		if (!(*rep_processors)[i]->filter(current_req_signal_names))
 			filtered_processors.push_back((*rep_processors)[i]);
 		else {//cleaning uneeded rep_processors!:
 			delete (*rep_processors)[i];
@@ -1412,7 +1369,7 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 		// Apply rep-processing
 		for (unsigned int i = 0; i < rep_processors.size(); i++)
 			if (rep_processors[i]->_apply_simple(rec, times) < 0)
-					return -1;
+				return -1;
 
 		// Generate Features
 		k = 0;
@@ -1427,7 +1384,7 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 
 	// Process Features
 	for (auto& processor : feature_processors) {
-		if (processor->apply(_feat) < 0) 
+		if (processor->apply(_feat) < 0)
 			return -1;
 	}
 

@@ -2209,7 +2209,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 }
 
 void RepCalcSimpleSignals::print() {
-	MLOG("RepCalcSimpleSignals: calculator: %s : calculator_init_params %s : max_time_search_range %d signals_time_unit %s signals: %s, V_names: %, req_signals: %s, aff_signals: %s, work_channel: %d\n",
+	MLOG("RepCalcSimpleSignals: calculator: %s : calculator_init_params %s : max_time_search_range %d signals_time_unit %s signals: %s, V_names: %s, req_signals: %s, aff_signals: %s, work_channel: %d\n",
 		calculator.c_str(), calculator_init_params.c_str(), max_time_search_range, med_time_converter.type_to_string(signals_time_unit).c_str(),
 		medial::io::get_list(signals).c_str(), medial::io::get_list(V_names).c_str(),
 		medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str(),
@@ -2222,87 +2222,7 @@ int RepCalcSimpleSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	//handle special calculations
 	apply_calc_in_time(rec, time_points);
 
-	//if (calc_type == CALC_TYPE_EGFR)
-	//	return _apply_calc_eGFR(rec, time_points);
 
-	//if (calc_type == CALC_TYPE_RATIO)
-	//	return _apply_calc_ratio(rec, time_points);
-
-	//if (calc_type == CALC_TYPE_DEBUG)
-	//	return _apply_calc_debug(rec, time_points);
-
-	//if (calc_type == CALC_TYPE_HOSP_24H_URINE_OUTPUT)
-	//	return _apply_calc_24h_urine_output(rec, time_points);
-
-	//if (calc_type == CALC_TYPE_LOG)
-	//	return _apply_calc_log(rec, time_points);
-
-	////handle calculation that are done by first extrapolating each signal to the required 
-	////time points and then performing a pointwise calculation for the values in each time point.
-	//float(*calcFunc)(const vector<float>&, const vector<float>&) = NULL;
-
-	//switch (calc_type) {
-	//case CALC_TYPE_HOSP_PROCESSOR:
-	//	calcFunc = identity;
-	//	if (signals.size() != 1) {
-	//		//MERR("calc_hosp_processor calculator requires exactly one input signal. Found %d\n", (int)(signals.size()));
-	//		return -1;
-	//	}
-	//	break;
-	//case CALC_TYPE_HOSP_MELD: calcFunc = calc_hosp_MELD; break;
-	//case CALC_TYPE_HOSP_BMI: calcFunc = calc_hosp_BMI; break;
-	//case CALC_TYPE_HOSP_APRI: calcFunc = calc_hosp_APRI; break;
-	//case CALC_TYPE_HOSP_SIDA: calcFunc = calc_hosp_SIDA; break;
-	//case CALC_TYPE_HOSP_PaO2_FiO2_RATIO: calcFunc = calc_hosp_PaO2_FiO2_ratio; break;
-	//case CALC_TYPE_HOSP_IS_AFRICAN_AMERICAN: calcFunc = calc_hosp_is_african_american; break;
-	//case CALC_TYPE_HOSP_SOFA_NERVOUS: calcFunc = calc_hosp_SOFA_nervous; break;
-	//case CALC_TYPE_HOSP_SOFA_LIVER: calcFunc = calc_hosp_SOFA_liver; break;
-	//case CALC_TYPE_HOSP_SOFA_COAGULATION: calcFunc = calc_hosp_SOFA_coagulation; break;
-	//case CALC_TYPE_HOSP_DOPAMINE_PER_KG: calcFunc = calc_hosp_dopamine_per_kg; break;
-	//case CALC_TYPE_HOSP_EPINEPHRINE_PER_KG: calcFunc = calc_hosp_epinephrine_per_kg; break;
-	//case CALC_TYPE_HOSP_NOREPINEPHRINE_PER_KG: calcFunc = calc_hosp_norepinephrine_per_kg; break;
-	//case CALC_TYPE_HOSP_DOBUTAMINE_PER_KG: calcFunc = calc_hosp_dobutamine_per_kg; break;
-	//case CALC_TYPE_HOSP_QSOFA: calcFunc = calc_hosp_qSOFA; break;
-	//case CALC_TYPE_HOSP_SIRS: calcFunc = calc_hosp_SIRS; break;
-	//case CALC_TYPE_HOSP_PRESSURE_ADJUSTED_HR: calcFunc = calc_hosp_pressure_adjusted_hr; break;
-	//case CALC_TYPE_HOSP_MODS: calcFunc = calc_hosp_MODS; break;
-	//case CALC_TYPE_HOSP_SHOCK_INDEX: calcFunc = calc_hosp_shock_index; break;
-	//case CALC_TYPE_HOSP_PULSE_PRESSURE: calcFunc = calc_hosp_pulse_pressure; break;
-	//case CALC_TYPE_HOSP_EFGR: calcFunc = calc_hosp_eGFR; break;
-	//case CALC_TYPE_HOSP_SOFA_RESPIRATORY: calcFunc = calc_hosp_SOFA_respiratory; break;
-	//case CALC_TYPE_HOSP_SOFA_RENAL: calcFunc = calc_hosp_SOFA_renal; break;
-	//case CALC_TYPE_HOSP_SOFA_CARDIO: calcFunc = calc_hosp_SOFA_cardio; break;
-	//case CALC_TYPE_HOSP_SOFA: calcFunc = calc_hosp_SOFA; break;
-	//}
-
-	//if (calcFunc) {
-	//	int rv = _apply_calc_hosp_pointwise(rec, time_points, calcFunc);
-	//	return rv;
-	//}
-
-	////handle time-dependent calculations
-	////calculation are done by first extrapolating each signal to the required 
-	////time points and then performing a pointwise calculation for the values in each time point.
-	////in contrast to previous signals, here the calculation does depend on the orignal times 
-	////of the signals and their reference to the requested times
-	//float(*calcTimeFunc)(const vector<pair<int, float> >&, int, const vector<float>&) = NULL;
-
-	//switch (calc_type) {
-	//case CALC_TYPE_HOSP_BP_SYS: calcTimeFunc = interleave; break;
-	//case CALC_TYPE_HOSP_BP_DIA: calcTimeFunc = interleave; break;
-	//}
-
-	//if (calcTimeFunc)
-	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, false); //use past/future observations
-
-	//switch (calc_type) {
-	//case CALC_TYPE_HOSP_IS_MECHANICALLY_VENTILATED: calcTimeFunc = anySeenRecently; break; //special function
-	//}
-
-	//if (calcTimeFunc)
-	//	return _apply_calc_hosp_time_dependent_pointwise(rec, time_points, calcTimeFunc, true); //use only past obeservations
-
-	//return -1;
 	return 0;
 }
 
@@ -2863,6 +2783,15 @@ void RepAggregateSignal::print() {
 // RepHistoryLimit : given a signal : chomps history to be at a given window relative
 //                   to prediction points
 //----------------------------------------------------------------------------------------
+
+// Fill req- and aff-signals vectors
+//.......................................................................................
+void RepHistoryLimit::init_lists() {
+
+	req_signals.insert(signalName);
+	aff_signals.insert(signalName);
+}
+
 // Init from map
 //.......................................................................................
 int RepHistoryLimit::init(map<string, string>& mapper)
@@ -2880,6 +2809,8 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
 	}
 
+	init_lists();
+	
 	return 0;
 }
 

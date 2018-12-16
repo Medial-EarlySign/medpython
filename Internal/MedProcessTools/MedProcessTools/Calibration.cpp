@@ -11,10 +11,10 @@ unordered_map<int, string> calibration_method_to_name = {
 	{ probabilty_platt_scale, "platt_scale" }
 };
 
-CaliberationTypes cliberation_name_to_type(const string& calibration_name) {
+CalibrationTypes clibration_name_to_type(const string& calibration_name) {
 	for (auto it = calibration_method_to_name.begin(); it != calibration_method_to_name.end(); ++it)
 		if (it->second == calibration_name)
-			return CaliberationTypes(it->first);
+			return CalibrationTypes(it->first);
 	string opts = medial::io::get_list_op(calibration_method_to_name);
 	MTHROW_AND_ERR("unknown calibration_name \"%s\"\nOptions Are:%s\n",
 		calibration_name.c_str(), opts.c_str());
@@ -24,7 +24,7 @@ int Calibrator::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [Calibrator::init]
-		if (field == "calibration_type") calibration_type = cliberation_name_to_type(entry.second);
+		if (field == "calibration_type") calibration_type = clibration_name_to_type(entry.second);
 		else if (field == "estimator_type") estimator_type = entry.second;
 		else if (field == "binning_method") binning_method = entry.second;
 		else if (field == "bins_num") bins_num = stoi(entry.second);
@@ -253,16 +253,16 @@ int Calibrator::Apply(MedSamples& samples) {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
-	case CaliberationTypes::probabilty_time_window:
+	case CalibrationTypes::probabilty_time_window:
 		return apply_time_window(samples);
 		break;
-	case CaliberationTypes::probabilty_binning:
+	case CalibrationTypes::probabilty_binning:
 		collect_preds_labels(samples, preds, labels);
 		apply_binned_prob(preds, min_range, max_range, map_prob, probs);
 		write_to_predicition(samples, probs);
 
 		break;
-	case CaliberationTypes::probabilty_platt_scale:
+	case CalibrationTypes::probabilty_platt_scale:
 		collect_preds_labels(samples, preds, labels);
 		apply_platt_scale(preds, platt_params, probs);
 		write_to_predicition(samples, probs);
@@ -278,16 +278,16 @@ int Calibrator::Apply(vector <MedSample>& samples) {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
-	case CaliberationTypes::probabilty_time_window:
+	case CalibrationTypes::probabilty_time_window:
 		return apply_time_window(samples);
 		break;
-	case CaliberationTypes::probabilty_binning:
+	case CalibrationTypes::probabilty_binning:
 		collect_preds_labels(samples, preds, labels);
 		apply_binned_prob(preds, min_range, max_range, map_prob, probs);
 		write_to_predicition(samples, probs);
 
 		break;
-	case CaliberationTypes::probabilty_platt_scale:
+	case CalibrationTypes::probabilty_platt_scale:
 		collect_preds_labels(samples, preds, labels);
 		apply_platt_scale(preds, platt_params, probs);
 		write_to_predicition(samples, probs);
@@ -628,15 +628,15 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 	vector<float> preds, labels;
 	switch (calibration_type)
 	{
-	case CaliberationTypes::probabilty_time_window:
+	case CalibrationTypes::probabilty_time_window:
 		learn_time_window(orig_samples, sample_time_unit);
 		break;
-	case CaliberationTypes::probabilty_binning:
+	case CalibrationTypes::probabilty_binning:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_binned_probs(preds, labels, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob);
 		break;
-	case CaliberationTypes::probabilty_platt_scale:
+	case CalibrationTypes::probabilty_platt_scale:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_platt_scale(preds, labels, poly_rank, platt_params, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order);
