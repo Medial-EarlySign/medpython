@@ -4,7 +4,7 @@
 #define __MED_FEATURES_H__
 
 #include <InfraMed/InfraMed/InfraMed.h>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedUtils/MedUtils/MedMat.h>

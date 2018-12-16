@@ -11,9 +11,8 @@
 #include "InfraMed.h"
 #include "Utils.h"
 #include <fstream>
-#include "Logger/Logger/Logger.h"
-#include "MedUtils/MedUtils/MedIO.h"
-#include "MedUtils/MedUtils/MedUtils.h"
+#include <Logger/Logger/Logger.h>
+#include <MedUtils/MedUtils/MedUtils.h>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>

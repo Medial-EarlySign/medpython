@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <Logger/Logger/Logger.h>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedFeat/MedFeat/MedOutcome.h>
 

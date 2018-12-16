@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>                                                                                                                                                
 #include <MedUtils/MedUtils/MedGenUtils.h>
+#include <MedIO/MedIO/MedIO.h>
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -65,6 +66,11 @@ int EmbeddingSig::init(map<string, string>& _map)
 				}
 			}
 		}
+		else if (field == "categories") {
+			// example categories=ATC_A10_____,file:drug_codes : will create categories of ATC_A10 and all the other that in the file drug_codes
+
+		}
+
 	}
 
 	return 0;

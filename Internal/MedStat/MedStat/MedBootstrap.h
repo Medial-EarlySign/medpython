@@ -2,7 +2,7 @@
 #define __MEDBOOTSTRAP_ANALYSIS_H__
 #include <unordered_map>
 #include <MedStat/MedStat/bootstrap.h>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>

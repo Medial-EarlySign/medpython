@@ -18,12 +18,12 @@
 
 #include "Logger/Logger/Logger.h"
 #include "MedUtils/MedUtils/MedGlobalRNG.h"
-#include "MedIO.h"
+#include <MedIO/MedIO/MedIO.h>
 #include "MedNumeric.h"
 #include <vector>
 #include "math.h"
 #include <boost/algorithm/string.hpp>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <MedProcessTools/MedProcessTools/MedGlobals.h>
 

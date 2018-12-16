@@ -20,7 +20,7 @@
 
 
 #include <vector>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 

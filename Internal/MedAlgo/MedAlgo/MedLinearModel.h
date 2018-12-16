@@ -1,6 +1,6 @@
 #ifndef __LINEAR_MODEL_H__
 #define __LINEAR_MODEL_H__
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedAlgo/MedAlgo/PredictiveModel.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
 

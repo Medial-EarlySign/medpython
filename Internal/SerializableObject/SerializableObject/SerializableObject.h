@@ -1,5 +1,5 @@
-#ifndef _SERIALIZABLE_OBJECT_H_
-#define _SERIALIZABLE_OBJECT_H_
+#ifndef _SERIALIZABLE_OBJECT_LIB_H_
+#define _SERIALIZABLE_OBJECT_LIB_H_
 
 #include <Logger/Logger/Logger.h>
 //#include <MedUtils/MedUtils/MedIO.h>
@@ -49,7 +49,7 @@ public:
 	virtual size_t serialize(unsigned char *blob) { return 0; } ///<Serialiazing object to blob memory. return number ob bytes wrote to memory
 	virtual size_t deserialize(unsigned char *blob) { return 0; } ///<Deserialiazing blob to object. returns number of bytes read
 
-	// APIs for vectors
+																  // APIs for vectors
 	size_t serialize_vec(vector<unsigned char> &blob) { size_t size = get_size(); blob.resize(size); return serialize(&blob[0]); }
 	size_t deserialize_vec(vector<unsigned char> &blob) { return deserialize(&blob[0]); }
 	virtual size_t serialize(vector<unsigned char> &blob) { return serialize_vec(blob); }

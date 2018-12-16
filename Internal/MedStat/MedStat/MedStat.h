@@ -21,7 +21,7 @@
 #include <cstring>
 
 #include "string.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
 
 

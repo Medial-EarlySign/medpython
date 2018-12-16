@@ -21,7 +21,7 @@
 #include <string.h>
 #include <limits.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <TQRF/TQRF/TQRF.h>
 #include "svm.h"
 #include <unordered_map>

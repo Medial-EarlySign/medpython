@@ -6,13 +6,14 @@
 // through a pre trained model (currently we use keras models)
 // 
 
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedSparseMat/MedSparseMat/MedSparseMat.h>
 
 #include <unordered_map>
+#include <unordered_set>
 
 enum EmbeddedCodeType { ECTYPE_CATEGORIAL = 0, ECTYPE_CONTINUOUS, ECTYPE_AGE, ECTYPE_DUMMY , ECTYPE_MODEL, ECTYPE_UNDEFINED};
 
@@ -29,9 +30,18 @@ public:
 	int do_shrink = 1; // keeping the bit of weather to shrink this one when shrinking is done.
 	int do_counts = 1; // collecting data as counts if =1 , or just as 0/1 is =0
 
+	// next is used for categorial signals. It holds the string names of the categories we want to embed.
+	// initialization is with the categories= parameter , it is a comma (,) separeted list of names, if a name starts with file: then
+	// it means that what's after the : is a file name containing a list of the categories to use.
+	// When creating features the order is : start with the categorial signal value, and add all its hierarchy if asked for, then check if any of those are
+	// in the categories_to_embed list, and if so, create a feature for it.
+	unordered_set<string> categories_to_embed;
+
 	// for categorial: ranges to use (empty is all). The sequence is:
 	// a value and all its hierarchy (if asked for) are created. Then only those within the asked for ranges are actually added and used.
-	// for non categorial defines ranges r[0] <= val < r[1] , that match the relevant index
+
+	// for non categorial: defines value ranges r[i][0] <= val < r[i][1] means it will be counted into original category i
+	// This allows creating categorial features out of continous signals
 	vector<vector<float>> ranges;
 
 	int time_chan = 0;
@@ -59,10 +69,12 @@ public:
 	unordered_map<int, vector<int>> sig_members2sets_in_range;
 
 	// orig to code and name
+	map<string, int> Name2Code; // Only relevant for categorial cases
 	map<int, int> Orig2Code;
 	map<int, string> Orig2Name;
 
 	// orig to shrunk code
+	map<string, int> Name2ShrunkCode; // only relevant for categorial cases
 	map<int, int> Orig2ShrunkCode;
 
 	// simple API's
@@ -90,13 +102,19 @@ public:
 
 	// initialization from string
 	int init(map<string, string>& _map);
+
+	// initializing a categorial case : need to get a dictionary and init  : sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode
+	// this is needed in order to make the embedding independent of the actual values given in the directory and rely on names only.
+	// This has the potential of allowing to transfer embeddings between different data sets, as long as they use the same signal names with the same category names in the dictionary.
+	int init(MedDictionarySections &dict);
+
 	EmbeddedCodeType type_name_to_code(string name);
 
 	string print_to_string(int verbosity);
 
 	ADD_CLASS_NAME(EmbeddingSig)
 	ADD_SERIALIZATION_FUNCS(sig, type, add_hierarchy, do_shrink, ranges, time_chan, val_chan, win_from, win_to, 
-		sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode, model);
+		sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode, model)
 };
 
 

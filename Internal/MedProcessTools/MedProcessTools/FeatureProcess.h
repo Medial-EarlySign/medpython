@@ -4,7 +4,7 @@
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "MedStat/MedStat/MedPerformance.h"

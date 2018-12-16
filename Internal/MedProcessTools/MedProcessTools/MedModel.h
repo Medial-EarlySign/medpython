@@ -10,7 +10,7 @@
 #include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
 #include <boost/property_tree/ptree.hpp>
 
