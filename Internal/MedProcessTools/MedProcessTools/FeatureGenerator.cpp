@@ -1928,7 +1928,7 @@ void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes typ
 	 int win_from, int& updated_win_from, int win_to, int& updated_win_to, bool delta_win, int d_win_from, int& updated_d_win_from, int d_win_to, int& updated_d_win_to) {
 
 	// Identify relevant range
-	int range_from = -1, range_to;
+	int range_from = -1, range_to = -1;
 	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig, time_unit_win, time));
 
 	for (int i = 0; i < time_range_usv.len; i++) {
