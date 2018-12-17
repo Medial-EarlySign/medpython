@@ -87,3 +87,4 @@ External/xgboost/winBuild/
 *.db-wal
 *.o
 
+External/LightGBM/LightGBM/CMakeLists.txt
