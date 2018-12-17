@@ -545,6 +545,9 @@ typedef enum {
 	///if check_first is false returns the time diffrences between last intersection between signal time window and the defined time window. prediction time minus the last intersecting signal end time window.
 	///if the last intersction if time ranges has no match to sets value and check_first is false will return -win_to value, otherwise missing value
 	FTR_RANGE_TIME_DIFF = 5,
+	///<"recurrence_count" - count the number of time the event occur shortly after a previous event, there is an intersection of the time signal range with the defined time window
+	///previous event does not need to intersect the time window. 
+	FTR_RANGE_RECURRENCE_COUNT = 6,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -560,6 +563,8 @@ private:
 	float uget_range_max(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+
 public:
 
 	string signalName; ///< Signal to consider
@@ -574,6 +579,8 @@ public:
 	int check_first = 1;						///< if 1 choose first occurance of check_val otherwise choose last
 
 	vector<char> lut;							///< to be used when generating FTR_RANGE_EVER
+	int recurrence_delta = 30 * 24 * 60;		///< maximum time for a subsequent range signal to be considered a recurrence in in window time units
+	int min_range_time = -1;					///< if different from -1, the minimum length for a range to be considered valid in window time units (else not checked)
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
@@ -618,7 +625,7 @@ public:
 	// Serialization
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time)
 };
 
 /**
