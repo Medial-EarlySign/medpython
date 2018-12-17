@@ -2065,6 +2065,7 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	if (!of.good())
 		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", text_file.c_str());
 	string line;
+	vector<vector<bool>> gender_read(2); // males, females
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))
 			continue;
@@ -2086,8 +2087,6 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 			if (tokens.size() != 5)
 				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
 			float age = stof(tokens[2]);
-			min_age = float(int(min_age / age_bin_years) * age_bin_years);
-			max_age = float(int(ceil(max_age / age_bin_years)) * age_bin_years);
 
 			if (age < min_age || age> max_age) {
 				MWARN("Warning:: skip age because out of range in line \"%s\"\n", line.c_str());
@@ -2101,11 +2100,13 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				age_bin = max_bins - 1;
 			if (male_labels_count_per_age.empty()) {
 				male_labels_count_per_age.resize(max_bins);
+				gender_read[0].resize(max_bins);
 				for (size_t i = 0; i < male_labels_count_per_age.size(); ++i)
 					male_labels_count_per_age[i].resize((int)sorted_outcome_labels.size());
 			}
 			if (female_labels_count_per_age.empty()) {
 				female_labels_count_per_age.resize(max_bins);
+				gender_read[1].resize(max_bins);
 				for (size_t i = 0; i < female_labels_count_per_age.size(); ++i)
 					female_labels_count_per_age[i].resize((int)sorted_outcome_labels.size());
 			}
@@ -2114,10 +2115,14 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				find(sorted_outcome_labels.begin(), sorted_outcome_labels.end(), outcome_val));
 			if (outcome_ind > sorted_outcome_labels.size())
 				MTHROW_AND_ERR("Couldn't find outcome_value=%2.3f\n", outcome_val);
-			if (tokens[1] == "MALE")
+			if (tokens[1] == "MALE") {
 				male_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
-			else if (tokens[1] == "FEMALE")
+				gender_read[0][age_bin] = true;
+			}
+			else if (tokens[1] == "FEMALE") {
 				female_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
+				gender_read[1][age_bin] = true;
+			}
 			else
 				MTHROW_AND_ERR("Unknown gender \"%s\"\n", tokens[1].c_str());
 		}
@@ -2126,6 +2131,17 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	}
 	sort(sorted_outcome_labels.begin(), sorted_outcome_labels.end());
 	of.close();
+	//validate read all:
+	int max_bins = (int)floor((max_age - min_age) / age_bin_years);
+	for (size_t i = 0; i < max_bins; ++i)
+	{
+		if (!gender_read[0][i])
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for males",
+				i, int(min_age + i * age_bin_years));
+		if (!gender_read[1][i])
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for females",
+				i, int(min_age + i * age_bin_years));
+	}
 }
 void parse_vector(const string &value, vector<float> &output_vec) {
 	vector<string> vec;
