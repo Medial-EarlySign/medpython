@@ -4,8 +4,9 @@
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <random>
 #include <omp.h>
+#include <MedIO/MedIO/MedIO.h>
 
-#include "Logger/Logger/Logger.h"
+#include <Logger/Logger/Logger.h>
 #define LOCAL_SECTION LOG_MEDFEAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 

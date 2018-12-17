@@ -4,7 +4,7 @@
 #define __MED_SAMPLES_H__
 
 
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <MedProcessTools/MedProcessTools/MedGlobals.h>
 #include <unordered_set>

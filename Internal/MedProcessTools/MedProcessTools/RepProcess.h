@@ -6,7 +6,7 @@
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedUtils/MedUtils/MedUtils.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
 
 #define DEFAULT_REP_CLNR_NTHREADS 8

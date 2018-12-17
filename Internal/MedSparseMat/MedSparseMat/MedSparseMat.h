@@ -5,7 +5,7 @@
 // Mainly as input and use for embedding algorithms
 //
 
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 
 struct SparseMatRowMetaData : public SerializableObject {
 	int pid;

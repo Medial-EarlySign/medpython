@@ -5,6 +5,7 @@
 #include "MedFeat.h"
 #include "boost/foreach.hpp"
 #include <vector>
+#include <MedIO/MedIO/MedIO.h>
 
 #define LOCAL_SECTION LOG_MEDFEAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

@@ -1,5 +1,5 @@
 #include "MedDeepBit.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 
 //Initialization of the model
 void MedDeepBit::init(float *x1, float *y1, int nsamples1, int nftrs1) {

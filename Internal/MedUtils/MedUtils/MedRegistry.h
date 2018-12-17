@@ -4,7 +4,7 @@
 #define __MED_REGISTRY_H__
 #include <vector>
 #include "InfraMed/InfraMed/MedPidRepository.h"
-#include "MedProcessTools/MedProcessTools/SerializableObject.h"
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include "MedProcessTools/MedProcessTools/MedModel.h"
 #include <MedProcessTools/MedProcessTools/RepProcess.h>

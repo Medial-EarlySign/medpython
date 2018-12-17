@@ -777,6 +777,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_MAX:		name += "max"; break;
 	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + sets[0]; break;
+	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -814,6 +815,8 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "check_first") check_first = med_stoi(entry.second);
 		else if (field == "time_range_signal") timeRangeSignalName = entry.second;
 		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
+		else if (field == "recurrence_delta") recurrence_delta = med_stoi(entry.second);
+		else if (field == "min_range_time") min_range_time = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -866,6 +869,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "min")			return FTR_RANGE_MIN;
 	if (name == "ever")			return FTR_RANGE_EVER;
 	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
+	if (name == "recurrence_count")		return FTR_RANGE_RECURRENCE_COUNT;
 
 	return (RangeFeatureTypes)med_stoi(name);
 }
@@ -908,6 +912,8 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_MAX:		return uget_range_max(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_RECURRENCE_COUNT: return uget_range_recurrence_count(rec.usv, updated_win_from, updated_win_to, time);
+
 
 	default:	return missing_val;
 	}
@@ -1545,6 +1551,32 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int updated
 	}
 }
 
+//.......................................................................................
+// get the number of samples in [win_to, win_from] before time that occur within recurrence_delta of the last sample
+float RangeFeatGenerator::uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+
+	int last_end = 0;
+	int num_recurrence = 0;
+	for (int i = 0; i < usv.len; i++) {
+
+		if (min_range_time != -1 && med_time_converter.diff_times(usv.Time(i, 1), usv.Time(i, 0), time_unit_sig, time_unit_sig) < min_range_time) {
+			continue;
+		}
+		if (usv.Time(i, 1) > max_time) {
+			break;
+		}
+		if (usv.Time(i, 0) >= min_time && med_time_converter.diff_times(usv.Time(i, 0), last_end, time_unit_sig, time_unit_sig) <= recurrence_delta) {
+			num_recurrence++;
+		}
+		last_end = usv.Time(i, 1);
+	}
+
+	return (float)num_recurrence;
+}
+
 //=======================================================================================
 // TimeFeatGenerator: creating sample-time features (e.g. differentiate between 
 //	times of day, season of year, days of the week, etc.)
@@ -1928,7 +1960,7 @@ void get_updated_time_window(UniversalSigVec& time_range_usv, TimeRangeTypes typ
 	 int win_from, int& updated_win_from, int win_to, int& updated_win_to, bool delta_win, int d_win_from, int& updated_d_win_from, int d_win_to, int& updated_d_win_to) {
 
 	// Identify relevant range
-	int range_from = -1, range_to;
+	int range_from = -1, range_to = -1;
 	int time_to_check = med_time_converter.convert_times(time_unit_range_sig, time_unit_win, med_time_converter.convert_times(time_unit_sig, time_unit_win, time));
 
 	for (int i = 0; i < time_range_usv.len; i++) {

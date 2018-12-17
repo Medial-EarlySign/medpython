@@ -7,7 +7,7 @@
 #ifndef __QRF__H__
 #define __QRF__H__
 
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <vector>
 #include <map>
 #include <random>

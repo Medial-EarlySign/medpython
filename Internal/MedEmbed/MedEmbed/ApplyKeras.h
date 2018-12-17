@@ -13,7 +13,7 @@
 // (4) batch normalization
 //
 
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 
 //===================================================================================================
 

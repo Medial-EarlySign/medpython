@@ -2,7 +2,7 @@
 #define __BOOTSTRAP_ANALYSIS_H__
 
 #include <MedUtils/MedUtils/MedUtils.h>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <vector>
 #include <string>
 #include <map>

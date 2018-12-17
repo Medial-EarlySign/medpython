@@ -8,7 +8,6 @@
 #define __MED_UTILS_H__
 
 #include "MedGenUtils.h"
-#include "MedIO.h"
 #include "MedMat.h"
 #include "MedMedical.h"
 #include "MedDataStructures.h"

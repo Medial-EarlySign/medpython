@@ -1,5 +1,5 @@
-#ifndef __SERIALIZABLE_OBJECT_IMP_H__
-#define __SERIALIZABLE_OBJECT_IMP_H__
+#ifndef __SERIALIZABLE_OBJECT_IMP_LIB_H__
+#define __SERIALIZABLE_OBJECT_IMP_LIB_H__
 
 namespace MedSerialize {
 
@@ -74,7 +74,7 @@ namespace MedSerialize {
 		//SRL_LOG("simple deserialize: %02x %02x %02x %02x\n", blob[0], blob[1], blob[2], blob[3]);
 		return sizeof(T);
 	}
-	
+
 	//.........................................................................................
 	// T * case : will ONLY Work for classes implementing the new_polymorphic, and my_class_name methods !!
 	// Also assumes a SINGLE new (not an array).
@@ -91,7 +91,7 @@ namespace MedSerialize {
 		}
 		else {
 			string s = elem->my_class_name(); // help compiler
-			//cerr << "get size of T * (2) : class" << s << "\n";
+											  //cerr << "get size of T * (2) : class" << s << "\n";
 			size += MedSerialize::get_size(s);		// account for class name
 			size += MedSerialize::get_size((*elem)); // account for class serialization
 		}
@@ -110,12 +110,12 @@ namespace MedSerialize {
 		string s = "NULL";
 		if (elem != NULL)
 			s = elem->my_class_name(); // help compiler
-		pos += MedSerialize::serialize<string>(blob+pos, s);
+		pos += MedSerialize::serialize<string>(blob + pos, s);
 
 		// serializing the actual class
 		//cerr << "Serializing T * (2) : class name is " << s << " pos " << pos << "\n";
 		if (elem != NULL)
-			pos += MedSerialize::serialize(blob+pos, (*elem));
+			pos += MedSerialize::serialize(blob + pos, (*elem));
 
 		//cerr << "Serializing T * (4) : pos " << pos << "\n";
 		return pos;
@@ -130,7 +130,7 @@ namespace MedSerialize {
 
 		// deserialize name of class
 		string cname;
-		pos += MedSerialize::deserialize<string>(blob+pos, cname);
+		pos += MedSerialize::deserialize<string>(blob + pos, cname);
 
 		//cerr << "Deserializing T * (2) : Got class name " << cname << " pos " << pos << "\n";
 
@@ -149,7 +149,7 @@ namespace MedSerialize {
 			//cerr << "Deserializing T * (4) : elem is " << elem << "\n";
 
 			// now we are ready to deserialize T or its derived
-			pos += MedSerialize::deserialize(blob+pos, (*elem));
+			pos += MedSerialize::deserialize(blob + pos, (*elem));
 		}
 
 		//cerr << "Deserializing T * (4) : pos " << pos << "\n";
@@ -160,10 +160,10 @@ namespace MedSerialize {
 	//.........................................................................................
 	// string is special
 	//.........................................................................................
-	template<> inline size_t get_size<string>(string &str) { 
+	template<> inline size_t get_size<string>(string &str) {
 		size_t size = 0;
 		size += sizeof(size_t); // length of string
-		size += str.length()+1;
+		size += str.length() + 1;
 		return size;
 	}
 
@@ -174,7 +174,7 @@ namespace MedSerialize {
 		size_t len = str.length();
 		//fprintf(stderr, "string serialize(%d) %s\n", len, str.c_str());
 		memcpy(blob, &len, sizeof(size_t)); pos += sizeof(size_t);
-		memcpy(blob+pos, str.c_str(), len); pos += len;
+		memcpy(blob + pos, str.c_str(), len); pos += len;
 		blob[pos] = 0; pos++;
 		//fprintf(stderr, "string serialize(%d) %s\n", len, &blob[sizeof(size_t)]);
 		return pos;
@@ -191,7 +191,7 @@ namespace MedSerialize {
 		string new_s((char *)&blob[pos]);
 		str = new_s;
 		//fprintf(stderr, "string deserialize pos %d :: %s\n", pos, str.c_str());
-		pos += len+1;
+		pos += len + 1;
 		return pos;
 	}
 
@@ -218,7 +218,7 @@ namespace MedSerialize {
 		pos += MedSerialize::serialize<size_t>(blob + pos, len);
 		if (len > 0)
 			for (T &elem : v)
-				pos += MedSerialize::serialize(blob+pos, elem);
+				pos += MedSerialize::serialize(blob + pos, elem);
 		return pos;
 	}
 
@@ -233,7 +233,7 @@ namespace MedSerialize {
 		if (len > 0) {
 			v.resize(len);
 			for (T &elem : v)
-				pos += MedSerialize::deserialize(blob+pos, elem);
+				pos += MedSerialize::deserialize(blob + pos, elem);
 		}
 		return pos;
 	}
@@ -346,8 +346,8 @@ namespace MedSerialize {
 		size_t pos = 0;
 		T *t = (T *)&v.first;
 		S *s = (S *)&v.second;
-		pos += MedSerialize::serialize(blob+pos, (*t));
-		pos += MedSerialize::serialize(blob+pos, (*s));
+		pos += MedSerialize::serialize(blob + pos, (*t));
+		pos += MedSerialize::serialize(blob + pos, (*s));
 
 		return pos;
 	}
@@ -359,8 +359,8 @@ namespace MedSerialize {
 		size_t pos = 0;
 		T t;
 		S s;
-		pos += MedSerialize::deserialize(blob+pos, t);
-		pos += MedSerialize::deserialize(blob+pos, s);
+		pos += MedSerialize::deserialize(blob + pos, t);
+		pos += MedSerialize::deserialize(blob + pos, s);
 		v.first = t;
 		v.second = s;
 
@@ -370,7 +370,7 @@ namespace MedSerialize {
 	//.........................................................................................
 	// map<T,S> both with a MedSerialize function
 	//.........................................................................................
-	template <class T, class S> size_t get_size(map<T,S> &v)
+	template <class T, class S> size_t get_size(map<T, S> &v)
 	{
 		size_t size = 0, len = v.size();
 		size += MedSerialize::get_size<size_t>(len);
@@ -394,8 +394,8 @@ namespace MedSerialize {
 			for (auto &elem : v) {
 				T *t = (T *)&elem.first;
 				S *s = (S *)&elem.second;
-				pos += MedSerialize::serialize(blob+pos, (*t));
-				pos += MedSerialize::serialize(blob+pos, (*s));
+				pos += MedSerialize::serialize(blob + pos, (*t));
+				pos += MedSerialize::serialize(blob + pos, (*s));
 			}
 		return pos;
 	}
@@ -410,9 +410,9 @@ namespace MedSerialize {
 		T t;
 		S s;
 		if (len > 0) {
-			for (int i=0; i<len; i++) {
-				pos += MedSerialize::deserialize(blob+pos, t);
-				pos += MedSerialize::deserialize(blob+pos, s);
+			for (int i = 0; i<len; i++) {
+				pos += MedSerialize::deserialize(blob + pos, t);
+				pos += MedSerialize::deserialize(blob + pos, s);
 				v[t] = s;
 			}
 		}
@@ -440,7 +440,7 @@ namespace MedSerialize {
 	{
 		size_t pos = 0, len = v.size();
 		pos += MedSerialize::serialize<size_t>(blob + pos, len);
-		
+
 		if (len > 0) {
 			for (typename unordered_map<T, S>::iterator it = v.begin(); it != v.end(); ++it) {
 				pos += MedSerialize::serialize(blob + pos, (T &)(it->first));
@@ -467,7 +467,7 @@ namespace MedSerialize {
 		}
 		return pos;
 	}
-	
+
 	//.........................................................................................
 	// Variadic Wrappers to call several elements is a single line
 	//.........................................................................................
@@ -477,7 +477,7 @@ namespace MedSerialize {
 
 		size += MedSerialize::get_size(elem);
 		size += MedSerialize::get_size(args...);
-		
+
 		return size;
 
 	}
@@ -517,18 +517,18 @@ namespace MedSerialize {
 
 		// keep size_t place for size
 		size_t pos = 0;
-		pos += MedSerialize::serialize(blob+pos, pos);
+		pos += MedSerialize::serialize(blob + pos, pos);
 
 		//SRL_LOG("last_serializer(1) :  blob %x size %d name %s\n", blob, pos, names[counter].c_str());
 		// serialize string : the name of the variable
-		pos += MedSerialize::serialize(blob+pos, names[counter]);
+		pos += MedSerialize::serialize(blob + pos, names[counter]);
 
 		//SRL_LOG("last_serializer(2) :  blob %x size %d name %s\n", blob, pos, names[counter].c_str());
 		// serialize elem
-		pos += MedSerialize::serialize(blob+pos, elem);
+		pos += MedSerialize::serialize(blob + pos, elem);
 
 		//SRL_LOG("last_serializer(3) :  blob %x size %d name %s\n", blob, pos, names[counter].c_str());
-		
+
 		// going back to 0 and writing the size
 		MedSerialize::serialize(blob, pos);
 
@@ -549,7 +549,7 @@ namespace MedSerialize {
 		//SRL_LOG("mid(1) name %s blob %x pos %d\n", names[counter].c_str(), blob, pos);
 
 		// recursive call to the next elements
-		pos += MedSerialize::serializer(blob + pos, counter+1, names, args...);
+		pos += MedSerialize::serializer(blob + pos, counter + 1, names, args...);
 
 		//SRL_LOG("mid(2) name %s blob %x pos %d\n", names[counter].c_str(), blob, pos);
 
@@ -567,7 +567,7 @@ namespace MedSerialize {
 		// deserialize only if appears in map, otherwise warn
 		if (name2pos.find(name) != name2pos.end()) {
 			//cerr << "last_deserializer: name " << name << " name2pos " << name2pos[name] << "\n";
-			pos += MedSerialize::deserialize(blob+name2pos[name], elem);
+			pos += MedSerialize::deserialize(blob + name2pos[name], elem);
 			//unsigned char *p = blob + name2pos[name];
 			//SRL_LOG("=====> size is %02x %02x %02x %02x\n", p[0], p[1], p[2], p[3]);
 		}
@@ -591,7 +591,7 @@ namespace MedSerialize {
 		pos += MedSerialize::deserializer(blob, counter, names, name2pos, elem);
 
 		// recursive call to the next elements
-		pos += MedSerialize::deserializer(blob, counter+1, names, name2pos, args...);
+		pos += MedSerialize::deserializer(blob, counter + 1, names, name2pos, args...);
 
 		// return serialized size
 		return pos;
@@ -626,7 +626,7 @@ namespace MedSerialize {
 		size += MedSerialize::get_sizer(counter, names, elem);
 
 		// recursive call to the next elements
-		size += MedSerialize::get_sizer(counter+1, names, args...);
+		size += MedSerialize::get_sizer(counter + 1, names, args...);
 
 		return size;
 	}
@@ -661,10 +661,10 @@ namespace MedSerialize {
 
 		// save place for size
 		size_t pos = 0;
-		pos += MedSerialize::serialize(blob+pos, pos);
+		pos += MedSerialize::serialize(blob + pos, pos);
 
 		// serialize (recursively)
-		pos += MedSerialize::serializer(blob+pos, 0, names, args...);
+		pos += MedSerialize::serializer(blob + pos, 0, names, args...);
 
 		// write back the size at pos 0
 		//cerr << "stop: writing pos " << pos << " at start\n";
@@ -696,12 +696,12 @@ namespace MedSerialize {
 			size_t curr_size;
 			size_t orig_curr_pos = pos;
 			//SRL_LOG("dtop(2) pos %d\n", pos);
-			pos += MedSerialize::deserialize(blob+pos, curr_size);
+			pos += MedSerialize::deserialize(blob + pos, curr_size);
 
 			// read name
 			string name;
 			//SRL_LOG("dtop(3) pos %d curr_size %d\n", pos, curr_size);
-			pos += MedSerialize::deserialize(blob+pos, name);
+			pos += MedSerialize::deserialize(blob + pos, name);
 
 			// add to map
 			//SRL_LOG("dtop(4) pos %d curr_size %d name %s\n", pos, curr_size, name.c_str());
@@ -796,20 +796,20 @@ namespace MedSerialize {
 		size_t pos = text.find("={", 0);
 		while (pos != string::npos) {
 			start_pos.push_back(pos);
-			pos = text.find("={", pos+1);
+			pos = text.find("={", pos + 1);
 		}
 
 		// find all positions of "}"
 		pos = text.find("}", 0);
 		while (pos != string::npos) {
 			end_pos.push_back(pos);
-			pos = text.find("}", pos+1);
+			pos = text.find("}", pos + 1);
 		}
 
 		// treating nesting 
 		if (start_pos.size()>0 && end_pos.size()>0) {
 
-			int i = 0, j = 0, stack = 0, stack_first=-1, stack_last=-1;
+			int i = 0, j = 0, stack = 0, stack_first = -1, stack_last = -1;
 
 			while (j<end_pos.size()) {
 				if (i<(int)start_pos.size() && start_pos[i] < end_pos[j]) {
@@ -834,7 +834,7 @@ namespace MedSerialize {
 			}
 
 			for (auto &ft : from_to) {
-				SRL_LOG_D("found substring: %d-%d : %s\n", ft.first, ft.second, text.substr(ft.first, ft.second-ft.first+1).c_str());
+				SRL_LOG_D("found substring: %d-%d : %s\n", ft.first, ft.second, text.substr(ft.first, ft.second - ft.first + 1).c_str());
 			}
 
 		}
@@ -845,18 +845,18 @@ namespace MedSerialize {
 		map<string, string> replacers;
 		if (from_to.size() == 0) new_text = text;
 		else {
-			new_text = text.substr(0, from_to[0].first+1); // up to the first '='
+			new_text = text.substr(0, from_to[0].first + 1); // up to the first '='
 			int j;
-			for (j=0; j<from_to.size(); j++) {
-				string name = "REPLACE_ME_LATER_NUMBER_"+to_string(j);
-				string replacer = text.substr(from_to[j].first+2, from_to[j].second-from_to[j].first-2);
+			for (j = 0; j<from_to.size(); j++) {
+				string name = "REPLACE_ME_LATER_NUMBER_" + to_string(j);
+				string replacer = text.substr(from_to[j].first + 2, from_to[j].second - from_to[j].first - 2);
 				SRL_LOG_D("replacer %d : %s -> %s\n", j, name.c_str(), replacer.c_str());
 				new_text += name;
 				replacers[name] = replacer;
-				if (j<from_to.size()-1)
-					new_text += text.substr(from_to[j].second+1, from_to[j+1].first-from_to[j].second);
+				if (j<from_to.size() - 1)
+					new_text += text.substr(from_to[j].second + 1, from_to[j + 1].first - from_to[j].second);
 			}
-			new_text += text.substr(from_to[j-1].second+1, text.length()-from_to[j-1].second);
+			new_text += text.substr(from_to[j - 1].second + 1, text.length() - from_to[j - 1].second);
 			SRL_LOG_D("new_text is %s\n", new_text.c_str());
 
 		}
@@ -930,7 +930,6 @@ namespace MedSerialize {
 	}
 
 }
-
 
 
 #endif

@@ -2209,7 +2209,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 }
 
 void RepCalcSimpleSignals::print() {
-	MLOG("RepCalcSimpleSignals: calculator: %s : calculator_init_params %s : max_time_search_range %d signals_time_unit %s signals: %s, V_names: %, req_signals: %s, aff_signals: %s, work_channel: %d\n",
+	MLOG("RepCalcSimpleSignals: calculator: %s : calculator_init_params %s : max_time_search_range %d signals_time_unit %s signals: %s, V_names: %s, req_signals: %s, aff_signals: %s, work_channel: %d\n",
 		calculator.c_str(), calculator_init_params.c_str(), max_time_search_range, med_time_converter.type_to_string(signals_time_unit).c_str(),
 		medial::io::get_list(signals).c_str(), medial::io::get_list(V_names).c_str(),
 		medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str(),

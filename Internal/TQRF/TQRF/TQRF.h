@@ -5,7 +5,7 @@
 //
 
 #include <Logger/Logger/Logger.h>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 #include <MedUtils/MedUtils/MedMat.h>

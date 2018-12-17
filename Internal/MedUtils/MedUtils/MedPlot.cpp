@@ -1,5 +1,5 @@
 #include "MedPlot.h"
-#include "MedIO.h"
+#include <MedIO/MedIO/MedIO.h>
 #include <fstream>
 #include <ctime>
 #include <iostream>

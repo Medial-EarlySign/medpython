@@ -99,13 +99,10 @@
     <ClInclude Include="MedGenUtils.h" />
     <ClInclude Include="MedGenUtils_imp.h" />
     <ClInclude Include="MedGlobalRNG.h" />
-    <ClInclude Include="MedIO.h" />
-    <ClInclude Include="MedIO_imp.h" />
     <ClInclude Include="MedMat.h" />
     <ClInclude Include="MedMat_imp.h" />
     <ClInclude Include="MedMedical.h" />
     <ClInclude Include="MedNumeric.h" />
-    <ClInclude Include="MedObjectTypes.h" />
     <ClInclude Include="MedPlot.h" />
     <ClInclude Include="MedRegistry.h" />
     <ClInclude Include="MedSamplingStrategy.h" />
@@ -120,7 +117,6 @@
     <ClCompile Include="MedDataStructures.cpp" />
     <ClCompile Include="MedEnums.cpp" />
     <ClCompile Include="MedGenUtils.cpp" />
-    <ClCompile Include="MedIO.cpp" />
     <ClCompile Include="MedMat.cpp" />
     <ClCompile Include="MedMedical.cpp" />
     <ClCompile Include="MedNumeric.cpp" />

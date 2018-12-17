@@ -98,7 +98,6 @@
     <ClCompile Include="RepCalculators.cpp" />
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
-    <ClCompile Include="SerializableObject.cpp" />
     <ClCompile Include="SmokingGenerator.cpp" />
     <ClCompile Include="StripComments.cpp" />
   </ItemGroup>
@@ -121,8 +120,6 @@
     <ClInclude Include="MedValueCleaner.h" />
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
-    <ClInclude Include="SerializableObject.h" />
-    <ClInclude Include="SerializableObject_imp.h" />
     <ClInclude Include="SmokingGenerator.h" />
     <ClInclude Include="StripComments.h" />
   </ItemGroup>

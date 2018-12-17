@@ -9,7 +9,7 @@
 
 #include <vector>
 #include "MedUtils/MedUtils/MedUtils.h"
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 
 using namespace std;
 
