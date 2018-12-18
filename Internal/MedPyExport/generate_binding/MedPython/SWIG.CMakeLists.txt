@@ -38,9 +38,9 @@ SET_SOURCE_FILES_PROPERTIES(SOURCE ${CppFiles} PROPERTIES COMPILE_FLAGS "${CMAKE
 set(SWIG_MODULE_medpython_EXTRA_DEPS MedPython.h MedPython.h ../../MedPyExport/*.h apply_directives pythoncode.i)
 SWIG_ADD_MODULE(medpython python medpython.i ${CppFiles})
 
-message("\n*********************************************\nlinking params:\n$ENV{PYTHON_LIBRARY} -Wl,--start-group InfraMed Logger Mars MedAlgo MedFeat MedProcessTools MedStat MedTime MedUtils QRF TQRF gbm micNet -Wl,--end-group libboost_regex.so libboost_program_options.so libboost_filesystem.so libboost_system.so $ENV{MR_ROOT}/Libs/External/xgboost/lib/libxgboost.so /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/lib_lightgbm.so $ENV{MR_ROOT}/Libs/External/xgboost/rabit/lib/librabit.a\n*********************************************\n")
+message("\n*********************************************\nlinking params:\n$ENV{PYTHON_LIBRARY} -Wl,--start-group InfraMed Logger Mars MedAlgo MedFeat MedIO MedProcessTools MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -Wl,--end-group libboost_regex.so libboost_program_options.so libboost_filesystem.so libboost_system.so $ENV{MR_ROOT}/Libs/External/xgboost/lib/libxgboost.so /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/lib_lightgbm.so $ENV{MR_ROOT}/Libs/External/xgboost/rabit/lib/librabit.a\n*********************************************\n")
 
-SWIG_LINK_LIBRARIES(medpython $ENV{PYTHON_LIBRARY} -Wl,--start-group InfraMed Logger Mars MedAlgo MedFeat MedProcessTools MedStat MedTime MedUtils QRF TQRF gbm micNet -Wl,--end-group -lboost_regex -lboost_program_options -lboost_filesystem -lboost_system $ENV{MR_ROOT}/Libs/External/xgboost/lib/libxgboost.so /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/lib_lightgbm.so $ENV{MR_ROOT}/Libs/External/xgboost/rabit/lib/librabit.a)
+SWIG_LINK_LIBRARIES(medpython $ENV{PYTHON_LIBRARY} -Wl,--start-group InfraMed Logger Mars MedAlgo MedFeat MedIO MedProcessTools MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -Wl,--end-group -lboost_regex -lboost_program_options -lboost_filesystem -lboost_system $ENV{MR_ROOT}/Libs/External/xgboost/lib/libxgboost.so /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/lib_lightgbm.so $ENV{MR_ROOT}/Libs/External/xgboost/rabit/lib/librabit.a)
 
 #
 #  TODO: Why doesn't it compile with: 
