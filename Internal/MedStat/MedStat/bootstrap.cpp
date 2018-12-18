@@ -901,7 +901,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			for (float y : *labels)
 			{
 				float true_label = params->fix_label_to_binary ? y > 0 : y;
-				t_sum += true_label;
+				t_sum += true_label; /// counts also false positives weights if no fix_label_to_binary
 				tt_cnt += true_label > 0 ? true_label : 0;
 				if (!censor_removed)
 					f_sum += (1 - true_label);
