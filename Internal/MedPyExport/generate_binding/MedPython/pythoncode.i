@@ -86,6 +86,19 @@ class IntIndexIter:
     def next(self):
         return self.__next__()
 
+def __from_df_imp(self, df):
+    import re
+    adaptor = self.MEDPY__from_df_adaptor()
+    type_requirements = dict(adaptor.type_requirements)
+    for col_name in df.columns: 
+        for col_req_name in type_requirements: 
+            if re.match('^'+col_req_name+'$',col_name):
+                if str(df[col_name].dtype) != type_requirements[col_req_name]:
+                    df[[col_name]] = df[[col_name]].astype(type_requirements[col_req_name],copy=False)
+        adaptor.import_column(col_name ,df[col_name].values)
+    self.MEDPY__from_df(adaptor)
+
+
 def ___fix_vecmap_iter():
     from inspect import isclass
     glob = globals()
@@ -98,6 +111,8 @@ def ___fix_vecmap_iter():
           elif (isclass(o) and '__getitem__' in dir(o) and 'keys' in dir(o) and not '__iter__' in dir(o) 
               and i.endswith('MapAdaptor')) :
               setattr(o, '__iter__', lambda x: MapAdaptorKeyIter(x))
+          elif (isclass(o) and 'MEDPY__from_df' in dir(o) and 'MEDPY__from_df_adaptor' in dir(o)):
+              setattr(o, 'from_df', __from_df_imp)
         except: pass
 
 ___fix_vecmap_iter()

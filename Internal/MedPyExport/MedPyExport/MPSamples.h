@@ -2,6 +2,7 @@
 #define __MP_SAMPLES_H
 
 #include "MedPyCommon.h"
+#include "MPPandasAdaptor.h"
 
 
 
@@ -136,6 +137,8 @@ public:
 	
 	MPSampleVectorAdaptor export_to_sample_vec();
 	MPSampleVecExporter export_to_pandas_df();
+	void MEDPY__from_df(MPPandasAdaptor& pandas_df);
+	MPPandasAdaptor MEDPY__from_df_adaptor();
 
 	void sort_by_id_date();
 	void normalize();
