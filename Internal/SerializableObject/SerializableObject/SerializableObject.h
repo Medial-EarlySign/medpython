@@ -8,11 +8,13 @@
 #include <boost/crc.hpp>
 
 #include <cstring>
+#include <string>
 #include <unordered_set>
 #include <set>
 #include <unordered_map>
 #include <typeinfo>
 #include <map>
+#include <vector>
 
 using namespace std;
 
@@ -34,6 +36,10 @@ public:
 	/// implement the next method. It is a must when one needs to support the new_polymorphic method.
 	/// One can simply add the macro ADD_CLASS_NAME(class) as a public member in the class.
 	virtual string my_class_name() { return "SerializableObject"; }
+
+	/// The names of the serialized fields. Can be helpful for example to print object fields that can be initialized.
+	/// can also print helpfull message for init if we keep initialization with the same names.
+	virtual void serialized_fields_name(vector<string> &field_names) {};
 
 	/// for polymorphic classes that want to be able to serialize/deserialize a pointer * to the derived class given its type
 	/// one needs to implement this function to return a new to the derived class given its type (as in my_type)
@@ -104,19 +110,22 @@ namespace MedSerialize {																							\
 #define ADD_SERIALIZATION_FUNCS(...)																\
 	virtual size_t get_size() { pre_serialization(); return MedSerialize::get_size_top(#__VA_ARGS__, __VA_ARGS__); }								\
 	virtual size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
-	virtual size_t deserialize(unsigned char *blob) { size_t size = MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization(); return size;}
+	virtual size_t deserialize(unsigned char *blob) { size_t size = MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization(); return size;} \
+	virtual void serialized_fields_name(vector<string> &field_names) { MedSerialize::get_list_names(#__VA_ARGS__, field_names); }
 
 // in some cases we must add the serializations in the implementation file due to forward declerations issues
 // the following is the same as the previous but should be placed in the cpp file
 #define ADD_SERIALIZATION_HEADERS()																\
 	virtual size_t get_size(); \
 	virtual size_t serialize(unsigned char *blob); \
-	virtual size_t deserialize(unsigned char *blob);
+	virtual size_t deserialize(unsigned char *blob); \
+	virtual void serialized_fields_name(vector<string> &field_names);
 
 #define ADD_SERIALIZATION_FUNCS_CPP(ClassName,...)																\
 	size_t ClassName::get_size() { pre_serialization(); return MedSerialize::get_size_top(#__VA_ARGS__, __VA_ARGS__); }								\
 	size_t ClassName::serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
-	size_t ClassName::deserialize(unsigned char *blob) { return MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization();}
+	size_t ClassName::deserialize(unsigned char *blob) { return MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization();} \
+	void  ClassName::serialized_fields_name(vector<string> &field_names) { MedSerialize::get_list_names(#__VA_ARGS__, field_names); }
 
 
 #define ADD_CLASS_NAME(Type)	string my_class_name() {return string(#Type);}

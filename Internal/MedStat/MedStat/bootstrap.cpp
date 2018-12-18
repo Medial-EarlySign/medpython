@@ -89,6 +89,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	vec_size.back() = (int)p_pids->size();
 	vec_y.back() = y;
 	vec_preds.back() = preds;
+	vec_weights.back() = weights;
 
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
@@ -134,12 +135,12 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 
 void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, int thread_num) {
 #pragma omp critical 
-{
-	vec_size[thread_num] = (int)p_y->size();
-	vec_y[thread_num] = p_y->data();
-	vec_preds[thread_num] = p_preds->data();
-	vec_weights[thread_num] = (p_w == NULL || p_w->empty()) ? NULL : p_w->data();
-}
+	{
+		vec_size[thread_num] = (int)p_y->size();
+		vec_y[thread_num] = p_y->data();
+		vec_preds[thread_num] = p_preds->data();
+		vec_weights[thread_num] = (p_w == NULL || p_w->empty()) ? NULL : p_w->data();
+	}
 }
 
 bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float &weight) {
@@ -152,6 +153,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		vector<int> *inds = &pid_index_to_indexes[selected_pid_index];
 		uniform_int_distribution<> *rnd_num = &internal_random[inds->size()];
 
+		//If has weights - not sampling by weights. can be done by calculating cum sum array
+		// of weights. randomizing real number from 0 to sum_of_all_weights and using binary search to find the index.
 		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
 		ret_y = y[selected_index];
 		ret_pred = preds[selected_index];
@@ -189,10 +192,10 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		++inner_pos[thread];
 		if (inner_pos[thread] >= inds->size()) {
 #pragma omp critical
-		{
-			sel_pid_index[thread] = -1;
-			++current_pos[thread]; //mark pid as done
-		}
+			{
+				sel_pid_index[thread] = -1;
+				++current_pos[thread]; //mark pid as done
+			}
 		}
 		return current_pos[thread] < cohort_size;
 	}
@@ -206,11 +209,11 @@ void Lazy_Iterator::restart_iterator(int thread) {
 
 	if (sample_ratio < 1) {
 #pragma omp critical 
-	{
-		current_pos[thread] = 0;
-		inner_pos[thread] = 0;
-		sel_pid_index[thread] = -1;
-	}
+		{
+			current_pos[thread] = 0;
+			inner_pos[thread] = 0;
+			sel_pid_index[thread] = -1;
+		}
 	}
 	else {
 #pragma omp critical 
@@ -451,7 +454,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			}
 
 			//create preds, y for all seleceted pids:
-			vector<float> selected_preds, selected_y;
+			vector<float> selected_preds, selected_y, selected_weights;
 			for (size_t k = 0; k < selected_pids.size(); ++k)
 			{
 				int pid = selected_pids[k];
@@ -460,10 +463,13 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				{
 					selected_preds.push_back(preds[ind]);
 					selected_y.push_back(y[ind]);
+					if (weights != NULL && !weights->empty()) {
+						selected_weights.push_back(weights->at(ind));
+					}
 				}
 			}
 
-			iterator.set_static(&selected_y, &selected_preds, weights, i);
+			iterator.set_static(&selected_y, &selected_preds, &selected_weights, i);
 #ifdef USE_MIN_THREADS
 			int th_num = omp_get_thread_num();
 #else
@@ -664,7 +670,7 @@ void read_bootstrap_results(const string &file_name, map<string, map<string, flo
 		boost::split(tokens, line, boost::is_any_of(delimeter));
 		if (tokens.size() != column_names.size())
 			MTHROW_AND_ERR("Bad bootstrap format! header has %d columns. got line with %d fields. line=\"%s\"\n",
-				(int)column_names.size(), (int)tokens.size(), line.c_str());
+			(int)column_names.size(), (int)tokens.size(), line.c_str());
 		string name = tokens[cohort_name_ind];
 		map<string, float> cohort_values;
 		for (size_t i = 0; i < tokens.size(); ++i)
@@ -868,11 +874,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	float y, pred, weight;
 	while (iterator->fetch_next(thread_num, y, pred, weight)) {
 		thresholds_labels[pred].push_back(y);
-		if (weight != -1)
+		if (weight > 0)
 			thresholds_weights[pred].push_back(weight);
 	}
 	thresholds_labels[pred].push_back(y); //last one
-	if (weight != -1)
+	if (weight > 0)
 		thresholds_weights[pred].push_back(weight);
 
 	unique_scores.resize((int)thresholds_labels.size());
@@ -898,7 +904,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			for (float y : *labels)
 			{
 				float true_label = params->fix_label_to_binary ? y > 0 : y;
-				t_sum += true_label;
+				t_sum += true_label; /// counts also false positives weights if no fix_label_to_binary
 				tt_cnt += true_label > 0 ? true_label : 0;
 				if (!censor_removed)
 					f_sum += (1 - true_label);
@@ -915,11 +921,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		{
 			vector<float> *labels = &thresholds_labels[unique_scores[i]];
 			vector<float> *weights = &thresholds_weights[unique_scores[i]];
+			if (labels->size() != weights->size())
+				MTHROW_AND_ERR("Error in bootstrap: labels and weights not in same size\n");
 			for (int y_i = 0; y_i < labels->size(); ++y_i)
 			{
 				float true_label = params->fix_label_to_binary ? (*labels)[y_i] > 0 : (*labels)[y_i];
 				t_sum += true_label * (*weights)[y_i];
-				tt_cnt += true_label > 0 ? true_label : 0;
+				tt_cnt += (true_label > 0 ? true_label : 0) * (*weights)[y_i];
 				if (!censor_removed)
 					f_sum += (1 - true_label) * (*weights)[y_i];
 				else
@@ -1000,11 +1008,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
 					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
 						ppv_prev = float((true_rate[i - 1] * t_sum) /
-							((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
 					else
 						ppv_prev = ppv_c;
 				}
-				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev * (curr_diff / tot_diff);
 				res[format_working_point("PPV@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * ppv;
 				if (params->incidence_fix > 0) {
 					pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
@@ -1022,7 +1030,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
 					if (true_rate[i] < 1 || false_rate[i] < 1)
 						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
-							(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+						(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
 					else
 						npv_c = npv_prev;
 				}
@@ -1031,25 +1039,25 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
 					if (true_rate[i] < 1 || false_rate[i] < 1)
 						npv_c = float(((1 - false_rate[i]) * f_sum) /
-							(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
 					else
 						npv_c = npv_prev;
 				}
-				res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
+				res[format_working_point("NPV@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev * (curr_diff / tot_diff));
 				if (params->incidence_fix > 0)
 					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@FPR", fpr_points[curr_wp_fpr_ind])] = float(ppv /
-						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
+					(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
 				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 					or_c = float(
-						(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 				else
 					or_c = MED_MAT_MISSING_VALUE;
 				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
 					or_prev = float(
-						(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+					(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
 				else
 					or_prev = MED_MAT_MISSING_VALUE;
 				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
@@ -1065,13 +1073,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
-							(params->incidence_fix * (1 - true_rate[i - 1])));
+						(params->incidence_fix * (1 - true_rate[i - 1])));
 					else
 						rr_prev = MED_MAT_MISSING_VALUE;
 
 					if (true_rate[i] < 1)
 						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-							(params->incidence_fix * (1 - true_rate[i])));
+						(params->incidence_fix * (1 - true_rate[i])));
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
@@ -1141,11 +1149,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
 					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
 						ppv_prev = float((true_rate[i - 1] * t_sum) /
-							((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
 					else
 						ppv_prev = ppv_c;
 				}
-				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev * (curr_diff / tot_diff);
 				res[format_working_point("PPV@SENS", sens_points[curr_wp_sens_ind])] = 100 * ppv;
 				if (params->incidence_fix > 0) {
 					pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
@@ -1163,7 +1171,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
 					if (true_rate[i] < 1 || false_rate[i] < 1)
 						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
-							(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+						(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
 					else
 						npv_c = npv_prev;
 				}
@@ -1172,25 +1180,25 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
 					if (true_rate[i] < 1 || false_rate[i] < 1)
 						npv_c = float(((1 - false_rate[i]) * f_sum) /
-							(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
 					else
 						npv_c = npv_prev;
 				}
-				res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
+				res[format_working_point("NPV@SENS", sens_points[curr_wp_sens_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev * (curr_diff / tot_diff));
 				if (params->incidence_fix > 0)
 					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@SENS", sens_points[curr_wp_sens_ind])] = float(ppv /
-						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
+					(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 
 				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 					or_c = float(
-						(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 				else
 					or_c = MED_MAT_MISSING_VALUE;
 				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
 					or_prev = float(
-						(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+					(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
 				else
 					or_prev = MED_MAT_MISSING_VALUE;
 				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
@@ -1206,13 +1214,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
-							(params->incidence_fix * (1 - true_rate[i - 1])));
+						(params->incidence_fix * (1 - true_rate[i - 1])));
 					else
 						rr_prev = MED_MAT_MISSING_VALUE;
 
 					if (true_rate[i] < 1)
 						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-							(params->incidence_fix * (1 - true_rate[i])));
+						(params->incidence_fix * (1 - true_rate[i])));
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
@@ -1240,14 +1248,14 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
 			else
 				pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
-					(t_sum + f_sum));
+				(t_sum + f_sum));
 
 			if (curr_wp_pr_ind < pr_points.size() && pr_c >= pr_points[curr_wp_pr_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
 				if (params->incidence_fix > 0)
 					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
 				else
 					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
-						(t_sum + f_sum));
+					(t_sum + f_sum));
 
 				float prev_diff = pr_points[curr_wp_pr_ind] - pr_prev;
 				float curr_diff = pr_c - pr_points[curr_wp_pr_ind];
@@ -1292,11 +1300,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
 					if (false_rate[i - 1] > 0 || true_rate[i - 1] > 0)
 						ppv_prev = float((true_rate[i - 1] * t_sum) /
-							((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
 					else
 						ppv_prev = ppv_c;
 				}
-				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev*(curr_diff / tot_diff);
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev * (curr_diff / tot_diff);
 				res[format_working_point("PPV@PR", pr_points[curr_wp_pr_ind])] = 100 * ppv;
 				res[format_working_point("SENS@PR", pr_points[curr_wp_pr_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff));
 				if (params->incidence_fix > 0) {
@@ -1304,7 +1312,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
 					if (true_rate[i] < 1 || false_rate[i] < 1)
 						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
-							(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+						(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
 					else
 						npv_c = npv_prev;
 				}
@@ -1313,24 +1321,24 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
 					if (true_rate[i] < 1 || false_rate[i] < 1)
 						npv_c = float(((1 - false_rate[i]) * f_sum) /
-							(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
 					else
 						npv_c = npv_prev;
 				}
-				res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev*(curr_diff / tot_diff));
+				res[format_working_point("NPV@PR", pr_points[curr_wp_pr_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev * (curr_diff / tot_diff));
 				if (params->incidence_fix > 0)
 					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv / params->incidence_fix);
 				else
 					res[format_working_point("LIFT@PR", pr_points[curr_wp_pr_ind])] = float(ppv /
-						(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
+					(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
 				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 					or_c = float(
-						(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 				else
 					or_c = MED_MAT_MISSING_VALUE;
 				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
 					or_prev = float(
-						(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+					(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
 				else
 					or_prev = MED_MAT_MISSING_VALUE;
 				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
@@ -1346,13 +1354,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				if (params->incidence_fix > 0) {
 					if (true_rate[i - 1] < 1)
 						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
-							(params->incidence_fix * (1 - true_rate[i - 1])));
+						(params->incidence_fix * (1 - true_rate[i - 1])));
 					else
 						rr_prev = MED_MAT_MISSING_VALUE;
 
 					if (true_rate[i] < 1)
 						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-							(params->incidence_fix * (1 - true_rate[i])));
+						(params->incidence_fix * (1 - true_rate[i])));
 					else
 						rr_c = MED_MAT_MISSING_VALUE;
 					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
@@ -1368,11 +1376,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_pr_ind;
 				continue;
-		}
+			}
 			++i;
 		}
 
-}
+	}
 	else {
 		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)
@@ -1384,11 +1392,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			if (true_rate[i] > 0 || false_rate[i] > 0) {
 				if (params->incidence_fix > 0)
 					ppv = float((true_rate[i] * params->incidence_fix) /
-						(params->incidence_fix*(true_rate[i]) +
-							(false_rate[i] * (1 - params->incidence_fix))));
+					(params->incidence_fix*(true_rate[i]) +
+						(false_rate[i] * (1 - params->incidence_fix))));
 				else
 					ppv = float((true_rate[i] * t_sum) /
-						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+					((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
 				res[format_working_point("PPV@SCORE", score_working_point, false)] = 100 * ppv;
 			}
 			else
@@ -1422,20 +1430,20 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			else {
 				if (true_rate[i] > 0 || false_rate[i] > 0 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = float(ppv /
-						(t_sum / (t_sum + f_sum)));
+					(t_sum / (t_sum + f_sum)));
 				else
 					res[format_working_point("LIFT@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			}
 			if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
 				res[format_working_point("OR@SCORE", score_working_point, false)] = float(
-					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+				(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
 			else
 				res[format_working_point("OR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 
 			if (params->incidence_fix > 0) {
 				if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE)
 					res[format_working_point("RR@SCORE", score_working_point, false)] = float((ppv + ppv * (1 - params->incidence_fix)* (1 - false_rate[i]) /
-						(params->incidence_fix * (1 - true_rate[i]))));
+					(params->incidence_fix * (1 - true_rate[i]))));
 				else
 					res[format_working_point("RR@SCORE", score_working_point, false)] = MED_MAT_MISSING_VALUE;
 			}
@@ -1621,7 +1629,7 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 			record_info.at((*param)[i].param_name)[index] <= (*param)[i].max_range;
 		else
 			res = time_range_filter(record_info.at("Label")[index] > 0, (*param)[i].min_range,
-				(*param)[i].max_range, record_info.at((*param)[i].param_name)[index]);
+			(*param)[i].max_range, record_info.at((*param)[i].param_name)[index]);
 		++i;
 	}
 	return res;
@@ -1703,7 +1711,7 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 		++bin_counts; //has at least 0.5 years for last bin to create it
 	if (params->inc_stats.male_labels_count_per_age.size() != bin_counts)
 		MTHROW_AND_ERR("Male vector has %d members. and need to have %d members\n",
-			(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
+		(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
 
 	vector<vector<double>> filtered_male_counts, filtered_female_counts;
 	vector<vector<double>> all_male_counts, all_female_counts;
@@ -1781,7 +1789,7 @@ void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additiona
 		++bin_counts; //has at least 0.5 years for last bin to create it
 	if (params->inc_stats.male_labels_count_per_age.size() != bin_counts)
 		MTHROW_AND_ERR("Male vector has %d members. and need to have %d members\n",
-			(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
+		(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
 
 	vector<vector<double>> filtered_male_counts, filtered_female_counts;
 	count_stats(bin_counts, y_full, additional_info, filtered_indexes, params,
@@ -2048,11 +2056,11 @@ void Incident_Stats::write_to_text_file(const string &text_file) {
 	fw.flush();
 	for (size_t i = 0; i < male_labels_count_per_age.size(); ++i)
 		for (size_t j = 0; j < male_labels_count_per_age[i].size(); ++j)
-			fw << "STATS_ROW" << delim << "MALE" << delim << min_age + i*age_bin_years
+			fw << "STATS_ROW" << delim << "MALE" << delim << min_age + i * age_bin_years
 			<< delim << sorted_outcome_labels[j] << delim << male_labels_count_per_age[i][j] << "\n";
 	for (size_t i = 0; i < female_labels_count_per_age.size(); ++i)
 		for (size_t j = 0; j < female_labels_count_per_age[i].size(); ++j)
-			fw << "STATS_ROW" << delim << "FEMALE" << delim << min_age + i*age_bin_years
+			fw << "STATS_ROW" << delim << "FEMALE" << delim << min_age + i * age_bin_years
 			<< delim << sorted_outcome_labels[j] << delim << female_labels_count_per_age[i][j] << "\n";
 	fw.flush();
 	fw.close();
@@ -2063,6 +2071,7 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	if (!of.good())
 		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", text_file.c_str());
 	string line;
+	vector<vector<bool>> gender_read(2); // males, females
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))
 			continue;
@@ -2084,8 +2093,6 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 			if (tokens.size() != 5)
 				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
 			float age = stof(tokens[2]);
-			min_age = float(int(min_age / age_bin_years) * age_bin_years);
-			max_age = float(int(ceil(max_age / age_bin_years)) * age_bin_years);
 
 			if (age < min_age || age> max_age) {
 				MWARN("Warning:: skip age because out of range in line \"%s\"\n", line.c_str());
@@ -2099,11 +2106,13 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				age_bin = max_bins - 1;
 			if (male_labels_count_per_age.empty()) {
 				male_labels_count_per_age.resize(max_bins);
+				gender_read[0].resize(max_bins);
 				for (size_t i = 0; i < male_labels_count_per_age.size(); ++i)
 					male_labels_count_per_age[i].resize((int)sorted_outcome_labels.size());
 			}
 			if (female_labels_count_per_age.empty()) {
 				female_labels_count_per_age.resize(max_bins);
+				gender_read[1].resize(max_bins);
 				for (size_t i = 0; i < female_labels_count_per_age.size(); ++i)
 					female_labels_count_per_age[i].resize((int)sorted_outcome_labels.size());
 			}
@@ -2112,10 +2121,14 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				find(sorted_outcome_labels.begin(), sorted_outcome_labels.end(), outcome_val));
 			if (outcome_ind > sorted_outcome_labels.size())
 				MTHROW_AND_ERR("Couldn't find outcome_value=%2.3f\n", outcome_val);
-			if (tokens[1] == "MALE")
+			if (tokens[1] == "MALE") {
 				male_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
-			else if (tokens[1] == "FEMALE")
+				gender_read[0][age_bin] = true;
+			}
+			else if (tokens[1] == "FEMALE") {
 				female_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
+				gender_read[1][age_bin] = true;
+			}
 			else
 				MTHROW_AND_ERR("Unknown gender \"%s\"\n", tokens[1].c_str());
 		}
@@ -2124,6 +2137,17 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	}
 	sort(sorted_outcome_labels.begin(), sorted_outcome_labels.end());
 	of.close();
+	//validate read all:
+	int max_bins = (int)floor((max_age - min_age) / age_bin_years);
+	for (size_t i = 0; i < max_bins; ++i)
+	{
+		if (!gender_read[0][i])
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for males",
+				i, int(min_age + i * age_bin_years));
+		if (!gender_read[1][i])
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for females",
+				i, int(min_age + i * age_bin_years));
+	}
 }
 void parse_vector(const string &value, vector<float> &output_vec) {
 	vector<string> vec;

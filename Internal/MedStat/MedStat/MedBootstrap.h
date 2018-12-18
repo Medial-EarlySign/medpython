@@ -326,6 +326,8 @@ private:
 
 namespace medial {
 	namespace process {
+		/// \brief converts cohort to sim time window- changes cases that in long term will only
+		/// turn in to cases into controls
 		void make_sim_time_window(const string &cohort_name, const vector<Filter_Param> &filter_p,
 			const vector<float> &y, const map<string, vector<float>> &additional_info,
 			vector<float> &y_changed, map<string, vector<float>> &cp_info,

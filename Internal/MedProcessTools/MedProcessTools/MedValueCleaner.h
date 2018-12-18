@@ -2,6 +2,8 @@
 #define _MED_VALUE_CLEANER_H_
 
 #define NUMERICAL_CORRECTION_EPS 1e-8
+#undef max
+#undef min
 
 /* @enum
 * Basic Cleaner types

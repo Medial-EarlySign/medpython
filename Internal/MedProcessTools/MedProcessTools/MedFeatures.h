@@ -164,10 +164,10 @@ namespace medial {
 			const vector<float> &group_values, float target_prior, vector<int> &sel_idx);
 
 		/// \brief does matching to specific prior for MedSamples
-		void match_to_prior(MedSamples &samples, float target_prior, vector<int> &sel_idx);
+		double match_to_prior(MedSamples &samples, float target_prior, vector<int> &sel_idx);
 
 		/// \brief does matching to specific prior for MedFeatures
-		void match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx);
+		double match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx);
 	}
 	/*!
 	* \brief stats namespace

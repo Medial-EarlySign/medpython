@@ -1,5 +1,67 @@
 #include "MedPyCommon.h"
 
+/* https ://www.numpy.org/devdocs/user/basics.types.html
+np.dtype		C++ type			dtype('..') Desc
+np.bool			bool 				bool		Boolean(True or False) stored as a byte
+np.byte			signed char 		int8		Platform - defined
+np.ubyte		unsigned char 		uint8		Platform - defined
+np.short		short 				int16		Platform - defined
+np.ushort		unsigned short 		uint16		Platform - defined
+np.intc			int 				int32		Platform - defined
+np.uintc		unsigned int 		uint32		Platform - defined
+np.int_			long 				int64		Platform - defined
+np.uint			unsigned long 		uint64		Platform - defined
+np.longlong		long long 			int64		Platform - defined
+np.ulonglong	unsigned long long	uint64		Platform - defined
+np.half/np.float16 	  				float16		Half precision float: sign bit, 5 bits exponent, 10 bits mantissa
+np.single		float 				float32		Platform - defined single precision float : typically sign bit, 8 bits exponent, 23 bits mantissa
+np.double		double 				float64		Platform - defined double precision float : typically sign bit, 11 bits exponent, 52 bits mantissa.
+np.longdouble	long double			float128	Platform - defined extended - precision float
+np.csingle		float complex 		complex64	Complex number, represented by two single - precision floats(real and imaginary components)
+np.cdouble		double complex 		complex128	Complex number, represented by two double - precision floats(real and imaginary components).
+np.clongdouble	long double complex complex256	Complex number, represented by two extended - precision floats(real and imaginary components).
+*/
+const std::map<std::string, std::string> MED_NPY_TYPE::ctypestr_to_dtypestr = {
+{"bool","bool"},
+{"char","int8" },
+{"signed char","int8"},
+{"unsigned char","uint8"},
+{"short","int16"},
+{"unsigned short","uint16"},
+{"int","int32"},
+{"unsigned int","uint32"},
+{"long","int64"},
+{"unsigned long","uint64"},
+{"long long","int64"},
+{"unsigned long long","uint64"},
+{"float","float32"},
+{"double","float64"},
+{"long double","float128"},
+{"float complex","complex64"},
+{"double complex","complex128"},
+{"long double complex","complex256"}
+};
+
+ const int MED_NPY_TYPE::sizes[] {
+	sizeof(unsigned char),									//NPY_BOOL
+	sizeof(char),sizeof(unsigned char),						//NPY_BYTE, NPY_UBYTE,
+	sizeof(short),sizeof(unsigned short),					//NPY_SHORT, NPY_USHORT,
+	sizeof(int),sizeof(unsigned int),						//NPY_INT, NPY_UINT,
+	sizeof(long int),sizeof(unsigned long int),				//NPY_LONG, NPY_ULONG,
+	sizeof(long long int),sizeof(unsigned long long int),	//NPY_LONGLONG, NPY_ULONGLONG,
+	sizeof(float),sizeof(double),sizeof(long double),		//NPY_FLOAT, NPY_DOUBLE, NPY_LONGDOUBLE,
+	sizeof(float) * 2,sizeof(double) * 2,sizeof(long double) * 2	//NPY_CFLOAT, NPY_CDOUBLE, NPY_CLONGDOUBLE,
+																	//-1, //NPY_OBJECT
+																	//-1,-1, //NPY_STRING, NPY_UNICODE,
+																	//-1, //NPY_VOID
+																	//-1,-1,-1 //NPY_DATETIME, NPY_TIMEDELTA, NPY_HALF,
+																	//-1, //NPY_NTYPES
+																	//-1, //NPY_NOTYPE
+																	//-1, //NPY_CHAR
+};
+
+ /******************************************************************************************************************************/
+
 MPIntIntMapAdaptor::MPIntIntMapAdaptor() { o = new std::map<int, int>(); };
 MPIntIntMapAdaptor::MPIntIntMapAdaptor(const MPIntIntMapAdaptor& other)
 {
@@ -12,7 +74,6 @@ MPIntIntMapAdaptor::MPIntIntMapAdaptor(const MPIntIntMapAdaptor& other)
 		*o = *other.o;
 	}
 };
-
 
 MPIntIntMapAdaptor::MPIntIntMapAdaptor(std::map<int, int>* ptr) { o_owned = false; o = ptr; };
 MPIntIntMapAdaptor::~MPIntIntMapAdaptor() { if (o_owned) delete o; };
@@ -42,8 +103,50 @@ MPIntIntMapAdaptor& MPIntIntMapAdaptor::operator=(const MPIntIntMapAdaptor& othe
 	return *this;
 }
 
+/******************************************************************************************************************************/
+MPStringStringMapAdaptor::MPStringStringMapAdaptor() { o = new std::map<std::string, std::string>(); };
+MPStringStringMapAdaptor::MPStringStringMapAdaptor(const MPStringStringMapAdaptor& other)
+{
+	o_owned = other.o_owned;
+	if (!other.o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new std::map<std::string, std::string>();
+		*o = *other.o;
+	}
+};
+
+MPStringStringMapAdaptor::MPStringStringMapAdaptor(std::map<std::string, std::string>* ptr) { o_owned = false; o = ptr; };
+MPStringStringMapAdaptor::~MPStringStringMapAdaptor() { if (o_owned) delete o; };
+int MPStringStringMapAdaptor::__len__() { return (int)o->size(); };
+std::string MPStringStringMapAdaptor::__getitem__(const std::string& i) { return o->operator[](i); };
+void MPStringStringMapAdaptor::__setitem__(const std::string& i, const std::string& val) { o->insert(o->begin(), std::pair<string, string>(i, val)); };
+std::vector<std::string> MPStringStringMapAdaptor::keys()
+{
+	vector<string> ret;
+	ret.reserve(o->size());
+	for (const auto& rec : *o) ret.push_back(rec.first);
+	return ret;
+};
+
+MPStringStringMapAdaptor& MPStringStringMapAdaptor::operator=(const MPStringStringMapAdaptor& other)
+{
+	if (&other == this)
+		return *this;
+	o_owned = other.o_owned;
+	if (!o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new std::map<std::string, std::string>();
+		*o = *(other.o);
+	}
+	return *this;
+}
 
 
+/******************************************************************************************************************************/
 MPStringVecFloatMapAdaptor::MPStringVecFloatMapAdaptor() { o = new std::map<std::string, std::vector<float> >(); };
 MPStringVecFloatMapAdaptor::MPStringVecFloatMapAdaptor(const MPStringVecFloatMapAdaptor& other) {
 	o_owned = other.o_owned;
