@@ -86,6 +86,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	vec_size.back() = (int)p_pids->size();
 	vec_y.back() = y;
 	vec_preds.back() = preds;
+	vec_weights.back() = weights;
 
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
@@ -149,6 +150,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		vector<int> *inds = &pid_index_to_indexes[selected_pid_index];
 		uniform_int_distribution<> *rnd_num = &internal_random[inds->size()];
 
+		//If has weights - not sampling by weights. can be done by calculating cum sum array
+		// of weights. randomizing real number from 0 to sum_of_all_weights and using binary search to find the index.
 		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
 		ret_y = y[selected_index];
 		ret_pred = preds[selected_index];

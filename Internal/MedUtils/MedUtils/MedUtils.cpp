@@ -266,7 +266,7 @@ template<class T> void medial::print::print_hist_vec(const vector<T> &vec, const
 		++uniq_vals[vec[i]];
 	char res[500];
 
-	if (uniq_vals.size() > 10) {
+	if (uniq_vals.size() > prctile_samples->size()) {
 		medial::process::prctils(vec, *prctile_samples, prcs);
 		snprintf(res, sizeof(res), ("%2.1f%%:" + format).c_str(), 100.0*(*prctile_samples)[0], prcs[0]);
 		string bf = string(res);
