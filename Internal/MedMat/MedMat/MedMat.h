@@ -14,18 +14,14 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#define MED_MAT_MISSING_VALUE -65336
 
-#include "Logger/Logger/Logger.h"
-#include "MedUtils/MedUtils/MedGlobalRNG.h"
-#include <MedIO/MedIO/MedIO.h>
-#include "MedNumeric.h"
+
 #include <vector>
-#include "math.h"
-#include <boost/algorithm/string.hpp>
+#include <math.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
+#include <MedIO/MedIO/MedIO.h>
 #include <MedTime/MedTime/MedTime.h>
-#include <MedProcessTools/MedProcessTools/MedGlobals.h>
+#include <MedMat/MedMat/MedMatConstants.h>
 
 using namespace std;
 
@@ -51,7 +47,8 @@ public:
 	float pred;
 	float weight;
 
-	ADD_SERIALIZATION_FUNCS(id, date, outcomeTime, split, label, pred, weight);
+	ADD_CLASS_NAME(RecordData)
+	ADD_SERIALIZATION_FUNCS(id, date, outcomeTime, split, label, pred, weight)
 };
 
 

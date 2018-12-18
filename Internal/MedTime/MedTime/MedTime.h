@@ -100,6 +100,8 @@ public:
 /// global time converter.
 /// </summary>
 extern MedTime med_time_converter;
+extern int global_default_time_unit;
+extern int global_default_windows_time_unit;
 
 
 #endif

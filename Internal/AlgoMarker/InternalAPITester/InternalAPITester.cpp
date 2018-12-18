@@ -8,6 +8,8 @@
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
+#include <MedMat/MedMat/MedMat.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedProcessTools/MedProcessTools/SampleFilter.h>

@@ -20,6 +20,10 @@
 extern MedLogger global_logger;
 
 
+// OLD CODE NOT NEEDED
+
+#if 0
+
 //-------------------------------------------------------------------------------------------
 int MedOutcome::read_from_file(const string &fname)
 {
@@ -181,90 +185,7 @@ void OutcomeFilter::init_from_string(const string &s)
 	}
 }
 
-//================================================================================================
-// MedSplit
-//================================================================================================
-//................................................................................................
-int MedSplit::read_from_file(const string &fname)
-{
-	clear();
 
-	ifstream inf(fname);
-
-	if (!inf) {
-		MERR("MedSplit: can't open file %s for read\n",fname.c_str());
-		return -1;
-	}
-	bool found_nsplits = false;
-	string curr_line;
-	while (getline(inf,curr_line)) {
-		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
-
-			if (curr_line[curr_line.size()-1] == '\r')
-				curr_line.erase(curr_line.size()-1) ;
-
-			vector<string> fields;
-			boost::split(fields, curr_line, boost::is_any_of(" \t"));
-
-			if (fields.size() >= 2) {
-
-				if (!found_nsplits && fields[0] == "NSPLITS") {
-					nsplits = stoi(fields[1]);
-					found_nsplits = true;
-				}
-				else {
-					int pid = stoi(fields[0]);
-					int isplit = stoi(fields[1]);
-
-					pids.push_back(pid);
-					split.push_back(isplit);
-					pid2split[pid] = isplit;
-				}
-
-			}
-		}
-	}
-	if (!found_nsplits) {
-		MERR("MedSplit: file [%s] does not contain a line with NSPLITS\n", fname.c_str());
-		return -1;
-	}
-
-	inf.close();
-	return 0;
-}
-
-//................................................................................................
-int MedSplit::write_to_file(const string &fname)
-{
-	ofstream of;
-
-	of.open(fname,ios::out);
-
-	if (!of) {
-		MERR("MedSplit: can't open file %s for write\n",fname.c_str());
-		return -1;
-	}
-
-	of << "NSPLITS\t" << nsplits << "\n";
-	for (int i=0; i<pids.size(); i++) {
-		of << pids[i] << "\t" << split[i] << "\n";
-	}
-
-	of.close();
-	return 0;
-}
-
-//................................................................................................
-int MedSplit::create_random(vector<int> &in_pids, int _nsplits)
-{
-	clear();
-
-	nsplits = _nsplits;
-	pids = in_pids;
-	get_rand_splits(split,nsplits,(int)pids.size());
-
-	return 0;
-}
 
 //====================================================================================================
 // MedFeatList
@@ -795,6 +716,7 @@ void match_binary_outcome(MedRepository &rep, const string &match_params, MedOut
 	match_binary_outcome(rep, filter, mout_in, mout_out);
 }
 
+
 void try_pairing_ratio(int& opt_cnt1, int& opt_cnt2, double& opt_r, map<string, pair<int, int>> cnts, double w, double r, int match_max_samples) {
 	// Find Optimal ratio - cnt1 and cnt2 are the overall number of samples we're giving up on 
 	int cnt1 = 0, cnt2 = 0;
@@ -997,6 +919,8 @@ struct collect_features_thread_info {
 	int state;
 	float missing;
 };
+
+#endf
 
 //....................................................................................................................................................................
 float get_Hosp_days_feature(string &feat_name, MedRepository *rep, int pid, int date)
@@ -1722,3 +1646,4 @@ void PredictionList::get_split_preds_and_y(int split, vector<float> &predictions
 		}
 	}
 }
+#endif

@@ -3,8 +3,6 @@
 #ifndef __MED_NUMERIC_H__
 #define __MED_NUMERIC_H__
 
-#define MED_FLT_EPSILON     1.192092896e-07F
-
 #include <vector>
 
 using namespace std;

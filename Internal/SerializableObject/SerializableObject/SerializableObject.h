@@ -2,7 +2,6 @@
 #define _SERIALIZABLE_OBJECT_LIB_H_
 
 #include <Logger/Logger/Logger.h>
-//#include <MedUtils/MedUtils/MedIO.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string.hpp>
@@ -78,6 +77,10 @@ public:
 private:
 	void _read_from_file(const string &fname, bool throw_on_version_error);
 };
+
+// generalized safe stoi/stof
+float med_stof(const string& _Str);
+int med_stoi(const string& _Str);
 
 /*! @def MEDSERIALIZE_SUPPORT(Type)
 * To Join the MedSerialize Wagon :\n

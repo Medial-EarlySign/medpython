@@ -88,7 +88,6 @@
     <ClCompile Include="IterativeImputer.cpp" />
     <ClCompile Include="KpSmokingGenerator.cpp" />
     <ClCompile Include="MedFeatures.cpp" />
-    <ClCompile Include="MedGlobals.cpp" />
     <ClCompile Include="MedModel.cpp" />
     <ClCompile Include="MedModelInitFromJson.cpp" />
     <ClCompile Include="MedProcessUtils.cpp" />
@@ -112,7 +111,6 @@
     <ClInclude Include="IterativeImputer.h" />
     <ClInclude Include="KpSmokingGenerator.h" />
     <ClInclude Include="MedFeatures.h" />
-    <ClInclude Include="MedGlobals.h" />
     <ClInclude Include="MedModel.h" />
     <ClInclude Include="MedModelExceptions.h" />
     <ClInclude Include="MedProcessUtils.h" />

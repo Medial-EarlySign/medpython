@@ -2,6 +2,7 @@
 
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 #include <MedUtils/MedUtils/MedUtils.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
 #include <random>
 #include <omp.h>
 #include <MedIO/MedIO/MedIO.h>

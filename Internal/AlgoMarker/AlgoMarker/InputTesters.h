@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <MedProcessTools/MedProcessTools/SampleFilter.h>
-#include <MedProcessTools/MedProcessTools/SerializableObject.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 
 using namespace std;
 

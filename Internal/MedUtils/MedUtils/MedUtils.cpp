@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "MedUtils.h"
+#include <unordered_set>
 
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -616,20 +617,3 @@ void medial::io::read_codes_file(const string &file_path, vector<string> &tokens
 	file.close();
 }
 
-float med_stof(const string& _Str) {
-	try {
-		return stof(_Str);
-	}
-	catch (exception e) {
-		MTHROW_AND_ERR("invalid stof argument [%s]\n", _Str.c_str());
-	}
-}
-
-int med_stoi(const string& _Str) {
-	try {
-		return stoi(_Str);
-	}
-	catch (exception e) {
-		MTHROW_AND_ERR("invalid stoi argument [%s]\n", _Str.c_str());
-	}
-}

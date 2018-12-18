@@ -3,6 +3,8 @@
 //
 
 #include "MedPlotly.h"
+#include <MedUtils/MedUtils/MedGenUtils.h>
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 
 //------------------------------------------------------------------------------------------------
 int SignalParams::init(map<string, string>& _map)

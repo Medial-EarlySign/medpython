@@ -8,11 +8,12 @@
 #include <stdlib.h>
 #include <vector>
 #include <map>
-#include "MedGlobalRNG.h"
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <Logger/Logger/Logger.h>
 
 using namespace std;
 
@@ -61,10 +62,7 @@ void get_probs_vec(vector<float> &v);
 
 // wrappers for globalRNG::rand()
 //....................
-// int random number in 0..N-1
-inline int rand_N(int N);
-// float random number in 0...1
-inline float rand_1();
+
 // set the random seed, if called with -1 will take seed from current time
 void set_rand_seed(int seed);
 
@@ -97,18 +95,12 @@ inline int date_to_days(int date)
 int get_day(int val) ;
 int get_day_approximate(int val);
 int get_date(int days);
-inline int rand_N(int N) { return ((int)((float)N*rand_1()-(float)1e-8)); }
-
-// float random number in 0...1
-inline float rand_1() {return (float) globalRNG::rand()/(float)( globalRNG::max() + 1.0);}
-
-// float number in from...to range
-inline float rand_range(float from, float to) { return from + rand_1()*(to-from); }
 
 //================================================================
 // Initialization Utilities
 //================================================================
-int initialization_text_to_map(const string& text, map<string, string>& init_map);
+// OLD CODE
+//int initialization_text_to_map(const string& text, map<string, string>& init_map);
 
 //===========================
 // Opertaing System Utilities

@@ -1,7 +1,6 @@
 // Object that can be serialized and written/read from file and also initialized from string
 
 #include "SerializableObject.h"
-//#include "MedProcessUtils.h"
 #include <assert.h>
 #include <boost/crc.hpp>
 #include <chrono>
@@ -15,6 +14,26 @@
 
 #define LOCAL_SECTION LOG_SRL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+
+
+float med_stof(const string& _Str) {
+	try {
+		return stof(_Str);
+	}
+	catch (exception e) {
+		MTHROW_AND_ERR("invalid stof argument [%s]\n", _Str.c_str());
+	}
+}
+
+int med_stoi(const string& _Str) {
+	try {
+		return stoi(_Str);
+	}
+	catch (exception e) {
+		MTHROW_AND_ERR("invalid stoi argument [%s]\n", _Str.c_str());
+	}
+}
+
 
 void SerializableObject::_read_from_file(const string &fname, bool throw_on_version_error) {
 	unsigned char *blob;

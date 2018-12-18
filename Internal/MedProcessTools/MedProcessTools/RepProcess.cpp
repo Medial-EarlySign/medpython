@@ -4,6 +4,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 #include "RepProcess.h"
+#include <MedUtils/MedUtils/MedUtils.h>
 
 //=======================================================================================
 // RepProcessors

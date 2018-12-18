@@ -3,6 +3,7 @@
 // Currently for the class RepCalcSimpleSignals
 
 #include <MedProcessTools/MedProcessTools/RepProcess.h>
+#include <MedUtils/MedUtils/MedUtils.h>
 #include <cmath>
 
 #define LOCAL_SECTION LOG_REPCLEANER

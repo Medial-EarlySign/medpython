@@ -4,6 +4,7 @@
 #include "MedAlgo.h"
 #include "External/Eigen/Core"
 #include "External/Eigen/Dense"
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

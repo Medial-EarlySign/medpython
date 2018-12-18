@@ -6,7 +6,7 @@
 
 #include "MedAlgo.h"
 #include "Mars/Mars/earth.hpp"
-
+#include <MedUtils/MedUtils/MedGenUtils.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

@@ -8,7 +8,6 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedModelExceptions.h>
 #include <MedTime/MedTime/MedTime.h>
-#include <MedProcessTools/MedProcessTools/MedGlobals.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8

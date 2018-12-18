@@ -10,6 +10,7 @@
 #include "AlcoholGenerator.h"
 
 #include <MedProcessTools/MedProcessTools/MedModel.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

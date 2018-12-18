@@ -14,7 +14,7 @@
 #define __MED_PID_REPOSITORY_
 
 #include "InfraMed.h"
-#include <MedUtils/MedUtils/MedSparseVec.h>
+#include <InfraMed/InfraMed/MedSparseVec.h>
 
 #define MAX_PID_DATA_SIZE	10000000
 class MedPidRepository;
