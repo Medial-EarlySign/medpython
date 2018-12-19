@@ -27,13 +27,18 @@ include_directories($ENV{MR_ROOT}/Libs/External/LightGBM/LightGBM/include)
 
 link_directories(/server/Work/Libs/Boost/latest/stage/lib)
 
+add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedMat/MedMat MedMat)
+add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedSplit/MedSplit MedSplit)
+
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/InfraMed/InfraMed InfraMed)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/Logger/Logger Logger)
 add_subdirectory($ENV{MR_ROOT}/Libs/External/Mars/Mars Mars)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedAlgo/MedAlgo MedAlgo)
+add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedEmbed/MedEmbed MedEmbed)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedFeat/MedFeat MedFeat)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedIO/MedIO MedIO)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedProcessTools/MedProcessTools MedProcessTools)
+add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedSparseMat/MedSparseMat MedSparseMat)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedStat/MedStat MedStat)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedTime/MedTime MedTime)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedUtils/MedUtils MedUtils)
