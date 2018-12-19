@@ -154,6 +154,85 @@ MPSampleVecExporter MPSamples::export_to_pandas_df() {
 	return MPSampleVecExporter(sva);
 }
 
+MPPandasAdaptor MPSamples::MEDPY__from_df_adaptor() {
+	MPPandasAdaptor ret;
+	ret.set_type_requirement("id", "int");
+	ret.set_type_requirement("outcome", "float");
+	ret.set_type_requirement("outcomeTime", "int");
+	ret.set_type_requirement("split", "int");
+	ret.set_type_requirement("time", "int");
+	ret.set_type_requirement("pred_\\d+", "float");
+	return ret;
+}
+
+void MPSamples::MEDPY__from_df(MPPandasAdaptor& pandas_df) {
+	static const string pred_ = "pred_";
+	vector<MedSample> vms;
+//	vms.resize
+	//cerr << "got a df with keys:\n";
+	for (string col_name : pandas_df.keys()) {
+		
+		if (col_name == "id") {
+			vector<int> vec;
+			pandas_df.pull_col_as_vector(col_name, vec);
+			//std::cerr << "id vec size = " << vec.size() << "\n";
+			vms.resize(max(vms.size(), vec.size()));
+			for (int i = 0; i < vec.size(); ++i)
+				vms[i].id = vec[i];
+		}else if (col_name == "outcome") {
+			vector<float> vec;
+			pandas_df.pull_col_as_vector(col_name, vec);
+			vms.resize(max(vms.size(), vec.size()));
+			for (int i = 0; i < vec.size(); ++i)
+				vms[i].outcome = vec[i];
+		}
+		else if (col_name == "outcomeTime") {
+			vector<int> vec;
+			pandas_df.pull_col_as_vector(col_name, vec);
+			vms.resize(max(vms.size(), vec.size()));
+			for (int i = 0; i < vec.size(); ++i)
+				vms[i].outcomeTime = vec[i];
+		}
+		else if (col_name == "split") {
+			vector<int> vec;
+			pandas_df.pull_col_as_vector(col_name, vec);
+			vms.resize(max(vms.size(), vec.size()));
+			for (int i = 0; i < vec.size(); ++i)
+				vms[i].split = vec[i];
+		}
+		else if (col_name == "time") {
+			vector<int> vec;
+			pandas_df.pull_col_as_vector(col_name, vec);
+			vms.resize(max(vms.size(), vec.size()));
+			for (int i = 0; i < vec.size(); ++i)
+				vms[i].time = vec[i];
+		}
+		else if (col_name.compare(0, pred_.length(), pred_) == 0) {
+			vector<float> vec;
+			pandas_df.pull_col_as_vector(col_name, vec);
+			vms.resize(max(vms.size(), vec.size()));
+			int pred_i = stoi(col_name.substr(pred_.length()));
+			int max_size = max((int)vms[0].prediction.size(), pred_i+1);
+			if(max_size > vms[0].prediction.size())
+				for (int i = 0; i < vec.size(); ++i) {
+					vms[i].prediction.resize(max_size);
+					vms[i].prediction[pred_i] = vec[i];
+				}
+			else for (int i = 0; i < vec.size(); ++i)
+				vms[i].prediction[pred_i] = vec[i];
+		}
+		/*
+		else {
+			cerr << col_name << " (not loaded)\n";
+			continue;
+		}
+		cerr << col_name << " (loaded)\n";
+		*/
+	}
+	o->import_from_sample_vec(vms);
+}
+
+
 
 int MPSamples::get_predictions_size() {
 	int ret1, ret2;
@@ -206,6 +285,8 @@ void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime) { o
 void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred) { o->insertRec(pid, time, outcome, outcomeTime, pred); };
 void MPSamples::insertRec(int pid, int time) { o->insertRec(pid, time); };
 int MPSamples::version() { return o->version(); };
+
+
 
 
 //void MPSamples::get_ids_v(int* out_pidvec_1, int out_pidvec_n_1) {  vector<int> ids; o->get_ids(ids); memcpy(out_pidvec_1, &ids[0], out_pidvec_n_1); };

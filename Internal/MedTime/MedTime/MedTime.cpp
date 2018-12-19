@@ -1,10 +1,15 @@
 #include "MedTime.h"
-#include "MedUtils/MedUtils/MedUtils.h"
+#include <Logger/Logger/Logger.h>
+#include <boost/algorithm/string.hpp>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
+//#include <MedUtils/MedUtils/MedUtils.h>
 
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 MedTime med_time_converter;
+int global_default_time_unit = MedTime::Date;
+int global_default_windows_time_unit = MedTime::Days;
 
 // implementations
 

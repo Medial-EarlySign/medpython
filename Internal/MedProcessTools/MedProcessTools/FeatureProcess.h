@@ -1,14 +1,15 @@
 #ifndef _FTR_PROCESS_H_
 #define _FTR_PROCESS_H_
 
-#include "InfraMed/InfraMed/InfraMed.h"
-#include "MedProcessTools/MedProcessTools/MedFeatures.h"
-#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include <SerializableObject/SerializableObject/SerializableObject.h>
-#include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
-#include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
-#include "MedStat/MedStat/MedPerformance.h"
-#include "MedStat/MedStat/MedStat.h"
+//#include <InfraMed/InfraMed/InfraMed.h>
+#include <MedProcessTools/MedProcessTools/MedFeatures.h>
+#include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
+#include <MedProcessTools/MedProcessTools/MedValueCleaner.h>
+#include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
+#include <MedUtils/MedUtils/MedUtils.h>
+//#include "MedStat/MedStat/MedPerformance.h"
+//#include "MedStat/MedStat/MedStat.h"
 #include <unordered_set>
 
 #define DEFAULT_FEAT_CLNR_NTHREADS 24

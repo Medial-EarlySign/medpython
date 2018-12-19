@@ -9,6 +9,9 @@
 #include <cmath>
 #include <omp.h>
 #include <fenv.h>
+#include <MedMat/MedMat/MedMat.h>
+// next saves the need to include InfraMed.h ... 
+#define GENDER_MALE	1 
 #ifndef  __unix__
 #pragma float_control( except, on )
 #endif

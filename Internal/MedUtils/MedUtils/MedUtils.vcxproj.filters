@@ -15,25 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MedMat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MedDataStructures.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MedUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MedGenUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MedMat_imp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MedArchiver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MedArchiver_imp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MedNumeric.h">
@@ -46,12 +31,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MedUtils_imp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MedSparseVec.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MedMedical.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MedPlot.h">
@@ -72,20 +51,11 @@
     <ClInclude Include="MedEnums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MedMedical.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MedMat.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MedDataStructures.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MedArchiver.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="time_utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MedGenUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -93,9 +63,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedUtils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MedMedical.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedPlot.cpp">
@@ -114,6 +81,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedEnums.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MedMedical.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

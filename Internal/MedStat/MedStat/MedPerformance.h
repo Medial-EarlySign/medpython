@@ -10,20 +10,19 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "assert.h"
-#include "math.h"
+#include <assert.h>
+#include <math.h>
 
 #include <vector>
 #include <map>
 #include <string>
 #include <algorithm>
 
-#include "MedAlgo/MedAlgo/MedAlgo.h"
-#include "MedFeat/MedFeat/MedFeat.h"
-#include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "MedProcessTools/MedProcessTools/MedFeatures.h"
-
-#include "string.h"
+//#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedProcessTools/MedProcessTools/MedFeatures.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
+#include <string.h>
 
 #define MED_CLEANER_MAX_Z 15
 #define MED_CLEANER_EPSILON 0.0001
@@ -91,9 +90,7 @@ public:
 	// Load
 	void _load(vector<pair<float,float> >& in_preds) ;
 	void _load(vector<vector<pair<float,float> > >& in_split_preds) ;
-	void _load(MedFeaturesData& predictor_data) ;
 	void _load(MedSamples& inSamples);
-	void load_preds_on_train(MedFeaturesData& predictor_data);
 	void _load(MedFeatures& ftrs);
 	void post_load();
 	template <typename T> void load(T& object) ;

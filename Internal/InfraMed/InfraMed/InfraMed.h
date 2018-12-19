@@ -16,7 +16,7 @@
 #endif
 
 #include <Logger/Logger/Logger.h>
-#include <MedUtils/MedUtils/MedSparseVec.h>
+#include "MedSparseVec.h"
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <map>
 #include <vector>

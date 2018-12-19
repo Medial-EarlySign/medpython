@@ -26,6 +26,7 @@
     <ClInclude Include="MPFeatures.h" />
     <ClInclude Include="MPMat.h" />
     <ClInclude Include="MPModel.h" />
+    <ClInclude Include="MPPandasAdaptor.h" />
     <ClInclude Include="MPPidRepository.h" />
     <ClInclude Include="MPSamples.h" />
     <ClInclude Include="MPSampleVecExporter.h" />
@@ -41,6 +42,7 @@
     <ClCompile Include="MPFeatures.cpp" />
     <ClCompile Include="MPMat.cpp" />
     <ClCompile Include="MPModel.cpp" />
+    <ClCompile Include="MPPandasAdaptor.cpp" />
     <ClCompile Include="MPPidRepository.cpp" />
     <ClCompile Include="MPSamples.cpp" />
     <ClCompile Include="MPSampleVecExporter.cpp" />

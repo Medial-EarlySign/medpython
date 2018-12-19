@@ -2,12 +2,14 @@
 // MedCluster - Clustering algorithms
 //
 
-#include "MedUtils/MedUtils/MedUtils.h"
-#include "External/Eigen/Core"
-#include "External/Eigen/SVD"
-#include "External/Eigen/Jacobi"
-
 #include "MedAlgo.h"
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
+#include <MedMat/MedMat/MedMat.h>
+#include <External/Eigen/Core>
+#include <External/Eigen/SVD>
+#include <External/Eigen/Jacobi>
+
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

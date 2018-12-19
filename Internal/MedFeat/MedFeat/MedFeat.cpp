@@ -2,6 +2,8 @@
 // MedFeat - Tools to help build features, and for feature selection
 //
 
+#if 0
+
 #include "MedFeat.h"
 #include "boost/foreach.hpp"
 #include <vector>
@@ -657,3 +659,4 @@ float sdv_get_fraction_above(SDateVal *sdv, int len, float bound)
 	return((float)nabove/(float)len);
 }
 
+#endif

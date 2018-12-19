@@ -9,6 +9,7 @@
 
 #include <vector>
 #include "MedUtils/MedUtils/MedUtils.h"
+#include <MedMat/MedMat/MedMat.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 
 using namespace std;

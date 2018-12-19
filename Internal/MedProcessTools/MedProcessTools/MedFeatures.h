@@ -7,7 +7,7 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
-#include <MedUtils/MedUtils/MedMat.h>
+#include <MedMat/MedMat/MedMat.h>
 #include <random>
 
 //.......................................................................................
@@ -66,7 +66,7 @@ public:
 	/// <summary> Constructor Given time-unit </summary>
 	MedFeatures(int _time_unit) { time_unit = _time_unit; }
 	///<summary>  Constructor setting time-unit to undef </summary>
-	MedFeatures() { time_unit = MedTime::Undefined; }
+	MedFeatures() { time_unit = MedTime::Undefined; global_serial_id_cnt = 0; }
 
 	// Initialization
 	/// <summary> Clear all vectors </summary>

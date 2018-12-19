@@ -5,8 +5,9 @@
 #ifndef __MEDOUTCOME_H__
 #define __MEDOUTCOME_H__
 
+//#include "MedSplit.h"
 #include "MedFeat.h"
-#include "InfraMed/InfraMed/InfraMed.h"
+#include <InfraMed/InfraMed/InfraMed.h>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -15,6 +16,9 @@
 #define MAX_OUTCOME_LENGTH		1000000
 using namespace std;
 
+// OLD CODE NOT NEEDED
+
+#if 0
 class OutcomeRecord {
 	public:
 		int pid;
@@ -137,22 +141,9 @@ int collect_features_for_outcome(MedRepository &rep, MedOutcome &mout, vector<st
 // this is done to enrich samples to contain samples in all periods before the event
 void expand_binary_outcome_prefix(MedRepository &rep,int days, const string &sig, MedOutcome &mout_in, MedOutcome &mout_out);
 
+
+
 // a few more classes needed for easier management
-class MedSplit {
-	public:
-		vector<int> pids;
-		vector<int> split;
-		int nsplits;
-		map<int,int> pid2split;
-
-		MedSplit() {clear();}
-		void clear() {pids.clear(); split.clear(); pid2split.clear(); nsplits=0;}
-		int read_from_file(const string &fname);
-		int write_to_file(const string &fname);
-
-		int create_random(vector<int> &in_pids, int nsplits);
-
-};
 
 // prepare a balanced split given a repository, and an outcome
 // the result is a split to the pids in the outcome, such that in each split there's the same distribution of categories
@@ -248,5 +239,7 @@ class PredictionList {
 		void get_split_preds_and_y(int split, vector<float> &predictions, vector<float> &y); // same for a specific split
 
 };
+
+#endif
 
 #endif
