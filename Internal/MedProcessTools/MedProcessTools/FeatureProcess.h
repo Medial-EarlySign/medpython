@@ -439,6 +439,9 @@ public:
 	// Apply cleaning model
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
 
+	// check startas name
+	void check_stratas_name(MedFeatures& features, map <string, string> &strata_name_conversion);
+
 	// Serialization
 	ADD_CLASS_NAME(FeatureImputer)
 	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram)
