@@ -57,11 +57,7 @@ void MPPandasAdaptor::import_column(const string &col_name, void* IN_ARRAY1, int
 	if (columns.count(col_name) > 0)
 		throw runtime_error("PandasAdaptor: already have a column by this name");
 	auto& col = columns[col_name];
-	col.nptype = NPYDTC1;
-	//std::cerr << "import " << col_name << " with nptype=" << (int)(columns[col_name].nptype)  << "\n";
-	//std::cerr << "   NPYDTC1    = " << NPYDTC1 << "\n";
-	//std::cerr << "   col.nptype = " << (int)(col.nptype) << "\n";
-	
+	col.nptype = NPYDTC1;	
 	col.num_elements = DIM1;
 	if (make_a_copy) {
 		col.allocate_data();

@@ -117,6 +117,7 @@ public:
 class MED_NPY_TYPE {
 public:
 	static const std::map<std::string,std::string> ctypestr_to_dtypestr;
+	static const std::map<std::string, int> ctypestr_to_npytypeid;
 	enum class values: int {
 		NPY_BOOL = 0,
 		NPY_BYTE, NPY_UBYTE,

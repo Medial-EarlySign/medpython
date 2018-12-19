@@ -42,6 +42,27 @@ const std::map<std::string, std::string> MED_NPY_TYPE::ctypestr_to_dtypestr = {
 {"long double complex","complex256"}
 };
 
+const std::map<std::string, int> MED_NPY_TYPE::ctypestr_to_npytypeid = {
+	{ "bool",(int)MED_NPY_TYPES::NPY_BOOL },
+	{ "char",(int)MED_NPY_TYPES::NPY_BYTE },
+	{ "signed char",(int)MED_NPY_TYPES::NPY_BYTE },
+	{ "unsigned char",(int)MED_NPY_TYPES::NPY_UBYTE },
+	{ "short",(int)MED_NPY_TYPES::NPY_SHORT },
+	{ "unsigned short",(int)MED_NPY_TYPES::NPY_USHORT },
+	{ "int",(int)MED_NPY_TYPES::NPY_INT },
+	{ "unsigned int",(int)MED_NPY_TYPES::NPY_UINT },
+	{ "long",(int)MED_NPY_TYPES::NPY_LONG },
+	{ "unsigned long",(int)MED_NPY_TYPES::NPY_ULONG },
+	{ "long long",(int)MED_NPY_TYPES::NPY_LONGLONG },
+	{ "unsigned long long",(int)MED_NPY_TYPES::NPY_ULONGLONG },
+	{ "float",(int)MED_NPY_TYPES::NPY_FLOAT },
+	{ "double",(int)MED_NPY_TYPES::NPY_DOUBLE },
+	{ "long double",(int)MED_NPY_TYPES::NPY_CLONGDOUBLE },
+	{ "float complex",(int)MED_NPY_TYPES::NPY_CFLOAT },
+	{ "double complex",(int)MED_NPY_TYPES::NPY_CDOUBLE },
+	{ "long double complex",(int)MED_NPY_TYPES::NPY_CLONGDOUBLE }
+};
+
  const int MED_NPY_TYPE::sizes[] {
 	sizeof(unsigned char),									//NPY_BOOL
 	sizeof(char),sizeof(unsigned char),						//NPY_BYTE, NPY_UBYTE,

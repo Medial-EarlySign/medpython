@@ -86,6 +86,10 @@ class IntIndexIter:
     def next(self):
         return self.__next__()
 
+def __to_df_imp(self):
+    import pandas as pd
+    return pd.DataFrame.from_dict(dict(self.MEDPY__to_df()))
+
 def __from_df_imp(self, df):
     import re
     adaptor = self.MEDPY__from_df_adaptor()
@@ -111,8 +115,10 @@ def ___fix_vecmap_iter():
           elif (isclass(o) and '__getitem__' in dir(o) and 'keys' in dir(o) and not '__iter__' in dir(o) 
               and i.endswith('MapAdaptor')) :
               setattr(o, '__iter__', lambda x: MapAdaptorKeyIter(x))
-          elif (isclass(o) and 'MEDPY__from_df' in dir(o) and 'MEDPY__from_df_adaptor' in dir(o)):
+          if (isclass(o) and 'MEDPY__from_df' in dir(o) and 'MEDPY__from_df_adaptor' in dir(o)):
               setattr(o, 'from_df', __from_df_imp)
+          if (isclass(o) and 'MEDPY__to_df' in dir(o)):
+              setattr(o, 'to_df', __to_df_imp)
         except: pass
 
 ___fix_vecmap_iter()

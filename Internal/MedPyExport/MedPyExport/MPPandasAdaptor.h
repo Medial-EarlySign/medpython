@@ -74,6 +74,9 @@ public:
 	void import_column(const string &col_name, void* IN_ARRAY1, int DIM1, int NPYDTC1, bool make_a_copy = false);
 #ifndef SWIG
 	void push_categorial(const string& col_name, std::vector<int> index_column, std::vector<std::string> categories);
+	void push_column(const string &col_name, void* arr, int arr_size, const string& ctype_str, bool make_a_copy = false) {
+		import_column(col_name, arr, arr_size, MED_NPY_TYPE::ctypestr_to_npytypeid.at(ctype_str), make_a_copy);
+	}
 	template<typename T>
 	void pull_col_as_vector(const string& col_name, vector<T>& dest) {
 		if (columns[col_name].nptype.size_in_bytes() != sizeof(T)) {

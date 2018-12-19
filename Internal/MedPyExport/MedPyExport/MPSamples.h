@@ -139,6 +139,8 @@ public:
 	MPSampleVecExporter export_to_pandas_df();
 	void MEDPY__from_df(MPPandasAdaptor& pandas_df);
 	MPPandasAdaptor MEDPY__from_df_adaptor();
+	MPPandasAdaptor MEDPY__to_df();
+
 
 	void sort_by_id_date();
 	void normalize();
@@ -157,9 +159,6 @@ public:
 	void insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
 	void insertRec(int pid, int time);
 	int version();
-
-	//	void get_ids_v(int* out_pidvec_1, int out_pidvec_n_1);
-	//	int get_ids_n();
 };
 
 
