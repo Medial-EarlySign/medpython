@@ -162,7 +162,10 @@ __bind_external_methods()
 
 """
 Remove SWIG's global variable access which makes issues for reflection actions
-del __dict__['cvar']
+#if 'cvar' in __dict__: del cvar
 """
+try:
+    del cvar
+except: pass
 
 %}

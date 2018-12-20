@@ -411,3 +411,10 @@ MPIntStringMapAdaptor& MPIntStringMapAdaptor::operator=(const MPIntStringMapAdap
 	}
 	return *this;
 }
+
+#include <Logger/Logger/Logger.h>
+
+void logger_use_stdout() {
+	for (int sect = 0; sect < MAX_LOG_SECTION; ++sect)
+		global_logger.init_file(sect, stdout);
+}

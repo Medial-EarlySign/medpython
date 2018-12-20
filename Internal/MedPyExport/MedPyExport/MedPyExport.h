@@ -21,7 +21,7 @@
 #include "MPSamples.h"
 #include "MPMat.h"
 
-
+//static const std::vector<std::string> public_objects = {"Model", "Sample", "PidRepository", "Dictionary", "FeatureAttr", "Features", "IdSamples", "Mat", "ModelStage", "Samples", "Sig", "Split", "Time"};
 
 #endif // !__MED_PY_EXPORT_H
 
