@@ -98,7 +98,7 @@ def __from_df_imp(self, df):
         for col_req_name in type_requirements: 
             if re.match('^'+col_req_name+'$',col_name):
                 if str(df[col_name].dtype) != type_requirements[col_req_name]:
-                    df[[col_name]] = df[[col_name]].astype(type_requirements[col_req_name],copy=False)
+                    df[col_name] = df[col_name].astype(type_requirements[col_req_name],copy=False)
         adaptor.import_column(col_name ,df[col_name].values)
     self.MEDPY__from_df(adaptor)
 
