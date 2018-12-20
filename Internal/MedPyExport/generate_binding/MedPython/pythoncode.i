@@ -1,7 +1,7 @@
 
 %pythoncode %{
 
-__all__ = ['Model','Sample','PidRepository','Dictionary','FeatureAttr','Features','IdSamples','Mat','ModelStage','Samples','Sig','Split','Time']
+__all__ = list(_medpython.get_public_objects())
 
 """
 Enable stderr capturing under ipynb
