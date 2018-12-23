@@ -1092,6 +1092,16 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] =
+							float(ppv / FOR);
+					}
+					else
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+				}
 
 				++curr_wp_fpr_ind;
 				continue;
@@ -1233,6 +1243,16 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] =
+							float(ppv / FOR);
+					}
+					else
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+				}
 
 				++curr_wp_sens_ind;
 				continue;
@@ -1371,6 +1391,17 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else if (rr_prev != MED_MAT_MISSING_VALUE)
 						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = rr_prev;
 					else
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@SENS", pr_points[curr_wp_pr_ind])] =
+							float(ppv / FOR);
+					}
+					else
+
 						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 				}
 
