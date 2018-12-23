@@ -562,13 +562,15 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	}
 
 	map<string, map<string, float>> all_cohorts_measurments;
-	vector<float> preds_c, y_c;
+	vector<float> preds_c, y_c, weights_c;
 	vector<int> pids_c, filtered_indexes;
 	vector<int> class_sz;
 	pids_c.reserve((int)y.size());
 	preds_c.reserve((int)y.size());
 	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
+	if (weights != NULL && !weights->empty())
+		weights_c.reserve(weights->size());
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 	{
 		void *c_params = NULL;
@@ -580,6 +582,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		pids_c.clear();
 		preds_c.clear();
 		y_c.clear();
+		weights_c.clear();
 		filtered_indexes.clear();
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
@@ -589,6 +592,10 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 				filtered_indexes.push_back((int)j);
 				++class_sz[y[j] > 0];
 			}
+		if (weights != NULL && !weights->empty())
+			for (size_t j = 0; j < y.size(); ++j)
+				if (it->second(additional_info, (int)j, c_params))
+					weights_c.push_back(weights->at(j));
 		//now we have cohort: run analysis:
 		string cohort_name = it->first;
 
@@ -605,10 +612,13 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 			else MLOG("Cohort [%s] - has %d samples with labels = [%d, %d]\n",
 				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
 		}
+		vector<float> *weights_p = NULL;
+		if (!weights_c.empty())
+			weights_p = &weights_c;
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, weights, filtered_indexes, it->second, c_params, seed);
+			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 	}
@@ -1140,7 +1150,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif
 					++curr_wp_sens_ind;
 					continue; //skip working point - diff is too big
-				}
+			}
 				res[format_working_point("SCORE@SENS", sens_points[curr_wp_sens_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("FPR@SENS", sens_points[curr_wp_sens_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
@@ -1256,9 +1266,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_sens_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+	}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -1301,7 +1311,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif //  WARN_SKIP_WP
 					++curr_wp_pr_ind;
 					continue; //skip working point - diff is too big
-				}
+			}
 				res[format_working_point("SCORE@PR", pr_points[curr_wp_pr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("FPR@PR", pr_points[curr_wp_pr_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
@@ -1407,9 +1417,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_pr_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+}
 
 	}
 	else {
