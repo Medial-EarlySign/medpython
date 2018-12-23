@@ -154,9 +154,42 @@ def __sample_export_to_pandas(self):
     df = pd.DataFrame.from_dict(dict(self.export_to_pandas_df()))
     return df
 
+def __features__to_df_imp(self):
+    import pandas as pd
+    featMatFull = Mat()
+    self.get_as_matrix(featMatFull)
+    featMatFullNew = featMatFull.get_numpy_view_unsafe()
+    col_names = self.get_feature_names()
+    dfFeatures2 = pd.DataFrame(data = featMatFullNew, columns = col_names )
+    
+    samps = Samples()
+    self.get_samples(samps)
+    samps_df = samps.as_df()
+    out = pd.concat([samps_df,dfFeatures2], axis=1, copy=False)
+    return out
+
+def __features__from_df_imp(self, features_df):
+    # Dataframe to MedFeatures:
+    
+    mat = Mat()
+    samples = Samples() 
+    ind_sampes = features_df.columns.str.contains('pred_\\d+') | features_df.columns.isin(['id', 'split', 'time', 'outcome', 'outcomeTime']) 
+    featuresNames = features_df.columns[~(ind_sampes)]
+    # Build data matrix
+    mat.set_signals(StringVector(list(featuresNames)))
+    mat.load_numpy(features_df.loc[:,features_df.columns[~(ind_sampes)]].values)
+    self.set_as_matrix(mat)
+    # append Samples
+    samples.from_df(features_df.loc[:,features_df.columns[ind_sampes]])
+    self.append_samples(samples)
+
+
+
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
     setattr(globals()['Samples'],'as_df', __sample_export_to_pandas)
+    setattr(globals()['Features'],'to_df', __features__to_df_imp)
+    setattr(globals()['Features'],'from_df', __features__from_df_imp)
 
 __bind_external_methods()
 
