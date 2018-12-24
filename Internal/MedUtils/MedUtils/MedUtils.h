@@ -133,6 +133,8 @@ namespace medial {
 			/// keep the raw string params from the user input as private and keep
 			/// the Enum result of the converted as public.
 			virtual void post_process() {};
+			/// finds module section help in full help message
+			string get_section(const string &full_help, const string &search);
 		protected:
 			/// an init function
 			void init(po::options_description &prg_options, const string &app_l = "");
