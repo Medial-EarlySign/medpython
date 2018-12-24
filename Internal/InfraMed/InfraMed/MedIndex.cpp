@@ -638,7 +638,7 @@ int MedIndex::read_index_mode0_new_direct(const string &fname, int f_factor, con
 	}
 
 	vector<int> shifting(4097, -1);
-	for (int i=0; i<=12; i++) shifting[1L<<i] = i;
+	for (int i=0; i<=12; i++) shifting[((size_t)1)<<i] = i;
 	if (f_factor <= 0) f_factor = 1;
 	int shift_f = shifting[f_factor];
 	//MLOG("fname %s f_factor=%d shift_f=%d \n", fname.c_str(), f_factor, shift_f);

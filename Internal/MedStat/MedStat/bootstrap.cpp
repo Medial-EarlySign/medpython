@@ -9,6 +9,9 @@
 #include <cmath>
 #include <omp.h>
 #include <fenv.h>
+
+// next saves the need to include InfraMed.h ... 
+#define GENDER_MALE	1 
 #ifndef  __unix__
 #pragma float_control( except, on )
 #endif
@@ -86,6 +89,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	vec_size.back() = (int)p_pids->size();
 	vec_y.back() = y;
 	vec_preds.back() = preds;
+	vec_weights.back() = weights;
 
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
@@ -149,6 +153,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		vector<int> *inds = &pid_index_to_indexes[selected_pid_index];
 		uniform_int_distribution<> *rnd_num = &internal_random[inds->size()];
 
+		//If has weights - not sampling by weights. can be done by calculating cum sum array
+		// of weights. randomizing real number from 0 to sum_of_all_weights and using binary search to find the index.
 		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
 		ret_y = y[selected_index];
 		ret_pred = preds[selected_index];
@@ -556,13 +562,15 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	}
 
 	map<string, map<string, float>> all_cohorts_measurments;
-	vector<float> preds_c, y_c;
+	vector<float> preds_c, y_c, weights_c;
 	vector<int> pids_c, filtered_indexes;
 	vector<int> class_sz;
 	pids_c.reserve((int)y.size());
 	preds_c.reserve((int)y.size());
 	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
+	if (weights != NULL && !weights->empty())
+		weights_c.reserve(weights->size());
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 	{
 		void *c_params = NULL;
@@ -574,6 +582,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		pids_c.clear();
 		preds_c.clear();
 		y_c.clear();
+		weights_c.clear();
 		filtered_indexes.clear();
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
@@ -583,6 +592,10 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 				filtered_indexes.push_back((int)j);
 				++class_sz[y[j] > 0];
 			}
+		if (weights != NULL && !weights->empty())
+			for (size_t j = 0; j < y.size(); ++j)
+				if (it->second(additional_info, (int)j, c_params))
+					weights_c.push_back(weights->at(j));
 		//now we have cohort: run analysis:
 		string cohort_name = it->first;
 
@@ -599,10 +612,13 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 			else MLOG("Cohort [%s] - has %d samples with labels = [%d, %d]\n",
 				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
 		}
+		vector<float> *weights_p = NULL;
+		if (!weights_c.empty())
+			weights_p = &weights_c;
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, weights, filtered_indexes, it->second, c_params, seed);
+			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 	}
@@ -898,7 +914,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			for (float y : *labels)
 			{
 				float true_label = params->fix_label_to_binary ? y > 0 : y;
-				t_sum += true_label;
+				t_sum += true_label; /// counts also false positives weights if no fix_label_to_binary
 				tt_cnt += true_label > 0 ? true_label : 0;
 				if (!censor_removed)
 					f_sum += (1 - true_label);
@@ -1086,6 +1102,16 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
 				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] =
+							float(ppv / FOR);
+					}
+					else
+						res[format_working_point("RR@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
+				}
 
 				++curr_wp_fpr_ind;
 				continue;
@@ -1124,7 +1150,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif
 					++curr_wp_sens_ind;
 					continue; //skip working point - diff is too big
-				}
+			}
 				res[format_working_point("SCORE@SENS", sens_points[curr_wp_sens_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("FPR@SENS", sens_points[curr_wp_sens_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
@@ -1227,12 +1253,22 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
 				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] =
+							float(ppv / FOR);
+					}
+					else
+						res[format_working_point("RR@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
+				}
 
 				++curr_wp_sens_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+	}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -1275,7 +1311,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif //  WARN_SKIP_WP
 					++curr_wp_pr_ind;
 					continue; //skip working point - diff is too big
-				}
+			}
 				res[format_working_point("SCORE@PR", pr_points[curr_wp_pr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("FPR@PR", pr_points[curr_wp_pr_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
@@ -1367,12 +1403,23 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					else
 						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
 				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@SENS", pr_points[curr_wp_pr_ind])] =
+							float(ppv / FOR);
+					}
+					else
+
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
+				}
 
 				++curr_wp_pr_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+}
 
 	}
 	else {
@@ -2065,6 +2112,7 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	if (!of.good())
 		MTHROW_AND_ERR("IO Error: can't read \"%s\"\n", text_file.c_str());
 	string line;
+	vector<vector<bool>> gender_read(2); // males, females
 	while (getline(of, line)) {
 		if (line.empty() || boost::starts_with(line, "#"))
 			continue;
@@ -2086,8 +2134,6 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 			if (tokens.size() != 5)
 				MTHROW_AND_ERR("Unknown lines format \"%s\"\n", line.c_str());
 			float age = stof(tokens[2]);
-			min_age = float(int(min_age / age_bin_years) * age_bin_years);
-			max_age = float(int(ceil(max_age / age_bin_years)) * age_bin_years);
 
 			if (age < min_age || age> max_age) {
 				MWARN("Warning:: skip age because out of range in line \"%s\"\n", line.c_str());
@@ -2101,11 +2147,13 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				age_bin = max_bins - 1;
 			if (male_labels_count_per_age.empty()) {
 				male_labels_count_per_age.resize(max_bins);
+				gender_read[0].resize(max_bins);
 				for (size_t i = 0; i < male_labels_count_per_age.size(); ++i)
 					male_labels_count_per_age[i].resize((int)sorted_outcome_labels.size());
 			}
 			if (female_labels_count_per_age.empty()) {
 				female_labels_count_per_age.resize(max_bins);
+				gender_read[1].resize(max_bins);
 				for (size_t i = 0; i < female_labels_count_per_age.size(); ++i)
 					female_labels_count_per_age[i].resize((int)sorted_outcome_labels.size());
 			}
@@ -2114,10 +2162,14 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 				find(sorted_outcome_labels.begin(), sorted_outcome_labels.end(), outcome_val));
 			if (outcome_ind > sorted_outcome_labels.size())
 				MTHROW_AND_ERR("Couldn't find outcome_value=%2.3f\n", outcome_val);
-			if (tokens[1] == "MALE")
+			if (tokens[1] == "MALE") {
 				male_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
-			else if (tokens[1] == "FEMALE")
+				gender_read[0][age_bin] = true;
+			}
+			else if (tokens[1] == "FEMALE") {
 				female_labels_count_per_age[age_bin][outcome_ind] = stof(tokens[4]);
+				gender_read[1][age_bin] = true;
+			}
 			else
 				MTHROW_AND_ERR("Unknown gender \"%s\"\n", tokens[1].c_str());
 		}
@@ -2126,6 +2178,17 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	}
 	sort(sorted_outcome_labels.begin(), sorted_outcome_labels.end());
 	of.close();
+	//validate read all:
+	int max_bins = (int)floor((max_age - min_age) / age_bin_years);
+	for (size_t i = 0; i < max_bins; ++i)
+	{
+		if (!gender_read[0][i])
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for males",
+				i, int(min_age + i * age_bin_years));
+		if (!gender_read[1][i])
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for females",
+				i, int(min_age + i * age_bin_years));
+	}
 }
 void parse_vector(const string &value, vector<float> &output_vec) {
 	vector<string> vec;

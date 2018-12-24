@@ -9,7 +9,7 @@
 #define __minNet__H__
 
 #include <vector>
-#include "MedUtils/MedUtils/MedUtils.h"
+#include <MedMat/MedMat/MedMat.h>
 
 using namespace std;
 

@@ -12,6 +12,8 @@
 #include <regex>
 #include <unordered_set>
 #include <boost/regex.hpp>
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
+#include <MedStat/MedStat/MedPerformance.h>
 
 #define LOCAL_SECTION LOG_FEATCLEANER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

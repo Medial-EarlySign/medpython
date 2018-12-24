@@ -1,6 +1,6 @@
 #include "MPSplit.h"
-#include "MedFeat/MedFeat/MedOutcome.h"
-
+//#include "MedFeat/MedFeat/MedOutcome.h"
+#include "MedSplit/MedSplit/MedSplit.h"
 
 
 

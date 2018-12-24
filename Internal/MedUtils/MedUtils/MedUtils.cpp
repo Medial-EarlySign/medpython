@@ -1,5 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "MedUtils.h"
+#include <unordered_set>
+#include <sstream>
 
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -28,9 +30,9 @@ double  get_corr_pearson(float *v1, float *v2, int len)
 	syy /= n;
 	sxy /= n;
 
-	double c1 = sxy - sx*sy;
-	double c2 = sxx - sx*sx;
-	double c3 = syy - sy*sy;
+	double c1 = sxy - sx * sy;
+	double c2 = sxx - sx * sx;
+	double c3 = syy - sy * sy;
 
 	double epsilon = 1e-8;
 	if (c2 < epsilon || c3 < epsilon)
@@ -266,7 +268,7 @@ template<class T> void medial::print::print_hist_vec(const vector<T> &vec, const
 		++uniq_vals[vec[i]];
 	char res[500];
 
-	if (uniq_vals.size() > 10) {
+	if (uniq_vals.size() > prctile_samples->size()) {
 		medial::process::prctils(vec, *prctile_samples, prcs);
 		snprintf(res, sizeof(res), ("%2.1f%%:" + format).c_str(), 100.0*(*prctile_samples)[0], prcs[0]);
 		string bf = string(res);
@@ -463,6 +465,7 @@ void medial::io::ProgramArgs_base::init(po::options_description &prg_options, co
 		(unsigned int)po::options_description::m_default_line_length * 2);
 	general_options.add_options()
 		("help,h", "help & exit")
+		("help_module", po::value<string>(), "help on specific module")
 		("base_config", po::value<string>(&base_config), "config file with all arguments - in CMD we override those settings")
 		("debug", po::bool_switch(&debug), "set debuging verbose");
 	desc.add(general_options);
@@ -471,6 +474,26 @@ void medial::io::ProgramArgs_base::init(po::options_description &prg_options, co
 		app_logo = app_l;
 	debug = false;
 	init_called = true;
+}
+
+//finds module section help in full help message
+string medial::io::ProgramArgs_base::get_section(const string &full_help, const string &search) {
+	stringstream res;
+	vector<string> lines;
+	boost::split(lines, full_help, boost::is_any_of("\n"));
+	bool in_section = false;
+	for (size_t i = 0; i < lines.size(); ++i) {
+		if (lines[i].find(":") != string::npos) {
+			if (lines[i].find(search) != string::npos)
+				in_section = true;
+			else
+				in_section = false;
+		}
+		if (in_section) {
+			res << lines[i] << "\n";
+		}
+	}
+	return res.str();
 }
 
 int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
@@ -483,6 +506,20 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	auto parsed_args = po::parse_command_line(argc, argv, desc,
 		po::command_line_style::style_t::default_style);
 	po::store(parsed_args, vm);
+	if (vm.count("help_module")) {
+		string help_search = vm["help_module"].as<string>();
+		stringstream help_stream;
+		help_stream << desc;
+		string full_help = help_stream.str();
+		string module_help = get_section(full_help, help_search);
+		if (module_help.empty())
+			cout << "No help on search for module \"" << help_search << "\"" << endl;
+		else
+			cout << module_help << endl;
+
+		return -1;
+	}
+
 	if (vm.count("help") || vm.count("h")) {
 		MLOG("%s\n", app_logo.c_str());
 		cout << desc << endl;
@@ -522,7 +559,7 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 
 	if (debug) {
 		string full_log_format = "$time\t$level\t$section\t%s";
-		global_logger.init_format(LOG_APP , full_log_format);
+		global_logger.init_format(LOG_APP, full_log_format);
 		global_logger.init_format(LOG_DEF, full_log_format);
 		global_logger.init_format(LOG_MED_MODEL, full_log_format);
 		global_logger.init_format(LOG_MEDALGO, full_log_format);
@@ -616,20 +653,3 @@ void medial::io::read_codes_file(const string &file_path, vector<string> &tokens
 	file.close();
 }
 
-float med_stof(const string& _Str) {
-	try {
-		return stof(_Str);
-	}
-	catch (exception e) {
-		MTHROW_AND_ERR("invalid stof argument [%s]\n", _Str.c_str());
-	}
-}
-
-int med_stoi(const string& _Str) {
-	try {
-		return stoi(_Str);
-	}
-	catch (exception e) {
-		MTHROW_AND_ERR("invalid stoi argument [%s]\n", _Str.c_str());
-	}
-}

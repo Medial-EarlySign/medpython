@@ -336,6 +336,36 @@
     return ary1;
   }
 
+  /* Convert a given PyObject to a contiguous PyArrayObject of 
+   * unspecified type.  If the input object is not a contiguous
+   * PyArrayObject, a new one will be created and the new object flag
+   * will be set.
+   */
+/*
+  PyArrayObject* obj_to_var_type_array_contiguous_allow_conversion(PyObject* input,
+                                                          int*      is_new_object)
+  {
+    int is_new1 = 0;
+    int is_new2 = 0;
+    PyArrayObject* ary2;
+    PyArrayObject* ary1 = obj_to_array_allow_conversion(input,
+                                                        NPY_NOTYPE,
+                                                        &is_new1);
+    if (ary1)
+    {
+      ary2 = make_contiguous(ary1, &is_new2, 0, 0);
+      if ( is_new1 && is_new2)
+      {
+        Py_DECREF(ary1);
+      }
+      ary1 = ary2;
+    }
+    *is_new_object = is_new1 || is_new2;
+    return ary1;
+  }
+*/
+
+
   /* Convert a given PyObject to a Fortran-ordered PyArrayObject of the
    * specified type.  If the input object is not a Fortran-ordered
    * PyArrayObject, a new one will be created and the new object flag
@@ -776,6 +806,37 @@
   if (is_new_object$argnum && array$argnum)
     { Py_DECREF(array$argnum); }
 }
+
+/* Typemap suite for (DATA_TYPE* IN_ARRAY1, DIM_TYPE DIM1, NPY_DATACODE_TYPE NPYDTC1)
+ */
+%typecheck(SWIG_TYPECHECK_DOUBLE_ARRAY,
+           fragment="NumPy_Macros")
+  (DATA_TYPE* IN_ARRAY1, DIM_TYPE DIM1, NPY_DATACODE_TYPE NPYDTC1)
+{
+  $1 = is_array($input) || PySequence_Check($input);
+}
+%typemap(in,
+         fragment="NumPy_Fragments")
+  (DATA_TYPE* IN_ARRAY1, DIM_TYPE DIM1, int NPYDTC1)
+  (PyArrayObject* array=NULL, int is_new_object=0)
+{
+  npy_intp size[1] = { -1 };
+  array = obj_to_array_contiguous_allow_conversion($input,
+                                                   NPY_NOTYPE,
+                                                   &is_new_object);
+  if (!array || !require_dimensions(array, 1) ||
+      !require_size(array, size, 1)) SWIG_fail;
+  $1 = (DATA_TYPE*) array_data(array);
+  $2 = (DIM_TYPE) array_size(array,0);
+  $3 = (NPY_DATACODE_TYPE) array_type(array);
+}
+%typemap(freearg)
+  (DATA_TYPE* IN_ARRAY1, DIM_TYPE DIM1)
+{
+  if (is_new_object$argnum && array$argnum)
+    { Py_DECREF(array$argnum); }
+}
+
 
 /* Typemap suite for (DIM_TYPE DIM1, DATA_TYPE* IN_ARRAY1)
  */

@@ -246,7 +246,7 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 	unordered_set<string> legal_types = { "weight", "gain","cover","gain_total" };
 	bool do_average = false;
 
-	initialization_text_to_map(general_params, params);
+	MedSerialize::initialization_text_to_map(general_params, params);
 	string importance_type = "gain";
 	for (auto it = params.begin(); it != params.end(); ++it)
 		if (it->first == "importance_type")

@@ -1,6 +1,8 @@
 #include "MedPerformance.h"
 
-#include "Logger/Logger/Logger.h"
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
+#include <Logger/Logger/Logger.h>
 #define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 extern MedLogger global_logger;
@@ -197,48 +199,12 @@ void MedClassifierPerformance::_load(MedFeatures& ftrs) {
 		SplitsToComplete();
 }
 
-// Load from predictor data
-void MedClassifierPerformance::_load(MedFeaturesData& predictor_data) {
-
-	preds.resize(predictor_data.nsplits + 1);
-
-	vector<int> split_pos(predictor_data.nsplits, predictor_data.n_preds_per_sample - 1); // Note: if there's more than 1 pred_per_sample, we measure performance vs the LAST label ("1")
-	for (unsigned int i = 0; i < predictor_data.label.size(); i++) {
-		int isplit = predictor_data.splits[i];
-		preds[isplit + 1].push_back(pair<float, float>(predictor_data.split_preds[isplit][split_pos[isplit]], predictor_data.label[i]));
-		split_pos[isplit] += predictor_data.n_preds_per_sample;
-	}
-
-	SplitsToComplete();
-
-}
-
 void MedClassifierPerformance::post_load() {
 	init();
 	ShuffleSort();
 	getPerformanceValues();
 
 	PerformancePointers.resize(preds.size());
-}
-
-// Load train predictions
-void MedClassifierPerformance::load_preds_on_train(MedFeaturesData& predictor_data) {
-
-	preds.resize(predictor_data.nsplits);
-
-	vector<int> split_pos(predictor_data.nsplits, predictor_data.n_preds_per_sample - 1); // Note: if there's more than 1 pred_per_sample, we measure performance vs the LAST label ("1")
-	for (unsigned int i = 0; i < predictor_data.label.size(); i++) {
-		int isplit = predictor_data.splits[i];
-		for (int tr_split = 0; tr_split < predictor_data.nsplits; tr_split++) {
-			if (tr_split != isplit) {
-				preds[tr_split].push_back(pair<float, float>(predictor_data.split_preds_on_train[tr_split][split_pos[tr_split]],
-					predictor_data.label[i]));
-				split_pos[tr_split] += predictor_data.n_preds_per_sample;
-			}
-		}
-	}
-
-	post_load();
 }
 
 //.........................................................................................................................................
@@ -257,7 +223,7 @@ void MedClassifierPerformance::SplitsToComplete() {
 void MedClassifierPerformance::ShuffleSort() {
 
 	for (unsigned int i = 0; i < preds.size(); i++) {
-		random_shuffle(preds[i].begin(), preds[i].end(), rand_N);
+		random_shuffle(preds[i].begin(), preds[i].end(), rand_N_i64);
 		sort(preds[i].begin(), preds[i].end(), _PredsCompare());
 	}
 }

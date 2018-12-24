@@ -9,6 +9,7 @@
 #include "MedLightGBM.h"
 #include "MedLinearModel.h"
 #include "MedBART.h"
+#include <MedUtils/MedUtils/MedGenUtils.h>
 
 #if NEW_COMPLIER
 #include "MedVW.h"
@@ -190,7 +191,7 @@ int MedPredictor::init_from_string(string text) {
 	text.erase(remove_if(text.begin(), text.end(), ::isspace), text.end());
 
 	map<string, string> init_map;
-	if (initialization_text_to_map(text, init_map) == -1)
+	if (MedSerialize::initialization_text_to_map(text, init_map) == -1)
 		return -1;
 
 	for (auto rec : init_map)
@@ -487,132 +488,6 @@ size_t MedPredictor::predictor_serialize(unsigned char *blob) {
 
 void MedPredictor::print(FILE *fp, const string& prefix) const { fprintf(fp, "%s : No Printing method defined\n", prefix.c_str()); }
 
-//===========================================================================================
-// MedPredictor MedFeaturesData API
-//===========================================================================================
-// Cross Validation
-int MedPredictor::cross_validate_splits(MedFeaturesData& data) {
-
-	data.split_preds.resize(data.nsplits);
-	data.split_preds_on_train.resize(data.nsplits);
-
-	for (int isplit = 0; isplit < data.nsplits; isplit++) {
-		if (learn(data, isplit) == -1) {
-			fprintf(stderr, "Learning failed\n");
-			return -1;
-		}
-
-		if (data.predict_on_train) {
-			if (predict_on_train(data, isplit) == -1) {
-				fprintf(stderr, "Predict on train failed\n");
-				return -1;
-			}
-		}
-
-		if (predict(data, isplit) == -1) {
-			fprintf(stderr, "Predict failed\n");
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
-void MedPredictor::build_learning_x_mat_for_split(MedFeaturesData& ftrs_data, vector<float>& signal, int isplit, MedMat<float>& x) const {
-	x.normalized_flag = 1;
-
-	for (int icol = 0; icol < x.ncols; icol++) {
-		string& name = ftrs_data.signals[icol];
-
-		int split_irow = 0;
-		for (int irow = 0; irow < ftrs_data.splits.size(); irow++) {
-			if (ftrs_data.splits[irow] != isplit)
-				signal[split_irow++] = ftrs_data.data[name][irow];
-		}
-
-		ftrs_data.cleaners[name][isplit].clear(signal);
-		ftrs_data.cleaners[name][isplit].normalize(signal);
-
-		for (unsigned irow = 0; irow < signal.size(); irow++)
-			x(irow, icol) = signal[irow];
-	}
-}
-// Learning ....
-int MedPredictor::learn(MedFeaturesData& ftrs_data, int isplit) {
-
-	MedMat<float> x((int)ftrs_data.get_learning_nrows(isplit), (int)ftrs_data.signals.size());
-	MedMat<float> y(x.nrows, 1);
-	vector<float> signal(x.nrows);
-	//save model features names
-	model_features.clear();
-	for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-		model_features.push_back(it->first);
-
-	// Build X
-	build_learning_x_mat_for_split(ftrs_data, signal, isplit, x);
-
-	// Build Y
-	int split_irow = 0;
-	for (int irow = 0; irow < ftrs_data.splits.size(); irow++) {
-		if (ftrs_data.splits[irow] != isplit)
-			signal[split_irow++] = ftrs_data.label[irow];
-	}
-	if (ftrs_data.label_cleaners.size() > 0) {
-		ftrs_data.label_cleaners[isplit].clear(signal);
-		ftrs_data.label_cleaners[isplit].normalize(signal);
-	}
-
-	for (unsigned irow = 0; irow < signal.size(); irow++)
-		y(irow, 0) = signal[irow];
-	y.normalized_flag = 1;
-
-	// Learn
-	if (learn(x, y) == -1)
-		return -1;
-
-	ftrs_data.n_preds_per_sample = n_preds_per_sample();
-
-	return 0;
-}
-
-int MedPredictor::learn(MedFeaturesData& ftrs_data) {
-
-	// Build X
-	MedMat<float> x((int)ftrs_data.label.size(), (int)ftrs_data.signals.size());
-	MedMat<float> y(x.nrows, 1);
-	x.normalized_flag = 1;
-	//save model features names
-	model_features.clear();
-	for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-		model_features.push_back(it->first);
-
-	vector<float> signal(x.nrows);
-	for (int icol = 0; icol < x.ncols; icol++) {
-		string& name = ftrs_data.signals[icol];
-
-		signal = ftrs_data.data[name];
-		ftrs_data.cleaners[name][ftrs_data.nsplits].clear(signal);
-		ftrs_data.cleaners[name][ftrs_data.nsplits].normalize(signal);
-
-		for (unsigned irow = 0; irow < signal.size(); irow++)
-			x(irow, icol) = signal[irow];
-	}
-
-	// Build Y
-	signal = ftrs_data.label;
-	ftrs_data.label_cleaners[ftrs_data.nsplits].clear(signal);
-	ftrs_data.label_cleaners[ftrs_data.nsplits].normalize(signal);
-
-	for (unsigned irow = 0; irow < signal.size(); irow++)
-		y(irow, 0) = signal[irow];
-	y.normalized_flag = 1;
-
-	// Learn
-	if (learn(x, y) == -1)
-		return -1;
-
-	return 0;
-}
 
 int MedPredictor::learn(const MedFeatures& ftrs_data) {
 
@@ -855,133 +730,6 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	return 0;
 }
 
-// Predicting
-int MedPredictor::predict_on_train(MedFeaturesData& ftrs_data, int isplit) const {
-	MedMat<float> x((int)ftrs_data.get_learning_nrows(isplit), (int)ftrs_data.signals.size());
-	vector<float> signal(x.nrows);
-	if (!model_features.empty()) {//test names of entered matrix:
-		if (model_features.size() != ftrs_data.data.size())
-			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)ftrs_data.data.size());
-		int feat_num = 0;
-		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
-				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
-	}
-
-
-	// Build X
-	build_learning_x_mat_for_split(ftrs_data, signal, isplit, x);
-
-	// Predict
-	if (predict(x, ftrs_data.split_preds_on_train[isplit]) == -1)
-		return -1;
-
-	if (ftrs_data.label_cleaners.size() > 0) {
-		for (unsigned int i = 0; i < ftrs_data.split_preds_on_train[isplit].size(); i++) {
-			ftrs_data.split_preds_on_train[isplit][i] += ftrs_data.label_cleaners[isplit].mean;
-		}
-	}
-
-	ftrs_data.n_preds_per_sample = n_preds_per_sample();
-
-	return 0;
-}
-
-
-// Predicting
-int MedPredictor::predict(MedFeaturesData& ftrs_data, int isplit) const {
-	if (!model_features.empty()) {//test names of entered matrix:
-		if (model_features.size() != ftrs_data.data.size())
-			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)ftrs_data.data.size());
-		int feat_num = 0;
-		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
-				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
-	}
-	else if (features_count > 0 && features_count != ftrs_data.data.size())
-		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-			features_count, (int)ftrs_data.data.size());
-
-	// Build X
-	MedMat<float> x((int)ftrs_data.get_testing_nrows(isplit), (int)ftrs_data.signals.size());
-
-	vector<float> signal(x.nrows);
-	for (int icol = 0; icol < ftrs_data.signals.size(); icol++) {
-		string& name = ftrs_data.signals[icol];
-
-		int split_irow = 0;
-		for (int irow = 0; irow < ftrs_data.splits.size(); irow++) {
-			if (ftrs_data.splits[irow] == isplit)
-				signal[split_irow++] = ftrs_data.data[name][irow];
-		}
-
-		ftrs_data.cleaners[name][isplit].clear(signal);
-		ftrs_data.cleaners[name][isplit].normalize(signal);
-
-		for (unsigned irow = 0; irow < signal.size(); irow++)
-			x(irow, icol) = signal[irow];
-
-	}
-
-	x.normalized_flag = 1;
-
-	// Predict
-	if (predict(x, ftrs_data.split_preds[isplit]) == -1)
-		return -1;
-
-	if (ftrs_data.label_cleaners.size() > 0) {
-		for (unsigned int i = 0; i < ftrs_data.split_preds[isplit].size(); i++) {
-			ftrs_data.split_preds[isplit][i] += ftrs_data.label_cleaners[isplit].mean;
-		}
-	}
-
-	ftrs_data.n_preds_per_sample = n_preds_per_sample();
-
-	return 0;
-
-}
-
-int MedPredictor::predict(MedFeaturesData& ftrs_data) const {
-	if (!model_features.empty()) {//test names of entered matrix:
-		if (model_features.size() != ftrs_data.data.size())
-			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)ftrs_data.data.size());
-		int feat_num = 0;
-		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
-			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
-				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
-	}
-	else if (features_count > 0 && features_count != ftrs_data.data.size())
-		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-			features_count, (int)ftrs_data.data.size());
-
-	// Build X
-	MedMat<float> x((int)ftrs_data.label.size(), (int)ftrs_data.signals.size());
-	MedMat<float> y(x.nrows, 1);
-
-	vector<float> signal(x.nrows);
-	for (int icol = 0; icol < x.ncols; icol++) {
-		string& name = ftrs_data.signals[icol];
-
-		signal = ftrs_data.data[name];
-		ftrs_data.cleaners[name][ftrs_data.nsplits].clear(signal);
-
-		for (unsigned irow = 0; irow < signal.size(); irow++)
-			x(icol, irow) = signal[irow];
-
-	}
-	x.normalized_flag = 1;
-
-	// Predict
-	ftrs_data.n_preds_per_sample = n_preds_per_sample();
-	return predict(x, ftrs_data.preds);
-}
-
 int MedPredictor::predict(MedFeatures& ftrs_data) const {
 	if (!model_features.empty()) {//test names of entered matrix:
 		if (model_features.size() != ftrs_data.data.size())
@@ -1132,7 +880,7 @@ void *medial::models::copyInfraModel(void *model, bool delete_old) {
 			delete ((MedLightGBM *)model);
 		newM = new MedLightGBM;
 		((MedLightGBM *)newM)->params = pr_lightGBM;
-		initialization_text_to_map(pr_lightGBM.defaults + ";" + pr_lightGBM.user_params, empty_m);
+		MedSerialize::initialization_text_to_map(pr_lightGBM.defaults + ";" + pr_lightGBM.user_params, empty_m);
 		((MedLightGBM *)newM)->init(empty_m);
 		break;
 	case MODEL_XGB:

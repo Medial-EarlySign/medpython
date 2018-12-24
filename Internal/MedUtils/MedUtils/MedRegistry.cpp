@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
 #include <omp.h>
+#include <MedMat/MedMat/MedMat.h>
 
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

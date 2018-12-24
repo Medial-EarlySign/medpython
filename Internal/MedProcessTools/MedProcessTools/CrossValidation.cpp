@@ -1,4 +1,6 @@
 #include "CrossValidator.h"
+//#include <MedStat/MedStat/MedPerformance.h>
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 
 #define LOCAL_SECTION LOG_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

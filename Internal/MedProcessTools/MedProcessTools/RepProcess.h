@@ -4,10 +4,11 @@
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "MedUtils/MedUtils/MedUtils.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
+#include <MedMat/MedMat/MedMat.h>
+
 
 #define DEFAULT_REP_CLNR_NTHREADS 8
 

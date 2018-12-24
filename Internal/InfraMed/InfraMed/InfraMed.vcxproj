@@ -97,6 +97,7 @@
     <ClInclude Include="MedDictionary.h" />
     <ClInclude Include="MedPidRepository.h" />
     <ClInclude Include="MedSignals.h" />
+    <ClInclude Include="MedSparseVec.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>

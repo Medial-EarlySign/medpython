@@ -1,6 +1,5 @@
 #ifndef __GLOBAL_RNG_H__
 #define __GLOBAL_RNG_H__ 
-#pragma once
 
 #include <random>
 
@@ -27,5 +26,19 @@ private:
   void operator=(globalRNG const&) {fprintf(stderr, "Error: assignment is forbidden for the globalRNG object\n"); exit(-1);}; // no assignment operator
 
 };
+
+//inline float rand_1();
+//inline int rand_N(int N);
+//inline float rand_range(float from, float to);
+
+// float random number in 0...1
+inline float rand_1() { return (float)globalRNG::rand() / (float)(globalRNG::max() + 1.0); }
+
+// int random number in 0..N-1
+inline int rand_N(int N) { return ((int)((float)N*rand_1() - (float)1e-8)); }
+inline size_t rand_N_i64(size_t N) { return ((size_t)((double)N*rand_1() - (double)1e-20)); }
+
+// float number in from...to range
+inline float rand_range(float from, float to) { return from + rand_1()*(to - from); }
 
 #endif

@@ -1,7 +1,8 @@
 //#pragma once
 #ifndef _ITERATIVEIMPUTER_H_
 #define _ITERATIVEIMPUTER_H_
-#include "MedProcessTools/MedProcessTools/FeatureProcess.h"
+#include <MedProcessTools/MedProcessTools/FeatureProcess.h>
+#include <MedAlgo/MedAlgo/MedAlgo.h>
 #include <unordered_set>
 
 //=========================================================================

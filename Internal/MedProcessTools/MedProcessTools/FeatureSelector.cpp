@@ -5,6 +5,7 @@
 
 #include "FeatureProcess.h"
 #include "DoCalcFeatProcessor.h"
+#include <MedStat/MedStat/MedPerformance.h>
 #include <omp.h>
 #include <boost/regex.hpp>
 

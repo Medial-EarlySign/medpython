@@ -5,6 +5,8 @@
 #ifndef __MEDFEAT_H__
 #define __MEDFEAT_H__
 
+#if 0
+
 #include "Logger/Logger/Logger.h"
 #include "InfraMed/InfraMed/MedSignals.h"
 #include "InfraMed/InfraMed/InfraMed.h"
@@ -106,6 +108,8 @@ class MedFeaturesData {
 		int write_label_cleaners_to_file(const string &fname);
 		int read_label_cleaners_to_file(const string &fname);
 } ;
+
+#endif
 
 #endif
 

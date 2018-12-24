@@ -1,5 +1,5 @@
 #include "MPMat.h"
-#include "MedUtils/MedUtils/MedMat.h"
+#include "MedMat/MedMat/MedMat.h"
 
 MPMat::MPMat() { o = new MedMat<float>(); }
 MPMat::MPMat(int n_rows, int n_cols) { o = new MedMat<float>(n_rows, n_cols); };
