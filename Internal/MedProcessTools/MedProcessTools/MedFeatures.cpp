@@ -259,9 +259,44 @@ void MedFeatures::print_csv() const
 // Write features (samples + weights + data) as csv with a header line
 // Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
-int MedFeatures::write_as_csv_mat(const string &csv_fname) const
+int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes) const
 {
 	ofstream out_f;
+
+	// Sanity - if write_attributes is true, all samples must have the same attributes
+	set<string> attr_names, str_attr_names;
+	if (write_attributes && samples.size()) {
+		int nAttr = samples[0].attributes.size();
+		int nStrAttr = samples[0].str_attributes.size();
+		
+		for (auto& attr : samples[0].attributes)
+			attr_names.insert(attr.first);
+
+		for (auto& attr : samples[0].str_attributes)
+			str_attr_names.insert(attr.first);
+
+		for (unsigned int i = 1; i < samples.size(); i++) {
+			if (samples[i].attributes.size() != nAttr || samples[i].str_attributes.size() != nStrAttr) {
+				MERR("Attrributes # inconsistency betweens samples %d and 0\n", i);
+				return -1;
+			}
+
+			for (auto& attr : samples[i].attributes) {
+				if (attr_names.find(attr.first) == attr_names.end()) {
+					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i,attr.first.c_str());
+					return -1;
+				}
+			}
+
+			for (auto& attr : samples[i].str_attributes) {
+				if (str_attr_names.find(attr.first) == str_attr_names.end()) {
+					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.first.c_str());
+					return -1;
+				}
+			}
+
+		}
+	}
 
 	out_f.open(csv_fname);
 
@@ -279,11 +314,19 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname) const
 	if (weights.size()) out_f << ",weight"; // Weight (if given)
 	out_f << ",id,time,outcome,outcome_time,split"; // samples
 
-													// Predictions
+	// Predictions
 	if (samples.size() > 0 && samples[0].prediction.size() > 0) {
 		n_preds = (int)samples[0].prediction.size();
 		for (int j = 0; j < n_preds; j++)
 			out_f << ",pred_" << to_string(j);
+	}
+
+	// Attributes
+	if (write_attributes) {
+		for (string name : attr_names)
+			out_f << ",attr_" << name;
+		for (string name : str_attr_names)
+			out_f << ",str_attr_" << name;
 	}
 
 	// names of features
@@ -307,6 +350,14 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname) const
 		// predictions
 		for (int j = 0; j < n_preds; j++)
 			out_f << "," << samples[i].prediction[j];
+
+		// Attributes
+		if (write_attributes) {
+			for (string name : attr_names)
+				out_f << "," << samples[i].attributes.at(name);
+			for (string name : str_attr_names)
+				out_f << "," << samples[i].str_attributes.at(name);
+		}
 
 		// features
 		for (int j = 0; j < col_names.size(); j++)
@@ -340,7 +391,8 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 	string curr_line;
 	vector<string> names;
 	int weighted = 0;
-	int max_pred = -1;
+	int nPreds = 0;
+	vector<string> attr_names, str_attr_names;
 	vector<int> field_ind_to_pred_index;
 	while (getline(inf, curr_line)) {
 		boost::trim(curr_line);
@@ -358,29 +410,38 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			assert(fields[idx++].compare("outcome_time") == 0);
 			assert(fields[idx++].compare("split") == 0);
 
-
-			for (int i = idx; i < fields.size(); i++) {
-				if (!boost::starts_with(fields[i], "pred_")) {
-					data[fields[i]] = vector<float>();
-					attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
-					names.push_back(fields[i]);
-				}
-				else {
-					int candi = stoi(boost::replace_all_copy(fields[i], "pred_", ""));
-					if (candi > max_pred) {
-						max_pred = candi;
-						field_ind_to_pred_index.resize(max_pred + 1, -1);
-						field_ind_to_pred_index[max_pred] = i;
-					}
-				}
+			// Attributes
+			while (idx < fields.size() && boost::starts_with(fields[idx], "attr_")) {
+				string name = fields[idx].substr(5, fields[idx].length() - 5);
+				attr_names.push_back(name);
+				idx++;
 			}
+
+			// Str-Attributes
+			while (idx < fields.size() && boost::starts_with(fields[idx], "str_attr_")) {
+				string name = fields[idx].substr(9, fields[idx].length() - 9);
+				str_attr_names.push_back(name);
+				idx++;
+			}
+
+			// Predictions
+			while (idx < fields.size() && boost::starts_with(fields[idx], "pred_")) {
+				nPreds++;
+				idx++;
+			}
+
+			// Features
+			for (int i = idx; i < fields.size(); i++) {
+				data[fields[i]] = vector<float>();
+				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
+				names.push_back(fields[i]);
+			}
+
 			ncols = (int)fields.size();
 		}
 		else { // Data lines
-			if (fields.size() != ncols) {
-				string msg = "expected " + to_string(ncols) + " fields, got " + to_string((int)fields.size()) + "fields in line: " + curr_line.c_str() + "\n";
-				throw runtime_error(msg.c_str());
-			}
+			if (fields.size() != ncols) 
+				MTHROW_AND_ERR("Expected %d fields, got %d fields in line: \'%s\'\n", ncols, (int)fields.size(), curr_line.c_str());
 
 			idx++;
 
@@ -394,16 +455,20 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			newSample.outcomeTime = stoi(fields[idx++]);
 			newSample.split = stoi(fields[idx++]);
 
-			newSample.prediction.resize(max_pred + 1);
+			for (unsigned int i = 0; i < attr_names.size(); i++)
+				newSample.attributes[attr_names[i]] = stof(fields[idx++]);
 
-			for (int i = 0; i <= max_pred; ++i)
-				if (field_ind_to_pred_index[i] >= 0)
-					newSample.prediction[i] = stof(fields[field_ind_to_pred_index[i]]);
+			for (unsigned int i = 0; i < str_attr_names.size(); i++)
+				newSample.str_attributes[str_attr_names[i]] = fields[idx++];
+
+			newSample.prediction.resize(nPreds);
+			for (int i = 0; i < nPreds; i++)
+				newSample.prediction[i] = stof(fields[idx++]);
+
 			samples.push_back(newSample);
 
-			idx += (max_pred + 1);
 			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[idx + i]));
+				data[names[i]].push_back(stof(fields[idx++]));
 		}
 	}
 

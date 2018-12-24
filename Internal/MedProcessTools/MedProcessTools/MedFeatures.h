@@ -108,8 +108,8 @@ public:
 	int get_max_serial_id_cnt() const;
 
 	/// <summary> Write features (samples + weights + data) as csv with a header line  </summary>
-	/// <returns> -1 upon failure to open file, 0 upon success </returns>
-	int write_as_csv_mat(const string &csv_fname) const;
+	/// <returns> -1 upon failure to open file or attributes inconsistency (if write_attributes is true), 0 upon success </returns>
+	int write_as_csv_mat(const string &csv_fname, bool write_attributes = false) const;
 	/// <summary> Read features (samples + weights + data) from a csv file with a header line </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
 	int read_from_csv_mat(const string &csv_fname);
