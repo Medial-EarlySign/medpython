@@ -1,4 +1,5 @@
-%module(docstring="Medial's API binding for Python") medpython
+%include "mpdocstring.i"
+%module(docstring=MPDOCSTRING) medpython
 
 %{
 #define SWIG_FILE_WITH_INIT
