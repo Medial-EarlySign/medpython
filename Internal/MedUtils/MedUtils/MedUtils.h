@@ -7,16 +7,20 @@
 #ifndef __MED_UTILS_H__
 #define __MED_UTILS_H__
 
-#include "MedGenUtils.h"
-#include "MedMat.h"
-#include "MedMedical.h"
-#include "MedDataStructures.h"
-#include "Logger/Logger/Logger.h"
+//#include "MedGenUtils.h"
+//#include "MedMat.h"
+//#include "MedMedical.h"
+//#include "MedDataStructures.h"
+#include <Logger/Logger/Logger.h>
 #include "assert.h"
 #include "MedPlot.h"
 #include <boost/program_options.hpp>
 #include <boost/spirit/home/support/detail/hold_any.hpp>
 #include <boost/algorithm/string.hpp>
+#include <unordered_map>
+#include <MedMat/MedMat/MedMatConstants.h>
+
+using namespace std;
 
 enum MedCorrelationType {
 	CORR_PEARSON,
@@ -65,8 +69,7 @@ double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_c
 int get_moments(vector<float>& values, const vector<float>& wgts, float missing_value, float& mean, float& sd, bool do_missing = true);
 int get_moments(float *values, const float *wgts, int n, float missing_value, float& mean, float& sd, bool do_missing = true);
 
-float med_stof(const string& _Str);
-int med_stoi(const string& _Str);
+
 
 namespace po = boost::program_options;
 
@@ -130,6 +133,8 @@ namespace medial {
 			/// keep the raw string params from the user input as private and keep
 			/// the Enum result of the converted as public.
 			virtual void post_process() {};
+			/// finds module section help in full help message
+			string get_section(const string &full_help, const string &search);
 		protected:
 			/// an init function
 			void init(po::options_description &prg_options, const string &app_l = "");

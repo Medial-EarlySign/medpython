@@ -90,41 +90,31 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="MedArchiver.h" />
-    <ClInclude Include="MedArchiver_imp.h" />
     <ClInclude Include="MedCohort.h" />
     <ClInclude Include="MedCrypt.h" />
-    <ClInclude Include="MedDataStructures.h" />
     <ClInclude Include="MedEnums.h" />
     <ClInclude Include="MedGenUtils.h" />
     <ClInclude Include="MedGenUtils_imp.h" />
     <ClInclude Include="MedGlobalRNG.h" />
-    <ClInclude Include="MedMat.h" />
-    <ClInclude Include="MedMat_imp.h" />
     <ClInclude Include="MedMedical.h" />
     <ClInclude Include="MedNumeric.h" />
     <ClInclude Include="MedPlot.h" />
     <ClInclude Include="MedRegistry.h" />
     <ClInclude Include="MedSamplingStrategy.h" />
-    <ClInclude Include="MedSparseVec.h" />
     <ClInclude Include="MedUtils.h" />
     <ClInclude Include="MedUtils_imp.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedCrypt.cpp" />
-    <ClCompile Include="MedArchiver.cpp" />
     <ClCompile Include="MedCohort.cpp" />
-    <ClCompile Include="MedDataStructures.cpp" />
     <ClCompile Include="MedEnums.cpp" />
     <ClCompile Include="MedGenUtils.cpp" />
-    <ClCompile Include="MedMat.cpp" />
     <ClCompile Include="MedMedical.cpp" />
     <ClCompile Include="MedNumeric.cpp" />
     <ClCompile Include="MedPlot.cpp" />
     <ClCompile Include="MedRegistry.cpp" />
     <ClCompile Include="MedSamplingStrategy.cpp" />
     <ClCompile Include="MedUtils.cpp" />
-    <ClCompile Include="time_utils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

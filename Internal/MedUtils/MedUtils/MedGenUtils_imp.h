@@ -1,4 +1,6 @@
 //
+#ifndef __MED_GEN_UTILS_IMP_H__
+#define __MED_GEN_UTILS_IMP_H__
 
 //................................................................................................
 template <class T> void get_zero_inds(T *v, int len, vector<int> &inds)
@@ -171,5 +173,4 @@ template<typename S, typename T> struct ComparePairByFirst {
 	};
 };
 
-
-
+#endif

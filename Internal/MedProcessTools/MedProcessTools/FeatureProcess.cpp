@@ -589,25 +589,33 @@ void FeatureImputer::print()
 	}
 }
 
+// Convert partial feature names to full names (including FTR_...)
+//.......................................................................................
+void FeatureImputer::check_stratas_name(MedFeatures& features, map <string, string> &strata_name_conversion)
+{
+	for (int i = 0; i < imputerStrata.nStratas(); i++) {
+		if (strata_name_conversion.find(imputerStrata.stratas[i].name) != strata_name_conversion.end())
+			// already mapped
+			continue;
+		strata_name_conversion[imputerStrata.stratas[i].name] = resolve_feature_name(features, imputerStrata.stratas[i].name);
+	}
+}
+
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
-
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
-	//MLOG("train imputing for [%s]\n", resolved_feature_name.c_str());
-	for (int i = 0; i < imputerStrata.nStratas(); i++) {
-		if (features.data.find(imputerStrata.stratas[i].name) == features.data.end())
-			MTHROW_AND_ERR("Cannot find signal %s in features data\n", imputerStrata.stratas[i].name.c_str());
-	}
-
+	map <string, string> strata_name_conversion;
+	check_stratas_name(features, strata_name_conversion);
+	
 	// Get all values
 	vector<float> values;
 	get_all_values(features, resolved_feature_name, ids, values, max_samples);
 	// Get all strata values
 	vector<vector<float> > strataValues(imputerStrata.nStratas());
 	for (int i = 0; i < imputerStrata.nStratas(); i++) {
-		get_all_values(features, imputerStrata.stratas[i].name, ids, strataValues[i], max_samples);
+		get_all_values(features, strata_name_conversion[imputerStrata.stratas[i].name], ids, strataValues[i], max_samples);
 	}
 
 	// Collect
@@ -701,14 +709,9 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
-
-	for (int i = 0; i < imputerStrata.nStratas(); i++) {
-		if (features.data.find(imputerStrata.stratas[i].name) == features.data.end()) {
-			MERR("Cannot find signal %s in features data\n", imputerStrata.stratas[i].name.c_str());
-			return -1;
-		}
-	}
-
+	
+	map <string, string> strata_name_conversion;
+	check_stratas_name(features, strata_name_conversion);
 	// Attribute
 	features.attributes[resolved_feature_name].imputed = true;
 
@@ -717,7 +720,7 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	vector<float>& data = features.data[resolved_feature_name];
 	vector<vector<float> *> strataData(imputerStrata.nStratas());
 	for (int j = 0; j < imputerStrata.nStratas(); j++)
-		strataData[j] = &(features.data[imputerStrata.stratas[j].name]);
+		strataData[j] = &(features.data[strata_name_conversion[imputerStrata.stratas[j].name]]);
 
 	int missing_cnt = 0;
 	for (unsigned int i = 0; i < features.samples.size(); i++) {

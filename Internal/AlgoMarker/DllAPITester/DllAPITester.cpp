@@ -18,7 +18,7 @@
 #include <Logger/Logger/Logger.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
-#include <MedUtils/MedUtils/MedIO.h>
+#include <MedIO/MedIO/MedIO.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 

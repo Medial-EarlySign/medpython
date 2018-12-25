@@ -172,16 +172,8 @@ public:
 	int predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs) const;
 	int threaded_predict(MedMat<float> &x, vector<float> &preds, int nthreads) const;
 
-	// MedFeaturesData related
-	int learn(MedFeaturesData& data, int isplit);
-
-	int learn(MedFeaturesData& data);
 	int learn(const MedFeatures& features);
 	int learn(const MedFeatures& features, vector<string>& names);
-	int cross_validate_splits(MedFeaturesData& data);
-	int predict(MedFeaturesData& data, int isplit) const;
-	int predict_on_train(MedFeaturesData& data, int isplit) const;
-	int predict(MedFeaturesData& data) const;
 	int predict(MedFeatures& features) const;
 
 	///Feature Importance - assume called after learn
@@ -256,15 +248,11 @@ public:
 	size_t get_predictor_size();
 	size_t predictor_serialize(unsigned char *blob);
 
-	// write/read from file
-	//int read_from_file(const string &fname); // read and deserialize model //has default
-	//int write_to_file(const string &fname);  // serialize model and write to file
 
 protected:
 	// some needed helpers
 	void prepare_x_mat(MedMat<float> &x, const vector<float> &wgts, int &nsamples, int &nftrs, bool transpose_needed) const;
 	void predict_thread(void *p) const;
-	void build_learning_x_mat_for_split(MedFeaturesData & ftrs_data, vector<float>& signal, int isplit, MedMat<float>& x) const;
 
 };
 

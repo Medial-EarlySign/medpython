@@ -2,6 +2,7 @@
 
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 #include <MedUtils/MedUtils/MedUtils.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
 #include <random>
 #include <omp.h>
 #include <MedIO/MedIO/MedIO.h>
@@ -1109,7 +1110,7 @@ void medial::process::match_to_prior(const vector<float> &outcome,
 	}
 }
 
-void medial::process::match_to_prior(MedSamples &samples, float target_prior, vector<int> &sel_idx) {
+double medial::process::match_to_prior(MedSamples &samples, float target_prior, vector<int> &sel_idx) {
 	int size_f = samples.nSamples();
 	if (size_f == 0)
 		MTHROW_AND_ERR("Error : sampels is empty\n");
@@ -1149,9 +1150,10 @@ void medial::process::match_to_prior(MedSamples &samples, float target_prior, ve
 		samples.idSamples.swap(to_change);
 		medial::print::print_samples_stats(samples);
 	}
+	return pr;
 }
 
-void medial::process::match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx) {
+double medial::process::match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx) {
 	int size_f = (int)features.samples.size();
 	if (size_f == 0)
 		MTHROW_AND_ERR("Error : sampels is empty\n");
@@ -1171,6 +1173,7 @@ void medial::process::match_to_prior(MedFeatures &features, float target_prior, 
 		MLOG("Changing prior: was %2.3f%% and changed to %2.3f%%\n", 100 * pr, 100 * target_prior);
 		medial::print::print_samples_stats(features.samples);
 	}
+	return pr;
 }
 
 

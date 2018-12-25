@@ -1,7 +1,7 @@
 
 %pythoncode %{
 
-__all__ = ['Model','Sample','PidRepository','Dictionary','FeatureAttr','Features','IdSamples','Mat','ModelStage','Samples','Sig','Split','Time']
+__all__ = list(_medpython.get_public_objects())
 
 """
 Enable stderr capturing under ipynb
@@ -86,6 +86,23 @@ class IntIndexIter:
     def next(self):
         return self.__next__()
 
+def __to_df_imp(self):
+    import pandas as pd
+    return pd.DataFrame.from_dict(dict(self.MEDPY__to_df()))
+
+def __from_df_imp(self, df):
+    import re
+    adaptor = self.MEDPY__from_df_adaptor()
+    type_requirements = dict(adaptor.type_requirements)
+    for col_name in df.columns: 
+        for col_req_name in type_requirements: 
+            if re.match('^'+col_req_name+'$',col_name):
+                if str(df[col_name].dtype) != type_requirements[col_req_name]:
+                    df[col_name] = df[col_name].astype(type_requirements[col_req_name],copy=False)
+        adaptor.import_column(col_name ,df[col_name].values)
+    self.MEDPY__from_df(adaptor)
+
+
 def ___fix_vecmap_iter():
     from inspect import isclass
     glob = globals()
@@ -98,6 +115,10 @@ def ___fix_vecmap_iter():
           elif (isclass(o) and '__getitem__' in dir(o) and 'keys' in dir(o) and not '__iter__' in dir(o) 
               and i.endswith('MapAdaptor')) :
               setattr(o, '__iter__', lambda x: MapAdaptorKeyIter(x))
+          if (isclass(o) and 'MEDPY__from_df' in dir(o) and 'MEDPY__from_df_adaptor' in dir(o)):
+              setattr(o, 'from_df', __from_df_imp)
+          if (isclass(o) and 'MEDPY__to_df' in dir(o)):
+              setattr(o, 'to_df', __to_df_imp)
         except: pass
 
 ___fix_vecmap_iter()
@@ -133,15 +154,51 @@ def __sample_export_to_pandas(self):
     df = pd.DataFrame.from_dict(dict(self.export_to_pandas_df()))
     return df
 
+def __features__to_df_imp(self):
+    import pandas as pd
+    featMatFull = Mat()
+    self.get_as_matrix(featMatFull)
+    featMatFullNew = featMatFull.get_numpy_view_unsafe()
+    col_names = self.get_feature_names()
+    dfFeatures2 = pd.DataFrame(data = featMatFullNew, columns = col_names )
+    
+    samps = Samples()
+    self.get_samples(samps)
+    samps_df = samps.as_df()
+    out = pd.concat([samps_df,dfFeatures2], axis=1, copy=False)
+    return out
+
+def __features__from_df_imp(self, features_df):
+    # Dataframe to MedFeatures:
+    
+    mat = Mat()
+    samples = Samples() 
+    ind_sampes = features_df.columns.str.contains('pred_\\d+') | features_df.columns.isin(['id', 'split', 'time', 'outcome', 'outcomeTime']) 
+    featuresNames = features_df.columns[~(ind_sampes)]
+    # Build data matrix
+    mat.set_signals(StringVector(list(featuresNames)))
+    mat.load_numpy(features_df.loc[:,features_df.columns[~(ind_sampes)]].values)
+    self.set_as_matrix(mat)
+    # append Samples
+    samples.from_df(features_df.loc[:,features_df.columns[ind_sampes]])
+    self.append_samples(samples)
+
+
+
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
     setattr(globals()['Samples'],'as_df', __sample_export_to_pandas)
+    setattr(globals()['Features'],'to_df', __features__to_df_imp)
+    setattr(globals()['Features'],'from_df', __features__from_df_imp)
 
 __bind_external_methods()
 
 """
 Remove SWIG's global variable access which makes issues for reflection actions
-del __dict__['cvar']
+#if 'cvar' in __dict__: del cvar
 """
+try:
+    del cvar
+except: pass
 
 %}

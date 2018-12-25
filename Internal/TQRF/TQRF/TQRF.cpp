@@ -1,5 +1,6 @@
 #include "TQRF.h"
 #include <MedStat/MedStat/MedPerformance.h>
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 #include <math.h>
 
 #define LOCAL_SECTION LOG_MEDALGO

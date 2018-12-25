@@ -4,11 +4,11 @@
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "MedUtils/MedUtils/MedUtils.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
-#include <MedTime/MedTime/MedTime.h>
+#include <MedMat/MedMat/MedMat.h>
+
 
 #define DEFAULT_REP_CLNR_NTHREADS 8
 
@@ -1241,7 +1241,7 @@ public:
 	string input_name; ///< name of input signal used by the processor
 	string output_name; ///< name of signal created by the processor
 	vector<string> sets; ///< the sets to check if signal value is in set
-	int period;
+	int period; ///< period to consider active after signal in win time units
 
 	int time_unit_win = MedTime::Undefined;			///< the time unit in which the period is given. Default: Undefined // I think this will never be defined this way since it is initialized in the default constructor
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. Default: Undefined
@@ -1276,22 +1276,20 @@ public:
  
 };
 
-//.......................................................................................
 /**
 * A simple cleaner considering each value of a certain signal separatley
 */
-//.......................................................................................
 class RepBasicRangeCleaner : public RepProcessor {
 public:
 
 	string signal_name; 	///< name of signal to clean
 	string ranges_name; ///< name of signal that defines ranges
-	string output_name;
+	string output_name; ///< name of output virtual signal - defaults to signal_name + "_" + ranges_name
 	int signal_id;	///< id of signal to clean
 	int ranges_id; ///< id of signal the defines ranges
-	int output_id;
+	int output_id; ///< id of output signal
 	int time_channel; ///< time channel to consider in cleaning
-	int output_type;
+	int output_type; ///< output signal type - should be identical to input signal type default to range + val type
 	
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :
@@ -1308,15 +1306,6 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepBasicRangeCleaner::init
 	virtual int init(map<string, string>& mapper);
-	/// Fill req- and aff-signals vectors
-	//void init_lists();
-
-	/// <summary> learn cleaning boundaries </summary>
-	//int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
-	/// <summary> Learning : learn cleaning boundaries using MedValueCleaner's iterative approximation of moments </summary>
-	//int iterativeLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
-	/// <summary> Learning : learn cleaning boundaries using MedValueCleaner's quantile approximation of moments </summary>
-	//int quantileLearn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
 
 	/// <summary> Apply cleaning model </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);

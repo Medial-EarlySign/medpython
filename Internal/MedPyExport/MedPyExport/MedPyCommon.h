@@ -3,7 +3,6 @@
 
 //Macros for numPy parameters - these define nothing
 
-
 // Input arrays are defined as arrays of data that are passed into a routine but are not altered in - 
 // place or returned to the user.The Python input array is therefore allowed to be almost any Python
 // sequence(such as a list) that can be converted to the requested type of array.The input array signatures are
@@ -81,6 +80,7 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 #include <unordered_set>
+#include <map>
 
 using std::vector;
 using std::string;
@@ -113,25 +113,47 @@ public:
 	virtual ~IteratorWrapper() { obj = nullptr; }
 };
 
-enum class MED_NPY_TYPES {
-	NPY_BOOL = 0,
-	NPY_BYTE, NPY_UBYTE,
-	NPY_SHORT, NPY_USHORT,
-	NPY_INT, NPY_UINT,
-	NPY_LONG, NPY_ULONG,
-	NPY_LONGLONG, NPY_ULONGLONG,
-	NPY_FLOAT, NPY_DOUBLE, NPY_LONGDOUBLE,
-	NPY_CFLOAT, NPY_CDOUBLE, NPY_CLONGDOUBLE,
-	NPY_OBJECT = 17,
-	NPY_STRING, NPY_UNICODE,
-	NPY_VOID,
-	NPY_DATETIME, NPY_TIMEDELTA, NPY_HALF,
-	NPY_NTYPES,
-	NPY_NOTYPE,
-	NPY_CHAR,
-	NPY_USERDEF = 256,
-	NPY_NTYPES_ABI_COMPATIBLE = 21
+class MED_NPY_TYPE {
+public:
+	static const std::map<std::string,std::string> ctypestr_to_dtypestr;
+	static const std::map<std::string, int> ctypestr_to_npytypeid;
+	enum class values: int {
+		NPY_BOOL = 0,
+		NPY_BYTE, NPY_UBYTE,
+		NPY_SHORT, NPY_USHORT,
+		NPY_INT, NPY_UINT,
+		NPY_LONG, NPY_ULONG,
+		NPY_LONGLONG, NPY_ULONGLONG,
+		NPY_FLOAT, NPY_DOUBLE, NPY_LONGDOUBLE,
+		NPY_CFLOAT, NPY_CDOUBLE, NPY_CLONGDOUBLE,
+		NPY_OBJECT = 17,
+		NPY_STRING, NPY_UNICODE,
+		NPY_VOID,
+		NPY_DATETIME, NPY_TIMEDELTA, NPY_HALF,
+		NPY_NTYPES,
+		NPY_NOTYPE,
+		NPY_CHAR,
+		NPY_USERDEF = 256,
+		NPY_NTYPES_ABI_COMPATIBLE = 21
+	};
+	MED_NPY_TYPE(int val) : value(val) {}
+	MED_NPY_TYPE(MED_NPY_TYPE::values val) : value((int)val) {}
+	int value = (int)values::NPY_NOTYPE;
+	MED_NPY_TYPE& operator=(MED_NPY_TYPE o) { value = o.value; return *this; }
+	MED_NPY_TYPE& operator=(int o) { value = o; return *this; }
+	bool operator==(MED_NPY_TYPE o) const { return value == o.value; }
+	bool operator!=(MED_NPY_TYPE o) const { return value != o.value; }
+	bool operator==(int o) const { return value == o; }
+	bool operator!=(int o) const { return value != o; }
+	operator int() const { return value; }
+	static const int sizes[];
+	int size_in_bytes() {
+		if (value > (int)values::NPY_CLONGDOUBLE) return -1;
+		return sizes[value];
+	}
 };
+typedef MED_NPY_TYPE::values MED_NPY_TYPES;
+
 
 // "convert" a vector data buffer to a simple buffer allocated with malloc and a buffer size
 template<typename S, typename T>
@@ -203,6 +225,22 @@ public:
 	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len));
 	MEDPY_IGNORE(MPIntIntMapAdaptor& operator=(const MPIntIntMapAdaptor& other));
 };
+
+class MPStringStringMapAdaptor {
+	bool o_owned = true;
+	std::map<std::string, std::string>* o;
+public:
+	MPStringStringMapAdaptor();
+	MEDPY_IGNORE(MPStringStringMapAdaptor(const MPStringStringMapAdaptor& other));
+	MEDPY_IGNORE(MPStringStringMapAdaptor(std::map<std::string, std::string>* ptr));
+	~MPStringStringMapAdaptor();
+	int __len__();
+	std::string __getitem__(const std::string& i);
+	void __setitem__(const std::string& i, const std::string& val);
+	std::vector<std::string> keys();
+	MEDPY_IGNORE(MPStringStringMapAdaptor& operator=(const MPStringStringMapAdaptor& other));
+};
+
 
 class MPStringVecFloatMapAdaptor {
 	bool o_owned = true;
@@ -281,6 +319,6 @@ public:
 	MEDPY_IGNORE(MPIntVecIntMapAdaptor& operator=(const MPIntVecIntMapAdaptor& other));
 };
 
-
+void logger_use_stdout();
 
 #endif // !__MED_PY_COMMON_H

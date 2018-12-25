@@ -4,6 +4,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 #include "RepProcess.h"
+#include <MedUtils/MedUtils/MedUtils.h>
 
 //=======================================================================================
 // RepProcessors
@@ -2718,8 +2719,6 @@ void RepAggregationPeriod::print() {
 // BasicRangeCleaner
 //=======================================================================================
 
-// TODO: generalize to range signals?
-
 // Init from map
 //.......................................................................................
 int RepBasicRangeCleaner::init(map<string, string>& mapper)
@@ -2759,10 +2758,10 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 	signal_id = sigs.sid(signal_name);
 	ranges_id = sigs.sid(ranges_name);
 	output_id = sigs.sid(output_name);
-	req_signal_ids.clear(); // remove? what is this for?
+	req_signal_ids.clear(); 
 	req_signal_ids.insert(signal_id);
 	req_signal_ids.insert(ranges_id);
-	aff_signal_ids.clear();// remove? what is this for?
+	aff_signal_ids.clear();
 	aff_signal_ids.insert(output_id);
 }
 
@@ -2808,8 +2807,8 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 		vector<int> v_times(len * time_channels);
 		vector<float> v_vals(len * val_channels);
 		
-		int nKeep= 0;
 		// Collect elements to keep
+		int nKeep= 0;
 		int j = 0;
 		for (int i = 0; i < len; i++) {
 			int time = rec.usvs[0].Time(i, time_channel);
@@ -2838,11 +2837,10 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 	return 0;
 }
 
-//.......................................................................................
 void RepBasicRangeCleaner::print()
 {
-	MLOG("RepBasicRangeCleaner: signal: %d %s : t_channel %d : ranges_signal: %d %s\n",
-		signal_id, signal_name.c_str(), time_channel, ranges_id, ranges_name.c_str());
+	MLOG("RepBasicRangeCleaner: signal: %d %s : t_channel %d : ranges_signal: %d %s : output_signal: %d %s\n",
+		signal_id, signal_name.c_str(), time_channel, ranges_id, ranges_name.c_str(), output_id, output_name.c_str());
 }
 
 int RepAggregateSignal::init(map<string, string> &mapper) {

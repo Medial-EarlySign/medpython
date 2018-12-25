@@ -170,7 +170,7 @@ public:
 		string init = params.defaults + ";" + params.user_params;
 		//fprintf(stderr, "Calling MedLightGBM init with :\ninit_str %s\n user_params %s\n all %s\n", init_str.c_str(), params.user_params.c_str(), init.c_str());
 		map<string, string> init_map;
-		initialization_text_to_map(init, init_map);
+		MedSerialize::initialization_text_to_map(init, init_map);
 		return MedLightGBM::init(init_map);
 	}
 

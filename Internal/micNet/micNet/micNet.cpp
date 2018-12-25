@@ -6,8 +6,8 @@
 #endif
 
 
-#include "Logger/Logger/Logger.h"
-#include "MedUtils/MedUtils/MedGenUtils.h"
+#include <Logger/Logger/Logger.h>
+#include <MedUtils/MedUtils/MedGenUtils.h>
 
 #include <random>
 #include <boost/algorithm/string/classification.hpp>

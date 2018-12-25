@@ -3,10 +3,10 @@
 #ifndef __MED_REGISTRY_H__
 #define __MED_REGISTRY_H__
 #include <vector>
-#include "InfraMed/InfraMed/MedPidRepository.h"
 #include <SerializableObject/SerializableObject/SerializableObject.h>
-#include "MedProcessTools/MedProcessTools/MedSamples.h"
-#include "MedProcessTools/MedProcessTools/MedModel.h"
+#include <InfraMed/InfraMed/MedPidRepository.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include "MedSamplingStrategy.h"
 #include "MedEnums.h"

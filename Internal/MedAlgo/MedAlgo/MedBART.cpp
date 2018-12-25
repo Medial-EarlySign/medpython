@@ -44,7 +44,7 @@ int MedBART::set_params(map<string, string>& mapper) {
 			restart_count = stoi(it->second);
 		else if (it->first == "tree_params") {
 			map<string, string> tree_args;
-			initialization_text_to_map(it->second, tree_args);
+			MedSerialize::initialization_text_to_map(it->second, tree_args);
 			for (auto ti = tree_args.begin(); ti != tree_args.end(); ++ti)
 			{
 				if (ti->first == "k")

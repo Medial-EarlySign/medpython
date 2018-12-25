@@ -1,13 +1,14 @@
 #ifndef __BOOTSTRAP_ANALYSIS_H__
 #define __BOOTSTRAP_ANALYSIS_H__
-
-#include <MedUtils/MedUtils/MedUtils.h>
-#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <vector>
 #include <string>
 #include <map>
 #include <random>
+#include <MedTime/MedTime/MedTime.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <Logger/Logger/Logger.h>
+
+#define MED_MAT_MISSING_VALUE -65336
 
 using namespace std;
 

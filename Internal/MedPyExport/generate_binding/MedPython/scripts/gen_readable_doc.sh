@@ -1,0 +1,5 @@
+echo '%define MPDOCSTRING'
+echo '"'
+python -c "import medpython; help(medpython)" | egrep -v '(__from_df_adaptor|_swig_|__getattr__|__setattr__|__del__ lambda self|__dict__|__weakref__|_o_get|dictionary for instance variables|list of weak references to|^     \\| $|Proxy of C++|self, \*args\)$|\|  __init__\(self\)$|\|      delete_|     \|  [a-zA-Z_0-9]+\(self)' | sed 's/MEDPY_GET_\(\w\+\)[^-]\+\(.*\)$/\1 \2   (property getter)/;s/MEDPY_SET_\(\w*\).* self, \(\w\+\).*$/\1 <- \2   (property setter)/;s/\(\s\+class \w\+\).*$/\n\n\1/;s/ defined here:$/:/;s/\s\+|  -\+$//;s/     |  /        /;/staticmethod/,+11d;/^DATA$/,+100d;0,/^CLASSES$/d;0,/Time/d'
+echo '"'
+echo '%enddef'
