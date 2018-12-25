@@ -2591,6 +2591,9 @@ void RepSplitSignal::print() {
 		input_name.c_str(), medial::io::get_list(names).c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
 }
 
+//=======================================================================================
+// RepAggregationPeriod
+//=======================================================================================
 
 int RepAggregationPeriod::init(map<string, string>& mapper) {
 	vector<string> tokens;
@@ -2616,11 +2619,8 @@ int RepAggregationPeriod::init(map<string, string>& mapper) {
 	if (period == 0)
 		MLOG("WARNING in RepAggregationPeriod::init  - period set to default value: %d\n", period);
 
-	aff_signals.clear(); // remove? what is this for?
 	aff_signals.insert(output_name);
-	req_signals.clear(); // remove? what is this for?
 	req_signals.insert(input_name);
-	virtual_signals.clear(); // remove? what is this for?
 	virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange)); 
 
 	return 0;
@@ -2635,7 +2635,6 @@ void RepAggregationPeriod::init_tables(MedDictionarySections& dict, MedSignals& 
 	if (in_sid < 0)
 		MTHROW_AND_ERR("Error in RepAggregationPeriod::init_tables - input signal %s not found\n",
 			input_name.c_str());
-	req_signal_ids.clear();
 	req_signal_ids.insert(in_sid);
 
 	V_ids.resize(1);
@@ -2644,7 +2643,6 @@ void RepAggregationPeriod::init_tables(MedDictionarySections& dict, MedSignals& 
 		MTHROW_AND_ERR("Error in RepAggregationPeriod::init_tables - virtual output signal %s not found\n",
 			output_name.c_str());
 	
-	aff_signal_ids.clear(); // remove? what is this for?
 	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
 }
 
@@ -2668,7 +2666,7 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 
 		vector<int> v_times;
 		vector<float> v_vals;
-		if (rec.usvs[0].len < 1) { //incase this version of the signal is empty
+		if (rec.usvs[0].len < 1) { //in case this version of the signal is empty
 			continue;
 		}
 		int start_time = 0, end_time = 0;
@@ -2687,7 +2685,7 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 				if (med_time_converter.diff_times(time, end_time, time_unit_sig, time_unit_sig) <= 0) {
 					end_time = max(end_time, time + sig_period);
 				}
-				else {
+				else { // found a signal that is not included in the current period, close old period and open new one
 					v_times.push_back(start_time);
 					v_times.push_back(end_time);
 
@@ -2719,8 +2717,6 @@ void RepAggregationPeriod::print() {
 // BasicRangeCleaner
 //=======================================================================================
 
-// Init from map
-//.......................................................................................
 int RepBasicRangeCleaner::init(map<string, string>& mapper)
 {
 	MLOG("In RepBasicRangeCleaner init\n");
@@ -2732,7 +2728,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "ranges_sig_name") { ranges_name = entry.second; }
 		else if (field == "output_name") { output_name = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
-		else if (field == "output_time") output_type = med_stoi(entry.second);
+		else if (field == "output_type") output_type = med_stoi(entry.second); // needs to match the input signal type! defaults to range-value signal (3)
 		else MTHROW_AND_ERR("Error in RepBasicRangeCleaner::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepBasicRangeCleaner::init]
 		}
@@ -2758,18 +2754,15 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 	signal_id = sigs.sid(signal_name);
 	ranges_id = sigs.sid(ranges_name);
 	output_id = sigs.sid(output_name);
-	req_signal_ids.clear(); 
 	req_signal_ids.insert(signal_id);
 	req_signal_ids.insert(ranges_id);
-	aff_signal_ids.clear();
 	aff_signal_ids.insert(output_id);
 }
 
 void RepBasicRangeCleaner::add_virtual_signals(map<string, int> &_virtual_signals) {
 	_virtual_signals[output_name] = virtual_signals[0].second;
 }
-// Apply cleaning model
-//.......................................................................................
+
 int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
 	if (signal_id == -1) {
@@ -2798,29 +2791,29 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 	rec.usvs.resize(3);
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		// setup
-		rec.uget(signal_id, iver, rec.usvs[0]); 
-		rec.uget(ranges_id, iver, rec.usvs[1]);
-		rec.uget(output_id, iver, rec.usvs[2]);
+		rec.uget(signal_id, iver, rec.usvs[0]); // original signal
+		rec.uget(ranges_id, iver, rec.usvs[1]); // range signal
+		rec.uget(output_id, iver, rec.usvs[2]); // output - virtual signal
 		int time_channels = rec.usvs[0].n_time_channels();
 		int val_channels = rec.usvs[0].n_val_channels();
 		len = rec.usvs[0].len;
-		vector<int> v_times(len * time_channels);
+		vector<int> v_times(len * time_channels); // initialize size to avoid multiple resizings for long signals
 		vector<float> v_vals(len * val_channels);
 		
 		// Collect elements to keep
 		int nKeep= 0;
 		int j = 0;
-		for (int i = 0; i < len; i++) {
+		for (int i = 0; i < len; i++) { //iterate over input signal
 			int time = rec.usvs[0].Time(i, time_channel);
 			// remove element only if it doesn't appear in any range
 			bool doRemove = true;
-			//for (int j = 0; j < rec.usvs[1].len; j++) { // this can be speed up.. TODO
+			//for (int j = 0; j < rec.usvs[1].len; j++) { // slower version
 			//	if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) {
 			//		doRemove = false;
 			//		break;
 			//	}
 			//}
-			for (; j < rec.usvs[1].len; j++) {
+			for (; j < rec.usvs[1].len; j++) { // iterate over range signal
 				if (time > rec.usvs[1].Time(j, 1)) continue;
 				if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) doRemove = false;
 				break;
@@ -2831,6 +2824,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				nKeep++;
 			}
 		}
+		// v_times and v_vals are likely longer than necessary, it's ok because nKeep defines which part of the vector is used.
 		rec.set_version_universal_data(output_id, iver, &v_times[0], &v_vals[0], nKeep);
 	}
 

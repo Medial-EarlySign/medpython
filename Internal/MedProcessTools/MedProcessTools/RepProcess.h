@@ -1243,7 +1243,7 @@ public:
 	vector<string> sets; ///< the sets to check if signal value is in set
 	int period; ///< period to consider active after signal in win time units
 
-	int time_unit_win = MedTime::Undefined;			///< the time unit in which the period is given. Default: Undefined // I think this will never be defined this way since it is initialized in the default constructor
+	int time_unit_win = MedTime::Undefined;		///< the time unit in which the period is given. Default: Undefined
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. Default: Undefined
 
 private:
