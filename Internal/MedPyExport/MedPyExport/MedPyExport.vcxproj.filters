@@ -24,9 +24,6 @@
     <ClInclude Include="MPPidRepository.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MedPyExportExample.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MPSigExporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -63,9 +60,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MPPidRepository.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MedPyExportExample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedPyCommon.cpp">

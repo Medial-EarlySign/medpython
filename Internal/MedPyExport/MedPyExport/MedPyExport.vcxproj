@@ -21,7 +21,6 @@
   <ItemGroup>
     <ClInclude Include="MedPyCommon.h" />
     <ClInclude Include="MedPyExport.h" />
-    <ClInclude Include="MedPyExportExample.h" />
     <ClInclude Include="MPDictionary.h" />
     <ClInclude Include="MPFeatures.h" />
     <ClInclude Include="MPMat.h" />
@@ -37,7 +36,6 @@
   <ItemGroup>
     <ClCompile Include="MedPyCommon.cpp" />
     <ClCompile Include="MedPyExport.cpp" />
-    <ClCompile Include="MedPyExportExample.cpp" />
     <ClCompile Include="MPDictionary.cpp" />
     <ClCompile Include="MPFeatures.cpp" />
     <ClCompile Include="MPMat.cpp" />
