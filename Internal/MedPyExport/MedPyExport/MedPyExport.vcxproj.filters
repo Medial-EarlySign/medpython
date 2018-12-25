@@ -48,9 +48,6 @@
     <ClInclude Include="MPMat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MPSampleVecExporter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MPPandasAdaptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -87,9 +84,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MPMat.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MPSampleVecExporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MPPandasAdaptor.cpp">

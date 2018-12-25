@@ -10,7 +10,6 @@ class MedSample;
 class MedIdSamples;
 class MedSamples;
 class MPFeatures;
-class MPSampleVecExporter;
 
 class MPSample  {
 	bool o_owned = true;
@@ -136,7 +135,6 @@ public:
 	void get_categs(MEDPY_NP_OUTPUT(float** categs_buf, int* categs_buf_len));
 	
 	MPSampleVectorAdaptor export_to_sample_vec();
-	MPSampleVecExporter export_to_pandas_df();
 	void MEDPY__from_df(MPPandasAdaptor& pandas_df);
 	MPPandasAdaptor MEDPY__from_df_adaptor();
 	MPPandasAdaptor MEDPY__to_df();

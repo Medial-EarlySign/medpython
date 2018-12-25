@@ -28,7 +28,6 @@
     <ClInclude Include="MPPandasAdaptor.h" />
     <ClInclude Include="MPPidRepository.h" />
     <ClInclude Include="MPSamples.h" />
-    <ClInclude Include="MPSampleVecExporter.h" />
     <ClInclude Include="MPSigExporter.h" />
     <ClInclude Include="MPSplit.h" />
     <ClInclude Include="MPTime.h" />
@@ -43,7 +42,6 @@
     <ClCompile Include="MPPandasAdaptor.cpp" />
     <ClCompile Include="MPPidRepository.cpp" />
     <ClCompile Include="MPSamples.cpp" />
-    <ClCompile Include="MPSampleVecExporter.cpp" />
     <ClCompile Include="MPSigExporter.cpp" />
     <ClCompile Include="MPSplit.cpp" />
     <ClCompile Include="MPTime.cpp" />
