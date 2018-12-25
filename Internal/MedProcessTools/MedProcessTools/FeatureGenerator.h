@@ -321,7 +321,7 @@ public:
 	ADD_CLASS_NAME(BasicFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
 		time_unit_win, time_channel, val_channel, sum_channel, signalName, sets,
-		names, req_signals, in_set_name ,bound_outcomeTime, timeRangeSignalName, timeRangeType)
+		names, req_signals, in_set_name ,bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig)
 
 };
 
@@ -525,7 +525,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(BinnedLmEstimates)
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, \
-							params, xmeans, xsdvs, ymeans, means, models)
+							params, xmeans, xsdvs, ymeans, means, models, time_unit_sig)
 
 	// print 
 	void print();
@@ -625,7 +625,7 @@ public:
 	// Serialization
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time, time_unit_sig, time_unit_win)
 };
 
 /**

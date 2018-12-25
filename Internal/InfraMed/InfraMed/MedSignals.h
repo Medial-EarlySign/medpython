@@ -31,6 +31,7 @@ enum SigType {
 	T_CompactDateVal,	// 11 :: 2 unsigned shorts - first is a compact date (in 16 bits), second in an unsigned short value
 	T_DateRangeVal2,	// 12 :: date start, date end, 2 float values
 	T_DateFloat2,	// 13 :: date + 2 float values
+	T_TimeRange,	// 14 :: time-time
 	T_Last
 };		//    :: next free slot for type id
 
@@ -290,6 +291,35 @@ public:
 	bool operator==(const STimeRangeVal& s) { return (this->val == s.val && this->time_start == s.time_start && this->time_end == s.time_end); }
 
 	friend ostream& operator<<(ostream& os, const STimeRangeVal& s) { os << s.time_start << "-" << s.time_end << ":" << s.val; return os; }
+
+};
+
+//===================================
+// STimeRange - 14
+//===================================
+class STimeRange : public UnifiedSig {
+public:
+	long long time_start;
+	long long time_end;
+
+	// unified API extention
+	static inline int n_time_channels() { return 2; }
+	static inline int n_val_channels() { return 0; }
+	static inline int time_unit() { return MedTime::Minutes; }
+	inline int Time(int chan) { return ((chan) ? ((int)time_end) : ((int)time_start)); } // assuming minutes span are within the size of an int
+	inline float Val(int chan) { return 0; }
+	inline void SetVal(int chan, float _val) { return; };
+
+	inline void Set(long long _time_start, long long _time_end) { time_start = _time_start; time_end = _time_end; }
+	inline void Set(int *times, float *vals) { time_start = (long long)times[0]; time_end = (long long)times[1];  }
+
+	bool operator<(const STimeRange& s) {
+		if (this->time_start < s.time_start) return true; if (this->time_start > s.time_start) return false;
+		if (this->time_end < s.time_end) return true; if (this->time_end > s.time_end) return false;
+	}
+	bool operator==(const STimeRange& s) { return (this->time_start == s.time_start && this->time_end == s.time_end); }
+
+	friend ostream& operator<<(ostream& os, const STimeRange& s) { os << s.time_start << "-" << s.time_end; return os; }
 
 };
 
