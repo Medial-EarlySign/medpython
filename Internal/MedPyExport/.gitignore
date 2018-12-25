@@ -37,4 +37,4 @@ obj/
 .vs/
 Ankh.NoLoad
 enc_temp_folder
-
+generate_binding/MedPython/apply_directives.i
