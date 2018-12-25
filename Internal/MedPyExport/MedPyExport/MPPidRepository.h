@@ -13,7 +13,7 @@ class MPSigExporter;
 
 class MPPidRepository {
 public:
-	MedPidRepository* o;
+	MEDPY_IGNORE(MedPidRepository* o);
 	MPDictionary dict;
 
 	MPPidRepository();
