@@ -9,7 +9,6 @@
  *
  */
 
-#include "MedPyExportExample.h"
 #include "MPPidRepository.h"
 #include "MPDictionary.h"
 #include "MPSigExporter.h"
