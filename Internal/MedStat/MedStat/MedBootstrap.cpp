@@ -254,6 +254,9 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
 	const vector<float> *weights, const map<string, vector<float>> &additional_info) {
+	if (weights != NULL && !weights->empty() && weights->size() != y.size())
+		MTHROW_AND_ERR("Bootstrap weights error - samples is of size %zu, weights.size()=%zu\n",
+			y.size(), weights->size());
 
 	map<string, FilterCohortFunc> cohorts;
 	map<string, void *> cohort_params;

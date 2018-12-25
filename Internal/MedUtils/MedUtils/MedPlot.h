@@ -119,17 +119,17 @@ extern vector<bool> empty_bool_arr;
 /// <returns>
 /// updates true_rate, false_rate, ppv
 /// </returns>
-void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
+void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, const vector<float> &weights,
 	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
 	const vector<bool> &indexes = empty_bool_arr);
 /// <summary>
 /// plot AUC Graph for all scores and each score has diffrent label size
 /// </summary>
-void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>> &y, const vector<string> &modelNames,
+void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>> &y, const vector<vector<float>> &weights, const vector<string> &modelNames,
 	string baseOut, bool print_y = true);
 /// <summary>
 /// Plot AUC Graph for all scores for same labels
 /// </summary>
 void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
-	string baseOut, const vector<bool> &indexes = empty_bool_arr);
+	string baseOut, const vector<bool> &indexes = empty_bool_arr, const vector<float> *weights = NULL);
 #endif
