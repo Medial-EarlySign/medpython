@@ -1097,15 +1097,16 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 
 	vector<double> prc_vals = { 0.05, 0.95 };
 	int feat_i = 0;
+	int n_clean;
 	for (auto it = population1.data.begin(); it != population1.data.end(); ++it)
 	{
 		if (population2.data.find(it->first) == population2.data.end())
 			MTHROW_AND_ERR("population %s is missing feature %s\n",
 				it->first.c_str(), name2.c_str());
-		means1[feat_i] = medial::stats::mean_vec(it->second, &population1.weights);
-		means2[feat_i] = medial::stats::mean_vec(population2.data.at(it->first), &population2.weights);
-		std1[feat_i] = medial::stats::std_vec(it->second, means1[feat_i], &population1.weights);
-		std2[feat_i] = medial::stats::std_vec(population2.data.at(it->first), means2[feat_i], &population2.weights);
+		means1[feat_i] = medial::stats::mean(it->second, (float)MED_MAT_MISSING_VALUE, n_clean, &population1.weights);
+		means2[feat_i] = medial::stats::mean(population2.data.at(it->first), (float) MED_MAT_MISSING_VALUE, n_clean, &population2.weights);
+		std1[feat_i] = medial::stats::std(it->second, means1[feat_i], (float)MED_MAT_MISSING_VALUE, n_clean, &population1.weights);
+		std2[feat_i] = medial::stats::std(population2.data.at(it->first), means2[feat_i], (float)MED_MAT_MISSING_VALUE, n_clean, &population2.weights);
 
 		vector<float> prs;
 		medial::process::prctils(it->second, prc_vals, prs, &population1.weights);
@@ -1203,7 +1204,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		vector<float> preds;
 		medial::models::get_pids_cv(predictor, new_data, 5, gen, preds);
 
-		float auc = medial::stats::get_preds_auc_q(preds, labels, &new_data.weights);
+		float auc = medial::performance::auc_q(preds, labels, &new_data.weights);
 		snprintf(buffer_s, sizeof(buffer_s),
 			"predictor AUC with CV to diffrentiate between populations is %2.3f\n", auc);
 		MLOG("%s", string(buffer_s).c_str());

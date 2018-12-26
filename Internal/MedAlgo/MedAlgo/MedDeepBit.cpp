@@ -119,7 +119,7 @@ bool MedDeepBit::is_bin_ftr_valid(const vector<char>& bin_ftr) {
 	vector<double> ftr(bin_ftr.size());
 	for (int i = 0; i < ftr.size(); i++)
 		ftr[i] = bin_ftr[i];
-	double ftr_cor = get_corr_pearson(ftr, y);
+	double ftr_cor = medial::performance::pearson_corr_without_cleaning(ftr, y);
 	return(abs(ftr_cor) >= params.min_cor_bin_ftr);
 }
 

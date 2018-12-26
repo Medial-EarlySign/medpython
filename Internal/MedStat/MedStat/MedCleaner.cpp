@@ -1,9 +1,9 @@
 #ifndef __MED_CLEANER_CPP__
 #define __MED_CLEANER_CPP__
 
+#include "MedCleaner.h"
 #include "MedStat.h"
 #include "MedUtils/MedUtils/MedUtils.h"
-
 
 
 #include "Logger/Logger/Logger.h"
@@ -11,7 +11,13 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 extern MedLogger global_logger;
 
-// Moments Functions:
+// Constructor
+MedCleaner::MedCleaner() {
+	missing_value = MED_DEFAULT_MISSING_VALUE; remove_flag = trim_flag = normalize_flag = replace_missing_to_mean_flag = true; n = 0; nvals = 0;
+	most_common_count = 0; nzeros = 0; median = q1 = q3 = iqr = MED_DEFAULT_MISSING_VALUE; median = MED_DEFAULT_MISSING_VALUE;mean = MED_DEFAULT_MISSING_VALUE; sdv = 0; skew = 0;
+	most_common_value = MED_DEFAULT_MISSING_VALUE; trim_min = MED_DEFAULT_MISSING_VALUE;  min_trim = MED_DEFAULT_MIN_TRIM;
+	trim_max = MED_DEFAULT_MISSING_VALUE; remove_min = MED_DEFAULT_MISSING_VALUE; remove_max = -1; sk = 0; skew_sign = 0;
+}
 
 // Return the trimmed value, or 'missing-value' if missing-value/invalid (outside removal limits)
 float MedCleaner::get_value(float value) {

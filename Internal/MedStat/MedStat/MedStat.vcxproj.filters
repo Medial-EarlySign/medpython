@@ -30,6 +30,12 @@
     <ClInclude Include="MedBootstrap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MedHist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedCleaner.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedCleaner.cpp">
@@ -45,6 +51,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedBootstrap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MedHist.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

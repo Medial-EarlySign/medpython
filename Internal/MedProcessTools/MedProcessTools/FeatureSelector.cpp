@@ -211,19 +211,20 @@ int UnivariateFeatureSelector::getAbsPearsonCorrs(MedFeatures& features, unorder
 		vector<float> values;
 		get_all_values(features, names[i], ids, values, params.max_samples);
 
-		stats[i] = fabs(get_pearson_corr(values, label, n, missing_value));
+		stats[i] = fabs(medial::performance::pearson_corr(values, label, missing_value, n));
 		if (n == 0) stats[i] = 0.0;
 
 		// If required, test also correlation to squared (normalized) values
 		if (params.takeSquare) {
 			float mean, std;
-			get_mean_and_std(values, mean, std, missing_value);
+			int n_cleaned;
+			medial::stats::get_mean_and_std(values, missing_value, n, mean, std);
 			for (unsigned int j = 0; j < values.size(); j++) {
 				if (values[j] != missing_value)
 					values[j] = (values[j] - mean)*(values[j] - mean);
 			}
 
-			float newStat = fabs(get_pearson_corr(values, label, n, missing_value));
+			float newStat = fabs(medial::performance::pearson_corr(values, label, missing_value, n_cleaned));
 			if (newStat > stats[i])
 				stats[i] = newStat;
 		}
@@ -266,7 +267,7 @@ int UnivariateFeatureSelector::getMIs(MedFeatures& features, unordered_set<int>&
 #pragma omp parallel for 
 	for (int i = 0; i < names.size(); i++) {
 		int n;
-		get_mutual_information(binnedValues[i], binnedLabel, n, stats[i]);
+		stats[i] = medial::performance::mutual_information(binnedValues[i], binnedLabel, n);
 		if (stats[i] < 0) stats[i] = 0;
 	}
 
@@ -283,8 +284,8 @@ int UnivariateFeatureSelector::getDistCorrs(MedFeatures& features, unordered_set
 	get_all_outcomes(features, ids, label, params.max_samples);
 
 	MedMat<float> labelDistances;
-	get_dMatrix(label, labelDistances, missing_value);
-	float targetDistVar = get_dVar(labelDistances);
+	medial::performance::get_dMatrix(label, labelDistances, missing_value);
+	float targetDistVar = medial::performance::get_dVar(labelDistances);
 	if (targetDistVar == -1.0) {
 		MERR("Cannot calucludate distance Var for target\n");
 		return -1;
@@ -302,9 +303,9 @@ int UnivariateFeatureSelector::getDistCorrs(MedFeatures& features, unordered_set
 		vector<float> values;
 		get_all_values(features, names[i], ids, values, params.max_samples);
 		MedMat<float> valueDistances;
-		get_dMatrix(values, valueDistances, missing_value);
-		float valueDistVar = get_dVar(valueDistances);
-		float distCov = get_dCov(labelDistances, valueDistances);
+		medial::performance::get_dMatrix(values, valueDistances, missing_value);
+		float valueDistVar = medial::performance::get_dVar(valueDistances);
+		float distCov = medial::performance::get_dCov(labelDistances, valueDistances);
 #pragma omp critical
 		if (valueDistVar == -1 || distCov == -1) {
 			MERR("Cannot calculate distance correlation between label and %s\n", names[i].c_str());
@@ -490,7 +491,7 @@ int MRMRFeatureSelector::fillAbsPearsonCorrsMatrix(MedFeatures& features, unorde
 	for (int i = 0; i < nFeatures; i++) {
 		if (stats(i, index) == -1) {
 			int n;
-			stats(i, index) = fabs(get_pearson_corr(values[i], target, n, missing_value));
+			stats(i, index) = fabs(medial::performance::pearson_corr(values[i], target, missing_value, n));
 			if (n == 0) stats(i, index) = 0.0;
 			stats(index, i) = stats(i, index);
 		}
@@ -542,7 +543,7 @@ int MRMRFeatureSelector::fillMIsMatrix(MedFeatures& features, unordered_set<int>
 	for (int i = 0; i < nFeatures; i++) {
 		if (stats(i, index) == -1) {
 			int n;
-			get_mutual_information(binnedValues[i], binnedTarget, n, stats(i, index));
+			stats(i, index) = medial::performance::mutual_information(binnedValues[i], binnedTarget, n);
 			if (stats(i, index) < 0) stats(i, index) = 0;
 			stats(index, i) = stats(i, index);
 		}
@@ -568,8 +569,8 @@ int MRMRFeatureSelector::fillDistCorrsMatrix(MedFeatures& features, unordered_se
 		get_all_values(features, names[index], ids, target, params.max_samples);
 
 	MedMat<float> targetDistances;
-	get_dMatrix(target, targetDistances, missing_value);
-	float targetDistVar = get_dVar(targetDistances);
+	medial::performance::get_dMatrix(target, targetDistances, missing_value);
+	float targetDistVar = medial::performance::get_dVar(targetDistances);
 	if (targetDistVar == -1.0) {
 		MERR("Cannot calucludate distance Var for target\n");
 		return -1;
@@ -582,9 +583,9 @@ int MRMRFeatureSelector::fillDistCorrsMatrix(MedFeatures& features, unordered_se
 			vector<float> values;
 			get_all_values(features, names[i], ids, values, params.max_samples);
 			MedMat<float> valueDistances;
-			get_dMatrix(values, valueDistances, missing_value);
-			float valueDistVar = get_dVar(valueDistances);
-			float distCov = get_dCov(targetDistances, valueDistances);
+			medial::performance::get_dMatrix(values, valueDistances, missing_value);
+			float valueDistVar = medial::performance::get_dVar(valueDistances);
+			float distCov = medial::performance::get_dCov(targetDistances, valueDistances);
 #pragma omp critical
 			if (valueDistVar == -1 || distCov == -1) {
 				MERR("Cannot calculate distance correlation between label and %s\n", names[i].c_str());

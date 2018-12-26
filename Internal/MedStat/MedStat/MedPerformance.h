@@ -1,6 +1,5 @@
 //
-// MedStat - Statistics utilities :
-//			 2. MedPerformance used for analyzing performance
+// MedPerformance used for analyzing performance
 //
 
 #ifndef _MED_PERFORMANCE_T_H_
@@ -18,7 +17,6 @@
 #include <string>
 #include <algorithm>
 
-//#include <MedAlgo/MedAlgo/MedAlgo.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
@@ -136,60 +134,6 @@ private:
 		} ;
 	} ;
 } ;
-
-// general useful routines
-// Pearson Correlation // DO NOT REMOVE !!! WE USE THESE
-float get_pearson_corr(float *v1, float *v2, int len);
-float get_pearson_corr(vector<float> &v1, vector<float> &v2); // {return get_pearson_corr(VEC_DATA(v1),VEC_DATA(v2),(int)v1.size());}
-// Pearson Correaltion after removing missing values. return number of values left in n.
-float get_pearson_corr(vector<float> &v1, vector<float> &v2, int &n, float missing_val) ;
-
-// Kendell rank correlation : an envelope for kendallTau
-float get_kendell_tau(float *v1, float *v2, int len);
-float get_kendell_tau(vector<float> &v1, vector<float> &v2); // Kendell rank correlation after removing missing values. return number of values left in n.														  
-float get_kendell_tau(vector<float> &v1, vector<float> &v2, int &n, float missing_val);
-
-// Spearman correlation
-float get_spearman_corr(float *v1, float *v2, int len);
-float get_spearman_corr(vector<float> &v1, vector<float> &v2); // Kendell rank correlation after removing missing values. return number of values left in n.														  
-float get_spearman_corr(vector<float> &v1, vector<float> &v2, int &n, float missing_val);
-
-// n x m contigency table expected and chi2 score
-double get_chi2_n_x_m(vector<int> &cnts, int n, int m, vector<double> &exp);
-double get_chi2_n_x_m(vector<int> &cnts, int n, int m);
-
-// AUC
-float get_preds_auc(vector<float> &preds, vector<float> &y);
-template<class T> float get_preds_auc_q(const vector<T> &preds, const vector<float> &y);
-template<class T> float get_preds_auc_q_weighted(const vector<T> &preds, const vector<float> &y, const vector<float> &weights);
-
-// returns 4 counts a,b,c,d for the top 'size' percent of the data. a,b,c,d are:
-//              0    1
-// >= size ::   b    a
-//  < size ::   d    c
-int get_preds_perf_cnts(vector<float> &preds, vector<float> &y, vector<float> &size, int direction, vector<vector<int>> &cnts);
-int cnts_to_perf(vector<int> &cnt, float &sens, float &spec, float &ppv, float &rr);
-
-// multi category helpers
-int multicateg_get_max_pred(vector<float> &probs, int nsamples, int ncateg, vector<float> &max_pred);
-int multicateg_get_avg_pred(vector<float> &probs, int nsamples, int ncateg, vector<float> &avg_pred);
-int multicateg_get_error_rate(vector<float> &probs, vector<float> &y, int nsamples, int ncateg, float &err_rate, float &rms, float &avg_rms);
-
-int get_quantized_breakdown(vector<float> &preds, vector<float> &y, vector<float> &bounds, MedMat<int> &counts);
-void print_quantized_breakdown(MedMat<int> &cnt, vector<float> &bounds);
-
-// Mutual information
-int get_mutual_information(vector<int>& x, vector<int>& y, int &n, float& mi);
-float get_mutual_information(vector<int>& xCounts, vector<int>& yCounts, vector<int> coCounts, int n);
-
-// Distance Correlations
-//.........................................................................................................................................
-void get_dMatrix(vector<float>& values, MedMat<float>& dMatrix, float missing_value); // Get Distances matrix
-float get_dVar(MedMat<float>& dMatrix);// Get Distance variance
-float get_dCov(MedMat<float>& xDistMat, MedMat<float>& yDistMat); // Get Distance covariance
-
-//void get_mean_std(float *v, int len, float &mean, float &std);
-//void get_mean_std(vector<float> &v, float &mean, float &std);
 
 #include "MedPerformance_imp.h"
 
