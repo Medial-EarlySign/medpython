@@ -7,7 +7,7 @@ class MedSplit;
 
 class MPSplit {
 public:
-	MedSplit* o;
+	MEDPY_IGNORE(MedSplit* o);
 	MPSplit();
 	~MPSplit();
 	//vector<int> pids;

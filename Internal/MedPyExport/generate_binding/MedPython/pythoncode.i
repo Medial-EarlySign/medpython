@@ -149,11 +149,6 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None):
         df[field] = df[field].astype('category').cat.rename_categories(dict(sigexporter.get_categorical_field_dict(field)))
     return df
 
-def __sample_export_to_pandas(self):
-    import pandas as pd
-    df = pd.DataFrame.from_dict(dict(self.export_to_pandas_df()))
-    return df
-
 def __features__to_df_imp(self):
     import pandas as pd
     featMatFull = Mat()
@@ -164,7 +159,7 @@ def __features__to_df_imp(self):
     
     samps = Samples()
     self.get_samples(samps)
-    samps_df = samps.as_df()
+    samps_df = samps.to_df()
     out = pd.concat([samps_df,dfFeatures2], axis=1, copy=False)
     return out
 
@@ -187,7 +182,6 @@ def __features__from_df_imp(self, features_df):
 
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
-    setattr(globals()['Samples'],'as_df', __sample_export_to_pandas)
     setattr(globals()['Features'],'to_df', __features__to_df_imp)
     setattr(globals()['Features'],'from_df', __features__from_df_imp)
 

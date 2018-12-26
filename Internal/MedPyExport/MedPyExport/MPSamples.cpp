@@ -1,6 +1,5 @@
 #include "MPSamples.h"
 #include "MPFeatures.h"
-#include "MPSampleVecExporter.h"
 
 #include "InfraMed/InfraMed/MedConvert.h"
 #include "InfraMed/InfraMed/InfraMed.h"
@@ -148,10 +147,6 @@ MPSampleVectorAdaptor MPSamples::export_to_sample_vec() {
 	MPSampleVectorAdaptor ret;
 	o->export_to_sample_vec(*(ret.o));
 	return ret;
-}
-MPSampleVecExporter MPSamples::export_to_pandas_df() {
-	auto sva = this->export_to_sample_vec();
-	return MPSampleVecExporter(sva);
 }
 
 MPPandasAdaptor MPSamples::MEDPY__from_df_adaptor() {

@@ -8,7 +8,7 @@ class MPSigExporter_iter;
 
 
 class MPSigExporter {
-	MedPidRepository* o;
+	MEDPY_IGNORE(MedPidRepository* o);
 	std::vector<std::string> data_keys;
 	std::vector<void*> data_column;
 	std::vector<int> data_column_nptype;

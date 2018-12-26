@@ -8,7 +8,7 @@ class MedPidRepository;
 
 class MPDictionary {
 public:
-	MedPidRepository* o;
+	MEDPY_IGNORE(MedPidRepository* o);
 
 	MPDictionary(MPPidRepository* rep);
 

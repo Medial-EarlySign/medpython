@@ -427,39 +427,39 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	return 0;
 }
 
-template<class T> string medial::io::get_list(const unordered_map<string, T> &ls) {
+template<class T> string medial::io::get_list(const unordered_map<string, T> &ls, const string &delimeter) {
 	string res = "";
 	for (auto it = ls.begin(); it != ls.end(); ++it)
 		if (it == ls.begin())
 			res += it->first;
 		else
-			res += "," + it->first;
+			res += delimeter + it->first;
 	return res;
 }
-template string medial::io::get_list<int>(const unordered_map<string, int> &ls);
-template<class ContainerType> string medial::io::get_list(const ContainerType &ls) {
+template string medial::io::get_list<int>(const unordered_map<string, int> &ls, const string &delimeter);
+template<class ContainerType> string medial::io::get_list(const ContainerType &ls, const string &delimeter) {
 	string res = "";
 	for (auto it = ls.begin(); it != ls.end(); ++it)
 		if (it == ls.begin())
 			res += *it;
 		else
-			res += "," + *it;
+			res += delimeter + *it;
 	return res;
 }
-template string medial::io::get_list(const set<string> &ls);
-template string medial::io::get_list(const unordered_set<string> &ls);
-template string medial::io::get_list(const vector<string> &ls);
+template string medial::io::get_list(const set<string> &ls, const string &delimeter);
+template string medial::io::get_list(const unordered_set<string> &ls, const string &delimeter);
+template string medial::io::get_list(const vector<string> &ls, const string &delimeter);
 
-template<class T> string medial::io::get_list_op(const unordered_map<T, string> &ls) {
+template<class T> string medial::io::get_list_op(const unordered_map<T, string> &ls, const string &delimeter) {
 	string res = "";
 	for (auto it = ls.begin(); it != ls.end(); ++it)
 		if (it == ls.begin())
 			res += it->second;
 		else
-			res += "," + it->second;
+			res += delimeter + it->second;
 	return res;
 }
-template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls);
+template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls, const string &delimeter);
 
 void medial::print::log_with_file(ofstream &fw, const char *format_str, ...) {
 	char buff[10000];

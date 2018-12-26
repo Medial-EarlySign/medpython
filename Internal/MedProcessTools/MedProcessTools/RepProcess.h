@@ -30,6 +30,8 @@ typedef enum {
 	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to actiate RepSignalRate
 	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
 	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units.  to actiate RepSplitSignal
+	REP_PROCESS_AGGREGATION_PERIOD, ///<"aggregation_period"
+	REP_PROCESS_BASIC_RANGE_CLEANER,///<"basic_range_cleaner" or "range_cln" to activate RepBasicRangeCleaner
 	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point
 	REP_PROCESS_LAST
@@ -1228,6 +1230,94 @@ private:
 	vector<char> Flags;
 };
 
+
+/**
+* creates a signal of time ranges in which the input signal (usually medication) was active 
+* ranges are combined based on the period parameter
+* the signal value is not transfered to the output signal
+*/
+class RepAggregationPeriod : public RepProcessor {
+public:
+	string input_name; ///< name of input signal used by the processor
+	string output_name; ///< name of signal created by the processor
+	vector<string> sets; ///< the sets to check if signal value is in set
+	int period; ///< period to consider active after signal in win time units
+
+	int time_unit_win = MedTime::Undefined;		///< the time unit in which the period is given. Default: Undefined
+	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. Default: Undefined
+
+private:
+	int in_sid;
+	vector<int> V_ids;
+	vector<char> lut;
+
+public:
+	RepAggregationPeriod() :
+		input_name(""), output_name(""), period(0),time_unit_sig(global_default_windows_time_unit), time_unit_win(global_default_windows_time_unit), in_sid(-1) {
+		processor_type = REP_PROCESS_AGGREGATION_PERIOD;
+	}
+
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+
+	/// initialize signal ids
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	/// @snippet RepProcess.cpp RepAggregationPeriod::init
+	int init(map<string, string>& mapper);
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	void print();
+
+	ADD_CLASS_NAME(RepAggregationPeriod)
+	ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, sets, period, req_signals, aff_signals, virtual_signals, time_unit_win, time_unit_sig, in_sid, V_ids, lut)
+ 
+};
+
+/**
+* A simple cleaner considering each value of a certain signal separatley
+*/
+class RepBasicRangeCleaner : public RepProcessor {
+public:
+
+	string signal_name; 	///< name of signal to clean
+	string ranges_name; ///< name of signal that defines ranges
+	string output_name; ///< name of output virtual signal - defaults to signal_name + "_" + ranges_name
+	int signal_id;	///< id of signal to clean
+	int ranges_id; ///< id of signal the defines ranges
+	int output_id; ///< id of output signal
+	int time_channel; ///< time channel to consider in cleaning
+	int output_type; ///< output signal type - should be identical to input signal type default to range + val type
+	
+	/// <summary> default constructor </summary>
+	RepBasicRangeCleaner() :
+	signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1), output_id(-1), time_channel(0), output_type(3) {
+		processor_type = REP_PROCESS_BASIC_RANGE_CLEANER;
+	}
+
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+
+	/// initialize signal ids
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	/// <summary> Fill required- and affected-signals sets </summary>
+	/// The parsed fields from init command.
+	/// @snippet RepProcess.cpp RepBasicRangeCleaner::init
+	virtual int init(map<string, string>& mapper);
+
+	/// <summary> Apply cleaning model </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	/// Serialization
+	ADD_CLASS_NAME(RepBasicRangeCleaner)
+	ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type)
+
+	/// <summary> Print processors information </summary>
+	void print();
+};
+
 /**
 * Normalize Signal Values by time - divide by time to calculate rate
 */
@@ -1436,6 +1526,8 @@ MEDSERIALIZE_SUPPORT(RepSimValHandler)
 MEDSERIALIZE_SUPPORT(RepPanelCompleter)
 MEDSERIALIZE_SUPPORT(RepCombineSignals)
 MEDSERIALIZE_SUPPORT(RepSplitSignal)
+MEDSERIALIZE_SUPPORT(RepAggregationPeriod)
+MEDSERIALIZE_SUPPORT(RepBasicRangeCleaner)
 MEDSERIALIZE_SUPPORT(RepSignalRate)
 MEDSERIALIZE_SUPPORT(RepAggregateSignal)
 MEDSERIALIZE_SUPPORT(RepCheckReq)
