@@ -53,7 +53,9 @@ MedPredictorTypes predictor_name_to_type(const string& model_name) {
 		if (it->second == model_name) {
 			return MedPredictorTypes(it->first);
 		}
-	return MODEL_LAST;
+	string full_list = medial::io::get_list_op(predictor_type_to_name, "\n");
+	MTHROW_AND_ERR("Unknown predictor name \"%s\" - Please choose one of: %s\n",
+		model_name.c_str(), full_list.c_str());
 }
 
 // Initialization
@@ -301,13 +303,13 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) const {
 	if (!model_features.empty()) {//test names of entered matrix:
 		if (model_features.size() != x.ncols)
 			MTHROW_AND_ERR("(1) Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)x.ncols);
+			(int)model_features.size(), (int)x.ncols);
 
 		if (!x.signals.empty()) //can compare names
 			for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
 				if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
 					MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-						(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
+					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
 	else if (features_count > 0 && features_count != x.ncols)
 		MTHROW_AND_ERR("(2) Learned Feature model size was %d, request feature size for predict was %d\n",
@@ -383,13 +385,13 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 	if (!model_features.empty()) {//test names of entered matrix:
 		if (model_features.size() != x.ncols)
 			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)x.ncols);
+			(int)model_features.size(), (int)x.ncols);
 
 		if (!x.signals.empty()) //can compare names
 			for (int feat_num = 0; feat_num < model_features.size(); ++feat_num)
 				if (norm_feature_name(x.signals[feat_num]) != norm_feature_name(model_features[feat_num]))
 					MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-						(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
+					(int)model_features.size(), model_features[feat_num].c_str(), x.signals[feat_num].c_str());
 	}
 	else if (features_count > 0 && features_count != x.ncols)
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
@@ -415,7 +417,7 @@ int MedPredictor::threaded_predict(MedMat<float> &x, vector<float> &preds, int n
 	vector<pred_thread_info> tp(nthreads);
 	for (int i = 0; i < nthreads; i++) {
 		tp[i].id = i;
-		tp[i].from_sample = i*th_nsamples;
+		tp[i].from_sample = i * th_nsamples;
 		tp[i].to_sample = min((i + 1)*th_nsamples - 1, nsamples - 1);
 		tp[i].preds = VEC_DATA(preds);
 		tp[i].x = &x;
@@ -456,7 +458,7 @@ int MedPredictor::predict(vector<float> &x, vector<float> &preds, int n_samples,
 	if (!model_features.empty()) {
 		if (model_features.size() != n_ftrs)
 			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)x.size());
+			(int)model_features.size(), (int)x.size());
 	}
 	else if (features_count > 0 && features_count != n_ftrs)
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
@@ -734,12 +736,12 @@ int MedPredictor::predict(MedFeatures& ftrs_data) const {
 	if (!model_features.empty()) {//test names of entered matrix:
 		if (model_features.size() != ftrs_data.data.size())
 			MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
-				(int)model_features.size(), (int)ftrs_data.data.size());
+			(int)model_features.size(), (int)ftrs_data.data.size());
 		int feat_num = 0;
 		for (auto it = ftrs_data.data.begin(); it != ftrs_data.data.end(); ++it)
 			if (norm_feature_name(it->first) != norm_feature_name(model_features[feat_num++]))
 				MTHROW_AND_ERR("Learned Features are the same. feat_num=%d. in learning was %s, now recieved %s\n",
-					(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
+				(int)model_features.size(), model_features[feat_num - 1].c_str(), it->first.c_str());
 	}
 	else if (features_count > 0 && features_count != ftrs_data.data.size())
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
@@ -1080,7 +1082,7 @@ bool is_similar(float mean1, float lower1, float upper1, float std1,
 
 	return (range >= simlar_range_ratio) && (mean_diff_ratio <= similar_mean_ratio)
 		&& ((mean1 >= lower2 && mean1 <= upper2) ||
-			(mean2 >= lower1 && mean2 <= upper1) ||
+		(mean2 >= lower1 && mean2 <= upper1) ||
 			(lower1 == lower2 && upper1 == upper2)); //means are inside CI of 95. like 2 stds in normal
 }
 
