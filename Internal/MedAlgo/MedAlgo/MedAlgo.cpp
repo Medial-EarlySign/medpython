@@ -157,7 +157,7 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type, string
 //.......................................................................................
 int MedPredictor::init_from_string(string text) {
 
-	MLOG("MedPredictor init from string [%s] (classifier type is %d)\n", text.c_str(), classifier_type);
+	MLOG_D("MedPredictor init from string [%s] (classifier type is %d)\n", text.c_str(), classifier_type);
 
 	// parse text of the format "Name = Value ; Name = Value ; ..."
 
@@ -197,7 +197,7 @@ int MedPredictor::init_from_string(string text) {
 		return -1;
 
 	for (auto rec : init_map)
-		MLOG("Initializing predictor with \'%s\' = \'%s\'\n", rec.first.c_str(), rec.second.c_str());
+		MLOG_D("Initializing predictor with \'%s\' = \'%s\'\n", rec.first.c_str(), rec.second.c_str());
 
 	init(init_map);
 
