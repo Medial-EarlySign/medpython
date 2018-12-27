@@ -499,7 +499,13 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	int n;
 	medial::stats::get_mean_and_std(values, missing_value, n, mean, sd);
-	if (sd == 1)
+
+	// Handle constant vector
+	if (sd == 0 && values.size()) {
+		MWARN("Got constant (%f) vector in feature %s....\n", feature_name.c_str());
+		sd = 1.0;
+	}
+	else  if (sd == 1)
 		MLOG("got sd=1.0 in feature %s....\n", feature_name.c_str());
 
 	if (sd == 0)
