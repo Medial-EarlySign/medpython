@@ -38,34 +38,35 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "min_prob_res") min_prob_res = stof(entry.second);
 		else if (field == "fix_pred_order") fix_pred_order = stoi(entry.second) > 0;
 		else if (field == "poly_rank") poly_rank = stoi(entry.second);
+		else if (field == "control_weight_down_sample") control_weight_down_sample = stof(entry.second);
 		else if (field == "censor_controls") censor_controls = stoi(entry.second);
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
 		//! [Calibrator::init]
 	}
-	  
+
 	return 0;
 }
 
 
-double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot) {
+double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor) {
 	double prob = 1.0;
-	int total_all = 0;
+	double total_all = 0;
 	for (int i = 0; i < controls_per_time_slot.size(); i++)
-		total_all += controls_per_time_slot[i] + cases_per_time_slot[i] ;
+		total_all += (controls_per_time_slot[i] * controls_factor) + cases_per_time_slot[i];
 	//MLOG("size %d total_controls_all %d\n", controls_per_time_slot.size(), total_controls_all);
 	for (int i = 0; i < controls_per_time_slot.size(); i++) {
 		if (total_all == 0) {
 			MWARN("Reached 0 samples at time slot [%d]. Quitting\n", i);
 			break;
 		}
-		prob *= (1.0 - ((float) cases_per_time_slot[i]) / total_all);
-		total_all -= (controls_per_time_slot[i] + cases_per_time_slot[i]);
+		prob *= (1.0 - ((float)cases_per_time_slot[i]) / total_all);
+		total_all -= (controls_per_time_slot[i] * controls_factor + cases_per_time_slot[i]);
 	}
 	return 1.0 - prob;
 }
 
 // expand to neighbor calibration entries, until finding enough cases
-void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals) {
+void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals, double controls_factor) {
 	smooth_cals.clear();
 	int cases = 0;
 	for (auto& c : cals)
@@ -116,7 +117,7 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 		res.cnt_cases = cases;
 		res.mean_outcome = 1.0f * cases / (cases + controls);
 		res.cumul_pct = cals[start].cumul_pct;
-		res.kaplan_meier = (float)calc_kaplan_meier(controls_per_time_slot, cases_per_time_slot);
+		res.kaplan_meier = (float)calc_kaplan_meier(controls_per_time_slot, cases_per_time_slot, controls_factor);
 		smooth_cals.push_back(res);
 	}
 }
@@ -179,11 +180,11 @@ template void apply_platt_scale<float, double>(const vector<float> &preds, const
 template void apply_platt_scale<float, float>(const vector<float> &preds, const vector<double> &params, vector<float> &converted);
 
 int Calibrator::apply_time_window(MedSamples& samples) {
-	
+
 	int type;
 	if (estimator_type == "kaplan_meier") {
 		type = 1;
-		MLOG("calibrating [%d] samples using kaplan_meier estimator\n",samples.nSamples());
+		MLOG("calibrating [%d] samples using kaplan_meier estimator\n", samples.nSamples());
 	}
 	else if (estimator_type == "mean_cases") {
 		type = 0;
@@ -249,7 +250,7 @@ void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 
 
 int Calibrator::Apply(MedSamples& samples) {
-	
+
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
@@ -304,7 +305,7 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 	for (const auto& pat : orig_samples.idSamples)
 		for (const auto& s : pat.samples)
 			samples.push_back(s);
-	Learn(samples,orig_samples.time_unit);
+	Learn(samples, orig_samples.time_unit);
 	return 0;
 }
 
@@ -404,7 +405,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 			(bin < bins_num)
 			&&
 			(
-				(binning_method == "unique_score_per_bin" && prev_pred != o.prediction[0]) ||
+			(binning_method == "unique_score_per_bin" && prev_pred != o.prediction[0]) ||
 				(binning_method == "equal_num_of_samples_per_bin" && cnt_controls[bin] + cnt_cases[bin] >= max_samples_per_bin) ||
 				(binning_method == "equal_score_delta_per_bin" && (o.prediction[0] - bin_min_preds[bin]) > max_delta_in_bin) ||
 				(binning_method == "equal_num_of_cases_per_bin" && cnt_cases[bin] >= max_cases_per_bin))
@@ -433,6 +434,9 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		prev_pred = o.prediction[0];
 	}
 	int cumul_cnt = 0;
+	double controls_factor = 1;
+	if (control_weight_down_sample > 0)
+		controls_factor = control_weight_down_sample;
 	for (int i = 1; i <= bin; i++)
 	{
 		calibration_entry ce;
@@ -440,32 +444,42 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		ce.min_pred = bin_min_preds[i];
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
-		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] + cnt_cases[i]);
-		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] + cnt_cases[i]) / 2)) / (float)samples.size();
+		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
+		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] * controls_factor + cnt_cases[i]) / 2)) / (float)samples.size();
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
 		if (do_km) {
-			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i]);
+			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i], controls_factor);
 			ce.mean_outcome = 0.0;
 		}
 		else {
 			ce.kaplan_meier = 0.0;
-			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] + cnt_cases[i]);
+			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
 		}
-		cumul_cnt += ce.cnt_controls + ce.cnt_cases;
+		cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
 		cals.push_back(ce);
 	}
 	if (do_calibration_smoothing) {
 		vector<calibration_entry> smooth_cals;
-		smooth_calibration_entries(cals, smooth_cals);
+		smooth_calibration_entries(cals, smooth_cals, controls_factor);
 		cals = smooth_cals;
 	}
 	return 0;
 }
 
+void get_counts(const vector<int> &inds, const vector<float> &y, int &cases_cnt,
+	double &cntls_cnt, double control_weight) {
+	cases_cnt = 0;
+	for (int ind : inds)
+		cases_cnt += int(y[ind] > 0);
+	if (control_weight <= 0)
+		control_weight = 1;
+	cntls_cnt = (int(inds.size()) - cases_cnt) * control_weight;
+}
+
 void learn_binned_probs(vector<float> &x, const vector<float> &y,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order,
-	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob) {
+	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, double control_weight_down_sample) {
 	unordered_map<float, vector<int>> score_to_indexes;
 	vector<float> unique_scores;
 	for (size_t i = 0; i < x.size(); ++i)
@@ -480,14 +494,17 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 	float curr_max = (float)INT32_MAX; //unbounded
 	float curr_min = curr_max;
 	int pred_sum = 0;
-	int curr_cnt = 0;
+	double curr_cnt = 0;
 	vector<int> bin_cnts;
 	for (int i = sz - 1; i >= 0; --i)
 	{
 		//update values curr_cnt, pred_avg
-		for (int ind : score_to_indexes[unique_scores[i]])
-			pred_sum += int(y[ind] > 0);
-		curr_cnt += (int)score_to_indexes[unique_scores[i]].size();
+		int cases_cnt;
+		double cntls_cnt;
+		get_counts(score_to_indexes[unique_scores[i]], y, cases_cnt, cntls_cnt, control_weight_down_sample);
+
+		pred_sum += cases_cnt;
+		curr_cnt += (cases_cnt + cntls_cnt);
 
 		if (curr_cnt > min_bucket_size && curr_max - unique_scores[i] > min_score_jump) {
 			//flush buffer
@@ -541,18 +558,18 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 
 	MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
 	for (size_t i = 0; i < map_prob.size(); ++i)
-		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n", 
+		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
 			min_range[i], max_range[i], map_prob[i],
 			100 * double(bin_cnts[i]) / y.size(), bin_cnts[i], (int)y.size());
 }
 
 void learn_platt_scale(vector<float> x, vector<float> &y,
 	int poly_rank, vector<double> &params, int min_bucket_size, float min_score_jump
-	, float min_prob_jump, bool fix_pred_order) {
+	, float min_prob_jump, bool fix_pred_order, double control_weight_down_sample) {
 	vector<float> min_range, max_range, map_prob;
 
 	learn_binned_probs(x, y, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
-		min_range, max_range, map_prob);
+		min_range, max_range, map_prob, control_weight_down_sample);
 
 	vector<float> probs;
 	apply_binned_prob(x, min_range, max_range, map_prob, probs);
@@ -634,12 +651,12 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 	case CalibrationTypes::probabilty_binning:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_binned_probs(preds, labels, min_preds_in_bin,
-			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob);
+			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob, control_weight_down_sample);
 		break;
 	case CalibrationTypes::probabilty_platt_scale:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_platt_scale(preds, labels, poly_rank, platt_params, min_preds_in_bin,
-			min_score_res, min_prob_res, fix_pred_order);
+			min_score_res, min_prob_res, fix_pred_order, control_weight_down_sample);
 		break;
 	default:
 		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",

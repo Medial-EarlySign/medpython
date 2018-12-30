@@ -179,10 +179,10 @@ bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 			return false;
 	}
 
-	MLOG("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
+	MLOG_D("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
 	for (string signal : aff_signals)
-		MLOG("[%s] ", signal.c_str());
-	MLOG("\n");
+		MLOG_D("[%s] ", signal.c_str());
+	MLOG_D("\n");
 	return true;
 
 }
@@ -396,11 +396,11 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 		}
 	}
 	if (did_something)
-		MLOG("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
+		MLOG_D("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
 			filtered.size(), processors.size());
 
 	if (filtered.empty()) {
-		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
+		MLOG_D("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
 		processors.clear();
 		return true;
 	}
