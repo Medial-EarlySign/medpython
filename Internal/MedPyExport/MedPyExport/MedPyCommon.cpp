@@ -189,7 +189,7 @@ void MPStringVecFloatMapAdaptor::__getitem__(std::string key, MEDPY_NP_OUTPUT(fl
 void MPStringVecFloatMapAdaptor::__setitem__(std::string key, MEDPY_NP_INPUT(float* float_in_buf, int float_in_buf_len)) { 
 	vector<float> fvec;
 	buf_to_vector(float_in_buf, float_in_buf_len, fvec);
-	o->insert(o->begin(), std::pair<string, vector<float> >(key, fvec)); 
+	o->operator[](key) = fvec;
 };
 std::vector<std::string> MPStringVecFloatMapAdaptor::keys() {
 	vector<string> ret;
