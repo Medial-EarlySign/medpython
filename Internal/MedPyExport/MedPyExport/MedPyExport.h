@@ -32,7 +32,10 @@
  "Samples", \
  "Sig", \
  "Split", \
- "Time"
+ "Time", \
+ "cerr", \
+ "logger_use_stdout"
+
 #endif //SWIG
 
 std::vector<std::string> get_public_objects();
