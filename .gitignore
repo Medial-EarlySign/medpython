@@ -88,3 +88,4 @@ External/xgboost/winBuild/
 *.o
 
 External/LightGBM/LightGBM/CMakeLists.txt
+Internal/MedPyExport/generate_binding/MedPython/apply_directives.i
