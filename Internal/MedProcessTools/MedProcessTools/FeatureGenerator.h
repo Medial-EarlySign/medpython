@@ -736,7 +736,9 @@ public:
 //=======================================
 
 /// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
-void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
+/// boundOutcomeTime is used to future time windows when looking to the future to limit the time window till the outcomeTime
+void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time,
+	bool boundOutcomeTime = false, int outcome_time = -1);
 
 /// Conversion between time-range type and name
 TimeRangeTypes time_range_name_to_type(const string& name);

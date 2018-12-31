@@ -934,9 +934,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	//MLOG("min_time %d max_time %d usv.len %d time %d\n", min_time, max_time, usv.len, time);
 	for (int i = usv.len - 1; i >= 0; i--) {
@@ -958,9 +956,7 @@ float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_fro
 float BasicFeatGenerator::uget_first(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -979,9 +975,7 @@ float BasicFeatGenerator::uget_first(UniversalSigVec &usv, int time, int _win_fr
 float BasicFeatGenerator::uget_last2(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -1000,10 +994,8 @@ float BasicFeatGenerator::uget_last2(UniversalSigVec &usv, int time, int _win_fr
 float BasicFeatGenerator::uget_avg(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
-
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
+	
 	double sum = 0, nvals = 0;
 
 	for (int i = 0; i < usv.len; i++) {
@@ -1026,10 +1018,8 @@ float BasicFeatGenerator::uget_avg(UniversalSigVec &usv, int time, int _win_from
 float BasicFeatGenerator::uget_max(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
-
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
+	
 	float max_val = -1e10;
 
 	for (int i = 0; i < usv.len; i++) {
@@ -1063,9 +1053,7 @@ float BasicFeatGenerator::uget_range_width(UniversalSigVec &usv, int time, int _
 float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	float min_val = (float)1e20;
 
@@ -1086,9 +1074,7 @@ float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time, int _win_from
 float BasicFeatGenerator::uget_std(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	double sum = 0, sum_sq = 0, nvals = 0;
 
@@ -1117,9 +1103,7 @@ float BasicFeatGenerator::uget_std(UniversalSigVec &usv, int time, int _win_from
 float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -1136,9 +1120,7 @@ float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time, int _w
 float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
@@ -1156,9 +1138,7 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time, int _wi
 float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -1176,9 +1156,7 @@ float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time, int _w
 float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -1198,9 +1176,7 @@ float BasicFeatGenerator::uget_slope(UniversalSigVec &usv, int time, int _win_fr
 {
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	double sx = 0, sy = 0, sxx = 0, sxy = 0, n = 0;
 	double t_start = -1;
@@ -1256,9 +1232,7 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 	//	}
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -1272,9 +1246,7 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 float BasicFeatGenerator::uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -1296,9 +1268,7 @@ float BasicFeatGenerator::uget_category_set_count(PidDynamicRec &rec, UniversalS
 	//	}
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	int cnt = 0;
 	for (int i = 0; i < usv.len; i++) {
@@ -1320,9 +1290,7 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 	//	}
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	float sum = 0;
 	for (int i = 0; i < usv.len; i++) {
@@ -1339,9 +1307,7 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
@@ -1354,9 +1320,7 @@ float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win
 float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
@@ -1370,9 +1334,7 @@ float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_f
 float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	float max_diff = missing_val;
 	vector<float> _vals_vec;
@@ -1405,7 +1367,7 @@ float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win
 float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int dummy_time, time_to_check;
-	get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check);
+	get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check, false);
 
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
@@ -1425,7 +1387,7 @@ float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int updated_w
 float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	float val = missing_val;
 	for (int i = 0; i < usv.len; i++) {
@@ -1448,7 +1410,7 @@ float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_wi
 float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	float min_val = (float)1e20;
 
@@ -1475,7 +1437,7 @@ float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int updated_win_f
 float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	float max_val = (float)-1e10;
 
@@ -1502,7 +1464,7 @@ float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int updated_win_f
 float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
@@ -1522,7 +1484,7 @@ float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int updated_win_
 float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	int no_lut_ind = 0;
 	float time_diff = missing_val;
@@ -1574,7 +1536,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int updated
 float RangeFeatGenerator::uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	int last_end = 0;
 	int num_recurrence = 0;
@@ -1909,7 +1871,7 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 	MLOG("In ModelFeatGenerator::prepare()\n");
 	if (!use_overriden_predictions) {
 		MedSamples modifiedSamples = samples;
-		int t_size = times.size();
+		int t_size = (int)times.size();
 		preds.resize(t_size);
 		for (int t = 0; t < t_size; t++) {
 			// modify sample time
@@ -1982,10 +1944,13 @@ ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile,
 //................................................................................................................
 // Helper function for time conversion
 //................................................................................................................
-void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time)
+void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time,
+	bool boundOutcomeTime, int outcome_time)
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
+	if (boundOutcomeTime && outcome_time > _max_time)
+		_max_time = outcome_time;
 }
 
 // Helper functions for time-range signals
