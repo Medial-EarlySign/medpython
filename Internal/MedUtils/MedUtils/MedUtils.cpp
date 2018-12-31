@@ -327,15 +327,15 @@ string medial::io::ProgramArgs_base::get_section(const string &full_help, const 
 	boost::split(lines, full_help, boost::is_any_of("\n"));
 	bool in_section = false;
 	for (size_t i = 0; i < lines.size(); ++i) {
-		if (lines[i].find(":") != string::npos) {
+		string ln = boost::trim_copy(lines[i]);
+		if (!ln.empty() && ln.at(ln.length() - 1) == ':' && ln.substr(0, 2) != "--") {
 			if (lines[i].find(search) != string::npos)
 				in_section = true;
 			else
 				in_section = false;
 		}
-		if (in_section) {
+		if (in_section)
 			res << lines[i] << "\n";
-		}
 	}
 	return res.str();
 }
@@ -344,10 +344,9 @@ void medial::io::ProgramArgs_base::list_sections(const string &full_help, vector
 	vector<string> lines;
 	boost::split(lines, full_help, boost::is_any_of("\n"));
 	for (size_t i = 0; i < lines.size(); ++i) {
-		if (lines[i].find(":") != string::npos) {
-			boost::trim(lines[i]);
+		boost::trim(lines[i]);
+		if (!lines[i].empty() && lines[i].at(lines[i].length() - 1) == ':' && lines[i].substr(0, 2) != "--")
 			all_sec.push_back(lines[i].substr(0, lines[i].length() - 1));
-		}
 	}
 }
 
