@@ -107,8 +107,8 @@ template <typename T, typename S> float medial::performance::spearman_corr_witho
 	vector<pair<float, int> > v1_i(len), v2_i(len);
 
 	for (int i = 0; i < len; i++) {
-		v1_i[i] = { (double) v1[i],i };
-		v2_i[i] = { (double) v2[i],i };
+		v1_i[i] = { (float) v1[i],i };
+		v2_i[i] = { (float) v2[i],i };
 	}
 
 	sort(v1_i.begin(), v1_i.end(), [](const pair<float, int>& left, const pair<float, int>& right) { return left.first < right.first; });
@@ -799,12 +799,12 @@ template <typename T> float medial::performance::auc(vector<T> &preds, vector<fl
 
 	preds_y.resize(preds.size());
 	for (int i = 0; i < preds.size(); i++) {
-		preds_y[i].first = (float) preds[i];
+		preds_y[i].first = (double) preds[i];
 		preds_y[i].second = y[i];
 	}
 
 	// Sort from high score to low
-	sort(preds_y.begin(), preds_y.end(), [](const pair<float, float>& left, const pair<float, float>& right) { return left.first > right.first; });
+	sort(preds_y.begin(), preds_y.end(), [](const pair<double, double>& left, const pair<double, double>& right) { return left.first > right.first; });
 
 	// Loop - for each Negative, count all positives above it ...
 	unsigned long long auc = 0;
