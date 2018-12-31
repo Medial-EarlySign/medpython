@@ -477,6 +477,18 @@ int MedFeatures::get_max_serial_id_cnt() const {
 	return max;
 }
 
+//................................................................................................
+int MedFeatures::prep_selected_list(vector<string>& search_str, unordered_set<string> &selected)
+{
+	for (auto &f : data) {
+		for (auto &s : search_str)
+			if (s != "" && f.first.find(s) != string::npos)
+				selected.insert(f.first);
+	}
+
+	return 0;
+}
+
 template<class T> void medial::process::commit_selection(vector<T> &vec, const vector<int> &idx) {
 	vector<T> filt(idx.size());
 	for (size_t i = 0; i < idx.size(); ++i)
