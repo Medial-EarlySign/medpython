@@ -1770,6 +1770,7 @@ int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 //................................................................................................................
 void ModelFeatGenerator::set_names() {
+	MLOG("In ModelFeatGenerator::set_names()\n");
 	names.clear();
 
 	string name;
@@ -1780,18 +1781,22 @@ void ModelFeatGenerator::set_names() {
 	else
 		name = "ModelPred";
 
-	if (impute_existing_feature)
+	if (impute_existing_feature) 
 		names.push_back(modelName);
 	else {
-		for (int i = 0; i < n_preds; i++)
-			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name + "." + to_string(i + 1));
+		for (int t = 0; t < times.size(); t++) {
+			for (int i = 0; i < n_preds; i++)
+				names.push_back("FTR_" + int_to_string_digits(serial_id, 6)  + "." + name + "_t_" + to_string(times[t]) + "." + to_string(i + 1));
+		}
 	}
+	
+
 }
 
 // Init from map
 //.......................................................................................
 int ModelFeatGenerator::init(map<string, string>& mapper) {
-
+	//MLOG("In ModelFeatGenerator::init()\n");
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [ModelFeatGenerator::init]
@@ -1799,11 +1804,20 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
+		else if (field == "time_unit_win") time_unit_win = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
+		else if (field == "times") {
+			vector<string> stringTimes;
+			boost::split(stringTimes, entry.second, boost::is_any_of(","));
+			for (auto stringTime : stringTimes) times.push_back(med_stoi(stringTime));
+		}
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
 		//! [ModelFeatGenerator::init]
 	}
-
+	if (times.empty()) times.push_back(0); // if no times were given, predict at sample time
+	if (impute_existing_feature != 0 && times.size() > 1) // it does not make sense to impute existing features at multiple time points
+		MTHROW_AND_ERR("cannot use impute_existing_feature and more than one time in ModelFeatureGenerator\n")
 	// set names
 	set_names();
 	// {name} is magical
@@ -1822,7 +1836,7 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 // Copy Model and get required signals
 //.......................................................................................
 int ModelFeatGenerator::init_from_model(MedModel *_model) {
-
+	MLOG("In ModelFeatGenerator::init_from_model()\n");
 	generator_type = FTR_GEN_MODEL;
 	model = _model;
 
@@ -1831,64 +1845,82 @@ int ModelFeatGenerator::init_from_model(MedModel *_model) {
 	for (string signal : required)
 		req_signals.push_back(signal);
 
-	set_names();
 	return 0;
 }
 
 /// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
 //.......................................................................................
 void ModelFeatGenerator::override_predictions(MedSamples& inSamples, MedSamples& modelSamples) {
-
+	MLOG("In ModelFeatGenerator::override_predictions()\n");
+	// Note: when using this feature with multiple time points make sure the predictions in the given sample are setup in the correct order
 	// Sanity check ...
 	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples, 0))
 		MTHROW_AND_ERR("inSamples is not identical to model samples in ModelFeatGenerator::load\n");
+	int t_size = times.size();
+	preds.resize(t_size, vector<vector<float>>(n_preds, vector<float>(inSamples.nSamples())));
 
-	preds.resize(inSamples.nSamples()*n_preds);
+	for (int t = 0; t < t_size; t++) {
+		for (int i = 0; i < n_preds; i++){
+			int idx = 0;
+			for (auto& idSamples : inSamples.idSamples) {
+				for (auto& sample : idSamples.samples) {
+					if (sample.prediction.size() < n_preds*t_size)
+						MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds*t_size);
+					preds[t][i][idx++] = sample.prediction[t*n_preds + i];
 
-	int idx = 0;
-	for (auto& idSamples : inSamples.idSamples) {
-		for (auto& sample : idSamples.samples) {
-			if (sample.prediction.size() < n_preds)
-				MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds);
-
-			for (int i = 0; i < n_preds; i++)
-				preds[idx++] = sample.prediction[i];
+				}
+			}
 		}
 	}
-
-	set_names();
 
 	use_overriden_predictions = 1;
 
 }
 
+void ModelFeatGenerator::modifySampleTime(MedSamples& samples, int time) {
+	for (int s = 0; s < samples.idSamples.size(); s++) {
+		for (int m = 0; m < samples.idSamples[s].samples.size(); m++) {
+			samples.idSamples[s].samples[m].time += time;
+		}
+
+	}
+}
+
 // Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
-		
+	MLOG("In ModelFeatGenerator::prepare()\n");
 	if (!use_overriden_predictions) {
-		// Predict
-		if (model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
-			MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
+		MedSamples modifiedSamples = samples;
+		int t_size = times.size();
+		preds.resize(t_size);
+		for (int t = 0; t < t_size; t++) {
+			// modify sample time
+			int sig_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, times[t]);
+			modifySampleTime(modifiedSamples, -sig_time);
+			
+			// Predict
+			if (model->apply(rep, modifiedSamples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
+				MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
 
-		// Extract predictions
-		if (model->features.samples[0].prediction.size() < n_preds)
-			MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
-
-		preds.resize(n_preds*model->features.samples.size());
-		for (int i = 0; i < model->features.samples.size(); i++) {
-			for (int j = 0; j < n_preds; j++) {
-				float new_val = model->features.samples[i].prediction[j];
-				if (!isfinite(new_val))
-					MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s nan in row %d\n", modelName.c_str(), i);
-				preds[i*n_preds + j] = new_val;
+			// Extract predictions
+			if (model->features.samples[0].prediction.size() < n_preds)
+				MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
+			preds[t].resize(n_preds, vector<float>(model->features.samples.size()));
+			for (int i = 0; i < model->features.samples.size(); i++) {
+				for (int j = 0; j < n_preds; j++) {
+					float new_val = model->features.samples[i].prediction[j];
+					if (!isfinite(new_val))
+						MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s nan in row %d\n", modelName.c_str(), i);
+					preds[t][j][i] = new_val;
+				}
 			}
+
+			// release some memory
+			model->features.clear();
+			modifySampleTime(modifiedSamples, +sig_time);
 		}
-
-		// release some memory
-		model->features.clear();
 	}
-
 	// Generate a new feature or identify feature to impute.
 	if (impute_existing_feature) {
 		FeatureProcessor p;
@@ -1904,13 +1936,17 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 // Put relevant predictions in place
 //.......................................................................................
 int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
-	float *p_feat = _p_data[0] + index;
-	for (int i = 0; i < num; i++) {
-		if (!impute_existing_feature || p_feat[i] == missing_val) {
-			float new_val = preds[index*n_preds + i];
-			if (!isfinite(new_val))
-				MTHROW_AND_ERR("ModelFeatGenerator::_generate nan in row %d\n", index*n_preds + i);
-			p_feat[i] = new_val;
+	for (int t = 0; t < times.size(); t++) {
+		for (int n = 0; n < n_preds; n++) {
+			float *p_feat = _p_data[t*n_preds + n] + index;
+			for (int i = 0; i < num; i++) {
+				if (!impute_existing_feature || p_feat[i] == missing_val) {
+					float new_val = preds[t][n][index + i];
+					if (!isfinite(new_val))
+						MTHROW_AND_ERR("ModelFeatGenerator::_generate nan in row %d\n", index + i);
+					p_feat[i] = new_val;
+				}
+			}
 		}
 	}
 
@@ -1920,11 +1956,12 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 
 ModelFeatGenerator::~ModelFeatGenerator() {
+	MLOG("In ModelFeatGenerator::~ModelFeatGenerator()\n");
 	if (model != NULL) delete model;
 	model = NULL;
 }
 
-ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, model)
+ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, use_overriden_predictions, time_unit_win, time_unit_sig, times)
 //................................................................................................................
 // Helper function for time conversion
 //................................................................................................................

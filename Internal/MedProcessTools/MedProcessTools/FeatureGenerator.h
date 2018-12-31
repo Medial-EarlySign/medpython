@@ -639,6 +639,9 @@ public:
 	int n_preds = 1;  ///< how many features to create
 	int impute_existing_feature = 0; ///< If true will use model to impute an existing feature (determined by model name. Otherwise - generate new feature(s)
 	int use_overriden_predictions = 0; ///< Use a given vector of predictions instead of applying model
+	int time_unit_win = global_default_windows_time_unit; ///< the time unit in which the times are given. Default: global_default_windows_time_unit
+	int time_unit_sig = global_default_windows_time_unit; ///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	vector<int> times;
 
 	/// Naming 
 	void set_names();
@@ -657,6 +660,8 @@ public:
 	/// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
+	void modifySampleTime(MedSamples& samples, int time);
+
 	// (De)Serialize
 	ADD_CLASS_NAME(ModelFeatGenerator)
 	ADD_SERIALIZATION_HEADERS()
@@ -665,7 +670,7 @@ public:
 	//dctor:
 	~ModelFeatGenerator();
 private:
-	vector<float> preds;
+	vector<vector<vector<float>>> preds;
 };
 
 
