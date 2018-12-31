@@ -560,7 +560,7 @@ string MedModel::make_absolute_path(const string& main_file, const string& small
 		)
 		return small_file;
 	string abs = main_file_path + '/' + small_file;
-	MLOG("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
+	MLOG_D("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
 void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
@@ -569,7 +569,7 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 
 	// Alterations strings are of the format from::to
 	vector<string> fields;
-	MLOG("Json : replacing ");
+	MLOG_D("Json : replacing ");
 	for (string& alt : alterations) {
 		boost::algorithm::split_regex(fields, alt, boost::regex("::"));
 		if (fields.size() != 2)
@@ -577,12 +577,12 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 		vector<string> res;
 		boost::find_all(res, json_contents, fields[0]);
 		if (res.size() > 0)
-			MLOG("[%s]*%d -> [%s] ", fields[0].c_str(), res.size(), fields[1].c_str());
+			MLOG_D("[%s]*%d -> [%s] ", fields[0].c_str(), res.size(), fields[1].c_str());
 		else
-			MLOG("[%s]*%d ", fields[0].c_str(), res.size());
+			MLOG_D("[%s]*%d ", fields[0].c_str(), res.size());
 		boost::replace_all(json_contents, fields[0], fields[1]);
 	}
-	MLOG("\n");
+	MLOG_D("\n");
 }
 string MedModel::json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
 	if (recursion_level > 3)
@@ -609,7 +609,7 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 	string out_string = "";
 	for (; it != end; ++it) {
 		string json_ref = it->str(1);
-		std::cerr << "Json : found " << json_ref << "\n";
+		MLOG_D("Json : found %s\n", json_ref.c_str());
 		vector<string> tokens;
 		boost::split(tokens, json_ref, boost::is_any_of(";"));
 		if (tokens.empty())
@@ -628,7 +628,7 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 				vector<string> existing_fields;
 				boost::algorithm::split_regex(existing_fields, existing_alt, boost::regex("::"));
 				if (fields[0] == existing_fields[0]) {
-					MLOG("alteration [%s] overriden in the context of [%s] to [%s]\n",
+					MLOG_D("alteration [%s] overriden in the context of [%s] to [%s]\n",
 						fields[0].c_str(), small_file.c_str(), existing_fields[1].c_str());
 					overriden = true;
 				}
@@ -649,12 +649,7 @@ void MedModel::init_from_json_file_with_alterations_version_1(const string &fnam
 	string json_contents = json_file_to_string(0, fname, alterations);
 	istringstream no_comments_stream(json_contents);
 
-	MLOG("init model from json file [%s], stripping comments and displaying first 5 lines:\n", fname.c_str());
-	int i = 5; string my_line;
-	while (i-- > 0 && getline(no_comments_stream, my_line))
-		MLOG("%s\n", my_line.c_str());
-	no_comments_stream.clear();
-	no_comments_stream.seekg(0);
+	MLOG("MedModel:: init model from json file [%s]\n", fname.c_str());
 
 	ptree pt;
 	read_json(no_comments_stream, pt);
@@ -744,7 +739,7 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 		// exists 
 		if (rep_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
-			MLOG("Adding new rep_processor set [%d]\n", i_set);
+			MLOG_D("Adding new rep_processor set [%d]\n", i_set);
 			RepMultiProcessor *processor = new RepMultiProcessor;
 			rep_processors[i_set] = processor;
 		}
@@ -762,7 +757,7 @@ void MedModel::add_rep_processor_to_set(int i_set, const string &init_string)
 		for (int i = 0; i < i_set + 1; i++)
 			// put a new empty multi in i_set
 			if (rep_processors[i] == NULL) {
-				MLOG("Adding new rep_processor set [%d]\n", i);
+				MLOG_D("Adding new rep_processor set [%d]\n", i);
 				RepMultiProcessor *processor = new RepMultiProcessor;
 				rep_processors[i] = processor;
 			}
@@ -791,7 +786,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 		// exists 
 		if (feature_processors[i_set] == NULL) {
 			// NULL ... in that case init an empty MultiProcessor in i_set
-			MLOG("Adding new feature_processor set [%d]\n", i_set);
+			MLOG_D("Adding new feature_processor set [%d]\n", i_set);
 			MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
 			if (mfprocessor->init_from_string(init_string) < 0)
 				MTHROW_AND_ERR("Cannot init MultiFeatureProcessor  with init string \'%s\'\n", init_string.c_str());
@@ -815,7 +810,7 @@ void MedModel::add_feature_processor_to_set(int i_set, int duplicate, const stri
 		for (int i = 0; i < i_set + 1; i++)
 			// put a new empty multi in i_set
 			if (feature_processors[i] == NULL) {
-				MLOG("Adding new feature_processor set [%d]\n", i);
+				MLOG_D("Adding new feature_processor set [%d]\n", i);
 				MultiFeatureProcessor *mfprocessor = new MultiFeatureProcessor;
 				if (mfprocessor->init_from_string(init_string) < 0)
 					MTHROW_AND_ERR("Cannot init MultiFeatureProcessor  with init string \'%s\'\n", init_string.c_str());
@@ -940,7 +935,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
-		if (verbosity) MLOG("adding virtual signals from rep type %d\n", processor->processor_type);
+		if (verbosity) MLOG("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
 		processor->add_virtual_signals(virtual_signals);
 	}
 

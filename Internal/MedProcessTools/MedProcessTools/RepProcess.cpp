@@ -179,10 +179,10 @@ bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 			return false;
 	}
 
-	MLOG("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
+	MLOG_D("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
 	for (string signal : aff_signals)
-		MLOG("[%s] ", signal.c_str());
-	MLOG("\n");
+		MLOG_D("[%s] ", signal.c_str());
+	MLOG_D("\n");
 	return true;
 
 }
@@ -396,11 +396,11 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 		}
 	}
 	if (did_something)
-		MLOG("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
+		MLOG_D("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
 			filtered.size(), processors.size());
 
 	if (filtered.empty()) {
-		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
+		MLOG_D("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
 		processors.clear();
 		return true;
 	}
@@ -2090,11 +2090,6 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 }
 
 //.......................................................................................
-void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
-{
-	for (int i = 0; i < V_names.size(); i++)
-		_virtual_signals[V_names[i]] = virtual_signals[i].second;
-}
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
 	int time_range, int time_unit, int &sum_diff) {
@@ -2324,10 +2319,6 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	}
 
 	return 0;
-}
-
-void RepCombineSignals::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs) {

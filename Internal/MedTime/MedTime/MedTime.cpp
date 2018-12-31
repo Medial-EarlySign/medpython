@@ -115,6 +115,7 @@ int MedTime::convert_days(int to_type, int in_time)
 int MedTime::convert_datetime_safe(int to_type, string in_time, char handle_ilegal_date) {
 	static int warning_count = 0;
 	string out_t = in_time;
+
 	boost::replace_all(out_t, " ", "");
 	boost::replace_all(out_t, "-", "");
 	boost::replace_all(out_t, ":", "");
@@ -401,4 +402,12 @@ double MedTime::get_age(int t, int type_t, int byear)
 	double years1 = convert_times_D(type_t, MedTime::Years, (double)t);
 	double years2 = (double)byear - 1900 + 0.5;
 	return (years1-years2);
+}
+
+//.....................................................................................................
+double MedTime::get_age_from_bdate(int t, int type_t, int bdate)
+{
+	double years1 = convert_times_D(type_t, MedTime::Years, t);
+	double years2 = convert_times_D(MedTime::Date, MedTime::Years, bdate);
+	return (years1 - years2);
 }

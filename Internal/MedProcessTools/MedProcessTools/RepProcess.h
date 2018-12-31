@@ -106,7 +106,7 @@ public:
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	/// <summary> rep processors CREATING virtual signals need to implement this: adding their signals to the pile </summary>
-	virtual void add_virtual_signals(map<string, int> &_virtual_signals) { return; };
+	virtual void add_virtual_signals(map<string, int> &_virtual_signals) { for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second; };
 
 	// Required Signals functions : get all signals that are required by the processor
 	/// <summary> Append required signal names to set : parent function just uses req_signals  </summary>
@@ -1120,8 +1120,6 @@ public:
 	// making sure V_ids and sigs_ids are initialized
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 
-	void add_virtual_signals(map<string, int> &_virtual_signals);
-
 
 	// Learning
 	/// <summary> In this class there's never learning - we return 0 immediately </summary>
@@ -1168,8 +1166,6 @@ public:
 	vector<float> factors; ///< factor for each signal
 
 	RepCombineSignals() { processor_type = REP_PROCESS_COMBINE; output_name = ""; }
-
-	void add_virtual_signals(map<string, int> &_virtual_signals);
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 

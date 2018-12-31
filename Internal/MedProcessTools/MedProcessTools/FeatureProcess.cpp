@@ -497,18 +497,23 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	vector<float> values;
 	get_all_values(features, resolved_feature_name, ids, values, max_samples);
 
-	vector<float> wgts(values.size(), 1.0);
-	int rc = get_moments(values, wgts, missing_value, mean, sd);
-	if (sd == 1) {
-		MLOG("got sd=1.0 in feature %s....\n", feature_name.c_str());
+	int n;
+	medial::stats::get_mean_and_std(values, missing_value, n, mean, sd);
+
+	// Handle constant vector
+	if (sd == 0 && values.size()) {
+		MWARN("Got constant (%f) vector in feature %s....\n", feature_name.c_str());
+		sd = 1.0;
 	}
+	else  if (sd == 1)
+		MLOG("got sd=1.0 in feature %s....\n", feature_name.c_str());
 
 	if (sd == 0)
 		MTHROW_AND_ERR("FeatureNormalizer learn sd: %f mean: %f size: %d", sd, mean, (int)values.size());
 
 	//MLOG("FeatureNormalizer::Learn() done for feature %s , mean %f sd %f size %d\n", feature_name.c_str(), mean, sd, (int)values.size());
 
-	return rc;
+	return 0;
 }
 
 // Apply
@@ -608,7 +613,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
-	
+
 	// Get all values
 	vector<float> values;
 	get_all_values(features, resolved_feature_name, ids, values, max_samples);
@@ -616,6 +621,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	vector<vector<float> > strataValues(imputerStrata.nStratas());
 	for (int i = 0; i < imputerStrata.nStratas(); i++) {
 		get_all_values(features, strata_name_conversion[imputerStrata.stratas[i].name], ids, strataValues[i], max_samples);
+//		get_all_values(features, imputerStrata.stratas[i].name, ids, strataValues[i], max_samples);
 	}
 
 	// Collect
@@ -657,17 +663,17 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 				moments[i] = missing_value;
 		}
 		else if (moment_type == IMPUTE_MMNT_MEAN)
-			get_mean(stratifiedValues[i], moments[i]);
+			moments[i] = medial::stats::mean_without_cleaning(stratifiedValues[i]);
 		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
 			if (stratifiedValues[i].size() > 0)
-				sort_and_get_median(stratifiedValues[i], moments[i]);
+				moments[i] = medial::stats::median_without_cleaning(stratifiedValues[i]);
 			else
 				moments[i] = missing_value;
 		}
 		else if (moment_type == IMPUTE_MMNT_COMMON)
-			get_common(stratifiedValues[i], moments[i]);
+			moments[i] = medial::stats::most_common_without_cleaning(stratifiedValues[i]);
 		else if (moment_type == IMPUTE_MMNT_SAMPLE) {
-			get_histogram(stratifiedValues[i], histograms[i]);
+			medial::stats::get_histogram_without_cleaning(stratifiedValues[i], histograms[i]);
 		}
 		else MTHROW_AND_ERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 	}
@@ -684,14 +690,13 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 			MLOG("FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
 				min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
 		if (moment_type == IMPUTE_MMNT_MEAN)
-			get_mean(all_existing_values, default_moment);
+			default_moment = medial::stats::mean_without_cleaning(all_existing_values);
 		else if (moment_type == IMPUTE_MMNT_MEDIAN)
-			//sort_and_get_median(all_existing_values, default_moment);
-			get_median(all_existing_values, default_moment);
+			default_moment = medial::stats::median_without_cleaning(all_existing_values);
 		else if (moment_type == IMPUTE_MMNT_COMMON)
-			get_common(all_existing_values, default_moment);
+			default_moment = medial::stats::most_common_without_cleaning(all_existing_values);
 		else if (moment_type == IMPUTE_MMNT_SAMPLE)
-			get_histogram(all_existing_values, default_histogram);
+			medial::stats::get_histogram_without_cleaning(all_existing_values, default_histogram);
 	}
 	//for (int j = 0; j < moments.size(); j++)
 		//MLOG("moment %d = [%f]\n", j, moments[j]);
@@ -709,7 +714,8 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
-	
+
+
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
 	// Attribute
@@ -720,7 +726,7 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	vector<float>& data = features.data[resolved_feature_name];
 	vector<vector<float> *> strataData(imputerStrata.nStratas());
 	for (int j = 0; j < imputerStrata.nStratas(); j++)
-		strataData[j] = &(features.data[strata_name_conversion[imputerStrata.stratas[j].name]]);
+		strataData[j] = &(features.data[imputerStrata.stratas[j].name]);
 
 	int missing_cnt = 0;
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
@@ -732,9 +738,9 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 			if (moment_type == IMPUTE_MMNT_SAMPLE) {
 				if (strata_sizes[index] < min_samples)
-					data[i] = sample_from_histogram(default_histogram);
+					data[i] = medial::stats::sample_from_histogram(default_histogram);
 				else
-					data[i] = sample_from_histogram(histograms[index]);
+					data[i] = medial::stats::sample_from_histogram(histograms[index]);
 			}
 			else {
 				if (strata_sizes[index] < min_samples)

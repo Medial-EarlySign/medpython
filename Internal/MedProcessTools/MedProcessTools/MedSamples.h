@@ -50,7 +50,7 @@ public:
 	/// if pos is empty, check old and new formats
 	/// </summary>
 	/// <returns> 0 upon success, -1 upon failure to parse </returns>
-	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit, int raw_format);
+	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, map<string, int>& str_attr_pos, int time_unit, int raw_format);
 	/// <summary> Write to string in new format </summary>
 	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit);
 	void write_to_string(string &s, int time_unit);
@@ -191,7 +191,7 @@ public:
 	/// <summary> Get all attributes. Return -1 if not-consistent </summary>
 	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes);
 
-	// <summary> given a probability dilution prob, dilute current samples </summary>
+	/// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);
 
 	/// <summary>  API's for online insertions : main use case is a single time point for prediction per pid </summary>

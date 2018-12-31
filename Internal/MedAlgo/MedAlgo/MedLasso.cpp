@@ -203,13 +203,14 @@ int MedLasso::Predict(float *x, float *&preds, int nsamples, int nftrs, int tran
 void MedLasso::normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std) {
 
 	// Get moments
+	int n_clean;
 	vector<float> v(nsamples);
 	for (int i = 0; i < nftrs; i++) {
 		for (int j = 0; j < nsamples; j++)
 			v[j] = x[nftrs*j + i];
-		get_moments(&(v[0]), w, nsamples, -1, x_avg[i], x_std[i], false);
+		medial::stats::get_mean_and_std(v, (float)-1.0, n_clean, x_avg[i], x_std[i]);
 	}
-	get_moments(y, w, nsamples, -1, y_avg, y_std, false);
+	medial::stats::get_mean_and_std(y, w, nsamples, -1.0, y_avg, y_std, n_clean, false);
 
 	// Normalize
 	for (int j = 0; j < nsamples; j++) {

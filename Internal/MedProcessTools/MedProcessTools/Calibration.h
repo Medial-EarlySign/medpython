@@ -59,6 +59,7 @@ public:
 	float min_prob_res = 0; ///< final probality resulotion value to round to and merge similar
 	bool fix_pred_order = false; ///< If true will not allow higher scores to have lower probabilites
 	int poly_rank = 1; ///< Only in platt_scale - the polynon rank for optimizing sigmoid of prob
+	double control_weight_down_sample = 0; ///< factor weight for controls when downsampling controls by this factor
 
 	vector<calibration_entry> cals; ///< for "time_window"
 	vector<float> min_range, max_range, map_prob; ///< for "binning"
@@ -85,8 +86,8 @@ public:
 		cals, min_range, max_range, map_prob, platt_params)
 
 protected:
-	double calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot);
-	void smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals);
+	double calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor);
+	void smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals, double controls_factor);
 
 private:
 	int learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit);

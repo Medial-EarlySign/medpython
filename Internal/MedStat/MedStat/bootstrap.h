@@ -8,7 +8,6 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <Logger/Logger/Logger.h>
 
-#define MED_MAT_MISSING_VALUE -65336
 
 using namespace std;
 

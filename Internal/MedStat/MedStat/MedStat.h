@@ -1,7 +1,5 @@
 //
-// MedStat - Statistics utilities :
-//			 1. MedCleaner used for normalization and handling outliers
-//			 2. MedPerformance used for analyzing performance
+// MedStat - Statistics utilities
 //
 
 #ifndef _MED_STAT_H_
@@ -21,145 +19,158 @@
 #include <cstring>
 
 #include "string.h"
-#include <SerializableObject/SerializableObject/SerializableObject.h>
-
-
-#define MED_CLEANER_MAX_Z 15
-#define MED_CLEANER_EPSILON 0.0001
-
-using namespace std ;
-
-//=============================================
-// general helper routines
-//=============================================
-
-// get a vector of values, a vector of probabilities, and returning a matching vector of values such that Prob(x<=pvals[i])=p[i]
-void get_percentiles(vector<float> &vals, vector<float> &p, vector<float> &pvals);
-void get_percentiles(vector<float> &vals, vector<float> &p, vector<float> &pvals, int only_positive_flag);
-
-// gets a vector of values, and checks the best way to round it at the 10^-3 to 10^3 (at 10x steps) range.
-float get_best_rounding(vector<float> &vals, vector<float>& res, vector<int> &counts, float missing_value = -1);
-//float get_best_rounding(vector<float> &vals) { vector<float> res; vector<int> counts; return(get_best_rounding(vals, res, counts)); }
-
-// Moments
-void get_mean(vector<float> &vals, float &mean);
-
-template <typename T> void sort_and_get_median(vector<T>& vals, T &median) {
-	if (vals.size() == 0)
-		median = T();
-	else {
-		nth_element(vals.begin(), vals.begin() + vals.size() / 2, vals.end());
-		median = vals[vals.size() / 2];
-	}
-}
-
-template <typename T> void get_median(const vector<T>& vals, T &median) {
-	vector<T> tempValues = vals;
-	sort_and_get_median(tempValues, median);
-}
-
-
-void get_common(vector<float> &vals, float &common);
-void get_histogram(vector<float>& vals, vector<pair<float, float> >& hist);
-float sample_from_histogram(vector<pair<float, float> >& hist);
-
-void get_mean_and_std(vector<float> &vals, float &mean, float &std);
-void get_mean_and_std(vector<float> &vals, float &mean, float &std, float missing_val);
-
-
-// rounding
-#define ROUNDING_EPSILON 0.00001
-inline float roundf(float val, float rounder) {
-	return ((float)((int)((val+(float)ROUNDING_EPSILON)/rounder)) * rounder);
-}
-
-
-//======================================================================================
-// MedCleaner - class to handle cleaning/normalization of data
-//======================================================================================
+#include <MedMat/MedMat/MedMat.h>
 
 #define MED_DEFAULT_MISSING_VALUE		-1
 #define MED_DEFAULT_MIN_TRIM			-1e9
 #define MED_DEFAULT_MAX_TRIM			 1e9
-// Cleaner class : Normalizing and cleaning of outliers
-class MedCleaner : SerializableObject {
-public:
 
-	float missing_value ;
-	float min_trim;
+using namespace std ;
 
-	int n,nvals,most_common_count,nzeros ;
-	float median,q1,q3,iqr,mean,sdv,skew,min,max ;
-	float most_common_value ;
+// general useful routines for various statistics given two vectors (usually score + labels)
 
-	bool trim_flag,remove_flag,normalize_flag,replace_missing_to_mean_flag;
-	float trim_min,trim_max ;
-	float remove_min,remove_max ;
+namespace medial {
+	namespace performance {
+		/// <summary> Pearson correlation, options: clean missing values, add weights</summary>
+		/// <returns> Pearson's R, -2.0 if cannot calculate. outputs n = number of cleaned values </returns>
+		template <typename T> float pearson_corr_without_cleaning(const vector<T> &v1, const vector<T> &v2, const vector<float> *weights = NULL);
+		template <typename T> float pearson_corr(const vector<T> &v1, const vector<T> &v2, T missing_value, int& n, const vector<float> *weights = NULL);
 
-	float sk ;
-	int skew_sign ;
+		/// <summary> Spearman correlation, options: clean missing values, add weights </summary>
+		/// <returns> Spearman's R, -2.0 if cannot calculate. outputs n = number of cleaned values </returns>
+		template <typename T, typename S> float spearman_corr_without_cleaning(const vector<T> &v1, const vector<S> &v2, const vector<float> *weights = NULL);
+		template <typename T> float spearman_corr(const vector<T> &v1, const vector<T> &v2, T missing_val, int &n, const vector<float> *weights = NULL);
 
-	MedCleaner() {missing_value = MED_DEFAULT_MISSING_VALUE; remove_flag = trim_flag = normalize_flag = replace_missing_to_mean_flag = true; n=0; nvals=0;
-				  most_common_count=0; nzeros=0; median=q1=q3=iqr=MED_DEFAULT_MISSING_VALUE; median = MED_DEFAULT_MISSING_VALUE;mean=MED_DEFAULT_MISSING_VALUE; sdv=0; skew=0;
-				  most_common_value = MED_DEFAULT_MISSING_VALUE; trim_min=MED_DEFAULT_MISSING_VALUE;  min_trim = MED_DEFAULT_MIN_TRIM;
-				  trim_max=MED_DEFAULT_MISSING_VALUE; remove_min=MED_DEFAULT_MISSING_VALUE; remove_max=-1; sk=0; skew_sign=0;}
+		/// <sumary> RMSE of two vectors. options: clean missing values, add weights </summary>
+		/// <returns> RMSE. Outputs n = number of cleaned values </returns>
+		template <typename T>float rmse_without_cleaning(const vector<T> &preds, const vector<T> &y, const vector<float> *weights = NULL);
+		template <typename T>float rmse(const vector<T> &preds, const vector<T> &y, T missing_val, int &n, const vector<float> *weights = NULL);
 
-	void print(const string& prefix) ;
-	void print_short(const string& prefix) ;
-	void calculate(vector<float> &values) ; 
-	void get_mean_and_sdv(vector<float> &values, bool take_missing_into_account = false) ;
-	void get_cleaning_range (vector<float>& values, float& min_val, float& max_val, float std_mult = MED_CLEANER_MAX_Z) ;
-	void get_limits_iteratively(vector<float> values, float std_mult = MED_CLEANER_MAX_Z) ;
-	void get_cleaning_params(vector<float> values) ;
-	int clear(vector<float>& values) ;
-	int clean(vector<float>& values) {return clear(values);};
-	void remove_trim_replace(vector<float> &values);
-	
-	void normalize(vector<float>& values) ;
+		/// <sumary> L1 distance of two vectors. options: clean missing values, add weights </summary>
+		/// <returns> L1 distance (average of absolute distance). Outputs n = number of cleaned values </returns>
+		template <typename T>float L1_dist_without_cleaning(const vector<T> &preds, const vector<T> &y, const vector<float> *weights = NULL);
+		template <typename T>float L1_dist(const vector<T> &preds, const vector<T> &y, T missing_val, int &n, const vector<float> *weights = NULL);
 
-	bool is_valid(float value) ;
-	float get_trimmed(float value) ;
-	float get_value(float value) ;
-	int trim(float& value) ;
-	void single_remove_trim_replace(float &val);
-	void single_normalize(float &val);
+		/// <sumary> Relative L1 distance of two vectors. options: clean missing values, add weights </summary>
+		/// <returns> Relative L1 distance (average of (abs(preds[i]-y[i])/abs(preds[i])). Outputs n = number of cleaned values </returns>
+		template <typename T>float relative_L1_dist_without_cleaning(const vector<T> &preds, const vector<T> &y, const vector<float> *weights = NULL);
+		template <typename T>float relative_L1_dist(const vector<T> &preds, const vector<T> &y, T missing_val, int &n, const vector<float> *weights = NULL);
 
-	ADD_CLASS_NAME(MedCleaner)
-	size_t get_size() ;
-	size_t serialize(unsigned char *buffer) ;
-	size_t deserialize(unsigned char *buffer) ;
-} ;
+		/// <summary> Kendall rank correlation, options: clean missing values</summary>
+		/// <summary> Use is01Vec1,2 to indicated that v2/v2 are 0/1 for faster implementation </summary>
+		/// <returns> Kendall's Tau, -2.0 if cannot calculate, output n = number of cleaned values  </returns>
+		template <typename T, typename S> double kendall_tau_without_cleaning(const vector<T> &v1, const vector<S> &v2, bool is01Vec1 = false, bool is01Vec2 = false);
+		template <typename T> double kendall_tau(const vector<T> &v1, const vector<T> &v2, T missing_value, int &n, bool is01Vec1 = false, bool is01Vec2 = false);
+		
+		/// <summary> _q version for a more efficient version if there are only few possibilities fo v1/v2 </summary>
+		/// <summary> This version also has optional weights </summary>
+		template <typename T, typename S> double kendall_tau_without_cleaning_q(const vector<T> &v1, const vector<S> &v2, const vector<float> *weights = NULL);
+		template <typename T, typename S> double kendall_tau_q(const vector<T> &v1, const vector<S> &v2, T missing_val1, S missing_val2, int& n, 
+			const vector<float> *weights= NULL);
 
-MEDSERIALIZE_SUPPORT(MedCleaner)
+		/// <summary> calculate mutual information given vectors of counts and co-counts. n = number of non-empty bins </summary>
+		/// <returns> mutual information, -1.0 if cannot calculate </returns>
+		float mutual_information(vector<int>& xCounts, vector<int>& yCounts, vector<int> coCounts, int n);
+		/// <summary> calculate mutual information between quantized vectors. n = number of non-empty bins </summary>
+		/// <returns> mutual information, n= of non-empty bins </returns>
+		float mutual_information(vector<int>& x, vector<int>& y, int &n);
+
+		/// <summary> calculate AUC <</summary>
+		/// <returns> AUC </returns>
+		template<typename T> float auc(vector<T> &preds, vector<float> &y);
+		/// <summary> calculate AUC on quantized predictions , optinally with weights </summary>
+		/// <returns> AUC </returns>
+		template<typename T> float auc_q(const vector<T> &preds, const vector<float> &y, const vector<float>* weights = NULL);
+
+		/// <sumary> Collect cnts : TP,FP,FN,TN per positive rate </summary>
+		/// <summary> input : vector 'size' of positive rates ; direction>0 indicate that higher score are positive, otherwise, lower scores are positive </summary>
+		/// <returns> vector cnts of 4-tuples : {true-positive, false-positive, false-negative, true-nagative} per positive rate = size[i] </returns>
+		template<typename T> void get_preds_perf_cnts(vector<T> &preds, vector<float> &y, vector<float> &size, int direction, vector<vector<int>> &cnts);
+		/// <summary> translate a 4-tuple {true-positive, false-positive, false-negative, true-nagative}  into performance measures </summary>
+		/// <summary> output = sensitivity, specificity, ppv and relative-risk
+		void cnts_to_perf(vector<int> &cnt, float &sens, float &spec, float &ppv, float &rr);
+
+		/// <sumary> prediction accuracy. optinally weighted </summary>
+		/// <returns> percentage of predictions which are identical to the labels </returns>
+		template <typename T> float accuracy(const vector<T> &preds, const vector<float> &y, const vector<float> *weights = NULL);
+		template <typename T> float approx_accuracy(const vector<T> &preds, const vector<float> &y, T epsilon, const vector<float> *weights = NULL);
+
+		// Functions for distance correlation
+		/// <summary> get the normalized distance matrix of a vector </summary>
+		template <typename T> void get_dMatrix(vector<T>& values, MedMat<T>& dMatrix, T missing_value);
+		/// <summary> get the variance of distance matrix </summary>
+		template <typename T> float get_dVar(MedMat<T>& dMatrix);
+		/// <summary> get the covariance of two distance matrices </summary>
+		template <typename T> float get_dCov(MedMat<T>& xDistMat, MedMat<T>& yDistMat);
+
+		/// <summary> multi category helpers </summary>
+		/// <summary>given multicategory probs (or probs-like) predictions generates a single prediction of the categ with max prob for each sample </summary>
+		template <typename T> void multicateg_get_max_pred(vector<T> &probs, int nsamples, int ncateg, vector<float> &max_pred);
+		/// <summary>given multicategory probs (or probs-like) predictions generates a single prediction of the categ with average prob for each sample </summary>
+		template <typename T> void multicateg_get_avg_pred(vector<T> &probs, int nsamples, int ncateg, vector<T> &avg_pred);
+		/// <summary> given multicategory probs (or probs-like) predictions gets the classification error rate and the rms (also for the avg preds) </summary>
+		template <typename T> void multicateg_get_error_rate(vector<T> &probs, vector<float> &y, int nsamples, int ncateg, float &err_rate, T &rms, T &avg_rms);
+
+		/// <sumary>given two vectors and a vector of quantization bounds, create the 'confusion' matrix counts </summary>
+		template <typename T> void get_quantized_breakdown(vector<T> &preds, vector<T> &y, vector<T> &bounds, MedMat<int> &counts);
+		/// <summary>print the 'confusion' matrix counts </summary>
+		template <typename T> void print_quantized_breakdown(MedMat<int> &cnt, vector<T> &bounds);
+	}
+
+	namespace stats {
+		/// <summary> calculate n x m contigency table chi2 score </summary>
+		/// <returns> X^2 </returns>
+		double chi2_n_x_m(vector<int> &cnts, int n, int m);
+		/// <summary> calculate n x m contigency table chi2 score </summary>
+		/// <returns> X^2, exp = expected table </returns>
+		double chi2_n_x_m(vector<int> &cnts, int n, int m, vector<double> &exp);
+
+		// Moments
+		/// <summary> Mean, options: clean missing values, add weights</summary>
+		/// <returns> Mean. outputs n = number of cleaned values. if no values given(left) return missing-val or throw an error if not given </returns>
+		template <typename T> double mean_without_cleaning(const vector<T> &v1, const vector<float> *weights = NULL);
+		template <typename T> double mean(const vector<T> &v1, T missing_value, int& n, const vector<float> *weights = NULL);
+
+		/// <summary> Standard deviation, options: clean missing values, add weights</summary>
+		/// <returns> Standard deviation. outputs n = number of cleaned values.  </returns>
+		/// <returns> if no values given(left) return missing-val or throw an error if not given. If a single value is left, return 1.0 </returns>
+		template <typename T> double std_without_cleaning(const vector<T> &v, T mean, const vector<float> *weights = NULL);
+		template <typename T> double std(const vector<T> &v, T mean, T missing_value, int& n, const vector<float> *weights = NULL);
+
+		/// <summary> Envelopes for mean and std</summary>
+		template<typename T> void get_mean_and_std_without_cleaning(const vector<T> &v, T& mean, T& std, const vector<float> *weights = NULL) {
+			mean = medial::stats::mean_without_cleaning(v, weights); std = medial::stats::std_without_cleaning(v, mean, weights);
+		}
+		template<typename T> void get_mean_and_std(const vector<T> &v, T missing_value, int& n, T& mean, T& std, const vector<float> *weights = NULL) {
+			mean = medial::stats::mean(v, missing_value, n, weights); std = medial::stats::std(v, mean, missing_value, n, weights);
+		}
+
+		/// <summary> Backward compatible version for mean and std</summary>
+		void get_mean_and_std(float *values, const float* wgts, int size, float missing_value, float& mean, float&sd, int& n, bool do_missing);
+
+		/// <summary> Median, options : cleaning missing values </summary>
+		/// <returns> Median. if no values given(left) return missing-val or throw an error if not given. </returns>
+		template<typename T> T median_without_cleaning(vector<T>& v, bool in_place = false);
+		template<typename T> T median(vector<T>& v, T missing_value, int& n);
+
+		/// <summary> Most-Common value, options : cleaning missing values </summary>
+		/// <returns> Most-Common value. if no values given(left) return missing-val or throw an error if not given. </returns>
+		template<typename T> T most_common_without_cleaning(vector<T> &v);
+		template<typename T> T most_common(vector<T>& v, T missing_value, int& n);
+
+		/// <summary> Build histogram of values probabilities. option : cleaning missing values </summary>
+		template<typename T> void get_histogram_without_cleaning(vector<T>& v, vector<pair<T, float> >& hist, bool in_place = false);
+		template<typename T> void get_histogram(vector<T>& v, T missing_value, int& n, vector<pair<T, float> >& hist);
+		template<typename T> T sample_from_histogram(vector<pair<T, float> >& hist);
 
 
-//======================================================================================
-// MedHist - simple class to get histograms
-//======================================================================================
-class MedHist {
+		/// <summary>get a vector of values, a vector of probabilities, and returning a matching vector of values such that Prob(x<=pvals[i])=p[i] </summary>
+		/// <summary>currently, there is no in-place version </summary>
+		template<class T> void get_percentiles(vector<T> &vals, vector<float> &p, vector<T> &out_pvals, int only_positive_flag=false);
 
-	public:
-
-	float missing_value;
-	int positive_only_flag;
-	float rounder; // to round values with, -1: no rounding
-	float from_val, to_val; // histogram boundaries (first cell will be <from_val, last cell will be >= to_val), if not set will be the 0.001 - 0.999 parts of the distribution
-	int ncells;	// if too big due to rounding values, will be shrinked automatically
-	float min_percentile, max_percentile;
-	vector<int> hist;
-	vector<float> from;
-	vector<float> to;
-
-	void clear() {hist.clear(); from.clear(); to.clear(); missing_value = (float)MED_DEFAULT_MISSING_VALUE; from_val = 0; to_val = -1; ncells = 200; rounder = -1; positive_only_flag = 1;
-				  min_percentile = (float)0.001; max_percentile = (float)0.999;}
-	MedHist() {clear();}
-
-	int get_hist(vector<float> &vals);
-
-	int get_cdf(vector<float> &cdf);
-	int sum();
-	void print(string &prefix);
-};
-
+		/// <summary> gets a vector of values, and checks the best way to round it at the 10^-3 to 10^3 (at 10x steps) range. </summary>
+		float get_best_rounding(vector<float>& vals, vector<float>& res, vector<int>& counts, float missing_value = -1);
+	}
+}
 
 #endif

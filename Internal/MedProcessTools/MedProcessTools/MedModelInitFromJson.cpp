@@ -118,20 +118,12 @@ void MedModel::init_from_json_file_with_alterations(const string &fname, vector<
 
 int MedModel::init_from_json_string(string& json_contents, const string& fname) {
 	istringstream no_comments_stream(json_contents);
-
-	int i = 5;
-	MLOG("init model from json file [%s], stripping comments and displaying first %d lines:\n", fname.c_str(), i);
-
-	string my_line;
-	while (i-- > 0 && getline(no_comments_stream, my_line))
-		MLOG("%s\n", my_line.c_str());
-	no_comments_stream.clear();
-	no_comments_stream.seekg(0);
+	MLOG("MedModel:: init model from json file [%s]:\n", fname.c_str());
 
 	ptree pt;
 	parse_my_json_to_pt(no_comments_stream, pt);
 	this->model_json_version = pt.get<int>("model_json_version", model_json_version);
-	MLOG("\nmodel_json_version [%d]\n", model_json_version);
+	MLOG_D("\nmodel_json_version [%d]\n", model_json_version);
 	if (model_json_version <= 1)
 		return 1;
 
@@ -168,7 +160,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 				if (first_action_added == "")
 					first_action_added = all_combinations[0];
 			}			
-			MLOG("added %d actions to [%s] set %d, first of which was [%s]\n", num_actions, action_type.c_str(), process_set, first_action_added.c_str());
+			MLOG_D("added %d actions to [%s] set %d, first of which was [%s]\n", num_actions, action_type.c_str(), process_set, first_action_added.c_str());
 		}
 		else if (action_type == "rep_processor" || action_type == "feat_generator" || action_type == "feat_processor") {
 			int process_set; string set_name = "";
@@ -198,7 +190,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 					action_type.c_str(), (int)all_combinations.size(), all_combinations[0].c_str());			
 			for (string c : all_combinations)
 				add_process_to_set(process_set, duplicate, c);
-			MLOG("added %d actions to [%s] set %d, first of which was [%s]\n", all_combinations.size(), set_name.c_str(), process_set, all_combinations[0].c_str());
+			MLOG_D("added %d actions to [%s] set %d, first of which was [%s]\n", all_combinations.size(), set_name.c_str(), process_set, all_combinations[0].c_str());
 		} else MTHROW_AND_ERR("unknown action_type [%s]\n", action_type.c_str());
 	}
 	if (pt.count("predictor") > 0) {

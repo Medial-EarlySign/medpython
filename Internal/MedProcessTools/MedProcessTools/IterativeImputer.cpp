@@ -423,11 +423,12 @@ int IterativeImputer::learn_iteration(MedFeatures &mfd, int iter)
 				vector<float> preds;
 				predictor->predict(x_test, preds);
 				round_arr(&preds[0], (int)preds.size(), fi.resolution, fi.min, fi.max);
-				double corr = get_pearson_corr(y_test.m, preds);
-				double d2 = get_squared_dist(y_test.m, preds);
-				double dabs = get_abs_avg_dist(y_test.m, preds);
-				double dabs_rel = get_abs_relative_avg_dist(y_test.m, preds);
-				double acc = get_vecs_accuracy(y_test.m, preds, (double)fi.resolution);
+				double corr = medial::performance::pearson_corr_without_cleaning(y_test.m, preds);
+				double d = medial::performance::rmse_without_cleaning(y_test.m, preds);
+				double d2 = d * d;
+				double dabs = medial::performance::L1_dist_without_cleaning(y_test.m, preds);
+				double dabs_rel = medial::performance::relative_L1_dist_without_cleaning(y_test.m, preds);
+				double acc = medial::performance::approx_accuracy(y_test.m, preds, fi.resolution);
 
 				if (params.verbose) MLOG("IterativeImputer::learn_iteration :: iter %d :: feature %s :: corr %f d2 %f dabs %f dabs_rel %f acc %f\n", 
 					iter, fi.name.c_str(), corr, d2, dabs, dabs_rel, acc);
@@ -562,6 +563,7 @@ void FeatureIterativeImputer::update_req_features_vec(unordered_set<string>& out
 /// Apply imputing model on subset of ids (TBI)
 //.......................................................................................
 int FeatureIterativeImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
+	return _apply(features);
 	MERR("iterativeImputer on subset of ids is not implemented yet\n"); 
 	return -1;
 }
@@ -569,6 +571,7 @@ int FeatureIterativeImputer::_apply(MedFeatures& features, unordered_set<int>& i
 /// Learn imputing model on subset of ids (TBI)
 //.......................................................................................
 int FeatureIterativeImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
+	return Learn(features);
 	MERR("iterativeImputer on subset of ids is not implemented yet\n"); 
 	return -1; 
 }

@@ -86,11 +86,9 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 	bool need_to_clean = true;
 	float mean, sd, vmin, vmax;
 
-	vector<float> wgts(values.size(), 1.0);
-
 	while (need_to_clean) {
 		need_to_clean = false;
-		num_samples_after_cleaning = get_moments(values, wgts, params.missing_value, mean, sd);
+		medial::stats::get_mean_and_std(values, params.missing_value, num_samples_after_cleaning, mean, sd);
 		if (num_samples_after_cleaning == 0) {
 			MWARN("EMPTY_VECTOR:: learning cleaning parameters from an empty vector\n");
 			trimMax = 0; 
