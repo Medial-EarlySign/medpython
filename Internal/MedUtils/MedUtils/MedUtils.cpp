@@ -340,6 +340,17 @@ string medial::io::ProgramArgs_base::get_section(const string &full_help, const 
 	return res.str();
 }
 
+void medial::io::ProgramArgs_base::list_sections(const string &full_help, vector<string> &all_sec) {
+	vector<string> lines;
+	boost::split(lines, full_help, boost::is_any_of("\n"));
+	for (size_t i = 0; i < lines.size(); ++i) {
+		if (lines[i].find(":") != string::npos) {
+			boost::trim(lines[i]);
+			all_sec.push_back(lines[i].substr(0, lines[i].length() - 1));
+		}
+	}
+}
+
 int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	if (!init_called)
 		MTHROW_AND_ERR("ProgramArgs_base::init function wasn't called\n");
@@ -356,8 +367,12 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 		help_stream << desc;
 		string full_help = help_stream.str();
 		string module_help = get_section(full_help, help_search);
-		if (module_help.empty())
-			cout << "No help on search for module \"" << help_search << "\"" << endl;
+		if (module_help.empty()) {
+			vector<string> all_sections;
+			list_sections(full_help, all_sections);
+			string section_msg = medial::io::get_list(all_sections, "\n");
+			cout << "No help on search for module \"" << help_search << "\", Available Sections(" << all_sections.size() << "):\n" << section_msg << endl;
+		}
 		else
 			cout << module_help << endl;
 
