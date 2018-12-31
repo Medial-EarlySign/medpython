@@ -2080,11 +2080,6 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 }
 
 //.......................................................................................
-void RepCalcSimpleSignals::add_virtual_signals(map<string, int> &_virtual_signals)
-{
-	for (int i = 0; i < V_names.size(); i++)
-		_virtual_signals[V_names[i]] = virtual_signals[i].second;
-}
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
 	int time_range, int time_unit, int &sum_diff) {
@@ -2314,10 +2309,6 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	}
 
 	return 0;
-}
-
-void RepCombineSignals::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
