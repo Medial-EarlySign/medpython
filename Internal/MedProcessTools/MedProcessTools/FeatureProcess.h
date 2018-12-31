@@ -319,8 +319,6 @@ public:
 	float resolution, min, max;
 	int nValues;
 
-	string resolved_name; // to be initialized by user at start of learn/apply
-
 	featureStrata() {};
 	featureStrata(string& _name, float _resolution, float _min, float _max) { name = _name; resolution = _resolution; min = _min; max = _max; }
 

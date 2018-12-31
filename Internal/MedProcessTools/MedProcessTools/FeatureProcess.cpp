@@ -613,18 +613,6 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
-	// Resolving Strata names
-	for (int i=0; i<imputerStrata.nStratas(); i++) {
-		imputerStrata.stratas[i].resolved_name = resolve_feature_name(features, imputerStrata.stratas[i].name);
-	}
-
-	//MLOG("train imputing for [%s]\n", resolved_feature_name.c_str());
-	for (int i = 0; i < imputerStrata.nStratas(); i++) {
-	//	MLOG("Imputer: feature %s i %d strata %s strata_feat %s\n", resolved_feature_name.c_str(), i, imputerStrata.stratas[i].name.c_str(), imputerStrata.stratas[i].resolved_name.c_str());
-		//if (features.data.find(imputerStrata.stratas[i].name) == features.data.end()) // orig line
-		if (features.data.find(imputerStrata.stratas[i].resolved_name) == features.data.end())
-				MTHROW_AND_ERR("Cannot find signal %s in features data\n", imputerStrata.stratas[i].name.c_str());
-	}
 
 	// Get all values
 	vector<float> values;
@@ -727,19 +715,7 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 
-	// Resolving Strata names
-	for (int i=0; i<imputerStrata.nStratas(); i++) {
-		imputerStrata.stratas[i].resolved_name = resolve_feature_name(features, imputerStrata.stratas[i].name);
-//		MLOG("Imputer apply: feature %s i %d strata %s strata_feat %s\n", resolved_feature_name.c_str(), i, imputerStrata.stratas[i].name.c_str(), imputerStrata.stratas[i].resolved_name.c_str());
-	}
 
-
-	for (int i = 0; i < imputerStrata.nStratas(); i++) {
-		//if (features.data.find(imputerStrata.stratas[i].name) == features.data.end()) {
-		if (features.data.find(imputerStrata.stratas[i].resolved_name) == features.data.end()) {
-				MERR("Cannot find signal %s in features data\n", imputerStrata.stratas[i].name.c_str());
-			return -1;
-		}
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
 	// Attribute
@@ -751,7 +727,6 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	vector<vector<float> *> strataData(imputerStrata.nStratas());
 	for (int j = 0; j < imputerStrata.nStratas(); j++)
 		strataData[j] = &(features.data[imputerStrata.stratas[j].name]);
-		strataData[j] = &(features.data[imputerStrata.stratas[j].resolved_name]);
 
 	int missing_cnt = 0;
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
