@@ -191,7 +191,7 @@ public:
 	/// <summary> Get all attributes. Return -1 if not-consistent </summary>
 	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes);
 
-	// <summary> given a probability dilution prob, dilute current samples </summary>
+	/// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);
 
 	/// <summary>  API's for online insertions : main use case is a single time point for prediction per pid </summary>
