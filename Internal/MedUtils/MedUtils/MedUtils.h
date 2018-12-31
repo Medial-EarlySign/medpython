@@ -22,54 +22,17 @@
 
 using namespace std;
 
-enum MedCorrelationType {
-	CORR_PEARSON,
-	CORR_LAST
-};
-
 enum MedBinningType {
 	BIN_EQUIDIST,
 	BIN_EQUISIZE,
 	BIN_LAST
 };
 
-// Correlation of vectors
-template <class S> int get_corr(vector<S>& _x, vector<S>& _y, double& corr, int& n);
-template <class S> int get_corr(vector<S>& _x, vector<S>& _y, double& corr, int& n, float missing_value);
-template <class S> int get_corr(vector<S>& _x, vector<S>& _y, double& corr, int& n, MedCorrelationType type);
-template <class S> int get_corr(vector<S>& _x, vector<S>& _y, double& corr, int& n, float missing_value, MedCorrelationType type);
-
-
-// Pearson correlation of two vectors
-template <class S> double get_corr_pearson(vector<S>& x, vector<S>& y);
-double get_corr_pearson(float *v1, float *v2, int len); // A COPY OF THE TEMPLATED VERSION FOR C INTERFACING
-
-template <class S> double get_squared_dist(vector<S>& x, vector<S>& y);
-template <class S> double get_abs_avg_dist(vector<S>& x, vector<S>& y);
-template <class S> double get_abs_relative_avg_dist(vector<S>& x, vector<S>& y);
-template <class S> double get_vecs_accuracy(vector<S>& x, vector<S>& y, double epsilon);
-
 // Discretization
 template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbins, int max_bins);
 template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbins, int max_bins, float missing_value);
 template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbins, int max_bins, MedBinningType binning);
 template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbins, int max_bins, float missing_value, MedBinningType binning);
-
-// Counts from binned vectors
-void get_counts(vector<int>& x, map<int, int>& counts, int& n);
-int get_co_counts(vector<int>& x, vector<int>& y, map<pair<int, int>, int>& counts, int& n);
-
-// Mutual Information
-double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_count, int ny, map<pair<int, int>, int>& xy_count, int n);
-int get_mutual_information(vector<int>& x, vector<int>& y, double& mi, int &n);
-double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_count, int ny, map<pair<int, int>, int>& xy_count, int n);
-
-// Moments
-//template <class S> int get_moments(vector<S>& values, vector<float>& wgts, S missing_value, S& mean, S& sd);
-int get_moments(vector<float>& values, const vector<float>& wgts, float missing_value, float& mean, float& sd, bool do_missing = true);
-int get_moments(float *values, const float *wgts, int n, float missing_value, float& mean, float& sd, bool do_missing = true);
-
-
 
 namespace po = boost::program_options;
 
@@ -113,9 +76,9 @@ namespace medial {
 	namespace io {
 		/// \brief reads file with codes name to vector
 		void read_codes_file(const string &file_path, vector<string> &tokens);
-		template<class T> string get_list(const unordered_map<string, T> &ls);
-		template<class T> string get_list_op(const unordered_map<T, string> &ls);
-		template<class ContainerType> string get_list(const ContainerType &ls);
+		template<class T> string get_list(const unordered_map<string, T> &ls, const string &delimeter = ",");
+		template<class T> string get_list_op(const unordered_map<T, string> &ls, const string &delimeter = ",");
+		template<class ContainerType> string get_list(const ContainerType &ls, const string &delimeter = ",");
 		/**
 		* A basic class wrapper to parse command args
 		* has default "h", "help", "debug" and "base_config" for reading all arguments from file
@@ -133,6 +96,8 @@ namespace medial {
 			/// keep the raw string params from the user input as private and keep
 			/// the Enum result of the converted as public.
 			virtual void post_process() {};
+			/// finds module section help in full help message
+			string get_section(const string &full_help, const string &search);
 		protected:
 			/// an init function
 			void init(po::options_description &prg_options, const string &app_l = "");

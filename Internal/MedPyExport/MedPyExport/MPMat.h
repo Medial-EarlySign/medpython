@@ -13,9 +13,11 @@ public:
 	MedMat<float>* o;
 	MPMat(MedMat<float>* from_ptr);
 	MPMat(const MPMat& other);
+#endif
+
 	static const int Normalize_Cols;
 	static const int Normalize_Rows;
-#endif
+	static const int MISSING_VALUE;
 
 	MPMat();
 	MPMat(int n_rows, int n_cols);

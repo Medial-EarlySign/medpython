@@ -1,165 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "MedUtils.h"
 #include <unordered_set>
+#include <sstream>
 
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
-
-
-// Pearson Correlation: A pure C function
-double  get_corr_pearson(float *v1, float *v2, int len)
-{
-	double sx, sy, sxy, sxx, syy, n;
-
-	sx = sy = sxy = sxx = syy = 0;
-
-	for (int i = 0; i < len; i++) {
-		sx += v1[i];
-		sy += v2[i];
-		sxx += v1[i] * v1[i];
-		syy += v2[i] * v2[i];
-		sxy += v1[i] * v2[i];
-	}
-
-	n = (double)len;
-
-	sx /= n;
-	sy /= n;
-	sxx /= n;
-	syy /= n;
-	sxy /= n;
-
-	double c1 = sxy - sx*sy;
-	double c2 = sxx - sx*sx;
-	double c3 = syy - sy*sy;
-
-	double epsilon = 1e-8;
-	if (c2 < epsilon || c3 < epsilon)
-		return 0;
-
-	return (float)(c1 / (sqrt(c2)*sqrt(c3)));
-}
-
-// Mutual information of binned-vectors
-int get_mutual_information(vector<int>& x, vector<int>& y, double& mi, int &n) {
-
-	if (x.size() != y.size()) {
-		MERR("Size mismatch. Quitting\n");
-		return -1;
-	}
-
-	map<int, int> x_counts, y_counts;
-	map<pair<int, int>, int> xy_counts;
-	n = 0;
-
-	for (unsigned int i = 0; i < x.size(); i++) {
-		if (x[i] != -1 && y[i] != -1) {
-			x_counts[x[i]]++;
-			y_counts[y[i]]++;
-			xy_counts[pair<int, int>(x[i], y[i])]++;
-			n++;
-		}
-	}
-
-	if (n < 2) {
-		MLOG_V("Not enough common non-missing entries for mutual information.\n");
-		mi = -1;
-	}
-	else {
-		mi = get_mutual_information(x_counts, n, y_counts, n, xy_counts, n);
-	}
-
-	return 0;
-}
-
-// Counts from binned vectors
-void get_counts(vector<int>& x, map<int, int>& counts, int& n) {
-
-	n = 0;
-	counts.clear();
-	for (unsigned int i = 0; i < x.size(); i++) {
-		if (x[i] != -1) {
-			counts[x[i]] ++;
-			n++;
-		}
-	}
-}
-
-int get_co_counts(vector<int>& x, vector<int>& y, map<pair<int, int>, int>& counts, int& n) {
-
-	if (x.size() != y.size()) {
-		MERR("Size mismatch (%d vs %d). Quitting\n", x.size(), y.size());
-		return -1;
-	}
-
-	n = 0;
-	counts.clear();
-	for (unsigned int i = 0; i < x.size(); i++) {
-		if (x[i] != -1 && y[i] != -1) {
-			counts[pair<int, int>(x[i], y[i])] ++;
-			n++;
-		}
-	}
-
-	return 0;
-}
-
-// Mutual information from counts
-double get_mutual_information(map<int, int>& x_count, int nx, map<int, int>& y_count, int ny, map<pair<int, int>, int>& xy_count, int n) {
-
-	double mi = 0;
-	for (auto it = xy_count.begin(); it != xy_count.end(); it++) {
-		double p = (it->second + 0.0) / n;
-		double px = (x_count[it->first.first] + 0.0) / nx;
-		double py = (y_count[it->first.second] + 0.0) / ny;
-
-		mi += p * log(p / px / py) / log(2.0);
-	}
-
-	return mi;
-}
-
-// Get moments of a vector
-int get_moments(vector<float>& values, const vector<float>& wgts, float missing_value, float& mean, float&sd, bool do_missing) {
-
-	return get_moments(&(values[0]), &(wgts[0]), (int)values.size(), missing_value, mean, sd, do_missing);
-}
-
-int get_moments(float *values, const float* wgts, int size, float missing_value, float& mean, float&sd, bool do_missing) {
-	double  n = 0;
-	double s = 0;
-
-	for (int i = 0; i < size; i++) {
-		if (!do_missing || values[i] != missing_value) {
-			n += wgts[i];
-			s += wgts[i] * values[i];
-		}
-	}
-	if (n == 0) {
-		mean = 0;
-		sd = 1.0;
-		return 0;
-	}
-
-	mean = (float)(s / n);
-
-	s = 0.0;
-	for (int i = 0; i < size; i++) {
-		if (!do_missing || values[i] != missing_value)
-			s += wgts[i] * (values[i] - mean)*(values[i] - mean);
-	}
-
-	if (n > 1)
-		sd = (float)sqrt((s / n));
-	else
-		sd = (float) 1.0;
-
-	if (sd == 0) {
-		MWARN("get_moments for all-zeros vector, fixing SD from 0.0 to 1.0\n");
-		sd = 1.0;
-	}
-	return (int)n;
-}
 
 template<class T> string medial::print::print_obj(T obj, const string &format) {
 	//return to_string((round(num * 1000) / 1000));
@@ -464,6 +309,7 @@ void medial::io::ProgramArgs_base::init(po::options_description &prg_options, co
 		(unsigned int)po::options_description::m_default_line_length * 2);
 	general_options.add_options()
 		("help,h", "help & exit")
+		("help_module", po::value<string>(), "help on specific module")
 		("base_config", po::value<string>(&base_config), "config file with all arguments - in CMD we override those settings")
 		("debug", po::bool_switch(&debug), "set debuging verbose");
 	desc.add(general_options);
@@ -472,6 +318,26 @@ void medial::io::ProgramArgs_base::init(po::options_description &prg_options, co
 		app_logo = app_l;
 	debug = false;
 	init_called = true;
+}
+
+//finds module section help in full help message
+string medial::io::ProgramArgs_base::get_section(const string &full_help, const string &search) {
+	stringstream res;
+	vector<string> lines;
+	boost::split(lines, full_help, boost::is_any_of("\n"));
+	bool in_section = false;
+	for (size_t i = 0; i < lines.size(); ++i) {
+		if (lines[i].find(":") != string::npos) {
+			if (lines[i].find(search) != string::npos)
+				in_section = true;
+			else
+				in_section = false;
+		}
+		if (in_section) {
+			res << lines[i] << "\n";
+		}
+	}
+	return res.str();
 }
 
 int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
@@ -484,6 +350,20 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	auto parsed_args = po::parse_command_line(argc, argv, desc,
 		po::command_line_style::style_t::default_style);
 	po::store(parsed_args, vm);
+	if (vm.count("help_module")) {
+		string help_search = vm["help_module"].as<string>();
+		stringstream help_stream;
+		help_stream << desc;
+		string full_help = help_stream.str();
+		string module_help = get_section(full_help, help_search);
+		if (module_help.empty())
+			cout << "No help on search for module \"" << help_search << "\"" << endl;
+		else
+			cout << module_help << endl;
+
+		return -1;
+	}
+
 	if (vm.count("help") || vm.count("h")) {
 		MLOG("%s\n", app_logo.c_str());
 		cout << desc << endl;
@@ -523,7 +403,7 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 
 	if (debug) {
 		string full_log_format = "$time\t$level\t$section\t%s";
-		global_logger.init_format(LOG_APP , full_log_format);
+		global_logger.init_format(LOG_APP, full_log_format);
 		global_logger.init_format(LOG_DEF, full_log_format);
 		global_logger.init_format(LOG_MED_MODEL, full_log_format);
 		global_logger.init_format(LOG_MEDALGO, full_log_format);
@@ -547,39 +427,39 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	return 0;
 }
 
-template<class T> string medial::io::get_list(const unordered_map<string, T> &ls) {
+template<class T> string medial::io::get_list(const unordered_map<string, T> &ls, const string &delimeter) {
 	string res = "";
 	for (auto it = ls.begin(); it != ls.end(); ++it)
 		if (it == ls.begin())
 			res += it->first;
 		else
-			res += "," + it->first;
+			res += delimeter + it->first;
 	return res;
 }
-template string medial::io::get_list<int>(const unordered_map<string, int> &ls);
-template<class ContainerType> string medial::io::get_list(const ContainerType &ls) {
+template string medial::io::get_list<int>(const unordered_map<string, int> &ls, const string &delimeter);
+template<class ContainerType> string medial::io::get_list(const ContainerType &ls, const string &delimeter) {
 	string res = "";
 	for (auto it = ls.begin(); it != ls.end(); ++it)
 		if (it == ls.begin())
 			res += *it;
 		else
-			res += "," + *it;
+			res += delimeter + *it;
 	return res;
 }
-template string medial::io::get_list(const set<string> &ls);
-template string medial::io::get_list(const unordered_set<string> &ls);
-template string medial::io::get_list(const vector<string> &ls);
+template string medial::io::get_list(const set<string> &ls, const string &delimeter);
+template string medial::io::get_list(const unordered_set<string> &ls, const string &delimeter);
+template string medial::io::get_list(const vector<string> &ls, const string &delimeter);
 
-template<class T> string medial::io::get_list_op(const unordered_map<T, string> &ls) {
+template<class T> string medial::io::get_list_op(const unordered_map<T, string> &ls, const string &delimeter) {
 	string res = "";
 	for (auto it = ls.begin(); it != ls.end(); ++it)
 		if (it == ls.begin())
 			res += it->second;
 		else
-			res += "," + it->second;
+			res += delimeter + it->second;
 	return res;
 }
-template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls);
+template string medial::io::get_list_op<int>(const unordered_map<int, string> &ls, const string &delimeter);
 
 void medial::print::log_with_file(ofstream &fw, const char *format_str, ...) {
 	char buff[10000];

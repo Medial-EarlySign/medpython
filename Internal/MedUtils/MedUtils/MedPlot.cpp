@@ -13,20 +13,12 @@ string BaseResourcePath = "W:\\Graph_Infra";
 #else
 string BaseResourcePath = "/nas1/Work/Graph_Infra";
 #endif
+#define LOCAL_SECTION LOG_MED_UTILS
 
 using namespace std;
 
-inline char separator()
-{
-#if defined _WIN32 || defined __CYGWIN__
-	return '\\';
-#else
-	return '/';
-#endif
-}
-
 inline string get_html_template() {
-	ifstream file(BaseResourcePath + separator() + "Graph_HTML.txt");
+	ifstream file(BaseResourcePath + path_sep() + "Graph_HTML.txt");
 	string content = "";
 	if (file.is_open()) {
 		string ln;
@@ -361,19 +353,28 @@ string createCsvFile(vector<vector<float>> &data, const vector<string> &headers)
 }
 
 vector<bool> empty_bool_arr;
-void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
+void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, const vector<float> &weights,
 	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
 	const vector<bool> &indexes) {
 	bool censor_removed = true;
+	if (y.size() != preds.size())
+		MTHROW_AND_ERR("Error in get_ROC_working_points - preds.size()=%zu, y.size()=%zu\n",
+			preds.size(), y.size());
+	if (!weights.empty() && y.size() != weights.size())
+		MTHROW_AND_ERR("Error in get_ROC_working_points - y.size()=%zu, weights.size()=%zu\n",
+			y.size(), weights.size());
 
 	map<float, vector<int>> pred_indexes;
 	double tot_true_labels = 0, tot_false_labels = 0;
 	double tot_obj = 0;
 	for (size_t i = 0; i < preds.size(); ++i)
 		if (indexes.empty() || indexes[i]) {
+			float weight = 1;
+			if (!weights.empty())
+				weight = weights[i];
 			pred_indexes[preds[i]].push_back((int)i);
-			tot_true_labels += y[i];
-			tot_false_labels += !censor_removed ? (1 - y[i]) : int(y[i] <= 0);
+			tot_true_labels += y[i] * weight;
+			tot_false_labels += weight * (!censor_removed ? (1 - y[i]) : int(y[i] <= 0));
 			++tot_obj;
 		}
 	//tot_false_labels = tot_obj - tot_true_labels;
@@ -397,16 +398,19 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y,
 	ppv = vector<float>((int)pred_indexes.size());
 	for (int i = (int)pred_threshold.size() - 1; i >= 0; --i)
 	{
-		vector<int> indexes = pred_indexes[pred_threshold[i]];
+		const vector<int> &indexes = pred_indexes[pred_threshold[i]];
 		//calc AUC status for this step:
 		for (int ind : indexes)
 		{
+			float weight = 1;
+			if (!weights.empty())
+				weight = weights[ind];
 			float true_label = y[ind];
-			t_sum += true_label;
+			t_sum += true_label * weight;
 			if (!censor_removed)
-				f_sum += (1 - true_label);
+				f_sum += (1 - true_label) * weight;
 			else
-				f_sum += int(true_label <= 0);
+				f_sum += int(true_label <= 0) * weight;
 		}
 		true_rate[i] = float(t_sum / tot_true_labels);
 		false_rate[i] = float(f_sum / tot_false_labels);
@@ -445,14 +449,14 @@ void down_sample_graph(map<float, float> &points, int points_count) {
 			beforeFactor = 1;
 			afterFactor = 0;
 		}
-		double interp_y = beforeFactor * xy[basePos].second + afterFactor* xy[endPos].second;
-		double interp_x = beforeFactor * xy[basePos].first + afterFactor* xy[endPos].first;
+		double interp_y = beforeFactor * xy[basePos].second + afterFactor * xy[endPos].second;
+		double interp_x = beforeFactor * xy[basePos].first + afterFactor * xy[endPos].first;
 		points[(float)interp_x] = (float)interp_y;
 	}
 }
 
-void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>> &y, const vector<string> &modelNames,
-	string baseOut, bool print_y) {
+void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>> &y, const vector<vector<float>> &weights,
+	const vector<string> &modelNames, string baseOut, bool print_y) {
 	vector<float> pred_threshold;
 	vector<float> true_rate;
 	vector<float> false_rate;
@@ -462,10 +466,14 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 	vector<map<float, float>> allData;
 	vector<map<float, float>> allPPV;
 	vector<double> auc((int)all_preds.size());
+	vector<float> empty_vec;
 	for (size_t i = 0; i < all_preds.size(); ++i)
 	{
 		const vector<float> &preds = all_preds[i];
-		get_ROC_working_points(preds, y[i], pred_threshold, true_rate, false_rate, ppv);
+		const vector<float> *w = &empty_vec;
+		if (!weights.empty())
+			w = &weights[i];
+		get_ROC_working_points(preds, y[i], *w, pred_threshold, true_rate, false_rate, ppv);
 		map<float, float> false_true;
 		map<float, float> th_false;
 		map<float, float> false_ppv;
@@ -497,7 +505,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		model_false_scores.push_back(th_false);
 		string fname = modelNames[i];
 		fix_filename_chars(&fname);
-		createHtmlGraph(baseOut + separator() + fname + "_False_Thresholds.html", model_false_scores,
+		createHtmlGraph(baseOut + path_sep() + fname + "_False_Thresholds.html", model_false_scores,
 			"False rate as function of thresholds", "Prediction Threshold score value", "False Positive Rate");
 	}
 	vector<string> data_titles(modelNames);
@@ -508,10 +516,10 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		data_titles[i] = string(buff);
 	}
 	data_titles.insert(data_titles.begin(), "x=y reference");
-	createHtmlGraph(baseOut + separator() + "ROC.html", allData, "ROC curve", "False Positive Rate",
+	createHtmlGraph(baseOut + path_sep() + "ROC.html", allData, "ROC curve", "False Positive Rate",
 		"True Positive Rate", data_titles);
 	data_titles = vector<string>(modelNames);
-	createHtmlGraph(baseOut + separator() + "PPV.html", allPPV, "PPV curve", "False Positive Rate",
+	createHtmlGraph(baseOut + path_sep() + "PPV.html", allPPV, "PPV curve", "False Positive Rate",
 		"Positive Predictive Value", data_titles);
 
 	if (print_y)
@@ -520,19 +528,21 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 			allData.push_back(BuildHist(y[i]));
 			string fname = modelNames[i];
 			fix_filename_chars(&fname);
-			createHtmlGraph(baseOut + separator() + "y_labels_" + fname + ".html", allData, "Y Labels", "Y",
+			createHtmlGraph(baseOut + path_sep() + "y_labels_" + fname + ".html", allData, "Y Labels", "Y",
 				"Count", {}, 0, "pie");
 		}
 }
 
 void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, const vector<string> &modelNames,
-	string baseOut, const vector<bool> &indexes) {
+	string baseOut, const vector<bool> &indexes, const vector<float> *weights) {
 	vector<vector<float>> all_y(all_preds.size());
 	vector<vector<float>> all_preds_filtered(all_preds.size());
+	vector<vector<float>> all_weights_filtered(all_preds.size());
 	for (size_t k = 0; k < all_preds.size(); ++k)
 	{
 		all_y[k].reserve((int)y.size());
 		all_preds_filtered[k].reserve((int)y.size());
+		all_weights_filtered[k].reserve(weights != NULL ? weights->size() : 0);
 	}
 	for (size_t i = 0; i < y.size(); ++i)
 	{
@@ -541,10 +551,12 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, con
 			{
 				all_preds_filtered[k].push_back(all_preds[k][i]);
 				all_y[k].push_back(y[i]);
+				if (weights != NULL && !weights->empty())
+					all_weights_filtered[k].push_back(weights->at(i));
 			}
 	}
 
-	plotAUC(all_preds_filtered, all_y, modelNames, baseOut, false);
+	plotAUC(all_preds_filtered, all_y, all_weights_filtered, modelNames, baseOut, false);
 	vector<float> filty;
 	filty.reserve((int)y.size());
 	for (size_t i = 0; i < y.size(); ++i)
@@ -553,7 +565,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<float> &y, con
 
 	vector<map<float, float>> allData;
 	allData.push_back(BuildHist(filty));
-	createHtmlGraph(baseOut + separator() + "y_labels.html", allData, "Y Labels", "Y",
+	createHtmlGraph(baseOut + path_sep() + "y_labels.html", allData, "Y Labels", "Y",
 		"Count", {}, 0, "pie");
 
 }

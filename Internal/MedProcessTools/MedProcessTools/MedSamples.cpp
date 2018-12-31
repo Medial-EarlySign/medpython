@@ -14,7 +14,7 @@
 //=======================================================================================
 // Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split) in addition to pred_pos vector and attr_pos map
 //.......................................................................................
-int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, int time_unit, int raw_format) {
+int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, map<string, int>& str_attr_pos, int time_unit, int raw_format) {
 	if (pos.size() == 0)
 		return parse_from_string(s, time_unit);
 	vector<string> fields;
@@ -49,6 +49,11 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		for (auto& attr : attr_pos) {
 			if (attr.second != -1 && fields.size() > attr.second)
 				attributes[attr.first] = stof(fields[attr.second]);
+		}
+
+		for (auto& attr : str_attr_pos) {
+			if (attr.second != -1 && fields.size() > attr.second)
+				str_attributes[attr.first] = fields[attr.second];
 		}
 
 		return 0;
@@ -152,6 +157,8 @@ void MedSample::print(const string prefix) {
 			MLOG(" %f", pred);
 	for (auto& attr : attributes)
 		MLOG("%s=%f", attr.first.c_str(), attr.second);
+	for (auto& attr : str_attributes)
+		MLOG("%s=%s", attr.first.c_str(), attr.second.c_str());
 	MLOG("\n");
 }
 
@@ -181,6 +188,11 @@ bool MedIdSamples::same_as(MedIdSamples &other, int mode) {
 			}
 			for (auto& attr : samples[i].attributes) {
 				if (other.samples[i].attributes.find(attr.first) == other.samples[i].attributes.end() || other.samples[i].attributes[attr.first] != attr.second)
+					return false;
+			}
+
+			for (auto& attr : samples[i].str_attributes) {
+				if (other.samples[i].str_attributes.find(attr.first) == other.samples[i].str_attributes.end() || other.samples[i].str_attributes[attr.first] != attr.second)
 					return false;
 			}
 		}
@@ -260,7 +272,7 @@ void MedSamples::get_categs(vector<float>& categs)
 
 // Helper function : get a vector of fields and generate the fields' positions map 
 //.......................................................................................
-int extract_field_pos_from_header(vector<string> field_names, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos) {
+int extract_field_pos_from_header(vector<string> field_names, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, map<string, int>& str_attr_pos) {
 	pos["id"] = -1;
 	pos["date"] = -1;
 	pos["outcome"] = -1;
@@ -284,6 +296,10 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 		else if (field_names[i].substr(0, 5) == "attr_") {
 			string attr_name = field_names[i].substr(5, field_names[i].length() - 5);
 			attr_pos[attr_name] = i;
+		}
+		else if (field_names[i].substr(0, 5) == "str_attr_") {
+			string attr_name = field_names[i].substr(9, field_names[i].length() - 9);
+			str_attr_pos[attr_name] = i;
 		}
 		else unknown_fields.push_back(field_names[i]);
 	}
@@ -326,6 +342,7 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 	map<string, int> pos;
 	vector<int> pred_pos;
 	map<string, int> attr_pos;
+	map<string, int> str_attr_pos;
 	time_unit = global_default_time_unit;
 
 	while (getline(inf, curr_line)) {
@@ -352,14 +369,14 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 					MLOG("time unit is %d\n", time_unit);
 				}
 				else if ((fields[0] == "EVENT_FIELDS" || fields[0] == "pid" || fields[0] == "id") && read_records == 1) {
-					extract_field_pos_from_header(fields, pos, pred_pos, attr_pos);
+					extract_field_pos_from_header(fields, pos, pred_pos, attr_pos,str_attr_pos);
 					continue;
 				}
 
 				else {
 					MedSample sample;
 
-					if (sample.parse_from_string(curr_line, pos, pred_pos, attr_pos, time_unit, raw_format) < 0) {
+					if (sample.parse_from_string(curr_line, pos, pred_pos, attr_pos, str_attr_pos, time_unit, raw_format) < 0) {
 						MWARN("skipping [%s]\n", curr_line.c_str());
 						skipped_records++;
 						if (read_records > 30 && skipped_records > read_records / 2)

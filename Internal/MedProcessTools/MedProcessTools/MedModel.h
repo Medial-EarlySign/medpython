@@ -198,6 +198,7 @@ private:
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
 };
 
+void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);
 //=======================================
 // Joining the MedSerialze wagon
 //=======================================

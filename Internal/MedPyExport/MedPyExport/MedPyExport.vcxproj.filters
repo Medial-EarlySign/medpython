@@ -24,9 +24,6 @@
     <ClInclude Include="MPPidRepository.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MedPyExportExample.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MPSigExporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -51,9 +48,6 @@
     <ClInclude Include="MPMat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MPSampleVecExporter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MPPandasAdaptor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -63,9 +57,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MPPidRepository.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MedPyExportExample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedPyCommon.cpp">
@@ -93,9 +84,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MPMat.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MPSampleVecExporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MPPandasAdaptor.cpp">

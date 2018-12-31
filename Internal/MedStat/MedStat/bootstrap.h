@@ -1,14 +1,13 @@
 #ifndef __BOOTSTRAP_ANALYSIS_H__
 #define __BOOTSTRAP_ANALYSIS_H__
-
-#include <MedUtils/MedUtils/MedUtils.h>
-#include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <vector>
 #include <string>
 #include <map>
 #include <random>
-#include <Logger/Logger/Logger.h>
 #include <MedTime/MedTime/MedTime.h>
+#include <SerializableObject/SerializableObject/SerializableObject.h>
+#include <Logger/Logger/Logger.h>
+
 
 using namespace std;
 

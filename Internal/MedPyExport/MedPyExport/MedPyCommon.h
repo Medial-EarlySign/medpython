@@ -3,7 +3,6 @@
 
 //Macros for numPy parameters - these define nothing
 
-
 // Input arrays are defined as arrays of data that are passed into a routine but are not altered in - 
 // place or returned to the user.The Python input array is therefore allowed to be almost any Python
 // sequence(such as a list) that can be converted to the requested type of array.The input array signatures are
@@ -117,6 +116,7 @@ public:
 class MED_NPY_TYPE {
 public:
 	static const std::map<std::string,std::string> ctypestr_to_dtypestr;
+	static const std::map<std::string, int> ctypestr_to_npytypeid;
 	enum class values: int {
 		NPY_BOOL = 0,
 		NPY_BYTE, NPY_UBYTE,
@@ -319,6 +319,6 @@ public:
 	MEDPY_IGNORE(MPIntVecIntMapAdaptor& operator=(const MPIntVecIntMapAdaptor& other));
 };
 
-
+void logger_use_stdout();
 
 #endif // !__MED_PY_COMMON_H

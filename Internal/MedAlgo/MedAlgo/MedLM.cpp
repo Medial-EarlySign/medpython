@@ -273,9 +273,10 @@ int MedLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int transpo
 void MedLM::normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std) {
 
 	// Get moments
+	int n_clean;
 	for (int i = 0; i < nftrs; i++)
-		get_moments(x + nsamples*i, w, nsamples, -1, x_avg[i], x_std[i], false);
-	get_moments(y, w, nsamples, -1, y_avg, y_std, false);
+		medial::stats::get_mean_and_std(x + nsamples * i, w, nsamples, (float) -1.0, x_avg[i], x_std[i], n_clean, false);
+	medial::stats::get_mean_and_std(y, w, nsamples, (float)-1.0, y_avg, y_std, n_clean, false);
 
 	// Normalize
 	for (int i = 0; i < nftrs; i++) {

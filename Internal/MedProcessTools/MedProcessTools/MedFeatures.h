@@ -108,8 +108,8 @@ public:
 	int get_max_serial_id_cnt() const;
 
 	/// <summary> Write features (samples + weights + data) as csv with a header line  </summary>
-	/// <returns> -1 upon failure to open file, 0 upon success </returns>
-	int write_as_csv_mat(const string &csv_fname) const;
+	/// <returns> -1 upon failure to open file or attributes inconsistency (if write_attributes is true), 0 upon success </returns>
+	int write_as_csv_mat(const string &csv_fname, bool write_attributes = false) const;
 	/// <summary> Read features (samples + weights + data) from a csv file with a header line </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
 	int read_from_csv_mat(const string &csv_fname);
@@ -172,23 +172,7 @@ namespace medial {
 		/// \brief does matching to specific prior for MedFeatures
 		double match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx);
 	}
-	/*!
-	* \brief stats namespace
-	*/
-	namespace stats {
-		/// \brief calculating auc. can have weights
-		template<class T> float get_preds_auc_q(const vector<T> &preds, const vector<float> &y, const vector<float> *weights = NULL);
-		/// \brief calculating kendall_tau
-		template <typename T, typename S> double get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<float> *weights = NULL);
-		/// \brief calculating RMSE. can have weights
-		float get_rmse(const vector<float> &preds, const vector<float> &y, const vector<float> *weights = NULL);
-		/// \brief calculating accuracy. can have weights
-		float get_accuracy(const vector<float> &preds, const vector<float> &y, const vector<float> *weights = NULL);
-		/// \brief calculating mean. can have weights
-		template<class T> double mean_vec(const vector<T> &v, const vector<float> *weights = NULL);
-		/// \brief calculating std. can have weights
-		template<class T> double std_vec(const vector<T> &v, T mean, const vector<float> *weights = NULL);
-	}
+
 }
 
 #endif

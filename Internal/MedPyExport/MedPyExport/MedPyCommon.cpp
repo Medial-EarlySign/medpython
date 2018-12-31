@@ -42,6 +42,27 @@ const std::map<std::string, std::string> MED_NPY_TYPE::ctypestr_to_dtypestr = {
 {"long double complex","complex256"}
 };
 
+const std::map<std::string, int> MED_NPY_TYPE::ctypestr_to_npytypeid = {
+	{ "bool",(int)MED_NPY_TYPES::NPY_BOOL },
+	{ "char",(int)MED_NPY_TYPES::NPY_BYTE },
+	{ "signed char",(int)MED_NPY_TYPES::NPY_BYTE },
+	{ "unsigned char",(int)MED_NPY_TYPES::NPY_UBYTE },
+	{ "short",(int)MED_NPY_TYPES::NPY_SHORT },
+	{ "unsigned short",(int)MED_NPY_TYPES::NPY_USHORT },
+	{ "int",(int)MED_NPY_TYPES::NPY_INT },
+	{ "unsigned int",(int)MED_NPY_TYPES::NPY_UINT },
+	{ "long",(int)MED_NPY_TYPES::NPY_LONG },
+	{ "unsigned long",(int)MED_NPY_TYPES::NPY_ULONG },
+	{ "long long",(int)MED_NPY_TYPES::NPY_LONGLONG },
+	{ "unsigned long long",(int)MED_NPY_TYPES::NPY_ULONGLONG },
+	{ "float",(int)MED_NPY_TYPES::NPY_FLOAT },
+	{ "double",(int)MED_NPY_TYPES::NPY_DOUBLE },
+	{ "long double",(int)MED_NPY_TYPES::NPY_CLONGDOUBLE },
+	{ "float complex",(int)MED_NPY_TYPES::NPY_CFLOAT },
+	{ "double complex",(int)MED_NPY_TYPES::NPY_CDOUBLE },
+	{ "long double complex",(int)MED_NPY_TYPES::NPY_CLONGDOUBLE }
+};
+
  const int MED_NPY_TYPE::sizes[] {
 	sizeof(unsigned char),									//NPY_BOOL
 	sizeof(char),sizeof(unsigned char),						//NPY_BYTE, NPY_UBYTE,
@@ -79,7 +100,7 @@ MPIntIntMapAdaptor::MPIntIntMapAdaptor(std::map<int, int>* ptr) { o_owned = fals
 MPIntIntMapAdaptor::~MPIntIntMapAdaptor() { if (o_owned) delete o; };
 int MPIntIntMapAdaptor::__len__() { return (int)o->size(); };
 int MPIntIntMapAdaptor::__getitem__(int i) { return o->operator[](i); };
-void MPIntIntMapAdaptor::__setitem__(int i, int val) { o->insert(o->begin(), std::pair<int, int>(i, val)); };
+void MPIntIntMapAdaptor::__setitem__(int i, int val) { o->operator[](i) = val; };
 void MPIntIntMapAdaptor::keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len)) 
 {
 	vector<int> ret;
@@ -121,7 +142,7 @@ MPStringStringMapAdaptor::MPStringStringMapAdaptor(std::map<std::string, std::st
 MPStringStringMapAdaptor::~MPStringStringMapAdaptor() { if (o_owned) delete o; };
 int MPStringStringMapAdaptor::__len__() { return (int)o->size(); };
 std::string MPStringStringMapAdaptor::__getitem__(const std::string& i) { return o->operator[](i); };
-void MPStringStringMapAdaptor::__setitem__(const std::string& i, const std::string& val) { o->insert(o->begin(), std::pair<string, string>(i, val)); };
+void MPStringStringMapAdaptor::__setitem__(const std::string& i, const std::string& val) { o->operator[](i) = val; };
 std::vector<std::string> MPStringStringMapAdaptor::keys()
 {
 	vector<string> ret;
@@ -168,7 +189,7 @@ void MPStringVecFloatMapAdaptor::__getitem__(std::string key, MEDPY_NP_OUTPUT(fl
 void MPStringVecFloatMapAdaptor::__setitem__(std::string key, MEDPY_NP_INPUT(float* float_in_buf, int float_in_buf_len)) { 
 	vector<float> fvec;
 	buf_to_vector(float_in_buf, float_in_buf_len, fvec);
-	o->insert(o->begin(), std::pair<string, vector<float> >(key, fvec)); 
+	o->operator[](key) = fvec;
 };
 std::vector<std::string> MPStringVecFloatMapAdaptor::keys() {
 	vector<string> ret;
@@ -274,6 +295,7 @@ std::vector<std::string> MPStringUOSetStringMapAdaptor::__getitem__(std::string 
 };
 
 void MPStringUOSetStringMapAdaptor::__setitem__(std::string key, std::vector<std::string> val) {
+	o->operator[](key).clear();
 	for (auto& s : val) o->operator[](key).insert(s);
 };
 
@@ -326,7 +348,7 @@ void MPIntVecIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_b
 void MPIntVecIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len)) {
 	vector<int> fvec;
 	buf_to_vector(int_in_buf, int_in_buf_len, fvec);
-	o->insert(o->begin(), std::pair<int, vector<int> >(key, fvec));
+	o->operator[](key) = fvec;
 };
 std::vector<int> MPIntVecIntMapAdaptor::keys() {
 	vector<int> ret;
@@ -367,7 +389,7 @@ MPIntStringMapAdaptor::MPIntStringMapAdaptor(std::map<int, string>* ptr) { o_own
 MPIntStringMapAdaptor::~MPIntStringMapAdaptor() { if (o_owned) delete o; };
 int MPIntStringMapAdaptor::__len__() { return (int)o->size(); };
 std::string MPIntStringMapAdaptor::__getitem__(int i) { return o->operator[](i); };
-void MPIntStringMapAdaptor::__setitem__(int i, const string& val) { o->insert(o->begin(), std::pair<int, std::string>(i, val)); };
+void MPIntStringMapAdaptor::__setitem__(int i, const string& val) { o->operator[](i) = val; };
 std::vector<int> MPIntStringMapAdaptor::keys()
 {
 	vector<int> ret;
@@ -389,4 +411,11 @@ MPIntStringMapAdaptor& MPIntStringMapAdaptor::operator=(const MPIntStringMapAdap
 		*o = *(other.o);
 	}
 	return *this;
+}
+
+#include <Logger/Logger/Logger.h>
+
+void logger_use_stdout() {
+	for (int sect = 0; sect < MAX_LOG_SECTION; ++sect)
+		global_logger.init_file(sect, stdout);
 }

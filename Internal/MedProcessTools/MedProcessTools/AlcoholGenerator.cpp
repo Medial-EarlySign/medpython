@@ -175,8 +175,8 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 
 			float drinking_quan, ex_drinking_quan;
 			drinking_quan = ex_drinking_quan = missing_val;
-			if (drinking_vals.size() > 0) get_mean(drinking_vals, drinking_quan);
-			if (ex_drinking_vals.size() > 0) get_mean(ex_drinking_vals, ex_drinking_quan);
+			if (drinking_vals.size() > 0) drinking_quan = medial::stats::mean_without_cleaning(drinking_vals);
+			if (ex_drinking_vals.size() > 0) ex_drinking_quan = medial::stats::mean_without_cleaning(ex_drinking_vals);
 
 
 			//####### Aplly logic according to article "Development of an algorithm for determining smoking status and behavior ......

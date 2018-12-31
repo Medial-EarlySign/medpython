@@ -36,6 +36,10 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_COMBINE;
 	else if (processor_name == "split")
 		return REP_PROCESS_SPLIT;
+	else if (processor_name == "aggregation_period")
+		return REP_PROCESS_AGGREGATION_PERIOD;
+	else if (processor_name == "basic_range_cleaner" || processor_name == "range_cln")
+		return REP_PROCESS_BASIC_RANGE_CLEANER;
 	else if (processor_name == "aggregate")
 		return REP_PROCESS_AGGREGATE;
 	else if (processor_name == "limit_history" || processor_name == "history_limit")
@@ -60,6 +64,8 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepSignalRate);
 	CONDITIONAL_NEW_CLASS(dname, RepCombineSignals);
 	CONDITIONAL_NEW_CLASS(dname, RepSplitSignal);
+	CONDITIONAL_NEW_CLASS(dname, RepAggregationPeriod);
+	CONDITIONAL_NEW_CLASS(dname, RepBasicRangeCleaner);
 	CONDITIONAL_NEW_CLASS(dname, RepAggregateSignal);
 	CONDITIONAL_NEW_CLASS(dname, RepHistoryLimit);
 	return NULL;
@@ -116,6 +122,10 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCombineSignals;
 	else if (processor_type == REP_PROCESS_SPLIT)
 		return new RepSplitSignal;
+	else if (processor_type == REP_PROCESS_AGGREGATION_PERIOD)
+		return new RepAggregationPeriod;
+	else if (processor_type == REP_PROCESS_BASIC_RANGE_CLEANER)
+		return new RepBasicRangeCleaner;
 	else if (processor_type == REP_PROCESS_AGGREGATE)
 		return new RepAggregateSignal;
 	else if (processor_type == REP_PROCESS_HISTORY_LIMIT)
@@ -169,10 +179,10 @@ bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 			return false;
 	}
 
-	MLOG("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
+	MLOG_D("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
 	for (string signal : aff_signals)
-		MLOG("[%s] ", signal.c_str());
-	MLOG("\n");
+		MLOG_D("[%s] ", signal.c_str());
+	MLOG_D("\n");
 	return true;
 
 }
@@ -386,11 +396,11 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 		}
 	}
 	if (did_something)
-		MLOG("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
+		MLOG_D("Filtering uneeded rep_processors in RepMultiProcessor. left with %zu processors out of %zu\n",
 			filtered.size(), processors.size());
 
 	if (filtered.empty()) {
-		MLOG("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
+		MLOG_D("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
 		processors.clear();
 		return true;
 	}
@@ -2344,7 +2354,6 @@ void RepCombineSignals::print() {
 		output_name.c_str(), medial::io::get_list(signals).c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
 }
 
-
 int RepSignalRate::init(map<string, string> &mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -2571,6 +2580,252 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 void RepSplitSignal::print() {
 	MLOG("RepSplitSignal: input_name: %s, names: %s, req_signals %s aff_signals %s\n",
 		input_name.c_str(), medial::io::get_list(names).c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
+}
+
+//=======================================================================================
+// RepAggregationPeriod
+//=======================================================================================
+
+int RepAggregationPeriod::init(map<string, string>& mapper) {
+	vector<string> tokens;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepAggregationPeriod::init]
+		if (field == "input_name") input_name = entry.second;
+		else if (field == "output_name") output_name = entry.second; 
+		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "rp_type") {}
+		else if (field == "period") period = med_stoi(entry.second);
+		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_unit_win") time_unit_win = med_time_converter.string_to_type(entry.second);
+		else MTHROW_AND_ERR("Error in RepAggregationPeriod::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepAggregationPeriod::init]
+	}
+	if (input_name.empty())
+		MTHROW_AND_ERR("ERROR in RepAggregationPeriod::init - must provide input_name\n");
+	if (output_name.empty())
+		MTHROW_AND_ERR("ERROR in RepAggregationPeriod::init - must provide output_name\n");
+	if (sets.empty())
+		MTHROW_AND_ERR("ERROR in RepAggregationPeriod::init - must provide sets\n");
+	if (period == 0)
+		MLOG("WARNING in RepAggregationPeriod::init  - period set to default value: %d\n", period);
+
+	aff_signals.insert(output_name);
+	req_signals.insert(input_name);
+	virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange)); 
+
+	return 0;
+}
+
+void RepAggregationPeriod::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	//init:
+	int section_id = dict.section_id(input_name);
+	dict.prep_sets_lookup_table(section_id, sets, lut);
+
+	in_sid = sigs.sid(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error in RepAggregationPeriod::init_tables - input signal %s not found\n",
+			input_name.c_str());
+	req_signal_ids.insert(in_sid);
+
+	V_ids.resize(1);
+	V_ids[0] = sigs.sid(output_name);
+	if (V_ids[0] < 0)
+		MTHROW_AND_ERR("Error in RepAggregationPeriod::init_tables - virtual output signal %s not found\n",
+			output_name.c_str());
+	
+	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
+}
+
+void RepAggregationPeriod::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = virtual_signals[0].second;
+}
+
+int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	set<int> set_ids;
+	set_ids.insert(in_sid);
+	allVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(1);
+	int sig_period = med_time_converter.convert_times(time_unit_win, time_unit_sig, period);
+	
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, rec.usvs[0]);
+
+		vector<int> v_times;
+		vector<float> v_vals;
+		if (rec.usvs[0].len < 1) { //in case this version of the signal is empty
+			continue;
+		}
+		int start_time = 0, end_time = 0;
+		bool first = true;
+		for (int i = 0; i < rec.usvs[0].len; ++i) { // find remaining valid values
+			if (lut[rec.usvs[0].Val(i)] == 0) { // value not in set
+				continue;
+			}
+			int time = rec.usvs[0].Time(i);
+			if (first) {
+				start_time = time;
+				end_time = start_time + sig_period;
+				first = false;
+			}
+			else {
+				if (med_time_converter.diff_times(time, end_time, time_unit_sig, time_unit_sig) <= 0) {
+					end_time = max(end_time, time + sig_period);
+				}
+				else { // found a signal that is not included in the current period, close old period and open new one
+					v_times.push_back(start_time);
+					v_times.push_back(end_time);
+
+					start_time = time;
+					end_time = time + sig_period;
+				}
+			}
+			
+			
+		}
+		if (!first) { // else - no valid set values were found
+			v_times.push_back(start_time);
+			v_times.push_back(end_time);
+			// pushing virtual data into rec (into orig version)
+			rec.set_version_universal_data(V_ids[0], iver, &v_times[0], &v_vals[0], (int)v_times.size() / 2);
+		}
+	}
+
+	return 0;
+}
+
+void RepAggregationPeriod::print() {
+	MLOG("RepAggregationPeriod: input_name: %s, output_name: %s, req_signals %s aff_signals %s\n",
+		input_name.c_str(), output_name.c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
+}
+
+
+//=======================================================================================
+// BasicRangeCleaner
+//=======================================================================================
+
+int RepBasicRangeCleaner::init(map<string, string>& mapper)
+{
+	MLOG("In RepBasicRangeCleaner init\n");
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepBasicRangeCleaner::init]
+		if (field == "signal_name") { signal_name = entry.second; }
+		else if (field == "rp_type") {}
+		else if (field == "ranges_sig_name") { ranges_name = entry.second; }
+		else if (field == "output_name") { output_name = entry.second; }
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "output_type") output_type = med_stoi(entry.second); // needs to match the input signal type! defaults to range-value signal (3)
+		else MTHROW_AND_ERR("Error in RepBasicRangeCleaner::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepBasicRangeCleaner::init]
+		}
+	if (signal_name.empty())
+		MTHROW_AND_ERR("ERROR in RepBasicRangeCleaner::init - must provide signal_name\n");
+	if (ranges_name.empty())
+		MTHROW_AND_ERR("ERROR in RepBasicRangeCleaner::init - must provide ranges_sig_name\n");
+	if (output_name.empty()) {
+		output_name = signal_name + "_" + ranges_name;
+		MLOG("WARNING in RepBasicRangeCleaner::init - no output_name provided, using input signal combination: %s", output_name.c_str());
+	}
+
+
+	req_signals.insert(signal_name);
+	req_signals.insert(ranges_name);
+	aff_signals.insert(output_name);
+
+	virtual_signals.push_back(pair<string, int>(output_name, output_type)); 
+	return 0;
+}
+
+void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	signal_id = sigs.sid(signal_name);
+	ranges_id = sigs.sid(ranges_name);
+	output_id = sigs.sid(output_name);
+	req_signal_ids.insert(signal_id);
+	req_signal_ids.insert(ranges_id);
+	aff_signal_ids.insert(output_id);
+}
+
+void RepBasicRangeCleaner::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[output_name] = virtual_signals[0].second;
+}
+
+int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
+
+	if (signal_id == -1) {
+		MERR("Uninitialized signal_id\n");
+		return -1;
+	}
+	if (ranges_id == -1) {
+		MERR("Uninitialized ranges_id\n");
+		return -1;
+	}
+	if (output_id == -1) {
+		MERR("Uninitialized output_id\n");
+		return -1;
+	}
+	// Check that we have the correct number of dynamic-versions : one per time-point (if given)
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	int len;
+	set<int> set_ids;
+	set_ids.insert(signal_id);
+	set_ids.insert(ranges_id);
+	set_ids.insert(output_id);
+	allVersionsIterator vit(rec, set_ids);
+	rec.usvs.resize(3);
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		// setup
+		rec.uget(signal_id, iver, rec.usvs[0]); // original signal
+		rec.uget(ranges_id, iver, rec.usvs[1]); // range signal
+		rec.uget(output_id, iver, rec.usvs[2]); // output - virtual signal
+		int time_channels = rec.usvs[0].n_time_channels();
+		int val_channels = rec.usvs[0].n_val_channels();
+		len = rec.usvs[0].len;
+		vector<int> v_times(len * time_channels); // initialize size to avoid multiple resizings for long signals
+		vector<float> v_vals(len * val_channels);
+		
+		// Collect elements to keep
+		int nKeep= 0;
+		int j = 0;
+		for (int i = 0; i < len; i++) { //iterate over input signal
+			int time = rec.usvs[0].Time(i, time_channel);
+			// remove element only if it doesn't appear in any range
+			bool doRemove = true;
+			//for (int j = 0; j < rec.usvs[1].len; j++) { // slower version
+			//	if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) {
+			//		doRemove = false;
+			//		break;
+			//	}
+			//}
+			for (; j < rec.usvs[1].len; j++) { // iterate over range signal
+				if (time > rec.usvs[1].Time(j, 1)) continue;
+				if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) doRemove = false;
+				break;
+			}
+			if (!doRemove) {
+				for (int t = 0; t < time_channels; t++) v_times[nKeep * time_channels + t] = rec.usvs[0].Time(i, t); 
+				for (int v = 0; v < val_channels; v++) v_vals[nKeep * val_channels + v] = rec.usvs[0].Val(i, v);
+				nKeep++;
+			}
+		}
+		// v_times and v_vals are likely longer than necessary, it's ok because nKeep defines which part of the vector is used.
+		rec.set_version_universal_data(output_id, iver, &v_times[0], &v_vals[0], nKeep);
+	}
+
+	return 0;
+}
+
+void RepBasicRangeCleaner::print()
+{
+	MLOG("RepBasicRangeCleaner: signal: %d %s : t_channel %d : ranges_signal: %d %s : output_signal: %d %s\n",
+		signal_id, signal_name.c_str(), time_channel, ranges_id, ranges_name.c_str(), output_id, output_name.c_str());
 }
 
 int RepAggregateSignal::init(map<string, string> &mapper) {

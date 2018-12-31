@@ -1,6 +1,7 @@
 #include "TQRF.h"
 #include <MedStat/MedStat/MedPerformance.h>
 #include <MedUtils/MedUtils/MedGlobalRNG.h>
+#include <MedStat/MedStat/MedStat.h>
 #include <math.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
@@ -1826,7 +1827,7 @@ float TQRF_Tree::prep_node_counts(int i_curr_node, int use_wgts_flag)
 			}
 		}
 		vector<double> exp_for_chi;
-		double chi_score = get_chi2_n_x_m(c_for_chi, _qfeat->ncateg, _qfeat->n_time_slices, exp_for_chi);
+		double chi_score = medial::stats::chi2_n_x_m(c_for_chi, _qfeat->ncateg, _qfeat->n_time_slices, exp_for_chi);
 		MLOG(" chi_score %6.3f\n", chi_score);
 	}
 

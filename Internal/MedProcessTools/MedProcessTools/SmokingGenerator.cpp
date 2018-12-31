@@ -157,8 +157,8 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 
 				float smoking_quan, ex_smoking_quan;
 				smoking_quan = ex_smoking_quan = missing_val;
-				if (smoking_vals.size() > 0) get_mean(smoking_vals, smoking_quan);
-				if (ex_smoking_vals.size() > 0) get_mean(ex_smoking_vals, ex_smoking_quan);
+				if (smoking_vals.size() > 0) smoking_quan = medial::stats::mean_without_cleaning(smoking_vals);
+				if (ex_smoking_vals.size() > 0) ex_smoking_quan = medial::stats::mean_without_cleaning(ex_smoking_vals);
 
 				//date_group : 0 - no information , 1 - unknown , 2 - never smoke , 3 - ex smoker , 4 - relapsed smoker , 6 - likely_smoker , 7 - smoker
 				vector <pair<int, int>> smoke_pre_ranges;

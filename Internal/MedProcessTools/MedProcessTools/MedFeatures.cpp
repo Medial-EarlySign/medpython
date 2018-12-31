@@ -260,9 +260,44 @@ void MedFeatures::print_csv() const
 // Write features (samples + weights + data) as csv with a header line
 // Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
-int MedFeatures::write_as_csv_mat(const string &csv_fname) const
+int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes) const
 {
 	ofstream out_f;
+
+	// Sanity - if write_attributes is true, all samples must have the same attributes
+	set<string> attr_names, str_attr_names;
+	if (write_attributes && samples.size()) {
+		int nAttr = (int) samples[0].attributes.size();
+		int nStrAttr = (int) samples[0].str_attributes.size();
+		
+		for (auto& attr : samples[0].attributes)
+			attr_names.insert(attr.first);
+
+		for (auto& attr : samples[0].str_attributes)
+			str_attr_names.insert(attr.first);
+
+		for (unsigned int i = 1; i < samples.size(); i++) {
+			if (samples[i].attributes.size() != nAttr || samples[i].str_attributes.size() != nStrAttr) {
+				MERR("Attrributes # inconsistency betweens samples %d and 0\n", i);
+				return -1;
+			}
+
+			for (auto& attr : samples[i].attributes) {
+				if (attr_names.find(attr.first) == attr_names.end()) {
+					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i,attr.first.c_str());
+					return -1;
+				}
+			}
+
+			for (auto& attr : samples[i].str_attributes) {
+				if (str_attr_names.find(attr.first) == str_attr_names.end()) {
+					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.first.c_str());
+					return -1;
+				}
+			}
+
+		}
+	}
 
 	out_f.open(csv_fname);
 
@@ -280,11 +315,19 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname) const
 	if (weights.size()) out_f << ",weight"; // Weight (if given)
 	out_f << ",id,time,outcome,outcome_time,split"; // samples
 
-													// Predictions
+	// Predictions
 	if (samples.size() > 0 && samples[0].prediction.size() > 0) {
 		n_preds = (int)samples[0].prediction.size();
 		for (int j = 0; j < n_preds; j++)
 			out_f << ",pred_" << to_string(j);
+	}
+
+	// Attributes
+	if (write_attributes) {
+		for (string name : attr_names)
+			out_f << ",attr_" << name;
+		for (string name : str_attr_names)
+			out_f << ",str_attr_" << name;
 	}
 
 	// names of features
@@ -308,6 +351,14 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname) const
 		// predictions
 		for (int j = 0; j < n_preds; j++)
 			out_f << "," << samples[i].prediction[j];
+
+		// Attributes
+		if (write_attributes) {
+			for (string name : attr_names)
+				out_f << "," << samples[i].attributes.at(name);
+			for (string name : str_attr_names)
+				out_f << "," << samples[i].str_attributes.at(name);
+		}
 
 		// features
 		for (int j = 0; j < col_names.size(); j++)
@@ -341,7 +392,8 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 	string curr_line;
 	vector<string> names;
 	int weighted = 0;
-	int max_pred = -1;
+	int nPreds = 0;
+	vector<string> attr_names, str_attr_names;
 	vector<int> field_ind_to_pred_index;
 	while (getline(inf, curr_line)) {
 		boost::trim(curr_line);
@@ -359,29 +411,38 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			assert(fields[idx++].compare("outcome_time") == 0);
 			assert(fields[idx++].compare("split") == 0);
 
-
-			for (int i = idx; i < fields.size(); i++) {
-				if (!boost::starts_with(fields[i], "pred_")) {
-					data[fields[i]] = vector<float>();
-					attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
-					names.push_back(fields[i]);
-				}
-				else {
-					int candi = stoi(boost::replace_all_copy(fields[i], "pred_", ""));
-					if (candi > max_pred) {
-						max_pred = candi;
-						field_ind_to_pred_index.resize(max_pred + 1, -1);
-						field_ind_to_pred_index[max_pred] = i;
-					}
-				}
+			// Attributes
+			while (idx < fields.size() && boost::starts_with(fields[idx], "attr_")) {
+				string name = fields[idx].substr(5, fields[idx].length() - 5);
+				attr_names.push_back(name);
+				idx++;
 			}
+
+			// Str-Attributes
+			while (idx < fields.size() && boost::starts_with(fields[idx], "str_attr_")) {
+				string name = fields[idx].substr(9, fields[idx].length() - 9);
+				str_attr_names.push_back(name);
+				idx++;
+			}
+
+			// Predictions
+			while (idx < fields.size() && boost::starts_with(fields[idx], "pred_")) {
+				nPreds++;
+				idx++;
+			}
+
+			// Features
+			for (int i = idx; i < fields.size(); i++) {
+				data[fields[i]] = vector<float>();
+				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
+				names.push_back(fields[i]);
+			}
+
 			ncols = (int)fields.size();
 		}
 		else { // Data lines
-			if (fields.size() != ncols) {
-				string msg = "expected " + to_string(ncols) + " fields, got " + to_string((int)fields.size()) + "fields in line: " + curr_line.c_str() + "\n";
-				throw runtime_error(msg.c_str());
-			}
+			if (fields.size() != ncols) 
+				MTHROW_AND_ERR("Expected %d fields, got %d fields in line: \'%s\'\n", ncols, (int)fields.size(), curr_line.c_str());
 
 			idx++;
 
@@ -395,16 +456,20 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			newSample.outcomeTime = stoi(fields[idx++]);
 			newSample.split = stoi(fields[idx++]);
 
-			newSample.prediction.resize(max_pred + 1);
+			for (unsigned int i = 0; i < attr_names.size(); i++)
+				newSample.attributes[attr_names[i]] = stof(fields[idx++]);
 
-			for (int i = 0; i <= max_pred; ++i)
-				if (field_ind_to_pred_index[i] >= 0)
-					newSample.prediction[i] = stof(fields[field_ind_to_pred_index[i]]);
+			for (unsigned int i = 0; i < str_attr_names.size(); i++)
+				newSample.str_attributes[str_attr_names[i]] = fields[idx++];
+
+			newSample.prediction.resize(nPreds);
+			for (int i = 0; i < nPreds; i++)
+				newSample.prediction[i] = stof(fields[idx++]);
+
 			samples.push_back(newSample);
 
-			idx += (max_pred + 1);
 			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[idx + i]));
+				data[names[i]].push_back(stof(fields[idx++]));
 		}
 	}
 
@@ -1189,274 +1254,5 @@ double medial::process::match_to_prior(MedFeatures &features, float target_prior
 }
 
 
-template<class T> float medial::stats::get_preds_auc_q(const vector<T> &preds, const vector<float> &y,
-	const vector<float> *weights) {
-	vector<T> pred_threshold;
-	unordered_map<T, vector<int>> pred_indexes;
-	double tot_true_labels = 0, tot_false_labels = 0;
-	bool has_weights = weights != NULL && !weights->empty();
-	if (has_weights)
-		for (size_t i = 0; i < preds.size(); ++i)
-		{
-			pred_indexes[preds[i]].push_back((int)i);
-			tot_true_labels += int(y[i] > 0) * (*weights)[i];
-			tot_false_labels += int(y[i] <= 0) * (*weights)[i];
-		}
-	else
-		for (size_t i = 0; i < preds.size(); ++i)
-		{
-			pred_indexes[preds[i]].push_back((int)i);
-			tot_true_labels += int(y[i] > 0);
-			tot_false_labels += int(y[i] <= 0);
-		}
-	pred_threshold.resize((int)pred_indexes.size());
-	auto it = pred_indexes.begin();
-	for (size_t i = 0; i < pred_threshold.size(); ++i)
-	{
-		pred_threshold[i] = it->first;
-		++it;
-	}
-	sort(pred_threshold.begin(), pred_threshold.end());
 
 
-	//From up to down sort:
-	double t_cnt = 0;
-	double f_cnt = 0;
-	vector<float> true_rate = vector<float>((int)pred_indexes.size());
-	vector<float> false_rate = vector<float>((int)pred_indexes.size());
-	int st_size = (int)pred_threshold.size() - 1;
-	if (has_weights)
-		for (int i = st_size; i >= 0; --i)
-		{
-			vector<int> &indexes = pred_indexes[pred_threshold[i]];
-			//calc AUC status for this step:
-			for (int ind : indexes)
-			{
-				bool true_label = y[ind] > 0;
-				t_cnt += int(true_label) * (*weights)[ind];
-				f_cnt += int(!true_label) * (*weights)[ind];
-			}
-			true_rate[st_size - i] = float(t_cnt / tot_true_labels);
-			false_rate[st_size - i] = float(f_cnt / tot_false_labels);
-		}
-	else
-		for (int i = st_size; i >= 0; --i)
-		{
-			vector<int> &indexes = pred_indexes[pred_threshold[i]];
-			//calc AUC status for this step:
-			for (int ind : indexes)
-			{
-				bool true_label = y[ind] > 0;
-				t_cnt += int(true_label);
-				f_cnt += int(!true_label);
-			}
-			true_rate[st_size - i] = float(t_cnt / tot_true_labels);
-			false_rate[st_size - i] = float(f_cnt / tot_false_labels);
-		}
-
-	float auc = false_rate[0] * true_rate[0] / 2;
-	for (size_t i = 1; i < true_rate.size(); ++i)
-		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
-	return auc;
-}
-template float medial::stats::get_preds_auc_q<float>(const vector<float> &preds, const vector<float> &y, const vector<float> *weights);
-template float medial::stats::get_preds_auc_q<double>(const vector<double> &preds, const vector<float> &y, const vector<float> *weights);
-
-template<class T> double medial::stats::mean_vec(const vector<T> &v, const vector<float> *weights) {
-	bool has_weights = weights != NULL && !weights->empty();
-
-	double s = 0, c = 0;
-	if (has_weights)
-		for (size_t i = 0; i < v.size(); ++i) {
-			s += v[i] != MED_MAT_MISSING_VALUE ? v[i] * (*weights)[i] : 0;
-			c += (*weights)[i] * int(v[i] != MED_MAT_MISSING_VALUE);
-		}
-	else
-		for (size_t i = 0; i < v.size(); ++i) {
-			s += v[i] != MED_MAT_MISSING_VALUE ? v[i] : 0;
-			c += int(v[i] != MED_MAT_MISSING_VALUE);
-		}
-
-	if (c == 0)
-		return MED_MAT_MISSING_VALUE;
-	return s / c;
-}
-template double medial::stats::mean_vec<float>(const vector<float> &v, const vector<float> *weights);
-template double medial::stats::mean_vec<double>(const vector<double> &v, const vector<float> *weights);
-
-template<class T> double medial::stats::std_vec(const vector<T> &v, T mean, const vector<float> *weights) {
-	bool has_weights = weights != NULL && !weights->empty();
-
-	double s = 0, c = 0;
-	if (has_weights)
-		for (size_t i = 0; i < v.size(); ++i) {
-			s += v[i] != MED_MAT_MISSING_VALUE ? (*weights)[i] * (v[i] - mean) * (v[i] - mean) : 0;
-			c += (*weights)[i] * int(v[i] != MED_MAT_MISSING_VALUE);
-		}
-	else
-		for (size_t i = 0; i < v.size(); ++i) {
-			s += v[i] != MED_MAT_MISSING_VALUE ? (v[i] - mean) * (v[i] - mean) : 0;
-			c += int(v[i] != MED_MAT_MISSING_VALUE);
-		}
-
-	if (c == 0)
-		return MED_MAT_MISSING_VALUE;
-	return sqrt(s / c);
-}
-template double medial::stats::std_vec<float>(const vector<float> &v, float mean, const vector<float> *weights);
-template double medial::stats::std_vec<double>(const vector<double> &v, double mean, const vector<float> *weights);
-
-template <typename T, typename S>
-double medial::stats::get_kendall_tau(const vector<T>& preds, const vector<S>& y, const vector<float> *weights) {
-	//return kendallTau(preds, y);
-	double tau = 0, cnt = 0;
-	if (weights == NULL || weights->empty()) {
-		unordered_map<S, vector<T>> label_to_scores;
-		for (size_t i = 0; i < y.size(); ++i)
-			label_to_scores[y[i]].push_back(preds[i]);
-		for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
-			sort(it->second.begin(), it->second.end());
-		for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
-		{
-			auto bg = it;
-			++bg;
-			vector<T> *preds = &it->second;
-			int pred_i_bigger;
-			double pred_i_smaller;
-			for (auto jt = bg; jt != label_to_scores.end(); ++jt)
-			{
-				vector<T> *preds_comp = &jt->second;
-				double p_size = (double)preds_comp->size();
-				for (T pred : *preds)
-				{
-					pred_i_bigger = medial::process::binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
-					pred_i_smaller = p_size - medial::process::binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
-					if (it->first > jt->first)
-						//tau += pred_i_bigger;
-						tau += pred_i_bigger - pred_i_smaller;
-					else
-						//tau += pred_i_smaller;
-						tau += pred_i_smaller - pred_i_bigger;
-				}
-				cnt += p_size * preds->size();
-			}
-		}
-
-		if (cnt > 1)
-			tau /= cnt;
-
-		return (float)tau;
-	}
-	unordered_map<S, vector<T>> label_to_scores;
-	unordered_map<S, vector<pair<int, T>>> label_to_scores_w;
-	for (size_t i = 0; i < y.size(); ++i)
-		label_to_scores[y[i]].push_back(preds[i]);
-	for (size_t i = 0; i < y.size(); ++i)
-		label_to_scores_w[y[i]].push_back(pair<int, T>((int)i, preds[i]));
-	for (auto it = label_to_scores_w.begin(); it != label_to_scores_w.end(); ++it)
-		sort(it->second.begin(), it->second.end(), ComparePairBySecond<int, T>());
-	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
-		sort(it->second.begin(), it->second.end());
-
-	vector<double> group_weights(label_to_scores.size());
-	vector<vector<double>> group_weights_cumsum(label_to_scores.size());
-	int iter = 0;
-	for (auto it = label_to_scores_w.begin(); it != label_to_scores_w.end(); ++it) {
-		for (size_t i = 0; i < it->second.size(); ++i) {
-			group_weights[iter] += (*weights)[it->second[i].first];
-			group_weights_cumsum[iter].push_back((*weights)[it->second[i].first]);
-		}
-		++iter;
-	}
-	//make cumsum:
-	for (size_t i = 0; i < group_weights_cumsum.size(); ++i)
-		for (size_t j = 1; j < group_weights_cumsum[i].size(); ++j)
-			group_weights_cumsum[i][j] += group_weights_cumsum[i][j - 1];
-
-	iter = 0;
-	for (auto it = label_to_scores.begin(); it != label_to_scores.end(); ++it)
-	{
-		auto bg = it;
-		++bg;
-		vector<T> *preds = &it->second;
-		//double i_size = preds->size();
-		double i_size = group_weights[iter];
-		double pred_i_bigger;
-		double pred_i_smaller;
-		int pred_i_bigger_i;
-		int pred_i_smaller_i;
-		int inside_group_idx = iter + 1;
-		for (auto jt = bg; jt != label_to_scores.end(); ++jt)
-		{
-			vector<T> *preds_comp = &jt->second;
-			//double p_size = (double)preds_comp->size();
-			double p_size = group_weights[inside_group_idx];
-			for (T pred : *preds)
-			{
-				pred_i_bigger_i = medial::process::binary_search_position(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
-				pred_i_smaller_i = medial::process::binary_search_position_last(preds_comp->data(), preds_comp->data() + preds_comp->size() - 1, pred);
-				if (pred_i_bigger_i < group_weights_cumsum[inside_group_idx].size())
-					pred_i_bigger = group_weights_cumsum[inside_group_idx][pred_i_bigger_i];
-				else
-					pred_i_bigger = p_size;
-				if (pred_i_smaller_i < group_weights_cumsum[inside_group_idx].size())
-					pred_i_smaller = group_weights_cumsum[inside_group_idx][pred_i_smaller_i];
-				else
-					pred_i_smaller = p_size;
-				if (it->first > jt->first)
-					//tau += pred_i_bigger;
-					tau += pred_i_bigger - (p_size - pred_i_smaller);
-				else
-					//tau += pred_i_smaller;
-					tau += (p_size - pred_i_smaller) - pred_i_bigger;
-			}
-			cnt += p_size * i_size;
-			++inside_group_idx;
-		}
-		++iter;
-	}
-
-	if (cnt > 0)
-		tau /= cnt;
-
-	return tau;
-}
-template double medial::stats::get_kendall_tau<double, double>(const vector<double>& preds, const vector<double>& y, const vector<float> *weights);
-template double medial::stats::get_kendall_tau<float, float>(const vector<float>& preds, const vector<float>& y, const vector<float> *weights);
-template double medial::stats::get_kendall_tau<double, float>(const vector<double>& preds, const vector<float>& y, const vector<float> *weights);
-template double medial::stats::get_kendall_tau<float, double>(const vector<float>& preds, const vector<double>& y, const vector<float> *weights);
-
-float medial::stats::get_rmse(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
-	double res = 0;
-	if (weights == NULL || weights->empty()) {
-		for (size_t i = 0; i < y.size(); ++i)
-			res += (y[i] - preds[i]) * (y[i] - preds[i]);
-		res /= y.size();
-		res = sqrt(res);
-		return (float)res;
-	}
-
-	double cnt = 0;
-	for (size_t i = 0; i < y.size(); ++i) {
-		res += (*weights)[i] * (y[i] - preds[i]) * (y[i] - preds[i]);
-		cnt += (*weights)[i];
-	}
-	res /= cnt;
-	res = sqrt(res);
-	return (float)res;
-}
-
-float medial::stats::get_accuracy(const vector<float> &preds, const vector<float> &y, const vector<float> *weights) {
-	double res = 0;
-	if (weights == NULL || weights->empty()) {
-		for (size_t i = 0; i < y.size(); ++i)
-			res += y[i] == preds[i];
-		return float(res / y.size());
-	}
-	double cnt = 0;
-	for (size_t i = 0; i < y.size(); ++i) {
-		res += (*weights)[i] * (y[i] == preds[i]);
-		cnt += (*weights)[i];
-	}
-	return float(res / cnt);
-}

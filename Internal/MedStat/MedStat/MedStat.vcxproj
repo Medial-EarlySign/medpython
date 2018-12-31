@@ -13,6 +13,8 @@
   <ItemGroup>
     <ClInclude Include="bootstrap.h" />
     <ClInclude Include="MedBootstrap.h" />
+    <ClInclude Include="MedCleaner.h" />
+    <ClInclude Include="MedHist.h" />
     <ClInclude Include="MedPerformance.h" />
     <ClInclude Include="MedPerformance_imp.h" />
     <ClInclude Include="MedStat.h" />
@@ -21,6 +23,7 @@
     <ClCompile Include="bootstrap.cpp" />
     <ClCompile Include="MedBootstrap.cpp" />
     <ClCompile Include="MedCleaner.cpp" />
+    <ClCompile Include="MedHist.cpp" />
     <ClCompile Include="MedPerformance.cpp" />
     <ClCompile Include="MedStat.cpp" />
   </ItemGroup>

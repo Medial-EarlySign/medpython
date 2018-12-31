@@ -453,7 +453,7 @@ double tget_corr(float *x, float *y, int nsamples, int ind, double missing=-1) {
 	vec1.resize(n) ;
 	vec2.resize(n) ;
 
-	return get_corr_pearson(vec1,vec2) ;
+	return medial::performance::pearson_corr_without_cleaning(vec1, vec2);
 }
 
 double nbrs_score(int *nbrs, double *dists, float *y, int k, double mean_dist, knnAveraging knnAv) {

@@ -1,5 +1,9 @@
 #include "MPMat.h"
-#include "MedUtils/MedUtils/MedMat.h"
+#include "MedMat/MedMat/MedMat.h"
+
+const int MPMat::Normalize_Cols = MedMat<float>::Normalize_Cols;
+const int MPMat::Normalize_Rows = MedMat<float>::Normalize_Rows;
+const int MPMat::MISSING_VALUE = MED_MAT_MISSING_VALUE;
 
 MPMat::MPMat() { o = new MedMat<float>(); }
 MPMat::MPMat(int n_rows, int n_cols) { o = new MedMat<float>(n_rows, n_cols); };
@@ -55,8 +59,6 @@ void MPMat::test(float** ARGOUTVIEWM_ARRAY2, int* DIM1, int* DIM2,int n_rows, in
 
 	o->load(*ARGOUTVIEWM_ARRAY2, n_rows, n_cols);
 }
-
-
 
 int MPMat::MEDPY_GET_Normalize_Cols() { return MedMat<float>::Normalize_Cols; }
 int MPMat::MEDPY_GET_Normalize_Rows() { return MedMat<float>::Normalize_Rows; }
@@ -130,10 +132,6 @@ void MPMat::get_col(int i_col, MEDPY_NP_OUTPUT(float** colv, int* colv_n)) const
 	o->get_col(i_col, ret);
 	vector_to_buf(ret, colv, colv_n);
 }
-
-const int MPMat::Normalize_Cols = MedMat<float>::Normalize_Cols;
-const int MPMat::Normalize_Rows = MedMat<float>::Normalize_Rows;
-
 
 void MPMat::normalize(int norm_type, MEDPY_NP_INPUT(float* wgts, int wgts_n)) {
 	if (norm_type == Normalize_Cols) {
