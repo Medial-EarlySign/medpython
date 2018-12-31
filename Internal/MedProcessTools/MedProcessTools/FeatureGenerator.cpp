@@ -346,6 +346,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
 	if (name == "exists")			return FTR_EXISTS;
+	if (name == "range_width")			return FTR_RANGE_WIDTH;
 	if (name == "max_diff")			return FTR_MAX_DIFF;
 	if (name == "first_time")		return FTR_FIRST_DAYS;
 	if (name == "category_set_first")				return FTR_CATEGORY_SET_FIRST;
@@ -405,6 +406,7 @@ void BasicFeatGenerator::set_names() {
 	case FTR_CATEGORY_SET_FIRST:	name += "category_set_first_" + set_names; break;
 	case FTR_NSAMPLES:			name += "nsamples"; break;
 	case FTR_EXISTS:			name += "exists"; break;
+	case FTR_RANGE_WIDTH:			name += "range_width"; break;
 	case FTR_MAX_DIFF:			name += "max_diff"; break;
 	case FTR_FIRST_DAYS:		name += "first_time"; break;
 
@@ -513,6 +515,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int o
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_EXISTS:			return uget_exists(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
+	case FTR_RANGE_WIDTH:			return uget_range_width(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_MAX_DIFF:			return uget_max_diff(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_FIRST_DAYS:		return uget_first_time(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_CATEGORY_SET_FIRST:		return uget_category_set_first(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
@@ -808,7 +811,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "win_from") win_from = med_stoi(entry.second);
 		else if (field == "win_to") win_to = med_stoi(entry.second);
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
-		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_unit" || field == "win_time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
@@ -1039,6 +1042,20 @@ float BasicFeatGenerator::uget_max(UniversalSigVec &usv, int time, int _win_from
 		return max_val;
 
 	return missing_val;
+}
+
+
+//.......................................................................................
+// get max_val - min_val in the window
+float BasicFeatGenerator::uget_range_width(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
+{
+	float max_val = uget_max(usv, time, _win_from, _win_to, outcomeTime);
+	float min_val = uget_min(usv, time, _win_from, _win_to, outcomeTime);
+
+	if (max_val == missing_val || min_val == missing_val)
+		return missing_val;
+
+	return max_val - min_val;
 }
 
 //.......................................................................................
