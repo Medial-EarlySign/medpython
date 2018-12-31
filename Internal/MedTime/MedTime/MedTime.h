@@ -94,6 +94,7 @@ public:
 	int diff_times(int d1, int type1, int d2, int type2, int out_type);
 
 	double get_age(int t, int type_t, int byear);
+	double get_age_from_bdate(int t, int type_t, int bdate);
 };
 
 /// <summary>
