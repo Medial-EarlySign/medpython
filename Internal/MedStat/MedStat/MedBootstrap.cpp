@@ -262,10 +262,10 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	map<string, void *> cohort_params;
 	if (measurements_with_params.empty()) { //if not touched(than empty) - this is the default!
 		measurements_with_params.resize(1);
-		measurements_with_params[0] = pair<MeasurementFunctions, void*>(calc_roc_measures_with_inc, &roc_Params);
+		measurements_with_params[0] = pair<MeasurementFunctions, Measurement_Params*>(calc_roc_measures_with_inc, &roc_Params);
 	}
 	vector<MeasurementFunctions> measures((int)measurements_with_params.size());
-	vector<void *> measurements_params((int)measurements_with_params.size());
+	vector<Measurement_Params *> measurements_params((int)measurements_with_params.size());
 	for (size_t i = 0; i < measurements_with_params.size(); ++i)
 	{
 		measures[i] = measurements_with_params[i].first;

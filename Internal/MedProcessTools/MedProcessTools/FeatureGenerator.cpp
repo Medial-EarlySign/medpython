@@ -352,6 +352,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
 	if (name == "exists")			return FTR_EXISTS;
+	if (name == "range_width")			return FTR_RANGE_WIDTH;
 	if (name == "max_diff")			return FTR_MAX_DIFF;
 	if (name == "first_time")		return FTR_FIRST_DAYS;
 	if (name == "category_set_first")				return FTR_CATEGORY_SET_FIRST;
@@ -411,6 +412,7 @@ void BasicFeatGenerator::set_names() {
 	case FTR_CATEGORY_SET_FIRST:	name += "category_set_first_" + set_names; break;
 	case FTR_NSAMPLES:			name += "nsamples"; break;
 	case FTR_EXISTS:			name += "exists"; break;
+	case FTR_RANGE_WIDTH:			name += "range_width"; break;
 	case FTR_MAX_DIFF:			name += "max_diff"; break;
 	case FTR_FIRST_DAYS:		name += "first_time"; break;
 
@@ -519,6 +521,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int o
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_EXISTS:			return uget_exists(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
+	case FTR_RANGE_WIDTH:			return uget_range_width(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_MAX_DIFF:			return uget_max_diff(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_FIRST_DAYS:		return uget_first_time(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_CATEGORY_SET_FIRST:		return uget_category_set_first(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
@@ -814,7 +817,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "win_from") win_from = med_stoi(entry.second);
 		else if (field == "win_to") win_to = med_stoi(entry.second);
 		else if (field == "signalName" || field == "signal") signalName = entry.second;
-		else if (field == "time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_unit" || field == "win_time_unit") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
@@ -937,9 +940,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	//MLOG("min_time %d max_time %d usv.len %d time %d\n", min_time, max_time, usv.len, time);
 	for (int i = usv.len - 1; i >= 0; i--) {
@@ -961,9 +962,7 @@ float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_fro
 float BasicFeatGenerator::uget_first(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -982,9 +981,7 @@ float BasicFeatGenerator::uget_first(UniversalSigVec &usv, int time, int _win_fr
 float BasicFeatGenerator::uget_last2(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -1003,10 +1000,8 @@ float BasicFeatGenerator::uget_last2(UniversalSigVec &usv, int time, int _win_fr
 float BasicFeatGenerator::uget_avg(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
-
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
+	
 	double sum = 0, nvals = 0;
 
 	for (int i = 0; i < usv.len; i++) {
@@ -1029,10 +1024,8 @@ float BasicFeatGenerator::uget_avg(UniversalSigVec &usv, int time, int _win_from
 float BasicFeatGenerator::uget_max(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
-
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
+	
 	float max_val = -1e10;
 
 	for (int i = 0; i < usv.len; i++) {
@@ -1047,14 +1040,26 @@ float BasicFeatGenerator::uget_max(UniversalSigVec &usv, int time, int _win_from
 	return missing_val;
 }
 
+
+//.......................................................................................
+// get max_val - min_val in the window
+float BasicFeatGenerator::uget_range_width(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
+{
+	float max_val = uget_max(usv, time, _win_from, _win_to, outcomeTime);
+	float min_val = uget_min(usv, time, _win_from, _win_to, outcomeTime);
+
+	if (max_val == missing_val || min_val == missing_val)
+		return missing_val;
+
+	return max_val - min_val;
+}
+
 //.......................................................................................
 // get the min value in the window [win_to, win_from] before time
 float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	float min_val = (float)1e20;
 
@@ -1075,9 +1080,7 @@ float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time, int _win_from
 float BasicFeatGenerator::uget_std(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	double sum = 0, sum_sq = 0, nvals = 0;
 
@@ -1106,9 +1109,7 @@ float BasicFeatGenerator::uget_std(UniversalSigVec &usv, int time, int _win_from
 float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -1125,9 +1126,7 @@ float BasicFeatGenerator::uget_last_delta(UniversalSigVec &usv, int time, int _w
 float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
@@ -1145,9 +1144,7 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time, int _wi
 float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -1165,9 +1162,7 @@ float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time, int _w
 float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		if (usv.Time(i, time_channel) <= max_time) {
@@ -1187,9 +1182,7 @@ float BasicFeatGenerator::uget_slope(UniversalSigVec &usv, int time, int _win_fr
 {
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	double sx = 0, sy = 0, sxx = 0, sxy = 0, n = 0;
 	double t_start = -1;
@@ -1245,9 +1238,7 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 	//	}
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -1261,9 +1252,7 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 float BasicFeatGenerator::uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	for (int i = 0; i < usv.len; i++) {
 		int itime = usv.Time(i, time_channel);
@@ -1285,9 +1274,7 @@ float BasicFeatGenerator::uget_category_set_count(PidDynamicRec &rec, UniversalS
 	//	}
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	int cnt = 0;
 	for (int i = 0; i < usv.len; i++) {
@@ -1309,9 +1296,7 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 	//	}
 
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	float sum = 0;
 	for (int i = 0; i < usv.len; i++) {
@@ -1328,9 +1313,7 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
@@ -1343,9 +1326,7 @@ float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win
 float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
@@ -1359,9 +1340,7 @@ float BasicFeatGenerator::uget_exists(UniversalSigVec &usv, int time, int _win_f
 float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
-	if (bound_outcomeTime && outcomeTime < max_time)
-		max_time = outcomeTime;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
 	float max_diff = missing_val;
 	vector<float> _vals_vec;
@@ -1394,7 +1373,7 @@ float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win
 float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int dummy_time, time_to_check;
-	get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check);
+	get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check, false);
 
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
@@ -1414,7 +1393,7 @@ float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int updated_w
 float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	float val = missing_val;
 	for (int i = 0; i < usv.len; i++) {
@@ -1437,7 +1416,7 @@ float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_wi
 float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	float min_val = (float)1e20;
 
@@ -1464,7 +1443,7 @@ float RangeFeatGenerator::uget_range_min(UniversalSigVec &usv, int updated_win_f
 float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	float max_val = (float)-1e10;
 
@@ -1491,7 +1470,7 @@ float RangeFeatGenerator::uget_range_max(UniversalSigVec &usv, int updated_win_f
 float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	for (int i = 0; i < usv.len; i++) {
 		int fromTime = usv.Time(i, 0);
@@ -1511,7 +1490,7 @@ float RangeFeatGenerator::uget_range_ever(UniversalSigVec &usv, int updated_win_
 float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	int no_lut_ind = 0;
 	float time_diff = missing_val;
@@ -1563,7 +1542,7 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int updated
 float RangeFeatGenerator::uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
 	int min_time, max_time;
-	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
 
 	int last_end = 0;
 	int num_recurrence = 0;
@@ -1823,6 +1802,7 @@ int AttrFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 //................................................................................................................
 void ModelFeatGenerator::set_names() {
+	MLOG("In ModelFeatGenerator::set_names()\n");
 	names.clear();
 
 	string name;
@@ -1833,18 +1813,22 @@ void ModelFeatGenerator::set_names() {
 	else
 		name = "ModelPred";
 
-	if (impute_existing_feature)
+	if (impute_existing_feature) 
 		names.push_back(modelName);
 	else {
-		for (int i = 0; i < n_preds; i++)
-			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name + "." + to_string(i + 1));
+		for (int t = 0; t < times.size(); t++) {
+			for (int i = 0; i < n_preds; i++)
+				names.push_back("FTR_" + int_to_string_digits(serial_id, 6)  + "." + name + "_t_" + to_string(times[t]) + "." + to_string(i + 1));
+		}
 	}
+	
+
 }
 
 // Init from map
 //.......................................................................................
 int ModelFeatGenerator::init(map<string, string>& mapper) {
-
+	//MLOG("In ModelFeatGenerator::init()\n");
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [ModelFeatGenerator::init]
@@ -1852,11 +1836,20 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
+		else if (field == "time_unit_win") time_unit_win = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
+		else if (field == "times") {
+			vector<string> stringTimes;
+			boost::split(stringTimes, entry.second, boost::is_any_of(","));
+			for (auto stringTime : stringTimes) times.push_back(med_stoi(stringTime));
+		}
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for ModelFeatureGenerator\n", field.c_str());
 		//! [ModelFeatGenerator::init]
 	}
-
+	if (times.empty()) times.push_back(0); // if no times were given, predict at sample time
+	if (impute_existing_feature != 0 && times.size() > 1) // it does not make sense to impute existing features at multiple time points
+		MTHROW_AND_ERR("cannot use impute_existing_feature and more than one time in ModelFeatureGenerator\n")
 	// set names
 	set_names();
 	// {name} is magical
@@ -1875,7 +1868,7 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 // Copy Model and get required signals
 //.......................................................................................
 int ModelFeatGenerator::init_from_model(MedModel *_model) {
-
+	MLOG("In ModelFeatGenerator::init_from_model()\n");
 	generator_type = FTR_GEN_MODEL;
 	model = _model;
 
@@ -1884,64 +1877,82 @@ int ModelFeatGenerator::init_from_model(MedModel *_model) {
 	for (string signal : required)
 		req_signals.push_back(signal);
 
-	set_names();
 	return 0;
 }
 
 /// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
 //.......................................................................................
 void ModelFeatGenerator::override_predictions(MedSamples& inSamples, MedSamples& modelSamples) {
-
+	MLOG("In ModelFeatGenerator::override_predictions()\n");
+	// Note: when using this feature with multiple time points make sure the predictions in the given sample are setup in the correct order
 	// Sanity check ...
 	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples, 0))
 		MTHROW_AND_ERR("inSamples is not identical to model samples in ModelFeatGenerator::load\n");
+	int t_size = (int)times.size();
+	preds.resize(t_size, vector<vector<float>>(n_preds, vector<float>(inSamples.nSamples())));
 
-	preds.resize(inSamples.nSamples()*n_preds);
+	for (int t = 0; t < t_size; t++) {
+		for (int i = 0; i < n_preds; i++){
+			int idx = 0;
+			for (auto& idSamples : inSamples.idSamples) {
+				for (auto& sample : idSamples.samples) {
+					if (sample.prediction.size() < n_preds*t_size)
+						MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds*t_size);
+					preds[t][i][idx++] = sample.prediction[t*n_preds + i];
 
-	int idx = 0;
-	for (auto& idSamples : inSamples.idSamples) {
-		for (auto& sample : idSamples.samples) {
-			if (sample.prediction.size() < n_preds)
-				MTHROW_AND_ERR("Cannot extract %d predictions from sample in ModelFeatGenerator::load\n", n_preds);
-
-			for (int i = 0; i < n_preds; i++)
-				preds[idx++] = sample.prediction[i];
+				}
+			}
 		}
 	}
-
-	set_names();
 
 	use_overriden_predictions = 1;
 
 }
 
+void ModelFeatGenerator::modifySampleTime(MedSamples& samples, int time) {
+	for (int s = 0; s < samples.idSamples.size(); s++) {
+		for (int m = 0; m < samples.idSamples[s].samples.size(); m++) {
+			samples.idSamples[s].samples[m].time += time;
+		}
+
+	}
+}
+
 // Do the actual prediction prior to feature generation , only if vector is empty
 //.......................................................................................
 void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
-		
+	MLOG("In ModelFeatGenerator::prepare()\n");
 	if (!use_overriden_predictions) {
-		// Predict
-		if (model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
-			MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
+		MedSamples modifiedSamples = samples;
+		int t_size = (int)times.size();
+		preds.resize(t_size);
+		for (int t = 0; t < t_size; t++) {
+			// modify sample time
+			int sig_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, times[t]);
+			modifySampleTime(modifiedSamples, -sig_time);
+			
+			// Predict
+			if (model->apply(rep, modifiedSamples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_PREDICTOR) != 0)
+				MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s failed to apply model\n", modelName.c_str());
 
-		// Extract predictions
-		if (model->features.samples[0].prediction.size() < n_preds)
-			MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
-
-		preds.resize(n_preds*model->features.samples.size());
-		for (int i = 0; i < model->features.samples.size(); i++) {
-			for (int j = 0; j < n_preds; j++) {
-				float new_val = model->features.samples[i].prediction[j];
-				if (!isfinite(new_val))
-					MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s nan in row %d\n", modelName.c_str(), i);
-				preds[i*n_preds + j] = new_val;
+			// Extract predictions
+			if (model->features.samples[0].prediction.size() < n_preds)
+				MTHROW_AND_ERR("ModelFeatGenerator::prepare cannot generate feature %s\n", modelName.c_str());
+			preds[t].resize(n_preds, vector<float>(model->features.samples.size()));
+			for (int i = 0; i < model->features.samples.size(); i++) {
+				for (int j = 0; j < n_preds; j++) {
+					float new_val = model->features.samples[i].prediction[j];
+					if (!isfinite(new_val))
+						MTHROW_AND_ERR("ModelFeatGenerator::prepare feature %s nan in row %d\n", modelName.c_str(), i);
+					preds[t][j][i] = new_val;
+				}
 			}
+
+			// release some memory
+			model->features.clear();
+			modifySampleTime(modifiedSamples, +sig_time);
 		}
-
-		// release some memory
-		model->features.clear();
 	}
-
 	// Generate a new feature or identify feature to impute.
 	if (impute_existing_feature) {
 		FeatureProcessor p;
@@ -1957,13 +1968,17 @@ void ModelFeatGenerator::prepare(MedFeatures & features, MedPidRepository& rep, 
 // Put relevant predictions in place
 //.......................................................................................
 int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
-	float *p_feat = _p_data[0] + index;
-	for (int i = 0; i < num; i++) {
-		if (!impute_existing_feature || p_feat[i] == missing_val) {
-			float new_val = preds[index*n_preds + i];
-			if (!isfinite(new_val))
-				MTHROW_AND_ERR("ModelFeatGenerator::_generate nan in row %d\n", index*n_preds + i);
-			p_feat[i] = new_val;
+	for (int t = 0; t < times.size(); t++) {
+		for (int n = 0; n < n_preds; n++) {
+			float *p_feat = _p_data[t*n_preds + n] + index;
+			for (int i = 0; i < num; i++) {
+				if (!impute_existing_feature || p_feat[i] == missing_val) {
+					float new_val = preds[t][n][index + i];
+					if (!isfinite(new_val))
+						MTHROW_AND_ERR("ModelFeatGenerator::_generate nan in row %d\n", index + i);
+					p_feat[i] = new_val;
+				}
+			}
 		}
 	}
 
@@ -1973,18 +1988,22 @@ int ModelFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 
 ModelFeatGenerator::~ModelFeatGenerator() {
+	MLOG("In ModelFeatGenerator::~ModelFeatGenerator()\n");
 	if (model != NULL) delete model;
 	model = NULL;
 }
 
-ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, model)
+ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, use_overriden_predictions, time_unit_win, time_unit_sig, times)
 //................................................................................................................
 // Helper function for time conversion
 //................................................................................................................
-void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time)
+void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time,
+	bool boundOutcomeTime, int outcome_time)
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
+	if (boundOutcomeTime && outcome_time < _max_time)
+		_max_time = outcome_time;
 }
 
 // Helper functions for time-range signals

@@ -337,13 +337,15 @@ int get_checksum(const vector<int> &pids) {
 
 map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
 	const vector<int> &pids, float sample_ratio, int sample_per_pid, int loopCnt,
-	const vector<MeasurementFunctions> &meas_functions, const vector<void *> &function_params,
+	const vector<MeasurementFunctions> &meas_functions, const vector<Measurement_Params *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
-	const vector<int> &pids_full, const vector<float> *weights, const vector<int> &filter_indexes, FilterCohortFunc cohort_def, void *cohort_params, int seed = 0) {
+	const vector<int> &pids_full, const vector<float> *weights, const vector<int> &filter_indexes, FilterCohortFunc cohort_def,
+	void *cohort_params, int &warn_cnt, const string &cohort_name, int seed = 0) {
 	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
+	int max_warns = 5;
 
 	//initialize measurement params per cohort:
 	time_t st = time(NULL);
@@ -487,6 +489,19 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 					iterator.restart_iterator(th_num);
 #endif
 				batch_measures = meas_functions[k](&iterator, i, function_params[k]);
+				if (batch_measures.empty()) {
+					if (warn_cnt < max_warns) {
+#pragma omp atomic
+						++warn_cnt;
+						MWARN("bootstrap warning: in cohort \"%s\" - no measurements\n", cohort_name.c_str());
+						if (warn_cnt == max_warns)
+							//cancel warning is parameters:
+#pragma omp critical
+							for (size_t kk = 0; kk < meas_functions.size(); ++kk)
+								function_params[kk]->show_warns = false;
+					}
+
+				}
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
@@ -537,8 +552,8 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<float> *weights, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort
 	, const vector<MeasurementFunctions> &meas_functions, const map<string, void *> *cohort_params,
-	const vector<void *> *function_params, ProcessMeasurementParamFunc process_measurments_params,
-	PreprocessScoresFunc preprocess_scores, void *preprocess_scores_params, float sample_ratio, int sample_per_pid,
+	const vector<Measurement_Params *> *function_params, ProcessMeasurementParamFunc process_measurments_params,
+	PreprocessScoresFunc preprocess_scores, Measurement_Params *preprocess_scores_params, float sample_ratio, int sample_per_pid,
 	int loopCnt, int seed, bool binary_outcome) {
 #if defined(__unix__)
 	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -548,7 +563,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		cerr << "bootstrap sizes aren't equal preds=" << preds.size() << " y=" << y.size() << endl;
 		throw invalid_argument("bootstrap sizes aren't equal");
 	}
-	vector<void *> params((int)meas_functions.size());
+	vector<Measurement_Params *> params((int)meas_functions.size());
 	if (function_params == NULL)
 		for (size_t i = 0; i < params.size(); ++i)
 			params[i] = NULL;
@@ -570,6 +585,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	preds_c.reserve((int)y.size());
 	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
+	int warn_cnt = 0;
 	if (weights != NULL && !weights->empty())
 		weights_c.reserve(weights->size());
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
@@ -619,7 +635,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, seed);
+			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, warn_cnt, cohort_name, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 	}
@@ -758,7 +774,7 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 
 #pragma region Measurements Fucntions
 
-map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params) {
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 
 	map<float, int> cnts;
@@ -773,7 +789,7 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void 
 	return res;
 }
 
-map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params) {
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 
 	vector<float> pred_threshold;
@@ -856,7 +872,7 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *
 	return res;
 }
 
-map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params) {
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
 	bool censor_removed = true;
@@ -951,10 +967,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		}
 
 	if (f_cnt == 0 || t_sum <= 0) {
-		if (t_sum <= 0)
-			MWARN("no positives exists in cohort\n");
-		else
-			MWARN("no falses exists in cohort\n");
+		if (params->show_warns) {
+			if (t_sum <= 0)
+				MWARN("no positives exists in cohort\n");
+			else
+				MWARN("no falses exists in cohort\n");
+		}
 		return res;
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i) {
@@ -1151,7 +1169,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif
 					++curr_wp_sens_ind;
 					continue; //skip working point - diff is too big
-			}
+				}
 				res[format_working_point("SCORE@SENS", sens_points[curr_wp_sens_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("FPR@SENS", sens_points[curr_wp_sens_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
@@ -1267,9 +1285,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_sens_ind;
 				continue;
-		}
+			}
 			++i;
-	}
+		}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -1312,7 +1330,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif //  WARN_SKIP_WP
 					++curr_wp_pr_ind;
 					continue; //skip working point - diff is too big
-			}
+				}
 				res[format_working_point("SCORE@PR", pr_points[curr_wp_pr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("FPR@PR", pr_points[curr_wp_pr_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
@@ -1418,9 +1436,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_pr_ind;
 				continue;
-		}
+			}
 			++i;
-}
+		}
 
 	}
 	else {
@@ -1519,7 +1537,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	return res;
 }
 
-map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params) {
+map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 
 	double tau = 0, cnt = 0;
@@ -1730,7 +1748,7 @@ void count_stats(int bin_counts, const vector<float> &y, const map<string, vecto
 }
 
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<float> &y, const vector<int> &pids, Measurement_Params *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
 	ROC_And_Filter_Params *pr_full = (ROC_And_Filter_Params *)function_params;
 	ROC_Params *params = pr_full->roc_params;
@@ -1812,7 +1830,7 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 }
 
 void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<float> &y, const vector<int> &pids, Measurement_Params *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
 	ROC_And_Filter_Params *pr_full = (ROC_And_Filter_Params *)function_params;
 	ROC_Params *params = pr_full->roc_params;
@@ -1932,7 +1950,7 @@ void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_
 	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
 
-void preprocess_bin_scores(vector<float> &preds, void *function_params) {
+void preprocess_bin_scores(vector<float> &preds, Measurement_Params *function_params) {
 	ROC_Params params;
 	if (function_params != NULL)
 		params = *(ROC_Params *)function_params;
@@ -2052,6 +2070,9 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params) {
 #pragma endregion
 
 #pragma region Parameter Functions
+Measurement_Params::Measurement_Params() {
+	show_warns = true;
+}
 int Filter_Param::init_from_string(string init_string) {
 	if (init_string.find(':') == string::npos)
 		MTHROW_AND_ERR("Wrong format given \"%s\". expected format is \"PARAM_NAME:min_range,max_range\"\n",
@@ -2236,6 +2257,8 @@ int ROC_Params::init(map<string, string>& map) {
 			parse_vector(param_value, working_point_PR);
 		else if (param_name == "working_point_sens")
 			parse_vector(param_value, working_point_SENS);
+		else if (param_name == "show_warns")
+			show_warns = med_stoi(param_value) > 0;
 		//! [ROC_Params::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());

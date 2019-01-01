@@ -50,7 +50,7 @@ public:
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
 	bool simTimeWindow;
-	vector<pair<MeasurementFunctions, void *>> measurements_with_params;  ///<not Serializable! the measurements with the params
+	vector<pair<MeasurementFunctions, Measurement_Params *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
 	/// <summary>
 	/// parsing specific line. please refer to parse_cohort_file for full spec

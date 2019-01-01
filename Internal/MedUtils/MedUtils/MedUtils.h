@@ -98,6 +98,9 @@ namespace medial {
 			virtual void post_process() {};
 			/// finds module section help in full help message
 			string get_section(const string &full_help, const string &search);
+
+			/// list all help section names for search
+			void list_sections(const string &full_help, vector<string> &all_sec);
 		protected:
 			/// an init function
 			void init(po::options_description &prg_options, const string &app_l = "");

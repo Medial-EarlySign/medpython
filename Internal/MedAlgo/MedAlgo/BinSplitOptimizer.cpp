@@ -484,7 +484,7 @@ void medial::process::split_feature_to_bins(const BinSettings &setting, vector<f
 		splitingParams.score_bins = setting.binCnt;
 		splitingParams.score_min_samples = setting.min_bin_count;
 		splitingParams.score_resolution = (float)setting.min_res_value;
-		preprocess_bin_scores(feature, (void *)&splitingParams); //will merge till converge to binCnt
+		preprocess_bin_scores(feature, (Measurement_Params *)&splitingParams); //will merge till converge to binCnt
 		break;
 	case BinSplitMethod::PartitaionMover:
 		if (!sel_indexes.empty()) {

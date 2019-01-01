@@ -563,6 +563,7 @@ void FeatureIterativeImputer::update_req_features_vec(unordered_set<string>& out
 /// Apply imputing model on subset of ids (TBI)
 //.......................................................................................
 int FeatureIterativeImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
+	return _apply(features);
 	MERR("iterativeImputer on subset of ids is not implemented yet\n"); 
 	return -1;
 }
@@ -570,6 +571,7 @@ int FeatureIterativeImputer::_apply(MedFeatures& features, unordered_set<int>& i
 /// Learn imputing model on subset of ids (TBI)
 //.......................................................................................
 int FeatureIterativeImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
+	return Learn(features);
 	MERR("iterativeImputer on subset of ids is not implemented yet\n"); 
 	return -1; 
 }

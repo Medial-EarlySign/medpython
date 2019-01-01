@@ -27,13 +27,17 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		if (pos["date"] != -1) {
 			if (raw_format) 
 				time = stoi(fields[pos["date"]]);
-			else 
+			else
 				time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 2);
 		}
 		if (pos["outcome"] != -1)
 			outcome = stof(fields[pos["outcome"]]);
-		if (pos["outcome_date"] != -1)
-			outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 1);
+		if (pos["outcome_date"] != -1) {
+			if (raw_format)
+				outcomeTime = stoi(fields[pos["outcome_date"]]);
+			else
+				outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 1);
+		}
 		if (pos["split"] != -1 && fields.size() > pos["split"])
 			split = stoi(fields[pos["split"]]);
 
@@ -379,6 +383,11 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 							MTHROW_AND_ERR("skipped %d/%d first records, exiting\n", skipped_records, read_records);
 						continue;
 					}
+
+					if (0 && read_records < 10) { // use for debug
+						MLOG("Read samples line %s ... parsed it as : pid %d time %d outcome %f outcomeTime %d\n", curr_line.c_str(), sample.id, sample.time, sample.outcome, sample.outcomeTime);
+					}
+
 					if (sample.id != curr_id) {
 						if (seen_ids.find(sample.id) != seen_ids.end()) {
 							MERR("ERROR: Wrong MedSample format in line \"%s\"", curr_line.c_str());

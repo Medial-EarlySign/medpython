@@ -195,6 +195,7 @@ typedef enum {
 	FTR_CATEGORY_SET_FIRST = 17, ///<"category_set_first" - boolean 0/1 if the signal apears in the time window and did not appear ever before the window
 	FTR_MAX_DIFF = 18, ///<maximum diff in window
 	FTR_FIRST_DAYS = 19, ///< time diffrence from prediction time to first time with signal
+	FTR_RANGE_WIDTH = 20, ///< maximal value - minimal value in a given window time frame
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -230,6 +231,7 @@ private:
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime);
 	float uget_exists(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime);
+	float uget_range_width(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_max_diff(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_first_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
@@ -639,6 +641,9 @@ public:
 	int n_preds = 1;  ///< how many features to create
 	int impute_existing_feature = 0; ///< If true will use model to impute an existing feature (determined by model name. Otherwise - generate new feature(s)
 	int use_overriden_predictions = 0; ///< Use a given vector of predictions instead of applying model
+	int time_unit_win = global_default_windows_time_unit; ///< the time unit in which the times are given. Default: global_default_windows_time_unit
+	int time_unit_sig = global_default_windows_time_unit; ///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
+	vector<int> times;
 
 	/// Naming 
 	void set_names();
@@ -657,6 +662,8 @@ public:
 	/// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
+	void modifySampleTime(MedSamples& samples, int time);
+
 	// (De)Serialize
 	ADD_CLASS_NAME(ModelFeatGenerator)
 	ADD_SERIALIZATION_HEADERS()
@@ -665,7 +672,7 @@ public:
 	//dctor:
 	~ModelFeatGenerator();
 private:
-	vector<float> preds;
+	vector<vector<vector<float>>> preds;
 };
 
 
@@ -770,7 +777,9 @@ public:
 //=======================================
 
 /// gets a [-_win_to, -_win_from] window in win time unit, and returns [_min_time, _max_time] window in signal time units relative to _win_time
-void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time);
+/// boundOutcomeTime is used to future time windows when looking to the future to limit the time window till the outcomeTime
+void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int _time_unit_sig, int _win_time, int &_min_time, int &_max_time,
+	bool boundOutcomeTime = false, int outcome_time = -1);
 
 /// Conversion between time-range type and name
 TimeRangeTypes time_range_name_to_type(const string& name);
