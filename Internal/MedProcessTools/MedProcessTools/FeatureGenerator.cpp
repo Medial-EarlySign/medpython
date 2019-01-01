@@ -1949,7 +1949,7 @@ void get_window_in_sig_time(int _win_from, int _win_to, int _time_unit_win, int 
 {
 	_min_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_to);
 	_max_time = med_time_converter.convert_times(_time_unit_win, _time_unit_sig, _win_time - _win_from);
-	if (boundOutcomeTime && outcome_time > _max_time)
+	if (boundOutcomeTime && outcome_time < _max_time)
 		_max_time = outcome_time;
 }
 
