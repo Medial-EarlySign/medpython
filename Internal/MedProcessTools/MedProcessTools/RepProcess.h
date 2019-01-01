@@ -1469,6 +1469,7 @@ public:
 	int rep_time_unit = global_default_time_unit; // we assume this is also the samples time unit
 	int win_from;
 	int win_to;
+	int delete_sig = 0; /// simply delete the signal (set it's len to 0).
 
 	// default init
 	void init_defaults() { processor_type = REP_PROCESS_HISTORY_LIMIT; }

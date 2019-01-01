@@ -1835,7 +1835,7 @@ void ModelFeatGenerator::override_predictions(MedSamples& inSamples, MedSamples&
 	// Sanity check ...
 	if (modelSamples.idSamples.size() && !inSamples.same_as(modelSamples, 0))
 		MTHROW_AND_ERR("inSamples is not identical to model samples in ModelFeatGenerator::load\n");
-	int t_size = times.size();
+	int t_size = (int)times.size();
 	preds.resize(t_size, vector<vector<float>>(n_preds, vector<float>(inSamples.nSamples())));
 
 	for (int t = 0; t < t_size; t++) {

@@ -3052,6 +3052,7 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "win_from") win_from = med_stoi(entry.second);
 		else if (field == "win_to") win_to = med_stoi(entry.second);
+		else if (field == "delete_sig") delete_sig = med_stoi(entry.second);
 		else if (field == "rep_time_unit") rep_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
 	}
@@ -3088,15 +3089,24 @@ int RepHistoryLimit::_apply(PidDynamicRec& rec, vector<int>& time_points, vector
 	UniversalSigVec usv;
 	vector<char> data;
 
-	for (int ver = 0; ver < time_points.size(); ver++) {
-		rec.uget(signalId, ver, usv);
-		int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
-		int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);
-		int to_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_from);
-		get_sub_usv_data(usv, from_time, to_time, data, len);
-		if (len < usv.len) {
-			rec.set_version_data(signalId, ver, &data[0], len);
+	if (delete_sig == 0) {
+		for (int ver = 0; ver < time_points.size(); ver++) {
+			rec.uget(signalId, ver, usv);
+			int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
+			int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);
+			int to_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_from);
+			get_sub_usv_data(usv, from_time, to_time, data, len);
+			if (len < usv.len) {
+				rec.set_version_data(signalId, ver, &data[0], len);
+			}
 		}
+	}
+	else {
+		// simply delete signal and point all versions to the deleted signal
+		rec.uget(signalId, 0, usv);
+		rec.set_version_data(signalId, 0, &data[0], 0);
+		for (int ver = 1; ver < time_points.size(); ver++)
+			rec.point_version_to(signalId, 0, ver);
 	}
 
 	return 0;
