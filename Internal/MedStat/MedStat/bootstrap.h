@@ -98,6 +98,15 @@ private:
 	int maxThreadCount;
 };
 
+/**
+* A base class for measurements parameter
+*/
+class Measurement_Params {
+public:
+	bool show_warns; ///< If True will show warnnings
+	Measurement_Params();
+};
+
 #pragma region Measurements Fucntions
 /// <summary>
 /// A Function to calculate only NPOS,NNEG (already calculated in calc_roc_measures_with_inc). \n
@@ -106,7 +115,7 @@ private:
 /// <returns>
 /// A map from each measurement name("NPOS" or "NNEG") to it's value
 /// </returns>
-map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void *function_params);
+map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 /// <summary>
 /// A Function to calculate only AUC (already calculated in calc_roc_measures_with_inc). \n
 /// Implements MeasurementFunctions signature function
@@ -114,7 +123,7 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, void 
 /// <returns>
 /// A map from measurement name "AUC" to it's value
 /// </returns>
-map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *function_params);
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 /// <summary>
 /// A Function to calculate all roc measurements- AUC, Sensitivity, speceficity 
 /// positive rate, ppv...\n
@@ -123,7 +132,7 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, void *
 /// <returns>
 /// A map from each measurement name to it's value
 /// </returns>
-map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, void *function_params); //with PPV and PR
+map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params); //with PPV and PR
 /// <summary>
 /// A Function to calculate calc_kandel_tau
 /// Implements MeasurementFunctions signature function
@@ -131,7 +140,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 /// <returns>
 /// A map from measurement name "Kendell-Tau" to it's value
 /// </returns>
-map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, void *function_params);
+map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -178,7 +187,7 @@ public:
 * stores the working point, and other parameters for the roc measurments
 * bootstrap calculations.
 */
-class ROC_Params : public SerializableObject {
+class ROC_Params : public Measurement_Params, public SerializableObject {
 public:
 	vector<float> working_point_FPR; ///< The False Positive rate working point definition
 	vector<float> working_point_SENS; ///< The True Positive rate working point definition
@@ -190,6 +199,7 @@ public:
 	float score_resolution; ///< score resultion to contorl bining for speed up calculation. 0 means no binning resulotion
 	bool fix_label_to_binary; ///< If True will change label value to be binary 0,1 (default is True)
 	Incident_Stats inc_stats; ///< the incedince data if provided for general population. look for Incident_Stats for more info
+	
 	/// <summary>
 	/// Default Ctor
 	/// </summary>
@@ -202,6 +212,7 @@ public:
 		incidence_fix = 0;
 		score_min_samples = 0;
 		fix_label_to_binary = true;
+		show_warns = true;
 	}
 	/// <summary>
 	/// Initializing each parameter from string in format: "parameter_name=value;...". \n
@@ -217,7 +228,7 @@ public:
 
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
-		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, inc_stats)
+		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats)
 };
 
 #pragma region Cohort Fucntions
@@ -269,7 +280,7 @@ public:
 	ADD_SERIALIZATION_FUNCS(param_name, min_range, max_range)
 };
 
-struct ROC_And_Filter_Params {
+struct ROC_And_Filter_Params: public Measurement_Params {
 	ROC_Params *roc_params;
 	vector<Filter_Param> *filter;
 };
@@ -278,17 +289,17 @@ struct ROC_And_Filter_Params {
 ///Function which recieves Lazy_Iterator and the thread num for iterating the predictions and labels.
 /// it also recieves function_params which are additional arguments for the function (can be working points
 /// defintions for example)
-typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, int thread_num, void *function_params);
+typedef map<string, float>(*MeasurementFunctions)(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 ///Function which recieves map from feature name to vector of all samples value, sample index and cohort
 /// definition params and return true\false if to include the sample in the cohort.
 typedef bool(*FilterCohortFunc)(const map<string, vector<float>> &record_info, int index, void *cohort_params);
 /// a function to process and maniplulate function params based on the given cohort - for example sotring
 /// incedince information for the cohort
-typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, void *function_params,
+typedef void(*ProcessMeasurementParamFunc)(const map<string, vector<float>> &additional_info, const vector<float> &y, const vector<int> &pids, Measurement_Params *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full);
 /// a funtion to preprocess the prediction scores (binning for example to speed up bootstrap).
 /// the function manipulate preds based on function_params
-typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params);
+typedef void(*PreprocessScoresFunc)(vector<float> &preds, Measurement_Params *function_params);
 
 #pragma region Process Measurement Param Functions
 /// <summary>
@@ -296,7 +307,7 @@ typedef void(*PreprocessScoresFunc)(vector<float> &preds, void *function_params)
 /// and storing the incidence inside of it.
 /// </summary>
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<float> &y, const vector<int> &pids, Measurement_Params *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full);
 
 /// <summary>
@@ -305,7 +316,7 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 /// only averaging incidence over the controls in the sample based on incidence in each group(age+gender)
 /// </summary>
 void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additional_info,
-	const vector<float> &y, const vector<int> &pids, void *function_params,
+	const vector<float> &y, const vector<int> &pids, Measurement_Params *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full);
 #pragma endregion
 
@@ -313,7 +324,7 @@ void fix_cohort_sample_incidence_old(const map<string, vector<float>> &additiona
 /// <summary>
 /// Binning function of scores based on ROC_Params. look at score_bins,score_resolution
 /// </summary>
-void preprocess_bin_scores(vector<float> &preds, void *function_params);
+void preprocess_bin_scores(vector<float> &preds, Measurement_Params *function_params);
 #pragma endregion
 
 /// <summary>
@@ -348,9 +359,9 @@ void preprocess_bin_scores(vector<float> &preds, void *function_params);
 map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<float> *weights
 	, const vector<int> &pids, const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
 	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
-	const map<string, void *> *cohort_params = NULL, const vector<void *> *function_params = NULL,
+	const map<string, void *> *cohort_params = NULL, const vector<Measurement_Params *> *function_params = NULL,
 	ProcessMeasurementParamFunc process_measurments_params = NULL,
-	PreprocessScoresFunc preprocess_scores = NULL, void *preprocess_scores_params = NULL,
+	PreprocessScoresFunc preprocess_scores = NULL, Measurement_Params *preprocess_scores_params = NULL,
 	float sample_ratio = (float)1.0, int sample_per_pid = 1,
 	int loopCnt = 500, int seed = 0, bool binary_outcome = true);
 
