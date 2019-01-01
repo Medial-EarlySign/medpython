@@ -34,6 +34,7 @@ typedef enum {
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
 	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
 	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
+	FTR_GEN_ATTR, ///< "attr" - creating features from samples attributes
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -622,7 +623,6 @@ public:
 
 
 	// Serialization
-	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time, time_unit_sig, time_unit_win)
 };
@@ -720,8 +720,49 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Serialization
-	ADD_SERIALIZATION_FUNCS(names, time_unit, time_bins, time_bin_names)
+	ADD_CLASS_NAME(TimeFeatGenerator)
+	ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
 };
+
+/**
+* Attribute Feature Generator: creating features from samples attributes
+*/
+
+
+class AttrFeatGenerator : public FeatureGenerator {
+public:
+
+	// Attribute to use
+	string attribute;
+	
+	// Feature name (if empty - use attribute)
+	string ftr_name;
+
+	// Constructor/Destructor
+	AttrFeatGenerator() { generator_type = FTR_GEN_ATTR; }
+	~AttrFeatGenerator() {}
+
+	// Naming 
+	void set_names();
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureGenerator.cpp TimeFeatGenerator::init
+	int init(map<string, string>& mapper);
+
+	// Copy
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AttrFeatGenerator *>(generator)); }
+
+	// Learn a generator
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+
+	// generate a new feature
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+
+	// Serialization
+	ADD_CLASS_NAME(AttrFeatGenerator);
+	ADD_SERIALIZATION_FUNCS(generator_type, ftr_name, attribute, names);
+};
+
 
 
 //=======================================

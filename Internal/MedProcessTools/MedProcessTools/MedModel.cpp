@@ -247,12 +247,14 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
-	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-
 	// Apply predictor
-	if (predictor->predict(features) < 0) {
-		MERR("Predictor failed\n");
-		return -1;
+	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
+		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+
+		if (predictor->predict(features) < 0) {
+			MERR("Predictor failed\n");
+			return -1;
+		}
 	}
 
 	if (end_stage <= MED_MDL_INSERT_PREDS)
@@ -935,11 +937,11 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
-		if (verbosity) MLOG("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
+		if (verbosity) MLOG_D("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
 		processor->add_virtual_signals(virtual_signals);
 	}
 
-	if (verbosity) MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
 
 
 	// Erasing virtual signals !

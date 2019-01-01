@@ -45,6 +45,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_MODEL;
 	else if (generator_name == "time")
 		return FTR_GEN_TIME;
+	else if (generator_name == "attribute")
+		return FTR_GEN_ATTR;
 	else MTHROW_AND_ERR("unknown generator name [%s]", generator_name.c_str());
 }
 
@@ -124,6 +126,8 @@ void *FeatureGenerator::new_polymorphic(string dname) {
 	CONDITIONAL_NEW_CLASS(dname, RangeFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, DrugIntakeGenerator);
 	CONDITIONAL_NEW_CLASS(dname, ModelFeatGenerator);
+	CONDITIONAL_NEW_CLASS(dname, TimeFeatGenerator);
+	CONDITIONAL_NEW_CLASS(dname, AttrFeatGenerator);
 	return NULL;
 }
 
@@ -155,6 +159,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new ModelFeatGenerator;
 	else if (generator_type == FTR_GEN_TIME)
 		return new TimeFeatGenerator;
+	else if (generator_type == FTR_GEN_ATTR)
+		return new AttrFeatGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
@@ -1625,7 +1631,7 @@ int TimeFeatGenerator::init(map<string, string>& mapper) {
 		}
 		else if (field == "time_bins") time_bins_string = entry.second;
 		else if (field != "fg_type")
-			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
+			MLOG("Unknown parameter \'%s\' for TimeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
 	}
 
@@ -1761,6 +1767,53 @@ int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 	
 	for (int i = 0; i < num; i++)
 		p_feat[i] = time_bins[(med_time_converter.convert_times(features.time_unit, target_time_unit, features.samples[index + i].time) + shift) % mod];
+
+	return 0;
+}
+
+//=======================================================================================
+// AttrFeatGenerator: creating a feature from samples' attribute
+//=======================================================================================
+
+// Set name
+//................................................................................................................
+void AttrFeatGenerator::set_names() {
+	names.clear();
+	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Attr." + (ftr_name.empty() ? attribute : ftr_name));
+}
+
+// Init
+//.......................................................................................
+int AttrFeatGenerator::init(map<string, string>& mapper) {
+
+	string time_bins_string = "";
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RangeFeatGenerator::init]
+		if (field == "attribute") attribute = entry.second;
+		else if (field == "name") ftr_name = entry.second;
+		else if (field != "fg_type")
+			MLOG("Unknown parameter \'%s\' for AttrFeatGenerator\n", field.c_str());
+		//! [RangeFeatGenerator::init]
+	}
+
+	// set names and required signals
+	set_names();
+
+	return 0;
+}
+
+// Generate
+//.......................................................................................
+int AttrFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+
+	float *p_feat = p_data[0] + index;
+	for (int i = 0; i < num; i++) {
+		if (features.samples[index + i].attributes.find(attribute) != features.samples[index + i].attributes.end())
+			p_feat[i] = features.samples[index + i].attributes[attribute];
+		else
+			p_feat[i] = missing_val;
+	}
 
 	return 0;
 }
