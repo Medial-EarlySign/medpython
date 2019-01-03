@@ -267,9 +267,9 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	// Sanity - if write_attributes is true, all samples must have the same attributes
 	set<string> attr_names, str_attr_names;
 	if (write_attributes && samples.size()) {
-		int nAttr = (int) samples[0].attributes.size();
-		int nStrAttr = (int) samples[0].str_attributes.size();
-		
+		int nAttr = (int)samples[0].attributes.size();
+		int nStrAttr = (int)samples[0].str_attributes.size();
+
 		for (auto& attr : samples[0].attributes)
 			attr_names.insert(attr.first);
 
@@ -284,7 +284,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 
 			for (auto& attr : samples[i].attributes) {
 				if (attr_names.find(attr.first) == attr_names.end()) {
-					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i,attr.first.c_str());
+					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.first.c_str());
 					return -1;
 				}
 			}
@@ -441,7 +441,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			ncols = (int)fields.size();
 		}
 		else { // Data lines
-			if (fields.size() != ncols) 
+			if (fields.size() != ncols)
 				MTHROW_AND_ERR("Expected %d fields, got %d fields in line: \'%s\'\n", ncols, (int)fields.size(), curr_line.c_str());
 
 			idx++;
@@ -485,7 +485,11 @@ int MedFeatures::filter(unordered_set<string>& selectedFeatures) {
 	// Sanity
 	for (string feature : selectedFeatures) {
 		if (data.find(feature) == data.end()) {
-			MERR("Cannot find feature %s in Matrix\n", feature.c_str());
+			MERR("Error in MedFeatures::filter - Cannot find feature %s in Matrix\n", feature.c_str());
+			vector<string> all_names;
+			get_feature_names(all_names);
+			string all_opts = medial::io::get_list(all_names, "\n");
+			MERR("All Feature Options(%zu):\n%s\n", all_names.size(), all_opts.c_str());
 			return -1;
 		}
 	}
@@ -715,7 +719,7 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 		float factor = 0;
 		if (base_ratio > 0)
 			factor = float((r_target / (1 - r_target)) *
-				(double(count_label_groups[0][grp]) / count_label_groups[1][grp]));
+			(double(count_label_groups[0][grp]) / count_label_groups[1][grp]));
 		if (factor > max_factor)
 			max_factor = factor;
 
@@ -894,8 +898,8 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 					count_label_groups[1][grp_calc] / grp_ratio;
 				else
 					cases_sum[ratio_ind] += (count_label_groups[1][grp_calc] -
-						(count_label_groups[1][grp_calc] + count_label_groups[0][grp_calc])*grp_ratio) /
-					(1 - grp_ratio);
+					(count_label_groups[1][grp_calc] + count_label_groups[0][grp_calc])*grp_ratio) /
+						(1 - grp_ratio);
 			}
 		}
 		for (const string &grp : all_groups) {
@@ -1246,7 +1250,7 @@ double medial::process::match_to_prior(MedFeatures &features, float target_prior
 		vector<MedIdSamples> to_change;
 		medial::process::match_to_prior(fetched_labels, all_in_same, target_prior, sel_idx);
 		medial::process::filter_row_indexes(features, sel_idx);
-		
+
 		MLOG("Changing prior: was %2.3f%% and changed to %2.3f%%\n", 100 * pr, 100 * target_prior);
 		medial::print::print_samples_stats(features.samples);
 	}

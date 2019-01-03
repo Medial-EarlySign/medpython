@@ -897,28 +897,11 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 	return 0;
 }
 
-string clean_feature_name(string &str) {
-	if (boost::starts_with(str, "FTR_") && str.find('.') != string::npos)
-		return str.substr(str.find('.') + 1);
-	else
-		return str;
-}
-
 int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
 	//fix clean names
-	unordered_set<string> s;
-	unordered_set<string> r;
-	for (size_t i = 0; i < selected_tags.size(); ++i)
-	{
-		string clean_name = clean_feature_name(selected_tags[i]);
-		s.insert(clean_name);
-	}
-	for (size_t i = 0; i < removed_tags.size(); ++i)
-	{
-		string clean_name = clean_feature_name(removed_tags[i]);
-		r.insert(clean_name);
-	}
+	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
+	unordered_set<string> r(removed_tags.begin(), removed_tags.end());
 
 	if (r.empty())
 		MLOG("TagFeatureSelector not removing any features\n");
