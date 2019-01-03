@@ -935,11 +935,11 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
-		if (verbosity) MLOG("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
+		if (verbosity) MLOG_D("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
 		processor->add_virtual_signals(virtual_signals);
 	}
 
-	if (verbosity) MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
 
 
 	// Erasing virtual signals !
@@ -949,7 +949,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 			signalNames.erase(vsig.first);
 	}
 
-	if (verbosity) MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size());
 
 }
 
