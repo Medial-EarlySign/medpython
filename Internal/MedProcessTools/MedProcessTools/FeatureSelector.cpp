@@ -17,7 +17,7 @@
 //.......................................................................................
 int FeatureSelector::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	//MLOG("FeatureSelector::Learn %d features\n", features.data.size());
-	
+
 	// select, possibly ignoring requirments
 	if (_learn(features, ids) < 0)
 		return -1;
@@ -79,7 +79,7 @@ int FeatureSelector::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 //.......................................................................................
 int FeatureSelector::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& out_req_features) {
-	
+
 	//MLOG("FeatureSelector::Apply %d features\n", features.data.size());
 	unordered_set<string> selectedFeatures;
 	for (string& feature : selected) {
@@ -374,7 +374,7 @@ int MRMRFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) 
 						penaltyValue /= iSelect;
 					}
 
-					score -= penalty*penaltyValue;
+					score -= penalty * penaltyValue;
 				}
 
 				if (optFeature == -1 || score > optScore) {
@@ -666,7 +666,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		else {
 			float step = (maxLambda - minLambda) / (nthreads - 1);
 			for (int i = 0; i < nthreads; i++) {
-				base_lambdas[i] = minLambda + step *i;
+				base_lambdas[i] = minLambda + step * i;
 				lambdas[i].assign(nFeatures, base_lambdas[i]);
 				for (int idx : lax_indices)
 					lambdas[i][idx] = base_lambdas[i] * lambdaRatio;
@@ -693,7 +693,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		MLOG_V("Lasso Feature Selection: [%f,%f] : nFeatures [%d,%d] nStuck %d\n", base_lambdas[0], base_lambdas[nthreads - 1], nSelected[0], nSelected[nthreads - 1], nStuck);
 
 		if (nthreads == 1) { // Special care
-			
+
 			if ((nSelected[0] >= numToSelect - numToSelectDelta) && (nSelected[0] <= numToSelect + numToSelectDelta)) {
 				found = 1;
 				for (int j = 0; j < nFeatures; j++) {
@@ -816,7 +816,7 @@ int LassoSelector::init(map<string, string>& mapper) {
 			MLOG("Unknonw parameter \'%s\' for FeatureSelector\n", field.c_str());
 		//! [LassoSelector::init]
 	}
-	
+
 	return 0;
 
 }
@@ -900,11 +900,13 @@ int TagFeatureSelector::init(map<string, string>& mapper) {
 
 int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	selected.clear();
+	//fix clean names
 	unordered_set<string> s(selected_tags.begin(), selected_tags.end());
 	unordered_set<string> r(removed_tags.begin(), removed_tags.end());
+
 	if (r.empty())
 		MLOG("TagFeatureSelector not removing any features\n");
-	else 
+	else
 		for (string sub : r)
 			if (verbose)
 				MLOG("TagFeatureSelector removing features with tag [%s]\n", sub.c_str());
@@ -921,16 +923,16 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 		bool found_remove;
 		if (r.empty())
 			found_remove = false; // empty removed_tags mean do not remove any
-		else{
+		else {
 			found_remove = false;
 			auto start_it = feature_tags.begin();
 			while (!found_remove && start_it != feature_tags.end()) {
-				for (const string& substring: r){
+				for (const string& substring : r) {
 					boost::regex regi(substring);
-					if (boost::regex_match(*start_it, regi)){
+					if (boost::regex_match(*start_it, regi)) {
 						found_remove = true;
 						if (verbose)
-							MLOG("TagFeatureSelector removing [%s] because of tag [%s] that contains [%s]\n", 
+							MLOG("TagFeatureSelector removing [%s] because of tag [%s] that contains [%s]\n",
 								feature_name.c_str(), (*start_it).c_str(), substring.c_str());
 						break;
 					}
@@ -954,8 +956,8 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 				//MLOG("considering tag [%s]\n",(*start_it).c_str());
 				for (const string& substring : s) {
 					boost::regex regi(substring);
-					if (boost::regex_match(*start_it, regi)){
-						found_match = true;						
+					if (boost::regex_match(*start_it, regi)) {
+						found_match = true;
 						if (verbose)
 							MLOG("TagFeatureSelector selecting [%s] because of tag [%s] that contains [%s]\n",
 								feature_name.c_str(), (*start_it).c_str(), substring.c_str());

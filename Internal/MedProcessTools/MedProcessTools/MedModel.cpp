@@ -951,7 +951,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 			signalNames.erase(vsig.first);
 	}
 
-	if (verbosity) MLOG("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size());
 
 }
 
