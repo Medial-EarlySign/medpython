@@ -14,6 +14,9 @@
 
 #define DEFAULT_FEAT_CLNR_NTHREADS 24
 
+// Forward definition of MedBootstrap
+class MedBootstrapResult;
+
 /** @enum
 * Rep Processors types enum
 */
@@ -28,6 +31,7 @@ typedef enum {
 	FTR_PROCESSOR_LASSO_SELECTOR, ///<"lasso" to create LassoSelector
 	FTR_PROCESSOR_TAGS_SELECTOR, ///<"tags_selector" to create TagFeatureSelector
 	FTR_PROCESSOR_IMPORTANCE_SELECTOR, ///<"importance_selector" to create ImportanceFeatureSelector
+	FTR_PROCESSOR_ITERATIVE_SELECTOR, ///<"iterative_selector" applies bottom-up or top-down iteration for feature selection
 	FTR_PROCESS_REMOVE_DGNRT_FTRS, ///<"remove_deg" to create DgnrtFeatureRemvoer
 	FTR_PROCESS_ITERATIVE_IMPUTER, ///<"iterative_imputer" to create IterativeImputer
 	FTR_PROCESS_ENCODER_PCA, ///<"pca" to create FeaturePCA
@@ -787,6 +791,79 @@ private:
 	int _learn(MedFeatures& features, unordered_set<int>& ids);
 };
 
+/** IterativeFeatureSelector - Apply bottom-up or top-down iteration for
+* feature selection
+*
+* To Use this selector specify <b>"iterative_selector"</b> in the fp_type
+*/
+
+class IterativeFeatureSelector : public FeatureSelector {
+public:
+	string predictor ; ///<the predictor type - same as in the json file: qrf,lightgbm...
+	string predictor_params; ///<the predictor parameters
+	string predictor_params_file; ///<File with nFeatures-dependent predictor parameters
+	int nfolds=5; ///< number of folds for cross-validation
+	vector<int> folds; ///< if given, perform only subset of the possible 'nfolds' folds in cross-validation
+	string mode = "top2bottom"; ///< 'top2bottom' or 'bottom2top'
+	string rates = "50:1,100:2,500:5,5000:10"; ///< instruction on rate of selection - comma separated pairs : #-bound:step
+	string cohort_params; ///< cohort parameters for bootstrap performance evaluation (type:from,to/type:from,to/....)
+	string bootstrap_params = "sample_per_pid:1"; ///< parameters for bootstrapping ('/' separaters)
+	string msr_params = "AUC"; ///< measurements parameters for bootstrap performance evaluation
+	bool work_on_sets = false; ///< work on sets of features according to signals
+	unordered_set<string> ungroupd_names = { "Drug","RC","ICD9" }; ///< features-names (NAME in FTR_####.NAME) not to be grouped even in work_on_sets mode.
+	bool verbose; ///<print all feature importance
+				
+	vector<int> rates_vec;
+	vector<string> predictor_params_vec;
+	string measurement_name;
+	vector<string> report;
+
+	// Constructor
+	IterativeFeatureSelector() : FeatureSelector() { init_defaults(); }
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureSelector.cpp ImportanceFeatureSelector::init
+	int init(map<string, string>& mapper);
+	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_ITERATIVE_SELECTOR; };
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<IterativeFeatureSelector *>(processor)); }
+
+	// Print report to file
+	void print_report(string& fileName);
+
+	// Serialization
+	ADD_CLASS_NAME(IterativeFeatureSelector)
+	ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
+		required, numToSelect, selected, report)
+
+private:
+	// Find set of selected features
+	int _learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Parse rates string
+	void get_rates_vec();
+
+	// Read parameters file
+	void read_params_vec();
+
+	// Get Families of signals
+	void get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies, unordered_set<string>& required, bool work_on_sets);
+
+	// Bootstrapper initialization
+	void init_bootstrap_cohort(MedBootstrapResult& bootstrapper, string& init);
+	void init_bootstrap_params(MedBootstrapResult& bootstrapper, string& init);
+
+	// Utilities
+	void prepare_for_iterations(MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
+		vector<vector<MedSample>>&testSamples, MedFeatures& bootstrapFeatures);
+
+	// Actual selection
+	void doTop2BottomSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper);
+	void doBottom2TopSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper);
+};
+
+
 /**
 * FeatureEncoder - General class for encoding features - PCA, autoencoder...
 */
@@ -920,6 +997,7 @@ MEDSERIALIZE_SUPPORT(FeaturePCAParams)
 MEDSERIALIZE_SUPPORT(FeaturePCA)
 MEDSERIALIZE_SUPPORT(TagFeatureSelector)
 MEDSERIALIZE_SUPPORT(ImportanceFeatureSelector)
+MEDSERIALIZE_SUPPORT(IterativeFeatureSelector)
 MEDSERIALIZE_SUPPORT(OneHotFeatProcessor)
 MEDSERIALIZE_SUPPORT(univariateSelectionParams)
 #endif

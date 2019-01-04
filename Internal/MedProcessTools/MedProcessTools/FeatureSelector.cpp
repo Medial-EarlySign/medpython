@@ -8,6 +8,7 @@
 #include <MedStat/MedStat/MedPerformance.h>
 #include <omp.h>
 #include <boost/regex.hpp>
+#include "MedStat/MedStat/MedBootstrap.h"
 
 //=======================================================================================
 // FeatureSelector
@@ -973,6 +974,11 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	return 0;
 }
 
+//=======================================================================================
+// Importance Feature Selection
+//=======================================================================================
+// Init 
+//.......................................................................................
 int ImportanceFeatureSelector::init(map<string, string>& mapper) {
 	init_defaults();
 
@@ -994,6 +1000,8 @@ int ImportanceFeatureSelector::init(map<string, string>& mapper) {
 	return 0;
 }
 
+// Learn 
+//.......................................................................................
 int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	MedPredictor *model = MedPredictor::make_predictor(predictor, predictor_params);
 	vector<float> feat_importance;
@@ -1040,4 +1048,128 @@ int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>&
 	}
 
 	return 0;
+}
+
+//=======================================================================================
+// Iterative Feature Selection
+//=======================================================================================
+// Init 
+//.......................................................................................
+int IterativeFeatureSelector::init(map<string, string>& mapper) {
+	init_defaults();
+
+	string folds_s;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [ImportanceFeatureSelector::init]
+		if (field == "missing_value") missing_value = med_stof(entry.second);
+		else if (field == "predictor") predictor = entry.second;
+		else if (field == "predictor_params") predictor_params = entry.second;
+		else if (field == "predictor_params_file") predictor_params_file = entry.second;
+		else if (field == "nfolds") nfolds = stoi(entry.second);
+		else if (field == "folds") folds_s = entry.second; 
+		else if (field == "mode") mode = entry.second;
+		else if (field == "rates") rates = entry.second;
+		else if (field == "cohort_params") cohort_params = entry.second;
+		else if (field == "msr_params") msr_params = entry.second;
+		else if (field == "bootstrap_params") bootstrap_params = entry.second;
+		else if (field == "verbose") verbose = med_stoi(entry.second) > 0;
+		else if (field == "work_on_sets") work_on_sets = med_stoi(entry.second) > 0;
+		else if (field == "numToSelect") numToSelect = stoi(entry.second);
+		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
+		else if (field == "ungrouped") boost::split(ungroupd_names, entry.second, boost::is_any_of(","));
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknown parameter \'%s\' for IterativeFeatureSelector\n", field.c_str());
+		//! [ImportanceFeatureSelector::init]
+	}
+
+	// Parse folds
+	vector<string> folds_v;
+	boost::split(folds_v, folds_s, boost::is_any_of(","));
+	for (string& s : folds_v)
+		folds.push_back(stoi(s));
+
+	// Parse rates
+	get_rates_vec();
+
+	// Read paramters
+	read_params_vec();
+
+	return 0;
+}
+
+// Learn 
+//.......................................................................................
+int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	int nSamples = (int)features.samples.size();
+
+	// Divide features into families based on signals
+	map<string, vector<string> > featureFamilies;
+	get_features_families(features, featureFamilies, required, work_on_sets);
+
+	// Collect original splits
+	vector<int> orig_folds(nSamples);
+	for (int i = 0; i < nSamples;i++)
+		orig_folds[i] = features.samples[i].split;
+
+	// Override splits
+	map<int, int> id2fold;
+	for (MedSample& sample : features.samples) {
+		int id = sample.id;
+		if (id2fold.find(id) == id2fold.end())
+			id2fold[id] = globalRNG::rand() % nfolds;
+		sample.split = id2fold[id];
+	}
+
+	// Boostrapping
+	MedBootstrapResult bootstrapper;
+
+	bootstrapper.bootstrap_params.loopCnt = 0;
+	string bootstrap_init = bootstrap_params;
+	boost::replace_all(bootstrap_init, "/", ";");
+	boost::replace_all(bootstrap_init, ":", "=");
+	bootstrapper.bootstrap_params.init_from_string(bootstrap_init);
+
+	init_bootstrap_cohort(bootstrapper, cohort_params);
+	init_bootstrap_params(bootstrapper, msr_params);
+
+	// Optimize
+	if (ids.empty()) {
+		if (mode == "top2bottom")
+			doTop2BottomSelection(features, featureFamilies, bootstrapper);
+		else
+			doBottom2TopSelection(features, featureFamilies, bootstrapper);
+	}
+	else {
+		MedFeatures filteredFeatures = features;
+		vector<int> indices;
+		for (unsigned int i = 0; i < filteredFeatures.samples.size(); i++) {
+			if (ids.find(filteredFeatures.samples[i].id) != ids.end())
+				indices.push_back(i);
+		}
+		medial::process::filter_row_indexes(filteredFeatures, indices);
+
+		if (mode == "top2bottom")
+			doTop2BottomSelection(filteredFeatures, featureFamilies, bootstrapper);
+		else
+			doBottom2TopSelection(filteredFeatures, featureFamilies, bootstrapper);
+	}
+
+	// Reinstall splits
+	for (int i = 0; i < nSamples;i++)
+		features.samples[i].split = orig_folds[i];
+
+}
+
+// Report to file 
+//.......................................................................................
+void IterativeFeatureSelector::print_report(string& fileName) {
+	
+	ofstream of(fileName);
+	if (!of)
+		MTHROW_AND_ERR("Cannot open %s for writing\n", fileName.c_str());
+
+	for (string& line : report)
+		of << line << "\n";
 }

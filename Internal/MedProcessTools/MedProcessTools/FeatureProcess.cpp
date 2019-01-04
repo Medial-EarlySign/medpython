@@ -37,6 +37,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESSOR_TAGS_SELECTOR;
 	else if (processor_name == "importance_selector")
 		return FTR_PROCESSOR_IMPORTANCE_SELECTOR;
+	else if (processor_name == "iterative_selector")
+		return FTR_PROCESSOR_ITERATIVE_SELECTOR;
 	else if (processor_name == "pca")
 		return FTR_PROCESS_ENCODER_PCA;
 	else if (processor_name == "one_hot")
@@ -75,6 +77,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, FeaturePCA);
 	CONDITIONAL_NEW_CLASS(dname, TagFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, ImportanceFeatureSelector);
+	CONDITIONAL_NEW_CLASS(dname, IterativeFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
 	return NULL;
 }
@@ -108,6 +111,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new TagFeatureSelector;
 	else if (processor_type == FTR_PROCESSOR_IMPORTANCE_SELECTOR)
 		return new ImportanceFeatureSelector;
+	else if (processor_type == FTR_PROCESSOR_ITERATIVE_SELECTOR)
+		return new IterativeFeatureSelector;
 	else if (processor_type == FTR_PROCESS_ONE_HOT)
 		return new OneHotFeatProcessor;
 	else

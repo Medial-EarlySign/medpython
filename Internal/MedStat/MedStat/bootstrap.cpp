@@ -225,14 +225,6 @@ void Lazy_Iterator::restart_iterator(int thread) {
 
 Lazy_Iterator::~Lazy_Iterator() {} //do nothing. nothing to clear
 
-inline string format_working_point(const string &init_str, float wp, bool perc = true) {
-	char res[100];
-	if (perc)
-		wp *= 100;
-	snprintf(res, sizeof(res), "%s_%06.3f", init_str.c_str(), wp);
-	return string(res);
-}
-
 template<typename T> inline int binary_search_position(const T *begin, const T *end, T val, bool reversed = false) {
 	int maxSize = (int)(end - begin) + 1;
 	int mid = int((maxSize - 1) / 2);

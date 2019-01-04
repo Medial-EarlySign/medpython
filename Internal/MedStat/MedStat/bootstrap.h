@@ -328,6 +328,16 @@ void preprocess_bin_scores(vector<float> &preds, Measurement_Params *function_pa
 #pragma endregion
 
 /// <summary>
+/// Format out measurement
+/// </summary>
+inline string format_working_point(const string &init_str, float wp, bool perc = true) {
+	char res[100];
+	if (perc)
+		wp *= 100;
+	snprintf(res, sizeof(res), "%s_%06.3f", init_str.c_str(), wp);
+	return string(res);
+}
+/// <summary>
 /// The main bootstrap function to run all bootstrap process with all the arguments
 /// @param preds the predicitions vector
 /// @param y the labels vector
