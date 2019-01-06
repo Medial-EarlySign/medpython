@@ -623,6 +623,7 @@ void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<f
 		vector<float> split_y((int)it->second.size());
 		vector<int> split_pids((int)it->second.size());
 		map<string, vector<float>> split_data;
+		vector<float> split_weights;
 
 		for (auto jt = data.begin(); jt != data.end(); ++jt)
 			split_data[jt->first].resize((int)it->second.size());
@@ -634,8 +635,13 @@ void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<f
 			for (auto jt = data.begin(); jt != data.end(); ++jt)
 				split_data[jt->first][i] = jt->second[it->second[i]];
 		}
+		if (weights != NULL && !weights->empty()) {
+			split_weights.resize((int)it->second.size());
+			for (size_t i = 0; i < split_preds.size(); ++i)
+				split_weights[i] = weights->at(it->second[i]);
+		}
 		results_per_split[split_id] =
-			bootstrap_base(split_preds, split_y, split_pids, weights, split_data);
+			bootstrap_base(split_preds, split_y, split_pids, &split_weights, split_data);
 	}
 
 }
