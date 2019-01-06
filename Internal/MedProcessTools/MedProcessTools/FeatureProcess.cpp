@@ -776,7 +776,8 @@ int FeatureImputer::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		if (field == "moment_type") moment_type = getMomentType(entry.second);
+		if (field == "name") feature_name = entry.second;
+		else if (field == "moment_type") moment_type = getMomentType(entry.second);
 		else if (field == "min_samples") min_samples = med_stoi(entry.second);
 		//! [FeatureImputer::init]
 		if (field == "moment_type") moment_type = getMomentType(entry.second);
