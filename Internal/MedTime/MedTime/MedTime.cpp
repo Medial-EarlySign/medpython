@@ -101,10 +101,10 @@ void MedTime::init_time_tables()
 //.....................................................................................................
 int MedTime::convert_days(int to_type, int in_time)
 {
-	if (in_time < 0) MTHROW_AND_ERR("Error in MedTime::convert_days - tried to convert negative date %d\n", in_time);
 	if (to_type == MedTime::Days) return in_time;
 	if (to_type == MedTime::Hours) return in_time * 24;
 	if (to_type == MedTime::Minutes) return in_time * 24 * 60;
+	if (in_time < 0) MTHROW_AND_ERR("Error in MedTime::convert_days - tried to convert negative date %d\n", in_time);
 	if (to_type == MedTime::Date) return Days2Date[in_time];
 	if (to_type == MedTime::Months) return Days2Months[in_time];
 	if (to_type == MedTime::Years) return Days2Years[in_time];
