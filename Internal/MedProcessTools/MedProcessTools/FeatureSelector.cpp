@@ -1163,6 +1163,7 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 	for (int i = 0; i < nSamples;i++)
 		features.samples[i].split = orig_folds[i];
 
+	return 0;
 }
 
 // Report to file 

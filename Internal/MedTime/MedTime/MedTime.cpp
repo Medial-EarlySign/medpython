@@ -88,7 +88,7 @@ void MedTime::init_time_tables()
 			}
 		}
 
-		Days2Months[d] = (year - 1900) * 12 + month - 1 ;
+		Days2Months[d] = (year - 1900) * 12 + month - 1;
 
 		days++;
 
@@ -101,14 +101,15 @@ void MedTime::init_time_tables()
 //.....................................................................................................
 int MedTime::convert_days(int to_type, int in_time)
 {
-	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Days) return in_time;
 	if (to_type == MedTime::Hours) return in_time * 24;
 	if (to_type == MedTime::Minutes) return in_time * 24 * 60;
+	if (in_time < 0) MTHROW_AND_ERR("Error in MedTime::convert_days - tried to convert negative date %d\n", in_time);
 	if (to_type == MedTime::Date) return Days2Date[in_time];
 	if (to_type == MedTime::Months) return Days2Months[in_time];
 	if (to_type == MedTime::Years) return Days2Years[in_time];
 
+	MTHROW_AND_ERR("Error in MedTime::convert_days - unsupported type value %d\n", to_type);
 	return -1;
 }
 
@@ -257,6 +258,8 @@ int MedTime::convert_times(int from_type, int to_type, int in_time)
 	if (from_type == MedTime::Hours) return convert_hours(to_type, in_time);
 	if (from_type == MedTime::Months) return convert_months(to_type, in_time);
 	if (from_type == MedTime::Years) return convert_years(to_type, in_time);
+
+	MTHROW_AND_ERR("Error in MedTime::convert_times - unsupported from_type value %d\n", from_type);
 	return -1;
 }
 
@@ -271,6 +274,7 @@ int MedTime::convert_times(int from_type, int to_type, double in_time)
 	if (from_type == MedTime::Months) return convert_minutes(to_type, (int)((365.0 / 12.0)*24.0*60.0*in_time));
 	if (from_type == MedTime::Years) return convert_minutes(to_type, (int)(365.0*24.0*60.0*in_time));
 
+	MTHROW_AND_ERR("Error in MedTime::convert_times - unsupported from_type value %d\n", from_type);
 	return -1;
 }
 
@@ -294,6 +298,7 @@ double MedTime::convert_times_D(int from_type, int to_type, int in_time)
 	if (to_type == MedTime::Days) { res += (double)(minutes1 - minutes2) / (24.0*60.0); return res; }
 	if (to_type == MedTime::Hours) { res += (double)(minutes1 - minutes2) / 60.0; return res; }
 
+	MTHROW_AND_ERR("Error in MedTime::convert_times_D - unsupported to_type value %d\n", to_type);
 	return -1;
 }
 
@@ -383,7 +388,7 @@ double MedTime::diff_times_D(int d1, int type1, int d2, int type2, int out_type)
 	double d = t1 - (double)d2;
 	double t = convert_times_D(type2, out_type, d);
 
-	return t;	
+	return t;
 }
 
 //.....................................................................................................
@@ -401,7 +406,7 @@ double MedTime::get_age(int t, int type_t, int byear)
 {
 	double years1 = convert_times_D(type_t, MedTime::Years, (double)t);
 	double years2 = (double)byear - 1900 + 0.5;
-	return (years1-years2);
+	return (years1 - years2);
 }
 
 //.....................................................................................................
