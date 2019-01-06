@@ -86,6 +86,7 @@
     <ClCompile Include="FeatureProcess.cpp" />
     <ClCompile Include="FeatureSelector.cpp" />
     <ClCompile Include="IterativeImputer.cpp" />
+    <ClCompile Include="IterativeSelector.cpp" />
     <ClCompile Include="KpSmokingGenerator.cpp" />
     <ClCompile Include="MedFeatures.cpp" />
     <ClCompile Include="MedModel.cpp" />
