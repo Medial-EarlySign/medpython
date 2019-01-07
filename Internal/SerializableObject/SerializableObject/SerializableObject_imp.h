@@ -917,15 +917,21 @@ namespace MedSerialize {
 	{
 		ifstream inf(fname);
 		if (!inf) {
-			SRL_ERR("MedUtils:MedIO :: read_file_inot_string: Can't open file %s\n", fname.c_str());
+			SRL_ERR("MedSerialize::read_file_into_string: Can't open file %s\n", fname.c_str());
 			return -1;
 		}
 
-		inf.seekg(0, std::ios::end);
-		size_t size = inf.tellg();
-		data.resize(size);
-		inf.seekg(0);
-		inf.read(&data[0], size);
+		data = "";
+		string curr_line;
+		while (getline(inf, curr_line)) {
+			if ((curr_line.size() > 1) && (curr_line[0] != '#')) { // ignore empty lines, ignore comment lines
+
+				// get rid of leading spaces, trailing spaced, and shring inner spaces to a single one, get rid of tabs and end of line (win or linux)
+				string fixed_spaces = std::regex_replace(curr_line , std::regex("^ +| +$|( ) +|\r|\n|\t+"), string("$1"));
+				data += fixed_spaces;
+			}
+		}
+
 		return 0;
 	}
 
