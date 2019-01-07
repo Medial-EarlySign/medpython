@@ -385,7 +385,7 @@ void MedRegistry::calc_signal_stats(const string &repository_path, int signalCod
 		dbg_file_totals.open(debug_file + ".totals");
 		if (!dbg_file_totals.good())
 			MTHROW_AND_ERR("IOError: Can't open debug file %s to write",
-				(debug_file + ".totals").c_str());
+			(debug_file + ".totals").c_str());
 		dbg_file_totals << "PID" << "\t" << "gender" << "\t" << "age_bin" <<
 			"\t" << "registry_value" << endl;
 		for (size_t i = 0; i < male_pid_seen.size(); ++i)
@@ -1348,6 +1348,61 @@ double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<
 	return regScore;
 }
 
+/// it's not mcnemar it's more like: https://en.wikipedia.org/wiki/Cochran%E2%80%93Mantel%E2%80%93Haenszel_statistics
+double medial::contingency_tables::calc_cmh_square_dist(const map<float, vector<int>> *gender_sorted, \
+	const map<float, vector<int>> *gender_sorted2, bool &ok) {
+	//calc over all ages
+	double regScore = 0;
+	double up = 0, down = 0;
+	if (gender_sorted != NULL)
+		for (auto i = gender_sorted->begin(); i != gender_sorted->end(); ++i) { //iterate over age bins
+			const vector<int> &counts = i->second; //the forth numbers
+			double totCnt = 0;
+			vector<double> R(2), C(2);
+			R[0] = counts[0] + counts[1]; //total no sig
+			R[1] = counts[2 + 0] + counts[2 + 1]; //total with sig
+			C[0] = counts[0] + counts[2]; //total controls
+			C[1] = counts[0 + 1] + counts[2 + 1]; //total cases
+			totCnt = R[0] + R[1];
+
+			double b, c;
+			b = counts[2 + 1];
+			c = R[1] * C[1] / totCnt;
+			if (totCnt < 1 || R[0] == 0 || R[1] == 0 || C[0] == 0 || C[1] == 0)
+				continue;
+
+			up += (b - c) * (b - c); //Cochran–Mantel–Haenszel statistics
+			down += C[0] * C[1] * R[0] * R[1] / totCnt / totCnt / (totCnt - 1); //Cochran–Mantel–Haenszel statistics
+
+		}
+	if (gender_sorted2 != NULL)
+		for (auto i = gender_sorted2->begin(); i != gender_sorted2->end(); ++i) { //iterate over age bins
+			const vector<int> &counts = i->second; //the forth numbers
+			double totCnt = 0;
+			vector<double> R(2), C(2);
+			R[0] = counts[0] + counts[1]; //total no sig
+			R[1] = counts[2 + 0] + counts[2 + 1]; //total with sig
+			C[0] = counts[0] + counts[2]; //total controls
+			C[1] = counts[0 + 1] + counts[2 + 1]; //total cases
+			totCnt = R[0] + R[1];
+
+			double b, c;
+			b = counts[2 + 1];
+			c = R[1] * C[1] / totCnt;
+			if (totCnt < 1 || R[0] == 0 || R[1] == 0 || C[0] == 0 || C[1] == 0)
+				continue;
+
+			up += (b - c) * (b - c); //Cochran–Mantel–Haenszel statistics
+			down += C[0] * C[1] * R[0] * R[1] / totCnt / totCnt / (totCnt - 1); //Cochran–Mantel–Haenszel statistics
+		}
+	ok = false;
+	if (down > 0) {
+		ok = true;
+		regScore += up / down; //Cochran–Mantel–Haenszel statistics
+	}
+	return regScore;
+}
+
 double medial::contingency_tables::calc_mcnemar_square_dist(const map<float, vector<int>> &gender_sorted) {
 	//calc over all ages
 	double regScore = 0;
@@ -1355,17 +1410,17 @@ double medial::contingency_tables::calc_mcnemar_square_dist(const map<float, vec
 		const vector<int> &counts = i->second; //the forth numbers
 		double totCnt = 0;
 		vector<double> R(2);
-		R[0] = counts[0] + counts[1];
-		R[1] = counts[2 + 0] + counts[2 + 1];
-		totCnt = R[0] + R[1];
+		R[0] = counts[0] + counts[1]; //total no sig
+		R[1] = counts[2 + 0] + counts[2 + 1]; //total with sig
 
+		totCnt = R[0] + R[1];
 		double p_min;
 		double b, c;
 		int min_ind = 0;
 		//Mathcing to lower:
 		p_min = R[0];
 		if (R[1] < p_min) {
-			p_min = R[1];
+			p_min = R[1]; //matching to upper - almost always the case
 			++min_ind;
 		}
 		if (p_min = 0)
@@ -1380,9 +1435,8 @@ double medial::contingency_tables::calc_mcnemar_square_dist(const map<float, vec
 			b = counts[2 + 1];
 			c = counts[0 + 1] * R[1] / R[0];
 		}
-
 		if (b + c > 0)
-			regScore += (b - c) * (b - c) / (b + c); //Mcnemar
+			regScore += ((b - c) * (b - c)) / (b + c); //Mcnemar
 	}
 	return regScore;
 }
@@ -1483,6 +1537,81 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 			dof += _count_legal_rows(female_stats.at(signalVal), minimal_balls);
 		double pv = chisqr(dof, regScore);
 		p_values[index] = pv;
+	}
+}
+
+/// it's not mcnemar it's more like: https://en.wikipedia.org/wiki/Cochran%E2%80%93Mantel%E2%80%93Haenszel_statistics
+void medial::contingency_tables::calc_cmh_scores(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats,
+	vector<float> &all_signal_values, vector<int> &signal_indexes,
+	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
+
+	unordered_set<float> all_vals;
+	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
+		all_vals.insert(i->first);
+	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
+		all_vals.insert(i->first);
+	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
+	signal_indexes.resize(all_signal_values.size());
+	for (size_t i = 0; i < signal_indexes.size(); ++i)
+		signal_indexes[i] = (int)i;
+	posCnts.resize(all_signal_values.size());
+	valCnts.resize(all_signal_values.size());
+	lift.resize(all_signal_values.size());
+	scores.resize(all_signal_values.size());
+	p_values.resize(all_signal_values.size());
+	pos_ratio.resize(all_signal_values.size());
+
+	for (int index : signal_indexes)
+	{
+		float signalVal = all_signal_values[index];
+		//check chi-square for this value:
+		double totCnt = 0;
+		double sig_sum = 0;
+		double sum_noSig_reg = 0;
+		double sum_noSig_tot = 0;
+
+		if (male_stats.find(signalVal) != male_stats.end())
+			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (female_stats.find(signalVal) != female_stats.end())
+			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
+				totCnt += jt->second[2] + jt->second[3];
+				posCnts[index] += jt->second[1 + 2];
+				sig_sum += jt->second[0 + 2];
+				sum_noSig_reg += jt->second[1 + 0];
+				sum_noSig_tot += jt->second[1 + 0] + jt->second[0 + 0];
+			}
+		if (totCnt == 0)
+			continue;
+		valCnts[index] = totCnt; //for signal apeareance
+		sig_sum += posCnts[index];
+		if (sig_sum > 0 && sum_noSig_reg > 0)
+			lift[index] = (posCnts[index] / sig_sum) / (sum_noSig_reg / sum_noSig_tot);
+		if (sig_sum > 0 && sum_noSig_reg <= 0)
+			lift[index] = 2 * posCnts[index]; //maximum lift
+		pos_ratio[index] = posCnts[index] / totCnt;
+
+		double regScore = 0;
+		const map<float, vector<int>> *p1 = NULL, *p2 = NULL;
+		if (male_stats.find(signalVal) != male_stats.end())
+			p1 = &male_stats.at(signalVal);
+		if (female_stats.find(signalVal) != female_stats.end())
+			p2 = &female_stats.at(signalVal);
+		bool is_ok;
+		regScore = calc_cmh_square_dist(p1, p2, is_ok);
+		if (is_ok) {
+			scores[index] = (float)regScore;
+			int dof = 1;
+			double pv = chisqr(dof, regScore);
+			p_values[index] = pv;
+		}
 	}
 }
 
@@ -1892,34 +2021,34 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 			registry_file_path = it->second;
 		else
 			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unsupported init param \"%s\"\n", it->first.c_str());
-		//! [MedRegistryCodesList::init]
-		if (rep_path.empty() && rep_for_init == NULL)
-			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide rep param to init function\n");
-		if (max_repo_date == 0)
-			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide max_repo_date param to init function\n");
-		if (registry_file_path.empty())
-			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide config_signals_rules param to init function\n");
+	//! [MedRegistryCodesList::init]
+	if (rep_path.empty() && rep_for_init == NULL)
+		MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide rep param to init function\n");
+	if (max_repo_date == 0)
+		MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide max_repo_date param to init function\n");
+	if (registry_file_path.empty())
+		MTHROW_AND_ERR("Error in MedRegistryCodesList::init - please provide config_signals_rules param to init function\n");
 
-		if (rep_for_init == NULL) {
-			rep_for_init = &repo;
-			if (rep_for_init->init(rep_path) < 0)
-				MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unable to init repositrory from path %s\n", rep_path.c_str());
+	if (rep_for_init == NULL) {
+		rep_for_init = &repo;
+		if (rep_for_init->init(rep_path) < 0)
+			MTHROW_AND_ERR("Error in MedRegistryCodesList::init - Unable to init repositrory from path %s\n", rep_path.c_str());
+	}
+
+	RegistrySignal::parse_registry_rules(registry_file_path, *rep_for_init, signal_filters);
+	init_called = true;
+
+	signalCodes_names.clear();
+	for (size_t i = 0; i < signal_filters.size(); ++i)
+		signalCodes_names.push_back(signal_filters[i]->signalName);
+	signalCodes_names.push_back("BDATE");
+	for (size_t i = 0; i < signal_filters.size(); ++i)
+		if (signal_filters[i]->signalName == "BDATE") {
+			need_bdate = true;
+			break;
 		}
 
-		RegistrySignal::parse_registry_rules(registry_file_path, *rep_for_init, signal_filters);
-		init_called = true;
-
-		signalCodes_names.clear();
-		for (size_t i = 0; i < signal_filters.size(); ++i)
-			signalCodes_names.push_back(signal_filters[i]->signalName);
-		signalCodes_names.push_back("BDATE");
-		for (size_t i = 0; i < signal_filters.size(); ++i)
-			if (signal_filters[i]->signalName == "BDATE") {
-				need_bdate = true;
-				break;
-			}
-
-		return 0;
+	return 0;
 }
 
 MedRegistry *MedRegistry::make_registry(const string &registry_type, const string &init_str) {

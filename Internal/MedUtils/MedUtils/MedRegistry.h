@@ -192,6 +192,9 @@ namespace medial {
 		/// \brief calc mcnemar square distance for all groups with 4 value vector
 		double calc_mcnemar_square_dist(const map<float, vector<int>> &gender_sorted);
 
+		/// \brief calc cmh  https://en.wikipedia.org/wiki/Cochran%E2%80%93Mantel%E2%80%93Haenszel_statistics
+		double calc_cmh_square_dist(const map<float, vector<int>> *gender_sorted, const map<float, vector<int>> *gender_sorted2, bool &ok);
+
 		/// \brief calcs chi square for full male, female and stores all the results stats and values in the vectors
 		void calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
@@ -203,6 +206,13 @@ namespace medial {
 
 		/// \brief calcs mcnemar test square for full male, female and stores all the results stats and values in the vectors
 		void calc_mcnemar_scores(const map<float, map<float, vector<int>>> &male_stats,
+			const map<float, map<float, vector<int>>> &female_stats,
+			vector<float> &all_signal_values, vector<int> &signal_indexes,
+			vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
+			, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio);
+
+		/// \brief calc cmh  https://en.wikipedia.org/wiki/Cochran%E2%80%93Mantel%E2%80%93Haenszel_statistics
+		void calc_cmh_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
 			vector<float> &all_signal_values, vector<int> &signal_indexes,
 			vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
