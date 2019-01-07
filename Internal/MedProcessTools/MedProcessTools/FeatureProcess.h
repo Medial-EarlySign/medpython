@@ -2,14 +2,11 @@
 #define _FTR_PROCESS_H_
 
 #include <SerializableObject/SerializableObject/SerializableObject.h>
-//#include <InfraMed/InfraMed/InfraMed.h>
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <MedProcessTools/MedProcessTools/MedValueCleaner.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <MedUtils/MedUtils/MedUtils.h>
-//#include "MedStat/MedStat/MedPerformance.h"
-//#include "MedStat/MedStat/MedStat.h"
 #include <unordered_set>
 
 #define DEFAULT_FEAT_CLNR_NTHREADS 24
@@ -456,6 +453,7 @@ public:
 
 };
 
+
 /**
 * Feature Selector abstract class
 */
@@ -855,7 +853,7 @@ private:
 	void init_bootstrap_params(MedBootstrapResult& bootstrapper, string& init);
 
 	// Utilities
-	void prepare_for_iterations(MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
+	void prepare_for_iterations(MedBootstrapResult& bootstrapper, MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
 		vector<vector<MedSample>>&testSamples, MedFeatures& bootstrapFeatures);
 
 	// Actual selection

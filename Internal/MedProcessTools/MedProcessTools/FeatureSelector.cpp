@@ -1095,7 +1095,8 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 	get_rates_vec();
 
 	// Read paramters
-	read_params_vec();
+	if (! predictor_params_file.empty())
+		read_params_vec();
 
 	return 0;
 }

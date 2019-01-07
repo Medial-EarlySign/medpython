@@ -30,7 +30,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 	vector<int> allTestRows;
 	MedFeatures bootstrapFeatures;
 
-	prepare_for_iterations(features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
+	prepare_for_iterations(bootstrapper, features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
 
 
 	// Iterative addition of families
@@ -87,7 +87,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 					// Insert predictions to samples
 					for (size_t i = 0; i < preds.size(); i++)
 						bootstrapFeatures.samples[samplesIdx+i].prediction[0] = preds[i];
-					samplesIdx += preds.size();
+					samplesIdx += (int) preds.size();
 
 				}
 
@@ -152,7 +152,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 	vector<vector<MedSample>> testSamples(nRuns);
 
 	MedFeatures bootstrapFeatures;
-	prepare_for_iterations(features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
+	prepare_for_iterations(bootstrapper, features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
 
 	// Iterative addition of families
 	MedTimer timer;
@@ -206,7 +206,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 				// Insert predictions to samples
 				for (size_t i = 0; i < preds.size(); i++)
 					bootstrapFeatures.samples[samplesIdx+i].prediction[0] = preds[i];
-				samplesIdx += preds.size();
+				samplesIdx += (int) preds.size();
 			}
 
 			// Performance
@@ -215,7 +215,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 
 			selectedFamilies.erase(family);
 			if (verbose) {
-				MLOG("\tChecked removing family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
+				MLOG("\tChecked adding family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
 				MLOG("\tCurrent round: Adding to %d out of %d. Running for %f min. Estimated time : %f min.\n", selectedFamilies.size(), nFamilies, diff,
@@ -247,16 +247,33 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 	}
 }
 
-void IterativeFeatureSelector::prepare_for_iterations(MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
-	vector<vector<MedSample>>&testSamples, MedFeatures& bootstrapFeatures) {
+void IterativeFeatureSelector::prepare_for_iterations(MedBootstrapResult& bootstrapper, MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows,
+	vector<vector<float>>&trainLabels, vector<vector<MedSample>>&testSamples, MedFeatures& bootstrapFeatures) {
 
 	int nRuns = (int)folds.size();
+	int nSamples = (int)features.samples.size();
 
-	vector<string> feature_names;
-	features.get_feature_names(feature_names);
-	for (string name : feature_names)
-		bootstrapFeatures.attributes[name] = features.attributes[name];
+	// Select necessary features
+	vector<string> required_features;
+	for (Filter_Param& convert_param : bootstrapper.bootstrap_params.filter_cohort["bs"]) {
+		if (convert_param.param_name != "Time-Window" && convert_param.param_name != "Label")
+			required_features.push_back(resolve_feature_name(features, convert_param.param_name));
+	}
+
+	// Attributes
 	bootstrapFeatures.time_unit = features.time_unit;
+	for (string name : required_features) {
+		bootstrapFeatures.attributes[name] = features.attributes[name];
+		bootstrapFeatures.attributes[name].normalized = false;
+	}
+
+	// Denormalize
+	map<string, vector<float>> denormalized;
+	for (string name : required_features) {
+		denormalized[name].resize(nSamples);
+		for (int i = 0; i < nSamples;i++)
+			denormalized[name][i] = features.data[name][i] * bootstrapFeatures.attributes[name].denorm_sdv + bootstrapFeatures.attributes[name].denorm_mean;
+	}
 
 	// Build train+test lists
 	for (int iRun = 0; iRun < nRuns; iRun++) {
@@ -268,8 +285,8 @@ void IterativeFeatureSelector::prepare_for_iterations(MedFeatures& features, vec
 				testSamples[iRun].push_back(sample);
 				bootstrapFeatures.samples.push_back(sample);
 				bootstrapFeatures.samples.back().prediction.assign(1, 0.0);
-				for (string name : feature_names)
-					bootstrapFeatures.data[name].push_back(features.data[name][i]);
+				for (string name : required_features)
+					bootstrapFeatures.data[name].push_back(denormalized[name][i]);
 			}
 			else {
 				trainRows[iRun].push_back(i);
@@ -332,7 +349,7 @@ void IterativeFeatureSelector::read_params_vec()
 	// Check
 	for (size_t i = 0; i < predictor_params_vec.size(); i++) {
 		if (predictor_params_vec[i].empty())
-			MTHROW_AND_ERR("nFeatures-dependent predictor-params given, but missing for nFeatures=%d. Currently, this is not allowed\n", i);
+			MTHROW_AND_ERR("nFeatures-dependent predictor-params given, but missing for nFeatures=%zd. Currently, this is not allowed\n", i);
 	}
 }
 

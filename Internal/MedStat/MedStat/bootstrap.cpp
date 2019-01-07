@@ -736,8 +736,6 @@ void write_pivot_bootstrap_results(const string &file_name, const map<string, ma
 }
 void read_pivot_bootstrap_results(const string &file_name, map<string, map<string, float>> &all_cohorts_measurments) {
 	string delimeter = "\t";
-	if (all_cohorts_measurments.empty())
-		throw invalid_argument("all_cohorts_measurments can't be empty");
 	map<string, float> flat_map;
 
 	ifstream fr(file_name);
