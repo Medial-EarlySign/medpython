@@ -87,7 +87,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 					// Insert predictions to samples
 					for (size_t i = 0; i < preds.size(); i++)
 						bootstrapFeatures.samples[samplesIdx+i].prediction[0] = preds[i];
-					samplesIdx += preds.size();
+					samplesIdx += (int) preds.size();
 
 				}
 
@@ -206,7 +206,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 				// Insert predictions to samples
 				for (size_t i = 0; i < preds.size(); i++)
 					bootstrapFeatures.samples[samplesIdx+i].prediction[0] = preds[i];
-				samplesIdx += preds.size();
+				samplesIdx += (int) preds.size();
 			}
 
 			// Performance
@@ -349,7 +349,7 @@ void IterativeFeatureSelector::read_params_vec()
 	// Check
 	for (size_t i = 0; i < predictor_params_vec.size(); i++) {
 		if (predictor_params_vec[i].empty())
-			MTHROW_AND_ERR("nFeatures-dependent predictor-params given, but missing for nFeatures=%d. Currently, this is not allowed\n", i);
+			MTHROW_AND_ERR("nFeatures-dependent predictor-params given, but missing for nFeatures=%zd. Currently, this is not allowed\n", i);
 	}
 }
 
