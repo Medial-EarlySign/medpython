@@ -11,15 +11,18 @@
 #include <random>
 
 //.......................................................................................
-/**  A structure holding feature attributes
-*/
+//  A structure holding feature attributes
 //.......................................................................................
-class FeatureAttr {
+class FeatureAttr : public SerializableObject {
 public:
-	bool normalized; ///< indicator that the feature has been normalized
-	bool imputed; ///< indicator that the feature has been imputed and does not contain missing values
-};
+	bool normalized = false; ///< indicator that the feature has been normalized
+	bool imputed = false; ///< indicator that the feature has been imputed and does not contain missing values
+	float denorm_mean = 0.0, denorm_sdv = 1.0; ///< Mean and Standard deviation for de-normalization
 
+	// Serialization
+	ADD_CLASS_NAME(FeatureAttr)
+	ADD_SERIALIZATION_FUNCS(normalized, imputed , denorm_mean, denorm_sdv)
+};
 
 //.......................................................................................
 /** A class for holding features data as a virtual matrix <br>
@@ -123,11 +126,12 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)
-	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes)
+	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes, tags)
 
 };
 
 MEDSERIALIZE_SUPPORT(MedFeatures)
+MEDSERIALIZE_SUPPORT(FeatureAttr)
 
 /**
 * \brief medial namespace for function

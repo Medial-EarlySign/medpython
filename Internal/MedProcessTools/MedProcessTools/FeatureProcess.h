@@ -853,7 +853,7 @@ private:
 	void init_bootstrap_params(MedBootstrapResult& bootstrapper, string& init);
 
 	// Utilities
-	void prepare_for_iterations(MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
+	void prepare_for_iterations(MedBootstrapResult& bootstrapper, MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
 		vector<vector<MedSample>>&testSamples, MedFeatures& bootstrapFeatures);
 
 	// Actual selection

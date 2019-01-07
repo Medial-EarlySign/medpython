@@ -532,6 +532,8 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	features.attributes[resolved_feature_name].normalized = true;
 	if (fillMissing)
 		features.attributes[resolved_feature_name].imputed = true;
+	features.attributes[resolved_feature_name].denorm_mean = mean;
+	features.attributes[resolved_feature_name].denorm_sdv = sd;
 
 	// Clean
 	bool empty = ids.empty();
