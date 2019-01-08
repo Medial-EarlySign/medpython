@@ -96,6 +96,7 @@
     <ClCompile Include="MedValueCleaner.cpp" />
     <ClCompile Include="PanelCompleter.cpp" />
     <ClCompile Include="RepCalculators.cpp" />
+    <ClCompile Include="RepCreateRegistry.cpp" />
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
     <ClCompile Include="SmokingGenerator.cpp" />
