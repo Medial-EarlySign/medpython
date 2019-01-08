@@ -44,6 +44,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_AGGREGATE;
 	else if (processor_name == "limit_history" || processor_name == "history_limit")
 		return REP_PROCESS_HISTORY_LIMIT;
+	else if (processor_name == "create_registry")
+		return REP_PROCESS_CREATE_REGISTRY;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -68,6 +70,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepBasicRangeCleaner);
 	CONDITIONAL_NEW_CLASS(dname, RepAggregateSignal);
 	CONDITIONAL_NEW_CLASS(dname, RepHistoryLimit);
+	CONDITIONAL_NEW_CLASS(dname, RepCreateRegistry);
 	return NULL;
 }
 
@@ -130,6 +133,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepAggregateSignal;
 	else if (processor_type == REP_PROCESS_HISTORY_LIMIT)
 		return new RepHistoryLimit;
+	else if (processor_type = REP_PROCESS_CREATE_REGISTRY)
+		return new RepCreateRegistry;
 	else
 		return NULL;
 
@@ -1969,8 +1974,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		signals_time_unit = MedTime::Days;
 	}
 
-	//MLOG("DBG===> in RepCalcSimpleSignals init: calculator %s , time %d\n", calculator.c_str(), signals_time_unit);
-	//calc_type = get_calculator_type(calculator);
+	MLOG_D("DBG===> in RepCalcSimpleSignals init: calculator %s , time %d\n", calculator.c_str(), signals_time_unit);
 	calculator_logic = SimpleCalculator::make_calculator(calculator);
 	
 	if (!calculator_init_params.empty()) {
@@ -1995,7 +1999,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	vector<pair<string, int>> default_virtual_signals;
 	calculator_logic->list_output_signals(signals, default_virtual_signals);
 	if (V_names.size() == 0) {
-		//feth from default:
+		//fetch from default:
 		V_names.resize(default_virtual_signals.size());
 		for (size_t i = 0; i < default_virtual_signals.size(); ++i)
 			V_names[i] = default_virtual_signals[i].first;

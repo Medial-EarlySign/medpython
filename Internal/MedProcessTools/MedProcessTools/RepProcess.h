@@ -34,6 +34,7 @@ typedef enum {
 	REP_PROCESS_BASIC_RANGE_CLEANER,///<"basic_range_cleaner" or "range_cln" to activate RepBasicRangeCleaner
 	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point
+	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values)
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -1102,10 +1103,6 @@ public:
 	//vector<float> coeff; ///< it is possible to transfer a vector of params to the calculator, to enable parametric calculators.
 
 	vector<string> signals; ///< it is possible to transfer a vector of required signals, to override default ones.
-	//string timer_signal; ///< if given, used to detrmine time-points when virtual signal(s) are calculated
-	//int timer_signal_id = -1; ///< id of timer-signal (if given)
-	//string time_step_str; ///< string to describe time step (if given), and translate to time_step
-	//int time_step = -1; ///< add times every time_step starting from the first time (timer or union), if given. must be positive
 	int signals_time_unit = MedTime::Undefined; ///< Time unit of timer and all signals 
 
 	int max_time_search_range = 0; ///< how much time we are allowed to look backward to calculate. to look forward we need to fix the function
@@ -1119,7 +1116,6 @@ public:
 
 	// making sure V_ids and sigs_ids are initialized
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
-
 
 	// Learning
 	/// <summary> In this class there's never learning - we return 0 immediately </summary>
@@ -1153,6 +1149,80 @@ private:
 	int apply_calc_in_time(PidDynamicRec& rec, vector<int>& time_points);
 
 	SimpleCalculator *calculator_logic = NULL;
+
+};
+
+/**
+* RepCreateReigsty creates registries (e.g. Diabetes, HyperTension, CKD, etc) as virtual signals
+*/
+
+typedef enum {
+	REP_REGISTRY_DM,
+	REP_REGISTRY_HT,
+	REP_REGISTRY_LAST
+} RegistryTypes;
+
+class RepCreateRegistry : public RepProcessor {
+public:
+
+	RegistryTypes registry; ///< type of registry to create
+	vector<string> names; ///< name(s) of registry signal(s) to create
+
+	vector<string> signals; ///< Vector of required signals, to override default ones.
+	int signals_time_unit = MedTime::Undefined; ///< Time unit of timer and all signals 
+
+	RepCreateRegistry() { processor_type = REP_PROCESS_CREATE_REGISTRY; }
+	~RepCreateRegistry() {};
+
+	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
+	int init(map<string, string>& mapper);
+	void init_lists();
+
+	// making sure V_ids and sigs_ids are initialized
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	// Learning
+	/// <summary> In this class there's never learning - we return 0 immediately </summary>
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict, rep.sigs); return 0; };
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	// serialization
+	ADD_CLASS_NAME(RepCreateRegistry)
+	ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, signals_time_unit, req_signals, aff_signals, virtual_signals)
+
+private:
+	string registry_name;
+
+	/// registry name to type
+	const map<string, RegistryTypes> name2type = {{ "dm" , REP_REGISTRY_DM },{"ht", REP_REGISTRY_HT }};
+
+	// output signal name + type
+	const map<RegistryTypes, vector<pair<string, int>>> type2Virtuals = { { REP_REGISTRY_DM,{{"DM_Registry",T_TimeRangeVal}}},
+																			  { REP_REGISTRY_HT,{{"HT_Registry",T_TimeRangeVal}} } };
+	// required signals
+	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{}},
+															 { REP_REGISTRY_HT, {"BP","RC","Drug","Byear","DM_Registry"}} };
+
+	set<int> sig_ids_s; 
+	vector<int> sig_ids; ///< ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
+	vector<int> virtual_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
+
+	// Place holders to save allocations
+	vector<UniversalSigVec> usvs;
+	vector<vector<float>> all_v_vals;
+	vector<vector<int>> all_v_times;
+	vector<int> final_sizes;
+
+	// Registry specific functions
+	void init_ht_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void init_dm_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	void ht_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver);
+	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver);
+
 
 };
 
@@ -1529,4 +1599,5 @@ MEDSERIALIZE_SUPPORT(RepSignalRate)
 MEDSERIALIZE_SUPPORT(RepAggregateSignal)
 MEDSERIALIZE_SUPPORT(RepCheckReq)
 MEDSERIALIZE_SUPPORT(RepHistoryLimit)
+MEDSERIALIZE_SUPPORT(RepCreateRegistry)
 #endif
