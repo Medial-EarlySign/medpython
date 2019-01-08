@@ -101,6 +101,9 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 			selectedFamilies.insert(family);
 			if (verbose) {
 				MLOG("\tChecked removing family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
+				string report_s = "checked backward : signal/family " + scores.back().first + " score : " + measurement_name + " = " + to_string(scores.back().second) + "\n";
+				report.push_back(report_s);
+
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
 				MLOG("\tCurrent round running for %f min. Estimated time : %f min.\n", diff, diff * ((float)families.size()) / counter);
@@ -216,6 +219,8 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 			selectedFamilies.erase(family);
 			if (verbose) {
 				MLOG("\tChecked adding family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
+				string report_s = "checked forward : signal/family " + scores.back().first + " score : " + measurement_name + " = " + to_string(scores.back().second) + "\n";
+				report.push_back(report_s);
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
 				MLOG("\tCurrent round: Adding to %d out of %d. Running for %f min. Estimated time : %f min.\n", selectedFamilies.size(), nFamilies, diff,
