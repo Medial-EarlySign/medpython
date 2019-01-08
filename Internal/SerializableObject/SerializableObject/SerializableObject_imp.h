@@ -935,6 +935,37 @@ namespace MedSerialize {
 		return 0;
 	}
 
+
+	// similar in concept to read_file_into_string, but gets the strings in the file and adds a comma "," between them
+	static int read_list_into_string(const string &fname, string &data)
+	{
+		ifstream inf(fname);
+		if (!inf) {
+			SRL_ERR("MedSerialize::read_file_into_string: Can't open file %s\n", fname.c_str());
+			return -1;
+		}
+
+		data = "";
+		string curr_line;
+		while (getline(inf, curr_line)) {
+			if ((curr_line.size() > 1) && (curr_line[0] != '#')) { // ignore empty lines, ignore comment lines
+				// get rid of leading spaced, ending spaces, \r
+				string fixed_spaces = std::regex_replace(curr_line, std::regex("^ +| +$|\r"), string(""));
+				// move all tabs to spaces
+				fixed_spaces = std::regex_replace(fixed_spaces, std::regex("\t+"), string(" "));
+				// change all internal spaces and \n to comma
+				fixed_spaces = std::regex_replace(fixed_spaces, std::regex(" +|\n"), string(","));
+				// make sure there are no adjacent commas
+				fixed_spaces = std::regex_replace(fixed_spaces, std::regex(",,+"), string(","));
+				// add 
+				data += fixed_spaces;
+			}
+		}
+		// could happen that last char is comma, we fix it.
+		if (data.back() == ',') data.pop_back();
+
+		return 0;
+	}
 }
 
 

@@ -114,6 +114,14 @@ int SerializableObject::init_from_string(string init_string) {
 	if (map.size() == 1 && map.begin()->first == "pFile") {
 		return init_params_from_file(map.begin()->second);
 	}
+
+	for (auto &e : map)
+		if (e.second.compare(0, 5, "FILE:") == 0 || e.second.compare(0, 5, "LIST:") == 0 || e.second.compare(0, 5, "list:") == 0) {
+			string param;
+			if (init_param_from_file(e.second, param) < 0) return -1;
+			e.second = param;
+		}
+
 	if (init(map) < 0) return -1;
 
 	return 0;
@@ -126,5 +134,22 @@ int SerializableObject::init_params_from_file(string fname)
 	if (MedSerialize::read_file_into_string(fname, data) < 0) return -1;
 	boost::replace_all(data, "\n", "");
 	return init_from_string(data);
+}
+
+// Init a specific param from a file
+int SerializableObject::init_param_from_file(string file_str, string &param)
+{
+	// prefix is FILE: as file: is reserved for medmodel json usages
+	if (file_str.compare(0, 5, "FILE:") == 0) {
+		string fname = file_str.substr(5);
+		if (MedSerialize::read_file_into_string(fname, param) < 0) return -1;
+	}
+
+	if (file_str.compare(0, 5, "list:") == 0 || file_str.compare(0, 5, "LIST:") == 0) {
+		string fname = file_str.substr(5);
+		if (MedSerialize::read_list_into_string(fname, param) < 0) return -1;
+	}
+
+	return 0;
 }
 
