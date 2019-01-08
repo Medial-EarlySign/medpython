@@ -1,4 +1,6 @@
-#pragma once
+#ifndef __DO_CALC_FEAT_PROCESSOR_H__
+#define __DO_CALC_FEAT_PROCESSOR_H__
+
 #include <MedProcessTools/MedProcessTools/FeatureProcess.h>
 #include <MedProcessTools/MedProcessTools/MedFeatures.h>
 
@@ -70,4 +72,6 @@ private:
 	virtual void resolve_feature_names(MedFeatures &features);
 };
 
-MEDSERIALIZE_SUPPORT(DoCalcFeatProcessor)
+MEDSERIALIZE_SUPPORT(DoCalcFeatProcessor);
+
+#endif

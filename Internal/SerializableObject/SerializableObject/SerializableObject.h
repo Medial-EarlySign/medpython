@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <map>
 #include <vector>
+#include <regex>
 
 using namespace std;
 
