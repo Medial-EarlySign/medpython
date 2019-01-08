@@ -824,6 +824,10 @@ public:
 	int init(map<string, string>& mapper);
 	virtual void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_ITERATIVE_SELECTOR; };
 
+	// Bootstrapper initialization
+	void init_bootstrap_cohort(MedBootstrapResult& bootstrapper, string& init);
+	void init_bootstrap_params(MedBootstrapResult& bootstrapper, string& init);
+
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<IterativeFeatureSelector *>(processor)); }
 
@@ -847,10 +851,6 @@ private:
 
 	// Get Families of signals
 	void get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies, unordered_set<string>& required, bool work_on_sets);
-
-	// Bootstrapper initialization
-	void init_bootstrap_cohort(MedBootstrapResult& bootstrapper, string& init);
-	void init_bootstrap_params(MedBootstrapResult& bootstrapper, string& init);
 
 	// Utilities
 	void prepare_for_iterations(MedBootstrapResult& bootstrapper, MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
