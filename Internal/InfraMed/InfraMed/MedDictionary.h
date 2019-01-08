@@ -51,6 +51,9 @@ class DLLEXTERN  MedDictionary {
 		int add_def(const string &fname, const string &name, int id);
 		int add_set(const string &fname, const string &member_name, const string &set_name);
 
+		// APIs to push new values into a dictionary
+		void push_new_def(string name, int id) { Name2Id[name] = id; Id2Name[id] = name; Id2Names[id].push_back(name); }
+
 	private:
 		map<string, int> used;
 
@@ -139,9 +142,13 @@ class DLLEXTERN MedDictionarySections {
 	void get_member_sets(const string &member, vector<int> &sets)	{ return get_member_sets(curr_section, member, sets); }
 	void get_member_sets(int member_id, vector<int> &sets)			{ return get_member_sets(curr_section, member_id, sets); }
 
-
+	// APIs to prepare lookup tables
 	int prep_sets_lookup_table(int section_id, const vector<string> &set_names, vector<char> &lut) { return dicts[section_id].prep_sets_lookup_table(set_names, lut); }
 	int prep_sets_indexed_lookup_table(int section_id, const vector<string> &set_names, vector<unsigned char> &lut) { return dicts[section_id].prep_sets_indexed_lookup_table(set_names, lut); }
+
+	// APIs to add a new dictionary section - this is needed in some cases of creating virtual signals that are categorial
+	void add_section(string new_section_name) { MedDictionary dummy; dicts.push_back(dummy); SectionName2Id[new_section_name] = (int)dicts.size() - 1; }
+	void connect_to_section(string new_section_name, int section_id) { SectionName2Id[new_section_name] = section_id; }
 };
 
 
