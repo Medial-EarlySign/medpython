@@ -40,20 +40,20 @@ GBMRESULT CNodeCategorical::PrintSubtree
            (pMissingNode == NULL ? 0.0 : pMissingNode->dPrediction));
 
     for(i=0; i< cIndent; i++) fprintf(stderr,"  ");
-    fprintf(stderr,"V%d in ",iSplitVar);
+    fprintf(stderr,"V%d in ",(int)iSplitVar);
     for(i=0; i<cLeftCategory; i++)
     {
-        fprintf(stderr,"%d",aiLeftCategory[i]);
+        fprintf(stderr,"%d", (int)aiLeftCategory[i]);
         if(i<cLeftCategory-1) fprintf(stderr,",");
     }
     fprintf(stderr,"\n");
     hr = pLeftNode->PrintSubtree(cIndent+1);
 
     for(i=0; i< cIndent; i++) fprintf(stderr,"  ");
-    fprintf(stderr,"V%d not in ",iSplitVar);
+    fprintf(stderr,"V%d not in ", (int)iSplitVar);
     for(i=0; i<cLeftCategory; i++)
     {
-        fprintf(stderr,"%d",aiLeftCategory[i]);
+        fprintf(stderr,"%d", (int)aiLeftCategory[i]);
         if(i<cLeftCategory-1) fprintf(stderr,",");
     }
     fprintf(stderr,"\n");

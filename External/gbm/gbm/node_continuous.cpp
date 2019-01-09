@@ -36,13 +36,13 @@ GBMRESULT CNodeContinuous::PrintSubtree
 
     for(i=0; i< cIndent; i++) fprintf(stderr,"  ");
     fprintf(stderr,"V%d < %f\n",
-           iSplitVar,
+           (int)iSplitVar,
            dSplitValue);
     hr = pLeftNode->PrintSubtree(cIndent+1);
 
     for(i=0; i< cIndent; i++) fprintf(stderr,"  ");
     fprintf(stderr,"V%d > %f\n",
-           iSplitVar,
+		(int)iSplitVar,
            dSplitValue);
     hr = pRightNode->PrintSubtree(cIndent+1);
 
