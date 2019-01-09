@@ -89,7 +89,7 @@ int SerializableObject::write_to_file(const string &fname)
 	*((int*)blob) = version(); //save version
 	size_t serSize = serialize(blob + sizeof(int));
 	if (size != serSize)
-		MTHROW_AND_ERR("size=%lld, serSize=%d\n", size, (int)serSize);
+		MTHROW_AND_ERR("size=%zu, serSize=%d\n", size, (int)serSize);
 
 	size_t final_size = serSize + sizeof(int);
 

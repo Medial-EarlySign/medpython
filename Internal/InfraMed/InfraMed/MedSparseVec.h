@@ -356,7 +356,7 @@ template <class T> class MedSparseVec {
 		
 		size_t len = curr - blob;
 		if (len != serialize_len) {
-			fprintf(stderr, "ERROR: Sparse Vec serialize len not matching decalred one: %lld != %lld\n", len, serialize_len);
+			fprintf(stderr, "ERROR: Sparse Vec serialize len not matching decalred one: %zu != %llu\n", len, serialize_len);
 			return 0;
 		}
 		return len;

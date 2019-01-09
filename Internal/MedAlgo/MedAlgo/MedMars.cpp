@@ -40,18 +40,18 @@ void MedMars::init_defaults()
 
 	nMaxTerms = 0;
 	nPreds = 0;
-//	BestSet.clear();
+	//	BestSet.clear();
 	BestSet = NULL;
 	Dirs.clear();
 	Cuts.clear();
 	Betas.clear();
-	
+
 	// Model Inner quality measures
 	BestGcv = 0;
 	bx.clear();
 	Residuals.clear();
 
-	init_default_mars_params(params) ;
+	init_default_mars_params(params);
 
 }
 
@@ -79,80 +79,80 @@ int MedMars::set_params(map<string, string>& mapper) {
 }
 
 //..............................................................................
-int MedMars::init(void *_in_params) 
+int MedMars::init(void *_in_params)
 {
 	init_defaults();
 
-	MedMarsParams *in_params = (MedMarsParams *) _in_params ;
-	 
+	MedMarsParams *in_params = (MedMarsParams *)_in_params;
+
 	params = (*in_params);
 
-	return 0 ;
+	return 0;
 }
 
 //..............................................................................
-MedMars::MedMars() 
+MedMars::MedMars()
 {
 	init_defaults();
 }
 
 //..............................................................................
-MedMars::MedMars(MedMarsParams& _in_params) 
+MedMars::MedMars(MedMarsParams& _in_params)
 {
-	init((void *) &_in_params);
+	init((void *)&_in_params);
 }
 
 //..............................................................................
-MedMars::MedMars(void *_in_params) 
+MedMars::MedMars(void *_in_params)
 {
 	init(_in_params);
 }
 
 //..............................................................................
-int MedMars::Learn (float *x, float *y, const float *w, int nsamples, int nftrs) {
+int MedMars::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 
 	if (w != NULL)
-		MWARN("Weights are not implemented for Mars. Ignoring\n") ;
-	
+		MWARN("Weights are not implemented for Mars. Ignoring\n");
+
 	// allocate space for model
 	nMaxTerms = params.MaxTerms;
 	nPreds = nftrs;
 	if (BestSet != NULL) free(BestSet);
-	BestSet = (bool *)calloc(nMaxTerms,sizeof(bool));
-//	BestSet.resize(nMaxTerms); fill(BestSet.begin(),BestSet.end(),false);
+	BestSet = (bool *)calloc(nMaxTerms, sizeof(bool));
+	//	BestSet.resize(nMaxTerms); fill(BestSet.begin(),BestSet.end(),false);
 	Dirs.resize(nMaxTerms*nPreds); fill(Dirs.begin(), Dirs.end(), 0);
 	Cuts.resize(nMaxTerms*nPreds); fill(Cuts.begin(), Cuts.end(), (double)0);
 	Betas.resize(nMaxTerms); fill(Betas.begin(), Betas.end(), (double)0);
 
 	// transpose x and make it a double to match inner package req
 	MedMat<double> xd;
-	xd.load_transposed(x,nsamples,nftrs);
+	xd.load_transposed(x, nsamples, nftrs);
 
 	// transfer y to double
 	MedMat<double> yd;
-	yd.load(y,nsamples,1);
+	yd.load(y, nsamples, 1);
 
 	// a few more necessary inputs for inner learn
-	bx.resize(nsamples*nMaxTerms); fill(bx.begin(),bx.end(),(double)0);
+	bx.resize(nsamples*nMaxTerms); fill(bx.begin(), bx.end(), (double)0);
 	Residuals.resize(nsamples); fill(Residuals.begin(), Residuals.end(), (double)0);
 
-	vector<int> LinPreds(nftrs,0);
+	vector<int> LinPreds(nftrs, 0);
 	const char **pred_names = NULL;
 	double *weights = NULL; // unsupported yet in internal imp
 
-	
+
 	// Actual Learn !
-    Earth(&BestGcv, &nTerms, BestSet, VEC_DATA(bx), VEC_DATA(Dirs), VEC_DATA(Cuts), VEC_DATA(Residuals), VEC_DATA(Betas),
-        xd.data_ptr(), yd.data_ptr(), weights, nsamples, 1, nftrs,
-        params.MaxDegree, nMaxTerms, params.Penalty, params.Thresh, params.MinSpan, params.Prune,
-        params.FastK, params.FastBeta, params.NewVarPenalty, VEC_DATA(LinPreds), params.UseBetaCache, params.Trace, pred_names);
-	
+	Earth(&BestGcv, &nTerms, BestSet, VEC_DATA(bx), VEC_DATA(Dirs), VEC_DATA(Cuts), VEC_DATA(Residuals), VEC_DATA(Betas),
+		xd.data_ptr(), yd.data_ptr(), weights, nsamples, 1, nftrs,
+		params.MaxDegree, nMaxTerms, params.Penalty, params.Thresh, params.MinSpan, params.Prune,
+		params.FastK, params.FastBeta, params.NewVarPenalty, VEC_DATA(LinPreds), params.UseBetaCache, params.Trace, pred_names);
+
 	fflush(stdout);
-/*
-    printf("Expression:\n");
-    FormatEarth(BestSet, VEC_DATA(Dirs), VEC_DATA(Cuts), VEC_DATA(Betas), nPreds, 1, nTerms, nMaxTerms, 3, 0);
-	fflush(stdout);
-*/
+	/*
+		printf("Expression:\n");
+		FormatEarth(BestSet, VEC_DATA(Dirs), VEC_DATA(Cuts), VEC_DATA(Betas), nPreds, 1, nTerms, nMaxTerms, 3, 0);
+		fflush(stdout);
+	*/
 	// currently releasing unused arrays
 	bx.clear();
 	Residuals.clear();
@@ -164,10 +164,10 @@ int MedMars::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	// transfer x to double
 	MedMat<double> xd;
-	xd.load(x,nsamples,nftrs);
+	xd.load(x, nsamples, nftrs);
 	double *xp = (double *)xd.data_ptr();
 	double y;
-	for (int i=0; i<nsamples; i++) {
+	for (int i = 0; i < nsamples; i++) {
 		PredictEarth(&y, &xp[i*nftrs], BestSet, VEC_DATA(Dirs), VEC_DATA(Cuts), VEC_DATA(Betas), nPreds, 1, nTerms, nMaxTerms);
 		preds[i] = (float)y;
 	}
@@ -196,27 +196,30 @@ size_t MedMars::serialize(unsigned char *blob) {
 
 	size_t ptr = 0;
 
-	memcpy(blob+ptr, &classifier_type, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob+ptr, &nMaxTerms, sizeof(int)); ptr += sizeof(int);
-	memcpy(blob+ptr,&nTerms,sizeof(int)); ptr += sizeof(int);
-	memcpy(blob+ptr,&nPreds,sizeof(int)); ptr += sizeof(int);
-	memcpy(blob+ptr,BestSet,sizeof(bool) * nMaxTerms); ptr += sizeof(bool) * nMaxTerms;
-	memcpy(blob+ptr,VEC_DATA(Dirs),sizeof(int) * nMaxTerms * nPreds); ptr += sizeof(int) * nMaxTerms * nPreds;
-	memcpy(blob+ptr,VEC_DATA(Cuts),sizeof(double) * nMaxTerms * nPreds); ptr += sizeof(double) * nMaxTerms * nPreds;
-	memcpy(blob+ptr,VEC_DATA(Betas),sizeof(double) * nMaxTerms); ptr += sizeof(double) * nMaxTerms;
+	memcpy(blob + ptr, &classifier_type, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &nMaxTerms, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &nTerms, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, &nPreds, sizeof(int)); ptr += sizeof(int);
+	memcpy(blob + ptr, BestSet, sizeof(bool) * nMaxTerms); ptr += sizeof(bool) * nMaxTerms;
+	if (!Dirs.empty())
+		memcpy(blob + ptr, &Dirs[0], sizeof(int) * nMaxTerms * nPreds); ptr += sizeof(int) * nMaxTerms * nPreds;
+	if (!Cuts.empty())
+		memcpy(blob + ptr, &Cuts[0], sizeof(double) * nMaxTerms * nPreds); ptr += sizeof(double) * nMaxTerms * nPreds;
+	if (!Betas.empty())
+		memcpy(blob + ptr, &Betas[0], sizeof(double) * nMaxTerms); ptr += sizeof(double) * nMaxTerms;
 
 	return ptr;
 }
 
 //..............................................................................
 size_t MedMars::deserialize(unsigned char *blob) {
-	
+
 	size_t ptr = 0;
 
-	memcpy(&classifier_type, blob+ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&nMaxTerms, blob+ptr, sizeof(int)); ptr += sizeof(int);
-	memcpy(&nTerms,blob+ptr,sizeof(int)); ptr += sizeof(int);
-	memcpy(&nPreds,blob+ptr,sizeof(int)); ptr += sizeof(int);
+	memcpy(&classifier_type, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&nMaxTerms, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&nTerms, blob + ptr, sizeof(int)); ptr += sizeof(int);
+	memcpy(&nPreds, blob + ptr, sizeof(int)); ptr += sizeof(int);
 
 	// allocating
 	if (BestSet != NULL) free(BestSet);
@@ -226,17 +229,20 @@ size_t MedMars::deserialize(unsigned char *blob) {
 	Betas.resize(nMaxTerms);
 
 	// reading arrays
-	memcpy(BestSet, blob+ptr, sizeof(bool) * nMaxTerms); ptr += sizeof(bool) * nMaxTerms;
-	memcpy(VEC_DATA(Dirs), blob+ptr, sizeof(int) * nMaxTerms * nPreds); ptr += sizeof(int) * nMaxTerms * nPreds;
-	memcpy(VEC_DATA(Cuts), blob+ptr, sizeof(double) * nMaxTerms * nPreds); ptr += sizeof(double) * nMaxTerms * nPreds;
-	memcpy(VEC_DATA(Betas), blob+ptr, sizeof(double) * nMaxTerms); ptr += sizeof(double) * nMaxTerms;
+	memcpy(BestSet, blob + ptr, sizeof(bool) * nMaxTerms); ptr += sizeof(bool) * nMaxTerms;
+	if (!Dirs.empty())
+		memcpy(&Dirs[0], blob + ptr, sizeof(int) * nMaxTerms * nPreds); ptr += sizeof(int) * nMaxTerms * nPreds;
+	if (!Cuts.empty())
+		memcpy(&Cuts[0], blob + ptr, sizeof(double) * nMaxTerms * nPreds); ptr += sizeof(double) * nMaxTerms * nPreds;
+	if (!Betas.empty())
+		memcpy(&Betas[0], blob + ptr, sizeof(double) * nMaxTerms); ptr += sizeof(double) * nMaxTerms;
 
 	return ptr;
 }
 
 // Printing
 void MedMars::print(FILE *fp, const string& prefix) const {
-	fprintf(fp,"%s: MedMars : nMaxTerms %d nTerms %d nPreds %d\n",prefix.c_str(), nMaxTerms, nTerms, nPreds) ;
+	fprintf(fp, "%s: MedMars : nMaxTerms %d nTerms %d nPreds %d\n", prefix.c_str(), nMaxTerms, nTerms, nPreds);
 }
 
 // Prdictions per sample
