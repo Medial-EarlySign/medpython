@@ -416,3 +416,11 @@ double MedTime::get_age_from_bdate(int t, int type_t, int bdate)
 	double years2 = convert_times_D(MedTime::Date, MedTime::Years, bdate);
 	return (years1 - years2);
 }
+
+//.....................................................................................................
+int MedTime::add_subtract_time(int in_time, int in_type, int delta_time, int delta_type)
+{
+	int conved = convert_times(in_type, delta_type, in_time);
+	conved += delta_time;
+	return convert_times(delta_type, in_type, conved);
+}
