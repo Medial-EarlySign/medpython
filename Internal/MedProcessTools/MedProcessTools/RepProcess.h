@@ -1162,6 +1162,26 @@ typedef enum {
 	REP_REGISTRY_LAST
 } RegistryTypes;
 
+// helper class 
+typedef enum {
+	REG_EVENT_DM_GLUCOSE,
+	REG_EVENT_DM_HBA1C,
+	REG_EVENT_DM_DRUG,
+	REG_EVENT_DM_DIAGNOSES
+} DMEventsTypes;
+
+class RegistryEvent {
+public:
+	int time = -1;
+	int event_type;
+	float event_val;
+	int event_severity;
+	
+	RegistryEvent() {};
+	RegistryEvent(int _time, int _type, float _val, int _severity) { time = _time; event_type = _type; event_val = _val; event_severity = _severity; }
+
+};
+
 class RepCreateRegistry : public RepProcessor {
 public:
 
@@ -1173,6 +1193,15 @@ public:
 
 	RepCreateRegistry() { processor_type = REP_PROCESS_CREATE_REGISTRY; }
 	~RepCreateRegistry() {};
+	
+	// dm registry related parameters
+	string dm_drug_sig = "Drug";
+	vector<string> dm_drug_sets = { "ATC_A10_____" };
+	string dm_diagnoses_sig = "RC";
+	vector<string> dm_diagnoses_sets;
+	string dm_glucose_sig = "Glucose";
+	string dm_hba1c_sig = "HbA1C";
+	int dm_diagnoses_severity = 3; // 3: need supporting evidence as well, 4: single code is enough
 
 	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
 	int init(map<string, string>& mapper);
@@ -1203,15 +1232,24 @@ private:
 	const map<RegistryTypes, vector<pair<string, int>>> type2Virtuals = { { REP_REGISTRY_DM,{{"DM_Registry",T_TimeRangeVal}}},
 																			  { REP_REGISTRY_HT,{{"HT_Registry",T_TimeRangeVal}} } };
 	// required signals
-	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{}},
+	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{"Glucose","HbA1C","Drug","RC"}},
 															 { REP_REGISTRY_HT, {"BP","RC","Drug","Byear","DM_Registry"}} };
 
 	set<int> sig_ids_s; 
 	vector<int> sig_ids; ///< ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
 	vector<int> virtual_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
 
+	// dm related privates
+	int dm_drug_idx = -1; // idx for drug signal in usvs, sig_ids, etc...
+	int dm_diagnoses_idx = -1;
+	vector<char> dm_drug_lut;
+	vector<char> dm_diagnoses_lut;
+	int dm_glucose_idx = -1;
+	int dm_hba1c_idx = -1;
+
+
 	// Place holders to save allocations
-	vector<UniversalSigVec> usvs;
+	
 	vector<vector<float>> all_v_vals;
 	vector<vector<int>> all_v_times;
 	vector<int> final_sizes;
@@ -1221,7 +1259,7 @@ private:
 	void init_dm_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
 
 	void ht_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver);
-	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver);
+	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec> &usvs);
 
 
 };
