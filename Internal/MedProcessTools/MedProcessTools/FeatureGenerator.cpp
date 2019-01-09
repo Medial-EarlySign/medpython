@@ -1130,11 +1130,12 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time, int _wi
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
-		if (itime <= max_time)
+		if (itime <= max_time) {
 			if (itime >= min_time)
 				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
 			else
 				return missing_val;
+		}
 	}
 
 	return missing_val;

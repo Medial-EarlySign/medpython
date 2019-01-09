@@ -93,6 +93,7 @@ int KerasLayer::apply_bn(vector<float> &in, vector<float> &out)
 		out[d] = wgts[0][d] * out[d] + wgts[1][d];
 		//MLOG("BN: d=%d : in %f wgts %f %f %f %f out %f\n", d, in[d], wgts[0][d], wgts[1][d], wgts[2][d], wgts[3][d], out[d]);
 	}
+	return 0;
 }
 
 //-------------------------------------------------------------------------------------------

@@ -144,11 +144,12 @@ int bart_tree::clear_tree_mem(bart_node *node) {
 
 	int s = clear_tree_mem(node->childs[0]);
 	s += clear_tree_mem(node->childs[1]);
-	if (node->parent != NULL)
+	if (node->parent != NULL) {
 		if (node->parent->childs[0] == node)
 			node->parent->childs[0] = NULL;
 		else
 			node->parent->childs[1] = NULL;
+	}
 	delete node;
 	++s;
 	return s;
@@ -401,12 +402,12 @@ void bart_tree::rollback_change(const tree_change_details &change) {
 			root = change.changed_nodes_before[i];
 		bart_node *parent_node = change.changed_nodes_after[i]->parent;
 
-		if (parent_node != NULL) //If wasn't root - has parent - connect it's parent to child
+		if (parent_node != NULL) { //If wasn't root - has parent - connect it's parent to child
 			if (parent_node->childs[0] == change.changed_nodes_after[i])
 				parent_node->childs[0] = change.changed_nodes_before[i];
 			else
 				parent_node->childs[1] = change.changed_nodes_before[i];
-
+		}
 		/*if (change.action == 3) { //swap: connect also childs to parents
 		if (change.changed_nodes_before[i]->childs[0] != NULL) {
 		change.changed_nodes_before[i]->childs[0]->parent = change.changed_nodes_before[i];
@@ -963,7 +964,7 @@ void BART::init_hyper_parameters(const vector<float> &residuals) {
 		}
 		mean_y /= nSamples;
 		sample_var_y /= nSamples;
-		sample_var_y = (sample_var_y - mean_y*mean_y);
+		sample_var_y = (sample_var_y - mean_y * mean_y);
 		tree_params.set_regression(ntrees, sample_var_y);
 	}
 	else
@@ -1012,7 +1013,7 @@ void BART::update_latent_z_params(boost::random::random_number_generator<boost::
 		{
 			//based on y, full_pred
 			double u = rng_gen(1000000) / (double)1000000;
-			double normal_c = boost::math::cdf(norm_dist, y[k] >0 * full_pred[k] - y[k] <= 0 * full_pred[k]);
+			double normal_c = boost::math::cdf(norm_dist, (y[k] > 0) * full_pred[k] - (y[k] <= 0) * full_pred[k]);
 			normal_c = (1 - u) *normal_c + u;
 			if (y[k] > 0) {
 				z_vec[k] = full_pred[k] + boost::math::quantile(norm_dist, normal_c);

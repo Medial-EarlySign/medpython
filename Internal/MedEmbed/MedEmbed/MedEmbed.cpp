@@ -292,7 +292,7 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 
 	if ((start_sid = rep.sigs.sid("STARTDATE")) > 0) { sigs_to_load.push_back("STARTDATE"); }
 	if ((end_sid = rep.sigs.sid("ENDDATE")) > 0) { sigs_to_load.push_back("ENDDATE"); }
-	if ((death_sid) = rep.sigs.sid("DEATH") > 0) { sigs_to_load.push_back("DEATH"); }
+	if ((death_sid = rep.sigs.sid("DEATH")) > 0) { sigs_to_load.push_back("DEATH"); }
 
 
 	// preparing coding space (pre shrinking) , and relevant maps
@@ -443,11 +443,12 @@ int EmbedMatCreator::add_sig_to_lines(EmbeddingSig &es, UniversalSigVec &usv, in
 		if (usv.n_time_channels() > 0) {
 			for (int j=0; j<usv.len; j++) {
 				int i_time = usv.Time(j, es.time_chan);
-				if (i_time > from_time && i_time <= to_time)
+				if (i_time > from_time && i_time <= to_time) {
 					if (use_shrink)
 						es.get_categ_shrunk_codes((int)usv.Val(j, es.val_chan), codes);
 					else
 						es.get_categ_codes((int)usv.Val(j, es.val_chan), codes);
+				}
 			}
 		}
 		else {
@@ -464,13 +465,14 @@ int EmbedMatCreator::add_sig_to_lines(EmbeddingSig &es, UniversalSigVec &usv, in
 
 		for (int j=0; j<usv.len; j++) {
 			int i_time = usv.Time(j, es.time_chan);
-			if (i_time > from_time && i_time <= to_time)
+			if (i_time > from_time && i_time <= to_time) {
 				if (use_shrink)
 					codes.push_back(es.get_continuous_shrunk_codes(usv.Val(j, es.val_chan)));
 				else {
 					//MLOG("pid %d sig %s j %d time %d , val %f\n", pid, es.sig.c_str(), j, i_time , usv.Val(j, es.val_chan));
 					codes.push_back(es.get_continuous_codes(usv.Val(j, es.val_chan)));
 				}
+			}
 		}
 	}
 

@@ -1751,11 +1751,12 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	int len, gend = -1;
 	void *data = rep.get(pid, sigCode, len);
 
-	if (len > 0)
+	if (len > 0) {
 		if (rep.sigs.Sid2Info[sigCode].type == T_Value)
 			gend = (int)(*(SVal *)data).val;
 		else if (rep.sigs.Sid2Info[sigCode].type == T_TimeStamp)
 			gend = (int)(*(STimeStamp *)data).time;
+	}
 	return gend;
 }
 

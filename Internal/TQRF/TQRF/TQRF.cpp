@@ -2387,7 +2387,7 @@ int TQRF_Forest::tune_betas(Quantized_Feat &qfeat)
 	MLOG("TQRF:: tune betas : Finished building C,S matrices. Movinf to gd process\n");
 
 	solve_betas_gd(C, S, betas);
-
+	return 0;
 }
 
 //

@@ -68,9 +68,9 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 	init_lists();
 
 	// Default initializations
-	if (registry = REP_REGISTRY_HT)
+	if (registry == REP_REGISTRY_HT)
 		ht_init_defaults();
-
+	return 0;
 }
 
 /// Required/Affected signals
@@ -162,7 +162,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	}
 
 
-
+	return 0;
 }
 
 // Registry-Specific functions : HyperTension
