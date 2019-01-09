@@ -337,6 +337,17 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 	snprintf(res, sizeof(res), "%s_%06.3f", init_str.c_str(), wp);
 	return string(res);
 }
+
+/// <summary>
+/// to run bootstrap on single cohort
+/// </summary>
+map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
+	const vector<int> &pids, float sample_ratio, int sample_per_pid, int loopCnt,
+	const vector<MeasurementFunctions> &meas_functions, const vector<Measurement_Params *> &function_params,
+	ProcessMeasurementParamFunc process_measurments_params,
+	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
+	const vector<int> &pids_full, const vector<float> *weights, const vector<int> &filter_indexes, FilterCohortFunc cohort_def,
+	void *cohort_params, int &warn_cnt, const string &cohort_name, int seed = 0);
 /// <summary>
 /// The main bootstrap function to run all bootstrap process with all the arguments
 /// @param preds the predicitions vector
