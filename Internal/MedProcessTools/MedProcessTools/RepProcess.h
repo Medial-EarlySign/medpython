@@ -639,6 +639,8 @@ typedef enum {
 	SIM_VAL_MEAN,
 	SIM_VAL_REM,
 	SIM_VAL_REM_DIFF,
+	SIM_VAL_MIN,
+	SIM_VAL_MAX,
 	MULT_VAL_LAST
 } SimValHandleTypes;
 
@@ -1189,7 +1191,23 @@ public:
 	vector<string> names; ///< name(s) of registry signal(s) to create
 
 	vector<string> signals; ///< Vector of required signals, to override default ones.
-	int signals_time_unit = MedTime::Undefined; ///< Time unit of timer and all signals 
+	vector<string> registry_values; ///< values of registry (to appear in relevant section of dictionary)
+	int time_unit = -1; ///< time-unit of registry
+
+	// Registry specific parameters
+	// Hypertension
+	vector<string> ht_identifiers; ///< identifiers (ReadCodes) of HT
+	vector<string> chf_identifiers; ///< identifiers (ReadCodes) of CHF
+	vector<string> mi_identifiers; ///< identifiers (ReadCodes) of MI
+	vector<string> af_identifiers; ///< identifiers (ReadCodes) of AF
+	bool ht_identifiers_given = false, chf_identifiers_given = false, mi_identifiers_given = false, af_identifiers_given = false;
+
+	vector<string> ht_drugs = { "ATC_C08C____","ATC_C07B____","ATC_C07C____","ATC_C07D____","ATC_C07F____","ATC_C07A_G__","ATC_C09B____","ATC_C09D____", "ATC_C02D_A01" }; ///< drugs indicative of HT
+	vector<string> ht_chf_drugs = { "ATC_C03_____" }; ///< drugs indicative of HT, unless CHF
+	vector<string> ht_dm_drugs = { "ATC_C09A____", "ATC_C09C____" }; ///< drugs indicative of HT, unless DM
+	vector<string> ht_extra_drugs = { "ATC_C07A_A__", "ATC_C07A_B__" }; ///< drugs indicative of HT, unless CHF/MI/AF.
+
+	int ht_drugs_gap = 90; ///< Gap (in days) from drug input to following indication
 
 	RepCreateRegistry() { processor_type = REP_PROCESS_CREATE_REGISTRY; }
 	~RepCreateRegistry() {};
@@ -1220,7 +1238,7 @@ public:
 
 	// serialization
 	ADD_CLASS_NAME(RepCreateRegistry)
-	ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, signals_time_unit, req_signals, aff_signals, virtual_signals)
+	ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals)
 
 private:
 	string registry_name;
@@ -1233,7 +1251,7 @@ private:
 																			  { REP_REGISTRY_HT,{{"HT_Registry",T_TimeRangeVal}} } };
 	// required signals
 	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{"Glucose","HbA1C","Drug","RC"}},
-															 { REP_REGISTRY_HT, {"BP","RC","Drug","Byear","DM_Registry"}} };
+															 { REP_REGISTRY_HT, {"BP","RC","Drug","BYEAR","DM_Registry"}} };
 
 	set<int> sig_ids_s; 
 	vector<int> sig_ids; ///< ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
@@ -1248,17 +1266,25 @@ private:
 	int dm_hba1c_idx = -1;
 
 
-	// Place holders to save allocations
 	
-	vector<vector<float>> all_v_vals;
-	vector<vector<int>> all_v_times;
-	vector<int> final_sizes;
+	vector<int> signal_time_units; ///< time-units of all signals
 
-	// Registry specific functions
+	// Registry specific functions and parameters
+	// HT
 	void init_ht_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
-	void init_dm_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void ht_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes);
+	void ht_init_defaults();
+	void fillLookupTableForHTDrugs(MedDictionary& dict, vector<char>& lut, vector<string>& sets, char val);
+	void buildLookupTableForHTDrugs(MedDictionary& dict, vector<char>& lut);
 
-	void ht_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver);
+	vector<string> ht_def_values = { "HT_Registry_Non_Hypertensive","HT_Registry_Hypertensive" };
+	int bp_idx = 0, rc_idx = 1, drug_idx = 2, byear_idx = 3, dm_registry_idx = 4;
+	vector<char> htLut, chfLut, miLut, afLut;
+	vector<char> htDrugLut;
+
+	// DM
+	void init_dm_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes);
 	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec> &usvs);
 
 

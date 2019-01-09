@@ -333,7 +333,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	ProcessMeasurementParamFunc process_measurments_params,
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
 	const vector<int> &pids_full, const vector<float> *weights, const vector<int> &filter_indexes, FilterCohortFunc cohort_def,
-	void *cohort_params, int &warn_cnt, const string &cohort_name, int seed = 0) {
+	void *cohort_params, int &warn_cnt, const string &cohort_name, int seed) {
 	//this function called after filter cohort
 	//for each pid - randomize x sample from all it's tests. do loop_times
 	float ci_bound = (float)0.95;
@@ -438,6 +438,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		//other sampling - sample pids and take all thier data:
 		//now sample cohort 
 
+		int done_cnt = 0;
+		time_t start = time(NULL);
+		time_t last_time_print = start;
 #pragma omp parallel for schedule(dynamic,1)
 		for (int i = 0; i < loopCnt; ++i)
 		{
@@ -497,6 +500,15 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
+			}
+#pragma omp atomic
+			++done_cnt;
+			if ((int)difftime(time(NULL), last_time_print) >= 30) {
+				last_time_print = time(NULL);
+				float time_elapsed = (float)difftime(time(NULL), start);
+				float estimate_time = float(loopCnt - done_cnt) / done_cnt * time_elapsed;
+				MLOG("%s: Processed %d out of %d(%2.2f%) time elapsed: %2.1f Minutes, estimate time to finish %2.1f Minutes\n",
+					cohort_name.c_str(), done_cnt, loopCnt, 100.0*(done_cnt / float(loopCnt)), time_elapsed / 60, estimate_time / 60.0);
 			}
 		}
 	}
@@ -1010,7 +1022,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif
 					++curr_wp_fpr_ind;
 					continue; //skip working point - diff is too big
-				}
+			}
 				res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) +
@@ -1124,9 +1136,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_fpr_ind;
 				continue;
-			}
-			++i;
 		}
+			++i;
+	}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -1430,7 +1442,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			++i;
 		}
 
-	}
+}
 	else {
 		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)

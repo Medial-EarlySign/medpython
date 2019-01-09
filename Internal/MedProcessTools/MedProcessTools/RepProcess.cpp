@@ -1784,6 +1784,10 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 		return SIM_VAL_REM;
 	else if (name == "rem_diff" || name == "remove_diff")
 		return SIM_VAL_REM_DIFF;
+	else if (name == "min")
+		return SIM_VAL_MIN;
+	else if (name == "max")
+		return SIM_VAL_MAX;
 	else
 		MTHROW_AND_ERR("Unkwnon sim_val_hand_type \'%s\'\n", name.c_str());
 	//! [RepSimValHandler::get_sim_val_handle_type]
@@ -1919,6 +1923,46 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 		newChange.second.resize(nValChannels);
 		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
 			newChange.second[iChannel] = (sums[iChannel] + usv.Val(end, iChannel)) / (end + 1 - start);
+		change[nChange++] = newChange;
+		nTimes++;
+	}
+	else if (handler_type == SIM_VAL_MIN) {
+		vector<float> mins(nValChannels);
+		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
+			mins[iChannel] = usv.Val(start, iChannel);
+		remove[nRemove++] = start;
+		for (int j = start + 1; j < end; j++) {
+			for (int iChannel = 0; iChannel < nValChannels; iChannel++) {
+				if (usv.Val(j, iChannel) < mins[iChannel])
+					mins[iChannel] = usv.Val(j, iChannel);
+			}
+			remove[nRemove++] = j;
+		}
+		pair<int, vector<float>> newChange;
+		newChange.first = end;
+		newChange.second.resize(nValChannels);
+		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
+			newChange.second[iChannel] = mins[iChannel];
+		change[nChange++] = newChange;
+		nTimes++;
+	}
+	else if (handler_type == SIM_VAL_MAX) {
+		vector<float> maxs(nValChannels);
+		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
+			maxs[iChannel] = usv.Val(start, iChannel);
+		remove[nRemove++] = start;
+		for (int j = start + 1; j < end; j++) {
+			for (int iChannel = 0; iChannel < nValChannels; iChannel++) {
+				if (usv.Val(j, iChannel) > maxs[iChannel])
+					maxs[iChannel] = usv.Val(j, iChannel);
+			}
+			remove[nRemove++] = j;
+		}
+		pair<int, vector<float>> newChange;
+		newChange.first = end;
+		newChange.second.resize(nValChannels);
+		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
+			newChange.second[iChannel] = maxs[iChannel];
 		change[nChange++] = newChange;
 		nTimes++;
 	}
