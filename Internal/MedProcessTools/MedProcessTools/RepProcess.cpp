@@ -244,7 +244,7 @@ int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_point
 		return apply(rec, time_points, attributes_mat);
 
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId))
+		if (is_signal_affected(signalId)) 
 			return apply(rec, time_points, attributes_mat);
 	}
 
@@ -288,7 +288,7 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames,
 //.......................................................................................
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 
-	for (auto sig : req_signal_ids)
+	for (auto sig : req_signal_ids) 
 		signalIds.insert(sig);
 }
 
@@ -1931,13 +1931,15 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
 			mins[iChannel] = usv.Val(start, iChannel);
 		remove[nRemove++] = start;
-		for (int j = start + 1; j < end; j++) {
+
+		for (int j = start+1; j <= end; j++) {
 			for (int iChannel = 0; iChannel < nValChannels; iChannel++) {
 				if (usv.Val(j, iChannel) < mins[iChannel])
 					mins[iChannel] = usv.Val(j, iChannel);
 			}
-			remove[nRemove++] = j;
+			if (j!=end) remove[nRemove++] = j;
 		}
+
 		pair<int, vector<float>> newChange;
 		newChange.first = end;
 		newChange.second.resize(nValChannels);
@@ -1951,12 +1953,13 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
 			maxs[iChannel] = usv.Val(start, iChannel);
 		remove[nRemove++] = start;
-		for (int j = start + 1; j < end; j++) {
+		
+		for (int j = start+1; j <= end; j++) {
 			for (int iChannel = 0; iChannel < nValChannels; iChannel++) {
 				if (usv.Val(j, iChannel) > maxs[iChannel])
 					maxs[iChannel] = usv.Val(j, iChannel);
 			}
-			remove[nRemove++] = j;
+			if (j != end) remove[nRemove++] = j;
 		}
 		pair<int, vector<float>> newChange;
 		newChange.first = end;

@@ -78,7 +78,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 void RepCreateRegistry::init_lists() {
 
 	req_signals.clear();
-	for (string signalName : signals)
+	for (string signalName : signals) 
 		req_signals.insert(signalName);
 
 	aff_signals.clear();
@@ -100,6 +100,7 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 		int sid = sigs.sid(rsig);
 		sig_ids_s.insert(sid);
 		sig_ids.push_back(sid);
+		req_signal_ids.insert(sid);
 	}
 
 	aff_signal_ids.clear();
@@ -157,11 +158,11 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		
 
 		// pushing virtual data into rec
-		for (size_t ivir = 0; ivir<virtual_ids.size(); ivir++)
+		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++) 
 			rec.set_version_universal_data(virtual_ids[ivir], iver, &(all_v_times[ivir][0]), &(all_v_vals[ivir][0]), final_sizes[ivir]);
 	}
 
-
+	return 0;
 
 }
 
@@ -262,17 +263,17 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			break;
 
 		int days = med_time_converter.convert_times(signal_time_units[rc_idx], MedTime::Days, time);
-		if (htLut[(int)usvs[drug_idx].Val(i, 0)])
+		if (htLut[(int)usvs[rc_idx].Val(i, 0)])
 			data.push_back({ days, 3 });
 
-		if (chfLut[(int)usvs[drug_idx].Val(i, 0)])
+		if (chfLut[(int)usvs[rc_idx].Val(i, 0)])
 			data.push_back({ days, 4 });
 
 
-		if (miLut[(int)usvs[drug_idx].Val(i, 0)])
+		if (miLut[(int)usvs[rc_idx].Val(i, 0)])
 			data.push_back({ days, 5 });
 
-		if (afLut[(int)usvs[drug_idx].Val(i, 0)])
+		if (afLut[(int)usvs[rc_idx].Val(i, 0)])
 			data.push_back({ days, 6 });
 	}
 
@@ -294,9 +295,9 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	int lastDrugDays = -1;
 	int chfStatus = 0, miStatus = 0, afStatus = 0, dmStatus = 0;
 
-	for (auto& rec : data) {
-		int days = rec.first;
-		int info = rec.second;
+	for (auto& irec : data) {
+		int days = irec.first;
+		int info = irec.second;
 
 		int bpStatusToPush = -1;
 		
@@ -357,6 +358,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			bpStatusToPush = bpStatus;
 		}
 		bpStatusVec.push_back(bpStatusToPush);
+//		MLOG("id %d ver %d (%d) . Date %d . Info = %d => %d\n", rec.pid, iver, time_points[iver], med_time_converter.convert_days(MedTime::Date, days), info, bpStatusToPush);
 	}
 
 	// Collect
@@ -387,7 +389,6 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		all_v_vals[0].push_back(0);
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days,time_unit,firstNorm));
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, lastNorm));
-//		MLOG("%d(%d) : %d - %d : 0\n", rec.pid,time_points[iver],med_time_converter.convert_times(MedTime::Days, time_unit, firstNorm), med_time_converter.convert_times(MedTime::Days, time_unit, lastNorm));
 	}
 
 	if (lastHT > 0) {
@@ -395,7 +396,6 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		all_v_vals[0].push_back(1);
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, firstHT));
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, lastHT));
-//		MLOG("%d(%d) : %d - %d : 0\n", rec.pid, time_points[iver], med_time_converter.convert_times(MedTime::Days, time_unit, firstHT), med_time_converter.convert_times(MedTime::Days, time_unit, lastHT));
 	}
 
 }

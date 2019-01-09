@@ -1404,8 +1404,8 @@ float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_wi
 			break;
 		else if (toTime < min_time)
 			continue;
-		else if (fromTime >= min_time || toTime <= max_time)
-			val = usv.Val(i, val_channel);
+
+		val = usv.Val(i, val_channel);
 	}
 
 	return val;
