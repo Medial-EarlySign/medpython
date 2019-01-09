@@ -372,7 +372,6 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 			MTHROW_AND_ERR("prep_sets_lookup_table() : Found bad name [%s] :: not found in dictionary()\n", name.c_str());
 	}
 
-	int min_id = Id2Name.begin()->first;
 	int max_id = Id2Name.rbegin()->first;
 
 	lut.clear();
@@ -420,7 +419,6 @@ int MedDictionary::prep_sets_indexed_lookup_table(const vector<string> &set_name
 			MERR("prep_sets_lookup_table() : Found bad name %s :: not found in dictionary()\n", name.c_str());
 	}
 
-	int min_id = Id2Name.begin()->first;
 	int max_id = Id2Name.rbegin()->first;
 
 	lut.clear();

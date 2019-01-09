@@ -2174,7 +2174,6 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		MERR("RepCalcSimpleSignals::apply_calc_in_time nversions mismatch\n");
 		return -1;
 	}
-	int factor = 1;
 	int v_out_sid = V_ids[0];
 	int n_vals = work_channel + 1;
 	//first lets fetch "static" signals without Time field:
@@ -2975,7 +2974,7 @@ float calc_value(const vector<int> collected_times[], const vector<float> &colle
 	int window_len = end_time - start_time;
 	//asuume sorted by collected_times[0] which is start_time
 	int coverage = 0;
-	int prev_start = 0, prev_end = 0;
+	int prev_end = 0;
 	for (int i = 0; i < collected.size(); ++i)
 	{
 		int start = collected_times[0][i];
@@ -3003,7 +3002,6 @@ float calc_value(const vector<int> collected_times[], const vector<float> &colle
 			else if (real_end >= prev_end)
 				coverage += real_end - prev_end;
 		}
-		prev_start = real_start;
 		prev_end = real_end;
 	}
 	float missing_rate = 0;

@@ -370,7 +370,6 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 	pair<int, int> p0(0, 0);
 	vector<pair<int, int>> empty;
 
-	int idx = 0;
 	for (unsigned int idIdx = 0; idIdx < inSamples.idSamples.size(); idIdx++) {
 		for (unsigned int sampleIdx = 0; sampleIdx < inSamples.idSamples[idIdx].samples.size(); sampleIdx++) {
 

@@ -160,7 +160,6 @@ int MedSparseMat::read_from_files(string mat_file, string meta_file)
 		if ((curr_line.size() > 1) && (curr_line[0] != 'l')) {
 			vector<string> fields;
 			boost::split(fields, curr_line, boost::is_any_of(","));
-			int line = stoi(fields[0]);
 			int pid= stoi(fields[1]);
 			int time = stoi(fields[2]);
 			SparseMatRowMetaData m;

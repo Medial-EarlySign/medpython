@@ -692,8 +692,6 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 			rep.get_dates_with_signal(rc.pid, s_params.stick_to_sigs, dates_with_sigs);
 
 			int outcome_days = med_time_converter.convert_date(MedTime::Days, rc.outcome_date);
-			int to_days = med_time_converter.convert_date(MedTime::Days, rc.to);
-			int from_days = med_time_converter.convert_date(MedTime::Days, rc.from);
 
 			if (print) MLOG("pid %d outcome_days %d dates_with_sig size: %d \n", rc.pid, outcome_days, dates_with_sigs.size());
 			// split dates_with_sigs into buckets

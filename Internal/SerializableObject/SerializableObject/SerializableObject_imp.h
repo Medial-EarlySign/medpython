@@ -389,7 +389,6 @@ namespace MedSerialize {
 		//fprintf(stderr, "map serialize\n");
 		size_t pos = 0, len = v.size();
 		pos += MedSerialize::serialize<size_t>(blob + pos, len);
-		int i = 0;
 		if (len > 0)
 			for (auto &elem : v) {
 				T *t = (T *)&elem.first;

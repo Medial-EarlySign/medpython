@@ -54,6 +54,15 @@
     <ClInclude Include="MedMedical.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MedLabels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LabelParams.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedRegistryRecord.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedGenUtils.cpp">
@@ -84,6 +93,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedMedical.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MedLabels.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LabelParams.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

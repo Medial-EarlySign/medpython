@@ -229,7 +229,6 @@ template <class T> class MedSparseVec {
 		keys.resize(in_keys.size());
 		inds.resize(in_keys.size());
 		int i_size = 0;
-		unsigned int j=0;
 
 		for (int i=0; i<in_keys.size(); i++) {
 			int ind = get_ind(in_keys[i]);

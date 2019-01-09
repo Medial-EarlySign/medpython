@@ -21,7 +21,6 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 	set<string> unSelectedFamilies;
 	for (auto& familiy : featureFamilies)
 		selectedFamilies.insert(familiy.first);
-	int nFamilies = (int)selectedFamilies.size();
 
 	// Build train+test list of indices + labels;
 	vector<vector<int>> trainRows(nRuns), testRows(nRuns);

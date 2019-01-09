@@ -87,7 +87,6 @@ vector<int> BinSplitOptimizer::SplitToBins(const vector<float> &vec, const vecto
 		_histAvg[vec[i]] += y[i];
 	}
 	int max_cnt = 0;
-	float max_val_hist = 0;
 
 	for (auto it = _histElements.begin(); it != _histElements.end(); ++it)
 	{
@@ -98,7 +97,6 @@ vector<int> BinSplitOptimizer::SplitToBins(const vector<float> &vec, const vecto
 		}
 		if (it->second > max_cnt) {
 			max_cnt = it->second;
-			max_val_hist = it->first;
 		}
 	}
 
@@ -434,11 +432,6 @@ int split_using_optimizer(vector<float> &x, const vector<float> &y, int binCnt, 
 			++ind;
 		}
 
-		float endVal = indToVal[(int)indToVal.size() - 1];
-		if (ind + 1 < indToVal.size()) {
-			endVal = indToVal[ind + 1];
-		}
-
 		float centerBinValue = partitionValues[ind];
 
 		x[i] = centerBinValue;
@@ -588,7 +581,6 @@ void medial::process::normalize_feature_to_uniform(const BinSettings &setting, v
 		MWARN("warning: after binning - all values are the same. doing nothing\n");
 		return;
 	}
-	float width = max_val - min_val;
 	double tot_size = (double)feature.size();
 	//let calc width's:
 	vector<double> bin_widths_cumsum(ordValues.size());

@@ -177,7 +177,7 @@ void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
 void get_data_for_filter(const string &json_model, const string &rep_path,
 	MedBootstrap &single_cohort, const vector<MedRegistryRecord> &registry_records,
 	MedSamplingStrategy &sampler, map<string, vector<float>> &data_for_filtering,
-	vector<MedSample> &inc_smps, const MedRegistry *censor_registry = NULL) {
+	vector<MedSample> &inc_smps, const LabelParams &par, const MedRegistry *censor_registry = NULL) {
 	MedSamples inc_samples;
 	MedPidRepository rep;
 	vector<int> pids_to_take;
@@ -189,7 +189,10 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 	init_model(mdl, rep, json_model, rep_path, pids_to_take);
 
 	sampler.init_sampler(rep);
-	sampler.do_sample(registry_records, inc_samples, censor_registry == NULL ? NULL : &censor_registry->registry_records);
+
+	MedLabels labeler(par);
+	labeler.prepare_from_registry(registry_records, censor_registry == NULL ? NULL : &censor_registry->registry_records);
+	labeler.create_samples(&sampler, inc_samples);
 	MLOG("Done sampling for incidence by year. has %d patients\n",
 		(int)inc_samples.idSamples.size());
 
@@ -409,7 +412,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 		sampler_year->time_to = time_res.second;
 		get_data_for_filter(args.json_model, args.rep_path, single_cohort,
 			registry->registry_records, *sampler_year, window_to_data[time_res], window_to_smps[time_res],
-			args.registry_censor);
+			args.labeling_params, args.registry_censor);
 		MLOG("Done preparing matrix of incidence for filtering with %d width...\n", time_res);
 		if (args.do_kaplan_meir) {
 			for (size_t i = 0; i < window_to_smps[time_res].size(); ++i) {
@@ -465,11 +468,12 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 					//update only controls count for time window - do for all time windows
 					//to get total count from all time windows kaplna meir
 					for (int i : index_order)
-						if (filter_range_params(window_to_data[time_res], (int)i, &ii->second))
+						if (filter_range_params(window_to_data[time_res], (int)i, &ii->second)) {
 							if (window_to_smps[time_res][i].outcome <= 0)
 								++total_controls_all;
 							else
 								++total_cases;
+						}
 				}
 				double total_ctrl_save = total_controls_all;
 
@@ -507,11 +511,12 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 			}
 			else {
 				for (size_t i = 0; i < window_to_smps[time_res].size(); ++i)
-					if (filter_range_params(window_to_data[time_res], (int)i, &ii->second))
+					if (filter_range_params(window_to_data[time_res], (int)i, &ii->second)) {
 						if (window_to_smps[time_res][i].outcome > 0)
 							++cases;
 						else
 							++controls;
+					}
 				if (cases > 0)
 					single_cohort.roc_Params.incidence_fix = cases / (cases + controls);
 				else

@@ -84,7 +84,6 @@ int MedSample::parse_from_string(string &s, int time_unit)
 		id = stoi(fields[1]);
 		time = med_time_converter.convert_datetime_safe(time_unit, fields[2], 2);
 		outcome = stof(fields[3]);
-		int dummy_length = stoi(fields[4]);
 		//outcomeTime = stoi(fields[5]);
 		outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[5], 2);
 		if (fields.size() >= 7)
@@ -324,7 +323,6 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 //-------------------------------------------------------------------------------------------
 int MedSamples::read_from_file(const string &fname, bool sort_rows)
 {
-	unsigned long long final_size = 0;
 
 	ifstream inf(fname);
 

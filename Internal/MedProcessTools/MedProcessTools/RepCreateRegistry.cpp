@@ -145,7 +145,6 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	vector<vector<int>> all_v_times(virtual_ids.size());
 	vector<int> final_sizes(virtual_ids.size());
 
-	int len;
 	allVersionsIterator vit(rec, sig_ids_s);
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
@@ -172,7 +171,6 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 void RepCreateRegistry::init_ht_registry_tables(MedDictionarySections& dict, MedSignals& sigs) {
 
 	// Look up tables for HT/CHF/MI/AF
-	int sigId = sig_ids[rc_idx];
 	int sectionId = dict.section_id(signals[rc_idx]);
 
 	dict.prep_sets_lookup_table(sectionId, ht_identifiers, htLut);
@@ -365,7 +363,6 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	// Collect
 	int firstNorm = -1, lastNorm = -1, firstHT = -1, lastHT = -1;
 
-	int status = 0;
 	for (unsigned int i = 0; i < bpStatusVec.size(); i++) {
 		if (bpStatusVec[i] == 2) {
 			lastHT = data[i].first;

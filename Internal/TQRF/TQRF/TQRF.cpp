@@ -732,7 +732,6 @@ int TQRF_Forest::Train_AdaBoost(const MedFeatures &medf, const MedMat<float> &Y)
 
 	MedMat<float> x;
 	qfeat.orig_medf->get_as_matrix(x, {},qfeat.lists[0]);
-	int nsamples = x.nrows;
 
 	timer.take_curr_time();
 	MLOG("TQRF_Forest: Init qfeat and tables time: %f sec\n", timer.diff_sec());
@@ -1073,10 +1072,6 @@ int TQRF_Split_Categorial::prep_histograms(int i_feat, TQRF_Node &node, vector<i
 	// now going over each sample in the node (sometimes we have to sample)
 	// and adding counts for each category.
 	
-	float p_choice = 1;
-	
-	if (params.max_node_test_samples>0 && params.max_node_test_samples < node.size())
-		p_choice = (float)params.max_node_test_samples/(float)node.size();
 
 	vector<short> &feat_qvals = qf.qx[i_feat];
 	for (int i=node.from_idx; i<=node.to_idx; i++) {
@@ -1196,11 +1191,6 @@ int TQRF_Split_Weighted_Categorial::prep_histograms(int i_feat, TQRF_Node &node,
 
 	// now going over each sample in the node (sometimes we have to sample)
 	// and adding counts for each category.
-
-	float p_choice = 1;
-
-	if (params.max_node_test_samples>0 && params.max_node_test_samples < node.size())
-		p_choice = (float)params.max_node_test_samples/(float)node.size();
 
 	vector<short> &feat_qvals = qf.qx[i_feat];
 	for (int i=node.from_idx; i<=node.to_idx; i++) {
@@ -1660,7 +1650,6 @@ int TQRF_Tree::node_splitter(int i_curr_node, int i_best, int q_best)
 		if (_params->verbosity > 1) MLOG("TQRF: node_splitter : Tree %d : node %d : missing direction %d\n", id, cnode->node_idx, cnode->missing_direction);
 
 		// making the split , first we rearange indexes
-		int n_in_left = 0;
 		vector<int> left_inds, right_inds;
 		//left_inds.reserve(cnode.size());
 		//right_inds.reserve(cnode.size());
@@ -1837,8 +1826,6 @@ float TQRF_Tree::prep_node_counts(int i_curr_node, int use_wgts_flag)
 //--------------------------------------------------------------------------------------------------------------------
 int TQRF_Tree::get_bagged_indexes()
 {
-	bool is_regression = (tree_type == TQRF_TREE_REGRESSION);
-
 	if (_params->verbosity > 0) MLOG("Tree %d %s : bagging : params: bag_prob %f bag_ratio %f single_per_pid %d bag_with_repeats %d\n", id, _params->tree_type.c_str(), _params->bag_prob, _params->bag_ratio, _params->single_sample_per_pid, _params->bag_with_repeats);
 
 	if (tree_type != TQRF_TREE_REGRESSION) {
@@ -2408,7 +2395,6 @@ int TQRF_Forest::solve_betas_gd(MedMat<float>& C, MedMat<float>& S, vector<float
 
 	b.resize(n_betas, 1);
 
-	int i_epoch = 0;
 	MLOG("TQRF:: solve_betas: n_betas %d n_samples %d n_batches %d batch_size %d rate %f momentum %f lambda %f ephocs %d\n", 
 		n_betas, n_samples, n_batches, params.gd_batch, params.gd_rate, params.gd_momentum, params.gd_lambda, params.gd_epochs);
 

@@ -453,7 +453,6 @@ int RepPanelCompleter::apply_eGFR_completer(PidDynamicRec& rec, vector<int>& tim
 	if (perpare_for_age_and_gender(rec, age, bYear, gender) < 0)
 		return -1;
 
-	int sig_time_unit = rec.my_rep->sigs.Sid2Info[sigs_ids[EGFR_PNL_CRT]].time_unit;
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());

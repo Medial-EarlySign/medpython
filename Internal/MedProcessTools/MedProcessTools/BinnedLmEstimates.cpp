@@ -275,7 +275,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	// Gender/Age - Collect Data for means and standard deviations
 	for (int i = 0; i < num; i++) {
 		if (ages[i] <= BINNED_LM_MAX_AGE && ages[i] >= 1) {
-			int id = ids[i];
 			nums[genders[i] - 1][ages[i]] ++;
 			sums[genders[i] - 1][ages[i]] += values[i];
 		}
@@ -451,7 +450,6 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 
 	size_t nperiods = params.bin_bounds.size();
-	size_t nmodels = 1ll << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
 
 	int iperiod = (int)nperiods;

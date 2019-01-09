@@ -358,7 +358,6 @@ int MedGDLM::Learn_gd(float *x, float *y, const float *w, int nsamples, int nftr
 	b.resize(nftrs);
 	fill(b.begin(), b.end(), (float)0);
 	vector<float> prev_b = b;
-	float prev_b0 = b0;
 
 	// preparing for iterations
 	int niter = 0;
@@ -394,7 +393,6 @@ int MedGDLM::Learn_gd(float *x, float *y, const float *w, int nsamples, int nftr
 
 	// iterating
 	MLOG("Learn_gd:: err %f max_err %f , niter %d max_iter %d\n",err,params.stop_at_err,niter,params.max_iter);
-	int first_update = 0;
 	prev_bf = bf;
 	while (err > params.stop_at_err && niter < params.max_iter && nerr < params.max_times_err_grows) {
 
@@ -475,7 +473,6 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 	}
 
 
-	float fact_numeric = (float)1000;
 	// initial guess - we start at 0.
 	b0 = 0;
 	b.resize(nftrs);
@@ -483,9 +480,7 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 
 	// preparing for iterations
 	int niter = 0;
-	int nerr = 0;
 	float err = params.stop_at_err * 100;
-	float prev_err = 2*err;
 	Map<MatrixXf> bf(&b[0],1,nftrs);
 	MatrixXf grad(1,nftrs);
 	MatrixXf prev_grad(1,nftrs);
@@ -645,8 +640,6 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 		x = normalized_x.data_ptr();
 	}
 
-	float fact_numeric = (float)1000;
-
 	// Exapnd lambdas to vectors
 	if (params.ls_ridge.empty())
 		params.ls_ridge.resize(nftrs, params.l_ridge);
@@ -666,9 +659,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 
 	// preparing for iterations
 	int niter = 0;
-	int nerr = 0;
 	double err = params.stop_at_err * 100; // inital err
-	float prev_err = (float)(2*err);
 	Map<MatrixXf> bf(&b[0], 1, nftrs);
 	Map<MatrixXf> prev_bf(&prev_b[0], 1, nftrs);
 	MatrixXf grad(1, nftrs);
@@ -867,13 +858,11 @@ int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int
 	set_eigen_threads();
 	// currently completely ignoring w.... , will add soon....
 
-	float fact_numeric = (float)1000;
 	// initial guess - we start at 0.
 	b0 = 0;
 	b.resize(nftrs);
 	fill(b.begin(), b.end(), (float)0);
 	vector<float> prev_b = b;
-	float prev_b0 = b0;
 
 	// preparing for iterations
 	int nerr = 0;

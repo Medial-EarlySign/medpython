@@ -90,25 +90,30 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="LabelParams.h" />
     <ClInclude Include="MedCohort.h" />
     <ClInclude Include="MedCrypt.h" />
     <ClInclude Include="MedEnums.h" />
     <ClInclude Include="MedGenUtils.h" />
     <ClInclude Include="MedGenUtils_imp.h" />
     <ClInclude Include="MedGlobalRNG.h" />
+    <ClInclude Include="MedLabels.h" />
     <ClInclude Include="MedMedical.h" />
     <ClInclude Include="MedNumeric.h" />
     <ClInclude Include="MedPlot.h" />
     <ClInclude Include="MedRegistry.h" />
+    <ClInclude Include="MedRegistryRecord.h" />
     <ClInclude Include="MedSamplingStrategy.h" />
     <ClInclude Include="MedUtils.h" />
     <ClInclude Include="MedUtils_imp.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="LabelParams.cpp" />
     <ClCompile Include="MedCrypt.cpp" />
     <ClCompile Include="MedCohort.cpp" />
     <ClCompile Include="MedEnums.cpp" />
     <ClCompile Include="MedGenUtils.cpp" />
+    <ClCompile Include="MedLabels.cpp" />
     <ClCompile Include="MedMedical.cpp" />
     <ClCompile Include="MedNumeric.cpp" />
     <ClCompile Include="MedPlot.cpp" />

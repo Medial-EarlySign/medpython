@@ -1353,7 +1353,6 @@ float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win
 			else {
 				if (_vals_vec.size() > 0) {
 					nth_element(_vals_vec.begin(), _vals_vec.begin() + _vals_vec.size() / 2, _vals_vec.end());
-					float median_prev_val = _vals_vec[_vals_vec.size() / 2];
 					//float prev_val = median_prev_val;
 					float prev_val = _vals_vec.back();
 					float diff = usv.Val(i, val_channel) - prev_val;

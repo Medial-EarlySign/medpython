@@ -13,7 +13,6 @@
 bool bart_tree::select_split(bart_node *current_node, const vector<float> &x, int nftrs,
 	vector<vector<int>> &split_obx_indexes) {
 	//choose legal split that has at least TBD obs in the split
-	bool has_split = false;
 	current_node->split_index = -1;
 	vector<float> &sorted_keys = feature_to_sorted_vals[current_node->feature_number];
 	const unordered_map<float, int> &val_to_index = feature_to_val_index[current_node->feature_number];
