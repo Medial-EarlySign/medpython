@@ -340,7 +340,7 @@ void update_loop(int pos, int ageBin_index, float ageBin, const MedRegistryRecor
 	}
 }
 
-void MedLabels::calc_signal_stats(const string &repository_path, int signalCode,
+void MedLabels::calc_signal_stats(const string &repository_path, const string &signal_name,
 	const string &signalHirerchyType, int ageBinValue, MedSamplingStrategy &sampler, const LabelParams &inc_labeling_params,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
@@ -358,20 +358,15 @@ void MedLabels::calc_signal_stats(const string &repository_path, int signalCode,
 	vector<int> pids;
 	get_pids(pids);
 
-	vector<int> readSignals;
-	readSignals.push_back(signalCode);
-	int curr_level = global_logger.levels[LOG_REP];
-	global_logger.levels[LOG_REP] = MAX_LOG_LEVEL;
-	dataManager.init(repository_path);
-	global_logger.levels[LOG_REP] = curr_level;
-	int genderCode = dataManager.sigs.sid("GENDER");
-	int bdateCode = dataManager.sigs.sid("BDATE");
-	readSignals.push_back(genderCode);
-	readSignals.push_back(bdateCode);
-	MLOG("Fetching signal %s using repository %s\n", dataManager.sigs.name(signalCode).c_str(),
-		repository_path.c_str());
+	vector<string> readSignals = { "GENDER" , "BDATE" };
+	readSignals.push_back(signal_name);
+
+	MLOG("Fetching signal %s using repository %s\n", signal_name.c_str(), repository_path.c_str());
 	if (dataManager.read_all(repository_path, pids, readSignals) < 0)
 		MTHROW_AND_ERR("error reading from repository %s\n", repository_path.c_str());
+	int genderCode = dataManager.sigs.sid("GENDER");
+	int bdateCode = dataManager.sigs.sid("BDATE");
+	int signalCode = dataManager.sigs.sid(signal_name);
 	vector<int> &all_pids = dataManager.pids;
 
 	MLOG("Sampling for incidence stats...\n");
@@ -403,7 +398,7 @@ void MedLabels::calc_signal_stats(const string &repository_path, int signalCode,
 			double curr_age = medial::repository::DateDiff(bdate, rec.time);
 
 			float ageBin = float(ageBinValue * floor(curr_age / ageBinValue));
-			if (gend == 1) {
+			if (gend == GENDER_MALE) {
 				if (male_pid_seen[ind][ageBin].find(rec.id) == male_pid_seen[ind][ageBin].end()) {
 					male_pid_seen[ind][ageBin].insert(rec.id);
 					if (male_total_prevalence[ageBin].size() == 0)
@@ -502,7 +497,7 @@ void MedLabels::calc_signal_stats(const string &repository_path, int signalCode,
 				pos = 2;
 				//pos += 1; //registry_value > 0 - otherwise skip this
 				pos += int(smp.outcome > 0);
-				if (gender == 1)
+				if (gender == GENDER_MALE)
 					update_loop(pos, ageBin_index, ageBin, sigRec, maleSignalToStats, val_seen_pid_pos);
 				else
 					update_loop(pos, ageBin_index, ageBin, sigRec, femaleSignalToStats, val_seen_pid_pos);
@@ -880,11 +875,15 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 }
 
 void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &samples) const {
+	if (pid_reg_records.empty())
+		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
 	unordered_map<int, vector<pair<int, int>>> pid_time_ranges;
 	//create availible times for each pid:
 	if (has_censor_reg()) {
 		for (auto it = pid_censor_records.begin(); it != pid_censor_records.end(); ++it)
 		{
+			if (pid_reg_records.find(it->first) == pid_reg_records.end())
+				continue; //not in registry skip
 			for (size_t i = 0; i < it->second.size(); ++i)
 			{
 				pair<int, int> tm(it->second[i]->start_date, it->second[i]->end_date);
@@ -924,7 +923,6 @@ void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &s
 			continue; //filter sample
 		}
 		vector<int> &times = it->second;
-		vector<MedSample> batch;
 		MedIdSamples smp_id(it->first);
 		SamplingRes r = get_samples(it->first, times, smp_id.samples);
 		done_count += r.done_cnt;  no_rule += r.no_rule_cnt; conflict_count = r.conflict_cnt;

@@ -166,7 +166,7 @@ public:
 	/// the second key is age_bin and the vector is always of size 4: [signal_not_appear&registry_is_false, signal_not_appear&registry_is_true, signal_appears&registry_is_false, signal_appears&registry_is_true]
 	/// @param femaleSignalToStats The stats for the females. same format as males
 	/// </returns>
-	void calc_signal_stats(const string &repository_path, int signalCode,
+	void calc_signal_stats(const string &repository_path, const string &signal_name,
 		const string &signalHirerchyType, int ageBinValue, MedSamplingStrategy &sampler,
 		const LabelParams &inc_labeling_params, map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats,

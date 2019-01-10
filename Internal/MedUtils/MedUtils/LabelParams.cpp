@@ -54,6 +54,8 @@ LabelParams::LabelParams() {
 	label_interaction_mode.init_from_string("0:all,before_end|1:before_start,after_start");
 	censor_interaction_mode.init_from_string("all:within,within");
 	conflict_method = ConflictMode::Drop;
+	time_from = 0; 
+	time_to = 0;
 }
 
 int LabelParams::init(map<string, string>& map) {

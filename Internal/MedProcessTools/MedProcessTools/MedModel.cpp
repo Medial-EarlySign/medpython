@@ -982,7 +982,7 @@ void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProces
 		if (rep.sigs.sid(vsig.first) < 0) {
 			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
 			if (verbosity > 0)
-				MLOG("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
+				MLOG_D("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
 			int add_section = rep.dict.section_id(vsig.first);
 			rep.dict.dicts[add_section].Name2Id[vsig.first] = new_id;
 			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
@@ -990,7 +990,7 @@ void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProces
 			rep.dict.dicts[add_section].Id2Names[new_id] = { vsig.first };
 			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
 			//rep.dict.SectionName2Id[vsig.first] = 0;
-			MLOG("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig.first));
+			MLOG_D("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig.first));
 		}
 		else {
 			if (rep.sigs.sid(vsig.first) < 100)
