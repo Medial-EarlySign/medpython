@@ -665,9 +665,11 @@ void MedRegistryCodesList::get_registry_records(int pid,
 	}
 
 	r.end_date = last_date;
-	last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
-	if (r.end_date > r.start_date)
-		results.push_back(r);
+	if (last_date > 0) {
+		last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
+		if (r.end_date > r.start_date)
+			results.push_back(r);
+	}
 }
 
 double medial::contingency_tables::calc_chi_square_dist(const map<float, vector<int>> &gender_sorted,
@@ -1745,9 +1747,11 @@ void MedRegistryCategories::get_registry_records(int pid, int bdate, vector<Univ
 
 	if (mark_no_match)
 		r.end_date = last_date;
-	last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
-	if (r.end_date > r.start_date && !mark_no_match)
-		results.push_back(r);
+	if (last_date > 0) {
+		last_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
+		if (r.end_date > r.start_date && !mark_no_match)
+			results.push_back(r);
+	}
 }
 
 void MedRegistryCategories::clear_create_variables() {
@@ -1880,7 +1884,9 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
 	}
 
-	r.end_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
-	if (start_date > 0 && r.end_date > r.start_date)
-		results.push_back(r);
+	if (last_date > 0) {
+		r.end_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
+		if (start_date > 0 && r.end_date > r.start_date)
+			results.push_back(r);
+	}
 }

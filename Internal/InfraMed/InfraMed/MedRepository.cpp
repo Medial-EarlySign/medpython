@@ -137,7 +137,7 @@ int MedRepository::read_config(const string &fname)
 		}
 	}
 	if (path != "" && metadata_path == "")
-		metadata_path = path; 
+		metadata_path = path;
 	// adding path to names + fixing paths.
 	if (add_path_to_name_IM(metadata_path, dictionary_fnames) == -1 || add_path_to_name_IM(metadata_path, signal_fnames) == -1 || add_path_to_name_IM(path, data_fnames) == -1 || add_path_to_name_IM(path, index_fnames) == -1)
 		return -1;
@@ -541,7 +541,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	if (mode.compare("==") == 0) {
 
 		// ToDo:: move to binary search
-		for (int i = 0; i<len; i++) {
+		for (int i = 0; i < len; i++) {
 			if (sdv[i].date == date)
 				return(&sdv[i]);
 			else if (sdv[i].date > date)
@@ -553,7 +553,7 @@ SDateVal *MedRepository::get_date(int pid, int sid, int date, const string &mode
 	else if (mode.compare("<=") == 0) {
 
 		// ToDo:: move to binary search
-		for (int i = 0; i<len; i++) {
+		for (int i = 0; i < len; i++) {
 			if (sdv[i].date <= date)
 				sdv_res = &sdv[i];
 			else if (sdv[i].date > date)
@@ -772,7 +772,7 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateVal2) {
 			SDateVal2 *v = (SDateVal2 *)data;
-			out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val)  + " " + get_channel_info(sid, 1, v[i].val2);
+			out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateShort2) {
 			SDateShort2 *v = (SDateShort2 *)data;
@@ -797,7 +797,7 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		MOUT("%s\n", out.c_str());
 	}
-	
+
 }
 
 //-----------------------------------------------------------
@@ -892,14 +892,14 @@ void MedRepository::long_print_data_vec_dict(int pid, int sid)
 	long_print_vec_dict(data, len, pid, sid);
 }
 
-void MedRepository::long_print_data_vec_dict(int pid, int sid, int from, int to )
+void MedRepository::long_print_data_vec_dict(int pid, int sid, int from, int to)
 {
 
 
 	int len = 0;
 	void *data = get(pid, sid, len);
 
-	long_print_vec_dict(data, len, pid, sid,from,to);
+	long_print_vec_dict(data, len, pid, sid, from, to);
 }
 
 //-----------------------------------------------------------
@@ -1735,9 +1735,13 @@ float medial::repository::DateDiff(int refDate, int dateSample) {
 }
 
 int medial::repository::DateAdd(int refDate, int daysAdd) {
-	if (global_default_time_unit == MedTime::Date)
-		return med_time_converter.convert_days(global_default_time_unit,
-			med_time_converter.convert_times(global_default_time_unit, MedTime::Days, refDate) + daysAdd);
+	if (global_default_time_unit == MedTime::Date) {
+		int days_val = med_time_converter.convert_times(global_default_time_unit, MedTime::Days, refDate) + daysAdd;
+		if (days_val > 0)
+			return med_time_converter.convert_days(global_default_time_unit, days_val);
+		else
+			return 0;
+	}
 	else
 		return refDate + daysAdd;
 }
@@ -1962,7 +1966,7 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 				continue;
 				//remove current
 			}
-			memcpy(after_filter + curr_i*st_size, p + i*st_size, st_size);
+			memcpy(after_filter + curr_i * st_size, p + i * st_size, st_size);
 			++curr_i;
 		}
 

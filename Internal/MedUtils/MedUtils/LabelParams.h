@@ -25,6 +25,9 @@ public:
 	TimeWindowInteraction() {
 		has_default_mode = false;
 		has_default_range = false;
+		default_modes[0] = TimeWindowMode::All_;
+		default_modes[1] = TimeWindowMode::All_;
+		default_intersection_range.first = 0; default_intersection_range.second = 0;
 	}
 
 	TimeWindowMode *operator[] (float x) {
