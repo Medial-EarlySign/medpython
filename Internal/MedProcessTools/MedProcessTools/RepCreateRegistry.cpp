@@ -79,6 +79,13 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 	if (registry == REP_REGISTRY_HT)
 		ht_init_defaults();
 
+	if (registry == REP_REGISTRY_DM) {
+
+		if (registry_values.empty())
+			registry_values = dm_reg_values;
+
+	}
+
 	return 0;
 }
 
@@ -105,6 +112,8 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 		virtual_ids.push_back(sigs.sid(rec.first));
 
 	req_signal_ids.clear();
+	sig_ids_s.clear();
+	sig_ids.clear();
 	for (auto &rsig : signals) {
 		int sid = sigs.sid(rsig);
 		sig_ids_s.insert(sid);
@@ -154,6 +163,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	vector<int> final_sizes(virtual_ids.size());
 
 	allVersionsIterator vit(rec, sig_ids_s);
+
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		for (size_t isig = 0; isig < sig_ids.size(); isig++)
@@ -451,6 +461,7 @@ void RepCreateRegistry::init_dm_registry_tables(MedDictionarySections& dict, Med
 		if (rsig == dm_diagnoses_sig) dm_diagnoses_idx = i;
 		if (rsig == dm_glucose_sig) dm_glucose_idx = i;
 		if (rsig == dm_hba1c_sig) dm_hba1c_idx = i;
+		//MLOG("dm_reg: indexes : rsig %s : i %d : drug %d diag %d glu %d hb %d\n", rsig.c_str(), i, dm_drug_idx, dm_diagnoses_idx, dm_glucose_idx, dm_hba1c_idx);
 		i++;
 	}
 
@@ -475,10 +486,11 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	if (dm_glucose_idx >= 0) {
 
 		UniversalSigVec &glu_usv = usvs[dm_glucose_idx];
-
+		//MLOG("Glucose for pid %d -> %d len\n", rec.pid, glu_usv.len);
 		for (int i = 0; i < glu_usv.len; i++) {
+			//MLOG("Glucose : pid %d %d : i %d : %d , %f\n", rec.pid, time, i, glu_usv.Time(i), glu_usv.Val(i));
 			int i_time = glu_usv.Time(i);
-			if (time > 0 && time > i_time) break;
+			if (time > 0 && time < i_time) break;
 			float i_val = glu_usv.Val(i);
 			int severity = 0;
 			if (i_val > 99.99f) severity = 1;	// 2 tests enough to define pre diabetic
@@ -496,7 +508,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 		for (int i = 0; i < hba1c_usv.len; i++) {
 			int i_time = hba1c_usv.Time(i);
-			if (time > 0 && time > i_time) break;
+			if (time > 0 && time < i_time) break;
 			float i_val = hba1c_usv.Val(i);
 			int severity = 0;
 			//if (i_val > 99.99f) severity = 1;	// 2 tests enough to define pre diabetic
@@ -514,7 +526,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 		for (int i = 0; i < drug_usv.len; i++) {
 			int i_time = drug_usv.Time(i);
-			if (time > 0 && time > i_time) break;
+			if (time > 0 && time < i_time) break;
 			float i_val = drug_usv.Val(i);
 			if (dm_drug_lut[(int)i_val]) {
 				int severity = 4; // currently the first diabetic drug usage makes you diabetic for life.... this is extreme, but given this, we only need the first.
@@ -532,7 +544,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 		for (int i = 0; i < diag_usv.len; i++) {
 			int i_time = diag_usv.Time(i);
-			if (time > 0 && time > i_time) break;
+			if (time > 0 && time < i_time) break;
 			float i_val = diag_usv.Val(i);
 			if (dm_diagnoses_lut[(int)i_val]) {
 				int severity = dm_diagnoses_severity; 
@@ -595,6 +607,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 				ranges[2].second = time;
 				continue;
 			}
+			
 
 		}
 
@@ -663,7 +676,12 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			all_v_times[0].push_back(ranges[j].second);
 			final_sizes[0]++;
 		}
-
+#if 0
 	// debug print
-	MLOG("DM_registry calculation: pid %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
+	int c = 0;
+	for (auto &ev : evs) {
+		//MLOG("pid %d %d : ev %d : time %d type %d val %f severity %d\n", rec.pid, time, c++, ev.time, ev.event_type, ev.event_val, ev.event_severity);
+	}
+	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
+#endif
 }
