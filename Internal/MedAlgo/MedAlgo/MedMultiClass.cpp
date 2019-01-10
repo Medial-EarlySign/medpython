@@ -129,7 +129,6 @@ int MedMultiClass::Learn(float *x, float *y, const float *w, int nsamples, int n
 		for (int i=0; i<nsamples; i++)
 			y_values[y[i]] = 1 ;
 
-		int idx = 0 ;
 		for (auto it = y_values.begin(); it != y_values.end(); it++)
 			params.class_values.push_back(it->first) ;
 		

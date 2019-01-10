@@ -145,7 +145,7 @@ int get_diabetes_dates(MedRepository &rep, int pid, string data_mode, int &last_
 		int drug_set = rep.dict.id(section_id, "ATC_A10_____");
 		int is_in = 0;
 		for (int i=0; i<drug_len; i++) {
-			if (is_in = rep.dict.is_in_set(section_id, (int)drug_sdv2[i].val, drug_set)) {
+			if ((is_in = rep.dict.is_in_set(section_id, (int)drug_sdv2[i].val, drug_set))) {
 				if (first_date == 0) first_date = drug_sdv2[i].date;
 				sum_days += drug_sdv2[i].val2;
 				if (sum_days > min_days) {

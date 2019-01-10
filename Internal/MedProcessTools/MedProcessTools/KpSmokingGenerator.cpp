@@ -73,17 +73,16 @@ int KpSmokingGenerator::init(map<string, string>& mapper) {
 int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data)
 {
 	int quitTime = (int)missing_val, unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
-	float smokingStatus = missing_val, lastPackYears = missing_val, maxPackYears = missing_val, daysSinceQuitting = missing_val;
+	float lastPackYears = missing_val, daysSinceQuitting = missing_val;
 	UniversalSigVec smokingStatusUsv, quitTimeUsv, SmokingPackYearsUsv, bdateUsv;
 	MedTime &tm = med_time_converter;
-	int version = 0;
 	string prevStatus = "Never";
 	int prevStatusDate = 19000101;
 
 	for (int i = 0; i < num; i++) {
 		quitTime = (int)missing_val;
 		unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
-		smokingStatus = missing_val, lastPackYears = missing_val, maxPackYears = missing_val, daysSinceQuitting = missing_val;
+		lastPackYears = missing_val, daysSinceQuitting = missing_val;
 		prevStatus = "Never";
 		prevStatusDate = 19000101;
 
@@ -186,15 +185,6 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 			maxPackYears = 0;
 			lastPackYears = 0;
 		}
-
-		if (neverSmoker == 1)
-			smokingStatus = 0;
-		if (passiveSmoker)
-			smokingStatus = 1;
-		if (formerSmoker)
-			smokingStatus = 2;
-		if (currentSmoker)
-			smokingStatus = 3;
 
 		// Calculate time since quitting
 		if (quitTime != (int)missing_val)

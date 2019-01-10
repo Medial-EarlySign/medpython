@@ -318,7 +318,6 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 //.......................................................................................
 int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features)
 {
-
 	vector<int> req_signals;
 	for (int signalId : required_signal_ids)
 		req_signals.push_back(signalId);

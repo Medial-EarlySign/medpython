@@ -779,7 +779,7 @@ int QuantizedRF::find_best_categories_entropy_split(QRF_Tree &tree, int node, in
 {
 	int try_num;
 	int i, j;
-	double left_sum, right_sum, tot_sum;
+	double left_sum, right_sum;
 	double H, HL, HR;
 
 	int node_size = tree.nodes[node].size();
@@ -866,7 +866,6 @@ int QuantizedRF::find_best_categories_entropy_split(QRF_Tree &tree, int node, in
 				left_sum = 0.0;
 				right_sum = max_start;
 				int left_cnt = 0, right_cnt = node_size;
-				tot_sum = max_start;
 				max_i = -1;
 				for (i = 0; i < max_q[ifeat] - 1; i++) {
 
@@ -1287,7 +1286,6 @@ int QuantizedRF::split_regression_node(QRF_Tree &tree, int node)
 	QRF_Node *Right = &tree.nodes[tree.n_nodes + 1];
 
 	double spread_test;
-	double epsilon = 1e-8;
 
 	Left->depth = nd->depth + 1;
 	Left->split_feat = -1;
@@ -1689,8 +1687,6 @@ void build_tree_thread(void *p)
 	qrf_thread_params *tp = (qrf_thread_params *)p;
 
 	//	fprintf(stderr,"Starting thread %d :: from %d to %d\n",tp->serial, tp->from, tp->to); fflush(stderr);
-
-	int k = 0;
 
 	for (int i = tp->from; i <= tp->to; i++) {
 		if (tp->mode == QRF_BINARY_TREE)

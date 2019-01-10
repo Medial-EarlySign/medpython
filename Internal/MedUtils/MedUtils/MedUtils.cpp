@@ -393,13 +393,11 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 		ifs.close();
 	}
 	//iterate on all values and override defaults in desc:
-	bool has_valus = false;
 	for (auto it = vm_config.begin(); it != vm_config.end(); ++it)
 	{
 		if (it->second.defaulted()) {
 			continue;
 		}
-		has_valus = true;
 		if (vm.find(it->first) == vm.end() || vm[it->first].defaulted()) {
 			//should not happended
 

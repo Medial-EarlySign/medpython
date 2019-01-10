@@ -136,7 +136,6 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	string jsData((istreambuf_iterator<char>(jsFile)),
 		istreambuf_iterator<char>());
 	ofstream jsOut;*/
-	size_t lastDirPos = outPath.find_last_of("/\\");
 	boost::filesystem::path p(outPath);
 	boost::filesystem::path outDir = p.parent_path();
 

@@ -259,7 +259,7 @@ private:
 // API's are more c-style to enable easier work with C# API's
 class InMemRepData : public SerializableObject {
 public:
-	MedRepository *my_rep;
+	MedRepository * my_rep;
 	map<pair<int, int>, pair<int, vector<char>>> data;  // map from a pair of pid,sid to a pair of nvals, data vector
 
 														// init_rep must be called first , as we must know the sigs names/types/etc...
@@ -394,7 +394,7 @@ public:
 
 	// default is inifinity (1000gb), however - if set, the repository will try to free signals in order to get below this bound
 	// it can not free locked in signals, so in some cases the overall memory usage could be higher
-	int set_max_mem(double gb_mem) { bound_gb = gb_mem; }
+	int set_max_mem(double gb_mem) { bound_gb = gb_mem; return 0; }
 
 	MedRepository() { path = ""; metadata_path = ""; work_area = NULL; work_size = 0; fsignals_to_files = ""; index.my_rep = this; min_pid_num = -1; max_pid_num = -1; rep_mode = 0; rep_files_prefix = "rep"; bound_gb = 100.0; sigs.my_repo = this; }
 	~MedRepository() {

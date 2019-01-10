@@ -9,7 +9,6 @@
 // Prediction
 GBMRESULT gbm_pred (double *radX, int cRows, int cCols, int cTrees, double rdInitF, const gbm_tree *rTrees, int **rCSplits, int *raiVarType, double *radPredF, double missing_val) {
    	
-   unsigned long hr = 0;
    int iTree = 0;
    int iObs = 0;
 
@@ -77,8 +76,6 @@ GBMRESULT gbm_pred (double *radX, int iObs, int cRows, int rcCols, const gbm_tre
 					double missing_val)
 {
  
-   unsigned long hr = 0;
-
    int *aiSplitVar = NULL;
    double *adSplitCode = NULL;
    int *aiLeftNode = NULL;

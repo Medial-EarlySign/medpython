@@ -112,8 +112,6 @@ int fix_path(const string& in, string& out) {
 	folders["H"] = "UsersData/" + string(user_name);
 #endif
 	// fprintf(stderr, "Initialized network drive table\n");
-	bool is_unix = is_unix_path(in);
-
 #ifndef _WIN32
 	// on Linux, handle first the Windows native format: \\\\server\\Work\..  
 

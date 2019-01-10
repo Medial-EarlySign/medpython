@@ -34,7 +34,6 @@ double square_dist_for_fit(float (*f_to_fit)(vector<float> &p, float xp), vector
 // finding the p[0] scale factor to get the best fit
 int get_fit_scale_factor(float (*f_to_fit)(vector<float> &p, float xp), vector<float> &p, vector<float> &x, vector<float> &y, vector<float> &w)
 {
-	double err = 0;
 	double sxy,sxx;
 
 	sxy = 0;

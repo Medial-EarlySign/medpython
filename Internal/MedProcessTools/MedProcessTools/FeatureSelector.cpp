@@ -254,15 +254,12 @@ int UnivariateFeatureSelector::getMIs(MedFeatures& features, unordered_set<int>&
 	stats.resize(nFeatures);
 	vector<vector<int>> binnedValues(nFeatures);
 
-	int RC = 0;
 #pragma omp parallel for 
 	for (int i = 0; i < names.size(); i++) {
 		vector<float> values;
 		int nBins;
 		get_all_values(features, names[i], ids, values, params.max_samples);
-		int rc = discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
-#pragma omp critical
-		if (rc < 0)  RC = -1;
+		discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
 	}
 
 #pragma omp parallel for 
@@ -368,7 +365,7 @@ int MRMRFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) 
 							}
 						}
 					}
-					else if (penaltyMethod = MRMR_MEAN) {
+					else if (penaltyMethod == MRMR_MEAN) {
 						for (int j = 0; j < iSelect; j++)
 							penaltyValue += stats(i, selectedIds[j]);
 						penaltyValue /= iSelect;
@@ -524,17 +521,13 @@ int MRMRFeatureSelector::fillMIsMatrix(MedFeatures& features, unordered_set<int>
 	if (nBins < params.nBins)
 		smearBins(binnedTarget, nBins, params.nBins);
 
-	int RC = 0;
 #pragma omp parallel for 
 	for (int i = 0; i < nFeatures; i++) {
 		if (stats(i, index) == -1) {
 			vector<float> values;
 			int nBins;
 			get_all_values(features, names[i], ids, values, params.max_samples);
-			int rc = discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
-#pragma omp critical
-			if (rc < 0)  RC = -1;
-
+			discretize(values, binnedValues[i], nBins, params.nBins, missing_value, params.binMethod);
 			if (nBins < params.nBins)
 				smearBins(binnedValues[i], nBins, params.nBins);
 		}
@@ -1069,7 +1062,7 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "predictor_params") predictor_params = entry.second;
 		else if (field == "predictor_params_file") predictor_params_file = entry.second;
 		else if (field == "nfolds") nfolds = stoi(entry.second);
-		else if (field == "folds") folds_s = entry.second; 
+		else if (field == "folds") folds_s = entry.second;
 		else if (field == "mode") mode = entry.second;
 		else if (field == "rates") rates = entry.second;
 		else if (field == "cohort_params") cohort_params = entry.second;
@@ -1095,7 +1088,7 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 	get_rates_vec();
 
 	// Read paramters
-	if (! predictor_params_file.empty())
+	if (!predictor_params_file.empty())
 		read_params_vec();
 
 	return 0;
@@ -1113,7 +1106,7 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 
 	// Collect original splits
 	vector<int> orig_folds(nSamples);
-	for (int i = 0; i < nSamples;i++)
+	for (int i = 0; i < nSamples; i++)
 		orig_folds[i] = features.samples[i].split;
 
 	// Override splits
@@ -1160,7 +1153,7 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 	}
 
 	// Reinstall splits
-	for (int i = 0; i < nSamples;i++)
+	for (int i = 0; i < nSamples; i++)
 		features.samples[i].split = orig_folds[i];
 
 	return 0;
@@ -1169,7 +1162,7 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 // Report to file 
 //.......................................................................................
 void IterativeFeatureSelector::print_report(string& fileName) {
-	
+
 	ofstream of(fileName);
 	if (!of)
 		MTHROW_AND_ERR("Cannot open %s for writing\n", fileName.c_str());

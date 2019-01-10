@@ -1194,7 +1194,6 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		}
 
 		//lets get auc on this problem:
-		int num_th = omp_get_max_threads();
 		MedPredictor *predictor = MedPredictor::make_predictor(predictor_type, predictor_init);
 		if (new_data.samples.size() > max_learn) {
 			double rt = double(max_learn) / new_data.samples.size();

@@ -114,7 +114,6 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 		if (it->first > max_pid_start)
 			max_pid_start = it->first;
 	}
-	int rep_pid_size = max_pid_start - min_pid_start;
 	cohort_size = int(sample_ratio * pid_index_to_indexes.size());
 	//init:
 	rd_gen.resize(maxThreadCount);
@@ -340,7 +339,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	int max_warns = 5;
 
 	//initialize measurement params per cohort:
-	time_t st = time(NULL);
+	//time_t st = time(NULL);
 	for (size_t i = 0; i < function_params.size(); ++i)
 		if (process_measurments_params != NULL && function_params[i] != NULL) {
 			ROC_And_Filter_Params prm;
@@ -882,7 +881,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 	ROC_Params *params = (ROC_Params *)function_params;
 	float max_diff_in_wp = params->max_diff_working_point;
-	int scores_bin = params->score_bins;
 
 	vector<float> fpr_points = params->working_point_FPR; //Working FPR points:
 	sort(fpr_points.begin(), fpr_points.end());
@@ -1022,7 +1020,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 #endif
 					++curr_wp_fpr_ind;
 					continue; //skip working point - diff is too big
-			}
+				}
 				res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
 					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
 				res[format_working_point("SENS@FPR", fpr_points[curr_wp_fpr_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) +
@@ -1136,9 +1134,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_fpr_ind;
 				continue;
-		}
+			}
 			++i;
-	}
+		}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -1442,7 +1440,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			++i;
 		}
 
-}
+	}
 	else {
 		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)
@@ -1608,7 +1606,6 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Meas
 			auto bg = it;
 			++bg;
 			vector<float> *preds = &it->second;
-			double i_size = group_weights[iter];
 
 			double pred_i_bigger;
 			double pred_i_smaller;
@@ -1982,7 +1979,7 @@ void preprocess_bin_scores(vector<float> &preds, Measurement_Params *function_pa
 	}
 	sort(unique_scores.begin(), unique_scores.end());
 	int bin_size_last = (int)thresholds_indexes.size();
-	if (params.score_bins > 0 && bin_size_last < 10)
+	if (params.score_bins > 0 && bin_size_last < 10) {
 		if (params.score_resolution != 0)
 			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
 				" is highly quantitize(%d). try canceling preprocess_score by "
@@ -1992,6 +1989,7 @@ void preprocess_bin_scores(vector<float> &preds, Measurement_Params *function_pa
 			MWARN("Warnning Bootstrap:: requested specific working points, but score vector"
 				" is highly quantitize(%d). Will use score working points\n",
 				bin_size_last);
+	}
 
 	if ((params.score_bins > 0 && bin_size_last > params.score_bins) ||
 		(params.score_min_samples > 0 && min_size < params.score_min_samples)) {
@@ -2015,7 +2013,6 @@ void preprocess_bin_scores(vector<float> &preds, Measurement_Params *function_pa
 
 			pair<int, int> index_to_merge = size_to_ind[min_size].back();
 			size_to_ind[min_size].pop_back(); //now popback
-			pair<int, int> *merge_into = NULL;
 			//merge index_to_merge with index_to_merge+-1. and update size_to_ind, ind_to_size, sizes
 			if (index_to_merge.second == unique_scores.size() - 1)
 				merge_down(ind_to_size, size_to_ind, sizes, &index_to_merge);

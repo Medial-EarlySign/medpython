@@ -546,11 +546,9 @@ int PidDynamicRec::set_n_versions(vector<int> &time_points)
 
 			int tlen = 0;
 			for (int j = 0; j < n_versions; j++) {
-				int len = my_pl.len;
 				if (usv.n_time_channels() > 0) {
 					while (tlen < usv.len && usv.Time(tlen) <= time_points[j]) tlen++;
 					//len = tlen;
-					len = (tlen <= 0) ? 0 : tlen;
 				}
 				my_pl.len = tlen;
 				my_pl.do_split = do_split;
@@ -998,7 +996,6 @@ int PidDynamicRec::init_from_rep(MedRepository *rep, int _pid, vector<int> &sids
 		}
 		else {
 			int sid_serial = my_base_rep->sigs.sid2serial[sid];
-			int slen = 0;
 			PosLen pl;
 			pl.pos = 0;
 			pl.len = 0;

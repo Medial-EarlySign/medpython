@@ -133,7 +133,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepAggregateSignal;
 	else if (processor_type == REP_PROCESS_HISTORY_LIMIT)
 		return new RepHistoryLimit;
-	else if (processor_type = REP_PROCESS_CREATE_REGISTRY)
+	else if (processor_type == REP_PROCESS_CREATE_REGISTRY)
 		return new RepCreateRegistry;
 	else
 		return NULL;
@@ -244,7 +244,7 @@ int RepProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_point
 		return apply(rec, time_points, attributes_mat);
 
 	for (int signalId : neededSignalIds) {
-		if (is_signal_affected(signalId))
+		if (is_signal_affected(signalId)) 
 			return apply(rec, time_points, attributes_mat);
 	}
 
@@ -288,7 +288,7 @@ void RepProcessor::get_required_signal_names(unordered_set<string>& signalNames,
 //.......................................................................................
 void RepProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 
-	for (auto sig : req_signal_ids)
+	for (auto sig : req_signal_ids) 
 		signalIds.insert(sig);
 }
 
@@ -1006,12 +1006,12 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 		sumsq += *el* *el;
 	}
 	double mean = sum / (stop - start);
-	double var = sumsq / (stop - start) - mean*mean;
+	double var = sumsq / (stop - start) - mean * mean;
 	//printf("sum %f sumsq %f  stop %d start %d\n", sum, sumsq, stop, start);
 	var = var / varianceFactor;
-	mean = mean - meanShift*sqrt(var);
-	borderHi = (float)(mean + sdNums*sqrt(var));
-	borderLo = (float)(mean - sdNums*sqrt(var));
+	mean = mean - meanShift * sqrt(var);
+	borderHi = (float)(mean + sdNums * sqrt(var));
+	borderLo = (float)(mean - sdNums * sqrt(var));
 
 
 
@@ -1085,7 +1085,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 						}
 					}
 
-					if (!found)
+					if (!found) {
 						if (addRequiredSignals)
 							req_signals.insert(reqSig);    //add required signal
 						else {
@@ -1093,6 +1093,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 							loopBreak = true;
 							break;
 						}
+					}
 				}
 				if (loopBreak)break;
 			}
@@ -1931,13 +1932,15 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
 			mins[iChannel] = usv.Val(start, iChannel);
 		remove[nRemove++] = start;
-		for (int j = start + 1; j < end; j++) {
+
+		for (int j = start+1; j <= end; j++) {
 			for (int iChannel = 0; iChannel < nValChannels; iChannel++) {
 				if (usv.Val(j, iChannel) < mins[iChannel])
 					mins[iChannel] = usv.Val(j, iChannel);
 			}
-			remove[nRemove++] = j;
+			if (j!=end) remove[nRemove++] = j;
 		}
+
 		pair<int, vector<float>> newChange;
 		newChange.first = end;
 		newChange.second.resize(nValChannels);
@@ -1951,12 +1954,13 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 		for (int iChannel = 0; iChannel < nValChannels; iChannel++)
 			maxs[iChannel] = usv.Val(start, iChannel);
 		remove[nRemove++] = start;
-		for (int j = start + 1; j < end; j++) {
+		
+		for (int j = start+1; j <= end; j++) {
 			for (int iChannel = 0; iChannel < nValChannels; iChannel++) {
 				if (usv.Val(j, iChannel) > maxs[iChannel])
 					maxs[iChannel] = usv.Val(j, iChannel);
 			}
-			remove[nRemove++] = j;
+			if (j != end) remove[nRemove++] = j;
 		}
 		pair<int, vector<float>> newChange;
 		newChange.first = end;
@@ -2020,12 +2024,12 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 
 	MLOG_D("DBG===> in RepCalcSimpleSignals init: calculator %s , time %d\n", calculator.c_str(), signals_time_unit);
 	calculator_logic = SimpleCalculator::make_calculator(calculator);
-	
+
 	if (!calculator_init_params.empty()) {
 		if (calculator_logic->init_from_string(calculator_init_params) < 0)
 			return -1;
 	}
-	
+
 	calculator_logic->missing_value = missing_value;
 	calculator_logic->work_channel = work_channel;
 
@@ -2170,7 +2174,6 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		MERR("RepCalcSimpleSignals::apply_calc_in_time nversions mismatch\n");
 		return -1;
 	}
-	int factor = 1;
 	int v_out_sid = V_ids[0];
 	int n_vals = work_channel + 1;
 	//first lets fetch "static" signals without Time field:
@@ -2640,7 +2643,7 @@ int RepAggregationPeriod::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [RepAggregationPeriod::init]
 		if (field == "input_name") input_name = entry.second;
-		else if (field == "output_name") output_name = entry.second; 
+		else if (field == "output_name") output_name = entry.second;
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "rp_type") {}
 		else if (field == "period") period = med_stoi(entry.second);
@@ -2660,7 +2663,7 @@ int RepAggregationPeriod::init(map<string, string>& mapper) {
 
 	aff_signals.insert(output_name);
 	req_signals.insert(input_name);
-	virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange)); 
+	virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange));
 
 	return 0;
 }
@@ -2681,7 +2684,7 @@ void RepAggregationPeriod::init_tables(MedDictionarySections& dict, MedSignals& 
 	if (V_ids[0] < 0)
 		MTHROW_AND_ERR("Error in RepAggregationPeriod::init_tables - virtual output signal %s not found\n",
 			output_name.c_str());
-	
+
 	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
 }
 
@@ -2699,7 +2702,7 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	allVersionsIterator vit(rec, set_ids);
 	rec.usvs.resize(1);
 	int sig_period = med_time_converter.convert_times(time_unit_win, time_unit_sig, period);
-	
+
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		rec.uget(in_sid, iver, rec.usvs[0]);
 
@@ -2732,8 +2735,8 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 					end_time = time + sig_period;
 				}
 			}
-			
-			
+
+
 		}
 		if (!first) { // else - no valid set values were found
 			v_times.push_back(start_time);
@@ -2770,7 +2773,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "output_type") output_type = med_stoi(entry.second); // needs to match the input signal type! defaults to range-value signal (3)
 		else MTHROW_AND_ERR("Error in RepBasicRangeCleaner::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepBasicRangeCleaner::init]
-		}
+	}
 	if (signal_name.empty())
 		MTHROW_AND_ERR("ERROR in RepBasicRangeCleaner::init - must provide signal_name\n");
 	if (ranges_name.empty())
@@ -2785,7 +2788,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 	req_signals.insert(ranges_name);
 	aff_signals.insert(output_name);
 
-	virtual_signals.push_back(pair<string, int>(output_name, output_type)); 
+	virtual_signals.push_back(pair<string, int>(output_name, output_type));
 	return 0;
 }
 
@@ -2838,9 +2841,9 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 		len = rec.usvs[0].len;
 		vector<int> v_times(len * time_channels); // initialize size to avoid multiple resizings for long signals
 		vector<float> v_vals(len * val_channels);
-		
+
 		// Collect elements to keep
-		int nKeep= 0;
+		int nKeep = 0;
 		int j = 0;
 		for (int i = 0; i < len; i++) { //iterate over input signal
 			int time = rec.usvs[0].Time(i, time_channel);
@@ -2858,7 +2861,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				break;
 			}
 			if (!doRemove) {
-				for (int t = 0; t < time_channels; t++) v_times[nKeep * time_channels + t] = rec.usvs[0].Time(i, t); 
+				for (int t = 0; t < time_channels; t++) v_times[nKeep * time_channels + t] = rec.usvs[0].Time(i, t);
 				for (int v = 0; v < val_channels; v++) v_vals[nKeep * val_channels + v] = rec.usvs[0].Val(i, v);
 				nKeep++;
 			}
@@ -2971,7 +2974,7 @@ float calc_value(const vector<int> collected_times[], const vector<float> &colle
 	int window_len = end_time - start_time;
 	//asuume sorted by collected_times[0] which is start_time
 	int coverage = 0;
-	int prev_start = 0, prev_end = 0;
+	int prev_end = 0;
 	for (int i = 0; i < collected.size(); ++i)
 	{
 		int start = collected_times[0][i];
@@ -2990,7 +2993,7 @@ float calc_value(const vector<int> collected_times[], const vector<float> &colle
 		if (curr_len > 0)
 			ratio_weight = peroid_len / float(curr_len);
 
-		res += ratio_weight*v;
+		res += ratio_weight * v;
 		if (i == 0)
 			coverage += peroid_len;
 		else {
@@ -2999,7 +3002,6 @@ float calc_value(const vector<int> collected_times[], const vector<float> &colle
 			else if (real_end >= prev_end)
 				coverage += real_end - prev_end;
 		}
-		prev_start = real_start;
 		prev_end = real_end;
 	}
 	float missing_rate = 0;
@@ -3106,7 +3108,7 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 	}
 
 	init_lists();
-	
+
 	return 0;
 }
 
@@ -3116,10 +3118,10 @@ int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int t
 	len = 0;
 	char *udata = (char *)usv.data;
 	int element_size = (int)usv.size();
-	for (int i=0; i<usv.len; i++) {
+	for (int i = 0; i < usv.len; i++) {
 		int i_time = usv.Time(i, time_channel);
 		if (i_time > from_time && i_time <= to_time) {
-			for (int j = element_size*i; j < element_size*(i + 1); j++)
+			for (int j = element_size * i; j < element_size*(i + 1); j++)
 				data.push_back(udata[j]);
 			len++;
 		}

@@ -38,7 +38,6 @@ int feature_info::prep_indexes(const vector<int> &external_train_idx, const vect
 	test_idx.clear();
 	pred_idx.clear();
 
-	bool create_train = true;
 
 	for (int i=0; i<data_len; i++)
 		if (data[i] == missing_value)
@@ -248,7 +247,6 @@ int IterativeImputer::init_internals(MedFeatures &mfd)
 			params.features_to_impute.push_back(elem.first);
 	}
 
-	int rc = 0;
 	for (auto &feat : params.features_to_impute) {
 		init_feature_info(mfd, feat);
 	}

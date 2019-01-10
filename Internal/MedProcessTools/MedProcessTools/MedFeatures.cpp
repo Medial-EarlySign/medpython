@@ -1213,7 +1213,6 @@ double medial::process::match_to_prior(MedSamples &samples, float target_prior, 
 		medial::process::commit_selection(pointers_to_smps, sel_idx);
 		//sort by pid:
 		sort(pointers_to_smps.begin(), pointers_to_smps.end(), [](MedSample *a, MedSample *b) {
-			int pos = 0;
 			if (a->id == b->id)
 				return b->time > a->time;
 			return b->id > a->id;

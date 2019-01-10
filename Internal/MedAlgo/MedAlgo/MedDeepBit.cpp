@@ -376,7 +376,6 @@ double MedDeepBit::avg(const vector<char>& vec) {
 }
 
 double MedDeepBit::sd(const vector<char>& binary_vec) {
-	double sum = 0;
 	double av = avg(binary_vec);
 	return sqrt(av * (1 - av));
 	//return (av * (1 - av));
@@ -475,7 +474,6 @@ double MedDeepBit::perform_lasso_iteration(const vector<double>& xk_train, const
 void MedDeepBit::calc_bin_ftr_scores(const vector<char>& bin_ftr, double& av, double& std, double& b, vector<double>& scores1, vector<double>& r1, bool is_full_step) {
 	vector<double> normalized_ftr(nsamples);
 	get_normalized_col(bin_ftr, normalized_ftr, av, std);
-	double p = min(av, 1 - av);
 	if (is_full_step)
 		b = perform_lasso_iteration(normalized_ftr, r, 0, 1);
 	else

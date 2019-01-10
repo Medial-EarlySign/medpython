@@ -480,7 +480,6 @@ double trainOnce(netStruct *myNet,double *inputs, double * desiredOutputs, doubl
 {
 	int neuronIndex;
 	double sumError=0;
-	double sumOutput = 0;
 	feedForward(*myNet,inputs,actualOutputs,beta);
 	//zero deltas
 	for (int i=0;i<myNet->numNeurons;i++)

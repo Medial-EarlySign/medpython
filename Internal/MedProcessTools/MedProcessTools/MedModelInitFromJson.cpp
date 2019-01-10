@@ -40,7 +40,7 @@ void parse_my_json_to_pt(istringstream &no_comments_stream, ptree &pt)
 			if (abs((int)e.line() - i) < 3)
 				MLOG("%d\t%s\n", i, my_line.c_str());
 		}
-		MTHROW_AND_ERR("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
+		MTHROW_AND_ERR("json parsing error [%s] at line %lu\n", e.message().c_str(), e.line());
 	}
 }
 

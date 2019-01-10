@@ -216,14 +216,13 @@ void MedQRF::set_sampsize(float *y, int nsamples)
 	if (params.samp_factor <= 0) return;
 
 	int max_ind = -1, max_val = 0;
-	int max2_ind = -1, max2_val = 0;
+	int max2_val = 0;
 	for (int i = 0; i < params.n_categ; i++)
 		if (params.samp_vec[i] > max_val) {
 			max_ind = i;
 			max_val = params.samp_vec[i];
 		}
 		else if (params.samp_vec[i] > max2_val) {
-			max2_ind = i;
 			max2_val = params.samp_vec[i];
 		}
 

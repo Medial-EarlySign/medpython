@@ -298,7 +298,6 @@ int micNode::forward_batch_softmax(int do_grad_flag)
 	batch_out.resize(batch_in.nrows, k_out + 1);
 	full_probs.resize(batch_in.nrows, n_in + 1);
 	//	print("softmax_forward before calcs:", 1, 6);
-	float epsilon = (float)1e-100;
 	float max_exp = (float)34;
 	float min_exp = (float)-34;
 	// softmax calc
@@ -487,7 +486,6 @@ int micNode::forward_batch_normalization(int do_grad_flag)
 			return -1;
 	}
 
-	int n_b = batch_out.nrows;
 	// applying leaky max func on batch_out
 
 	if (do_grad_flag) {
@@ -1659,8 +1657,6 @@ int micNet::get_batch_with_samp_ratio(MedMat<float> &y_train, int batch_len, vec
 			}
 	}
 	
-	int method = 2;
-
 	chosen.clear();
 	for (int i=0; i<params.samp_ratio.size(); i++) {
 		int n_take = (int)(params.samp_ratio[i] * (float)batch_len);

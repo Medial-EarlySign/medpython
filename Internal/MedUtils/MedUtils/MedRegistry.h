@@ -9,33 +9,11 @@
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include "MedSamplingStrategy.h"
+#include "MedLabels.h"
 #include "MedEnums.h"
+#include "MedRegistryRecord.h"
 
 using namespace std;
-
-class MedSamplingStrategy;
-class TimeWindowInteraction;
-class MedModel;
-
-/**
-* A class which represnt a registry record of patient in time range from start_date to end_date
-* It has min_allowed and max_allowed dates for sampling and it has optional mark for
-* current sample age
-*/
-class MedRegistryRecord : public SerializableObject
-{
-public:
-	int pid; ///< patient ID
-	//defines the registry value apply date range
-	int start_date; ///< the start_date range for the record
-	int end_date; ///< the end_date range for the record
-
-	float registry_value; ///< the registry value/state
-
-	ADD_SERIALIZATION_FUNCS(pid, start_date, end_date, registry_value)
-};
-
-static unordered_set<float> default_empty_set;
 
 /**
 * A class that holds all registry records on all patients.\n
@@ -75,57 +53,10 @@ public:
 	void get_registry_creation_codes(vector<string> &signal_codes) const;
 
 	/// <summary>
-	/// calculates table statitics for interrsecting with registry of signal
-	/// @param repository_path the repsitory path
-	/// @param signalCode the signal code to calculate the stats of the registry with
-	/// @param signalHirerchyType the Hirerchy type: [None, RC, ATC, BNF] for signals with hirerchy
-	/// @param ageBinValue the age bin size
-	/// @param time_window_from the minimal time before the event (registry start_time). may be negative to start after event
-	/// @param time_window_to the maximal time before the event (registry start_time). may be negative to end after event start
-	/// @param sampler the sampler for how to calc the non appearance of the signal with the registry. 
-	/// You may use MedSamplingAge for example to sample each patient once in each age in the registry dates
-	/// @param debug_file If provided the output path to write detailed results of the intersection of registry and signal
-	/// @param debug_vals If not empty and has debug_file. will write the intersection(by the time window) of the registry with those values
-	/// </summary>
-	/// <returns>
-	/// @param maleSignalToStats The stats for males. the first key in the dictionary is the signal_value.
-	/// the second key is age_bin and the vector is always of size 4: [signal_not_appear&registry_is_false, signal_not_appear&registry_is_true, signal_appears&registry_is_false, signal_appears&registry_is_true]
-	/// @param femaleSignalToStats The stats for the females. same format as males
-	/// </returns>
-	void calc_signal_stats(const string &repository_path, int signalCode,
-		const string &signalHirerchyType, int ageBinValue, int time_window_from, int time_window_to,
-		MedSamplingStrategy &sampler,
-		map<float, map<float, vector<int>>> &maleSignalToStats,
-		map<float, map<float, vector<int>>> &femaleSignalToStats,
-		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set,
-		const MedRegistry *censoring = NULL,
-		TimeWindowInteraction *mode_outcome = NULL, TimeWindowInteraction *mode_censor = NULL,
-		ConflictMode conflict_mode = ConflictMode::All) const;
-
-	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
 	/// @param pids the unique patient ids result vector
 	/// </summary>
 	void get_pids(vector<int> &pids) const;
-
-	/// <summary>
-	/// calculate incidence and writes the result into file with old and new format
-	/// @param file_path the output file path to write the results
-	/// @param rep_path the repository path to calculate the incidence
-	/// @param age_bin the age_bin for binning age groups for the incidence
-	/// @param min_age the minimal age fro the incidence
-	/// @param max_age the maximal age fro the incidence
-	/// @param time_period the time period in days for the incidence
-	/// @param use_kaplan_meir if True will calc using kaplan meier survivol rates
-	/// @param sampler_name the sampler name for calculating incidence
-	/// @param sampler_args the sampler args for calculating incidence - may control trail years for example
-	/// </summary>
-	void create_incidence_file(const string &file_path, const string &rep_path, int age_bin, int min_age,
-		int max_age, int time_period = 365, bool use_kaplan_meir = false, const string &sampler_name = "yearly",
-		const string &sampler_args = "conflict_method=max;day_jump=365;time_from=0;"
-		"time_to=365;start_year=2007;end_year=2012;prediction_month_day=101;"
-		"outcome_interaction_mode=0:all,before_end|1:before_start,after_start;censor_interaction_mode=all:within,all",
-		const vector<MedRegistryRecord> *censor_registry = NULL, const string &debug_file = "") const;
 
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
@@ -172,15 +103,6 @@ private:
 * \brief medial namespace for function
 */
 namespace medial {
-	/*!
-	* \brief signal_hierarchy namespace
-	*/
-	namespace signal_hierarchy {
-		/// \brief Getting signal with hirarchy options for each siganl
-		void getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
-			const string &signalHirerchyType,
-			vector<MedRegistryRecord> &res);
-	}
 	/*!
 	* \brief contingency_tables namespace
 	*/
@@ -497,7 +419,6 @@ private:
 	void get_registry_records(int pid, int bdate, vector<UniversalSigVec_mem> &usv, vector<MedRegistryRecord> &results);
 };
 
-MEDSERIALIZE_SUPPORT(MedRegistryRecord)
 MEDSERIALIZE_SUPPORT(MedRegistry)
 
 #endif

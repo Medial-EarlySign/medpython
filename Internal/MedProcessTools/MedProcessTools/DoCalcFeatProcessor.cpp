@@ -413,7 +413,6 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 	// www.framinghamheartstudy.org/risk-functions/cardiovascular-disease/10-year-risk.php
 	for (int i = 0; i < n_samples; i++) {
 		double res = 0.0;
-		double res1 = 0.0;
 
 		float gender = p_sources[0][i];
 		float Age = p_sources[1][i];

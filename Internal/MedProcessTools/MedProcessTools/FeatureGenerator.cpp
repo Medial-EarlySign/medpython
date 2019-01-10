@@ -1130,11 +1130,12 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time, int _wi
 
 	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
-		if (itime <= max_time)
+		if (itime <= max_time) {
 			if (itime >= min_time)
 				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
 			else
 				return missing_val;
+		}
 	}
 
 	return missing_val;
@@ -1352,7 +1353,6 @@ float BasicFeatGenerator::uget_max_diff(UniversalSigVec &usv, int time, int _win
 			else {
 				if (_vals_vec.size() > 0) {
 					nth_element(_vals_vec.begin(), _vals_vec.begin() + _vals_vec.size() / 2, _vals_vec.end());
-					float median_prev_val = _vals_vec[_vals_vec.size() / 2];
 					//float prev_val = median_prev_val;
 					float prev_val = _vals_vec.back();
 					float diff = usv.Val(i, val_channel) - prev_val;
@@ -1404,8 +1404,8 @@ float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_wi
 			break;
 		else if (toTime < min_time)
 			continue;
-		else if (fromTime >= min_time || toTime <= max_time)
-			val = usv.Val(i, val_channel);
+
+		val = usv.Val(i, val_channel);
 	}
 
 	return val;

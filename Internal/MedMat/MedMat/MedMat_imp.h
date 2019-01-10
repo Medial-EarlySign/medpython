@@ -72,7 +72,6 @@ template <class T> void MedMat<T>::transpose()
 {
 	vector<T> m_orig = m;
 	int ncols_orig = ncols;
-	int nrows_orig = nrows;
 
 	swap(ncols,nrows);
 

@@ -397,7 +397,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		bin_controls_per_time_slot.push_back(controls_per_time_slot);
 		bin_cases_per_time_slot.push_back(cases_per_time_slot);
 	}
-	int cnt = 0, bin = 1;
+	int bin = 1;
 	float prev_pred = min_pred;
 	for (auto &o : samples) {
 		int gap = med_time_converter.convert_times(samples_time_unit, time_unit, o.outcomeTime) - med_time_converter.convert_times(samples_time_unit, time_unit, o.time);
@@ -672,7 +672,6 @@ void Calibrator::write_calibration_time_window(const string & calibration_table_
 		MLOG("can't open file %s for write\n", calibration_table_file.c_str());
 		throw exception();
 	}
-	float total_hosmer = 0.0;
 	of << "bin,min_pred,max_pred,cnt_controls,cnt_cases,mean_pred,mean_outcome,cumul_pct,kaplan_meier\n";
 	for (calibration_entry& ce : cals)
 	{
@@ -734,7 +733,6 @@ void Calibrator::read_calibration_time_window(const string& fname) {
 	MLOG("reading from: [%s]\n", fname.c_str());
 
 	string curr_line;
-	int cnt = 0;
 	while (getline(inf, curr_line)) {
 		if (curr_line[curr_line.size() - 1] == '\r')
 			curr_line.erase(curr_line.size() - 1);

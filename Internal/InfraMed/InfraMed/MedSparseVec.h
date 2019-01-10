@@ -229,7 +229,6 @@ template <class T> class MedSparseVec {
 		keys.resize(in_keys.size());
 		inds.resize(in_keys.size());
 		int i_size = 0;
-		unsigned int j=0;
 
 		for (int i=0; i<in_keys.size(); i++) {
 			int ind = get_ind(in_keys[i]);
@@ -356,7 +355,7 @@ template <class T> class MedSparseVec {
 		
 		size_t len = curr - blob;
 		if (len != serialize_len) {
-			fprintf(stderr, "ERROR: Sparse Vec serialize len not matching decalred one: %lld != %lld\n", len, serialize_len);
+			fprintf(stderr, "ERROR: Sparse Vec serialize len not matching decalred one: %zu != %llu\n", len, serialize_len);
 			return 0;
 		}
 		return len;

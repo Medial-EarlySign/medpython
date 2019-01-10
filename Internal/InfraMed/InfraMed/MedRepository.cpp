@@ -1190,9 +1190,6 @@ int MedRepository::load(const int sid, vector<int> &pids_to_take)
 	if (sid < 0 || sid >= index.index_table.size())
 		return -1;
 
-	int load_full = 1;
-	if (pids_to_take.size() > 0) load_full = 0;
-
 	if (index.index_table[sid].full_load)
 		return 0; // nothing to do already fully loaded
 
@@ -1622,8 +1619,6 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 			return -1;
 		}
 
-		unsigned long long d_size = get_data_size();
-
 		if (file_exists_IM(data_fname)) {
 			//if (read_bin_file_IM_parallel(data_fname, work_area, w_size) < 0) {
 			if (read_bin_file_IM(data_fname, work_area, w_size) < 0) {
@@ -1751,11 +1746,12 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	int len, gend = -1;
 	void *data = rep.get(pid, sigCode, len);
 
-	if (len > 0)
+	if (len > 0) {
 		if (rep.sigs.Sid2Info[sigCode].type == T_Value)
 			gend = (int)(*(SVal *)data).val;
 		else if (rep.sigs.Sid2Info[sigCode].type == T_TimeStamp)
 			gend = (int)(*(STimeStamp *)data).time;
+	}
 	return gend;
 }
 
