@@ -155,7 +155,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	AMRequest *req;
 	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
 	if (req == NULL)
-		MLOG("ERROR: Got a NULL request !!\n");
+		MLOG("ERROR: Got a NULL request rc = %d!!\n", req_create_rc);
 	AMResponses *resp;
 
 	// calculate scores
@@ -169,8 +169,6 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	int n_resp = AM_API_GetResponsesNum(resp);
 	MLOG("Got %d responses\n", n_resp);
 	res.clear();
-	int n_scr = 0;
-	float _scr;
 	int pid;
 	long long ts;
 	char *_scr_type = NULL;
@@ -192,6 +190,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		else
 			s.time = ts;
 		if (resp_rc == AM_OK_RC && n_scores > 0) {
+			float _scr;
 			resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 			//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 			s.prediction.push_back(_scr);
@@ -317,7 +316,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 			AMRequest *req;
 			int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &s.id, &_timestamp, 1, &req);
 			if (req == NULL) {
-				MLOG("ERROR: Got a NULL request for pid %d time %d!!\n", s.id, s.time);
+				MLOG("ERROR: Got a NULL request for pid %d time %d rc %d!!\n", s.id, s.time, req_create_rc);
 				return -1;
 			}
 
@@ -326,7 +325,9 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 			AM_API_CreateResponses(&resp);
 
 			// Calculate
-			int calc_rc = AM_API_Calculate(am, req, resp);
+			AM_API_Calculate(am, req, resp);
+			//int calc_rc = AM_API_Calculate(am, req, resp);
+			//MLOG("after Calculate: calc_rc %d\n", calc_rc);
 
 			int n_resp = AM_API_GetResponsesNum(resp);
 
@@ -570,13 +571,13 @@ int debug_me(po::variables_map &vm)
 	MLOG("Creating Request\n");
 	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
 	if (req == NULL)
-		MLOG("ERROR: Got a NULL request !!\n");
+		MLOG("ERROR: Got a NULL request rc %d!!\n", req_create_rc);
 	AMResponses *resp;
 
 	// calculate scores
 	MLOG("Before Calculate\n");
 	AM_API_CreateResponses(&resp);
-	int calc_rc = AM_API_Calculate(test_am, req, resp);
+	AM_API_Calculate(test_am, req, resp);
 	
 
 	// Shared messages
@@ -597,7 +598,6 @@ int debug_me(po::variables_map &vm)
 	// print result
 	int n_resp = AM_API_GetResponsesNum(resp);
 	MLOG("Got %d responses\n", n_resp);
-	int n_scr = 0;
 	float _scr;
 	int pid;
 	long long ts;
@@ -690,13 +690,13 @@ int simple_egfr_test()
 	MLOG("Creating Request\n");
 	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
 	if (req == NULL)
-		MLOG("ERROR: Got a NULL request !!\n");
+		MLOG("ERROR: Got a NULL request rc %d!!\n", req_create_rc);
 	AMResponses *resp;
 
 	// calculate scores
 	MLOG("Before Calculate\n");
 	AM_API_CreateResponses(&resp);
-	int calc_rc = AM_API_Calculate(test_am, req, resp);
+	AM_API_Calculate(test_am, req, resp);
 
 
 	// Shared messages
@@ -712,7 +712,6 @@ int simple_egfr_test()
 	// print result
 	int n_resp = AM_API_GetResponsesNum(resp);
 	MLOG("Got %d responses\n", n_resp);
-	int n_scr = 0;
 	float _scr;
 	int pid;
 	long long ts;

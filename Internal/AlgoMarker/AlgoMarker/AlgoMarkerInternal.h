@@ -171,7 +171,6 @@ public:
 	int get_preds(MedSamples &_samples, float *preds) {
 
 		samples = _samples;
-		int n_samples = samples.nSamples();
 
 		// run model to calculate predictions
 		if (model.apply(rep, samples) < 0) {
