@@ -71,7 +71,7 @@ DRUG_GROUP	AntiAnemic	ATC_B03_____
 # panels definition:
 # format:
 # PANEL <params>
-PANEL	name=P_Diabetes;title=Diabetes_Panel;sigs=Glucose,HbA1C,BMI;drugs=Insulin,Non-Insulin;width=900;height=600
+PANEL	name=P_Diabetes;title=Diabetes_Panel;sigs=Glucose,HbA1C,BMI,DM_Registry;drugs=Insulin,Non-Insulin;width=900;height=600
 PANEL	name=P_Cholesterol;title=Cholesterol_Panel;sigs=LDL,Cholesterol,HDL,Triglycerides;drugs=Statins;width=900;height=600
 PANEL	name=P_BP;title=BP_Panel;sigs=BP,PULSE;drugs=Diuretics,Beta_blockers,Calcium_channels,AceI;width=900;height=600;log_scale=0
 PANEL	name=P_Renal;title=Renal;sigs=Creatinine,eGFR_CKD_EPI,Urea,UrineAlbumin,UrineCreatinine,Urine_Microalbumin;width=900;height=600
