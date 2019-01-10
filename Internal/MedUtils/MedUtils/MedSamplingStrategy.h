@@ -65,28 +65,18 @@ public:
 	int prediction_month_day; ///< the prediciton month_day in each year
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int day_jump; ///< the years bin, how many years to jump backward from each prediciton date
-	TimeWindowInteraction outcome_interaction_mode; ///< sampling mode per label - for start and end
-	TimeWindowInteraction censor_interaction_mode; ///< sampling mode per label - for start and end for censor
-	int time_from; ///< time window settings from
-	int time_to; ///< time window settings to
-	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
-
+	
 	///sample by year from year to year by jump and find match in registry
 	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	int init(map<string, string>& map);
 
 	MedSamplingYearly() {
-		conflict_method = ConflictMode::Drop; //default
 		prediction_month_day = 101; //deafult
 		back_random_duration = 0; //default
 		day_jump = 0;
-		outcome_interaction_mode.init_from_string("0:all,before_end|1:before_start,after_start");
-		censor_interaction_mode.init_from_string("all:within,within");
 		start_year = 0;
 		end_year = 0;
-		time_to = 0;
-		time_from = 0;
 	}
 };
 
@@ -99,9 +89,6 @@ public:
 	int start_age; ///< The start age to sample from
 	int end_age; ///< The end age to sample from
 	int age_bin; ///< the age bin in years for jumping
-	TimeWindowInteraction outcome_interaction_mode; ///< sampling mode per label - for start and end
-	TimeWindowInteraction censor_interaction_mode; ///< sampling mode per label - for start and end for censor
-	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 	void init_sampler(MedRepository &rep);
 
 	///sample by year from age to age by jump and find match in registry
@@ -111,9 +98,6 @@ public:
 		start_age = 0;
 		end_age = 120;
 		age_bin = 1;
-		conflict_method = ConflictMode::All;
-		outcome_interaction_mode.init_from_string("0:all,before_end|1:before_start,after_start");
-		censor_interaction_mode.init_from_string("all:within,within");
 	}
 
 	int init(map<string, string>& map);
@@ -128,11 +112,6 @@ private:
 class MedSamplingDates : public MedSamplingStrategy {
 public:
 	int take_count; ///< How many samples to take in each date
-	TimeWindowInteraction outcome_interaction_mode; ///< sampling mode per label - for start and end
-	TimeWindowInteraction censor_interaction_mode; ///< sampling mode per label - for start and end for censor
-	int time_from; ///< time window settings from
-	int time_to; ///< time window settings to
-	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
 	vector<vector<pair<int, int>>> samples_list_pid_dates; ///< All sample options for pid,date to sample from. row is sample with all options to sample from 
 
 	///sample Take_Count samples for each record in samples_list_pid_dates.
@@ -144,9 +123,6 @@ public:
 
 	MedSamplingDates() {
 		take_count = 1;
-		outcome_interaction_mode.init_from_string("0:all,before_end|1:before_start,after_start");
-		censor_interaction_mode.init_from_string("all:within,within");
-		conflict_method = ConflictMode::All; time_from = 0; time_to = 0;
 	}
 };
 
@@ -161,27 +137,17 @@ public:
 	int end_time; ///< The end time to sample from. If 0 will use max time of pid
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int time_jump; ///< the time jump, how much jump from each prediciton date
-	TimeWindowInteraction outcome_interaction_mode; ///< sampling mode per label - for start and end
-	TimeWindowInteraction censor_interaction_mode; ///< sampling mode per label - for start and end for censor
-	int time_from; ///< time window settings from
-	int time_to; ///< time window settings to
-	ConflictMode conflict_method; ///< options: all,max,drop how to treat intesections with multiple registry records
-
+	
 	///sample by year from year to year by jump and find match in registry
 	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	int init(map<string, string>& map);
 
 	MedSamplingFixedTime() {
-		conflict_method = ConflictMode::Drop; //default
 		back_random_duration = 0; //default
 		time_jump = 0;
-		outcome_interaction_mode.init_from_string("0:all,before_end|1:before_start,after_start");
-		censor_interaction_mode.init_from_string("all:within,within");
 		start_time = 0;
 		end_time = 0;
-		time_to = 0;
-		time_from = 0;
 	}
 };
 

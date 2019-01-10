@@ -82,7 +82,7 @@ public:
 	void init_from_string(const string &init);
 };
 
-class LabelParams : SerializableObject {
+class LabelParams : public SerializableObject {
 public:
 	TimeWindowInteraction label_interaction_mode; ///< the label interaction definition
 	TimeWindowInteraction censor_interaction_mode; ///< the label interaction definition

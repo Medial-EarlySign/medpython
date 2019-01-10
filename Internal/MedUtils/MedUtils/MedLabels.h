@@ -105,6 +105,7 @@ public:
 	int done_cnt = 0;
 	int conflict_cnt = 0;
 	int no_rule_cnt = 0;
+	int miss_pid_in_reg_cnt = 0;
 };
 
 class MedSamplingStrategy;
@@ -167,7 +168,7 @@ public:
 	/// </returns>
 	void calc_signal_stats(const string &repository_path, int signalCode,
 		const string &signalHirerchyType, int ageBinValue, MedSamplingStrategy &sampler,
-		map<float, map<float, vector<int>>> &maleSignalToStats,
+		const LabelParams &inc_labeling_params, map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
 		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set) const;
 
@@ -184,9 +185,7 @@ public:
 	/// </summary>
 	void create_incidence_file(const string &file_path, const string &rep_path, int age_bin, int min_age,
 		int max_age, bool use_kaplan_meir = false, const string &sampler_name = "yearly",
-		const string &sampler_args = "conflict_method=max;day_jump=365;time_from=0;"
-		"time_to=365;start_year=2007;end_year=2012;prediction_month_day=101;"
-		"outcome_interaction_mode=0:all,before_end|1:before_start,after_start;censor_interaction_mode=all:within,all",
+		const string &sampler_args = "day_jump=365;start_year=2007;end_year=2012;prediction_month_day=101",
 		const string &debug_file = "") const;
 
 	/// <summary>

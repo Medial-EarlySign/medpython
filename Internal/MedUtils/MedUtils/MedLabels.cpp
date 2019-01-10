@@ -288,6 +288,8 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 			labeling_params.label_interaction_mode, labeling_params.censor_interaction_mode, labeling_params.conflict_method,
 			samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false);
 	}
+	else
+		++r.miss_pid_in_reg_cnt;
 
 	return r;
 }
@@ -309,6 +311,8 @@ SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<Med
 		}
 
 	}
+	else
+		++r.miss_pid_in_reg_cnt;
 	return r;
 }
 
@@ -337,7 +341,7 @@ void update_loop(int pos, int ageBin_index, float ageBin, const MedRegistryRecor
 }
 
 void MedLabels::calc_signal_stats(const string &repository_path, int signalCode,
-	const string &signalHirerchyType, int ageBinValue, MedSamplingStrategy &sampler,
+	const string &signalHirerchyType, int ageBinValue, MedSamplingStrategy &sampler, const LabelParams &inc_labeling_params,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
 	const string &debug_file, const unordered_set<float> &debug_vals) const {
@@ -373,7 +377,9 @@ void MedLabels::calc_signal_stats(const string &repository_path, int signalCode,
 	MLOG("Sampling for incidence stats...\n");
 	MedSamples incidence_samples;
 	sampler.init_sampler(dataManager);
-	create_samples(&sampler, incidence_samples);
+	MedLabels inc_labeler(inc_labeling_params);
+	inc_labeler.prepare_from_registry(all_reg_records, &all_censor_records);
+	inc_labeler.create_samples(&sampler, incidence_samples);
 	duration = (int)difftime(time(NULL), start);
 	MLOG("Done in %d seconds with %zu patient ids!\n", duration, incidence_samples.idSamples.size());
 

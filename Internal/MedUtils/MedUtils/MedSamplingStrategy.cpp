@@ -157,16 +157,6 @@ int MedSamplingYearly::init(map<string, string>& map) {
 			prediction_month_day = stoi(it->second);
 		else if (it->first == "back_random_duration")
 			back_random_duration = stoi(it->second);
-		else if (it->first == "time_from")
-			time_from = stoi(it->second);
-		else if (it->first == "time_to")
-			time_to = stoi(it->second);
-		else if (it->first == "outcome_interaction_mode")
-			outcome_interaction_mode.init_from_string(it->second);
-		else if (it->first == "censor_interaction_mode")
-			censor_interaction_mode.init_from_string(it->second);
-		else if (it->first == "conflict_method")
-			conflict_method = ConflictMode_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -210,7 +200,6 @@ void MedSamplingYearly::get_sampling_options(const unordered_map<int, vector<pai
 }
 
 int MedSamplingAge::init(map<string, string>& map) {
-	conflict_method = ConflictMode::Drop; //default
 	age_bin = 1; //deafult
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
@@ -220,12 +209,6 @@ int MedSamplingAge::init(map<string, string>& map) {
 			end_age = stoi(it->second);
 		else if (it->first == "age_bin")
 			age_bin = stoi(it->second);
-		else if (it->first == "conflict_method")
-			conflict_method = ConflictMode_name_to_type(it->second);
-		else if (it->first == "outcome_interaction_mode")
-			outcome_interaction_mode.init_from_string(it->second);
-		else if (it->first == "censor_interaction_mode")
-			censor_interaction_mode.init_from_string(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -267,21 +250,10 @@ void MedSamplingAge::get_sampling_options(const unordered_map<int, vector<pair<i
 }
 
 int MedSamplingDates::init(map<string, string>& map) {
-	conflict_method = ConflictMode::Drop; //default
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "take_count")
 			take_count = stoi(it->second);
-		else if (it->first == "outcome_interaction_mode")
-			outcome_interaction_mode.init_from_string(it->second);
-		else if (it->first == "censor_interaction_mode")
-			censor_interaction_mode.init_from_string(it->second);
-		else if (it->first == "time_from")
-			time_from = stoi(it->second);
-		else if (it->first == "time_to")
-			time_to = stoi(it->second);
-		else if (it->first == "conflict_method")
-			conflict_method = ConflictMode_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -356,16 +328,6 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 		}
 		else if (it->first == "back_random_duration")
 			back_random_duration = stoi(it->second);
-		else if (it->first == "time_from")
-			time_from = stoi(it->second);
-		else if (it->first == "time_to")
-			time_to = stoi(it->second);
-		else if (it->first == "outcome_interaction_mode")
-			outcome_interaction_mode.init_from_string(it->second);
-		else if (it->first == "censor_interaction_mode")
-			censor_interaction_mode.init_from_string(it->second);
-		else if (it->first == "conflict_method")
-			conflict_method = ConflictMode_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}

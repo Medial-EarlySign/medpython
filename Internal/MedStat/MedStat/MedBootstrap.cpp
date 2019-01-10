@@ -408,11 +408,12 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 		pair<int, int> time_res = *it;
 		MLOG("Running Incidence calc for time Res %d to %d\n", time_res.first, time_res.second);
 		sampler_year->day_jump = time_res.second - time_res.first;
-		sampler_year->time_from = time_res.first;
-		sampler_year->time_to = time_res.second;
+		LabelParams lbl_params = args.labeling_params;
+		lbl_params.time_from = time_res.first;
+		lbl_params.time_to = time_res.second;
 		get_data_for_filter(args.json_model, args.rep_path, single_cohort,
 			registry->registry_records, *sampler_year, window_to_data[time_res], window_to_smps[time_res],
-			args.labeling_params, args.registry_censor);
+			lbl_params, args.registry_censor);
 		MLOG("Done preparing matrix of incidence for filtering with %d width...\n", time_res);
 		if (args.do_kaplan_meir) {
 			for (size_t i = 0; i < window_to_smps[time_res].size(); ++i) {
