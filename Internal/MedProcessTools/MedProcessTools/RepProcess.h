@@ -1264,6 +1264,10 @@ private:
 	vector<char> dm_diagnoses_lut;
 	int dm_glucose_idx = -1;
 	int dm_hba1c_idx = -1;
+	//DEF     0       DM_Registry_Non_diabetic
+	//DEF     1       DM_Registry_Pre_diabetic
+	//DEF     2       DM_Registry_Diabetic
+	vector<string> dm_reg_values = {"DM_Registry_Non_diabetic", "DM_Registry_Pre_diabetic", "DM_Registry_Diabetic"};
 
 
 	
@@ -1285,7 +1289,6 @@ private:
 	// DM
 	void init_dm_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
 	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes);
-	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec> &usvs);
 
 
 };

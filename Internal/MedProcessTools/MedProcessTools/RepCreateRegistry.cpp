@@ -27,6 +27,10 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "dm_drug_sets") boost::split(dm_drug_sets, entry.second, boost::is_any_of(","));
 		else if (field == "dm_diagnoses_sig") dm_diagnoses_sig = entry.second;
 		else if (field == "dm_diagnoses_sets") boost::split(dm_diagnoses_sets, entry.second, boost::is_any_of(","));
+		else if (field == "dm_glucose_sig") dm_glucose_sig = entry.second;
+		else if (field == "dm_hba1c_sig") dm_hba1c_sig = entry.second;
+		else if (field == "dm_diagnoses_severity") dm_diagnoses_severity = stoi(entry.second);
+
 
 		// Hypertension
 		else if (field == "ht_identifiers") { boost::split(ht_identifiers, entry.second, boost::is_any_of(",")); ht_identifiers_given = true; }
@@ -117,7 +121,7 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 			dict.connect_to_section(virtual_signals[i].first, newSectionId);
 
 		for (size_t i = 0; i < registry_values.size(); i++)
-			dict.dicts[newSectionId].push_new_def(registry_values[i], i);
+			dict.dicts[newSectionId].push_new_def(registry_values[i], (int)i);
 	}
 
 	// Time units
@@ -147,7 +151,6 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	vector<vector<int>> all_v_times(virtual_ids.size());
 	vector<int> final_sizes(virtual_ids.size());
 
-	int len;
 	allVersionsIterator vit(rec, sig_ids_s);
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
@@ -157,7 +160,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		if (registry == REP_REGISTRY_HT)
 			ht_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 		else if (registry == REP_REGISTRY_DM)
-			dm_registry_apply(rec, time_points, iver, usvs);
+			dm_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 		
 
 		// pushing virtual data into rec
@@ -458,12 +461,14 @@ void RepCreateRegistry::init_dm_registry_tables(MedDictionarySections& dict, Med
 
 }
 
-void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec> &usvs)
+//==================================================================================================================================================
+void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes)
 {
 	vector<RegistryEvent> evs;
 
 	int time = -1;
 	if (time_points.size() > 0) time = time_points[iver];
+	int time_unit = signal_time_units[0]; // taking the assumption that all our signals use THE SAME time unit
 
 	// step 1 collect events
 
@@ -577,7 +582,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		if (ev.event_severity == 3) {
 
 			// need to check for severity 3 2 years back
-			int back_time = med_time_converter.add_subtract_time(ev.time, signals_time_unit, -730, MedTime::Days);
+			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
 			int found = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
@@ -609,7 +614,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		}
 
 		if (ev.event_severity == 1) {
-			int back_time = med_time_converter.add_subtract_time(ev.time, signals_time_unit, -730, MedTime::Days);
+			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
 			int found = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
@@ -626,7 +631,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		}
 
 		if (ev.event_severity == 0) {
-			int back_time = med_time_converter.add_subtract_time(ev.time, signals_time_unit, -730, MedTime::Days);
+			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
 			int found = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
@@ -643,4 +648,23 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		}
 	}
 
+	// now preparing for this line :
+	// 			rec.set_version_universal_data(virtual_ids[ivir], iver, &(all_v_times[ivir][0]), &(all_v_vals[ivir][0]), final_sizes[ivir]);
+	// first dimension is initialized already
+
+	all_v_times[0].clear();
+	all_v_vals[0].clear();
+	final_sizes[0] = 0;
+
+	for (int j=0; j<3; j++)
+		if (ranges[j].first > 0) {
+			// push Healthy
+			all_v_vals[0].push_back(0);
+			all_v_times[0].push_back(ranges[j].first);
+			all_v_times[0].push_back(ranges[j].second);
+			final_sizes[0]++;
+		}
+
+	// debug print
+	MLOG("DM_registry calculation: pid %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
 }
