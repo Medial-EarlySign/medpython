@@ -537,15 +537,16 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 		vals.insert(it->first);
 
 	//update values prevalence
-	int warn_cnt = 0; int max_warns = 5;
+	int warn_cnt = 0; int max_warns = 5, tot_problems = 0;
 	for (auto it = vals.begin(); it != vals.end(); ++it)
 	{
 		if (maleSignalToStats.find(*it) != maleSignalToStats.end())
 			for (auto jt = maleSignalToStats[*it].begin(); jt != maleSignalToStats[*it].end(); ) {
 				if (male_total_prevalence.find(jt->first) == male_total_prevalence.end()) {
+					++tot_problems;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Sample is too small, no incidences for age_bin=%d in males (value was=%f, cnts=[%d, %d])\n"
+						MWARN("Warning: MedLabels::calc_signal_stats - Sample is too small, no incidences for age_bin=%d in males (value was=%f, cnts=[%d, %d])\n"
 							, int(jt->first), *it, maleSignalToStats[*it][jt->first][2], maleSignalToStats[*it][jt->first][3]);
 					}
 					jt = maleSignalToStats[*it].erase(jt);
@@ -555,17 +556,19 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 				maleSignalToStats[*it][jt->first][1] = male_total_prevalence[jt->first][1] - maleSignalToStats[*it][jt->first][3];
 				if (maleSignalToStats[*it][jt->first][0] < 0) {
 					maleSignalToStats[*it][jt->first][0] = 0;
+					++tot_problems;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Control Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedLabels::calc_signal_stats - Control Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, male_total_prevalence[jt->first][0], maleSignalToStats[*it][jt->first][2]);
 					}
 				}
 				if (maleSignalToStats[*it][jt->first][1] < 0) {
 					maleSignalToStats[*it][jt->first][1] = 0;
+					++tot_problems;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Cases Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedLabels::calc_signal_stats - Cases Male age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, male_total_prevalence[jt->first][1], maleSignalToStats[*it][jt->first][3]);
 					}
 				}
@@ -574,10 +577,10 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 		if (femaleSignalToStats.find(*it) != femaleSignalToStats.end())
 			for (auto jt = femaleSignalToStats[*it].begin(); jt != femaleSignalToStats[*it].end();) {
 				if (female_total_prevalence.find(jt->first) == female_total_prevalence.end()) {
-
+					++tot_problems;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Sample is too small, no incidences for age_bin=%d in females (value was=%f, cnts=[%d, %d])\n"
+						MWARN("Warning: MedLabels::calc_signal_stats - Sample is too small, no incidences for age_bin=%d in females (value was=%f, cnts=[%d, %d])\n"
 							, int(jt->first), *it, femaleSignalToStats[*it][jt->first][2], femaleSignalToStats[*it][jt->first][3]);
 					}
 					jt = femaleSignalToStats[*it].erase(jt);
@@ -587,23 +590,27 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 				femaleSignalToStats[*it][jt->first][1] = female_total_prevalence[jt->first][1] - femaleSignalToStats[*it][jt->first][3];
 				if (femaleSignalToStats[*it][jt->first][0] < 0) {
 					femaleSignalToStats[*it][jt->first][0] = 0;
+					++tot_problems;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Control Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedLabels::calc_signal_stats - Control Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, female_total_prevalence[jt->first][0], femaleSignalToStats[*it][jt->first][2]);
 					}
 				}
 				if (femaleSignalToStats[*it][jt->first][1] < 0) {
 					femaleSignalToStats[*it][jt->first][1] = 0;
+					++tot_problems;
 					if (warn_cnt < max_warns) {
 						++warn_cnt;
-						MWARN("Warning: MedRegistry::calc_signal_stats - Cases Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
+						MWARN("Warning: MedLabels::calc_signal_stats - Cases Female age_bin=%d, signal_value=%f, total=%d, signal=%d\n",
 							int(jt->first), *it, female_total_prevalence[jt->first][1], femaleSignalToStats[*it][jt->first][3]);
 					}
 				}
 				++jt;
 			}
 	}
+	if (tot_problems > 0)
+		MWARN("Warning: MedLabels::calc_signal_stats - total miss matches: %d\n", tot_problems);
 
 	duration = (int)difftime(time(NULL), start);
 	MLOG("Finished in %d seconds with %d records in males and %d records in females\n",
@@ -737,70 +744,74 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 		bool warn_shown = false;
 		int kaplan_meier_controls_count = 100000;
 		//for each group - Age, Age+Gender... whatever
-		ofstream of_new(file_path + ".new_format");
-		if (!of_new.good())
-			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
-		of_new << "AGE_BIN" << "\t" << age_bin << "\n";
-		of_new << "AGE_MIN" << "\t" << min_age << "\n";
-		of_new << "AGE_MAX" << "\t" << max_age << "\n";
-		of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
-		of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
+		ofstream of_new;
+		if (file_path != "/dev/null") {
+			of_new.open(file_path + ".new_format");
+			if (!of_new.good())
+				MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
+			of_new << "AGE_BIN" << "\t" << age_bin << "\n";
+			of_new << "AGE_MIN" << "\t" << min_age << "\n";
+			of_new << "AGE_MAX" << "\t" << max_age << "\n";
+			of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+			of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
 
-		for (int c = 0; c < sorted_times.size(); ++c)
-		{
-			double total_controls_all = 0;
-			for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
-				const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
-				//update only controls count for group - do for all groups
-				//to get total count from all time windows kaplan meier
-				for (const pair<int, int> &p_i_j : index_order)
-					if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0)
-						++total_controls_all;
-			}
 
-			double controls = 0, cases = 0, prob = 1;
-			for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
-				const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
-				for (const pair<int, int> &p_i_j : index_order) {
-					//keep update kaplan meir in time point
-					if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome > 0)
-						++cases;
-					else
-						++controls;
+			for (int c = 0; c < sorted_times.size(); ++c)
+			{
+				double total_controls_all = 0;
+				for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
+					const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
+					//update only controls count for group - do for all groups
+					//to get total count from all time windows kaplan meier
+					for (const pair<int, int> &p_i_j : index_order)
+						if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0)
+							++total_controls_all;
 				}
-				//reset kaplan meir - flash last time prob
-				if (!warn_shown && total_controls_all < 10) {
-					MWARN("the kaplan_meir left with small amount of controls - "
-						" try increasing the sampling / use smaller time window because the"
-						" registry has not so long period of tracking patients\n");
-					warn_shown = true;
-				}
-				if (total_controls_all > 0 || cases > 0)
-					prob *= total_controls_all / (cases + total_controls_all);
-				total_controls_all -= controls; //remove controls from current time-window - they are now censored
-				controls = 0; cases = 0;
-			}
-			prob = 1 - prob;
-			if (prob > 0 && prob < 1) {
-				int age = c * age_bin + min_age;
-				//print to file:
-				MLOG("Ages[%d - %d]:%d :: %2.2f%% (kaplan meier)\n", age, age + age_bin,
-					age + age_bin / 2, 100 * prob);
 
-				if (age >= min_age && age <= max_age) {
-					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-						age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
-					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-						age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+				double controls = 0, cases = 0, prob = 1;
+				for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
+					const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
+					for (const pair<int, int> &p_i_j : index_order) {
+						//keep update kaplan meir in time point
+						if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome > 0)
+							++cases;
+						else
+							++controls;
+					}
+					//reset kaplan meir - flash last time prob
+					if (!warn_shown && total_controls_all < 10) {
+						MWARN("the kaplan_meir left with small amount of controls - "
+							" try increasing the sampling / use smaller time window because the"
+							" registry has not so long period of tracking patients\n");
+						warn_shown = true;
+					}
+					if (total_controls_all > 0 || cases > 0)
+						prob *= total_controls_all / (cases + total_controls_all);
+					total_controls_all -= controls; //remove controls from current time-window - they are now censored
+					controls = 0; cases = 0;
+				}
+				prob = 1 - prob;
+				if (prob > 0 && prob < 1) {
+					int age = c * age_bin + min_age;
+					//print to file:
+					MLOG("Ages[%d - %d]:%d :: %2.2f%% (kaplan meier)\n", age, age + age_bin,
+						age + age_bin / 2, 100 * prob);
 
-					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-						age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
-					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-						age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+					if (age >= min_age && age <= max_age) {
+						of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+							age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+						of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+							age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+
+						of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+							age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+						of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+							age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+					}
 				}
 			}
+			of_new.close();
 		}
-		of_new.close();
 	}
 	else {
 		//regular inc calc
@@ -837,40 +848,43 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 		of.close();
 
 		//New Format:
-		ofstream of_new(file_path + ".new_format");
-		if (!of_new.good())
-			MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
+		ofstream of_new;
+		if (file_path != "/dev/null") {
+			of_new.open(file_path + ".new_format");
+			if (!of_new.good())
+				MTHROW_AND_ERR("IO Error: can't write \"%s\"\n", (file_path + ".new_format").c_str());
 
-		of_new << "AGE_BIN" << "\t" << age_bin << "\n";
-		of_new << "AGE_MIN" << "\t" << min_age << "\n";
-		of_new << "AGE_MAX" << "\t" << max_age << "\n";
-		of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
-		of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
+			of_new << "AGE_BIN" << "\t" << age_bin << "\n";
+			of_new << "AGE_MIN" << "\t" << min_age << "\n";
+			of_new << "AGE_MAX" << "\t" << max_age << "\n";
+			of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
+			of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
 
-		for (int c = 0; c < counts.size(); ++c) {
+			for (int c = 0; c < counts.size(); ++c) {
 
-			int age = c * age_bin + min_age;
-			int male_n0 = male_counts[c].first;
-			int male_n1 = male_counts[c].second;
+				int age = c * age_bin + min_age;
+				int male_n0 = male_counts[c].first;
+				int male_n1 = male_counts[c].second;
 
-			if (age >= min_age && age <= max_age && male_n0 > 0) {
-				of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-					age + age_bin / 2 << "\t" << "0.0" << "\t" << male_n0 - male_n1 << "\n";
-				of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-					age + age_bin / 2 << "\t" << "1.0" << "\t" << male_n1 << "\n";
+				if (age >= min_age && age <= max_age && male_n0 > 0) {
+					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "0.0" << "\t" << male_n0 - male_n1 << "\n";
+					of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "1.0" << "\t" << male_n1 << "\n";
+				}
+
+				int female_n0 = female_counts[c].first;
+				int female_n1 = female_counts[c].second;
+
+				if (age >= min_age && age <= max_age && female_n0 > 0) {
+					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "0.0" << "\t" << female_n0 - female_n1 << "\n";
+					of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
+						age + age_bin / 2 << "\t" << "1.0" << "\t" << female_n1 << "\n";
+				}
 			}
-
-			int female_n0 = female_counts[c].first;
-			int female_n1 = female_counts[c].second;
-
-			if (age >= min_age && age <= max_age && female_n0 > 0) {
-				of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-					age + age_bin / 2 << "\t" << "0.0" << "\t" << female_n0 - female_n1 << "\n";
-				of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-					age + age_bin / 2 << "\t" << "1.0" << "\t" << female_n1 << "\n";
-			}
+			of_new.close();
 		}
-		of_new.close();
 	}
 }
 
