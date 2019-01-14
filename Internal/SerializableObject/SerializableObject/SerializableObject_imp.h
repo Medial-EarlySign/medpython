@@ -925,8 +925,8 @@ namespace MedSerialize {
 		while (getline(inf, curr_line)) {
 			if ((curr_line.size() > 1) && (curr_line[0] != '#')) { // ignore empty lines, ignore comment lines
 
-				// get rid of leading spaces, trailing spaced, and shring inner spaces to a single one, get rid of tabs and end of line (win or linux)
-				string fixed_spaces = std::regex_replace(curr_line , std::regex("^ +| +$|( ) +|\r|\n|\t+"), string("$1"));
+				// get rid of leading spaces, trailing spaced, and shrink inner spaces to a single one, get rid of tabs and end of line (win or linux)
+				string fixed_spaces = boost::regex_replace(curr_line , boost::regex("^ +| +$|( ) +|\r|\n|\t+"), string("$1"));
 				data += fixed_spaces;
 			}
 		}
@@ -947,17 +947,25 @@ namespace MedSerialize {
 		data = "";
 		string curr_line;
 		while (getline(inf, curr_line)) {
+			//SRL_LOG("read_list: curr_line: %s\n", curr_line.c_str());
 			if ((curr_line.size() > 1) && (curr_line[0] != '#')) { // ignore empty lines, ignore comment lines
-				// get rid of leading spaced, ending spaces, \r
-				string fixed_spaces = std::regex_replace(curr_line, std::regex("^ +| +$|\r"), string(""));
 				// move all tabs to spaces
-				fixed_spaces = std::regex_replace(fixed_spaces, std::regex("\t+"), string(" "));
+				string fixed_spaces = boost::regex_replace(fixed_spaces, boost::regex("\t+"), " ");
+	
+				// get rid of leading spaced, ending spaces, \r
+				fixed_spaces = boost::regex_replace(curr_line, boost::regex("^ +| +$|\r|\n"), "");
+
+				fixed_spaces += "\n"; // re-adding eol, in case it was missing
+
 				// change all internal spaces and \n to comma
-				fixed_spaces = std::regex_replace(fixed_spaces, std::regex(" +|\n"), string(","));
+				fixed_spaces = boost::regex_replace(fixed_spaces, boost::regex(" +|\n"), ",");
+
 				// make sure there are no adjacent commas
-				fixed_spaces = std::regex_replace(fixed_spaces, std::regex(",,+"), string(","));
+				fixed_spaces = boost::regex_replace(fixed_spaces, boost::regex(",,+"), ",");
+
 				// add 
 				data += fixed_spaces;
+				//SRL_LOG("read_list: data: %s\n", data.c_str());
 			}
 		}
 		// could happen that last char is comma, we fix it.

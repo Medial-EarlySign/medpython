@@ -26,7 +26,10 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 
 		// Diabetes
 		else if (field == "dm_drug_sig") dm_drug_sig = entry.second;
-		else if (field == "dm_drug_sets") boost::split(dm_drug_sets, entry.second, boost::is_any_of(","));
+		else if (field == "dm_drug_sets") {
+			//MLOG("drug_sets: %s\n", entry.second.c_str());
+			boost::split(dm_drug_sets, entry.second, boost::is_any_of(","));
+		}
 		else if (field == "dm_diagnoses_sig") dm_diagnoses_sig = entry.second;
 		else if (field == "dm_diagnoses_sets") boost::split(dm_diagnoses_sets, entry.second, boost::is_any_of(","));
 		else if (field == "dm_glucose_sig") dm_glucose_sig = entry.second;
@@ -671,8 +674,8 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 	for (int j=0; j<3; j++)
 		if (ranges[j].first > 0) {
-			// push Healthy
-			all_v_vals[0].push_back(0);
+			// push Healthy, Pre, or DM
+			all_v_vals[0].push_back((float)j);
 			all_v_times[0].push_back(ranges[j].first);
 			all_v_times[0].push_back(ranges[j].second);
 			final_sizes[0]++;
