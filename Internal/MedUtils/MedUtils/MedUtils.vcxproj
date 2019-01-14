@@ -96,6 +96,7 @@
     <ClInclude Include="MedEnums.h" />
     <ClInclude Include="MedGenUtils.h" />
     <ClInclude Include="MedGenUtils_imp.h" />
+    <ClInclude Include="MedGitVersion.h" />
     <ClInclude Include="MedGlobalRNG.h" />
     <ClInclude Include="MedLabels.h" />
     <ClInclude Include="MedMedical.h" />

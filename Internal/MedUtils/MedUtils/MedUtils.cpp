@@ -2,9 +2,11 @@
 #include "MedUtils.h"
 #include <unordered_set>
 #include <sstream>
+#include "MedGitVersion.h"
 
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+
 
 template<class T> string medial::print::print_obj(T obj, const string &format) {
 	//return to_string((round(num * 1000) / 1000));
@@ -311,7 +313,9 @@ void medial::io::ProgramArgs_base::init(po::options_description &prg_options, co
 		("help,h", "help & exit")
 		("help_module", po::value<string>(), "help on specific module")
 		("base_config", po::value<string>(&base_config), "config file with all arguments - in CMD we override those settings")
-		("debug", po::bool_switch(&debug), "set debuging verbose");
+		("debug", po::bool_switch(&debug), "set debuging verbose")
+		("version", "prints version information of the program")
+		;
 	desc.add(general_options);
 	desc.add(prg_options);
 	if (!app_l.empty())
@@ -381,6 +385,12 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	if (vm.count("help") || vm.count("h")) {
 		MLOG("%s\n", app_logo.c_str());
 		cout << desc << endl;
+		return -1;
+	}
+
+	if (vm.count("version")) {
+		MLOG("%s\n", app_logo.c_str());
+		cout << "Version Info:\n" << GIT_HEAD_VERSION << endl;
 		return -1;
 	}
 

@@ -52,7 +52,7 @@ void TimeWindowInteraction::init_from_string(const string &init) {
 
 LabelParams::LabelParams() {
 	label_interaction_mode.init_from_string("0:all,before_end|1:before_start,after_start");
-	censor_interaction_mode.init_from_string("all:within,within");
+	censor_interaction_mode.init_from_string("all:within,all");
 	conflict_method = ConflictMode::Drop;
 	time_from = 0; 
 	time_to = 0;
