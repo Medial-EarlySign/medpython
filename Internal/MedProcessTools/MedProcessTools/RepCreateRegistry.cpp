@@ -23,6 +23,8 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(","));
 		else if (field == "time_unit") time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "registry_values") boost::split(registry_values, entry.second, boost::is_any_of(","));
+
+		// Diabetes
 		else if (field == "dm_drug_sig") dm_drug_sig = entry.second;
 		else if (field == "dm_drug_sets") boost::split(dm_drug_sets, entry.second, boost::is_any_of(","));
 		else if (field == "dm_diagnoses_sig") dm_diagnoses_sig = entry.second;
@@ -30,7 +32,6 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "dm_glucose_sig") dm_glucose_sig = entry.second;
 		else if (field == "dm_hba1c_sig") dm_hba1c_sig = entry.second;
 		else if (field == "dm_diagnoses_severity") dm_diagnoses_severity = stoi(entry.second);
-
 
 		// Hypertension
 		else if (field == "ht_identifiers") { boost::split(ht_identifiers, entry.second, boost::is_any_of(",")); ht_identifiers_given = true; }
@@ -334,13 +335,13 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 					bpStatus = 0;
 				}
 				else if (info == 1) { // High BP, move to HT given previous indication
-					if (lastBP == 1 || (lastDrugDays != -1 && days - lastDrugDays < ht_drugs_gap))
+					if (lastBP == 1)
 						bpStatus = 2;
 					lastBP = 1;
 				}
 				else if (info > 20) { // HT Drug, move to unclear (depending on background)
-									  // build drug-specific look : 1 = inidcative of HT. 2 = indicative of HT unless CHF. 3 = indicative of HT unless diabetes. 
-								      //4 = indicative of HT unless CHF/MI/AF.
+									  // using drug-specific info : 21 = inidcative of HT. 22 = indicative of HT unless CHF. 23 = indicative of HT unless diabetes. 
+								      // 24 = indicative of HT unless CHF/MI/AF.
 					if (info == 21 || (info == 22 && !chfStatus) || (info == 23 && !dmStatus) || (info == 24 && !chfStatus && !miStatus && !afStatus)) {
 						bpStatus = 1;
 						lastDrugDays = days;
