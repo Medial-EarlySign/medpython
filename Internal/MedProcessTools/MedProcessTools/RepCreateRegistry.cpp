@@ -673,8 +673,8 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 	for (int j=0; j<3; j++)
 		if (ranges[j].first > 0) {
-			// push Healthy
-			all_v_vals[0].push_back(0);
+			// push Healthy, Pre, or DM
+			all_v_vals[0].push_back((float)j);
 			all_v_times[0].push_back(ranges[j].first);
 			all_v_times[0].push_back(ranges[j].second);
 			final_sizes[0]++;
