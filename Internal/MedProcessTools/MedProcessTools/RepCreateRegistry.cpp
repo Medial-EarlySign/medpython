@@ -24,7 +24,10 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "time_unit") time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "registry_values") boost::split(registry_values, entry.second, boost::is_any_of(","));
 		else if (field == "dm_drug_sig") dm_drug_sig = entry.second;
-		else if (field == "dm_drug_sets") boost::split(dm_drug_sets, entry.second, boost::is_any_of(","));
+		else if (field == "dm_drug_sets") {
+			//MLOG("drug_sets: %s\n", entry.second.c_str());
+			boost::split(dm_drug_sets, entry.second, boost::is_any_of(","));
+		}
 		else if (field == "dm_diagnoses_sig") dm_diagnoses_sig = entry.second;
 		else if (field == "dm_diagnoses_sets") boost::split(dm_diagnoses_sets, entry.second, boost::is_any_of(","));
 		else if (field == "dm_glucose_sig") dm_glucose_sig = entry.second;
