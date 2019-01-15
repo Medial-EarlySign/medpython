@@ -124,6 +124,9 @@ namespace medial {
 
 		};
 	}
+
+	/// \brief general print to string woth format
+	string get_git_version();
 }
 
 #include "MedUtils_imp.h"

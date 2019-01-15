@@ -390,7 +390,7 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 
 	if (vm.count("version")) {
 		MLOG("%s\n", app_logo.c_str());
-		cout << "Version Info:\n" << GIT_HEAD_VERSION << endl;
+		cout << "Version Info:\n" << medial::get_git_version() << endl;
 		return -1;
 	}
 
@@ -429,6 +429,7 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 		global_logger.init_format(LOG_DEF, full_log_format);
 		global_logger.init_format(LOG_MED_MODEL, full_log_format);
 		global_logger.init_format(LOG_MEDALGO, full_log_format);
+		MLOG("Version Info:\n%s\n", medial::get_git_version().c_str());
 		MLOG("Debug Running With:\n");
 		string full_params = string(argv[0]);
 		char buffer[1000];
@@ -519,3 +520,6 @@ void medial::io::read_codes_file(const string &file_path, vector<string> &tokens
 	file.close();
 }
 
+string medial::get_git_version() {
+	return GIT_HEAD_VERSION;
+}
