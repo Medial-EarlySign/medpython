@@ -748,6 +748,9 @@ public:
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<TagFeatureSelector *>(processor)); }
 
+	//print function
+	void dprint(const string &pref, int fp_flag);
+
 	// Serialization
 	ADD_CLASS_NAME(TagFeatureSelector)
 	ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, selected)

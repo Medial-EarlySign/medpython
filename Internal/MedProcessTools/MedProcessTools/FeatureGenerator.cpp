@@ -317,7 +317,7 @@ inline bool isInteger(const std::string & s)
 void FeatureGenerator::dprint(const string &pref, int fg_flag)
 {
 	if (fg_flag > 0) {
-		MLOG("%s :: FG type %d : serial_id %d : ", pref.c_str(), generator_type, serial_id);
+		MLOG("%s :: FG type %d(%s) : serial_id %d : ", pref.c_str(), generator_type, my_class_name().c_str() ,serial_id);
 		MLOG("names(%d) : ", names.size());
 		if (fg_flag > 1) for (auto &name : names) MLOG("%s,", name.c_str());
 		MLOG(" tags(%d) : ", tags.size());

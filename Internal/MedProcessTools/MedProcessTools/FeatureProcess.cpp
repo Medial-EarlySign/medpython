@@ -209,7 +209,7 @@ size_t FeatureProcessor::processor_serialize(unsigned char *blob) {
 void FeatureProcessor::dprint(const string &pref, int fp_flag)
 {
 	if (fp_flag > 0) {
-		MLOG("%s :: FP type %d : name %s \n", pref.c_str(), processor_type, feature_name.c_str());
+		MLOG("%s :: FP type %d(%s) : feature_name %s \n", pref.c_str(), processor_type, my_class_name().c_str(), feature_name.c_str());
 	}
 }
 //=======================================================================================
