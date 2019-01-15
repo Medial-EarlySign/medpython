@@ -151,7 +151,7 @@ public:
 
 
 	// debug print for a feature generator. fg_flag can 
-	void dprint(const string &pref, int fg_flag);
+	virtual void dprint(const string &pref, int fg_flag);
 
 
 	int serial_id;		// serial id of feature
@@ -460,7 +460,7 @@ struct BinnedLmEstimatesParams : public SerializableObject {
 
 	vector<int> estimation_points;
 	ADD_CLASS_NAME(BinnedLmEstimatesParams)
-	ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor)
+	ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor, estimation_points)
 
 };
 
@@ -523,6 +523,8 @@ public:
 	void prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear);
 	void prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear);
 	inline void get_age(int time, int time_unit_from, int& age, int byear);
+
+	void dprint(const string &pref, int fg_flag);
 
 	// Serialization
 	ADD_CLASS_NAME(BinnedLmEstimates)

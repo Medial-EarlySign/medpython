@@ -101,7 +101,7 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 	set_names();
 
 	req_signals.resize(3);
-	req_signals[0] = "GENDER" ;
+	req_signals[0] = "GENDER";
 	req_signals[1] = "BYEAR";
 	req_signals[2] = signalName;
 }
@@ -608,6 +608,24 @@ void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, Universal
 
 inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, int byear) {
 	age = med_time_converter.convert_times(time_unit_from, MedTime::Date, time) / 10000 - byear;
+}
+
+void BinnedLmEstimates::dprint(const string &pref, int fg_flag) {
+	if (fg_flag > 0) {
+		MLOG("%s :: BinnedLmEstimates : serial_id %d : ", pref.c_str(), serial_id);
+		MLOG("names(%d) : ", names.size());
+		if (fg_flag > 1) for (auto &name : names) MLOG("%s,", name.c_str());
+		MLOG(" tags(%d) : ", tags.size());
+		if (fg_flag > 1) for (auto &t : tags) MLOG("%s,", t.c_str());
+		MLOG(" req_signals(%d) : ", req_signals.size());
+		if (fg_flag > 1) for (auto &rsig : req_signals) MLOG("%s,", rsig.c_str());
+		string s = "";
+		for (size_t i = 0; i < params.estimation_points.size(); ++i)
+			s += to_string(params.estimation_points[i]) + ", ";
+		MLOG(" params.period=[%d, %d], params.estimation_points(%zu):[%s]",
+			params.min_period, params.max_period, params.estimation_points.size(), s.c_str());
+		MLOG("\n");
+	}
 }
 
 // Print predictor
