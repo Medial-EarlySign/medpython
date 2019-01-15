@@ -969,6 +969,16 @@ int TagFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 	return 0;
 }
 
+void TagFeatureSelector::dprint(const string &pref, int fp_flag) {
+	if (fp_flag > 0) {
+		string tags_str = medial::io::get_list(selected_tags);
+		string tags_rem_str = medial::io::get_list(removed_tags);
+		string final_list = medial::io::get_list(selected, "\n");
+		MLOG("%s :: TagFeatureSelector :: selected_tags=[%s], removed_tags=[%s], selected:\n%s\n",
+			pref.c_str(), tags_str.c_str(), tags_rem_str.c_str(), final_list.c_str());
+	}
+}
+
 //=======================================================================================
 // Importance Feature Selection
 //=======================================================================================
