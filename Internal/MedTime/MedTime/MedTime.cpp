@@ -422,5 +422,11 @@ int MedTime::add_subtract_time(int in_time, int in_type, int delta_time, int del
 {
 	int conved = convert_times(in_type, delta_type, in_time);
 	conved += delta_time;
+	
+	if (conved < 0) {
+		MWARN("WARNING: Found negative time in add_subtract_time. Truncating to 0\n");
+		conved = 0;
+	}
+
 	return convert_times(delta_type, in_type, conved);
 }

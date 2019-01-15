@@ -96,7 +96,7 @@ public:
 	double get_age(int t, int type_t, int byear);
 	double get_age_from_bdate(int t, int type_t, int bdate);
 
-	/// subtract time
+	/// subtract time (truncating negative values)
 	int add_subtract_time(int in_time, int in_type, int delta_time, int delta_type);
 };
 

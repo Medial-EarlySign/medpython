@@ -69,7 +69,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 	}
 
 	if (!signals.empty()) {
-		if (signals.size() != type2reqSigs.size())
+		if (signals.size() != type2reqSigs.at(registry).size())
 			MTHROW_AND_ERR("Wrong number of signals supplied for RepCreateRegistry::%s - supplied %zd, required %zd\n", registry_name.c_str(), signals.size(),
 				type2reqSigs.at(registry).size());
 	}
@@ -598,6 +598,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 			// need to check for severity 3 2 years back
 			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
+
 			int found = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
@@ -631,6 +632,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 		if (ev.event_severity == 1) {
 			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
+
 			int found = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
