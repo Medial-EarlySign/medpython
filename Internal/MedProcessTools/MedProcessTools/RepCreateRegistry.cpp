@@ -47,6 +47,9 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "ht_extra_drugs") boost::split(ht_extra_drugs, entry.second, boost::is_any_of(","));
 		else if (field == "ht_drugs_gap") ht_drugs_gap = stoi(entry.second);
 
+		// Prteinuria
+		else if (field == "urine_tests_categories") boost::split(urine_tests_categories, entry.second, boost::is_any_of("/"));
+
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCreateRegistry::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCreateRegistry::init]
@@ -68,6 +71,8 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 			virtual_signals[i].first = names[i];
 	}
 
+	MLOG("virtual 0 : %s\n", virtual_signals[0].first.c_str());
+
 	if (!signals.empty()) {
 		if (signals.size() != type2reqSigs.at(registry).size())
 			MTHROW_AND_ERR("Wrong number of signals supplied for RepCreateRegistry::%s - supplied %zd, required %zd\n", registry_name.c_str(), signals.size(),
@@ -88,6 +93,38 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		if (registry_values.empty())
 			registry_values = dm_reg_values;
 
+	}
+
+	if (registry == REP_REGISTRY_PROTEINURIA) {
+
+		if (registry_values.empty())
+			registry_values = proteinuria_reg_values;
+
+		for (auto &c : urine_tests_categories) {
+			//MLOG("Parsing %s\n", c.c_str());
+			vector<string> f;
+			boost::split(f, c, boost::is_any_of(":"));
+			RegistryDecisionRanges rdr;
+			rdr.sig_name = f[0];
+			rdr.is_numeric = stoi(f[1]);
+			for (int j = 2; j < f.size(); j++) {
+				vector<string> f2;
+				boost::split(f2, f[j], boost::is_any_of(","));
+				if (rdr.is_numeric) {
+					rdr.ranges.push_back(pair<float, float>(stof(f2[0]), stof(f2[1])));
+				}
+				else {
+					rdr.categories.push_back(f2);
+				}
+			}
+			rdr.usv_idx = -1;
+			//MLOG("rdr %s is_n %d ", rdr.sig_name.c_str(), rdr.is_numeric);
+			//for (auto &e : rdr.ranges) MLOG(" %f-%f ", e.first, e.second);
+			//for (auto &e : rdr.categories) for (auto &s : e) MLOG(" %s ", s.c_str());
+			//MLOG("\n");
+			proteinuria_ranges.push_back(rdr);
+
+		}
 	}
 
 	return 0;
@@ -149,6 +186,8 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 		init_ht_registry_tables(dict, sigs);
 	else if (registry == REP_REGISTRY_DM)
 		init_dm_registry_tables(dict, sigs);
+	else if (registry == REP_REGISTRY_PROTEINURIA)
+		init_proteinuria_registry_tables(dict, sigs);
 }
 
 // Applying
@@ -177,7 +216,8 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			ht_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 		else if (registry == REP_REGISTRY_DM)
 			dm_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
-		
+		else if (registry == REP_REGISTRY_PROTEINURIA)
+			proteinuria_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 
 		// pushing virtual data into rec
 		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++) 
@@ -692,5 +732,106 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		//MLOG("pid %d %d : ev %d : time %d type %d val %f severity %d\n", rec.pid, time, c++, ev.time, ev.event_type, ev.event_val, ev.event_severity);
 	}
 	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
+#endif
+}
+
+//===============================================================================================================================
+// Proteinuria (3 levels) code
+//===============================================================================================================================
+// proteinuria tables
+void RepCreateRegistry::init_proteinuria_registry_tables(MedDictionarySections& dict, MedSignals& sigs)
+{
+	for (auto &r : proteinuria_ranges) {
+		r.sig_id = sigs.sid(r.sig_name);
+		if (!r.is_numeric) {
+			r.categories_i.resize(r.categories.size());
+			for (int j = 0; j < r.categories.size(); j++) {
+				r.categories_i[j].clear();
+				int section_id = dict.section_id(r.sig_name);
+				for (auto &c : r.categories[j])
+					if (dict.dicts[section_id].Name2Id.find(c) != dict.dicts[section_id].Name2Id.end())
+						r.categories_i[j].push_back(dict.dicts[section_id].Name2Id[c]);
+			}
+		}
+
+		int j = 0;
+		for (auto &rsig : signals) {
+			if (r.sig_name == rsig) {
+				r.usv_idx = j;
+				break;
+			}
+			j++;
+		}
+	}
+
+}
+
+// proteinuria apply
+void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes)
+{
+	int time = -1;
+	if (time_points.size() > 0) time = time_points[iver];
+
+	vector<pair<int, int>> proteinuria_ev;
+
+	// collecting events
+	for (auto &r : proteinuria_ranges) {
+		//MLOG("Proteinuria: pid %d,%d : sig %s , %d : idx %d : len %d\n", rec.pid, time, r.sig_name.c_str(), r.sig_id, r.usv_idx, usvs[r.usv_idx].len);
+		UniversalSigVec &rusv = usvs[r.usv_idx];
+		for (int j = 0; j < rusv.len; j++) {
+			int i_time = rusv.Time(j);
+			if (time > 0 && i_time > time) break;
+
+			int found = -1;
+			if (r.is_numeric) {
+				float f_val = rusv.Val(j);
+				for (int k = 0; found < 0 && k < r.ranges.size(); k++) {
+					if (f_val >= r.ranges[k].first && f_val < r.ranges[k].second)
+						found = k;
+				}
+			}
+			else {
+				int i_val = (int)rusv.Val(j);
+				for (int k = 0; found < 0 && k < r.categories_i.size(); k++) {
+					for (auto &ci : r.categories_i[k])
+						if (i_val == ci) {
+							found = k;
+							break;
+						}
+				}
+
+			}
+			if (found > 0)	proteinuria_ev.push_back(pair<int, int>(i_time, found));
+		}
+	}
+
+	// get the max value for each day, sort and unique all in one using map
+	map<int, int> time2val;
+	for (auto &p : proteinuria_ev) {
+		if (time2val.find(p.first) == time2val.end())
+			time2val[p.first] = p.second;
+		else
+			if (p.second > time2val[p.first])
+				time2val[p.first] = p.second;
+	}
+
+	// loading into all_v_times, all_v_vals, final_sizes
+	all_v_times[0].clear();
+	all_v_vals[0].clear();
+	final_sizes[0] = 0;
+
+	for (auto &e : time2val) {
+		// push Healthy, Pre, or DM
+		all_v_vals[0].push_back((float)e.second);
+		all_v_times[0].push_back(e.first);
+		final_sizes[0]++;
+	}
+
+#if 0
+	// debug
+	MLOG("Proteinuria State : pid %d %d : ", rec.pid, time);
+	for (auto &e : time2val)
+		MLOG(" %d,%d :", e.first, e.second);
+	MLOG("\n");
 #endif
 }

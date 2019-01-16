@@ -1161,6 +1161,7 @@ private:
 typedef enum {
 	REP_REGISTRY_DM,
 	REP_REGISTRY_HT,
+	REP_REGISTRY_PROTEINURIA,
 	REP_REGISTRY_LAST
 } RegistryTypes;
 
@@ -1182,6 +1183,17 @@ public:
 	RegistryEvent() {};
 	RegistryEvent(int _time, int _type, float _val, int _severity) { time = _time; event_type = _type; event_val = _val; event_severity = _severity; }
 
+};
+
+class RegistryDecisionRanges {
+public:
+	string sig_name;
+	int sig_id;
+	int usv_idx;
+	int is_numeric;
+	vector<vector<string>> categories;
+	vector<vector<int>> categories_i;
+	vector<pair<float, float>> ranges;
 };
 
 class RepCreateRegistry : public RepProcessor {
@@ -1221,6 +1233,20 @@ public:
 	string dm_hba1c_sig = "HbA1C";
 	int dm_diagnoses_severity = 3; // 3: need supporting evidence as well, 4: single code is enough
 
+
+	// proteinuria related parameters
+	// <name>:<0/1: is_numeric (numerics are 1)>:<categs or ranges for normal>:<categs or ranges for medium>:<categs or ranges for severe>
+	// / is the separator between signals in a real input
+	vector<string> urine_tests_categories = { 
+		"Urine_Microalbumin:1:0,30:30,300:300,1000000",
+		"UrineTotalProtein:1:0,0.15:0.15,0.60:0.60,1000000",
+		"UrineAlbumin:1:0,30:30,300:300,1000000",
+		"Urine_dipstick_for_protein:0:Urine_dipstick_for_protein_normal:Urine_dipstick_for_protein_medium:Urine_dipstick_for_protein_severe",
+		"Urinalysis_Protein:0:Urinalysis_Protein_normal:Urinalysis_Protein_medium:Urinalysis_Protein_severe",
+		"Urine_Protein_Creatinine:1:0,15:15,100:100,1000000",
+		"UrineAlbumin_over_Creatinine:1:0,3.5:3.5,27:27,1000000"};
+
+
 	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
 	int init(map<string, string>& mapper);
 	void init_lists();
@@ -1244,14 +1270,17 @@ private:
 	string registry_name;
 
 	/// registry name to type
-	const map<string, RegistryTypes> name2type = {{ "dm" , REP_REGISTRY_DM },{"ht", REP_REGISTRY_HT }};
+	const map<string, RegistryTypes> name2type = { { "dm" , REP_REGISTRY_DM }, {"ht", REP_REGISTRY_HT }, {"proteinuria", REP_REGISTRY_PROTEINURIA} };
 
 	// output signal name + type
 	const map<RegistryTypes, vector<pair<string, int>>> type2Virtuals = { { REP_REGISTRY_DM,{{"DM_Registry",T_TimeRangeVal}}},
-																			  { REP_REGISTRY_HT,{{"HT_Registry",T_TimeRangeVal}} } };
+																		  { REP_REGISTRY_HT,{{"HT_Registry",T_TimeRangeVal}}},
+																		  { REP_REGISTRY_PROTEINURIA, {{"Proteinuria_State", T_DateVal}}} };
+
 	// required signals
 	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{"Glucose","HbA1C","Drug","RC"}},
-															 { REP_REGISTRY_HT, {"BP","RC","Drug","BYEAR","DM_Registry"}} };
+															  { REP_REGISTRY_HT, {"BP","RC","Drug","BYEAR","DM_Registry"}},
+															  { REP_REGISTRY_PROTEINURIA , { "Urine_Microalbumin", "UrineTotalProtein" , "UrineAlbumin" , "Urine_dipstick_for_protein" , "Urinalysis_Protein" , "Urine_Protein_Creatinine" , "UrineAlbumin_over_Creatinine" }} };
 
 	set<int> sig_ids_s; 
 	vector<int> sig_ids; ///< ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
@@ -1270,6 +1299,9 @@ private:
 	vector<string> dm_reg_values = {"DM_Registry_Non_diabetic", "DM_Registry_Pre_diabetic", "DM_Registry_Diabetic"};
 
 
+	// proteinuria related privates
+	vector<string> proteinuria_reg_values = { "Proteinuria_Normal", "Proteinuria_Medium" , "Proteinuria_Severe" };
+	vector<RegistryDecisionRanges> proteinuria_ranges;
 	
 	vector<int> signal_time_units; ///< time-units of all signals
 
@@ -1290,6 +1322,9 @@ private:
 	void init_dm_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
 	void dm_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes);
 
+	// Proteinuria
+	void init_proteinuria_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void proteinuria_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes);
 
 };
 
