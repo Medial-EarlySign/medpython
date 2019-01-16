@@ -320,6 +320,10 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		int days = irec.first;
 		int info = irec.second;
 
+		// Ignore illegal date
+		if (days < 0)
+			continue;
+
 		int bpStatusToPush = -1;
 		
 		// Background : CHF/MI/AF/DM
@@ -417,7 +421,6 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, firstHT));
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, lastHT));
 	}
-
 }
 
 // Get lists of identifiers from default files, if not given
