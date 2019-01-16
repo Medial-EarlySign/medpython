@@ -906,7 +906,9 @@ size_t MedDeepBit::deserialize(unsigned char *blob) {
 		int grid_size; memcpy(&(grid_size), blob + ptr, sizeof(int)); ptr += sizeof(int);
 		ftr_grids[j].resize(grid_size); memcpy(&(ftr_grids[j][0]), blob + ptr, grid_size * sizeof(double)); ptr += grid_size * sizeof(double);
 		int nfreq_vals;	memcpy(&(nfreq_vals), blob + ptr, sizeof(int)); ptr += sizeof(int);
-		frequent_ftr_vals[j].resize(nfreq_vals); (&(frequent_ftr_vals[j][0]), blob + ptr, nfreq_vals * sizeof(double)); ptr += nfreq_vals * sizeof(double);
+		frequent_ftr_vals[j].resize(nfreq_vals); 
+		memcpy(&(frequent_ftr_vals[j][0]), blob + ptr, nfreq_vals * sizeof(double));
+		ptr += nfreq_vals * sizeof(double);
 	}
 	bin_ftrs_map.resize(num_bin_ftrs);
 	for (int i = 0; i < num_bin_ftrs; i++) {

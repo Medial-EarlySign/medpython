@@ -105,7 +105,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
-				MLOG("\tCurrent round running for %f min. Estimated time : %f min.\n", diff, diff * ((float)families.size()) / counter);
+				MLOG("\tCurrent round running for %2.2f min. Estimated time : %2.2f min.\n", diff, diff * ((float)families.size()) / counter);
 			}
 
 		}
@@ -222,7 +222,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 				report.push_back(report_s);
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
-				MLOG("\tCurrent round: Adding to %d out of %d. Running for %f min. Estimated time : %f min.\n", selectedFamilies.size(), nFamilies, diff,
+				MLOG("\tCurrent round: Adding to %d out of %d. Running for %2.2f min. Estimated time : %2.2f min.\n", selectedFamilies.size(), nFamilies, diff,
 					diff * ((float)unSelectedFamilies.size()) / counter);
 			}
 		}
