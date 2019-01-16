@@ -961,6 +961,8 @@ public:
 	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
 
+	virtual ~SimpleCalculator() {};
+
 };
 
 /**

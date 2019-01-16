@@ -866,9 +866,10 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		return -1;
 	}
 	getline(infile, thisLine);//consume title line.
-	while (!infile.eof()) {
-		getline(infile, thisLine);
-		if (thisLine.back() == '\r') thisLine.pop_back();
+	while (getline(infile, thisLine)) {
+		boost::trim(thisLine);
+		if (thisLine.empty() || thisLine.at(0) == '#')
+			continue; //skip empty line
 
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));

@@ -63,7 +63,7 @@ public:
 
 	// Constructor/Destructor
 	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
-	~MedModel() { clear(); };
+	virtual ~MedModel() { clear(); };
 
 	void clear();
 

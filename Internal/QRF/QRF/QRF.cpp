@@ -170,7 +170,7 @@ int QuantizedRF::quantize_no_loss(vector<ValInd> &vals, int nsamples, int maxq, 
 			for (j = i; j < nsamples; j++) {
 				if (v[j] != prev)
 					break;
-				cnt_curr[y[vals[j].idx]]++;
+				cnt_curr[(int)y[vals[j].idx]]++;
 			}
 
 
@@ -367,7 +367,8 @@ int QuantizedRF::get_regression_Tree(int *sampsize, int ntry, QRF_Tree &tree)
 		if (take_all_samples) { //when creating 1 tree - look at best seperation with min_node (similar to knn where k=min_node)
 			j = 0;
 			while (j < n) {
-				tree.sample_ids[j] = j++;
+				tree.sample_ids[j] = j;
+				++j;
 			}
 		}
 		else if (n_groups == 0) {
@@ -1146,7 +1147,7 @@ int QuantizedRF::find_best_split(QRF_Tree &tree, int node, int ntry)
 				}
 
 				for (i = nd->from_sample; i <= nd->to_sample; i++)
-					tree.hist[y[tree.sample_ids[i]]][q_data[ifeat][tree.sample_ids[i]]]++;
+					tree.hist[(int)y[tree.sample_ids[i]]][q_data[ifeat][tree.sample_ids[i]]]++;
 
 				// now we need to go over the hist and find the best split
 				left_d = 0; right_d = node_size;

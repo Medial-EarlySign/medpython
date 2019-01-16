@@ -9,7 +9,7 @@ int InMemRepData::insertData(int pid, const char *sig, int *time_data, float *va
 {
 	int sid = my_rep->sigs.sid(string(sig));
 	if (sid < 0) {
-		MERR("ERROR: InMemRepData: sig %s in not is signals file (did you read the file??)\n", sig);
+		MERR("ERROR: InMemRepData: sig %s in not is signals file (did you read the file\?\?)\n", sig);
 		return -1;
 	}
 	return insertData(pid, sid, time_data, val_data, n_time, n_val);
