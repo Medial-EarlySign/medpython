@@ -30,7 +30,7 @@ typedef enum {
 } MedModelStage;
 
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
-class MedModel : public SerializableObject {
+class MedModel final : public SerializableObject {
 public:
 	/// remember learning set
 	int serialize_learning_set = 0;
@@ -63,7 +63,7 @@ public:
 
 	// Constructor/Destructor
 	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
-	virtual ~MedModel() { clear(); };
+	~MedModel() { clear(); };
 
 	void clear();
 

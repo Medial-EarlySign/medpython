@@ -42,7 +42,7 @@ public:
 *						 pid_pos_len[pid].second holds the number of relevant rows
 */
 //.......................................................................................
-class MedFeatures : public SerializableObject {
+class MedFeatures final : public SerializableObject {
 public:
 
 	// Data
