@@ -332,7 +332,7 @@ public:
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	virtual void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
 
 	/// <summary> Fill required- and affected-signals sets </summary>
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
@@ -371,6 +371,7 @@ class confRecord : public SerializableObject {
 public:
 	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
 	string distLow, distHigh; //"none" "norm" or "log" 
+	int val_channel = 0;
 	ADD_CLASS_NAME(confRecord)
 	ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh, distLow, distHigh)
 };
@@ -410,7 +411,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	// Apply cleaning model -inheritted
-
+	void set_signal_ids(MedDictionarySections& dict);
 
 	/// Serialization
 	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)

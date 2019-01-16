@@ -872,7 +872,7 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));
-		if (f.size() != 7) {
+		if (f.size() != 8) {
 			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 			infile.close();
 			return -1;
@@ -883,6 +883,7 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 
 		thisRecord.distLow = f[4];
 		thisRecord.distHigh = f[6];
+		thisRecord.val_channel = stoi(f[7]);
 		if (thisRecord.distLow != "none")thisRecord.confirmedLow = (float)atof(f[3].c_str());
 		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = (float)atof(f[5].c_str());
 		outlierParams[f[0]] = thisRecord;
@@ -915,6 +916,14 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 	init_lists();
 	return MedValueCleaner::init(mapper);
+}
+
+void RepConfiguredOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
+	RepBasicOutlierCleaner::set_signal_ids(dict); //call base class init
+	//fetch val_channel from file
+	if (outlierParams.find(signalName) == outlierParams.end())
+		MTHROW_AND_ERR("RepConfiguredOutlierCleaner : ERROR: Signal %s not supported by conf_cln\n", signalName.c_str());
+	val_channel = outlierParams.at(signalName).val_channel;
 }
 
 // Learn bounds
