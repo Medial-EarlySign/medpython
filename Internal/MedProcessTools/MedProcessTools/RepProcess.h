@@ -1165,6 +1165,7 @@ typedef enum {
 	REP_REGISTRY_DM,
 	REP_REGISTRY_HT,
 	REP_REGISTRY_PROTEINURIA,
+	REP_REGISTRY_CKD,
 	REP_REGISTRY_LAST
 } RegistryTypes;
 
@@ -1250,6 +1251,11 @@ public:
 		"UrineAlbumin_over_Creatinine:1:0,3.5:3.5,27:27,1000000"};
 
 
+	// ckd related
+	string ckd_egfr_sig = "eGFR_CKD_EPI";
+	string ckd_proteinuria_sig = "Proteinuria_State";
+
+
 	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
 	int init(map<string, string>& mapper);
 	void init_lists();
@@ -1267,23 +1273,30 @@ public:
 
 	// serialization
 	ADD_CLASS_NAME(RepCreateRegistry)
-	ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals)
+	ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals, registry_values,
+		ht_identifiers, chf_identifiers, mi_identifiers, af_identifiers, ht_identifiers_given, chf_identifiers_given, mi_identifiers_given, af_identifiers_given,
+		ht_drugs, ht_chf_drugs, ht_dm_drugs, ht_extra_drugs, ht_drugs_gap,
+		dm_drug_sig, dm_drug_sets, dm_diagnoses_sig, dm_diagnoses_sets, dm_glucose_sig, dm_hba1c_sig, dm_diagnoses_severity,
+		urine_tests_categories,
+		ckd_egfr_sig, ckd_proteinuria_sig)
 
 private:
 	string registry_name;
 
 	/// registry name to type
-	const map<string, RegistryTypes> name2type = { { "dm" , REP_REGISTRY_DM }, {"ht", REP_REGISTRY_HT }, {"proteinuria", REP_REGISTRY_PROTEINURIA} };
+	const map<string, RegistryTypes> name2type = { { "dm" , REP_REGISTRY_DM }, {"ht", REP_REGISTRY_HT }, {"proteinuria", REP_REGISTRY_PROTEINURIA}, {"ckd", REP_REGISTRY_CKD} };
 
 	// output signal name + type
 	const map<RegistryTypes, vector<pair<string, int>>> type2Virtuals = { { REP_REGISTRY_DM,{{"DM_Registry",T_TimeRangeVal}}},
 																		  { REP_REGISTRY_HT,{{"HT_Registry",T_TimeRangeVal}}},
-																		  { REP_REGISTRY_PROTEINURIA, {{"Proteinuria_State", T_DateVal}}} };
+																		  { REP_REGISTRY_PROTEINURIA, {{"Proteinuria_State", T_DateVal}}} ,
+																		  { REP_REGISTRY_CKD, {{"CKD_Registry", T_DateVal}}} };
 
 	// required signals
 	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{"Glucose","HbA1C","Drug","RC"}},
 															  { REP_REGISTRY_HT, {"BP","RC","Drug","BYEAR","DM_Registry"}},
-															  { REP_REGISTRY_PROTEINURIA , { "Urine_Microalbumin", "UrineTotalProtein" , "UrineAlbumin" , "Urine_dipstick_for_protein" , "Urinalysis_Protein" , "Urine_Protein_Creatinine" , "UrineAlbumin_over_Creatinine" }} };
+															  { REP_REGISTRY_PROTEINURIA , { "Urine_Microalbumin", "UrineTotalProtein" , "UrineAlbumin" , "Urine_dipstick_for_protein" , "Urinalysis_Protein" , "Urine_Protein_Creatinine" , "UrineAlbumin_over_Creatinine" }},
+															  { REP_REGISTRY_CKD, {"Proteinuria_State", "eGFR_CKD_EPI"}} };
 
 	set<int> sig_ids_s; 
 	vector<int> sig_ids; ///< ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
@@ -1306,6 +1319,12 @@ private:
 	vector<string> proteinuria_reg_values = { "Proteinuria_Normal", "Proteinuria_Medium" , "Proteinuria_Severe" };
 	vector<RegistryDecisionRanges> proteinuria_ranges;
 	
+	// CKD related states
+	vector<string> ckd_reg_values = { "CKD_State_Normal" , "CKD_State_Level_1", "CKD_State_Level_2", "CKD_State_Level_3", "CKD_State_Level_4" };
+	int ckd_egfr_idx = -1;
+	int ckd_proteinuria_idx = -1;
+
+
 	vector<int> signal_time_units; ///< time-units of all signals
 
 	// Registry specific functions and parameters
@@ -1328,6 +1347,11 @@ private:
 	// Proteinuria
 	void init_proteinuria_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
 	void proteinuria_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes);
+
+	// ckd
+	void init_ckd_registry_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void ckd_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes);
+
 
 };
 

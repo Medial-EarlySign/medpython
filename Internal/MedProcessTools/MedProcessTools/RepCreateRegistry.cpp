@@ -50,6 +50,11 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		// Prteinuria
 		else if (field == "urine_tests_categories") boost::split(urine_tests_categories, entry.second, boost::is_any_of("/"));
 
+		// ckd
+		else if (field == "ckd_egfr_sig") ckd_egfr_sig = entry.second;
+		else if (field == "ckd_proteinuria_sig") ckd_proteinuria_sig = entry.second;
+
+
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCreateRegistry::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCreateRegistry::init]
@@ -89,42 +94,18 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		ht_init_defaults();
 
 	if (registry == REP_REGISTRY_DM) {
-
 		if (registry_values.empty())
 			registry_values = dm_reg_values;
-
 	}
 
 	if (registry == REP_REGISTRY_PROTEINURIA) {
-
 		if (registry_values.empty())
 			registry_values = proteinuria_reg_values;
+	}
 
-		for (auto &c : urine_tests_categories) {
-			//MLOG("Parsing %s\n", c.c_str());
-			vector<string> f;
-			boost::split(f, c, boost::is_any_of(":"));
-			RegistryDecisionRanges rdr;
-			rdr.sig_name = f[0];
-			rdr.is_numeric = stoi(f[1]);
-			for (int j = 2; j < f.size(); j++) {
-				vector<string> f2;
-				boost::split(f2, f[j], boost::is_any_of(","));
-				if (rdr.is_numeric) {
-					rdr.ranges.push_back(pair<float, float>(stof(f2[0]), stof(f2[1])));
-				}
-				else {
-					rdr.categories.push_back(f2);
-				}
-			}
-			rdr.usv_idx = -1;
-			//MLOG("rdr %s is_n %d ", rdr.sig_name.c_str(), rdr.is_numeric);
-			//for (auto &e : rdr.ranges) MLOG(" %f-%f ", e.first, e.second);
-			//for (auto &e : rdr.categories) for (auto &s : e) MLOG(" %s ", s.c_str());
-			//MLOG("\n");
-			proteinuria_ranges.push_back(rdr);
-
-		}
+	if (registry == REP_REGISTRY_CKD) {
+		if (registry_values.empty())
+			registry_values = ckd_reg_values;
 	}
 
 	return 0;
@@ -741,6 +722,33 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 // proteinuria tables
 void RepCreateRegistry::init_proteinuria_registry_tables(MedDictionarySections& dict, MedSignals& sigs)
 {
+	proteinuria_ranges.clear();
+	for (auto &c : urine_tests_categories) {
+		//MLOG("Parsing %s\n", c.c_str());
+		vector<string> f;
+		boost::split(f, c, boost::is_any_of(":"));
+		RegistryDecisionRanges rdr;
+		rdr.sig_name = f[0];
+		rdr.is_numeric = stoi(f[1]);
+		for (int j = 2; j < f.size(); j++) {
+			vector<string> f2;
+			boost::split(f2, f[j], boost::is_any_of(","));
+			if (rdr.is_numeric) {
+				rdr.ranges.push_back(pair<float, float>(stof(f2[0]), stof(f2[1])));
+			}
+			else {
+				rdr.categories.push_back(f2);
+			}
+		}
+		rdr.usv_idx = -1;
+		//MLOG("rdr %s is_n %d ", rdr.sig_name.c_str(), rdr.is_numeric);
+		//for (auto &e : rdr.ranges) MLOG(" %f-%f ", e.first, e.second);
+		//for (auto &e : rdr.categories) for (auto &s : e) MLOG(" %s ", s.c_str());
+		//MLOG("\n");
+		proteinuria_ranges.push_back(rdr);
+
+	}
+
 	for (auto &r : proteinuria_ranges) {
 		r.sig_id = sigs.sid(r.sig_name);
 		if (!r.is_numeric) {
