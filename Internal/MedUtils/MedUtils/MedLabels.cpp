@@ -702,6 +702,8 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 					incidence_samples.idSamples[i].samples[j].outcomeTime));
 				if (time_diff > time_period)
 					time_diff = time_period;
+				if (time_diff < 0)
+					continue;
 				if (!all_times[age_index][time_diff]) {
 					sorted_times[age_index].push_back(time_diff);
 					all_times[age_index][time_diff] = true;
@@ -715,6 +717,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 			times_indexes[c].resize(sorted_times[c].size());
 		}
 		//prepare times_indexes:
+		bool warn_show_neg = false;
 		for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
 			for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
 				int pid = incidence_samples.idSamples[i].samples[j].id;
@@ -729,6 +732,13 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 				int original_time = time_diff;
 				if (time_diff > time_period)
 					time_diff = time_period;
+				if (time_diff < 0) {
+					if (!warn_show_neg)
+						MWARN("Warning: got negative time. time=%d, outcomeTime=%d\n", incidence_samples.idSamples[i].samples[j].time,
+							incidence_samples.idSamples[i].samples[j].outcomeTime);
+					warn_show_neg = true;
+					continue;
+				}
 				int ind = medial::process::binary_search_index(sorted_times[age_index].data(),
 					sorted_times[age_index].data() + sorted_times[age_index].size() - 1, time_diff);
 				if (incidence_samples.idSamples[i].samples[j].outcome <= 0 ||
@@ -763,9 +773,10 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 					const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
 					//update only controls count for group - do for all groups
 					//to get total count from all time windows kaplan meier
-					for (const pair<int, int> &p_i_j : index_order)
-						if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0)
-							++total_controls_all;
+					total_controls_all += index_order.size();
+					//for (const pair<int, int> &p_i_j : index_order)
+						//if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0) //all starts as controls
+						//++total_controls_all;
 				}
 
 				double controls = 0, cases = 0, prob = 1;
@@ -786,8 +797,8 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 						warn_shown = true;
 					}
 					if (total_controls_all > 0 || cases > 0)
-						prob *= total_controls_all / (cases + total_controls_all);
-					total_controls_all -= controls; //remove controls from current time-window - they are now censored
+						prob *= (total_controls_all - cases) / total_controls_all;
+					total_controls_all -= controls - cases; //remove controls from current time-window - they are now censored, cases are no longer controls
 					controls = 0; cases = 0;
 				}
 				prob = 1 - prob;

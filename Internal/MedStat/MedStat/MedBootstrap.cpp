@@ -402,6 +402,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 	}
 
 	MLOG("has %d time_window ranges\n", (int)all_windows.size());
+	bool warn_show_neg = false;
 	for (auto it = all_windows.begin(); it != all_windows.end(); ++it)
 	{
 		unordered_set<int> all_times;
@@ -420,6 +421,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 				int time_diff = (int)window_to_data[time_res][time_window_term][i];
 				if (time_diff > time_res.second)
 					time_diff = time_res.second;
+				if (time_diff < 0)
+					continue;
 				if (all_times.find(time_diff) == all_times.end()) {
 					sorted_times[time_res].push_back(time_diff);
 					all_times.insert(time_diff);
@@ -432,6 +435,13 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 				int time_diff = (int)window_to_data[time_res][time_window_term][i];
 				if (time_diff > time_res.second)
 					time_diff = time_res.second;
+				if (time_diff < 0) {
+					if (!warn_show_neg)
+						MWARN("Warning - Medbootstrap: got negative time. time=%d, outcomeTime=%d\n", window_to_smps[time_res][i].time,
+							window_to_smps[time_res][i].outcomeTime);
+					warn_show_neg = true;
+					continue;
+				}
 				int ind = medial::process::binary_search_index(sorted_times[time_res].data(),
 					sorted_times[time_res].data() + sorted_times[time_res].size() - 1, time_diff);
 				//if (ind < 0 || ind >= sorted_times.size())
@@ -478,6 +488,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 				}
 				double total_ctrl_save = total_controls_all;
 
+				total_controls_all = total_controls_all + total_cases; //all starts as controls
 				for (size_t sort_ind = 0; sort_ind < sorted_times[time_res].size(); ++sort_ind) {
 					const vector<int> &index_order = times_indexes[time_res][sort_ind];
 					ii->second[time_filter_index].max_range = (float)sorted_times[time_res][sort_ind];
@@ -498,8 +509,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 						warn_shown = true;
 					}
 					if (total_controls_all > 0 || cases > 0)
-						prob *= total_controls_all / (cases + total_controls_all);
-					total_controls_all -= controls; //remove controls from current time-window - they are now censored
+						prob *= (total_controls_all - cases) / total_controls_all;
+					total_controls_all -= controls - cases; //remove controls from current time-window - they are now censored, cases are no longer controls
 					controls = 0; cases = 0;
 				}
 				if (prob > 0 && prob < 1)
