@@ -849,7 +849,7 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 }
 
 //===============================================================================================================================
-// CKD (3 levels) code
+// CKD (5 levels) code
 //===============================================================================================================================
 // ckd tables
 void RepCreateRegistry::init_ckd_registry_tables(MedDictionarySections& dict, MedSignals& sigs)
