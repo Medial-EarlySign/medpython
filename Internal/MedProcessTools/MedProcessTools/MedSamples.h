@@ -117,7 +117,7 @@ inline bool comp_patient_id_time(const MedIdSamples &pr1, const MedIdSamples &pr
 */
 //.......................................................................................
 
-class MedSamples : public SerializableObject {
+class MedSamples final : public SerializableObject {
 public:
 	int time_unit = MedTime::Date;	///< The time unit in which the samples are given. Default: Date
 	vector<MedIdSamples> idSamples; ///< The vector of MedIdSamples

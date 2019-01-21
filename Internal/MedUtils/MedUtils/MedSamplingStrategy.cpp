@@ -110,10 +110,8 @@ void MedSamplingTimeWindow::get_sampling_options(const unordered_map<int, vector
 				year_diff_to_first_pred *= 365; //now time in days - convert to time unit
 				year_diff_to_first_pred = med_time_converter.convert_days(global_default_windows_time_unit, (int)year_diff_to_first_pred);
 
-				int min_pred_date; //how many years to go back
 				if (diff_window > year_diff_to_first_pred) //validate we wont go back too far
 					diff_window = int(year_diff_to_first_pred); //window passed max allowed - so cut in max
-				min_pred_date = medial::repository::DateAdd(currDate, -diff_window); //how many years to go back
 
 				int rnd_days_diff = 0;
 				if (take_max || use_random) {

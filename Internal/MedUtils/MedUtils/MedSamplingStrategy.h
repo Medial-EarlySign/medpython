@@ -26,6 +26,8 @@ public:
 	static MedSamplingStrategy *make_sampler(const string &sampler_name);
 	/// @snippet MedSamplingStrategy.cpp MedSamplingStrategy::make_sampler
 	static MedSamplingStrategy *make_sampler(const string &sampler_name, const string &init_params);
+
+	virtual ~MedSamplingStrategy() {};
 };
 
 /**
