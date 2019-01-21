@@ -642,26 +642,18 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	vector<int> all_cnts = { 0,0 };
 	int bin_counts = (max_age - min_age) / age_bin + 1;
 	vector<pair<int, int>> counts(bin_counts), male_counts(bin_counts), female_counts(bin_counts);
-	vector<vector<int>> sorted_times(bin_counts);
-	vector<vector<vector<pair<int, int>>>> times_indexes(bin_counts);
-	vector<vector<bool>> all_times;
+	vector<vector<vector<pair<int, int>>>> filters_idxs(2); //gender, age_bin, vector of idx
 	if (use_kaplan_meir) {
-		all_times.resize(bin_counts);
-		times_indexes.resize(bin_counts);
-		sorted_times.resize(bin_counts);
-		for (size_t i = 0; i < bin_counts; ++i)
-		{
-			sorted_times[i].reserve(time_period + 1);
-			all_times[i].resize(time_period + 1, false);
-		}
+		for (size_t i = 0; i < filters_idxs.size(); ++i)
+			filters_idxs[i].resize(bin_counts);
 	}
 	for (int i = min_age; i < max_age; i += age_bin)
 		counts[(i - min_age) / age_bin] = pair<int, int>(0, 0);
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int len;
-	for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
-		for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
+	for (int i = 0; i < incidence_samples.idSamples.size(); ++i)
+		for (int j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
 			int pid = incidence_samples.idSamples[i].samples[j].id;
 			int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
 			int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
@@ -697,61 +689,13 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 					<< age << "\t" << gender << "\n";
 			}
 
-			if (use_kaplan_meir) {
-				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
-					incidence_samples.idSamples[i].samples[j].outcomeTime));
-				if (time_diff > time_period)
-					time_diff = time_period;
-				if (time_diff < 0)
-					continue;
-				if (!all_times[age_index][time_diff]) {
-					sorted_times[age_index].push_back(time_diff);
-					all_times[age_index][time_diff] = true;
-				}
-			}
+			if (use_kaplan_meir)
+				filters_idxs[gender - 1][age_index].push_back(pair<int, int>(i, j));
 		}
-	if (use_kaplan_meir) {
-		for (int c = 0; c < sorted_times.size(); ++c)
-		{
-			sort(sorted_times[c].begin(), sorted_times[c].end());
-			times_indexes[c].resize(sorted_times[c].size());
-		}
-		//prepare times_indexes:
-		bool warn_show_neg = false;
-		for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
-			for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
-				int pid = incidence_samples.idSamples[i].samples[j].id;
-				int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
-				int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
-				int age_index = (age - min_age) / age_bin;
-				if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
-					continue;
-
-				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
-					incidence_samples.idSamples[i].samples[j].outcomeTime));
-				int original_time = time_diff;
-				if (time_diff > time_period)
-					time_diff = time_period;
-				if (time_diff < 0) {
-					if (!warn_show_neg)
-						MWARN("Warning: got negative time. time=%d, outcomeTime=%d\n", incidence_samples.idSamples[i].samples[j].time,
-							incidence_samples.idSamples[i].samples[j].outcomeTime);
-					warn_show_neg = true;
-					continue;
-				}
-				int ind = medial::process::binary_search_index(sorted_times[age_index].data(),
-					sorted_times[age_index].data() + sorted_times[age_index].size() - 1, time_diff);
-				if (incidence_samples.idSamples[i].samples[j].outcome <= 0 ||
-					original_time <= time_period)
-					times_indexes[age_index][ind].push_back(pair<int, int>((int)i, (int)j));
-			}
-	}
-
 	if (!debug_file.empty())
 		fw_debug.close();
 
 	if (use_kaplan_meir) {
-		bool warn_shown = false;
 		int kaplan_meier_controls_count = 100000;
 		//for each group - Age, Age+Gender... whatever
 		ofstream of_new;
@@ -765,59 +709,23 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 			of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
 			of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
 
+			for (size_t gender = 0; gender < 2; ++gender) {
+				string gender_str = gender + 1 == GENDER_MALE ? "MALE" : "FEMALE";
+				for (int c = 0; c < bin_counts; ++c) {
+					vector<pair<int, int>> &filters = filters_idxs[gender][c];
+					double prob = medial::stats::kaplan_meir_on_samples(incidence_samples, time_period, &filters);
+					if (prob > 0 && prob < 1) {
+						int age = c * age_bin + min_age;
+						//print to file:
+						MLOG("%s:Ages[%d - %d]:%d :: %2.2f%% (size=%zu) (kaplan meier)\n", gender_str.c_str(), age, age + age_bin,
+							age + age_bin / 2, 100 * prob, filters.size());
 
-			for (int c = 0; c < sorted_times.size(); ++c)
-			{
-				double total_controls_all = 0;
-				for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
-					const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
-					//update only controls count for group - do for all groups
-					//to get total count from all time windows kaplan meier
-					total_controls_all += index_order.size();
-					//for (const pair<int, int> &p_i_j : index_order)
-						//if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0) //all starts as controls
-						//++total_controls_all;
-				}
-
-				double controls = 0, cases = 0, prob = 1;
-				for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
-					const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
-					for (const pair<int, int> &p_i_j : index_order) {
-						//keep update kaplan meir in time point
-						if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome > 0)
-							++cases;
-						else
-							++controls;
-					}
-					//reset kaplan meir - flash last time prob
-					if (!warn_shown && total_controls_all < 10) {
-						MWARN("the kaplan_meir left with small amount of controls - "
-							" try increasing the sampling / use smaller time window because the"
-							" registry has not so long period of tracking patients\n");
-						warn_shown = true;
-					}
-					if (total_controls_all > 0 || cases > 0)
-						prob *= (total_controls_all - cases) / total_controls_all;
-					total_controls_all -= controls - cases; //remove controls from current time-window - they are now censored, cases are no longer controls
-					controls = 0; cases = 0;
-				}
-				prob = 1 - prob;
-				if (prob > 0 && prob < 1) {
-					int age = c * age_bin + min_age;
-					//print to file:
-					MLOG("Ages[%d - %d]:%d :: %2.2f%% (kaplan meier)\n", age, age + age_bin,
-						age + age_bin / 2, 100 * prob);
-
-					if (age >= min_age && age <= max_age) {
-						of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
-						of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
-
-						of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
-						of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+						if (age >= min_age && age <= max_age) {
+							of_new << "STATS_ROW" << "\t" << gender_str << "\t" <<
+								age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+							of_new << "STATS_ROW" << "\t" << gender_str << "\t" <<
+								age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+						}
 					}
 				}
 			}

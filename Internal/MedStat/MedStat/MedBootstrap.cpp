@@ -370,8 +370,6 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 	unordered_set<pair<int, int>, pair_hash> all_windows;
 	unordered_map<string, pair<int, int>> cohort_to_time_res;
 	unordered_map<string, int> cohort_to_time_filter_index;
-	unordered_map<pair<int, int>, vector<int>, pair_hash> sorted_times;
-	unordered_map<pair<int, int>, vector<vector<int>>, pair_hash> times_indexes;
 	unordered_map<int, vector<MedRegistryRecord *>> pid_to_reg, pid_to_censor;
 	MedFeatures *final_features = &features_mat;
 	if (simTimeWindow) {
@@ -402,7 +400,6 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 	}
 
 	MLOG("has %d time_window ranges\n", (int)all_windows.size());
-	bool warn_show_neg = false;
 	for (auto it = all_windows.begin(); it != all_windows.end(); ++it)
 	{
 		unordered_set<int> all_times;
@@ -415,44 +412,8 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 		get_data_for_filter(args.json_model, args.rep_path, single_cohort,
 			registry->registry_records, *sampler_year, window_to_data[time_res], window_to_smps[time_res],
 			lbl_params, args.registry_censor);
-		MLOG("Done preparing matrix of incidence for filtering with %d width...\n", time_res);
-		if (args.do_kaplan_meir) {
-			for (size_t i = 0; i < window_to_smps[time_res].size(); ++i) {
-				int time_diff = (int)window_to_data[time_res][time_window_term][i];
-				if (time_diff > time_res.second)
-					time_diff = time_res.second;
-				if (time_diff < 0)
-					continue;
-				if (all_times.find(time_diff) == all_times.end()) {
-					sorted_times[time_res].push_back(time_diff);
-					all_times.insert(time_diff);
-				}
-			}
-			sort(sorted_times[time_res].begin(), sorted_times[time_res].end());
-			times_indexes[time_res].resize(sorted_times[time_res].size());
-			for (size_t i = 0; i < window_to_smps[time_res].size(); ++i)
-			{
-				int time_diff = (int)window_to_data[time_res][time_window_term][i];
-				if (time_diff > time_res.second)
-					time_diff = time_res.second;
-				if (time_diff < 0) {
-					if (!warn_show_neg)
-						MWARN("Warning - Medbootstrap: got negative time. time=%d, outcomeTime=%d\n", window_to_smps[time_res][i].time,
-							window_to_smps[time_res][i].outcomeTime);
-					warn_show_neg = true;
-					continue;
-				}
-				int ind = medial::process::binary_search_index(sorted_times[time_res].data(),
-					sorted_times[time_res].data() + sorted_times[time_res].size() - 1, time_diff);
-				//if (ind < 0 || ind >= sorted_times.size())
-				//	MTHROW_AND_ERR("BUG: bug in binary search\n");
-				//skip cases after time window - will not occour, so skip
-				if (window_to_smps[time_res][i].outcome <= 0 || (int)window_to_data[time_res][time_window_term][i] <= time_res.second)
-					times_indexes[time_res][ind].push_back((int)i);
-			}
-		}
+		MLOG("Done preparing matrix of incidence for filtering with [%d, %d] window...\n", time_res.first, time_res.second);
 	}
-	bool warn_shown = false;
 	for (auto ii = filter_cohort.begin(); ii != filter_cohort.end(); ++ii) {
 		final_features = &features_mat;
 		single_cohort.filter_cohort.clear();
@@ -465,61 +426,30 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 				time_filter = ii->second[i];
 				break;
 			}
+		vector<Filter_Param> without_time_filter = ii->second;
+		without_time_filter.erase(without_time_filter.begin() + cohort_to_time_filter_index[ii->first]);
 
 		//save incidence_fix in ROC_Params
 		if (cohort_to_time_res.find(ii->first) != cohort_to_time_res.end()) {
 			const pair<int, int> &time_res = cohort_to_time_res[ii->first];
-			int time_filter_index = cohort_to_time_filter_index[ii->first];
-			double controls = 0, cases = 0, prob = 1;
+			double controls = 0, cases = 0;
 			if (args.do_kaplan_meir) {
-				double total_controls_all = 0, total_cases = 0;
-				for (size_t sort_ind = 0; sort_ind < sorted_times[time_res].size(); ++sort_ind) {
-					const vector<int> &index_order = times_indexes[time_res][sort_ind];
-					ii->second[time_filter_index].max_range = (float)sorted_times[time_res][sort_ind];
-					//update only controls count for time window - do for all time windows
-					//to get total count from all time windows kaplna meir
-					for (int i : index_order)
-						if (filter_range_params(window_to_data[time_res], (int)i, &ii->second)) {
-							if (window_to_smps[time_res][i].outcome <= 0)
-								++total_controls_all;
-							else
-								++total_cases;
-						}
-				}
-				double total_ctrl_save = total_controls_all;
+				vector<int> sel_idx;
+				//update only controls count for time window - do for all time windows
+				//to get total count from all time windows kaplna meir
+				for (int i = 0; i < window_to_smps[time_res].size(); ++i)
+					if (filter_range_params(window_to_data[time_res], (int)i, &without_time_filter))
+						sel_idx.push_back(i);
+				double prob = medial::stats::kaplan_meir_on_samples(window_to_smps[time_res], features_mat.time_unit, time_res.second - time_res.first,
+					&sel_idx);
 
-				total_controls_all = total_controls_all + total_cases; //all starts as controls
-				for (size_t sort_ind = 0; sort_ind < sorted_times[time_res].size(); ++sort_ind) {
-					const vector<int> &index_order = times_indexes[time_res][sort_ind];
-					ii->second[time_filter_index].max_range = (float)sorted_times[time_res][sort_ind];
-					for (int i : index_order) {
-						if (filter_range_params(window_to_data[time_res], (int)i, &ii->second)) {
-							//keep update kaplan meir in time point
-							if (window_to_smps[time_res][i].outcome > 0)
-								++cases;
-							else
-								++controls;
-						}
-					}
-					//reset kaplan meir - flash last time prob
-					if (!warn_shown && total_controls_all < 10) {
-						MWARN("the kaplan_meir left with small amount of controls - "
-							" try increasing the sampling / use smaller time window because the"
-							" registry has not so long period of tracking patients\n");
-						warn_shown = true;
-					}
-					if (total_controls_all > 0 || cases > 0)
-						prob *= (total_controls_all - cases) / total_controls_all;
-					total_controls_all -= controls - cases; //remove controls from current time-window - they are now censored, cases are no longer controls
-					controls = 0; cases = 0;
-				}
 				if (prob > 0 && prob < 1)
-					single_cohort.roc_Params.incidence_fix = 1 - prob;
+					single_cohort.roc_Params.incidence_fix = prob;
 				else
 					MWARN("In MedBootstrap::bootstrap_using_registry - Has no cases/controls in Incidence - please check registry or sampling args\n");
 
-				MLOG("Incidence for %s cohort is %2.4f%% (kaplan meir) - totals: (%d, %d)\n",
-					ii->first.c_str(), single_cohort.roc_Params.incidence_fix * 100, (int)total_ctrl_save, (int)total_cases);
+				MLOG("Incidence for %s cohort is %2.4f%% (kaplan meir) - total in cohort: (%zu)\n",
+					ii->first.c_str(), single_cohort.roc_Params.incidence_fix * 100, sel_idx.size());
 			}
 			else {
 				for (size_t i = 0; i < window_to_smps[time_res].size(); ++i)
