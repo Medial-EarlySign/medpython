@@ -5,6 +5,7 @@
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <boost/crc.hpp>
 #include <random>
+#include <algorithm>
 
 #define LOCAL_SECTION MED_SAMPLES_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -25,7 +26,7 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		if (pos["id"] != -1)
 			id = (int)stod(fields[pos["id"]]);
 		if (pos["date"] != -1) {
-			if (raw_format) 
+			if (raw_format)
 				time = stoi(fields[pos["date"]]);
 			else
 				time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 2);
@@ -357,7 +358,7 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 				else if (fields[0] == "TYPE") MLOG("reading TYPE = %s\n", fields[1].c_str());
 				else if (fields[0] == "NCATEG")  MLOG("reading NCATEG = %s\n", fields[1].c_str());
 				else if (fields[0] == "RAW_FORMAT") {
-					MLOG("reading RAW_FORMAT = %s\n", fields[1].c_str()); 
+					MLOG("reading RAW_FORMAT = %s\n", fields[1].c_str());
 					raw_format = stoi(fields[1]);
 					MLOG("raw_format is %d\n", raw_format);
 				}
@@ -367,7 +368,7 @@ int MedSamples::read_from_file(const string &fname, bool sort_rows)
 					MLOG("time unit is %d\n", time_unit);
 				}
 				else if ((fields[0] == "EVENT_FIELDS" || fields[0] == "pid" || fields[0] == "id") && read_records == 1) {
-					extract_field_pos_from_header(fields, pos, pred_pos, attr_pos,str_attr_pos);
+					extract_field_pos_from_header(fields, pos, pred_pos, attr_pos, str_attr_pos);
 					continue;
 				}
 
@@ -634,25 +635,25 @@ void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
 //.......................................................................................
 void MedSamples::import_from_sample_vec(vector<MedSample> &vec_samples, bool allow_split_inconsistency) {
 
-	idSamples.clear() ;
-	map<int,int> id2idx ;
-	map<int,int> id2split ;
-	
+	idSamples.clear();
+	map<int, int> id2idx;
+	map<int, int> id2split;
+
 	for (MedSample& sample : vec_samples) {
 		if (id2idx.find(sample.id) == id2idx.end()) {
-			id2idx[sample.id] = (int) idSamples.size(); 
+			id2idx[sample.id] = (int)idSamples.size();
 
-			idSamples.resize(idSamples.size()+1);
-			idSamples.back().id = sample.id ;
-			idSamples.back().split = sample.split ;
+			idSamples.resize(idSamples.size() + 1);
+			idSamples.back().id = sample.id;
+			idSamples.back().split = sample.split;
 		}
-		
+
 		int idx = id2idx[sample.id];
-		if (! allow_split_inconsistency && idSamples[idx].split != sample.split)
-			MTHROW_AND_ERR("Split incosistency for pid=%d\n",sample.id);
+		if (!allow_split_inconsistency && idSamples[idx].split != sample.split)
+			MTHROW_AND_ERR("Split incosistency for pid=%d\n", sample.id);
 		idSamples[idx].samples.push_back(sample);
 	}
-	
+
 	// Sort
 	sort_by_id_date();
 }
@@ -691,6 +692,12 @@ bool MedSamples::same_as(MedSamples &other, int mode) {
 	}
 
 	return true;
+}
+
+void MedSamples::flatten(vector<MedSample> &flat) const {
+	for (size_t i = 0; i < idSamples.size(); ++i)
+		for (size_t j = 0; j < idSamples[i].samples.size(); ++j)
+			flat.push_back(idSamples[i].samples[j]);
 }
 
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {
@@ -991,4 +998,106 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 	}
 	samples.idSamples.swap(filterd.idSamples);
 	samples.sort_by_id_date();
+}
+
+double medial::stats::kaplan_meir_on_samples(const vector<MedSample> &incidence_samples, int time_unit, int time_period, const vector<int> *filtered_idx) {
+	vector<int> sorted_times;
+	vector<bool> all_times(time_period + 1);
+	vector<vector<int>> times_indexes;
+	sorted_times.reserve(time_period + 1);
+	vector<int> final_filter;
+	const vector<int> *p_filter = filtered_idx;
+	if (filtered_idx == NULL) {
+		for (int i = 0; i < incidence_samples.size(); ++i)
+			final_filter.push_back(i);
+		p_filter = &final_filter;
+	}
+
+	double controls = 0, cases = 0, prob = 1;
+	double curr_total_ctrls = (double)p_filter->size();
+
+	for (int idx : *p_filter) {
+		int time_diff =
+			med_time_converter.convert_times(time_unit, global_default_windows_time_unit, incidence_samples[idx].outcomeTime) -
+			med_time_converter.convert_times(time_unit, global_default_windows_time_unit, incidence_samples[idx].time);
+		if (time_diff > time_period)
+			time_diff = time_period;
+		if (time_diff < 0)
+			continue;
+		if (!all_times[time_diff]) {
+			sorted_times.push_back(time_diff);
+			all_times[time_diff] = true;
+		}
+	}
+
+
+	sort(sorted_times.begin(), sorted_times.end());
+	times_indexes.resize(sorted_times.size());
+	bool warn_show_neg = false, warn_case = false;
+	for (int idx : *p_filter) {
+		int time_diff =
+			med_time_converter.convert_times(time_unit, global_default_windows_time_unit, incidence_samples[idx].outcomeTime) -
+			med_time_converter.convert_times(time_unit, global_default_windows_time_unit, incidence_samples[idx].time);
+		int original_time = time_diff;
+		if (time_diff > time_period)
+			time_diff = time_period;
+		if (time_diff < 0) {
+			if (!warn_show_neg)
+				MWARN("Warning - kaplan_meir_on_samples: got negative time. time=%d, outcomeTime=%d\n",
+					incidence_samples[idx].time, incidence_samples[idx].outcomeTime);
+			warn_show_neg = true;
+			continue;
+		}
+		int ind = medial::process::binary_search_index(sorted_times.data(),
+			sorted_times.data() + sorted_times.size() - 1, time_diff);
+
+		if (incidence_samples[idx].outcome <= 0 || original_time <= time_period)
+			times_indexes[ind].push_back(idx);
+		else {
+			if (!warn_case) {
+				MWARN("Warning - kaplan_meir_on_samples: got case beyond period time: %d on time %d, outcomeTime %d\n",
+					incidence_samples[idx].id, incidence_samples[idx].time, incidence_samples[idx].outcomeTime);
+				warn_case = true;
+			}
+		}
+	}
+
+	for (size_t sort_ind = 0; sort_ind < sorted_times.size(); ++sort_ind) {
+		const vector<int> &index_order = times_indexes[sort_ind];
+		for (int p_i_j : index_order) {
+			//keep update kaplan meir in time point
+			if (incidence_samples[p_i_j].outcome > 0)
+				++cases;
+			else
+				++controls;
+		}
+		//reset kaplan meir - flash last time prob
+
+		if (curr_total_ctrls > 0 && cases > 0)
+			prob *= (curr_total_ctrls - cases) / curr_total_ctrls;
+		//MLOG_D("Current Time= %d, total_controls=%d [controls=%d, cases=%d], curr_prob=%2.3f%%\n",
+		//	sorted_times[sort_ind], (int)curr_total_ctrls, (int)controls, (int)cases, 100 * (1 - prob));
+		curr_total_ctrls -= (controls + cases); //remove controls from current time-window - they are now censored, cases are no longer controls
+		controls = 0; cases = 0;
+	}
+	prob = 1 - prob;
+
+	return prob;
+}
+
+double medial::stats::kaplan_meir_on_samples(const MedSamples &incidence_samples, int time_period, const vector<pair<int, int>> *filtered_idx) {
+	vector<MedSample> final_samples;
+
+	vector<pair<int, int>> final_filter;
+	const vector<pair<int, int>> *p_filter = filtered_idx;
+	if (filtered_idx == NULL) {
+		for (int i = 0; i < incidence_samples.idSamples.size(); ++i)
+			for (int j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j)
+				final_filter.push_back(pair<int, int>(i, j));
+		p_filter = &final_filter;
+	}
+	for (const pair<int, int> &idx : *p_filter)
+		final_samples.push_back(incidence_samples.idSamples[idx.first].samples[idx.second]);
+
+	return kaplan_meir_on_samples(final_samples, incidence_samples.time_unit, time_period);
 }

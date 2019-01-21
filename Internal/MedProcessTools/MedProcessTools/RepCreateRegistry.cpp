@@ -48,6 +48,14 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "ht_extra_drugs") boost::split(ht_extra_drugs, entry.second, boost::is_any_of(","));
 		else if (field == "ht_drugs_gap") ht_drugs_gap = stoi(entry.second);
 
+		// Prteinuria
+		else if (field == "urine_tests_categories") boost::split(urine_tests_categories, entry.second, boost::is_any_of("/"));
+
+		// ckd
+		else if (field == "ckd_egfr_sig") ckd_egfr_sig = entry.second;
+		else if (field == "ckd_proteinuria_sig") ckd_proteinuria_sig = entry.second;
+
+
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCreateRegistry::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCreateRegistry::init]
@@ -69,6 +77,8 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 			virtual_signals[i].first = names[i];
 	}
 
+	MLOG("virtual 0 : %s\n", virtual_signals[0].first.c_str());
+
 	if (!signals.empty()) {
 		if (signals.size() != type2reqSigs.at(registry).size())
 			MTHROW_AND_ERR("Wrong number of signals supplied for RepCreateRegistry::%s - supplied %zd, required %zd\n", registry_name.c_str(), signals.size(),
@@ -85,10 +95,18 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		ht_init_defaults();
 
 	if (registry == REP_REGISTRY_DM) {
-
 		if (registry_values.empty())
 			registry_values = dm_reg_values;
+	}
 
+	if (registry == REP_REGISTRY_PROTEINURIA) {
+		if (registry_values.empty())
+			registry_values = proteinuria_reg_values;
+	}
+
+	if (registry == REP_REGISTRY_CKD) {
+		if (registry_values.empty())
+			registry_values = ckd_reg_values;
 	}
 
 	return 0;
@@ -150,6 +168,10 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 		init_ht_registry_tables(dict, sigs);
 	else if (registry == REP_REGISTRY_DM)
 		init_dm_registry_tables(dict, sigs);
+	else if (registry == REP_REGISTRY_PROTEINURIA)
+		init_proteinuria_registry_tables(dict, sigs);
+	else if (registry == REP_REGISTRY_CKD)
+		init_ckd_registry_tables(dict, sigs);
 }
 
 // Applying
@@ -178,7 +200,10 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			ht_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 		else if (registry == REP_REGISTRY_DM)
 			dm_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
-		
+		else if (registry == REP_REGISTRY_PROTEINURIA)
+			proteinuria_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
+		else if (registry == REP_REGISTRY_CKD)
+			ckd_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 
 		// pushing virtual data into rec
 		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++) 
@@ -695,4 +720,254 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	}
 	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
 #endif
+}
+
+//===============================================================================================================================
+// Proteinuria (3 levels) code
+//===============================================================================================================================
+// proteinuria tables
+void RepCreateRegistry::init_proteinuria_registry_tables(MedDictionarySections& dict, MedSignals& sigs)
+{
+	proteinuria_ranges.clear();
+	for (auto &c : urine_tests_categories) {
+		//MLOG("Parsing %s\n", c.c_str());
+		vector<string> f;
+		boost::split(f, c, boost::is_any_of(":"));
+		RegistryDecisionRanges rdr;
+		rdr.sig_name = f[0];
+		rdr.is_numeric = stoi(f[1]);
+		for (int j = 2; j < f.size(); j++) {
+			vector<string> f2;
+			boost::split(f2, f[j], boost::is_any_of(","));
+			if (rdr.is_numeric) {
+				rdr.ranges.push_back(pair<float, float>(stof(f2[0]), stof(f2[1])));
+			}
+			else {
+				rdr.categories.push_back(f2);
+			}
+		}
+		rdr.usv_idx = -1;
+		//MLOG("rdr %s is_n %d ", rdr.sig_name.c_str(), rdr.is_numeric);
+		//for (auto &e : rdr.ranges) MLOG(" %f-%f ", e.first, e.second);
+		//for (auto &e : rdr.categories) for (auto &s : e) MLOG(" %s ", s.c_str());
+		//MLOG("\n");
+		proteinuria_ranges.push_back(rdr);
+
+	}
+
+	for (auto &r : proteinuria_ranges) {
+		r.sig_id = sigs.sid(r.sig_name);
+		if (!r.is_numeric) {
+			r.categories_i.resize(r.categories.size());
+			for (int j = 0; j < r.categories.size(); j++) {
+				r.categories_i[j].clear();
+				int section_id = dict.section_id(r.sig_name);
+				for (auto &c : r.categories[j])
+					if (dict.dicts[section_id].Name2Id.find(c) != dict.dicts[section_id].Name2Id.end())
+						r.categories_i[j].push_back(dict.dicts[section_id].Name2Id[c]);
+			}
+		}
+
+		int j = 0;
+		for (auto &rsig : signals) {
+			if (r.sig_name == rsig) {
+				r.usv_idx = j;
+				break;
+			}
+			j++;
+		}
+	}
+
+}
+
+// proteinuria apply
+void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes)
+{
+	int time = -1;
+	if (time_points.size() > 0) time = time_points[iver];
+
+	vector<pair<int, int>> proteinuria_ev;
+
+	// collecting events
+	for (auto &r : proteinuria_ranges) {
+		//MLOG("Proteinuria: pid %d,%d : sig %s , %d : idx %d : len %d\n", rec.pid, time, r.sig_name.c_str(), r.sig_id, r.usv_idx, usvs[r.usv_idx].len);
+		UniversalSigVec &rusv = usvs[r.usv_idx];
+		for (int j = 0; j < rusv.len; j++) {
+			int i_time = rusv.Time(j);
+			if (time > 0 && i_time > time) break;
+
+			int found = -1;
+			if (r.is_numeric) {
+				float f_val = rusv.Val(j);
+				for (int k = 0; found < 0 && k < r.ranges.size(); k++) {
+					if (f_val >= r.ranges[k].first && f_val < r.ranges[k].second)
+						found = k;
+				}
+			}
+			else {
+				int i_val = (int)rusv.Val(j);
+				for (int k = 0; found < 0 && k < r.categories_i.size(); k++) {
+					for (auto &ci : r.categories_i[k])
+						if (i_val == ci) {
+							found = k;
+							break;
+						}
+				}
+
+			}
+			if (found > 0)	proteinuria_ev.push_back(pair<int, int>(i_time, found));
+		}
+	}
+
+	// get the max value for each day, sort and unique all in one using map
+	map<int, int> time2val;
+	for (auto &p : proteinuria_ev) {
+		if (time2val.find(p.first) == time2val.end())
+			time2val[p.first] = p.second;
+		else
+			if (p.second > time2val[p.first])
+				time2val[p.first] = p.second;
+	}
+
+	// loading into all_v_times, all_v_vals, final_sizes
+	all_v_times[0].clear();
+	all_v_vals[0].clear();
+	final_sizes[0] = 0;
+
+	for (auto &e : time2val) {
+		// push Healthy, Pre, or DM
+		all_v_vals[0].push_back((float)e.second);
+		all_v_times[0].push_back(e.first);
+		final_sizes[0]++;
+	}
+
+#if 0
+	// debug
+	MLOG("Proteinuria State : pid %d %d : ", rec.pid, time);
+	for (auto &e : time2val)
+		MLOG(" %d,%d :", e.first, e.second);
+	MLOG("\n");
+#endif
+}
+
+//===============================================================================================================================
+// CKD (5 levels) code
+//===============================================================================================================================
+// ckd tables
+void RepCreateRegistry::init_ckd_registry_tables(MedDictionarySections& dict, MedSignals& sigs)
+{
+	int i = 0;
+	for (auto &rsig : signals) {
+		if (rsig == ckd_egfr_sig) ckd_egfr_idx = i;
+		if (rsig == ckd_proteinuria_sig) ckd_proteinuria_idx = i;
+		//MLOG("CKD: rsig %s ( %s , %s ) i %d idx: e %d p %d\n", rsig.c_str(), ckd_egfr_sig.c_str(), ckd_proteinuria_sig.c_str(), i, ckd_egfr_idx, ckd_proteinuria_idx);
+		i++;
+	}
+}
+
+// ckd apply
+void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes)
+{
+	int time = -1;
+	if (time_points.size() > 0) time = time_points[iver];
+
+	map<int, int> ckd_ev;
+
+	UniversalSigVec &p_usv = usvs[ckd_proteinuria_idx];
+	UniversalSigVec &e_usv = usvs[ckd_egfr_idx];
+
+	int ip = 0, ie = 0;
+	float last_p = -1, last_e = -1;
+	int e_time = -1, p_time = -1;
+	float e_val = -1, p_val = -1;
+	int i_time = -1;
+	while (ip < p_usv.len || ie < e_usv.len) {
+
+		if (ie < e_usv.len) {
+			e_time = e_usv.Time(ie);
+			e_val = e_usv.Val(ie);
+		}
+		else
+			e_time = -1;
+
+		if (ip < p_usv.len) {
+			p_time = p_usv.Time(ip);
+			p_val = p_usv.Val(ip);
+		}
+		else
+			p_time = -1;
+
+		i_time = -1;
+
+		if (e_time > 0 && (p_time < 0 || e_time <= p_time)) {
+			i_time = e_time;
+			last_e = e_val;
+			ie++;
+		}
+
+		if (p_time > 0 && (e_time < 0 || p_time <= e_time)) {
+			i_time = p_time;
+			last_p = p_val;
+			ip++;
+		}
+
+		if (i_time > time) break;
+
+		//MLOG("CKD: pid %d %d : ip %d/%d ie %d/%d i_time %d last_e %f last_p %f\n", rec.pid, time, ip, p_usv.len, ie, e_usv.len, i_time, last_e, last_p);
+
+		// we now have last_e, last_p and i_time , and can insert a new event
+		if (i_time > 0) {
+			pair<int, int> ev(i_time, -1);
+
+			if (last_e <= 15 && last_e >= 0) ev.second = 4;
+
+			else if ((last_e < 0 && last_p <= 0) || (last_e > 60 && last_p <= 0))
+				ev.second = 0;
+
+			else if ((last_e > 45 && last_e <= 60 && last_p <= 0) ||
+				(last_e > 60 && last_p == 1) ||
+				(last_e < 0 && last_p == 1))
+				ev.second = 1;
+
+			else if ((last_e > 30 && last_e <= 45 && last_p <= 0) ||
+				(last_e > 45 && last_e <= 60 && last_p == 1) ||
+				(last_e > 60 && last_p == 2) ||
+				(last_e < 0 && last_p == 2))
+				ev.second = 2;
+
+			else if ((last_e > 15 && last_e <= 30) ||
+				(last_e > 30 && last_e <= 45 && last_p >= 1) ||
+				(last_e > 45 && last_e <= 60 && last_p == 2))
+				ev.second = 3;
+
+			if (ev.second > 0) {
+				if (ckd_ev.find(i_time) == ckd_ev.end())
+					ckd_ev[i_time] = ev.second;
+				else
+					if (ev.second > ckd_ev[i_time])
+						ckd_ev[i_time] = ev.second;
+			}
+		}
+	}
+
+	// loading into all_v_times, all_v_vals, final_sizes
+	all_v_times[0].clear();
+	all_v_vals[0].clear();
+	final_sizes[0] = 0;
+
+	for (auto &e : ckd_ev) {
+		all_v_vals[0].push_back((float)e.second);
+		all_v_times[0].push_back(e.first);
+		final_sizes[0]++;
+	}
+
+#if 0
+	// debug
+	MLOG("CKD State : pid %d %d : ", rec.pid, time);
+	for (auto &e : ckd_ev)
+		MLOG(" %d,%d :", e.first, e.second);
+	MLOG("\n");
+#endif
+
+
 }

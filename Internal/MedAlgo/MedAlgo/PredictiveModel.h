@@ -22,6 +22,8 @@ public:
 
 	vector<double> model_params;///<model parameters
 	string model_name;///<model name
+
+	virtual ~PredictiveModel() = default;
 };
 
 #endif // !__PREDICTIVE_MODEL_H__

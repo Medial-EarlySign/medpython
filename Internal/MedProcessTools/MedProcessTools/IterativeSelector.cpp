@@ -60,7 +60,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 			// Cross Validation
 			if (selectedFeatures.size() > 0) {
-				int samplesIdx = 0; 
+				int samplesIdx = 0;
 				for (int iRun = 0; iRun < nRuns; iRun++) {
 
 					// Get Train SubMatrix
@@ -85,14 +85,14 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 					// Insert predictions to samples
 					for (size_t i = 0; i < preds.size(); i++)
-						bootstrapFeatures.samples[samplesIdx+i].prediction[0] = preds[i];
-					samplesIdx += (int) preds.size();
+						bootstrapFeatures.samples[samplesIdx + i].prediction[0] = preds[i];
+					samplesIdx += (int)preds.size();
 
 				}
 
 				// Performance
 				bootstrapper.bootstrap(bootstrapFeatures);
-				scores.push_back({ family,  bootstrapper.bootstrap_results["bs"][measurement_name]});
+				scores.push_back({ family,  bootstrapper.bootstrap_results["bs"][measurement_name] });
 			}
 			else
 				scores.push_back({ family,(float)-1.0 });
@@ -105,7 +105,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
-				MLOG("\tCurrent round running for %f min. Estimated time : %f min.\n", diff, diff * ((float)families.size()) / counter);
+				MLOG("\tCurrent round running for %2.2f min. Estimated time : %2.2f min.\n", diff, diff * ((float)families.size()) / counter);
 			}
 
 		}
@@ -207,8 +207,8 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 
 				// Insert predictions to samples
 				for (size_t i = 0; i < preds.size(); i++)
-					bootstrapFeatures.samples[samplesIdx+i].prediction[0] = preds[i];
-				samplesIdx += (int) preds.size();
+					bootstrapFeatures.samples[samplesIdx + i].prediction[0] = preds[i];
+				samplesIdx += (int)preds.size();
 			}
 
 			// Performance
@@ -222,7 +222,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 				report.push_back(report_s);
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
-				MLOG("\tCurrent round: Adding to %d out of %d. Running for %f min. Estimated time : %f min.\n", selectedFamilies.size(), nFamilies, diff,
+				MLOG("\tCurrent round: Adding to %d out of %d. Running for %2.2f min. Estimated time : %2.2f min.\n", selectedFamilies.size(), nFamilies, diff,
 					diff * ((float)unSelectedFamilies.size()) / counter);
 			}
 		}
@@ -275,7 +275,7 @@ void IterativeFeatureSelector::prepare_for_iterations(MedBootstrapResult& bootst
 	map<string, vector<float>> denormalized;
 	for (string name : required_features) {
 		denormalized[name].resize(nSamples);
-		for (int i = 0; i < nSamples;i++)
+		for (int i = 0; i < nSamples; i++)
 			denormalized[name][i] = features.data[name][i] * bootstrapFeatures.attributes[name].denorm_sdv + bootstrapFeatures.attributes[name].denorm_mean;
 	}
 
@@ -391,12 +391,16 @@ void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<
 // Cohort initialization. Example: Age:30,80/TimeWindow:0,360
 void IterativeFeatureSelector::init_bootstrap_cohort(MedBootstrapResult& bootstrapper, string& init) {
 
-	vector<string> params;
-	boost::split(params, init, boost::is_any_of("/"));
-	vector<Filter_Param> convert_params((int)params.size());
-	for (size_t i = 0; i < params.size(); ++i) {
-		if (! params[i].empty())	
-			convert_params[i] = Filter_Param(params[i]);
+	bootstrapper.bootstrap_params.filter_cohort.clear(); //clears "All" default cohort with no filters
+	vector<Filter_Param> convert_params;
+	if (!init.empty()) { //If empty - no filters, take all samples
+		vector<string> params;
+		boost::split(params, init, boost::is_any_of("/"));
+		convert_params.resize(params.size());
+		for (size_t i = 0; i < params.size(); ++i) {
+			if (!params[i].empty())
+				convert_params[i] = Filter_Param(params[i]);
+		}
 	}
 	bootstrapper.bootstrap_params.filter_cohort["bs"] = convert_params;
 }
@@ -424,16 +428,16 @@ void IterativeFeatureSelector::init_bootstrap_params(MedBootstrapResult& bootstr
 	else if (params.size() == 3) {
 		float target = stof(params[2]);
 		if ((params[1] == "PR" && (params[0] == "SENS" || params[0] == "SPEC")))
-			bootstrapper.bootstrap_params.roc_Params.working_point_PR.push_back(100*target);
+			bootstrapper.bootstrap_params.roc_Params.working_point_PR.push_back(100 * target);
 		else if (params[1] == "FPR" && params[0] == "SENS")
 			bootstrapper.bootstrap_params.roc_Params.working_point_FPR.push_back(100 * target);
 		else if (params[1] == "SENS" && params[0] == "SPEC")
 			bootstrapper.bootstrap_params.roc_Params.working_point_SENS.push_back(100 * target);
 		else
 			MTHROW_AND_ERR("Cannot parse bootstrap-measuremnt initialization string \'%s\'\n", init.c_str());
-		
+
 		bootstrapper.bootstrap_params.measurements_with_params = { pair<MeasurementFunctions, Measurement_Params *>(calc_roc_measures_with_inc, &bootstrapper.bootstrap_params.roc_Params) };
-		measurement_name = format_working_point(params[0] + "@" + params[1], target) + "_Obs"; 
+		measurement_name = format_working_point(params[0] + "@" + params[1], target) + "_Obs";
 	}
-	
+
 }
