@@ -1194,6 +1194,8 @@ public:
 	vector<string> registry_values; ///< values of registry (to appear in relevant section of dictionary)
 	int time_unit = -1; ///< time-unit of registry
 
+	bool verbose = false; ///< verbosity
+
 	// Registry specific parameters
 	// Hypertension
 	vector<string> ht_identifiers; ///< identifiers (ReadCodes) of HT
