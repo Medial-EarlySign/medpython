@@ -490,7 +490,7 @@ public:
 	{13,{"HDL_over_LDL","HDL","LDL"}},
 	{14,{"HDL_over_LDL","LDL_over_HDL"}},
 	{15,{"Cholesterol_over_HDL","Cholesterol","HDL"}},
-	{17,{"Cholesterol_over_HDL","HDL_over_Cholestrol"}}, //rule 16 canceled
+	{17,{"Cholesterol_over_HDL","HDL_over_Cholesterol"}}, //rule 16 canceled
 	{18,{"LDL_over_HDL","LDL","HDL"}},
 	{19,{"Albumin","Protein_Total"}},
 	{20,{"FreeT4","T4"}},
