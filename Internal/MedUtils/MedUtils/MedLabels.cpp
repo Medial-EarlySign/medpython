@@ -116,7 +116,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 	, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to,
 	const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
 	ConflictMode conflict_mode, vector<MedSample> &idSamples,
-	int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor) {
+	int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor, bool show_conflicts) {
 	int curr_index = 0, final_selected = -1;
 	float reg_val = -1;
 	int reg_time = -1;
@@ -125,6 +125,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 	MedSample smp;
 	smp.time = pred_time;
 	smp.id = pid_records.front()->pid;
+	vector<const MedRegistryRecord *> matched_regs;
 
 	//run on all matches:
 	while (curr_index < pid_records.size()) {
@@ -160,8 +161,12 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 			reg_val = pid_records[curr_index]->registry_value;
 			reg_time = pid_records[curr_index]->end_date;
 			final_selected = curr_index;
+			if (show_conflicts)
+				matched_regs.push_back(pid_records[curr_index]);
 		}
 		else if (reg_val != pid_records[curr_index]->registry_value) {
+			if (show_conflicts)
+				matched_regs.push_back(pid_records[curr_index]);
 			//if already found and conflicting:
 			if (conflict_mode == ConflictMode::Drop) {
 				reg_val = -1;
@@ -176,7 +181,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 					final_selected = curr_index;
 				}
 			}
-			else {
+			else if (conflict_mode == ConflictMode::All) {
 				//insert current and update next:
 				smp.outcomeTime = reg_val > 0 ? pid_records[curr_index]->start_date : reg_time;
 				smp.outcome = reg_val;
@@ -187,9 +192,11 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 				reg_time = pid_records[curr_index]->end_date;
 				final_selected = curr_index;
 			}
+			else
+				MTHROW_AND_ERR("Error in medial::sampling::get_label_for_sample - Unsupported conflict method %d\n", conflict_mode);
 #pragma omp atomic
 			++conflict_count;
-			break;
+			//break;
 		}
 
 		++curr_index;
@@ -200,6 +207,18 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 		smp.outcome = reg_val;
 		idSamples.push_back(smp);
 		++done_count;
+	}
+
+	if (show_conflicts && matched_regs.size() >= 2) {
+		string buffer_str = "";
+		if (!matched_regs.empty())
+			buffer_str += "Time:[" + to_string(matched_regs[0]->start_date) +
+			"," + to_string(matched_regs[0]->end_date) + "],Label:" + to_string(matched_regs[0]->registry_value);
+		for (size_t i = 1; i < matched_regs.size(); ++i)
+			buffer_str += "|Time:[" + to_string(matched_regs[i]->start_date) +
+			"," + to_string(matched_regs[i]->end_date) + "],Label:" + to_string(matched_regs[i]->registry_value);
+
+		MWARN("Conflict example for pid %d on time %d - Registry:[%s] \n", smp.id, pred_time, buffer_str.c_str());
 	}
 }
 
@@ -272,7 +291,7 @@ void MedLabels::get_pids(vector<int> &pids) const {
 		pids.push_back(it->first);
 }
 
-SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples) const {
+SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples, bool show_conflicts) const {
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
 	//search where time falls inside records - assume no conflicts (not checking for this)
@@ -286,7 +305,7 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 
 		medial::sampling::get_label_for_sample(time, pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 			labeling_params.label_interaction_mode, labeling_params.censor_interaction_mode, labeling_params.conflict_method,
-			samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false);
+			samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false, show_conflicts);
 	}
 	else
 		++r.miss_pid_in_reg_cnt;
@@ -294,7 +313,7 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 	return r;
 }
 
-SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<MedSample> &samples) const {
+SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<MedSample> &samples, bool show_conflicts) const {
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
 	vector<const MedRegistryRecord *> empty_censor;
@@ -307,7 +326,7 @@ SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<Med
 		for (size_t i = 0; i < times.size(); ++i) {
 			medial::sampling::get_label_for_sample(times[i], pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 				labeling_params.label_interaction_mode, labeling_params.censor_interaction_mode, labeling_params.conflict_method,
-				samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false);
+				samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false, show_conflicts);
 		}
 
 	}
@@ -642,26 +661,18 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	vector<int> all_cnts = { 0,0 };
 	int bin_counts = (max_age - min_age) / age_bin + 1;
 	vector<pair<int, int>> counts(bin_counts), male_counts(bin_counts), female_counts(bin_counts);
-	vector<vector<int>> sorted_times(bin_counts);
-	vector<vector<vector<pair<int, int>>>> times_indexes(bin_counts);
-	vector<vector<bool>> all_times;
+	vector<vector<vector<pair<int, int>>>> filters_idxs(2); //gender, age_bin, vector of idx
 	if (use_kaplan_meir) {
-		all_times.resize(bin_counts);
-		times_indexes.resize(bin_counts);
-		sorted_times.resize(bin_counts);
-		for (size_t i = 0; i < bin_counts; ++i)
-		{
-			sorted_times[i].reserve(time_period + 1);
-			all_times[i].resize(time_period + 1, false);
-		}
+		for (size_t i = 0; i < filters_idxs.size(); ++i)
+			filters_idxs[i].resize(bin_counts);
 	}
 	for (int i = min_age; i < max_age; i += age_bin)
 		counts[(i - min_age) / age_bin] = pair<int, int>(0, 0);
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int len;
-	for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
-		for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
+	for (int i = 0; i < incidence_samples.idSamples.size(); ++i)
+		for (int j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
 			int pid = incidence_samples.idSamples[i].samples[j].id;
 			int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
 			int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
@@ -697,51 +708,13 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 					<< age << "\t" << gender << "\n";
 			}
 
-			if (use_kaplan_meir) {
-				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
-					incidence_samples.idSamples[i].samples[j].outcomeTime));
-				if (time_diff > time_period)
-					time_diff = time_period;
-				if (!all_times[age_index][time_diff]) {
-					sorted_times[age_index].push_back(time_diff);
-					all_times[age_index][time_diff] = true;
-				}
-			}
+			if (use_kaplan_meir)
+				filters_idxs[gender - 1][age_index].push_back(pair<int, int>(i, j));
 		}
-	if (use_kaplan_meir) {
-		for (int c = 0; c < sorted_times.size(); ++c)
-		{
-			sort(sorted_times[c].begin(), sorted_times[c].end());
-			times_indexes[c].resize(sorted_times[c].size());
-		}
-		//prepare times_indexes:
-		for (size_t i = 0; i < incidence_samples.idSamples.size(); ++i)
-			for (size_t j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
-				int pid = incidence_samples.idSamples[i].samples[j].id;
-				int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
-				int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
-				int age_index = (age - min_age) / age_bin;
-				if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
-					continue;
-
-				int time_diff = int(365 * medial::repository::DateDiff(incidence_samples.idSamples[i].samples[j].time,
-					incidence_samples.idSamples[i].samples[j].outcomeTime));
-				int original_time = time_diff;
-				if (time_diff > time_period)
-					time_diff = time_period;
-				int ind = medial::process::binary_search_index(sorted_times[age_index].data(),
-					sorted_times[age_index].data() + sorted_times[age_index].size() - 1, time_diff);
-				if (incidence_samples.idSamples[i].samples[j].outcome <= 0 ||
-					original_time <= time_period)
-					times_indexes[age_index][ind].push_back(pair<int, int>((int)i, (int)j));
-			}
-	}
-
 	if (!debug_file.empty())
 		fw_debug.close();
 
 	if (use_kaplan_meir) {
-		bool warn_shown = false;
 		int kaplan_meier_controls_count = 100000;
 		//for each group - Age, Age+Gender... whatever
 		ofstream of_new;
@@ -755,58 +728,23 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 			of_new << "OUTCOME_VALUE" << "\t" << "0.0" << "\n";
 			of_new << "OUTCOME_VALUE" << "\t" << "1.0" << "\n";
 
+			for (size_t gender = 0; gender < 2; ++gender) {
+				string gender_str = gender + 1 == GENDER_MALE ? "MALE" : "FEMALE";
+				for (int c = 0; c < bin_counts; ++c) {
+					vector<pair<int, int>> &filters = filters_idxs[gender][c];
+					double prob = medial::stats::kaplan_meir_on_samples(incidence_samples, time_period, &filters);
+					if (prob > 0 && prob < 1) {
+						int age = c * age_bin + min_age;
+						//print to file:
+						MLOG("%s:Ages[%d - %d]:%d :: %2.2f%% (size=%zu) (kaplan meier)\n", gender_str.c_str(), age, age + age_bin,
+							age + age_bin / 2, 100 * prob, filters.size());
 
-			for (int c = 0; c < sorted_times.size(); ++c)
-			{
-				double total_controls_all = 0;
-				for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
-					const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
-					//update only controls count for group - do for all groups
-					//to get total count from all time windows kaplan meier
-					for (const pair<int, int> &p_i_j : index_order)
-						if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome <= 0)
-							++total_controls_all;
-				}
-
-				double controls = 0, cases = 0, prob = 1;
-				for (size_t sort_ind = 0; sort_ind < sorted_times[c].size(); ++sort_ind) {
-					const vector<pair<int, int>> &index_order = times_indexes[c][sort_ind];
-					for (const pair<int, int> &p_i_j : index_order) {
-						//keep update kaplan meir in time point
-						if (incidence_samples.idSamples[p_i_j.first].samples[p_i_j.second].outcome > 0)
-							++cases;
-						else
-							++controls;
-					}
-					//reset kaplan meir - flash last time prob
-					if (!warn_shown && total_controls_all < 10) {
-						MWARN("the kaplan_meir left with small amount of controls - "
-							" try increasing the sampling / use smaller time window because the"
-							" registry has not so long period of tracking patients\n");
-						warn_shown = true;
-					}
-					if (total_controls_all > 0 || cases > 0)
-						prob *= total_controls_all / (cases + total_controls_all);
-					total_controls_all -= controls; //remove controls from current time-window - they are now censored
-					controls = 0; cases = 0;
-				}
-				prob = 1 - prob;
-				if (prob > 0 && prob < 1) {
-					int age = c * age_bin + min_age;
-					//print to file:
-					MLOG("Ages[%d - %d]:%d :: %2.2f%% (kaplan meier)\n", age, age + age_bin,
-						age + age_bin / 2, 100 * prob);
-
-					if (age >= min_age && age <= max_age) {
-						of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
-						of_new << "STATS_ROW" << "\t" << "MALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
-
-						of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
-						of_new << "STATS_ROW" << "\t" << "FEMALE" << "\t" <<
-							age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+						if (age >= min_age && age <= max_age) {
+							of_new << "STATS_ROW" << "\t" << gender_str << "\t" <<
+								age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";
+							of_new << "STATS_ROW" << "\t" << gender_str << "\t" <<
+								age + age_bin / 2 << "\t" << "1.0" << "\t" << int(kaplan_meier_controls_count * prob) << "\n";
+						}
 					}
 				}
 			}
@@ -888,7 +826,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	}
 }
 
-void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &samples) const {
+void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &samples, bool show_conflicts) const {
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
 	unordered_map<int, vector<pair<int, int>>> pid_time_ranges;
@@ -929,6 +867,7 @@ void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &s
 	unordered_map<int, vector<int>> pid_times;
 	sampler->get_sampling_options(pid_time_ranges, pid_times);
 	int conflict_count = 0, done_count = 0, no_censor = 0, no_rule = 0;
+	int max_to_shown = 5;
 
 	for (auto it = pid_times.begin(); it != pid_times.end(); ++it)
 	{
@@ -938,8 +877,14 @@ void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &s
 		}
 		vector<int> &times = it->second;
 		MedIdSamples smp_id(it->first);
-		SamplingRes r = get_samples(it->first, times, smp_id.samples);
-		done_count += r.done_cnt;  no_rule += r.no_rule_cnt; conflict_count = r.conflict_cnt;
+		SamplingRes r = get_samples(it->first, times, smp_id.samples, show_conflicts);
+		done_count += r.done_cnt;  no_rule += r.no_rule_cnt; conflict_count += r.conflict_cnt;
+		if (r.conflict_cnt > 0 && max_to_shown > 0) {
+			--max_to_shown;
+			if (max_to_shown <= 0)
+				show_conflicts = false;
+		}
+
 		if (!smp_id.samples.empty())
 			samples.idSamples.push_back(smp_id);
 	}

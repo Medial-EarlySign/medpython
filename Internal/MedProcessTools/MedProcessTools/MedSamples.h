@@ -194,6 +194,8 @@ public:
 	/// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);
 
+	void flatten(vector<MedSample> &flat) const;
+
 	/// <summary>  API's for online insertions : main use case is a single time point for prediction per pid </summary>
 	void insertRec(int pid, int time, float outcome, int outcomeTime);
 	void insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
@@ -238,6 +240,11 @@ namespace medial {
 		void down_sample(MedSamples &samples, double take_ratio, bool with_repeats = false);
 		/// \brief down sample by selecting from pids
 		void down_sample_by_pid(MedSamples &samples, double take_ratio, bool with_repeats = false);
+	}
+
+	namespace stats {
+		double kaplan_meir_on_samples(const MedSamples &incidence_samples, int time_period, const vector<pair<int, int>> *filtered_idx = NULL);
+		double kaplan_meir_on_samples(const vector<MedSample> &incidence_samples, int time_unit, int time_period, const vector<int> *filtered_idx = NULL);
 	}
 }
 
