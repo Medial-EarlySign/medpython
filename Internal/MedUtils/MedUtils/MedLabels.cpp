@@ -116,7 +116,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 	, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to,
 	const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
 	ConflictMode conflict_mode, vector<MedSample> &idSamples,
-	int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor) {
+	int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor, bool show_conflicts) {
 	int curr_index = 0, final_selected = -1;
 	float reg_val = -1;
 	int reg_time = -1;
@@ -125,6 +125,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 	MedSample smp;
 	smp.time = pred_time;
 	smp.id = pid_records.front()->pid;
+	vector<const MedRegistryRecord *> matched_regs;
 
 	//run on all matches:
 	while (curr_index < pid_records.size()) {
@@ -160,8 +161,12 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 			reg_val = pid_records[curr_index]->registry_value;
 			reg_time = pid_records[curr_index]->end_date;
 			final_selected = curr_index;
+			if (show_conflicts)
+				matched_regs.push_back(pid_records[curr_index]);
 		}
 		else if (reg_val != pid_records[curr_index]->registry_value) {
+			if (show_conflicts)
+				matched_regs.push_back(pid_records[curr_index]);
 			//if already found and conflicting:
 			if (conflict_mode == ConflictMode::Drop) {
 				reg_val = -1;
@@ -176,7 +181,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 					final_selected = curr_index;
 				}
 			}
-			else {
+			else if (conflict_mode == ConflictMode::All) {
 				//insert current and update next:
 				smp.outcomeTime = reg_val > 0 ? pid_records[curr_index]->start_date : reg_time;
 				smp.outcome = reg_val;
@@ -187,9 +192,11 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 				reg_time = pid_records[curr_index]->end_date;
 				final_selected = curr_index;
 			}
+			else
+				MTHROW_AND_ERR("Error in medial::sampling::get_label_for_sample - Unsupported conflict method %d\n", conflict_mode);
 #pragma omp atomic
 			++conflict_count;
-			break;
+			//break;
 		}
 
 		++curr_index;
@@ -200,6 +207,18 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 		smp.outcome = reg_val;
 		idSamples.push_back(smp);
 		++done_count;
+	}
+
+	if (show_conflicts && matched_regs.size() >= 2) {
+		string buffer_str = "";
+		if (!matched_regs.empty())
+			buffer_str += "Time:[" + to_string(matched_regs[0]->start_date) +
+			"," + to_string(matched_regs[0]->end_date) + "],Label:" + to_string(matched_regs[0]->registry_value);
+		for (size_t i = 1; i < matched_regs.size(); ++i)
+			buffer_str += "|Time:[" + to_string(matched_regs[i]->start_date) +
+			"," + to_string(matched_regs[i]->end_date) + "],Label:" + to_string(matched_regs[i]->registry_value);
+
+		MWARN("Conflict example for pid %d on time %d - Registry:[%s] \n", smp.id, pred_time, buffer_str.c_str());
 	}
 }
 
@@ -272,7 +291,7 @@ void MedLabels::get_pids(vector<int> &pids) const {
 		pids.push_back(it->first);
 }
 
-SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples) const {
+SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples, bool show_conflicts) const {
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
 	//search where time falls inside records - assume no conflicts (not checking for this)
@@ -286,7 +305,7 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 
 		medial::sampling::get_label_for_sample(time, pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 			labeling_params.label_interaction_mode, labeling_params.censor_interaction_mode, labeling_params.conflict_method,
-			samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false);
+			samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false, show_conflicts);
 	}
 	else
 		++r.miss_pid_in_reg_cnt;
@@ -294,7 +313,7 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 	return r;
 }
 
-SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<MedSample> &samples) const {
+SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<MedSample> &samples, bool show_conflicts) const {
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
 	vector<const MedRegistryRecord *> empty_censor;
@@ -307,7 +326,7 @@ SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<Med
 		for (size_t i = 0; i < times.size(); ++i) {
 			medial::sampling::get_label_for_sample(times[i], pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 				labeling_params.label_interaction_mode, labeling_params.censor_interaction_mode, labeling_params.conflict_method,
-				samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false);
+				samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false, show_conflicts);
 		}
 
 	}
@@ -807,7 +826,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	}
 }
 
-void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &samples) const {
+void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &samples, bool show_conflicts) const {
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
 	unordered_map<int, vector<pair<int, int>>> pid_time_ranges;
@@ -848,6 +867,7 @@ void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &s
 	unordered_map<int, vector<int>> pid_times;
 	sampler->get_sampling_options(pid_time_ranges, pid_times);
 	int conflict_count = 0, done_count = 0, no_censor = 0, no_rule = 0;
+	int max_to_shown = 5;
 
 	for (auto it = pid_times.begin(); it != pid_times.end(); ++it)
 	{
@@ -857,8 +877,14 @@ void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &s
 		}
 		vector<int> &times = it->second;
 		MedIdSamples smp_id(it->first);
-		SamplingRes r = get_samples(it->first, times, smp_id.samples);
-		done_count += r.done_cnt;  no_rule += r.no_rule_cnt; conflict_count = r.conflict_cnt;
+		SamplingRes r = get_samples(it->first, times, smp_id.samples, show_conflicts);
+		done_count += r.done_cnt;  no_rule += r.no_rule_cnt; conflict_count += r.conflict_cnt;
+		if (r.conflict_cnt > 0 && max_to_shown > 0) {
+			--max_to_shown;
+			if (max_to_shown <= 0)
+				show_conflicts = false;
+		}
+
 		if (!smp_id.samples.empty())
 			samples.idSamples.push_back(smp_id);
 	}
