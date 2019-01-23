@@ -35,6 +35,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "dm_glucose_sig") dm_glucose_sig = entry.second;
 		else if (field == "dm_hba1c_sig") dm_hba1c_sig = entry.second;
 		else if (field == "dm_diagnoses_severity") dm_diagnoses_severity = stoi(entry.second);
+		else if (field == "dm_bio_mode") dm_bio_mode = stoi(entry.second);
 
 		// Hypertension
 		else if (field == "ht_identifiers") { boost::split(ht_identifiers, entry.second, boost::is_any_of(",")); ht_identifiers_given = true; }

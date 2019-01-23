@@ -1236,6 +1236,7 @@ public:
 	string dm_glucose_sig = "Glucose";
 	string dm_hba1c_sig = "HbA1C";
 	int dm_diagnoses_severity = 3; // 3: need supporting evidence as well, 4: single code is enough
+	int dm_bio_mode = 0; // bio mode - takes the FIRST suggestive test for a condition 
 
 
 	// proteinuria related parameters
