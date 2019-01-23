@@ -903,7 +903,6 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepConfiguredOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
-		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
@@ -2185,6 +2184,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		return -1;
 	}
 	int v_out_sid = V_ids[0];
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCalcSimpleSignals::apply_calc_in_time - V_ids is not initialized - bad call\n");
 	int n_vals = work_channel + 1;
 	//first lets fetch "static" signals without Time field:
 
@@ -2336,6 +2337,8 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCombineSignals::_apply - v_out_sid is not initialized - bad call\n");
 	//first lets fetch "static" signals without Time field:
 
 	set<int> set_ids(sigs_ids.begin(), sigs_ids.end());
@@ -2483,6 +2486,8 @@ int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<v
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCombineSignals::_apply - v_out_sid is not initialized - bad call\n");
 	//first lets fetch "static" signals without Time field:
 
 	set<int> set_ids;
@@ -2609,6 +2614,11 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	for (size_t i = 0; i < V_ids.size(); ++i)
+		if (V_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepSplitSignal::_apply - V_ids is not initialized - bad call\n");
+
+
 	set<int> set_ids;
 	set_ids.insert(in_sid);
 	allVersionsIterator vit(rec, set_ids);
@@ -2707,6 +2717,10 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	for (size_t i = 0; i < V_ids.size(); ++i)
+		if (V_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepAggregationPeriod::_apply - V_ids is not initialized - bad call\n");
+
 	set<int> set_ids;
 	set_ids.insert(in_sid);
 	allVersionsIterator vit(rec, set_ids);
@@ -3028,6 +3042,8 @@ int RepAggregateSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepAggregateSignal::_apply - v_out_sid is not initialized - bad call\n");
 	//first lets fetch "static" signals without Time field:
 
 	set<int> set_ids;
