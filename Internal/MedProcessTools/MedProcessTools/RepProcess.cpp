@@ -5,6 +5,7 @@
 
 #include "RepProcess.h"
 #include <MedUtils/MedUtils/MedUtils.h>
+#include <cmath>
 
 //=======================================================================================
 // RepProcessors
@@ -903,7 +904,6 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepConfiguredOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
-		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
@@ -1038,6 +1038,54 @@ void RepConfiguredOutlierCleaner::print()
 // RuleBasedOutlierCleaner
 //=======================================================================================
 
+void RepRuleBasedOutlierCleaner::parse_rules_signals(const string &path) {
+	ifstream fr(path);
+	if (!fr.good())
+		MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - can't read file %s\n", path.c_str());
+	string line;
+	while (getline(fr, line)) {
+		boost::trim(line);
+		if (line.empty() || line[0] == '#')
+			continue;
+		vector<string> tokens, list_of_sigs;
+		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() != 2)
+			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - line should contain 2 tokens with TAB. got line:\n%s\n",
+				line.c_str());
+		int rule_id = med_stoi(tokens[0]);
+		boost::split(list_of_sigs, tokens[1], boost::is_any_of(","));
+		if (rules2Signals[rule_id].size() != list_of_sigs.size())
+			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - rule %d contains %zu signals, got %zu signals\n",
+				rule_id, rules2Signals[rule_id].size(), list_of_sigs.size());
+		rules2Signals[rule_id] = list_of_sigs;
+	}
+	fr.close();
+}
+
+void RepRuleBasedOutlierCleaner::parse_sig_channels(const string &path) {
+	ifstream fr(path);
+	if (!fr.good())
+		MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_sig_channels - can't read file %s\n", path.c_str());
+	string line;
+	while (getline(fr, line)) {
+		boost::trim(line);
+		if (line.empty() || line[0] == '#')
+			continue;
+		vector<string> tokens, list_of_sigs;
+		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() != 3)
+			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_sig_channels - line should contain 3 tokens with TAB (signal name, time channel, val channel). got line:\n%s\n",
+				line.c_str());
+		string sigName = tokens[0];
+		int time_channel = med_stoi(tokens[1]);
+		int val_channel = med_stoi(tokens[1]);
+		signal_channels[sigName].first = time_channel;
+		signal_channels[sigName].second = val_channel;
+	}
+	fr.close();
+}
+
+
 int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 {
 
@@ -1052,10 +1100,12 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 			for (auto sig : aff_signals)  // all affected are of course required
 				req_signals.insert(sig);
 		}
-		else if (field == "time_channel") time_channel = med_stoi(entry.second);
-		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
+		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with "," 
+		else if (field == "signal_channels") parse_sig_channels(entry.second); //each line is signal_name [TAB] time_channel [TAB] val_channel 
+		else if (field == "time_window") time_window = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
+		else if (field == "verbose_file") verbose_file = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "tolerance") tolerance = med_stof(entry.second);
 		else if (field == "consideredRules") {
@@ -1070,6 +1120,11 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 
 	}
 
+	if (consideredRules.empty()) {
+		//init deafault to use all:
+		for (const auto &rule : rules2Signals)
+			consideredRules.push_back(rule.first);
+	}
 
 	for (auto& rule : rules2Signals) {
 		if (std::find(consideredRules.begin(), consideredRules.end(), 0) != consideredRules.end() ||
@@ -1080,11 +1135,15 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 	}
 
 	// add required signals according to rules that apply to affected signals
+	unordered_set<int> seen_rule;
 	for (auto& rule : rules2Signals) {
 		for (auto& sig : aff_signals) {
 			if (std::find(rule.second.begin(), rule.second.end(), sig) != rule.second.end()) {
 
-				rulesToApply.push_back(rule.first);
+				if (seen_rule.find(rule.first) == seen_rule.end()) {
+					rulesToApply.push_back(rule.first);
+					seen_rule.insert(rule.first);
+				}
 				bool loopBreak = false;
 				for (auto& reqSig : rule.second) {
 					bool found = false;
@@ -1109,8 +1168,13 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 			}
 		}
 	}
+	if (!verbose_file.empty())
+	{
+		ofstream fw(verbose_file);
+		fw.close(); //rewrite empty file
+	}
 
-	return MedValueCleaner::init(mapper);
+	return 0;
 }
 
 void RepRuleBasedOutlierCleaner::init_attributes() {
@@ -1125,24 +1189,46 @@ void RepRuleBasedOutlierCleaner::init_attributes() {
 }
 
 void RepRuleBasedOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
-	for (auto reqSig : req_signals)reqSignalIds.insert(dict.id(reqSig));
-	for (auto affSig : aff_signals)affSignalIds.insert(dict.id(affSig));
+	for (const auto &reqSig : req_signals)reqSignalIds.insert(dict.id(reqSig));
+	for (const auto &affSig : aff_signals)affSignalIds.insert(dict.id(affSig));
+	for (int affSig_id : affSignalIds)
+		affected_ids_to_name[affSig_id] = dict.name(affSig_id);
+	if (!verbose_file.empty() && !log_file.is_open()) {
+		log_file.open(verbose_file, ios::app);
+		if (!log_file.good())
+			MWARN("Warnning in RepRuleBasedOutlierCleaner - verbose_file %s can't be opened\n", verbose_file.c_str());
+	}
 }
 
 void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
 
-	rules_sids.resize(rulesToApply.size());
-	affected_by_rules.resize(rulesToApply.size());
+	//rules_sids.resize(rulesToApply.size());
+	//affected_by_rules.resize(rulesToApply.size());
+	rules_sids.clear();
+	affected_by_rules.clear();
 
 	for (int i = 0; i < rulesToApply.size(); i++) {
 		// build set of the participating signals
 
 		for (auto& sname : rules2Signals[rulesToApply[i]]) {
 			int thisSid = dict.id(sname);
-			rules_sids[i].push_back(thisSid);
-			affected_by_rules[i].push_back(affSignalIds.find(thisSid) != affSignalIds.end());
+			rules_sids[rulesToApply[i]].push_back(thisSid);
+			affected_by_rules[rulesToApply[i]].push_back(affSignalIds.find(thisSid) != affSignalIds.end());
+			if (signal_channels.find(sname) != signal_channels.end()) {
+				signal_id_channels[thisSid] = signal_channels[sname];
+				//check channels exists:
+				if (signal_id_channels[thisSid].first >= sigs.Sid2Info.at(thisSid).n_time_channels ||
+					signal_id_channels[thisSid].second >= sigs.Sid2Info.at(thisSid).n_val_channels
+					)
+					MTHROW_AND_ERR("Error in RepRuleBasedOutlierCleaner::init_tables - signal %s reffer to channel that not exists\n"
+						"existed time_channels %d, requested %d, existed val_channels %d, request %d\n",
+						sname.c_str(), sigs.Sid2Info.at(thisSid).n_time_channels, signal_id_channels[thisSid].first,
+						sigs.Sid2Info.at(thisSid).n_val_channels, signal_id_channels[thisSid].second);
+			}
 		}
 	}
+
+
 }
 
 
@@ -1150,7 +1236,8 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
-	map <int, vector <int>> removePoints; // from signal id to its remove points
+	//map <int, vector <int>> removePoints; // from signal id to its remove points
+
 
 	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
@@ -1161,7 +1248,8 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 	differentVersionsIterator vit(rec, reqSignalIds);
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 
-		map <int, set<int>> removePoints; // from sid to indices to be removed
+		map<int, set<int>> removePoints; // from sid to indices to be removed
+		unordered_map<int, vector<int>> removePoints_Time; // from sid to Time to be removed - for printings
 
 		// Clean 
 		for (auto reqSigId : reqSignalIds) {
@@ -1175,7 +1263,8 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		for (int iRule = 0; iRule < rulesToApply.size(); iRule++) {
 			int rule = rulesToApply[iRule];
 			vector <UniversalSigVec>ruleUsvs;
-			vector<int>& mySids = rules_sids[iRule];
+			vector<int>& mySids = rules_sids[rule];
+			const vector<string> &rule_signals = rules2Signals[rule];
 
 			// build set of the participating signals
 			for (int sid : mySids)
@@ -1189,15 +1278,36 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 			// loop and find times where you have all signals
 			vector <int>sPointer(mySids.size(), 0);
 			int thisTime;
+			pair<int, int> first_chan(0, 0);
+			if (signal_channels.find(rule_signals.front()) != signal_channels.end())
+				first_chan = signal_channels[rule_signals.front()];
 			for (sPointer[0] = 0; sPointer[0] < ruleUsvs[0].len; sPointer[0]++) {
 				//printf("start loop %d %d \n", sPointer[0], ruleUsvs[0].len);
-				thisTime = ruleUsvs[0].Time(sPointer[0], time_channel);
+
+				thisTime = ruleUsvs[0].Time(sPointer[0], first_chan.first);
 				if (time_points.size() != 0 && thisTime > time_points[iver])break;
 				bool ok = true;
 				for (int i = 1; i < mySids.size(); i++) {
-					while (ruleUsvs[i].Time(sPointer[i], time_channel) < thisTime && sPointer[i] < ruleUsvs[i].len - 1)sPointer[i]++;
+					pair<int, int> sig_channels(0, 0);
+					if (signal_channels.find(rule_signals[i]) != signal_channels.end())
+						sig_channels = signal_channels[rule_signals[i]];
+					while (ruleUsvs[i].Time(sPointer[i], sig_channels.first) < thisTime - time_window && sPointer[i] < ruleUsvs[i].len - 1)
+						++sPointer[i];
+					//find closest (or exact):
+					int try_more = 0;
+					while (ruleUsvs[i].Time(sPointer[i], sig_channels.first) < thisTime && sPointer[i] + try_more < ruleUsvs[i].len - 1)
+						++try_more;
+					if (try_more > 0) {
+						if (sPointer[i] + try_more < ruleUsvs[i].len)
+							sPointer[i] += try_more; //still good pointer so use it
+						else
+							sPointer[i] += (try_more - 1); //still better pointer so use it's best
+					}
+
 					//printf("before ok_check: %d %d %d %d %d %d\n", i, sPointer[0], sPointer[1], sPointer[2],thisTime, ruleUsvs[i].Time(sPointer[i], time_channel));
-					if (ruleUsvs[i].Time(sPointer[i], time_channel) != thisTime) {
+					int time_diff = abs(ruleUsvs[i].Time(sPointer[i], sig_channels.first) - thisTime);
+					//if (ruleUsvs[i].Time(sPointer[i], sig_channels.first) != thisTime) {
+					if (time_diff > time_window) { //not found any candidate
 						//printf("before ok_0: %d %d %d %d %d\n", rule, sPointer[0], sPointer[1], sPointer[2]);
 						ok = 0;
 						break;
@@ -1205,28 +1315,46 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				}
 				if (ok) {
 					// if found all signals from same date eliminate doubles and take the last one for comparison
-					for (int i = 0; i < mySids.size(); i++)
-						while (sPointer[i] < ruleUsvs[i].len - 1)
-							if (ruleUsvs[i].Time(sPointer[i], time_channel) == ruleUsvs[i].Time(sPointer[i] + 1, time_channel)) {
-								if (affected_by_rules[iRule][i])
-									removePoints[mySids[i]].insert(sPointer[i]);
-								sPointer[i]++;
+					vector<int> rule_val_channels;
+					for (int i = 0; i < mySids.size(); i++) {
+						pair<int, int> sig_channels(0, 0);
+						if (signal_channels.find(rule_signals[i]) != signal_channels.end())
+							sig_channels = signal_channels[rule_signals[i]];
+						rule_val_channels.push_back(sig_channels.second);
+					}
+					for (int i = 0; i < mySids.size(); i++) {
+						pair<int, int> sig_channels(0, 0);
+						if (signal_channels.find(rule_signals[i]) != signal_channels.end())
+							sig_channels = signal_channels[rule_signals[i]];
+						int remove_same_time = 1; //try remove for signal with same time value - Can use SimValHandler before, it's better
+						while (sPointer[i] - remove_same_time >= 0 &&
+							ruleUsvs[i].Time(sPointer[i], sig_channels.first) == ruleUsvs[i].Time(sPointer[i] - remove_same_time, sig_channels.first)) {
+							if (affected_by_rules[rulesToApply[iRule]][i]) {
+								removePoints[mySids[i]].insert(sPointer[i] - remove_same_time);
+								if (!verbose_file.empty())
+									removePoints_Time[mySids[i]].push_back(ruleUsvs[i].Time(sPointer[i] - remove_same_time, sig_channels.first));
 							}
-							else break;
-							// check rule and mark for removement
-							//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
-							bool ruleFlagged = applyRule(rule, ruleUsvs, sPointer);
-							/*
-							printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
-							for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
-							printf("\n");
-							*/
-							if (ruleFlagged) {
+							++remove_same_time;
+						}
 
-								for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
-									if (affected_by_rules[iRule][sIndex])
-										removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
-							}
+						// check rule and mark for removement
+						//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
+						bool ruleFlagged = applyRule(rule, ruleUsvs, rule_val_channels, sPointer);
+						/*
+						printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
+						for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
+						printf("\n");
+						*/
+						if (ruleFlagged) {
+
+							for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
+								if (affected_by_rules[rulesToApply[iRule]][sIndex]) {
+									removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
+									if (!verbose_file.empty())
+										removePoints_Time[mySids[i]].push_back(ruleUsvs[i].Time(sPointer[sIndex], sig_channels.first));
+								}
+						}
+					}
 				}
 			}
 		}
@@ -1236,8 +1364,19 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		int idx = 0;
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
+			if (!verbose_file.empty()) {
+				string sig_name = affected_ids_to_name[sig];
+				string time_points = "";
+				for (size_t i = 0; i < removePoints_Time[sig].size(); ++i)
+					time_points += "," + to_string(removePoints_Time[sig][i]);
+				log_file << "signal " << sig_name << " pid " << rec.pid << " removed "
+					<< toRemove.size() << " int_times " << time_points << "\n";
+			}
 			vector <pair<int, float>>noChange;
-			if (rec.update(sig, iver, val_channel, noChange, toRemove) < 0)
+			pair<int, int> sig_channels(0, 0);
+			if (signal_id_channels.find(sig) != signal_id_channels.end())
+				sig_channels = signal_id_channels[sig];
+			if (rec.update(sig, iver, sig_channels.second, noChange, toRemove) < 0)
 				return -1;
 			if (!nRem_attr_suffix.empty() && !attributes_mat.empty()) {
 				for (int pVersion = vit.block_first(); pVersion <= vit.block_last(); pVersion++)
@@ -1259,77 +1398,78 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 }
 
-bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> ruleUsvs, vector<int> sPointer)
-// apply the rule and return true if data is consistent with the rule
-//ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
+bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSigVec> &ruleUsvs,
+	const vector<int> &val_channels, const vector<int> &sPointer)
+	// apply the rule and return true if data is consistent with the rule
+	//ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 {
 
 	float left, right; // sides of the equality or inequality of the rule
 
 	switch (rule) {
 	case 1://BMI=Weight/Height^2*1e4
-		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) / ruleUsvs[2].Val(sPointer[2]) * (float)1e4;
+		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * (float)1e4;
 		//printf("inputs %f %f\n", ruleUsvs[1].Val(sPointer[1]), ruleUsvs[2].Val(sPointer[2]));
 		return (abs(left / right - 1) > tolerance);
 
 	case 2://MCH=Hemoglobin/RBC*10
 	case 3://MCV=Hematocrit/RBC*10
-		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10;
+		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 10;
 		return(abs(left / right - 1) > tolerance);
 
 	case 4://MCHC-M=MCH/MCV*100
-		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 100;
+		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 100;
 		return(abs(left / right - 1) > tolerance);
 
 	case 11://HDL_over_nonHDL=HDL/NonHDLCholesterol
 	case 12://HDL_over_Cholesterol=HDL/Cholesterol
-		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10) / (float)10.; //resolution in THIN is 0.1
+		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 10) / (float)10.; //resolution in THIN is 0.1
 		return(abs(left / right - 1) > tolerance);
 
 	case 6://MPV=Platelets_Hematocrit/Platelets
-		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]);
+		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
 		return(abs(left / right - 1) > tolerance);
 
 	case 8://UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
-		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]) * 10) / 10;//resolution in THIN is 0.1
+		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 10) / 10;//resolution in THIN is 0.1
 		return(abs(left / right - 1) > tolerance);
 
 	case 13://HDL_over_LDL=HDL/LDL
 	case 15://Cholesterol_over_HDL=Cholesterol/HDL
 	case 18://LDL_over_HDL=LDL/HDL
-		if (ruleUsvs[2].Val(sPointer[2]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]) / ruleUsvs[2].Val(sPointer[2]);
+		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
 		return(abs(left / right - 1) > tolerance);
 
 	case 5://Eosinophils#+Monocytes#+Basophils#+Lymphocytes#+Neutrophils#<=WBC
-		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]) + ruleUsvs[2].Val(sPointer[2]) + ruleUsvs[3].Val(sPointer[3]) + ruleUsvs[4].Val(sPointer[4]);
-		right = ruleUsvs[5].Val(sPointer[5]);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]) + ruleUsvs[1].Val(sPointer[1], val_channels[1]) + ruleUsvs[2].Val(sPointer[2], val_channels[2]) + ruleUsvs[3].Val(sPointer[3], val_channels[3]) + ruleUsvs[4].Val(sPointer[4], val_channels[4]);
+		right = ruleUsvs[5].Val(sPointer[5], val_channels[5]);
 		return (left*(1 - tolerance) >= right);
 
 	case 19://Albumin<=Protein_Total	
 	case 21://NRBC<=RBC
 	case 22://CHADS2<=CHADS2_VASC
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]);
 		return(left*(1 - tolerance) >= right);
 
 	case 7://UrineAlbumin <= UrineTotalProtein
 	case 20://FreeT4<=T4
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = ruleUsvs[1].Val(sPointer[1]);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]);
 		return(left*(1 - tolerance) >= right * 1000); // T4 is nmol/L free T4 is pmol/L ;  Albumin mg/L versus protein g/L
 
 	case 9://LDL+HDL<=Cholesterol
@@ -1338,15 +1478,15 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, vector <UniversalSigVec> r
 		return (left*(1 - tolerance) > right);
 
 	case 10://NonHDLCholesterol + HDL = Cholesterol
-		left = ruleUsvs[0].Val(sPointer[0]) + ruleUsvs[1].Val(sPointer[1]);
-		right = ruleUsvs[2].Val(sPointer[2]);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]) + ruleUsvs[1].Val(sPointer[1], val_channels[1]);
+		right = ruleUsvs[2].Val(sPointer[2], val_channels[2]);
 		return (abs(left / right - 1) > tolerance);
 
 	case 14://HDL_over_LDL=1/LDL_over_HDL
 	case 17://Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
-		if (ruleUsvs[2].Val(sPointer[1]) == 0)return(true);
-		left = ruleUsvs[0].Val(sPointer[0]);
-		right = (float) 1. / ruleUsvs[1].Val(sPointer[1]);
+		if (ruleUsvs[1].Val(sPointer[1], val_channels[1]) == 0)return(true);
+		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
+		right = (float) 1. / ruleUsvs[1].Val(sPointer[1], val_channels[1]);
 		return (abs(left / right - 1) > tolerance);
 
 	default: assert(0); return false; // return is never executed but eliminates warning
@@ -2185,6 +2325,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		return -1;
 	}
 	int v_out_sid = V_ids[0];
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCalcSimpleSignals::apply_calc_in_time - V_ids is not initialized - bad call\n");
 	int n_vals = work_channel + 1;
 	//first lets fetch "static" signals without Time field:
 
@@ -2336,6 +2478,8 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCombineSignals::_apply - v_out_sid is not initialized - bad call\n");
 	//first lets fetch "static" signals without Time field:
 
 	set<int> set_ids(sigs_ids.begin(), sigs_ids.end());
@@ -2483,6 +2627,8 @@ int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<v
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCombineSignals::_apply - v_out_sid is not initialized - bad call\n");
 	//first lets fetch "static" signals without Time field:
 
 	set<int> set_ids;
@@ -2609,6 +2755,11 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	for (size_t i = 0; i < V_ids.size(); ++i)
+		if (V_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepSplitSignal::_apply - V_ids is not initialized - bad call\n");
+
+
 	set<int> set_ids;
 	set_ids.insert(in_sid);
 	allVersionsIterator vit(rec, set_ids);
@@ -2707,6 +2858,10 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	for (size_t i = 0; i < V_ids.size(); ++i)
+		if (V_ids[i] < 0)
+			MTHROW_AND_ERR("Error in RepAggregationPeriod::_apply - V_ids is not initialized - bad call\n");
+
 	set<int> set_ids;
 	set_ids.insert(in_sid);
 	allVersionsIterator vit(rec, set_ids);
@@ -3028,6 +3183,8 @@ int RepAggregateSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		MERR("nversions mismatch\n");
 		return -1;
 	}
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepAggregateSignal::_apply - v_out_sid is not initialized - bad call\n");
 	//first lets fetch "static" signals without Time field:
 
 	set<int> set_ids;

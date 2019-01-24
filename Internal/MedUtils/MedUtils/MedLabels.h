@@ -86,7 +86,7 @@ namespace medial {
 			, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to,
 			const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
 			ConflictMode conflict_mode, vector<MedSample> &idSamples,
-			int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor = true);
+			int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor = true, bool show_conflicts = false);
 	}
 
 	/*!
@@ -191,14 +191,14 @@ public:
 	/// <summary>
 	/// returns label value for time point
 	/// </summary>
-	SamplingRes get_samples(int pid, int time, vector<MedSample> &samples) const;
+	SamplingRes get_samples(int pid, int time, vector<MedSample> &samples, bool show_conflicts = false) const;
 
 	/// <summary>
 	/// returns label value for time points
 	/// </summary>
-	SamplingRes get_samples(int pid, const vector<int> &times, vector<MedSample> &samples) const;
+	SamplingRes get_samples(int pid, const vector<int> &times, vector<MedSample> &samples, bool show_conflicts = false) const;
 
-	void create_samples(const MedSamplingStrategy *sampler, MedSamples &samples) const;
+	void create_samples(const MedSamplingStrategy *sampler, MedSamples &samples, bool show_conflicts = true) const;
 
 	MedLabels(const LabelParams &params);
 

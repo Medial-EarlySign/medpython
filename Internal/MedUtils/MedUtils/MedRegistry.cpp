@@ -172,7 +172,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 		vector<UniversalSigVec_mem> sig_vec((int)used_sigs.size());
 		for (size_t k = 0; k < sig_vec.size(); ++k) {
 			UniversalSigVec vv;
-			idRec[n_th].uget(used_sigs[k], 0, vv);
+			idRec[n_th].uget(used_sigs[k], idRec[n_th].get_n_versions() > 0 ? idRec[n_th].get_n_versions() - 1 : 0, vv); //get last version
 			bool did_something = medial::repository::fix_contradictions(vv, medial::repository::fix_method::none, sig_vec[k]);
 			if (did_something) {
 #pragma omp atomic
@@ -1448,7 +1448,8 @@ MedRegistry *MedRegistry::make_registry(const string &registry_type, MedReposito
 MedRegistry *MedRegistry::create_registry_full(const string &registry_type, const string &init_str,
 	const string &repository_path, MedModel &model_with_rep_processor, medial::repository::fix_method method) {
 	MedPidRepository rep;
-	rep.init(repository_path);
+	if (rep.init(repository_path) < 0)
+		MTHROW_AND_ERR("Can't read repository %s", repository_path.c_str());
 	model_with_rep_processor.collect_and_add_virtual_signals(rep);
 
 	MedRegistry *registry = MedRegistry::make_registry(registry_type, rep, init_str);
@@ -1461,7 +1462,7 @@ MedRegistry *MedRegistry::create_registry_full(const string &registry_type, cons
 	medial::repository::prepare_repository(rep, sig_codes, physical_signal, &model_with_rep_processor.rep_processors);
 
 	if (rep.read_all(repository_path, pids, physical_signal) < 0)
-		MTHROW_AND_ERR("Can't read repo\n");
+		MTHROW_AND_ERR("Can't read repository %s", repository_path.c_str());
 	registry->create_registry(rep, method, &model_with_rep_processor.rep_processors);
 	registry->clear_create_variables();
 
