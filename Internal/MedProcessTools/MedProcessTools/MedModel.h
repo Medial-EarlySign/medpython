@@ -143,9 +143,13 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict);
 	void set_affected_signal_ids(MedDictionarySections& dict);
 
-	// Required signals propograion
+	// Required signals back-propogation
 	void get_required_signal_names(unordered_set<string>& signalNames);
 	void get_required_signal_names(vector<string>& signalNames); // same, but get as vector
+	// Required signals to generate processed values of target-signals
+	void get_required_signal_names_for_processed_values(unordered_set<string>& targetSignalNames, unordered_set<string>& signalNames);
+	void get_required_signal_names_for_processed_values(unordered_set<string>& targetSignalNames, vector<string>& signalNames);
+
 	int collect_and_add_virtual_signals(MedRepository &rep);
 
 	/// Initialization : signal ids and tables

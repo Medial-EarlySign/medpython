@@ -812,6 +812,7 @@ public:
 	string msr_params = "AUC"; ///< measurements parameters for bootstrap performance evaluation
 	bool work_on_sets = false; ///< work on sets of features according to signals
 	unordered_set<string> ungroupd_names = { "Drug","RC","ICD9" }; ///< features-names (NAME in FTR_####.NAME) not to be grouped even in work_on_sets mode.
+	unordered_set<string> ignored; ///< features to ignore in selection process
 	bool verbose; ///<print all feature importance
 				
 	vector<int> rates_vec;
@@ -840,9 +841,12 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(IterativeFeatureSelector)
 	ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
-		required, numToSelect, selected, report)
+		required, ignored, numToSelect, selected, report)
 
 private:
+	// Resolved names of required signals
+	unordered_set<string> resolved_required, resolved_ignored;
+
 	// Find set of selected features
 	int _learn(MedFeatures& features, unordered_set<int>& ids);
 
@@ -853,7 +857,7 @@ private:
 	void read_params_vec();
 
 	// Get Families of signals
-	void get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies, unordered_set<string>& required, bool work_on_sets);
+	void get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies);
 
 	// Utilities
 	void prepare_for_iterations(MedBootstrapResult& bootstrapper, MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,

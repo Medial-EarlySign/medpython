@@ -697,6 +697,7 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 	pids.resize((int)features.samples.size());
 	final_additional_info = features.data;
 	clean_feature_name_prefix(final_additional_info);
+
 	bool uses_time_window = use_time_window();
 
 	if (uses_time_window) {
@@ -732,21 +733,20 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 	map<string, vector<float>> data;
 	unordered_map<int, vector<int>> splits_inds;
 
-	//check we have all signals ececpt Time,Label (will be completed in prepare):
-	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
-		for (const Filter_Param &fp : it->second)
-			if (fp.param_name != "Time-Window" && fp.param_name != "Label"
-				&& features.data.find(fp.param_name) == features.data.end())
-				MTHROW_AND_ERR("ERROR in MedBootstrap::bootstrap - missing "
-					"filter_cohort parameter \"%s\" in cohort \"%s\" in input features.\n"
-					"Please provide the feature in the input for filtering or remove cohort filter\n",
-					fp.param_name.c_str(), it->first.c_str());
-
-
 	if (results_per_split != NULL)
 		prepare_bootstrap(features, preds, y, pids, data, &splits_inds);
 	else
 		prepare_bootstrap(features, preds, y, pids, data);
+
+	//check we have all signals ececpt Time,Label (will be completed in prepare):
+	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
+		for (const Filter_Param &fp : it->second)
+			if (fp.param_name != "Time-Window" && fp.param_name != "Label"
+				&& data.find(fp.param_name) == data.end())
+				MTHROW_AND_ERR("ERROR in MedBootstrap::bootstrap - missing "
+					"filter_cohort parameter \"%s\" in cohort \"%s\" in input features.\n"
+					"Please provide the feature in the input for filtering or remove cohort filter\n",
+					fp.param_name.c_str(), it->first.c_str());
 
 	if (results_per_split != NULL)
 		add_splits_results(preds, y, pids, &features.weights, data, splits_inds, *results_per_split);
