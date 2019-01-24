@@ -1484,7 +1484,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 
 	case 14://HDL_over_LDL=1/LDL_over_HDL
 	case 17://Cholesterol_over_HDL = 1 / HDL_over_Cholestrol
-		if (ruleUsvs[2].Val(sPointer[1], val_channels[1]) == 0)return(true);
+		if (ruleUsvs[1].Val(sPointer[1], val_channels[1]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
 		right = (float) 1. / ruleUsvs[1].Val(sPointer[1], val_channels[1]);
 		return (abs(left / right - 1) > tolerance);
