@@ -715,7 +715,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	// debug print
 	int c = 0;
 	for (auto &ev : evs) {
-		//MLOG("pid %d %d : ev %d : time %d type %d val %f severity %d\n", rec.pid, time, c++, ev.time, ev.event_type, ev.event_val, ev.event_severity);
+		MLOG("pid %d %d : ev %d : time %d type %d val %f severity %d\n", rec.pid, time, c++, ev.time, ev.event_type, ev.event_val, ev.event_severity);
 	}
 	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
 #endif
@@ -939,7 +939,7 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 				(last_e > 45 && last_e <= 60 && last_p == 2))
 				ev.second = 3;
 
-			if (ev.second > 0) {
+			if (ev.second >= 0) {
 				if (ckd_ev.find(i_time) == ckd_ev.end())
 					ckd_ev[i_time] = ev.second;
 				else
