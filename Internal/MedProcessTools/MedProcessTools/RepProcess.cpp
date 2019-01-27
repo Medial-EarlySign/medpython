@@ -511,7 +511,7 @@ int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	}
 
 	// ??? chances are this next parallelization is not needed, as we parallel before on recs...
-#pragma omp parallel for schedule(dynamic)
+//NO PARALLEL - we are using rec.usv inside processors, generators which is not thread safe!
 	for (int j = 0; j < processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points, all_attributes_mats[j]);
 	}
