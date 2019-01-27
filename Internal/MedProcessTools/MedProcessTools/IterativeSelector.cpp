@@ -418,13 +418,16 @@ void IterativeFeatureSelector::init_bootstrap_params(MedBootstrapResult& bootstr
 	bootstrapper.bootstrap_params.roc_Params.working_point_SENS.clear();
 
 	if (params.size() == 1) {
-		if (params[0] != "AUC")
-			MTHROW_AND_ERR("Unknown single parameter \'%s\'\n", params[0].c_str())
-		else {
-			bootstrapper.bootstrap_params.measurements_with_params = { pair<MeasurementFunctions, Measurement_Params *>(calc_only_auc, NULL) };
+		if (params[0] == "AUC")
 			measurement_name = "AUC_Obs";
-		}
+		else
+			measurement_name = params[0];
+		if ((measurement_name != "AUC_Obs") && (measurement_name != "AUC_Mean"))
+			MTHROW_AND_ERR("Unknown single parameter \'%s\'\n", params[0].c_str())
+		else
+			bootstrapper.bootstrap_params.measurements_with_params = { pair<MeasurementFunctions, Measurement_Params *>(calc_only_auc, NULL) };
 	}
+
 	else if (params.size() == 3) {
 		float target = stof(params[2]);
 		if ((params[1] == "PR" && (params[0] == "SENS" || params[0] == "SPEC")))
