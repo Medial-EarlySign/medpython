@@ -62,10 +62,8 @@ int MedDictionary::read(const string &fname)
 	fnames.push_back(fname); // TD : check that we didn't already load this file
 	string curr_line;
 	while (getline(inf, curr_line)) {
+		trim(curr_line);
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
-
-			if (curr_line[curr_line.size() - 1] == '\r')
-				curr_line.erase(curr_line.size() - 1);
 
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));

@@ -194,8 +194,8 @@ public:
 
 	// Serialization (including type)
 	ADD_CLASS_NAME(RepProcessor)
-	ADD_SERIALIZATION_FUNCS(processor_type, req_signals, aff_signals, unconditional)
-	void *new_polymorphic(string derived_class_name);
+		ADD_SERIALIZATION_FUNCS(processor_type, req_signals, aff_signals, unconditional)
+		void *new_polymorphic(string derived_class_name);
 
 	/// <summary> get size of processor + processor_type </summary>
 	size_t get_processor_size();
@@ -281,10 +281,10 @@ public:
 
 	/// serialization
 	ADD_CLASS_NAME(RepMultiProcessor)
-	ADD_SERIALIZATION_FUNCS(processor_type, processors)
+		ADD_SERIALIZATION_FUNCS(processor_type, processors)
 
-	/// <summary> Print processors information </summary>
-	void print() { for (auto& processor : processors) processor->print(); }
+		/// <summary> Print processors information </summary>
+		void print() { for (auto& processor : processors) processor->print(); }
 };
 
 #define DEF_REP_TRIMMING_SD_NUM 7
@@ -357,10 +357,10 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
-		trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
+			trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
-	/// <summary> Print processors information </summary>
+		/// <summary> Print processors information </summary>
 		void print();
 };
 
@@ -373,7 +373,7 @@ public:
 	string distLow, distHigh; //"none" "norm" or "log" 
 	int val_channel = 0;
 	ADD_CLASS_NAME(confRecord)
-	ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh, distLow, distHigh)
+		ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh, distLow, distHigh)
 };
 MEDSERIALIZE_SUPPORT(confRecord)
 
@@ -384,11 +384,11 @@ MEDSERIALIZE_SUPPORT(confRecord)
 */
 //.......................................................................................
 class RepConfiguredOutlierCleaner : public  RepBasicOutlierCleaner {
-public:
-
+private:
 	string confFileName; ///< configuration file and mapping
+	confRecord outlierParam; ///< a map from signal name to outliers parameters
+public:
 	string cleanMethod; ///< cleaning method :  "logical" "confirmed" or "learned"
-	map<string, confRecord> outlierParams; ///< a map from signal name to outliers parameters
 
 	RepConfiguredOutlierCleaner() { init_defaults(); }
 
@@ -416,7 +416,7 @@ public:
 	/// Serialization
 	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
-		trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParams, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
+			trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParam, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
 		void print();
 };
@@ -454,15 +454,12 @@ Rule20:FreeT4 <= T4\n
 Rule21:NRBC <= RBC\n
 Rule22:CHADS2_VASC >= CHADS2\n
 */
-class RepRuleBasedOutlierCleaner : public RepProcessor, public MedValueCleaner {
+class RepRuleBasedOutlierCleaner : public RepProcessor {
 	// get multiple signals and clean them according to consistency  with other signals from same date
 public:
 
 	/// Signals to clean
-	vector <string> signalNames;
 	vector <int> signalIds;
-	int time_channel = 0;
-	int val_channel = 0;
 	bool addRequiredSignals = false; ///< a flag stating if we want to load signals that are not in the cleaned signal list 
 								   /// because they share a rule with the cleaned signals (set it in jason)
 	vector<int> consideredRules;///< only rules in this list will be considered in this cleaner (read list from jason)
@@ -472,6 +469,8 @@ public:
 	string nRem_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of removed. not recorded if empty
 
 	float tolerance = 0.1F;
+	int time_window = 0; ///< the size of time window to search for signals
+	string verbose_file; ///< cleaning output_file for debuging
 
 	/// static map from rule to participating signals
 	map <int, vector<string>>rules2Signals = {
@@ -499,27 +498,27 @@ public:
 	};
 
 	vector <int> rulesToApply;
+	unordered_map<string, pair<int, int>> signal_channels; ///< signal channels (if exists). first is time, second is for val
+	unordered_map<int, pair<int, int>> signal_id_channels; ///< signal channels (if exists). first is time, second is for val
 
 	/// Helpers
 	set <int> reqSignalIds, affSignalIds;
-	vector<vector<int >> rules_sids;
-	vector<vector<bool>> affected_by_rules;
+	unordered_map<int, vector<int>> rules_sids;
+	unordered_map<int, vector<bool>> affected_by_rules;
 
 	// Constructors 
 	RepRuleBasedOutlierCleaner() : RepProcessor() { init_defaults(); }
 
 	void init_defaults() {
 		processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
-
-		params.take_log = 0;
-		params.doRemove = true;
-
-		params.type = VAL_CLNR_ITERATIVE;
-		params.missing_value = MED_MAT_MISSING_VALUE;
 	};
 
+	void parse_rules_signals(const string &path);
+	void parse_sig_channels(const string &path);
+
+
 	// Init
-	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
+	int init(void *processor_params) { return 0; };
 
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepRuleBasedOutlierCleaner::init
@@ -541,14 +540,19 @@ public:
 	/// Apply cleaning model 
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	~RepRuleBasedOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
+
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channel, val_channel, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
+	ADD_SERIALIZATION_FUNCS(processor_type, time_window, rules2Signals, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 	/// apply the rule and return true if data is consistent with the rule
-	bool  applyRule(int rule, vector <UniversalSigVec> ruleUsvs, vector <int >sPointer);
+	bool  applyRule(int rule, const  vector<UniversalSigVec> &ruleUsvs,
+		const vector<int> &val_channels, const vector<int> &sPointer);
+	unordered_map<int, string> affected_ids_to_name;
+	ofstream log_file;
 
 };
 
@@ -622,8 +626,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(RepNbrsOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
-		trimMax, trimMin, removeMax, removeMin, nbr_time_unit, nbr_time_width, nbrsMax, nbrsMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
+			trimMax, trimMin, removeMax, removeMin, nbr_time_unit, nbr_time_width, nbrsMax, nbrsMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
 		/// <summary> Print processors information </summary>
 		void print();
@@ -693,7 +697,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepSimValHandler)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channels, req_signals, aff_signals, nHandle_attr, nHandle_attr_suffix, handler_type)
 private:
 	void handle_block(int start, int end, UniversalSigVec& usv, vector<int>& remove, int& nRemove, vector<pair<int, vector<float>>>& change, int& nChange, int& nTimes);
 	int verbose_cnt = 0;
@@ -878,7 +882,7 @@ public:
 	// serialization. meta-data file is kept for information but not used in apply
 	void print();
 	ADD_CLASS_NAME(RepPanelCompleter)
-	ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
 
 private:
 
@@ -1134,8 +1138,8 @@ public:
 
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
-	ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-		signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
+		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
+			signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
@@ -1183,7 +1187,7 @@ public:
 	int event_type;
 	float event_val;
 	int event_severity;
-	
+
 	RegistryEvent() {};
 	RegistryEvent(int _time, int _type, float _val, int _severity) { time = _time; event_type = _type; event_val = _val; event_severity = _severity; }
 
@@ -1227,7 +1231,7 @@ public:
 
 	RepCreateRegistry() { processor_type = REP_PROCESS_CREATE_REGISTRY; }
 	~RepCreateRegistry() {};
-	
+
 	// dm registry related parameters
 	string dm_drug_sig = "Drug";
 	vector<string> dm_drug_sets = { "ATC_A10_____" };
@@ -1242,14 +1246,14 @@ public:
 	// proteinuria related parameters
 	// <name>:<0/1: is_numeric (numerics are 1)>:<categs or ranges for normal>:<categs or ranges for medium>:<categs or ranges for severe>
 	// / is the separator between signals in a real input
-	vector<string> urine_tests_categories = { 
+	vector<string> urine_tests_categories = {
 		"Urine_Microalbumin:1:0,30:30,300:300,1000000",
 		"UrineTotalProtein:1:0,0.15:0.15,0.60:0.60,1000000",
 		"UrineAlbumin:1:0,30:30,300:300,1000000",
 		"Urine_dipstick_for_protein:0:Urine_dipstick_for_protein_normal:Urine_dipstick_for_protein_medium:Urine_dipstick_for_protein_severe",
 		"Urinalysis_Protein:0:Urinalysis_Protein_normal:Urinalysis_Protein_medium:Urinalysis_Protein_severe",
 		"Urine_Protein_Creatinine:1:0,15:15,100:100,1000000",
-		"UrineAlbumin_over_Creatinine:1:0,3.5:3.5,27:27,1000000"};
+		"UrineAlbumin_over_Creatinine:1:0,3.5:3.5,27:27,1000000" };
 
 
 	// ckd related
@@ -1274,12 +1278,12 @@ public:
 
 	// serialization
 	ADD_CLASS_NAME(RepCreateRegistry)
-	ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals, registry_values,
-		ht_identifiers, chf_identifiers, mi_identifiers, af_identifiers, ht_identifiers_given, chf_identifiers_given, mi_identifiers_given, af_identifiers_given,
-		ht_drugs, ht_chf_drugs, ht_dm_drugs, ht_extra_drugs, ht_drugs_gap,
-		dm_drug_sig, dm_drug_sets, dm_diagnoses_sig, dm_diagnoses_sets, dm_glucose_sig, dm_hba1c_sig, dm_diagnoses_severity,
-		urine_tests_categories,
-		ckd_egfr_sig, ckd_proteinuria_sig)
+		ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals, registry_values,
+			ht_identifiers, chf_identifiers, mi_identifiers, af_identifiers, ht_identifiers_given, chf_identifiers_given, mi_identifiers_given, af_identifiers_given,
+			ht_drugs, ht_chf_drugs, ht_dm_drugs, ht_extra_drugs, ht_drugs_gap,
+			dm_drug_sig, dm_drug_sets, dm_diagnoses_sig, dm_diagnoses_sets, dm_glucose_sig, dm_hba1c_sig, dm_diagnoses_severity,
+			urine_tests_categories,
+			ckd_egfr_sig, ckd_proteinuria_sig)
 
 private:
 	string registry_name;
@@ -1299,7 +1303,7 @@ private:
 															  { REP_REGISTRY_PROTEINURIA , { "Urine_Microalbumin", "UrineTotalProtein" , "UrineAlbumin" , "Urine_dipstick_for_protein" , "Urinalysis_Protein" , "Urine_Protein_Creatinine" , "UrineAlbumin_over_Creatinine" }},
 															  { REP_REGISTRY_CKD, {"Proteinuria_State", "eGFR_CKD_EPI"}} };
 
-	set<int> sig_ids_s; 
+	set<int> sig_ids_s;
 	vector<int> sig_ids; ///< ids of signals used as input by the calculator (for faster usage at run time: save name conversions)
 	vector<int> virtual_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
 
@@ -1313,13 +1317,13 @@ private:
 	//DEF     0       DM_Registry_Non_diabetic
 	//DEF     1       DM_Registry_Pre_diabetic
 	//DEF     2       DM_Registry_Diabetic
-	vector<string> dm_reg_values = {"DM_Registry_Non_diabetic", "DM_Registry_Pre_diabetic", "DM_Registry_Diabetic"};
+	vector<string> dm_reg_values = { "DM_Registry_Non_diabetic", "DM_Registry_Pre_diabetic", "DM_Registry_Diabetic" };
 
 
 	// proteinuria related privates
 	vector<string> proteinuria_reg_values = { "Proteinuria_Normal", "Proteinuria_Medium" , "Proteinuria_Severe" };
 	vector<RegistryDecisionRanges> proteinuria_ranges;
-	
+
 	// CKD related states
 	vector<string> ckd_reg_values = { "CKD_State_Normal" , "CKD_State_Level_1", "CKD_State_Level_2", "CKD_State_Level_3", "CKD_State_Level_4" };
 	int ckd_egfr_idx = -1;
@@ -1382,7 +1386,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepCombineSignals)
-	ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
@@ -1419,7 +1423,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
-	ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
@@ -1428,7 +1432,7 @@ private:
 
 
 /**
-* creates a signal of time ranges in which the input signal (usually medication) was active 
+* creates a signal of time ranges in which the input signal (usually medication) was active
 * ranges are combined based on the period parameter
 * the signal value is not transfered to the output signal
 */
@@ -1449,7 +1453,7 @@ private:
 
 public:
 	RepAggregationPeriod() :
-		input_name(""), output_name(""), period(0),time_unit_sig(global_default_windows_time_unit), time_unit_win(global_default_windows_time_unit), in_sid(-1) {
+		input_name(""), output_name(""), period(0), time_unit_sig(global_default_windows_time_unit), time_unit_win(global_default_windows_time_unit), in_sid(-1) {
 		processor_type = REP_PROCESS_AGGREGATION_PERIOD;
 	}
 
@@ -1468,8 +1472,8 @@ public:
 	void print();
 
 	ADD_CLASS_NAME(RepAggregationPeriod)
-	ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, sets, period, req_signals, aff_signals, virtual_signals, time_unit_win, time_unit_sig, in_sid, V_ids, lut)
- 
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, sets, period, req_signals, aff_signals, virtual_signals, time_unit_win, time_unit_sig, in_sid, V_ids, lut)
+
 };
 
 /**
@@ -1486,10 +1490,10 @@ public:
 	int output_id; ///< id of output signal
 	int time_channel; ///< time channel to consider in cleaning
 	int output_type; ///< output signal type - should be identical to input signal type default to range + val type
-	
+
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :
-	signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1), output_id(-1), time_channel(0), output_type(3) {
+		signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1), output_id(-1), time_channel(0), output_type(3) {
 		processor_type = REP_PROCESS_BASIC_RANGE_CLEANER;
 	}
 
@@ -1508,10 +1512,10 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type)
+		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type)
 
-	/// <summary> Print processors information </summary>
-	void print();
+		/// <summary> Print processors information </summary>
+		void print();
 };
 
 /**
@@ -1543,7 +1547,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSignalRate)
-	ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
@@ -1595,8 +1599,8 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepAggregateSignal)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalName, output_name, work_channel, factor, time_window, time_unit,
-		start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, output_name, work_channel, factor, time_window, time_unit,
+			start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
@@ -1653,7 +1657,7 @@ public:
 
 	// serialization.
 	ADD_CLASS_NAME(RepCheckReq)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channels, win_from, win_to, window_time_unit, attrName, req_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_channels, win_from, win_to, window_time_unit, attrName, req_signals)
 };
 
 //----------------------------------------------------------------------------------------
@@ -1693,7 +1697,7 @@ public:
 	void init_lists();
 
 	ADD_CLASS_NAME(RepHistoryLimit)
-	ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to)
+		ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to)
 
 };
 
