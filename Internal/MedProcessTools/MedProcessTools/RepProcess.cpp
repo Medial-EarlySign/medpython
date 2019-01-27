@@ -862,10 +862,8 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 	confRecord thisRecord;
 	string thisLine;
 	infile.open(confFileName.c_str(), ifstream::in);
-	if (!infile.is_open()) {
-		fprintf(stderr, "Cannot open %s for reading\n", confFileName.c_str());
-		return -1;
-	}
+	if (!infile.is_open())
+		MTHROW_AND_ERR("Cannot open %s for reading\n", confFileName.c_str());
 	getline(infile, thisLine);//consume title line.
 	while (getline(infile, thisLine)) {
 		boost::trim(thisLine);
@@ -875,9 +873,8 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));
 		if (f.size() != 8) {
-			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 			infile.close();
-			return -1;
+			MTHROW_AND_ERR("Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 		}
 
 		thisRecord.confirmedLow = thisRecord.logicalLow = (float)atof(f[1].c_str());
@@ -898,7 +895,7 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 {
 	init_defaults();
-
+	map<string, confRecord> outlierParams_dict;
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepConfiguredOutlierCleaner::init]
@@ -908,12 +905,15 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
-		else if (field == "conf_file") {
-			confFileName = entry.second; if (int res = readConfFile(confFileName, outlierParams))return(res);
-		}
+		else if (field == "conf_file") readConfFile(entry.second, outlierParams_dict);
 		else if (field == "clean_method")cleanMethod = entry.second;
 		//! [RepConfiguredOutlierCleaner::init]
 	}
+
+	if (outlierParams_dict.find(signalName) != outlierParams_dict.end())
+		outlierParam = outlierParams_dict.at(signalName);
+	else
+		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", signalName.c_str());
 
 	init_lists();
 	return MedValueCleaner::init(mapper);
@@ -922,37 +922,30 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 void RepConfiguredOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
 	RepBasicOutlierCleaner::set_signal_ids(dict); //call base class init
 	//fetch val_channel from file
-	if (outlierParams.find(signalName) == outlierParams.end())
-		MTHROW_AND_ERR("RepConfiguredOutlierCleaner : ERROR: Signal %s not supported by conf_cln\n", signalName.c_str());
-	val_channel = outlierParams.at(signalName).val_channel;
+	val_channel = outlierParam.val_channel;
 }
 
 // Learn bounds
 //.......................................................................................
 int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
-	if (outlierParams.find(signalName) == outlierParams.end()) {
-		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n", signalName.c_str());
-		return -1;
-	}
-
 	trimMax = 1e30F;
 	trimMin = -1e+30F;
 
 	if (cleanMethod == "logical") {
-		removeMax = outlierParams[signalName].logicalHigh;
-		removeMin = outlierParams[signalName].logicalLow;
+		removeMax = outlierParam.logicalHigh;
+		removeMin = outlierParam.logicalLow;
 		return(0);
 	}
 	else if (cleanMethod == "confirmed") {
-		removeMax = outlierParams[signalName].confirmedHigh;
-		removeMin = outlierParams[signalName].confirmedLow;
+		removeMax = outlierParam.confirmedHigh;
+		removeMin = outlierParam.confirmedLow;
 		return(0);
 	}
 	else if (cleanMethod == "learned") {
-		removeMax = outlierParams[signalName].logicalHigh;
-		removeMin = outlierParams[signalName].logicalLow;
-		string thisDistHi = outlierParams[signalName].distHigh;
-		string thisDistLo = outlierParams[signalName].distLow;
+		removeMax = outlierParam.logicalHigh;
+		removeMin = outlierParam.logicalLow;
+		string thisDistHi = outlierParam.distHigh;
+		string thisDistLo = outlierParam.distLow;
 		if (thisDistHi == "none" && thisDistLo == "none") return(0);//nothing to learn
 
 		else {
@@ -981,10 +974,10 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& sampl
 			}
 			if (thisDistHi == "norm")removeMax = borderHi;
 			else if (thisDistHi == "lognorm")removeMax = expf(logBorderHi);
-			else if (thisDistHi == "manual")removeMax = outlierParams[signalName].confirmedHigh;
+			else if (thisDistHi == "manual")removeMax = outlierParam.confirmedHigh;
 			if (thisDistLo == "norm")removeMin = borderLo;
 			else if (thisDistLo == "lognorm")removeMin = expf(logBorderLo);
-			else if (thisDistLo == "manual")removeMin = outlierParams[signalName].confirmedLow;
+			else if (thisDistLo == "manual")removeMin = outlierParam.confirmedLow;
 
 			return(0);
 		}
@@ -1126,13 +1119,20 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 			consideredRules.push_back(rule.first);
 	}
 
-	for (auto& rule : rules2Signals) {
-		if (std::find(consideredRules.begin(), consideredRules.end(), 0) != consideredRules.end() ||
-			std::find(consideredRules.begin(), consideredRules.end(), rule.first) != consideredRules.end())
-			continue;// rule remains
-		else
-			rules2Signals.erase(rule.first);// rule removed
-	}
+	unordered_set<int> rules_set(consideredRules.begin(), consideredRules.end());
+	if (rules_set.find(0) == rules_set.end()) // If has 0 - take all
+		for (auto it = rules2Signals.begin(); it != rules2Signals.end(); ) {
+			if (rules_set.find(it->first) != rules_set.end())
+				++it;// rule remains
+			else
+				it = rules2Signals.erase(it);// rule removed
+		}
+
+	//mark affected and requested:
+	for (auto& rule : rules2Signals)
+		aff_signals.insert(rule.second.begin(), rule.second.end());
+	for (auto sig : aff_signals)  // all affected are of course required
+		req_signals.insert(sig);
 
 	// add required signals according to rules that apply to affected signals
 	unordered_set<int> seen_rule;
