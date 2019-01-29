@@ -1805,10 +1805,10 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	for (int i = 0; i < bin_counts; ++i) {
 		if (all_male_counts[i][1] > 0)
 			MTHROW_AND_ERR("Error - unable to calc incidence - Males Age %d can't be empty of cases for odds calc in fixing incidence\n",
-				params->inc_stats.min_age + i * params->inc_stats.age_bin_years);
+				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
 		if (all_female_counts[i][1] > 0)
 			MTHROW_AND_ERR("Error - unable to calc incidence - Feales Age %d can't be empty of cases for odds calc in fixing incidence\n",
-				params->inc_stats.min_age + i * params->inc_stats.age_bin_years);
+				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
 	}
 	//recalc new ratio of #1/(#1+#0) and fix stats
 	for (size_t i = 0; i < bin_counts; ++i)
