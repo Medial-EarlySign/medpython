@@ -9,6 +9,7 @@
 #include <MedProcessTools/MedProcessTools/MedModelExceptions.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <cfloat>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
@@ -183,8 +184,8 @@ typedef enum {
 	FTR_MIN_VALUE = 5, ///<"min" - Min value in Window
 	FTR_STD_VALUE = 6, ///<"std" - Standart Dev. value in Window
 	FTR_LAST_DELTA_VALUE = 7, ///<"last_delta" - Last delta. last-previous_last value
-	FTR_LAST_DAYS = 8, ///<"last_time" - time diffrence from prediction time to last time has signal
-	FTR_LAST2_DAYS = 9,///<"last_time2" - time diffrence from prediction time to one previous last time has signal
+	FTR_LAST_DAYS = 8, ///<"last_time" - time diffrence from prediction time to last time has signal in range of values
+	FTR_LAST2_DAYS = 9,///<"last_time2" - time diffrence from prediction time to one previous last time has signal in range of values
 	FTR_SLOPE_VALUE = 10, ///<"slope" - calculating the slope over the points in the window
 	FTR_WIN_DELTA_VALUE = 11, ///<"win_delta" - diffrence in value in two time windows (only if both exists, otherwise missing_value). value in [win_from,win_to] minus value in [d_win_from, d_win_to]
 	FTR_CATEGORY_SET = 12, ///<"category_set" - boolean 0/1 if the signal has the value in the given lut (which initialized by the "sets" that can be specific single definition or name of set definition. the lookup is hierarchical)
@@ -261,6 +262,7 @@ public:
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and _generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
 	bool bound_outcomeTime; ///< If true will truncate time window till outcomeTime
+	float min_value=-FLT_MAX, max_value= FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
@@ -322,7 +324,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
-		time_unit_win, time_channel, val_channel, sum_channel, signalName, sets,
+		time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
 		names, req_signals, in_set_name ,bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig)
 
 };
