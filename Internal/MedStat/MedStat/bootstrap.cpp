@@ -1771,6 +1771,15 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	if (params->inc_stats.male_labels_count_per_age.size() != bin_counts)
 		MTHROW_AND_ERR("Male vector has %d members. and need to have %d members\n",
 		(int)params->inc_stats.male_labels_count_per_age.size(), bin_counts);
+	for (int i = 0; i < bin_counts; ++i) {
+		if (params->inc_stats.male_labels_count_per_age[i][0] <= 0)
+			MTHROW_AND_ERR("Males Age bin %d can't have 0 controls\n",
+				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
+		if (params->inc_stats.female_labels_count_per_age[i][0] <= 0)
+			MTHROW_AND_ERR("Females Age bin %d can't have 0 controls\n",
+				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
+	}
+
 
 	vector<vector<double>> filtered_male_counts, filtered_female_counts;
 	vector<vector<double>> all_male_counts, all_female_counts;
@@ -1792,32 +1801,38 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	//Lets calc the ratio for the incidence in the filter:
 	params->incidence_fix = 0;
 	double tot_controls = 0;
+	//test for problems:
+	for (int i = 0; i < bin_counts; ++i) {
+		if (all_male_counts[i][1] > 0)
+			MTHROW_AND_ERR("Error - unable to calc incidence - Males Age %d can't be empty of cases for odds calc in fixing incidence\n",
+				params->inc_stats.min_age + i * params->inc_stats.age_bin_years);
+		if (all_female_counts[i][1] > 0)
+			MTHROW_AND_ERR("Error - unable to calc incidence - Feales Age %d can't be empty of cases for odds calc in fixing incidence\n",
+				params->inc_stats.min_age + i * params->inc_stats.age_bin_years);
+	}
 	//recalc new ratio of #1/(#1+#0) and fix stats
 	for (size_t i = 0; i < bin_counts; ++i)
 	{
-		double tot_cn_filtered = filtered_male_counts[i][0] + filtered_male_counts[i][1];
-		if (filtered_male_counts[i][0] > 0 && all_male_counts[i][1] > 0) {
-			double general_inc = params->inc_stats.male_labels_count_per_age[i][1] /
-				(params->inc_stats.male_labels_count_per_age[i][1] +
-					params->inc_stats.male_labels_count_per_age[i][0]);
+		if (filtered_male_counts[i][0] > 0 && all_male_counts[i][0] > 0) {
+			double general_or = params->inc_stats.male_labels_count_per_age[i][1] /
+				params->inc_stats.male_labels_count_per_age[i][0];
 			tot_controls += filtered_male_counts[i][0];
-			double filtered_inc = filtered_male_counts[i][1] / tot_cn_filtered;
-			double all_inc = all_male_counts[i][1] / (all_male_counts[i][1] + all_male_counts[i][0]);
-			double inc_ratio = filtered_inc / all_inc;
-
-			params->incidence_fix += filtered_male_counts[i][0] * general_inc * inc_ratio;
+			double filtered_or = filtered_male_counts[i][1] / filtered_male_counts[i][0];
+			double all_or = all_male_counts[i][1] / all_male_counts[i][0];
+			double or_ratio = filtered_or / all_or;
+			double general_or_fix = or_ratio * general_or;
+			params->incidence_fix += filtered_male_counts[i][0] * (general_or_fix / (1.0 + general_or_fix));
 		}
-		tot_cn_filtered = filtered_female_counts[i][0] + filtered_female_counts[i][1];
-		if (filtered_female_counts[i][0] > 0 && all_female_counts[i][1]) {
-			double general_inc = params->inc_stats.female_labels_count_per_age[i][1] /
-				(params->inc_stats.female_labels_count_per_age[i][1] +
-					params->inc_stats.female_labels_count_per_age[i][0]);
+		if (filtered_female_counts[i][0] > 0 && all_female_counts[i][0] > 0 && all_female_counts[i][1] > 0) {
+			double general_or = params->inc_stats.female_labels_count_per_age[i][1] /
+				params->inc_stats.female_labels_count_per_age[i][0];
 			tot_controls += filtered_female_counts[i][0];
-			double filtered_inc = filtered_female_counts[i][1] / tot_cn_filtered;
-			double all_inc = all_female_counts[i][1] / (all_female_counts[i][1] + all_female_counts[i][0]);
-			double inc_ratio = filtered_inc / all_inc;
+			double filtered_or = filtered_female_counts[i][1] / filtered_female_counts[i][0];
+			double all_or = all_female_counts[i][1] / all_female_counts[i][0];
+			double or_ratio = filtered_or / all_or;
+			double general_or_fix = or_ratio * general_or;
 
-			params->incidence_fix += filtered_female_counts[i][0] * general_inc * inc_ratio;
+			params->incidence_fix += filtered_female_counts[i][0] * (general_or_fix / (1.0 + general_or_fix));
 		}
 	}
 
