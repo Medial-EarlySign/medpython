@@ -38,6 +38,8 @@ int EmbeddingSig::init(map<string, string>& _map)
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
 		else if (field == "type") type = type_name_to_code(entry.second);
+		else if (field == "sig_time_unit" || field == "time_unit") sig_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "model_file") {
 			model_file = entry.second;
 			model = new MedModel;
@@ -67,8 +69,11 @@ int EmbeddingSig::init(map<string, string>& _map)
 			}
 		}
 		else if (field == "categories") {
-			// example categories=ATC_A10_____,file:drug_codes : will create categories of ATC_A10 and all the other that in the file drug_codes
-
+			// example categories=list:drug_codes : will create categories of all the sets that are in the file drug_codes
+			// here we see them as a comma separated list 
+			vector<string> f;
+			boost::split(f, entry.second, boost::is_any_of(","));
+			categories_to_embed.insert(f.begin(), f.end());
 		}
 
 	}
@@ -77,46 +82,41 @@ int EmbeddingSig::init(map<string, string>& _map)
 }
 
 //-------------------------------------------------------------------------------------
-int EmbeddingSig::get_categ_orig(int val, vector<int> &codes)
+// given a categorial val : return the sets it is contained in that are in the list of requested categories (= "in range")
+int EmbeddingSig::get_categ_orig(int val, vector<int> &members)
 {
 	if (sig_members2sets_in_range.find(val) == sig_members2sets_in_range.end()) return 0;
-	for (auto i : sig_members2sets_in_range[val]) {
-		codes.push_back(i);
-	}
+	members.insert(members.end(), sig_members2sets_in_range[val].begin(), sig_members2sets_in_range[val].end());
 	return 0;
 }
 
 //-------------------------------------------------------------------------------------
-int EmbeddingSig::get_categ_codes(int val, vector<int> &codes)
+// given a categorial val : return all the codes it adds before shrinkage
+int EmbeddingSig::get_categ_codes(int val, vector<int> &codes, int use_shrink)
 {
-	if (sig_members2sets_in_range.find(val) == sig_members2sets_in_range.end()) return 0;
-	for (auto i : sig_members2sets_in_range[val]) {
-		if (Orig2Code.find(i) != Orig2Code.end()) {
-			codes.push_back(Orig2Code[i]);
-		}
-	}
+	if (use_shrink) get_categ_shrunk_codes(val, codes);
+	vector<int> members;
+	get_categ_orig(val, members);
+	for (auto i : members)	if (Orig2Code.find(i) != Orig2Code.end()) codes.push_back(Orig2Code[i]);
 	return 0;
 }
 
 
 //-------------------------------------------------------------------------------------
+// given a categorial val : return all the codes it adds after shrinkage
 int EmbeddingSig::get_categ_shrunk_codes(int val, vector<int> &codes)
 {
-	if (sig_members2sets_in_range.find(val) == sig_members2sets_in_range.end()) return 0;
-	for (auto i : sig_members2sets_in_range[val]) {
-		if (Orig2ShrunkCode.find(i) != Orig2ShrunkCode.end()) {
-			codes.push_back(Orig2ShrunkCode[i]);
-		}
-	}
+	vector<int> members;
+	get_categ_orig(val, members);
+	for (auto i : members)	if (Orig2ShrunkCode.find(i) != Orig2ShrunkCode.end())	codes.push_back(Orig2ShrunkCode[i]);
 	return 0;
 }
 
 //-------------------------------------------------------------------------------------
+// given a val : get the serial range number it is contained in.
 int EmbeddingSig::get_continuous_orig(float val)
 {
-	//MLOG("##val %f\n", val);
 	for (int i=0; i<ranges.size(); i++) {
-		//MLOG("## i %d ranges %f %f val %f\n", i, ranges[i][0], ranges[i][1], val);
 		if (val >= ranges[i][0] && val < ranges[i][1])
 			return i;
 	}
@@ -125,8 +125,10 @@ int EmbeddingSig::get_continuous_orig(float val)
 }
 
 //-------------------------------------------------------------------------------------
-int EmbeddingSig::get_continuous_codes(float val)
+// given a val : get the orig (pre shrinking) code for its serial range
+int EmbeddingSig::get_continuous_codes(float val, int use_shrink)
 {
+	if (use_shrink) return get_continuous_shrunk_codes(val);
 	int j = get_continuous_orig(val);
 	if (j < 0 || (Orig2Code.find(j) == Orig2Code.end())) return -1;
 	return Orig2Code[j];
@@ -152,6 +154,7 @@ string EmbeddingSig::print_to_string(int verbosity)
 	buffer << "Sig: " << sig << " type: " << type << "\n";
 	buffer << "add_hierarchy: " << add_hierarchy << " do_shrink: " << do_shrink << " channels: " << time_chan << "(t) " << val_chan << "(v)\n";
 
+	buffer << "categories: size " << categories_to_embed.size() << "\n";
 	// ranges
 	buffer << "Ranges : (" << ranges.size() << ") :\n";
 	for (int j=0; j<ranges.size(); j++)
@@ -173,6 +176,77 @@ string EmbeddingSig::print_to_string(int verbosity)
 	return buffer.str();
 }
 
+//---------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::init_dummy()
+{
+	MLOG("ES:init_dummy : dummy variable\n");
+	Orig2Code[0] = 0;
+	Orig2Name[0] = "Dummy_variable_always_1";
+	Orig2ShrunkCode[0] = 0; // 0 is always guaranteed to pass through shrinkage
+	return 0;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::init_continous(int &curr_code)
+{
+	MLOG("ES:init_continous : age/continous sig %s\n", sig.c_str());
+	int c = 0;
+	for (auto &r : ranges) {
+		Orig2Code[c] = curr_code++;
+		Orig2Name[c++] = "sig: " + sig + ".t" + to_string(time_chan) + ".v" + to_string(val_chan) + ".win:" + to_string(win_from) + "_" + to_string(win_to) + " range: " + to_string(r[0]) + " - " + to_string(r[1]);
+	}
+	return 0;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
+{
+	if (type != ECTYPE_CATEGORIAL) return 0;
+	
+	MLOG("ES:init_categorial : model categorial sig %s\n", sig.c_str());
+
+	int section_id = dict.section_id(sig);
+
+	// init to_take array
+	vector<int> to_take(dict.dicts[section_id].Id2Name.rbegin()->first + 1, 0);
+
+	// get Orig2Code, Orig2name
+	for (auto &c : categories_to_embed) {
+		if (dict.dicts[section_id].Name2Id.find(c) != dict.dicts[section_id].Name2Id.end()) {
+			int j = dict.dicts[section_id].Name2Id[c];
+			to_take[j] = 1;
+			Orig2Code[j] = curr_code++;
+			Orig2Name[j] = "sig: " + sig + ".t" + to_string(time_chan) + ".v" + to_string(val_chan) + ".win:" + to_string(win_from) + "_" + to_string(win_to);
+			Orig2Name[j] += ".Orig_" + to_string(j);
+			for (auto &s : dict.dicts[section_id].Id2Names[j])
+				Orig2Name[j] += "|" + s;
+		}
+	}
+
+
+	// init sig_members2sets according to the right add_hierarchy option
+	if (add_hierarchy == 0) {
+		// in this case each category will only affect its own
+		for (auto &e : dict.dicts[section_id].Id2Name)
+			sig_members2sets[e.first] = { e.first };
+	}
+	else {
+		vector<int> members;
+		dict.dicts[section_id].get_members_to_all_sets(members, sig_members2sets);
+	}
+
+	// get sig_members2sets_in_range
+	for (auto &e : sig_members2sets) {
+		vector<int> in_range;
+		for (auto i : e.second)	if (to_take[i]) in_range.push_back(i);
+		if (in_range.size() > 0)
+			sig_members2sets_in_range[e.first] = in_range;
+	}
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------------
 int EmbeddingSig::get_feat_for_model(MedPidRepository &rep, vector<pair<int, int>> &pids_times)
 {
 	feat.clear();
@@ -212,25 +286,70 @@ int EmbeddingSig::get_feat_for_model(MedPidRepository &rep, vector<pair<int, int
 
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines)
+{
+	if (out_lines.find(time) == out_lines.end())
+		out_lines[time] = map<int, float>();
+
+	if (type == ECTYPE_DUMMY) {	out_lines[time][0] = 1.0f;	return 0; }
+
+	vector<int> codes;
+	int from_time = med_time_converter.diff_times(time, sig_time_unit, win_to, win_time_unit, sig_time_unit);
+	int to_time = med_time_converter.diff_times(time, sig_time_unit, win_from, win_time_unit, sig_time_unit);
+	//MLOG("add_sig_to_lines() pid %d sig %s time %d from_time %d to_time %d usv len: %d\n", pid, es.sig.c_str(), time, from_time, to_time, usv.len);
+
+	if (type == ECTYPE_AGE) {
+		// in this case usv must be "BYEAR"
+		float age = (float)med_time_converter.get_age(time, sig_time_unit, (int)usv.Val(0));
+		codes.push_back(get_continuous_codes(age, use_shrink));
+	}
+
+	else if (type == ECTYPE_CATEGORIAL) {
+
+		if (usv.n_time_channels() > 0) {
+			for (int j = 0; j<usv.len; j++) {
+				int i_time = usv.Time(j, time_chan);
+				if (i_time > from_time && i_time <= to_time)
+					get_categ_codes((int)usv.Val(j, val_chan), codes, use_shrink); // ??? Consider translating values from current dictionary to originally train dictionary
+				
+			}
+		}
+		else {
+			// this is for non time signals like GENDER
+			for (int j = 0; j<usv.len; j++) 
+				get_categ_codes((int)usv.Val(j, val_chan), codes, use_shrink);
+		}
+
+	}
+
+	else if (type == ECTYPE_CONTINUOUS) {
+
+		for (int j = 0; j<usv.len; j++) {
+			int i_time = usv.Time(j, time_chan);
+			if (i_time > from_time && i_time <= to_time)
+				codes.push_back(get_continuous_codes(usv.Val(j, val_chan), use_shrink));
+		}
+	}
+
+	for (auto &c : codes)
+		if (c >= 0) {
+			if (out_lines[time].find(c) == out_lines[time].end())
+				out_lines[time][c] = 0; // initialization of entry
+			if (do_counts)
+				out_lines[time][c]++;
+			else
+				out_lines[time][c] = 1.0f;
+		}
+
+	return 0;
+}
+
 
 //=====================================================================================
 // EmbedMatsCreator
 //=====================================================================================
 
-//-------------------------------------------------------------------------------------
-// prepare :
-// (1) prepare the list of signals to load
-// (2) read repository on all needed signals and pids
-// (3) prepare categ2sets list for every signal
-// (4) For each categorial signal calculate:
-//     (i) a map from a value to all sets containing it (if needed)
-//     (ii) a range of values to map to.
-//     (iii) a map from original value to matrix value (before shrinking)
-// (5) For each non categorial signal calculate:
-//     (i) the number of possible values
-//     (ii) values to map to
-//     (iii) map for ranges
-// (3) add Age signal to codes if needed
 
 
 //-------------------------------------------------------------------------------------
@@ -241,9 +360,6 @@ int EmbedMatCreator::init(map<string, string>& _map)
 		string field = entry.first;
 		if (field == "rep_time_unit") { rep_time_unit = med_time_converter.string_to_type(entry.second); }
 		else if (field == "win_time_unit") { rep_time_unit = med_time_converter.string_to_type(entry.second); }
-		//else if (field == "min_p") { min_p = stof(entry.second); }
-		//else if (field == "max_p") { max_p = stof(entry.second); }
-
 		else if (field == "sigs") {
 
 			// example sigs={sig=Drug;type=categorial;ranges=100000,250000;add_hierarchy=1|sig=Age;type=age;ranges=0,5,18,30,40,50,60,70,80,1000;do_shrink=0}
@@ -262,9 +378,22 @@ int EmbedMatCreator::init(map<string, string>& _map)
 }
 
 //-------------------------------------------------------------------------------------
+// prepare :
+// (1) prepare the list of signals to load
+// (2) read repository on all needed signals and pids
+// (3) prepare categ2sets list for every signal
+// (4) For each categorial signal calculate:
+//     (i) a map from a value to all sets containing it (if needed)
+//     (ii) a range of values to map to.
+//     (iii) a map from original value to matrix value (before shrinking)
+// (5) For each non categorial signal calculate:
+//     (i) the number of possible values
+//     (ii) values to map to
+//     (iii) map for ranges
+// (3) add Age signal to codes if needed
+//-------------------------------------------------------------------------------------
 int EmbedMatCreator::prepare(MedPidRepository &rep)
 {
-
 	// initializing sigs_to_load
 	sigs_to_load.clear();
 
@@ -272,7 +401,7 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 		if (es.type == ECTYPE_CATEGORIAL || es.type == ECTYPE_CONTINUOUS)
 			sigs_to_load.push_back(es.sig);
 		if (es.type == ECTYPE_AGE)
-			sigs_to_load.push_back("BYEAR"); // special case
+			sigs_to_load.push_back("BYEAR"); // special case, assuming BYEAR exists if Age is asked for
 		if (es.type == ECTYPE_MODEL) {
 			MLOG("Model type prepare() (%s) \n", es.sig.c_str());
 			MLOG("model ptr %x\n", es.model);
@@ -283,6 +412,8 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 			MLOG("\n");
 
 			sigs_to_load.insert(sigs_to_load.end(), sigs.begin(), sigs.end());
+
+			// ??? why is this here?...
 			es.model->init_for_apply_rec(rep);
 			es.model->features.print_csv();
 			rep.sigs.get_sids(sigs, es.model_sids);
@@ -293,7 +424,6 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 	if ((start_sid = rep.sigs.sid("STARTDATE")) > 0) { sigs_to_load.push_back("STARTDATE"); }
 	if ((end_sid = rep.sigs.sid("ENDDATE")) > 0) { sigs_to_load.push_back("ENDDATE"); }
 	if ((death_sid = rep.sigs.sid("DEATH")) > 0) { sigs_to_load.push_back("DEATH"); }
-
 
 	// preparing coding space (pre shrinking) , and relevant maps
 
@@ -318,14 +448,9 @@ void EmbedMatCreator::prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig 
 	es.sig_members2sets_in_range.clear();
 	es.Orig2Name.clear();
 	es.Orig2Code.clear();
+	es.Orig2ShrunkCode.clear();
 
-	if (es.type == ECTYPE_DUMMY) {
-		MLOG("prep_memebers_to_sets : dummy variable\n");
-		es.Orig2Code[0] = 0;
-		es.Orig2Name[0] = "Dummy_variable_always_1";
-		es.Orig2ShrunkCode[0] = 0; // 0 is always guaranteed to pass through shrinkage
-		return;
-	}
+	if (es.type == ECTYPE_DUMMY) es.init_dummy(); 
 
 	if (es.type == ECTYPE_MODEL) {
 
@@ -349,146 +474,11 @@ void EmbedMatCreator::prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig 
 		return;
 	}
 
-	if (es.type == ECTYPE_AGE || es.type == ECTYPE_CONTINUOUS) {
-		MLOG("prep_memebers_to_sets : model age/continous\n");
-		int c = 0;
-		for (auto &r : es.ranges) {
-			es.Orig2Code[c] = curr_code++;
-			es.Orig2Name[c++] = "sig: " + es.sig + 
-								".t" + to_string(es.time_chan) + ".v" + to_string(es.val_chan) + 
-							    ".win:" + to_string(es.win_from) + "_" + to_string(es.win_to) + 
-								" range: " + to_string(r[0]) + " - " + to_string(r[1]);
-		}
-		return;
-	}
+	if (es.type == ECTYPE_AGE || es.type == ECTYPE_CONTINUOUS) es.init_continous(curr_code);
 
-	if (es.type != ECTYPE_CATEGORIAL) return; // should not happen
-
-	MLOG("prep_memebers_to_sets : model categorial sig %s\n", es.sig.c_str());
-	int section_id = rep.dict.section_id(es.sig);
-	if (es.add_hierarchy == 0) {
-		for (auto &e : rep.dict.dicts[section_id].Id2Name) {
-			es.sig_members2sets[e.first] ={ e.first };
-		}
-	}
-	else {
-		vector<int> members;
-		rep.dict.dicts[section_id].get_members_to_all_sets(members, es.sig_members2sets);
-	}
-
-	// preparing the in range version
-
-	int vmax = 0;
-	for (auto &v : es.sig_members2sets)
-		if (v.first > vmax)
-			vmax = v.first;
-
-	vector<int> to_take(vmax+1, 0);
-
-	if (es.ranges.size() == 0) {
-		es.ranges.push_back({ 0, (float)vmax });
-	}
-
-	for (auto &r : es.ranges)
-		for (int j=(int)r[0]; j<=(int)r[1]; j++) 
-			if (rep.dict.dicts[section_id].Id2Names.find(j) != rep.dict.dicts[section_id].Id2Names.end()) {
-				to_take[j] = 1;
-				es.Orig2Code[j] = curr_code++;
-				es.Orig2Name[j] =  "sig: " + es.sig +
-					".t" + to_string(es.time_chan) + ".v" + to_string(es.val_chan) +
-					".win:" + to_string(es.win_from) + "_" + to_string(es.win_to);
-				es.Orig2Name[j] += ".Orig_" + to_string(j);
-				for (auto &s : rep.dict.dicts[section_id].Id2Names[j])
-					es.Orig2Name[j] += "|" + s;
-			}
-
-	
-	for (auto &e : es.sig_members2sets) {
-		vector<int> in_range;
-		for (auto i : e.second)	if (to_take[i]) in_range.push_back(i);
-		if (in_range.size() > 0)
-			es.sig_members2sets_in_range[e.first] = in_range;
-	}
+	if (es.type == ECTYPE_CATEGORIAL) es.init_categorial(rep.dict, curr_code);
 
 }
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------
-int EmbedMatCreator::add_sig_to_lines(EmbeddingSig &es, UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines)
-{
-	if (out_lines.find(time) == out_lines.end())
-		out_lines[time] = map<int, float>();
-
-	if (es.type == ECTYPE_DUMMY) {
-		out_lines[time][0] = 1.0f;
-		return 0;
-	}
-
-	vector<int> codes;
-	int from_time = med_time_converter.diff_times(time, rep_time_unit, es.win_to, win_time_unit, rep_time_unit);
-	int to_time = med_time_converter.diff_times(time, rep_time_unit, es.win_from, win_time_unit, rep_time_unit);
-	//MLOG("add_sig_to_lines() pid %d sig %s time %d from_time %d to_time %d usv len: %d\n", pid, es.sig.c_str(), time, from_time, to_time, usv.len);
-	if (es.type == ECTYPE_AGE) {
-		// in this case usv must be "BYEAR"
-		float age = (float)med_time_converter.get_age(time, rep_time_unit, (int)usv.Val(0));
-
-		if (use_shrink)
-			codes.push_back(es.get_continuous_shrunk_codes(age));
-		else
-			codes.push_back(es.get_continuous_codes(age));
-
-
-
-	} else if (es.type == ECTYPE_CATEGORIAL) {
-		
-		if (usv.n_time_channels() > 0) {
-			for (int j=0; j<usv.len; j++) {
-				int i_time = usv.Time(j, es.time_chan);
-				if (i_time > from_time && i_time <= to_time) {
-					if (use_shrink)
-						es.get_categ_shrunk_codes((int)usv.Val(j, es.val_chan), codes);
-					else
-						es.get_categ_codes((int)usv.Val(j, es.val_chan), codes);
-				}
-			}
-		}
-		else {
-			// this is for non time signals like GENDER
-			for (int j=0; j<usv.len; j++) {
-				if (use_shrink)
-					es.get_categ_shrunk_codes((int)usv.Val(j, es.val_chan), codes);
-				else
-					es.get_categ_codes((int)usv.Val(j, es.val_chan), codes);
-			}
-		}
-
-	} else if (es.type == ECTYPE_CONTINUOUS) {
-
-		for (int j=0; j<usv.len; j++) {
-			int i_time = usv.Time(j, es.time_chan);
-			if (i_time > from_time && i_time <= to_time) {
-				if (use_shrink)
-					codes.push_back(es.get_continuous_shrunk_codes(usv.Val(j, es.val_chan)));
-				else {
-					//MLOG("pid %d sig %s j %d time %d , val %f\n", pid, es.sig.c_str(), j, i_time , usv.Val(j, es.val_chan));
-					codes.push_back(es.get_continuous_codes(usv.Val(j, es.val_chan)));
-				}
-			}
-		}
-	}
-
-	for (auto &c : codes)
-		if (c >= 0) {
-			if (out_lines[time].find(c) == out_lines[time].end())
-				out_lines[time][c] = 0; // initialization of entry
-			if (es.do_counts)
-				out_lines[time][c]++;
-			else
-				out_lines[time][c] = 1.0f;
-		}
-
-	return 0;
-}
-
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 int EmbedMatCreator::add_model_feats_to_lines(EmbeddingSig &es, PidDynamicRec &pdr, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines)
@@ -588,13 +578,9 @@ int EmbedMatCreator::add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vecto
 				int ver = t;
 				if (pdr.get_n_versions() == 0) ver = 0;
 
-				if (es.type == ECTYPE_DUMMY) {
-					add_sig_to_lines(es, usv, pdr.pid, times[t], use_shrink, out_lines);
-				}
-				else {
-					pdr.uget(es.sid, ver, usv);
-					add_sig_to_lines(es, usv, pdr.pid, times[t], use_shrink, out_lines);
-				}
+				if (es.type != ECTYPE_DUMMY) pdr.uget(es.sid, ver, usv);
+
+				es.add_sig_to_lines(usv, pdr.pid, times[t], use_shrink, out_lines);
 			}
 		}
 
@@ -627,12 +613,14 @@ void EmbedMatCreator::init_sids(MedPidRepository &rep)
 
 
 //--------------------------------------------------------------------------------------------
+// calculating the sub columns we need to produce by throwing away the columns that have too
+// few or too much elements.
 int EmbedMatCreator::get_shrinked_dictionary(MedSparseMat &smat, float min_p, float max_p)
 {
 	int max_code = 0;
 	for (auto &es : embed_sigs) {
 		if (es.Orig2Code.rbegin()->second > max_code)
-			max_code = es.Orig2Code.rbegin()->second;
+			max_code = es.Orig2Code.rbegin()->second; // ??? who says max code is in the last one since we moved to go over categories.
 	}
 
 	vector<int> code2count(max_code+1, 0);
@@ -752,7 +740,6 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>
 	int n = 0;
 	//MedRepository *p_rep = (MedRepository *)&rep;
 
-
 	for (auto &es : embed_sigs) {
 		if (es.type == ECTYPE_MODEL) {
 			MLOG("==============================> Generating model part of matrix\n");
@@ -779,9 +766,8 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>
 				add_model_feats_to_lines(es, pid, times, use_shrink, out_lines);
 			}
 			else {
-				if (es.type != ECTYPE_DUMMY)
-					rep.uget(pid, es.sid, usv);
-				add_sig_to_lines(es, usv, pid, time, use_shrink, out_lines);
+				if (es.type != ECTYPE_DUMMY)	rep.uget(pid, es.sid, usv);
+				es.add_sig_to_lines(usv, pid, time, use_shrink, out_lines);
 			}
 		}
 

@@ -27,8 +27,8 @@ public:
 	string sig;
 	EmbeddedCodeType type = ECTYPE_CATEGORIAL;
 	int add_hierarchy = 1;
-	int do_shrink = 1; // keeping the bit of weather to shrink this one when shrinking is done.
-	int do_counts = 1; // collecting data as counts if =1 , or just as 0/1 is =0
+	int do_shrink = 1; // keeping the bit of wheather to shrink this one when shrinking is done.
+	int do_counts = 1; // collecting data as counts if =1 , or just as 0/1 if =0
 
 	// next is used for categorial signals. It holds the string names of the categories we want to embed.
 	// initialization is with the categories= parameter , it is a comma (,) separeted list of names, if a name starts with file: then
@@ -48,6 +48,8 @@ public:
 	int val_chan = 0;
 	int win_from = 0;
 	int win_to = 365;
+	int sig_time_unit = global_default_time_unit;
+	int win_time_unit = global_default_windows_time_unit;
 
 	// next are for the model type
 	// a model can be initiated with a model file (you have to pretrain it) .
@@ -62,20 +64,24 @@ public:
 
 	int get_feat_for_model(MedPidRepository &rep, vector<pair<int, int>> &pids_times);
 
-	// for categorials only : all sets of a value
+	// for categorials only : all sets of a value : we need to build this table before each apply using the given dictionary (and the known categories)
 	unordered_map<int, vector<int>> sig_members2sets;
 
 	// for categorials: after limiting to sets in range only ( = orig values)
 	unordered_map<int, vector<int>> sig_members2sets_in_range;
 
 	// orig to code and name
-	map<string, int> Name2Code; // Only relevant for categorial cases
+	map<string, int> Name2Id; // Only relevant for categorial cases : keeping the sub Name2Id table that was used to build the Orig2X tables.
+							  // when using a new different repository we need to translate the ids to these ones.
+							  // this is done in the categs_convert table
+	vector<int> categ_convert; // relevant also for the shrunk case
 	map<int, int> Orig2Code;
 	map<int, string> Orig2Name;
 
 	// orig to shrunk code
-	map<string, int> Name2ShrunkCode; // only relevant for categorial cases
 	map<int, int> Orig2ShrunkCode;
+
+	void clear_tables() { sig_members2sets.clear(); sig_members2sets_in_range.clear(); Name2Id.clear(); Orig2Code.clear(); Orig2Name.clear(); Orig2ShrunkCode.clear(); }
 
 	// simple API's
 
@@ -83,7 +89,7 @@ public:
 	int get_categ_orig(int val, vector<int> &codes);
 	
 	// appends the codes to the given codes vector , returns number of elements added
-	int get_categ_codes(int val, vector<int> &codes);
+	int get_categ_codes(int val, vector<int> &codes, int use_shrink = 1);
 
 	// appends the shrunk codes to the given codes vector , returns number of elements added
 	int get_categ_shrunk_codes(int val, vector<int> &codes);
@@ -92,7 +98,7 @@ public:
 	int get_continuous_orig(float val);
 
 	// appends the codes to the given codes vector , returns number of elements added
-	int get_continuous_codes(float val);
+	int get_continuous_codes(float val, int use_shrink = 1);
 
 	// appends the shrunk codes to the given codes vector , returns number of elements added
 	int get_continuous_shrunk_codes(float val);
@@ -103,18 +109,33 @@ public:
 	// initialization from string
 	int init(map<string, string>& _map);
 
+
 	// initializing a categorial case : need to get a dictionary and init  : sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode
 	// this is needed in order to make the embedding independent of the actual values given in the directory and rely on names only.
 	// This has the potential of allowing to transfer embeddings between different data sets, as long as they use the same signal names with the same category names in the dictionary.
-	int init(MedDictionarySections &dict);
+	int init_categorial(MedDictionarySections &dict, int &curr_code);
+
+	// the next is special for the categorial case:
+	// We need to initialize the Name2Id table (only if it is not empty !! , as it may be full from the original mapping that was used to build the Orig tables)
+
+	int init_categorial_tables(MedDictionarySections &dict);
+
+	// initialize a continous or age case : preparing the Orig2X tables based on the given ranges.
+	int init_continous(int &curr_code);
+
+	// initialize a dummy case : simple constant variable always added to make sure we have at least one entry per sample (helps in some cases)
+	int init_dummy();
+
+
+	// actually collecting matrix lines
+	int add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines);
 
 	EmbeddedCodeType type_name_to_code(string name);
 
 	string print_to_string(int verbosity);
 
 	ADD_CLASS_NAME(EmbeddingSig)
-	ADD_SERIALIZATION_FUNCS(sig, type, add_hierarchy, do_shrink, ranges, time_chan, val_chan, win_from, win_to, 
-		sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode, model)
+	ADD_SERIALIZATION_FUNCS(sig, type, add_hierarchy, do_shrink, ranges, time_chan, val_chan, win_from, win_to, Name2Id, Orig2Code, Orig2Name, Orig2ShrunkCode, model)
 };
 
 
@@ -144,7 +165,6 @@ public:
 	// major helper func:
 	// gets a usv for a signal, a time and a win_len, and adds the relevant data to output lines
 	// later and elsewhere these lines will be added atomically and by order to a sparse mat (to allow for easy threading code)
-	int add_sig_to_lines(EmbeddingSig &es, UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines);
 	int add_model_feats_to_lines(EmbeddingSig &es, PidDynamicRec &pdr, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines);
 	int add_model_feats_to_lines(EmbeddingSig &es, int pid, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines);
 	

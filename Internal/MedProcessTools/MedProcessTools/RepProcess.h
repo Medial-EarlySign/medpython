@@ -384,11 +384,11 @@ MEDSERIALIZE_SUPPORT(confRecord)
 */
 //.......................................................................................
 class RepConfiguredOutlierCleaner : public  RepBasicOutlierCleaner {
-public:
-
+private:
 	string confFileName; ///< configuration file and mapping
+	confRecord outlierParam; ///< a map from signal name to outliers parameters
+public:
 	string cleanMethod; ///< cleaning method :  "logical" "confirmed" or "learned"
-	map<string, confRecord> outlierParams; ///< a map from signal name to outliers parameters
 
 	RepConfiguredOutlierCleaner() { init_defaults(); }
 
@@ -415,8 +415,8 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)
-		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
-			trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParams, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
+	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
+			trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParam, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
 		void print();
 };
@@ -459,7 +459,6 @@ class RepRuleBasedOutlierCleaner : public RepProcessor {
 public:
 
 	/// Signals to clean
-	vector <string> signalNames;
 	vector <int> signalIds;
 	bool addRequiredSignals = false; ///< a flag stating if we want to load signals that are not in the cleaned signal list 
 								   /// because they share a rule with the cleaned signals (set it in jason)
@@ -545,7 +544,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalNames, time_window, rules2Signals, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
+	ADD_SERIALIZATION_FUNCS(processor_type, time_window, rules2Signals, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
@@ -1242,7 +1241,8 @@ public:
 	vector<string> dm_diagnoses_sets;
 	string dm_glucose_sig = "Glucose";
 	string dm_hba1c_sig = "HbA1C";
-	int dm_diagnoses_severity = 3; // 3: need supporting evidence as well, 4: single code is enough
+	int dm_diagnoses_severity = 4; // 3: need supporting evidence as well, 4: single code is enough
+	int dm_bio_mode = 0; // bio mode - takes the FIRST suggestive test for a condition 
 
 
 	// proteinuria related parameters

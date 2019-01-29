@@ -185,7 +185,7 @@ bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 			return false;
 	}
 
-	MLOG_D("RepProcessor::filter filtering out processor of type %d, affected signals: ", processor_type);
+	MLOG_D("RepProcessor::filter filtering out processor of type %d(%s), affected signals: ", processor_type, my_class_name().c_str());
 	for (string signal : aff_signals)
 		MLOG_D("[%s] ", signal.c_str());
 	MLOG_D("\n");
@@ -406,7 +406,7 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 			filtered.size(), processors.size());
 
 	if (filtered.empty()) {
-		MLOG_D("RepMultiProcessor::filter filtering out processor of type %d\n", processor_type);
+		MLOG_D("RepMultiProcessor::filter filtering out processor of type %d(%s)\n", processor_type, my_class_name().c_str());
 		processors.clear();
 		return true;
 	}
@@ -511,7 +511,7 @@ int RepMultiProcessor::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 	}
 
 	// ??? chances are this next parallelization is not needed, as we parallel before on recs...
-#pragma omp parallel for schedule(dynamic)
+//NO PARALLEL - we are using rec.usv inside processors, generators which is not thread safe!
 	for (int j = 0; j < processors.size(); j++) {
 		rc[j] = processors[j]->apply(rec, time_points, all_attributes_mats[j]);
 	}
@@ -862,10 +862,8 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 	confRecord thisRecord;
 	string thisLine;
 	infile.open(confFileName.c_str(), ifstream::in);
-	if (!infile.is_open()) {
-		fprintf(stderr, "Cannot open %s for reading\n", confFileName.c_str());
-		return -1;
-	}
+	if (!infile.is_open())
+		MTHROW_AND_ERR("Cannot open %s for reading\n", confFileName.c_str());
 	getline(infile, thisLine);//consume title line.
 	while (getline(infile, thisLine)) {
 		boost::trim(thisLine);
@@ -875,9 +873,8 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));
 		if (f.size() != 8) {
-			fprintf(stderr, "Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 			infile.close();
-			return -1;
+			MTHROW_AND_ERR("Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 		}
 
 		thisRecord.confirmedLow = thisRecord.logicalLow = (float)atof(f[1].c_str());
@@ -898,7 +895,7 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 {
 	init_defaults();
-
+	map<string, confRecord> outlierParams_dict;
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepConfiguredOutlierCleaner::init]
@@ -908,12 +905,15 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
-		else if (field == "conf_file") {
-			confFileName = entry.second; if (int res = readConfFile(confFileName, outlierParams))return(res);
-		}
+		else if (field == "conf_file") readConfFile(entry.second, outlierParams_dict);
 		else if (field == "clean_method")cleanMethod = entry.second;
 		//! [RepConfiguredOutlierCleaner::init]
 	}
+
+	if (outlierParams_dict.find(signalName) != outlierParams_dict.end())
+		outlierParam = outlierParams_dict.at(signalName);
+	else
+		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", signalName.c_str());
 
 	init_lists();
 	return MedValueCleaner::init(mapper);
@@ -922,37 +922,30 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 void RepConfiguredOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
 	RepBasicOutlierCleaner::set_signal_ids(dict); //call base class init
 	//fetch val_channel from file
-	if (outlierParams.find(signalName) == outlierParams.end())
-		MTHROW_AND_ERR("RepConfiguredOutlierCleaner : ERROR: Signal %s not supported by conf_cln\n", signalName.c_str());
-	val_channel = outlierParams.at(signalName).val_channel;
+	val_channel = outlierParam.val_channel;
 }
 
 // Learn bounds
 //.......................................................................................
 int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
-	if (outlierParams.find(signalName) == outlierParams.end()) {
-		MERR("MedModel learn() : ERROR: Signal %s not supported by conf_cln()\n", signalName.c_str());
-		return -1;
-	}
-
 	trimMax = 1e30F;
 	trimMin = -1e+30F;
 
 	if (cleanMethod == "logical") {
-		removeMax = outlierParams[signalName].logicalHigh;
-		removeMin = outlierParams[signalName].logicalLow;
+		removeMax = outlierParam.logicalHigh;
+		removeMin = outlierParam.logicalLow;
 		return(0);
 	}
 	else if (cleanMethod == "confirmed") {
-		removeMax = outlierParams[signalName].confirmedHigh;
-		removeMin = outlierParams[signalName].confirmedLow;
+		removeMax = outlierParam.confirmedHigh;
+		removeMin = outlierParam.confirmedLow;
 		return(0);
 	}
 	else if (cleanMethod == "learned") {
-		removeMax = outlierParams[signalName].logicalHigh;
-		removeMin = outlierParams[signalName].logicalLow;
-		string thisDistHi = outlierParams[signalName].distHigh;
-		string thisDistLo = outlierParams[signalName].distLow;
+		removeMax = outlierParam.logicalHigh;
+		removeMin = outlierParam.logicalLow;
+		string thisDistHi = outlierParam.distHigh;
+		string thisDistLo = outlierParam.distLow;
 		if (thisDistHi == "none" && thisDistLo == "none") return(0);//nothing to learn
 
 		else {
@@ -981,10 +974,10 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& sampl
 			}
 			if (thisDistHi == "norm")removeMax = borderHi;
 			else if (thisDistHi == "lognorm")removeMax = expf(logBorderHi);
-			else if (thisDistHi == "manual")removeMax = outlierParams[signalName].confirmedHigh;
+			else if (thisDistHi == "manual")removeMax = outlierParam.confirmedHigh;
 			if (thisDistLo == "norm")removeMin = borderLo;
 			else if (thisDistLo == "lognorm")removeMin = expf(logBorderLo);
-			else if (thisDistLo == "manual")removeMin = outlierParams[signalName].confirmedLow;
+			else if (thisDistLo == "manual")removeMin = outlierParam.confirmedLow;
 
 			return(0);
 		}
@@ -1126,13 +1119,20 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 			consideredRules.push_back(rule.first);
 	}
 
-	for (auto& rule : rules2Signals) {
-		if (std::find(consideredRules.begin(), consideredRules.end(), 0) != consideredRules.end() ||
-			std::find(consideredRules.begin(), consideredRules.end(), rule.first) != consideredRules.end())
-			continue;// rule remains
-		else
-			rules2Signals.erase(rule.first);// rule removed
-	}
+	unordered_set<int> rules_set(consideredRules.begin(), consideredRules.end());
+	if (rules_set.find(0) == rules_set.end()) // If has 0 - take all
+		for (auto it = rules2Signals.begin(); it != rules2Signals.end(); ) {
+			if (rules_set.find(it->first) != rules_set.end())
+				++it;// rule remains
+			else
+				it = rules2Signals.erase(it);// rule removed
+		}
+
+	//mark affected and requested:
+	for (auto& rule : rules2Signals)
+		aff_signals.insert(rule.second.begin(), rule.second.end());
+	for (auto sig : aff_signals)  // all affected are of course required
+		req_signals.insert(sig);
 
 	// add required signals according to rules that apply to affected signals
 	unordered_set<int> seen_rule;
@@ -1281,8 +1281,12 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 			pair<int, int> first_chan(0, 0);
 			if (signal_channels.find(rule_signals.front()) != signal_channels.end())
 				first_chan = signal_channels[rule_signals.front()];
-			for (sPointer[0] = 0; sPointer[0] < ruleUsvs[0].len; sPointer[0]++) {
+			for (sPointer[0] = 0; sPointer[0] < ruleUsvs[0].len; ++sPointer[0]) {
 				//printf("start loop %d %d \n", sPointer[0], ruleUsvs[0].len);
+				//skip sPointer[0] to last with same time:
+				while (sPointer[0] + 1 < ruleUsvs[0].len && ruleUsvs[0].Time(sPointer[0], first_chan.first) ==
+					ruleUsvs[0].Time(sPointer[0] + 1, first_chan.first))
+					++sPointer[0]; //If can advance forward and same time, then advance!
 
 				thisTime = ruleUsvs[0].Time(sPointer[0], first_chan.first);
 				if (time_points.size() != 0 && thisTime > time_points[iver])break;
@@ -1294,15 +1298,13 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 					while (ruleUsvs[i].Time(sPointer[i], sig_channels.first) < thisTime - time_window && sPointer[i] < ruleUsvs[i].len - 1)
 						++sPointer[i];
 					//find closest (or exact):
-					int try_more = 0;
-					while (ruleUsvs[i].Time(sPointer[i], sig_channels.first) < thisTime && sPointer[i] + try_more < ruleUsvs[i].len - 1)
+					int try_more = 1;
+					while (sPointer[i] + try_more < ruleUsvs[i].len &&
+						ruleUsvs[i].Time(sPointer[i] + try_more, sig_channels.first) <= thisTime)
 						++try_more;
-					if (try_more > 0) {
-						if (sPointer[i] + try_more < ruleUsvs[i].len)
-							sPointer[i] += try_more; //still good pointer so use it
-						else
-							sPointer[i] += (try_more - 1); //still better pointer so use it's best
-					}
+					if (try_more - 1 > 0)
+						sPointer[i] += (try_more - 1); //better pointer so use it's best
+
 
 					//printf("before ok_check: %d %d %d %d %d %d\n", i, sPointer[0], sPointer[1], sPointer[2],thisTime, ruleUsvs[i].Time(sPointer[i], time_channel));
 					int time_diff = abs(ruleUsvs[i].Time(sPointer[i], sig_channels.first) - thisTime);
@@ -1315,46 +1317,45 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				}
 				if (ok) {
 					// if found all signals from same date eliminate doubles and take the last one for comparison
-					vector<int> rule_val_channels;
+					vector<int> rule_val_channels, rule_time_channels;
 					for (int i = 0; i < mySids.size(); i++) {
 						pair<int, int> sig_channels(0, 0);
 						if (signal_channels.find(rule_signals[i]) != signal_channels.end())
 							sig_channels = signal_channels[rule_signals[i]];
 						rule_val_channels.push_back(sig_channels.second);
+						rule_time_channels.push_back(sig_channels.first);
 					}
 					for (int i = 0; i < mySids.size(); i++) {
-						pair<int, int> sig_channels(0, 0);
-						if (signal_channels.find(rule_signals[i]) != signal_channels.end())
-							sig_channels = signal_channels[rule_signals[i]];
+
 						int remove_same_time = 1; //try remove for signal with same time value - Can use SimValHandler before, it's better
 						while (sPointer[i] - remove_same_time >= 0 &&
-							ruleUsvs[i].Time(sPointer[i], sig_channels.first) == ruleUsvs[i].Time(sPointer[i] - remove_same_time, sig_channels.first)) {
-							if (affected_by_rules[rulesToApply[iRule]][i]) {
+							ruleUsvs[i].Time(sPointer[i], rule_time_channels[i]) == ruleUsvs[i].Time(sPointer[i] - remove_same_time, rule_time_channels[i])) {
+							if (affected_by_rules[rule][i]) {
+								//MLOG("Remove SAME:: sig %s, time_idx=%d (sPointer[0]=%d)\n", affected_ids_to_name[mySids[i]].c_str(), sPointer[i] - remove_same_time, sPointer[0]);
 								removePoints[mySids[i]].insert(sPointer[i] - remove_same_time);
 								if (!verbose_file.empty())
-									removePoints_Time[mySids[i]].push_back(ruleUsvs[i].Time(sPointer[i] - remove_same_time, sig_channels.first));
+									removePoints_Time[mySids[i]].push_back(ruleUsvs[i].Time(sPointer[i] - remove_same_time, rule_time_channels[i]));
 							}
 							++remove_same_time;
 						}
-
-						// check rule and mark for removement
-						//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
-						bool ruleFlagged = applyRule(rule, ruleUsvs, rule_val_channels, sPointer);
-						/*
-						printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
-						for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
-						printf("\n");
-						*/
-						if (ruleFlagged) {
-
-							for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
-								if (affected_by_rules[rulesToApply[iRule]][sIndex]) {
-									removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
-									if (!verbose_file.empty())
-										removePoints_Time[mySids[i]].push_back(ruleUsvs[i].Time(sPointer[sIndex], sig_channels.first));
-								}
-						}
 					}
+					// check rule and mark for removement
+					//printf("before apply: %d %d %d %d\n", rule, sPointer[0],sPointer[1],sPointer[2]);
+					bool ruleFlagged = applyRule(rule, ruleUsvs, rule_val_channels, sPointer);
+					/*
+					printf("%d R: %d P: %d t: %d   ",ruleFlagged, rule, rec.pid, thisTime);
+					for (int k = 0; k < sPointer.size(); k++)printf(" %f", ruleUsvs[k].Val(sPointer[k]));
+					printf("\n");
+					*/
+					if (ruleFlagged) {
+						for (int sIndex = 0; sIndex < mySids.size(); sIndex++)
+							if (affected_by_rules[rulesToApply[iRule]][sIndex]) {
+								removePoints[mySids[sIndex]].insert(sPointer[sIndex]);
+								if (!verbose_file.empty())
+									removePoints_Time[mySids[sIndex]].push_back(ruleUsvs[sIndex].Time(sPointer[sIndex], rule_time_channels[sIndex]));
+							}
+					}
+
 				}
 			}
 		}
@@ -1366,8 +1367,8 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
 			if (!verbose_file.empty()) {
 				string sig_name = affected_ids_to_name[sig];
-				string time_points = "";
-				for (size_t i = 0; i < removePoints_Time[sig].size(); ++i)
+				string time_points = removePoints_Time[sig].empty() ? "" : to_string(removePoints_Time[sig].front());
+				for (size_t i = 1; i < removePoints_Time[sig].size(); ++i)
 					time_points += "," + to_string(removePoints_Time[sig][i]);
 				log_file << "signal " << sig_name << " pid " << rec.pid << " removed "
 					<< toRemove.size() << " int_times " << time_points << "\n";
