@@ -761,9 +761,15 @@ void RepCreateRegistry::init_proteinuria_registry_tables(MedDictionarySections& 
 			for (int j = 0; j < r.categories.size(); j++) {
 				r.categories_i[j].clear();
 				int section_id = dict.section_id(r.sig_name);
-				for (auto &c : r.categories[j])
-					if (dict.dicts[section_id].Name2Id.find(c) != dict.dicts[section_id].Name2Id.end())
-						r.categories_i[j].push_back(dict.dicts[section_id].Name2Id[c]);
+				unordered_set<int> vals_for_j;
+				for (auto &c : r.categories[j]) {
+					if (dict.dicts[section_id].Name2Id.find(c) != dict.dicts[section_id].Name2Id.end()) {
+						vector<int> m;
+						dict.dicts[section_id].get_set_members(c, m);
+						vals_for_j.insert(m.begin(), m.end());
+					}
+				}
+				r.categories_i[j].insert(r.categories_i[j].begin(), vals_for_j.begin(), vals_for_j.end());
 			}
 		}
 
@@ -789,15 +795,17 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 
 	// collecting events
 	for (auto &r : proteinuria_ranges) {
-		//MLOG("Proteinuria: pid %d,%d : sig %s , %d : idx %d : len %d\n", rec.pid, time, r.sig_name.c_str(), r.sig_id, r.usv_idx, usvs[r.usv_idx].len);
 		UniversalSigVec &rusv = usvs[r.usv_idx];
+		//MLOG("Proteinuria: pid %d,%d : sig %s , %d : idx %d : len %d\n", rec.pid, time, r.sig_name.c_str(), r.sig_id, r.usv_idx, usvs[r.usv_idx].len);
 		for (int j = 0; j < rusv.len; j++) {
+
 			int i_time = rusv.Time(j);
 			if (time > 0 && i_time > time) break;
 
 			int found = -1;
 			if (r.is_numeric) {
 				float f_val = rusv.Val(j);
+				//MLOG("pid %d,%d : sig %s : time %d val %f\n", rec.pid, time, r.sig_name.c_str(), i_time, f_val);
 				for (int k = 0; found < 0 && k < r.ranges.size(); k++) {
 					if (f_val >= r.ranges[k].first && f_val < r.ranges[k].second)
 						found = k;
@@ -805,16 +813,22 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 			}
 			else {
 				int i_val = (int)rusv.Val(j);
+				//MLOG("pid %d,%d : sig %s : time %d val %d\n", rec.pid, time, r.sig_name.c_str(), i_time, i_val);
 				for (int k = 0; found < 0 && k < r.categories_i.size(); k++) {
-					for (auto &ci : r.categories_i[k])
+					for (auto &ci : r.categories_i[k]) {
+						//MLOG("testing ci %d i_val %d\n", ci, i_val);
 						if (i_val == ci) {
 							found = k;
 							break;
 						}
+					}
 				}
 
 			}
-			if (found > 0)	proteinuria_ev.push_back(pair<int, int>(i_time, found));
+			if (found >= 0) {
+				//MLOG("pid %d,%d : sig %s : =====> time %d found %d\n", rec.pid, time, r.sig_name.c_str(), i_time, found);
+				proteinuria_ev.push_back(pair<int, int>(i_time, found));
+			}
 		}
 	}
 
