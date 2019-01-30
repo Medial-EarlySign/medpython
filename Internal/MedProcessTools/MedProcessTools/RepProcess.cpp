@@ -690,7 +690,9 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
 	init_lists();
 	map<string, string>& mapper_p = mapper;
-	if (mapper_p.find("verbose_file") != mapper_p.end()) mapper_p.erase("verbose_file");
+	vector<string> remove_fl = { "verbose_file" , "rp_type", "unconditional", "signal", "time_channel" };
+	for (const string &fl : remove_fl)
+		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
 }
 
@@ -827,12 +829,23 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		change.resize(nChange);
 		remove.resize(nRemove);
 		if (!verbose_file.empty()) {
-			if (nRemove > 0)
-#pragma omp critical
-				for (int rem = 0; rem < remove.size(); rem++) {
-					log_file << "signal " << signalName << " pid " << rec.pid << " removed "
-						<< nRemove << " changed " << nChange << "\t" << rec.usv.Time(remove[rem], time_channel) << "\t" << rec.usv.Val(remove[rem], val_channel) << "\n";
+			if (remove.size() > 0) {
+				string sigName = signalName;
+				if (val_channel > 0)
+					sigName += "_ch_" + to_string(val_channel);
+				string collect_cleaning_time = to_string(rec.usv.Time(remove[0], time_channel));
+				for (int rem = 0; rem < remove.size(); ++rem)
+					collect_cleaning_time += "," + to_string(rec.usv.Time(remove[rem], time_channel));
+#pragma omp critical 
+				{
+					log_file << "GLOBAL_STATS: signal " << sigName << " pid " << rec.pid << " removed "
+						<< nRemove << " changed " << nChange << "\n";
+					for (int rem = 0; rem < remove.size(); ++rem)
+						log_file << "FILTER: signal " << sigName << " pid " << rec.pid << " removed/changed\t"
+						<< rec.usv.Time(remove[rem], time_channel) << "\t" << rec.usv.Val(remove[rem], val_channel) << "\n";
 				}
+				//<< collect_cleaning_time << "\n";
+			}
 		}
 		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
 			return -1;
@@ -951,7 +964,9 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 	init_lists();
 	map<string, string>& mapper_p = mapper;
-	if (mapper_p.find("verbose_file") != mapper_p.end()) mapper_p.erase("verbose_file");
+	vector<string> remove_fl = { "verbose_file" , "clean_method", "conf_file", "rp_type", "unconditional", "signal", "time_channel" };
+	for (const string &fl : remove_fl)
+		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
 }
 
@@ -1403,7 +1418,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		int idx = 0;
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
-			if (!verbose_file.empty()) {
+			if (!verbose_file.empty() && !toRemove.empty()) {
 				string sig_name = affected_ids_to_name[sig];
 				string time_points = removePoints_Time[sig].empty() ? "" : to_string(removePoints_Time[sig].front());
 				for (size_t i = 1; i < removePoints_Time[sig].size(); ++i)
