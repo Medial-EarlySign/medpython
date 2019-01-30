@@ -547,7 +547,14 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 
 	int nsamp = 0;
 
+	int min_date = s_params.min_year * 10000 + 0101;
+	int max_date = s_params.max_year * 10000 + 1230;
+
 	for (auto &rc : recs) {
+
+		if (rc.from < min_date) rc.from = min_date;
+		if (rc.to > max_date) rc.from = max_date;
+
 		int byear = (int)((((SVal *)rep.get(rc.pid, byear_sid, len))[0]).val);
 		int gender = (int)((((SVal *)rep.get(rc.pid, gender_sid, len))[0]).val);
 		int train = (int)((((SVal *)rep.get(rc.pid, train_sid, len))[0]).val);
@@ -609,6 +616,14 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 
 				}
 
+				if (mis.samples.size() > s_params.max_samples_per_id) {
+					// randomizing
+					MedIdSamples mis_new;
+					random_shuffle(mis.samples.begin(), mis.samples.end());
+					mis_new.samples.insert(mis_new.samples.begin(), mis.samples.begin(), mis.samples.begin() + s_params.max_samples_per_id);
+					mis = mis_new;
+				}
+
 				if (mis.samples.size() > 0)
 					samples.idSamples.push_back(mis);
 
@@ -620,7 +635,7 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 
 	}
 
-	samples.sort_by_id_date();
+	samples.normalize();
 
 
 	return 0;

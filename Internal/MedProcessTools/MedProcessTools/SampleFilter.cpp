@@ -869,6 +869,7 @@ int BasicSampleFilter::init(map<string, string>& mapper)
 		if (m.first == "min_sample_time") min_sample_time = stoi(m.second);
 		if (m.first == "max_sample_time") max_sample_time = stoi(m.second);
 		if (m.first == "win_time_unit") winsTimeUnit = med_time_converter.string_to_type(m.second);
+		if (m.first == "min_bfilter") min_bfilter = med_time_converter.string_to_type(m.second);
 		if (m.first == "bfilter") {
 			vector<string> fields;
 			boost::split(fields, m.second, boost::is_any_of("+"));
@@ -884,6 +885,8 @@ int BasicSampleFilter::init(map<string, string>& mapper)
 		}
 		
 	}
+
+	if (bfilters.size() > 0 && (min_bfilter < 0 || min_bfilter > bfilters.size())) min_bfilter = (int)bfilters.size();
 
 	return 0;
 }
@@ -925,14 +928,14 @@ int BasicSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSam
 			if (in_s.time < min_sample_time || in_s.time > max_sample_time) take_it = 0;
 			//MLOG("id %d time %d min %d max %d take_it %d\n", in_s.id, in_s.time, min_sample_time, max_sample_time,take_it);
 			if (take_it) {
+				take_it = 0;
 				for (auto &bf : bfilters) {
-					if (!bf.test_filter(in_s, rep, winsTimeUnit)) {
-						take_it = 0;
-						break;
+					if (bf.test_filter(in_s, rep, winsTimeUnit)) {
+						take_it++;
 					}
 				}
 
-				if (take_it) id_out.samples.push_back(in_s);
+				if (take_it >= min_bfilter) id_out.samples.push_back(in_s);
 			}
 		}
 

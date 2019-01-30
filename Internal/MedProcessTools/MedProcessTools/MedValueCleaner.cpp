@@ -192,6 +192,11 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 			field != "addRequiredSignals"&&field != "consideredRules" && 
 			field != "nrem_attr" && field != "ntrim_attr" && field != "nrem_suff" && field != "ntrim_suff")
 			MLOG("Unknonw parameter \'%s\' for MedValueCleaner\n", field.c_str());
+		else if (field == "rp_type") {}
+		else if (field == "signal") {}
+		else if (field == "unconditional") {}
+		else if (field == "fp_type") {}
+		else MWARN("Warn Unknown param \"%s\"\n", field.c_str());
 		//! [MedValueCleaner::init]
 
 	}
