@@ -679,7 +679,6 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "verbose_file")verbose_file = entry.second;
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
-		else MTHROW_AND_ERR("Error Unknown param %s\n", field.c_str());
 		//! [RepBasicOutlierCleaner::init]
 	}
 
@@ -936,7 +935,6 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else if (field == "verbose_file")verbose_file = entry.second;
-		else MTHROW_AND_ERR("Error Unknown param %s\n", field.c_str());
 		//! [RepConfiguredOutlierCleaner::init]
 	}
 
