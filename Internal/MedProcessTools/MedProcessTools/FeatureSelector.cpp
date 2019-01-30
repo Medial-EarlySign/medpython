@@ -1111,9 +1111,9 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 	return 0;
 }
 
-// Learn 
+// Prepare for learning
 //.......................................................................................
-int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+void IterativeFeatureSelector::pre_learn(MedFeatures& features, MedBootstrapResult& bootstrapper, map<string, vector<string> >& featureFamilies, vector<int>& orig_folds) {
 
 	int nSamples = (int)features.samples.size();
 
@@ -1129,11 +1129,9 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 	}
 
 	// Divide features into families based on signals
-	map<string, vector<string> > featureFamilies;
 	get_features_families(features, featureFamilies);
 
 	// Collect original splits
-	vector<int> orig_folds(nSamples);
 	for (int i = 0; i < nSamples; i++)
 		orig_folds[i] = features.samples[i].split;
 
@@ -1147,8 +1145,6 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 	}
 
 	// Boostrapping
-	MedBootstrapResult bootstrapper;
-
 	bootstrapper.bootstrap_params.loopCnt = 0;
 	string bootstrap_init = bootstrap_params;
 	boost::replace_all(bootstrap_init, "/", ";");
@@ -1157,6 +1153,18 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 
 	init_bootstrap_cohort(bootstrapper, cohort_params);
 	init_bootstrap_params(bootstrapper, msr_params);
+}
+
+// Learn 
+//.......................................................................................
+int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	int nSamples = (int)features.samples.size();
+	MedBootstrapResult bootstrapper;
+	map<string, vector<string> > featureFamilies;
+	vector<int> orig_folds(nSamples);
+	pre_learn(features, bootstrapper, featureFamilies, orig_folds);
+
 
 	// Optimize
 	if (ids.empty()) {
@@ -1186,6 +1194,51 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 
 	return 0;
 }
+
+// Retrace
+void IterativeFeatureSelector::retrace(MedFeatures& features, unordered_set<int>& ids, vector<string>& families_order, int start, int end) {
+
+	int nSamples = (int)features.samples.size();
+	MedBootstrapResult bootstrapper;
+	map<string, vector<string> > featureFamilies;
+	vector<int> orig_folds(nSamples);
+	pre_learn(features, bootstrapper, featureFamilies,orig_folds);
+
+	// Sanity
+	for (string& family : families_order) {
+		if (featureFamilies.find(family) == featureFamilies.end())
+			MTHROW_AND_ERR("Cannot find family \'%s\' inf featureFamilies\n", family.c_str());
+	}
+
+	// Optimize
+	if (ids.empty()) {
+		if (mode == "top2bottom")
+			retraceTop2BottomSelection(features, featureFamilies, bootstrapper, families_order, start, end);
+		else
+			retraceBottom2TopSelection(features, featureFamilies, bootstrapper, families_order, start, end);
+	}
+	else {
+		MedFeatures filteredFeatures = features;
+		vector<int> indices;
+		for (unsigned int i = 0; i < filteredFeatures.samples.size(); i++) {
+			if (ids.find(filteredFeatures.samples[i].id) != ids.end())
+				indices.push_back(i);
+		}
+		medial::process::filter_row_indexes(filteredFeatures, indices);
+
+		if (mode == "top2bottom")
+			retraceTop2BottomSelection(filteredFeatures, featureFamilies, bootstrapper, families_order, start, end);
+		else
+			retraceBottom2TopSelection(filteredFeatures, featureFamilies, bootstrapper, families_order, start, end);
+	}
+
+	// Reinstall splits
+	for (int i = 0; i < nSamples; i++)
+		features.samples[i].split = orig_folds[i];
+
+	return;
+}
+
 
 // Report to file 
 //.......................................................................................

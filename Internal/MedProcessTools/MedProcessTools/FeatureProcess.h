@@ -838,6 +838,10 @@ public:
 	// Print report to file
 	void print_report(string& fileName);
 
+	// Retracing a pre-given order of families
+	void retrace(MedFeatures& features, unordered_set<int>& ids, vector<string>& families_order, int start, int end);
+	void retrace(MedFeatures& features, vector<string>& families_order, int start, int end) { unordered_set<int> empty; retrace(features, empty, families_order, start, end); }
+
 	// Serialization
 	ADD_CLASS_NAME(IterativeFeatureSelector)
 	ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
@@ -862,10 +866,15 @@ private:
 	// Utilities
 	void prepare_for_iterations(MedBootstrapResult& bootstrapper, MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows, vector<vector<float>>&trainLabels,
 		vector<vector<MedSample>>&testSamples, MedFeatures& bootstrapFeatures);
+	void pre_learn(MedFeatures& features, MedBootstrapResult& bootstrapper, map<string, vector<string> >& featureFamilies, vector<int>& orig_folds);
 
 	// Actual selection
 	void doTop2BottomSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper);
 	void doBottom2TopSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper);
+
+	// Actual retracing a pre-given order of families
+	void retraceTop2BottomSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper, vector<string>& order, int start, int end);
+	void retraceBottom2TopSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper, vector<string>& order, int start, int end);
 };
 
 
