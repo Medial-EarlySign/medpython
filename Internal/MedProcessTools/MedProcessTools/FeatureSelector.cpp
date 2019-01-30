@@ -1082,6 +1082,7 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "work_on_sets") work_on_sets = med_stoi(entry.second) > 0;
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
+		else if (field == "ignored") boost::split(ignored, entry.second, boost::is_any_of(","));
 		else if (field == "ungrouped") boost::split(ungroupd_names, entry.second, boost::is_any_of(","));
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for IterativeFeatureSelector\n", field.c_str());
@@ -1089,10 +1090,16 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 	}
 
 	// Parse folds
-	vector<string> folds_v;
-	boost::split(folds_v, folds_s, boost::is_any_of(","));
-	for (string& s : folds_v)
-		folds.push_back(stoi(s));
+	if (!folds_s.empty()) {
+		vector<string> folds_v;
+		boost::split(folds_v, folds_s, boost::is_any_of(","));
+		for (string& s : folds_v)
+			folds.push_back(stoi(s));
+	}
+	else {
+		for (int i = 0; i < nfolds; i++)
+			folds.push_back(i);
+	}
 
 	// Parse rates
 	get_rates_vec();
@@ -1110,9 +1117,20 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 
 	int nSamples = (int)features.samples.size();
 
+	// Resolve required and ignored  feature names
+	for (string req : required) {
+		string resolved = resolve_feature_name(features, req);
+		resolved_required.insert(resolved);
+	}
+
+	for (string ignrd : ignored) {
+		string resolved = resolve_feature_name(features, ignrd);
+		resolved_ignored.insert(resolved);
+	}
+
 	// Divide features into families based on signals
 	map<string, vector<string> > featureFamilies;
-	get_features_families(features, featureFamilies, required, work_on_sets);
+	get_features_families(features, featureFamilies);
 
 	// Collect original splits
 	vector<int> orig_folds(nSamples);

@@ -697,6 +697,7 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 	pids.resize((int)features.samples.size());
 	final_additional_info = features.data;
 	clean_feature_name_prefix(final_additional_info);
+
 	bool uses_time_window = use_time_window();
 
 	if (uses_time_window) {

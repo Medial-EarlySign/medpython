@@ -652,6 +652,12 @@ void RepBasicOutlierCleaner::init_lists() {
 
 	req_signals.insert(signalName);
 	aff_signals.insert(signalName);
+
+	if (!verbose_file.empty() && !log_file.is_open()) {
+		log_file.open(verbose_file, ios::app);
+		if (!log_file.good())
+			MWARN("Warnning in RepRuleBasedOutlierCleaner - verbose_file %s can't be opened\n", verbose_file.c_str());
+	}
 }
 
 // Init from map
@@ -670,11 +676,22 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "ntrim_attr") nTrim_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
+		else if (field == "verbose_file")verbose_file = entry.second;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
 		//! [RepBasicOutlierCleaner::init]
 	}
 
+	if (!verbose_file.empty())
+	{
+		ofstream fw(verbose_file);
+		fw.close(); //rewrite empty file
+	}
+
 	init_lists();
-	return MedValueCleaner::init(mapper);
+	map<string, string>& mapper_p = mapper;
+	if (mapper_p.find("verbose_file") != mapper_p.end()) mapper_p.erase("verbose_file");
+	return MedValueCleaner::init(mapper_p);
 }
 
 // init attributes list
@@ -791,7 +808,7 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 			// Identify values to change or remove
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
-				//				MLOG("pid %d ver %d time %d %s %f removed\n", rec.pid, iver, itime, signalName.c_str(), ival);
+				//MLOG("pid %d ver %d time %d %s channel %d %f removed\n", rec.pid, iver, itime, signalName.c_str(), val_channel, ival);
 				remove[nRemove++] = i;
 			}
 			else if (params.doTrim) {
@@ -809,6 +826,14 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		// Apply removals + changes
 		change.resize(nChange);
 		remove.resize(nRemove);
+		if (!verbose_file.empty()) {
+			if (nRemove > 0)
+#pragma omp critical
+				for (int rem = 0; rem < remove.size(); rem++) {
+					log_file << "signal " << signalName << " pid " << rec.pid << " removed "
+						<< nRemove << " changed " << nChange << "\t" << rec.usv.Time(remove[rem], time_channel) << "\t" << rec.usv.Val(remove[rem], val_channel) << "\n";
+				}
+		}
 		if (rec.update(signalId, iver, val_channel, change, remove) < 0)
 			return -1;
 
@@ -907,6 +932,9 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		else if (field == "conf_file") readConfFile(entry.second, outlierParams_dict);
 		else if (field == "clean_method")cleanMethod = entry.second;
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else if (field == "verbose_file")verbose_file = entry.second;
 		//! [RepConfiguredOutlierCleaner::init]
 	}
 
@@ -915,8 +943,16 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 	else
 		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", signalName.c_str());
 
+	if (!verbose_file.empty())
+	{
+		ofstream fw(verbose_file);
+		fw.close(); //rewrite empty file
+	}
+
 	init_lists();
-	return MedValueCleaner::init(mapper);
+	map<string, string>& mapper_p = mapper;
+	if (mapper_p.find("verbose_file") != mapper_p.end()) mapper_p.erase("verbose_file");
+	return MedValueCleaner::init(mapper_p);
 }
 
 void RepConfiguredOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
@@ -1101,6 +1137,8 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "verbose_file") verbose_file = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "tolerance") tolerance = med_stof(entry.second);
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
 		else if (field == "consideredRules") {
 			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
 			for (auto& rule : rulesStrings) {

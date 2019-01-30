@@ -23,6 +23,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(","));
 		else if (field == "time_unit") time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "registry_values") boost::split(registry_values, entry.second, boost::is_any_of(","));
+		else if (field == "verbose") verbose = stoi(entry.second);
 
 		// Diabetes
 		else if (field == "dm_drug_sig") dm_drug_sig = entry.second;
@@ -409,7 +410,8 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			bpStatusToPush = bpStatus;
 		}
 		bpStatusVec.push_back(bpStatusToPush);
-//		MLOG("id %d ver %d (%d) . Date %d . Info = %d => %d\n", rec.pid, iver, time_points[iver], med_time_converter.convert_days(MedTime::Date, days), info, bpStatusToPush);
+		if (verbose)
+			MLOG("id %d ver %d (%d) . Date %d . Info = %d => %d\n", rec.pid, iver, time_points[iver], med_time_converter.convert_days(MedTime::Date, days), info, bpStatusToPush);
 	}
 
 	// Collect

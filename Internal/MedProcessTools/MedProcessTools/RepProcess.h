@@ -296,6 +296,8 @@ public:
 */
 //.......................................................................................
 class RepBasicOutlierCleaner : public RepProcessor, public MedValueCleaner {
+private:
+	ofstream log_file;
 public:
 
 	string signalName; 	///< name of signal to clean
@@ -307,6 +309,7 @@ public:
 	string nTrim_attr = ""; ///< Attribute name (in sample) for number of trimmed. not recorded if empty
 	string nRem_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of removed. not recorded if empty
 	string nTrim_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of trimmed. not recorded if empty
+	string verbose_file; ///< cleaning output_file for debuging
 
 	/// <summary> default constructor </summary>
 	RepBasicOutlierCleaner() { init_defaults(); }
@@ -326,6 +329,7 @@ public:
 		signalId = -1;
 		params.type = VAL_CLNR_ITERATIVE;
 		params.missing_value = MED_MAT_MISSING_VALUE;
+		verbose_file = "";
 	};
 
 	/// <summary> Set signal name and fill affected and required signals sets </summary> 
@@ -355,10 +359,12 @@ public:
 	/// <summary> Apply cleaning model </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	virtual ~RepBasicOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
+
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicOutlierCleaner)
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
-			trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
+			trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix, verbose_file)
 
 		/// <summary> Print processors information </summary>
 		void print();
@@ -401,6 +407,7 @@ public:
 		signalId = -1;
 		params.type = VAL_CLNR_ITERATIVE;
 		params.missing_value = MED_MAT_MISSING_VALUE;
+		verbose_file = "";
 	};
 
 	/// <summary> learn cleaning boundaries </summary>
@@ -1213,6 +1220,8 @@ public:
 	vector<string> signals; ///< Vector of required signals, to override default ones.
 	vector<string> registry_values; ///< values of registry (to appear in relevant section of dictionary)
 	int time_unit = -1; ///< time-unit of registry
+
+	bool verbose = false; ///< verbosity
 
 	// Registry specific parameters
 	// Hypertension

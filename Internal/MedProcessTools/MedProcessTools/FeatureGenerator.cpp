@@ -556,6 +556,8 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field == "time_range_signal") timeRangeSignalName = entry.second;
 		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
+		else if (field == "min_value") min_value = stof(entry.second);
+		else if (field == "max_value") max_value = stof(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 		//! [BasicFeatGenerator::init]
@@ -1131,8 +1133,11 @@ float BasicFeatGenerator::uget_last_time(UniversalSigVec &usv, int time, int _wi
 	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
 		if (itime <= max_time) {
-			if (itime >= min_time)
-				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+			if (itime >= min_time) {
+				float val = usv.Val(i, val_channel);
+				if (val >= min_value && val <= max_value)
+					return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+			}
 			else
 				return missing_val;
 		}
@@ -1152,8 +1157,11 @@ float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time, int _w
 		if (itime >= min_time) {
 			if (itime > max_time)
 				return missing_val;
-			else
-				return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+			else {
+				float val = usv.Val(i, val_channel);
+				if (val >= min_value && val <= max_value)
+					return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+			}
 		}
 	}
 	return missing_val;
@@ -1165,10 +1173,18 @@ float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time, int _w
 	int min_time, max_time;
 	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 
+	int cnt = 0;
 	for (int i = usv.len - 1; i >= 0; i--) {
-		if (usv.Time(i, time_channel) <= max_time) {
-			if (i > 0 && usv.Time(i - 1, time_channel) >= min_time)
-				return (float)(time - usv.TimeU(i - 1, time_channel, time_unit_win));
+		int itime = usv.Time(i, time_channel);
+		if (itime <= max_time) {
+			if (itime >= min_time) {
+				float val = usv.Val(i, val_channel);
+				if (val >= min_value && val <= max_value) {
+					if (cnt > 0)
+						return (float)(time - usv.TimeU(i, time_channel, time_unit_win));
+					cnt++;
+				}
+			}
 			else
 				return missing_val;
 		}

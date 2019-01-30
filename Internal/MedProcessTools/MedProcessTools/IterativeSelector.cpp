@@ -49,7 +49,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 			// names
 			vector<string> selectedFeatures;
-			for (string ftr : required)
+			for (string ftr : resolved_required)
 				selectedFeatures.push_back(ftr);
 
 			for (string addFamily : selectedFamilies)
@@ -123,7 +123,7 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 		// Should we stop ?
 		selected.clear();
-		for (string ftr : required)
+		for (string ftr : resolved_required)
 			selected.push_back(ftr);
 		for (string family : selectedFamilies)
 			selected.insert(selected.end(), featureFamilies[family].begin(), featureFamilies[family].end());
@@ -173,7 +173,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 
 			// names
 			vector<string> selectedFeatures;
-			for (string ftr : required)
+			for (string ftr : resolved_required)
 				selectedFeatures.push_back(ftr);
 
 			for (string addFamily : selectedFamilies)
@@ -242,7 +242,7 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 
 		// Should we stop ?
 		selected.clear();
-		for (string ftr : required)
+		for (string ftr : resolved_required)
 			selected.push_back(ftr);
 		for (string family : selectedFamilies)
 			selected.insert(selected.end(), featureFamilies[family].begin(), featureFamilies[family].end());
@@ -358,19 +358,19 @@ void IterativeFeatureSelector::read_params_vec()
 }
 
 // Get Families of signals
-void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies, unordered_set<string>& required, bool work_on_sets) {
+void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies) {
 
 	vector<string> names;
 	features.get_feature_names(names);
 	if (!work_on_sets) {
 		for (string name : names) {
-			if (required.find(name) == required.end())
+			if (resolved_required.find(name) == resolved_required.end() && resolved_ignored.find(name) == resolved_ignored.end())
 				featureFamilies[name].push_back(name);
 		}
 	}
 	else { // Create sets
 		for (string name : names) {
-			if (required.find(name) == required.end()) {
+			if (resolved_required.find(name) == resolved_required.end() && resolved_ignored.find(name) == resolved_ignored.end()) {
 				vector<string> fields;
 				boost::split(fields, name, boost::is_any_of("."));
 
@@ -385,6 +385,7 @@ void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<
 	}
 
 	MLOG("Found %d sets for %d featurs\n", (int)featureFamilies.size(), (int)names.size());
+
 }
 
 // Bootstrapper initialization
