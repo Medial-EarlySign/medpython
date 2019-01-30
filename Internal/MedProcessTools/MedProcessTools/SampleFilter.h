@@ -371,6 +371,7 @@ public:
 	int min_sample_time = 0; ///< minimal allowed time (should always be given in the samples' time-unit)
 	int max_sample_time = (int)(1<<30); ///< maximal allowed time (should always be given in the samples' time-unit)
 	vector<BasicFilteringParams> bfilters; ///< vector of filters to apply
+	int min_bfilter = -1; ///< -1: force each bfilter to pass , other n : at least n bfilters must pass
 	int winsTimeUnit = MedTime::Days; ///< time unit to be used 
 
 	// next is initialized with init string
@@ -389,7 +390,7 @@ public:
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	ADD_CLASS_NAME(BasicSampleFilter)
-	ADD_SERIALIZATION_FUNCS(filter_type, min_sample_time, max_sample_time, bfilters, winsTimeUnit)
+	ADD_SERIALIZATION_FUNCS(filter_type, min_sample_time, max_sample_time, bfilters, min_bfilter, winsTimeUnit)
 };
 
 //...........................................................................................................
