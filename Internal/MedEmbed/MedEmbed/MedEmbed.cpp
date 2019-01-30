@@ -86,7 +86,7 @@ int EmbeddingSig::init(map<string, string>& _map)
 int EmbeddingSig::get_categ_orig(int val, vector<int> &members)
 {
 	if (sig_members2sets_in_range.find(val) == sig_members2sets_in_range.end()) return 0;
-	members.insert(members.end(), sig_members2sets_in_range[val].begin(), sig_members2sets_in_range[val].end());
+	for (auto j : sig_members2sets_in_range[val]) members.push_back(categ_convert[j]);
 	return 0;
 }
 
@@ -189,6 +189,7 @@ int EmbeddingSig::init_dummy()
 //---------------------------------------------------------------------------------------------------------------------------
 int EmbeddingSig::init_continous(int &curr_code)
 {
+	if (type != ECTYPE_CATEGORIAL && type != ECTYPE_AGE) return 0;
 	MLOG("ES:init_continous : age/continous sig %s\n", sig.c_str());
 	int c = 0;
 	for (auto &r : ranges) {
@@ -199,30 +200,24 @@ int EmbeddingSig::init_continous(int &curr_code)
 }
 
 //---------------------------------------------------------------------------------------------------------------------------
-int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
+int EmbeddingSig::init_categorial_tables(MedDictionarySections &dict)
 {
 	if (type != ECTYPE_CATEGORIAL) return 0;
-	
-	MLOG("ES:init_categorial : model categorial sig %s\n", sig.c_str());
 
 	int section_id = dict.section_id(sig);
 
-	// init to_take array
-	vector<int> to_take(dict.dicts[section_id].Id2Name.rbegin()->first + 1, 0);
-
-	// get Orig2Code, Orig2name
-	for (auto &c : categories_to_embed) {
-		if (dict.dicts[section_id].Name2Id.find(c) != dict.dicts[section_id].Name2Id.end()) {
-			int j = dict.dicts[section_id].Name2Id[c];
-			to_take[j] = 1;
-			Orig2Code[j] = curr_code++;
-			Orig2Name[j] = "sig: " + sig + ".t" + to_string(time_chan) + ".v" + to_string(val_chan) + ".win:" + to_string(win_from) + "_" + to_string(win_to);
-			Orig2Name[j] += ".Orig_" + to_string(j);
-			for (auto &s : dict.dicts[section_id].Id2Names[j])
-				Orig2Name[j] += "|" + s;
-		}
+	// first we initialize Name2Id if it is not initialized from serialization
+	if (Name2Id.size() == 0) {
+		// we only need the names for the needed categories
+		for (auto &c : categories_to_embed)
+			Name2Id[c] = dict.dicts[section_id].Name2Id[c];
 	}
 
+	vector<int> categ_convert(dict.dicts[section_id].Id2Name.rbegin()->first + 1, -1);
+
+	for (auto &c : categories_to_embed) {
+		categ_convert[dict.dicts[section_id].Name2Id[c]] = Name2Id[c];
+	}
 
 	// init sig_members2sets according to the right add_hierarchy option
 	if (add_hierarchy == 0) {
@@ -238,9 +233,36 @@ int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
 	// get sig_members2sets_in_range
 	for (auto &e : sig_members2sets) {
 		vector<int> in_range;
-		for (auto i : e.second)	if (to_take[i]) in_range.push_back(i);
+		for (auto i : e.second)	if (categ_convert[i] >= 0) in_range.push_back(i);
 		if (in_range.size() > 0)
 			sig_members2sets_in_range[e.first] = in_range;
+	}
+
+	// reminder, at this point sig_members2sets and sig_members2sets_in_range are in the numbering set of the apply repository
+	// the Orig2X tables are in the numbering of the one used in building the matrix for the first time.
+	// Hence to use we have to go through the sig_members2X map, and then convert using categ_convert to use Orig2X.
+
+	return 0;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
+{
+	if (type != ECTYPE_CATEGORIAL) return 0;
+	
+	MLOG("ES:init_categorial : model categorial sig %s\n", sig.c_str());
+
+	int section_id = dict.section_id(sig);
+	// get Orig2Code, Orig2name
+	for (auto &c : categories_to_embed) {
+		if (Name2Id.find(c) != Name2Id.end()) {
+			int j = Name2Id[c];
+			Orig2Code[j] = curr_code++;
+			Orig2Name[j] = "sig: " + sig + ".t" + to_string(time_chan) + ".v" + to_string(val_chan) + ".win:" + to_string(win_from) + "_" + to_string(win_to);
+			Orig2Name[j] += ".Orig_" + to_string(j);
+			for (auto &s : dict.dicts[section_id].Id2Names[j])
+				Orig2Name[j] += "|" + s;
+		}
 	}
 
 	return 0;
@@ -449,6 +471,7 @@ void EmbedMatCreator::prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig 
 	es.Orig2Name.clear();
 	es.Orig2Code.clear();
 	es.Orig2ShrunkCode.clear();
+	es.Name2Id.clear();
 
 	if (es.type == ECTYPE_DUMMY) es.init_dummy(); 
 
@@ -726,6 +749,23 @@ int EmbedMatCreator::write_dict_to_file(string fname, int only_shrink)
 	}
 
 	return 0;
+}
+
+//--------------------------------------------------------------------------------------------
+int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, MedSamples &samples, int use_outcome_time, int use_shrink, MedSparseMat &smat)
+{
+	vector<MedSample> samples_vec;
+
+	samples.export_to_sample_vec(samples_vec);
+
+	vector<pair<int, int>> pids_times;
+	for (auto &s : samples_vec)
+		if (use_outcome_time)
+			pids_times.push_back(pair<int, int>(s.id, s.outcomeTime));
+		else
+			pids_times.push_back(pair<int, int>(s.id, s.time));
+
+	return get_sparse_mat(rep, pids_times, use_shrink, smat);
 }
 
 //--------------------------------------------------------------------------------------------

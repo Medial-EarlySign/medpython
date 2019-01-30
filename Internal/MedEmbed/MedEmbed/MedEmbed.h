@@ -110,14 +110,15 @@ public:
 	int init(map<string, string>& _map);
 
 
-	// initializing a categorial case : need to get a dictionary and init  : sig_members2sets, sig_members2sets_in_range, Orig2Code, Orig2Name, Orig2ShrunkCode
+	// initializing a categorial case : need to get a dictionary and init  : Orig2Code, Orig2Name (see also init_categotial_tables)
 	// this is needed in order to make the embedding independent of the actual values given in the directory and rely on names only.
 	// This has the potential of allowing to transfer embeddings between different data sets, as long as they use the same signal names with the same category names in the dictionary.
 	int init_categorial(MedDictionarySections &dict, int &curr_code);
 
 	// the next is special for the categorial case:
 	// We need to initialize the Name2Id table (only if it is not empty !! , as it may be full from the original mapping that was used to build the Orig tables)
-
+	// once we have that table, we need to initialize the following tables:
+	// sig_members2sets, sig_members2sets_in_range, and also categ_convert
 	int init_categorial_tables(MedDictionarySections &dict);
 
 	// initialize a continous or age case : preparing the Orig2X tables based on the given ranges.
@@ -176,6 +177,10 @@ public:
 	// works directly through the rep (not the PidDynamicRec path)
 	int get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>> &pids_times, int use_shrink, MedSparseMat &smat);
 
+	// sometimes easier to use, BUT the ORDER of lines in the matrix is the order of normalized samples,
+	// this makes it a problem when needing to produce a matrix with a different order for lines.
+	int get_sparse_mat(MedPidRepository &rep, MedSamples &samples , int use_outcome_time, int use_shrink, MedSparseMat &smat);
+
 	// helper for es preparation 
 	void prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig &es);
 
@@ -194,6 +199,10 @@ public:
 	// needed before we start using the class on a specific rep, but AFTER params and embed_sigs were initialized.
 	void init_sids(MedPidRepository &rep);
 
+	// next must be called after coming from serialization, at the moment we get hold of dict.
+	void init_tables(MedDictionarySections &dict) { for (auto &es : embed_sigs) es.init_categorial_tables(dict); }
+
+
 	// API to write the dictionary to a file, to have a readable interpretation of the codes.
 	int write_dict_to_file(string fname, int only_shrink);
 
@@ -202,7 +211,7 @@ public:
 	string print_to_string(int verbosity);
 
 	ADD_CLASS_NAME(EmbedMatCreator)
-	ADD_SERIALIZATION_FUNCS(sigs_to_load, rep_time_unit, win_time_unit, byear_time_unit, embed_sigs);
+	ADD_SERIALIZATION_FUNCS(sigs_to_load, rep_time_unit, win_time_unit, byear_time_unit, embed_sigs)
 
 private:
 	// helpers
