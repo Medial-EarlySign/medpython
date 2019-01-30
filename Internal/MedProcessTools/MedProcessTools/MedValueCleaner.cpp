@@ -195,6 +195,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "rp_type") {}
 		else if (field == "signal") {}
 		else if (field == "unconditional") {}
+		else if (field == "fp_type") {}
 		else MWARN("Warn Unknown param \"%s\"\n", field.c_str());
 		//! [MedValueCleaner::init]
 
