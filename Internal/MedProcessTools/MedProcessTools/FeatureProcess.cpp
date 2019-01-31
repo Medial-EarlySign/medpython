@@ -682,7 +682,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		else MTHROW_AND_ERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
 	}
 	if (all_existing_values.size() < min_samples) {
-		MLOG("FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
+		MLOG("WARNING: FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
 			all_existing_values.size(), min_samples, feature_name.c_str());
 		if (moment_type == IMPUTE_MMNT_SAMPLE)
 			default_histogram.push_back({ missing_value,(float)1.0 });
@@ -691,16 +691,29 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	}
 	else {
 		if (too_small_stratas > 0)
-			MLOG("FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
-				min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-		if (moment_type == IMPUTE_MMNT_MEAN) 
-			default_moment = medial::stats::mean_without_cleaning(all_existing_values);
-		else if (moment_type == IMPUTE_MMNT_MEDIAN)
-			default_moment = medial::stats::median_without_cleaning(all_existing_values);
-		else if (moment_type == IMPUTE_MMNT_COMMON)
-			default_moment = medial::stats::most_common_without_cleaning(all_existing_values);
-		else if (moment_type == IMPUTE_MMNT_SAMPLE)
-			medial::stats::get_histogram_without_cleaning(all_existing_values, default_histogram);
+			if (!leave_missing_for_small_stratas)
+			{
+				MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
+					min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+				if (moment_type == IMPUTE_MMNT_MEAN)
+					default_moment = medial::stats::mean_without_cleaning(all_existing_values);
+				else if (moment_type == IMPUTE_MMNT_MEDIAN)
+					default_moment = medial::stats::median_without_cleaning(all_existing_values);
+				else if (moment_type == IMPUTE_MMNT_COMMON)
+					default_moment = medial::stats::most_common_without_cleaning(all_existing_values);
+				else if (moment_type == IMPUTE_MMNT_SAMPLE)
+					medial::stats::get_histogram_without_cleaning(all_existing_values, default_histogram);
+			}
+			else {
+				// leave_missing_for_small_stratas = true
+				MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will NOT impute them using all values\n",
+					min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+				if (moment_type == IMPUTE_MMNT_SAMPLE)
+					default_histogram.push_back({ missing_value,(float)1.0 });
+				else
+					default_moment = missing_value;
+			}
+
 	}
 	//for (int j = 0; j < moments.size(); j++)
 		//MLOG("moment %d = [%f]\n", j, moments[j]);
@@ -789,6 +802,7 @@ int FeatureImputer::init(map<string, string>& mapper) {
 			verbose = stoi(entry.second) > 0;
 		else if (field == "verbose_learn")
 			verbose_learn = stoi(entry.second) > 0;
+		else if (field == "leave_missing_for_small_stratas") leave_missing_for_small_stratas = (bool)med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
 		//! [FeatureImputer::init]
