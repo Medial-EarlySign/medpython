@@ -35,7 +35,7 @@ struct MedXGBParams : public SerializableObject {
 
 	MedXGBParams() {
 		booster = "gbtree"; objective = "binary:logistic"; eta = 1.0; gamma = 1.0;
-		min_child_weight = 1; max_depth = 3; num_round = 500; silent = 1; eval_metric.push_back("auc"); missing_value = MED_DEFAULT_MISSING_VALUE;
+		min_child_weight = 1; max_depth = 3; num_round = 500; silent = 1; eval_metric.push_back("auc"); missing_value = MED_MAT_MISSING_VALUE;
 		num_class = 2;
 		colsample_bytree = 1.0; colsample_bylevel = 1.0; subsample = 1.0; scale_pos_weight = 1.0; tree_method = "auto"; lambda = 1; alpha = 0;
 		seed = 0;
