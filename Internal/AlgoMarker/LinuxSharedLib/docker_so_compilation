@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [ ! "`which docker 2>> /dev/null`" ] ; then 
+echo "Error: No docker on this machine? (try on node-01)"
+exit -1
+fi
+
+
+DOCKER_NAME="${USER}_algomarker_build"
+echo "generating container $DOCKER_NAME"
+if [ "$(sudo docker ps -a | grep $DOCKER_NAME)" ] ; then
+echo "Container ${DOCKER_NAME} already exists."
+read -p "Delete container ${DOCKER_NAME} and start a fresh one? (y/N)" -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+echo -n "deleting..."
+sudo docker rm -f $DOCKER_NAME >> /dev/null
+echo "done"
+fi
+fi
+
+if [ ! "$(sudo docker ps -a | grep $DOCKER_NAME)" ] ; then
+sudo docker run -itd --name $DOCKER_NAME \
+-v $MR_ROOT:$MR_ROOT \
+-v /nas1/Work/:/nas1/Work/ \
+-v /server/Work/:/server/Work/ \
+-e MR_ROOT="$MR_ROOT" \
+-e R_INCL_DIR="/server/Work/Applications/R/R-Latest/include" \
+clean_build_env /bin/bash
+else
+sudo docker start $DOCKER_NAME
+fi
+
+sudo docker exec -it $DOCKER_NAME $MR_ROOT/Libs/Internal/AlgoMarker/LinuxSharedLib/so_compilation
+
+echo -n "Cleanup: deleting $DOCKER_NAME ..."
+sudo docker rm -f $DOCKER_NAME >> /dev/null
+echo "done"
+
+exit 0
