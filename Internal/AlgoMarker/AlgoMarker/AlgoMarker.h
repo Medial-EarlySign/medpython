@@ -20,12 +20,16 @@
 #ifdef _WIN32
 #if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllimport)
-#else
+#else    // !AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllexport)
-#endif
-#else
+#endif   // AM_DLL_IMPORT
+#else    // !_WIN32
+#if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE
-#endif
+#else    // !AM_DLL_IMPORT
+#define DLL_WORK_MODE __attribute__ ((visibility ("default")))
+#endif   //AM_DLL_IMPORT
+#endif   // _WIN32
 
 #ifdef _WIN32
 #pragma warning(disable: 4251)
