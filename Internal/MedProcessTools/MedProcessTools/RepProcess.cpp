@@ -684,6 +684,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
 	if (!verbose_file.empty())
 	{
+		verbose_file += "." + signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
 		ofstream fw(verbose_file);
 		fw.close(); //rewrite empty file
 	}
@@ -923,7 +924,10 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		thisRecord.val_channel = stoi(f[7]);
 		if (thisRecord.distLow != "none")thisRecord.confirmedLow = (float)atof(f[3].c_str());
 		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = (float)atof(f[5].c_str());
-		outlierParams[f[0]] = thisRecord;
+		string sigName = f[0];
+		if (thisRecord.val_channel > 0)
+			sigName += "_ch_" + to_string(thisRecord.val_channel);
+		outlierParams[sigName] = thisRecord;
 	}
 
 	infile.close();
@@ -939,6 +943,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepConfiguredOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
@@ -951,13 +956,18 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepConfiguredOutlierCleaner::init]
 	}
 
-	if (outlierParams_dict.find(signalName) != outlierParams_dict.end())
-		outlierParam = outlierParams_dict.at(signalName);
+	string sig_search = signalName;
+	if (val_channel > 0)
+		sig_search += "_ch_" + to_string(val_channel);
+
+	if (outlierParams_dict.find(sig_search) != outlierParams_dict.end())
+		outlierParam = outlierParams_dict.at(sig_search);
 	else
-		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", signalName.c_str());
+		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", sig_search.c_str());
 
 	if (!verbose_file.empty())
 	{
+		verbose_file += "." + sig_search;
 		ofstream fw(verbose_file);
 		fw.close(); //rewrite empty file
 	}

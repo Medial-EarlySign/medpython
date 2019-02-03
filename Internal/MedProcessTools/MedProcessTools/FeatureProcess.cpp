@@ -352,7 +352,7 @@ void MultiFeatureProcessor::clear()
 /// check if a set of features is affected by the current processor
 //.......................................................................................
 bool MultiFeatureProcessor::are_features_affected(unordered_set<string>& out_req_features) {
-	
+
 	// Empty set == all features
 	if (out_req_features.empty())
 		return true;
@@ -666,7 +666,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 			else
 				moments[i] = missing_value;
 		}
-		else if (moment_type == IMPUTE_MMNT_MEAN) 
+		else if (moment_type == IMPUTE_MMNT_MEAN)
 			moments[i] = medial::stats::mean_without_cleaning(stratifiedValues[i]);
 		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
 			if (stratifiedValues[i].size() > 0)
@@ -690,7 +690,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 			default_moment = missing_value;
 	}
 	else {
-		if (too_small_stratas > 0)
+		if (too_small_stratas > 0) {
 			if (!leave_missing_for_small_stratas)
 			{
 				MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
@@ -713,7 +713,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 				else
 					default_moment = missing_value;
 			}
-
+		}
 	}
 	//for (int j = 0; j < moments.size(); j++)
 		//MLOG("moment %d = [%f]\n", j, moments[j]);
@@ -745,7 +745,7 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		string resolved_strata_name = resolve_feature_name(features, imputerStrata.stratas[j].name);
 		strataData[j] = &(features.data[resolved_strata_name]);
 	}
-	
+
 	int missing_cnt = 0;
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if (data[i] == missing_value) {
@@ -926,13 +926,13 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 
 	if (add_other) {
 #pragma omp critical
-	{
-		features.data[other_feature_name].clear();
-		features.data[other_feature_name].resize(samples_size, 0.0);
-		// Attributes
-		features.attributes[other_feature_name].normalized = false;
-		features.attributes[other_feature_name].imputed = true;
-	}
+		{
+			features.data[other_feature_name].clear();
+			features.data[other_feature_name].resize(samples_size, 0.0);
+			// Attributes
+			features.attributes[other_feature_name].normalized = false;
+			features.attributes[other_feature_name].imputed = true;
+		}
 	}
 
 	// Fill it up
@@ -996,7 +996,7 @@ void OneHotFeatProcessor::update_req_features_vec(unordered_set<string>& out_req
 			in_req_features.insert(resolved_feature_name);
 	}
 }
-			
+
 
 
 //=======================================================================================
