@@ -551,7 +551,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, time_window, rules2Signals, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
+	ADD_SERIALIZATION_FUNCS(processor_type, time_window, rules2Signals, rulesToApply, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
