@@ -1163,6 +1163,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "verbose_file") verbose_file = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "tolerance") tolerance = med_stof(entry.second);
+		else if (field == "calc_res") calc_res = med_stof(entry.second);
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else if (field == "consideredRules") {
@@ -1469,7 +1470,10 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 	//ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 {
 
-	float left, right; // sides of the equality or inequality of the rule
+	float left, right, right2, right3; // sides of the equality or inequality of the rule
+	float res_factor = 1;
+	if (calc_res > 0)
+		res_factor = 1.0 / calc_res;
 
 	switch (rule) {
 	case 1://BMI=Weight/Height^2*1e4
@@ -1496,20 +1500,24 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 	case 12://HDL_over_Cholesterol=HDL/Cholesterol
 		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 10) / (float)10.; //resolution in THIN is 0.1
-		return(abs(left / right - 1) > tolerance);
+		right2 = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
+		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / (float)res_factor; //resolution in THIN is 0.1
+		right3 = int(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / (float)res_factor; //resolution in THIN is 0.1
+		return (abs(left / right - 1) > tolerance && abs(left / right2 - 1) > tolerance && abs(left / right3 - 1) > tolerance);
 
 	case 6://MPV=Platelets_Hematocrit/Platelets
 		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
-		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
+		right = 100 * ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
 		return(abs(left / right - 1) > tolerance);
 
 	case 8://UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
 		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 10) / 10;//resolution in THIN is 0.1
-		return(abs(left / right - 1) > tolerance);
+		right2 = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);//calc no resolution
+		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / res_factor;//resolution in THIN is 0.1
+		right3 = int(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / res_factor;//resolution in THIN is 0.1
+		return (abs(left / right - 1) > tolerance && abs(left / right2 - 1) > tolerance  && abs(left / right3 - 1) > tolerance);
 
 	case 13://HDL_over_LDL=HDL/LDL
 	case 15://Cholesterol_over_HDL=Cholesterol/HDL
