@@ -1104,8 +1104,8 @@ void RepRuleBasedOutlierCleaner::parse_rules_signals(const string &path) {
 			continue;
 		vector<string> tokens, list_of_sigs;
 		boost::split(tokens, line, boost::is_any_of("\t"));
-		if (tokens.size() != 2)
-			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - line should contain 2 tokens with TAB. got line:\n%s\n",
+		if (tokens.size() != 2 && tokens.size() != 3)
+			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - line should contain 2-3 tokens with TAB. got line:\n%s\n",
 				line.c_str());
 		int rule_id = med_stoi(tokens[0]);
 		boost::split(list_of_sigs, tokens[1], boost::is_any_of(","));
@@ -1113,6 +1113,8 @@ void RepRuleBasedOutlierCleaner::parse_rules_signals(const string &path) {
 			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - rule %d contains %zu signals, got %zu signals\n",
 				rule_id, rules2Signals[rule_id].size(), list_of_sigs.size());
 		rules2Signals[rule_id] = list_of_sigs;
+		if (tokens.size() == 3)  //has rules2RemoveSignal value
+			rules2RemoveSignal[rule_id] = boost::trim_copy(tokens[2]);
 	}
 	fr.close();
 }
@@ -1156,7 +1158,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 				req_signals.insert(sig);
 		}
 		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
-		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with "," 
+		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with ","  optional [TAB] for which signal to remove when contradiction
 		else if (field == "signal_channels") parse_sig_channels(entry.second); //each line is signal_name [TAB] time_channel [TAB] val_channel 
 		else if (field == "time_window") time_window = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
@@ -1272,13 +1274,23 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 	rules_sids.clear();
 	affected_by_rules.clear();
 
+	unordered_set<string> new_aff;
+	set<int> new_aff_id;
 	for (int i = 0; i < rulesToApply.size(); i++) {
 		// build set of the participating signals
-
+		string removal_signal = "";
+		if (rules2RemoveSignal.find(rulesToApply[i]) != rules2RemoveSignal.end())
+			removal_signal = rules2RemoveSignal.at(rulesToApply[i]);
 		for (auto& sname : rules2Signals[rulesToApply[i]]) {
 			int thisSid = dict.id(sname);
 			rules_sids[rulesToApply[i]].push_back(thisSid);
-			affected_by_rules[rulesToApply[i]].push_back(affSignalIds.find(thisSid) != affSignalIds.end());
+			bool affect_sig = affSignalIds.find(thisSid) != affSignalIds.end();
+			affect_sig = affect_sig && (removal_signal.empty() || removal_signal == sname);
+			affected_by_rules[rulesToApply[i]].push_back(affect_sig);
+			if (affect_sig) {
+				new_aff.insert(sname);
+				new_aff_id.insert(thisSid);
+			}
 			if (signal_channels.find(sname) != signal_channels.end()) {
 				signal_id_channels[thisSid] = signal_channels[sname];
 				//check channels exists:
@@ -1291,9 +1303,11 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 						sigs.Sid2Info.at(thisSid).n_val_channels, signal_id_channels[thisSid].second);
 			}
 		}
+
 	}
-
-
+	//keep only needed affected signals - pass on affected_by_rules
+	aff_signals.swap(new_aff);
+	affSignalIds.swap(new_aff_id);
 }
 
 

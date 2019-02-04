@@ -422,7 +422,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 			trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParam, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
 		void print();
@@ -505,6 +505,8 @@ public:
 	{22,{"CHADS2","CHADS2_VASC"}}
 	};
 
+	map<int, string> rules2RemoveSignal; ///< which signal to remove if contradiction found. If not exists default to remove all
+
 	vector <int> rulesToApply;
 	unordered_map<string, pair<int, int>> signal_channels; ///< signal channels (if exists). first is time, second is for val
 	unordered_map<int, pair<int, int>> signal_id_channels; ///< signal channels (if exists). first is time, second is for val
@@ -552,7 +554,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix, verbose_file)
+	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix, verbose_file)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
