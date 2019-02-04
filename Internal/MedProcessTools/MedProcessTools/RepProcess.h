@@ -831,7 +831,7 @@ public:
 
 	RepPanelCompleter() { processor_type = REP_PROCESS_COMPLETE; init_defaults(); }
 
-	/// @snippet RepProcess.cpp RepPanelCompleter::init
+	/// @snippet PanelCompleter.cpp RepPanelCompleter::init
 	int init(map<string, string>& mapper);
 
 	/// <summary> initialize to default values :  Should be implemented for inheriting classes that have parameters </summary>
