@@ -173,7 +173,7 @@ public:
 */
 class MedSamplingStick : public MedSamplingDates {
 public:
-	vector<string> signal_list; ///< list of signals to take times for sampling oneach patient
+	vector<string> signal_list; ///< list of signals to take times for sampling on each patient
 
 	/// Initialize samples_list_pid_dates by reading signals from repository
 	void init_sampler(MedRepository &rep);

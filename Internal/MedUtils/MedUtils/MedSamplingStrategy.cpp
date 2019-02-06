@@ -323,6 +323,8 @@ MedSamplingStrategy *MedSamplingStrategy::make_sampler(const string &sampler_nam
 		sampler = new MedSamplingDates;
 	else if (sampler_name == "fixed_time")
 		sampler = new MedSamplingFixedTime;
+	else if (sampler_name == "stick")
+		sampler = new MedSamplingStick;
 	else
 		MTHROW_AND_ERR("Unsupported Sampling method %s\n", sampler_name.c_str());
 	//! [MedSamplingStrategy::make_sampler]
@@ -484,6 +486,8 @@ int MedSamplingStick::init(map<string, string>& map) {
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
+	if (signal_list.empty())
+		MTHROW_AND_ERR("Error in MedSamplingStick::init - please provide \"signal_list\" init argument\n");
 	return 0;
 }
 
@@ -505,8 +509,7 @@ void MedSamplingStick::init_sampler(MedRepository &rep) {
 	MedRepository *p_rep = &rep;
 	MedRepository rep2;
 	if (need_read) {
-		vector<int> all_pids;
-		if (rep2.read_all(rep_path, all_pids, sig_ids) < 0)
+		if (rep2.read_all(rep_path, rep.pids, sig_ids) < 0)
 			MTHROW_AND_ERR("Error in MedSamplingStick::init_sampler - can't read repository %s\n", rep_path.c_str());
 		p_rep = &rep2;
 	}
