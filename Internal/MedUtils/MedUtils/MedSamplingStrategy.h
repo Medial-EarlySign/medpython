@@ -21,9 +21,9 @@ public:
 
 	/// The sampler need repository for Age  filters if exist and some samplers also uses bdate.
 	virtual void init_sampler(MedRepository &rep);
-	
+
 	/// The sampling options - calls _get_sampling_options, before that applies filters
-	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, 
+	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 		unordered_map<int, vector<int>> &pid_options) const;
 
 	/// The specific sampler get_options to implement
@@ -82,7 +82,7 @@ public:
 	int prediction_month_day; ///< the prediciton month_day in each year
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int day_jump; ///< the years bin, how many years to jump backward from each prediciton date
-	
+
 	///sample by year from year to year by jump and find match in registry
 	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
@@ -126,6 +126,7 @@ class MedSamplingDates : public MedSamplingStrategy {
 public:
 	int take_count; ///< How many samples to take in each date
 	vector<vector<pair<int, int>>> samples_list_pid_dates; ///< All sample options for pid,date to sample from. row is sample with all options to sample from 
+	bool sample_with_filters; ///< If True will do sampling after time range filtering of years,age,censoring. otherwise total randomally choose times
 
 	///sample Take_Count samples for each record in samples_list_pid_dates.
 	///each record is vector<pair<int, int>> which is list of all options to choose from
@@ -136,9 +137,9 @@ public:
 
 	MedSamplingDates() {
 		take_count = 1;
+		sample_with_filters = true;
 	}
 };
-
 
 /**
 * A Class which samples from start_time to end_time by jump and find match in registry.
@@ -150,7 +151,7 @@ public:
 	int end_time; ///< The end time to sample from. If 0 will use max time of pid
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int time_jump; ///< the time jump, how much jump from each prediciton date
-	
+
 	///sample by year from year to year by jump and find match in registry
 	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
@@ -162,6 +163,22 @@ public:
 		start_time = 0;
 		end_time = 0;
 	}
+};
+
+/**
+* A Sampler to sample on one of signals test.
+* You may also look at this example to create more complicated rules.
+* All you need is to fetch and prepare the right data from repository with init_sampler and populate the values in samples_list_pid_dates
+* Uses first time channel of each signal
+*/
+class MedSamplingStick : public MedSamplingDates {
+public:
+	vector<string> signal_list; ///< list of signals to take times for sampling oneach patient
+
+	/// Initialize samples_list_pid_dates by reading signals from repository
+	void init_sampler(MedRepository &rep);
+
+	int init(map<string, string>& map);
 };
 
 #endif
