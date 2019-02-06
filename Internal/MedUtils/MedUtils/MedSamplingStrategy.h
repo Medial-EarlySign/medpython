@@ -8,6 +8,7 @@
 #include "LabelParams.h"
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include "MedEnums.h"
+#include "FilterParams.h"
 
 using namespace std;
 
@@ -16,10 +17,17 @@ using namespace std;
 */
 class MedSamplingStrategy : public SerializableObject {
 public:
-	virtual void init_sampler(MedRepository &rep) {};
+	FilterParams filtering_params; ///< the filtering constraints prior to sampling
+
+	/// The sampler need repository for Age  filters if exist and some samplers also uses bdate.
+	virtual void init_sampler(MedRepository &rep);
 	
-	/// The sampling options to be implemented
-	virtual void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, 
+	/// The sampling options - calls _get_sampling_options, before that applies filters
+	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, 
+		unordered_map<int, vector<int>> &pid_options) const;
+
+	/// The specific sampler get_options to implement
+	virtual void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 		unordered_map<int, vector<int>> &pid_options) const = 0;
 
 	/// @snippet MedSamplingStrategy.cpp MedSamplingStrategy::make_sampler
@@ -27,7 +35,16 @@ public:
 	/// @snippet MedSamplingStrategy.cpp MedSamplingStrategy::make_sampler
 	static MedSamplingStrategy *make_sampler(const string &sampler_name, const string &init_params);
 
+	/// <summary>
+	/// stores filters prior to sampling
+	/// </summary>
+	void set_filters(const string &filtering_str);
+
 	virtual ~MedSamplingStrategy() {};
+protected:
+	unordered_map<int, int> pids_bdates;
+private:
+	void apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const;
 };
 
 /**
@@ -42,10 +59,8 @@ public:
 	vector<int> maximal_times; ///< maximal times for window options
 	int sample_count; ///< how many samples to take in each time window
 
-	void init_sampler(MedRepository &rep);
-
 	/// sample random using Environment variable. params: [Random_Duration, Back_Time_Window_Years, Jump_Time_Period_Years]
-	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
+	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	int init(map<string, string>& map);
 
@@ -69,7 +84,7 @@ public:
 	int day_jump; ///< the years bin, how many years to jump backward from each prediciton date
 	
 	///sample by year from year to year by jump and find match in registry
-	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
+	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	int init(map<string, string>& map);
 
@@ -91,10 +106,9 @@ public:
 	int start_age; ///< The start age to sample from
 	int end_age; ///< The end age to sample from
 	int age_bin; ///< the age bin in years for jumping
-	void init_sampler(MedRepository &rep);
 
 	///sample by year from age to age by jump and find match in registry
-	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
+	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	MedSamplingAge() {
 		start_age = 0;
@@ -103,9 +117,6 @@ public:
 	}
 
 	int init(map<string, string>& map);
-
-private:
-	unordered_map<int, int> pids_bdates;
 };
 
 /**
@@ -119,7 +130,7 @@ public:
 	///sample Take_Count samples for each record in samples_list_pid_dates.
 	///each record is vector<pair<int, int>> which is list of all options to choose from
 	/// each record in the options is (pid, prediction_time)				
-	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
+	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	int init(map<string, string>& map);
 
@@ -141,7 +152,7 @@ public:
 	int time_jump; ///< the time jump, how much jump from each prediciton date
 	
 	///sample by year from year to year by jump and find match in registry
-	void get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
+	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	int init(map<string, string>& map);
 

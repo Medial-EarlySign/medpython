@@ -198,10 +198,20 @@ public:
 	/// </summary>
 	SamplingRes get_samples(int pid, const vector<int> &times, vector<MedSample> &samples, bool show_conflicts = false) const;
 
+	/// <summary>
+	///Creates MedSamples using MedSampling
+	/// </summary>
 	void create_samples(const MedSamplingStrategy *sampler, MedSamples &samples, bool show_conflicts = true) const;
 
+	/// <summary>
+	/// Ctor with labling params
+	/// </summary>
 	MedLabels(const LabelParams &params);
 
+	/// <summary>
+	/// Ctor with labling params as string
+	/// </summary>
+	MedLabels(const string &labling_params);
 };
 
 #endif

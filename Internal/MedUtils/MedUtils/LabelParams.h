@@ -85,6 +85,9 @@ public:
 	void init_from_string(const string &init);
 };
 
+/**
+* Parameters for lableing strategy on MedRegistry for given time window
+*/
 class LabelParams : public SerializableObject {
 public:
 	TimeWindowInteraction label_interaction_mode; ///< the label interaction definition

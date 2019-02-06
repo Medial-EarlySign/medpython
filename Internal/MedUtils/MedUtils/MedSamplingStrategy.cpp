@@ -60,11 +60,7 @@ void get_bdates(MedRepository &rep, unordered_map<int, int> &bdates) {
 	MLOG_D("MedSamplingStrategy::get_bdates - loaded %zu patients\n", bdates.size());
 }
 
-void MedSamplingTimeWindow::init_sampler(MedRepository &rep) {
-	get_bdates(rep, pids_bdates);
-}
-
-void MedSamplingTimeWindow::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	random_device rd;
 	mt19937 gen(rd());
@@ -166,7 +162,7 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingYearly::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingYearly::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (day_jump <= 0)
 		MTHROW_AND_ERR("day_jump must be positive > 0\n");
@@ -213,11 +209,7 @@ int MedSamplingAge::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingAge::init_sampler(MedRepository &rep) {
-	get_bdates(rep, pids_bdates);
-}
-
-void MedSamplingAge::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingAge::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (start_age < 0 || end_age < 0 || end_age > 120 || start_age > 120)
 		MTHROW_AND_ERR("start_age,end_age must be initialize between 0 to 120\n");
@@ -260,7 +252,7 @@ int MedSamplingDates::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingDates::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingDates::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	random_device rd;
 	mt19937 gen(rd());
@@ -335,7 +327,7 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingFixedTime::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingFixedTime::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (time_jump <= 0)
 		MTHROW_AND_ERR("time_jump must be positive > 0\n");
@@ -378,4 +370,72 @@ void MedSamplingFixedTime::get_sampling_options(const unordered_map<int, vector<
 			pid_options[pid].push_back(pred_date);
 		}
 	}
+}
+
+void MedSamplingStrategy::set_filters(const string &filtering_str) {
+	filtering_params.init_from_string(filtering_str);
+}
+
+void MedSamplingStrategy::init_sampler(MedRepository &rep) {
+	get_bdates(rep, pids_bdates);
+}
+
+template<class T> void commit_selection_vec(vector<T> &vec, const vector<int> &idx) {
+	vector<T> filt(idx.size());
+	for (size_t i = 0; i < idx.size(); ++i)
+		filt[i] = vec[idx[i]];
+	vec.swap(filt);
+}
+
+void MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const {
+	if (filtering_params.max_age < 0 && filtering_params.max_time < 0 && filtering_params.min_age == 0 && filtering_params.min_time == 0)
+		return; //no filters
+
+	for (auto it = pid_time_ranges.begin(); it != pid_time_ranges.end(); ++it)
+	{
+		int pid_bdate = 0; //Age need BDATE, will only be set if age filters are active
+		if (filtering_params.min_age > 0 || filtering_params.max_age > 0) { //age filtering is needed, update bdate
+			if (pids_bdates.find(it->first) == pids_bdates.end())
+				MTHROW_AND_ERR("Error in MedSamplingStrategy::apply_filter_params - sampler isn'n initialized with init_sampler or pid %d"
+					" is ilegel without bdate.\n", it->first);
+			pid_bdate = pids_bdates.at(it->first);
+		}
+		vector<int> selected_idx;
+		for (size_t i = 0; i < it->second.size(); ++i)
+		{
+			int start = pid_time_ranges[it->first][i].first;
+			int end = pid_time_ranges[it->first][i].second;
+			//apply Year filters:
+			if (start < filtering_params.min_time)
+				start = filtering_params.min_time;
+			if (filtering_params.max_time > 0 && end > filtering_params.max_time)
+				end = filtering_params.max_time;
+			//apply age filters - If needed:
+			if (filtering_params.min_age > 0 || filtering_params.max_age > 0) {
+				float start_age = medial::repository::DateDiff(pid_bdate, start);
+				float end_age = medial::repository::DateDiff(pid_bdate, end);
+				if (start_age < filtering_params.min_age)
+					start = medial::repository::DateAdd(pid_bdate, filtering_params.min_age * 365);
+				if (filtering_params.max_age > 0 && end_age > filtering_params.max_age)
+					end = medial::repository::DateAdd(pid_bdate, filtering_params.max_age * 365);
+			}
+			//set new range
+			if (end > start) {
+				pid_time_ranges[it->first][i].first = start;
+				pid_time_ranges[it->first][i].second = end;
+				selected_idx.push_back((int)i);
+			}
+		}
+
+		commit_selection_vec(pid_time_ranges[it->first], selected_idx);
+	}
+}
+
+void MedSamplingStrategy::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+	unordered_map<int, vector<int>> &pid_options) const {
+	//process filters
+	unordered_map<int, vector<pair<int, int>>> pid_time_ranges_filtered = pid_time_ranges;
+	apply_filter_params(pid_time_ranges_filtered);
+
+	_get_sampling_options(pid_time_ranges_filtered, pid_options);
 }
