@@ -78,6 +78,7 @@
     <ClCompile Include="AlcoholGenerator.cpp" />
     <ClCompile Include="BinnedLmEstimates.cpp" />
     <ClCompile Include="Calibration.cpp" />
+    <ClCompile Include="CategoryDependencyGenerator.cpp" />
     <ClCompile Include="CrossValidation.cpp" />
     <ClCompile Include="DoCalcFeatProcessor.cpp" />
     <ClCompile Include="DrugIntakeGenerator.cpp" />

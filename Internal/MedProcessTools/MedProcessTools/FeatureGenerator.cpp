@@ -47,6 +47,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_TIME;
 	else if (generator_name == "attribute")
 		return FTR_GEN_ATTR;
+	else if (generator_name == "category_depend")
+		return FTR_GEN_CATEGORY_DEPEND;
 	else MTHROW_AND_ERR("unknown generator name [%s]", generator_name.c_str());
 }
 
@@ -128,6 +130,7 @@ void *FeatureGenerator::new_polymorphic(string dname) {
 	CONDITIONAL_NEW_CLASS(dname, ModelFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, TimeFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, AttrFeatGenerator);
+	CONDITIONAL_NEW_CLASS(dname, CategoryDependencyGenerator);
 	return NULL;
 }
 
@@ -161,6 +164,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new TimeFeatGenerator;
 	else if (generator_type == FTR_GEN_ATTR)
 		return new AttrFeatGenerator;
+	else if (generator_type == FTR_GEN_CATEGORY_DEPEND)
+		return new CategoryDependencyGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
