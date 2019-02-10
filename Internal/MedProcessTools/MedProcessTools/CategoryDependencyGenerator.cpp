@@ -54,6 +54,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	max_depth = 0;
 	max_parents = 1;
 	verbose = false;
+	use_fixed_lift = false;
 
 	req_signals = { "BYEAR", "GENDER" };
 }
@@ -101,6 +102,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			chi_square_at_least = med_stof(it->second);
 		else if (it->first == "minimal_chi_cnt")
 			minimal_chi_cnt = med_stoi(it->second);
+		else if (it->first == "use_fixed_lift")
+			use_fixed_lift = med_stoi(it->second) > 0;
 		else if (it->first == "verbose")
 			verbose = med_stoi(it->second) > 0;
 		else if (it->first == "stat_metric") {
@@ -456,27 +459,59 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 	indexes.swap(top_idx);
 	indexes.insert(indexes.end(), bottom_idx.begin(), bottom_idx.end());
 	//join both results from up and down filters on the lift:
-
-	if (indexes.size() > take_top)
-		indexes.resize(take_top);
+	//sort before taking top:
+	//sort by p_value, lift, score:
+	vector<double> fixed_lift(lift); //for sorting
+	if (use_fixed_lift)
+		for (int index : indexes)
+			if (fixed_lift[index] < 1 && fixed_lift[index] > 0)
+				fixed_lift[index] = 1 / fixed_lift[index];
+			else if (fixed_lift[index] == 0)
+				fixed_lift[index] = 999999;
+	vector<int> indexes_order(indexes.size());
+	vector<pair<int, vector<double>>> sort_pars(indexes.size());
+	for (size_t i = 0; i < indexes.size(); ++i)
+	{
+		sort_pars[i].first = (int)indexes[i];
+		sort_pars[i].second.resize(3);
+		sort_pars[i].second[0] = pvalues[indexes[i]];
+		if (use_fixed_lift)
+			sort_pars[i].second[1] = -fixed_lift[indexes[i]];
+		else
+			sort_pars[i].second[1] = -lift[indexes[i]];
+		sort_pars[i].second[2] = -scores[indexes[i]];
+	}
+	sort(sort_pars.begin(), sort_pars.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
+		int pos = 0;
+		while (pos < a.second.size() &&
+			a.second[pos] == b.second[pos])
+			++pos;
+		if (pos >= a.second.size())
+			return false;
+		return b.second[pos] > a.second[pos];
+	});
+	for (size_t i = 0; i < sort_pars.size(); ++i)
+		indexes_order[i] = sort_pars[i].first;
+	if (indexes_order.size() > take_top)
+		indexes_order.resize(take_top);
 	//Save all codes in indexes:
-	top_codes.resize(indexes.size());
-	luts.resize(indexes.size());
+	top_codes.resize(indexes_order.size());
+	luts.resize(indexes_order.size());
 	int section_id = rep.dict.section_id(signalName);
-	for (size_t i = 0; i < indexes.size(); ++i) {
-		top_codes[i] = categoryId_to_name.at(code_list[indexes[i]]).front();
+	for (size_t i = 0; i < indexes_order.size(); ++i) {
+		top_codes[i] = categoryId_to_name.at(code_list[indexes_order[i]]).front();
 		vector<string> s_names = { top_codes[i] };
 		rep.dict.prep_sets_lookup_table(section_id, s_names, luts[i]);
 	}
 	if (verbose) {
 		MLOG("CategoryDependencyGenerator on %s - created %d features\n", signalName.c_str(), top_codes.size());
-		for (size_t i = 0; i < indexes.size(); ++i)
+		for (size_t i = 0; i < indexes_order.size(); ++i)
 		{
-			MLOG("#NUM %zu:\t%s", i + 1, categoryId_to_name.at(code_list[indexes[i]]).front().c_str());
-			for (size_t j = 1; j < 4 && j < categoryId_to_name.at(code_list[indexes[i]]).size(); ++j)
-				MLOG("|%s", categoryId_to_name.at(code_list[indexes[i]])[j].c_str());
+			MLOG("#NUM %zu:\t%s", i + 1, categoryId_to_name.at(code_list[indexes_order[i]]).front().c_str());
+			for (size_t j = 1; j < 4 && j < categoryId_to_name.at(code_list[indexes_order[i]]).size(); ++j)
+				MLOG("|%s", categoryId_to_name.at(code_list[indexes_order[i]])[j].c_str());
 			MLOG("\tTOT_CNT:%d\tP_VAL=%f\tLift=%1.3f\n",
-				(int)codeCnts[indexes[i]], pvalues[indexes[i]], lift[indexes[i]]);
+				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], lift[indexes_order[i]]);
 		}
 	}
 }

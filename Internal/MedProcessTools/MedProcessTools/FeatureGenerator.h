@@ -842,6 +842,7 @@ public:
 	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
 	int max_depth; ///< maximal depth to go in heirarchy
 	int max_parents; ///< controls maximum parents count
+	bool use_fixed_lift; ///< If true will also sort be lifts below 1
 	bool verbose; ///< in Learn will print selected features
 
 	void set_signal_ids(MedDictionarySections& dict);
