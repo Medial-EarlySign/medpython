@@ -796,7 +796,7 @@ public:
 	int get_age(int idx) const;
 };
 
-enum stat_test {
+enum class category_stat_test {
 	chi_square = 1,
 	mcnemar = 2
 };
@@ -837,7 +837,7 @@ public:
 	int take_top; ///< maximal number of features to create
 	float lift_below; ///< filter lift to keep below it
 	float lift_above; ///< filter lift to keep above it
-	stat_test stat_metric; ///< statistical test
+	category_stat_test stat_metric; ///< statistical test
 	float chi_square_at_least; ///< chi_square arg to test for at least that change in lift to measure bigger diffrence
 	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
 	int max_depth; ///< maximal depth to go in heirarchy

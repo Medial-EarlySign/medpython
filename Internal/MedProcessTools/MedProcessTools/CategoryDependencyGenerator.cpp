@@ -38,7 +38,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	val_channel = 0;
 	win_from = 0;
 	win_to = 360000;
-	time_unit_win = MedTime::Undefined;
+	time_unit_win = MedTime::Days;
 	regex_filter = "";
 	min_age = 0;
 	max_age = 120;
@@ -50,7 +50,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	lift_above = (float)1.1;
 	chi_square_at_least = 0;
 	minimal_chi_cnt = 5;
-	stat_metric = mcnemar;
+	stat_metric = category_stat_test::mcnemar;
 	max_depth = 0;
 	max_parents = 1;
 	verbose = false;
@@ -58,9 +58,9 @@ void CategoryDependencyGenerator::init_defaults() {
 	req_signals = { "BYEAR", "GENDER" };
 }
 
-unordered_map<string, int> conv_map_stats = {
-	{ "chi-square", chi_square },
-	{ "mcnemar", mcnemar }
+static unordered_map<string, int> conv_map_stats = {
+	{ "chi-square", (int)category_stat_test::chi_square },
+	{ "mcnemar", (int)category_stat_test::mcnemar }
 };
 int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 
@@ -105,7 +105,7 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			verbose = med_stoi(it->second) > 0;
 		else if (it->first == "stat_metric") {
 			if (conv_map_stats.find(it->second) != conv_map_stats.end())
-				stat_metric = stat_test(conv_map_stats.at(it->second));
+				stat_metric = category_stat_test(conv_map_stats.at(it->second));
 			else
 				MTHROW_AND_ERR("Unknown stat_test \"%s\". options are: %s\n",
 					it->second.c_str(), medial::io::get_list(conv_map_stats).c_str());
@@ -290,11 +290,11 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 			for (size_t j = 0; j < code_stats[i].size(); ++j)
 				if (!code_stats[i][j].empty())
 					all_grps[float(j)] = code_stats[i][j];
-			if (stat_metric == mcnemar)
+			if (stat_metric == category_stat_test::mcnemar)
 				regScore += medial::contingency_tables::calc_mcnemar_square_dist(all_grps);
-			else if (stat_metric == chi_square)
+			else if (stat_metric == category_stat_test::chi_square)
 				regScore += medial::contingency_tables::calc_chi_square_dist(all_grps, 0, chi_square_at_least, minimal_chi_cnt);
-			dof += _count_legal_rows(code_stats[i], stat_metric == chi_square ? minimal_chi_cnt : 0);
+			dof += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 0);
 		}
 		scores[index] = (float)regScore;
 
@@ -323,6 +323,8 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 	int progress = 0;
 	//unordered_map<int, vector<vector<bool>>> pid_label_age_bin;// stores for each pid if saw label,age_bin
 	unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
+	bool nested_state = omp_get_nested();
+	omp_set_nested(true);
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < samples.idSamples.size(); ++i)
 	{
@@ -430,6 +432,7 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 	}
 	tm.take_curr_time();
 	MLOG("Took %2.2f seconds to complete\n", tm.diff_sec());
+	omp_set_nested(nested_state);
 
 	//complete stats in rows:
 	for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it)
@@ -469,7 +472,7 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 		MLOG("CategoryDependencyGenerator on %s - created %d features\n", signalName.c_str(), top_codes.size());
 		for (size_t i = 0; i < indexes.size(); ++i)
 		{
-			MLOG("#NUM %zu:\t%s", i, categoryId_to_name.at(code_list[indexes[i]]).front().c_str());
+			MLOG("#NUM %zu:\t%s", i + 1, categoryId_to_name.at(code_list[indexes[i]]).front().c_str());
 			for (size_t j = 1; j < 4 && j < categoryId_to_name.at(code_list[indexes[i]]).size(); ++j)
 				MLOG("|%s", categoryId_to_name.at(code_list[indexes[i]])[j].c_str());
 			MLOG("\tTOT_CNT:%d\tP_VAL=%f\tLift=%1.3f\n",
