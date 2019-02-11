@@ -504,7 +504,8 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 		rep.dict.prep_sets_lookup_table(section_id, s_names, luts[i]);
 	}
 	if (verbose) {
-		MLOG("CategoryDependencyGenerator on %s - created %d features\n", signalName.c_str(), top_codes.size());
+		MLOG("CategoryDependencyGenerator on %s - created %d(out of %zu passed filters) features\n",
+			signalName.c_str(), top_codes.size(), sort_pars.size());
 		for (size_t i = 0; i < indexes_order.size(); ++i)
 		{
 			MLOG("#NUM %zu:\t%s", i + 1, categoryId_to_name.at(code_list[indexes_order[i]]).front().c_str());
