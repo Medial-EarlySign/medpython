@@ -22,7 +22,7 @@ public:
 	int type = (int)INPUT_TESTER_TYPE_UNDEFINED;
 
 	// the tester can be defined as a warning only
-	int is_warning = 0; 
+	int is_warning = 0;
 
 	// return code and messages to return in case of not passing the test
 	int externl_rc = 0;	 // rcs -1 and 0 are reserved 
@@ -56,6 +56,8 @@ public:
 	// get a new InputTester
 	static InputTester *make_input_tester(int it_type);
 	static int name_to_input_tester_type(const string &name);
+
+	virtual ~InputTester() {};
 };
 //==============================================================================================================
 

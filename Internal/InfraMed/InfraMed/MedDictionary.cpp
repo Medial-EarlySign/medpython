@@ -68,7 +68,7 @@ int MedDictionary::read(const string &fname)
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
 
-			if (fields.size() >= 2) {
+			if (fields.size() >= 3) {
 				if (fields[0].compare(0, 3, "DEF") == 0) {
 					int n_id = stoi(fields[1]);
 					if (Name2Id.find(fields[2]) != Name2Id.end())
@@ -128,6 +128,9 @@ int MedDictionary::read(const string &fname)
 				}
 
 			}
+			else if (fields[0] != "SECTION")
+				MWARN("Warning in MedDictionary::read in file %s - got line with less than 3 tokens: \"%s\"\n", 
+					fname.c_str(), curr_line.c_str());
 		}
 
 	}

@@ -90,6 +90,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="FilterParams.h" />
     <ClInclude Include="LabelParams.h" />
     <ClInclude Include="MedCohort.h" />
     <ClInclude Include="MedCrypt.h" />
@@ -109,6 +110,7 @@
     <ClInclude Include="MedUtils_imp.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FilterParams.cpp" />
     <ClCompile Include="LabelParams.cpp" />
     <ClCompile Include="MedCrypt.cpp" />
     <ClCompile Include="MedCohort.cpp" />

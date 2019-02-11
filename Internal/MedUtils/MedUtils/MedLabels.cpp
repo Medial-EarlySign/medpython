@@ -266,6 +266,10 @@ MedLabels::MedLabels(const LabelParams &params) {
 	labeling_params = params;
 }
 
+MedLabels::MedLabels(const string &labling_params) {
+	labeling_params.init_from_string(labling_params);
+}
+
 void MedLabels::prepare_from_registry(const vector<MedRegistryRecord> &reg_records, const vector<MedRegistryRecord> *censor_records) {
 	all_reg_records = reg_records;
 	for (size_t i = 0; i < all_reg_records.size(); ++i)
@@ -863,7 +867,6 @@ void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &s
 			}
 		}
 	}
-
 	unordered_map<int, vector<int>> pid_times;
 	sampler->get_sampling_options(pid_time_ranges, pid_times);
 	int conflict_count = 0, done_count = 0, no_censor = 0, no_rule = 0;

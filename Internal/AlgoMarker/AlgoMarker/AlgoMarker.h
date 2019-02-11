@@ -20,12 +20,16 @@
 #ifdef _WIN32
 #if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllimport)
-#else
+#else    // !AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllexport)
-#endif
-#else
+#endif   // AM_DLL_IMPORT
+#else    // !_WIN32
+#if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE
-#endif
+#else    // !AM_DLL_IMPORT
+#define DLL_WORK_MODE __attribute__ ((visibility ("default")))
+#endif   //AM_DLL_IMPORT
+#endif   // _WIN32
 
 #ifdef _WIN32
 #pragma warning(disable: 4251)
@@ -34,7 +38,9 @@
 //
 // includes of Medial Internal Libraries
 //
+#ifndef ALGOMARKER_FLAT_API
 #include "AlgoMarkerInternal.h"
+#endif // ALGOMARKER_FLAT_API
 #include "AlgoMarkerErr.h"
 
 
@@ -46,6 +52,7 @@ typedef enum {
 	AM_TYPE_SIMPLE_EXAMPLE_EGFR = 2,
 } AlgoMarkerType;
 
+#ifndef ALGOMARKER_FLAT_API
 
 //===============================================================================
 // Responses and Requests classes
@@ -55,8 +62,8 @@ public:
 	int pid = -1;
 	long long timestamp = -1;
 
-	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp;}
-	
+	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp; }
+
 	void clear() { pid = -1; timestamp = -1; }
 
 	// auto time convertor helper function
@@ -65,8 +72,8 @@ public:
 
 //-------------------------------------------------------------------------------
 extern "C" class DLL_WORK_MODE AMMessages {
-	
-  private:
+
+private:
 
 	vector<int> codes;
 	vector<string> args_strs;
@@ -74,7 +81,7 @@ extern "C" class DLL_WORK_MODE AMMessages {
 	vector<char *> args; // for easier c c# export. pointing to strings , so no need to free.
 	int need_to_update_args = 0;
 
-  public:
+public:
 
 	// get things
 	int get_n_msgs() { return (int)codes.size(); }
@@ -128,8 +135,8 @@ public:
 	long long get_timestamp() { return point.timestamp; }
 	int get_n_scores() { return (int)scores.size(); }
 	AMScore *get_am_score(int idx) { if (idx < 0 || idx >= scores.size()) return NULL; return &scores[idx]; }
-	int get_score(int idx, float *_score, char **_score_type) { 
-		if (idx < 0 || idx >= scores.size()) return AM_FAIL_RC; 
+	int get_score(int idx, float *_score, char **_score_type) {
+		if (idx < 0 || idx >= scores.size()) return AM_FAIL_RC;
 		scores[idx].get_score(_score, _score_type);
 		return AM_OK_RC;
 	}
@@ -159,7 +166,7 @@ private:
 	// For each point: pid , time : we hold an AMResponse object that contains all the results on all types for this time point
 	// plus all its specific messages
 	vector<AMResponse> responses;
-	map<pair<int,long long>, int> point2response_idx;
+	map<pair<int, long long>, int> point2response_idx;
 
 	// score_types : these are common to all responses
 	vector<string> score_types_str;
@@ -187,13 +194,13 @@ public:
 	vector<char *> *get_score_type_vec_ptr() { return &score_types; }
 
 	// set things
-	void set_request_id(char *request_id) {	requestId = string(request_id); }
+	void set_request_id(char *request_id) { requestId = string(request_id); }
 	void set_version(char *_version) { version = string(_version); }
-	void insert_score_types(char **_score_type, int n_score_types); 
+	void insert_score_types(char **_score_type, int n_score_types);
 	AMResponse *create_point_response(int _pid, long long _timestamp);
 
 	// clear
-	void clear() { requestId=""; version=""; responses.clear(); point2response_idx.clear(); score_types_str.clear(); score_types.clear(); stype2idx.clear(); shared_msgs.clear(); }
+	void clear() { requestId = ""; version = ""; responses.clear(); point2response_idx.clear(); score_types_str.clear(); score_types.clear(); stype2idx.clear(); shared_msgs.clear(); }
 
 };
 
@@ -213,7 +220,7 @@ private:
 	vector<AMPoint> points;
 
 public:
-	
+
 	// get things
 	char *get_request_id() { return (char *)requestId.c_str(); }
 	int get_n_score_types() { return (int)score_types_str.size(); }
@@ -225,11 +232,11 @@ public:
 
 	// set things
 	void set_request_id(char *req_id) { requestId = string(req_id); }
-	void insert_point(int _pid, long long _timestamp) { AMPoint p; p.set(_pid,_timestamp) ; points.push_back(p); }
-	void insert_score_types(char **_score_types, int n_score_types) { for (int i=0; i<n_score_types; i++) score_types_str.push_back(string(_score_types[i])); }
+	void insert_point(int _pid, long long _timestamp) { AMPoint p; p.set(_pid, _timestamp); points.push_back(p); }
+	void insert_score_types(char **_score_types, int n_score_types) { for (int i = 0; i < n_score_types; i++) score_types_str.push_back(string(_score_types[i])); }
 
 	// clear
-	void clear() { requestId=""; score_types_str.clear(); points.clear(); }
+	void clear() { requestId = ""; score_types_str.clear(); points.clear(); }
 
 };
 
@@ -253,7 +260,7 @@ public:
 	virtual int Load(const char *config_f) { return 0; }
 	virtual int Unload() { return 0; }
 	virtual int ClearData() { return 0; }
-	virtual int AddData(int patient_id, const char *signalName,  int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
+	virtual int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
 	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
 	// check supported score types in the supported_score_types vector
@@ -274,6 +281,8 @@ public:
 
 	// get a new AlgoMarker
 	static AlgoMarker *make_algomarker(AlgoMarkerType am_type);
+
+	virtual ~AlgoMarker() { ClearData(); Unload(); };
 
 };
 
@@ -334,6 +343,9 @@ public:
 	int Calculate(AMRequest *request, AMResponses *responses);
 
 };
+
+#endif //ALGOMARKER_FLAT_API
+
 
 //========================================================================================
 // Actual AlgoMarker API to be used via C# :: External users should work ONLY with these !!
@@ -414,12 +426,14 @@ extern "C" DLL_WORK_MODE void AM_API_DisposeResponses(AMResponses *responses);
 //========================================================================================
 // Follows is a simple API to allow access to data repositories via c#
 //========================================================================================
+#ifndef ALGOMARKER_FLAT_API
+
 extern "C" class DLL_WORK_MODE RepositoryHandle {
-	public:
-		string fname;
-		vector<int> pids;
-		vector<string> signals;
-		MedRepository rep;
+public:
+	string fname;
+	vector<int> pids;
+	vector<string> signals;
+	MedRepository rep;
 };
 
 extern "C" class DLL_WORK_MODE SignalDataHandle {
@@ -447,3 +461,5 @@ extern "C" DLL_WORK_MODE void DATA_API_Dispose_SignalDataHandle(SignalDataHandle
 
 // dispose of RepositoryHandle
 extern "C" DLL_WORK_MODE void DATA_API_Dispose_RepositoryHandle(RepositoryHandle *rep_h);
+
+#endif //ALGOMARKER_FLAT_API

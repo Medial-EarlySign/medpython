@@ -36,6 +36,7 @@ typedef enum {
 	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
 	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
 	FTR_GEN_ATTR, ///< "attr" - creating features from samples attributes
+	FTR_GEN_CATEGORY_DEPEND, ///< "category_depend" - creates features from categorical signal that have statistical strength in samples - CategoryDependencyGenerator
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -100,6 +101,9 @@ public:
 	int learn(MedPidRepository& rep, vector<int>& ids) { set_names(); return _learn(rep, ids, vector<RepProcessor *>()); }
 	int learn(MedPidRepository& rep) { set_names(); return _learn(rep, rep.pids, vector<RepProcessor *>()); }
 
+	// when Learning to generate features requires to look at samples - Be carefull not to cheat, also in prepare be carefull
+	virtual void post_learn_from_samples(MedPidRepository& rep, const MedSamples& samples) {};
+
 	// generate feature data from repository
 	// We assume the corresponding MedSamples have been inserted to MedFeatures : either at the end or at position index
 	int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features, index, num, p_data); }
@@ -142,8 +146,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
-	void *new_polymorphic(string derived_class_name);
+		ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
+		void *new_polymorphic(string derived_class_name);
 
 	size_t get_generator_size();
 	size_t generator_serialize(unsigned char *blob);
@@ -208,7 +212,7 @@ typedef enum {
 	TIME_RANGE_CURRENT = 0, ///<"current" - consider only the current time-range
 	TIME_RANGE_BEFORE = 1, ///< "before" - consider anything before the current time-range
 	TIME_RANGE_LAST
-} TimeRangeTypes ;
+} TimeRangeTypes;
 
 /**
 * A Basic Stats Generator for calcing simple statics on time window
@@ -264,7 +268,7 @@ public:
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and _generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
 	bool bound_outcomeTime; ///< If true will truncate time window till outcomeTime
-	float min_value=-FLT_MAX, max_value= FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
+	float min_value = -FLT_MAX, max_value = FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
@@ -275,13 +279,13 @@ public:
 	// Constructor/Destructor
 	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
 	//~BasicFeatGenerator() {};
-	void set(string& _signalName, BasicFeatureTypes _type) { 
-		set(_signalName, _type, 0, 360000); 
-		req_signals.assign(1, signalName); 
+	void set(string& _signalName, BasicFeatureTypes _type) {
+		set(_signalName, _type, 0, 360000);
+		req_signals.assign(1, signalName);
 		if (timeRangeSignalName != "")
 			req_signals.push_back(timeRangeSignalName);
 	}
-	
+
 	void set(string& _signalName, BasicFeatureTypes _type, int _time_win_from, int _time_win_to) {
 		signalName = _signalName; type = _type; win_from = _time_win_from; win_to = _time_win_to;
 		set_names();
@@ -325,9 +329,9 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
-		time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
-		names, req_signals, in_set_name ,bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig)
+		ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
+			time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
+			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig)
 
 };
 
@@ -367,9 +371,9 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(AgeGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, signalName, req_signals)
+		ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, signalName, req_signals)
 
-	virtual int init(map<string, string>& mapper);
+		virtual int init(map<string, string>& mapper);
 };
 
 /**
@@ -412,7 +416,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(SingletonGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
+		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
 };
 
 
@@ -450,7 +454,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(GenderGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights)
+		ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights)
 };
 
 /**
@@ -464,7 +468,7 @@ struct BinnedLmEstimatesParams : public SerializableObject {
 
 	vector<int> estimation_points;
 	ADD_CLASS_NAME(BinnedLmEstimatesParams)
-	ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor, estimation_points)
+		ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor, estimation_points)
 
 };
 
@@ -532,11 +536,11 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BinnedLmEstimates)
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, \
-							params, xmeans, xsdvs, ymeans, means, models, time_unit_sig)
+		ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, \
+			params, xmeans, xsdvs, ymeans, means, models, time_unit_sig)
 
-	// print 
-	void print();
+		// print 
+		void print();
 };
 
 
@@ -632,7 +636,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time, time_unit_sig, time_unit_win)
+		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time, time_unit_sig, time_unit_win)
 };
 
 /**
@@ -672,11 +676,11 @@ public:
 
 	// (De)Serialize
 	ADD_CLASS_NAME(ModelFeatGenerator)
-	ADD_SERIALIZATION_HEADERS()
-	//ADD_SERIALIZATION_FUNCS(generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded, model)
+		ADD_SERIALIZATION_HEADERS()
+		//ADD_SERIALIZATION_FUNCS(generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded, model)
 
-	//dctor:
-	~ModelFeatGenerator();
+		//dctor:
+		~ModelFeatGenerator();
 private:
 	vector<vector<vector<float>>> preds;
 };
@@ -706,7 +710,7 @@ public:
 	// Binning of time units
 	vector<int> time_bins;
 	vector<string> time_bin_names;
-	
+
 	// Constructor/Destructor
 	TimeFeatGenerator() { generator_type = FTR_GEN_TIME; }
 	~TimeFeatGenerator() {}
@@ -734,7 +738,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(TimeFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
+		ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
 };
 
 /**
@@ -747,7 +751,7 @@ public:
 
 	// Attribute to use
 	string attribute;
-	
+
 	// Feature name (if empty - use attribute)
 	string ftr_name;
 
@@ -776,7 +780,98 @@ public:
 	ADD_SERIALIZATION_FUNCS(generator_type, ftr_name, attribute, names);
 };
 
+class pid_data_vec {
+public:
+	int pid;
+	int gender;
+	int byear;
+	vector<int> times;
+	vector<int> values;
 
+	pid_data_vec();
+	pid_data_vec(int p, int b, int g);
+
+	void add_data_point(int time, int val);
+
+	int get_time(int idx) const;
+	int get_val(int idx) const;
+	int get_age(int idx) const;
+};
+
+enum class category_stat_test {
+	chi_square = 1,
+	mcnemar = 2
+};
+
+/**
+* Creates multipal features based on categorical values and statistical dependency strength by Age,Gender groups
+*/
+class CategoryDependencyGenerator : public FeatureGenerator {
+private:
+	int byear_sid;
+	int gender_sid;
+	unordered_map<int, pid_data_vec> pids_data;
+	map<int, vector<string>> categoryId_to_name; //for regex filter
+	map<int, vector<int>> _member2Sets; //for hierarchy
+
+	vector<string> top_codes;
+	vector<vector<char>> luts;
+
+	void get_parents(int codeGroup, vector<int> &parents) const;
+
+	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
+		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,
+		vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, double prior);
+public:
+	string signalName; ///< the signal name
+	int signalId;
+	int time_channel;						///< n >= 0 : use time channel n , default: 0.
+	int val_channel;						///< n >= 0 : use val channel n , default : 0.
+	int win_from;///< time window for feature: win_from is the minimal time before from the prediction time
+	int win_to;///< time window for feature: win_to is the maximal time before the prediction time			
+	int time_unit_win;			///< the time unit in which the windows are given. Default: Undefined
+	int min_age; ///< minimal age for testing statistical dependency
+	int max_age; ///< maximal age for testing statistical dependency
+	int age_bin; ///< age bin for testing statistical dependency
+	string regex_filter; ///< regex filter for filtering categories in learn
+	int min_code_cnt; ///< minimal number of occourences to consider signal
+	float fdr; ///< the FDR value
+	int take_top; ///< maximal number of features to create
+	float lift_below; ///< filter lift to keep below it
+	float lift_above; ///< filter lift to keep above it
+	category_stat_test stat_metric; ///< statistical test
+	float chi_square_at_least; ///< chi_square arg to test for at least that change in lift to measure bigger diffrence
+	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
+	int max_depth; ///< maximal depth to go in heirarchy
+	int max_parents; ///< controls maximum parents count
+	bool use_fixed_lift; ///< If true will also sort be lifts below 1
+	bool verbose; ///< in Learn will print selected features
+
+	void set_signal_ids(MedDictionarySections& dict);
+
+	void init_tables(MedDictionarySections& dict);
+
+	// Constructor/Destructor
+	CategoryDependencyGenerator() : FeatureGenerator() { init_defaults(); };
+	void init_defaults();
+
+	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<CategoryDependencyGenerator *>(generator)); }
+
+	/// The parsed fields from init command.
+	/// @snippet CategoryDependencyGenerator.cpp CategoryDependencyGenerator::init
+	int init(map<string, string>& mapper);
+
+	void set_names();
+
+	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
+
+	void post_learn_from_samples(MedPidRepository& rep, const MedSamples& samples);
+
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
+
+	ADD_CLASS_NAME(CategoryDependencyGenerator)
+		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win)
+};
 
 //=======================================
 // Helpers

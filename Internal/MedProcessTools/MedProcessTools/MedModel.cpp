@@ -290,8 +290,10 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 
 	vector<int> rc(generators.size(), 0);
 #pragma omp parallel for schedule(dynamic)
-	for (int i = 0; i < generators.size(); i++)
+	for (int i = 0; i < generators.size(); i++) {
 		rc[i] = generators[i]->learn(rep, ids, rep_processors); //??? why is this done for ALL time points in an id???
+		generators[i]->post_learn_from_samples(rep, *learn_samples);
+	}
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
@@ -945,7 +947,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
-		if (verbosity) MLOG("check virtual %s\n", vsig.first.c_str());
+		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
