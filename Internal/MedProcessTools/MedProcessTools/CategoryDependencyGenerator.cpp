@@ -240,7 +240,7 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 
 void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 	vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts,
-	vector<double> &posCnts, vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
+	vector<double> &posCnts, vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, double prior) {
 
 	unordered_set<int> all_vals;
 	for (auto i = categoryVal_to_stats.begin(); i != categoryVal_to_stats.end(); ++i)
@@ -261,29 +261,18 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 		int signalVal = all_signal_values[index];
 		//check chi-square for this value:
 		double totCnt = 0;
-		double sig_sum = 0;
-		double sum_noSig_reg = 0;
-		double sum_noSig_tot = 0;
-
 		const vector<vector<vector<int>>> &code_stats = categoryVal_to_stats.at(signalVal);
 		for (size_t i = 0; i < code_stats.size(); ++i) //iterate genders
 			for (size_t j = 0; j < code_stats[i].size(); ++j) //iterate age
 				if (!code_stats[i][j].empty()) {
 					totCnt += code_stats[i][j][2] + code_stats[i][j][3];
 					posCnts[index] += code_stats[i][j][1 + 2];
-					sig_sum += code_stats[i][j][0 + 2];
-					sum_noSig_reg += code_stats[i][j][1 + 0];
-					sum_noSig_tot += code_stats[i][j][1 + 0] + code_stats[i][j][0 + 0];
 				}
-
 		if (totCnt == 0)
 			continue;
 		valCnts[index] = totCnt; //for signal apeareance
-		sig_sum += posCnts[index];
-		if (sig_sum > 0 && sum_noSig_reg > 0)
-			lift[index] = (posCnts[index] / sig_sum) / (sum_noSig_reg / sum_noSig_tot);
-		if (sig_sum > 0 && sum_noSig_reg <= 0)
-			lift[index] = 2 * posCnts[index]; //maximum lift
+		lift[index] = (posCnts[index] / totCnt) / prior;
+
 		pos_ratio[index] = posCnts[index] / totCnt;
 
 		double regScore = 0;
@@ -297,7 +286,7 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 				regScore += medial::contingency_tables::calc_mcnemar_square_dist(all_grps);
 			else if (stat_metric == category_stat_test::chi_square)
 				regScore += medial::contingency_tables::calc_chi_square_dist(all_grps, 0, chi_square_at_least, minimal_chi_cnt);
-			dof += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 0);
+			dof += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 1);
 		}
 		scores[index] = (float)regScore;
 
@@ -445,11 +434,22 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 					it->second[i][j][0] = total_stats[i][j][0] - it->second[i][j][3];
 					it->second[i][j][1] = total_stats[i][j][1] - it->second[i][j][4];
 				}
+	double prior = 0, tot_cnt = 0;
+	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
+		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
+			prior += samples.idSamples[i].samples[j].outcome > 0;
+		tot_cnt += samples.idSamples[i].samples.size();
+	}
+	if (tot_cnt == 0) {
+		MWARN("Warnning CategoryDependencyGenerator::post_learn_from_sample - samples is empty\n");
+		return;
+	}
+	prior /= tot_cnt;
 
 	//filter and take top:
 	vector<int> code_list, indexes;
 	vector<double> codeCnts, posCnts, lift, scores, pvalues, pos_ratio;
-	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio);
+	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, prior);
 
 	apply_filter(indexes, codeCnts, min_code_cnt, INT_MAX);
 	apply_filter(indexes, pvalues, 0, fdr);

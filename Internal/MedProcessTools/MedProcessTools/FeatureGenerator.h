@@ -818,8 +818,8 @@ private:
 	void get_parents(int codeGroup, vector<int> &parents) const;
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
-		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts,
-		vector<double> &posCnts, vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio);
+		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,
+		vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, double prior);
 public:
 	string signalName; ///< the signal name
 	int signalId;

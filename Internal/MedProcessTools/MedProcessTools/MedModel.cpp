@@ -947,7 +947,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
-		if (verbosity) MLOG("check virtual %s\n", vsig.first.c_str());
+		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
