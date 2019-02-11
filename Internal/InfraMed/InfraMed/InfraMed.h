@@ -626,7 +626,7 @@ namespace medial {
 		string filter_code_hierarchy(const vector<string> &vec, const string &signalHirerchyType);
 		/// \brief getting parents in hierarchy codes
 		vector<int> parents_code_hierarchy(MedDictionarySections &dict, const string &group,
-			const string &signalHirerchyType, int depth = 1);
+			const string &signalHirerchyType, int depth = 1, int max_nodes = 10);
 		/// \brief getting sons in hierarchy codes
 		vector<int> sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
 		/// \brief gets codes

@@ -62,7 +62,13 @@ int RepPanelCompleter::update_panels(string& panels) {
 	unordered_set<string> selected;
 	for (string& panel : list) {
 		if (panel2signals.find(panel) == panel2signals.end()) {
-			MERR("Required unknown panel %s for completion\n", panel.c_str());
+			string panel_opts = "";
+			for (auto it = panel2signals.begin(); it != panel2signals.end(); ++it)
+				if (it == panel2signals.begin())
+					panel_opts += it->first;
+				else
+					panel_opts += "," + it->first;
+			MTHROW_AND_ERR("Required unknown panel %s for completion. Options:%s\n", panel.c_str(), panel_opts.c_str());
 			return -1;
 		}
 		else
@@ -218,6 +224,8 @@ int RepPanelCompleter::apply_red_line_completer(PidDynamicRec& rec, vector<int>&
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_RED_LINE_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_RED_LINE_PANEL];
 	vector<float>& conv = sig_conversion_factors[REP_CMPLT_RED_LINE_PANEL];
+	if (orig_res.empty() || final_res.empty() || conv.empty())
+		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_red_line_completer - please provice config/metadata file\n");
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
@@ -273,6 +281,8 @@ int RepPanelCompleter::apply_white_line_completer(PidDynamicRec& rec, vector<int
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_WHITE_LINE_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_WHITE_LINE_PANEL];
 	vector<float>& conv = sig_conversion_factors[REP_CMPLT_WHITE_LINE_PANEL];
+	if (orig_res.empty() || final_res.empty() || conv.empty())
+		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_white_line_completer - please provice config/metadata file\n");
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
@@ -331,6 +341,8 @@ int RepPanelCompleter::apply_platelets_completer(PidDynamicRec& rec, vector<int>
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_PLATELETS_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_PLATELETS_PANEL];
 	vector<float>& conv = sig_conversion_factors[REP_CMPLT_PLATELETS_PANEL];
+	if (orig_res.empty() || final_res.empty() || conv.empty())
+		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_platelets_completer - please provice config/metadata file\n");
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
@@ -374,6 +386,8 @@ int RepPanelCompleter::apply_lipids_completer(PidDynamicRec& rec, vector<int>& t
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_LIPIDS_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_LIPIDS_PANEL];
 	vector<float>& conv = sig_conversion_factors[REP_CMPLT_LIPIDS_PANEL];
+	if (orig_res.empty() || final_res.empty() || conv.empty())
+		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_lipids_completer - please provice config/metadata file\n");
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
@@ -447,6 +461,8 @@ int RepPanelCompleter::apply_eGFR_completer(PidDynamicRec& rec, vector<int>& tim
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_EGFR_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_EGFR_PANEL];
 	vector<float>& conv = sig_conversion_factors[REP_CMPLT_EGFR_PANEL];
+	if (orig_res.empty() || final_res.empty() || conv.empty())
+		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_eGFR_completer - please provice config/metadata file\n");
 
 	//  Age & Gender
 	int age, bYear, gender;
@@ -519,6 +535,8 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 	vector<float>& orig_res = original_sig_res[REP_CMPLT_BMI_PANEL];
 	vector<float>& final_res = final_sig_res[REP_CMPLT_BMI_PANEL];
 	vector<float>& conv = sig_conversion_factors[REP_CMPLT_BMI_PANEL];
+	if (orig_res.empty() || final_res.empty() || conv.empty())
+		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_BMI_completer - please provice config/metadata file\n");
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());
@@ -555,8 +573,8 @@ int RepPanelCompleter::apply_BMI_completer(PidDynamicRec& rec, vector<int>& time
 			changed_signals[BMI_PNL_HGT] = 1;
 			for (int iPanel = 0; iPanel < panels.size(); iPanel++) {
 				if (panels[iPanel][BMI_PNL_HGT] == missing_val && panels[iPanel][BMI_PNL_HGT_SQR] != missing_val)
-					panels[iPanel][BMI_PNL_HGT] = completer_round(sqrt(panels[iPanel][BMI_PNL_HGT_SQR]) * 100.0F, original_sig_res[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT],
-						final_sig_res[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT], sig_conversion_factors[REP_CMPLT_BMI_PANEL][BMI_PNL_HGT]);
+					panels[iPanel][BMI_PNL_HGT] = completer_round(sqrt(panels[iPanel][BMI_PNL_HGT_SQR]) * 100.0F, orig_res[BMI_PNL_HGT],
+						final_res[BMI_PNL_HGT], conv[BMI_PNL_HGT]);
 			}
 		}
 
@@ -988,9 +1006,9 @@ void RepPanelCompleter::read_metadata() {
 		}
 		else {
 			string sigName = fields[columns["Name"]];
-			all_original_res[sigName] = stof(fields[columns["OrigResolution"]]);
-			all_final_res[sigName] = stof(fields[columns["FinalResolution"]]);
-			all_conversion_factors[sigName] = stof(fields[columns["FinalFactor"]]);
+			all_original_res[sigName] = med_stof(fields[columns["OrigResolution"]]);
+			all_final_res[sigName] = med_stof(fields[columns["FinalResolution"]]);
+			all_conversion_factors[sigName] = med_stof(fields[columns["FinalFactor"]]);
 		}
 	}
 

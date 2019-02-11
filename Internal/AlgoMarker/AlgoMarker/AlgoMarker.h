@@ -20,12 +20,16 @@
 #ifdef _WIN32
 #if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllimport)
-#else
+#else    // !AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllexport)
-#endif
-#else
+#endif   // AM_DLL_IMPORT
+#else    // !_WIN32
+#if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE
-#endif
+#else    // !AM_DLL_IMPORT
+#define DLL_WORK_MODE __attribute__ ((visibility ("default")))
+#endif   //AM_DLL_IMPORT
+#endif   // _WIN32
 
 #ifdef _WIN32
 #pragma warning(disable: 4251)
@@ -34,7 +38,9 @@
 //
 // includes of Medial Internal Libraries
 //
+#ifndef ALGOMARKER_FLAT_API
 #include "AlgoMarkerInternal.h"
+#endif // ALGOMARKER_FLAT_API
 #include "AlgoMarkerErr.h"
 
 
@@ -46,6 +52,7 @@ typedef enum {
 	AM_TYPE_SIMPLE_EXAMPLE_EGFR = 2,
 } AlgoMarkerType;
 
+#ifndef ALGOMARKER_FLAT_API
 
 //===============================================================================
 // Responses and Requests classes
@@ -337,6 +344,9 @@ public:
 
 };
 
+#endif //ALGOMARKER_FLAT_API
+
+
 //========================================================================================
 // Actual AlgoMarker API to be used via C# :: External users should work ONLY with these !!
 // Any change to the below functions must rely only on exposed API of the above classes.
@@ -416,6 +426,8 @@ extern "C" DLL_WORK_MODE void AM_API_DisposeResponses(AMResponses *responses);
 //========================================================================================
 // Follows is a simple API to allow access to data repositories via c#
 //========================================================================================
+#ifndef ALGOMARKER_FLAT_API
+
 extern "C" class DLL_WORK_MODE RepositoryHandle {
 public:
 	string fname;
@@ -449,3 +461,5 @@ extern "C" DLL_WORK_MODE void DATA_API_Dispose_SignalDataHandle(SignalDataHandle
 
 // dispose of RepositoryHandle
 extern "C" DLL_WORK_MODE void DATA_API_Dispose_RepositoryHandle(RepositoryHandle *rep_h);
+
+#endif //ALGOMARKER_FLAT_API

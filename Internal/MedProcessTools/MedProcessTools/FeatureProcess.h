@@ -400,6 +400,9 @@ public:
 	// minimum samples required for learning
 	int min_samples = 50;
 
+	// if true, doesn't impute missing values that are left due to small stratas
+	bool leave_missing_for_small_stratas = false;
+
 	// Moment
 	imputeMomentTypes moment_type;
 	float default_moment;

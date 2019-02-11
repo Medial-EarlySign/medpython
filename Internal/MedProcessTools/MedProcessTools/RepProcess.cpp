@@ -684,13 +684,14 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
 	if (!verbose_file.empty())
 	{
+		verbose_file += "." + signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
 		ofstream fw(verbose_file);
 		fw.close(); //rewrite empty file
 	}
 
 	init_lists();
 	map<string, string>& mapper_p = mapper;
-	vector<string> remove_fl = { "verbose_file" , "rp_type", "unconditional", "signal", "time_channel" };
+	vector<string> remove_fl = { "verbose_file" , "rp_type", "unconditional", "signal", "time_channel", "val_channel" };
 	for (const string &fl : remove_fl)
 		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
@@ -923,7 +924,10 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		thisRecord.val_channel = stoi(f[7]);
 		if (thisRecord.distLow != "none")thisRecord.confirmedLow = (float)atof(f[3].c_str());
 		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = (float)atof(f[5].c_str());
-		outlierParams[f[0]] = thisRecord;
+		string sigName = f[0];
+		if (thisRecord.val_channel > 0)
+			sigName += "_ch_" + to_string(thisRecord.val_channel);
+		outlierParams[sigName] = thisRecord;
 	}
 
 	infile.close();
@@ -939,6 +943,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepConfiguredOutlierCleaner::init]
 		if (field == "signal") { signalName = entry.second; req_signals.insert(signalName); }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "ntrim_attr") nTrim_attr == entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
@@ -951,20 +956,26 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepConfiguredOutlierCleaner::init]
 	}
 
-	if (outlierParams_dict.find(signalName) != outlierParams_dict.end())
-		outlierParam = outlierParams_dict.at(signalName);
+	string sig_search = signalName;
+	if (val_channel > 0)
+		sig_search += "_ch_" + to_string(val_channel);
+
+	if (outlierParams_dict.find(sig_search) != outlierParams_dict.end())
+		outlierParam = outlierParams_dict.at(sig_search);
 	else
-		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", signalName.c_str());
+		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", sig_search.c_str());
 
 	if (!verbose_file.empty())
 	{
+		verbose_file += "." + sig_search;
 		ofstream fw(verbose_file);
 		fw.close(); //rewrite empty file
 	}
 
 	init_lists();
 	map<string, string>& mapper_p = mapper;
-	vector<string> remove_fl = { "verbose_file" , "clean_method", "conf_file", "rp_type", "unconditional", "signal", "time_channel" };
+	vector<string> remove_fl = { "verbose_file" , "clean_method", "conf_file", "rp_type", "unconditional",
+		"signal", "time_channel", "val_channel" };
 	for (const string &fl : remove_fl)
 		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
@@ -1093,8 +1104,8 @@ void RepRuleBasedOutlierCleaner::parse_rules_signals(const string &path) {
 			continue;
 		vector<string> tokens, list_of_sigs;
 		boost::split(tokens, line, boost::is_any_of("\t"));
-		if (tokens.size() != 2)
-			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - line should contain 2 tokens with TAB. got line:\n%s\n",
+		if (tokens.size() != 2 && tokens.size() != 3)
+			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - line should contain 2-3 tokens with TAB. got line:\n%s\n",
 				line.c_str());
 		int rule_id = med_stoi(tokens[0]);
 		boost::split(list_of_sigs, tokens[1], boost::is_any_of(","));
@@ -1102,6 +1113,8 @@ void RepRuleBasedOutlierCleaner::parse_rules_signals(const string &path) {
 			MTHROW_AND_ERR("Error RepRuleBasedOutlierCleaner::parse_rules_signals - rule %d contains %zu signals, got %zu signals\n",
 				rule_id, rules2Signals[rule_id].size(), list_of_sigs.size());
 		rules2Signals[rule_id] = list_of_sigs;
+		if (tokens.size() == 3)  //has rules2RemoveSignal value
+			rules2RemoveSignal[rule_id] = boost::trim_copy(tokens[2]);
 	}
 	fr.close();
 }
@@ -1145,13 +1158,14 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 				req_signals.insert(sig);
 		}
 		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
-		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with "," 
+		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with ","  optional [TAB] for which signal to remove when contradiction
 		else if (field == "signal_channels") parse_sig_channels(entry.second); //each line is signal_name [TAB] time_channel [TAB] val_channel 
 		else if (field == "time_window") time_window = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
 		else if (field == "verbose_file") verbose_file = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "tolerance") tolerance = med_stof(entry.second);
+		else if (field == "calc_res") calc_res = med_stof(entry.second);
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else if (field == "consideredRules") {
@@ -1260,13 +1274,23 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 	rules_sids.clear();
 	affected_by_rules.clear();
 
+	unordered_set<string> new_aff;
+	set<int> new_aff_id;
 	for (int i = 0; i < rulesToApply.size(); i++) {
 		// build set of the participating signals
-
+		string removal_signal = "";
+		if (rules2RemoveSignal.find(rulesToApply[i]) != rules2RemoveSignal.end())
+			removal_signal = rules2RemoveSignal.at(rulesToApply[i]);
 		for (auto& sname : rules2Signals[rulesToApply[i]]) {
 			int thisSid = dict.id(sname);
 			rules_sids[rulesToApply[i]].push_back(thisSid);
-			affected_by_rules[rulesToApply[i]].push_back(affSignalIds.find(thisSid) != affSignalIds.end());
+			bool affect_sig = affSignalIds.find(thisSid) != affSignalIds.end();
+			affect_sig = affect_sig && (removal_signal.empty() || removal_signal == sname);
+			affected_by_rules[rulesToApply[i]].push_back(affect_sig);
+			if (affect_sig) {
+				new_aff.insert(sname);
+				new_aff_id.insert(thisSid);
+			}
 			if (signal_channels.find(sname) != signal_channels.end()) {
 				signal_id_channels[thisSid] = signal_channels[sname];
 				//check channels exists:
@@ -1279,9 +1303,11 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 						sigs.Sid2Info.at(thisSid).n_val_channels, signal_id_channels[thisSid].second);
 			}
 		}
+
 	}
-
-
+	//keep only needed affected signals - pass on affected_by_rules
+	aff_signals.swap(new_aff);
+	affSignalIds.swap(new_aff_id);
 }
 
 
@@ -1458,7 +1484,10 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 	//ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
 {
 
-	float left, right; // sides of the equality or inequality of the rule
+	float left, right, right2, right3; // sides of the equality or inequality of the rule
+	float res_factor = 1;
+	if (calc_res > 0)
+		res_factor = 1.0 / calc_res;
 
 	switch (rule) {
 	case 1://BMI=Weight/Height^2*1e4
@@ -1485,20 +1514,31 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 	case 12://HDL_over_Cholesterol=HDL/Cholesterol
 		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 10) / (float)10.; //resolution in THIN is 0.1
-		return(abs(left / right - 1) > tolerance);
+		right2 = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
+		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / (float)res_factor; //resolution in THIN is 0.1
+		right3 = int(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / (float)res_factor; //resolution in THIN is 0.1
+		if (calc_res > 0)
+			return (abs(left / right - 1) > tolerance && abs(left / right2 - 1) > tolerance && abs(left / right3 - 1) > tolerance);
+		else
+			return (abs(left / right2 - 1) > tolerance);
 
 	case 6://MPV=Platelets_Hematocrit/Platelets
 		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
-		right = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
+		right = 100 * ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);
 		return(abs(left / right - 1) > tolerance);
 
 	case 8://UrineAlbumin_over_Creatinine = UrineAlbumin / UrineCreatinine
 		if (ruleUsvs[2].Val(sPointer[2], val_channels[2]) == 0)return(true);
 		left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
-		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * 10) / 10;//resolution in THIN is 0.1
-		return(abs(left / right - 1) > tolerance);
+		right2 = ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]);//calc no resolution
+		right = round(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / res_factor;//resolution in THIN is 0.1
+		right3 = int(ruleUsvs[1].Val(sPointer[1], val_channels[1]) / ruleUsvs[2].Val(sPointer[2], val_channels[2]) * res_factor) / res_factor;//resolution in THIN is 0.1
+		if (calc_res > 0)
+			return (abs(left / right - 1) > tolerance && abs(left / right2 - 1) > tolerance  && abs(left / right3 - 1) > tolerance);
+		else
+			return(abs(left / right2 - 1) > tolerance);
+
 
 	case 13://HDL_over_LDL=HDL/LDL
 	case 15://Cholesterol_over_HDL=Cholesterol/HDL
