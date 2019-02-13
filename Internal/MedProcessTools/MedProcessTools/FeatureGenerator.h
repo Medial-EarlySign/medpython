@@ -793,6 +793,7 @@ private:
 	int gender_sid;
 	map<int, vector<string>> categoryId_to_name; //for regex filter
 	map<int, vector<int>> _member2Sets; //for hierarchy
+	map<int, vector<int>> _set2Members; //for hierarchy
 
 	vector<string> top_codes;
 	vector<vector<char>> luts;
@@ -819,6 +820,9 @@ public:
 	int take_top; ///< maximal number of features to create
 	float lift_below; ///< filter lift to keep below it
 	float lift_above; ///< filter lift to keep above it
+	float filter_child_pval_diff; ///< below this threshold of pvalue diff change to remove child category (with AND condition on average lift change)
+	float filter_child_lift_ratio; ///< below this threshold of lift change to remove child category
+	float filter_child_count_ratio; ///< If child ratio count is too similar, small change from parent code - keep only paretn code
 	category_stat_test stat_metric; ///< statistical test
 	float chi_square_at_least; ///< chi_square arg to test for at least that change in lift to measure bigger diffrence
 	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
