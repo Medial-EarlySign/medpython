@@ -196,6 +196,7 @@ typedef enum {
 	FTR_MAX_DIFF = 18, ///<maximum diff in window
 	FTR_FIRST_DAYS = 19, ///< time diffrence from prediction time to first time with signal
 	FTR_RANGE_WIDTH = 20, ///< maximal value - minimal value in a given window time frame
+	FTR_CATEGORY_SET_FIRST_TIME = 21,
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -235,6 +236,7 @@ private:
 	float uget_max_diff(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_first_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_category_set_first_time(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 
 public:
 	// Feature Descrption

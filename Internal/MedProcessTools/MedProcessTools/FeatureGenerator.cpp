@@ -361,6 +361,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "max_diff")			return FTR_MAX_DIFF;
 	if (name == "first_time")		return FTR_FIRST_DAYS;
 	if (name == "category_set_first")				return FTR_CATEGORY_SET_FIRST;
+	if (name == "category_set_first_time")				return FTR_CATEGORY_SET_FIRST_TIME;
 
 
 	if (isInteger(name))
@@ -415,6 +416,7 @@ void BasicFeatGenerator::set_names() {
 	case FTR_CATEGORY_SET_COUNT:	name += "category_set_count_" + set_names; break;
 	case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
 	case FTR_CATEGORY_SET_FIRST:	name += "category_set_first_" + set_names; break;
+	case FTR_CATEGORY_SET_FIRST_TIME:	name += "category_set_first_time_" + set_names; break;
 	case FTR_NSAMPLES:			name += "nsamples"; break;
 	case FTR_EXISTS:			name += "exists"; break;
 	case FTR_RANGE_WIDTH:			name += "range_width"; break;
@@ -480,7 +482,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST) {
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
 			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
@@ -530,6 +532,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int o
 	case FTR_MAX_DIFF:			return uget_max_diff(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_FIRST_DAYS:		return uget_first_time(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_CATEGORY_SET_FIRST:		return uget_category_set_first(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
+	case FTR_CATEGORY_SET_FIRST_TIME:		return uget_category_set_first_time(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 
 	default:	return missing_val;
 	}
@@ -1270,6 +1273,28 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 
 	return 0;
 }
+
+
+float BasicFeatGenerator::uget_category_set_first_time(PidDynamicRec &rec, UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
+{
+	int min_time, max_time;
+	float diff = missing_val;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
+
+	for (int i = 0; i < usv.len; i++) {
+		int itime = usv.Time(i, time_channel);
+		if (itime > max_time) return missing_val; // passed window
+		if (lut[(int)usv.Val(i, val_channel)]) {// what we look for
+			if (itime >= min_time) {
+				diff = (float)med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time) - med_time_converter.convert_times(MedTime::Date, MedTime::Days, itime);
+				return diff; // inside window
+			}
+		}
+	}
+
+	return missing_val;
+}
+
 
 float BasicFeatGenerator::uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {

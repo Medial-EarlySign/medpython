@@ -487,14 +487,15 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		rep.dict.prep_sets_lookup_table(section_id, s_names, luts[i]);
 	}
 	if (verbose) {
-		MLOG("CategoryDependencyGenerator on %s - created %d features\n", signalName.c_str(), top_codes.size());
+		MLOG("CategoryDependencyGenerator on %s - created %d(out of %zu passed filters) features\n",
+			signalName.c_str(), top_codes.size(), sort_pars.size());
 		for (size_t i = 0; i < indexes_order.size(); ++i)
 		{
 			MLOG("#NUM %zu:\t%s", i + 1, categoryId_to_name.at(code_list[indexes_order[i]]).front().c_str());
 			for (size_t j = 1; j < 4 && j < categoryId_to_name.at(code_list[indexes_order[i]]).size(); ++j)
 				MLOG("|%s", categoryId_to_name.at(code_list[indexes_order[i]])[j].c_str());
-			MLOG("\tTOT_CNT:%d\tP_VAL=%f\tLift=%1.3f\n",
-				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], lift[indexes_order[i]]);
+			MLOG("\tTOT_CNT:%d\tP_VAL=%.12g\tScore=%.3f\tLift=%1.3f\n",
+				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]]);
 		}
 	}
 
