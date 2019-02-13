@@ -141,8 +141,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
-	void *new_polymorphic(string derived_class_name);
+		ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
+		void *new_polymorphic(string derived_class_name);
 
 	size_t get_generator_size();
 	size_t generator_serialize(unsigned char *blob);
@@ -324,7 +324,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
+		ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
 			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig)
 
 };
@@ -407,7 +407,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(SingletonGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
+		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
 };
 
 
@@ -459,7 +459,7 @@ struct BinnedLmEstimatesParams : public SerializableObject {
 
 	vector<int> estimation_points;
 	ADD_CLASS_NAME(BinnedLmEstimatesParams)
-	ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor, estimation_points)
+		ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor, estimation_points)
 
 };
 
@@ -542,10 +542,10 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BinnedLmEstimates)
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, params, xmeans, xsdvs, ymeans, means, models, time_unit_sig, sampling_strategy)
+		ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, params, xmeans, xsdvs, ymeans, means, models, time_unit_sig, sampling_strategy)
 
-	// print 
-	void print();
+		// print 
+		void print();
 };
 
 
@@ -641,8 +641,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time, 
-		time_unit_sig, time_unit_win)
+		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
+			time_unit_sig, time_unit_win)
 };
 
 /**
@@ -682,10 +682,10 @@ public:
 
 	// (De)Serialize
 	ADD_CLASS_NAME(ModelFeatGenerator)
-	ADD_SERIALIZATION_HEADERS()
+		ADD_SERIALIZATION_HEADERS()
 
-	//dctor:
-	~ModelFeatGenerator();
+		//dctor:
+		~ModelFeatGenerator();
 private:
 	vector<vector<vector<float>>> preds;
 };
@@ -740,7 +740,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(TimeFeatGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
+		ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
 };
 
 /**
@@ -779,38 +779,18 @@ public:
 	ADD_SERIALIZATION_FUNCS(generator_type, ftr_name, attribute, names);
 };
 
-/**
-* Creates multiple features based on categorical values and statistical dependency strength by Age,Gender groups
-*/
-
-class pid_data_vec {
-public:
-	int pid;
-	int gender;
-	int byear;
-	vector<int> times;
-	vector<int> values;
-
-	pid_data_vec();
-	pid_data_vec(int p, int b, int g);
-
-	void add_data_point(int time, int val);
-
-	int get_time(int idx) const;
-	int get_val(int idx) const;
-	int get_age(int idx) const;
-};
-
 enum class category_stat_test {
 	chi_square = 1,
 	mcnemar = 2
 };
 
+/**
+* Creates multipal features based on categorical values and statistical dependency strength by Age,Gender groups
+*/
 class CategoryDependencyGenerator : public FeatureGenerator {
 private:
 	int byear_sid;
 	int gender_sid;
-	unordered_map<int, pid_data_vec> pids_data;
 	map<int, vector<string>> categoryId_to_name; //for regex filter
 	map<int, vector<int>> _member2Sets; //for hierarchy
 
@@ -821,7 +801,7 @@ private:
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,
-		vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, double prior);
+		vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, vector<int> &dof, const vector<vector<double>> &prior_per_bin) const;
 public:
 	string signalName; ///< the signal name
 	int signalId;
@@ -846,6 +826,7 @@ public:
 	int max_parents; ///< controls maximum parents count
 	bool use_fixed_lift; ///< If true will also sort be lifts below 1
 	bool verbose; ///< in Learn will print selected features
+	bool verbose_full; ///< If true will print a lot - table of all stats for each code
 
 	void set_signal_ids(MedDictionarySections& dict);
 

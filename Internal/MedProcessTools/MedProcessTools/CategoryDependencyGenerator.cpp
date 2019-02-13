@@ -7,29 +7,6 @@
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-void pid_data_vec::add_data_point(int time, int val) {
-	times.push_back(time);
-	values.push_back(val);
-}
-
-pid_data_vec::pid_data_vec() {
-	pid = -1; byear = -1; gender = -1;
-}
-
-pid_data_vec::pid_data_vec(int p, int b, int g) {
-	pid = p; byear = b; gender = g;
-}
-
-int pid_data_vec::get_time(int idx) const {
-	return times[idx];
-}
-int pid_data_vec::get_val(int idx) const {
-	return values[idx];
-}
-int pid_data_vec::get_age(int idx) const {
-	return med_time_converter.convert_times(global_default_time_unit, MedTime::Date, times[idx]) / 10000 - byear;
-}
-
 void CategoryDependencyGenerator::init_defaults() {
 	generator_type = FTR_GEN_BASIC;
 	signalName = "";
@@ -55,6 +32,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	max_parents = 1;
 	verbose = false;
 	use_fixed_lift = false;
+	verbose_full = false;
 
 	req_signals = { "BYEAR", "GENDER" };
 }
@@ -106,6 +84,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			use_fixed_lift = med_stoi(it->second) > 0;
 		else if (it->first == "verbose")
 			verbose = med_stoi(it->second) > 0;
+		else if (it->first == "verbose_full")
+			verbose_full = med_stoi(it->second) > 0;
 		else if (it->first == "stat_metric") {
 			if (conv_map_stats.find(it->second) != conv_map_stats.end())
 				stat_metric = category_stat_test(conv_map_stats.at(it->second));
@@ -197,7 +177,8 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 
 void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 	vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts,
-	vector<double> &posCnts, vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, double prior) {
+	vector<double> &posCnts, vector<double> &lift, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio,
+	vector<int> &dof, const vector<vector<double>> &prior_per_bin) const {
 
 	unordered_set<int> all_vals;
 	for (auto i = categoryVal_to_stats.begin(); i != categoryVal_to_stats.end(); ++i)
@@ -212,28 +193,31 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 	scores.resize(all_signal_values.size());
 	p_values.resize(all_signal_values.size());
 	pos_ratio.resize(all_signal_values.size());
+	dof.resize(all_signal_values.size());
 
 	for (int index : signal_indexes)
 	{
 		int signalVal = all_signal_values[index];
 		//check chi-square for this value:
-		double totCnt = 0;
+		double totCnt = 0, lift_summed = 0;
 		const vector<vector<vector<int>>> &code_stats = categoryVal_to_stats.at(signalVal);
 		for (size_t i = 0; i < code_stats.size(); ++i) //iterate genders
 			for (size_t j = 0; j < code_stats[i].size(); ++j) //iterate age
 				if (!code_stats[i][j].empty()) {
 					totCnt += code_stats[i][j][2] + code_stats[i][j][3];
 					posCnts[index] += code_stats[i][j][1 + 2];
+					if (code_stats[i][j][2] + code_stats[i][j][3] > 0 && prior_per_bin[i][j] > 0)
+						lift_summed += (code_stats[i][j][1 + 2] / prior_per_bin[i][j]);
 				}
 		if (totCnt == 0)
 			continue;
 		valCnts[index] = totCnt; //for signal apeareance
-		lift[index] = (posCnts[index] / totCnt) / prior;
+		lift[index] = lift_summed / totCnt;
 
 		pos_ratio[index] = posCnts[index] / totCnt;
 
 		double regScore = 0;
-		int dof = -1;
+		int dof_val = -1;
 		for (size_t i = 0; i < code_stats.size(); ++i) {//iterate genders
 			map<float, vector<int>> all_grps;
 			for (size_t j = 0; j < code_stats[i].size(); ++j)
@@ -243,11 +227,12 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 				regScore += medial::contingency_tables::calc_mcnemar_square_dist(all_grps);
 			else if (stat_metric == category_stat_test::chi_square)
 				regScore += medial::contingency_tables::calc_chi_square_dist(all_grps, 0, chi_square_at_least, minimal_chi_cnt);
-			dof += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 1);
+			dof_val += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 1);
 		}
 		scores[index] = (float)regScore;
+		dof[index] = dof_val;
 
-		double pv = medial::contingency_tables::chisqr(dof, regScore);
+		double pv = medial::contingency_tables::chisqr(dof_val, regScore);
 		p_values[index] = pv;
 	}
 }
@@ -282,8 +267,8 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	tm.start();
 	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
 	int progress = 0;
-	
-	unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
+
+	//unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
 	bool nested_state = omp_get_nested();
 	omp_set_nested(true);
 
@@ -295,7 +280,8 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	for (int i = 0; i < samples.idSamples.size(); ++i)
 	{
 
-		size_t nSamples = samples.idSamples[i].samples.size();
+		int nSamples = (int)samples.idSamples[i].samples.size();
+		unordered_map<int, vector<vector<bool>>> code_label_age_bin;// stores for each code => if saw label,age_bin
 
 		UniversalSigVec usv;
 		int n_th = omp_get_thread_num();
@@ -314,11 +300,11 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		p_lbl_age.resize(2);
 		for (size_t k = 0; k < 2; ++k)
 			p_lbl_age[k].resize(age_bin_cnt);
-		
+
 		for (size_t j = 0; j < nSamples; ++j)
 		{
 			// Collect Data
-			idRec[n_th].uget(signalId, j, usv);
+			idRec[n_th].uget(signalId, (int)j, usv);
 
 			int age = med_time_converter.convert_times(samples.time_unit, MedTime::Date, samples.idSamples[i].samples[j].time) / 10000 - byear;
 			if (age > max_age || age < min_age)
@@ -359,6 +345,13 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 						}
 						if (pass_regex_filter) {
 							//process request:
+							vector<vector<bool>> &p_code_lbl_age = code_label_age_bin[code];
+							if (p_code_lbl_age.empty()) {
+								p_code_lbl_age.resize(2);
+								for (size_t kk = 0; kk < 2; ++kk)
+									p_code_lbl_age[kk].resize(age_bin_cnt);
+							}
+
 #pragma omp critical 
 							{
 								vector<vector<vector<int>>> &code_stats = categoryVal_to_stats[code]; //gender,age, 4 counts per state
@@ -370,15 +363,11 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 								if (code_stats[gend_idx][age_idx].empty())
 									code_stats[gend_idx][age_idx].resize(4);
 
-								vector<vector<bool>> &p_code_lbl_age = code_pid_label_age_bin[code][samples.idSamples[i].samples[j].id];
-								if (p_code_lbl_age.empty()) {
-									p_code_lbl_age.resize(2);
-									for (size_t kk = 0; kk < 2; ++kk)
-										p_code_lbl_age[kk].resize(age_bin_cnt);
-								}
-								if (!p_code_lbl_age[gend_idx][age_idx]) {
+								if (!p_code_lbl_age[outcome_idx][age_idx]) {
 									int stat_idx = 2 + outcome_idx;
-									p_code_lbl_age[gend_idx][age_idx] = true;
+									p_code_lbl_age[outcome_idx][age_idx] = true;
+									/*MLOG_D("DEBUG: code=%d,gend_idx=%d,age_idx=%d,outcome_idx=%d pid=%d, timepoint_idx=%d, time=%d\n",
+										code,gend_idx, age_idx, outcome_idx, pid, k, usv.Time(k, time_channel));*/
 									++code_stats[gend_idx][age_idx][stat_idx];
 								}
 							}
@@ -415,24 +404,36 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		for (size_t i = 0; i < 2; ++i)
 			for (size_t j = 0; j < age_bin_cnt; ++j)
 				if (!it->second[i][j].empty()) {
-					it->second[i][j][0] = total_stats[i][j][0] - it->second[i][j][3];
-					it->second[i][j][1] = total_stats[i][j][1] - it->second[i][j][4];
+					it->second[i][j][0] = total_stats[i][j][0] - it->second[i][j][2];
+					it->second[i][j][1] = total_stats[i][j][1] - it->second[i][j][3];
+					if (it->second[i][j][0] < 0 || it->second[i][j][1] < 0)
+						MTHROW_AND_ERR("Bug in calc - negative count in stat bin\n");
 				}
-	double prior = 0, tot_cnt = 0;
-	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
-		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
-			prior += samples.idSamples[i].samples[j].outcome > 0;
-		tot_cnt += samples.idSamples[i].samples.size();
+	if (verbose_full) {
+		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it) {
+			MLOG("code=%d:\n", it->first);
+			for (size_t ii = 0; ii < 2; ++ii)
+				for (size_t jj = 0; jj < age_bin_cnt; ++jj)
+					if (!it->second[ii][jj].empty())
+						MLOG("Gender_idx=%zu,Age_idx=%zu\tctrls:%d\tcases:%d\ttot_ctrls:%d\ttot_cases:%d\n",
+							ii, jj, it->second[ii][jj][2], it->second[ii][jj][3],
+							total_stats[ii][jj][0], total_stats[ii][jj][1]);
+		}
 	}
-	if (tot_cnt == 0)
-		MTHROW_AND_ERR("Trying to learn CategoryDependencyGenerator without samples\n");
 
-	prior /= tot_cnt;
 
+	vector<vector<double>> prior_per_bin(2);
+	for (size_t i = 0; i < prior_per_bin.size(); ++i)
+	{
+		prior_per_bin[i].resize(age_bin_cnt);
+		for (size_t j = 0; j < prior_per_bin[i].size(); ++j)
+			if (total_stats[i][j][1] + total_stats[i][j][0] > 0)
+				prior_per_bin[i][j] = double(total_stats[i][j][1]) / (total_stats[i][j][1] + total_stats[i][j][0]);
+	}
 	//filter and take top:
-	vector<int> code_list, indexes;
+	vector<int> code_list, indexes, dof;
 	vector<double> codeCnts, posCnts, lift, scores, pvalues, pos_ratio;
-	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, prior);
+	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, dof, prior_per_bin);
 
 	apply_filter(indexes, codeCnts, min_code_cnt, INT_MAX);
 	apply_filter(indexes, pvalues, 0, fdr);
@@ -494,8 +495,9 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			MLOG("#NUM %zu:\t%s", i + 1, categoryId_to_name.at(code_list[indexes_order[i]]).front().c_str());
 			for (size_t j = 1; j < 4 && j < categoryId_to_name.at(code_list[indexes_order[i]]).size(); ++j)
 				MLOG("|%s", categoryId_to_name.at(code_list[indexes_order[i]])[j].c_str());
-			MLOG("\tTOT_CNT:%d\tP_VAL=%.12g\tScore=%.3f\tLift=%1.3f\n",
-				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]]);
+			MLOG("\tTOT_CNT:%d\tP_VAL=%.12g\tScore=%.3f\tLift=%1.3f\tDOF=%d\n",
+				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]],
+				dof[indexes_order[i]]);
 		}
 	}
 
