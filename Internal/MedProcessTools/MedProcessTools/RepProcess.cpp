@@ -236,6 +236,18 @@ int RepProcessor::conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, u
 	return rc;
 }
 
+// Apply processing on a single PidDynamicRec at a set of time-points given by samples,
+// only if affecting any of the signals given in neededSignalIds. Do not affect attributes
+//.......................................................................................
+int RepProcessor::conditional_apply_without_attributes(PidDynamicRec& rec, const MedIdSamples& samples, unordered_set<int>& neededSignalIds) {
+
+	vector<int> time_points;
+	samples.get_times(time_points);
+
+	vector<vector<float>> attributes_mat(time_points.size(), vector<float>(attributes.size(), 0));
+	return conditional_apply(rec, time_points, neededSignalIds, attributes_mat);
+}
+
 // Apply processing on a single PidDynamicRec at a set of time-points given by time-points,
 // only if affecting any of the signals given in neededSignalIds
 //.......................................................................................

@@ -95,14 +95,9 @@ public:
 	virtual void init_tables(MedDictionarySections& dict) { return; }
 
 	// Learn a generator
-	virtual int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
-	int learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { set_names(); return _learn(rep, ids, processors); }
-	int learn(MedPidRepository& rep, vector<RepProcessor *> processors) { set_names(); return _learn(rep, rep.pids, processors); }
-	int learn(MedPidRepository& rep, vector<int>& ids) { set_names(); return _learn(rep, ids, vector<RepProcessor *>()); }
-	int learn(MedPidRepository& rep) { set_names(); return _learn(rep, rep.pids, vector<RepProcessor *>()); }
-
-	// when Learning to generate features requires to look at samples - Be carefull not to cheat, also in prepare be carefull
-	virtual void post_learn_from_samples(MedPidRepository& rep, const MedSamples& samples) {};
+	virtual int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { return 0; }
+	int learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { set_names(); return _learn(rep, samples, processors); }
+	int learn(MedPidRepository& rep, const MedSamples& samples) { set_names(); return _learn(rep, samples, vector<RepProcessor *>()); }
 
 	// generate feature data from repository
 	// We assume the corresponding MedSamples have been inserted to MedFeatures : either at the end or at position index
@@ -146,8 +141,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
-		void *new_polymorphic(string derived_class_name);
+	ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
+	void *new_polymorphic(string derived_class_name);
 
 	size_t get_generator_size();
 	size_t generator_serialize(unsigned char *blob);
@@ -308,7 +303,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BasicFeatGenerator *>(generator)); }
 
 	/// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
 		time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit;
 		if (timeRangeSignalName != "")
 			time_unit_range_sig = rep.sigs.Sid2Info[rep.sigs.sid(timeRangeSignalName)].time_unit;
@@ -327,8 +322,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to,
-			time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
+	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
 			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig)
 
 };
@@ -357,9 +351,6 @@ public:
 
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AgeGenerator *>(generator)); }
-
-	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
@@ -414,7 +405,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(SingletonGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
 };
 
 
@@ -466,9 +457,20 @@ struct BinnedLmEstimatesParams : public SerializableObject {
 
 	vector<int> estimation_points;
 	ADD_CLASS_NAME(BinnedLmEstimatesParams)
-		ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor, estimation_points)
+	ADD_SERIALIZATION_FUNCS(bin_bounds, min_period, max_period, rfactor, estimation_points)
 
 };
+
+/**
+* BinnedLinearModels : which time-points to take
+*/
+
+typedef enum {
+	BINNED_LM_TAKE_ALL = 0,
+	BINNED_LM_STOP_AT_FIRST = 1,
+	BINNED_LM_STOP_AT_LAST = 2,
+	BINNED_LM_LAST
+} BinnedLMSamplingStrategy;
 
 /**
 * BinnedLinearModels : Apply a set of liner models to generate features
@@ -480,6 +482,7 @@ public:
 	int signalId, byearId, genderId;
 
 	BinnedLmEstimatesParams params;
+	BinnedLMSamplingStrategy sampling_strategy = BINNED_LM_TAKE_ALL;
 	vector<MedLM> models;
 	vector<float> xmeans, xsdvs, ymeans, ysdvs;
 	vector<vector<float>> means = { {}, {} };
@@ -511,7 +514,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<BinnedLmEstimates *>(generator)); }
 
 	/// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 
 	/// generate new feature(s)
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
@@ -525,6 +528,9 @@ public:
 	// Signal Ids
 	void set_signal_ids(MedDictionarySections& dict);
 
+	// Sampling strategy
+	void set_sampling_strategy(string& strategy);
+
 	// Age Related functions
 	void prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear);
 	void prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear);
@@ -534,11 +540,10 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BinnedLmEstimates)
-		ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, \
-			params, xmeans, xsdvs, ymeans, means, models, time_unit_sig)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, names, tags, req_signals, time_unit_periods, iGenerateWeights, params, xmeans, xsdvs, ymeans, means, models, time_unit_sig, sampling_strategy)
 
-		// print 
-		void print();
+	// print 
+	void print();
 };
 
 
@@ -622,7 +627,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<RangeFeatGenerator *>(generator)); }
 
 	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
@@ -634,7 +639,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time, time_unit_sig, time_unit_win)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time, 
+		time_unit_sig, time_unit_win)
 };
 
 /**
@@ -674,11 +680,10 @@ public:
 
 	// (De)Serialize
 	ADD_CLASS_NAME(ModelFeatGenerator)
-		ADD_SERIALIZATION_HEADERS()
-		//ADD_SERIALIZATION_FUNCS(generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, _preloaded, model)
+	ADD_SERIALIZATION_HEADERS()
 
-		//dctor:
-		~ModelFeatGenerator();
+	//dctor:
+	~ModelFeatGenerator();
 private:
 	vector<vector<vector<float>>> preds;
 };
@@ -728,15 +733,12 @@ public:
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<TimeFeatGenerator *>(generator)); }
 
-	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
-
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
 	// Serialization
 	ADD_CLASS_NAME(TimeFeatGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
+	ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
 };
 
 /**
@@ -767,9 +769,6 @@ public:
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AttrFeatGenerator *>(generator)); }
 
-	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
-
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
 
@@ -777,6 +776,10 @@ public:
 	ADD_CLASS_NAME(AttrFeatGenerator);
 	ADD_SERIALIZATION_FUNCS(generator_type, ftr_name, attribute, names);
 };
+
+/**
+* Creates multiple features based on categorical values and statistical dependency strength by Age,Gender groups
+*/
 
 class pid_data_vec {
 public:
@@ -801,9 +804,6 @@ enum class category_stat_test {
 	mcnemar = 2
 };
 
-/**
-* Creates multipal features based on categorical values and statistical dependency strength by Age,Gender groups
-*/
 class CategoryDependencyGenerator : public FeatureGenerator {
 private:
 	int byear_sid;
@@ -861,10 +861,7 @@ public:
 
 	void set_names();
 
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors);
-
-	void post_learn_from_samples(MedPidRepository& rep, const MedSamples& samples);
-
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)

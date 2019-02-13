@@ -184,6 +184,8 @@ public:
 	int apply(PidDynamicRec& rec, MedIdSamples& samples);
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required </summary>
 	int conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, unordered_set<int>& neededSignalIds);
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required, not affecting attributes</summary>
+	int conditional_apply_without_attributes(PidDynamicRec& rec, const MedIdSamples& samples, unordered_set<int>& neededSignalIds);
 
 
 	// debug prints

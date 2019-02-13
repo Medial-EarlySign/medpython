@@ -149,49 +149,6 @@ void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
 	}
 }
 
-int CategoryDependencyGenerator::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
-	if (signalId == -1 || byear_sid == -1 || gender_sid == -1)
-		MTHROW_AND_ERR("Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
-
-	// Required signals
-	vector<int> all_req_signal_ids_v;
-	vector<unordered_set<int> > current_required_signal_ids(processors.size());
-	vector<FeatureGenerator *> generators = { this };
-	unordered_set<int> extra_req_signal_ids;
-	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
-
-	// Collect Data
-	PidDynamicRec rec;
-	UniversalSigVec usv;
-	for (unsigned int i = 0; i < ids.size(); i++) {
-		int pid = ids[i];
-		int gender = medial::repository::get_value(rep, pid, gender_sid);
-		int byear = medial::repository::get_value(rep, pid, byear_sid);
-		pid_data_vec p_data(pid, byear, gender);
-
-		if (rep.sigs.Sid2Info[signalId].virtual_sig == 0)
-			rep.uget(pid, signalId, usv);
-		else {
-			vector<int> time_points;
-			rec.init_from_rep(std::addressof(rep), pid, all_req_signal_ids_v, 1);
-
-			// Apply Processors
-			vector<vector<float>> dummy_attributes_mat;
-			for (unsigned int i = 0; i < processors.size(); i++)
-				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
-
-			// Collect values and ages
-			rec.uget(signalId, 0, usv);
-		}
-		for (int k = 0; k < usv.len; ++k)
-			p_data.add_data_point(usv.Time(k, time_channel), usv.Val(k, val_channel));
-		pids_data[pid] = p_data;
-	}
-
-
-	return 0;
-}
-
 template<class T> void apply_filter(vector<int> &indexes, const vector<T> &vecCnts
 	, double min_val, double max_val) {
 	vector<int> filtered_indexes;
@@ -295,7 +252,19 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 	}
 }
 
-void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep, const MedSamples& samples) {
+int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
+
+	if (signalId == -1 || byear_sid == -1 || gender_sid == -1)
+		MTHROW_AND_ERR("Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
+
+	// Required signals
+	vector<int> all_req_signal_ids_v;
+	vector<unordered_set<int> > current_required_signal_ids(processors.size());
+	vector<FeatureGenerator *> generators = { this };
+	unordered_set<int> extra_req_signal_ids;
+	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
+
+	// Preparations
 	unordered_map<int, vector<vector<vector<int>>>> categoryVal_to_stats; //stats is gender,age, 4 ints counts:
 	int age_bin_cnt = int(ceil((max_age - min_age + 1) / float(age_bin)));
 	regex reg_pat;
@@ -313,34 +282,48 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 	tm.start();
 	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
 	int progress = 0;
-	//unordered_map<int, vector<vector<bool>>> pid_label_age_bin;// stores for each pid if saw label,age_bin
+	
 	unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
 	bool nested_state = omp_get_nested();
 	omp_set_nested(true);
+
+	int N_tot_threads = omp_get_max_threads();
+	vector<PidDynamicRec> idRec(N_tot_threads);
+
+	// Collect data
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < samples.idSamples.size(); ++i)
 	{
+
+		size_t nSamples = samples.idSamples[i].samples.size();
+
+		UniversalSigVec usv;
+		int n_th = omp_get_thread_num();
+
+		int pid = samples.idSamples[i].id;
+		int gend_idx = medial::repository::get_value(rep, pid, gender_sid) - 1;
+		int byear = medial::repository::get_value(rep, pid, byear_sid);
+
+		idRec[n_th].init_from_rep(std::addressof(rep), pid, all_req_signal_ids_v, nSamples);
+
+		// Apply Processors
+		for (unsigned int j = 0; j < processors.size(); j++)
+			processors[j]->conditional_apply_without_attributes(idRec[n_th], samples.idSamples[i], current_required_signal_ids[j]);
+
 		vector<vector<bool>> p_lbl_age;
 		p_lbl_age.resize(2);
 		for (size_t k = 0; k < 2; ++k)
 			p_lbl_age[k].resize(age_bin_cnt);
-		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
+		
+		for (size_t j = 0; j < nSamples; ++j)
 		{
-			if (pids_data.find(samples.idSamples[i].samples[j].id) == pids_data.end())
-				MTHROW_AND_ERR("Error CategoryDependencyGenerator::post_learn_from_samples - couldn't find pid %d in post_learn\n",
-					samples.idSamples[i].samples[j].id);
-			/*vector<vector<bool>> &p_lbl_age = pid_label_age_bin[samples.idSamples[i].samples[j].id];
-			if (p_lbl_age.empty()) {
-				p_lbl_age.resize(2);
-				for (size_t k = 0; k < 2; ++k)
-					p_lbl_age[k].resize(age_bin_cnt);
-			}*/
-			const pid_data_vec &p_d = pids_data.at(samples.idSamples[i].samples[j].id);
-			int byear = p_d.byear;
+			// Collect Data
+			idRec[n_th].uget(signalId, j, usv);
+
 			int age = med_time_converter.convert_times(samples.time_unit, MedTime::Date, samples.idSamples[i].samples[j].time) / 10000 - byear;
 			if (age > max_age || age < min_age)
 				continue;
-			int gend_idx = pids_data.at(samples.idSamples[i].samples[j].id).gender - 1;
+
 			int outcome_idx = samples.idSamples[i].samples[j].outcome > 0;
 			int age_idx = (age - min_age) / age_bin;
 			if (!p_lbl_age[outcome_idx][age_idx]) {
@@ -354,10 +337,10 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 			int start_time_win = med_time_converter.convert_times(time_unit_win, samples.time_unit, med_time_converter.convert_times(samples.time_unit, time_unit_win, samples.idSamples[i].samples[j].time) - win_to);
 			int end_time_win = med_time_converter.convert_times(time_unit_win, samples.time_unit, med_time_converter.convert_times(samples.time_unit, time_unit_win, samples.idSamples[i].samples[j].time) - win_from);
 
-			for (int k = 0; k < p_d.times.size(); ++k)
-				if (p_d.get_time(k) >= start_time_win && p_d.get_time(k) <= end_time_win) { //get values in time window:
+			for (int k = 0; k < usv.len; ++k)
+				if (usv.Time(k, time_channel) >= start_time_win && usv.Time(k, time_channel) <= end_time_win) { //get values in time window:
 					//get filter regex codes:
-					int base_code = p_d.get_val(k);
+					int base_code = usv.Val(k, val_channel);
 					vector<int> all_codes;
 					get_parents(base_code, all_codes);
 					for (int code : all_codes)
@@ -404,6 +387,7 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 				}
 		}
 
+		// Some timing printing
 #pragma omp atomic
 		++progress;
 		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
@@ -440,10 +424,9 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 			prior += samples.idSamples[i].samples[j].outcome > 0;
 		tot_cnt += samples.idSamples[i].samples.size();
 	}
-	if (tot_cnt == 0) {
-		MWARN("Warnning CategoryDependencyGenerator::post_learn_from_sample - samples is empty\n");
-		return;
-	}
+	if (tot_cnt == 0)
+		MTHROW_AND_ERR("Trying to learn CategoryDependencyGenerator without samples\n");
+
 	prior /= tot_cnt;
 
 	//filter and take top:
@@ -514,6 +497,8 @@ void CategoryDependencyGenerator::post_learn_from_samples(MedPidRepository& rep,
 				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], lift[indexes_order[i]]);
 		}
 	}
+
+	return 0;
 }
 
 void CategoryDependencyGenerator::set_names() {
