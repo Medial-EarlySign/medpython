@@ -833,16 +833,16 @@ int _count_legal_rows(const  map<float, vector<int>> &m, int minimal_balls) {
 
 void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 	const map<float, map<float, vector<int>>> &female_stats,
-	vector<float> &all_signal_values, vector<int> &signal_indexes,
+	vector<int> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
 	, float allowed_error, int minimal_balls) {
 
-	unordered_set<float> all_vals;
+	unordered_set<int> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
-		all_vals.insert(i->first);
+		all_vals.insert((int)i->first);
 	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
-		all_vals.insert(i->first);
+		all_vals.insert((int)i->first);
 	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
 	signal_indexes.resize(all_signal_values.size());
 	for (size_t i = 0; i < signal_indexes.size(); ++i)
@@ -902,15 +902,15 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 /// it's not mcnemar it's more like: https://en.wikipedia.org/wiki/Cochran%E2%80%93Mantel%E2%80%93Haenszel_statistics
 void medial::contingency_tables::calc_cmh_scores(const map<float, map<float, vector<int>>> &male_stats,
 	const map<float, map<float, vector<int>>> &female_stats,
-	vector<float> &all_signal_values, vector<int> &signal_indexes,
+	vector<int> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
 
-	unordered_set<float> all_vals;
+	unordered_set<int> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
-		all_vals.insert(i->first);
+		all_vals.insert((int)i->first);
 	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
-		all_vals.insert(i->first);
+		all_vals.insert((int)i->first);
 	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
 	signal_indexes.resize(all_signal_values.size());
 	for (size_t i = 0; i < signal_indexes.size(); ++i)
@@ -969,15 +969,15 @@ void medial::contingency_tables::calc_cmh_scores(const map<float, map<float, vec
 
 void medial::contingency_tables::calc_mcnemar_scores(const map<float, map<float, vector<int>>> &male_stats,
 	const map<float, map<float, vector<int>>> &female_stats,
-	vector<float> &all_signal_values, vector<int> &signal_indexes,
+	vector<int> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
 
-	unordered_set<float> all_vals;
+	unordered_set<int> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
-		all_vals.insert(i->first);
+		all_vals.insert((int)i->first);
 	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
-		all_vals.insert(i->first);
+		all_vals.insert((int)i->first);
 	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
 	signal_indexes.resize(all_signal_values.size());
 	for (size_t i = 0; i < signal_indexes.size(); ++i)
@@ -1042,6 +1042,85 @@ void medial::contingency_tables::FilterRange(vector<int> &indexes, const vector<
 		if (vecCnts[indexes[i]] >= min_val && vecCnts[indexes[i]] <= max_val)
 			filtered_indexes.push_back(indexes[i]);
 	indexes.swap(filtered_indexes);
+}
+
+void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &member2Sets,
+	vector<int> &indexes, const vector<int> &signal_values, const vector<double> &pVals,
+	const vector<double> &valCnts, const vector<double> &lifts, float pValue_diff, float lift_th, float count_similarity,
+	const map<int, vector<string>> *categoryId_to_name) {
+	double minPerc = lift_th; //max allowed diff in lift
+
+	unordered_map<int, double> pVals_d, lifts_d, valCnts_d;
+	for (int index : indexes)
+	{
+		pVals_d[signal_values[index]] = pVals[index];
+		lifts_d[signal_values[index]] = lifts[index];
+		valCnts_d[signal_values[index]] = valCnts[index];
+	}
+	unordered_set<int> signal_values_set(signal_values.begin(), signal_values.end());
+
+	unordered_set<float> toRemove;
+	for (int index : indexes)
+	{
+		int keyVal = (int)signal_values[index];
+		double currCnt = valCnts[index];
+		double pV = pVals[index];
+		double currLift = lifts[index];
+		if (member2Sets.find(keyVal) == member2Sets.end())
+			continue; // no parents
+
+		vector<int> parents = member2Sets.at(keyVal);
+		vector<int> filtered;
+		for (size_t i = 0; i < parents.size(); ++i)
+			if (signal_values_set.find(parents[i]) != signal_values_set.end())
+				filtered.push_back(parents[i]);
+		filtered.swap(parents);
+
+		for (int parentId : parents) { //has parents with similarity, so remove child
+			double parentLift = 1, parentCnt = 0, parentPv = 1;
+			if (lifts_d.find(parentId) != lifts_d.end()) {
+				parentLift = lifts_d.at(parentId);
+				parentCnt = valCnts_d.at(parentId);
+				parentPv = pVals_d.at(parentId);
+			}
+			if (pVals_d.find(parentId) != pVals_d.end()) { //has parent to compare to
+				if (categoryId_to_name != NULL) //debug and print names
+					MLOG("DEBUG: key %s, (count,pvalue,lift) parent:%d,%.12g,%2.3f, current :%d,%.12g,%2.3f\n",
+						categoryId_to_name->at(keyVal).back().c_str(), (int)parentCnt, parentPv, parentLift, (int)currCnt, pV, currLift);
+
+				if (abs(parentCnt - currCnt) / parentCnt <= count_similarity) { //less than diff, remove child:
+					if (categoryId_to_name != NULL)
+						MLOG("DEBUG: remove key %s, parent has similar count:%d and current:%d\n",
+							categoryId_to_name->at(keyVal).back().c_str(), (int)parentCnt, (int)currCnt);
+					toRemove.insert(keyVal);
+					break;
+				}
+
+				if (abs(parentPv - pV) <= pValue_diff) {
+					double cmp = -1;
+					if (currLift > 0 && parentLift > currLift)
+						cmp = abs(parentLift / currLift - 1);
+					else if (parentLift > 0 && currLift > parentLift)
+						cmp = abs(currLift / parentLift - 1);
+					if ((parentLift == 0 && currLift == 0) || (cmp > 0 && cmp <= minPerc)) { //less than 5% diff, remove child:
+						toRemove.insert(keyVal);
+						if (categoryId_to_name != NULL)
+							MLOG("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%d=2.3f\n",
+								categoryId_to_name->at(keyVal).back().c_str(), parentLift, currLift);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	vector<int> keep_indexes;
+	keep_indexes.reserve(indexes.size());
+	for (int index : indexes)
+		if (toRemove.find(signal_values[index]) == toRemove.end())
+			keep_indexes.push_back(index);
+
+	indexes.swap(keep_indexes);
 }
 
 void read_gender_val(ifstream &fr, map<float, vector<int>> &vec) {

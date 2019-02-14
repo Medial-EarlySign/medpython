@@ -130,7 +130,6 @@ void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
 	int section_id = dict.section_id(signalName);
 	categoryId_to_name = dict.dict(section_id)->Id2Names;
 	_member2Sets = dict.dict(section_id)->Member2Sets;
-	_set2Members = dict.dict(section_id)->Set2Members;
 
 	luts.resize(top_codes.size());
 	for (size_t i = 0; i < top_codes.size(); ++i) {
@@ -162,83 +161,6 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 		res += int(all_good);
 	}
 	return res;
-}
-
-//test if child is similar to parent with stats: pvalue, weighted_lift or small change in total count - so remove child
-static void filterHirarchy(const map<int, vector<int>> &member2Sets, const map<int, vector<int>> &sets2Members,
-	vector<int> &indexes, const vector<int> &signal_values, const vector<double> &pVals,
-	const vector<double> &valCnts, const vector<double> &lifts, float minDf, float lift_th, float count_similarity,
-	const map<int, vector<string>> &categoryId_to_name) {
-	double minPerc = lift_th; //max allowed diff in lift
-
-	unordered_map<int, double> pVals_d, lifts_d, valCnts_d;
-	for (int index : indexes)
-	{
-		pVals_d[signal_values[index]] = pVals[index];
-		lifts_d[signal_values[index]] = lifts[index];
-		valCnts_d[signal_values[index]] = valCnts[index];
-	}
-	unordered_set<int> signal_values_set(signal_values.begin(), signal_values.end());
-
-	unordered_set<float> toRemove;
-	for (int index : indexes)
-	{
-		int keyVal = (int)signal_values[index];
-		double currCnt = valCnts[index];
-		double pV = pVals[index];
-		double currLift = lifts[index];
-		if (member2Sets.find(keyVal) == member2Sets.end())
-			continue; // no parents
-
-		vector<int> parents = member2Sets.at(keyVal);
-		vector<int> filtered;
-		for (size_t i = 0; i < parents.size(); ++i)
-			if (signal_values_set.find(parents[i]) != signal_values_set.end())
-				filtered.push_back(parents[i]);
-		filtered.swap(parents);
-
-		for (int parentId : parents) { //has parents with similarity, so remove child
-			double parentLift = 1, parentCnt = 0, parentPv = 1;
-			if (lifts_d.find(parentId) != lifts_d.end()) {
-				parentLift = lifts_d.at(parentId);
-				parentCnt = valCnts_d.at(parentId);
-				parentPv = pVals_d.at(parentId);
-			}
-		/*	MLOG("DEBUG: key %s, (count,pvalue,lift) parent:%d,%.12g,%2.3f, current :%d,%.12g,%2.3f\n",
-				categoryId_to_name.at(keyVal).back().c_str(), (int)parentCnt, parentPv, parentLift, (int)currCnt, pV, currLift);*/
-			if (pVals_d.find(parentId) != pVals_d.end()) { //has parent to compare to
-
-				if (abs(parentCnt - currCnt) / parentCnt <= count_similarity) { //less than 5% diff, remove child:
-					/*MLOG("DEBUG: remove key %s, parent has similar count:%d and current:%d\n",
-						categoryId_to_name.at(keyVal).back().c_str(), (int)parentCnt, (int)currCnt);*/
-					toRemove.insert(keyVal);
-					break;
-				}
-
-				if (abs(parentPv - pV) <= minDf) {
-					double cmp = -1;
-					if (currLift > 0 && parentLift > currLift)
-						cmp = abs(parentLift / currLift - 1);
-					else if (parentLift > 0 && currLift > parentLift)
-						cmp = abs(currLift / parentLift - 1);
-					if ((parentLift == 0 && currLift == 0) || (cmp > 0 && cmp <= minPerc)) { //less than 5% diff, remove child:
-						toRemove.insert(keyVal);
-						/*MLOG("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%d=2.3f\n",
-								categoryId_to_name.at(keyVal).back().c_str(), parentLift, currLift);*/
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	vector<int> keep_indexes;
-	keep_indexes.reserve(indexes.size());
-	for (int index : indexes)
-		if (toRemove.find(signal_values[index]) == toRemove.end())
-			keep_indexes.push_back(index);
-
-	indexes.swap(keep_indexes);
 }
 
 void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents) const {
@@ -530,8 +452,8 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	indexes.swap(top_idx);
 	indexes.insert(indexes.end(), bottom_idx.begin(), bottom_idx.end());
 	//filter hierarchy:
-	filterHirarchy(_member2Sets, _set2Members, indexes, code_list, pvalues, codeCnts, lift,
-		filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio, categoryId_to_name);
+	medial::contingency_tables::filterHirarchy(_member2Sets, indexes, code_list, pvalues, codeCnts, lift,
+		filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio);
 	//join both results from up and down filters on the lift:
 	//sort before taking top:
 	//sort by p_value, lift, score:
