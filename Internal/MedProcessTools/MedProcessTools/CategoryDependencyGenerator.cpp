@@ -130,6 +130,7 @@ void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
 	int section_id = dict.section_id(signalName);
 	categoryId_to_name = dict.dict(section_id)->Id2Names;
 	_member2Sets = dict.dict(section_id)->Member2Sets;
+	_set2Members = dict.dict(section_id)->Set2Members;
 
 	luts.resize(top_codes.size());
 	for (size_t i = 0; i < top_codes.size(); ++i) {
@@ -514,7 +515,10 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	vector<int> code_list, indexes, dof;
 	vector<double> codeCnts, posCnts, lift, scores, pvalues, pos_ratio;
 	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, dof, prior_per_bin);
-
+	unordered_map<int, double> code_cnts;
+	for (size_t i = 0; i < code_list.size(); ++i)
+		code_cnts[code_list[i]] = codeCnts[i];
+	
 	int before_cnt = (int)indexes.size();
 	apply_filter(indexes, codeCnts, min_code_cnt, INT_MAX);
 	if (verbose)
@@ -536,8 +540,8 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
 	//filter hierarchy:
-	medial::contingency_tables::filterHirarchy(_member2Sets, indexes, code_list, pvalues, codeCnts, lift,
-		filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio);
+	medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members ,indexes, code_list, pvalues, codeCnts, lift,
+		code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio);
 	if (verbose)
 		MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);

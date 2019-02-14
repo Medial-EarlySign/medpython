@@ -148,10 +148,10 @@ namespace medial {
 		/// Similar is or:
 		/// 1. small  change in count - below count_similarity cahnge in ratio
 		/// 2. small change in P-Value And Average Lift - the change in P-Value is controlled with pValue_diff, and in lift (change factor child lift to paretn lift) is by lift_th
-		void filterHirarchy(const map<int, vector<int>> &member2Sets,
+		void filterHirarchy(const map<int, vector<int>> &member2Sets, const map<int, vector<int>> &set2Members,
 			vector<int> &indexes, const vector<int> &signal_values, const vector<double> &pVals,
-			const vector<double> &valCnts, const vector<double> &lifts, float pValue_diff, float lift_th, float count_similarity,
-			const map<int, vector<string>> *categoryId_to_name = NULL);
+			const vector<double> &valCnts, const vector<double> &lifts, const unordered_map<int, double> &code_unfiltered_cnts,
+			float pValue_diff, float lift_th, float count_similarity, const map<int, vector<string>> *categoryId_to_name = NULL);
 
 		/// \brief calc chi square probabilty from distance, DOF
 		double chisqr(int Dof, double Cv);
@@ -298,7 +298,7 @@ public:
 
 	~RegistrySignalAnd();
 private:
-	MedRepository *repo;
+	MedRepository * repo;
 };
 
 /**

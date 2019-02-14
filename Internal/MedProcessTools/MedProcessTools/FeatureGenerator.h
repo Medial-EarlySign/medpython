@@ -793,6 +793,7 @@ private:
 	int gender_sid;
 	map<int, vector<string>> categoryId_to_name; //for regex filter
 	map<int, vector<int>> _member2Sets; //for hierarchy
+	map<int, vector<int>> _set2Members; //for hierarchy
 	unordered_map<int, vector<int>> _member2Sets_flat_cache; //for hierarchy cache in get_parents
 
 	vector<string> top_codes;

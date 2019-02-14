@@ -1044,11 +1044,13 @@ void medial::contingency_tables::FilterRange(vector<int> &indexes, const vector<
 	indexes.swap(filtered_indexes);
 }
 
-void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &member2Sets,
+void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &member2Sets, const map<int, vector<int>> &set2Members,
 	vector<int> &indexes, const vector<int> &signal_values, const vector<double> &pVals,
-	const vector<double> &valCnts, const vector<double> &lifts, float pValue_diff, float lift_th, float count_similarity,
+	const vector<double> &valCnts, const vector<double> &lifts, const unordered_map<int, double> &code_unfiltered_cnts,
+	float pValue_diff, float lift_th, float count_similarity,
 	const map<int, vector<string>> *categoryId_to_name) {
 	double minPerc = lift_th; //max allowed diff in lift
+	float child_per = (float)0.2;
 
 	unordered_map<int, double> pVals_d, lifts_d, valCnts_d;
 	for (int index : indexes)
@@ -1111,6 +1113,23 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 					}
 				}
 			}
+		}
+
+		//test if that's parent that need to be removed - has child that has been removed:
+		if (set2Members.find(keyVal) == set2Members.end())
+			continue; // no childs - it's leaf
+		const vector<int> &childs = set2Members.at(keyVal);
+		double removed_child_counts = 0;
+		int pos_i = 0;
+		while (pos_i < childs.size()) {
+			if (valCnts_d.find(childs[pos_i]) == valCnts_d.end() &&
+				code_unfiltered_cnts.find(childs[pos_i]) != code_unfiltered_cnts.end())
+				removed_child_counts += code_unfiltered_cnts.at(childs[pos_i]);
+			++pos_i;
+		}
+		if (removed_child_counts > 0 && removed_child_counts / currCnt >= child_per) {
+			//MLOG("DEBUG: remove parent code %d, has big removed childs\n", keyVal);
+			toRemove.insert(keyVal);
 		}
 	}
 
