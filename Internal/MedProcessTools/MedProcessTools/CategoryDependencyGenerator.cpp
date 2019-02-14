@@ -379,8 +379,11 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		}
 
 		//process hirarchy:
-		for (auto it = pid_categoryVal_to_stats.begin(); it != pid_categoryVal_to_stats.end(); ++it) {
-			int base_code = it->first;
+		vector<int> update_ls;
+		update_ls.reserve(pid_categoryVal_to_stats.size());
+		for (auto it = pid_categoryVal_to_stats.begin(); it != pid_categoryVal_to_stats.end(); ++it)
+			update_ls.push_back(it->first);
+		for (int base_code : update_ls) {
 			vector<int> all_parents;
 			get_parents(base_code, all_parents, reg_pat);
 
@@ -485,7 +488,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 	if (verbose_full) {
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it) {
-			MLOG("code=%d:\n", it->first);
+			MLOG("code=%d(%s):\n", it->first, categoryId_to_name.at(it->first).back().c_str());
 			for (size_t ii = 0; ii < 2; ++ii)
 				for (size_t jj = 0; jj < age_bin_cnt; ++jj)
 					if (!it->second[ii][jj].empty())
