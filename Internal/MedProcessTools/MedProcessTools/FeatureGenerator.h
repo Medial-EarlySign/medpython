@@ -797,7 +797,7 @@ private:
 	vector<string> top_codes;
 	vector<vector<char>> luts;
 
-	void get_parents(int codeGroup, vector<int> &parents) const;
+	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat) const;
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,

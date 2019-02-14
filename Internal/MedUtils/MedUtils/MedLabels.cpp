@@ -222,46 +222,6 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 	}
 }
 
-void medial::signal_hierarchy::getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
-	const string &signalHirerchyType,
-	vector<MedRegistryRecord> &res) {
-	UniversalSigVec &signalVal = signals[0];
-	int max_search_depth = 3;
-
-	for (int i = 0; i < signalVal.len; ++i)
-	{
-		MedRegistryRecord rec;
-		rec.pid = pid;
-		rec.start_date = signalVal.Time(i);
-		rec.end_date = medial::repository::DateAdd(rec.start_date, 1);
-		rec.registry_value = signalVal.Val(i);
-		res.push_back(rec);
-		if (signalVal.Val(i) <= 0)
-			continue; //has no hirerachy
-					  //take care of hirerachy:
-
-		if (signalHirerchyType.empty() || signalHirerchyType == "None")
-			continue;
-		string s = get_readcode_code(dict, (int)signalVal.Val(i), signalHirerchyType);
-		if (s.empty())
-			continue;
-
-		vector<int> nums = parents_code_hierarchy(dict, s, signalHirerchyType, max_search_depth);
-		for (size_t k = 0; k < nums.size(); ++k)
-		{
-			if (nums[k] <= 0)
-				continue;
-			MedRegistryRecord rec2;
-
-			rec2.pid = pid;
-			rec2.start_date = signalVal.Time(i);
-			rec2.end_date = medial::repository::DateAdd(rec2.start_date, 1);
-			rec2.registry_value = (float)nums[k];
-			res.push_back(rec2);
-		}
-	}
-}
-
 MedLabels::MedLabels(const LabelParams &params) {
 	labeling_params = params;
 }
@@ -346,20 +306,104 @@ void MedLabels::get_records(int pid, vector<const MedRegistryRecord *> &reg_reco
 		censor_records = pid_censor_records.at(pid);
 }
 
-void update_loop(int pos, int ageBin_index, float ageBin, const MedRegistryRecord &sigRec,
+void update_loop(int pos, int ageBin_index, float ageBin, int signal_val,
 	map<float, map<float, vector<int>>> &signalToStats, vector<unordered_map<float, int>> &val_seen_pid_pos) {
-	if ((pos == 3 && val_seen_pid_pos[ageBin_index][sigRec.registry_value] / 2 > 0) ||
-		(pos == 2 && val_seen_pid_pos[ageBin_index][sigRec.registry_value] % 2 > 0)) {
+	if ((pos == 3 && val_seen_pid_pos[ageBin_index][signal_val] / 2 > 0) ||
+		(pos == 2 && val_seen_pid_pos[ageBin_index][signal_val] % 2 > 0)) {
 		return; //continue;
 	}
-	val_seen_pid_pos[ageBin_index][sigRec.registry_value] += pos - 1;
+	val_seen_pid_pos[ageBin_index][signal_val] += pos - 1;
 	//update cnts:
 #pragma omp critical 
 	{
-		vector<int> *cnts = &(signalToStats[sigRec.registry_value][ageBin]);
+		vector<int> *cnts = &(signalToStats[signal_val][ageBin]);
 		if (cnts->empty())
 			cnts->resize(4); // first time
 		++(*cnts)[pos];
+	}
+}
+
+static void _get_parents(int codeGroup, vector<int> &parents, bool has_regex, const regex &reg_pat,
+	int max_depth, int max_parents, const map<int, vector<int>> &_member2Sets, const map<int, vector<string>> &categoryId_to_name) {
+	vector<int> last_parents = { codeGroup };
+	if (last_parents.front() < 0)
+		return; //no parents
+	parents = {};
+
+	for (size_t k = 0; k < max_depth; ++k) {
+		vector<int> new_layer;
+		for (int par : last_parents)
+			if (_member2Sets.find(par) != _member2Sets.end()) {
+				new_layer.insert(new_layer.end(), _member2Sets.at(par).begin(), _member2Sets.at(par).end());
+				parents.insert(parents.end(), _member2Sets.at(par).begin(), _member2Sets.at(par).end()); //aggregate all parents
+			}
+		if (parents.size() >= max_parents)
+			break;
+		new_layer.swap(last_parents);
+		if (last_parents.empty())
+			break; //no more parents to loop up
+	}
+
+	if (has_regex) {
+		vector<int> filtered_p;
+		filtered_p.reserve(parents.size());
+		for (int code : parents)
+		{
+			if (categoryId_to_name.find(code) == categoryId_to_name.end())
+				MTHROW_AND_ERR("CategoryDependencyGenerator::post_learn_from_samples - code %d wasn't found in dict\n", code);
+			const vector<string> &names = categoryId_to_name.at(code);
+			int nm_idx = 0;
+			bool pass_regex_filter = false;
+			while (!pass_regex_filter && nm_idx < names.size())
+			{
+				pass_regex_filter = regex_match(names[nm_idx], reg_pat);
+				++nm_idx;
+			}
+			if (pass_regex_filter)
+				filtered_p.push_back(code);
+		}
+		parents.swap(filtered_p);
+	}
+}
+
+static void propogate_hir(map<float, map<float, vector<int>>> &categoryVal_to_stats, bool has_regex, const regex &reg_pat
+	, const map<int, vector<int>> &_member2Sets, const map<int, vector<string>> &categoryId_to_name) {
+	for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it) {
+		int base_code = it->first;
+		vector<int> all_parents;
+		_get_parents(base_code, all_parents, has_regex, reg_pat, 50, 500, _member2Sets, categoryId_to_name);
+
+		const map<float, vector<int>> &base_code_stats = categoryVal_to_stats.at(base_code);
+		for (int code : all_parents)
+		{
+			//process request for code - aggregate stats from [2+0] [2+1] to code:
+			map<float, vector<int>> &code_stats = categoryVal_to_stats[code]; //age, 4 counts per state
+			for (auto jt = base_code_stats.begin(); jt != base_code_stats.end(); ++jt) {
+				if (code_stats[jt->first].empty())
+					code_stats[jt->first].resize(4);
+				code_stats[jt->first][2 + 0] += jt->second[2 + 0];
+				code_stats[jt->first][2 + 1] += jt->second[2 + 1];
+			}
+		}
+
+	}
+}
+
+static void filter_regex_hir(map<float, map<float, vector<int>>> &categoryVal_to_stats, const regex &reg_pat
+	, const map<int, vector<string>> &categoryId_to_name) {
+	for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end();) {
+		int base_code = (int)it->first;
+		bool found_match = false;
+		const vector<string> &names = categoryId_to_name.at(base_code);
+		int pos_i = 0;
+		while (pos_i < names.size() && !found_match) {
+			found_match = regex_match(names[pos_i], reg_pat);
+			++pos_i;
+		}
+		if (found_match)
+			++it;
+		else
+			it = categoryVal_to_stats.erase(it);
 	}
 }
 
@@ -367,7 +411,13 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 	const string &signalHirerchyType, int ageBinValue, MedSamplingStrategy &sampler, const LabelParams &inc_labeling_params,
 	map<float, map<float, vector<int>>> &maleSignalToStats,
 	map<float, map<float, vector<int>>> &femaleSignalToStats,
-	const string &debug_file, const unordered_set<float> &debug_vals) const {
+	const string &debug_file, const unordered_set<int> &debug_vals) const {
+	int sig_val_channel = 0;
+	int sig_time_channel = 0;
+	regex reg_pat;
+	if (!signalHirerchyType.empty())
+		reg_pat = regex(signalHirerchyType);
+	bool using_regex_filter = !signalHirerchyType.empty() && signalHirerchyType != "None";
 	MedRepository dataManager;
 	time_t start = time(NULL);
 	int duration;
@@ -390,6 +440,14 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 	int genderCode = dataManager.sigs.sid("GENDER");
 	int bdateCode = dataManager.sigs.sid("BDATE");
 	int signalCode = dataManager.sigs.sid(signal_name);
+	if (genderCode < 0 || bdateCode < 0 || signalCode < 0)
+		MTHROW_AND_ERR("Error in MedLabels::calc_signal_stats - can't find on of signals: GENDER,BDATE,%s in repository %s\n",
+			signal_name.c_str(), repository_path.c_str());
+	int sectionId = 0;
+	if (dataManager.dict.SectionName2Id.find(signal_name) == dataManager.dict.SectionName2Id.end())
+		MTHROW_AND_ERR("Error in MedLabels::calc_signal_stats - signal %s has no section, not categorical?\n",
+			signal_name.c_str());
+	sectionId = dataManager.dict.SectionName2Id.at(signal_name);
 	vector<int> &all_pids = dataManager.pids;
 
 	MLOG("Sampling for incidence stats...\n");
@@ -491,42 +549,50 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 		//calcs on the fly pid records:
 		int gender = medial::repository::get_value(dataManager, pid, genderCode);
 		int BDate = medial::repository::get_value(dataManager, pid, bdateCode);
-		vector<UniversalSigVec> patientFile(1);
-		dataManager.uget(pid, signalCode, patientFile[0]);
-
-		vector<MedRegistryRecord> signal_vals;
-		medial::signal_hierarchy::getRecords_Hir(pid, patientFile, dataManager.dict, signalHirerchyType, signal_vals);
+		UniversalSigVec patientFile;
+		dataManager.uget(pid, signalCode, patientFile);
 
 		vector<unordered_map<float, int>> val_seen_pid_pos(age_bin_count); //for age bin index and value (it's for same pid so gender doesnt change) - if i saw the value already
-		for (MedRegistryRecord sigRec : signal_vals)
+		for (int j = 0; j < patientFile.len; ++j)
 		{
-			if (sigRec.registry_value <= 0) {
+			int signal_val = (int)patientFile.Val(j, sig_val_channel);
+			int signal_time = patientFile.Time(j, sig_time_channel);
+			if (signal_val <= 0)
 				continue;
-			}
+
+			vector<int> all_vals;
+			_get_parents(signal_val, all_vals, using_regex_filter, reg_pat, 50, 500,
+				dataManager.dict.dict(sectionId)->Member2Sets, dataManager.dict.dict(sectionId)->Id2Names);
+			all_vals.push_back(signal_val);
+
 			int pos;
 			vector<int> cnts;
 			float ageBin;
 			int ageBin_index;
 
-			ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, sigRec.start_date)) / ageBinValue));
+			ageBin = float(ageBinValue * floor(double(medial::repository::DateDiff(BDate, signal_time)) / ageBinValue));
 			ageBin_index = int((ageBin - min_age) / ageBinValue);
 			if (ageBin < min_age || ageBin > max_age)
 				continue; //skip out of range...
 
 			vector<MedSample> found_samples;
-			get_samples(pid, sigRec.start_date, found_samples);
+			get_samples(pid, signal_time, found_samples);
 			for (const MedSample &smp : found_samples)
 			{
 				pos = 2;
 				//pos += 1; //registry_value > 0 - otherwise skip this
 				pos += int(smp.outcome > 0);
-				if (gender == GENDER_MALE)
-					update_loop(pos, ageBin_index, ageBin, sigRec, maleSignalToStats, val_seen_pid_pos);
-				else
-					update_loop(pos, ageBin_index, ageBin, sigRec, femaleSignalToStats, val_seen_pid_pos);
-				if (!debug_file.empty() && debug_vals.find(sigRec.registry_value) != debug_vals.end()) {
+				for (int v : all_vals)
+				{
+					if (gender == GENDER_MALE)
+						update_loop(pos, ageBin_index, ageBin, v, maleSignalToStats, val_seen_pid_pos);
+					else
+						update_loop(pos, ageBin_index, ageBin, v, femaleSignalToStats, val_seen_pid_pos);
+				}
+
+				if (!debug_file.empty() && debug_vals.find(signal_val) != debug_vals.end()) {
 #pragma omp critical
-					dbg_file << pid << "\t" << sigRec.start_date << "\t" << sigRec.registry_value
+					dbg_file << pid << "\t" << signal_time << "\t" << signal_val
 						<< "\t" << smp.time << "\t" << smp.outcomeTime
 						<< "\t" << gender << "\t" << ageBin << "\t" << smp.outcome
 						<< "\n";
@@ -558,6 +624,12 @@ void MedLabels::calc_signal_stats(const string &repository_path, const string &s
 		vals.insert(it->first);
 	for (auto it = femaleSignalToStats.begin(); it != femaleSignalToStats.end(); ++it)
 		vals.insert(it->first);
+
+	//filter regex:
+	if (using_regex_filter) {
+		filter_regex_hir(maleSignalToStats, reg_pat, dataManager.dict.dict(sectionId)->Id2Names);
+		filter_regex_hir(femaleSignalToStats, reg_pat, dataManager.dict.dict(sectionId)->Id2Names);
+	}
 
 	//update values prevalence
 	int warn_cnt = 0; int max_warns = 5, tot_problems = 0;
