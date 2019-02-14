@@ -793,11 +793,12 @@ private:
 	int gender_sid;
 	map<int, vector<string>> categoryId_to_name; //for regex filter
 	map<int, vector<int>> _member2Sets; //for hierarchy
+	unordered_map<int, vector<int>> _member2Sets_flat_cache; //for hierarchy cache in get_parents
 
 	vector<string> top_codes;
 	vector<vector<char>> luts;
 
-	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat) const;
+	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat);
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,

@@ -163,7 +163,9 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
-void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat) const {
+void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat) {
+	if (_member2Sets_flat_cache.find(codeGroup) != _member2Sets_flat_cache.end())
+		parents = _member2Sets_flat_cache.at(codeGroup);
 	vector<int> last_parents = { codeGroup };
 	if (last_parents.front() < 0)
 		return; //no parents
@@ -203,6 +205,9 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 		}
 		parents.swap(filtered_p);
 	}
+
+#pragma omp critical
+	_member2Sets_flat_cache[codeGroup] = parents;
 }
 
 void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
@@ -309,9 +314,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < samples.idSamples.size(); ++i)
 	{
-
 		int nSamples = (int)samples.idSamples[i].samples.size();
-		unordered_map<int, vector<vector<bool>>> code_label_age_bin;// stores for each code => if saw label,age_bin
 		unordered_map<int, vector<vector<vector<bool>>>> pid_categoryVal_to_stats;
 
 		UniversalSigVec usv;
@@ -427,7 +430,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 						if (!pid_code_stats[ii][jj].empty()) {
 							if (code_stats[ii][jj].empty())
 								code_stats[ii][jj].resize(4);
-							for (size_t k = 0; k < code_stats[ii][jj].size(); ++k)
+							for (size_t k = 0; k < pid_code_stats[ii][jj].size(); ++k)
 								code_stats[ii][jj][2 + k] += int(pid_code_stats[ii][jj][k]);
 						}
 					}
