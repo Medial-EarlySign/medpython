@@ -186,7 +186,7 @@ static void filterHirarchy(const map<int, vector<int>> &member2Sets, const map<i
 		int keyVal = (int)signal_values[index];
 		double currCnt = valCnts[index];
 		double pV = pVals[index];
-		double currLift = lifts_d[index];
+		double currLift = lifts[index];
 		if (member2Sets.find(keyVal) == member2Sets.end())
 			continue; // no parents
 
@@ -198,29 +198,35 @@ static void filterHirarchy(const map<int, vector<int>> &member2Sets, const map<i
 		filtered.swap(parents);
 
 		for (int parentId : parents) { //has parents with similarity, so remove child
-			if (pVals_d.find(parentId) != pVals_d.end() && abs(pVals_d.at(parentId) - pV) <= minDf) {
-				double parentCnt = 0;
-				if (valCnts_d.find(parentId) != valCnts_d.end())
-					parentCnt = valCnts_d.at(parentId);
+			double parentLift = 1, parentCnt = 0, parentPv = 1;
+			if (lifts_d.find(parentId) != lifts_d.end()) {
+				parentLift = lifts_d.at(parentId);
+				parentCnt = valCnts_d.at(parentId);
+				parentPv = pVals_d.at(parentId);
+			}
+		/*	MLOG("DEBUG: key %s, (count,pvalue,lift) parent:%d,%.12g,%2.3f, current :%d,%.12g,%2.3f\n",
+				categoryId_to_name.at(keyVal).back().c_str(), (int)parentCnt, parentPv, parentLift, (int)currCnt, pV, currLift);*/
+			if (pVals_d.find(parentId) != pVals_d.end()) { //has parent to compare to
+
 				if (abs(parentCnt - currCnt) / parentCnt <= count_similarity) { //less than 5% diff, remove child:
-					/*MLOG_D("DEBUG: remove key %s, parent has similar count:%d and current:%d\n",
+					/*MLOG("DEBUG: remove key %s, parent has similar count:%d and current:%d\n",
 						categoryId_to_name.at(keyVal).back().c_str(), (int)parentCnt, (int)currCnt);*/
 					toRemove.insert(keyVal);
 					break;
 				}
-				double parentLift = 1;
-				if (lifts_d.find(parentId) != lifts_d.end())
-					parentLift = lifts_d.at(parentId);
-				double cmp = -1;
-				if (currLift > 0 && parentLift > currLift)
-					cmp = abs(parentLift / currLift - 1);
-				else if (parentLift > 0 && currLift > parentLift)
-					cmp = abs(currLift / parentLift - 1);
-				if ((parentLift == 0 && currLift == 0) || (cmp > 0 && cmp <= minPerc)) { //less than 5% diff, remove child:
-					toRemove.insert(keyVal);
-					/*MLOG_D("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%d=2.3f\n",
-							categoryId_to_name.at(keyVal).back().c_str(), parentLift, currLift);*/
-					break;
+
+				if (abs(parentPv - pV) <= minDf) {
+					double cmp = -1;
+					if (currLift > 0 && parentLift > currLift)
+						cmp = abs(parentLift / currLift - 1);
+					else if (parentLift > 0 && currLift > parentLift)
+						cmp = abs(currLift / parentLift - 1);
+					if ((parentLift == 0 && currLift == 0) || (cmp > 0 && cmp <= minPerc)) { //less than 5% diff, remove child:
+						toRemove.insert(keyVal);
+						/*MLOG("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%d=2.3f\n",
+								categoryId_to_name.at(keyVal).back().c_str(), parentLift, currLift);*/
+						break;
+					}
 				}
 			}
 		}
