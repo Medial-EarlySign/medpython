@@ -1085,10 +1085,6 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 				parentPv = pVals_d.at(parentId);
 			}
 			if (pVals_d.find(parentId) != pVals_d.end()) { //has parent to compare to
-				if (categoryId_to_name != NULL) //debug and print names
-					MLOG("DEBUG: key %s, (count,pvalue,lift) parent:%d,%.12g,%2.3f, current :%d,%.12g,%2.3f\n",
-						categoryId_to_name->at(keyVal).back().c_str(), (int)parentCnt, parentPv, parentLift, (int)currCnt, pV, currLift);
-
 				if (abs(parentCnt - currCnt) / parentCnt <= count_similarity) { //less than diff, remove child:
 					if (categoryId_to_name != NULL)
 						MLOG("DEBUG: remove key %s, parent has similar count:%d and current:%d\n",
@@ -1106,7 +1102,7 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 					if ((parentLift == 0 && currLift == 0) || (cmp > 0 && cmp <= minPerc)) { //less than 5% diff, remove child:
 						toRemove.insert(keyVal);
 						if (categoryId_to_name != NULL)
-							MLOG("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%d=2.3f\n",
+							MLOG("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%2.3f\n",
 								categoryId_to_name->at(keyVal).back().c_str(), parentLift, currLift);
 						break;
 					}
@@ -1157,8 +1153,8 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 		}
 		if (has_keep_child && removed_child_counts > 0 && removed_child_counts / currCnt >= child_fitlered_ratio) {
 			if (categoryId_to_name != NULL)
-				MLOG("DEBUG: remove parent code %d(%s), has big removed childs:%s\n",
-					keyVal, categoryId_to_name->at(keyVal).back().c_str(), log_desc.str().c_str());
+				MLOG("DEBUG: remove parent code %d(%s) with %d, has big removed childs:%s\n",
+					keyVal, categoryId_to_name->at(keyVal).back().c_str(), (int)currCnt, log_desc.str().c_str());
 			toRemove.insert(keyVal);
 		}
 	}
