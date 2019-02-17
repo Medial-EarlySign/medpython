@@ -234,7 +234,9 @@ class QRF_Forest : public SerializableObject {
 		vector<vector<float> > oob_scores; // used to keep oob scores which we use in some cases - if regression : (mean,std) ; if classification : vector of probs
 
 		// constructor: 
-		QRF_Forest() {qtrees.clear(); mode = 0; collect_oob = 0; oob_scores.clear(); nthreads=1; min_node_size=MIN_SPLIT_NODE_SIZE; get_only_this_categ = -1;}
+		QRF_Forest() { qtrees.clear(); mode = 0; collect_oob = 0; oob_scores.clear(); keep_all_values = false; nthreads = 1; min_node_size = MIN_SPLIT_NODE_SIZE; get_only_this_categ = -1; 
+		min_spread = 0; n_categ = -1; get_counts_flag = 0;
+		}
 
 		int nthreads; // number of threads to use in building a forest, and in scoring it.
 

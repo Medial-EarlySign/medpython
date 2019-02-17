@@ -1047,10 +1047,9 @@ void medial::contingency_tables::FilterRange(vector<int> &indexes, const vector<
 void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &member2Sets, const map<int, vector<int>> &set2Members,
 	vector<int> &indexes, const vector<int> &signal_values, const vector<double> &pVals,
 	const vector<double> &valCnts, const vector<double> &lifts, const unordered_map<int, double> &code_unfiltered_cnts,
-	float pValue_diff, float lift_th, float count_similarity,
+	float pValue_diff, float lift_th, float count_similarity, float child_fitlered_ratio,
 	const map<int, vector<string>> *categoryId_to_name) {
 	double minPerc = lift_th; //max allowed diff in lift
-	float child_per = (float)0.2;
 
 	unordered_map<int, double> pVals_d, lifts_d, valCnts_d;
 	for (int index : indexes)
@@ -1064,7 +1063,7 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 	unordered_set<float> toRemove;
 	for (int index : indexes)
 	{
-		int keyVal = (int)signal_values[index];
+		int keyVal = signal_values[index];
 		double currCnt = valCnts[index];
 		double pV = pVals[index];
 		double currLift = lifts[index];
@@ -1114,23 +1113,6 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 				}
 			}
 		}
-
-		//test if that's parent that need to be removed - has child that has been removed:
-		if (set2Members.find(keyVal) == set2Members.end())
-			continue; // no childs - it's leaf
-		const vector<int> &childs = set2Members.at(keyVal);
-		double removed_child_counts = 0;
-		int pos_i = 0;
-		while (pos_i < childs.size()) {
-			if (valCnts_d.find(childs[pos_i]) == valCnts_d.end() &&
-				code_unfiltered_cnts.find(childs[pos_i]) != code_unfiltered_cnts.end())
-				removed_child_counts += code_unfiltered_cnts.at(childs[pos_i]);
-			++pos_i;
-		}
-		if (removed_child_counts > 0 && removed_child_counts / currCnt >= child_per) {
-			//MLOG("DEBUG: remove parent code %d, has big removed childs\n", keyVal);
-			toRemove.insert(keyVal);
-		}
 	}
 
 	vector<int> keep_indexes;
@@ -1138,7 +1120,53 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 	for (int index : indexes)
 		if (toRemove.find(signal_values[index]) == toRemove.end())
 			keep_indexes.push_back(index);
+	indexes.swap(keep_indexes);
 
+	//remove parents that has childs removed( beyond percantage) and child that are kept (means the parent is not 
+	// right resolution, so remove
+	toRemove.clear();
+	unordered_set<int> filter_idx;
+	for (int index : indexes)
+		filter_idx.insert(signal_values[index]);
+
+	for (int index : indexes)
+	{
+		int keyVal = signal_values[index];
+		double currCnt = valCnts[index];
+		//test if that's parent that need to be removed - has child that has been removed, 
+		//and at least onr child that haven't moved:
+		if (set2Members.find(keyVal) == set2Members.end())
+			continue; // no childs - it's leaf
+		const vector<int> &childs = set2Members.at(keyVal);
+		double removed_child_counts = 0;
+		bool has_keep_child = false;
+		stringstream log_desc;
+		for (int child_id : childs) {
+			if (filter_idx.find(child_id) != filter_idx.end()) {
+				has_keep_child = true;
+				if (categoryId_to_name != NULL)
+					log_desc << "\n\t###" << "Kept_Child:" << child_id << "(" << categoryId_to_name->at(child_id).back() << ")"
+					<< " Count:" << valCnts_d.at(child_id);
+			}
+			else if (code_unfiltered_cnts.find(child_id) != code_unfiltered_cnts.end()) {
+				removed_child_counts += code_unfiltered_cnts.at(child_id);
+				if (categoryId_to_name != NULL)
+					log_desc << "\n\t###" << "Removed_Child:" << child_id << "(" << categoryId_to_name->at(child_id).back() << ")"
+					<< " Count:" << code_unfiltered_cnts.at(child_id);
+			}
+		}
+		if (has_keep_child && removed_child_counts > 0 && removed_child_counts / currCnt >= child_fitlered_ratio) {
+			if (categoryId_to_name != NULL)
+				MLOG("DEBUG: remove parent code %d(%s), has big removed childs:%s\n",
+					keyVal, categoryId_to_name->at(keyVal).back().c_str(), log_desc.str().c_str());
+			toRemove.insert(keyVal);
+		}
+	}
+
+	keep_indexes.clear();
+	for (int index : indexes)
+		if (toRemove.find(signal_values[index]) == toRemove.end())
+			keep_indexes.push_back(index);
 	indexes.swap(keep_indexes);
 }
 

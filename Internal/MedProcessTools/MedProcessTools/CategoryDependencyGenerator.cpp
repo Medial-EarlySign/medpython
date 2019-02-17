@@ -28,11 +28,12 @@ void CategoryDependencyGenerator::init_defaults() {
 	chi_square_at_least = 0;
 	minimal_chi_cnt = 5;
 	stat_metric = category_stat_test::mcnemar;
-	max_depth = 0;
-	max_parents = 1;
+	max_depth = 100;
+	max_parents = 5000;
 	filter_child_count_ratio = (float)0.05;
 	filter_child_pval_diff = (float)1e-10;
 	filter_child_lift_ratio = (float)0.05;
+	filter_child_removed_ratio = 1;
 	verbose = false;
 	use_fixed_lift = false;
 	verbose_full = false;
@@ -85,6 +86,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			filter_child_lift_ratio = med_stof(it->second);
 		else if (it->first == "filter_child_pval_diff")
 			filter_child_pval_diff = med_stof(it->second);
+		else if (it->first == "filter_child_removed_ratio")
+			filter_child_removed_ratio = med_stof(it->second);
 		else if (it->first == "chi_square_at_least")
 			chi_square_at_least = med_stof(it->second);
 		else if (it->first == "minimal_chi_cnt")
@@ -541,7 +544,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	before_cnt = (int)indexes.size();
 	//filter hierarchy:
 	medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members ,indexes, code_list, pvalues, codeCnts, lift,
-		code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio);
+		code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio, filter_child_removed_ratio);
 	if (verbose)
 		MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);

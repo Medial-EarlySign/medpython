@@ -824,6 +824,7 @@ public:
 	float filter_child_pval_diff; ///< below this threshold of pvalue diff change to remove child category (with AND condition on average lift change)
 	float filter_child_lift_ratio; ///< below this threshold of lift change to remove child category
 	float filter_child_count_ratio; ///< If child ratio count is too similar, small change from parent code - keep only paretn code
+	float filter_child_removed_ratio; ///< If child removed ratio is beyond this and has other child taken - remove parent
 	category_stat_test stat_metric; ///< statistical test
 	float chi_square_at_least; ///< chi_square arg to test for at least that change in lift to measure bigger diffrence
 	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
