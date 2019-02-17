@@ -872,7 +872,7 @@ template float _auc_q_weighted<double>(const vector<double> &preds, const vector
 
 template<typename T> float medial::performance::auc_q(const vector<T> &preds, const vector<float> &y, const vector<float>* weights) {
 
-	if (weights == NULL) {
+	if (weights == NULL || weights->empty()) {
 		vector<float> w(preds.size(), 1.0);
 		return _auc_q_weighted(preds, y, w);
 	} 
