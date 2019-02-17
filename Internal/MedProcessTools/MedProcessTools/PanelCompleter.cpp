@@ -225,7 +225,7 @@ int RepPanelCompleter::apply_red_line_completer(PidDynamicRec& rec, vector<int>&
 	vector<float>& final_res = final_sig_res[REP_CMPLT_RED_LINE_PANEL];
 	vector<float>& conv = sig_conversion_factors[REP_CMPLT_RED_LINE_PANEL];
 	if (orig_res.empty() || final_res.empty() || conv.empty())
-		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_red_line_completer - please provice config/metadata file\n");
+		MTHROW_AND_ERR("Error in RepPanelCompleter::apply_red_line_completer - please provide config/metadata file\n");
 
 	// Loop on versions
 	set<int> iteratorSignalIds(sigs_ids.begin(), sigs_ids.end());

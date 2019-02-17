@@ -335,26 +335,28 @@ int IterativeImputer::apply_first_round(MedFeatures &mfd)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int IterativeImputer::Learn(MedFeatures &mfd) 
+int IterativeImputer::Learn(MedFeatures &mfd)
 {
-	MedFeatures &my_mfd = mfd;
+	MedFeatures *my_mfd = &mfd;
 
 	MedFeatures learn_mfd;
-	if ((params.do_round1 && params.max_iterations) || params.max_iterations>1) {
+	if ((params.do_round1 && params.max_iterations) || params.max_iterations > 1) {
 		learn_mfd = mfd;
-		my_mfd = learn_mfd;
+		my_mfd = &learn_mfd;
 	}
+
 
 	if (params.verbose) MLOG("IterativeImputer Learn() init_internals\n");
-	if (init_internals(mfd) < 0) return -1;
+	if (init_internals(*my_mfd) < 0) return -1;
 	if (params.verbose) MLOG("IterativeImputer Learn() learn_first_round (do %d)\n", params.do_round1);
-	if (params.do_round1 && learn_first_round(my_mfd) < 0) return -1;
-	if (params.do_round1 && apply_first_round(my_mfd) < 0) return -1;
+	if (params.do_round1 && learn_first_round(*my_mfd) < 0) return -1;
+	if (params.do_round1 && apply_first_round(*my_mfd) < 0) return -1;
 
 	for (int iter=0; iter<params.max_iterations; iter++) {
-		learn_iteration(mfd, iter);
-		if (iter < params.max_iterations - 1) apply_iteration(mfd, iter);
+		learn_iteration(*my_mfd, iter);
+		if (iter < params.max_iterations - 1) apply_iteration(*my_mfd, iter);
 	}
+
 	return 0;
 }
 
@@ -368,13 +370,14 @@ int IterativeImputer::Apply(MedFeatures &mfd)
 		init_feature_info_update(mfd, fi);
 
 	if (params.do_round1 && apply_first_round(mfd) < 0) return -1;
+
 	if (params.verbose) MLOG("IterativeImputer Apply() round_to_resolution()\n");
 	for (int iter=0; iter<params.max_iterations; iter++) {
 		apply_iteration(mfd, iter);
 	}
 	for (auto &fi : feats)
 		mfd.attributes[fi.full_name].imputed = true;
-	fprintf(stderr, "IterativeImputer::Apply() NOT IMPLEMENTED YET\n"); 
+
 	return 0;
 }
 
@@ -388,6 +391,7 @@ int IterativeImputer::learn_iteration(MedFeatures &mfd, int iter)
 		MedPredictor *predictor;
 		find_feats_to_learn_from(i);
 		feats_for_pred_inds_to_names(fi);
+		
 		if (params.verbose) MLOG("IterativeImputer::learn_iteration pred_feats %d %d\n", fi.feats_for_pred.size(), feats[i].feats_for_pred.size());
 		if (fi.predictor_type == 0) {
 			predictor = NULL;
@@ -508,6 +512,7 @@ int IterativeImputer::find_feats_to_learn_from(int f_idx)
 			}
 			else {
 				feats[f_idx].inds_for_pred.push_back(i);
+				if (params.verbose > 1) MLOG("IterativeImputer :: feat_to_learn for %s :: adding feat %s (%d)\n", feats[f_idx].name.c_str(), feats[i].name.c_str(), i);
 			}
 		}
 	}
@@ -519,8 +524,8 @@ int IterativeImputer::find_feats_to_learn_from(int f_idx)
 int IterativeImputer::feats_for_pred_inds_to_names(feature_info &fi)
 {
 	fi.feats_for_pred.clear();
-	for (int i=0; i<fi.inds_for_pred.size(); i++)
-		fi.feats_for_pred.push_back(feats[i].full_name);
+	for (int idx : fi.inds_for_pred)
+		fi.feats_for_pred.push_back(feats[idx].full_name);
 
 	return 0;
 }
