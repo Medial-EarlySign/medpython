@@ -602,6 +602,8 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 		auto &ev = evs[j];
 
+		//MLOG("diabetes reg : j %d ev: time %d type %d val %f severity %d\n", j, ev.time, ev.event_type, ev.event_val, ev.event_severity);
+
 		// rules:
 		// (1) to be Diabetic: (a) a single severity 4 (b) adjacent or within 2 years: 2 severity 3 (real mode: the second time, biological mode: the first time)
 		// (2) to be PreDiabetic: (a) a single 2,3,4 (b) adjacent or within 2 years: 2 severity 1 (real mode: the second, bio_mode: the first)
@@ -631,16 +633,28 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
 
 			int found = 0;
+			int first_index = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
 				if (evs[k].event_severity == 3) {
 					found = 1;
+					first_index = k;
 					break;
 				}
 			}
 			if (found) {
-				ranges[2].first = ev.time;
-				ranges[2].second = time;
+				// found a diabetic, several cases now :
+				// (1) dm_bio_mode = 1 : we take the time of the first indication
+				// (2) the type of first is REG_EVENT_DM_DIAGNOSES : we take the time of the first 
+				// (3) other cases : we take the second
+				if (dm_bio_mode || evs[first_index].event_type == REG_EVENT_DM_DIAGNOSES) {
+					ranges[2].first = evs[first_index].time;
+					ranges[2].second = time;
+				}
+				else {
+					ranges[2].first = ev.time;
+					ranges[2].second = time;
+				}
 				continue;
 			}
 			
@@ -665,16 +679,24 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
 
 			int found = 0;
+			int first_index = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
 				if (evs[k].event_severity == 1) {
 					found = 1;
+					first_index = k;
 					break;
 				}
 			}
 			if (found) {
-				ranges[1].first = ev.time;
-				ranges[1].second = ev.time;
+				if (dm_bio_mode) {
+					ranges[1].first = evs[first_index].time;
+					ranges[1].second = ev.time;
+				}
+				else {
+					ranges[1].first = ev.time;
+					ranges[1].second = ev.time;
+				}
 				continue;
 			}
 		}
