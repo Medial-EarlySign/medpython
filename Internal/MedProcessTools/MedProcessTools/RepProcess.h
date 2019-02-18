@@ -184,6 +184,8 @@ public:
 	int apply(PidDynamicRec& rec, MedIdSamples& samples);
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required </summary>
 	int conditional_apply(PidDynamicRec& rec, MedIdSamples& samples, unordered_set<int>& neededSignalIds);
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points given by samples only if required, not affecting attributes</summary>
+	int conditional_apply_without_attributes(PidDynamicRec& rec, const MedIdSamples& samples, unordered_set<int>& neededSignalIds);
 
 
 	// debug prints
@@ -375,7 +377,7 @@ public:
 //.......................................................................................
 class confRecord : public SerializableObject {
 public:
-	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
+	double logicalLow, logicalHigh, confirmedLow, confirmedHigh;
 	string distLow, distHigh; //"none" "norm" or "log" 
 	int val_channel = 0;
 	ADD_CLASS_NAME(confRecord)
@@ -422,7 +424,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 			trimMax, trimMin, removeMax, removeMin, confFileName, cleanMethod, outlierParam, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix)
 
 		void print();
@@ -478,6 +480,7 @@ public:
 	float tolerance = 0.1F;
 	int time_window = 0; ///< the size of time window to search for signals
 	string verbose_file; ///< cleaning output_file for debuging
+	float calc_res = 0; ///< signal resolution calc, 0 no resolution
 
 	/// static map from rule to participating signals
 	map <int, vector<string>>rules2Signals = {
@@ -503,6 +506,8 @@ public:
 	{21,{"NRBC","RBC"}},
 	{22,{"CHADS2","CHADS2_VASC"}}
 	};
+
+	map<int, string> rules2RemoveSignal; ///< which signal to remove if contradiction found. If not exists default to remove all
 
 	vector <int> rulesToApply;
 	unordered_map<string, pair<int, int>> signal_channels; ///< signal channels (if exists). first is time, second is for val
@@ -551,7 +556,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, time_window, rules2Signals, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix)
+	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix, verbose_file)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
@@ -828,7 +833,7 @@ public:
 
 	RepPanelCompleter() { processor_type = REP_PROCESS_COMPLETE; init_defaults(); }
 
-	/// @snippet RepProcess.cpp RepPanelCompleter::init
+	/// @snippet PanelCompleter.cpp RepPanelCompleter::init
 	int init(map<string, string>& mapper);
 
 	/// <summary> initialize to default values :  Should be implemented for inheriting classes that have parameters </summary>

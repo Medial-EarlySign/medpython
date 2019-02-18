@@ -85,6 +85,7 @@ void BinnedLmEstimates::init_defaults() {
 	genderId = -1;
 
 	time_unit_periods = global_default_windows_time_unit;
+	sampling_strategy = BINNED_LM_TAKE_ALL;
 }
 
 //.......................................................................................
@@ -133,6 +134,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "val_channel") val_channel = stoi(entry.second);
 		else if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (field == "sampling") set_sampling_strategy(entry.second);
 		else if (field == "weights_generator") iGenerateWeights = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknonw parameter \'%s\' for BinnedLmEstimates\n", field.c_str());
@@ -152,6 +154,21 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 }
 
 //..............................................................................
+void BinnedLmEstimates::set_sampling_strategy(string& strategy) {
+	
+	boost::to_lower(strategy);
+
+	if (strategy == "all" || strategy == "take_all")
+		sampling_strategy = BINNED_LM_TAKE_ALL;
+	else if (strategy == "first" || strategy == "stop_at_first")
+		sampling_strategy = BINNED_LM_STOP_AT_FIRST;
+	else if (strategy == "last" || strategy == "stop_at_last")
+		sampling_strategy = BINNED_LM_STOP_AT_LAST;
+	else
+		MTHROW_AND_ERR("Unknonwn sampling strategy \'%s\' for BinnedLM\n", strategy.c_str());
+}
+
+//..............................................................................
 void BinnedLmEstimates::set_signal_ids(MedDictionarySections& dict) {
 
 	signalId = dict.id(signalName);
@@ -161,7 +178,7 @@ void BinnedLmEstimates::set_signal_ids(MedDictionarySections& dict) {
 
 // Learn a generator
 //.......................................................................................
-int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) {
+int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
 
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || byearId == -1) {
@@ -174,6 +191,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	size_t nperiods = params.bin_bounds.size();
 	size_t nmodels = 1ll << nperiods;
 	size_t nfeatures = nperiods * (INT64_C(1) << nperiods);
+	size_t nids = samples.idSamples.size();
 
 	// Required signals
 	vector<int> all_req_signal_ids_v;
@@ -188,11 +206,11 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 
 	vector<float> values;
 	vector<int> ages, times, genders;
-	vector<int> id_firsts(ids.size()), id_lasts(ids.size());
+	vector<int> id_firsts(nids), id_lasts(nids);
 
 	UniversalSigVec usv, ageUsv;
-	for (unsigned int i = 0; i < ids.size(); i++) {
-		int id = ids[i];
+	for (unsigned int i = 0; i < nids; i++) {
+		int id = samples.idSamples[i].id;
 
 		// Gender
 		SVal *genderSignal = (SVal *)rep.get(id, genderId, len);
@@ -210,12 +228,20 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			}
 		}
 
+		// Get last time-point
+		vector<int> time_points;
+		int last_time_point = -1;
+		if (sampling_strategy == BINNED_LM_STOP_AT_FIRST) {
+			last_time_point = usv.Time(0, time_channel);
+			time_points.push_back(last_time_point);
+		}
+		else if (sampling_strategy == BINNED_LM_STOP_AT_LAST) {
+			last_time_point = usv.Time(usv.len - 1, time_channel);
+			time_points.push_back(last_time_point);
+		}
+
+		int nvalues = 0;
 		if (processors.size()) {
-
-			// Apply processing at last time point only
-//			vector<int> time_points(1, usv.Time(usv.len - 1, time_channel) + 1);
-			vector<int> time_points;
-
 			rec.init_from_rep(std::addressof(rep), id, all_req_signal_ids_v, 1);
 
 			// BYear/Age
@@ -229,11 +255,14 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			// Collect values and ages
 			rec.uget(signalId, 0, usv);
 			for (int i = 0; i < usv.len; i++) {
+				if (sampling_strategy != BINNED_LM_TAKE_ALL && usv.Time(i, time_channel) > last_time_point)
+					break;
 				values.push_back(usv.Val(i, val_channel));
 				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
+				nvalues++;
 			}
 		}
 		else {
@@ -241,14 +270,18 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 			prepare_for_age(rep, id, ageUsv, age, byear);
 
 			for (int j = 0; j < usv.len; j++) {
+				if (sampling_strategy != BINNED_LM_TAKE_ALL && usv.Time(i, time_channel) > last_time_point)
+					break;
+
 				values.push_back(usv.Val(j, val_channel));
 				get_age(usv.Time(j, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
 				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(j, time_channel)));
+				nvalues++;
 			}
 		}
-		id_lasts[i] = id_firsts[i] + usv.len - 1;
+		id_lasts[i] = id_firsts[i] + nvalues - 1;
 	}
 
 	// Allocate
@@ -322,7 +355,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, vector<int>& ids, vector<Re
 	vector<int> types(values.size());
 	int irow = 0;
 
-	for (unsigned int i = 0; i < ids.size(); i++) {
+	for (unsigned int i = 0; i < nids; i++) {
 
 		if (id_lasts[i] <= id_firsts[i])
 			continue;

@@ -72,7 +72,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
-
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
 		timer.start();
 		if (learn_rep_processors(rep, *LearningSet) < 0) { //??? why are rep processors initialized for ALL time points in an id??
@@ -285,13 +284,11 @@ int MedModel::quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samp
 //.......................................................................................
 int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples)
 {
-	vector<int> ids;
-	learn_samples->get_ids(ids);
 
 	vector<int> rc(generators.size(), 0);
 #pragma omp parallel for schedule(dynamic)
-	for (int i = 0; i < generators.size(); i++)
-		rc[i] = generators[i]->learn(rep, ids, rep_processors); //??? why is this done for ALL time points in an id???
+	for (int i = 0; i < generators.size(); i++) 
+		rc[i] = generators[i]->learn(rep, *learn_samples, rep_processors); 
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
@@ -945,7 +942,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
-		if (verbosity) MLOG("check virtual %s\n", vsig.first.c_str());
+		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}

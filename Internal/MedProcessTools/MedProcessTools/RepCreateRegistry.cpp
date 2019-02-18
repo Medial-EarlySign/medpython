@@ -78,7 +78,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 			virtual_signals[i].first = names[i];
 	}
 
-	MLOG("virtual 0 : %s\n", virtual_signals[0].first.c_str());
+	MLOG_D("virtual 0 : %s\n", virtual_signals[0].first.c_str());
 
 	if (!signals.empty()) {
 		if (signals.size() != type2reqSigs.at(registry).size())

@@ -251,6 +251,176 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 	}
 }
 
+// Selection top to bottom.
+void IterativeFeatureSelector::retraceTop2BottomSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper, vector<string>& order, int start, int end) {
+
+	if (verbose)
+		MLOG("Running top - to - bottom tracing on %d folds out of %d\n", folds.size(), nfolds);
+
+	features.weights.resize(features.samples.size(), 1.0);
+	int nRuns = (int)folds.size();
+
+	// Prepare sets of families
+	set<string> selectedFamilies;
+	set<string> unSelectedFamilies;
+	for (auto& familiy : featureFamilies)
+		selectedFamilies.insert(familiy.first);
+
+	// Build train+test list of indices + labels;
+	vector<vector<int>> trainRows(nRuns), testRows(nRuns);
+	vector<vector<float>> trainLabels(nRuns);
+	vector<vector<MedSample>> testSamples(nRuns);
+	vector<int> allTestRows;
+	MedFeatures bootstrapFeatures;
+
+	prepare_for_iterations(bootstrapper, features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
+
+	// Remove prior to start
+	for (int i = 0; i < start; i++)
+		selectedFamilies.erase(order[i]);
+
+	// Loop till end
+	for (int i = start; i <= end; i++) {
+		// Remove
+		selectedFamilies.erase(order[i]);
+
+		// names
+		vector<string> selectedFeatures;
+		for (string ftr : resolved_required)
+			selectedFeatures.push_back(ftr);
+
+		for (string addFamily : selectedFamilies)
+			selectedFeatures.insert(selectedFeatures.end(), featureFamilies[addFamily].begin(), featureFamilies[addFamily].end());
+
+		// Set parameters value:
+		string predictorParamsString = predictor_params_vec.empty() ? predictor_params : predictor_params_vec[selectedFeatures.size()];
+
+		// Cross Validation
+		float score = -1.0;
+		if (selectedFeatures.size() > 0) {
+			int samplesIdx = 0;
+			for (int iRun = 0; iRun < nRuns; iRun++) {
+
+				// Get Train SubMatrix
+				MedMat<float> matrix;
+				features.get_as_matrix(matrix, selectedFeatures, trainRows[iRun]);
+
+				// Initialize predictor
+				MedPredictor *prd = MedPredictor::make_predictor(predictor, predictorParamsString);
+
+				// Learn
+				prd->learn(matrix, trainLabels[iRun]);
+
+				// Get Test SubMatrix
+				matrix.clear();
+				features.get_as_matrix(matrix, selectedFeatures, testRows[iRun]);
+
+				// Predict
+				vector<float> preds;
+				prd->predict(matrix, preds);
+				delete prd;
+
+				// Insert predictions to samples
+				for (size_t i = 0; i < preds.size(); i++)
+					bootstrapFeatures.samples[samplesIdx + i].prediction[0] = preds[i];
+				samplesIdx += (int)preds.size();
+
+			}
+
+			// Performance
+			bootstrapper.bootstrap(bootstrapFeatures);
+			score = bootstrapper.bootstrap_results["bs"][measurement_name];
+		}
+
+		string report_s = "Removing family " + order[i] + " with " + measurement_name + " = " + to_string(score);
+		report.push_back(report_s);
+		if (verbose)
+			MLOG("REPORT: %s\n", report_s.c_str());
+	}
+}
+
+void IterativeFeatureSelector::retraceBottom2TopSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper, vector<string>& order, int start, int end) {
+
+	if (verbose)
+		MLOG("Running bottom - to - top tracing on %d folds out of %d\n", folds.size(), nfolds);
+
+	features.weights.resize(features.samples.size(), 1.0);
+
+	int nRuns = (int)folds.size();
+
+	// Prepare sets of families
+	set<string> selectedFamilies;
+
+	// Build train+test list of indices + labels;
+	vector<vector<int>> trainRows(nRuns), testRows(nRuns);
+	vector<vector<float>> trainLabels(nRuns);
+	vector<vector<MedSample>> testSamples(nRuns);
+
+	MedFeatures bootstrapFeatures;
+	prepare_for_iterations(bootstrapper, features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
+
+	// Add  prior to start
+	for (int i = 0; i < start; i++)
+		selectedFamilies.insert(order[i]);
+
+	// From start to end
+	for (int i=start; i<=end; i++) {
+		selectedFamilies.insert(order[i]);
+		
+		// names
+		vector<string> selectedFeatures;
+		for (string ftr : resolved_required)
+			selectedFeatures.push_back(ftr);
+
+		for (string addFamily : selectedFamilies)
+			selectedFeatures.insert(selectedFeatures.end(), featureFamilies[addFamily].begin(), featureFamilies[addFamily].end());
+
+		// Set parameters value:
+		string predictorParamsString = predictor_params_vec.empty() ? predictor_params : predictor_params_vec[selectedFeatures.size()];
+
+		// Cross Validation
+		int samplesIdx = 0;
+		float score;
+		for (int iRun = 0; iRun < nRuns; iRun++) {
+			// Get Train SubMatrix
+			MedMat<float> matrix;
+			features.get_as_matrix(matrix, selectedFeatures, trainRows[iRun]);
+
+			// Initialize predictor
+			MedPredictor *prd = MedPredictor::make_predictor(predictor, predictorParamsString);
+
+			// Learn
+			//	matrix.write_to_csv_file("tempMat");
+			prd->learn(matrix, trainLabels[iRun]);
+
+			// Get Test SubMatrix
+			matrix.clear();
+			features.get_as_matrix(matrix, selectedFeatures, testRows[iRun]);
+
+			// Predict
+			vector<float> preds;
+			prd->predict(matrix, preds);
+			delete prd;
+
+			// Insert predictions to samples
+			for (size_t i = 0; i < preds.size(); i++)
+				bootstrapFeatures.samples[samplesIdx + i].prediction[0] = preds[i];
+			samplesIdx += (int)preds.size();
+		}
+
+		// Performance
+		bootstrapper.bootstrap(bootstrapFeatures);
+		score = bootstrapper.bootstrap_results["bs"][measurement_name];
+
+		string report_s = "Adding family " + order[i] + " with " + measurement_name + " = " + to_string(score);
+		report.push_back(report_s);
+		if (verbose)
+			MLOG("REPORT: %s\n", report_s.c_str());
+	}
+}
+
+// Utilities
+// Preparation
 void IterativeFeatureSelector::prepare_for_iterations(MedBootstrapResult& bootstrapper, MedFeatures& features, vector<int>& folds, vector<vector<int>>& trainRows, vector<vector<int>>& testRows,
 	vector<vector<float>>&trainLabels, vector<vector<MedSample>>&testSamples, MedFeatures& bootstrapFeatures) {
 
@@ -300,7 +470,6 @@ void IterativeFeatureSelector::prepare_for_iterations(MedBootstrapResult& bootst
 	}
 }
 
-// Utilities
 // Get rates vector
 void IterativeFeatureSelector::get_rates_vec() {
 

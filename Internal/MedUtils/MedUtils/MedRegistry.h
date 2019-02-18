@@ -120,7 +120,7 @@ namespace medial {
 		/// \brief calcs chi square for full male, female and stores all the results stats and values in the vectors
 		void calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
-			vector<float> &all_signal_values, vector<int> &signal_indexes,
+			vector<int> &all_signal_values, vector<int> &signal_indexes,
 			vector<double> &valCnts, vector<double> &posCnts,
 			vector<double> &lift, vector<double> &scores,
 			vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls = 0, float allowed_error = 0,
@@ -129,20 +129,29 @@ namespace medial {
 		/// \brief calcs mcnemar test square for full male, female and stores all the results stats and values in the vectors
 		void calc_mcnemar_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
-			vector<float> &all_signal_values, vector<int> &signal_indexes,
+			vector<int> &all_signal_values, vector<int> &signal_indexes,
 			vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 			, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio);
 
 		/// \brief calc cmh  https://en.wikipedia.org/wiki/Cochran%E2%80%93Mantel%E2%80%93Haenszel_statistics
 		void calc_cmh_scores(const map<float, map<float, vector<int>>> &male_stats,
 			const map<float, map<float, vector<int>>> &female_stats,
-			vector<float> &all_signal_values, vector<int> &signal_indexes,
+			vector<int> &all_signal_values, vector<int> &signal_indexes,
 			vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 			, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio);
 
 		/// \brief filter by range
 		void FilterRange(vector<int> &indexes, const vector<double> &vecCnts
 			, double min_val, double max_val);
+
+		/// \brief filter category code by hirarchy of categories. similar child code to parent will be removed.
+		/// Similar is or:
+		/// 1. small  change in count - below count_similarity cahnge in ratio
+		/// 2. small change in P-Value And Average Lift - the change in P-Value is controlled with pValue_diff, and in lift (change factor child lift to paretn lift) is by lift_th
+		void filterHirarchy(const map<int, vector<int>> &member2Sets, const map<int, vector<int>> &set2Members,
+			vector<int> &indexes, const vector<int> &signal_values, const vector<double> &pVals,
+			const vector<double> &valCnts, const vector<double> &lifts, const unordered_map<int, double> &code_unfiltered_cnts,
+			float pValue_diff, float lift_th, float count_similarity, float child_fitlered_ratio, const map<int, vector<string>> *categoryId_to_name = NULL);
 
 		/// \brief calc chi square probabilty from distance, DOF
 		double chisqr(int Dof, double Cv);
@@ -289,7 +298,7 @@ public:
 
 	~RegistrySignalAnd();
 private:
-	MedRepository *repo;
+	MedRepository * repo;
 };
 
 /**

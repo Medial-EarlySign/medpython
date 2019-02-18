@@ -60,11 +60,7 @@ void get_bdates(MedRepository &rep, unordered_map<int, int> &bdates) {
 	MLOG_D("MedSamplingStrategy::get_bdates - loaded %zu patients\n", bdates.size());
 }
 
-void MedSamplingTimeWindow::init_sampler(MedRepository &rep) {
-	get_bdates(rep, pids_bdates);
-}
-
-void MedSamplingTimeWindow::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	random_device rd;
 	mt19937 gen(rd());
@@ -166,7 +162,7 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingYearly::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingYearly::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (day_jump <= 0)
 		MTHROW_AND_ERR("day_jump must be positive > 0\n");
@@ -213,11 +209,7 @@ int MedSamplingAge::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingAge::init_sampler(MedRepository &rep) {
-	get_bdates(rep, pids_bdates);
-}
-
-void MedSamplingAge::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingAge::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (start_age < 0 || end_age < 0 || end_age > 120 || start_age > 120)
 		MTHROW_AND_ERR("start_age,end_age must be initialize between 0 to 120\n");
@@ -251,7 +243,9 @@ int MedSamplingDates::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "take_count")
-			take_count = stoi(it->second);
+			take_count = med_stoi(it->second);
+		else if (it->first == "sample_with_filters")
+			sample_with_filters = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -260,14 +254,47 @@ int MedSamplingDates::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingDates::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingDates::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	random_device rd;
 	mt19937 gen(rd());
+	//keep only "legal" dates by pid_time_ranges:
+	vector<vector<pair<int, int>>> filtered_opts;
+	filtered_opts.reserve(samples_list_pid_dates.size());
+	if (sample_with_filters)
+		for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
+		{
+			vector<pair<int, int>> filtered_grp_opts;
+			for (size_t k = 0; k < samples_list_pid_dates[i].size(); ++k)
+			{
+				int pid = samples_list_pid_dates[i][k].first;
+				int time = samples_list_pid_dates[i][k].second;
 
-	for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
+				bool is_legal = false;
+
+				if (pid_time_ranges.find(pid) != pid_time_ranges.end()) {
+					const vector<pair<int, int>> &pid_range = pid_time_ranges.at(pid);
+					int pid_range_iter = 0;
+					//check time is legal in pid_time_ranges:
+					while (!is_legal && pid_range_iter < pid_range.size()) {
+						int start_time = pid_range[pid_range_iter].first;
+						int end_time = pid_range[pid_range_iter].second;
+						is_legal = (time >= start_time && time <= end_time);
+						++pid_range_iter;
+					}
+					if (is_legal)
+						filtered_grp_opts.push_back(samples_list_pid_dates[i][k]);
+				}
+			}
+
+			filtered_opts.push_back(filtered_grp_opts);
+		}
+	else
+		filtered_opts = samples_list_pid_dates;
+
+	for (size_t i = 0; i < filtered_opts.size(); ++i)
 	{
-		const vector<pair<int, int>> &all_sample_options = samples_list_pid_dates[i];
+		const vector<pair<int, int>> &all_sample_options = filtered_opts[i];
 		if (all_sample_options.empty())
 			continue;
 		uniform_int_distribution<> current_rand(0, (int)all_sample_options.size() - 1);
@@ -276,9 +303,6 @@ void MedSamplingDates::get_sampling_options(const unordered_map<int, vector<pair
 			int choosed_index = current_rand(gen);
 			const pair<int, int> &choosed_option = all_sample_options[choosed_index];
 			int choosed_pid = choosed_option.first, choosed_time = choosed_option.second;
-			if (pid_time_ranges.find(choosed_pid) == pid_time_ranges.end())
-				continue;
-			//TODO: add option to check that it's legal - to sample after filtering:
 
 			pid_options[choosed_pid].push_back(choosed_time);
 		}
@@ -299,6 +323,8 @@ MedSamplingStrategy *MedSamplingStrategy::make_sampler(const string &sampler_nam
 		sampler = new MedSamplingDates;
 	else if (sampler_name == "fixed_time")
 		sampler = new MedSamplingFixedTime;
+	else if (sampler_name == "stick")
+		sampler = new MedSamplingStick;
 	else
 		MTHROW_AND_ERR("Unsupported Sampling method %s\n", sampler_name.c_str());
 	//! [MedSamplingStrategy::make_sampler]
@@ -335,7 +361,7 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingFixedTime::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingFixedTime::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (time_jump <= 0)
 		MTHROW_AND_ERR("time_jump must be positive > 0\n");
@@ -378,4 +404,133 @@ void MedSamplingFixedTime::get_sampling_options(const unordered_map<int, vector<
 			pid_options[pid].push_back(pred_date);
 		}
 	}
+}
+
+void MedSamplingStrategy::set_filters(const string &filtering_str) {
+	filtering_params.init_from_string(filtering_str);
+}
+
+void MedSamplingStrategy::init_sampler(MedRepository &rep) {
+	get_bdates(rep, pids_bdates);
+}
+
+template<class T> void commit_selection_vec(vector<T> &vec, const vector<int> &idx) {
+	vector<T> filt(idx.size());
+	for (size_t i = 0; i < idx.size(); ++i)
+		filt[i] = vec[idx[i]];
+	vec.swap(filt);
+}
+
+void MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const {
+	if (filtering_params.max_age < 0 && filtering_params.max_time < 0 && filtering_params.min_age == 0 && filtering_params.min_time == 0)
+		return; //no filters
+
+	for (auto it = pid_time_ranges.begin(); it != pid_time_ranges.end(); ++it)
+	{
+		int pid_bdate = 0; //Age need BDATE, will only be set if age filters are active
+		if (filtering_params.min_age > 0 || filtering_params.max_age > 0) { //age filtering is needed, update bdate
+			if (pids_bdates.find(it->first) == pids_bdates.end())
+				MTHROW_AND_ERR("Error in MedSamplingStrategy::apply_filter_params - sampler isn'n initialized with init_sampler or pid %d"
+					" is ilegel without bdate.\n", it->first);
+			pid_bdate = pids_bdates.at(it->first);
+		}
+		vector<int> selected_idx;
+		for (size_t i = 0; i < it->second.size(); ++i)
+		{
+			int start = pid_time_ranges[it->first][i].first;
+			int end = pid_time_ranges[it->first][i].second;
+			//apply Year filters:
+			if (start < filtering_params.min_time)
+				start = filtering_params.min_time;
+			if (filtering_params.max_time > 0 && end > filtering_params.max_time)
+				end = filtering_params.max_time;
+			//apply age filters - If needed:
+			if (filtering_params.min_age > 0 || filtering_params.max_age > 0) {
+				float start_age = medial::repository::DateDiff(pid_bdate, start);
+				float end_age = medial::repository::DateDiff(pid_bdate, end);
+				if (start_age < filtering_params.min_age)
+					start = medial::repository::DateAdd(pid_bdate, filtering_params.min_age * 365);
+				if (filtering_params.max_age > 0 && end_age > filtering_params.max_age)
+					end = medial::repository::DateAdd(pid_bdate, filtering_params.max_age * 365);
+			}
+			//set new range
+			if (end > start) {
+				pid_time_ranges[it->first][i].first = start;
+				pid_time_ranges[it->first][i].second = end;
+				selected_idx.push_back((int)i);
+			}
+		}
+
+		commit_selection_vec(pid_time_ranges[it->first], selected_idx);
+	}
+}
+
+void MedSamplingStrategy::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+	unordered_map<int, vector<int>> &pid_options) const {
+	//process filters
+	unordered_map<int, vector<pair<int, int>>> pid_time_ranges_filtered = pid_time_ranges;
+	apply_filter_params(pid_time_ranges_filtered);
+
+	_get_sampling_options(pid_time_ranges_filtered, pid_options);
+}
+
+int MedSamplingStick::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "signal_list")
+			boost::split(signal_list, it->second, boost::is_any_of(","));
+		else if (it->first == "take_count")
+			take_count = med_stoi(it->second);
+		else if (it->first == "sample_with_filters")
+			sample_with_filters = med_stoi(it->second) > 0;
+		else
+			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
+	}
+	if (signal_list.empty())
+		MTHROW_AND_ERR("Error in MedSamplingStick::init - please provide \"signal_list\" init argument\n");
+	return 0;
+}
+
+void MedSamplingStick::init_sampler(MedRepository &rep) {
+	MedSamplingDates::init_sampler(rep);
+
+	string rep_path = rep.config_fname;
+	//check we have all signals otherwise load new rep (assume at least rep was initialized, will raise error in base inti_sampler otherwise):
+	vector<int> sig_ids(signal_list.size());
+	bool need_read = false;
+	for (size_t i = 0; i < signal_list.size(); ++i) {
+		sig_ids[i] = rep.sigs.sid(signal_list[i]);
+		if (sig_ids[i] < 0)
+			MTHROW_AND_ERR("Error in MedSamplingStick::init_sampler - Unknown signal %s in repository %s\n",
+				signal_list[i].c_str(), rep_path.c_str());
+		if (!rep.index.index_table[sig_ids[i]].is_loaded)
+			need_read = true;
+	}
+	MedRepository *p_rep = &rep;
+	MedRepository rep2;
+	if (need_read) {
+		if (rep2.read_all(rep_path, rep.pids, sig_ids) < 0)
+			MTHROW_AND_ERR("Error in MedSamplingStick::init_sampler - can't read repository %s\n", rep_path.c_str());
+		p_rep = &rep2;
+	}
+
+	//use p_rep to fetch signals as candidate dates for patient:
+	for (size_t i = 0; i < p_rep->pids.size(); ++i)
+	{
+		int pid = p_rep->pids[i];
+		set<int> possible_dates;
+		for (size_t k = 0; k < sig_ids.size(); ++k)
+		{
+			UniversalSigVec usv;
+			p_rep->uget(pid, sig_ids[k], usv);
+			for (int l = 0; l < usv.len; ++l)
+				possible_dates.insert(usv.Time(l));
+		}
+
+		if (!possible_dates.empty())
+			samples_list_pid_dates.push_back(vector<pair<int, int>>());
+		for (int candidate_date : possible_dates)
+			samples_list_pid_dates.back().push_back(pair<int, int>(pid, candidate_date));
+	}
+
 }

@@ -1793,7 +1793,7 @@ string medial::signal_hierarchy::filter_code_hierarchy(const vector<string> &vec
 	return vec.front(); //always first is the coded
 }
 vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySections &dict,
-	const string &group, const string &signalHirerchyType, int depth) {
+	const string &group, const string &signalHirerchyType, int depth, int max_nodes) {
 	int sectionId = 0;
 	if (dict.SectionName2Id.find(signalHirerchyType) == dict.SectionName2Id.end())
 		MTHROW_AND_ERR("Signal_Hirerchy_Type not suppoted %s. please select dictionary section: \n",
@@ -1813,6 +1813,8 @@ vector<int> medial::signal_hierarchy::parents_code_hierarchy(MedDictionarySectio
 			new_layer.insert(new_layer.end(), tmp_par.begin(), tmp_par.end());
 			parents.insert(parents.end(), tmp_par.begin(), tmp_par.end()); //aggregate all parents
 		}
+		if (parents.size() >= max_nodes)
+			break;
 		new_layer.swap(last_parents);
 		if (last_parents.empty())
 			break; //no more parents to loop up

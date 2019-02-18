@@ -88,16 +88,6 @@ namespace medial {
 			ConflictMode conflict_mode, vector<MedSample> &idSamples,
 			int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor = true, bool show_conflicts = false);
 	}
-
-	/*!
-	* \brief signal_hierarchy namespace
-	*/
-	namespace signal_hierarchy {
-		/// \brief Getting signal with hirarchy options for each siganl
-		void getRecords_Hir(int pid, vector<UniversalSigVec> &signals, MedDictionarySections &dict,
-			const string &signalHirerchyType,
-			vector<MedRegistryRecord> &res);
-	}
 }
 
 class SamplingRes {
@@ -109,7 +99,7 @@ public:
 };
 
 class MedSamplingStrategy;
-static unordered_set<float> default_empty_set;
+static unordered_set<int> default_empty_set;
 /**
 * A Class which represent time ranges of label values based on registry and labeling method.
 * The main procedure is to quety label value using get_label method
@@ -170,7 +160,7 @@ public:
 		const string &signalHirerchyType, int ageBinValue, MedSamplingStrategy &sampler,
 		const LabelParams &inc_labeling_params, map<float, map<float, vector<int>>> &maleSignalToStats,
 		map<float, map<float, vector<int>>> &femaleSignalToStats,
-		const string &debug_file = "", const unordered_set<float> &debug_vals = default_empty_set) const;
+		const string &debug_file = "", const unordered_set<int> &debug_vals = default_empty_set) const;
 
 	/// <summary>
 	/// calculate incidence and writes the result into file with old and new format
@@ -198,10 +188,20 @@ public:
 	/// </summary>
 	SamplingRes get_samples(int pid, const vector<int> &times, vector<MedSample> &samples, bool show_conflicts = false) const;
 
+	/// <summary>
+	///Creates MedSamples using MedSampling
+	/// </summary>
 	void create_samples(const MedSamplingStrategy *sampler, MedSamples &samples, bool show_conflicts = true) const;
 
+	/// <summary>
+	/// Ctor with labling params
+	/// </summary>
 	MedLabels(const LabelParams &params);
 
+	/// <summary>
+	/// Ctor with labling params as string
+	/// </summary>
+	MedLabels(const string &labling_params);
 };
 
 #endif

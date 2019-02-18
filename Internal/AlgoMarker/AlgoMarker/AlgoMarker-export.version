@@ -1,0 +1,4 @@
+MEDIAL_AM_ABI_1.0 {
+    global: AM*; DATA_API*;
+    local: *;
+};
