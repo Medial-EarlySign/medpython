@@ -261,7 +261,7 @@ public:
 	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and _generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
-	bool bound_outcomeTime; ///< If true will truncate time window till outcomeTime
+	bool bound_outcomeTime = false; ///< If true will truncate time window till outcomeTime
 	float min_value=-FLT_MAX, max_value= FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
 
 	// helpers
