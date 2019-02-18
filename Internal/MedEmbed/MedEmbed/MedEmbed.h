@@ -31,11 +31,8 @@ public:
 	int do_counts = 1; // collecting data as counts if =1 , or just as 0/1 if =0
 
 	// next is used for categorial signals. It holds the string names of the categories we want to embed.
-	// initialization is with the categories= parameter , it is a comma (,) separeted list of names, if a name starts with file: then
-	// it means that what's after the : is a file name containing a list of the categories to use.
-	// When creating features the order is : start with the categorial signal value, and add all its hierarchy if asked for, then check if any of those are
-	// in the categories_to_embed list, and if so, create a feature for it.
-	unordered_set<string> categories_to_embed;
+	// initialization is with the categories= parameter , it is a comma (,) separeted list of names (best initialize with the "list:" option)
+	vector<string> categories_to_embed;
 
 	// for categorial: ranges to use (empty is all). The sequence is:
 	// a value and all its hierarchy (if asked for) are created. Then only those within the asked for ranges are actually added and used.
@@ -135,8 +132,12 @@ public:
 
 	string print_to_string(int verbosity);
 
+	// next can be used after shrinking was done
+	// it keeps the minimal structures needed in order to allow matrix creation and lower scheme file size.
+	int minimize();
+
 	ADD_CLASS_NAME(EmbeddingSig)
-	ADD_SERIALIZATION_FUNCS(sig, type, add_hierarchy, do_shrink, ranges, time_chan, val_chan, win_from, win_to, Name2Id, Orig2Code, Orig2Name, Orig2ShrunkCode, model)
+	ADD_SERIALIZATION_FUNCS(sig, type, add_hierarchy, do_shrink, ranges, time_chan, val_chan, win_from, win_to, categories_to_embed, Name2Id, Orig2Code, Orig2Name, Orig2ShrunkCode, model)
 };
 
 
@@ -209,6 +210,10 @@ public:
 
 	// printing object to string
 	string print_to_string(int verbosity);
+
+	// minimizing size of shrunk categorials for smaller scheme files
+	// if this is run before serialization one will only be able to create the shrunk version (which is what is needed...)
+	int minimize() { for (auto &es : embed_sigs) es.minimize(); return 0; }
 
 	ADD_CLASS_NAME(EmbedMatCreator)
 	ADD_SERIALIZATION_FUNCS(sigs_to_load, rep_time_unit, win_time_unit, byear_time_unit, embed_sigs)

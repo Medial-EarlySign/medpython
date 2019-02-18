@@ -85,7 +85,7 @@ int MedSparseMat::write_to_files(string mat_file, string meta_file, string dict_
 		}
 		mat_f.close();
 
-		write_to_bin_file(mat_file+"_bin");
+		//write_to_bin_file(mat_file+"_bin");
 	}
 
 	// writing meta file

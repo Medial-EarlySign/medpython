@@ -16,7 +16,7 @@ using namespace std;
 EmbeddedCodeType EmbeddingSig::type_name_to_code(string name)
 {
 	if (name == "categ" || name == "categorial") return ECTYPE_CATEGORIAL;
-	if (name == "cont" || name == "contiuous") return ECTYPE_CONTINUOUS;
+	if (name == "cont" || name == "continuous") return ECTYPE_CONTINUOUS;
 	if (name == "age" || name == "AGE" || name == "Age") return ECTYPE_AGE;
 	if (name == "dummy" || name == "DUMMY") return ECTYPE_DUMMY;
 	if (name == "model" || name == "Model") return ECTYPE_MODEL;
@@ -72,8 +72,13 @@ int EmbeddingSig::init(map<string, string>& _map)
 			// example categories=list:drug_codes : will create categories of all the sets that are in the file drug_codes
 			// here we see them as a comma separated list 
 			vector<string> f;
+			unordered_set<string> s;
 			boost::split(f, entry.second, boost::is_any_of(","));
-			categories_to_embed.insert(f.begin(), f.end());
+			categories_to_embed.clear();
+			for (auto &fs : f) {
+				if (!s.count(fs))
+					categories_to_embed.push_back(fs);
+			}
 		}
 
 	}
@@ -86,7 +91,9 @@ int EmbeddingSig::init(map<string, string>& _map)
 int EmbeddingSig::get_categ_orig(int val, vector<int> &members)
 {
 	if (sig_members2sets_in_range.find(val) == sig_members2sets_in_range.end()) return 0;
-	for (auto j : sig_members2sets_in_range[val]) members.push_back(categ_convert[j]);
+	for (auto j : sig_members2sets_in_range[val]) {
+		members.push_back(categ_convert[j]);
+	}
 	return 0;
 }
 
@@ -94,7 +101,7 @@ int EmbeddingSig::get_categ_orig(int val, vector<int> &members)
 // given a categorial val : return all the codes it adds before shrinkage
 int EmbeddingSig::get_categ_codes(int val, vector<int> &codes, int use_shrink)
 {
-	if (use_shrink) get_categ_shrunk_codes(val, codes);
+	if (use_shrink || Orig2Code.size() == 0) return get_categ_shrunk_codes(val, codes);
 	vector<int> members;
 	get_categ_orig(val, members);
 	for (auto i : members)	if (Orig2Code.find(i) != Orig2Code.end()) codes.push_back(Orig2Code[i]);
@@ -154,25 +161,32 @@ string EmbeddingSig::print_to_string(int verbosity)
 	buffer << "Sig: " << sig << " type: " << type << "\n";
 	buffer << "add_hierarchy: " << add_hierarchy << " do_shrink: " << do_shrink << " channels: " << time_chan << "(t) " << val_chan << "(v)\n";
 
-	buffer << "categories: size " << categories_to_embed.size() << "\n";
-	// ranges
-	buffer << "Ranges : (" << ranges.size() << ") :\n";
-	for (int j=0; j<ranges.size(); j++)
-		buffer << "[" << j << "] : " << ranges[j][0] << " - " << ranges[j][1] << "\n";
+	buffer << "sizes: categories " << categories_to_embed.size() << " Name2Id " << Name2Id.size() <<
+			" Orig2Code " << Orig2Code.size() << " Orig2Name " << Orig2Name.size() << " Orig2ShrunkCode " << Orig2ShrunkCode.size() << "\n";
 
-	// Orig2Code, Orig2Name , Orig2ShrunkCode
-	buffer << "Codes: (" << Orig2Code.size() << ") :\n";
-	for (auto &e : Orig2Code) {
-		int i = e.first;
-		buffer << "[" << i << "] code " << Orig2Code[i]; 
-		if (Orig2ShrunkCode.find(i) != Orig2ShrunkCode.end()) buffer << " shrunk " << Orig2ShrunkCode[i];
-		else buffer << " shrunk ---";
-		if (Orig2Name.find(i) != Orig2Name.end()) buffer << " name " << Orig2Name[i];
-		else buffer << " name __NO_NAME__";
-		buffer << "\n";
-
+	if (verbosity > 0) {
+		// ranges
+		buffer << "Ranges : (" << ranges.size() << ") :\n";
+		for (int j = 0; j < ranges.size(); j++)
+			buffer << "[" << j << "] : " << ranges[j][0] << " - " << ranges[j][1] << "\n";
 	}
 
+	if (verbosity > 1) {
+		// Orig2Code, Orig2Name , Orig2ShrunkCode
+		buffer << "Codes: (" << Orig2Code.size() << ") :\n";
+
+
+		for (auto &e : Orig2Code) {
+			int i = e.first;
+			buffer << "[" << i << "] code " << Orig2Code[i];
+			if (Orig2ShrunkCode.find(i) != Orig2ShrunkCode.end()) buffer << " shrunk " << Orig2ShrunkCode[i];
+			else buffer << " shrunk ---";
+			if (Orig2Name.find(i) != Orig2Name.end()) buffer << " name " << Orig2Name[i];
+			else buffer << " name __NO_NAME__";
+			buffer << "\n";
+
+		}
+	}
 	return buffer.str();
 }
 
@@ -189,7 +203,7 @@ int EmbeddingSig::init_dummy()
 //---------------------------------------------------------------------------------------------------------------------------
 int EmbeddingSig::init_continous(int &curr_code)
 {
-	if (type != ECTYPE_CATEGORIAL && type != ECTYPE_AGE) return 0;
+	if (type != ECTYPE_CONTINUOUS && type != ECTYPE_AGE) return 0;
 	MLOG("ES:init_continous : age/continous sig %s\n", sig.c_str());
 	int c = 0;
 	for (auto &r : ranges) {
@@ -213,12 +227,12 @@ int EmbeddingSig::init_categorial_tables(MedDictionarySections &dict)
 			Name2Id[c] = dict.dicts[section_id].Name2Id[c];
 	}
 
-	vector<int> categ_convert(dict.dicts[section_id].Id2Name.rbegin()->first + 1, -1);
+	categ_convert.clear();
+	categ_convert.resize(dict.dicts[section_id].Id2Name.rbegin()->first + 1, -1);
 
 	for (auto &c : categories_to_embed) {
 		categ_convert[dict.dicts[section_id].Name2Id[c]] = Name2Id[c];
 	}
-
 	// init sig_members2sets according to the right add_hierarchy option
 	if (add_hierarchy == 0) {
 		// in this case each category will only affect its own
@@ -252,6 +266,7 @@ int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
 	
 	MLOG("ES:init_categorial : model categorial sig %s\n", sig.c_str());
 
+	init_categorial_tables(dict);
 	int section_id = dict.section_id(sig);
 	// get Orig2Code, Orig2name
 	for (auto &c : categories_to_embed) {
@@ -347,9 +362,15 @@ int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int 
 
 	else if (type == ECTYPE_CONTINUOUS) {
 
-		for (int j = 0; j<usv.len; j++) {
-			int i_time = usv.Time(j, time_chan);
-			if (i_time > from_time && i_time <= to_time)
+		if (usv.n_time_channels() > 0) {
+			for (int j = 0; j < usv.len; j++) {
+				int i_time = usv.Time(j, time_chan);
+				if (i_time > from_time && i_time <= to_time)
+					codes.push_back(get_continuous_codes(usv.Val(j, val_chan), use_shrink));
+			}
+		}
+		else {
+			for (int j = 0; j < usv.len; j++)
 				codes.push_back(get_continuous_codes(usv.Val(j, val_chan), use_shrink));
 		}
 	}
@@ -367,6 +388,53 @@ int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int 
 	return 0;
 }
 
+
+// after minimization, it is impossibe to get the non shrunk version again.
+int EmbeddingSig::minimize()
+{
+	if (type != ECTYPE_CATEGORIAL) return 0;
+
+	if (do_shrink == 0 || Orig2ShrunkCode.size() == 0) return 0;
+
+	// we only need to keep strings and codes which were left in Orig2ShrunkCode
+	unordered_set<int> shrunk;
+	unordered_set<string> shrunk_s;
+	for (auto &e : Orig2ShrunkCode) {
+		if (e.second >= 0) {
+			int i = e.first;
+			shrunk.insert(i);
+		}
+	}
+
+	for (auto &e : Name2Id) {
+		if (shrunk.count(e.second))
+			shrunk_s.insert(e.first);
+	}
+
+	vector<int> to_delete;
+	vector<string> to_delete_s;
+
+	for (auto &e : Orig2Code)	if (shrunk.count(e.first) == 0) to_delete.push_back(e.first);
+	for (auto &e : Name2Id)	if (shrunk_s.count(e.first) == 0) to_delete_s.push_back(e.first);
+
+	for (auto i : to_delete) {
+		Orig2Code.erase(i);
+		Orig2Name.erase(i);
+	}
+
+	for (auto &s : to_delete_s) {
+		Name2Id.erase(s);
+	}
+
+	vector<string> new_categs;
+	for (auto &s : categories_to_embed) {
+		if (shrunk_s.count(s))
+			new_categs.push_back(s);
+	}
+
+	categories_to_embed = new_categs;
+	return 0;
+}
 
 //=====================================================================================
 // EmbedMatsCreator
@@ -390,6 +458,7 @@ int EmbedMatCreator::init(map<string, string>& _map)
 			boost::split(f, entry.second, boost::is_any_of("|"));
 			for (auto &s : f) {
 				EmbeddingSig es;
+				MLOG("Init es with : %s\n", s.c_str());
 				es.init_from_string(s);
 				embed_sigs.push_back(es);
 			}
@@ -667,6 +736,7 @@ int EmbedMatCreator::get_shrinked_dictionary(MedSparseMat &smat, float min_p, fl
 			for (auto &e : es.Orig2Code) {
 				int j = e.second;
 				float p = (float)code2count[j]/(float)nlines;
+				//MLOG("==> orig %d code %d name %s : j %d : count %d / %d : p %f (%f-%f)\n", e.first, e.second, es.Orig2Name[e.first].c_str(), j, code2count[j], nlines, p, min_p, max_p);
 				if (p>=min_p && p<=max_p) {
 					es.Orig2ShrunkCode[e.first] = curr_code++;
 				}
@@ -722,6 +792,7 @@ int EmbedMatCreator::write_dict_to_file(string fname, int only_shrink)
 {
 	ofstream dict_f;
 
+	MLOG("Writing dictionary file %s\n", fname.c_str());
 	dict_f.open(fname);
 
 	if (!dict_f.is_open()) {
@@ -747,6 +818,8 @@ int EmbedMatCreator::write_dict_to_file(string fname, int only_shrink)
 			}
 		}
 	}
+
+	dict_f.close();
 
 	return 0;
 }
@@ -821,7 +894,12 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>
 #pragma omp critical
 		{
 			n++;
-			if (n % 10000 == 0) MLOG("Generated %d lines\n", n);
+			if (n % 10000 == 0) {
+				if (n % 100000 == 0)
+					MLOG("Generated %d lines\n", n);
+				else
+					MLOG(".");
+			}
 		}
 
 	}
@@ -839,7 +917,7 @@ string EmbedMatCreator::print_to_string(int verbosity)
 	for (auto &s : sigs_to_load)
 		sout += s + ",";
 	sout += "\n";
-	sout += "embed_sigs: " + to_string(embed_sigs.size());
+	sout += "embed_sigs: " + to_string(embed_sigs.size()) + "\n";
 	for (auto &es : embed_sigs) {
 		sout += es.print_to_string(verbosity);
 	}
