@@ -50,6 +50,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("data_api_test", "split to a test of data api")
 			("pid", po::value<int>()->default_value(5000100), "test data_api for this pid, use --data_api_test option")
 			("sig", po::value<string>()->default_value("Creatinine"), "test data_api for this signal, use --data_api_test option")
+			("direct_csv", po::value<string>()->default_value(""), "output matrix of the direct run (not via AM)")
+			("am_csv", po::value<string>()->default_value(""), "output matrix of the run via AM")
 
 			("kp_test", "split to a dedicated test for kp data")
 			("kp_demographic", po::value<string>()->default_value(""), "demographic for --kp_test option: each line: <pid> <byear> <F/M>")
@@ -1034,18 +1036,8 @@ int main(int argc, char *argv[])
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
 
-#if 0
-
-	//MLOG("SIGNALS IN REP ===========> :: \n");
-	//vector<string> print_sigs ={ "Drug" };
-	//for (int i=0; i<pids.size(); i++) {
-	//	for (int j=0; j< print_sigs.size(); j++)
-	//		rep.print_data_vec(pids[i], print_sigs[j]);
-	//}
-
-	model.write_feature_matrix("direct.csv");
-
-#endif
+	if (vm["direct_csv"].as<string>() != "")
+		model.write_feature_matrix("direct.csv");
 
 
 	// printing
@@ -1068,6 +1060,11 @@ int main(int argc, char *argv[])
 	}
 
 	MLOG("Name is %s\n", test_am->get_name());
+
+	if (vm["am_csv"].as<string>() != "") {
+		MedialInfraAlgoMarker *m_am = (MedialInfraAlgoMarker *)test_am;
+		m_am->set_am_matrix(vm["am_csv"].as<string>());
+	}
 
 	if ((rc = AM_API_Load(test_am, vm["amconfig"].as<string>().c_str())) != AM_OK_RC) {
 		MERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), vm["amconfig"].as<string>().c_str(), rc);

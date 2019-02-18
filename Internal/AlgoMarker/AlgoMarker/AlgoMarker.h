@@ -298,6 +298,7 @@ private:
 	//vector<string> supported_score_types ={ "Raw" };
 
 	int sort_needed = 1; // in some debug cases we ommit the sort od data at the end of loading to do that this needs to be 0
+	string am_matrix = ""; // for debugging : if not empty will write matrix to given file name
 
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
@@ -309,6 +310,7 @@ public:
 	int Calculate(AMRequest *request, AMResponses *responses);
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
+	void set_am_matrix(string s) { am_matrix = s;  }
 };
 
 //===============================================================================

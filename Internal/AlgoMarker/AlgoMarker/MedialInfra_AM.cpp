@@ -236,7 +236,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		return AM_FAIL_RC;
 	}
 
-	// ma.write_features_mat("am.csv"); // debug only
+	if (am_matrix != "")
+		ma.write_features_mat(am_matrix); // debug only
 
 	// going over scores, and adding them to the right responses
 	char **_score_types;
