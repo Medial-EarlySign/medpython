@@ -377,7 +377,7 @@ public:
 //.......................................................................................
 class confRecord : public SerializableObject {
 public:
-	float logicalLow, logicalHigh, confirmedLow, confirmedHigh;
+	double logicalLow, logicalHigh, confirmedLow, confirmedHigh;
 	string distLow, distHigh; //"none" "norm" or "log" 
 	int val_channel = 0;
 	ADD_CLASS_NAME(confRecord)

@@ -928,14 +928,14 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 			MTHROW_AND_ERR("Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 		}
 
-		thisRecord.confirmedLow = thisRecord.logicalLow = (float)atof(f[1].c_str());
-		thisRecord.confirmedHigh = thisRecord.logicalHigh = (float)atof(f[2].c_str());
+		thisRecord.confirmedLow = thisRecord.logicalLow = atof(f[1].c_str());
+		thisRecord.confirmedHigh = thisRecord.logicalHigh = atof(f[2].c_str());
 
 		thisRecord.distLow = f[4];
 		thisRecord.distHigh = f[6];
 		thisRecord.val_channel = stoi(f[7]);
-		if (thisRecord.distLow != "none")thisRecord.confirmedLow = (float)atof(f[3].c_str());
-		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = (float)atof(f[5].c_str());
+		if (thisRecord.distLow != "none")thisRecord.confirmedLow = atof(f[3].c_str());
+		if (thisRecord.distHigh != "none")thisRecord.confirmedHigh = atof(f[5].c_str());
 		string sigName = f[0];
 		if (thisRecord.val_channel > 0)
 			sigName += "_ch_" + to_string(thisRecord.val_channel);
