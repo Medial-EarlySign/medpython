@@ -19,6 +19,8 @@ public:
 	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
+	bool bound_outcomeTime = false;
+
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
@@ -59,7 +61,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(DrugIntakeGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights, timeRangeSignalName, timeRangeType)
+	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights, timeRangeSignalName, timeRangeType , bound_outcomeTime)
 };
 
 MEDSERIALIZE_SUPPORT(DrugIntakeGenerator);

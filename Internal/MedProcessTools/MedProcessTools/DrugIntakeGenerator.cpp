@@ -66,7 +66,8 @@ int DrugIntakeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, in
 	float *p_feat = iGenerateWeights ? &(features.weights[index]) : &(features.data[name][index]);
 	for (int i = 0; i < num; i++) {
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].time),
-			med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].outcomeTime));
+			bound_outcomeTime ?
+			med_time_converter.convert_times(features.time_unit, time_unit_win, features.samples[index + i].outcomeTime) : -1);
 	}
 
 	return 0;
@@ -90,8 +91,10 @@ float DrugIntakeGenerator::get_value(PidDynamicRec &rec, int idx, int time, int 
 
 	int min_time = time - updated_win_to;
 	int max_time = time - updated_win_from;
-	if (sig_outcomeTime < max_time)
+	if (bound_outcomeTime && sig_outcomeTime < max_time)
 		max_time = sig_outcomeTime;
+
+	//MLOG("rugIntakeGenerator::get_value -> pid %d time %d min_time %d max_time %d sig_outcomeTime %d\n", rec.pid, time, min_time, max_time, sig_outcomeTime);
 
 	if (max_time < min_time)
 		return MED_MAT_MISSING_VALUE;
@@ -169,6 +172,7 @@ int DrugIntakeGenerator::init(map<string, string>& mapper) {
 		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field == "time_range_signal") timeRangeSignalName = entry.second;
 		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
+		else if (field == "bound_outcomeTime") bound_outcomeTime = stoi(entry.second) > 0;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for DrugIntakeGenerator\n", field.c_str());
 		//! [DrugIntakeGenerator::init]
