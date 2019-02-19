@@ -1073,6 +1073,15 @@ double medial::stats::kaplan_meir_on_samples(const vector<MedSample> &incidence_
 		}
 		//reset kaplan meir - flash last time prob
 
+		if (curr_total_ctrls == cases) {
+			MWARN("Warning medial::stats::kaplan_meir_on_samples for %d period, in time %d left with %d controls."
+				" prob till here %2.4f%% => all controls changed to cases in next period, so stopped here\n",
+				time_period, sorted_times[sort_ind], (int)curr_total_ctrls, 100 * (1 - prob));
+			break;
+		}
+		if (curr_total_ctrls < 50)
+			MWARN("Warning medial::stats::kaplan_meir_on_samples for %d period, in time %d left with %d controls. prob till here %2.4f%%\n",
+				time_period, sorted_times[sort_ind], (int)curr_total_ctrls, 100 * (1 - prob));
 		if (curr_total_ctrls > 0 && cases > 0)
 			prob *= (curr_total_ctrls - cases) / curr_total_ctrls;
 		//MLOG_D("Current Time= %d, total_controls=%d [controls=%d, cases=%d], curr_prob=%2.3f%%\n",
