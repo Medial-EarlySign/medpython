@@ -26,6 +26,8 @@ extern MedLogger global_logger;
 using namespace boost;
 using namespace std;
 
+mutex lock_dict_changes;
+
 //-----------------------------------------------------------------------------------------------
 int MedDictionary::read(vector<string> &dfnames)
 {
@@ -369,11 +371,19 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 		int myid = id(name);
 		if (myid >= 0)
 			sig_ids.push_back(myid);
-		else
+		else {
+			MERR("ERROR in section %d : ", dict_id);
+			for (auto s : section_name) MERR("%s,", s.c_str());
+			MERR("\n");
 			MTHROW_AND_ERR("prep_sets_lookup_table() : Found bad name [%s] :: not found in dictionary()\n", name.c_str());
+		}
 	}
 
-	int max_id = Id2Name.rbegin()->first;
+	int max_id = 1;
+	if (Id2Name.size() > 0)
+		max_id = Id2Name.rbegin()->first;
+	else
+		MTHROW_AND_ERR("prep_sets_lookup_table() : Got an empty Id2Name...\n");
 
 	lut.clear();
 	lut.resize(max_id + 1, (char)0);
@@ -416,8 +426,12 @@ int MedDictionary::prep_sets_indexed_lookup_table(const vector<string> &set_name
 		int myid = id(name);
 		if (myid > 0)
 			sig_ids.push_back(myid);
-		else
-			MERR("prep_sets_lookup_table() : Found bad name %s :: not found in dictionary()\n", name.c_str());
+		else {
+			MERR("ERROR in section %d : ", dict_id);
+			for (auto s : section_name) MERR("%s,", s.c_str());
+			MERR("\n");
+			MTHROW_AND_ERR("prep_sets_indexed_lookup_table() : Found bad name %s :: not found in dictionary()\n", name.c_str());
+		}
 	}
 
 	int max_id = Id2Name.rbegin()->first;
@@ -453,6 +467,17 @@ int MedDictionary::prep_sets_indexed_lookup_table(const vector<string> &set_name
 	}
 	return 0;
 }
+
+
+//-----------------------------------------------------------------------------------------------
+void MedDictionary::push_new_def(string name, int id)
+{ 
+	lock_guard<mutex> guard(lock_dict_changes);
+	Name2Id[name] = id;
+	Id2Name[id] = name; 
+	Id2Names[id].push_back(name); 
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------------------------
@@ -516,6 +541,11 @@ int MedDictionarySections::read(const string &fname)
 
 	int section_id = SectionName2Id[snames[0]];
 	section_fnames[section_id].push_back(fname);
+
+	dicts[section_id].dict_id = section_id;
+	for (auto s : snames)
+		dicts[section_id].section_name.insert(s);
+
 	return (dicts[section_id].read(fname));
 }
 
@@ -544,4 +574,20 @@ int MedDictionarySections::read(string path, vector<string> &dfnames)
 		}
 	}
 	return rc;
+}
+
+//------------------------------------------------------------------------------------------------------
+void MedDictionarySections::add_section(string new_section_name) 
+{ 
+	lock_guard<mutex> guard(lock_dict_changes);
+	MedDictionary dummy;
+	dicts.push_back(dummy); 
+	SectionName2Id[new_section_name] = (int)dicts.size() - 1; 
+}
+
+//------------------------------------------------------------------------------------------------------
+void MedDictionarySections::connect_to_section(string new_section_name, int section_id) 
+{ 
+	lock_guard<mutex> guard(lock_dict_changes);
+	SectionName2Id[new_section_name] = section_id;
 }

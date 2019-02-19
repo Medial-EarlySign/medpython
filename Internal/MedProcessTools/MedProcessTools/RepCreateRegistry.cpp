@@ -562,8 +562,10 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		for (int i = 0; i < drug_usv.len; i++) {
 			int i_time = drug_usv.Time(i);
 			if (time > 0 && time < i_time) break;
-			float i_val = drug_usv.Val(i);
-			if (dm_drug_lut[(int)i_val]) {
+			int i_val = (int)drug_usv.Val(i);
+			if (i_val < 0 || i_val > dm_drug_lut.size())
+				MTHROW_AND_ERR("ERROR in dm Registry drug_idx : got i_val %d while lut size is %d\n", i_val, (int)dm_drug_lut.size());
+			if (dm_drug_lut.size()>0 && dm_drug_lut[i_val]) {
 				int severity = 4; // currently the first diabetic drug usage makes you diabetic for life.... this is extreme, but given this, we only need the first.
 				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DRUG, 1, severity)); 
 				break;
@@ -580,8 +582,10 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		for (int i = 0; i < diag_usv.len; i++) {
 			int i_time = diag_usv.Time(i);
 			if (time > 0 && time < i_time) break;
-			float i_val = diag_usv.Val(i);
-			if (dm_diagnoses_lut[(int)i_val]) {
+			int i_val = (int)diag_usv.Val(i);
+			if (i_val < 0 || i_val > dm_diagnoses_lut.size())
+				MTHROW_AND_ERR("ERROR in dm Registry diagnoses_idx : got i_val %d while lut size is %d\n", i_val, (int)dm_diagnoses_lut.size());
+			if (dm_diagnoses_lut.size()>0 && dm_diagnoses_lut[i_val]) {
 				int severity = dm_diagnoses_severity; 
 				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DIAGNOSES, 1, severity));
 				if (dm_diagnoses_severity >= 4) break;
