@@ -17,7 +17,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllAPITester", "DllAPITeste
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DynAMWrapper", "DynAMWrapper\DynAMWrapper.vcxproj", "{34778A51-2BC1-446D-B6FD-5629499C74B9}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AMApiTester", "H:\MR\Libs\Internal\AlgoMarker\AMApiTester\AMApiTester.vcxproj", "{797CE595-DDDD-4E14-8C76-53C49456C2D6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AMApiTester", "AMApiTester\AMApiTester.vcxproj", "{797CE595-DDDD-4E14-8C76-53C49456C2D6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
