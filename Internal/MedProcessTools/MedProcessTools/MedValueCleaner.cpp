@@ -184,19 +184,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "trim_range_min") params.trim_range_min = med_stof(entry.second);
 		else if (field == "trim_range_max") params.trim_range_max = med_stof(entry.second);
 		else if (field == "max_samples") params.max_samples = med_stoi(entry.second);
-
-		// next are in ignore ... used in level above
-		else if (field != "signal" && field != "time_unit" && field != "time_channel" && field != "fp_type" &&
-			field != "val_channel" && field != "nbr_time_unit" && field != "nbr_time_width" && field != "rp_type" && field != "tag"&&
-			field != "conf_file"&& field != "clean_method"&& field != "signals"&&
-			field != "addRequiredSignals"&&field != "consideredRules" && 
-			field != "nrem_attr" && field != "ntrim_attr" && field != "nrem_suff" && field != "ntrim_suff")
-			MLOG("Unknonw parameter \'%s\' for MedValueCleaner\n", field.c_str());
-		else if (field == "rp_type") {}
-		else if (field == "signal") {}
-		else if (field == "unconditional") {}
-		else if (field == "fp_type") {}
-		else MWARN("Warn Unknown param \"%s\"\n", field.c_str());
+		else MWARN("MedValueCleaner:: Warn Unknown param \"%s\"\n", field.c_str());
 		//! [MedValueCleaner::init]
 
 	}
