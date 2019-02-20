@@ -703,7 +703,9 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 
 	init_lists();
 	map<string, string>& mapper_p = mapper;
-	vector<string> remove_fl = { "verbose_file" , "rp_type", "unconditional", "signal", "time_channel", "val_channel", "nrem_attr", "ntrim_attr", "nrem_suff", "ntrim_suff"};
+	vector<string> remove_fl = { "verbose_file" ,"fp_type", "rp_type", "unconditional", "signal", "time_channel", "val_channel", "nrem_attr", "ntrim_attr", "nrem_suff", 
+		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals", "addRequiredSignals", "consideredRules"};
+
 	for (const string &fl : remove_fl)
 		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
