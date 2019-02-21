@@ -130,23 +130,30 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 }
 
 int MedSamplingYearly::init(map<string, string>& map) {
+	int prediction_month_day = 101;
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
-		if (it->first == "start_year") {
-			start_year = stoi(it->second);
-			if (start_year <= 1900 || start_year >= 2100)
+		if (it->first == "start_year" || it->first == "start_time") {
+			start_time = stoi(it->second);
+			if (start_time <= 1900 || start_time >= 2100)
 				MTHROW_AND_ERR("start_year must be initialize between 1900 to 2100\n");
+			start_time = start_time * 10000; //convert to DATE format
 		}
-		else if (it->first == "end_year") {
-			end_year = stoi(it->second);
-			if (end_year <= 1900 || end_year >= 2100)
+		else if (it->first == "end_year" || it->first == "end_time") {
+			end_time = stoi(it->second);
+			if (end_time <= 1900 || end_time >= 2100)
 				MTHROW_AND_ERR("end_year must be initialize between 1900 to 2100\n");
+			end_time = end_time * 10000; //convert to DATE format
 		}
-		else if (it->first == "day_jump") {
-			day_jump = stoi(it->second);
-			if (day_jump <= 0)
+		else if (it->first == "day_jump" || it->first == "time_jump") {
+			time_jump = stoi(it->second);
+			if (time_jump <= 0)
 				MTHROW_AND_ERR("day_jump must be positive > 0\n");
 		}
+		else if (it->first == "time_jump_unit")
+			time_jump_unit = med_time_converter.string_to_type(it->second);
+		else if (it->first == "time_range_unit")
+			time_range_unit = med_time_converter.string_to_type(it->second);
 		else if (it->first == "prediction_month_day")
 			prediction_month_day = stoi(it->second);
 		else if (it->first == "back_random_duration")
@@ -159,38 +166,9 @@ int MedSamplingYearly::init(map<string, string>& map) {
 		MTHROW_AND_ERR("prediction_month_day must be positive >= 100 <=1231\n");
 	if (back_random_duration < 0)
 		MTHROW_AND_ERR("back_random_duration must be positive\n");
+
+	start_time += prediction_month_day;
 	return 0;
-}
-
-void MedSamplingYearly::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
-	unordered_map<int, vector<int>> &pid_options) const {
-	if (day_jump <= 0)
-		MTHROW_AND_ERR("day_jump must be positive > 0\n");
-	if (end_year <= 1900 || end_year >= 2100 || start_year <= 1900 || start_year >= 2100)
-		MTHROW_AND_ERR("start_year,end_year must be initialize between 1900 to 2100\n");
-	random_device rd;
-	mt19937 gen(rd());
-	int random_back_dur = 1;
-	bool use_random = back_random_duration > 0;
-	if (use_random)
-		random_back_dur = back_random_duration;
-	uniform_int_distribution<> rand_int(0, random_back_dur);
-
-	for (auto it = pid_time_ranges.begin(); it != pid_time_ranges.end(); ++it)
-	{
-		int min_date = start_year;
-		int max_date = end_year;
-		long start_date = min_date * 10000 + prediction_month_day;
-		long end_date = max_date * 10000 + prediction_month_day;
-
-		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, day_jump)) {
-			//search for match in all regs:
-			int pred_date = date;
-			if (use_random)
-				pred_date = medial::repository::DateAdd(pred_date, -rand_int(gen));
-			pid_options[it->first].push_back(pred_date);
-		}
-	}
 }
 
 int MedSamplingAge::init(map<string, string>& map) {
@@ -350,6 +328,10 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 			if (time_jump <= 0)
 				MTHROW_AND_ERR("time_jump must be positive > 0\n");
 		}
+		else if (it->first == "time_jump_unit")
+			time_jump_unit = med_time_converter.string_to_type(it->second);
+		else if (it->first == "time_range_unit")
+			time_range_unit = med_time_converter.string_to_type(it->second);
 		else if (it->first == "back_random_duration")
 			back_random_duration = stoi(it->second);
 		else
@@ -359,6 +341,11 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 		MTHROW_AND_ERR("back_random_duration must be positive\n");
 
 	return 0;
+}
+
+int MedSamplingFixedTime::add_time(int time, int add) const {
+	int conv = med_time_converter.convert_times(time_range_unit, time, time_jump_unit) + add;
+	return med_time_converter.convert_times(conv, time_jump_unit, time_range_unit);
 }
 
 void MedSamplingFixedTime::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
@@ -396,11 +383,11 @@ void MedSamplingFixedTime::_get_sampling_options(const unordered_map<int, vector
 					end_date = pid_dates[i].second;
 		}
 
-		for (long date = start_date; date <= end_date; date = medial::repository::DateAdd(date, time_jump)) {
+		for (long date = start_date; date <= end_date; date = add_time(date, time_jump)) {
 			//search for match in all regs:
 			int pred_date = date;
 			if (use_random)
-				pred_date = medial::repository::DateAdd(pred_date, -rand_int(gen));
+				pred_date = add_time(pred_date, -rand_int(gen));
 			pid_options[pid].push_back(pred_date);
 		}
 	}

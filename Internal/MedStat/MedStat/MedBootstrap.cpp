@@ -405,7 +405,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 		unordered_set<int> all_times;
 		pair<int, int> time_res = *it;
 		MLOG("Running Incidence calc for time Res %d to %d\n", time_res.first, time_res.second);
-		sampler_year->day_jump = time_res.second - time_res.first;
+		sampler_year->time_jump = time_res.second - time_res.first;
 		LabelParams lbl_params = args.labeling_params;
 		lbl_params.time_from = time_res.first;
 		lbl_params.time_to = time_res.second;
