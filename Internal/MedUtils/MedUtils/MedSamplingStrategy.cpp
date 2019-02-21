@@ -133,18 +133,22 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	int prediction_month_day = 101;
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
-		if (it->first == "start_year" || it->first == "start_time") {
+		if (it->first == "start_year" || it->first == "from_year") {
 			start_time = stoi(it->second);
 			if (start_time <= 1900 || start_time >= 2100)
 				MTHROW_AND_ERR("start_year must be initialize between 1900 to 2100\n");
 			start_time = start_time * 10000; //convert to DATE format
 		}
-		else if (it->first == "end_year" || it->first == "end_time") {
+		else if (it->first == "start_time")
+			start_time = stoi(it->second);
+		else if (it->first == "end_year" || it->first == "to_year") {
 			end_time = stoi(it->second);
 			if (end_time <= 1900 || end_time >= 2100)
 				MTHROW_AND_ERR("end_year must be initialize between 1900 to 2100\n");
 			end_time = end_time * 10000; //convert to DATE format
 		}
+		else if (it->first == "end_time")
+			end_time = stoi(it->second);
 		else if (it->first == "day_jump" || it->first == "time_jump") {
 			time_jump = stoi(it->second);
 			if (time_jump <= 0)
@@ -344,8 +348,8 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 }
 
 int MedSamplingFixedTime::add_time(int time, int add) const {
-	int conv = med_time_converter.convert_times(time_range_unit, time, time_jump_unit) + add;
-	return med_time_converter.convert_times(conv, time_jump_unit, time_range_unit);
+	int conv = med_time_converter.convert_times(time_range_unit, time_jump_unit, time) + add;
+	return med_time_converter.convert_times(time_jump_unit, time_range_unit, conv);
 }
 
 void MedSamplingFixedTime::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
