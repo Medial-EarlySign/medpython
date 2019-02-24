@@ -430,10 +430,10 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 
 // Set signal-ids for all linked signals
 //.......................................................................................
-void RepMultiProcessor::set_signal_ids(MedDictionarySections& dict) {
+void RepMultiProcessor::set_signal_ids(MedSignals& sigs) {
 
 	for (auto& processor : processors)
-		processor->set_signal_ids(dict);
+		processor->set_signal_ids(sigs);
 
 }
 
@@ -995,8 +995,8 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 	return MedValueCleaner::init(mapper_p);
 }
 
-void RepConfiguredOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
-	RepBasicOutlierCleaner::set_signal_ids(dict); //call base class init
+void RepConfiguredOutlierCleaner::set_signal_ids(MedSignals& sigs) {
+	RepBasicOutlierCleaner::set_signal_ids(sigs); //call base class init
 	//fetch val_channel from file
 	val_channel = outlierParam.val_channel;
 }
@@ -1269,11 +1269,11 @@ void RepRuleBasedOutlierCleaner::init_attributes() {
 	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
 }
 
-void RepRuleBasedOutlierCleaner::set_signal_ids(MedDictionarySections& dict) {
-	for (const auto &reqSig : req_signals)reqSignalIds.insert(dict.id(reqSig));
-	for (const auto &affSig : aff_signals)affSignalIds.insert(dict.id(affSig));
+void RepRuleBasedOutlierCleaner::set_signal_ids(MedSignals& sigs) {
+	for (const auto &reqSig : req_signals)reqSignalIds.insert(sigs.sid(reqSig));
+	for (const auto &affSig : aff_signals)affSignalIds.insert(sigs.sid(affSig));
 	for (int affSig_id : affSignalIds)
-		affected_ids_to_name[affSig_id] = dict.name(affSig_id);
+		affected_ids_to_name[affSig_id] = sigs.name(affSig_id);
 	if (!verbose_file.empty() && !log_file.is_open()) {
 		log_file.open(verbose_file, ios::app);
 		if (!log_file.good())
@@ -1889,11 +1889,11 @@ int RepCheckReq::init(map<string, string>& mapper)
 }
 
 //.......................................................................................
-void RepCheckReq::set_signal_ids(MedDictionarySections& dict) {
+void RepCheckReq::set_signal_ids(MedSignals& sigs) {
 
 	signalIds.resize(signalNames.size());
 	for (int i = 0; i < signalNames.size(); i++)
-		signalIds[i] = (dict.id(signalNames[i]));
+		signalIds[i] = (sigs.sid(signalNames[i]));
 }
 
 //.......................................................................................

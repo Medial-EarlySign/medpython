@@ -95,13 +95,13 @@ void RepPanelCompleter::init_defaults() {
 
 //.......................................................................................
 // initialize signal ids
-void RepPanelCompleter::set_signal_ids(MedDictionarySections& dict) {
+void RepPanelCompleter::set_signal_ids(MedSignals& sigs) {
 
 	panel_signal_ids.resize(panel_signal_names.size());
 	for (int iPanel = 0; iPanel < panel_signal_ids.size(); iPanel++) {
 		panel_signal_ids[iPanel].resize(panel_signal_names[iPanel].size());
 		for (int iSig = 0; iSig < panel_signal_ids[iPanel].size(); iSig++) {
-			panel_signal_ids[iPanel][iSig] = dict.id(panel_signal_names[iPanel][iSig]);
+			panel_signal_ids[iPanel][iSig] = sigs.sid(panel_signal_names[iPanel][iSig]);
 			if (panel_signal_ids[iPanel][iSig] == -1)
 				MTHROW_AND_ERR("Cannot find signal-id for %s\n", panel_signal_names[iPanel][iSig].c_str());
 		}
@@ -109,39 +109,50 @@ void RepPanelCompleter::set_signal_ids(MedDictionarySections& dict) {
 
 	// EGFR Requires age and gender
 	if (panel_signal_names[REP_CMPLT_EGFR_PANEL].size()) {
-		genderId = dict.id(genderSignalName);
-		byearId = dict.id("BYEAR");
+		genderId = sigs.sid(genderSignalName);
+		byearId = sigs.sid("BYEAR");
 
 	}
+
+
+}
+
+
+//.......................................................................................
+void RepPanelCompleter::init_tables(MedDictionarySections &dict, MedSignals& sigs) 
+{
+	// TBD: Should be improved, this is way too specific 
+	
 	if (panel_signal_names[REP_CMPLT_GCS].size()) {
 		int section_id = dict.section_id(panel_signal_names[REP_CMPLT_GCS].back());
 		if (section_id < 0)
-			MTHROW_AND_ERR("unable to find GCS Section. search for %s signal\n",
-				panel_signal_names[REP_CMPLT_GCS].back().c_str());
+		MTHROW_AND_ERR("unable to find GCS Section. search for %s signal\n",
+		panel_signal_names[REP_CMPLT_GCS].back().c_str());
 		eye_vals = {
-			{ dict.id(section_id, "GCS_Eye:none") , 1 },
-			{ dict.id(section_id, "GCS_Eye:to_pain"), 2 },
-			{ dict.id(section_id, "GCS_Eye:to_speech"), 3 },
-			{ dict.id(section_id, "GCS_Eye:spontaneously"), 4 }
+		{ dict.id(section_id, "GCS_Eye:none") , 1 },
+		{ dict.id(section_id, "GCS_Eye:to_pain"), 2 },
+		{ dict.id(section_id, "GCS_Eye:to_speech"), 3 },
+		{ dict.id(section_id, "GCS_Eye:spontaneously"), 4 }
 		};
 		verbal_vals = {
-			{ dict.id(section_id, "GCS_Verbal:no_response"), 1 },
-			{ dict.id(section_id, "GCS_Verbal:no_response-ett"), 1 },
-			{ dict.id(section_id, "GCS_Verbal:incomprehensible_sounds"), 2 },
-			{ dict.id(section_id, "GCS_Verbal:inappropriate_words"), 3 },
-			{ dict.id(section_id, "GCS_Verbal:confused"), 4 },
-			{ dict.id(section_id, "GCS_Verbal:oriented"), 5 }
+		{ dict.id(section_id, "GCS_Verbal:no_response"), 1 },
+		{ dict.id(section_id, "GCS_Verbal:no_response-ett"), 1 },
+		{ dict.id(section_id, "GCS_Verbal:incomprehensible_sounds"), 2 },
+		{ dict.id(section_id, "GCS_Verbal:inappropriate_words"), 3 },
+		{ dict.id(section_id, "GCS_Verbal:confused"), 4 },
+		{ dict.id(section_id, "GCS_Verbal:oriented"), 5 }
 		};
 		motor_vals = {
-			{ dict.id(section_id, "GCS_Motor:no_response"), 1 },
-			{ dict.id(section_id, "GCS_Motor:abnormal_extension"), 2 },
-			{ dict.id(section_id, "GCS_Motor:abnormal_flexion"), 3 },
-			{ dict.id(section_id, "GCS_Motor:flex-withdraws"), 4 },
-			{ dict.id(section_id, "GCS_Motor:localizes_pain"), 5 },
-			{ dict.id(section_id, "GCS_Motor:obeys_commands"), 6 }
+		{ dict.id(section_id, "GCS_Motor:no_response"), 1 },
+		{ dict.id(section_id, "GCS_Motor:abnormal_extension"), 2 },
+		{ dict.id(section_id, "GCS_Motor:abnormal_flexion"), 3 },
+		{ dict.id(section_id, "GCS_Motor:flex-withdraws"), 4 },
+		{ dict.id(section_id, "GCS_Motor:localizes_pain"), 5 },
+		{ dict.id(section_id, "GCS_Motor:obeys_commands"), 6 }
 		};
 
 	}
+	
 }
 
 //.......................................................................................

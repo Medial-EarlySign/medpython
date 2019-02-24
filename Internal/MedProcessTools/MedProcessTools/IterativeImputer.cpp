@@ -578,7 +578,7 @@ bool FeatureIterativeImputer::are_features_affected(unordered_set<string>& out_r
 void FeatureIterativeImputer::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
 
 	if (are_features_affected(out_req_features))
-		// If active, than everything before is required
+		// If active, then everything before is required
 		in_req_features.clear();
 	else
 		// If not, do nothing

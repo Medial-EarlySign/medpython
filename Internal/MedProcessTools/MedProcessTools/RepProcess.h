@@ -94,7 +94,7 @@ public:
 	virtual void set_signal(const string& _signalName) { return; };
 
 	/// <summary> set signal-name :  Should be implemented for inheriting classes that have signalId  </summary>
-	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
+	virtual void set_signal_ids(MedSignals& sigs) { return; }
 
 	// Required Signals functions : get all signals that are required by the processor
 	/// <summary> Append required signal names to set : parent function just uses req_signals  </summary>
@@ -260,7 +260,7 @@ public:
 	bool filter(unordered_set<string>& reqSignals);
 
 	/// <summary> Set signal-ids for all linked signals </summary>
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs) { for (RepProcessor * proc : processors) { proc->init_tables(dict, sigs); } }
@@ -338,7 +338,7 @@ public:
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
-	virtual void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	virtual void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	/// <summary> Fill required- and affected-signals sets </summary>
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
@@ -420,7 +420,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	// Apply cleaning model -inheritted
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	/// Serialization
 	ADD_CLASS_NAME(RepConfiguredOutlierCleaner)
@@ -540,7 +540,7 @@ public:
 	void init_attributes();
 
 	///set signals
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	/// <summary> Init required tables : Should be implemented for inheriting classes that have such tables </summary>
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
@@ -615,7 +615,7 @@ public:
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	/// <summary> Fill required- and affected-signals sets </summary>
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
@@ -685,7 +685,7 @@ public:
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepSimValHandler::init
@@ -846,7 +846,10 @@ public:
 	int update_panels(string& panels);
 
 	// initialize signal ids
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
+
+	// dictionary based initializations
+	void init_tables(MedDictionarySections &dict, MedSignals& sigs);
 
 	/// Fill req- and aff-signals vectors
 	void init_lists();
@@ -1652,7 +1655,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	/// <summary> Set signal id </summary>
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	/// <summary> Fill req- and aff-signals vectors </summary>
 	void init_lists();
@@ -1693,7 +1696,7 @@ public:
 	void init_defaults() { processor_type = REP_PROCESS_HISTORY_LIMIT; }
 
 	// preparations
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	// learn - nothing to do
 	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor) { return 0; }

@@ -89,7 +89,7 @@ public:
 	void get_required_signal_ids(unordered_set<int>& signalIds);
 
 	// Signal Ids
-	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
+	virtual void set_signal_ids(MedSignals& sigs) { return; }
 
 	// Init required tables
 	virtual void init_tables(MedDictionarySections& dict) { return; }
@@ -317,7 +317,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int time, int outcomeTime);
 
 	/// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); timeRangeSignalId = dict.id(timeRangeSignalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); timeRangeSignalId = sigs.sid(timeRangeSignalName); }
 
 	/// Init required tables
 	void init_tables(MedDictionarySections& dict);
@@ -358,7 +358,7 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	// Serialization
 	ADD_CLASS_NAME(AgeGenerator)
@@ -402,7 +402,7 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
 
 	// Serialization
@@ -440,7 +440,7 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id("GENDER"); }
+	void set_signal_ids(MedSignals& sigs) { genderId = sigs.sid("GENDER"); }
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("GENDER")); }
 
 	// Serialization
@@ -528,7 +528,7 @@ public:
 	void get_p_data(MedFeatures& features, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	// Sampling strategy
 	void set_sampling_strategy(string& strategy);
@@ -636,7 +636,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int date);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 
 	// Serialization
@@ -834,7 +834,7 @@ public:
 	bool verbose; ///< in Learn will print selected features
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
 
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	void init_tables(MedDictionarySections& dict);
 

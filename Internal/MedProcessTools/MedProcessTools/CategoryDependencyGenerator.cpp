@@ -123,10 +123,10 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void CategoryDependencyGenerator::set_signal_ids(MedDictionarySections& dict) {
-	signalId = dict.id(signalName);
-	byear_sid = dict.id("BYEAR");
-	gender_sid = dict.id("GENDER");
+void CategoryDependencyGenerator::set_signal_ids(MedSignals& sigs) {
+	signalId = sigs.sid(signalName);
+	byear_sid = sigs.sid("BYEAR");
+	gender_sid = sigs.sid("GENDER");
 }
 
 void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {

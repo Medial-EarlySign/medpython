@@ -47,14 +47,14 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<DrugIntakeGenerator *>(generator)); }
 
 	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 	float get_value(PidDynamicRec &rec, int idx, int time, int sig_outcomeTime);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	// Init required tables
 	void init_tables(MedDictionarySections& dict);
