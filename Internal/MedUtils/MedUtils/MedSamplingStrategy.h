@@ -72,32 +72,6 @@ private:
 };
 
 /**
-* A Class which samples by year from year to year by jump and find match in registry.
-* suitble for incidence calculation
-*/
-class MedSamplingYearly : public MedSamplingStrategy {
-public:
-	int start_year; ///< The start year to sample from
-	int end_year; ///< The end year to sample from
-	int prediction_month_day; ///< the prediciton month_day in each year
-	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
-	int day_jump; ///< the years bin, how many years to jump backward from each prediciton date
-
-	///sample by year from year to year by jump and find match in registry
-	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
-
-	int init(map<string, string>& map);
-
-	MedSamplingYearly() {
-		prediction_month_day = 101; //deafult
-		back_random_duration = 0; //default
-		day_jump = 0;
-		start_year = 0;
-		end_year = 0;
-	}
-};
-
-/**
 * A Class which samples by age from age to age by jump and find match in registry.
 * suitble for incidence calculation
 */
@@ -146,11 +120,15 @@ public:
 * also suitble for incidence calculation
 */
 class MedSamplingFixedTime : public MedSamplingStrategy {
+private:
+	int add_time(int time, int add) const;
 public:
 	int start_time; ///< The start time to sample from. If 0 will use min time of pid
 	int end_time; ///< The end time to sample from. If 0 will use max time of pid
 	int back_random_duration; ///< Random duration backward from prediciton month_day. to cancel use 0
 	int time_jump; ///< the time jump, how much jump from each prediciton date
+	int time_range_unit; ///< the start_time,end_time unit
+	int time_jump_unit; ///< the time jump unit
 
 	///sample by year from year to year by jump and find match in registry
 	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
@@ -162,7 +140,19 @@ public:
 		time_jump = 0;
 		start_time = 0;
 		end_time = 0;
+		time_jump_unit = global_default_windows_time_unit;
+		time_range_unit = global_default_time_unit;
 	}
+};
+
+/**
+* DEPRECATED - A Class which samples by year from year to year by jump and find match in registry.
+* suitble for incidence calculation
+* uses MedSamplingFixedTime - just for backward compitablilty - DEPRECATED
+*/
+class MedSamplingYearly : public MedSamplingFixedTime {
+public:
+	int init(map<string, string>& map);
 };
 
 /**
