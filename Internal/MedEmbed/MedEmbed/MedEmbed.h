@@ -148,7 +148,6 @@ class EmbedMatCreator : public SerializableObject {
 
 public:
 	vector<string> sigs_to_load;
-	int start_sid = -1, end_sid = -1, death_sid = -1;
 
 	int rep_time_unit = MedTime::Date;
 	int win_time_unit = MedTime::Days;
@@ -198,7 +197,7 @@ public:
 	int init(map<string, string>& _map);
 
 	// needed before we start using the class on a specific rep, but AFTER params and embed_sigs were initialized.
-	void init_sids(MedPidRepository &rep);
+	void init_sids(MedSignals &sigs);
 
 	// next must be called after coming from serialization, at the moment we get hold of dict.
 	void init_tables(MedDictionarySections &dict) { for (auto &es : embed_sigs) es.init_categorial_tables(dict); }

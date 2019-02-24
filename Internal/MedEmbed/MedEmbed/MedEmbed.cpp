@@ -512,10 +512,6 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 		}
 	}
 
-	if ((start_sid = rep.sigs.sid("STARTDATE")) > 0) { sigs_to_load.push_back("STARTDATE"); }
-	if ((end_sid = rep.sigs.sid("ENDDATE")) > 0) { sigs_to_load.push_back("ENDDATE"); }
-	if ((death_sid = rep.sigs.sid("DEATH")) > 0) { sigs_to_load.push_back("DEATH"); }
-
 	// preparing coding space (pre shrinking) , and relevant maps
 
 	curr_code = 1; // 0 kept for dummy
@@ -694,13 +690,10 @@ int EmbedMatCreator::add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vecto
 }
 
 //-----------------------------------------------------------------------------
-void EmbedMatCreator::init_sids(MedPidRepository &rep)
+void EmbedMatCreator::init_sids(MedSignals &sigs)
 {
-	start_sid = rep.sigs.sid("STARTDATE");
-	end_sid = rep.sigs.sid("ENDDATE");
-	death_sid = rep.sigs.sid("DEATH");
 	for (auto &es : embed_sigs)
-		es.sid = rep.sigs.sid(es.sig);
+		es.sid = sigs.sid(es.sig);
 }
 
 
@@ -1020,8 +1013,8 @@ int EmbedTrainCreator::generate_from_xy_file(string xy_fname, string rep_fname, 
 	y_emc.init_from_string(y_params);
 	x_emc.prepare(rep);
 	y_emc.prepare(rep);
-	x_emc.init_sids(rep);
-	y_emc.init_sids(rep);
+	x_emc.init_sids(rep.sigs);
+	y_emc.init_sids(rep.sigs);
 
 
 	x_emc.rep_time_unit = rep_time_unit;
