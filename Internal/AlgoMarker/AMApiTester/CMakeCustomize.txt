@@ -1,2 +1,2 @@
 message(STATUS "CMake Customization for AMApiTester: Adding -ldl linker flag")
-target_link_libraries(AMApiTester -ldl)
+set(LINK_LIB_LIST ${LINK_LIB_LIST} -ldl)
