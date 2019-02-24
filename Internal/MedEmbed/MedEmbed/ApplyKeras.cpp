@@ -191,6 +191,7 @@ int ApplyKeras::apply_sparse(vector<pair<int, float>> &sline, vector<float> &out
 //-------------------------------------------------------------------------------------------
 int ApplyKeras::init_from_text_file(string layers_file)
 {
+	MLOG("Reading layers file %s\n", layers_file.c_str());
 	ifstream inf(layers_file);
 
 	if (!inf) {
@@ -257,6 +258,26 @@ int ApplyKeras::init_from_text_file(string layers_file)
 				layers.push_back(kl);
 			}
 		}
+	}
+
+	return 0;
+}
+
+// running over all lines in smat and generating matching embedding lines in emat
+int ApplyKeras::get_all_embeddings(MedSparseMat &smat, int to_layer, MedMat<float> &emat)
+{
+	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
+	int nlines = (int)smat.lines.size();
+	int edim = layers[to_layer].out_dim;
+
+	emat.resize(nlines, edim);
+
+#pragma omp parallel
+	for (int i = 0; i < nlines; i++) {
+		vector<float> i_out;
+		apply_sparse(smat.lines[i], i_out, to_layer);
+		for (int j = 0; j < i_out.size(); j++)
+			emat(i, j) = i_out[j];
 	}
 
 	return 0;

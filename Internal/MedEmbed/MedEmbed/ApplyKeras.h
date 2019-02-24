@@ -14,6 +14,8 @@
 //
 
 #include <SerializableObject/SerializableObject/SerializableObject.h>
+#include <MedSparseMat/MedSparseMat/MedSparseMat.h>
+#include <MedMat/MedMat/MedMat.h>
 
 //===================================================================================================
 
@@ -77,6 +79,7 @@ public:
 	int init_from_text_file(string layers_file);
 
 	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer);
+	int get_all_embeddings(MedSparseMat &smat, int to_layer, MedMat<float> &emat);
 
 	ADD_CLASS_NAME(ApplyKeras)
 	ADD_SERIALIZATION_FUNCS(layers)
