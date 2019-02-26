@@ -344,7 +344,7 @@ void MPSamples::get_ids(MEDPY_NP_OUTPUT(int** ids, int* num_ids)) {
 }
 
 void MPSamples::clear() { o->clear(); };
-int MPSamples::insert_preds(MPFeatures& featuresData) { o->insert_preds(*(featuresData.o)); };
+int MPSamples::insert_preds(MPFeatures& featuresData) { return o->insert_preds(*(featuresData.o)); };
 
 void MPSamples::sort_by_id_date() { o->sort_by_id_date(); };
 void MPSamples::normalize() { o->normalize(); };
