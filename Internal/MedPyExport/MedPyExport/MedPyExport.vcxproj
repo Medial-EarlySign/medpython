@@ -23,6 +23,7 @@
     <ClInclude Include="MedPyExport.h" />
     <ClInclude Include="MPDictionary.h" />
     <ClInclude Include="MPFeatures.h" />
+    <ClInclude Include="MPGlobal.h" />
     <ClInclude Include="MPMat.h" />
     <ClInclude Include="MPModel.h" />
     <ClInclude Include="MPPandasAdaptor.h" />
@@ -37,6 +38,7 @@
     <ClCompile Include="MedPyExport.cpp" />
     <ClCompile Include="MPDictionary.cpp" />
     <ClCompile Include="MPFeatures.cpp" />
+    <ClCompile Include="MPGlobal.cpp" />
     <ClCompile Include="MPMat.cpp" />
     <ClCompile Include="MPModel.cpp" />
     <ClCompile Include="MPPandasAdaptor.cpp" />

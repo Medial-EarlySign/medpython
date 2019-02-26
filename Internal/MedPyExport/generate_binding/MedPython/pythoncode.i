@@ -201,4 +201,6 @@ try:
     del cvar
 except: pass
 
+Global = GlobalClass()
+
 %}
