@@ -19,6 +19,7 @@
 #include "MPSamples.h"
 #include "MPMat.h"
 #include "MPGlobal.h"
+#include "MPLogger.h"
 
 #ifndef SWIG
 #define PUBLIC_OBJECTS "Model", \
@@ -36,7 +37,8 @@
  "Time", \
  "cerr", \
  "logger_use_stdout", \
- "Global"
+ "Global",\
+ "Logger"
 
 #endif //SWIG
 
