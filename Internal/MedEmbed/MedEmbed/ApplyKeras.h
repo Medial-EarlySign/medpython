@@ -58,6 +58,7 @@ public:
 
 	// appliers for a single sample
 	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output);
+	int apply_sparse(map<int, float> &sline, vector<float> &output);
 	int apply(vector<float> &in, vector<float> &out);
 	int apply_bn(vector<float> &in, vector<float> &out);
 	int apply_activation(vector<float> &in, vector<float> &out); // for in place send same vector for in/out
@@ -79,6 +80,7 @@ public:
 	int init_from_text_file(string layers_file);
 
 	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer);
+	int apply_sparse(map<int, float> &sline, vector<float> &output, int to_layer);
 	int get_all_embeddings(MedSparseMat &smat, int to_layer, MedMat<float> &emat);
 
 	ADD_CLASS_NAME(ApplyKeras)

@@ -324,17 +324,15 @@ int EmbeddingSig::get_feat_for_model(MedPidRepository &rep, vector<pair<int, int
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------
-int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines)
+int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes)
 {
-	if (out_lines.find(time) == out_lines.end())
-		out_lines[time] = map<int, float>();
-
-	if (type == ECTYPE_DUMMY) {	out_lines[time][0] = 1.0f;	return 0; }
-
-	vector<int> codes;
 	int from_time = med_time_converter.diff_times(time, sig_time_unit, win_to, win_time_unit, sig_time_unit);
 	int to_time = med_time_converter.diff_times(time, sig_time_unit, win_from, win_time_unit, sig_time_unit);
 	//MLOG("add_sig_to_lines() pid %d sig %s time %d from_time %d to_time %d usv len: %d\n", pid, es.sig.c_str(), time, from_time, to_time, usv.len);
+
+
+	if (type == ECTYPE_MODEL)
+		MTHROW_AND_ERR("ERROR: Using Model in Embedding, NOT Implemented in this path yet...\n");
 
 	if (type == ECTYPE_AGE) {
 		// in this case usv must be "BYEAR"
@@ -349,12 +347,12 @@ int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int 
 				int i_time = usv.Time(j, time_chan);
 				if (i_time > from_time && i_time <= to_time)
 					get_categ_codes((int)usv.Val(j, val_chan), codes, use_shrink); // ??? Consider translating values from current dictionary to originally train dictionary
-				
+
 			}
 		}
 		else {
 			// this is for non time signals like GENDER
-			for (int j = 0; j<usv.len; j++) 
+			for (int j = 0; j<usv.len; j++)
 				get_categ_codes((int)usv.Val(j, val_chan), codes, use_shrink);
 		}
 
@@ -374,16 +372,36 @@ int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int 
 				codes.push_back(get_continuous_codes(usv.Val(j, val_chan), use_shrink));
 		}
 	}
+	return 0;
+}
 
+//----------------------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::add_codes_to_line(vector<int> &codes, map<int, float> &out_line)
+{
 	for (auto &c : codes)
 		if (c >= 0) {
-			if (out_lines[time].find(c) == out_lines[time].end())
-				out_lines[time][c] = 0; // initialization of entry
+			if (out_line.find(c) == out_line.end())
+				out_line[c] = 0; // initialization of entry
 			if (do_counts)
-				out_lines[time][c]++;
+				out_line[c]++;
 			else
-				out_lines[time][c] = 1.0f;
+				out_line[c] = 1.0f;
 		}
+	return 0;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines)
+{
+	if (out_lines.find(time) == out_lines.end())
+		out_lines[time] = map<int, float>();
+
+	if (type == ECTYPE_DUMMY) {	out_lines[time][0] = 1.0f;	return 0; }
+
+	vector<int> codes;
+	get_codes(usv, pid, time, use_shrink, codes);
+
+	add_codes_to_line(codes, out_lines[time]);
 
 	return 0;
 }
@@ -686,6 +704,23 @@ int EmbedMatCreator::add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vecto
 		}
 	}
 
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+int EmbedMatCreator::get_pid_out_line(PidDynamicRec &pdr, int ver, int time, int use_shrink, map<int, float> &out_line)
+{
+	UniversalSigVec usv;
+	out_line.clear();
+	for (auto &es : embed_sigs) {
+
+		//if (es.type == ECTYPE_MODEL) <================= TBD
+		if (es.type != ECTYPE_DUMMY) pdr.uget(es.sid, ver, usv);
+		vector<int> codes;
+		es.get_codes(usv, pdr.pid, time, use_shrink, codes);
+		es.add_codes_to_line(codes, out_line);
+
+	}
 	return 0;
 }
 

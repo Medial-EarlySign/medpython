@@ -127,6 +127,8 @@ public:
 
 	// actually collecting matrix lines
 	int add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines);
+	int get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes);
+	int add_codes_to_line(vector<int> &codes, map<int, float> &out_line);
 
 	EmbeddedCodeType type_name_to_code(string name);
 
@@ -171,6 +173,7 @@ public:
 	
 	// adding all the needed lines for a pid. Written for a dynamic record, to allow easy connection to MedProcessTools
 	int add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vector<int> &times, int use_shrink);
+	int get_pid_out_line(PidDynamicRec &pdr, int ver, int time, int use_shrink, map<int, float> &out_line);
 
 	// another api to generate a matrix given a list of pids and times, that promises the SAME order as in the given input
 	// the input pair vector has pids on first, and times on second
