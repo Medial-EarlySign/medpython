@@ -37,6 +37,7 @@ typedef enum {
 	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
 	FTR_GEN_ATTR, ///< "attr" - creating features from samples attributes
 	FTR_GEN_CATEGORY_DEPEND, ///< "category_depend" - creates features from categorical signal that have statistical strength in samples - CategoryDependencyGenerator
+	FTR_GEN_EMBEDDING, ///< "embedding" - allows applying a pre trained embedding model to incorporate features into matrix
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 

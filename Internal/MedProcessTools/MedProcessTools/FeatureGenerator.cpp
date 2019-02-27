@@ -8,6 +8,7 @@
 #include "KpSmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
+#include "EmbeddingGenerator.h"
 
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
@@ -49,6 +50,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_ATTR;
 	else if (generator_name == "category_depend")
 		return FTR_GEN_CATEGORY_DEPEND;
+	else if (generator_name == "embedding")
+		return FTR_GEN_EMBEDDING;
 	else MTHROW_AND_ERR("unknown generator name [%s]", generator_name.c_str());
 }
 
@@ -131,6 +134,7 @@ void *FeatureGenerator::new_polymorphic(string dname) {
 	CONDITIONAL_NEW_CLASS(dname, TimeFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, AttrFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, CategoryDependencyGenerator);
+	CONDITIONAL_NEW_CLASS(dname, EmbeddingGenerator);
 	return NULL;
 }
 
@@ -166,6 +170,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new AttrFeatGenerator;
 	else if (generator_type == FTR_GEN_CATEGORY_DEPEND)
 		return new CategoryDependencyGenerator;
+	else if (generator_type == FTR_GEN_EMBEDDING)
+		return new EmbeddingGenerator;
 
 	else MTHROW_AND_ERR("dont know how to make_generator for [%s]", to_string(generator_type).c_str());
 }
