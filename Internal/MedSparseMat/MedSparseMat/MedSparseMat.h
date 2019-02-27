@@ -40,8 +40,8 @@ public:
 	void insert_line(SparseMatRowMetaData &_meta, map<int, float> &line);
 	void insert_line(SparseMatRowMetaData &_meta, map<int, int> &line);
 
-	void convert_map_to_line(map<int, float> &_map, vector<pair<int, float>> &line);
-	void convert_map_to_line(map<int, int> &_map, vector<pair<int, float>> &line);
+	static void convert_map_to_line(map<int, float> &_map, vector<pair<int, float>> &line);
+	static void convert_map_to_line(map<int, int> &_map, vector<pair<int, float>> &line);
 
 	void insert_dict_item(int _val, string &_name) { dict[_val] = _name; }
 
