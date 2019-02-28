@@ -35,8 +35,8 @@ int MPModel::apply(MPPidRepository* rep, MPSamples* samples, int start_stage, in
 	return o->apply(*((MedPidRepository*)(rep->o)), *((MedSamples*)(samples->o)), (MedModelStage)start_stage, (MedModelStage)end_stage);
 };
 
-int MPModel::write_to_file(const string &fname) { return o->write_to_file(fname); };
-int MPModel::read_from_file(const string &fname) { return o->read_from_file(fname); };
+int MPModel::write_to_file(const string &fname) { return val_or_exception(o->write_to_file(fname),"Could not write to file"); };
+int MPModel::read_from_file(const string &fname) { return val_or_exception(o->read_from_file(fname),"Could not read from file"); };
 
 MPFeatures MPModel::MEDPY_GET_features() { return MPFeatures(&o->features); };
 

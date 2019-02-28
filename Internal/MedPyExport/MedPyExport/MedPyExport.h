@@ -20,6 +20,7 @@
 #include "MPMat.h"
 #include "MPGlobal.h"
 #include "MPLogger.h"
+#include "MPSampleFilter.h"
 
 #ifndef SWIG
 #define PUBLIC_OBJECTS "Model", \
@@ -38,7 +39,8 @@
  "cerr", \
  "logger_use_stdout", \
  "Global",\
- "Logger"
+ "Logger",\
+ "SampleFilter"
 
 #endif //SWIG
 
