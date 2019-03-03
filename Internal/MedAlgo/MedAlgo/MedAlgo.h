@@ -410,6 +410,7 @@ struct MedGDLMParams : public SerializableObject {
 
 	int last_is_bias;
 	int print_model;
+	bool verbose_learn;
 
 	// Optional params
 	float l_ridge; ///< lambda for ridge
@@ -424,7 +425,7 @@ struct MedGDLMParams : public SerializableObject {
 
 	MedGDLMParams() {
 		max_iter = 500; stop_at_err = (float)1e-4; max_times_err_grows = 20; method = "logistic_sgd"; batch_size = 512; rate = (float)0.01; rate_decay = (float)1.0; momentum = (float)0.95; last_is_bias = 0;
-		l_ridge = (float)0; l_lasso = (float)0;  nthreads = 0; err_freq = 10; normalize = 0;
+		l_ridge = (float)0; l_lasso = (float)0;  nthreads = 0; err_freq = 10; normalize = 0; verbose_learn = true;
 	}
 
 	ADD_CLASS_NAME(MedGDLMParams)
