@@ -1,0 +1,91 @@
+	{
+      "action_type": "rp_set",
+      "members": [
+	    {
+          "rp_type":"conf_cln",
+		  "conf_file":"/server/Work/Users/Alon/UnitTesting/examples/general_config_files/Cleaner/cleanDictionary.csv",
+          "time_channel":"0",
+		  "clean_method":"confirmed",
+		  "signal":"file:/server/Work/Users/Alon/UnitTesting/examples/general_config_files/Cleaner/all_rules_sigs.list"
+		  //,"verbose_file":"/tmp/cleaning.log"
+        },
+		{
+          "rp_type":"conf_cln",
+		  "conf_file":"/server/Work/Users/Alon/UnitTesting/examples/general_config_files/Cleaner/cleanDictionary.csv",
+          "val_channel":["0", "1"],
+		  "clean_method":"confirmed",
+		  "signal": ["BP"]
+		  //,"verbose_file":"/tmp/cleaning.log"
+        }
+      ]
+    },
+	{
+      "action_type": "rp_set",
+      "members": [
+		{
+          "rp_type":"sim_val",
+		  "signal":"file:/server/Work/Users/Alon/UnitTesting/examples/general_config_files/Cleaner/all_rules_sigs.list",
+		  "type":"first",
+          "debug":"0"
+		  
+        }
+		
+      ]
+    },
+    {
+      "action_type": "rp_set",
+      "members": [
+		{
+          "rp_type":"rule_cln",
+		  "addRequiredSignals":"1",
+          "time_window":"0",
+		  "tolerance":"0.1",
+		  "calc_res":"0.1",
+		  "rules2Signals":"/server/Work/Users/Alon/UnitTesting/examples/general_config_files/Cleaner/ruls2Signals.tsv",
+		  "consideredRules":[ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "22" ] 
+		  //,"verbose_file":"/tmp/panel_cleaning.log"
+        }
+      ]
+    },
+	{
+      "action_type": "rp_set",
+      "members": [
+		{
+          "rp_type":"complete",
+		  "sim_val":"remove_diff",
+		  "config":"/server/Work/Users/Alon/UnitTesting/examples/general_config_files/panel_completer.cfg",
+		  "panels":["red_line", "white_line", "platelets", "lipids", "egfr", "bmi", "gcs"]
+        }
+      ]
+    },
+	{
+      "action_type": "rp_set",
+      "members": [
+		{
+		  "rp_type":"create_registry", 
+		  "registry":"dm", 
+		  "names":"_v_DM_Registry",
+          "dm_drug_sets":"list:/server/Work/Users/Alon/UnitTesting/examples/general_config_files/registries/diabetes_drug_codes.full",
+          "dm_diagnoses_sets":"list:/server/Work/Users/Alon/UnitTesting/examples/general_config_files/registries/diabetes_read_codes_registry.full.striped"
+		},
+		{
+		  "rp_type":"create_registry",
+		  "registry":"ht",
+		  "names":"my_HT_Registry"
+		},
+		{
+		  "rp_type":"create_registry",
+		  "registry":"proteinuria",
+		  "names":"_v_Proteinuria_State"
+		},
+		{
+		  "action_type":"rep_processor",
+		  "rp_type":"create_registry",
+		  "registry":"ckd",
+		  "names":"_v_CKD_State",
+          "signals":"_v_Proteinuria_State,eGFR_CKD_EPI",
+          "ckd_egfr_sig":"eGFR_CKD_EPI",
+          "ckd_proteinuria_sig":"_v_Proteinuria_State"
+		}
+      ]
+    }

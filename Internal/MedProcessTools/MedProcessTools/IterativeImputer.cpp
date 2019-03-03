@@ -185,16 +185,16 @@ int IterativeImputer::init_feature_info(MedFeatures &mfd, string feat_name)
 	float best_res = -1;
 	int n_best = -1;
 	float epsilon = (float)1e-4;
-	for (float res = 1000; res >= (float) 0.001; res = res/10) {
+	double res_above = 10000;
+	for (double res = 1000; res >= (float) 0.001; res = res/10.0) {
 		int n_in_res = 0;
-		float res_above = res*10;
 		for (auto &vc : val_cnt) {
 			if (vc.first != 0) { // 0 never helps us to detect resolutions
-				//if (params.verbose) MLOG("feature %s : resolution %f : n_in_res %d : val & count : %f %d : tests %f %f %f %f : %f %f\n",
-				//	fi.name.c_str(), res, n_in_res, vc.first, vc.second, vc.first/res, (float)((int)(vc.first/res)),
-				//	vc.first/res_above, (float)((int)(vc.first/res_above)), abs(vc.first/res - (float)((int)(vc.first/res))), abs(vc.first/res_above - (float)((int)(vc.first/res_above))));
-				if ((res <= vc.first) && (abs(vc.first/res - (float)((int)(vc.first/res)))<epsilon) &&
-					(abs(vc.first/res_above - (float)((int)(vc.first/res_above)))>epsilon))
+//				if (params.verbose) MLOG("feature %s : resolution %.8g (%.8g) : n_in_res %d : val & count : %f %d : tests %f %f %f %f : %f %f\n",
+//					fi.name.c_str(), res, res_above, n_in_res, vc.first, vc.second, vc.first/res, (float)((int)(vc.first/res)),
+//					vc.first/res_above, (float)((int)(vc.first/res_above)), abs(vc.first/res - (float)((int)(vc.first/res))), abs(vc.first/res_above - (float)((int)(vc.first/res_above))));
+				if ((res <= vc.first) && (abs(vc.first / res - (float)((int)(vc.first / res))) < epsilon) &&
+					(abs(vc.first / res_above - (float)((int)(vc.first / res_above))) > epsilon))
 					n_in_res += vc.second;
 			}
 		}
@@ -203,6 +203,7 @@ int IterativeImputer::init_feature_info(MedFeatures &mfd, string feat_name)
 			n_best = n_in_res;
 			best_res = res;
 		}
+		res_above /= 10.0;
 	}
 
 	if ((float)n_best/(float)fi.n_with_non_zero_values < 0.25)
@@ -217,6 +218,7 @@ int IterativeImputer::init_feature_info(MedFeatures &mfd, string feat_name)
 	}
 
 	fi.resolution = best_res;
+	if (params.verbose > 1)  MLOG("feature %s : best of resolution  %f : n_in_res %d \n", fi.name.c_str(), best_res);
 
 
 	if (fi.n_missing == 0) fi.predictor_type = 0;
@@ -405,9 +407,11 @@ int IterativeImputer::learn_iteration(MedFeatures &mfd, int iter)
 			// (3) Predict matrix : the cases for which we actually need to predict -> will be created and used in the apply stages
 			MedMat<float> x_train, y_train, x_test, y_test;
 			mfd.get_as_matrix(x_train, fi.feats_for_pred, fi.train_idx);
-			x_train.normalized_flag = true;
+//			x_train.normalized_flag = true;
+			x_train.normalized_flag = false;
 			mfd.get_as_matrix(y_train, { fi.full_name }, fi.train_idx);
-			y_train.normalized_flag = true;
+//			y_train.normalized_flag = true;
+			y_train.normalized_flag = false;
 			if (test_idx.size() > 0) {
 				mfd.get_as_matrix(x_test, fi.feats_for_pred, fi.test_idx);
 				x_test.normalized_flag = true;
@@ -462,8 +466,12 @@ int IterativeImputer::apply_iteration(MedFeatures &mfd, int iter)
 			MedMat<float> x_pred;
 			mfd.get_as_matrix(x_pred, fi.feats_for_pred, fi.pred_idx);
 			x_pred.normalized_flag = true;
-			if (params.verbose) MLOG("IterativeImputer::apply_iteration :: iter %d :: feature %s :: pred mat %d x %d :: predictor is %d\n",
-				iter, fi.name.c_str(), x_pred.nrows, x_pred.ncols, predictor->classifier_type);
+			if (params.verbose) {
+				string feats_string = boost::join(fi.feats_for_pred, ",");
+				MLOG("IterativeImputer::apply_iteration :: iter %d :: feature %s :: pred mat %d x %d :: predictor is %d\n", iter, fi.name.c_str(), x_pred.nrows, x_pred.ncols, predictor->classifier_type);
+				MLOG("IterativeImputer::apply_iteration features for prediction = %s\n", feats_string.c_str());
+				predictor->print(stdout, "IterativeImputer::apply_iteration");
+			}
 			vector<float> preds;
 			interim.data[fi.full_name] = preds;
 			predictor->predict(x_pred, interim.data[fi.full_name]);

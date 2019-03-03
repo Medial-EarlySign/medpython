@@ -583,6 +583,43 @@ int MedSamples::nSamples() const
 	return n;
 }
 
+// Return number of splits.
+// also check mismatches between idSample and internal MedSamples and set idSamples.split
+// if missing
+//.......................................................................................
+int MedSamples::nSplits()
+{
+
+	int maxSplit = -2;
+	unordered_set<int> splits;
+	for (MedIdSamples& _idSamples : idSamples) {
+		int idSplit = _idSamples.samples[0].split;
+		for (int i = 1; i < _idSamples.samples.size(); i++) {
+			if (_idSamples.samples[i].split != idSplit)
+				MTHROW_AND_ERR("Split mismatch for %d\n", _idSamples.id);
+		}
+		splits.insert(idSplit);
+		if (idSplit > maxSplit)
+			maxSplit = idSplit;
+		_idSamples.split = idSplit;
+	}
+
+	if (maxSplit == -1)
+		return 1;
+	else {
+		if (splits.find(-1) != splits.end())
+			MTHROW_AND_ERR("Cannot handle -1 and splits\n");
+
+		for (int split = 0; split < maxSplit; split++) {
+			if (splits.find(split) == splits.end())
+				MTHROW_AND_ERR("Missing split %d\n", split);
+		}
+		return maxSplit + 1;
+	}
+}
+
+
+
 // API's for online insertions : main use case is a single time point for prediction per pid
 //.......................................................................................
 void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime)

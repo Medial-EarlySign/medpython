@@ -175,6 +175,11 @@ namespace medial {
 
 		/// \brief does matching to specific prior for MedFeatures
 		double match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx);
+
+		/// \brief Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing
+		int nSplits(vector<MedSample>& samples);
+
+
 	}
 
 }

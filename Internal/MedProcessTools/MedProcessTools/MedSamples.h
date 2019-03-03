@@ -185,6 +185,9 @@ public:
 	/// <summary> Return number of samples </summary>
 	int nSamples() const;
 
+	/// <summary> Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing  </summary>
+	int nSplits();
+
 	/// <summary> Get predictions vector size. Return -1 if not-consistent </summary>
 	int get_predictions_size(int& nPreds);
 
