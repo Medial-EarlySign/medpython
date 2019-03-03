@@ -63,26 +63,26 @@ using namespace std;
 /// @enum
 /// Model Types options
 typedef enum {
-	MODEL_LINEAR_MODEL = 0, ///< Linear %Model - creates MedLM
-	MODEL_QRF = 1, ///< Q-Random-Forest - creates MedQRF
-	MODEL_GBM = 2, ///< Gradient Boosting %Model - creates MedGBM
-	MODEL_KNN = 3, ///< K Nearest Neighbour - creates MedKNN
-	MODEL_BP = 4, ///< Neural Network Back Propagation - creates MedBP
-	MODEL_MARS = 5, ///< Multivariate Adaptive Regression Splines - creates MedMars
-	MODEL_GD_LINEAR = 6, ///< Gradient Descent/Full solution ridge - creates MedGDLM
-	MODEL_MULTI_CLASS = 7, ///< general one vs. all multi class extention - creates MedMultiClass
-	MODEL_XGB = 8, ///< XGBoost - creates MedXGB
-	MODEL_LASSO = 9, ///<Lasso model - creates MedLasso
-	MODEL_MIC_NET = 10, ///<Home brew Neural Net implementation (Allows deep learning) - creates MedMicNet
-	MODEL_BOOSTER = 11, ///<general booster (meta algorithm) - creates MedBooster
-	MODEL_DEEP_BIT = 12, ///<general booster (meta algorithm) - creates MedDeepBit
-	MODEL_LIGHTGBM = 13, ///< the celebrated LightGBM algorithm - creates MedLightGBM
-	MODEL_SPECIFIC_GROUPS_MODELS = 14, ///<spliting model by specif value (for example age-range) and train diffretn model for each bin - creates MedSpecificGroupModels
-	MODEL_SVM = 15, ///< Svm model - creates MedSvm 
-	MODEL_LINEAR_SGD = 16, ///< linear model using our customized SGD - creates MedLinearModel
-	MODEL_VW = 17, ///< %VowpalWabbit yahoo reasearch library - creates MedVW
-	MODEL_TQRF = 18, ///< TQRF model
-	MODEL_BART = 19, ///< MedBART model using BART
+	MODEL_LINEAR_MODEL = 0, ///< to_use:"linear_model" Linear %Model - creates MedLM
+	MODEL_QRF = 1, ///< to_use:"qrf" Q-Random-Forest - creates MedQRF
+	MODEL_GBM = 2, ///< to_use:"gbm" Gradient Boosting %Model - creates MedGBM
+	MODEL_KNN = 3, ///< to_use:"knn" K Nearest Neighbour - creates MedKNN
+	MODEL_BP = 4, ///< to_use:"BP" Neural Network Back Propagation - creates MedBP
+	MODEL_MARS = 5, ///< to_use:"mars" Multivariate Adaptive Regression Splines - creates MedMars
+	MODEL_GD_LINEAR = 6, ///< to_use:"gdlm" Gradient Descent/Full solution ridge - creates MedGDLM
+	MODEL_MULTI_CLASS = 7, ///< to_use:"multi_class" general one vs. all multi class extention - creates MedMultiClass
+	MODEL_XGB = 8, ///< to_use:"xgb" XGBoost - creates MedXGB
+	MODEL_LASSO = 9, ///< to_use:"lasso" Lasso model - creates MedLasso
+	MODEL_MIC_NET = 10, ///< to_use:"micNet" Home brew Neural Net implementation (Allows deep learning) - creates MedMicNet
+	MODEL_BOOSTER = 11, ///< to_use:"booster" general booster (meta algorithm) - creates MedBooster
+	MODEL_DEEP_BIT = 12, ///< to_use:"deep_bit" Nir\'s DeepBit method - creates MedDeepBit
+	MODEL_LIGHTGBM = 13, ///< to_use:"lightgbm" the celebrated LightGBM algorithm - creates MedLightGBM
+	MODEL_SPECIFIC_GROUPS_MODELS = 14, ///< to_use:"multi_models" spliting model by specific value (for example age-range) and train diffretn model for each bin - creates MedSpecificGroupModels
+	MODEL_SVM = 15, ///< to_use:"svm" Svm model - creates MedSvm 
+	MODEL_LINEAR_SGD = 16, ///< to_use:"linear_sgd" linear model using our customized SGD - creates MedLinearModel
+	MODEL_VW = 17, ///< to_use:"vw" %VowpalWabbit yahoo reasearch library - creates MedVW
+	MODEL_TQRF = 18, ///< to_use:"tqrf" TQRF model
+	MODEL_BART = 19, ///< to_use:"bart" MedBART model using BART
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -549,8 +549,8 @@ public:
 	virtual int set_params(map<string, string>& mapper);
 	//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 	void init_defaults();
-	/// The parsed fields get_tree_type enum
-	/// @snippet MedQRF.cpp MedQRF::get_tree_type
+	
+	/// @snippet MedQRF.cpp MedQRF_get_types
 	QRF_TreeType get_tree_type(string name);
 
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
