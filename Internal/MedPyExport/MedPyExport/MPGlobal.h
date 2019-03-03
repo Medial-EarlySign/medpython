@@ -3,6 +3,7 @@
 
 #include "MedPyCommon.h"
 #include "MPLogger.h"
+#include "MPSamples.h"
 
 class MPRNG {
 public:
@@ -21,5 +22,11 @@ public:
 	MPRNG RNG;
 	MPLogger logger;
 };
+
+class MPCommonLib {
+public:
+	static void print_auc_performance(MPSamples &samples, int nfolds, string outFile);
+};
+
 
 #endif //!__MED__MPGLOBAL__H__

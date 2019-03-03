@@ -17,7 +17,7 @@ MPPidRepository::MPPidRepository() : o(new MedPidRepository()),dict(this) {};
 MPPidRepository::~MPPidRepository() { delete o; o = nullptr; };
 int MPPidRepository::dict_section_id(const std::string &secName) { return o->dict.section_id(secName); };
 std::string MPPidRepository::dict_name(int section_id, int id) { return o->dict.name(section_id, id); };
-int MPPidRepository::read_all(const std::string &conf_fname){	return o->read_all(conf_fname); };
+int MPPidRepository::read_all(const std::string &conf_fname) { return val_or_exception(o->read_all(conf_fname),string("Error: read_all() failed")); };
 
 int MPPidRepository::read_all_i(const std::string &conf_fname, const std::vector<int> &pids_to_take, const std::vector<int> &signals_to_take)
 {

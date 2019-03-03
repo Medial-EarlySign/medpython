@@ -350,6 +350,7 @@ void MPSamples::sort_by_id_date() { o->sort_by_id_date(); };
 void MPSamples::normalize() { o->normalize(); };
 bool MPSamples::same_as(MPSamples &other, int mode) { return o->same_as(*(other.o), mode); };
 int MPSamples::nSamples() { return o->nSamples(); };
+int MPSamples::nSplits() { return o->nSplits(); };
 
 void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime) { o->insertRec(pid, time, outcome, outcomeTime); };
 void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred) { o->insertRec(pid, time, outcome, outcomeTime, pred); };

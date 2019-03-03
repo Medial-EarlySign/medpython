@@ -144,6 +144,10 @@ public:
 	void normalize();
 	bool same_as(MPSamples &other, int mode);
 	int nSamples();
+
+	MEDPY_DOC(nSplits, "nSplits() -> int\n"
+		"Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing");
+	int nSplits();
 	
 	int get_predictions_size();
 

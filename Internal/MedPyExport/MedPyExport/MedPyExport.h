@@ -40,7 +40,8 @@
  "logger_use_stdout", \
  "Global",\
  "Logger",\
- "SampleFilter"
+ "SampleFilter",\
+ "CommonLib"
 
 #endif //SWIG
 
