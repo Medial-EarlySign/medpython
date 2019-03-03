@@ -174,7 +174,7 @@ int MedQRF::set_params(map<string, string>& mapper) {
 //..............................................................................
 QRF_TreeType MedQRF::get_tree_type(string name) {
 
-	//! [MedQRF::get_tree_type]
+	//! [MedQRF_get_types]
 	boost::algorithm::to_lower(name);
 	if (name == "binary_tree" || name == "binary")
 		return QRF_BINARY_TREE;
@@ -186,7 +186,7 @@ QRF_TreeType MedQRF::get_tree_type(string name) {
 		return QRF_CATEGORICAL_ENTROPY_TREE;
 	else
 		return QRF_LAST;
-	//! [MedQRF::get_tree_type]
+	//! [MedQRF_get_types]
 }
 
 //..............................................................................
