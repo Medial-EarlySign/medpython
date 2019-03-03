@@ -243,8 +243,8 @@ public:
 
 	// (De)Serialize
 	ADD_CLASS_NAME(MedPredictor)
-	ADD_SERIALIZATION_FUNCS(classifier_type)
-	void *new_polymorphic(string derived_class_name);
+		ADD_SERIALIZATION_FUNCS(classifier_type)
+		void *new_polymorphic(string derived_class_name);
 	size_t get_predictor_size();
 	size_t predictor_serialize(unsigned char *blob);
 
@@ -317,9 +317,9 @@ public:
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
 	ADD_CLASS_NAME(MedLM)
-	ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b, err)
+		ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b, err)
 
-	void print(FILE *fp, const string& prefix) const;
+		void print(FILE *fp, const string& prefix) const;
 };
 
 // Ancillary function for string analysis
@@ -384,9 +384,9 @@ public:
 	void lasso_regression(vector<float>& b, int nrow_train, int n_ftrs, double lambda, int num_iterations);
 
 	ADD_CLASS_NAME(MedLasso)
-	ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b)
+		ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b)
 
-	void print(FILE *fp, const string& prefix) const;
+		void print(FILE *fp, const string& prefix) const;
 };
 /// Least Square direct iterations solution
 int learn_lm(float *x, float *_y, const float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs);
@@ -429,7 +429,7 @@ struct MedGDLMParams : public SerializableObject {
 	}
 
 	ADD_CLASS_NAME(MedGDLMParams)
-	ADD_SERIALIZATION_FUNCS(method, last_is_bias, max_iter, stop_at_err, max_times_err_grows, batch_size, rate, rate_decay, l_ridge, l_lasso, ls_lasso, ls_ridge, nthreads, err_freq)
+		ADD_SERIALIZATION_FUNCS(method, last_is_bias, max_iter, stop_at_err, max_times_err_grows, batch_size, rate, rate_decay, l_ridge, l_lasso, ls_lasso, ls_ridge, nthreads, err_freq)
 };
 
 class MedGDLM : public MedPredictor {
@@ -462,9 +462,9 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const;
 
 	ADD_CLASS_NAME(MedGDLM)
-	ADD_SERIALIZATION_FUNCS(classifier_type, params, n_ftrs, b, b0, model_features, features_count)
+		ADD_SERIALIZATION_FUNCS(classifier_type, params, n_ftrs, b, b0, model_features, features_count)
 
-	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
+		int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 
 	void print(FILE *fp, const string& prefix) const;
 
@@ -476,7 +476,7 @@ public:
 	int Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int nsamples, int nftrs);
 private:
 	void set_eigen_threads() const;
-	void calc_feature_importance(vector<float> &features_importance_scores,	const string &general_params);
+	void calc_feature_importance(vector<float> &features_importance_scores, const string &general_params);
 };
 
 void init_default_lm_params(MedLMParams& _parmas);
@@ -524,9 +524,9 @@ struct MedQRFParams : public SerializableObject {
 	vector<float> quantiles; ///< For quantile regression
 
 	ADD_CLASS_NAME(MedQRFParams)
-	ADD_SERIALIZATION_FUNCS(ntrees, maxq, learn_nthreads, predict_nthreads, type, max_samp, samp_factor, samp_vec, 
+		ADD_SERIALIZATION_FUNCS(ntrees, maxq, learn_nthreads, predict_nthreads, type, max_samp, samp_factor, samp_vec,
 			ntry, get_only_this_categ, max_depth, take_all_samples, spread, keep_all_values, min_node, n_categ, collect_oob, get_count, quantiles)
-	void post_deserialization() { if (samp_vec.size()==0) sampsize=NULL;  else sampsize = &samp_vec[0]; }
+		void post_deserialization() { if (samp_vec.size() == 0) sampsize = NULL;  else sampsize = &samp_vec[0]; }
 
 };
 
@@ -549,6 +549,8 @@ public:
 	virtual int set_params(map<string, string>& mapper);
 	//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 	void init_defaults();
+	/// The parsed fields get_tree_type enum
+	/// @snippet MedQRF.cpp MedQRF::get_tree_type
 	QRF_TreeType get_tree_type(string name);
 
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
@@ -558,10 +560,10 @@ public:
 
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedQRF)
-	ADD_SERIALIZATION_FUNCS(classifier_type, qf, params, model_features, features_count)
+		ADD_SERIALIZATION_FUNCS(classifier_type, qf, params, model_features, features_count)
 
-	// Print
-	void print(FILE *fp, const string& prefix) const;
+		// Print
+		void print(FILE *fp, const string& prefix) const;
 	void printTrees(const vector<string> &modelSignalNames, const string &outputPath) const;
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params);
@@ -641,13 +643,13 @@ public:
 
 	// (De)Serialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedMicNet)
-	ADD_SERIALIZATION_FUNCS(classifier_type, mic_params.init_string, mic)
+		ADD_SERIALIZATION_FUNCS(classifier_type, mic_params.init_string, mic)
 
-	// Print
-	//void print(FILE *fp, const string& prefix);
+		// Print
+		//void print(FILE *fp, const string& prefix);
 
-	// Predictions per sample
-	int n_preds_per_sample() const { return mic.n_preds_per_sample(); }
+		// Predictions per sample
+		int n_preds_per_sample() const { return mic.n_preds_per_sample(); }
 
 };
 
@@ -718,7 +720,7 @@ public:
 
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedMars)
-	size_t get_size();
+		size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
@@ -780,7 +782,7 @@ public:
 
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedGBM)
-	size_t get_size();
+		size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
@@ -844,7 +846,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	ADD_CLASS_NAME(MedKNN)
-	size_t get_size();
+		size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
@@ -917,7 +919,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	ADD_CLASS_NAME(MedBP)
-	size_t get_size();
+		size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
@@ -973,10 +975,10 @@ struct MedMultiClass : public MedPredictor {
 
 	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedMultiClass)
-	ADD_SERIALIZATION_FUNCS(classifier_type, params.method, params.multi_class_type, internal_predictors)
+		ADD_SERIALIZATION_FUNCS(classifier_type, params.method, params.multi_class_type, internal_predictors)
 
-	// Print
-	void print(FILE *fp, const string& prefix) const;
+		// Print
+		void print(FILE *fp, const string& prefix) const;
 
 	// Predictions per sample
 	int n_preds_per_sample() const;
@@ -1025,7 +1027,7 @@ public:
 	MedSpecificGroupModels *clone() const;
 
 	ADD_CLASS_NAME(MedSpecificGroupModels)
-	ADD_SERIALIZATION_FUNCS(classifier_type, featNum, feat_ths, predictors, model_features, features_count)
+		ADD_SERIALIZATION_FUNCS(classifier_type, featNum, feat_ths, predictors, model_features, features_count)
 
 		//	void print(FILE *fp, const string& prefix) ;
 		// Parameters
@@ -1068,7 +1070,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	ADD_CLASS_NAME(MedSvm)
-	size_t get_size();
+		size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
 
@@ -1106,7 +1108,7 @@ public:
 	int Predict(MedMat<float> &x, vector<float> &preds) const { return _tqrf.Predict(x, preds); }
 
 	ADD_CLASS_NAME(MedTQRF)
-	ADD_SERIALIZATION_FUNCS(classifier_type, _tqrf)
+		ADD_SERIALIZATION_FUNCS(classifier_type, _tqrf)
 
 };
 //=========================================================================================
