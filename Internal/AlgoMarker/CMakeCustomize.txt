@@ -1,0 +1,12 @@
+
+message(STATUS "CMake Customization for AlgoMarker (Top Level): Setting function visibility, adding -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fPIC -DHAVE_WORKING_ISFINITE")
+
+message(STATUS "CMake Customization for AlgoMarker (Top Level): Adding boost directories compiled with -fPIC")
+list(APPEND INC_DIRS_LIST /mnt/Boost/boost_1_67_0-fPIC/include)
+list(APPEND INC_DIRS_LIST /nas1/Work/Libs/Boost/boost_1_67_0-fPIC/include/)
+
+message(STATUS "CMake Customization for AlgoMarker (Top Level): Removing InternalAPITester,DllAPITester from add_subdirectory")
+list(REMOVE_ITEM ADD_SUBDIR_LIST "DllAPITester")
+list(REMOVE_ITEM ADD_SUBDIR_LIST "InternalAPITester")
+

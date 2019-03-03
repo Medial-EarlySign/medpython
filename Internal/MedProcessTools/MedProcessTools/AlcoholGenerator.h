@@ -45,7 +45,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AlcoholGenerator *>(generator)); }
 
 	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { return 0; }
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { return 0; }
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);

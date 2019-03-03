@@ -121,11 +121,11 @@ MPSamples::~MPSamples() { if(o_owned) delete o; o = nullptr; };
 
 void MPSamples::append(MPSamples& newSamples) { o->idSamples.insert(o->idSamples.end(), newSamples.o->idSamples.begin(), newSamples.o->idSamples.end()); }
 
-int MPSamples::read_from_bin_file(const string& file_name) { return o->read_from_bin_file(file_name); }
-int MPSamples::write_to_bin_file(const string& file_name) { return o->write_to_bin_file(file_name); }
+int MPSamples::read_from_bin_file(const string& file_name) { return val_or_exception(o->read_from_bin_file(file_name), "Cannot read Samples from bin file "+file_name); }
+int MPSamples::write_to_bin_file(const string& file_name) { return val_or_exception(o->write_to_bin_file(file_name), "Cannot write Samples to bin file " + file_name); }
 
-int MPSamples::read_from_file(const string& file_name) { return o->read_from_file(file_name); };
-int MPSamples::write_to_file(const string& file_name) { return o->write_to_file(file_name); };
+int MPSamples::read_from_file(const string& file_name) { return val_or_exception(o->read_from_file(file_name),"Cannot read Samples from file "+file_name); };
+int MPSamples::write_to_file(const string& file_name) { return val_or_exception(o->write_to_file(file_name),"Cannot write Samples to file " + file_name); };
 
 void MPSamples::get_preds(MEDPY_NP_OUTPUT(float** preds_buf, int* preds_buf_len)) {
 	vector<float> ret;
@@ -344,7 +344,7 @@ void MPSamples::get_ids(MEDPY_NP_OUTPUT(int** ids, int* num_ids)) {
 }
 
 void MPSamples::clear() { o->clear(); };
-int MPSamples::insert_preds(MPFeatures& featuresData) { o->insert_preds(*(featuresData.o)); };
+int MPSamples::insert_preds(MPFeatures& featuresData) { return o->insert_preds(*(featuresData.o)); };
 
 void MPSamples::sort_by_id_date() { o->sort_by_id_date(); };
 void MPSamples::normalize() { o->normalize(); };

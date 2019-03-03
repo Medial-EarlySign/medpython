@@ -897,10 +897,10 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 	set_required_signal_ids(dict);
 
 	for (RepProcessor *processor : rep_processors)
-		processor->set_signal_ids(dict);
+		processor->set_signal_ids(sigs);
 
 	for (FeatureGenerator *generator : generators)
-		generator->set_signal_ids(dict);
+		generator->set_signal_ids(sigs);
 
 	// tables
 	for (RepProcessor *processor : rep_processors)
@@ -1240,7 +1240,7 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 		collect_and_add_virtual_signals_static(rep, *rep_processors);
 		filter_rep_processors(needed_sigs, rep_processors);
 		for (RepProcessor *processor : *rep_processors) {
-			processor->set_signal_ids(rep.dict);
+			processor->set_signal_ids(rep.sigs);
 			processor->set_affected_signal_ids(rep.dict);
 			processor->set_required_signal_ids(rep.dict);
 			processor->init_tables(rep.dict, rep.sigs);

@@ -354,12 +354,33 @@ int IterativeImputer::Learn(MedFeatures &mfd)
 	if (params.do_round1 && learn_first_round(*my_mfd) < 0) return -1;
 	if (params.do_round1 && apply_first_round(*my_mfd) < 0) return -1;
 
-	for (int iter=0; iter<params.max_iterations; iter++) {
+	for (int iter = 0; iter<params.max_iterations; iter++) {
 		learn_iteration(*my_mfd, iter);
 		if (iter < params.max_iterations - 1) apply_iteration(*my_mfd, iter);
 	}
 
 	return 0;
+/*
+	MedFeatures &my_mfd = mfd;
+
+	MedFeatures learn_mfd;
+	if ((params.do_round1 && params.max_iterations) || params.max_iterations>1) {
+		learn_mfd = mfd;
+		my_mfd = learn_mfd;
+	}
+
+	if (params.verbose) MLOG("IterativeImputer Learn() init_internals\n");
+	if (init_internals(mfd) < 0) return -1;
+	if (params.verbose) MLOG("IterativeImputer Learn() learn_first_round (do %d)\n", params.do_round1);
+	if (params.do_round1 && learn_first_round(my_mfd) < 0) return -1;
+	if (params.do_round1 && apply_first_round(my_mfd) < 0) return -1;
+
+	for (int iter=0; iter<params.max_iterations; iter++) {
+		learn_iteration(mfd, iter);
+		if (iter < params.max_iterations - 1) apply_iteration(mfd, iter);
+	}
+	return 0;
+*/
 }
 
 
@@ -429,11 +450,11 @@ int IterativeImputer::learn_iteration(MedFeatures &mfd, int iter)
 				vector<float> preds;
 				predictor->predict(x_test, preds);
 				round_arr(&preds[0], (int)preds.size(), fi.resolution, fi.min, fi.max);
-				double corr = medial::performance::pearson_corr_without_cleaning(y_test.m, preds);
-				double d = medial::performance::rmse_without_cleaning(y_test.m, preds);
+				double corr = medial::performance::pearson_corr_without_cleaning(y_test.m, preds, NULL);
+				double d = medial::performance::rmse_without_cleaning(y_test.m, preds, NULL);
 				double d2 = d * d;
-				double dabs = medial::performance::L1_dist_without_cleaning(y_test.m, preds);
-				double dabs_rel = medial::performance::relative_L1_dist_without_cleaning(y_test.m, preds);
+				double dabs = medial::performance::L1_dist_without_cleaning(y_test.m, preds, NULL);
+				double dabs_rel = medial::performance::relative_L1_dist_without_cleaning(y_test.m, preds, NULL);
 				double acc = medial::performance::approx_accuracy(y_test.m, preds, fi.resolution);
 
 				if (params.verbose) MLOG("IterativeImputer::learn_iteration :: iter %d :: feature %s :: corr %f d2 %f dabs %f dabs_rel %f acc %f\n", 
@@ -515,12 +536,13 @@ int IterativeImputer::find_feats_to_learn_from(int f_idx)
 					cnt++;
 			float p_miss = (float)cnt/(float)(miss_size+1);
 			if (p_miss > params.missing_bound) {
-				if (params.verbose > 1) MLOG("IterativeImputer :: feat_to_learn for %s :: feat %s :: miss %f\n",
+				if (params.verbose > 1) MLOG("IterativeImputer :: feat_to_learn for %s :: NOT USING feat %s :: miss %f\n",
 										      feats[f_idx].name.c_str(), feats[i].name.c_str(), p_miss);
 			}
 			else {
 				feats[f_idx].inds_for_pred.push_back(i);
-				if (params.verbose > 1) MLOG("IterativeImputer :: feat_to_learn for %s :: adding feat %s (%d)\n", feats[f_idx].name.c_str(), feats[i].name.c_str(), i);
+				if (params.verbose > 1) MLOG("IterativeImputer :: feat_to_learn for %s :: USING feat %s :: miss %f\n",
+					feats[f_idx].name.c_str(), feats[i].name.c_str(), p_miss);
 			}
 		}
 	}
@@ -564,7 +586,7 @@ bool FeatureIterativeImputer::are_features_affected(unordered_set<string>& out_r
 void FeatureIterativeImputer::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
 
 	if (are_features_affected(out_req_features))
-		// If active, than everything before is required
+		// If active, then everything before is required
 		in_req_features.clear();
 	else
 		// If not, do nothing

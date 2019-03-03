@@ -815,6 +815,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 						MLOG("%s:Ages[%d - %d]:%d :: %2.2f%% (size=%zu) (kaplan meier)\n", gender_str.c_str(), age, age + age_bin,
 							age + age_bin / 2, 100 * prob, filters.size());
 
+						kaplan_meier_controls_count = (int)filters.size();
 						if (age >= min_age && age <= max_age) {
 							of_new << "STATS_ROW" << "\t" << gender_str << "\t" <<
 								age + age_bin / 2 << "\t" << "0.0" << "\t" << int(kaplan_meier_controls_count * (1 - prob)) << "\n";

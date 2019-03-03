@@ -203,13 +203,13 @@ V GetOrDefault(const C<K, V, Args...>& m, K const& key, const V & defval)
 	return it->second;
 }
 
+#pragma warning( disable : 4290 )
+
+int val_or_exception(int val, const string& exception_str = "", int expected_val = 0) throw(runtime_error);
+
 #endif // !SWIG
 
 class StopIterator {};
-
-#ifndef SWIG
-#include <map>
-#endif
 
 class MPIntIntMapAdaptor {
 	bool o_owned = true;

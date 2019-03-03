@@ -105,10 +105,10 @@ void MPMat::clear() { o->clear(); };
 
 void MPMat::resize(int n_rows, int n_cols) { o->resize(n_rows, n_cols); };
 
-int MPMat::read_from_bin_file(const string &fname) { o->read_from_bin_file(fname); };
-int MPMat::write_to_bin_file(const string &fname) { o->write_to_bin_file(fname); };
-int MPMat::write_to_csv_file(const string &fname) { o->write_to_csv_file(fname); };
-int MPMat::read_from_csv_file(const string &fname, int titles_line_flag) { o->read_from_csv_file(fname, titles_line_flag); };
+int MPMat::read_from_bin_file(const string &fname) { return o->read_from_bin_file(fname); };
+int MPMat::write_to_bin_file(const string &fname) { return o->write_to_bin_file(fname); };
+int MPMat::write_to_csv_file(const string &fname) { return o->write_to_csv_file(fname); };
+int MPMat::read_from_csv_file(const string &fname, int titles_line_flag) { return o->read_from_csv_file(fname, titles_line_flag); };
 
 void MPMat::transpose() { o->transpose(); };
 

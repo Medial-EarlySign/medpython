@@ -915,11 +915,13 @@ int QuantizedRF::find_best_categories_entropy_split(QRF_Tree &tree, int node, in
 							if ((int)left_sum < log_table.size())
 								HL += log_table[(int)left_sum];
 							else
-								HL += log(left_sum);
+								HL += left_sum*log(left_sum);
 							if ((int)right_sum < log_table.size())
 								HR += log_table[(int)right_sum];
-							else
-								HR += log(right_sum);
+							else	
+								HR += right_sum*log(right_sum);
+
+
 							H = HL + HR;
 
 							if (!(left_sum >= min_split_node_size && right_sum >= min_split_node_size))

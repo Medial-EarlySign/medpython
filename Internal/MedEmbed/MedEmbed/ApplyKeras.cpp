@@ -52,6 +52,45 @@ int KerasLayer::apply_sparse(vector<pair<int, float>> &sline, vector<float> &out
 }
 
 //-------------------------------------------------------------------------------------------
+int KerasLayer::apply_sparse(map<int, float> &sline, vector<float> &output)
+{
+	if (type == K_DENSE) {
+
+		// first calculate the linear transformations
+
+		// init output with biases
+		output.clear();
+		output.resize(out_dim, 0);
+
+		// linear parts
+
+#pragma omp parallel for
+		for (int d = 0; d<out_dim; d++) {
+			output[d] = bias[d];
+			for (auto &p : sline)
+				output[d] += wgts[d][p.first] * p.second;
+		}
+
+		if (activation != A_UNKNOWN && activation != A_LINEAR)
+			return apply_activation(output, output);
+
+
+	}
+	else if (type == K_DROPOUT) {
+		return 0; // seems that keras already multiplied it into the weights
+		float factor = drop_rate;
+		// in this special case : multiplying in place on the sparse vec
+		for (auto &p : sline)
+			p.second *= factor;
+	}
+	else {
+		MTHROW_AND_ERR("apply sparse currently only available for Dense or dropout layers\n");
+	}
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------
 int KerasLayer::apply_activation(vector<float> &in, vector<float> &out)
 {
 	out.resize(in.size());
@@ -189,8 +228,35 @@ int ApplyKeras::apply_sparse(vector<pair<int, float>> &sline, vector<float> &out
 }
 
 //-------------------------------------------------------------------------------------------
+int ApplyKeras::apply_sparse(map<int, float> &sline, vector<float> &output, int to_layer)
+{
+	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
+
+	int passed_first_dense = 0;
+	vector<vector<float>> outs(layers.size(), vector<float>());
+	for (int i = 0; i <= to_layer; i++) {
+
+		//MLOG("apply_sparse layer %d (passed %d) to_layer=%d (name %s type %d activation %d)\n", i, passed_first_dense, to_layer, layers[i].name.c_str(), layers[i].type, layers[i].activation);
+		if (passed_first_dense == 0) {
+			layers[i].apply_sparse(sline, outs[i]);
+			if (layers[i].type == K_DENSE)
+				passed_first_dense = 1;
+		}
+		else {
+			layers[i].apply(outs[i - 1], outs[i]);
+		}
+		//MLOG("out[i] size %d\n", outs[i].size());
+	}
+
+	output = outs[to_layer];
+	return 0;
+}
+
+
+//-------------------------------------------------------------------------------------------
 int ApplyKeras::init_from_text_file(string layers_file)
 {
+	MLOG("Reading layers file %s\n", layers_file.c_str());
 	ifstream inf(layers_file);
 
 	if (!inf) {
@@ -252,11 +318,32 @@ int ApplyKeras::init_from_text_file(string layers_file)
 					float epsilon = (float)0.001;
 					for (int j=0; j<kl.wgts[3].size(); j++)
 						kl.wgts[3][j] = sqrt(kl.wgts[3][j] + epsilon);
+					kl.out_dim = kl.dim;
 				}
 
 				layers.push_back(kl);
 			}
 		}
+	}
+
+	return 0;
+}
+
+// running over all lines in smat and generating matching embedding lines in emat
+int ApplyKeras::get_all_embeddings(MedSparseMat &smat, int to_layer, MedMat<float> &emat)
+{
+	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
+	int nlines = (int)smat.lines.size();
+	int edim = layers[to_layer].out_dim;
+
+	emat.resize(nlines, edim);
+
+#pragma omp parallel
+	for (int i = 0; i < nlines; i++) {
+		vector<float> i_out;
+		apply_sparse(smat.lines[i], i_out, to_layer);
+		for (int j = 0; j < i_out.size(); j++)
+			emat(i, j) = i_out[j];
 	}
 
 	return 0;

@@ -169,11 +169,11 @@ void BinnedLmEstimates::set_sampling_strategy(string& strategy) {
 }
 
 //..............................................................................
-void BinnedLmEstimates::set_signal_ids(MedDictionarySections& dict) {
+void BinnedLmEstimates::set_signal_ids(MedSignals& sigs) {
 
-	signalId = dict.id(signalName);
-	genderId = dict.id("GENDER");
-	byearId = dict.id("BYEAR");
+	signalId = sigs.sid(signalName);
+	genderId = sigs.sid("GENDER");
+	byearId = sigs.sid("BYEAR");
 }
 
 // Learn a generator

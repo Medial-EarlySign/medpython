@@ -19,6 +19,8 @@ public:
 	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
+	bool bound_outcomeTime = false;
+
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
@@ -45,21 +47,21 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<DrugIntakeGenerator *>(generator)); }
 
 	// Learn a generator
-	int _learn(MedPidRepository& rep, vector<int>& ids, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { time_unit_sig = rep.sigs.Sid2Info[rep.sigs.sid(signalName)].time_unit; return 0; }
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 	float get_value(PidDynamicRec &rec, int idx, int time, int sig_outcomeTime);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	// Init required tables
 	void init_tables(MedDictionarySections& dict);
 
 	// Serialization
 	ADD_CLASS_NAME(DrugIntakeGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights, timeRangeSignalName, timeRangeType)
+	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights, timeRangeSignalName, timeRangeType , bound_outcomeTime)
 };
 
 MEDSERIALIZE_SUPPORT(DrugIntakeGenerator);

@@ -37,6 +37,7 @@ typedef enum {
 	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
 	FTR_GEN_ATTR, ///< "attr" - creating features from samples attributes
 	FTR_GEN_CATEGORY_DEPEND, ///< "category_depend" - creates features from categorical signal that have statistical strength in samples - CategoryDependencyGenerator
+	FTR_GEN_EMBEDDING, ///< "embedding" - allows applying a pre trained embedding model to incorporate features into matrix
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 
@@ -89,7 +90,7 @@ public:
 	void get_required_signal_ids(unordered_set<int>& signalIds);
 
 	// Signal Ids
-	virtual void set_signal_ids(MedDictionarySections& dict) { return; }
+	virtual void set_signal_ids(MedSignals& sigs) { return; }
 
 	// Init required tables
 	virtual void init_tables(MedDictionarySections& dict) { return; }
@@ -262,7 +263,7 @@ public:
 	vector<string> sets;						///< for FTR_CATEGORY_SET_* , the list of sets 
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and _generate)
 	string in_set_name = "";					///< set name (if not given - take list of members)
-	bool bound_outcomeTime; ///< If true will truncate time window till outcomeTime
+	bool bound_outcomeTime = false; ///< If true will truncate time window till outcomeTime
 	float min_value = -FLT_MAX, max_value = FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
 
 	// helpers
@@ -317,7 +318,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int time, int outcomeTime);
 
 	/// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); timeRangeSignalId = dict.id(timeRangeSignalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); timeRangeSignalId = sigs.sid(timeRangeSignalName); }
 
 	/// Init required tables
 	void init_tables(MedDictionarySections& dict);
@@ -358,7 +359,7 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 	// Serialization
 	ADD_CLASS_NAME(AgeGenerator)
@@ -402,7 +403,7 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
 
 	// Serialization
@@ -440,7 +441,7 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { genderId = dict.id("GENDER"); }
+	void set_signal_ids(MedSignals& sigs) { genderId = sigs.sid("GENDER"); }
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("GENDER")); }
 
 	// Serialization
@@ -528,7 +529,7 @@ public:
 	void get_p_data(MedFeatures& features, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	// Sampling strategy
 	void set_sampling_strategy(string& strategy);
@@ -636,7 +637,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int date);
 
 	// Signal Ids
-	void set_signal_ids(MedDictionarySections& dict) { signalId = dict.id(signalName); }
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 
 
 	// Serialization
@@ -834,7 +835,7 @@ public:
 	bool verbose; ///< in Learn will print selected features
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
 
-	void set_signal_ids(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	void init_tables(MedDictionarySections& dict);
 

@@ -23,6 +23,8 @@ public:
 	map<pair<int, int>, int> MemberInSet; // pair.first = set number, pair second = member number
 	map<int, vector<int>> Set2Members;	// for each set a vector of all members of that set
 	map<int, vector<int>> Member2Sets;	// for each id - a vector of all sets the id is a member of
+	int dict_id;	// for debug
+	unordered_set<string> section_name; // for debug
 
 	void clear() { fnames.clear(); Name2Id.clear(); MemberInSet.clear(); Set2Members.clear(); }
 	int read(const string &fname);
@@ -52,7 +54,7 @@ public:
 	int add_set(const string &fname, const string &member_name, const string &set_name);
 
 	// APIs to push new values into a dictionary
-	void push_new_def(string name, int id) { Name2Id[name] = id; Id2Name[id] = name; Id2Names[id].push_back(name); }
+	void push_new_def(string name, int id); // { Name2Id[name] = id; Id2Name[id] = name; Id2Names[id].push_back(name); }
 
 private:
 	map<string, int> used;
@@ -148,8 +150,8 @@ public:
 	int prep_sets_indexed_lookup_table(int section_id, const vector<string> &set_names, vector<unsigned char> &lut) { return dicts[section_id].prep_sets_indexed_lookup_table(set_names, lut); }
 
 	// APIs to add a new dictionary section - this is needed in some cases of creating virtual signals that are categorial
-	void add_section(string new_section_name) { MedDictionary dummy; dicts.push_back(dummy); SectionName2Id[new_section_name] = (int)dicts.size() - 1; }
-	void connect_to_section(string new_section_name, int section_id) { SectionName2Id[new_section_name] = section_id; }
+	void add_section(string new_section_name); // { MedDictionary dummy; dicts.push_back(dummy); SectionName2Id[new_section_name] = (int)dicts.size() - 1; }
+	void connect_to_section(string new_section_name, int section_id); // { SectionName2Id[new_section_name] = section_id; }
 };
 
 

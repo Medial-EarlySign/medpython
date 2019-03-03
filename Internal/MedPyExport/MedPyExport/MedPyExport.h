@@ -18,6 +18,9 @@
 #include "MPFeatures.h"
 #include "MPSamples.h"
 #include "MPMat.h"
+#include "MPGlobal.h"
+#include "MPLogger.h"
+#include "MPSampleFilter.h"
 
 #ifndef SWIG
 #define PUBLIC_OBJECTS "Model", \
@@ -34,7 +37,10 @@
  "Split", \
  "Time", \
  "cerr", \
- "logger_use_stdout"
+ "logger_use_stdout", \
+ "Global",\
+ "Logger",\
+ "SampleFilter"
 
 #endif //SWIG
 

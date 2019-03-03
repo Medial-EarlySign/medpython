@@ -562,8 +562,10 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		for (int i = 0; i < drug_usv.len; i++) {
 			int i_time = drug_usv.Time(i);
 			if (time > 0 && time < i_time) break;
-			float i_val = drug_usv.Val(i);
-			if (dm_drug_lut[(int)i_val]) {
+			int i_val = (int)drug_usv.Val(i);
+			if (i_val < 0 || i_val > dm_drug_lut.size())
+				MTHROW_AND_ERR("ERROR in dm Registry drug_idx : got i_val %d while lut size is %d\n", i_val, (int)dm_drug_lut.size());
+			if (dm_drug_lut.size()>0 && dm_drug_lut[i_val]) {
 				int severity = 4; // currently the first diabetic drug usage makes you diabetic for life.... this is extreme, but given this, we only need the first.
 				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DRUG, 1, severity)); 
 				break;
@@ -580,8 +582,10 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		for (int i = 0; i < diag_usv.len; i++) {
 			int i_time = diag_usv.Time(i);
 			if (time > 0 && time < i_time) break;
-			float i_val = diag_usv.Val(i);
-			if (dm_diagnoses_lut[(int)i_val]) {
+			int i_val = (int)diag_usv.Val(i);
+			if (i_val < 0 || i_val > dm_diagnoses_lut.size())
+				MTHROW_AND_ERR("ERROR in dm Registry diagnoses_idx : got i_val %d while lut size is %d\n", i_val, (int)dm_diagnoses_lut.size());
+			if (dm_diagnoses_lut.size()>0 && dm_diagnoses_lut[i_val]) {
 				int severity = dm_diagnoses_severity; 
 				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DIAGNOSES, 1, severity));
 				if (dm_diagnoses_severity >= 4) break;
@@ -601,6 +605,8 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	for (int j = 0; j < evs.size(); j++) {
 
 		auto &ev = evs[j];
+
+		//MLOG("diabetes reg : j %d ev: time %d type %d val %f severity %d\n", j, ev.time, ev.event_type, ev.event_val, ev.event_severity);
 
 		// rules:
 		// (1) to be Diabetic: (a) a single severity 4 (b) adjacent or within 2 years: 2 severity 3 (real mode: the second time, biological mode: the first time)
@@ -631,16 +637,28 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
 
 			int found = 0;
+			int first_index = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
 				if (evs[k].event_severity == 3) {
 					found = 1;
+					first_index = k;
 					break;
 				}
 			}
 			if (found) {
-				ranges[2].first = ev.time;
-				ranges[2].second = time;
+				// found a diabetic, several cases now :
+				// (1) dm_bio_mode = 1 : we take the time of the first indication
+				// (2) the type of first is REG_EVENT_DM_DIAGNOSES : we take the time of the first 
+				// (3) other cases : we take the second
+				if (dm_bio_mode || evs[first_index].event_type == REG_EVENT_DM_DIAGNOSES) {
+					ranges[2].first = evs[first_index].time;
+					ranges[2].second = time;
+				}
+				else {
+					ranges[2].first = ev.time;
+					ranges[2].second = time;
+				}
 				continue;
 			}
 			
@@ -665,16 +683,24 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			int back_time = med_time_converter.add_subtract_time(ev.time, time_unit, -730, MedTime::Days);
 
 			int found = 0;
+			int first_index = 0;
 			for (int k = j - 1; k >= 0; k--) {
 				if (evs[k].time < back_time) break;
 				if (evs[k].event_severity == 1) {
 					found = 1;
+					first_index = k;
 					break;
 				}
 			}
 			if (found) {
-				ranges[1].first = ev.time;
-				ranges[1].second = ev.time;
+				if (dm_bio_mode) {
+					ranges[1].first = evs[first_index].time;
+					ranges[1].second = ev.time;
+				}
+				else {
+					ranges[1].first = ev.time;
+					ranges[1].second = ev.time;
+				}
 				continue;
 			}
 		}
