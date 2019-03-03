@@ -479,7 +479,8 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 		}
 	}
 	duration = difftime(time(NULL), start);
-	cout << "Finished in " << float2Str((float)duration) << " seconds" << endl;
+	if (output_num > 0)
+		cout << "Finished in " << float2Str((float)duration) << " seconds" << endl;
 	/*factor(W_final, 1 / (float)T_Steps);
 	updateVector(_model->model_params, W_final);*/
 }

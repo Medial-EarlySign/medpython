@@ -39,6 +39,7 @@ public:
 	double learning_rate; ///<The learning rate  of sgd
 	float block_num; ///<The blocking norm for parameter search in sgd
 	bool norm_l1; ///<The blocking norm should be n1 or n2?
+	int print_steps; ///< how many prints for learn to print
 
 	//MedPredictor Api:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
