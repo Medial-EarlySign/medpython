@@ -107,6 +107,7 @@ int InMemRepData::sort_pid_sid(int pid, int sid)
 	case T_ValShort4:			compare_func = &MedSignalsCompareSig<SValShort4>;		break;
 	case T_DateRangeVal2:		compare_func = &MedSignalsCompareSig<SDateRangeVal2>;	break;
 	case T_DateFloat2:			compare_func = &MedSignalsCompareSig<SDateFloat2>;		break;
+	case T_TimeShort4:			compare_func = &MedSignalsCompareSig<STimeShort4>;		break;
 	//case T_CompactDateVal:		break; // not fully supported yet
 	default: MERR("ERROR:sort_pid_sid Unknown sig_type %d\n", my_rep->sigs.Sid2Info[sid].type);
 		return -1;

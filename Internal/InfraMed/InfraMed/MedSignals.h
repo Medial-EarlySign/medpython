@@ -32,6 +32,7 @@ enum SigType {
 	T_DateRangeVal2,	// 12 :: date start, date end, 2 float values
 	T_DateFloat2,	// 13 :: date + 2 float values
 	T_TimeRange,	// 14 :: time-time
+	T_TimeShort4,   // 15 :: time + 4 shorts
 	T_Last
 };		//    :: next free slot for type id
 
@@ -322,6 +323,73 @@ public:
 	friend ostream& operator<<(ostream& os, const STimeRange& s) { os << s.time_start << "-" << s.time_end; return os; }
 
 };
+
+//===================================
+// SDateShort4
+//===================================
+class STimeShort4 : public UnifiedSig {
+public:
+	long long time;
+	short val1;
+	short val2;
+	short val3;
+	short val4;
+
+	// unified API extention
+	static inline int n_time_channels() { return 1; }
+	static inline int n_val_channels() { return 4; }
+	static inline int time_unit() { return MedTime::Minutes; }
+	inline int Time(int chan) { return time; } // assuming minutes span are within the size of an int
+	inline float Val(int chan) {
+		switch (chan) {
+		case 0: return val1;
+		case 1: return val2;
+		case 2: return val3;
+		case 3: return val4;
+		}
+		return 0;
+	}
+	inline void SetVal(int chan, float _val) {
+		switch (chan) {
+		case 0: val1 = (short)_val; return;
+		case 1: val2 = (short)_val; return;
+		case 2: val3 = (short)_val; return;
+		case 3: val4 = (short)_val; return;
+		}
+	};
+
+	inline void Set(int _time, short _val1, short _val2, short _val3, short _val4) { time = _time; val1 = _val1; val2 = _val2; val3 = _val3; val4 = _val4; }
+	inline void Set(int *times, float *vals) {
+		time = times[0];
+		val1 = (short)vals[0];
+		val2 = (short)vals[1];
+		val3 = (short)vals[2];
+		val4 = (short)vals[3];
+	}
+
+	bool operator<(const STimeShort4& s) {
+		if (this->time < s.time) return true; if (this->time > s.time) return false;
+		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
+		if (this->val2 < s.val2) return true; if (this->val2 > val2) return false;
+		if (this->val3 < s.val3) return true; if (this->val3 > val3) return false;
+		return (this->val4 < s.val4);
+	}
+	bool operator==(const STimeShort4& s) { return (this->time == s.time 
+		&& this->val1 == s.val1 
+		&& this->val2 == s.val2
+		&& this->val3 == s.val3
+		&& this->val4 == s.val4); }
+
+	friend ostream& operator<<(ostream& os, const STimeShort4& s) { 
+		os << s.time << ":"
+			<< s.val1 << ","
+			<< s.val2 << ","
+			<< s.val3 << ","
+			<< s.val4;
+		return os; }
+};
+
+
 
 //===================================
 // STimeStamp
