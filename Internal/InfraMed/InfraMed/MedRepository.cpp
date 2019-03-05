@@ -730,6 +730,15 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			print_channel_helper(sid, 0, v[i].val);
 			print_channel_helper(sid, 1, v[i].val2);
 		}
+		else if (sigs.type(sid) == T_TimeShort4) {
+			STimeShort4 *v = (STimeShort4 *)data;
+			MOUT(" %lld ", v[i].time);
+			print_channel_helper(sid, 0, v[i].val1);
+			print_channel_helper(sid, 1, v[i].val2);
+			print_channel_helper(sid, 2, v[i].val3);
+			print_channel_helper(sid, 3, v[i].val4);
+		}
+
 		if (sigs.has_any_categorical_channel(sid))
 			MOUT(" :\n");
 		else
@@ -795,6 +804,16 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 			SDateFloat2 *v = (SDateFloat2 *)data;
 			out += convert_date(v[i].date, sid).c_str() + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
+		else if (sigs.type(sid) == T_TimeShort4) {
+			STimeShort4 *v = (STimeShort4 *)data;
+			out += to_string(v[i].time) + " " 
+				+ get_channel_info(sid, 0, v[i].val1) + " " 
+				+ get_channel_info(sid, 1, v[i].val2) + " "
+				+ get_channel_info(sid, 2, v[i].val3) + " "
+				+ get_channel_info(sid, 3, v[i].val4);
+		}
+
+
 		MOUT("%s\n", out.c_str());
 	}
 
@@ -864,6 +883,15 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid, i
 			SDateFloat2 *v = (SDateFloat2 *)data;
 			if (v[i].date < from || v[i].date > to) continue;
 			out += convert_date(v[i].date, sid).c_str() + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+		}
+		else if (sigs.type(sid) == T_TimeShort4) {
+			STimeShort4 *v = (STimeShort4 *)data;
+			if (v[i].time < from || v[i].time > to) continue;
+			out += to_string(v[i].time) + " "
+				+ get_channel_info(sid, 0, v[i].val1) + " " 
+				+ get_channel_info(sid, 1, v[i].val2) + " "
+				+ get_channel_info(sid, 2, v[i].val3) + " "
+				+ get_channel_info(sid, 3, v[i].val4);
 		}
 		MOUT("%s\n", out.c_str());
 	}
@@ -991,6 +1019,13 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 				MOUT("%d,", val = (int)v[i].val);
 			else MOUT("%f,", v[i].val);
 			MOUT("0,%lld,%lld,0,0,", v[i].time_start, v[i].time_end, v[i].val);
+		}
+		else if (sigs.type(sid) == T_TimeShort4) {
+			STimeShort4 *v = (STimeShort4 *)data;
+			MOUT("%lld,", v[i].time);
+			if (dict_val)
+				MOUT("%d,%d,%d,%d,", (int)v[i].val1, (int)v[i].val2, (int)v[i].val3, (int)v[i].val4);
+			else MOUT("%f,%f,%f,%f,", v[i].val1, v[i].val2, v[i].val3, v[i].val4);
 		}
 		if (dict_val && dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end()) {
 			for (size_t j = 0; j < 2; j++)

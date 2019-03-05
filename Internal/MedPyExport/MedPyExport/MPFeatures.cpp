@@ -93,6 +93,7 @@ int MPFeatures::filter(std::vector<std::string>& selectedFeatures) {
 	return o->filter(selectedFeatures_set);
 }
 int MPFeatures::version() { return o->version(); }
+MPSerializableObject MPFeatures::asSerializable() { return MPSerializableObject(o); }
 
 MPStringFeatureAttrMapAdaptor MPFeatures::MEDPY_GET_attributes() {
 	return MPStringFeatureAttrMapAdaptor(&(o->attributes));
@@ -125,7 +126,7 @@ bool MPFeatureAttr::MEDPY_GET_normalized() { return o->normalized; };
 
 void MPFeatureAttr::MEDPY_SET_imputed(bool _imputed) { o->imputed = _imputed; };
 bool MPFeatureAttr::MEDPY_GET_imputed() { return o->imputed; };
-
+MPSerializableObject MPFeatureAttr::asSerializable() { return MPSerializableObject(o); }
 
 MPStringFeatureAttrMapAdaptor::MPStringFeatureAttrMapAdaptor() { o = new std::map<std::string, FeatureAttr>(); };;
 MPStringFeatureAttrMapAdaptor::MPStringFeatureAttrMapAdaptor(const MPStringFeatureAttrMapAdaptor& other) {

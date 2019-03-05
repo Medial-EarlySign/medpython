@@ -2,6 +2,7 @@
 #define __MED__MPMAT__H__
 
 #include "MedPyCommon.h"
+#include "MPSerializableObject.h"
 
 template <class T>
 class MedMat;
@@ -103,6 +104,7 @@ public:
 	void load(float *IN_ARRAY2, int DIM1, int DIM2);
 	void load_transposed(float *IN_ARRAY2, int DIM1, int DIM2);
 	void load(MPMat& x);
+	MPSerializableObject asSerializable();
 
 /********
  *

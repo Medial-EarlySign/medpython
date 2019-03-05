@@ -25,6 +25,7 @@ MPModel::MPModel() { o = new MedModel(); };
 MPModel::~MPModel() { delete o; o = nullptr; };
 void MPModel::init_from_json_file(const string& fname) { o->init_from_json_file(fname); };
 std::vector<std::string> MPModel::init_from_json_file_with_alterations(const std::string& fname, std::vector<std::string> json_alt) { o->init_from_json_file_with_alterations(fname, json_alt); return json_alt; };
+void MPModel::add_pre_processors_json_string_to_model(string in_json, string fname) { o->add_pre_processors_json_string_to_model(in_json, fname); }
 std::vector<std::string> MPModel::get_required_signal_names() { vector<string> ret; o->get_required_signal_names(ret); return ret; };
 int MPModel::learn(MPPidRepository* rep, MPSamples* samples) { return o->learn(*((MedPidRepository*)(rep->o)), (MedSamples*)(samples->o)); };
 int MPModel::apply(MPPidRepository* rep, MPSamples* samples) { return o->apply(*((MedPidRepository*)(rep->o)), *((MedSamples*)(samples->o))); };
@@ -35,8 +36,8 @@ int MPModel::apply(MPPidRepository* rep, MPSamples* samples, int start_stage, in
 	return o->apply(*((MedPidRepository*)(rep->o)), *((MedSamples*)(samples->o)), (MedModelStage)start_stage, (MedModelStage)end_stage);
 };
 
-int MPModel::write_to_file(const string &fname) { return o->write_to_file(fname); };
-int MPModel::read_from_file(const string &fname) { return o->read_from_file(fname); };
+int MPModel::write_to_file(const string &fname) { return val_or_exception(o->write_to_file(fname),"Could not write to file"); };
+int MPModel::read_from_file(const string &fname) { return val_or_exception(o->read_from_file(fname),"Could not read from file"); };
 
 MPFeatures MPModel::MEDPY_GET_features() { return MPFeatures(&o->features); };
 
@@ -84,3 +85,4 @@ int MPModel::apply_feature_processors(MPFeatures &features) { return o->apply_fe
 
 void MPModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag) { return o->dprint_process(pref, rp_flag, fg_flag, fp_flag); };
 int MPModel::write_feature_matrix(const string mat_fname) { return o->write_feature_matrix(mat_fname); };
+MPSerializableObject MPModel::asSerializable() { return MPSerializableObject(o); }

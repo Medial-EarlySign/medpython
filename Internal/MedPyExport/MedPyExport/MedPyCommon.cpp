@@ -419,3 +419,12 @@ void logger_use_stdout() {
 	for (int sect = 0; sect < MAX_LOG_SECTION; ++sect)
 		global_logger.init_file(sect, stdout);
 }
+
+int val_or_exception(int val, const string& exception_str , int expected_val) throw(runtime_error) {
+	string what_msg = exception_str;
+	if (exception_str == "")
+		what_msg = "Operation failed";
+	if (val != expected_val)
+		throw new runtime_error(what_msg + " (return value=" + std::to_string(val) + ")");
+	return val;
+}

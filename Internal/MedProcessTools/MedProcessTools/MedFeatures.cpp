@@ -1256,6 +1256,32 @@ double medial::process::match_to_prior(MedFeatures &features, float target_prior
 	return pr;
 }
 
+/// Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing
+int medial::process::nSplits(vector<MedSample>& samples) {
+
+	int maxSplit = -2;
+	unordered_set<int> splits;
+	for (auto& sample : samples) {
+		if (sample.split > maxSplit)
+			maxSplit = sample.split;
+		splits.insert(sample.split);
+	}
+
+	if (maxSplit == -1)
+		return 1;
+	else {
+		if (splits.find(-1) != splits.end())
+			MTHROW_AND_ERR("Cannot handle -1 and splits\n");
+
+		for (int split = 0; split < maxSplit; split++) {
+			if (splits.find(split) == splits.end())
+				MTHROW_AND_ERR("Missing split %d\n", split);
+		}
+		return maxSplit + 1;
+	}
+
+}
+
 
 
 
