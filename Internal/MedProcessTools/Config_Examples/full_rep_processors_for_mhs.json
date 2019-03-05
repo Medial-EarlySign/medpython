@@ -25,7 +25,7 @@
 		{
           "rp_type":"sim_val",
 		  "signal":"file:/server/Work/Users/Alon/UnitTesting/examples/general_config_files/Cleaner/all_rules_sigs.list",
-		  "type":"first",
+		  "type":"remove_diff",
           "debug":"0"
 		  
         }
