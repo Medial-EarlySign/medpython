@@ -616,22 +616,25 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 									break;
 
 								case T_TimeShort4:
+									
 									cd.time = stoll(fields[2]);
+									
 									if (sigs.is_categorical_channel(sid, 0))
 										cd.val1 = dict.get_id_or_throw(section, fields[3]);
 									else cd.val1 = med_stof(fields[3]);
+									
 									if (sigs.is_categorical_channel(sid, 1))
 										cd.val2 = dict.get_id_or_throw(section, fields[4]);
 									else cd.val2 = med_stof(fields[4]);
+									
 									if (sigs.is_categorical_channel(sid, 2))
 										cd.val3 = dict.get_id_or_throw(section, fields[5]);
 									else cd.val3 = med_stof(fields[5]);
+									
 									if (sigs.is_categorical_channel(sid, 3))
-										cd.val3 = dict.get_id_or_throw(section, fields[6]);
-									else cd.val3 = med_stof(fields[6]);
-									if (sigs.is_categorical_channel(sid, 4))
-										cd.val4 = dict.get_id_or_throw(section, fields[7]);
-									else cd.val4 = med_stof(fields[7]);
+										cd.val4 = dict.get_id_or_throw(section, fields[6]);
+									else cd.val4 = med_stof(fields[6]);
+																		
 									break;
 
 								default:
