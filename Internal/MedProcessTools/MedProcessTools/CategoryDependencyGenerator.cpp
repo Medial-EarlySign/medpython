@@ -308,14 +308,14 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	int progress = 0;
 
 	//unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
-	bool nested_state = omp_get_nested();
-	omp_set_nested(true);
+	//bool nested_state = omp_get_nested();
+	//omp_set_nested(true);
 
 	int N_tot_threads = omp_get_max_threads();
 	vector<PidDynamicRec> idRec(N_tot_threads);
 
 	// Collect data
-#pragma omp parallel for schedule(dynamic,1)
+#pragma omp parallel for schedule(dynamic,128)
 	for (int i = 0; i < samples.idSamples.size(); ++i)
 	{
 		int nSamples = (int)samples.idSamples[i].samples.size();
@@ -352,7 +352,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			int age_idx = (age - min_age) / age_bin;
 			if (!p_lbl_age[outcome_idx][age_idx]) {
 				p_lbl_age[outcome_idx][age_idx] = true;
-#pragma omp atomic
+#pragma omp critical(sigdep_part1)
 				++total_stats[gend_idx][age_idx][outcome_idx];
 			}
 
@@ -364,7 +364,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			for (int k = 0; k < usv.len; ++k)
 				if (usv.Time(k, time_channel) >= start_time_win && usv.Time(k, time_channel) <= end_time_win) { //get values in time window:
 					//get filter regex codes:
-					int base_code = usv.Val(k, val_channel);
+					int base_code = (int)usv.Val(k, val_channel);
 
 					//process request:
 					vector<vector<vector<bool>>> &code_stats = pid_categoryVal_to_stats[base_code]; //gender,age, 4 counts per state
@@ -417,7 +417,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 		}
 		//update original:
-#pragma omp critical 
+#pragma omp critical(sigdep_part2)
 		{
 			for (auto it = pid_categoryVal_to_stats.begin(); it != pid_categoryVal_to_stats.end(); ++it)
 			{
@@ -439,30 +439,30 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 						}
 					}
 			}
-		}
 
-		// Some timing printing
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (progress % 100 == 0 && duration > 15) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(samples.idSamples.size() - progress) / double(progress) * double(time_elapsed));
-			char buffer[1000];
-			snprintf(buffer, sizeof(buffer), "CategoryDependencyGenerator:%s Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes",
-				signalName.c_str(), progress, (int)samples.idSamples.size(), 100.0*(progress / float(samples.idSamples.size())), time_elapsed / 60,
-				estimate_time / 60.0);
-			MLOG("%s\n", buffer);
+			// Some timing printing
+			//#pragma omp atomic
+			++progress;
+			double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+				- tm_prog).count()) / 1000000.0;
+			if (progress % 100 == 0 && duration > 15) {
+				//#pragma omp critical
+				tm_prog = chrono::high_resolution_clock::now();
+				double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+					- tm.t[0]).count()) / 1000000.0;
+				double estimate_time = int(double(samples.idSamples.size() - progress) / double(progress) * double(time_elapsed));
+				char buffer[1000];
+				snprintf(buffer, sizeof(buffer), "CategoryDependencyGenerator:%s Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+					"estimate time to finish %2.1f Minutes",
+					signalName.c_str(), progress, (int)samples.idSamples.size(), 100.0*(progress / float(samples.idSamples.size())), time_elapsed / 60,
+					estimate_time / 60.0);
+				MLOG("%s\n", buffer);
+			}
 		}
 	}
 	tm.take_curr_time();
 	MLOG("Took %2.2f seconds to complete\n", tm.diff_sec());
-	omp_set_nested(nested_state);
+	//omp_set_nested(nested_state);
 
 	//complete stats in rows:
 	for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it)

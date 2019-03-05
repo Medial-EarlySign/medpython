@@ -29,6 +29,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	MedTimer timer;
 
+	MLOG("MedModel() : starting learn process on %d samples, stages %d - %d \n", _samples->nSamples(), start_stage, end_stage);
 	// Stage Sanity
 	if (start_stage > end_stage) {
 		MERR("MedModel learn() : Illegal start and end\n");
@@ -73,6 +74,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
+		MLOG("MedModel() : starting learn rep processors on %d samples\n", _samples->nSamples(), start_stage, end_stage);
 		timer.start();
 		if (learn_rep_processors(rep, *LearningSet) < 0) { //??? why are rep processors initialized for ALL time points in an id??
 			MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
@@ -286,7 +288,9 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 {
 
 	vector<int> rc(generators.size(), 0);
-#pragma omp parallel for schedule(dynamic)
+	//omp_set_nested(true);
+
+//#pragma omp parallel for //num_threads(4) //schedule(dynamic)
 	for (int i = 0; i < generators.size(); i++) 
 		rc[i] = generators[i]->learn(rep, *learn_samples, rep_processors); 
 
