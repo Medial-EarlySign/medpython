@@ -62,6 +62,7 @@ MPSample MPSample::__copy__() {
 	return ret;
 }
 
+MPSerializableObject MPSample::asSerializable() { return MPSerializableObject(o); }
 
 /************ MPIdSamples ************/
 
@@ -81,6 +82,7 @@ MPIdSamples::~MPIdSamples() { if (o_owned) delete o; };
 
 void MPIdSamples::set_split(int _split) { o->set_split(_split); };
 bool MPIdSamples::same_as(MPIdSamples &other, int mode) { return o->same_as(*(other.o), mode); };
+MPSerializableObject MPIdSamples::asSerializable() { return MPSerializableObject(o); }
 
 /************ MPSampleVectorAdaptor ************/
 
@@ -350,14 +352,14 @@ void MPSamples::sort_by_id_date() { o->sort_by_id_date(); };
 void MPSamples::normalize() { o->normalize(); };
 bool MPSamples::same_as(MPSamples &other, int mode) { return o->same_as(*(other.o), mode); };
 int MPSamples::nSamples() { return o->nSamples(); };
+int MPSamples::nSplits() { return o->nSplits(); };
 
 void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime) { o->insertRec(pid, time, outcome, outcomeTime); };
 void MPSamples::insertRec(int pid, int time, float outcome, int outcomeTime, float pred) { o->insertRec(pid, time, outcome, outcomeTime, pred); };
 void MPSamples::insertRec(int pid, int time) { o->insertRec(pid, time); };
 int MPSamples::version() { return o->version(); };
 
-
-
+MPSerializableObject MPSamples::asSerializable() { return MPSerializableObject(o); }
 
 //void MPSamples::get_ids_v(int* out_pidvec_1, int out_pidvec_n_1) {  vector<int> ids; o->get_ids(ids); memcpy(out_pidvec_1, &ids[0], out_pidvec_n_1); };
 //int MPSamples::get_ids_n() { return (int)o->idSamples.size(); };

@@ -36,6 +36,8 @@ public:
 	MEDPY_DOC(filter, "filter(rep, samples) -> int\n"
 		"in-place filtering with repository. returns -1 if fails.");
 	int filter(MPPidRepository& rep, MPSamples& samples);
+
+	MPSerializableObject asSerializable();
 	/*
 
 	// Initialization

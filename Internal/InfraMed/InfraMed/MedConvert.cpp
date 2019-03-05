@@ -615,6 +615,28 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 									else cd.f_val2 = med_stof(fields[4]);
 									break;
 
+								case T_TimeShort4:
+									
+									cd.time = stoll(fields[2]);
+									
+									if (sigs.is_categorical_channel(sid, 0))
+										cd.val1 = dict.get_id_or_throw(section, fields[3]);
+									else cd.val1 = med_stof(fields[3]);
+									
+									if (sigs.is_categorical_channel(sid, 1))
+										cd.val2 = dict.get_id_or_throw(section, fields[4]);
+									else cd.val2 = med_stof(fields[4]);
+									
+									if (sigs.is_categorical_channel(sid, 2))
+										cd.val3 = dict.get_id_or_throw(section, fields[5]);
+									else cd.val3 = med_stof(fields[5]);
+									
+									if (sigs.is_categorical_channel(sid, 3))
+										cd.val4 = dict.get_id_or_throw(section, fields[6]);
+									else cd.val4 = med_stof(fields[6]);
+																		
+									break;
+
 								default:
 									MTHROW_AND_ERR("MedConvert: get_next_signal: unknown signal type %d for sid %d\n",
 										sigs.type(sid), sid);
@@ -1273,6 +1295,20 @@ int MedConvert::write_indexes(pid_data &curr)
 									data_f[fno]->write((char *)&scdv, sizeof(SCompactDateVal));
 								}
 							}
+
+							if (sid_type == T_TimeShort4) {
+								len = (int)sizeof(STimeShort4)*ilen;
+								STimeShort4 sts4;
+								for (int j = 0; j < ilen; j++) {
+									sts4.time = curr.raw_data[i][j].time;
+									sts4.val1 = curr.raw_data[i][j].val1;
+									sts4.val2 = curr.raw_data[i][j].val2;
+									sts4.val3 = curr.raw_data[i][j].val3;
+									sts4.val4 = curr.raw_data[i][j].val4;
+									data_f[fno]->write((char *)&sts4, sizeof(STimeShort4));
+								}
+							}
+
 
 							//MLOG("writing to fno %d : sid %d file_n %d pos %ld len %d\n", fno, sid, file_n, pos, len);
 							if (mode < 3) {

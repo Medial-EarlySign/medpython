@@ -604,35 +604,38 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 					ms.outcomeTime = rc.outcome_date;
 					ms.time = rand_date;
 					nsamp++;
-
-					int age = (rand_date / 10000) - byear;
-
-					//MLOG("pid %d age %d delta %d \n", rc.pid, age, delta);
-					if (age >= s_params.min_age && age <= s_params.max_age)
-						mis.samples.push_back(ms);
+					mis.samples.push_back(ms);
 
 					to_days -= s_params.jump_days;
 					delta -= s_params.jump_days;
 
 				}
-
+				vector<MedSample>::iterator last_it = mis.samples.end();
 				if (mis.samples.size() > s_params.max_samples_per_id) {
 					// randomizing
-					MedIdSamples mis_new;
-					random_shuffle(mis.samples.begin(), mis.samples.end());
-					mis_new.samples.insert(mis_new.samples.begin(), mis.samples.begin(), mis.samples.begin() + s_params.max_samples_per_id);
-					mis = mis_new;
+					if (s_params.max_samples_per_id_method == "rand") {
+						random_shuffle(mis.samples.begin(), mis.samples.end());
+					}
+					// It is assumed that samples are ordered from last to first, so other s_params.max_samples_per_id_method = 'last' should do nothing before setting end iterator.
+					last_it = mis.samples.begin() + s_params.max_samples_per_id;
 				}
+
+				MedIdSamples mis_new;
+				for (auto ms = mis.samples.begin(); ms != last_it; ++ms) {
+					int age = (ms->time / 10000) - byear;
+				
+					//MLOG("pid %d age %d delta %d \n", rc.pid, age, delta);
+					if (age >= s_params.min_age && age <= s_params.max_age)
+						mis_new.samples.push_back(*ms);
+				}
+
+				mis = mis_new;
+				mis.id = rc.pid;
 
 				if (mis.samples.size() > 0)
 					samples.idSamples.push_back(mis);
-
 			}
-
-
 		}
-
-
 	}
 
 	samples.normalize();

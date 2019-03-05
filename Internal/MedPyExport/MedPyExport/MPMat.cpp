@@ -166,4 +166,4 @@ void MPMat::load(MPMat& x) { o->load(*(x.o)); };
 
 bool MPMat::is_valid(bool output) { return o->is_valid(output); }
 
-
+MPSerializableObject MPMat::asSerializable() { return MPSerializableObject(o); }

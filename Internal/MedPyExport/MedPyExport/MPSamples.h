@@ -3,6 +3,7 @@
 
 #include "MedPyCommon.h"
 #include "MPPandasAdaptor.h"
+#include "MPSerializableObject.h"
 
 
 
@@ -50,6 +51,8 @@ public:
 //	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit);
 
 	MPSample __copy__();
+
+	MPSerializableObject asSerializable();
 };
 
 class MPSampleVectorAdaptor {
@@ -87,6 +90,7 @@ public:
 	~MPIdSamples();
 	void set_split(int _split);
 	bool same_as(MPIdSamples &other, int mode);
+	MPSerializableObject asSerializable();
 };
 
 class MPIdSamplesVectorAdaptor {
@@ -144,6 +148,10 @@ public:
 	void normalize();
 	bool same_as(MPSamples &other, int mode);
 	int nSamples();
+
+	MEDPY_DOC(nSplits, "nSplits() -> int\n"
+		"Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing");
+	int nSplits();
 	
 	int get_predictions_size();
 
@@ -157,6 +165,7 @@ public:
 	void insertRec(int pid, int time, float outcome, int outcomeTime, float pred);
 	void insertRec(int pid, int time);
 	int version();
+	MPSerializableObject asSerializable();
 };
 
 

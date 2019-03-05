@@ -164,6 +164,10 @@ int MedValueCleaner::init(void *_in_params)
 //..............................................................................
 int MedValueCleaner::init(map<string, string>& mapper) {
 
+	unordered_set<string> remove_me = { "verbose_file" ,"fp_type", "rp_type", "unconditional", "signal", "time_channel", "val_channel", "nrem_attr", "ntrim_attr", "nrem_suff",
+		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals", "addRequiredSignals", "consideredRules"};
+
+
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [MedValueCleaner::init]
@@ -184,7 +188,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "trim_range_min") params.trim_range_min = med_stof(entry.second);
 		else if (field == "trim_range_max") params.trim_range_max = med_stof(entry.second);
 		else if (field == "max_samples") params.max_samples = med_stoi(entry.second);
-		else MWARN("MedValueCleaner:: Warn Unknown param \"%s\"\n", field.c_str());
+		else if (!remove_me.count(field)) MWARN("MedValueCleaner:: Warn Unknown param \"%s\"\n", field.c_str());
 		//! [MedValueCleaner::init]
 
 	}

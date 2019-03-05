@@ -31,6 +31,7 @@ public:
 	~MPModel();
 	void init_from_json_file(const std::string& fname);
 	std::vector<std::string> init_from_json_file_with_alterations(const std::string& fname, std::vector<std::string> json_alt);
+	void add_pre_processors_json_string_to_model(string in_json, string fname);
 	std::vector<std::string> get_required_signal_names();
 	int learn(MPPidRepository* rep, MPSamples* samples);
 	int apply(MPPidRepository* rep, MPSamples* samples);
@@ -86,6 +87,7 @@ public:
 
 	/// following is for debugging : writing the feature to a csv file as a matrix.
 	int write_feature_matrix(const string mat_fname);
+	MPSerializableObject asSerializable();
 };
 
 
