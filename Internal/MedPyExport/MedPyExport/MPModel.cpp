@@ -85,3 +85,4 @@ int MPModel::apply_feature_processors(MPFeatures &features) { return o->apply_fe
 
 void MPModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag) { return o->dprint_process(pref, rp_flag, fg_flag, fp_flag); };
 int MPModel::write_feature_matrix(const string mat_fname) { return o->write_feature_matrix(mat_fname); };
+MPSerializableObject MPModel::asSerializable() { return MPSerializableObject(o); }

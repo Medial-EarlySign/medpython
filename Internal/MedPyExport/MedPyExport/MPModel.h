@@ -87,6 +87,7 @@ public:
 
 	/// following is for debugging : writing the feature to a csv file as a matrix.
 	int write_feature_matrix(const string mat_fname);
+	MPSerializableObject asSerializable();
 };
 
 

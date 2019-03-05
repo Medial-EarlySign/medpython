@@ -27,3 +27,5 @@ MPSampleFilter MPSampleFilter::from_type_params(int type, string params) { MPSam
 int MPSampleFilter::filter(MPPidRepository& rep, MPSamples& samples) {
 	o->filter(*(rep.o), *(samples.o));
 }
+
+MPSerializableObject MPSampleFilter::asSerializable() { return MPSerializableObject(o); }

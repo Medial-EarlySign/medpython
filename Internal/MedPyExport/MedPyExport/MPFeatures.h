@@ -4,6 +4,7 @@
 #include "MedPyCommon.h"
 #include "MPMat.h"
 #include "MPSamples.h"
+#include "MPSerializableObject.h"
 
 class MedFeatures;
 class FeatureAttr;
@@ -20,6 +21,7 @@ public:
 	bool MEDPY_GET_normalized();
 	void MEDPY_SET_imputed(bool _imputed);
 	bool MEDPY_GET_imputed();
+	MPSerializableObject asSerializable();
 };
 
 class MPStringFeatureAttrMapAdaptor {
@@ -90,20 +92,7 @@ public:
 
 	int filter(std::vector<std::string>& selectedFeatures);
 	int version();
+	MPSerializableObject asSerializable();
 };
-
-#if 0
-
-
-
-
-
-// Serialization
-size_t get_size();
-size_t serialize(unsigned char *blob);
-size_t deserialize(unsigned char *blob);
-
-
-#endif
 
 #endif //!__MED__MPFEATURES__H__

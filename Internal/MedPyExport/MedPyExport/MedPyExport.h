@@ -21,6 +21,7 @@
 #include "MPGlobal.h"
 #include "MPLogger.h"
 #include "MPSampleFilter.h"
+#include "MPSerializableObject.h"
 
 #ifndef SWIG
 #define PUBLIC_OBJECTS "Model", \

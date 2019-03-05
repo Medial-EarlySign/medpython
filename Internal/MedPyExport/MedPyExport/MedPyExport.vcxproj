@@ -31,6 +31,7 @@
     <ClInclude Include="MPPidRepository.h" />
     <ClInclude Include="MPSampleFilter.h" />
     <ClInclude Include="MPSamples.h" />
+    <ClInclude Include="MPSerializableObject.h" />
     <ClInclude Include="MPSigExporter.h" />
     <ClInclude Include="MPSplit.h" />
     <ClInclude Include="MPTime.h" />
@@ -48,6 +49,7 @@
     <ClCompile Include="MPPidRepository.cpp" />
     <ClCompile Include="MPSampleFilter.cpp" />
     <ClCompile Include="MPSamples.cpp" />
+    <ClCompile Include="MPSerializableObject.cpp" />
     <ClCompile Include="MPSigExporter.cpp" />
     <ClCompile Include="MPSplit.cpp" />
     <ClCompile Include="MPTime.cpp" />
