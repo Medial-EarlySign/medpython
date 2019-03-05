@@ -850,6 +850,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void set_names();
+	int filter_features(unordered_set<string>& validFeatures);
 
 	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);

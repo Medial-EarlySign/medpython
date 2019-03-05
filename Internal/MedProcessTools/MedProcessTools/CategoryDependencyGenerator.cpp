@@ -653,3 +653,20 @@ int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& feat
 
 	return 0;
 }
+
+//.......................................................................................
+// Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
+int CategoryDependencyGenerator::filter_features(unordered_set<string>& validFeatures) {
+
+	vector<int> selected;
+	for (int i = 0; i < names.size(); i++) {
+		if (validFeatures.find(names[i]) != validFeatures.end())
+			selected.push_back(i); 
+	}
+
+	for (int i = 0; i < selected.size(); i++)
+		top_codes[i] = top_codes[selected[i]];
+	set_names();
+
+	return ((int)names.size());
+}
