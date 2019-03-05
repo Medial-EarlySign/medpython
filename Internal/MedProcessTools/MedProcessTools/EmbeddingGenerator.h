@@ -61,6 +61,9 @@ public:
 	// Init required tables
 	void init_tables(MedDictionarySections& dict);
 
+	// in case of selection
+	int filter_features(unordered_set<string>& validFeatures) { return 1; }; // TODO: improve to push only selected columns
+
 	// Serialization
 	ADD_CLASS_NAME(EmbeddingGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, tags, names, req_signals, signalName, iGenerateWeights, name_prefix, to_layer, e_dim, emc, embedder)

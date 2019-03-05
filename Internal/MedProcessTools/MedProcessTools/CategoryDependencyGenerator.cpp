@@ -666,6 +666,7 @@ int CategoryDependencyGenerator::filter_features(unordered_set<string>& validFea
 
 	for (int i = 0; i < selected.size(); i++)
 		top_codes[i] = top_codes[selected[i]];
+	top_codes.resize(selected.size());
 	set_names();
 
 	return ((int)names.size());
