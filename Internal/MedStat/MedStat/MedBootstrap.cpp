@@ -8,7 +8,9 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL 
 
 void MedBootstrap::get_cohort_from_arg(const string &single_cohort) {
-	string cohort_line_with_name = single_cohort + "\t" + single_cohort;
+	string cohort_line_with_name = single_cohort + "\t" + boost::replace_all_copy(single_cohort, " ", "\t");
+	if (boost::starts_with(single_cohort, "MULTI"))
+		cohort_line_with_name = boost::replace_all_copy(single_cohort, " ", "\t");
 	parse_cohort_line(cohort_line_with_name);
 }
 
