@@ -3,6 +3,7 @@
 #include <MedMat/MedMat/MedMatConstants.h>
 
 #define LOCAL_SECTION LOG_MEDSTAT
+#define LOCAL_LEVEL LOG_DEF_LEVEL
 
 Gibbs_Params::Gibbs_Params() {
 	burn_in_count = 1000;
@@ -44,6 +45,10 @@ PredictorOrEmpty::PredictorOrEmpty() {
 	gen = mt19937(rd());
 }
 
+int GibbsSampler::init(map<string, string>& map) {
+	return params.init(map);
+}
+
 float PredictorOrEmpty::get_sample(vector<float> &x) {
 	if (!sample_cohort.empty()) {
 		uniform_int_distribution<> rnd_gen(0, (int)sample_cohort.size() - 1);
@@ -65,52 +70,33 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 	MTHROW_AND_ERR("Error PredictorOrEmpty - not initialized");
 }
 
-//TODO: seperate the to prepare and sample - to learn variables predictors seperatlly and than just activate
-void medial::stats::gibbs_sampling(const map<string, vector<float>> &cohort_data, const Gibbs_Params &params,
-	map<string, vector<float>> &results, const vector<bool> *mask, const vector<float> *mask_values) {
+void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 	random_device rd;
 	mt19937 gen(rd());
 	uniform_real_distribution<> rnd_num(0, 1);
 
-	vector<bool> mask_f(cohort_data.size());
-	vector<float> mask_values_f(cohort_data.size());
-	if (mask == NULL)
-		mask = &mask_f;
-	if (mask_values == NULL) //and with init values
-		mask_values = &mask_values_f;
-	if (cohort_data.empty())
-		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
-	//fix mask values and sample gibbs for the rest by cohort_data as statistical cohort for univariate marginal dist
-	int sample_loop = params.burn_in_count + (params.samples_count - 1) * (params.jump_between_samples + 1) + 1;
-
 	vector<string> all_names; all_names.reserve(cohort_data.size());
 	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
 		all_names.push_back(it->first);
-
-	vector<float> current_sample(cohort_data.size());
-	for (size_t i = 0; i < mask->size(); ++i)
-	{
-		if (mask->at(i))
-			current_sample[i] = mask_values->at(i);
-		else
-			current_sample[i] = mask_values->at(i); //init value - not fixed to be this value
-	}
-	vector<int> idx_iter; idx_iter.reserve(mask->size());
-	for (int i = 0; i < mask->size(); ++i)
-		if (mask->at(i))
-			idx_iter.push_back(i);
+	all_feat_names = all_names;
 	int cohort_size = (int)cohort_data.begin()->second.size(); //assume not empty
-	//build predictor for each unknown parameter in the mask based on known parameters + rest_unknown in the mask:
-	vector<PredictorOrEmpty> feats_predictors(idx_iter.size());
+
+	feats_predictors.resize(all_names.size());
 	int pred_num_feats = (int)cohort_data.size() - 1;
 	if (pred_num_feats == 0) {
-		for (size_t i = 0; i < idx_iter.size(); ++i) {
+		for (size_t i = 0; i < all_names.size(); ++i) {
 			//just test for values as distribution mean, variance
-			feats_predictors[i].sample_cohort = cohort_data.at(all_names[idx_iter[i]]);
+			feats_predictors[i].sample_cohort = cohort_data.at(all_names[i]);
 		}
 	}
 	else {
-		for (size_t i = 0; i < idx_iter.size(); ++i)
+		MedTimer tm;
+		tm.start();
+		chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
+		int progress = 0;
+		int max_loop = (int)all_names.size() * params.predictors_counts;
+
+		for (size_t i = 0; i < all_names.size(); ++i)
 		{
 
 			feats_predictors[i].predictors.resize(params.predictors_counts);
@@ -127,31 +113,75 @@ void medial::stats::gibbs_sampling(const map<string, vector<float>> &cohort_data
 							int fixed_idx = (int)jj + int(jj >= i); //skip current
 							train_vec.push_back(cohort_data.at(all_names[fixed_idx])[ii]);
 						}
-						label_vec.push_back(cohort_data.at(all_names[idx_iter[i]])[ii]);
+						label_vec.push_back(cohort_data.at(all_names[i])[ii]);
 					}
 				}
 				//Learn Predictor:
 				feats_predictors[i].predictors[k]->learn(train_vec, label_vec, cohort_size, pred_num_feats);
+
+				++progress;
+				double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+					- tm_prog).count()) / 1000000.0;
+				if (duration > 30) {
+#pragma omp critical
+					tm_prog = chrono::high_resolution_clock::now();
+					double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+						- tm.t[0]).count()) / 1000000.0;
+					double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+					MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+						"estimate time to finish %2.1f Minutes\n",
+						progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+						estimate_time / 60.0);
+				}
 			}
 		}
 	}
+}
+
+//TODO: parallel
+void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector<bool> *mask, const vector<float> *mask_values) {
+
+	vector<bool> mask_f(all_feat_names.size());
+	vector<float> mask_values_f(all_feat_names.size());
+	if (mask == NULL)
+		mask = &mask_f;
+	if (mask_values == NULL) //and with init values
+		mask_values = &mask_values_f;
+	if (all_feat_names.empty())
+		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
+	//fix mask values and sample gibbs for the rest by cohort_data as statistical cohort for univariate marginal dist
+	int sample_loop = params.burn_in_count + (params.samples_count - 1) * (params.jump_between_samples + 1) + 1;
+
+	vector<string> &all_names = all_feat_names;
+
+	vector<float> current_sample(all_feat_names.size());
+	for (size_t i = 0; i < mask->size(); ++i)
+	{
+		if (mask->at(i))
+			current_sample[i] = mask_values->at(i);
+		else
+			current_sample[i] = mask_values->at(i); //init value - not fixed to be this value
+	}
+	vector<int> idx_iter; idx_iter.reserve(mask->size());
+	for (int i = 0; i < mask->size(); ++i)
+		if (mask->at(i))
+			idx_iter.push_back(i);
+	int pred_num_feats = (int)all_feat_names.size() - 1;
 
 	//can parallel for random init of initiale values (just burn in)
-	//TODO: test each feature for distribution, normal, log_normal test without conditioning - assum it remains like that
-	//For now all have normal dist that depends on all the other variables
-
 	for (size_t i = 0; i < sample_loop; ++i)
 	{
 		//create sample - iterate over all variables not in mask:
 		for (int idx = 0; idx < idx_iter.size(); ++idx)
 		{
+			int f_idx = idx_iter[idx];
 			vector<float> curr_x(pred_num_feats);
 			for (size_t k = 0; k < curr_x.size(); ++k)
 			{
 				int fixxed_idx = (int)k + int(k >= i);
 				curr_x[k] = current_sample[fixxed_idx];
 			}
-			float val = feats_predictors[idx].get_sample(curr_x); //based on dist (or predictor - value bin dist)
+			float val = feats_predictors[f_idx].get_sample(curr_x); //based on dist (or predictor - value bin dist)
 #pragma omp critical
 			current_sample[idx_iter[idx]] = val; //update current pos variable
 		}
