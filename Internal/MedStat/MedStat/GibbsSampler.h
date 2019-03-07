@@ -45,14 +45,15 @@ public:
 	int burn_in_count; ///< how many rounds in the start to ignore
 	int jump_between_samples; ///< how many rounds to ignore between taking samples
 	int samples_count; ///< how many samples to output
+	bool find_real_value_bin; ///< If true will find closet real value to result - to be in same resolution, real value from train
 
 	Gibbs_Params();
 
 	int init(map<string, string>& map);
 
 	ADD_CLASS_NAME(Gibbs_Params)
-	ADD_SERIALIZATION_FUNCS(predictor_type, predictor_args, predictors_counts, selection_ratio, select_with_repeats, kmeans,
-			burn_in_count, jump_between_samples, samples_count)
+		ADD_SERIALIZATION_FUNCS(predictor_type, predictor_args, predictors_counts, selection_ratio, select_with_repeats, kmeans,
+			burn_in_count, jump_between_samples, samples_count, find_real_value_bin)
 };
 
 /**
@@ -63,6 +64,7 @@ public:
 	Gibbs_Params params; ///< gibbs params
 	vector<PredictorOrEmpty> feats_predictors; ///< gibbs_feature generators based on predictors
 	vector<string> all_feat_names; ///< all features names (saved in learn)
+	vector<vector<float>> uniqu_value_bins; ///< to round samples to those resoultions! - important for no leak!
 
 	/// <summary>
 	/// learn gibbs sample - for each feature creates predictors
@@ -84,7 +86,7 @@ public:
 	int init(map<string, string>& map); ///< initialized params init function. reffer to that
 
 	ADD_CLASS_NAME(GibbsSampler)
-		ADD_SERIALIZATION_FUNCS(params, feats_predictors, all_feat_names)
+		ADD_SERIALIZATION_FUNCS(params, feats_predictors, uniqu_value_bins, all_feat_names)
 };
 
 MEDSERIALIZE_SUPPORT(PredictorOrEmpty)

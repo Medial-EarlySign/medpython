@@ -3,6 +3,7 @@
 #include <MedAlgo/MedAlgo/BinSplitOptimizer.h>
 #include <MedMat/MedMat/MedMatConstants.h>
 #include <omp.h>
+#include <algorithm>
 
 #define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -17,6 +18,7 @@ Gibbs_Params::Gibbs_Params() {
 	selection_ratio = (float)0.7;
 	select_with_repeats = false;
 	kmeans = 0;
+	find_real_value_bin = true;
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
@@ -41,6 +43,8 @@ int Gibbs_Params::init(map<string, string>& map) {
 			select_with_repeats = med_stoi(it->second) > 0;
 		else if (it->first == "kmeans")
 			kmeans = med_stoi(it->second);
+		else if (it->first == "find_real_value_bin")
+			find_real_value_bin = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -92,6 +96,7 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 	uniform_int_distribution<> rnd_num(0, cohort_size - 1);
 
 	feats_predictors.resize(all_names.size());
+	uniqu_value_bins.resize(all_names.size());
 	int pred_num_feats = (int)cohort_data.size() - 1;
 	if (pred_num_feats == 0) {
 		for (size_t i = 0; i < all_names.size(); ++i) {
@@ -122,6 +127,12 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 		int train_sz = int(cohort_size * params.selection_ratio);
 		for (size_t i = 0; i < all_names.size(); ++i)
 		{
+			unordered_set<float> uniq_vals;
+			for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
+				uniq_vals.insert(cohort_data.at(all_names[i])[k]);
+			uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
+			sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
+
 			feats_predictors[i].predictors.resize(params.predictors_counts);
 			for (size_t k = 0; k < params.predictors_counts; ++k)
 			{
@@ -237,6 +248,20 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 				curr_x[k] = current_sample[fixxed_idx];
 			}
 			float val = feats_predictors[f_idx].get_sample(curr_x); //based on dist (or predictor - value bin dist)
+			//find best bin:
+			if (params.find_real_value_bin) {
+				int pos = medial::process::binary_search_position(uniqu_value_bins[f_idx].data(), uniqu_value_bins[f_idx].data() + uniqu_value_bins[f_idx].size() - 1, val);
+				if (pos == 0)
+					val = uniqu_value_bins[f_idx][0];
+				else {
+					float diff_next = abs(val - uniqu_value_bins[f_idx][pos]);
+					float diff_prev = abs(val - uniqu_value_bins[f_idx][pos - 1]);
+					if (diff_prev < diff_next)
+						val = uniqu_value_bins[f_idx][pos - 1];
+					else
+						val = uniqu_value_bins[f_idx][pos];
+				}
+			}
 #pragma omp critical
 			current_sample[idx_iter[idx]] = val; //update current pos variable
 		}
