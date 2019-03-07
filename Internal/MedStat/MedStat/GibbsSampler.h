@@ -12,7 +12,7 @@ using namespace std;
 /**
 * A wrapper class to store same predictor trained on random selected samples to return prediction dist
 */
-class PredictorOrEmpty {
+class PredictorOrEmpty : public SerializableObject {
 private:
 	mt19937 gen;
 public:
@@ -23,6 +23,9 @@ public:
 
 	/// retrieves random sample for feature based on all other features
 	float get_sample(vector<float> &x);
+
+	ADD_CLASS_NAME(PredictorOrEmpty)
+	ADD_SERIALIZATION_FUNCS(sample_cohort, predictors)
 };
 
 /**
@@ -35,6 +38,7 @@ public:
 	string predictor_args; ///< predictor arg to learn
 	int predictors_counts; ///< how many random predictors for feature
 	float selection_ratio; ///< which ratio of data to take for train in each predictor for randomness
+	bool select_with_repeats; ///< if to randomize with repeats
 
 	//sample args
 	int burn_in_count; ///< how many rounds in the start to ignore
@@ -44,6 +48,9 @@ public:
 	Gibbs_Params();
 
 	int init(map<string, string>& map);
+
+	ADD_CLASS_NAME(Gibbs_Params)
+	ADD_SERIALIZATION_FUNCS(predictor_type, predictor_args, predictors_counts, selection_ratio, burn_in_count, jump_between_samples, samples_count)
 };
 
 /**
@@ -71,5 +78,9 @@ public:
 	ADD_CLASS_NAME(GibbsSampler)
 		ADD_SERIALIZATION_FUNCS(params, feats_predictors, all_feat_names)
 };
+
+MEDSERIALIZE_SUPPORT(PredictorOrEmpty)
+MEDSERIALIZE_SUPPORT(Gibbs_Params)
+MEDSERIALIZE_SUPPORT(GibbsSampler)
 
 #endif

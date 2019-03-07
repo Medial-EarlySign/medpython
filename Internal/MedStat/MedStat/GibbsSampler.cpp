@@ -13,6 +13,7 @@ Gibbs_Params::Gibbs_Params() {
 	predictor_args = "";
 	predictors_counts = 10;
 	selection_ratio = (float)0.7;
+	select_with_repeats = false;
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
@@ -33,6 +34,8 @@ int Gibbs_Params::init(map<string, string>& map) {
 			predictors_counts = med_stoi(it->second);
 		else if (it->first == "selection_ratio")
 			selection_ratio = med_stof(it->second);
+		else if (it->first == "select_with_repeats")
+			select_with_repeats = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -73,13 +76,15 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 	random_device rd;
 	mt19937 gen(rd());
-	uniform_real_distribution<> rnd_num(0, 1);
+	if (params.selection_ratio > 1)
+		MTHROW_AND_ERR("ERROR in GibbsSampler::learn_gibbs - params.selection_ratio can't be bigger than 1\n");
 
 	vector<string> all_names; all_names.reserve(cohort_data.size());
 	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
 		all_names.push_back(it->first);
 	all_feat_names = all_names;
 	int cohort_size = (int)cohort_data.begin()->second.size(); //assume not empty
+	uniform_int_distribution<> rnd_num(0, cohort_size - 1);
 
 	feats_predictors.resize(all_names.size());
 	int pred_num_feats = (int)cohort_data.size() - 1;
@@ -96,28 +101,33 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 		int progress = 0;
 		int max_loop = (int)all_names.size() * params.predictors_counts;
 
+		int train_sz = int(cohort_size * params.selection_ratio);
 		for (size_t i = 0; i < all_names.size(); ++i)
 		{
-
 			feats_predictors[i].predictors.resize(params.predictors_counts);
 			for (size_t k = 0; k < params.predictors_counts; ++k)
 			{
 				//create predictors_count predictors on random selected samples
 				feats_predictors[i].predictors[k] = MedPredictor::make_predictor(params.predictor_type, params.predictor_args);
-				vector<float> train_vec, label_vec;
-				train_vec.reserve(cohort_size * pred_num_feats); label_vec.reserve(cohort_size);
-				for (size_t ii = 0; ii < cohort_size; ++ii) {
-					float random_res = rnd_num(gen);
-					if (random_res >= 1 - params.selection_ratio) {
-						for (size_t jj = 0; jj < pred_num_feats; ++jj) {
-							int fixed_idx = (int)jj + int(jj >= i); //skip current
-							train_vec.push_back(cohort_data.at(all_names[fixed_idx])[ii]);
-						}
-						label_vec.push_back(cohort_data.at(all_names[i])[ii]);
+				vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
+				vector<bool> seen;
+				if (!params.select_with_repeats)
+					seen.resize(cohort_size);
+				for (size_t ii = 0; ii < train_sz; ++ii) {
+					int random_idx = rnd_num(gen);
+					if (!params.select_with_repeats) { //if need to validate no repeats - do it
+						while (seen[random_idx])
+							random_idx = rnd_num(gen);
+						seen[random_idx] = true;
 					}
+					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
+						int fixed_idx = (int)jj + int(jj >= i); //skip current
+						train_vec.push_back(cohort_data.at(all_names[fixed_idx])[random_idx]);
+					}
+					label_vec[ii] = cohort_data.at(all_names[i])[random_idx];
 				}
 				//Learn Predictor:
-				feats_predictors[i].predictors[k]->learn(train_vec, label_vec, cohort_size, pred_num_feats);
+				feats_predictors[i].predictors[k]->learn(train_vec, label_vec, train_sz, pred_num_feats);
 
 				++progress;
 				double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
@@ -164,7 +174,7 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 	}
 	vector<int> idx_iter; idx_iter.reserve(mask->size());
 	for (int i = 0; i < mask->size(); ++i)
-		if (mask->at(i))
+		if (!mask->at(i))
 			idx_iter.push_back(i);
 	int pred_num_feats = (int)all_feat_names.size() - 1;
 
