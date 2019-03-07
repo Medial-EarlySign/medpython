@@ -25,7 +25,7 @@ public:
 	float get_sample(vector<float> &x);
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
-	ADD_SERIALIZATION_FUNCS(sample_cohort, predictors)
+		ADD_SERIALIZATION_FUNCS(sample_cohort, predictors)
 };
 
 /**
@@ -39,6 +39,7 @@ public:
 	int predictors_counts; ///< how many random predictors for feature
 	float selection_ratio; ///< which ratio of data to take for train in each predictor for randomness
 	bool select_with_repeats; ///< if to randomize with repeats
+	int kmeans; ///< If > 0 will use kmeans to find clusters and look on each cluster y distribution - select 1 randomly and learn that
 
 	//sample args
 	int burn_in_count; ///< how many rounds in the start to ignore
@@ -50,7 +51,8 @@ public:
 	int init(map<string, string>& map);
 
 	ADD_CLASS_NAME(Gibbs_Params)
-	ADD_SERIALIZATION_FUNCS(predictor_type, predictor_args, predictors_counts, selection_ratio, burn_in_count, jump_between_samples, samples_count)
+	ADD_SERIALIZATION_FUNCS(predictor_type, predictor_args, predictors_counts, selection_ratio, select_with_repeats, kmeans,
+			burn_in_count, jump_between_samples, samples_count)
 };
 
 /**
@@ -72,6 +74,12 @@ public:
 	/// </summary>
 	void get_samples(map<string, vector<float>> &results,
 		const vector<bool> *mask = NULL, const vector<float> *mask_values = NULL);
+
+	/// <summary>
+	/// generates samples based on gibbs sampling process - uses only burn rate and creates one sample and exits
+	/// </summary>
+	void get_parallel_samples(map<string, vector<float>> &results, uniform_real_distribution<> &real_dist,
+		const vector<bool> *mask = NULL);
 
 	int init(map<string, string>& map); ///< initialized params init function. reffer to that
 

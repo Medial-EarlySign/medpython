@@ -1,6 +1,8 @@
 #include "GibbsSampler.h"
 #include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/BinSplitOptimizer.h>
 #include <MedMat/MedMat/MedMatConstants.h>
+#include <omp.h>
 
 #define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -14,6 +16,7 @@ Gibbs_Params::Gibbs_Params() {
 	predictors_counts = 10;
 	selection_ratio = (float)0.7;
 	select_with_repeats = false;
+	kmeans = 0;
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
@@ -36,6 +39,8 @@ int Gibbs_Params::init(map<string, string>& map) {
 			selection_ratio = med_stof(it->second);
 		else if (it->first == "select_with_repeats")
 			select_with_repeats = med_stoi(it->second) > 0;
+		else if (it->first == "kmeans")
+			kmeans = med_stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -95,6 +100,19 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 		}
 	}
 	else {
+		vector<int> clusters;
+		if (params.kmeans > 0) {
+			//seperate the X space to k clusters:
+			vector<float> full_vec(cohort_size * all_names.size());
+			for (size_t i = 0; i < cohort_size; ++i)
+				for (size_t j = 0; j < all_names.size(); ++j)
+					full_vec[i * pred_num_feats + j] = cohort_data.at(all_names[j])[i];
+			int k = params.kmeans;
+			vector<float> centers(k * all_names.size()), dists(k * cohort_size);
+			clusters.resize(cohort_size);
+			KMeans(full_vec.data(), cohort_size, (int)all_names.size(), k, 1000, centers.data(), clusters.data(), dists.data());
+		}
+
 		MedTimer tm;
 		tm.start();
 		chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
@@ -113,6 +131,9 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 				vector<bool> seen;
 				if (!params.select_with_repeats)
 					seen.resize(cohort_size);
+				vector<int> sel_ls;
+				if (params.kmeans > 0)
+					sel_ls.resize(train_sz);
 				for (size_t ii = 0; ii < train_sz; ++ii) {
 					int random_idx = rnd_num(gen);
 					if (!params.select_with_repeats) { //if need to validate no repeats - do it
@@ -122,11 +143,36 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 					}
 					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
 						int fixed_idx = (int)jj + int(jj >= i); //skip current
-						train_vec.push_back(cohort_data.at(all_names[fixed_idx])[random_idx]);
+						train_vec[ii* pred_num_feats + jj] = (cohort_data.at(all_names[fixed_idx])[random_idx]);
 					}
 					label_vec[ii] = cohort_data.at(all_names[i])[random_idx];
+					if (params.kmeans > 0)
+						sel_ls[ii] = random_idx;
 				}
 				//Learn Predictor:
+				if (params.kmeans > 0) {
+					//randomize y for each cluster - select random y from cluster to learn
+					vector<vector<float>> cluster_labels(params.kmeans);
+					for (size_t kk = 0; kk < label_vec.size(); ++kk)
+					{
+						int cluster_id = clusters[sel_ls[kk]];
+						cluster_labels[cluster_id].push_back(label_vec[kk]);
+					}
+					vector<float> cluster_sel(params.kmeans);
+					for (size_t kk = 0; kk < params.kmeans; ++kk)
+					{
+						if (cluster_labels[kk].empty())
+							continue;
+						uniform_int_distribution<> sel_rnd(0, (int)cluster_labels[kk].size() - 1);
+						cluster_sel[kk] = cluster_labels[kk][sel_rnd(gen)];
+					}
+					//override labels by selection:
+					for (size_t kk = 0; kk < label_vec.size(); ++kk)
+					{
+						int cluster_id = clusters[sel_ls[kk]];
+						label_vec[kk] = cluster_sel[cluster_id];
+					}
+				}
 				feats_predictors[i].predictors[k]->learn(train_vec, label_vec, train_sz, pred_num_feats);
 
 				++progress;
@@ -148,7 +194,6 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 	}
 }
 
-//TODO: parallel
 void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector<bool> *mask, const vector<float> *mask_values) {
 
 	vector<bool> mask_f(all_feat_names.size());
@@ -203,5 +248,63 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 		}
 	}
 
+
+}
+
+void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uniform_real_distribution<> &real_dist,
+	const vector<bool> *mask) {
+	random_device rd;
+	mt19937 gen;
+	vector<bool> mask_f(all_feat_names.size());
+
+	if (mask == NULL)
+		mask = &mask_f;
+	if (all_feat_names.empty())
+		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
+	int N_tot_threads = omp_get_max_threads();
+	vector<GibbsSampler> copy_gibbs(N_tot_threads);
+	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
+		copy_gibbs[i] = *this;
+		copy_gibbs[i].params.samples_count = 1;
+	}
+
+	MedTimer tm;
+	tm.start();
+	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
+	int progress = 0;
+	int max_loop = params.samples_count;
+#pragma omp parallel for
+	for (int i = 0; i < params.samples_count; ++i)
+	{
+		int n_th = omp_get_thread_num();
+		GibbsSampler &g = copy_gibbs[n_th];
+
+		vector<float> mask_vals(all_feat_names.size());
+		for (size_t i = 0; i < mask_vals.size(); ++i)
+			mask_vals[i] = real_dist(gen);
+		map<string, vector<float>> res;
+
+		g.get_samples(res, mask, &mask_vals);
+
+#pragma omp critical
+		for (auto it = res.begin(); it != res.end(); ++it)
+			results[it->first].push_back(it->second[0]);
+
+#pragma omp atomic
+		++progress;
+		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_prog).count()) / 1000000.0;
+		if (duration > 30 && progress % 50 == 0) {
+#pragma omp critical
+			tm_prog = chrono::high_resolution_clock::now();
+			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+				- tm.t[0]).count()) / 1000000.0;
+			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+			MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+				"estimate time to finish %2.1f Minutes\n",
+				progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+				estimate_time / 60.0);
+		}
+	}
 
 }
