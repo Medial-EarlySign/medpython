@@ -119,6 +119,13 @@ int EmbeddingGenerator::generate_by_rec(PidDynamicRec& rec, MedFeatures& feature
 	
 	return 0;
 }
+
+//-------------------------------------------------------------------------------------------------------------------------
+void EmbeddingGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples)
+{
+	emc.prep_models_batches(rep, samples);
+}
+
 /*
 int EmbeddingGenerator::filter_features(unordered_set<string>& validFeatures)
 {

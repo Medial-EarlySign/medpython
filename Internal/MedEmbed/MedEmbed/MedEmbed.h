@@ -33,6 +33,7 @@ public:
 	// next is used for categorial signals. It holds the string names of the categories we want to embed.
 	// initialization is with the categories= parameter , it is a comma (,) separeted list of names (best initialize with the "list:" option)
 	vector<string> categories_to_embed;
+	string regex_filter = "";
 
 	// for categorial: ranges to use (empty is all). The sequence is:
 	// a value and all its hierarchy (if asked for) are created. Then only those within the asked for ranges are actually added and used.
@@ -53,13 +54,13 @@ public:
 	// It is highly recommended to use models creating matrices that are imputed AND normalized.
 	// the features generated will be copied into the sparse matrix
 	// features generated like this are never shrunk
-	MedModel *model = NULL;
+	MedModel *model = NULL; // only object needed for serializations
 	string model_file = "";
-	vector<int> model_sids;
-	MedFeatures feat;
-	map<pair<int, int>, int> pid_time2idx;
+	vector<string> model_req_sigs;
+	vector<string> model_features_names;
+	vector<float *> feat_ptrs; // after matrix was created, holds pointers to each model feature for faster access
+	map<pair<int, int>, int> pidtime2idx; // since order in batch prep is not necessarily the same as the one in the generation, we need this mapping
 
-	int get_feat_for_model(MedPidRepository &rep, vector<pair<int, int>> &pids_times);
 
 	// for categorials only : all sets of a value : we need to build this table before each apply using the given dictionary (and the known categories)
 	unordered_map<int, vector<int>> sig_members2sets;
@@ -129,6 +130,11 @@ public:
 	int add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines);
 	int get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes);
 	int add_codes_to_line(vector<int> &codes, map<int, float> &out_line);
+	int add_to_line(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, float> &out_line);
+
+	// preparing a batch of model results (will also initialize the feat_ptr vector, and the pidtime2idx map)
+	int prep_model_batch(MedPidRepository &rep, MedSamples &samples);
+
 
 	EmbeddedCodeType type_name_to_code(string name);
 
@@ -164,12 +170,6 @@ public:
 	// (2) initializes the embed_sigs objects up to the pre shrinking stage
 	// When starting with a serialized object there's no need to call this one.
 	int prepare(MedPidRepository &rep);
-	
-	// major helper func:
-	// gets a usv for a signal, a time and a win_len, and adds the relevant data to output lines
-	// later and elsewhere these lines will be added atomically and by order to a sparse mat (to allow for easy threading code)
-	int add_model_feats_to_lines(EmbeddingSig &es, PidDynamicRec &pdr, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines);
-	int add_model_feats_to_lines(EmbeddingSig &es, int pid, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines);
 	
 	// adding all the needed lines for a pid. Written for a dynamic record, to allow easy connection to MedProcessTools
 	int add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vector<int> &times, int use_shrink);
@@ -215,7 +215,11 @@ public:
 
 	// minimizing size of shrunk categorials for smaller scheme files
 	// if this is run before serialization one will only be able to create the shrunk version (which is what is needed...)
-	int minimize() { for (auto &es : embed_sigs) es.minimize(); return 0; }
+	int minimize() { for (auto &es : embed_sigs) es.minimize(); return 0; };
+
+	// next is needed in order to allow for batch preparations of model es
+	void prep_models_batches(MedPidRepository &rep, MedSamples &samples) { for (auto &es : embed_sigs) es.prep_model_batch(rep, samples); }
+
 
 	ADD_CLASS_NAME(EmbedMatCreator)
 	ADD_SERIALIZATION_FUNCS(sigs_to_load, rep_time_unit, win_time_unit, byear_time_unit, embed_sigs)

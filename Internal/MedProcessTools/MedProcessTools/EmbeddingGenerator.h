@@ -47,6 +47,9 @@ public:
 	// Naming
 	void set_names();
 
+	// preparing a batch result of model results if an internal MedModel generator is used
+	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);
+
 	// Learn a generator
 	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 
