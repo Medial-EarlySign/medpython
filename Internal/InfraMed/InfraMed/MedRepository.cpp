@@ -1198,13 +1198,17 @@ int MedRepository::load(const vector<string> &sig_names, vector<int> &pids_to_ta
 {
 	unordered_set<string> sig_set;
 	for (auto &s : sig_names) sig_set.insert(s);
-	int rc = 0;
-	for (auto &sname : sig_set) {
-		int local_rc = load(sname, pids_to_take);
-		if (local_rc < 0) MERR("MedRepository::load() : ERROR: Failed reading signal %s\n", sname.c_str());
-		rc += local_rc;
+	vector<int> sids;
+	for (auto &s : sig_set) {
+		int sid = sigs.sid(s);
+		if (sid > 0)
+			sids.push_back(sid);
+		else
+			MERR("MedRepository::load() : ERROR: signal %s is illegal\n", s.c_str());
 	}
-	return rc;
+
+	return load(sids, pids_to_take);
+
 }
 
 //--------------------------------------------------------------------------------------
@@ -1212,10 +1216,26 @@ int MedRepository::load(const vector<int> &sids, vector<int> &pids_to_take)
 {
 	unordered_set<int> sid_set;
 	for (auto s : sids) sid_set.insert(s);
+
+	vector<int> pids_sort_uniq = pids_to_take;
+	sort(pids_sort_uniq.begin(), pids_sort_uniq.end());
+	auto it = unique(pids_sort_uniq.begin(), pids_sort_uniq.end());
+	pids_sort_uniq.resize(distance(pids_sort_uniq.begin(), it));
+
+	vector<int> usids;
+	copy(sid_set.begin(), sid_set.end(), back_inserter(usids));
+
 	int rc = 0;
-	for (int sid : sid_set)
-		rc += load(sid, pids_to_take);
+#pragma omp parallel for
+	for (int j = 0; j < usids.size(); j++) {
+		int sid = usids[j];
+		int local_rc = load_pids_sorted(sid, pids_sort_uniq);
+		if (local_rc < 0) MERR("MedRepository::load() : ERROR: Failed reading sid %d (%s)\n", sid, sigs.Sid2Name[sid].c_str());
+#pragma omp critical
+		rc += local_rc;
+	}
 	return rc;
+
 }
 
 //--------------------------------------------------------------------------------------
@@ -1243,6 +1263,29 @@ int MedRepository::load(const int sid, vector<int> &pids_to_take)
 
 	return 0;
 }
+
+//--------------------------------------------------------------------------------------
+// rc -2: not loaded due to locking
+int MedRepository::load_pids_sorted(const int sid, vector<int> &pids_sort_uniq)
+{
+	if (sid < 0 || sid >= index.index_table.size())
+		return -1;
+
+	if (index.index_table[sid].full_load)
+		return 0; // nothing to do already fully loaded
+
+	if (index.index_table[sid].is_locked)
+		return -2; // need to load but can't since it is locked
+
+	int fno = sigs.Sid2Info[sid].fno;
+
+
+	if (index.index_table[sid].read_index_and_data(index_fnames[fno], data_fnames[fno], pids_sort_uniq) < -1)
+		return -1;
+
+	return 0;
+}
+
 
 //--------------------------------------------------------------------------------------
 int MedRepository::lock_all_sigs()
