@@ -83,6 +83,13 @@ public:
 	void get_parallel_samples(map<string, vector<float>> &results, uniform_real_distribution<> &real_dist,
 		const vector<bool> *mask = NULL);
 
+	/// <summary>
+	/// takes original cohort and results samples - filters and keep only samples that are similar to original population
+	/// </summary>
+	void filter_samples(const map<string, vector<float>> &cohort_data, 
+		map<string, vector<float>> &results, const string &predictor_type, const string &predictor_args,
+		float filter_sens);
+
 	int init(map<string, string>& map); ///< initialized params init function. reffer to that
 
 	ADD_CLASS_NAME(GibbsSampler)

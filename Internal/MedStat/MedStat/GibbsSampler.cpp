@@ -85,6 +85,7 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 	random_device rd;
 	mt19937 gen(rd());
+	int max_kmeans_iters = 500;
 	if (params.selection_ratio > 1)
 		MTHROW_AND_ERR("ERROR in GibbsSampler::learn_gibbs - params.selection_ratio can't be bigger than 1\n");
 
@@ -105,19 +106,6 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 		}
 	}
 	else {
-		vector<int> clusters;
-		if (params.kmeans > 0) {
-			//seperate the X space to k clusters:
-			vector<float> full_vec(cohort_size * all_names.size());
-			for (size_t i = 0; i < cohort_size; ++i)
-				for (size_t j = 0; j < all_names.size(); ++j)
-					full_vec[i * pred_num_feats + j] = cohort_data.at(all_names[j])[i];
-			int k = params.kmeans;
-			vector<float> centers(k * all_names.size()), dists(k * cohort_size);
-			clusters.resize(cohort_size);
-			KMeans(full_vec.data(), cohort_size, (int)all_names.size(), k, 1000, centers.data(), clusters.data(), dists.data());
-		}
-
 		MedTimer tm;
 		tm.start();
 		chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
@@ -134,6 +122,25 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 			sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
 
 			feats_predictors[i].predictors.resize(params.predictors_counts);
+			vector<int> clusters;
+			if (params.kmeans > 0) {
+				//seperate the X space to k clusters:
+				vector<float> full_vec(cohort_size * pred_num_feats);
+				for (size_t ii = 0; ii < cohort_size; ++ii)
+					for (size_t jj = 0; jj < pred_num_feats; ++jj)
+						full_vec[ii * pred_num_feats + jj] = cohort_data.at(all_names[jj + int(jj >= i)])[ii];
+				int k = params.kmeans;
+				if (INT_MAX / cohort_size < k) {
+					k = INT_MAX / cohort_size - 1;
+					MWARN("Warning: k=%d for kMeans is too large for that sample size of %d shrinking k to %d\n",
+						params.kmeans, cohort_size, k);
+				}
+				vector<float> centers(k * pred_num_feats);
+				vector<float> dists(k * cohort_size);
+				clusters.resize(cohort_size);
+				KMeans(full_vec.data(), cohort_size, pred_num_feats, k, max_kmeans_iters, centers.data(), clusters.data(), dists.data());
+			}
+
 			for (size_t k = 0; k < params.predictors_counts; ++k)
 			{
 				//create predictors_count predictors on random selected samples
@@ -331,5 +338,101 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uni
 				estimate_time / 60.0);
 		}
 	}
+
+}
+
+void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,
+	map<string, vector<float>> &results, const string &predictor_type, const string &predictor_args, float filter_sens) {
+	random_device rd;
+	mt19937 gen(rd());
+
+	MedFeatures new_data;
+	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
+		new_data.attributes[it->first].normalized = false;
+
+	int cohort_size = (int)cohort_data.begin()->second.size();
+	new_data.samples.resize(cohort_size + results.begin()->second.size());
+	for (size_t i = 0; i < new_data.samples.size(); ++i) {
+		new_data.samples[i].id = (int)i;
+		new_data.samples[i].outcome = (float)int(i < cohort_size);
+	}
+	//change outcome to be population label: is population 1?
+	vector<float> labels(new_data.samples.size());
+	for (size_t i = 0; i < new_data.samples.size(); ++i)
+		labels[i] = new_data.samples[i].outcome;
+	new_data.init_pid_pos_len();
+	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
+	{
+		new_data.data[it->first] = it->second;
+		new_data.data[it->first].insert(new_data.data[it->first].end(),
+			results.at(it->first).begin(), results.at(it->first).end());
+	}
+
+	//lets get auc on this problem:
+	MedPredictor *predictor = MedPredictor::make_predictor(predictor_type, predictor_args);
+	//lets fix labels weight that cases will be less common
+	vector<float> preds;
+	medial::models::get_pids_cv(predictor, new_data, 5, gen, preds);
+
+	float auc = medial::performance::auc_q(preds, labels, &new_data.weights);
+	MLOG("predictor AUC with CV to diffrentiate between populations is %2.3f\n", auc);
+
+	//do filter: take FPR on SENS
+	unordered_map<float, vector<int>> pred_idx;
+	vector<float> sorted_preds;
+	for (size_t i = 0; i < preds.size(); ++i) {
+		if (pred_idx.find(preds[i]) == pred_idx.end())
+			sorted_preds.push_back(preds[i]);
+		pred_idx[preds[i]].push_back((int)i);
+	}
+	sort(sorted_preds.begin(), sorted_preds.end());
+
+	double t_cnt = 0;
+	double f_cnt = 0;
+	double tot_true_labels = cohort_size;
+	double tot_false_labels = results.begin()->second.size();
+	vector<float> true_rate = vector<float>((int)sorted_preds.size());
+	vector<float> false_rate = vector<float>((int)sorted_preds.size());
+	int st_size = (int)sorted_preds.size() - 1;
+	for (int i = st_size; i >= 0; --i)
+	{
+		const vector<int> &indexes = pred_idx[sorted_preds[i]];
+		//calc AUC status for this step:
+		for (int ind : indexes)
+		{
+			bool true_label = labels[ind] > 0;
+			t_cnt += int(true_label);
+			f_cnt += int(!true_label);
+		}
+		true_rate[st_size - i] = float(t_cnt / tot_true_labels);
+		false_rate[st_size - i] = float(f_cnt / tot_false_labels);
+	}
+
+	//stop on SENS point:
+	int stop_idx = 0;
+	while (stop_idx < true_rate.size() && true_rate[stop_idx] < filter_sens)
+		++stop_idx;
+	if (stop_idx >= true_rate.size())
+		--stop_idx;
+	stop_idx = st_size - stop_idx;
+	//collect all indexes above that score
+	vector<int> filter_sel;
+	for (int i = st_size; i >= stop_idx; --i)
+	{
+		const vector<int> &indexes = pred_idx[sorted_preds[i]];
+		for (int ind : indexes)
+			if (!labels[ind])
+				filter_sel.push_back(ind - cohort_size);
+	}
+
+	//commit selection:
+	map<string, vector<float>> filterd;
+	for (auto it = results.begin(); it != results.end(); ++it) {
+		filterd[it->first].resize(filter_sel.size());
+		for (size_t i = 0; i < filter_sel.size(); ++i)
+			filterd[it->first][i] = (it->second[filter_sel[i]]);
+	}
+
+	results.swap(filterd);
 
 }
