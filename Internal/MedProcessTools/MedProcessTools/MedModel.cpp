@@ -167,8 +167,10 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		return 0;
 
 	// Learn predictor
-	if (start_stage <= MED_MDL_LEARN_PREDICTOR) {
+	if (start_stage <= MED_MDL_LEARN_PREDICTOR && predictor != NULL) {
 		timer.start();
+		//MLOG("features: %d : \n", features.data.size());
+		//for (auto &e : features.data) { MLOG("%s\n", e.first.c_str()); };
 		int rc = predictor->learn(features);
 		timer.take_curr_time();
 		MLOG("MedModel::learn() : model train time: %g ms\n", timer.diff_milisec());
@@ -232,6 +234,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 			return -1;
 		}
+		if (verbosity > 0) MLOG("MedModel apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
 	}
 
 	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
@@ -239,13 +242,15 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 
 	// Process Features
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
+		if (verbosity > 0) MLOG("MedModel apply() : before applying feature processors\n", samples.idSamples.size());
 		if (apply_feature_processors(features, req_features_vec) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 			return -1;
 		}
+		if (verbosity > 0) MLOG("MedModel apply() : after applying feature processors\n", samples.idSamples.size());
 	}
 
-	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS || predictor == NULL)
 		return 0;
 
 	// Apply predictor
@@ -1440,4 +1445,26 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 
 	return 0;
 }
+
+
+//-----------------------------------------------------------------------------------------------------------------
+void MedModel::get_generated_features_names(vector<string> &feat_names)
+{
+	vector<unordered_set<string> > req_features_vec;
+	build_req_features_vec(req_features_vec);
+
+	unordered_set<string> ftr_names = req_features_vec[feature_processors.size()];
+	if (ftr_names.empty()) {
+		// in this case we collect all feature generator names
+		for (auto &generator : generators)
+			generator->get_generated_features(ftr_names);
+	}
+
+	// next is done in order to return feature list sorted in the order it will be in the final matrix
+	map<string, int> sort_me;
+	for (auto &e : ftr_names) sort_me[e] = 1;
+	feat_names.clear();
+	for (auto &e : sort_me) feat_names.push_back(e.first);
+}
+
 #endif
