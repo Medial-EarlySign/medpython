@@ -529,11 +529,19 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	// Attribute
-	features.attributes[resolved_feature_name].normalized = true;
-	if (fillMissing)
-		features.attributes[resolved_feature_name].imputed = true;
-	features.attributes[resolved_feature_name].denorm_mean = mean;
-	features.attributes[resolved_feature_name].denorm_sdv = sd;
+#pragma omp critical
+	{
+		features.attributes[resolved_feature_name].normalized = true;
+		if (fillMissing)
+			features.attributes[resolved_feature_name].imputed = true;
+		features.attributes[resolved_feature_name].denorm_mean = mean;
+		features.attributes[resolved_feature_name].denorm_sdv = sd;
+	}
+
+	// treat resolution
+	float multiplier = 1;
+	if (resolution > 0)
+		multiplier = (float)pow(10, resolution);
 
 	// Clean
 	bool empty = ids.empty();
@@ -551,6 +559,9 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		if (!isfinite(data[i]))
 			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);
 
+		if (resolution > 0) {
+			data[i] = roundf(data[i] * multiplier) / multiplier;
+		}
 	}
 
 	//MLOG("FeatureNormalizer::Apply() done for feature %s , mean %f sd %f size %d flags: normalized %d imputed %d\n", 
@@ -572,6 +583,7 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		else if (field == "normalizeSd") normalizeSd = (med_stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (med_stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = med_stoi(entry.second);
+		else if (field == "resolution") resolution = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 		//! [FeatureNormalizer::init]
@@ -735,6 +747,7 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
 	// Attribute
+#pragma omp critical
 	features.attributes[resolved_feature_name].imputed = true;
 
 	// Impute

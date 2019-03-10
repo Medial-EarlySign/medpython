@@ -89,6 +89,9 @@ public:
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
 	void get_required_signal_ids(unordered_set<int>& signalIds);
 
+	// generated features
+	virtual void get_generated_features(unordered_set<string>& names_list) { for (auto &s : names) names_list.insert(s); }
+
 	// Signal Ids
 	virtual void set_signal_ids(MedSignals& sigs) { return; }
 
@@ -142,8 +145,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
-		void *new_polymorphic(string derived_class_name);
+	ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
+	void *new_polymorphic(string derived_class_name);
 
 	size_t get_generator_size();
 	size_t generator_serialize(unsigned char *blob);
