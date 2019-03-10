@@ -4,7 +4,7 @@
 #define __MED_GIT_VERSION_H__
 
 #ifndef GIT_HEAD_VERSION
-#define GIT_HEAD_VERSION "not built using scripts - please define GIT_HEAD_VERSION in compilation"
+#define GIT_HEAD_VERSION "not built using scripts - please define GIT_HEAD_VERSION in compilation or use smake_rel.sh"
 #endif
 
 #endif // !__MED_GIT_VERSION_H__

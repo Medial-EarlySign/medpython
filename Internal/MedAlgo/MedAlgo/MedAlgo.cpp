@@ -1077,8 +1077,12 @@ bool is_similar(float mean1, float lower1, float upper1, float std1,
 	else
 		range = range / min_range;
 	float mean_diff_ratio = 0;
-	if (abs(mean1) > 0)
-		mean_diff_ratio = abs(mean1 - mean2) / abs(mean1);
+	float ratio_diff_range = abs(mean1);
+	if (ratio_diff_range < std1) //if mean is closed to zero - take mean diff in std's ratio
+		ratio_diff_range = std1;
+
+	if (ratio_diff_range > 0)
+		mean_diff_ratio = abs(mean1 - mean2) / ratio_diff_range;
 
 	return (range >= simlar_range_ratio) && (mean_diff_ratio <= similar_mean_ratio)
 		&& ((mean1 >= lower2 && mean1 <= upper2) ||
@@ -1106,7 +1110,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			MTHROW_AND_ERR("population %s is missing feature %s\n",
 				it->first.c_str(), name2.c_str());
 		means1[feat_i] = medial::stats::mean(it->second, (float)MED_MAT_MISSING_VALUE, n_clean, &population1.weights);
-		means2[feat_i] = medial::stats::mean(population2.data.at(it->first), (float) MED_MAT_MISSING_VALUE, n_clean, &population2.weights);
+		means2[feat_i] = medial::stats::mean(population2.data.at(it->first), (float)MED_MAT_MISSING_VALUE, n_clean, &population2.weights);
 		std1[feat_i] = medial::stats::std(it->second, means1[feat_i], (float)MED_MAT_MISSING_VALUE, n_clean, &population1.weights);
 		std2[feat_i] = medial::stats::std(population2.data.at(it->first), means2[feat_i], (float)MED_MAT_MISSING_VALUE, n_clean, &population2.weights);
 
@@ -1142,11 +1146,14 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		bool res_sim = is_similar(means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i],
 			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i]);
 		string desc_str = res_sim ? "GOOD" : "BAD";
-		snprintf(buffer_s, sizeof(buffer_s), "%s feature %s :: %s mean=%2.3f[%2.3f - %2.3f],std=%2.3f. "
-			"%s mean=%2.3f[%2.3f - %2.3f],std=%2.3f. mean_diff_ratio=%2.3f%%\n", desc_str.c_str(), it->first.c_str(), name1.c_str(),
+		float ratio_diff_range = abs(means1[feat_i]);
+		if (ratio_diff_range < std1[feat_i]) //if mean is closed to zero - take mean diff in std's ratio
+			ratio_diff_range = std1[feat_i];
+		snprintf(buffer_s, sizeof(buffer_s), "%s feature %s :: %s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | "
+			"%s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | mean_diff_ratio=%2.3f%%\n", desc_str.c_str(), it->first.c_str(), name1.c_str(),
 			means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i], name2.c_str(),
 			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i],
-			100 * abs(means1[feat_i] - means2[feat_i]) / max(abs(means1[feat_i]), (float)1e-10));
+			100 * abs(means1[feat_i] - means2[feat_i]) / max(ratio_diff_range, (float)1e-10));
 		MLOG("%s", string(buffer_s).c_str());
 		if (!output_file.empty())
 			fw << string(buffer_s);
