@@ -512,6 +512,7 @@ struct MedQRFParams : public SerializableObject {
 	// Regression
 	float spread;
 	bool keep_all_values; ///< For quantile regression
+	bool sparse_values; ///< For keeping all values as a value-index(int):count(char) vector
 
 	// categorical
 	int min_node;
@@ -525,7 +526,7 @@ struct MedQRFParams : public SerializableObject {
 
 	ADD_CLASS_NAME(MedQRFParams)
 		ADD_SERIALIZATION_FUNCS(ntrees, maxq, learn_nthreads, predict_nthreads, type, max_samp, samp_factor, samp_vec,
-			ntry, get_only_this_categ, max_depth, take_all_samples, spread, keep_all_values, min_node, n_categ, collect_oob, get_count, quantiles)
+			ntry, get_only_this_categ, max_depth, take_all_samples, spread, keep_all_values, sparse_values, min_node, n_categ, collect_oob, get_count, quantiles)
 		void post_deserialization() { if (samp_vec.size() == 0) sampsize = NULL;  else sampsize = &samp_vec[0]; }
 
 };

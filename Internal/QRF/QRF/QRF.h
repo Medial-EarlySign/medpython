@@ -115,13 +115,13 @@ class QRF_ResNode : public SerializableObject {
 		float pred;
 		int n_size;
 		vector<int> counts;		// none for regression, 2 for binary, ncateg (defined in QRF_Forest) for categorized case
-//		vector<float> values;  // Actual values of learning set in regression learning
 		vector<int> values; // Counting of values in learning set in regression learning
+		vector<pair<int, unsigned short int>> value_counts; // Counting of values in learning set in regression learning when working in sparse mode
 		int tot_n_values;
 		int majority;			// for categories cases
 
 		ADD_CLASS_NAME(QRF_ResNode)
-		ADD_SERIALIZATION_FUNCS(n_size, mode, ifeat, split_val, is_leaf, left, right, pred, counts, values, tot_n_values, majority)
+		ADD_SERIALIZATION_FUNCS(n_size, mode, ifeat, split_val, is_leaf, left, right, pred, counts, values, value_counts, tot_n_values, majority)
 
 };
 
@@ -222,6 +222,7 @@ class QRF_Forest : public SerializableObject {
 		int get_only_this_categ; // in case of categorical model, return only probs for this category in predictions (def is -1: return all)
 
 		bool keep_all_values; // Keep all values in each node in regression mode
+		bool sparse_values; // Keep all values in sparse mode (as histogram)
 		vector<float> quantiles; // Quantiles to predict in quantile-regression mode
 		vector<float> sorted_values; // sorted prediction values actually appearing in learning set in regression mode
 
@@ -235,7 +236,8 @@ class QRF_Forest : public SerializableObject {
 		vector<vector<float> > oob_scores; // used to keep oob scores which we use in some cases - if regression : (mean,std) ; if classification : vector of probs
 
 		// constructor: 
-		QRF_Forest() { qtrees.clear(); mode = 0; collect_oob = 0; oob_scores.clear(); keep_all_values = false; nthreads = 1; min_node_size = MIN_SPLIT_NODE_SIZE; get_only_this_categ = -1; 
+		QRF_Forest() {
+			qtrees.clear(); mode = 0; collect_oob = 0; oob_scores.clear(); keep_all_values = false; sparse_values = true; nthreads = 1; min_node_size = MIN_SPLIT_NODE_SIZE; get_only_this_categ = -1;
 		min_spread = 0; n_categ = -1; get_counts_flag = 0;
 		}
 
@@ -284,7 +286,7 @@ class QRF_Forest : public SerializableObject {
 
 		// serialization
 		ADD_CLASS_NAME(QRF_Forest)
-		ADD_SERIALIZATION_FUNCS(qtrees, mode, min_node_size, min_spread, n_categ, get_counts_flag, get_only_this_categ, keep_all_values, quantiles, sorted_values, nthreads, take_all_samples, max_depth)
+		ADD_SERIALIZATION_FUNCS(qtrees, mode, min_node_size, min_spread, n_categ, get_counts_flag, get_only_this_categ, keep_all_values, sparse_values, quantiles, sorted_values, nthreads, take_all_samples, max_depth)
 
 		// IO Methods :
 		//-------------

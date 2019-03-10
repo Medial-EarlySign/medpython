@@ -22,6 +22,9 @@
 //#define DEBUG_ALGO
 //#define DEBUG_ALGO_2
 
+#define LOCAL_SECTION LOG_MEDALGO
+#define LOCAL_LEVEL	LOG_DEF_LEVEL
+
 //======================================================================================================================================
 // QRF_Tree
 //======================================================================================================================================
@@ -1623,13 +1626,25 @@ int QRF_Forest::transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, in
 				}
 			}
 			else if (keep_all_values && qn.is_leaf) {
-				//				qn.values.resize(trees[i].nodes[j].to_sample + 1 - trees[i].nodes[j].from_sample);
-				//				for (unsigned int k = 0; k < qn.values.size(); k++)
-				//					qn.values[k] = qrf.yr[trees[i].sample_ids[k + trees[i].nodes[j].from_sample]];
-				qn.values.assign(sorted_values.size(), 0);
 				qn.tot_n_values = trees[i].nodes[j].to_sample + 1 - trees[i].nodes[j].from_sample;
+				qn.values.assign(sorted_values.size(), 0);
 				for (int k = 0; k < qn.tot_n_values; k++)
 					qn.values[all_values[qrf.yr[trees[i].sample_ids[k + trees[i].nodes[j].from_sample]]]]++;
+				
+				// Rearrange for sparse-values mode
+				if (sparse_values) {
+					qn.value_counts.clear();
+					for (unsigned int iVal = 0; iVal < qn.values.size(); iVal++) {
+						if (qn.values[iVal] > 0) {
+							if (qn.values[iVal] > 0xffff)
+								MTHROW_AND_ERR("Cannot work in sparse-mode. Reached count > %d\n", 0xffff);
+							qn.value_counts.push_back({ iVal,  (unsigned short int) qn.values[iVal] });
+						}
+					}
+					qn.values.clear();
+				}
+				else
+					qn.value_counts.clear();
 			}
 			else
 				qn.values.clear();
@@ -1958,13 +1973,14 @@ struct qrf_scoring_thread_params {
 	int n_categ;
 	vector<float> *quantiles;
 	const vector<float> *sorted_values;
+	bool sparse_values;
 
 	int get_counts; // for CATEGORICAL runs there's such an option, 0 - don't get, 1 - sum counts 2 - sum probs
 //	thread th_handle;
 };
 
 void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, const vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts,
-	vector<float> *quantiles, const vector<float> *sorted_values)
+	vector<float> *quantiles, const vector<float> *sorted_values, bool sparse_values)
 {
 	tp.clear();
 	tp.resize(nsplit);
@@ -1988,7 +2004,7 @@ void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, const vect
 		tp[i].get_counts = get_counts;
 		tp[i].quantiles = quantiles;
 		tp[i].sorted_values = sorted_values;
-
+		tp[i].sparse_values = sparse_values;
 	}
 	tp[nsplit - 1].to = nsamples - 1;
 }
@@ -2014,15 +2030,11 @@ void get_score_thread(void *p)
 	for (int i = tp->from; i <= tp->to; i++) {
 		float sum = 0;
 		float norm = 0;
-		//		vector<pair<float, float>> values(COLLECTED_VALUES_SIZE);
-		//		int values_size = 0;
+
 
 		vector<float> values((*(tp->sorted_values)).size());
 		vector<int> sizes((*(tp->trees)).size());
 		float totWeight = 0, totUnweighted = 0;;
-
-		//		if ((tp->mode == QRF_REGRESSION_TREE && tp->get_counts == PREDS_REGRESSION_AVG) || (tp->mode != QRF_REGRESSION_TREE && tp->get_counts < PREDS_CATEG_AVG_COUNTS))
-		//			norm = (float) (*(tp->trees)).size() ;
 
 		fill(cnts.begin(), cnts.end(), (float)0);
 
@@ -2049,8 +2061,14 @@ void get_score_thread(void *p)
 				}
 				else { // Quantile Regression or sampling
 					float w = (tp->get_counts == PREDS_REGRESSION_QUANTILE || tp->get_counts == PREDS_REGRESSION_SAMPLE) ? (1.0F) : (1.0F / (*trees)[j].qnodes[node].tot_n_values);
-					for (unsigned int iVal = 0; iVal < (*trees)[j].qnodes[node].values.size(); iVal++)
-						values[iVal] += w * (*trees)[j].qnodes[node].values[iVal];
+					if (tp->sparse_values) {
+						for (auto& rec : (*trees)[j].qnodes[node].value_counts)
+							values[rec.first] += w * rec.second;
+					}
+					else {
+						for (unsigned int iVal = 0; iVal < (*trees)[j].qnodes[node].values.size(); iVal++)
+							values[iVal] += w * (*trees)[j].qnodes[node].values[iVal];
+					}
 					sizes[j] = (*trees)[j].qnodes[node].tot_n_values;
 					totWeight += w * sizes[j];
 					totUnweighted += sizes[j];
@@ -2079,10 +2097,12 @@ void get_score_thread(void *p)
 			if (tp->get_counts == PREDS_REGRESSION_WEIGHTED_AVG || tp->get_counts == PREDS_REGRESSION_AVG)
 				tp->res[i] = sum / norm;
 			else if (tp->get_counts == PREDS_REGRESSION_QUANTILE || tp->get_counts == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+
 				int ptr = 0;
 				float sumWeight = 0.0F;
 				for (int k = 0; k < n_quantiles; k++) {
 					float q = (*quantiles)[k];
+			
 					// -2 >=  q  > -(nTrees + 2) : size of relevant node in tree -(q+2)
 					if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
 						tp->res[i*n_quantiles + k] = (float)sizes[(int)(-q - 2)];
@@ -2139,7 +2159,7 @@ void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *re
 	vector<pair<float, int>> indexd_quantiles(quantiles.size());
 	vector<float> sorted_quantiles(quantiles.size());
 
-	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE || get_counts_flag == PREDS_REGRESSION_QUANTILE) {
 		for (unsigned int i = 0; i < quantiles.size(); i++) indexd_quantiles[i] = { quantiles[i],i };
 		sort(indexd_quantiles.begin(), indexd_quantiles.end(), [](const pair<float, int> &v1, const pair<float, int> &v2) {return v1.first < v2.first; });
 		for (unsigned int i = 0; i < quantiles.size(); i++) sorted_quantiles[i] = indexd_quantiles[i].first;
@@ -2149,7 +2169,7 @@ void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *re
 	int eff_nthreads = MIN(nthreads, nsamples);
 
 //	fprintf(stderr, "QRF: mode %d get_counts_flag %d n_categ %d\n", mode, get_counts_flag, n_categ);
-	get_scoring_thread_params(stp, &qtrees, res, nsamples, nfeat, x, eff_nthreads, mode, n_categ, get_counts_flag, &sorted_quantiles, &sorted_values);
+	get_scoring_thread_params(stp, &qtrees, res, nsamples, nfeat, x, eff_nthreads, mode, n_categ, get_counts_flag, &sorted_quantiles, &sorted_values, sparse_values);
 	vector<thread> th_handle(eff_nthreads);
 	for (int i = 0; i < eff_nthreads; i++) {
 		th_handle[i] = thread(get_score_thread, (void *)&stp[i]);

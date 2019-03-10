@@ -43,6 +43,7 @@ void MedQRF::init_defaults()
 	params.samp_factor = 0;
 
 	params.keep_all_values = false;
+	params.sparse_values = true;
 	params.quantiles.clear();
 
 	params.collect_oob = 0;
@@ -77,6 +78,7 @@ int MedQRF::init(void *_in_params)
 	params.collect_oob = in_params->collect_oob;
 
 	params.keep_all_values = in_params->keep_all_values;
+	params.sparse_values = in_params->sparse_values;
 	params.quantiles = in_params->quantiles;
 	params.take_all_samples = in_params->take_all_samples;
 
@@ -142,6 +144,7 @@ int MedQRF::set_params(map<string, string>& mapper) {
 		else if (field == "learn_nthreads") params.learn_nthreads = stoi(entry.second);
 		else if (field == "predict_nthreads") params.predict_nthreads = stoi(entry.second);
 		else if (field == "keep_all_values") params.keep_all_values = (bool)(stoi(entry.second) != 0);
+		else if (field == "sparse_values") params.sparse_values = (bool)(stoi(entry.second) != 0);
 		else if (field == "max_depth") params.max_depth = stoi(entry.second);
 		else if (field == "take_all_samples") params.take_all_samples = (bool)(stoi(entry.second) != 0);
 		else if (field == "quantiles") {
@@ -265,6 +268,7 @@ int MedQRF::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	qf.get_only_this_categ = params.get_only_this_categ;
 	qf.get_counts_flag = params.get_count;
 	qf.keep_all_values = params.keep_all_values;
+	qf.sparse_values = params.sparse_values;
 	qf.quantiles = params.quantiles;
 	qf.max_depth = params.max_depth;
 	qf.take_all_samples = params.take_all_samples;

@@ -1197,13 +1197,9 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	unordered_set<string> sigs;
 
 	get_required_signal_names(sigs);
-
-	MLOG("%s : Required Signals: ", pref.c_str());
-	for (auto& rsig : sigs) MLOG("%s ", rsig.c_str());
-	MLOG("\n");
 	MLOG("%s : MedModel with rp(%d) fg(%d) fp(%d)\n", pref.c_str(), rep_processors.size(), generators.size(), feature_processors.size());
-	MLOG("%s : MedModel with required_signal_names(%d) : ", pref.c_str(), required_signal_names.size());
-	for (auto& s : required_signal_names) MLOG("%s,", s.c_str());
+	MLOG("%s : MedModel with required_signal_names(%d) : ", pref.c_str(), sigs.size());
+	for (auto& s : sigs) MLOG("%s,", s.c_str());
 	MLOG("\n");
 	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
 	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
