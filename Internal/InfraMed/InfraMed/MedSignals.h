@@ -339,7 +339,7 @@ public:
 	static inline int n_time_channels() { return 1; }
 	static inline int n_val_channels() { return 4; }
 	static inline int time_unit() { return MedTime::Minutes; }
-	inline int Time(int chan) { return time; } // assuming minutes span are within the size of an int
+	inline int Time(int chan) { return (int)time; } // assuming minutes span are within the size of an int
 	inline float Val(int chan) {
 		switch (chan) {
 		case 0: return val1;

@@ -118,8 +118,8 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 		throw invalid_argument("filtered all points - min_filter_cnt is too high or axis bining is needed");
 }
 
-void createHtmlGraph(string outPath, vector<map<float, float>> data, string title, string xName, string yName,
-	vector<string> seriesNames, int refreshTime, string chart_type)
+void createHtmlGraph(const string &outPath, const vector<map<float, float>> &data, const string &title, const string &xName
+	, const string &yName, const vector<string> &seriesNames, int refreshTime, const string &chart_type)
 {
 	string x_name = "x";
 	string y_name = "y";
@@ -155,7 +155,7 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 
 	for (size_t i = 0; i < data.size(); ++i)
 	{
-		map<float, float> dmap = data[i];
+		const map<float, float> &dmap = data[i];
 
 		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
@@ -223,8 +223,110 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 	myfile.close();
 }
 
-void createHtml3D(string outPath, const vector<vector<vector<float>>> &vec3d,
-	const vector<string> &seriesNames, bool heatmap, string title, string xName, string yName, string zName) {
+void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<float, float>>> &data, const string &title,
+	const string &xName, const string &yName, const vector<string> &seriesNames,
+	int refreshTime) {
+
+	string x_name = "x";
+	string y_name = "y";
+
+	/*ifstream jsFile;
+	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
+	if (!jsFile.is_open()) {
+	throw logic_error("Unable to open js file");
+	}
+	string jsData((istreambuf_iterator<char>(jsFile)),
+	istreambuf_iterator<char>());
+	ofstream jsOut;*/
+	boost::filesystem::path p(outPath);
+	boost::filesystem::path outDir = p.parent_path();
+
+	/*cerr << "writing: [" << outDir.string() + "/plotly-latest.min.js" << "]\n";
+	jsOut.open(outDir.string() + "/plotly-latest.min.js");
+	jsOut << jsData;
+	jsOut.close();*/
+
+	string content = get_html_template();
+
+	size_t ind = content.find("{0}");
+	if (ind == string::npos) {
+		throw invalid_argument("Not Found in template");
+	}
+
+	string rep = "";
+
+	for (size_t i = 0; i < data.size(); ++i)
+	{
+		const vector<pair<float, float>> &dmap = data[i];
+
+		rep += "var series" + to_string(i) + " = {\n type: '" + "scatter" + "',\n mode: 'markers',\n " + x_name + ": [";
+		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
+			rep += float2Str(it->first) + ", ";
+		}
+		if (rep[rep.size() - 2] == ',') {
+			rep = rep.substr(0, rep.size() - 2);
+		}
+		rep += "], \n";
+
+		rep += y_name + ": [";
+		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
+			rep += float2Str(it->second) + ", ";
+		}
+		if (rep[rep.size() - 2] == ',') {
+			rep = rep.substr(0, rep.size() - 2);
+		}
+		rep += "] \n";
+		if (seriesNames.size() > 0) {
+			if (seriesNames.size() != data.size()) {
+				throw invalid_argument("wrong number of series names passed with data graphs to plot");
+			}
+			rep += ", name: '";
+			rep += seriesNames[i];
+			rep += "' \n";
+		}
+		rep += "};\n";
+	}
+
+	if (refreshTime > 0) {
+		char buf[100];
+		snprintf(buf, 100, "setTimeout(function() { window.location.reload(1); }, %d);", refreshTime);
+		rep += buf;
+	}
+
+
+	rep += "var data = [";
+	for (size_t i = 0; i < data.size(); ++i)
+		rep += " series" + to_string(i) + ", ";
+	
+	rep = rep.substr(0, rep.size() - 2);
+	rep += " ]; \n";
+
+	rep += "var layout = { \n  title:'";
+	rep += title + "',\n ";
+
+	rep += "xaxis: { title : '";
+	rep += xName;
+	rep += "'}, \n yaxis: { title: '";
+	rep += yName + "'},\n ";
+
+
+	rep += "height: 800, \n    width: 1200 \n }; ";
+
+	content.replace(ind, 3, rep);
+	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
+
+	ofstream myfile;
+	cerr << "writing: [" << outPath << "]\n";
+	myfile.open(outPath);
+	if (!myfile.good())
+		cerr << "IO Error: can't write " << outPath << endl;
+	myfile << content;
+	myfile.close();
+
+}
+
+void createHtml3D(const string &outPath, const vector<vector<vector<float>>> &vec3d,
+	const vector<string> &seriesNames, bool heatmap, string title, const string &xName, const string &yName, const string &zName) {
 	if (vec3d.empty())
 		throw invalid_argument("please pass at least one graph data");
 	if (vec3d.size() != seriesNames.size())
@@ -317,18 +419,16 @@ void createHtml3D(string outPath, const vector<vector<vector<float>>> &vec3d,
 	myfile.close();
 }
 
-string createCsvFile(map<float, float> data)
+string createCsvFile(const map<float, float> &data)
 {
 	string out = "X, Y\n";
 	for (auto it = data.begin(); it != data.end(); ++it)
-	{
 		out += to_string(it->first) + ", " + to_string(it->second) + "\n";
-	}
 
 	return out;
 }
 
-string createCsvFile(vector<vector<float>> &data, const vector<string> &headers)
+string createCsvFile(const vector<vector<float>> &data, const vector<string> &headers)
 {
 	string out = "ROWS";
 	for (size_t i = 0; i < headers.size(); ++i)

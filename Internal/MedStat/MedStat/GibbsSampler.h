@@ -16,8 +16,11 @@ class PredictorOrEmpty : public SerializableObject {
 private:
 	mt19937 gen;
 public:
-	vector<MedPredictor *> predictors; ///< list of all predictors for feature
+	int input_size;
 	vector<float> sample_cohort; ///< all data points of feature
+
+	vector<float> cluster_centers; ///< for kMeans centers
+	vector<vector<float>> clusters_y; ///< for kMeans centers
 
 	PredictorOrEmpty();
 
@@ -25,7 +28,7 @@ public:
 	float get_sample(vector<float> &x);
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
-		ADD_SERIALIZATION_FUNCS(sample_cohort, predictors)
+		ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y)
 };
 
 /**
@@ -34,12 +37,10 @@ public:
 class Gibbs_Params : public SerializableObject {
 public:
 	//learn args
-	string predictor_type; ///< predictor type to learn
-	string predictor_args; ///< predictor arg to learn
-	int predictors_counts; ///< how many random predictors for feature
-	float selection_ratio; ///< which ratio of data to take for train in each predictor for randomness
-	bool select_with_repeats; ///< if to randomize with repeats
 	int kmeans; ///< If > 0 will use kmeans to find clusters and look on each cluster y distribution - select 1 randomly and learn that
+	float selection_ratio; ///< selection_ratio for kMeans - down sample
+	bool select_with_repeats; ///< If true will selct with repeats
+	int max_iters; ///< max_iters for kmeans
 
 	//sample args
 	int burn_in_count; ///< how many rounds in the start to ignore
@@ -52,8 +53,8 @@ public:
 	int init(map<string, string>& map);
 
 	ADD_CLASS_NAME(Gibbs_Params)
-		ADD_SERIALIZATION_FUNCS(predictor_type, predictor_args, predictors_counts, selection_ratio, select_with_repeats, kmeans,
-			burn_in_count, jump_between_samples, samples_count, find_real_value_bin)
+		ADD_SERIALIZATION_FUNCS(kmeans, selection_ratio, max_iters, select_with_repeats, burn_in_count,
+			jump_between_samples, samples_count, find_real_value_bin)
 };
 
 /**
@@ -86,7 +87,7 @@ public:
 	/// <summary>
 	/// takes original cohort and results samples - filters and keep only samples that are similar to original population
 	/// </summary>
-	void filter_samples(const map<string, vector<float>> &cohort_data, 
+	void filter_samples(const map<string, vector<float>> &cohort_data,
 		map<string, vector<float>> &results, const string &predictor_type, const string &predictor_args,
 		float filter_sens);
 
