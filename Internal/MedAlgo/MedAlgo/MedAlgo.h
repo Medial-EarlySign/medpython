@@ -994,7 +994,7 @@ int KMeans(MedMat<float> &x, int K, MedMat<float> &centers, vector<int> &cluster
 int KMeans(MedMat<float> &x, int K, int max_iter, MedMat<float> &centers, vector<int> &clusters, MedMat<float> &dists);
 int KMeans(float *x, int nrows, int ncols, int K, float *centers, int *clusters, float *dists);
 
-int KMeans(float *x, int nrows, int ncols, int K, int max_iter, float *centers, int *clusters, float *dists); // actual implemetation routine
+int KMeans(float *x, int nrows, int ncols, int K, int max_iter, float *centers, int *clusters, float *dists, bool verbose_print = true); // actual implemetation routine
 
 // PCA
 

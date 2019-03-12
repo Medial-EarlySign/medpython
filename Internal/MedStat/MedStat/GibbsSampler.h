@@ -6,6 +6,7 @@
 #include <random>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/BinSplitOptimizer.h>
 
 using namespace std;
 
@@ -18,17 +19,20 @@ private:
 public:
 	int input_size;
 	vector<float> sample_cohort; ///< all data points of feature
+	MedPredictor * predictor; ///< predictors for each feature and probabilty to see Y (logloss function)
+	vector<float> bin_vals;
 
 	vector<float> cluster_centers; ///< for kMeans centers
 	vector<vector<float>> clusters_y; ///< for kMeans centers
 
 	PredictorOrEmpty();
+	~PredictorOrEmpty();
 
 	/// retrieves random sample for feature based on all other features
 	float get_sample(vector<float> &x);
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
-		ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y)
+	ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, bin_vals)
 };
 
 /**
@@ -36,11 +40,16 @@ public:
 */
 class Gibbs_Params : public SerializableObject {
 public:
-	//learn args
+	//learn args - kmeans or predictor
 	int kmeans; ///< If > 0 will use kmeans to find clusters and look on each cluster y distribution - select 1 randomly and learn that
 	float selection_ratio; ///< selection_ratio for kMeans - down sample
 	bool select_with_repeats; ///< If true will selct with repeats
 	int max_iters; ///< max_iters for kmeans
+
+	string predictor_type; ///< predictor args for multi-class
+	string predictor_args; ///< predictor args for multi-class
+	string num_class_setup; ///< param to control number of classes if needed in predictor
+	BinSettings bin_settings; ///< binning method for each
 
 	//sample args
 	int burn_in_count; ///< how many rounds in the start to ignore
@@ -53,8 +62,8 @@ public:
 	int init(map<string, string>& map);
 
 	ADD_CLASS_NAME(Gibbs_Params)
-		ADD_SERIALIZATION_FUNCS(kmeans, selection_ratio, max_iters, select_with_repeats, burn_in_count,
-			jump_between_samples, samples_count, find_real_value_bin)
+		ADD_SERIALIZATION_FUNCS(kmeans, selection_ratio, max_iters, select_with_repeats, predictor_type, predictor_args,
+			num_class_setup, bin_settings, burn_in_count, jump_between_samples, samples_count, find_real_value_bin)
 };
 
 /**
