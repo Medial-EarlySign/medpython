@@ -72,8 +72,24 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 /// @param refreshTime Time in milliseconds for the file to be refreshed by the browser (default 0, taken as do not refresh)
 /// @param chart type Can be: "scatter", "bar", "pie"
 /// </summary>
-void createHtmlGraph(string outPath, vector<map<float, float>> data, string title = "", string xName = "", string yName = "",
-	vector<string> seriesNames = vector<string>(), int refreshTime = 0, string chart_type = "scatter");
+void createHtmlGraph(const string &outPath, const vector<map<float, float>> &data, const string &title = "", const string &xName = "", const string &yName = "",
+	const vector<string> &seriesNames = vector<string>(), int refreshTime = 0, const string &chart_type = "scatter");
+
+/// <summary>
+/// Will create Html Graph string - you will decide where to save it to disk. 
+/// @param outPath the location to save the html file (recommend ending file ext with .html)
+/// @param data is vector of series to plot with coresponding names in vector seriesNames. each element in the vector is series to plot represented by map<float, float> object
+/// the plot will print the iteration on the keys with their corresponding values. the map object is used to store vector of tuples (x,y) to plot in each series
+/// @param title graph title
+/// @param xName x Axis name
+/// @param yName y Axis name
+/// @param seriesNames same size vector to data with coresponding labels to each data
+/// @param refreshTime Time in milliseconds for the file to be refreshed by the browser (default 0, taken as do not refresh)
+/// @param chart type Can be: "scatter", "bar", "pie"
+/// </summary>
+void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<float, float>>> &data, const string &title = "", 
+	const string &xName = "", const string &yName = "", const vector<string> &seriesNames = vector<string>(), 
+	int refreshTime = 0);
 
 /// <summary>
 /// Plot of 3D graph data
@@ -87,8 +103,8 @@ void createHtmlGraph(string outPath, vector<map<float, float>> data, string titl
 /// @param yName - the y axis name
 /// @param zName - the z axis name
 /// </summary>
-void createHtml3D(string outPath, const vector<vector<vector<float>>> &vec3d, const vector<string> &seriesNames,
-	bool heatmap = true, string title = "", string xName = "x", string yName = "y", string zName = "z");
+void createHtml3D(const string &outPath, const vector<vector<vector<float>>> &vec3d, const vector<string> &seriesNames,
+	bool heatmap = true, const string &title = "", const string &xName = "x", const string &yName = "y", const string &zName = "z");
 
 /// <summary>
 /// returns a csv string content of all features with header name for each feature to save in csv format
@@ -96,7 +112,7 @@ void createHtml3D(string outPath, const vector<vector<vector<float>>> &vec3d, co
 /// <returns>
 /// returns the csv string content of all features with header name
 /// </returns>
-string createCsvFile(map<float, float> data);
+string createCsvFile(const map<float, float> &data);
 
 /// <summary>
 /// returns a csv string content of all features with header name for each feature to save in csv format
@@ -104,7 +120,7 @@ string createCsvFile(map<float, float> data);
 /// <returns>
 /// returns the csv string content of all features with header name
 /// </returns>
-string createCsvFile(vector<vector<float>> &data, const vector<string> &headers);
+string createCsvFile(const vector<vector<float>> &data, const vector<string> &headers);
 
 /// <summary>
 /// Down sampling the number of points in the graph to points_count if has more
