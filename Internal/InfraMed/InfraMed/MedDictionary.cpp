@@ -267,18 +267,19 @@ void MedDictionary::get_members_to_all_sets(vector<int> &members, unordered_map<
 #pragma omp parallel for
 	for (int i=0; i<members.size(); i++) {
 		int member = members[i];
-		unordered_set<int> used;
+		unordered_set<int> _used;
 		queue<int> q;
 		q.push(member);
 		vector<int> v_sets;
 		while (q.size() > 0) {
 			int set_n = q.front();
 			q.pop();
-			if (used.find(set_n) == used.end()) {
+			if (_used.find(set_n) == _used.end()) {
 				v_sets.push_back(set_n);
-				used.insert(set_n);
-				for (auto n : Member2Sets[set_n])
-					q.push(n);
+				_used.insert(set_n);
+				if (Member2Sets.find(set_n) != Member2Sets.end())
+					for (auto n : Member2Sets[set_n])
+						q.push(n);
 			}
 
 		}
