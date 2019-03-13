@@ -4,6 +4,7 @@
 #include "MedPyCommon.h"
 #include "MPLogger.h"
 #include "MPSamples.h"
+#include "MPFeatures.h"
 
 class MPRNG {
 public:
@@ -26,6 +27,7 @@ public:
 class MPCommonLib {
 public:
 	static void print_auc_performance(MPSamples &samples, int nfolds, string outFile);
+	static void shuffleMatrix(MPFeatures& matrix);
 };
 
 

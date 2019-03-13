@@ -22,3 +22,6 @@ int MPRNG::max() { return globalRNG::max(); };
 void MPCommonLib::print_auc_performance(MPSamples &samples, int nfolds, string outFile) {
 	::print_auc_performance(*(samples.o), nfolds, outFile);
 }
+void MPCommonLib::shuffleMatrix(MPFeatures& matrix) {
+	::shuffleMatrix(*(matrix.o));
+}
