@@ -412,6 +412,10 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uni
 		}
 	}
 
+	for (size_t i = 0; i < copy_gibbs.size(); ++i)
+		for (size_t j = 0; j < copy_gibbs[i].feats_predictors.size(); ++j)
+			copy_gibbs[i].feats_predictors[j].predictor = NULL; //that won't be cleaned from memory here - just a copy
+		
 }
 
 void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,

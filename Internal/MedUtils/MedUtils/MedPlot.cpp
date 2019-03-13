@@ -326,7 +326,7 @@ void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<floa
 }
 
 void createHtml3D(const string &outPath, const vector<vector<vector<float>>> &vec3d,
-	const vector<string> &seriesNames, bool heatmap, string title, const string &xName, const string &yName, const string &zName) {
+	const vector<string> &seriesNames, bool heatmap, const string &title, const string &xName, const string &yName, const string &zName) {
 	if (vec3d.empty())
 		throw invalid_argument("please pass at least one graph data");
 	if (vec3d.size() != seriesNames.size())
