@@ -33,7 +33,7 @@ int MPPidRepository::read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int*
 {
 	vector<int> pids_tt;
 	buf_to_vector(pids_to_take, num_pids_to_take, pids_tt);
-	return o->read_all(conf_fname, pids_tt, signals_to_take);
+	return val_or_exception(o->read_all(conf_fname, pids_tt, signals_to_take),string("Error: read_all() failed"));
 }
 
 int MPPidRepository::loadsig(const std::string& signame) { return o->load(signame); };

@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <algorithm>
 #include <cmath>
+#include <regex>
 
 #define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -13,11 +14,17 @@ Gibbs_Params::Gibbs_Params() {
 	burn_in_count = 1000;
 	jump_between_samples = 10;
 	samples_count = 1;
-	kmeans = 100;
+	kmeans = 0;
 	max_iters = 500;
 	selection_ratio = (float)0.7;
 	find_real_value_bin = true;
 	select_with_repeats = false;
+
+	predictor_type = "lightgbm";
+	predictor_args = "objective=multiclassova;metric=multi_logloss;verbose=0;num_threads=15;"
+		"num_trees=250;learning_rate=0.05;lambda_l2=0;metric_freq=50;num_class=50";
+	num_class_setup = "num_class";
+	bin_settings.init_from_string("split_method=iterative_merge;binCnt=50");
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
@@ -40,6 +47,14 @@ int Gibbs_Params::init(map<string, string>& map) {
 			find_real_value_bin = med_stoi(it->second) > 0;
 		else if (it->first == "select_with_repeats")
 			select_with_repeats = med_stoi(it->second) > 0;
+		else if (it->first == "predictor_type")
+			predictor_type = it->second;
+		else if (it->first == "predictor_args")
+			predictor_args = it->second;
+		else if (it->first == "num_class_setup")
+			num_class_setup = it->second;
+		else if (it->first == "bin_settings")
+			bin_settings.init_from_string(it->second);
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -50,6 +65,13 @@ int Gibbs_Params::init(map<string, string>& map) {
 PredictorOrEmpty::PredictorOrEmpty() {
 	random_device rd;
 	gen = mt19937(rd());
+	predictor = NULL;
+}
+
+PredictorOrEmpty::~PredictorOrEmpty() {
+	if (predictor != NULL)
+		delete predictor;
+	predictor = NULL;
 }
 
 int GibbsSampler::init(map<string, string>& map) {
@@ -86,7 +108,25 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 		int sel = rnd_gen(gen);
 		return sample_from[sel];
 	}
+	else if (predictor != NULL) {
+		vector<float> prd; //for each class:
+		predictor->predict(x, prd, 1, (int)x.size());
+		float tot_num = 0;
+		for (size_t i = 0; i < prd.size(); ++i)
+			tot_num += prd[i];
+		uniform_int_distribution<> real_dist(0, tot_num);
+		float sel = real_dist(gen);
 
+		//now select correspond bin value:
+		tot_num = 0;
+		int sel_idx = 0;
+		while (sel_idx < prd.size() && tot_num + prd[sel_idx] < sel) {
+			tot_num += prd[sel_idx];
+			++sel_idx;
+		}
+
+		return bin_vals[sel_idx];
+	}
 
 	MTHROW_AND_ERR("Error PredictorOrEmpty - not initialized");
 }
@@ -94,8 +134,10 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 	random_device rd;
 	mt19937 gen(rd());
-	if (params.kmeans == 0)
-		MTHROW_AND_ERR("kMeans can't be zero\n");
+	if (params.selection_ratio > 1) {
+		MWARN("Warning - GibbsSampler::learn_gibbs - params.selection_ratio is bigger than 1 - setting to 1");
+		params.selection_ratio = 1;
+	}
 
 	vector<string> all_names; all_names.reserve(cohort_data.size());
 	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
@@ -123,6 +165,7 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 
 		int max_loop = (int)all_names.size();
 		int train_sz = int(cohort_size * params.selection_ratio);
+
 #pragma omp parallel for
 		for (int i = 0; i < all_names.size(); ++i)
 		{
@@ -136,27 +179,26 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 			}
 
 			vector<int> clusters;
-			if (params.kmeans > 0) {
-				vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
-				vector<bool> seen;
-				if (!params.select_with_repeats)
-					seen.resize(cohort_size);
-				vector<int> sel_ls(train_sz);
-				for (size_t ii = 0; ii < train_sz; ++ii) {
-					int random_idx = rnd_num(gen);
-					if (!params.select_with_repeats) { //if need to validate no repeats - do it
-						while (seen[random_idx])
-							random_idx = rnd_num(gen);
-						seen[random_idx] = true;
-					}
-					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
-						int fixed_idx = (int)jj + int(jj >= i); //skip current
-						train_vec[ii* pred_num_feats + jj] = (cohort_data.at(all_names[fixed_idx])[random_idx]);
-					}
-					label_vec[ii] = cohort_data.at(all_names[i])[random_idx];
-					sel_ls[ii] = random_idx;
+			vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
+			vector<bool> seen;
+			if (!params.select_with_repeats)
+				seen.resize(cohort_size);
+			vector<int> sel_ls(train_sz);
+			for (size_t ii = 0; ii < train_sz; ++ii) {
+				int random_idx = rnd_num(gen);
+				if (!params.select_with_repeats) { //if need to validate no repeats - do it
+					while (seen[random_idx])
+						random_idx = rnd_num(gen);
+					seen[random_idx] = true;
 				}
-
+				for (size_t jj = 0; jj < pred_num_feats; ++jj) {
+					int fixed_idx = (int)jj + int(jj >= i); //skip current
+					train_vec[ii* pred_num_feats + jj] = (cohort_data.at(all_names[fixed_idx])[random_idx]);
+				}
+				label_vec[ii] = cohort_data.at(all_names[i])[random_idx];
+				sel_ls[ii] = random_idx;
+			}
+			if (params.kmeans > 0) {
 				//seperate the X space to k clusters:
 				int k = params.kmeans;
 				if (INT_MAX / train_sz < k) {
@@ -172,13 +214,57 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 				}
 				vector<float> dists(k * train_sz);
 				clusters.resize(train_sz);
-				MLOG("Running kMeans for %s (%zu / %zu)\n", all_names[i].c_str(), i + 1, all_names.size());
+				//MLOG("Running kMeans for %s (%zu / %zu)\n", all_names[i].c_str(), i + 1, all_names.size());
 				KMeans(train_vec.data(), train_sz, pred_num_feats, k, params.max_iters,
-					feats_predictors[i].cluster_centers.data(), clusters.data(), dists.data());
+					feats_predictors[i].cluster_centers.data(), clusters.data(), dists.data(), false);
 				//calc feats_predictors[i].clusters_y:
 #pragma omp critical 
 				for (size_t j = 0; j < train_sz; ++j)
 					feats_predictors[i].clusters_y[clusters[j]].push_back(cohort_data.at(all_names[i])[j]);
+			}
+			else {
+
+				//use predictors to train on train_vec and predcit on label_vec:
+				//do binning for label_vec:
+				vector<int> empt;
+				medial::process::split_feature_to_bins(params.bin_settings, label_vec, empt, label_vec);
+				//count num of classes:
+				unordered_set<float> seen_val;
+				for (size_t ii = 0; ii < label_vec.size(); ++ii)
+					seen_val.insert(label_vec[ii]);
+				int class_num = (int)seen_val.size();
+				string predictor_init = params.predictor_args;
+				//set num classes if needed:
+				string empty_str = "";
+				if (!params.num_class_setup.empty()) {
+					//std::regex rgx(params.num_class_setup + "=[^;]+");
+					//predictor_init = std::regex_replace(predictor_init, rgx, empty_str);
+					//boost::replace_all(predictor_init, ";;", ";");
+					predictor_init += ";" + params.num_class_setup + "=" + to_string(class_num);
+					//change predictor_init
+				}
+				//init predictor
+				MedPredictor *train_pred = MedPredictor::make_predictor(params.predictor_type, predictor_init);
+
+				vector<float> sorted_vals(seen_val.begin(), seen_val.end());
+				sort(sorted_vals.begin(), sorted_vals.end());
+				MLOG("Feature %s has %d categories\n", all_names[i].c_str(), class_num);
+
+#pragma omp critical
+				feats_predictors[i].bin_vals.insert(feats_predictors[i].bin_vals.end(), sorted_vals.begin(), sorted_vals.end());
+				//learn predictor
+				//change labels to be 0 to K-1:
+				unordered_map<float, int> map_categ;
+				//calc by order:
+				for (size_t ii = 0; ii < sorted_vals.size(); ++ii)
+					map_categ[sorted_vals[ii]] = (int)ii;
+				//commit:
+				for (size_t ii = 0; ii < label_vec.size(); ++ii)
+					label_vec[ii] = (float)map_categ.at(label_vec[ii]);
+
+				train_pred->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
+#pragma omp critical
+				feats_predictors[i].predictor = train_pred;
 			}
 
 			++progress;
@@ -326,6 +412,10 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uni
 		}
 	}
 
+	for (size_t i = 0; i < copy_gibbs.size(); ++i)
+		for (size_t j = 0; j < copy_gibbs[i].feats_predictors.size(); ++j)
+			copy_gibbs[i].feats_predictors[j].predictor = NULL; //that won't be cleaned from memory here - just a copy
+		
 }
 
 void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,
