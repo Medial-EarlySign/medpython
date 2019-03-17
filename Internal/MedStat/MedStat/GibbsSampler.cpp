@@ -63,8 +63,6 @@ int Gibbs_Params::init(map<string, string>& map) {
 }
 
 PredictorOrEmpty::PredictorOrEmpty() {
-	random_device rd;
-	gen = mt19937(rd());
 	predictor = NULL;
 }
 
@@ -78,7 +76,7 @@ int GibbsSampler::init(map<string, string>& map) {
 	return params.init(map);
 }
 
-float PredictorOrEmpty::get_sample(vector<float> &x) {
+float PredictorOrEmpty::get_sample(vector<float> &x, mt19937 &gen) const {
 	if (!sample_cohort.empty()) {
 		uniform_int_distribution<> rnd_gen(0, (int)sample_cohort.size() - 1);
 		int sel = rnd_gen(gen);
@@ -103,7 +101,7 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 			}
 		}
 		//the relevant cluster is close_idx - let's randomize y value from it:
-		vector<float> &sample_from = clusters_y[close_idx];
+		const vector<float> &sample_from = clusters_y[close_idx];
 		uniform_int_distribution<> rnd_gen(0, (int)sample_from.size() - 1);
 		int sel = rnd_gen(gen);
 		return sample_from[sel];
@@ -114,7 +112,7 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 		float tot_num = 0;
 		for (size_t i = 0; i < prd.size(); ++i)
 			tot_num += prd[i];
-		uniform_int_distribution<> real_dist(0, tot_num);
+		uniform_real_distribution<> real_dist(0, tot_num);
 		float sel = real_dist(gen);
 
 		//now select correspond bin value:
@@ -129,6 +127,11 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 	}
 
 	MTHROW_AND_ERR("Error PredictorOrEmpty - not initialized");
+}
+
+GibbsSampler::GibbsSampler() {
+	random_device rd;
+	_gen = mt19937(rd());
 }
 
 void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
@@ -327,7 +330,7 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 				int fixxed_idx = (int)k + int(k >= i);
 				curr_x[k] = current_sample[fixxed_idx];
 			}
-			float val = feats_predictors[f_idx].get_sample(curr_x); //based on dist (or predictor - value bin dist)
+			float val = feats_predictors[f_idx].get_sample(curr_x, _gen); //based on dist (or predictor - value bin dist)
 			//find best bin:
 			if (params.find_real_value_bin) {
 				int pos = medial::process::binary_search_position(uniqu_value_bins[f_idx].data(), uniqu_value_bins[f_idx].data() + uniqu_value_bins[f_idx].size() - 1, val);
@@ -359,7 +362,7 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uniform_real_distribution<> &real_dist,
 	const vector<bool> *mask) {
 	random_device rd;
-	mt19937 gen;
+
 	vector<bool> mask_f(all_feat_names.size());
 
 	if (mask == NULL)
@@ -371,6 +374,7 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uni
 	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
 		copy_gibbs[i] = *this;
 		copy_gibbs[i].params.samples_count = 1;
+		copy_gibbs[i]._gen = mt19937(rd());
 	}
 
 	MedTimer tm;
@@ -386,7 +390,7 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uni
 
 		vector<float> mask_vals(all_feat_names.size());
 		for (size_t i = 0; i < mask_vals.size(); ++i)
-			mask_vals[i] = real_dist(gen);
+			mask_vals[i] = real_dist(g._gen);
 		map<string, vector<float>> res;
 
 		g.get_samples(res, mask, &mask_vals);
@@ -415,7 +419,7 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uni
 	for (size_t i = 0; i < copy_gibbs.size(); ++i)
 		for (size_t j = 0; j < copy_gibbs[i].feats_predictors.size(); ++j)
 			copy_gibbs[i].feats_predictors[j].predictor = NULL; //that won't be cleaned from memory here - just a copy
-		
+
 }
 
 void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,

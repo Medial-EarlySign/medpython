@@ -14,8 +14,6 @@ using namespace std;
 * A wrapper class to store same predictor trained on random selected samples to return prediction dist
 */
 class PredictorOrEmpty : public SerializableObject {
-private:
-	mt19937 gen;
 public:
 	int input_size;
 	vector<float> sample_cohort; ///< all data points of feature
@@ -29,7 +27,7 @@ public:
 	~PredictorOrEmpty();
 
 	/// retrieves random sample for feature based on all other features
-	float get_sample(vector<float> &x);
+	float get_sample(vector<float> &x, mt19937 &gen) const;
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
 	ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, bin_vals)
@@ -70,11 +68,15 @@ public:
 * A gibbs sampler - has learn and create sample based on mask
 */
 class GibbsSampler : public SerializableObject {
+private:
+	mt19937 _gen;
 public:
 	Gibbs_Params params; ///< gibbs params
 	vector<PredictorOrEmpty> feats_predictors; ///< gibbs_feature generators based on predictors
 	vector<string> all_feat_names; ///< all features names (saved in learn)
 	vector<vector<float>> uniqu_value_bins; ///< to round samples to those resoultions! - important for no leak!
+
+	GibbsSampler();
 
 	/// <summary>
 	/// learn gibbs sample - for each feature creates predictors
