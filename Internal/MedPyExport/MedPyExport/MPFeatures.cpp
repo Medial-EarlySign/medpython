@@ -84,7 +84,7 @@ void MPFeatures::get_samples(MPSamples& outSamples) const {
 
 int MPFeatures::get_max_serial_id_cnt() const { return o->get_max_serial_id_cnt();}
 
-int MPFeatures::write_as_csv_mat(const string &csv_fname) const { return val_or_exception(o->write_as_csv_mat(csv_fname), string("Cannot read features from csv file ") + csv_fname); };
+int MPFeatures::write_as_csv_mat(const string &csv_fname) const { return val_or_exception(o->write_as_csv_mat(csv_fname), string("Cannot write features to csv file ") + csv_fname); };
 int MPFeatures::read_from_csv_mat(const string &csv_fname) { return val_or_exception(o->read_from_csv_mat(csv_fname), string("Cannot read features from csv file ") + csv_fname); };
 int MPFeatures::filter(std::vector<std::string>& selectedFeatures) { 
 	unordered_set<string> selectedFeatures_set;
