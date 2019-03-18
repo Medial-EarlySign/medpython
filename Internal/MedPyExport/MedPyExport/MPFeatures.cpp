@@ -103,6 +103,29 @@ MPStringUOSetStringMapAdaptor MPFeatures::MEDPY_GET_tags() {
 	return MPStringUOSetStringMapAdaptor(&(o->tags));
 }
 
+// Get learning/test matrix
+void MPFeatures::split_by_fold(MPFeatures& outMatrix, int iFold, bool isLearning) {
+	vector<string> feature_names;
+	o->get_feature_names(feature_names);
+	for (string& name : feature_names)
+		outMatrix.o->data[name].clear();
+	outMatrix.o->samples.clear();
+
+	for (auto& attr : o->attributes)
+		outMatrix.o->attributes[attr.first] = attr.second;
+
+	for (unsigned int i = 0; i<o->samples.size(); i++) {
+		auto& sample = o->samples[i];
+		if ((isLearning && sample.split != iFold) || ((!isLearning) && sample.split == iFold)) {
+			outMatrix.o->samples.push_back(sample);
+			for (string& name : feature_names)
+				outMatrix.o->data[name].push_back(o->data[name][i]);
+		}
+	}
+}
+
+
+
 /*******************  FEATURE ATTR **********************/
 
 

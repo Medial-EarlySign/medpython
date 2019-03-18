@@ -105,6 +105,24 @@ MPSample MPSampleVectorAdaptor::__getitem__(int i) { return MPSample(&(o->at(i))
 void MPSampleVectorAdaptor::__setitem__(int i, MPSample val) { o->at(i) = *(val.o); };
 void MPSampleVectorAdaptor::append(MPSample val) { o->push_back(*(val.o)); };
 
+void MPSampleVectorAdaptor::override_splits(int nfolds) {
+	map<int, int> id_folds;
+	int idx = 0;
+	for (auto& sample : *o) {
+		int id = sample.id;
+		if (id_folds.find(id) == id_folds.end()) {
+			id_folds[id] = idx % nfolds;
+			idx++;
+		}
+		sample.split = id_folds[id];
+	}
+}
+
+int MPSampleVectorAdaptor::nSplits() {
+	return medial::process::nSplits(*o);
+}
+
+
 /************ MPSamples ************/
 
 MPSamples::MPSamples() { o = new MedSamples(); };
@@ -364,6 +382,13 @@ MPSerializableObject MPSamples::asSerializable() { return MPSerializableObject(o
 //void MPSamples::get_ids_v(int* out_pidvec_1, int out_pidvec_n_1) {  vector<int> ids; o->get_ids(ids); memcpy(out_pidvec_1, &ids[0], out_pidvec_n_1); };
 //int MPSamples::get_ids_n() { return (int)o->idSamples.size(); };
 
+void MPSamples::override_splits(int nfolds) {
+	for (int idx = 0; idx < o->idSamples.size(); idx++) {
+		o->idSamples[idx].split = idx % nfolds;
+		for (auto& sample : o->idSamples[idx].samples)
+			sample.split = idx % nfolds;
+	}
+}
 
 /************ MPIdSamplesVectorAdaptor ************/
 

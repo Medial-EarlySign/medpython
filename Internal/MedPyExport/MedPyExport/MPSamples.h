@@ -67,6 +67,8 @@ public:
 	MPSample __getitem__(int i);
 	void __setitem__(int i, MPSample val);
 	void append(MPSample val);
+	void override_splits(int nfolds);
+	int nSplits();
 };
 
 
@@ -166,6 +168,8 @@ public:
 	void insertRec(int pid, int time);
 	int version();
 	MPSerializableObject asSerializable();
+
+	void override_splits(int nfolds);
 };
 
 

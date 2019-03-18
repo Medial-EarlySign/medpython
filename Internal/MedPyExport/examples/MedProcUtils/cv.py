@@ -59,6 +59,7 @@ except:
 
 # Override splits
 # (this takes too much time in python)
+"""
 if p.nfolds!=-1:
   nfolds = int(p.nfolds)
   idx=0
@@ -68,6 +69,9 @@ if p.nfolds!=-1:
     for sample in idSample.samples:
       sample.split = split
     idx+=1
+"""
+if p.nfolds!=-1:
+  samples.override_splits(int(p.nfolds))
 
 # Folds to take
 nSplits = samples.nSplits();
