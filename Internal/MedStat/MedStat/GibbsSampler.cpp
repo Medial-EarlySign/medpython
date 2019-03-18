@@ -359,14 +359,16 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 
 }
 
-void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uniform_real_distribution<> &real_dist,
-	const vector<bool> *mask) {
+void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results,
+	const vector<bool> *mask, const vector<float> *mask_values) {
 	random_device rd;
 
+	vector<float> mask_values_f(all_feat_names.size());
 	vector<bool> mask_f(all_feat_names.size());
-
 	if (mask == NULL)
 		mask = &mask_f;
+	if (mask_values == NULL) //and with init values
+		mask_values = &mask_values_f;
 	if (all_feat_names.empty())
 		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
 	int N_tot_threads = omp_get_max_threads();
@@ -390,7 +392,10 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uni
 
 		vector<float> mask_vals(all_feat_names.size());
 		for (size_t i = 0; i < mask_vals.size(); ++i)
-			mask_vals[i] = real_dist(g._gen);
+			if (!mask->at(i))
+				mask_vals[i] = mask_values->at(i);
+			else
+				mask_vals[i] = mask_values->at(i);
 		map<string, vector<float>> res;
 
 		g.get_samples(res, mask, &mask_vals);

@@ -92,8 +92,8 @@ public:
 	/// <summary>
 	/// generates samples based on gibbs sampling process - uses only burn rate and creates one sample and exits
 	/// </summary>
-	void get_parallel_samples(map<string, vector<float>> &results, uniform_real_distribution<> &real_dist,
-		const vector<bool> *mask = NULL);
+	void get_parallel_samples(map<string, vector<float>> &results,
+		const vector<bool> *mask = NULL, const vector<float> *mask_values = NULL);
 
 	/// <summary>
 	/// takes original cohort and results samples - filters and keep only samples that are similar to original population
