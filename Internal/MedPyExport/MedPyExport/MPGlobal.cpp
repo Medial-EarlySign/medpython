@@ -25,3 +25,7 @@ void MPCommonLib::print_auc_performance(MPSamples &samples, int nfolds, string o
 void MPCommonLib::shuffleMatrix(MPFeatures& matrix) {
 	::shuffleMatrix(*(matrix.o));
 }
+
+void MPCommonLib::read_predictor_from_file(MPPredictor& pred, string predictorFile) {
+	::read_predictor_from_file(pred.o, predictorFile);
+}

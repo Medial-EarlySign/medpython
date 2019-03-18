@@ -60,3 +60,12 @@ int MPPredictor::learn(MPFeatures& features) { return o->learn(*(features.o)); }
 int MPPredictor::predict(MPFeatures& features) { return o->predict(*(features.o)); };
 
 MPSerializableObject MPPredictor::asSerializable() { return MPSerializableObject(o); }
+
+void MPPredictor::write_predictor_to_file(string& outFile) {
+	size_t predictor_size = o->get_predictor_size();
+	vector<unsigned char> buffer(predictor_size);
+	o->predictor_serialize(&(buffer[0]));
+
+	if (write_binary_data(outFile, &(buffer[0]), predictor_size) != 0)
+		throw runtime_error(string("Error writing model to file ")+outFile);
+}

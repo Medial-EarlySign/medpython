@@ -33,8 +33,8 @@ public:
 
 
 class MPPredictor {
-	MEDPY_IGNORE(MedPredictor* o);
 public:
+	MEDPY_IGNORE(MedPredictor* o);
 	MPSerializableObject asSerializable();
 	
 	MPPredictor();
@@ -66,6 +66,9 @@ public:
 
 	int learn(MPFeatures& features);
 	int predict(MPFeatures& features);
+
+	// Write Predictor to File
+	void write_predictor_to_file(string& outFile);
 };
 /*
 
