@@ -327,7 +327,7 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 			vector<float> curr_x(pred_num_feats);
 			for (size_t k = 0; k < curr_x.size(); ++k)
 			{
-				int fixxed_idx = (int)k + int(k >= i);
+				int fixxed_idx = (int)k + int(k >= f_idx);
 				curr_x[k] = current_sample[fixxed_idx];
 			}
 			float val = feats_predictors[f_idx].get_sample(curr_x, _gen); //based on dist (or predictor - value bin dist)
