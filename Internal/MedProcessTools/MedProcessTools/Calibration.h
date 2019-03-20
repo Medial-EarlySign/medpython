@@ -70,11 +70,11 @@ public:
 	virtual int Learn(const MedSamples& samples);
 	virtual int Learn(const vector<MedSample>& samples) { return Learn(samples, global_default_time_unit); }
 	virtual int Learn(const vector <MedSample>& samples, const int samples_time_unit);
-	virtual int Apply(MedSamples& samples);
-	virtual int Apply(vector <MedSample>& samples);
+	virtual int Apply(MedSamples& samples) const;
+	virtual int Apply(vector <MedSample>& samples) const;
 
 	calibration_entry calibrate_pred(float pred);
-	float calibrate_pred(float pred, int type);
+	float calibrate_pred(float pred, int type) const;
 
 	void write_calibration_table(const string & calibration_table_file);
 	void read_calibration_table(const string& fname);
@@ -91,8 +91,8 @@ protected:
 
 private:
 	int learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit);
-	int apply_time_window(MedSamples& samples);
-	int apply_time_window(vector<MedSample>& samples);
+	int apply_time_window(MedSamples& samples) const;
+	int apply_time_window(vector<MedSample>& samples) const;
 	void write_calibration_time_window(const string & calibration_table_file);
 	void read_calibration_time_window(const string& fname);
 };

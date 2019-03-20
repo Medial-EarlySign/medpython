@@ -19,6 +19,8 @@ Gibbs_Params::Gibbs_Params() {
 	selection_ratio = (float)0.7;
 	find_real_value_bin = true;
 	select_with_repeats = false;
+	calibration_save_ratio = 0;
+	calibration_string = "";
 
 	predictor_type = "lightgbm";
 	predictor_args = "objective=multiclassova;metric=multi_logloss;verbose=0;num_threads=15;"
@@ -55,6 +57,10 @@ int Gibbs_Params::init(map<string, string>& map) {
 			num_class_setup = it->second;
 		else if (it->first == "bin_settings")
 			bin_settings.init_from_string(it->second);
+		else if (it->first == "calibration_save_ratio")
+			calibration_save_ratio = med_stof(it->second);
+		else if (it->first == "calibration_string")
+			calibration_string = it->second;
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -109,6 +115,18 @@ float PredictorOrEmpty::get_sample(vector<float> &x, mt19937 &gen) const {
 	else if (predictor != NULL) {
 		vector<float> prd; //for each class:
 		predictor->predict(x, prd, 1, (int)x.size());
+		if (!calibrators.empty()) {
+			//need to use calibrator for all predictions:
+			vector<MedSample> smps(1);
+			smps[0].id = 0;
+			smps[0].outcome = 0;
+			for (size_t i = 0; i < prd.size(); ++i)
+			{
+				smps[0].prediction = { prd[i] };
+				calibrators[i].Apply(smps);
+				prd[i] = smps[0].prediction[0]; //return calibrated value
+			}
+		}
 		float tot_num = 0;
 		for (size_t i = 0; i < prd.size(); ++i)
 			tot_num += prd[i];
@@ -265,7 +283,73 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 				for (size_t ii = 0; ii < label_vec.size(); ++ii)
 					label_vec[ii] = (float)map_categ.at(label_vec[ii]);
 
-				train_pred->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
+				//split to train and train_calibration if needed:
+				if (params.calibration_save_ratio > 0) {
+#pragma omp critical
+					feats_predictors[i].calibrators.resize(seen_val.size());
+					for (size_t kk = 0; kk < feats_predictors[i].calibrators.size(); ++kk)
+						feats_predictors[i].calibrators[kk].init_from_string(params.calibration_string);
+
+					int calib_ratio = params.calibration_save_ratio * (int)label_vec.size();
+					int train_ratio = (int)label_vec.size() - calib_ratio;
+					uniform_int_distribution<> sel_rnd(0, (int)label_vec.size() - 1);
+					vector<bool> seen_sel(label_vec.size());
+					vector<float> pred_train_vec(train_ratio * pred_num_feats), pred_label_vec(train_ratio);
+					vector<vector<MedSample>> pred_calib_train(seen_val.size());
+					MedFeatures pred_calib_mat;
+					for (const string &name_feat : all_names)
+						pred_calib_mat.attributes[name_feat].denorm_mean = 0;
+					pred_calib_mat.samples.resize(calib_ratio);
+
+					for (size_t j = 0; j < calib_ratio; ++j)
+					{
+						int sel_idx = sel_rnd(gen);
+						while (seen_sel[sel_idx])
+							sel_idx = sel_rnd(gen);
+						seen_sel[sel_idx] = true;
+
+						int categ = label_vec[sel_idx];
+						MedSample smp; smp.id = (int)j;
+
+						for (size_t k = 0; k < pred_calib_train.size(); ++k)
+						{
+							smp.outcome = k == categ; // set outcome := 1 (as case) only for categ
+							pred_calib_train[k].push_back(smp);
+						}
+						pred_calib_mat.samples[j].id = (int)j;
+						pred_calib_mat.samples[j].outcome = 0; //doesn't matter for prediction only
+						for (size_t k = 0; k < pred_num_feats; ++k) {
+							int fixed_idx = (int)k + int(k >= i); //skip current
+							pred_calib_mat.data[all_names[fixed_idx]].push_back(train_vec[sel_idx * pred_num_feats + k]);
+						}
+					}
+
+					//build pred:
+					int idx_train = 0;
+					for (size_t j = 0; j < seen_sel.size(); ++j)
+					{
+						if (seen_sel[j])
+							continue;
+						for (size_t k = 0; k < pred_num_feats; ++k)
+							pred_train_vec[idx_train * pred_num_feats + k] = train_vec[j * pred_num_feats + k];
+						pred_label_vec[idx_train] = label_vec[j];
+						++idx_train;
+					}
+
+					train_pred->learn(pred_train_vec, pred_label_vec, train_ratio, pred_num_feats);
+					//get predictions for pred_calib_train to learn calibrator:
+					train_pred->predict(pred_calib_mat);
+					//get predictions into pred_calib_train:
+					for (size_t j = 0; j < feats_predictors[i].calibrators.size(); ++j)
+						for (size_t k = 0; k < pred_calib_train[j].size(); ++k)
+							pred_calib_train[j][k].prediction = { pred_calib_mat.samples[k].prediction[j] };
+
+					//Learn calibrators - for each pred bin:
+					for (size_t k = 0; k < feats_predictors[i].calibrators.size(); ++k)
+						feats_predictors[i].calibrators[k].Learn(pred_calib_train[k]);
+				}
+				else
+					train_pred->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
 #pragma omp critical
 				feats_predictors[i].predictor = train_pred;
 			}

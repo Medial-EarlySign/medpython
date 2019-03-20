@@ -179,7 +179,7 @@ template void apply_platt_scale<double, float>(const vector<double> &preds, cons
 template void apply_platt_scale<float, double>(const vector<float> &preds, const vector<double> &params, vector<double> &converted);
 template void apply_platt_scale<float, float>(const vector<float> &preds, const vector<double> &params, vector<float> &converted);
 
-int Calibrator::apply_time_window(MedSamples& samples) {
+int Calibrator::apply_time_window(MedSamples& samples) const {
 
 	int type;
 	if (estimator_type == "kaplan_meier") {
@@ -203,7 +203,7 @@ int Calibrator::apply_time_window(MedSamples& samples) {
 	return 0;
 }
 
-int Calibrator::apply_time_window(vector<MedSample>& samples) {
+int Calibrator::apply_time_window(vector<MedSample>& samples) const {
 
 	int type;
 	if (estimator_type == "kaplan_meier") {
@@ -249,7 +249,7 @@ void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 }
 
 
-int Calibrator::Apply(MedSamples& samples) {
+int Calibrator::Apply(MedSamples& samples) const {
 
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
@@ -275,7 +275,7 @@ int Calibrator::Apply(MedSamples& samples) {
 	return 0;
 }
 
-int Calibrator::Apply(vector <MedSample>& samples) {
+int Calibrator::Apply(vector <MedSample>& samples) const {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
@@ -809,7 +809,7 @@ void Calibrator::read_calibration_table(const string& fname) {
 	}
 }
 
-float Calibrator::calibrate_pred(float pred, int type) {
+float Calibrator::calibrate_pred(float pred, int type) const {
 
 	int start = 0;
 	for (int i = 0; i < cals.size(); i++) {

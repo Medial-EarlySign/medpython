@@ -7,6 +7,7 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
 #include <MedAlgo/MedAlgo/BinSplitOptimizer.h>
+#include "MedProcessTools/MedProcessTools/Calibration.h"
 
 using namespace std;
 
@@ -18,7 +19,8 @@ public:
 	int input_size;
 	vector<float> sample_cohort; ///< all data points of feature
 	MedPredictor * predictor; ///< predictors for each feature and probabilty to see Y (logloss function)
-	vector<float> bin_vals;
+	vector<Calibrator> calibrators; ///< calibrator for probabilty for each pred
+	vector<float> bin_vals; ///< the value of feature for each pred 
 
 	vector<float> cluster_centers; ///< for kMeans centers
 	vector<vector<float>> clusters_y; ///< for kMeans centers
@@ -30,7 +32,7 @@ public:
 	float get_sample(vector<float> &x, mt19937 &gen) const;
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
-	ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, bin_vals)
+	ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, calibrators, bin_vals)
 };
 
 /**
@@ -47,7 +49,10 @@ public:
 	string predictor_type; ///< predictor args for multi-class
 	string predictor_args; ///< predictor args for multi-class
 	string num_class_setup; ///< param to control number of classes if needed in predictor
-	BinSettings bin_settings; ///< binning method for each
+	BinSettings bin_settings; ///< binning method for each signal
+
+	float calibration_save_ratio; ///< if given will use calibrate each prediction score on the saved_ratio. [0, 1]
+	string calibration_string; ///< if calibration_save_ratio > 0 will use this init for calibration string
 
 	//sample args
 	int burn_in_count; ///< how many rounds in the start to ignore
@@ -61,7 +66,8 @@ public:
 
 	ADD_CLASS_NAME(Gibbs_Params)
 		ADD_SERIALIZATION_FUNCS(kmeans, selection_ratio, max_iters, select_with_repeats, predictor_type, predictor_args,
-			num_class_setup, bin_settings, burn_in_count, jump_between_samples, samples_count, find_real_value_bin)
+			num_class_setup, bin_settings, calibration_save_ratio, calibration_string,
+			burn_in_count, jump_between_samples, samples_count, find_real_value_bin)
 };
 
 /**
