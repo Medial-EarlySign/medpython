@@ -102,8 +102,8 @@ MPSampleVectorAdaptor::MPSampleVectorAdaptor(const MPSampleVectorAdaptor& other)
 MPSampleVectorAdaptor::~MPSampleVectorAdaptor() { if (o_owned) delete o; };
 int MPSampleVectorAdaptor::__len__() { return (int)o->size(); };
 MPSample MPSampleVectorAdaptor::__getitem__(int i) { return MPSample(&(o->at(i))); };
-void MPSampleVectorAdaptor::__setitem__(int i, MPSample val) { o->at(i) = *(val.o); };
-void MPSampleVectorAdaptor::append(MPSample val) { o->push_back(*(val.o)); };
+void MPSampleVectorAdaptor::__setitem__(int i, MPSample& val) { o->at(i) = *(val.o); };
+void MPSampleVectorAdaptor::append(MPSample& val) { o->push_back(*(val.o)); };
 
 void MPSampleVectorAdaptor::override_splits(int nfolds) {
 	map<int, int> id_folds;
@@ -120,6 +120,10 @@ void MPSampleVectorAdaptor::override_splits(int nfolds) {
 
 int MPSampleVectorAdaptor::nSplits() {
 	return medial::process::nSplits(*o);
+}
+
+void MPSampleVectorAdaptor::append_vec(MPSampleVectorAdaptor& other) {
+	o->insert(o->end(), other.o->begin(), other.o->end());
 }
 
 
@@ -167,6 +171,9 @@ MPSampleVectorAdaptor MPSamples::export_to_sample_vec() {
 	MPSampleVectorAdaptor ret;
 	o->export_to_sample_vec(*(ret.o));
 	return ret;
+}
+void MPSamples::import_from_sample_vec(MPSampleVectorAdaptor& vec_samples, bool allow_split_inconsistency) {
+	o->import_from_sample_vec(*(vec_samples.o), allow_split_inconsistency);
 }
 
 MPPandasAdaptor MPSamples::MEDPY__from_df_adaptor() {

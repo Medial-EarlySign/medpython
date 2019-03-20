@@ -40,12 +40,13 @@
  "Time", \
  "cerr", \
  "logger_use_stdout", \
- "Global",\
- "Logger",\
- "SampleFilter",\
- "CommonLib",\
- "PredictorTypes",\
- "Predictor"
+ "Global", \
+ "Logger", \
+ "SampleFilter", \
+ "CommonLib", \
+ "PredictorTypes", \
+ "Predictor", \
+ "SampleVectorAdaptor"
 
 #endif //SWIG
 

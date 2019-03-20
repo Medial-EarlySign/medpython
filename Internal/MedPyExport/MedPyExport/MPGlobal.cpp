@@ -19,8 +19,10 @@ int MPRNG::max() { return globalRNG::max(); };
 
 #include "../Tools/MedProcessUtils/CommonLib/commonHeader.h"
 
-void MPCommonLib::print_auc_performance(MPSamples &samples, int nfolds, string outFile) {
-	::print_auc_performance(*(samples.o), nfolds, outFile);
+void MPCommonLib::print_auc_performance(MPSamples &samples, MEDPY_NP_INPUT(int* folds, int num_folds), string outFile) {
+	vector<int> folds_vec;
+	buf_to_vector(folds, num_folds, folds_vec);
+	::print_auc_performance(*(samples.o), folds_vec, outFile);
 }
 void MPCommonLib::shuffleMatrix(MPFeatures& matrix) {
 	::shuffleMatrix(*(matrix.o));
