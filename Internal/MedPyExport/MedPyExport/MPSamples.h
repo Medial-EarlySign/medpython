@@ -65,8 +65,9 @@ public:
 	~MPSampleVectorAdaptor();
 	int __len__();
 	MPSample __getitem__(int i);
-	void __setitem__(int i, MPSample val);
-	void append(MPSample val);
+	void __setitem__(int i, MPSample& val);
+	void append(MPSample& val);
+	void append_vec(MPSampleVectorAdaptor& other);
 	void override_splits(int nfolds);
 	int nSplits();
 };
@@ -141,6 +142,8 @@ public:
 	void get_categs(MEDPY_NP_OUTPUT(float** categs_buf, int* categs_buf_len));
 	
 	MPSampleVectorAdaptor export_to_sample_vec();
+	void import_from_sample_vec(MPSampleVectorAdaptor& vec_samples, bool allow_split_inconsistency = false);
+
 	void MEDPY__from_df(MPPandasAdaptor& pandas_df);
 	MPPandasAdaptor MEDPY__from_df_adaptor();
 	MPPandasAdaptor MEDPY__to_df();
