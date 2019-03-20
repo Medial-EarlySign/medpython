@@ -405,9 +405,8 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 	for (size_t i = 0; i < sample_loop; ++i)
 	{
 		//create sample - iterate over all variables not in mask:
-		for (int idx = 0; idx < idx_iter.size(); ++idx)
+		for (int f_idx : idx_iter)
 		{
-			int f_idx = idx_iter[idx];
 			vector<float> curr_x(pred_num_feats);
 			for (size_t k = 0; k < curr_x.size(); ++k)
 			{
@@ -415,28 +414,31 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 				curr_x[k] = current_sample[fixxed_idx];
 			}
 			float val = feats_predictors[f_idx].get_sample(curr_x, _gen); //based on dist (or predictor - value bin dist)
-			//find best bin:
-			if (params.find_real_value_bin) {
-				int pos = medial::process::binary_search_position(uniqu_value_bins[f_idx].data(), uniqu_value_bins[f_idx].data() + uniqu_value_bins[f_idx].size() - 1, val);
-				if (pos == 0)
-					val = uniqu_value_bins[f_idx][0];
-				else {
-					float diff_next = abs(val - uniqu_value_bins[f_idx][pos]);
-					float diff_prev = abs(val - uniqu_value_bins[f_idx][pos - 1]);
-					if (diff_prev < diff_next)
-						val = uniqu_value_bins[f_idx][pos - 1];
-					else
-						val = uniqu_value_bins[f_idx][pos];
-				}
-			}
+
 #pragma omp critical
-			current_sample[idx_iter[idx]] = val; //update current pos variable
+			current_sample[f_idx] = val; //update current pos variable
 		}
 
 		if (i >= params.burn_in_count && ((i - params.burn_in_count) % params.jump_between_samples) == 0) {
 			//collect sample to result:
-			for (size_t k = 0; k < all_names.size(); ++k)
-				results[all_names[k]].push_back(current_sample[k]);
+			for (size_t k = 0; k < all_names.size(); ++k) {
+				float val = current_sample[k];
+				//find best bin if needed:
+				if (params.find_real_value_bin && !mask->at(k)) {
+					int pos = medial::process::binary_search_position(uniqu_value_bins[k].data(), uniqu_value_bins[k].data() + uniqu_value_bins[k].size() - 1, val);
+					if (pos == 0)
+						val = uniqu_value_bins[k][0];
+					else {
+						float diff_next = abs(val - uniqu_value_bins[k][pos]);
+						float diff_prev = abs(val - uniqu_value_bins[k][pos - 1]);
+						if (diff_prev < diff_next)
+							val = uniqu_value_bins[k][pos - 1];
+						else
+							val = uniqu_value_bins[k][pos];
+					}
+				}
+				results[all_names[k]].push_back(val);
+			}
 		}
 	}
 
@@ -459,7 +461,7 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results,
 	vector<GibbsSampler> copy_gibbs(N_tot_threads);
 	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
 		copy_gibbs[i] = *this;
-		copy_gibbs[i].params.samples_count = 1;
+		copy_gibbs[i].params.samples_count = (int)ceil(params.samples_count / N_tot_threads);
 		copy_gibbs[i]._gen = mt19937(rd());
 	}
 
@@ -467,9 +469,9 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results,
 	tm.start();
 	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
 	int progress = 0;
-	int max_loop = params.samples_count;
+	int max_loop = N_tot_threads;
 #pragma omp parallel for
-	for (int i = 0; i < params.samples_count; ++i)
+	for (int i = 0; i < max_loop; ++i)
 	{
 		int n_th = omp_get_thread_num();
 		GibbsSampler &g = copy_gibbs[n_th];

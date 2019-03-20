@@ -60,6 +60,7 @@ public:
 	bool fix_pred_order = false; ///< If true will not allow higher scores to have lower probabilites
 	int poly_rank = 1; ///< Only in platt_scale - the polynon rank for optimizing sigmoid of prob
 	double control_weight_down_sample = 0; ///< factor weight for controls when downsampling controls by this factor
+	bool verbose = true; ///< If true will print verbose information for calibration
 
 	vector<calibration_entry> cals; ///< for "time_window"
 	vector<float> min_range, max_range, map_prob; ///< for "binning"
