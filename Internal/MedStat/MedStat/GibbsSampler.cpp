@@ -488,7 +488,7 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results,
 
 #pragma omp critical
 		for (auto it = res.begin(); it != res.end(); ++it)
-			results[it->first].push_back(it->second[0]);
+			results[it->first].insert(results[it->first].end(), it->second.begin(), it->second.end());
 
 #pragma omp atomic
 		++progress;
