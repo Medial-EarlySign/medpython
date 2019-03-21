@@ -415,7 +415,6 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 			}
 			float val = feats_predictors[f_idx].get_sample(curr_x, _gen); //based on dist (or predictor - value bin dist)
 
-#pragma omp critical
 			current_sample[f_idx] = val; //update current pos variable
 		}
 
@@ -461,7 +460,7 @@ void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results,
 	vector<GibbsSampler> copy_gibbs(N_tot_threads);
 	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
 		copy_gibbs[i] = *this;
-		copy_gibbs[i].params.samples_count = (int)ceil(params.samples_count / N_tot_threads);
+		copy_gibbs[i].params.samples_count = (int)ceil(float(params.samples_count) / N_tot_threads);
 		copy_gibbs[i]._gen = mt19937(rd());
 	}
 
