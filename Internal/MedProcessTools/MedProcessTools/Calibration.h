@@ -83,7 +83,7 @@ public:
 	ADD_CLASS_NAME(Calibrator)
 	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
 		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
-		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank,
+		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank, control_weight_down_sample,
 		cals, min_range, max_range, map_prob, platt_params)
 
 protected:
@@ -97,5 +97,7 @@ private:
 	void write_calibration_time_window(const string & calibration_table_file);
 	void read_calibration_time_window(const string& fname);
 };
+
+MEDSERIALIZE_SUPPORT(Calibrator)
 
 #endif
