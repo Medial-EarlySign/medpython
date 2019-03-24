@@ -767,6 +767,14 @@ int MedPredictor::predict(MedFeatures& ftrs_data) const {
 	return 0;
 }
 
+void MedPredictor::predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const {
+	MTHROW_AND_ERR("Error not implemented in %s\n", my_class_name().c_str());
+}
+
+void MedPredictor::predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const {
+	MTHROW_AND_ERR("Error not implemented in %s\n", my_class_name().c_str());
+}
+
 void convertXMat(const vector<vector<float>> x, MedMat<float> &xMat) {
 	xMat.resize((int)x[0].size(), (int)x.size());
 	for (size_t i = 0; i < x.size(); ++i)

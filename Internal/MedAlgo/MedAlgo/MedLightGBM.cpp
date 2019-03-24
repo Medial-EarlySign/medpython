@@ -185,6 +185,26 @@ namespace LightGBM {
 		Log::Info("Finished training");
 	}
 
+	void MemApp::fetch_boosting(LightGBM::Boosting *&res) {
+		res = boosting_.get();
+	}
+
+	void MemApp::fetch_early_stop(LightGBM::PredictionEarlyStopInstance &early_stop_) {
+		LightGBM::Boosting *_boosting = boosting_.get();
+
+		early_stop_ = CreatePredictionEarlyStopInstance("none", LightGBM::PredictionEarlyStopConfig());
+		if (config_.io_config.pred_early_stop && !_boosting->NeedAccuratePrediction()) {
+			LightGBM::PredictionEarlyStopConfig pred_early_stop_config;
+			pred_early_stop_config.margin_threshold = config_.io_config.pred_early_stop_margin;
+			pred_early_stop_config.round_period = config_.io_config.pred_early_stop_freq;
+			if (_boosting->NumberOfClasses() == 1) {
+				early_stop_ = CreatePredictionEarlyStopInstance("binary", pred_early_stop_config);
+			}
+			else {
+				early_stop_ = CreatePredictionEarlyStopInstance("multiclass", pred_early_stop_config);
+			}
+		}
+	}
 
 	//-------------------------------------------------------------------------------------------------
 	void MemApp::Predict(float *x, int nrows, int ncols, float *&preds) const
@@ -332,4 +352,28 @@ void MedLightGBM::calc_feature_importance(vector<float> &features_importance_sco
 		(model_features.empty() ? features_count : (int)model_features.size()));
 }
 
+void MedLightGBM::prepare_predict_single() {
+	num_preds = n_preds_per_sample();
 
+	mem_app.fetch_boosting(_boosting);
+	mem_app.fetch_early_stop(early_stop_);
+}
+
+void MedLightGBM::predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const {
+	vector<double> one_row(n_ftrs);
+	for (int i = 0; i < n_ftrs; ++i)
+		one_row[i] = static_cast<double>(x[i]);
+
+	vector<double> out_result_vec(num_preds);
+	double *out_result = &out_result_vec[0];
+	_boosting->Predict(one_row.data(), out_result, &early_stop_);
+
+	preds.resize(num_preds);
+	for (int64_t i = 0; i < num_preds; i++) preds[i] = (float)out_result[i];
+}
+
+void MedLightGBM::predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const {
+	preds.resize(num_preds);
+	double *out_result = &preds[0];
+	_boosting->Predict(x.data(), out_result, &early_stop_);
+}

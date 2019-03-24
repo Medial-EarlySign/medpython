@@ -241,6 +241,11 @@ public:
 	static MedPredictor *make_predictor(string model_type, string params);
 	static MedPredictor *make_predictor(MedPredictorTypes model_type, string params);
 
+	/// Prepartion function for fast prediction on single item each time
+	virtual void prepare_predict_single() {};
+	virtual void predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const;
+	virtual void predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const;
+
 	// (De)Serialize
 	ADD_CLASS_NAME(MedPredictor)
 		ADD_SERIALIZATION_FUNCS(classifier_type)
@@ -549,7 +554,7 @@ public:
 	virtual int set_params(map<string, string>& mapper);
 	//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 	void init_defaults();
-	
+
 	/// @snippet MedQRF.cpp MedQRF_get_types
 	QRF_TreeType get_tree_type(string name);
 
