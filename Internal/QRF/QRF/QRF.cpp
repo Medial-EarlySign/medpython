@@ -1636,9 +1636,10 @@ int QRF_Forest::transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, in
 					qn.value_counts.clear();
 					for (unsigned int iVal = 0; iVal < qn.values.size(); iVal++) {
 						if (qn.values[iVal] > 0) {
-							if (qn.values[iVal] > 0xffff)
-								MTHROW_AND_ERR("Cannot work in sparse-mode. Reached count > %d\n", 0xffff);
-							qn.value_counts.push_back({ iVal,  (unsigned short int) qn.values[iVal] });
+//							if (qn.values[iVal] > 0xffff)
+//								MTHROW_AND_ERR("Cannot work in sparse-mode. Reached count > %d\n", 0xffff);
+//							qn.value_counts.push_back({ iVal,  (unsigned short int) qn.values[iVal] });
+							qn.value_counts.push_back({ iVal,   qn.values[iVal] });
 						}
 					}
 					qn.values.clear();

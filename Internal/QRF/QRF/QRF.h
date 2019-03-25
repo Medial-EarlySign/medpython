@@ -116,7 +116,7 @@ class QRF_ResNode : public SerializableObject {
 		int n_size;
 		vector<int> counts;		// none for regression, 2 for binary, ncateg (defined in QRF_Forest) for categorized case
 		vector<int> values; // Counting of values in learning set in regression learning
-		vector<pair<int, unsigned short int>> value_counts; // Counting of values in learning set in regression learning when working in sparse mode
+		vector<pair<int, unsigned int>> value_counts; // Counting of values in learning set in regression learning when working in sparse mode
 		int tot_n_values;
 		int majority;			// for categories cases
 
