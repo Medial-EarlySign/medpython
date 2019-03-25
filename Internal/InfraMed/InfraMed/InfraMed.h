@@ -458,6 +458,7 @@ public:
 	int load(const vector<int> &sids);
 	int load(const string &sig_name, vector<int> &pids_to_take);
 	int load(const int sid, vector<int> &pids_to_take);
+	int load_pids_sorted(const int sid, vector<int> &pids_to_take);
 	int load(const vector<string> &sig_names, vector<int> &pids_to_take);
 
 	int lock(const string &sig_name);

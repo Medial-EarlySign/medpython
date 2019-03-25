@@ -40,6 +40,7 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "poly_rank") poly_rank = stoi(entry.second);
 		else if (field == "control_weight_down_sample") control_weight_down_sample = stof(entry.second);
 		else if (field == "censor_controls") censor_controls = stoi(entry.second);
+		else if (field == "verbose") verbose = stoi(entry.second) > 0;
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
 		//! [Calibrator::init]
 	}
@@ -179,7 +180,7 @@ template void apply_platt_scale<double, float>(const vector<double> &preds, cons
 template void apply_platt_scale<float, double>(const vector<float> &preds, const vector<double> &params, vector<double> &converted);
 template void apply_platt_scale<float, float>(const vector<float> &preds, const vector<double> &params, vector<float> &converted);
 
-int Calibrator::apply_time_window(MedSamples& samples) {
+int Calibrator::apply_time_window(MedSamples& samples) const {
 
 	int type;
 	if (estimator_type == "kaplan_meier") {
@@ -203,7 +204,7 @@ int Calibrator::apply_time_window(MedSamples& samples) {
 	return 0;
 }
 
-int Calibrator::apply_time_window(vector<MedSample>& samples) {
+int Calibrator::apply_time_window(vector<MedSample>& samples) const {
 
 	int type;
 	if (estimator_type == "kaplan_meier") {
@@ -249,7 +250,7 @@ void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 }
 
 
-int Calibrator::Apply(MedSamples& samples) {
+int Calibrator::Apply(MedSamples& samples) const {
 
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
@@ -275,7 +276,7 @@ int Calibrator::Apply(MedSamples& samples) {
 	return 0;
 }
 
-int Calibrator::Apply(vector <MedSample>& samples) {
+int Calibrator::Apply(vector <MedSample>& samples) const {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
@@ -479,7 +480,7 @@ void get_counts(const vector<int> &inds, const vector<float> &y, int &cases_cnt,
 
 void learn_binned_probs(vector<float> &x, const vector<float> &y,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order,
-	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, double control_weight_down_sample) {
+	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, double control_weight_down_sample, bool verbose) {
 	unordered_map<float, vector<int>> score_to_indexes;
 	vector<float> unique_scores;
 	for (size_t i = 0; i < x.size(); ++i)
@@ -556,7 +557,8 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 		bin_cnts.erase(bin_cnts.begin() + unite_index);
 	}
 
-	MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
+	if (verbose)
+		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
 	for (size_t i = 0; i < map_prob.size(); ++i)
 		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
 			min_range[i], max_range[i], map_prob[i],
@@ -565,11 +567,11 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 
 void learn_platt_scale(vector<float> x, vector<float> &y,
 	int poly_rank, vector<double> &params, int min_bucket_size, float min_score_jump
-	, float min_prob_jump, bool fix_pred_order, double control_weight_down_sample) {
+	, float min_prob_jump, bool fix_pred_order, double control_weight_down_sample, bool verbose) {
 	vector<float> min_range, max_range, map_prob;
 
 	learn_binned_probs(x, y, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
-		min_range, max_range, map_prob, control_weight_down_sample);
+		min_range, max_range, map_prob, control_weight_down_sample, verbose);
 
 	vector<float> probs;
 	apply_binned_prob(x, min_range, max_range, map_prob, probs);
@@ -637,8 +639,9 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 	double loss_model = _linear_loss_target_rmse(converted, probs);
 	double loss_prior = _linear_loss_target_rmse(prior_score, probs);
 
-	MLOG("Platt Scale prior=%2.5f. loss_model=%2.5f, loss_prior=%2.5f\n",
-		double(tot_pos) / y.size(), loss_model, loss_prior);
+	if (verbose)
+		MLOG("Platt Scale prior=%2.5f. loss_model=%2.5f, loss_prior=%2.5f\n",
+			double(tot_pos) / y.size(), loss_model, loss_prior);
 }
 
 int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_unit) {
@@ -651,12 +654,12 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 	case CalibrationTypes::probabilty_binning:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_binned_probs(preds, labels, min_preds_in_bin,
-			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob, control_weight_down_sample);
+			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob, control_weight_down_sample, verbose);
 		break;
 	case CalibrationTypes::probabilty_platt_scale:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_platt_scale(preds, labels, poly_rank, platt_params, min_preds_in_bin,
-			min_score_res, min_prob_res, fix_pred_order, control_weight_down_sample);
+			min_score_res, min_prob_res, fix_pred_order, control_weight_down_sample, verbose);
 		break;
 	default:
 		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
@@ -809,7 +812,7 @@ void Calibrator::read_calibration_table(const string& fname) {
 	}
 }
 
-float Calibrator::calibrate_pred(float pred, int type) {
+float Calibrator::calibrate_pred(float pred, int type) const {
 
 	int start = 0;
 	for (int i = 0; i < cals.size(); i++) {

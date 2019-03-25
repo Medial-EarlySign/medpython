@@ -38,6 +38,7 @@ int EmbeddingSig::init(map<string, string>& _map)
 		else if (field == "win_from") win_from = stoi(entry.second);
 		else if (field == "win_to") win_to = stoi(entry.second);
 		else if (field == "type") type = type_name_to_code(entry.second);
+		else if (field == "regex_filter") regex_filter = entry.second;
 		else if (field == "sig_time_unit" || field == "time_unit") sig_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "model_file") {
@@ -46,6 +47,7 @@ int EmbeddingSig::init(map<string, string>& _map)
 			MLOG("reading model file %s\n", model_file.c_str());
 			if (model->read_from_file(model_file) < 0)
 				MTHROW_AND_ERR("ERROR: Could not read model %s\n", model_file.c_str());
+
 		}
 
 		else if (field == "ranges") {
@@ -220,6 +222,22 @@ int EmbeddingSig::init_categorial_tables(MedDictionarySections &dict)
 
 	int section_id = dict.section_id(sig);
 
+	// regex option
+	if (categories_to_embed.size() == 0 && regex_filter != "") {
+		MLOG("Initializing using regex %s\n", regex_filter.c_str());
+		boost::regex regf(regex_filter);
+		for (auto &e : dict.dicts[section_id].Id2Names) {
+			for (auto &v : e.second) {
+				if (boost::regex_match(v, regf)) {
+					categories_to_embed.push_back(v);
+					break;
+				}
+			}
+		}
+		MLOG("Got %d categories\n", categories_to_embed.size());
+	}
+
+
 	// first we initialize Name2Id if it is not initialized from serialization
 	if (Name2Id.size() == 0) {
 		// we only need the names for the needed categories
@@ -283,45 +301,6 @@ int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
 	return 0;
 }
 
-//-------------------------------------------------------------------------------------------------------------
-int EmbeddingSig::get_feat_for_model(MedPidRepository &rep, vector<pair<int, int>> &pids_times)
-{
-	feat.clear();
-	MedSamples samples;
-
-	MLOG("============> 1 pids_times %d\n", pids_times.size());
-	for (auto &pt : pids_times)
-		samples.insertRec(pt.first, pt.second);
-	//samples.time_unit = MedTime::Minutes;
-	//global_default_time_unit = MedTime::Minutes;
-	//global_default_windows_time_unit = MedTime::Minutes;
-	MLOG("============> 2\n");
-	samples.normalize();
-
-	MLOG("============> 3 :: Samples %d\n", samples.idSamples.size());
-
-	model->features.clear();
-	model->apply(rep, samples);
-
-	MLOG("============> 4\n");
-
-	feat = model->features;
-
-	MLOG("============> 5\n");
-
-	int k = 0;
-	for (auto &s : feat.samples) {
-		pid_time2idx[pair<int, int>(s.id, s.time)] = k++;
-	}
-
-	MLOG("============> 6 \n");
-
-	model->features.clear();
-	MLOG("get_feat_for_model : pid_times %d , feat %d x %d , pid_time2idx %d\n", pids_times.size(), feat.data.size(), feat.data.begin()->second.size(), pid_time2idx.size());
-
-	return 0;
-
-}
 
 //----------------------------------------------------------------------------------------------------------------------------------------
 int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes)
@@ -396,18 +375,36 @@ int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int 
 	if (out_lines.find(time) == out_lines.end())
 		out_lines[time] = map<int, float>();
 
-	if (type == ECTYPE_DUMMY) {	out_lines[time][0] = 1.0f;	return 0; }
-
-	vector<int> codes;
-	get_codes(usv, pid, time, use_shrink, codes);
-
-	add_codes_to_line(codes, out_lines[time]);
+	add_to_line(usv, pid, time, use_shrink, out_lines[time]);
 
 	return 0;
 }
 
+#define MODEL_EPSILON (float)0.01
+//----------------------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::add_to_line(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, float> &out_line)
+{
+	if (type == ECTYPE_DUMMY) { out_line[0] = 1.0f;	return 0; }
+
+	if (type == ECTYPE_MODEL) {
+		int j = pidtime2idx[pair<int, int>(pid, time)];
+		for (int i = 0; i < feat_ptrs.size(); i++) {
+			//MLOG("====> i %d j %d feat %f OrigShrunk %d\n", i, j, feat_ptrs[i][j], Orig2ShrunkCode[i]);
+			if (abs(feat_ptrs[i][j]) >= MODEL_EPSILON)
+				out_line[Orig2ShrunkCode[i]] = feat_ptrs[i][j];
+		}
+		return 0;
+	}
+
+	vector<int> codes;
+	get_codes(usv, pid, time, use_shrink, codes);
+	add_codes_to_line(codes, out_line);
+
+	return 0;
+}
 
 // after minimization, it is impossibe to get the non shrunk version again.
+//----------------------------------------------------------------------------------------------------------------------------------------
 int EmbeddingSig::minimize()
 {
 	if (type != ECTYPE_CATEGORIAL) return 0;
@@ -451,6 +448,29 @@ int EmbeddingSig::minimize()
 	}
 
 	categories_to_embed = new_categs;
+	return 0;
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------------------------
+int EmbeddingSig::prep_model_batch(MedPidRepository &rep, MedSamples &samples)
+{
+	if (type != ECTYPE_MODEL) return 0; // nothing to do
+	
+	model->get_generated_features_names(model_features_names);
+	model->apply(rep, samples);
+	
+	MLOG("ES MODEL: generated MedFeatures of : %d x %d (names %d)\n", model->features.data.size(), model->features.data.begin()->second.size(), model_features_names.size());
+
+	feat_ptrs.clear();
+	for (auto &fn : model_features_names)
+		feat_ptrs.push_back(&(model->features.data[fn][0]));
+
+	pidtime2idx.clear();
+	const vector<MedSample> &fsamples = model->features.samples;
+	for (int j = 0; j < fsamples.size(); j++)
+		pidtime2idx[pair<int, int>(fsamples[j].id, fsamples[j].time)] = j;
+
 	return 0;
 }
 
@@ -513,20 +533,11 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 			sigs_to_load.push_back("BYEAR"); // special case, assuming BYEAR exists if Age is asked for
 		if (es.type == ECTYPE_MODEL) {
 			MLOG("Model type prepare() (%s) \n", es.sig.c_str());
-			MLOG("model ptr %x\n", es.model);
-			vector<string> sigs;
-			es.model->get_required_signal_names(sigs);
-			MLOG("model sigs (%d) : ", sigs.size());
-			for (auto &s : sigs) MLOG("%s,", s.c_str());
+			es.model->get_required_signal_names(es.model_req_sigs);
+			MLOG("model sigs (%d) : ", es.model_req_sigs.size());
+			for (auto &s : es.model_req_sigs) MLOG("%s,", s.c_str());
 			MLOG("\n");
-
-			sigs_to_load.insert(sigs_to_load.end(), sigs.begin(), sigs.end());
-
-			// ??? why is this here?...
-			es.model->init_for_apply_rec(rep);
-			es.model->features.print_csv();
-			rep.sigs.get_sids(sigs, es.model_sids);
-			MLOG("sids size %d\n", es.model_sids.size());
+			sigs_to_load.insert(sigs_to_load.end(), es.model_req_sigs.begin(), es.model_req_sigs.end());
 		}
 	}
 
@@ -562,21 +573,18 @@ void EmbedMatCreator::prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig 
 
 		MLOG("prep_memebers_to_sets : model variable\n");
 		es.do_shrink = 0; // we never shrink model features
+		es.model->get_generated_features_names(es.model_features_names);
+		MLOG("model generated features : %d\n", es.model_features_names.size());
+//		for (auto &s : es.model_features_names) MLOG("%s,", s.c_str());
+//		MLOG("\n");
 
-		// first get an empty features file with all the given names
-		es.model->features.clear();
-		MedSamples samples;
-		es.model->verbosity = 0;
-		es.model->apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
 		int c = 0;
-		for (auto &feat : es.model->features.data) {
+		for (auto &feat : es.model_features_names) {
 			es.Orig2Code[c] = curr_code++;
-			es.Orig2Name[c] = "From Model: " + feat.first;
-			es.Orig2ShrunkCode[c] = es.Orig2Code[c];
+			es.Orig2Name[c] = "From_Model_:_>>_" + feat;
+			//es.Orig2ShrunkCode[c] = es.Orig2Code[c];
 			c++;
 		}
-		es.model->features.clear();
-
 		return;
 	}
 
@@ -584,78 +592,6 @@ void EmbedMatCreator::prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig 
 
 	if (es.type == ECTYPE_CATEGORIAL) es.init_categorial(rep.dict, curr_code);
 
-}
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------
-int EmbedMatCreator::add_model_feats_to_lines(EmbeddingSig &es, PidDynamicRec &pdr, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines)
-{
-	for (auto time : times)
-		if (out_lines.find(time) == out_lines.end())
-			out_lines[time] = map<int, float>();
-
-	MedIdSamples mis;
-	mis.id = pdr.pid;
-	for (auto t : times) {
-		MedSample s;
-		s.id = pdr.pid;
-		s.time = t;
-		mis.samples.push_back(s);
-	}
-	MedFeatures _feat;
-	es.model->apply_rec(pdr, mis, _feat, true);
-	//_feat.print_csv();
-	assert(_feat.data.size() == es.Orig2Name.size());
-
-	int c = 0;
-	for (auto &f : _feat.data) {
-
-		int code = c;
-		if (use_shrink) code = es.Orig2ShrunkCode[c];
-
-		for (int i=0; i<_feat.samples.size(); i++) {
-			int time = _feat.samples[i].time;
-			if (out_lines[time].find(code) == out_lines[time].end())
-				out_lines[time][code] = 0; // initialization of entry
-			out_lines[time][code] = f.second[i];
-		}
-
-		c++;
-	}
-
-	return 0;
-}
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------
-int EmbedMatCreator::add_model_feats_to_lines(EmbeddingSig &es, int pid, vector<int> &times, int use_shrink, map<int, map<int, float>> &out_lines)
-{
-	for (auto time : times)
-		if (out_lines.find(time) == out_lines.end())
-			out_lines[time] = map<int, float>();
-
-	for (auto time : times) {
-		pair<int, int> p(pid, time);
-		if (es.pid_time2idx.find(p) == es.pid_time2idx.end()) {
-			MLOG("ERROR: could not find mat for %d %d\n", pid, time);
-			continue;
-		}
-
-		int i = es.pid_time2idx[p];
-
-		//MLOG("add feats : pid %d time %d i %d (mat %d x %d) \n", pid, time, i, es.feat.data.size(), es.feat.data.begin()->second.size());
-
-		int c = 0;
-		for (auto &f : es.feat.data) {
-			int code = c;
-			if (use_shrink) code = es.Orig2ShrunkCode[c];
-			int time = es.feat.samples[i].time;
-			if (out_lines[time].find(code) == out_lines[time].end())
-				out_lines[time][code] = 0; // initialization of entry
-			out_lines[time][code] = f.second[i];
-			c++;
-		}
-	}
-
-	return 0;
 }
 
 
@@ -676,18 +612,13 @@ int EmbedMatCreator::add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vecto
 	UniversalSigVec usv;
 	for (auto &es : embed_sigs) {
 
-		if (es.type == ECTYPE_MODEL) {
-			add_model_feats_to_lines(es, pdr, times, use_shrink, out_lines);
-		}
-		else {
-			for (int t=0; t<times.size(); t++) {
-				int ver = t;
-				if (pdr.get_n_versions() == 0) ver = 0;
+		for (int t=0; t<times.size(); t++) {
+			int ver = t;
+			if (pdr.get_n_versions() == 0) ver = 0;
 
-				if (es.type != ECTYPE_DUMMY) pdr.uget(es.sid, ver, usv);
+			if (es.type != ECTYPE_DUMMY && es.type != ECTYPE_MODEL) pdr.uget(es.sid, ver, usv);
 
-				es.add_sig_to_lines(usv, pdr.pid, times[t], use_shrink, out_lines);
-			}
+			es.add_sig_to_lines(usv, pdr.pid, times[t], use_shrink, out_lines);
 		}
 
 	}
@@ -714,11 +645,8 @@ int EmbedMatCreator::get_pid_out_line(PidDynamicRec &pdr, int ver, int time, int
 	out_line.clear();
 	for (auto &es : embed_sigs) {
 
-		//if (es.type == ECTYPE_MODEL) <================= TBD
-		if (es.type != ECTYPE_DUMMY) pdr.uget(es.sid, ver, usv);
-		vector<int> codes;
-		es.get_codes(usv, pdr.pid, time, use_shrink, codes);
-		es.add_codes_to_line(codes, out_line);
+		if (es.type != ECTYPE_DUMMY && es.type != ECTYPE_MODEL) pdr.uget(es.sid, ver, usv);
+		es.add_to_line(usv, pdr.pid, time, use_shrink, out_line);
 
 	}
 	return 0;
@@ -861,10 +789,17 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, MedSamples &samples, 
 
 	vector<pair<int, int>> pids_times;
 	for (auto &s : samples_vec)
-		if (use_outcome_time)
+		if (use_outcome_time) {
 			pids_times.push_back(pair<int, int>(s.id, s.outcomeTime));
+			s.time = s.outcomeTime;
+		}
 		else
 			pids_times.push_back(pair<int, int>(s.id, s.time));
+
+	MedSamples samps;
+	samps.import_from_sample_vec(samples_vec);
+	samps.normalize();
+	prep_models_batches(rep, samps);
 
 	return get_sparse_mat(rep, pids_times, use_shrink, smat);
 }
@@ -879,14 +814,6 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>
 	smat.meta.resize(pids_times.size());
 
 	int n = 0;
-	//MedRepository *p_rep = (MedRepository *)&rep;
-
-	for (auto &es : embed_sigs) {
-		if (es.type == ECTYPE_MODEL) {
-			MLOG("==============================> Generating model part of matrix\n");
-			es.get_feat_for_model(rep, pids_times);
-		}
-	}
 
 #pragma omp parallel for
 	for (int i=0; i<pids_times.size(); i++) {
@@ -897,19 +824,8 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>
 		map<int, map<int, float>> out_lines;
 		UniversalSigVec usv;
 		for (auto &es : embed_sigs) {
-			if (es.type == ECTYPE_MODEL) {
-				//PidDynamicRec drec;
-				vector<int> times = { time };
-				//MLOG("============= %d  pid %d \n", es.model_sids.size(), pid);
-				//drec.init_from_rep(&rep, pid, es.model_sids, times.size());
-				//MLOG("Generated drec for pid %d time %d sids %d size %d\n", pid, time, es.model_sids.size(), drec.data_len);
-				//add_model_feats_to_lines(es, drec, times, use_shrink, out_lines);
-				add_model_feats_to_lines(es, pid, times, use_shrink, out_lines);
-			}
-			else {
-				if (es.type != ECTYPE_DUMMY)	rep.uget(pid, es.sid, usv);
-				es.add_sig_to_lines(usv, pid, time, use_shrink, out_lines);
-			}
+			if (es.type != ECTYPE_DUMMY && es.type != ECTYPE_MODEL)	rep.uget(pid, es.sid, usv);
+			es.add_sig_to_lines(usv, pid, time, use_shrink, out_lines);
 		}
 
 		vector<pair<int, float>> line;

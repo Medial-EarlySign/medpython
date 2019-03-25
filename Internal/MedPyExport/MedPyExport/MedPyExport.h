@@ -22,6 +22,7 @@
 #include "MPLogger.h"
 #include "MPSampleFilter.h"
 #include "MPSerializableObject.h"
+#include "MPPredictor.h"
 
 #ifndef SWIG
 #define PUBLIC_OBJECTS "Model", \
@@ -39,10 +40,13 @@
  "Time", \
  "cerr", \
  "logger_use_stdout", \
- "Global",\
- "Logger",\
- "SampleFilter",\
- "CommonLib"
+ "Global", \
+ "Logger", \
+ "SampleFilter", \
+ "CommonLib", \
+ "PredictorTypes", \
+ "Predictor", \
+ "SampleVectorAdaptor"
 
 #endif //SWIG
 

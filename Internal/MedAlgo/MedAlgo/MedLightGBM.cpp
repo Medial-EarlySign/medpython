@@ -43,6 +43,7 @@ namespace LightGBM {
 	//-------------------------------------------------------------------------------------------------
 	int MemApp::set_params(map<string, string>& init_params)
 	{
+		bool prev_silent = is_silent;
 		is_silent = false;
 		is_silent = init_params.find("verbose") != init_params.end()
 			&& stoi(init_params.at("verbose")) <= 0;
@@ -59,7 +60,8 @@ namespace LightGBM {
 		// load configs
 		config_.Set(params);
 
-		Log::Info("Finished loading parameters");
+		if (!prev_silent)
+			Log::Info("Finished loading parameters");
 		return 0;
 	}
 

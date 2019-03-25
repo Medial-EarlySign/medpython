@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bootstrap.h" />
+    <ClInclude Include="GibbsSampler.h" />
     <ClInclude Include="MedBootstrap.h" />
     <ClInclude Include="MedCleaner.h" />
     <ClInclude Include="MedHist.h" />
@@ -21,6 +22,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bootstrap.cpp" />
+    <ClCompile Include="GibbsSampler.cpp" />
     <ClCompile Include="MedBootstrap.cpp" />
     <ClCompile Include="MedCleaner.cpp" />
     <ClCompile Include="MedHist.cpp" />

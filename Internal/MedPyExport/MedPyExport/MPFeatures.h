@@ -93,6 +93,8 @@ public:
 	int filter(std::vector<std::string>& selectedFeatures);
 	int version();
 	MPSerializableObject asSerializable();
+
+	void split_by_fold(MPFeatures& outMatrix, int iFold, bool isLearning);
 };
 
 #endif //!__MED__MPFEATURES__H__

@@ -118,28 +118,17 @@ int EmbeddingGenerator::generate_by_rec(PidDynamicRec& rec, MedFeatures& feature
 	}
 	
 	return 0;
-
-	//MLOG("=====> pid %d index %d num %d times (%d) : %d :: to_layer %d :: e_dim %d\n", rec.pid, index, num, times.size(), times[0], to_layer, e_dim);
-
-	// first : generating a sparse matrix
-	MedSparseMat smat;
-	emc.add_pid_lines(rec, smat, times, use_shrink); // not the most efficient by far... but a start
-
-	//MLOG("Got smat : %d lines\n", smat.lines.size());
-	//for (auto e : smat.lines[0]) MLOG("%d,%f : ", e.first, e.second);
-	//MLOG("\n");
-	// second : generate embedding
-	MedMat<float> emat;
-	embedder.get_all_embeddings(smat, to_layer, emat);
-	//MLOG("Got emat of size %d x %d names %d\n", emat.nrows, emat.ncols, names.size());
-
-
-	// at the moment assuming the order in emat is the order we need. This is true when the times are sorted to begin with
-	for (int j = 0; j < e_dim; j++) {
-		float *pfeat_j = _p_data[j] + index;
-		for (int i = 0; i < num; i++)
-			pfeat_j[i] = emat(i, j);
-	}
-
-	return 0;
 }
+
+//-------------------------------------------------------------------------------------------------------------------------
+void EmbeddingGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples)
+{
+	emc.prep_models_batches(rep, samples);
+}
+
+/*
+int EmbeddingGenerator::filter_features(unordered_set<string>& validFeatures)
+{
+
+}
+*/

@@ -15,6 +15,13 @@ extern MedLogger global_logger;
 
 using namespace xgboost;
 using namespace std;
+
+int MedXGB::n_preds_per_sample() const {
+	if (params.objective == "multi:softprob")
+		return params.num_class;
+	return 1;
+}
+
 /*
 #if defined(_MSC_VER) || defined(_WIN32)
 __declspec(dllexport) int XGDMatrixCreateFromMat(const float *data,
@@ -40,7 +47,9 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
 	XGBoosterPredict(my_learner, h_test, 0, 0, &out_len, &out_preds);
-
+	
+	int64_t len_res = nsamples * n_preds_per_sample();
+	if (preds == NULL) preds = new float[len_res];
 	for (int i = 0; i < out_len; i++)
 		preds[i] = out_preds[i];
 
@@ -133,7 +142,7 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 		int nsamples_train = nsamples - nsamples_test;
 
 		prepare_mat_handle(x, y, w, nsamples_train, nftrs, matrix_handles[0]);
-		prepare_mat_handle(x + nsamples_train*nftrs, y + nsamples_train, (w == NULL) ? NULL : w + nsamples_train, nsamples_test, nftrs, matrix_handles[1]);
+		prepare_mat_handle(x + nsamples_train * nftrs, y + nsamples_train, (w == NULL) ? NULL : w + nsamples_train, nsamples_test, nftrs, matrix_handles[1]);
 	}
 	else {
 		prepare_mat_handle(x, y, w, nsamples, nftrs, matrix_handles[0]);
@@ -157,6 +166,7 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	XGBoosterSetParam(h_booster, "scale_pos_weight", boost::lexical_cast<std::string>(params.scale_pos_weight).c_str());
 	XGBoosterSetParam(h_booster, "lambda", boost::lexical_cast<std::string>(params.lambda).c_str());
 	XGBoosterSetParam(h_booster, "alpha", boost::lexical_cast<std::string>(params.alpha).c_str());
+	XGBoosterSetParam(h_booster, "num_class", boost::lexical_cast<std::string>(params.num_class).c_str());
 	XGBoosterSetParam(h_booster, "tree_method", boost::lexical_cast<std::string>(params.tree_method).c_str());
 	XGBoosterSetParam(h_booster, "verbose_eval", boost::lexical_cast<std::string>(params.verbose_eval).c_str());
 

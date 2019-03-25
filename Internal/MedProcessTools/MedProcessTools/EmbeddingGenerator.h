@@ -47,6 +47,9 @@ public:
 	// Naming
 	void set_names();
 
+	// preparing a batch result of model results if an internal MedModel generator is used
+	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);
+
 	// Learn a generator
 	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 
@@ -60,6 +63,9 @@ public:
 
 	// Init required tables
 	void init_tables(MedDictionarySections& dict);
+
+	// in case of selection
+	int filter_features(unordered_set<string>& validFeatures) { return 1; }; // TODO: improve to push only selected columns
 
 	// Serialization
 	ADD_CLASS_NAME(EmbeddingGenerator)

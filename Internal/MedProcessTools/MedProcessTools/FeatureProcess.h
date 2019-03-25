@@ -272,6 +272,9 @@ public:
 	/// Moments
 	float mean, sd;
 
+	/// resolution : if > 0 , will keep only the given number of digits after the point.
+	int resolution = 0;
+
 	/// Utility : maximum number of samples to take for moments calculations
 	int max_samples = 10000;
 
@@ -296,7 +299,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureNormalizer)
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, normalizeSd, fillMissing)
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing)
 
 };
 

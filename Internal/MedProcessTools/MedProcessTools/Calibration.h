@@ -60,6 +60,7 @@ public:
 	bool fix_pred_order = false; ///< If true will not allow higher scores to have lower probabilites
 	int poly_rank = 1; ///< Only in platt_scale - the polynon rank for optimizing sigmoid of prob
 	double control_weight_down_sample = 0; ///< factor weight for controls when downsampling controls by this factor
+	bool verbose = true; ///< If true will print verbose information for calibration
 
 	vector<calibration_entry> cals; ///< for "time_window"
 	vector<float> min_range, max_range, map_prob; ///< for "binning"
@@ -70,11 +71,11 @@ public:
 	virtual int Learn(const MedSamples& samples);
 	virtual int Learn(const vector<MedSample>& samples) { return Learn(samples, global_default_time_unit); }
 	virtual int Learn(const vector <MedSample>& samples, const int samples_time_unit);
-	virtual int Apply(MedSamples& samples);
-	virtual int Apply(vector <MedSample>& samples);
+	virtual int Apply(MedSamples& samples) const;
+	virtual int Apply(vector <MedSample>& samples) const;
 
 	calibration_entry calibrate_pred(float pred);
-	float calibrate_pred(float pred, int type);
+	float calibrate_pred(float pred, int type) const;
 
 	void write_calibration_table(const string & calibration_table_file);
 	void read_calibration_table(const string& fname);
@@ -91,8 +92,8 @@ protected:
 
 private:
 	int learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit);
-	int apply_time_window(MedSamples& samples);
-	int apply_time_window(vector<MedSample>& samples);
+	int apply_time_window(MedSamples& samples) const;
+	int apply_time_window(vector<MedSample>& samples) const;
 	void write_calibration_time_window(const string & calibration_table_file);
 	void read_calibration_time_window(const string& fname);
 };

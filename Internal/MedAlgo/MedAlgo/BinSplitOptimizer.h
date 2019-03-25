@@ -56,8 +56,12 @@ public:
 		min_value_cutoff = (float)INT_MIN;
 		max_value_cutoff = (float)INT_MAX;
 	}
+
+	ADD_CLASS_NAME(BinSettings)
+	ADD_SERIALIZATION_FUNCS(min_bin_count, min_res_value, binCnt, min_value_cutoff, max_value_cutoff, split_method)
 };
 
+MEDSERIALIZE_SUPPORT(BinSettings)
 /**
 * \brief medial namespace for function
 */

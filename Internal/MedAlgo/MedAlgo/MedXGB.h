@@ -75,6 +75,8 @@ public:
 		const string &general_params);
 	virtual void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
+	int n_preds_per_sample() const;
+
 	void pre_serialization() {
 		const char* out_dptr;
 		xgboost::bst_ulong len;
