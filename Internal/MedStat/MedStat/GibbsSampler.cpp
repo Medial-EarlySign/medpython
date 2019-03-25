@@ -188,39 +188,40 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 		int max_loop = (int)all_names.size();
 		int train_sz = int(cohort_size * params.selection_ratio);
 
+		if (params.kmeans > 0) {
 #pragma omp parallel for
-		for (int i = 0; i < all_names.size(); ++i)
-		{
-			unordered_set<float> uniq_vals;
-			for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
-				uniq_vals.insert(cohort_data.at(all_names[i])[k]);
-#pragma omp critical
+			for (int i = 0; i < all_names.size(); ++i)
 			{
-				uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
-				sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
-			}
+				unordered_set<float> uniq_vals;
+				for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
+					uniq_vals.insert(cohort_data.at(all_names[i])[k]);
+#pragma omp critical
+				{
+					uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
+					sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
+				}
 
-			vector<int> clusters;
-			vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
-			vector<bool> seen;
-			if (!params.select_with_repeats)
-				seen.resize(cohort_size);
-			vector<int> sel_ls(train_sz);
-			for (size_t ii = 0; ii < train_sz; ++ii) {
-				int random_idx = rnd_num(gen);
-				if (!params.select_with_repeats) { //if need to validate no repeats - do it
-					while (seen[random_idx])
-						random_idx = rnd_num(gen);
-					seen[random_idx] = true;
+				vector<int> clusters;
+				vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
+				vector<bool> seen;
+				if (!params.select_with_repeats)
+					seen.resize(cohort_size);
+				vector<int> sel_ls(train_sz);
+				for (size_t ii = 0; ii < train_sz; ++ii) {
+					int random_idx = rnd_num(gen);
+					if (!params.select_with_repeats) { //if need to validate no repeats - do it
+						while (seen[random_idx])
+							random_idx = rnd_num(gen);
+						seen[random_idx] = true;
+					}
+					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
+						int fixed_idx = (int)jj + int(jj >= i); //skip current
+						train_vec[ii* pred_num_feats + jj] = float(cohort_data.at(all_names[fixed_idx])[random_idx]);
+					}
+					label_vec[ii] = float(cohort_data.at(all_names[i])[random_idx]);
+					sel_ls[ii] = random_idx;
 				}
-				for (size_t jj = 0; jj < pred_num_feats; ++jj) {
-					int fixed_idx = (int)jj + int(jj >= i); //skip current
-					train_vec[ii* pred_num_feats + jj] = float(cohort_data.at(all_names[fixed_idx])[random_idx]);
-				}
-				label_vec[ii] = float(cohort_data.at(all_names[i])[random_idx]);
-				sel_ls[ii] = random_idx;
-			}
-			if (params.kmeans > 0) {
+
 				//seperate the X space to k clusters:
 				int k = params.kmeans;
 				if (INT_MAX / train_sz < k) {
@@ -243,8 +244,37 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 #pragma omp critical 
 				for (size_t j = 0; j < train_sz; ++j)
 					feats_predictors[i].clusters_y[clusters[j]].push_back(float(cohort_data.at(all_names[i])[j]));
+
 			}
-			else {
+		}
+		else {
+			for (int i = 0; i < all_names.size(); ++i)
+			{
+				unordered_set<float> uniq_vals;
+				for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
+					uniq_vals.insert(cohort_data.at(all_names[i])[k]);
+				uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
+				sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
+				vector<int> clusters;
+				vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
+				vector<bool> seen;
+				if (!params.select_with_repeats)
+					seen.resize(cohort_size);
+				vector<int> sel_ls(train_sz);
+				for (size_t ii = 0; ii < train_sz; ++ii) {
+					int random_idx = rnd_num(gen);
+					if (!params.select_with_repeats) { //if need to validate no repeats - do it
+						while (seen[random_idx])
+							random_idx = rnd_num(gen);
+						seen[random_idx] = true;
+					}
+					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
+						int fixed_idx = (int)jj + int(jj >= i); //skip current
+						train_vec[ii* pred_num_feats + jj] = float(cohort_data.at(all_names[fixed_idx])[random_idx]);
+					}
+					label_vec[ii] = float(cohort_data.at(all_names[i])[random_idx]);
+					sel_ls[ii] = random_idx;
+				}
 
 				//use predictors to train on train_vec and predcit on label_vec:
 				//do binning for label_vec:
@@ -272,7 +302,6 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 				sort(sorted_vals.begin(), sorted_vals.end());
 				MLOG("Feature %s has %d categories\n", all_names[i].c_str(), class_num);
 
-#pragma omp critical
 				feats_predictors[i].bin_vals.insert(feats_predictors[i].bin_vals.end(), sorted_vals.begin(), sorted_vals.end());
 				//learn predictor
 				//change labels to be 0 to K-1:
@@ -351,29 +380,28 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 				}
 				else
 					train_pred->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
-#pragma omp critical
 				feats_predictors[i].predictor = train_pred;
-			}
 
-			++progress;
-			double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_prog).count()) / 1000000.0;
-			if (duration > 30) {
+				++progress;
+				double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+					- tm_prog).count()) / 1000000.0;
+				if (duration > 30) {
 #pragma omp critical
-				tm_prog = chrono::high_resolution_clock::now();
-				double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-					- tm.t[0]).count()) / 1000000.0;
-				double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-				MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-					"estimate time to finish %2.1f Minutes\n",
-					progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-					estimate_time / 60.0);
+					tm_prog = chrono::high_resolution_clock::now();
+					double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+						- tm.t[0]).count()) / 1000000.0;
+					double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+					MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+						"estimate time to finish %2.1f Minutes\n",
+						progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+						estimate_time / 60.0);
+				}
 			}
 		}
 	}
 }
 
-template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const vector<bool> *mask, const vector<T> *mask_values) {
+template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
 
 	vector<bool> mask_f(all_feat_names.size());
 	vector<T> mask_values_f(all_feat_names.size());
@@ -403,6 +431,11 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 	int pred_num_feats = (int)all_feat_names.size() - 1;
 
 	//can parallel for random init of initiale values (just burn in)
+	MedTimer tm;
+	tm.start();
+	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
+	int progress = 0;
+	int max_loop = sample_loop;
 	for (size_t i = 0; i < sample_loop; ++i)
 	{
 		//create sample - iterate over all variables not in mask:
@@ -440,6 +473,22 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 				results[all_names[k]].push_back(val);
 			}
 		}
+
+#pragma omp atomic
+		++progress;
+		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_prog).count()) / 1000000.0;
+		if (print_progress && duration > 30 && progress % 10 == 0) {
+#pragma omp critical
+			tm_prog = chrono::high_resolution_clock::now();
+			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+				- tm.t[0]).count()) / 1000000.0;
+			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+			MLOG("GibbsSampler::get_samples Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+				"estimate time to finish %2.1f Minutes\n",
+				progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+				estimate_time / 60.0);
+		}
 	}
 
 
@@ -458,23 +507,18 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 	if (all_feat_names.empty())
 		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
 	int N_tot_threads = omp_get_max_threads();
-	vector<GibbsSampler> copy_gibbs(N_tot_threads);
+	vector<GibbsSampler<T>> copy_gibbs(N_tot_threads);
 	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
 		copy_gibbs[i] = *this;
 		copy_gibbs[i].params.samples_count = (int)ceil(float(params.samples_count) / N_tot_threads);
 		copy_gibbs[i]._gen = mt19937(rd());
 	}
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = N_tot_threads;
 #pragma omp parallel for
-	for (int i = 0; i < max_loop; ++i)
+	for (int i = 0; i < N_tot_threads; ++i)
 	{
 		int n_th = omp_get_thread_num();
-		GibbsSampler &g = copy_gibbs[n_th];
+		GibbsSampler<T> &g = copy_gibbs[n_th];
 
 		vector<T> mask_vals(all_feat_names.size());
 		for (size_t i = 0; i < mask_vals.size(); ++i)
@@ -484,27 +528,11 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 				mask_vals[i] = mask_values->at(i);
 		map<string, vector<T>> res;
 
-		g.get_samples(res, mask, &mask_vals);
+		g.get_samples(res, mask, &mask_vals, n_th == 0);
 
 #pragma omp critical
 		for (auto it = res.begin(); it != res.end(); ++it)
 			results[it->first].insert(results[it->first].end(), it->second.begin(), it->second.end());
-
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (duration > 30 && progress % 50 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n",
-				progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
 	}
 
 	for (size_t i = 0; i < copy_gibbs.size(); ++i)

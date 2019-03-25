@@ -93,7 +93,7 @@ public:
 	/// generates samples based on gibbs sampling process
 	/// </summary>
 	void get_samples(map<string, vector<T>> &results,
-		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL);
+		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL, bool print_progress = false);
 
 	/// <summary>
 	/// generates samples based on gibbs sampling process - uses only burn rate and creates one sample and exits
