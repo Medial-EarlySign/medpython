@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <random>
+#include <unordered_map>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
 #include <MedAlgo/MedAlgo/BinSplitOptimizer.h>
@@ -15,6 +16,9 @@ using namespace std;
 * A wrapper class to store same predictor trained on random selected samples to return prediction dist
 */
 template<typename T> class PredictorOrEmpty : public SerializableObject {
+private:
+	vector<unordered_map<float, float>> cache_calibrators;
+
 public:
 	int input_size;
 	vector<T> sample_cohort; ///< all data points of feature
@@ -25,14 +29,16 @@ public:
 	vector<float> cluster_centers; ///< for kMeans centers
 	vector<vector<float>> clusters_y; ///< for kMeans centers
 
+	bool use_cache; ///< If true will use cache for calibrators
+
 	PredictorOrEmpty();
 	~PredictorOrEmpty();
 
 	/// retrieves random sample for feature based on all other features
-	T get_sample(vector<T> &x, mt19937 &gen) const;
+	T get_sample(vector<T> &x, mt19937 &gen);
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
-	ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, calibrators, bin_vals)
+		ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, calibrators, bin_vals)
 };
 
 /**
@@ -53,6 +59,7 @@ public:
 
 	float calibration_save_ratio; ///< if given will use calibrate each prediction score on the saved_ratio. [0, 1]
 	string calibration_string; ///< if calibration_save_ratio > 0 will use this init for calibration string
+	bool use_cache; ///< If true will use cache for calibrators
 
 	//sample args
 	int burn_in_count; ///< how many rounds in the start to ignore

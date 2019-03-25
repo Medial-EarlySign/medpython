@@ -21,6 +21,7 @@ Gibbs_Params::Gibbs_Params() {
 	select_with_repeats = false;
 	calibration_save_ratio = 0;
 	calibration_string = "";
+	use_cache = true;
 
 	predictor_type = "lightgbm";
 	predictor_args = "objective=multiclassova;metric=multi_logloss;verbose=0;num_threads=15;"
@@ -61,6 +62,8 @@ int Gibbs_Params::init(map<string, string>& map) {
 			calibration_save_ratio = med_stof(it->second);
 		else if (it->first == "calibration_string")
 			calibration_string = it->second;
+		else if (it->first == "use_cache")
+			use_cache = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -70,6 +73,7 @@ int Gibbs_Params::init(map<string, string>& map) {
 
 template<typename T> PredictorOrEmpty<T>::PredictorOrEmpty() {
 	predictor = NULL;
+	use_cache = true;
 }
 
 template<typename T> PredictorOrEmpty<T>::~PredictorOrEmpty() {
@@ -82,7 +86,7 @@ template<typename T> int GibbsSampler<T>::init(map<string, string>& map) {
 	return params.init(map);
 }
 
-template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen) const {
+template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen) {
 	if (!sample_cohort.empty()) {
 		uniform_int_distribution<> rnd_gen(0, (int)sample_cohort.size() - 1);
 		int sel = rnd_gen(gen);
@@ -117,15 +121,33 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 		//predictor->predict(x, prd, 1, (int)x.size());
 		predictor->predict_single(x, prd, (int)x.size());
 		if (!calibrators.empty()) {
+			//test cache:
+			if (use_cache && cache_calibrators.empty())
+				cache_calibrators.resize(calibrators.size());
 			//need to use calibrator for all predictions:
 			vector<MedSample> smps(1);
 			smps[0].id = 0;
 			smps[0].outcome = 0;
 			for (size_t i = 0; i < prd.size(); ++i)
 			{
-				smps[0].prediction = { (float)prd[i] };
-				calibrators[i].Apply(smps);
-				prd[i] = smps[0].prediction[0]; //return calibrated value
+				if (use_cache) {
+					unordered_map<float, float> &m_cache = cache_calibrators[i];
+					if (m_cache.find(prd[i]) == m_cache.end()) {
+						smps[0].prediction = { (float)prd[i] };
+						calibrators[i].Apply(smps);
+
+						m_cache[prd[i]] = smps[0].prediction[0]; //update cache
+						prd[i] = smps[0].prediction[0]; //return calibrated value
+					}
+					else
+						prd[i] = m_cache.at(prd[i]);
+				}
+				else
+				{
+					smps[0].prediction = { (float)prd[i] };
+					calibrators[i].Apply(smps);
+					prd[i] = smps[0].prediction[0]; //return calibrated value
+				}
 			}
 		}
 		double tot_num = 0;
@@ -412,7 +434,7 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 	if (all_feat_names.empty())
 		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
 	//fix mask values and sample gibbs for the rest by cohort_data as statistical cohort for univariate marginal dist
-	int sample_loop = params.burn_in_count + (params.samples_count - 1) * (params.jump_between_samples + 1) + 1;
+	int sample_loop = params.burn_in_count + (params.samples_count - 1) * params.jump_between_samples + 1;
 
 	vector<string> &all_names = all_feat_names;
 
@@ -429,6 +451,12 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 		if (!mask->at(i))
 			idx_iter.push_back(i);
 	int pred_num_feats = (int)all_feat_names.size() - 1;
+
+	//pass global arguments to predictor sampler - like use_cache
+	for (size_t i = 0; i < feats_predictors.size(); ++i)
+	{
+		feats_predictors[i].use_cache = params.use_cache;
+	}
 
 	//can parallel for random init of initiale values (just burn in)
 	MedTimer tm;
