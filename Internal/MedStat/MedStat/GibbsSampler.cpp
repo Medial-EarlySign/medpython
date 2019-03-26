@@ -11,17 +11,13 @@
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
 Gibbs_Params::Gibbs_Params() {
-	burn_in_count = 1000;
-	jump_between_samples = 10;
-	samples_count = 1;
 	kmeans = 0;
 	max_iters = 500;
 	selection_ratio = (float)0.7;
-	find_real_value_bin = true;
+
 	select_with_repeats = false;
 	calibration_save_ratio = 0;
 	calibration_string = "";
-	use_cache = true;
 
 	predictor_type = "lightgbm";
 	predictor_args = "objective=multiclassova;metric=multi_logloss;verbose=0;num_threads=15;"
@@ -30,24 +26,24 @@ Gibbs_Params::Gibbs_Params() {
 	bin_settings.init_from_string("split_method=iterative_merge;binCnt=50");
 }
 
+GibbsSamplingParams::GibbsSamplingParams() {
+	burn_in_count = 1000;
+	jump_between_samples = 10;
+	samples_count = 1;
+	find_real_value_bin = true;
+	use_cache = true;
+}
+
 int Gibbs_Params::init(map<string, string>& map) {
 
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
-		if (it->first == "burn_in_count")
-			burn_in_count = med_stoi(it->second);
-		else if (it->first == "jump_between_samples")
-			jump_between_samples = med_stoi(it->second);
-		else if (it->first == "samples_count")
-			samples_count = med_stoi(it->second);
-		else if (it->first == "kmeans")
+		if (it->first == "kmeans")
 			kmeans = med_stoi(it->second);
 		else if (it->first == "max_iters")
 			max_iters = med_stoi(it->second);
 		else if (it->first == "selection_ratio")
 			selection_ratio = med_stof(it->second);
-		else if (it->first == "find_real_value_bin")
-			find_real_value_bin = med_stoi(it->second) > 0;
 		else if (it->first == "select_with_repeats")
 			select_with_repeats = med_stoi(it->second) > 0;
 		else if (it->first == "predictor_type")
@@ -62,12 +58,29 @@ int Gibbs_Params::init(map<string, string>& map) {
 			calibration_save_ratio = med_stof(it->second);
 		else if (it->first == "calibration_string")
 			calibration_string = it->second;
-		else if (it->first == "use_cache")
-			use_cache = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
 
+	return 0;
+}
+
+int GibbsSamplingParams::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "burn_in_count")
+			burn_in_count = med_stoi(it->second);
+		else if (it->first == "jump_between_samples")
+			jump_between_samples = med_stoi(it->second);
+		else if (it->first == "samples_count")
+			samples_count = med_stoi(it->second);
+		else if (it->first == "find_real_value_bin")
+			find_real_value_bin = med_stoi(it->second) > 0;
+		else if (it->first == "use_cache")
+			use_cache = med_stoi(it->second) > 0;
+		else
+			MTHROW_AND_ERR("Error in GibbsSamplingParams::init - no parameter \"%s\"\n", it->first.c_str());
+	}
 	return 0;
 }
 
@@ -423,7 +436,8 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 	}
 }
 
-template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
+template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params
+	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
 
 	vector<bool> mask_f(all_feat_names.size());
 	vector<T> mask_values_f(all_feat_names.size());
@@ -434,7 +448,7 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 	if (all_feat_names.empty())
 		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
 	//fix mask values and sample gibbs for the rest by cohort_data as statistical cohort for univariate marginal dist
-	int sample_loop = params.burn_in_count + (params.samples_count - 1) * params.jump_between_samples + 1;
+	int sample_loop = sampling_params.burn_in_count + (sampling_params.samples_count - 1) * sampling_params.jump_between_samples + 1;
 
 	vector<string> &all_names = all_feat_names;
 
@@ -455,7 +469,7 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 	//pass global arguments to predictor sampler - like use_cache
 	for (size_t i = 0; i < feats_predictors.size(); ++i)
 	{
-		feats_predictors[i].use_cache = params.use_cache;
+		feats_predictors[i].use_cache = sampling_params.use_cache;
 	}
 
 	//can parallel for random init of initiale values (just burn in)
@@ -480,22 +494,26 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 			current_sample[f_idx] = val; //update current pos variable
 		}
 
-		if (i >= params.burn_in_count && ((i - params.burn_in_count) % params.jump_between_samples) == 0) {
+		if (i >= sampling_params.burn_in_count && ((i - sampling_params.burn_in_count) % sampling_params.jump_between_samples) == 0) {
 			//collect sample to result:
 			for (size_t k = 0; k < all_names.size(); ++k) {
 				T val = current_sample[k];
 				//find best bin if needed:
-				if (params.find_real_value_bin && !mask->at(k)) {
+				if (sampling_params.find_real_value_bin && !mask->at(k)) {
 					int pos = medial::process::binary_search_position(uniqu_value_bins[k].data(), uniqu_value_bins[k].data() + uniqu_value_bins[k].size() - 1, val);
 					if (pos == 0)
 						val = uniqu_value_bins[k][0];
 					else {
-						T diff_next = abs(val - uniqu_value_bins[k][pos]);
-						T diff_prev = abs(val - uniqu_value_bins[k][pos - 1]);
-						if (diff_prev < diff_next)
-							val = uniqu_value_bins[k][pos - 1];
-						else
-							val = uniqu_value_bins[k][pos];
+						if (pos >= uniqu_value_bins[k].size())
+							val = uniqu_value_bins[k].back();
+						else {
+							T diff_next = abs(val - uniqu_value_bins[k][pos]);
+							T diff_prev = abs(val - uniqu_value_bins[k][pos - 1]);
+							if (diff_prev < diff_next)
+								val = uniqu_value_bins[k][pos - 1];
+							else
+								val = uniqu_value_bins[k][pos];
+						}
 					}
 				}
 				results[all_names[k]].push_back(val);
@@ -523,7 +541,7 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 }
 
 template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vector<T>> &results,
-	const vector<bool> *mask, const vector<T> *mask_values) {
+	const GibbsSamplingParams &sampling_params, const vector<bool> *mask, const vector<T> *mask_values) {
 	random_device rd;
 
 	vector<T> mask_values_f(all_feat_names.size());
@@ -538,9 +556,10 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 	vector<GibbsSampler<T>> copy_gibbs(N_tot_threads);
 	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
 		copy_gibbs[i] = *this;
-		copy_gibbs[i].params.samples_count = (int)ceil(float(params.samples_count) / N_tot_threads);
 		copy_gibbs[i]._gen = mt19937(rd());
 	}
+	GibbsSamplingParams per_thread_params = sampling_params;
+	per_thread_params.samples_count = (int)ceil(float(sampling_params.samples_count) / N_tot_threads);
 
 #pragma omp parallel for
 	for (int i = 0; i < N_tot_threads; ++i)
@@ -556,7 +575,7 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 				mask_vals[i] = mask_values->at(i);
 		map<string, vector<T>> res;
 
-		g.get_samples(res, mask, &mask_vals, n_th == 0);
+		g.get_samples(res, per_thread_params, mask, &mask_vals, n_th == 0);
 
 #pragma omp critical
 		for (auto it = res.begin(); it != res.end(); ++it)

@@ -365,11 +365,10 @@ void MedLightGBM::predict_single(const vector<float> &x, vector<float> &preds, i
 		one_row[i] = static_cast<double>(x[i]);
 
 	vector<double> out_result_vec(num_preds);
-	double *out_result = &out_result_vec[0];
-	_boosting->Predict(one_row.data(), out_result, &early_stop_);
+	predict_single(one_row, out_result_vec, n_ftrs);
 
 	preds.resize(num_preds);
-	for (int64_t i = 0; i < num_preds; i++) preds[i] = (float)out_result[i];
+	for (int64_t i = 0; i < num_preds; i++) preds[i] = (float)out_result_vec[i];
 }
 
 void MedLightGBM::predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const {

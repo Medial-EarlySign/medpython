@@ -59,22 +59,33 @@ public:
 
 	float calibration_save_ratio; ///< if given will use calibrate each prediction score on the saved_ratio. [0, 1]
 	string calibration_string; ///< if calibration_save_ratio > 0 will use this init for calibration string
-	bool use_cache; ///< If true will use cache for calibrators
-
-	//sample args
-	int burn_in_count; ///< how many rounds in the start to ignore
-	int jump_between_samples; ///< how many rounds to ignore between taking samples
-	int samples_count; ///< how many samples to output
-	bool find_real_value_bin; ///< If true will find closet real value to result - to be in same resolution, real value from train
-
+	
 	Gibbs_Params();
 
 	int init(map<string, string>& map);
 
 	ADD_CLASS_NAME(Gibbs_Params)
 		ADD_SERIALIZATION_FUNCS(kmeans, selection_ratio, max_iters, select_with_repeats, predictor_type, predictor_args,
-			num_class_setup, bin_settings, calibration_save_ratio, calibration_string,
-			burn_in_count, jump_between_samples, samples_count, find_real_value_bin)
+			num_class_setup, bin_settings, calibration_save_ratio, calibration_string)
+};
+
+/**
+* A class that contains all sampling arguments
+*/
+class GibbsSamplingParams : public SerializableObject {
+public:
+	//sample args
+	int burn_in_count; ///< how many rounds in the start to ignore
+	int jump_between_samples; ///< how many rounds to ignore between taking samples
+	int samples_count; ///< how many samples to output
+	bool find_real_value_bin; ///< If true will find closet real value to result - to be in same resolution, real value from train
+	bool use_cache; ///< If true will use cache for calibrators
+
+	GibbsSamplingParams();
+	int init(map<string, string>& map);
+
+	ADD_CLASS_NAME(GibbsSamplingParams)
+	ADD_SERIALIZATION_FUNCS(burn_in_count, jump_between_samples, samples_count, find_real_value_bin)
 };
 
 /**
@@ -99,13 +110,13 @@ public:
 	/// <summary>
 	/// generates samples based on gibbs sampling process
 	/// </summary>
-	void get_samples(map<string, vector<T>> &results,
+	void get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params,
 		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL, bool print_progress = false);
 
 	/// <summary>
 	/// generates samples based on gibbs sampling process - uses only burn rate and creates one sample and exits
 	/// </summary>
-	void get_parallel_samples(map<string, vector<T>> &results,
+	void get_parallel_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params,
 		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL);
 
 	/// <summary>
@@ -124,6 +135,7 @@ public:
 MEDSERIALIZE_SUPPORT(PredictorOrEmpty<float>)
 MEDSERIALIZE_SUPPORT(PredictorOrEmpty<double>)
 MEDSERIALIZE_SUPPORT(Gibbs_Params)
+MEDSERIALIZE_SUPPORT(GibbsSamplingParams)
 MEDSERIALIZE_SUPPORT(GibbsSampler<float>)
 MEDSERIALIZE_SUPPORT(GibbsSampler<double>)
 
