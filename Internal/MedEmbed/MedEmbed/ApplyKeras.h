@@ -81,6 +81,7 @@ public:
 
 	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer);
 	int apply_sparse(map<int, float> &sline, vector<float> &output, int to_layer);
+	int apply(vector<float>& line, vector<float> &output, int to_layer);
 	int get_all_embeddings(MedSparseMat &smat, int to_layer, MedMat<float> &emat);
 
 	ADD_CLASS_NAME(ApplyKeras)

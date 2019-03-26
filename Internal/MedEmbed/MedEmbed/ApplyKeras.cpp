@@ -252,7 +252,23 @@ int ApplyKeras::apply_sparse(map<int, float> &sline, vector<float> &output, int 
 	return 0;
 }
 
+//-------------------------------------------------------------------------------------------
+int ApplyKeras::apply(vector<float>& line, vector<float> &output, int to_layer)
+{
+	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
 
+	vector<vector<float>> outs(layers.size(), vector<float>());
+	for (int i = 0; i <= to_layer; i++) {
+
+		//MLOG("apply_sparse layer %d (passed %d) to_layer=%d (name %s type %d activation %d)\n", i, passed_first_dense, to_layer, layers[i].name.c_str(), layers[i].type, layers[i].activation);
+		layers[i].apply(outs[i - 1], outs[i]);
+		//MLOG("out[i] size %d\n", outs[i].size());
+	}
+
+	output = outs[to_layer];
+	return 0;
+
+}
 //-------------------------------------------------------------------------------------------
 int ApplyKeras::init_from_text_file(string layers_file)
 {
