@@ -593,6 +593,53 @@ void MPSigExporter::get_all_data() {
 		gen_cat_dict("val2", 1);
 	}
 	break;
+	
+	case SigType::T_TimeShort4:
+	{
+		data_keys = vector<string>({ "pid","time","val1","val2","val3","val4" });
+
+		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
+		long long* time_vec = (long long*)malloc(sizeof(long long)*this->record_count);
+		short* val1_vec = (short*)malloc(sizeof(short)*this->record_count);
+		short* val2_vec = (short*)malloc(sizeof(short)*this->record_count);
+		short* val3_vec = (short*)malloc(sizeof(short)*this->record_count);
+		short* val4_vec = (short*)malloc(sizeof(short)*this->record_count);
+
+		int len;
+		STimeShort4 *sdv = nullptr;
+		int cur_row = 0;
+		for (int pid : this->pids) {
+			sdv = (STimeShort4 *)o->get(pid, this->sig_id, len);
+			if (len == 0)
+				continue;
+			for (int i = 0; i < len; i++) {
+				pid_vec[cur_row] = pid;
+				time_vec[cur_row] = sdv[i].time;
+				val1_vec[cur_row] = sdv[i].val1;
+				val1_vec[cur_row] = sdv[i].val2;
+				val1_vec[cur_row] = sdv[i].val3;
+				val1_vec[cur_row] = sdv[i].val4;
+				cur_row++;
+			}
+		}
+		data_column.push_back(pid_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
+		data_column.push_back(time_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_LONGLONG);
+		data_column.push_back(val1_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		data_column.push_back(val2_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		data_column.push_back(val3_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		data_column.push_back(val4_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		gen_cat_dict("val1", 0);
+		gen_cat_dict("val2", 1);
+		gen_cat_dict("val3", 2);
+		gen_cat_dict("val4", 3);
+	}
+	break;
 
 	default:
 		throw runtime_error("MedPy: sig type not supported");
