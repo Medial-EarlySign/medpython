@@ -5,12 +5,11 @@
 #include "MedAlgo.h"
 #include "MedXGB.h"
 #include <boost/lexical_cast.hpp>
-#include <xgboost/learner.h>
+
 
 #include <dmlc/timer.h>
-#include <xgboost/c_api.h>
-#include <xgboost/data.h>
-#include "data/simple_csr_source.h"
+
+#include <omp.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -23,6 +22,12 @@ MedXGB::~MedXGB() {
 	if (my_learner != NULL) {
 		XGBoosterFree(my_learner);
 		my_learner = NULL;
+	}
+	for (size_t i = 0; i < learner_per_thread.size(); ++i) {
+		if (learner_per_thread[i] != NULL) {
+			XGBoosterFree(learner_per_thread[i]);
+			learner_per_thread[i] = NULL;
+		}
 	}
 }
 
@@ -390,59 +395,6 @@ int MedXGB::set_params(map<string, string>& mapper) {
 	return 0;
 }
 
-class XGBBooster {
-public:
-	explicit XGBBooster(const std::vector<std::shared_ptr<DMatrix> >& cache_mats)
-		: configured_(false),
-		initialized_(false),
-		learner_(Learner::Create(cache_mats)) {}
-
-	inline Learner* learner() {
-		return learner_.get();
-	}
-
-	inline void SetParam(const std::string& name, const std::string& val) {
-		auto it = std::find_if(cfg_.begin(), cfg_.end(),
-			[&name, &val](decltype(*cfg_.begin()) &x) {
-			if (name == "eval_metric") {
-				return x.first == name && x.second == val;
-			}
-			return x.first == name;
-		});
-		if (it == cfg_.end()) {
-			cfg_.push_back(std::make_pair(name, val));
-		}
-		else {
-			(*it).second = val;
-		}
-		if (configured_) {
-			learner_->Configure(cfg_);
-		}
-	}
-
-	inline void LazyInit() {
-		if (!configured_) {
-			learner_->Configure(cfg_);
-			configured_ = true;
-		}
-		if (!initialized_) {
-			learner_->InitModel();
-			initialized_ = true;
-		}
-	}
-
-	inline void LoadModel(dmlc::Stream* fi) {
-		learner_->Load(fi);
-		initialized_ = true;
-	}
-
-public:
-	bool configured_;
-	bool initialized_;
-	std::unique_ptr<Learner> learner_;
-	std::vector<std::pair<std::string, std::string> > cfg_;
-};
-
 
 void MedXGB::prepare_predict_single() {
 	int nftrs = features_count;
@@ -450,16 +402,31 @@ void MedXGB::prepare_predict_single() {
 		nftrs = (int)model_features.size();
 	XGBBooster *xgb_mdl = static_cast<XGBBooster*>(my_learner);
 	xgb_mdl->LazyInit();
+	int N_tot_threads = omp_get_max_threads();
+
+	const char* out_dptr;
+	xgboost::bst_ulong len;
+	if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
+		throw runtime_error("failed XGBoosterGetModelRaw\n");
+
+	learner_per_thread.resize(N_tot_threads);
+	for (size_t i = 0; i < N_tot_threads; ++i)
+	{
+		BoosterHandle temp_handler;
+		DMatrixHandle h_train_empty[1];
+		if (XGBoosterCreate(h_train_empty, 0, &temp_handler) != 0)
+			throw runtime_error("failed XGBoosterCreate\n");
+		if (XGBoosterLoadModelFromBuffer(temp_handler, out_dptr, len) != 0)
+			throw runtime_error("failed XGBoosterLoadModelFromBuffer\n");
+		static_cast<XGBBooster*>(temp_handler)->LazyInit();
+		learner_per_thread[i] = temp_handler;
+		//learner_per_thread[i].LoadModel(dmlc::Stream(out_dptr));
+	}
 }
 
 
 
 void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const {
-	vector<float> xx(x);
-#pragma omp critical
-	predict(xx, preds, 1, (int)x.size());
-	return;
-
 	int n_ftrs = (int)x.size();
 	std::unique_ptr<data::SimpleCSRSource> p_mat(new data::SimpleCSRSource());
 	data::SimpleCSRSource &mat = *p_mat; //copy memory to alter values (const object)
@@ -486,12 +453,13 @@ void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const 
 	DMatrix *mat_gen = DMatrix::Create(move(p_mat));
 
 	//int len_res = n_preds_per_sample();
-	//preds.resize(len_res);
 	xgboost::HostDeviceVector<float> wrapper;
-	XGBBooster *xgb_mdl = static_cast<XGBBooster*>(my_learner);
-	//TODO: copy for each thread in prepare for multi thread support
-#pragma omp critical
-	xgb_mdl->learner()->Predict(mat_gen, false, &wrapper, 0, false, false, false, false);
+	int n_th = omp_get_thread_num();
+	//xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(my_learner)->learner();
+	xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(learner_per_thread[n_th])->learner();
+
+	//for each thread learner
+	xgb_mdl->Predict(mat_gen, false, &wrapper, 0, false, false, false, false);
 
 	preds = move(wrapper.data_h());
 

@@ -6,6 +6,8 @@
 #include <xgboost/learner.h>
 #include <xgboost/data.h>
 #include <xgboost/c_api.h>
+#include "data/simple_csr_source.h"
+#include <xgboost/learner.h>
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 
 struct MedXGBParams : public SerializableObject {
@@ -46,6 +48,59 @@ struct MedXGBParams : public SerializableObject {
 	ADD_CLASS_NAME(MedXGBParams)
 		ADD_SERIALIZATION_FUNCS(booster, objective, eta, gamma, min_child_weight, max_depth, num_round, eval_metric, silent, missing_value, num_class,
 			colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties)
+};
+
+class XGBBooster {
+public:
+	explicit XGBBooster(const std::vector<std::shared_ptr<xgboost::DMatrix> >& cache_mats)
+		: configured_(false),
+		initialized_(false),
+		learner_(xgboost::Learner::Create(cache_mats)) {}
+
+	inline xgboost::Learner* learner() {
+		return learner_.get();
+	}
+
+	inline void SetParam(const std::string& name, const std::string& val) {
+		auto it = std::find_if(cfg_.begin(), cfg_.end(),
+			[&name, &val](decltype(*cfg_.begin()) &x) {
+			if (name == "eval_metric") {
+				return x.first == name && x.second == val;
+			}
+			return x.first == name;
+		});
+		if (it == cfg_.end()) {
+			cfg_.push_back(std::make_pair(name, val));
+		}
+		else {
+			(*it).second = val;
+		}
+		if (configured_) {
+			learner_->Configure(cfg_);
+		}
+	}
+
+	inline void LazyInit() {
+		if (!configured_) {
+			learner_->Configure(cfg_);
+			configured_ = true;
+		}
+		if (!initialized_) {
+			learner_->InitModel();
+			initialized_ = true;
+		}
+	}
+
+	inline void LoadModel(dmlc::Stream* fi) {
+		learner_->Load(fi);
+		initialized_ = true;
+	}
+
+public:
+	bool configured_;
+	bool initialized_;
+	std::unique_ptr<xgboost::Learner> learner_;
+	std::vector<std::pair<std::string, std::string> > cfg_;
 };
 
 class MedXGB : public MedPredictor {
@@ -105,6 +160,7 @@ public:
 
 private:
 	bool _mark_learn_done;
+	vector<BoosterHandle> learner_per_thread;
 
 	void translate_split_penalties(string& split_penalties_s);
 	vector<char> serial_xgb;

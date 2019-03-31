@@ -186,6 +186,7 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 template<typename T> GibbsSampler<T>::GibbsSampler() {
 	random_device rd;
 	_gen = mt19937(rd());
+	done_prepare = false;
 }
 
 template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<T>> &cohort_data) {
@@ -540,9 +541,21 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 
 }
 
+template<typename T> void GibbsSampler<T>::prepare_predictors() {
+	if (!done_prepare) {
+		for (size_t i = 0; i < feats_predictors.size(); ++i)
+		{
+			if (feats_predictors[i].predictor != NULL)
+				feats_predictors[i].predictor->prepare_predict_single();
+		}
+		done_prepare = true;
+	}
+}
+
 template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vector<T>> &results,
 	const GibbsSamplingParams &sampling_params, const vector<bool> *mask, const vector<T> *mask_values) {
 	random_device rd;
+	prepare_predictors();
 
 	vector<T> mask_values_f(all_feat_names.size());
 	vector<bool> mask_f(all_feat_names.size());
