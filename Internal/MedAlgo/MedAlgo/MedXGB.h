@@ -36,7 +36,7 @@ struct MedXGBParams : public SerializableObject {
 	MedXGBParams() {
 		booster = "gbtree"; objective = "binary:logistic"; eta = 1.0; gamma = 1.0;
 		min_child_weight = 1; max_depth = 3; num_round = 500; silent = 1; eval_metric.push_back("auc"); missing_value = MED_MAT_MISSING_VALUE;
-		num_class = 2;
+		num_class = 1; //only set when multiclass
 		colsample_bytree = 1.0; colsample_bylevel = 1.0; subsample = 1.0; scale_pos_weight = 1.0; tree_method = "auto"; lambda = 1; alpha = 0;
 		seed = 0;
 		verbose_eval = 0;
@@ -44,8 +44,8 @@ struct MedXGBParams : public SerializableObject {
 	}
 
 	ADD_CLASS_NAME(MedXGBParams)
-	ADD_SERIALIZATION_FUNCS(booster, objective, eta, gamma, min_child_weight, max_depth, num_round, eval_metric, silent, missing_value, num_class, 
-		colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties)
+		ADD_SERIALIZATION_FUNCS(booster, objective, eta, gamma, min_child_weight, max_depth, num_round, eval_metric, silent, missing_value, num_class,
+			colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties)
 };
 
 class MedXGB : public MedPredictor {
@@ -61,7 +61,7 @@ public:
 
 	// Function
 	MedXGB() { init_defaults(); };
-	~MedXGB() { if (my_learner != NULL) { XGBoosterFree(my_learner); my_learner = NULL; } };
+	~MedXGB();
 
 	int validate_me_while_learning(float *x, float *y, int nsamples, int nftrs);
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
@@ -97,8 +97,11 @@ public:
 		serial_xgb.clear();
 	}
 
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+
 	ADD_CLASS_NAME(MedXGB)
-	ADD_SERIALIZATION_FUNCS(classifier_type, serial_xgb, params, model_features, features_count, _mark_learn_done)
+		ADD_SERIALIZATION_FUNCS(classifier_type, serial_xgb, params, model_features, features_count, _mark_learn_done)
 
 private:
 	bool _mark_learn_done;

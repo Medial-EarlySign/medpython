@@ -243,8 +243,8 @@ public:
 
 	/// Prepartion function for fast prediction on single item each time
 	virtual void prepare_predict_single() {};
-	virtual void predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const;
-	virtual void predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const;
+	virtual void predict_single(const vector<float> &x, vector<float> &preds) const;
+	virtual void predict_single(const vector<double> &x, vector<double> &preds) const;
 
 	// (De)Serialize
 	ADD_CLASS_NAME(MedPredictor)

@@ -6,8 +6,11 @@
 #include "MedXGB.h"
 #include <boost/lexical_cast.hpp>
 #include <xgboost/learner.h>
+
 #include <dmlc/timer.h>
 #include <xgboost/c_api.h>
+#include <xgboost/data.h>
+#include "data/simple_csr_source.h"
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -15,6 +18,13 @@ extern MedLogger global_logger;
 
 using namespace xgboost;
 using namespace std;
+
+MedXGB::~MedXGB() {
+	if (my_learner != NULL) {
+		XGBoosterFree(my_learner);
+		my_learner = NULL;
+	}
+}
 
 int MedXGB::n_preds_per_sample() const {
 	if (params.objective == "multi:softprob")
@@ -47,7 +57,7 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
 	XGBoosterPredict(my_learner, h_test, 0, 0, &out_len, &out_preds);
-	
+
 	int64_t len_res = nsamples * n_preds_per_sample();
 	if (preds == NULL) preds = new float[len_res];
 	for (int i = 0; i < out_len; i++)
@@ -378,6 +388,114 @@ int MedXGB::set_params(map<string, string>& mapper) {
 	}
 
 	return 0;
+}
+
+class XGBBooster {
+public:
+	explicit XGBBooster(const std::vector<std::shared_ptr<DMatrix> >& cache_mats)
+		: configured_(false),
+		initialized_(false),
+		learner_(Learner::Create(cache_mats)) {}
+
+	inline Learner* learner() {
+		return learner_.get();
+	}
+
+	inline void SetParam(const std::string& name, const std::string& val) {
+		auto it = std::find_if(cfg_.begin(), cfg_.end(),
+			[&name, &val](decltype(*cfg_.begin()) &x) {
+			if (name == "eval_metric") {
+				return x.first == name && x.second == val;
+			}
+			return x.first == name;
+		});
+		if (it == cfg_.end()) {
+			cfg_.push_back(std::make_pair(name, val));
+		}
+		else {
+			(*it).second = val;
+		}
+		if (configured_) {
+			learner_->Configure(cfg_);
+		}
+	}
+
+	inline void LazyInit() {
+		if (!configured_) {
+			learner_->Configure(cfg_);
+			configured_ = true;
+		}
+		if (!initialized_) {
+			learner_->InitModel();
+			initialized_ = true;
+		}
+	}
+
+	inline void LoadModel(dmlc::Stream* fi) {
+		learner_->Load(fi);
+		initialized_ = true;
+	}
+
+public:
+	bool configured_;
+	bool initialized_;
+	std::unique_ptr<Learner> learner_;
+	std::vector<std::pair<std::string, std::string> > cfg_;
+};
+
+
+void MedXGB::prepare_predict_single() {
+	int nftrs = features_count;
+	if (nftrs == 0)
+		nftrs = (int)model_features.size();
+	XGBBooster *xgb_mdl = static_cast<XGBBooster*>(my_learner);
+	xgb_mdl->LazyInit();
+}
+
+
+
+void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const {
+	vector<float> xx(x);
+#pragma omp critical
+	predict(xx, preds, 1, (int)x.size());
+	return;
+
+	int n_ftrs = (int)x.size();
+	std::unique_ptr<data::SimpleCSRSource> p_mat(new data::SimpleCSRSource());
+	data::SimpleCSRSource &mat = *p_mat; //copy memory to alter values (const object)
+	mat.row_ptr_.resize(2);
+	mat.info.num_row = 1;
+	mat.info.num_col = n_ftrs;
+
+	// count elements for sizing data
+	xgboost::bst_ulong nelem = 0;
+	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j)
+		if (x[j] != params.missing_value)
+			++nelem;
+	mat.row_ptr_[1] = mat.row_ptr_[0] + nelem;
+	mat.row_data_.resize(mat.row_data_.size() + mat.row_ptr_.back());
+	xgboost::bst_ulong matj = 0;
+	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j) {
+		if (x[j] != params.missing_value) {
+			mat.row_data_[mat.row_ptr_[0] + matj] = RowBatch::Entry(j, x[j]);
+			++matj;
+		}
+	}
+	mat.info.num_nonzero = mat.row_data_.size();
+
+	DMatrix *mat_gen = DMatrix::Create(move(p_mat));
+
+	//int len_res = n_preds_per_sample();
+	//preds.resize(len_res);
+	xgboost::HostDeviceVector<float> wrapper;
+	XGBBooster *xgb_mdl = static_cast<XGBBooster*>(my_learner);
+	//TODO: copy for each thread in prepare for multi thread support
+#pragma omp critical
+	xgb_mdl->learner()->Predict(mat_gen, false, &wrapper, 0, false, false, false, false);
+
+	preds = move(wrapper.data_h());
+
+	delete mat_gen;
 }
 
 #endif

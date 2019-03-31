@@ -218,8 +218,8 @@ public:
 	int n_preds_per_sample() const { return mem_app.n_preds_per_sample(); }
 
 	void prepare_predict_single();
-	void predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const;
-	void predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const;
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+	void predict_single(const vector<double> &x, vector<double> &preds) const;
 
 	// serializations
 	void pre_serialization() {

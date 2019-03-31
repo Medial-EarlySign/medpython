@@ -132,7 +132,7 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 	else if (predictor != NULL) {
 		vector<T> prd; //for each class:
 		//predictor->predict(x, prd, 1, (int)x.size());
-		predictor->predict_single(x, prd, (int)x.size());
+		predictor->predict_single(x, prd);
 		if (!calibrators.empty()) {
 			//test cache:
 			if (use_cache && cache_calibrators.empty())

@@ -359,19 +359,20 @@ void MedLightGBM::prepare_predict_single() {
 	mem_app.fetch_early_stop(early_stop_);
 }
 
-void MedLightGBM::predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const {
+void MedLightGBM::predict_single(const vector<float> &x, vector<float> &preds) const {
+	int n_ftrs = (int)x.size();
 	vector<double> one_row(n_ftrs);
 	for (int i = 0; i < n_ftrs; ++i)
 		one_row[i] = static_cast<double>(x[i]);
 
 	vector<double> out_result_vec(num_preds);
-	predict_single(one_row, out_result_vec, n_ftrs);
+	predict_single(one_row, out_result_vec);
 
 	preds.resize(num_preds);
 	for (int64_t i = 0; i < num_preds; i++) preds[i] = (float)out_result_vec[i];
 }
 
-void MedLightGBM::predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const {
+void MedLightGBM::predict_single(const vector<double> &x, vector<double> &preds) const {
 	preds.resize(num_preds);
 	double *out_result = &preds[0];
 	_boosting->Predict(x.data(), out_result, &early_stop_);
