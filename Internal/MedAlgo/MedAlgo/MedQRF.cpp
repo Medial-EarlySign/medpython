@@ -126,7 +126,7 @@ vector<string> fields;
 
 //..............................................................................
 int MedQRF::set_params(map<string, string>& mapper) {
-	
+
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [MedQRF::init]
@@ -484,4 +484,40 @@ void MedQRF::calc_feature_importance(vector<float> &features_importance_scores,
 	features_importance_scores.resize((int)res.size());
 	for (size_t i = 0; i < res.size(); ++i)
 		features_importance_scores[res[i].first] = (float)res[i].second;
+}
+
+void MedQRF::prepare_predict_single() {
+	_indexd_quantiles.resize(qf.quantiles.size());
+	_sorted_quantiles.resize(qf.quantiles.size());
+
+	if (qf.get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE || qf.get_counts_flag == PREDS_REGRESSION_QUANTILE) {
+		for (unsigned int i = 0; i < qf.quantiles.size(); i++) _indexd_quantiles[i] = { qf.quantiles[i],i };
+		sort(_indexd_quantiles.begin(), _indexd_quantiles.end(), [](const pair<float, int> &v1, const pair<float, int> &v2) {return v1.first < v2.first; });
+		for (unsigned int i = 0; i < qf.quantiles.size(); i++) _sorted_quantiles[i] = _indexd_quantiles[i].first;
+	}
+	int nfeats = features_count;
+	if (nfeats == 0)
+		nfeats = (int)model_features.size();
+
+	//_single_pred_args.x = x;
+	_single_pred_args.trees = &qf.qtrees;
+	_single_pred_args.nfeat = nfeats;
+	_single_pred_args.nsamples = 1;
+	_single_pred_args.from = 0; //
+	_single_pred_args.to = 0; //includes to
+	_single_pred_args.serial = 0;
+	_single_pred_args.state = 0;
+	//pr.res = preds.data();
+	_single_pred_args.mode = qf.mode;
+	_single_pred_args.n_categ = qf.n_categ;
+	_single_pred_args.get_counts = qf.get_counts_flag;
+	_single_pred_args.quantiles = &_sorted_quantiles;
+	_single_pred_args.sorted_values = &qf.sorted_values;
+	_single_pred_args.sparse_values = qf.sparse_values;
+}
+
+void MedQRF::predict_single(const vector<float> &x, vector<float> &preds) const {
+	qrf_scoring_thread_params copy_params = _single_pred_args; //that is not const
+
+	qf.get_single_score_fast(copy_params, x, preds);
 }

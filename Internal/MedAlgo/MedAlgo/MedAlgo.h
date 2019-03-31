@@ -577,9 +577,16 @@ public:
 	// Predictions per sample
 	int n_preds_per_sample() const;
 
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+
 private:
 	void set_sampsize(float *y, int nsamples); // checking if there's a need to prep sampsize based on max_samp and samp_factor
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int get_count) const;
+
+	vector<pair<float, int>> _indexd_quantiles;
+	vector<float> _sorted_quantiles;
+	qrf_scoring_thread_params _single_pred_args;
 };
 
 //======================================================================================

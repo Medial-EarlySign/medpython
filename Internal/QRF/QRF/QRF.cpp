@@ -1958,28 +1958,6 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, const float *w, in
 }
 
 //---------------------------------------------------------------------------------------------
-struct qrf_scoring_thread_params {
-	float *x;
-	const vector<QRF_ResTree> *trees;
-	int from;
-	int to;
-	int nfeat;
-	int nsamples;
-	float *res;
-
-	int serial;
-	int state;
-
-	int mode;
-	int n_categ;
-	vector<float> *quantiles;
-	const vector<float> *sorted_values;
-	bool sparse_values;
-
-	int get_counts; // for CATEGORICAL runs there's such an option, 0 - don't get, 1 - sum counts 2 - sum probs
-//	thread th_handle;
-};
-
 void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, const vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts,
 	vector<float> *quantiles, const vector<float> *sorted_values, bool sparse_values)
 {
@@ -2017,7 +1995,7 @@ void get_score_thread(void *p)
 
 	//	fprintf(stderr,"Starting scoring thread %d :: from %d to %d mode %d n_categ %d\n",tp->serial, tp->from, tp->to, tp->mode, tp->n_categ); fflush(stderr);
 
-	float *xf = tp->x;
+	const float *xf = tp->x;
 
 	int node;
 	int nfeat = tp->nfeat;
@@ -2197,6 +2175,18 @@ void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *re
 		memcpy(res, &(tempRes[0]), nquantiles*nsamples * sizeof(float));
 	}
 
+}
+
+void QRF_Forest::get_single_score_fast(qrf_scoring_thread_params &params, const vector<float> &x, vector<float> &preds) const {
+	int pred_size = n_categ;
+	if (get_only_this_categ >= 0)
+		pred_size = 1;
+	preds.resize(pred_size);
+
+	params.x = x.data();
+	params.res = preds.data();
+
+	get_score_thread(&params);
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
