@@ -546,6 +546,7 @@ template<typename T> void GibbsSampler<T>::prepare_predictors() {
 		for (size_t i = 0; i < feats_predictors.size(); ++i)
 		{
 			if (feats_predictors[i].predictor != NULL)
+#pragma omp critical
 				feats_predictors[i].predictor->prepare_predict_single();
 		}
 		done_prepare = true;
