@@ -160,6 +160,7 @@ public:
 
 private:
 	bool _mark_learn_done;
+	bool prepared_single;
 	vector<BoosterHandle> learner_per_thread;
 
 	void translate_split_penalties(string& split_penalties_s);

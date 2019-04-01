@@ -587,6 +587,7 @@ private:
 	vector<pair<float, int>> _indexd_quantiles;
 	vector<float> _sorted_quantiles;
 	qrf_scoring_thread_params _single_pred_args;
+	bool prepared_single;
 };
 
 //======================================================================================

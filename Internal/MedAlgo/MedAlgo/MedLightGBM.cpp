@@ -353,10 +353,13 @@ void MedLightGBM::calc_feature_importance(vector<float> &features_importance_sco
 }
 
 void MedLightGBM::prepare_predict_single() {
-	num_preds = n_preds_per_sample();
+	if (!prepared_single) {
+		num_preds = n_preds_per_sample();
 
-	mem_app.fetch_boosting(_boosting);
-	mem_app.fetch_early_stop(early_stop_);
+		mem_app.fetch_boosting(_boosting);
+		mem_app.fetch_early_stop(early_stop_);
+		prepared_single = true;
+	}
 }
 
 void MedLightGBM::predict_single(const vector<float> &x, vector<float> &preds) const {

@@ -190,6 +190,7 @@ public:
 		transpose_for_predict = false;
 		init_from_string("");
 		_mark_learn_done = false;
+		prepared_single = false;
 	};
 	~MedLightGBM() {};
 
@@ -241,6 +242,7 @@ public:
 private:
 	bool _mark_learn_done;
 	string model_as_string;
+	bool prepared_single;
 
 	int num_preds;
 	LightGBM::Boosting *_boosting;

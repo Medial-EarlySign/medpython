@@ -358,6 +358,7 @@ void MedXGB::init_defaults()
 	normalize_y_for_learn = false;
 
 	_mark_learn_done = false;
+	prepared_single = false;
 }
 
 int MedXGB::set_params(map<string, string>& mapper) {
@@ -397,6 +398,9 @@ int MedXGB::set_params(map<string, string>& mapper) {
 
 
 void MedXGB::prepare_predict_single() {
+	if (prepared_single)
+		return;
+	prepared_single = true;
 	int nftrs = features_count;
 	if (nftrs == 0)
 		nftrs = (int)model_features.size();

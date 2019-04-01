@@ -48,6 +48,7 @@ void MedQRF::init_defaults()
 
 	params.collect_oob = 0;
 	params.take_all_samples = false;
+	prepared_single = false;
 }
 
 //..............................................................................
@@ -487,6 +488,9 @@ void MedQRF::calc_feature_importance(vector<float> &features_importance_scores,
 }
 
 void MedQRF::prepare_predict_single() {
+	if (prepared_single)
+		return;
+	prepared_single = true;
 	_indexd_quantiles.resize(qf.quantiles.size());
 	_sorted_quantiles.resize(qf.quantiles.size());
 
