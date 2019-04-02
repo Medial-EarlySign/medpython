@@ -31,7 +31,7 @@ GibbsSamplingParams::GibbsSamplingParams() {
 	jump_between_samples = 10;
 	samples_count = 1;
 	find_real_value_bin = true;
-	use_cache = true;
+	use_cache = false;
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
