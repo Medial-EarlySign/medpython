@@ -345,6 +345,7 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) const {
 
 	preds.resize(nsamples*n_preds_per_sample());
 	float *_preds = &(preds[0]);
+
 	//	MLOG("MedMat,vector call: preds size is %d n_preds_per_sample %d nsamples %d\n",preds.size(),n_preds_per_sample(),nsamples);
 	return Predict(x.data_ptr(), _preds, nsamples, nftrs);
 }
