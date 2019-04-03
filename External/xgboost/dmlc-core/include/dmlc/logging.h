@@ -17,6 +17,10 @@
 
 #if DMLC_LOG_STACK_TRACE
 #include <cxxabi.h>
+ //Alon - BUG IN our linux compiler - should be defined in ./base.h - But has bug
+#ifndef DMLC_LOG_STACK_TRACE_SIZE
+#define DMLC_LOG_STACK_TRACE_SIZE 10
+#endif
 #endif
 
 #if DMLC_LOG_STACK_TRACE
@@ -24,30 +28,30 @@
 #endif
 
 namespace dmlc {
-/*!
- * \brief exception class that will be thrown by
- *  default logger if DMLC_LOG_FATAL_THROW == 1
- */
-struct Error : public std::runtime_error {
   /*!
-   * \brief constructor
-   * \param s the error message
+   * \brief exception class that will be thrown by
+   *  default logger if DMLC_LOG_FATAL_THROW == 1
    */
-  explicit Error(const std::string &s) : std::runtime_error(s) {}
-};
+  struct Error : public std::runtime_error {
+    /*!
+     * \brief constructor
+     * \param s the error message
+     */
+    explicit Error(const std::string &s) : std::runtime_error(s) {}
+  };
 }  // namespace dmlc
 
 #if DMLC_USE_GLOG
 #include <glog/logging.h>
 
 namespace dmlc {
-/*!
- * \brief optionally redirect to google's init log
- * \param argv0 The arguments.
- */
-inline void InitLogging(const char* argv0) {
-  google::InitGoogleLogging(argv0);
-}
+  /*!
+   * \brief optionally redirect to google's init log
+   * \param argv0 The arguments.
+   */
+  inline void InitLogging(const char* argv0) {
+    google::InitGoogleLogging(argv0);
+  }
 }  // namespace dmlc
 
 #else
@@ -63,18 +67,18 @@ inline void InitLogging(const char* argv0) {
 #endif
 
 namespace dmlc {
-inline void InitLogging(const char*) {
-  // DO NOTHING
-}
+  inline void InitLogging(const char*) {
+    // DO NOTHING
+  }
 
-class LogCheckError {
- public:
-  LogCheckError() : str(nullptr) {}
-  explicit LogCheckError(const std::string& str_) : str(new std::string(str_)) {}
-  ~LogCheckError() { if (str != nullptr) delete str; }
-  operator bool() {return str != nullptr; }
-  std::string* str;
-};
+  class LogCheckError {
+  public:
+    LogCheckError() : str(nullptr) {}
+    explicit LogCheckError(const std::string& str_) : str(new std::string(str_)) {}
+    ~LogCheckError() { if (str != nullptr) delete str; }
+    operator bool() { return str != nullptr; }
+    std::string* str;
+  };
 
 #ifndef DMLC_GLOG_DEFINED
 
@@ -109,15 +113,15 @@ class LogCheckError {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
-DEFINE_CHECK_FUNC(_LT, <)
-DEFINE_CHECK_FUNC(_GT, >)
-DEFINE_CHECK_FUNC(_LE, <=)
-DEFINE_CHECK_FUNC(_GE, >=)
-DEFINE_CHECK_FUNC(_EQ, ==)
-DEFINE_CHECK_FUNC(_NE, !=)
+  DEFINE_CHECK_FUNC(_LT, < )
+    DEFINE_CHECK_FUNC(_GT, > )
+    DEFINE_CHECK_FUNC(_LE, <= )
+    DEFINE_CHECK_FUNC(_GE, >= )
+    DEFINE_CHECK_FUNC(_EQ, == )
+    DEFINE_CHECK_FUNC(_NE, != )
 #pragma GCC diagnostic pop
 
-// Always-on checking
+    // Always-on checking
 #define CHECK(x)                                           \
   if (!(x))                                                \
     dmlc::LogMessageFatal(__FILE__, __LINE__).stream()     \
@@ -193,7 +197,7 @@ DEFINE_CHECK_FUNC(_NE, !=)
 #endif  // DMLC_GLOG_DEFINED
 
 class DateLogger {
- public:
+public:
   DateLogger() {
 #if defined(_MSC_VER)
     _tzset();
@@ -213,210 +217,210 @@ class DateLogger {
     pnow = localtime(&time_value);  // NOLINT(*)
 #endif
     snprintf(buffer_, sizeof(buffer_), "%02d:%02d:%02d",
-             pnow->tm_hour, pnow->tm_min, pnow->tm_sec);
+      pnow->tm_hour, pnow->tm_min, pnow->tm_sec);
 #endif
 #endif  // _LIBCPP_SGX_CONFIG
     return buffer_;
   }
 
- private:
+private:
   char buffer_[9];
-};
+  };
 
 #ifndef _LIBCPP_SGX_NO_IOSTREAMS
-class LogMessage {
- public:
-  LogMessage(const char* file, int line)
+  class LogMessage {
+  public:
+    LogMessage(const char* file, int line)
       :
 #ifdef __ANDROID__
-        log_stream_(std::cout)
+      log_stream_(std::cout)
 #else
-        log_stream_(std::cerr)
+      log_stream_(std::cerr)
 #endif
-  {
-    log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
-                << line << ": ";
-  }
-  ~LogMessage() { log_stream_ << '\n'; }
-  std::ostream& stream() { return log_stream_; }
+    {
+      log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
+        << line << ": ";
+    }
+    ~LogMessage() { log_stream_ << '\n'; }
+    std::ostream& stream() { return log_stream_; }
 
- protected:
-  std::ostream& log_stream_;
+  protected:
+    std::ostream& log_stream_;
 
- private:
-  DateLogger pretty_date_;
-  LogMessage(const LogMessage&);
-  void operator=(const LogMessage&);
-};
+  private:
+    DateLogger pretty_date_;
+    LogMessage(const LogMessage&);
+    void operator=(const LogMessage&);
+  };
 
-// customized logger that can allow user to define where to log the message.
-class CustomLogMessage {
- public:
-  CustomLogMessage(const char* file, int line) {
-    log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":"
-                << line << ": ";
-  }
-  ~CustomLogMessage() {
-    Log(log_stream_.str());
-  }
-  std::ostream& stream() { return log_stream_; }
-  /*!
-   * \brief customized logging of the message.
-   * This function won't be implemented by libdmlc
-   * \param msg The message to be logged.
-   */
-  static void Log(const std::string& msg);
+  // customized logger that can allow user to define where to log the message.
+  class CustomLogMessage {
+  public:
+    CustomLogMessage(const char* file, int line) {
+      log_stream_ << "[" << DateLogger().HumanDate() << "] " << file << ":"
+        << line << ": ";
+    }
+    ~CustomLogMessage() {
+      Log(log_stream_.str());
+    }
+    std::ostream& stream() { return log_stream_; }
+    /*!
+     * \brief customized logging of the message.
+     * This function won't be implemented by libdmlc
+     * \param msg The message to be logged.
+     */
+    static void Log(const std::string& msg);
 
- private:
-  std::ostringstream log_stream_;
-};
+  private:
+    std::ostringstream log_stream_;
+  };
 #else
-class DummyOStream {
- public:
-  template <typename T>
-  DummyOStream& operator<<(T _) { return *this; }
-  inline std::string str() { return ""; }
-};
-class LogMessage {
- public:
-  LogMessage(const char* file, int line) : log_stream_() {}
-  DummyOStream& stream() { return log_stream_; }
+  class DummyOStream {
+  public:
+    template <typename T>
+    DummyOStream& operator<<(T _) { return *this; }
+    inline std::string str() { return ""; }
+  };
+  class LogMessage {
+  public:
+    LogMessage(const char* file, int line) : log_stream_() {}
+    DummyOStream& stream() { return log_stream_; }
 
- protected:
-  DummyOStream log_stream_;
+  protected:
+    DummyOStream log_stream_;
 
- private:
-  LogMessage(const LogMessage&);
-  void operator=(const LogMessage&);
-};
+  private:
+    LogMessage(const LogMessage&);
+    void operator=(const LogMessage&);
+  };
 #endif
 
 
 
 #if DMLC_LOG_STACK_TRACE
-inline std::string Demangle(char const *msg_str) {
-  using std::string;
-  string msg(msg_str);
-  size_t symbol_start = string::npos;
-  size_t symbol_end = string::npos;
-  if ( ((symbol_start = msg.find("_Z")) != string::npos)
-       && (symbol_end = msg.find_first_of(" +", symbol_start)) ) {
-    string left_of_symbol(msg, 0, symbol_start);
-    string symbol(msg, symbol_start, symbol_end - symbol_start);
-    string right_of_symbol(msg, symbol_end);
+  inline std::string Demangle(char const *msg_str) {
+    using std::string;
+    string msg(msg_str);
+    size_t symbol_start = string::npos;
+    size_t symbol_end = string::npos;
+    if (((symbol_start = msg.find("_Z")) != string::npos)
+      && (symbol_end = msg.find_first_of(" +", symbol_start))) {
+      string left_of_symbol(msg, 0, symbol_start);
+      string symbol(msg, symbol_start, symbol_end - symbol_start);
+      string right_of_symbol(msg, symbol_end);
 
-    int status = 0;
-    size_t length = string::npos;
-    std::unique_ptr<char, decltype(&std::free)> demangled_symbol =
-            {abi::__cxa_demangle(symbol.c_str(), 0, &length, &status), &std::free};
-    if (demangled_symbol && status == 0 && length > 0) {
-      string symbol_str(demangled_symbol.get());
-      std::ostringstream os;
-      os << left_of_symbol << symbol_str << right_of_symbol;
-      return os.str();
+      int status = 0;
+      size_t length = string::npos;
+      std::unique_ptr<char, decltype(&std::free)> demangled_symbol =
+      { abi::__cxa_demangle(symbol.c_str(), 0, &length, &status), &std::free };
+      if (demangled_symbol && status == 0 && length > 0) {
+        string symbol_str(demangled_symbol.get());
+        std::ostringstream os;
+        os << left_of_symbol << symbol_str << right_of_symbol;
+        return os.str();
+      }
     }
+    return string(msg_str);
   }
-  return string(msg_str);
-}
 
-inline std::string StackTrace(
+  inline std::string StackTrace(
     const size_t stack_size = DMLC_LOG_STACK_TRACE_SIZE) {
-  using std::string;
-  std::ostringstream stacktrace_os;
-  std::vector<void*> stack(stack_size);
-  int nframes = backtrace(stack.data(), static_cast<int>(stack_size));
-  stacktrace_os << "Stack trace returned " << nframes << " entries:" << std::endl;
-  char **msgs = backtrace_symbols(stack.data(), nframes);
-  if (msgs != nullptr) {
-    for (int frameno = 0; frameno < nframes; ++frameno) {
-      string msg = dmlc::Demangle(msgs[frameno]);
-      stacktrace_os << "[bt] (" << frameno << ") " << msg << "\n";
+    using std::string;
+    std::ostringstream stacktrace_os;
+    std::vector<void*> stack(stack_size);
+    int nframes = backtrace(stack.data(), static_cast<int>(stack_size));
+    stacktrace_os << "Stack trace returned " << nframes << " entries:" << std::endl;
+    char **msgs = backtrace_symbols(stack.data(), nframes);
+    if (msgs != nullptr) {
+      for (int frameno = 0; frameno < nframes; ++frameno) {
+        string msg = dmlc::Demangle(msgs[frameno]);
+        stacktrace_os << "[bt] (" << frameno << ") " << msg << "\n";
+      }
     }
+    free(msgs);
+    string stack_trace = stacktrace_os.str();
+    return stack_trace;
   }
-  free(msgs);
-  string stack_trace = stacktrace_os.str();
-  return stack_trace;
-}
 
 #else  // DMLC_LOG_STACK_TRACE is off
 
-inline std::string demangle(char const* msg_str) {
-  return std::string();
-}
+  inline std::string demangle(char const* msg_str) {
+    return std::string();
+  }
 
-inline std::string StackTrace(const size_t stack_size = 0) {
-  return std::string("stack traces not available when "
-  "DMLC_LOG_STACK_TRACE is disabled at compile time.");
-}
+  inline std::string StackTrace(const size_t stack_size = 0) {
+    return std::string("stack traces not available when "
+      "DMLC_LOG_STACK_TRACE is disabled at compile time.");
+  }
 
 #endif  // DMLC_LOG_STACK_TRACE
 
 #if defined(_LIBCPP_SGX_NO_IOSTREAMS)
-class LogMessageFatal : public LogMessage {
- public:
-  LogMessageFatal(const char* file, int line) : LogMessage(file, line) {}
-  ~LogMessageFatal() {
-    abort();
-  }
- private:
-  LogMessageFatal(const LogMessageFatal&);
-  void operator=(const LogMessageFatal&);
-};
+  class LogMessageFatal : public LogMessage {
+  public:
+    LogMessageFatal(const char* file, int line) : LogMessage(file, line) {}
+    ~LogMessageFatal() {
+      abort();
+    }
+  private:
+    LogMessageFatal(const LogMessageFatal&);
+    void operator=(const LogMessageFatal&);
+  };
 #elif DMLC_LOG_FATAL_THROW == 0
-class LogMessageFatal : public LogMessage {
- public:
-  LogMessageFatal(const char* file, int line) : LogMessage(file, line) {}
-  ~LogMessageFatal() {
-    log_stream_ << "\n\n" << StackTrace() << "\n";
-    abort();
-  }
+  class LogMessageFatal : public LogMessage {
+  public:
+    LogMessageFatal(const char* file, int line) : LogMessage(file, line) {}
+    ~LogMessageFatal() {
+      log_stream_ << "\n\n" << StackTrace() << "\n";
+      abort();
+    }
 
- private:
-  LogMessageFatal(const LogMessageFatal&);
-  void operator=(const LogMessageFatal&);
-};
+  private:
+    LogMessageFatal(const LogMessageFatal&);
+    void operator=(const LogMessageFatal&);
+  };
 #else
-class LogMessageFatal {
- public:
-  LogMessageFatal(const char* file, int line) {
-    log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
-                << line << ": ";
-  }
-  std::ostringstream &stream() { return log_stream_; }
-  ~LogMessageFatal() DMLC_THROW_EXCEPTION {
+  class LogMessageFatal {
+  public:
+    LogMessageFatal(const char* file, int line) {
+      log_stream_ << "[" << pretty_date_.HumanDate() << "] " << file << ":"
+        << line << ": ";
+    }
+    std::ostringstream &stream() { return log_stream_; }
+    ~LogMessageFatal() DMLC_THROW_EXCEPTION {
 #if DMLC_LOG_STACK_TRACE
-    log_stream_ << "\n\n" << StackTrace() << "\n";
+      log_stream_ << "\n\n" << StackTrace() << "\n";
 #endif
 
-    // throwing out of destructor is evil
-    // hopefully we can do it here
-    // also log the message before throw
+      // throwing out of destructor is evil
+      // hopefully we can do it here
+      // also log the message before throw
 #if DMLC_LOG_BEFORE_THROW
-    LOG(ERROR) << log_stream_.str();
+      LOG(ERROR) << log_stream_.str();
 #endif
-    throw Error(log_stream_.str());
-  }
+      throw Error(log_stream_.str());
+    }
 
- private:
-  std::ostringstream log_stream_;
-  DateLogger pretty_date_;
-  LogMessageFatal(const LogMessageFatal&);
-  void operator=(const LogMessageFatal&);
-};
+  private:
+    std::ostringstream log_stream_;
+    DateLogger pretty_date_;
+    LogMessageFatal(const LogMessageFatal&);
+    void operator=(const LogMessageFatal&);
+  };
 #endif
 
-// This class is used to explicitly ignore values in the conditional
-// logging macros.  This avoids compiler warnings like "value computed
-// is not used" and "statement has no effect".
-class LogMessageVoidify {
- public:
-  LogMessageVoidify() {}
-  // This has to be an operator with a precedence lower than << but
-  // higher than "?:". See its usage.
+  // This class is used to explicitly ignore values in the conditional
+  // logging macros.  This avoids compiler warnings like "value computed
+  // is not used" and "statement has no effect".
+  class LogMessageVoidify {
+  public:
+    LogMessageVoidify() {}
+    // This has to be an operator with a precedence lower than << but
+    // higher than "?:". See its usage.
 #if !defined(_LIBCPP_SGX_NO_IOSTREAMS)
-  void operator&(std::ostream&) {}
+    void operator&(std::ostream&) {}
 #endif
-};
+  };
 
 }  // namespace dmlc
 

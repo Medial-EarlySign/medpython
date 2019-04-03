@@ -434,7 +434,7 @@ void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const 
 	int n_ftrs = (int)x.size();
 	std::unique_ptr<data::SimpleCSRSource> p_mat(new data::SimpleCSRSource());
 	data::SimpleCSRSource &mat = *p_mat; //copy memory to alter values (const object)
-	vector<unsigned long long> &offset_vec = mat.page_.offset.HostVector();
+	auto &offset_vec = mat.page_.offset.HostVector();
 	vector<xgboost::Entry> &vals = mat.page_.data.HostVector();
 	offset_vec.resize(2);
 	mat.info.num_row_ = 1;
