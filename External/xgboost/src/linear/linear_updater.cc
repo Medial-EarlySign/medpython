@@ -3,6 +3,7 @@
  */
 #include <xgboost/linear_updater.h>
 #include <dmlc/registry.h>
+#include "./param.h"
 
 namespace dmlc {
 DMLC_REGISTRY_ENABLE(::xgboost::LinearUpdaterReg);
@@ -22,8 +23,13 @@ LinearUpdater* LinearUpdater::Create(const std::string& name) {
 
 namespace xgboost {
 namespace linear {
+DMLC_REGISTER_PARAMETER(LinearTrainParam);
+
 // List of files that will be force linked in static links.
 DMLC_REGISTRY_LINK_TAG(updater_shotgun);
 DMLC_REGISTRY_LINK_TAG(updater_coordinate);
+#ifdef XGBOOST_USE_CUDA
+DMLC_REGISTRY_LINK_TAG(updater_gpu_coordinate);
+#endif  // XGBOOST_USE_CUDA
 }  // namespace linear
 }  // namespace xgboost

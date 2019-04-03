@@ -44,16 +44,18 @@ install:
     - set DO_PYTHON=off
     - if /i "%target%" == "mingw" set DO_PYTHON=on
     - if /i "%target%_%ver%_%configuration%" == "msvc_2015_Release" set DO_PYTHON=on
-    - if /i "%DO_PYTHON%" == "on" conda install -y numpy scipy pandas matplotlib nose scikit-learn graphviz python-graphviz
+    - if /i "%DO_PYTHON%" == "on" conda install -y numpy scipy pandas matplotlib pytest scikit-learn graphviz python-graphviz
     # R: based on https://github.com/krlmlr/r-appveyor
     - ps: |
         if($env:target -eq 'rmingw' -or $env:target -eq 'rmsvc') {
           #$ErrorActionPreference = "Stop"
-          Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "$Env:TEMP\appveyor-tool.ps1"
+          Invoke-WebRequest https://raw.githubusercontent.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "$Env:TEMP\appveyor-tool.ps1"
           Import-Module "$Env:TEMP\appveyor-tool.ps1"
           Bootstrap
-          $DEPS = "c('data.table','magrittr','stringi','ggplot2','DiagrammeR','Ckmeans.1d.dp','vcd','testthat','igraph','knitr','rmarkdown')"
-          cmd.exe /c "R.exe -q -e ""install.packages($DEPS, repos='$CRAN', type='win.binary')"" 2>&1"
+          $DEPS = "c('data.table','magrittr','stringi','ggplot2','DiagrammeR','Ckmeans.1d.dp','vcd','testthat','lintr','knitr','rmarkdown')"
+          cmd.exe /c "R.exe -q -e ""install.packages($DEPS, repos='$CRAN', type='both')"" 2>&1"
+          $BINARY_DEPS = "c('XML','igraph')"
+          cmd.exe /c "R.exe -q -e ""install.packages($BINARY_DEPS, repos='$CRAN', type='win.binary')"" 2>&1"
         }
 
 build_script:
@@ -94,7 +96,7 @@ build_script:
 
 test_script:
     - cd %APPVEYOR_BUILD_FOLDER%
-    - if /i "%DO_PYTHON%" == "on" python -m nose tests/python
+    - if /i "%DO_PYTHON%" == "on" python -m pytest tests/python
     # mingw R package: run the R check (which includes unit tests), and also keep the built binary package
     - if /i "%target%" == "rmingw" (
         set _R_CHECK_CRAN_INCOMING_=FALSE&&

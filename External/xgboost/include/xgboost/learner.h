@@ -10,6 +10,8 @@
 
 #include <rabit/rabit.h>
 #include <utility>
+#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include "./base.h"
@@ -37,7 +39,7 @@ namespace xgboost {
 class Learner : public rabit::Serializable {
  public:
   /*! \brief virtual destructor */
-  virtual ~Learner() {}
+  ~Learner() override = default;
   /*!
    * \brief set configuration from pair iterators.
    * \param begin The beginning iterator.
@@ -62,12 +64,12 @@ class Learner : public rabit::Serializable {
    * \brief load model from stream
    * \param fi input stream.
    */
-  virtual void Load(dmlc::Stream* fi) = 0;
+  void Load(dmlc::Stream* fi) override = 0;
   /*!
    * \brief save model to stream.
    * \param fo output stream
    */
-  virtual void Save(dmlc::Stream* fo) const = 0;
+  void Save(dmlc::Stream* fo) const override = 0;
   /*!
    * \brief update the model for one iteration
    *  With the specified objective function.
@@ -84,7 +86,7 @@ class Learner : public rabit::Serializable {
    */
   virtual void BoostOneIter(int iter,
                             DMatrix* train,
-                            HostDeviceVector<bst_gpair>* in_gpair) = 0;
+                            HostDeviceVector<GradientPair>* in_gpair) = 0;
   /*!
    * \brief evaluate the model for specific iteration using the configured metrics.
    * \param iter iteration number
@@ -167,7 +169,7 @@ class Learner : public rabit::Serializable {
    * \param out_preds output vector to hold the predictions
    * \param ntree_limit limit the number of trees used in prediction
    */
-  inline void Predict(const SparseBatch::Inst &inst,
+  inline void Predict(const SparsePage::Inst &inst,
                       bool output_margin,
                       HostDeviceVector<bst_float> *out_preds,
                       unsigned ntree_limit = 0) const;
@@ -177,6 +179,12 @@ class Learner : public rabit::Serializable {
    * \return Created learner.
    */
   static Learner* Create(const std::vector<std::shared_ptr<DMatrix> >& cache_data);
+
+  /*!
+   * \brief Get configuration arguments currently stored by the learner
+   * \return Key-value pairs representing configuration arguments
+   */
+  virtual const std::map<std::string, std::string>& GetConfigurationArguments() const = 0;
 
  protected:
   /*! \brief internal base score of the model */
@@ -190,11 +198,11 @@ class Learner : public rabit::Serializable {
 };
 
 // implementation of inline functions.
-inline void Learner::Predict(const SparseBatch::Inst& inst,
+inline void Learner::Predict(const SparsePage::Inst& inst,
                              bool output_margin,
                              HostDeviceVector<bst_float>* out_preds,
                              unsigned ntree_limit) const {
-  gbm_->PredictInstance(inst, &out_preds->data_h(), ntree_limit);
+  gbm_->PredictInstance(inst, &out_preds->HostVector(), ntree_limit);
   if (!output_margin) {
     obj_->PredTransform(out_preds);
   }

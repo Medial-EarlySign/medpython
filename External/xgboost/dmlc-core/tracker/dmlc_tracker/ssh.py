@@ -6,6 +6,7 @@ One need to make sure all slaves machines are ssh-able.
 """
 from __future__ import absolute_import
 
+from multiprocessing import Pool, Process
 import os, subprocess, logging
 from threading import Thread
 from . import tracker
@@ -23,7 +24,8 @@ def sync_dir(local_dir, slave_node, slave_dir):
 def get_env(pass_envs):
     envs = []
     # get system envs
-    keys = ['OMP_NUM_THREADS', 'KMP_AFFINITY', 'LD_LIBRARY_PATH', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
+    keys = ['OMP_NUM_THREADS', 'KMP_AFFINITY', 'LD_LIBRARY_PATH', 'AWS_ACCESS_KEY_ID',
+            'AWS_SECRET_ACCESS_KEY', 'DMLC_INTERFACE']
     for k in keys:
         v = os.getenv(k)
         if v is not None:
@@ -64,17 +66,18 @@ def submit(args):
         working_dir = local_dir
         if args.sync_dst_dir is not None and args.sync_dst_dir != 'None':
             working_dir = args.sync_dst_dir
+            pool = Pool(processes=len(hosts))
             for h in hosts:
-                sync_dir(local_dir, h, working_dir)
+                pool.apply_async(sync_dir, args=(local_dir, h, working_dir))
+            pool.close()
+            pool.join()
+            
 
         # launch jobs
         for i in range(nworker + nserver):
             pass_envs['DMLC_ROLE'] = 'server' if i < nserver else 'worker'
-            if i < nserver:
-                pass_envs['DMLC_SERVER_ID'] = i
-            else:
-                pass_envs['DMLC_WORKER_ID'] = i - nserver
             (node, port) = hosts[i % len(hosts)]
+            pass_envs['DMLC_NODE_HOST'] = node
             prog = get_env(pass_envs) + ' cd ' + working_dir + '; ' + (' '.join(args.command))
             prog = 'ssh -o StrictHostKeyChecking=no ' + node + ' -p ' + port + ' \'' + prog + '\''
             thread = Thread(target = run, args=(prog,))
@@ -85,4 +88,5 @@ def submit(args):
 
     tracker.submit(args.num_workers, args.num_servers,
                    fun_submit=ssh_submit,
-                   pscmd=(' '.join(args.command)))
+                   pscmd=(' '.join(args.command)),
+                   hostIP=args.host_ip)

@@ -68,7 +68,7 @@ endif
 endif
 
 export LDFLAGS= -pthread -lm $(ADD_LDFLAGS) $(DMLC_LDFLAGS) $(PLUGIN_LDFLAGS)
-export CFLAGS=  -std=c++11 -Wall -Wno-unknown-pragmas -Iinclude $(ADD_CFLAGS) $(PLUGIN_CFLAGS)
+export CFLAGS= -DDMLC_LOG_CUSTOMIZE=1 -std=c++11 -Wall -Wno-unknown-pragmas -Iinclude $(ADD_CFLAGS) $(PLUGIN_CFLAGS)
 CFLAGS += -I$(DMLC_CORE)/include -I$(RABIT)/include -I$(GTEST_PATH)/include
 #java include path
 export JAVAINCFLAGS = -I${JAVA_HOME}/include -I./java
@@ -260,14 +260,17 @@ Rpack: clean_all
 	cp ./LICENSE xgboost
 	cat R-package/src/Makevars.in|sed '2s/.*/PKGROOT=./' | sed '3s/.*/ENABLE_STD_THREAD=0/' > xgboost/src/Makevars.in
 	cp xgboost/src/Makevars.in xgboost/src/Makevars.win
-	sed -i -e 's/@OPENMP_CXXFLAGS@/$$\(SHLIB_OPENMP_CFLAGS\)/g' xgboost/src/Makevars.win
+	sed -i -e 's/@OPENMP_CXXFLAGS@/$$\(SHLIB_OPENMP_CXXFLAGS\)/g' xgboost/src/Makevars.win
+	sed -i -e 's/-pthread/$$\(SHLIB_PTHREAD_FLAGS\)/g' xgboost/src/Makevars.win
+	bash R-package/remove_warning_suppression_pragma.sh
+	rm xgboost/remove_warning_suppression_pragma.sh
 
 Rbuild: Rpack
 	R CMD build --no-build-vignettes xgboost
 	rm -rf xgboost
 
 Rcheck: Rbuild
-	R CMD check  xgboost*.tar.gz
+	R CMD check xgboost*.tar.gz
 
 -include build/*.d
 -include build/*/*.d

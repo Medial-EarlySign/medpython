@@ -19,13 +19,14 @@ package org.apache.spark
 import java.net.URL
 
 import org.apache.commons.logging.LogFactory
-import org.apache.spark.scheduler.{SparkListener, SparkListenerTaskEnd}
-import org.codehaus.jackson.map.ObjectMapper
 
+import org.apache.spark.scheduler._
+import org.codehaus.jackson.map.ObjectMapper
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
+import scala.util.control.ControlThrowable
 
 /**
  * A tracker that ensures enough number of executor cores are alive.
@@ -33,13 +34,14 @@ import scala.concurrent.{Await, Future, TimeoutException}
  *
  * @param sc The SparkContext object
  * @param timeout The maximum time to wait for enough number of workers.
- * @param nWorkers nWorkers used in an XGBoost Job
+ * @param numWorkers nWorkers used in an XGBoost Job
  */
 class SparkParallelismTracker(
     val sc: SparkContext,
     timeout: Long,
-    nWorkers: Int) {
+    numWorkers: Int) {
 
+  private[this] val requestedCores = numWorkers * sc.conf.getInt("spark.task.cpus", 1)
   private[this] val mapper = new ObjectMapper()
   private[this] val logger = LogFactory.getLog("XGBoostSpark")
   private[this] val url = sc.uiWebUrl match {
@@ -76,12 +78,12 @@ class SparkParallelismTracker(
   }
 
   private[this] def safeExecute[T](body: => T): T = {
-    val listener = new TaskFailedListener;
+    val listener = new TaskFailedListener
     sc.addSparkListener(listener)
     try {
       body
     } finally {
-      sc.listenerBus.removeListener(listener)
+      sc.removeSparkListener(listener)
     }
   }
 
@@ -96,13 +98,16 @@ class SparkParallelismTracker(
    */
   def execute[T](body: => T): T = {
     if (timeout <= 0) {
+      logger.info("starting training without setting timeout for waiting for resources")
       body
     } else {
       try {
-        waitForCondition(numAliveCores >= nWorkers, timeout)
+        logger.info(s"starting training with timeout set as $timeout ms for waiting for resources")
+        waitForCondition(numAliveCores >= requestedCores, timeout)
       } catch {
         case _: TimeoutException =>
-          throw new IllegalStateException(s"Unable to get $nWorkers workers for XGBoost training")
+          throw new IllegalStateException(s"Unable to get $requestedCores workers for" +
+            s" XGBoost training")
       }
       safeExecute(body)
     }
@@ -110,11 +115,25 @@ class SparkParallelismTracker(
 }
 
 private[spark] class TaskFailedListener extends SparkListener {
+
+  private[this] val logger = LogFactory.getLog("XGBoostTaskFailedListener")
+
   override def onTaskEnd(taskEnd: SparkListenerTaskEnd): Unit = {
     taskEnd.reason match {
-      case reason: TaskFailedReason =>
-        throw new InterruptedException(s"ExecutorLost during XGBoost Training: " +
-          s"${reason.toErrorString}")
+      case taskEndReason: TaskFailedReason =>
+        logger.error(s"Training Task Failed during XGBoost Training: " +
+            s"$taskEndReason, stopping SparkContext")
+        // Spark does not allow ListenerThread to shutdown SparkContext so that we have to do it
+        // in a separate thread
+        val sparkContextKiller = new Thread() {
+          override def run(): Unit = {
+            LiveListenerBus.withinListenerThread.withValue(false) {
+              SparkContext.getOrCreate().stop()
+            }
+          }
+        }
+        sparkContextKiller.setDaemon(true)
+        sparkContextKiller.start()
       case _ =>
     }
   }
