@@ -125,7 +125,7 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 	dvalidate = out;
 
 	for (int i = 0; i < nsamples; i++)
-		dvalidate->info().labels.push_back(y[i]);
+		dvalidate->Info().labels_.HostVector().push_back(y[i]);
 
 	return 0;
 }
@@ -434,25 +434,27 @@ void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const 
 	int n_ftrs = (int)x.size();
 	std::unique_ptr<data::SimpleCSRSource> p_mat(new data::SimpleCSRSource());
 	data::SimpleCSRSource &mat = *p_mat; //copy memory to alter values (const object)
-	mat.row_ptr_.resize(2);
-	mat.info.num_row = 1;
-	mat.info.num_col = n_ftrs;
+	auto &offset_vec = mat.page_.offset.HostVector();
+	vector<xgboost::Entry> &vals = mat.page_.data.HostVector();
+	offset_vec.resize(2);
+	mat.info.num_row_ = 1;
+	mat.info.num_col_ = n_ftrs;
 
 	// count elements for sizing data
 	xgboost::bst_ulong nelem = 0;
 	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j)
 		if (x[j] != params.missing_value)
 			++nelem;
-	mat.row_ptr_[1] = mat.row_ptr_[0] + nelem;
-	mat.row_data_.resize(mat.row_data_.size() + mat.row_ptr_.back());
+	offset_vec[1] = offset_vec[0] + nelem;
+	vals.resize(vals.size() + offset_vec.back());
 	xgboost::bst_ulong matj = 0;
 	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j) {
 		if (x[j] != params.missing_value) {
-			mat.row_data_[mat.row_ptr_[0] + matj] = RowBatch::Entry(j, x[j]);
+			vals[offset_vec[0] + matj] = xgboost::Entry(j, x[j]);
 			++matj;
 		}
 	}
-	mat.info.num_nonzero = mat.row_data_.size();
+	mat.info.num_nonzero_ = vals.size();
 
 	DMatrix *mat_gen = DMatrix::Create(move(p_mat));
 
@@ -465,7 +467,7 @@ void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const 
 	//for each thread learner
 	xgb_mdl->Predict(mat_gen, false, &wrapper, 0, false, false, false, false);
 
-	preds = move(wrapper.data_h());
+	preds = move(wrapper.HostVector());
 
 	delete mat_gen;
 }

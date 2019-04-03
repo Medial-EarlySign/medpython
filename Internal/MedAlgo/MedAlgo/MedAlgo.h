@@ -1160,7 +1160,7 @@ namespace medial {
 		/// using the predictor parameters if given
 		void compare_populations(const MedFeatures &population1, const MedFeatures &population2,
 			const string &name1, const string &name2, const string &output_file,
-			const string &predictor_type = "", const string &predictor_init = "");
+			const string &predictor_type = "", const string &predictor_init = "", int nfolds = 5, int max_learn = 0);
 	}
 }
 

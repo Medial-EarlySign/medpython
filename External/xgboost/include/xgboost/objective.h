@@ -23,7 +23,7 @@ namespace xgboost {
 class ObjFunction {
  public:
   /*! \brief virtual destructor */
-  virtual ~ObjFunction() {}
+  virtual ~ObjFunction() = default;
   /*!
    * \brief set configuration from pair iterators.
    * \param begin The beginning iterator.
@@ -44,10 +44,10 @@ class ObjFunction {
    * \param iteration current iteration number.
    * \param out_gpair output of get gradient, saves gradient and second order gradient in
    */
-  virtual void GetGradient(HostDeviceVector<bst_float>* preds,
+  virtual void GetGradient(const HostDeviceVector<bst_float>& preds,
                            const MetaInfo& info,
                            int iteration,
-                           HostDeviceVector<bst_gpair>* out_gpair) = 0;
+                           HostDeviceVector<GradientPair>* out_gpair) = 0;
 
   /*! \return the default evaluation metric for the objective */
   virtual const char* DefaultEvalMetric() const = 0;

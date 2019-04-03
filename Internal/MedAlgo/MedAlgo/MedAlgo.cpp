@@ -1101,7 +1101,7 @@ bool is_similar(float mean1, float lower1, float upper1, float std1,
 
 void medial::process::compare_populations(const MedFeatures &population1, const MedFeatures &population2,
 	const string &name1, const string &name2, const string &output_file,
-	const string &predictor_type, const string &predictor_init) {
+	const string &predictor_type, const string &predictor_init, int nfolds, int max_learn) {
 	if (population1.data.size() > population2.data.size())
 		MTHROW_AND_ERR("population matrixes doesn't have same dimentions [%zu, %zu]\n",
 			population1.data.size(), population2.data.size());
@@ -1175,7 +1175,6 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		random_device rd;
 		mt19937 gen(rd());
 		MedFeatures new_data;
-		int max_learn = 1000000;
 		new_data.attributes = population1.attributes;
 		new_data.time_unit = population1.time_unit;
 		new_data.samples.insert(new_data.samples.end(), population1.samples.begin(), population1.samples.end());
@@ -1211,7 +1210,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 
 		//lets get auc on this problem:
 		MedPredictor *predictor = MedPredictor::make_predictor(predictor_type, predictor_init);
-		if (new_data.samples.size() > max_learn) {
+		if (max_learn > 0 && new_data.samples.size() > max_learn) {
 			double rt = double(max_learn) / new_data.samples.size();
 			vector<int> sel;
 			medial::process::down_sample(new_data, rt, false, &sel);
@@ -1219,7 +1218,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		}
 		//lets fix labels weight that cases will be less common
 		vector<float> preds;
-		medial::models::get_pids_cv(predictor, new_data, 5, gen, preds);
+		medial::models::get_pids_cv(predictor, new_data, nfolds, gen, preds);
 
 		float auc = medial::performance::auc_q(preds, labels, &new_data.weights);
 		snprintf(buffer_s, sizeof(buffer_s),

@@ -31,7 +31,7 @@ GibbsSamplingParams::GibbsSamplingParams() {
 	jump_between_samples = 10;
 	samples_count = 1;
 	find_real_value_bin = true;
-	use_cache = true;
+	use_cache = false;
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
@@ -546,6 +546,7 @@ template<typename T> void GibbsSampler<T>::prepare_predictors() {
 		for (size_t i = 0; i < feats_predictors.size(); ++i)
 		{
 			if (feats_predictors[i].predictor != NULL)
+#pragma omp critical
 				feats_predictors[i].predictor->prepare_predict_single();
 		}
 		done_prepare = true;

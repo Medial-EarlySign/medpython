@@ -7,6 +7,8 @@ from . import local
 from . import mpi
 from . import sge
 from . import yarn
+from . import mesos
+from . import kubernetes
 
 def config_logger(args):
     """Configure the logger according to the arguments
@@ -46,5 +48,9 @@ def main():
         yarn.submit(args)
     elif args.cluster == 'mpi':
         mpi.submit(args)
+    elif args.cluster == 'mesos':
+        mesos.submit(args)
+    elif args.cluster == 'kubernetes':
+        kubernetes.submit(args)
     else:
         raise RuntimeError('Unknown submission cluster type %s' % args.cluster)

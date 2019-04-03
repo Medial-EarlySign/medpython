@@ -81,6 +81,8 @@ documentation_creation_server.log
 documentation_creation_user.log
 Internal/MedUtils/MedUtils.VC.opendb
 !External/LightGBM/LightGBM/CMakeLists.txt
+!External/xgboost/CMakeLists.txt.orig
+!External/xgboost/CMakeLists.txt
 External/xgboost/winBuild/
 *.db-shm
 *.gch

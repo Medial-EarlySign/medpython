@@ -23,11 +23,15 @@ class RecordIOSplitter : public InputSplitBase {
   RecordIOSplitter(FileSystem *fs,
                    const char *uri,
                    unsigned rank,
-                   unsigned nsplit) {
-    this->Init(fs, uri, 4);
+                   unsigned nsplit,
+                   const bool recurse_directories) {
+    this->Init(fs, uri, 4, recurse_directories);
     this->ResetPartition(rank, nsplit);
   }
 
+  bool IsTextParser(void) {
+    return false;
+  }
   virtual bool ExtractNextRecord(Blob *out_rec, Chunk *chunk);
 
  protected:

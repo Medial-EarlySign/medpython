@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# pylint: disable=protected-access, unused-variable, locally-disabled, redefined-variable-type
+# pylint: disable=protected-access, unused-variable, locally-disabled, len-as-condition
 """Lint helper to generate lint summary of source.
 
 Copyright by Contributors
@@ -17,6 +17,19 @@ from pylint import epylint
 CXX_SUFFIX = set(['cc', 'c', 'cpp', 'h', 'cu', 'hpp'])
 PYTHON_SUFFIX = set(['py'])
 
+def filepath_enumerate(paths):
+    """Enumerate the file paths of all subfiles of the list of paths"""
+    out = []
+    for path in paths:
+        if os.path.isfile(path):
+            out.append(path)
+        else:
+            for root, dirs, files in os.walk(path):
+                for name in files:
+                    out.append(os.path.normpath(os.path.join(root, name)))
+    return out
+
+# pylint: disable=useless-object-inheritance
 class LintHelper(object):
     """Class to help runing the lint and records summary"""
 
@@ -116,12 +129,17 @@ def get_header_guard_dmlc(filename):
     """
     fileinfo = cpplint.FileInfo(filename)
     file_path_from_root = fileinfo.RepositoryName()
-    inc_list = ['include', 'api', 'wrapper']
+    inc_list = ['include', 'api', 'wrapper', 'contrib']
+    if os.name == 'nt':
+        inc_list.append("mshadow")
 
     if file_path_from_root.find('src/') != -1 and _HELPER.project_name is not None:
         idx = file_path_from_root.find('src/')
         file_path_from_root = _HELPER.project_name +  file_path_from_root[idx + 3:]
     else:
+        idx = file_path_from_root.find("include/")
+        if idx != -1:
+            file_path_from_root = file_path_from_root[idx + 8:]
         for spath in inc_list:
             prefix = spath + '/'
             if file_path_from_root.startswith(prefix):
@@ -149,6 +167,8 @@ def main():
     parser.add_argument('filetype', choices=['python', 'cpp', 'all'],
                         help='source code type')
     parser.add_argument('path', nargs='+', help='path to traverse')
+    parser.add_argument('--exclude_path', nargs='+', default=[],
+                        help='exclude this path, and all subfolders if path is a folder')
     parser.add_argument('--pylint-rc', default=None,
                         help='pylint rc file')
     args = parser.parse_args()
@@ -158,9 +178,9 @@ def main():
         _HELPER.pylint_opts = ['--rcfile='+args.pylint_rc,]
     file_type = args.filetype
     allow_type = []
-    if file_type == 'python' or file_type == 'all':
+    if file_type in ('python', 'all'):
         allow_type += [x for x in PYTHON_SUFFIX]
-    if file_type == 'cpp' or file_type == 'all':
+    if file_type in ('cpp', 'all'):
         allow_type += [x for x in CXX_SUFFIX]
     allow_type = set(allow_type)
     if sys.version_info.major == 2 and os.name != 'nt':
@@ -168,14 +188,19 @@ def main():
                                                codecs.getreader('utf8'),
                                                codecs.getwriter('utf8'),
                                                'replace')
+    # get excluded files
+    excluded_paths = filepath_enumerate(args.exclude_path)
     for path in args.path:
         if os.path.isfile(path):
-            process(path, allow_type)
+            normpath = os.path.normpath(path)
+            if normpath not in excluded_paths:
+                process(path, allow_type)
         else:
             for root, dirs, files in os.walk(path):
                 for name in files:
-                    process(os.path.join(root, name), allow_type)
-
+                    file_path = os.path.normpath(os.path.join(root, name))
+                    if file_path not in excluded_paths:
+                        process(file_path, allow_type)
     nerr = _HELPER.print_summary(sys.stderr)
     sys.exit(nerr > 0)
 

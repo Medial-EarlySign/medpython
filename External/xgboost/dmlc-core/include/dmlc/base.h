@@ -26,7 +26,7 @@
  * This can help identify the error that cannot be catched.
  */
 #ifndef DMLC_LOG_BEFORE_THROW
-#define DMLC_LOG_BEFORE_THROW 1
+#define DMLC_LOG_BEFORE_THROW 0
 #endif
 
 /*!
@@ -35,14 +35,6 @@
  */
 #ifndef DMLC_LOG_CUSTOMIZE
 #define DMLC_LOG_CUSTOMIZE 0
-#endif
-
-/*!
- * \brief Wheter to print stack trace for fatal error,
- * enabled on linux when using gcc.
- */
-#if (!defined(DMLC_LOG_STACK_TRACE) && defined(__GNUC__) && !defined(__MINGW32__))
-#define DMLC_LOG_STACK_TRACE 1
 #endif
 
 /*! \brief whether compile with hdfs support */
@@ -81,11 +73,9 @@
 /*! \brief Whether cxx11 thread local is supported */
 #ifndef DMLC_CXX11_THREAD_LOCAL
 #if defined(_MSC_VER)
-#if (_MSC_VER >= 1900)
-#define DMLC_CXX11_THREAD_LOCAL 1
-#else
-#define DMLC_CXX11_THREAD_LOCAL 0
-#endif
+#define DMLC_CXX11_THREAD_LOCAL (_MSC_VER >= 1900)
+#elif defined(__clang__)
+#define DMLC_CXX11_THREAD_LOCAL (__has_feature(cxx_thread_local))
 #else
 #define DMLC_CXX11_THREAD_LOCAL (__cplusplus >= 201103L)
 #endif
@@ -95,6 +85,11 @@
 /*! \brief whether RTTI is enabled */
 #ifndef DMLC_ENABLE_RTTI
 #define DMLC_ENABLE_RTTI 1
+#endif
+
+/*! \brief whether use fopen64 */
+#ifndef DMLC_USE_FOPEN64
+#define DMLC_USE_FOPEN64 1
 #endif
 
 /// check if g++ is before 4.6
@@ -108,6 +103,13 @@
 #endif
 #endif
 
+/*!
+ * \brief Use little endian for binary serialization
+ *  if this is set to 0, use big endian.
+ */
+#ifndef DMLC_IO_USE_LITTLE_ENDIAN
+#define DMLC_IO_USE_LITTLE_ENDIAN 1
+#endif
 
 /*!
  * \brief Enable std::thread related modules,
@@ -155,15 +157,10 @@
 #  endif
 #endif
 
-///
-/// code block to handle optionally loading
-///
-#if !defined(__GNUC__)
-#define fopen64 std::fopen
+#ifdef __APPLE__
+#  define off64_t off_t
 #endif
-#if (defined __MINGW32__) && !(defined __MINGW64__)
-#define fopen64 std::fopen
-#endif
+
 #ifdef _MSC_VER
 #if _MSC_VER < 1900
 // NOTE: sprintf_s is not equivalent to snprintf,
@@ -176,11 +173,6 @@
 #if _FILE_OFFSET_BITS == 32
 #pragma message("Warning: FILE OFFSET BITS defined to be 32 bit")
 #endif
-#endif
-
-#ifdef __APPLE__
-#define off64_t off_t
-#define fopen64 std::fopen
 #endif
 
 extern "C" {
@@ -271,5 +263,11 @@ inline const char* BeginPtr(const std::string &str) {
 #define constexpr const
 #define alignof __alignof
 #endif
+
+/* If fopen64 is not defined by current machine,
+   replace fopen64 with std::fopen. Also determine ability to print stack trace
+   for fatal error and define DMLC_LOG_STACK_TRACE if stack trace can be
+   produced. Always keep this #include at the bottom of dmlc/base.h */
+#include <dmlc/build_config.h>
 
 #endif  // DMLC_BASE_H_
