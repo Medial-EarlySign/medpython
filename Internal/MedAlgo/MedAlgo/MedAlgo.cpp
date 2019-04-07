@@ -776,6 +776,18 @@ void MedPredictor::predict_single(const vector<double> &x, vector<double> &preds
 	MTHROW_AND_ERR("Error not implemented in %s\n", my_class_name().c_str());
 }
 
+void MedMicNet::prepare_predict_single() {
+	MWARN("Warning in MedMicNet::prepare_predict_single - no fast implementation provided\n");
+}
+
+void MedMicNet::predict_single(const vector<float> &x, vector<float> &preds) const {
+	micNet mutable_net = mic;
+	int nftrs = int(x.size());
+	MedMat<float> cp_mat;
+	cp_mat.load(x.data(), 1, nftrs);
+	mutable_net.predict(cp_mat, preds);
+}
+
 void convertXMat(const vector<vector<float>> x, MedMat<float> &xMat) {
 	xMat.resize((int)x[0].size(), (int)x.size());
 	for (size_t i = 0; i < x.size(); ++i)
