@@ -2075,7 +2075,6 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 
 void micNet::predict_single(const vector<float> &x, vector<float> &preds) const
 {
-	//MLOG("predict(Mat,Mat) API\n");
 	string prefix = "micNet::predict() ::";
 
 	int nfeat = (int)x.size();
@@ -2083,17 +2082,7 @@ void micNet::predict_single(const vector<float> &x, vector<float> &preds) const
 	if (nodes[0].n_in != nfeat)
 		MTHROW_AND_ERR("%s non matching Input node and mat size : n_in %d x: %d\n", prefix.c_str(), nodes[0].n_in, nfeat);
 
-	//MERR("micNet predict() : n_in %d x: %d x %d , last_is_bias %d\n", nodes[0].n_in, x.nrows, x.ncols, last_is_bias_flag);
-	// first getting a shuffle
-
-	//const micNode *pred_node = &nodes.back();
-	//int n_categ = pred_node->k_out;
-	//preds.resize(n_categ);
-
-	//for (auto &node : nodes) node.my_net = this;
-
 	// going over batches
-	//nodes[0].fill_input_node(&unit[0], nsamples, x, 0);
 	vector<MedMat<float>> nodes_out(nodes.size());
 	MedMat<float> &first_batch_out = nodes_out[0]; // = nodes[0].batch_out;
 	MedMat<float> &last_pred = nodes_out.back();
@@ -2110,6 +2099,8 @@ void micNet::predict_single(const vector<float> &x, vector<float> &preds) const
 
 	// copy results to preds mat
 	preds = move(last_pred.m);
+	if (preds.size() > 1) //has additional channel of 1 for bias - remove it
+		preds.resize(preds.size() - 1);
 	/*for (int j = 0; j < n_categ; j++)
 		preds[j] = last_pred(0, j);*/
 }
@@ -2240,11 +2231,11 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 					}
 					eval.lsq_loss += fact * (float)0.5*(preds(i, j) - y(i, j))*(preds(i, j) - y(i, j));
 				}
-			}
 		}
+	}
 
 	return 0;
-	}
+}
 
 int micNet::test_grad_numerical(int i_node, int i_in, int i_out, float epsilon)
 {
