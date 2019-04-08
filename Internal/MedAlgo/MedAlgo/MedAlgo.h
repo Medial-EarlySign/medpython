@@ -599,6 +599,9 @@ struct MedMicNetParams {
 };
 
 class MedMicNet : public MedPredictor {
+private:
+	vector<micNet> model_per_thread;
+	bool is_prepared = false;
 public:
 	// Model 
 	micNet mic;

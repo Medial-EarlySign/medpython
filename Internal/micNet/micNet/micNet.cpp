@@ -109,6 +109,22 @@ int micNode::fill_output_node(int *perm, int len, MedMat<float> &y_mat, vector<f
 	return 0;
 }
 
+void micNode::get_input_batch(const vector<MedMat<float>> &nodes_out, MedMat<float> &in) const {
+	// simpler code for just a single input node
+	if (ir.n_input_nodes == 1) {
+
+		// get the input node
+		int j = ir.in_node_id[0];
+
+		// copy batch from input and check it
+		//MLOG("Copying input to batch_in of node %d from batch_out of node %d\n", id, in_node.id);
+		if (ir.mode[0] == "all") {
+			//MLOG("Copying batch_out from node %d to batch_in in node %d : batch_out is: %d x %d\n", in_node.id, id, in_node.batch_out.nrows, in_node.batch_out.ncols);
+			in = nodes_out[j];
+		}
+	}
+}
+
 //.................................................................................
 // Sets the input for the node, using the InputRules 
 // Current Options:
@@ -184,6 +200,135 @@ int micNode::get_input_batch(int do_grad_flag)
 
 	return 0;
 }
+
+void micNode::forward_batch_leaky_relu(const MedMat<float> &in, MedMat<float> &out) const
+{
+	// sanity checks
+	if (in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || lr_params.nrows != k_out || lr_params.ncols != 2 || lambda.nrows != k_out) {
+		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_leaky_relu : input: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
+			in.nrows, in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
+	}
+
+	// multiplying to get W * x
+	//	print("debug before mult mat", 1, 6);
+	if (dropout_prob_out >= 1) {
+		if (fast_multiply_medmat_(in, wgt, out) < 0)
+			MTHROW_AND_ERR("Failed\n");
+	}
+	else {
+		if (fast_multiply_medmat(in, wgt, out, dropout_prob_out) < 0)
+			MTHROW_AND_ERR("Failed\n");
+	}
+
+	// Reminder: the last col in weights is 0,0,....0,1 
+	// That with the last in each input row being 1 makes sure the output will also have 1's at the end.
+	int i = 0;
+	int n_b = out.nrows;
+
+	// applying leaky max func on out
+
+		// faster, without grad_s calculation
+//#pragma omp parallel for private(i) if (n_b>100 || k_out>100)
+	for (i = 0; i < n_b; i++)
+		for (int j = 0; j < k_out; j++)
+			if (out(i, j) >= 0)
+				out(i, j) *= lr_params(j, 0); // a
+			else
+				out(i, j) *= lr_params(j, 1); // b
+
+}
+
+void micNode::forward_batch_normalization(const MedMat<float> &in, MedMat<float> &out) const {
+	// sanity checks
+	if (in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || n_in != k_out) {
+		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_normalization : input: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
+			in.nrows, in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
+	}
+
+	// multiplying to get W * x - leaving this code, although it should be made faster by multiplying a diagonal matrix.
+	int n_b = in.nrows;
+	out.resize(n_b, n_in + 1);
+
+	for (int i = 0; i < n_b; i++) {
+		for (int j = 0; j < n_in; j++) {
+			int alpha_j = 1, beta_j = 0;
+			if (j < alpha.size())
+				alpha_j = alpha[j];
+			if (j < beta.size())
+				beta_j = beta[j];
+			out(i, j) = in(i, j) * alpha_j + beta_j;
+		}
+		out(i, n_in) = 1;
+	}
+
+}
+
+void micNode::forward_batch_softmax(const MedMat<float> &in, MedMat<float> &out) const {
+	int i, j;
+	int n_b = in.nrows;
+
+	// sanity
+	if (in.ncols != n_in + 1 || k_out != n_categ || n_in != n_categ * n_per_categ) {
+		MTHROW_AND_ERR("ERROR:: forward_batch_softmax() :: non matching sizes :: input %d x %d , n_in %d k_out %d\n", in.nrows, in.ncols, n_in, k_out);
+	}
+
+
+	out.resize(in.nrows, k_out + 1);
+	MedMat<float> &full_probs = out;
+	//full_probs.resize(in.nrows, n_in + 1);
+	//	print("softmax_forward before calcs:", 1, 6);
+	float max_exp = (float)34;
+	float min_exp = (float)-34;
+	// softmax calc
+	//#pragma omp parallel for if (n_b>100 || n_in>100)
+	for (i = 0; i < n_b; i++) {
+		double sum = 0;
+		float max_val = in(i, 0);
+		for (j = 1; j < n_in; j++)
+			if (max_val < in(i, j))
+				max_val = in(i, j);
+		for (j = 0; j < n_in; j++) {
+			full_probs(i, j) = min(max(in(i, j) - max_val, min_exp), max_exp);
+			full_probs(i, j) = (float)exp((double)full_probs(i, j));
+			sum += (double)full_probs(i, j);
+		}
+
+		for (j = 0; j < n_in; j++)
+			full_probs(i, j) = (float)(full_probs(i, j) / sum);
+		full_probs(i, n_in) = 1; // bias column
+	}
+
+	if (n_per_categ != 1) {
+		MedMat<float> copy_preds = out;
+		float epsilon = (float)1e-10;
+		//#pragma omp parallel for private(i) if (n_b>100 || n_in>100)
+		for (i = 0; i < n_b; i++) {
+			int m = 0;
+			for (j = 0; j < n_in; j += n_per_categ) {
+				float sum = 0;
+				for (int k = j; k < j + n_per_categ; k++)
+					sum += copy_preds(i, k);
+				out(i, m++) = min(sum, (float)1 - epsilon);
+			}
+			if (m != n_categ) {
+				MTHROW_AND_ERR("ERROR: m %d n_categ %d\n", m, n_categ);
+			}
+			out(i, k_out) = 1;
+		}
+
+	}
+}
+
+void micNode::forward_batch_regression(const MedMat<float> &in, MedMat<float> &out) const {
+	// sanity
+	if (in.ncols != n_in + 1 || n_in != k_out) {
+		MTHROW_AND_ERR("ERROR:: forward_batch_regression() :: non matching sizes :: input %d x %d , n_in %d k_out %d :: wgt size %d x %d\n",
+			in.nrows, in.ncols, n_in, k_out, wgt.ncols, wgt.nrows);
+	}
+
+	out = in;
+}
+
 //.................................................................................
 // we have input of size batch_size x (n_in + 1) :: +1 for the bias
 // weights of size (n_in + 1) x (k_out + 1) :: last col is 0,0,0...,0,1 to transfer bias "1" forward
@@ -217,7 +362,7 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 	// multiplying to get W * x
 //	print("debug before mult mat", 1, 6);
 	if (do_grad_flag || dropout_prob_out >= 1) {
-		if (fast_multiply_medmat(batch_in, wgt, batch_out) < 0)
+		if (fast_multiply_medmat_(batch_in, wgt, batch_out) < 0)
 			return -1;
 	}
 	else {
@@ -502,6 +647,45 @@ int micNode::forward_batch_normalization(int do_grad_flag)
 }
 
 
+void micNode::forward_batch(const vector<MedMat<float>> &nodes_outputs, MedMat<float> &out) const
+{
+
+	int j = 0;
+	if (ir.n_input_nodes == 1 && ir.mode[0] == "all") {
+		j = ir.in_node_id[0];
+	}
+	else
+		MWARN("warning n_input_nodes != 1");
+	const MedMat<float> &in = nodes_outputs[j];
+
+	//calculate current layer on in as input
+	if (type == "Input") {
+		out = move(in);
+		return;
+	}
+
+	if (type == "LeakyReLU") {
+		forward_batch_leaky_relu(in, out);
+		return;
+	}
+
+	if (type == "SoftMax") {
+		forward_batch_softmax(in, out);
+		return;
+	}
+
+	if (type == "Regression") {
+		forward_batch_regression(in, out);
+		return;
+	}
+
+	if (type == "Normalization") {
+		forward_batch_normalization(in, out);
+		return;
+	}
+
+	MTHROW_AND_ERR("ERROR:: micNode::forward_batch() :: no such node type : %s \n", type.c_str());
+}
 
 //.................................................................................
 // runs the node forward on the current batch_in
@@ -1889,6 +2073,48 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 	return 0;
 }
 
+void micNet::predict_single(const vector<float> &x, vector<float> &preds) const
+{
+	//MLOG("predict(Mat,Mat) API\n");
+	string prefix = "micNet::predict() ::";
+
+	int nfeat = (int)x.size();
+
+	if (nodes[0].n_in != nfeat)
+		MTHROW_AND_ERR("%s non matching Input node and mat size : n_in %d x: %d\n", prefix.c_str(), nodes[0].n_in, nfeat);
+
+	//MERR("micNet predict() : n_in %d x: %d x %d , last_is_bias %d\n", nodes[0].n_in, x.nrows, x.ncols, last_is_bias_flag);
+	// first getting a shuffle
+
+	//const micNode *pred_node = &nodes.back();
+	//int n_categ = pred_node->k_out;
+	//preds.resize(n_categ);
+
+	//for (auto &node : nodes) node.my_net = this;
+
+	// going over batches
+	//nodes[0].fill_input_node(&unit[0], nsamples, x, 0);
+	vector<MedMat<float>> nodes_out(nodes.size());
+	MedMat<float> &first_batch_out = nodes_out[0]; // = nodes[0].batch_out;
+	MedMat<float> &last_pred = nodes_out.back();
+	first_batch_out.resize(1, nfeat + 1);
+	float *b_out = first_batch_out.data_ptr();
+	memcpy(b_out, &x[0], nfeat * sizeof(float));
+	b_out[nfeat] = 1; // bias term
+
+	for (int i = 0; i < nodes.size(); i++) {
+		if (nodes[i].type != "Input") {
+			nodes[i].forward_batch(nodes_out, nodes_out[i]);
+		}
+	}
+
+	// copy results to preds mat
+	preds = move(last_pred.m);
+	/*for (int j = 0; j < n_categ; j++)
+		preds[j] = last_pred(0, j);*/
+}
+
+
 //.................................................................................................
 void micNet::copy_nodes(vector<micNode> &in_nodes)
 {
@@ -2014,11 +2240,11 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 					}
 					eval.lsq_loss += fact * (float)0.5*(preds(i, j) - y(i, j))*(preds(i, j) - y(i, j));
 				}
+			}
 		}
-	}
 
 	return 0;
-}
+	}
 
 int micNet::test_grad_numerical(int i_node, int i_in, int i_out, float epsilon)
 {
@@ -2191,7 +2417,7 @@ int micNet::predict(MedMat<float> &x, vector<float> &preds)
 	if (predict(x, mpreds) < 0) return -1;
 
 	if (params.n_categ == params.n_preds_per_sample && mpreds.ncols == params.n_categ)
-		preds = mpreds.m;
+		preds = move(mpreds.m);
 	else if (params.n_preds_per_sample == 1 && params.pred_class < params.n_categ && mpreds.ncols == params.n_categ)
 		mpreds.get_col(params.pred_class, preds);
 	else {

@@ -10,6 +10,7 @@
 #include "MedLinearModel.h"
 #include "MedBART.h"
 #include <MedUtils/MedUtils/MedGenUtils.h>
+#include <External/Eigen/Core>
 
 #if NEW_COMPLIER
 #include "MedVW.h"
@@ -777,15 +778,24 @@ void MedPredictor::predict_single(const vector<double> &x, vector<double> &preds
 }
 
 void MedMicNet::prepare_predict_single() {
-	MWARN("Warning in MedMicNet::prepare_predict_single - no fast implementation provided\n");
+	//MWARN("Warning in MedMicNet::prepare_predict_single - no fast implementation provided\n");
+	/*if (!is_prepared) {
+		int N_tot_threads = omp_get_max_threads();
+		model_per_thread.resize(N_tot_threads);
+		for (size_t i = 0; i < model_per_thread.size(); ++i)
+			model_per_thread[i] = mic;
+		is_prepared = true;
+	}*/
 }
 
 void MedMicNet::predict_single(const vector<float> &x, vector<float> &preds) const {
-	micNet mutable_net = mic;
-	int nftrs = int(x.size());
-	MedMat<float> cp_mat;
-	cp_mat.load(x.data(), 1, nftrs);
-	mutable_net.predict(cp_mat, preds);
+	//if (!is_prepared)
+	//	MTHROW_AND_ERR("please call MedMicNet::prepare_predict_single()");
+
+	//int n_th = omp_get_thread_num();
+	//const micNet &threaded_net = model_per_thread[n_th];
+	
+	mic.predict_single(x, preds);
 }
 
 void convertXMat(const vector<vector<float>> x, MedMat<float> &xMat) {
