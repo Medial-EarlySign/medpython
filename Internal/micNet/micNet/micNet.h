@@ -52,7 +52,7 @@ public:
 	vector<int> in_node_id;
 	vector<string> mode;
 
-	void clear() { n_input_nodes=0; in_node_id.clear(); mode.clear(); }
+	void clear() { n_input_nodes = 0; in_node_id.clear(); mode.clear(); }
 	InputRules() { clear(); }
 
 	void push(int node_id, const string &_mode);
@@ -141,13 +141,13 @@ public:
 	int only_forward_flag;
 
 
-	micNode() { data_node=-1; data_node_p = NULL; update_weights_flag=1; only_forward_flag = 0; subtype=""; }
+	micNode() { data_node = -1; data_node_p = NULL; update_weights_flag = 1; only_forward_flag = 0; subtype = ""; }
 
 	// initialize weights random in a uniform segment
-	int init_wgts_rand(float min_range, float max_range); 
+	int init_wgts_rand(float min_range, float max_range);
 
 	// initialize weights from a normal distribution
-	int init_wgts_rand_normal(float mean, float std);	
+	int init_wgts_rand_normal(float mean, float std);
 
 	int fill_input_node(int *perm, int len, MedMat<float> &x_mat, int last_is_bias_flag);	// copies x into input nodes 
 	int fill_output_node(int *perm, int len, MedMat<float> &y_mat, vector<float> &sample_weights);							// copies y into input nodes 
@@ -159,6 +159,13 @@ public:
 	int forward_batch_normalization(int do_grad_flag);
 	int forward_batch_softmax(int do_grad_flag);
 	int forward_batch_regression(int do_grad_flag);
+
+	void forward_batch(const vector<MedMat<float>> &nodes_outputs, MedMat<float> &out) const;
+	void get_input_batch(const vector<MedMat<float>> &nodes_out, MedMat<float> &in) const;
+	void forward_batch_leaky_relu(const MedMat<float> &in, MedMat<float> &out) const;
+	void forward_batch_normalization(const MedMat<float> &in, MedMat<float> &out) const;
+	void forward_batch_softmax(const MedMat<float> &in, MedMat<float> &out) const;
+	void forward_batch_regression(const MedMat<float> &in, MedMat<float> &out) const;
 
 
 	int back_propagete_from(micNode *next);
@@ -176,7 +183,7 @@ public:
 	// serializations for a single node (partial... only what's needed by predictions, and not initialized by init_params)
 
 	ADD_CLASS_NAME(micNode)
-	ADD_SERIALIZATION_FUNCS(version, id, wgt, alpha, beta)
+		ADD_SERIALIZATION_FUNCS(version, id, wgt, alpha, beta)
 
 };
 
@@ -258,8 +265,8 @@ public:
 
 	void init_defaults() {
 		batch_size = 1024; predict_batch_size = 30000; nfeat = 0; n_categ = 0; n_per_categ = 1; max_wgt_norm = 0; min_wgt_norm = 0;
-		weights_init_std = (float)0.01; rate_decay = (float)0.97; 
-		n_hidden.clear(); 
+		weights_init_std = (float)0.01; rate_decay = (float)0.97;
+		n_hidden.clear();
 		dropout_in_probs.clear();
 		loss_type = "log";
 		def_A = (float)1.0; def_B = (float)0.01;
@@ -275,7 +282,7 @@ public:
 		min_improve_n_back = (float)0.001;
 		samp_ratio.clear();
 		last_layer_to_keep = -1;
-//		node_infos.clear();
+		//		node_infos.clear();
 	}
 
 	micNetParams() { init_defaults(); }
@@ -290,12 +297,12 @@ class micNet : public SerializableObject {
 public:
 
 	int version = 0;
-	vector<micNode> nodes; 
+	vector<micNode> nodes;
 	micNetParams params;
 
 	vector<micNode> nodes_last_best;
 
-	micNet() { fprintf(stderr, "New micNet created\n"); nodes.clear(); }
+	micNet() { nodes.clear(); }
 
 	void copy_nodes(vector<micNode> &in_nodes);		// needed in order to set up ir pointers correctly
 
@@ -320,10 +327,11 @@ public:
 	int back_prop_batch();	// assumes forward batch was run before
 
 	// learn, eval and predict
-	int learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, MedMat<float> &x_test, MedMat<float> &y_test, int n_epochs, int eval_freq, int last_is_bias_flag=0);
-	int learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, int last_is_bias_flag=0);
-	int eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval &eval, int last_is_bias_flag=0);
-	int predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_flag=0);
+	int learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, MedMat<float> &x_test, MedMat<float> &y_test, int n_epochs, int eval_freq, int last_is_bias_flag = 0);
+	int learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, int last_is_bias_flag = 0);
+	int eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval &eval, int last_is_bias_flag = 0);
+	int predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_flag = 0);
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
 
 	vector<vector<int>> index_by_categ; // used when choosing a random batch by samp_ratio
 	int get_batch_with_samp_ratio(MedMat<float> &y_train, int batch_len, vector<int> &chosen);
@@ -334,14 +342,14 @@ public:
 
 
 	// API to allow use with MedAlgo
-	int init_from_string(string init_str); 
+	int init_from_string(string init_str);
 	int learn(MedMat<float> &x_train, MedMat<float> &y_train) { vector<float> w; return learn(x_train, y_train, w); }
-	int learn(MedMat<float> &x_train, MedMat<float> &y_train,  vector<float> &weights);
+	int learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights);
 	int predict(MedMat<float> &x, vector<float> &preds);
 
 	size_t get_size() { return MedSerialize::get_size(version, params.params_init_string, nodes); }
-	size_t serialize(unsigned char *blob) {  return MedSerialize::serialize(blob, version, params.params_init_string, nodes); }
-	size_t deserialize(unsigned char *blob)	{
+	size_t serialize(unsigned char *blob) { return MedSerialize::serialize(blob, version, params.params_init_string, nodes); }
+	size_t deserialize(unsigned char *blob) {
 		string init_str;
 		size_t size = MedSerialize::deserialize(blob, version, init_str);
 		fprintf(stderr, "micNet deserialize init with %s\n", init_str.c_str());

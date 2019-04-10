@@ -236,7 +236,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		}
 		if (verbosity > 0) MLOG("MedModel apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
 	}
-
+	  
 	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
 		return 0;
 
@@ -256,7 +256,6 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-
 		if (predictor->predict(features) < 0) {
 			MERR("Predictor failed\n");
 			return -1;

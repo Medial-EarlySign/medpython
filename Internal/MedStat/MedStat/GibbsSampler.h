@@ -94,6 +94,8 @@ public:
 template<typename T> class GibbsSampler : public SerializableObject {
 private:
 	mt19937 _gen;
+	void prepare_predictors();
+	bool done_prepare;
 public:
 	Gibbs_Params params; ///< gibbs params
 	vector<PredictorOrEmpty<T>> feats_predictors; ///< gibbs_feature generators based on predictors

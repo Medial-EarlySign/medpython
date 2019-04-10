@@ -7,15 +7,18 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include <vector>
+
+#if defined(XGBOOST_USE_NVTX) && defined(__CUDACC__)
+#include <nvToolsExt.h>
+#endif
 
 namespace xgboost {
 namespace common {
 struct Timer {
-  typedef std::chrono::high_resolution_clock ClockT;
-  typedef std::chrono::high_resolution_clock::time_point TimePointT;
-  typedef std::chrono::high_resolution_clock::duration DurationT;
-  typedef std::chrono::duration<double> SecondsT;
+  using ClockT = std::chrono::high_resolution_clock;
+  using TimePointT = std::chrono::high_resolution_clock::time_point;
+  using DurationT = std::chrono::high_resolution_clock::duration;
+  using SecondsT = std::chrono::duration<double>;
 
   TimePointT start;
   DurationT elapsed;
@@ -44,46 +47,69 @@ struct Timer {
  */
 
 struct Monitor {
-  bool debug_verbose = false;
+ private:
+  struct Statistics {
+    Timer timer;
+    size_t count{0};
+    uint64_t nvtx_id;
+  };
   std::string label = "";
-  std::map<std::string, Timer> timer_map;
+  std::map<std::string, Statistics> statistics_map;
   Timer self_timer;
 
+ public:
   Monitor() { self_timer.Start(); }
 
   ~Monitor() {
-    if (!debug_verbose) return;
+    if (!ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) return;
 
     LOG(CONSOLE) << "======== Monitor: " << label << " ========";
-    for (auto &kv : timer_map) {
-      kv.second.PrintElapsed(kv.first);
+    for (auto &kv : statistics_map) {
+      if (kv.second.count == 0) {
+        LOG(WARNING) <<
+            "Timer for " << kv.first << " did not get stopped properly.";
+        continue;
+      }
+      LOG(CONSOLE) << kv.first << ": " << kv.second.timer.ElapsedSeconds()
+                   << "s, " << kv.second.count << " calls @ "
+                   << std::chrono::duration_cast<std::chrono::microseconds>(
+                          kv.second.timer.elapsed / kv.second.count)
+                          .count()
+                   << "us";
     }
     self_timer.Stop();
-    self_timer.PrintElapsed(label + " Lifetime");
   }
-  void Init(std::string label, bool debug_verbose) {
-    this->debug_verbose = debug_verbose;
-    this->label = label;
+  void Init(std::string label) { this->label = label; }
+  void Start(const std::string &name) {
+    if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
+      statistics_map[name].timer.Start();
+    }
   }
-  void Start(const std::string &name) { timer_map[name].Start(); }
-  void Start(const std::string &name, std::vector<int> dList) {
-    if (debug_verbose) {
-#ifdef __CUDACC__
-#include "device_helpers.cuh"
-      dh::synchronize_n_devices(dList.size(), dList);
+  void Stop(const std::string &name) {
+    if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
+      auto &stats = statistics_map[name];
+      stats.timer.Stop();
+      stats.count++;
+    }
+  }
+  void StartCuda(const std::string &name) {
+    if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
+      auto &stats = statistics_map[name];
+      stats.timer.Start();
+#if defined(XGBOOST_USE_NVTX) && defined(__CUDACC__)
+      stats.nvtx_id = nvtxRangeStartA(name.c_str());
 #endif
     }
-    timer_map[name].Start();
   }
-  void Stop(const std::string &name) { timer_map[name].Stop(); }
-  void Stop(const std::string &name, std::vector<int> dList) {
-    if (debug_verbose) {
-#ifdef __CUDACC__
-#include "device_helpers.cuh"
-      dh::synchronize_n_devices(dList.size(), dList);
+  void StopCuda(const std::string &name) {
+    if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
+      auto &stats = statistics_map[name];
+      stats.timer.Stop();
+      stats.count++;
+#if defined(XGBOOST_USE_NVTX) && defined(__CUDACC__)
+      nvtxRangeEnd(stats.nvtx_id);
 #endif
     }
-    timer_map[name].Stop();
   }
 };
 }  // namespace common

@@ -243,8 +243,8 @@ public:
 
 	/// Prepartion function for fast prediction on single item each time
 	virtual void prepare_predict_single() {};
-	virtual void predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const;
-	virtual void predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const;
+	virtual void predict_single(const vector<float> &x, vector<float> &preds) const;
+	virtual void predict_single(const vector<double> &x, vector<double> &preds) const;
 
 	// (De)Serialize
 	ADD_CLASS_NAME(MedPredictor)
@@ -577,9 +577,17 @@ public:
 	// Predictions per sample
 	int n_preds_per_sample() const;
 
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+
 private:
 	void set_sampsize(float *y, int nsamples); // checking if there's a need to prep sampsize based on max_samp and samp_factor
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int get_count) const;
+
+	vector<pair<float, int>> _indexd_quantiles;
+	vector<float> _sorted_quantiles;
+	qrf_scoring_thread_params _single_pred_args;
+	bool prepared_single;
 };
 
 //======================================================================================
@@ -591,6 +599,9 @@ struct MedMicNetParams {
 };
 
 class MedMicNet : public MedPredictor {
+private:
+	vector<micNet> model_per_thread;
+	bool is_prepared = false;
 public:
 	// Model 
 	micNet mic;
@@ -646,6 +657,9 @@ public:
 	int learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgt) { return mic.learn(x, y, wgt); }
 	int learn(MedMat<float> &x, MedMat<float> &y) { return mic.learn(x, y); }
 	int predict(MedMat<float> &x, vector<float> &preds) const { micNet mutable_net = mic; return mutable_net.predict(x, preds); }
+
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
 
 	// (De)Serialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedMicNet)
@@ -1152,7 +1166,7 @@ namespace medial {
 		/// using the predictor parameters if given
 		void compare_populations(const MedFeatures &population1, const MedFeatures &population2,
 			const string &name1, const string &name2, const string &output_file,
-			const string &predictor_type = "", const string &predictor_init = "");
+			const string &predictor_type = "", const string &predictor_init = "", int nfolds = 5, int max_learn = 0);
 	}
 }
 

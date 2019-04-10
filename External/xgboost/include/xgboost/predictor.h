@@ -7,11 +7,14 @@
 #pragma once
 #include <xgboost/base.h>
 #include <xgboost/data.h>
+
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "../../src/gbm/gbtree_model.h"
 #include "../../src/common/host_device_vector.h"
 
@@ -36,7 +39,7 @@ namespace xgboost {
 
 class Predictor {
  public:
-  virtual ~Predictor() {}
+  virtual ~Predictor() = default;
 
   /**
    * \fn  virtual void Predictor::Init(const std::vector<std::pair<std::string,
@@ -88,7 +91,7 @@ class Predictor {
       int num_new_trees) = 0;
 
   /**
-   * \fn  virtual void Predictor::PredictInstance( const SparseBatch::Inst&
+   * \fn  virtual void Predictor::PredictInstance( const SparsePage::Inst&
    * inst, std::vector<bst_float>* out_preds, const gbm::GBTreeModel& model,
    * unsigned ntree_limit = 0, unsigned root_index = 0) = 0;
    *
@@ -104,7 +107,7 @@ class Predictor {
    * \param           root_index  (Optional) Zero-based index of the root.
    */
 
-  virtual void PredictInstance(const SparseBatch::Inst& inst,
+  virtual void PredictInstance(const SparsePage::Inst& inst,
                                std::vector<bst_float>* out_preds,
                                const gbm::GBTreeModel& model,
                                unsigned ntree_limit = 0,

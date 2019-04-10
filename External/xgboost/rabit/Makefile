@@ -19,7 +19,25 @@ export LDFLAGS= -Llib -Wl,-rpath=/usr/local/lib/gcc6
 endif
 
 export WARNFLAGS= -Wall -Wextra -Wno-unused-parameter -Wno-unknown-pragmas -std=c++0x
-export CFLAGS = -O3 -msse2 $(WARNFLAGS)
+export CFLAGS = -O3 $(WARNFLAGS)
+
+#----------------------------
+# Settings for power and arm arch
+#----------------------------
+ARCH := $(shell uname -a)
+ifneq (,$(filter $(ARCH), powerpc64le ppc64le ))
+	USE_SSE=0
+else
+	USE_SSE=1
+endif
+
+ifndef USE_SSE
+	USE_SSE = 1
+endif
+
+ifeq ($(USE_SSE), 1)
+	CFLAGS += -msse2
+endif
 
 ifndef WITH_FPIC
 	WITH_FPIC = 1
@@ -64,7 +82,7 @@ lib/librabit_empty.a: $(BPATH)/engine_empty.o $(BPATH)/c_api.o
 lib/librabit_mpi.a lib/librabit_mpi.so: $(MPIOBJ)
 
 $(OBJ) :
-	$(CXX) -c $(CFLAGS) -o $@ $(firstword $(filter %.cpp %.c %.cc, $^) )
+	$(CXX) -c $(CFLAGS) -o $@ $(firstword $(filter %.cpp %.c %.cc, $^) ) -I include/
 
 $(MPIOBJ) :
 	$(MPICXX) -c $(CFLAGS) -o $@ $(firstword $(filter %.cpp %.c %.cc, $^) )

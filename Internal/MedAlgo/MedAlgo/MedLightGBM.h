@@ -190,6 +190,7 @@ public:
 		transpose_for_predict = false;
 		init_from_string("");
 		_mark_learn_done = false;
+		prepared_single = false;
 	};
 	~MedLightGBM() {};
 
@@ -218,8 +219,8 @@ public:
 	int n_preds_per_sample() const { return mem_app.n_preds_per_sample(); }
 
 	void prepare_predict_single();
-	void predict_single(const vector<float> &x, vector<float> &preds, int n_ftrs) const;
-	void predict_single(const vector<double> &x, vector<double> &preds, int n_ftrs) const;
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+	void predict_single(const vector<double> &x, vector<double> &preds) const;
 
 	// serializations
 	void pre_serialization() {
@@ -241,6 +242,7 @@ public:
 private:
 	bool _mark_learn_done;
 	string model_as_string;
+	bool prepared_single;
 
 	int num_preds;
 	LightGBM::Boosting *_boosting;

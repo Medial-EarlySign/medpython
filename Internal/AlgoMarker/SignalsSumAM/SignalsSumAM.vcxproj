@@ -135,11 +135,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AlgoMarker.h" />
-    <ClInclude Include="AlgoMarkerErr.h" />
+    <ClInclude Include="SigSum_AlgoMarker.h" />
+    <ClInclude Include="SigSum_AlgoMarkerErr.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AlgoMarker.cpp" />
+    <ClCompile Include="SigSum_AlgoMarker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />

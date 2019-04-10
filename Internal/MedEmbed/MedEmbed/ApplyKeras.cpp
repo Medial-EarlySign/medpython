@@ -259,7 +259,7 @@ int ApplyKeras::apply(vector<float>& line, vector<float> &output, int to_layer)
 
 	vector<vector<float>> outs(to_layer+1, vector<float>());
 	layers[0].apply(line, outs[0]);
-
+	
 	for (int i = 1; i <= to_layer; i++) {
 		//MLOG("apply_sparse layer %d (passed %d) to_layer=%d (name %s type %d activation %d)\n", i, passed_first_dense, to_layer, layers[i].name.c_str(), layers[i].type, layers[i].activation);
 		layers[i].apply(outs[i - 1], outs[i]);

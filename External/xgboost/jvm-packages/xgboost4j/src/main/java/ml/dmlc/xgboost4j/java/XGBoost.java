@@ -118,9 +118,9 @@ public class XGBoost {
    *                performance on the validation set.
    * @param metrics array containing the evaluation metrics for each matrix in watches for each
    *                iteration
-   * @param earlyStoppingRound if non-zero, training would be stopped
+   * @param earlyStoppingRounds if non-zero, training would be stopped
    *                           after a specified number of consecutive
-   *                           increases in any evaluation metric.
+   *                           goes to the unexpected direction in any evaluation metric.
    * @param obj     customized objective
    * @param eval    customized evaluation
    * @param booster train from scratch if set to null; train from an existing booster if not null.
@@ -134,12 +134,14 @@ public class XGBoost {
           float[][] metrics,
           IObjective obj,
           IEvaluation eval,
-          int earlyStoppingRound,
+          int earlyStoppingRounds,
           Booster booster) throws XGBoostError {
 
     //collect eval matrixs
     String[] evalNames;
     DMatrix[] evalMats;
+    float bestScore;
+    int bestIteration;
     List<String> names = new ArrayList<String>();
     List<DMatrix> mats = new ArrayList<DMatrix>();
 
@@ -150,6 +152,12 @@ public class XGBoost {
 
     evalNames = names.toArray(new String[names.size()]);
     evalMats = mats.toArray(new DMatrix[mats.size()]);
+    if (isMaximizeEvaluation(params)) {
+      bestScore = -Float.MAX_VALUE;
+    } else {
+      bestScore = Float.MAX_VALUE;
+    }
+    bestIteration = 0;
     metrics = metrics == null ? new float[evalNames.length][round] : metrics;
 
     //collect all data matrixs
@@ -197,16 +205,28 @@ public class XGBoost {
           metrics[i][iter] = metricsOut[i];
         }
 
-        boolean decreasing = true;
-        float[] criterion = metrics[metrics.length - 1];
-        for (int shift = 0; shift < Math.min(iter, earlyStoppingRound) - 1; shift++) {
-          decreasing &= criterion[iter - shift] <= criterion[iter - shift - 1];
+        // If there is more than one evaluation datasets, the last one would be used
+        // to determinate early stop.
+        float score = metricsOut[metricsOut.length - 1];
+        if (isMaximizeEvaluation(params)) {
+          // Update best score if the current score is better (no update when equal)
+          if (score > bestScore) {
+            bestScore = score;
+            bestIteration = iter;
+          }
+        } else {
+          if (score < bestScore) {
+            bestScore = score;
+            bestIteration = iter;
+          }
         }
-
-        if (!decreasing) {
-          Rabit.trackerPrint(String.format(
-                  "early stopping after %d decreasing rounds", earlyStoppingRound));
-          break;
+        if (earlyStoppingRounds > 0) {
+          if (shouldEarlyStop(earlyStoppingRounds, iter, bestIteration)) {
+            Rabit.trackerPrint(String.format(
+                    "early stopping after %d rounds away from the best iteration",
+                        earlyStoppingRounds));
+            break;
+          }
         }
         if (Rabit.getRank() == 0) {
           Rabit.trackerPrint(evalInfo + '\n');
@@ -215,6 +235,22 @@ public class XGBoost {
       booster.saveRabitCheckpoint();
     }
     return booster;
+  }
+
+  static boolean shouldEarlyStop(int earlyStoppingRounds, int iter, int bestIteration) {
+    return iter - bestIteration >= earlyStoppingRounds;
+  }
+
+  private static boolean isMaximizeEvaluation(Map<String, Object> params) {
+    try {
+      String maximize = String.valueOf(params.get("maximize_evaluation_metrics"));
+      assert(maximize != null);
+      return Boolean.valueOf(maximize);
+    } catch (Exception ex) {
+      logger.error("maximize_evaluation_metrics has to be specified for enabling early stop," +
+              " allowed value: true/false", ex);
+      throw ex;
+    }
   }
 
   /**

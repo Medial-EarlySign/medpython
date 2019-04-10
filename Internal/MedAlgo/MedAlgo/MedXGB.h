@@ -6,6 +6,8 @@
 #include <xgboost/learner.h>
 #include <xgboost/data.h>
 #include <xgboost/c_api.h>
+#include "data/simple_csr_source.h"
+#include <xgboost/learner.h>
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 
 struct MedXGBParams : public SerializableObject {
@@ -36,7 +38,7 @@ struct MedXGBParams : public SerializableObject {
 	MedXGBParams() {
 		booster = "gbtree"; objective = "binary:logistic"; eta = 1.0; gamma = 1.0;
 		min_child_weight = 1; max_depth = 3; num_round = 500; silent = 1; eval_metric.push_back("auc"); missing_value = MED_MAT_MISSING_VALUE;
-		num_class = 2;
+		num_class = 1; //only set when multiclass
 		colsample_bytree = 1.0; colsample_bylevel = 1.0; subsample = 1.0; scale_pos_weight = 1.0; tree_method = "auto"; lambda = 1; alpha = 0;
 		seed = 0;
 		verbose_eval = 0;
@@ -44,8 +46,61 @@ struct MedXGBParams : public SerializableObject {
 	}
 
 	ADD_CLASS_NAME(MedXGBParams)
-	ADD_SERIALIZATION_FUNCS(booster, objective, eta, gamma, min_child_weight, max_depth, num_round, eval_metric, silent, missing_value, num_class, 
-		colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties)
+		ADD_SERIALIZATION_FUNCS(booster, objective, eta, gamma, min_child_weight, max_depth, num_round, eval_metric, silent, missing_value, num_class,
+			colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties)
+};
+
+class XGBBooster {
+public:
+	explicit XGBBooster(const std::vector<std::shared_ptr<xgboost::DMatrix> >& cache_mats)
+		: configured_(false),
+		initialized_(false),
+		learner_(xgboost::Learner::Create(cache_mats)) {}
+
+	inline xgboost::Learner* learner() {
+		return learner_.get();
+	}
+
+	inline void SetParam(const std::string& name, const std::string& val) {
+		auto it = std::find_if(cfg_.begin(), cfg_.end(),
+			[&name, &val](decltype(*cfg_.begin()) &x) {
+			if (name == "eval_metric") {
+				return x.first == name && x.second == val;
+			}
+			return x.first == name;
+		});
+		if (it == cfg_.end()) {
+			cfg_.push_back(std::make_pair(name, val));
+		}
+		else {
+			(*it).second = val;
+		}
+		if (configured_) {
+			learner_->Configure(cfg_);
+		}
+	}
+
+	inline void LazyInit() {
+		if (!configured_) {
+			learner_->Configure(cfg_);
+			configured_ = true;
+		}
+		if (!initialized_) {
+			learner_->InitModel();
+			initialized_ = true;
+		}
+	}
+
+	inline void LoadModel(dmlc::Stream* fi) {
+		learner_->Load(fi);
+		initialized_ = true;
+	}
+
+public:
+	bool configured_;
+	bool initialized_;
+	std::unique_ptr<xgboost::Learner> learner_;
+	std::vector<std::pair<std::string, std::string> > cfg_;
 };
 
 class MedXGB : public MedPredictor {
@@ -61,7 +116,7 @@ public:
 
 	// Function
 	MedXGB() { init_defaults(); };
-	~MedXGB() { if (my_learner != NULL) { XGBoosterFree(my_learner); my_learner = NULL; } };
+	~MedXGB();
 
 	int validate_me_while_learning(float *x, float *y, int nsamples, int nftrs);
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
@@ -97,11 +152,16 @@ public:
 		serial_xgb.clear();
 	}
 
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+
 	ADD_CLASS_NAME(MedXGB)
-	ADD_SERIALIZATION_FUNCS(classifier_type, serial_xgb, params, model_features, features_count, _mark_learn_done)
+		ADD_SERIALIZATION_FUNCS(classifier_type, serial_xgb, params, model_features, features_count, _mark_learn_done)
 
 private:
 	bool _mark_learn_done;
+	bool prepared_single;
+	vector<BoosterHandle> learner_per_thread;
 
 	void translate_split_penalties(string& split_penalties_s);
 	vector<char> serial_xgb;

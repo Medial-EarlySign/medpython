@@ -31,7 +31,7 @@ GibbsSamplingParams::GibbsSamplingParams() {
 	jump_between_samples = 10;
 	samples_count = 1;
 	find_real_value_bin = true;
-	use_cache = true;
+	use_cache = false;
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
@@ -132,7 +132,7 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 	else if (predictor != NULL) {
 		vector<T> prd; //for each class:
 		//predictor->predict(x, prd, 1, (int)x.size());
-		predictor->predict_single(x, prd, (int)x.size());
+		predictor->predict_single(x, prd);
 		if (!calibrators.empty()) {
 			//test cache:
 			if (use_cache && cache_calibrators.empty())
@@ -186,6 +186,7 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 template<typename T> GibbsSampler<T>::GibbsSampler() {
 	random_device rd;
 	_gen = mt19937(rd());
+	done_prepare = false;
 }
 
 template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<T>> &cohort_data) {
@@ -540,9 +541,22 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 
 }
 
+template<typename T> void GibbsSampler<T>::prepare_predictors() {
+	if (!done_prepare) {
+		for (size_t i = 0; i < feats_predictors.size(); ++i)
+		{
+			if (feats_predictors[i].predictor != NULL)
+#pragma omp critical
+				feats_predictors[i].predictor->prepare_predict_single();
+		}
+		done_prepare = true;
+	}
+}
+
 template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vector<T>> &results,
 	const GibbsSamplingParams &sampling_params, const vector<bool> *mask, const vector<T> *mask_values) {
 	random_device rd;
+	prepare_predictors();
 
 	vector<T> mask_values_f(all_feat_names.size());
 	vector<bool> mask_f(all_feat_names.size());
