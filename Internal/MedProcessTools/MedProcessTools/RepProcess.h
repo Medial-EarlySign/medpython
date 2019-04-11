@@ -1278,7 +1278,7 @@ public:
 	string ckd_proteinuria_sig = "Proteinuria_State";
 
 
-	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
+	/// @snippet RepProcess.cpp RepCreateRegistry::init
 	int init(map<string, string>& mapper);
 	void init_lists();
 
