@@ -225,6 +225,24 @@ int MedSamples::insert_preds(MedFeatures& features) {
 	return 0;
 }
 
+int MedSamples::insert_post_process(MedFeatures& features) {
+	size_t size = (size_t)nSamples();
+	if (features.samples.size() != size) {
+		MERR("Size mismatch between features and samples (%d vs %d)\n", features.samples.size(), size);
+		return -1;
+	}
+
+	int idx = 0;
+	for (MedIdSamples& idSample : idSamples) {
+		for (unsigned int i = 0; i < idSample.samples.size(); i++) {
+			idSample.samples[i].attributes = features.samples[idx].attributes;
+			idSample.samples[i].str_attributes = features.samples[idx].str_attributes;
+			++idx;
+		}
+	}
+	return 0;
+}
+
 // Get all patient ids
 //.......................................................................................
 void MedSamples::get_ids(vector<int>& ids) {

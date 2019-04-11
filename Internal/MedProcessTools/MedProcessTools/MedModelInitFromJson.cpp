@@ -129,7 +129,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 
 	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());	
 	this->serialize_learning_set = stoi(ser);
-	int rp_set = 0, fp_set = 0;
+	int rp_set = 0, fp_set = 0, pp_set = 0;
 	for (auto &p : pt.get_child("model_actions")) {
 		vector<vector<string>> all_action_attrs;	
 		auto& action = p.second;
@@ -162,7 +162,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 			}			
 			MLOG_D("added %d actions to [%s] set %d, first of which was [%s]\n", num_actions, action_type.c_str(), process_set, first_action_added.c_str());
 		}
-		else if (action_type == "rep_processor" || action_type == "feat_generator" || action_type == "feat_processor") {
+		else if (action_type == "rep_processor" || action_type == "feat_generator" || action_type == "feat_processor" || action_type == "post_processor") {
 			int process_set; string set_name = "";
 			if (action_type == "rep_processor") {
 				process_set = rp_set++;
@@ -175,6 +175,10 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 			else if (action_type == "feat_generator") {
 				process_set = 0;
 				set_name = "fg_set";
+			}
+			else if (action_type == "post_processor") {
+				process_set = pp_set++;
+				set_name = "pp_set";
 			}
 			else MTHROW_AND_ERR("unknown action_type [%s]\n", action_type.c_str());
 			int duplicate = 0;
