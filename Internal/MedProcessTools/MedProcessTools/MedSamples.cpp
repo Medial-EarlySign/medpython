@@ -687,7 +687,7 @@ void MedSamples::import_from_sample_vec(vector<MedSample> &vec_samples, bool all
 
 		int idx = id2idx[sample.id];
 		if (!allow_split_inconsistency && idSamples[idx].split != sample.split)
-			MTHROW_AND_ERR("Split incosistency for pid=%d\n", sample.id);
+			MTHROW_AND_ERR("Split incosistency for pid=%d (%d vs %d)\n", sample.id, sample.split, idSamples[idx].split);
 		idSamples[idx].samples.push_back(sample);
 	}
 
