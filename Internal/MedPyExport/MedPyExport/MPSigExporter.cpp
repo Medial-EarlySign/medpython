@@ -600,10 +600,10 @@ void MPSigExporter::get_all_data() {
 
 		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
 		long long* time_vec = (long long*)malloc(sizeof(long long)*this->record_count);
-		short* val1_vec = (short*)malloc(sizeof(short)*this->record_count);
-		short* val2_vec = (short*)malloc(sizeof(short)*this->record_count);
-		short* val3_vec = (short*)malloc(sizeof(short)*this->record_count);
-		short* val4_vec = (short*)malloc(sizeof(short)*this->record_count);
+		unsigned short* val1_vec = (unsigned short*)malloc(sizeof(unsigned short)*this->record_count);
+		unsigned short* val2_vec = (unsigned short*)malloc(sizeof(unsigned short)*this->record_count);
+		unsigned short* val3_vec = (unsigned short*)malloc(sizeof(unsigned short)*this->record_count);
+		unsigned short* val4_vec = (unsigned short*)malloc(sizeof(unsigned short)*this->record_count);
 
 		int len;
 		STimeShort4 *sdv = nullptr;
@@ -627,13 +627,13 @@ void MPSigExporter::get_all_data() {
 		data_column.push_back(time_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_LONGLONG);
 		data_column.push_back(val1_vec);
-		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_USHORT);
 		data_column.push_back(val2_vec);
-		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_USHORT);
 		data_column.push_back(val3_vec);
-		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_USHORT);
 		data_column.push_back(val4_vec);
-		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_SHORT);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_USHORT);
 		gen_cat_dict("val1", 0);
 		gen_cat_dict("val2", 1);
 		gen_cat_dict("val3", 2);

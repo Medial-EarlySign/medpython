@@ -410,8 +410,9 @@ public:
 
 class LogData
 {
-
+	static ofstream *logFileStream;
 public:
+	static void closeLogFile();
 	static bool TurnOnLogs;
 	static vector<string> Arguments;
 	static const char* FunctionName;

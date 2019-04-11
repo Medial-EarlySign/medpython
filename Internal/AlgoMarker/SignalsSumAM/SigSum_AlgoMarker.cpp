@@ -246,22 +246,32 @@ AlgoMarker *AlgoMarker::make_algomarker(AlgoMarkerType am_type)
 bool LogData::TurnOnLogs = false;
 vector<string> LogData::Arguments;
 const char* LogData::FunctionName;
+ofstream *LogData::logFileStream=nullptr;
 bool LogData::DoesEnterFunction;
 
 	void LogData::WriteToLog(string line)
 	{
         //printf("LogData::TurnOnLogs = %d\n", (int)LogData::TurnOnLogs);
 		if (!LogData::TurnOnLogs) return;
-		ofstream fileStream;
-        string filename = expandEnvVars(AM_LOG_FILE_ENV_VAR);
-        if(filename == "")
-            filename = expandEnvVars(AM_LOG__DEFAULT_FILE);
-        //printf("filename = '%s'\n", filename.c_str());
-        //printf("AM_LOG_FILE_ENV_VAR = '%s'\n", expandEnvVars(AM_LOG_FILE_ENV_VAR).c_str());
-        //printf("AM_LOG__DEFAULT_FILE = '%s'\n", expandEnvVars(AM_LOG__DEFAULT_FILE).c_str());
-		fileStream.open(filename, ios::app);
-		fileStream << line + "\r\n";
-		fileStream.close();
+		if (logFileStream == nullptr) {
+			string filename = expandEnvVars(AM_LOG_FILE_ENV_VAR);
+			if (filename == "")
+				filename = expandEnvVars(AM_LOG__DEFAULT_FILE);
+			//printf("filename = '%s'\n", filename.c_str());
+			//printf("AM_LOG_FILE_ENV_VAR = '%s'\n", expandEnvVars(AM_LOG_FILE_ENV_VAR).c_str());
+			//printf("AM_LOG__DEFAULT_FILE = '%s'\n", expandEnvVars(AM_LOG__DEFAULT_FILE).c_str());
+			logFileStream = new ofstream();
+			logFileStream->open(filename, ios::app);
+		}
+		(*logFileStream) << line + "\r\n";
+	}
+
+	void LogData::closeLogFile() {
+		if (logFileStream != nullptr) {
+			logFileStream->flush();
+			logFileStream->close();
+			logFileStream = nullptr;
+		}
 	}
 
 	void LogData::FlushLogData()
@@ -1266,6 +1276,8 @@ void AM_API_DisposeAlgoMarker(AlgoMarker *pAlgoMarker)
 
 	LogData::AddArgument("pAlgoMarker", pAlgoMarker);
 	LogData::EndFunction(__func__);
+
+	LogData::closeLogFile();
 }
 //-----------------------------------------------------------------------------------------------------------
 

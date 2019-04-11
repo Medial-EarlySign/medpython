@@ -330,10 +330,10 @@ public:
 class STimeShort4 : public UnifiedSig {
 public:
 	long long time;
-	short val1;
-	short val2;
-	short val3;
-	short val4;
+	unsigned short val1;
+	unsigned short val2;
+	unsigned short val3;
+	unsigned short val4;
 
 	// unified API extention
 	static inline int n_time_channels() { return 1; }
@@ -351,20 +351,20 @@ public:
 	}
 	inline void SetVal(int chan, float _val) {
 		switch (chan) {
-		case 0: val1 = (short)_val; return;
-		case 1: val2 = (short)_val; return;
-		case 2: val3 = (short)_val; return;
-		case 3: val4 = (short)_val; return;
+		case 0: val1 = (unsigned short)_val; return;
+		case 1: val2 = (unsigned short)_val; return;
+		case 2: val3 = (unsigned short)_val; return;
+		case 3: val4 = (unsigned short)_val; return;
 		}
 	};
 
 	inline void Set(int _time, short _val1, short _val2, short _val3, short _val4) { time = _time; val1 = _val1; val2 = _val2; val3 = _val3; val4 = _val4; }
 	inline void Set(int *times, float *vals) {
 		time = times[0];
-		val1 = (short)vals[0];
-		val2 = (short)vals[1];
-		val3 = (short)vals[2];
-		val4 = (short)vals[3];
+		val1 = (unsigned short)vals[0];
+		val2 = (unsigned short)vals[1];
+		val3 = (unsigned short)vals[2];
+		val4 = (unsigned short)vals[3];
 	}
 
 	bool operator<(const STimeShort4& s) {

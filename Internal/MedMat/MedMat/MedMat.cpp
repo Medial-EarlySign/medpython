@@ -106,34 +106,7 @@ int fast_element_affine_scalar(vector<float> &v, float s, vector<float> &u, vect
 	return 0;
 }
 
-//...........................................................................................
-// multiplying using the (really fast) Eigen library.
-int fast_multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C) // A:n x m B:m x k --> gets C=A*B C:n x k
-{
-	if (A.ncols != B.nrows) {
-		MERR("ERROR: multiply_medmat: Mats dimension don't match: (%d x %d) , (%d x %d) ... \n",A.nrows,A.ncols,B.nrows,B.ncols);
-		return -1;
-	}
-
-	//int ncores = std::thread::hardware_concurrency();
-	//Eigen::setNbThreads(3*ncores/4);
-
-	C.resize(A.nrows,B.ncols);
-
-	Map<MatrixXf> x(A.data_ptr(),A.ncols,A.nrows);
-	Map<MatrixXf> y(B.data_ptr(),B.ncols,B.nrows);
-
-	Map<MatrixXf> z(C.data_ptr(),C.ncols,C.nrows);
-
-	z = y*x;
-
-	return 0;
-
-}
-
-//...........................................................................................
-// multiplying using the (really fast) Eigen library.
-int fast_multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C, float s) // A:n x m B:m x k --> gets C=s*A*B C:n x k
+int fast_multiply_medmat_(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C) // A:n x m B:m x k --> gets C=s*A*B C:n x k
 {
 	if (A.ncols != B.nrows) {
 		MERR("ERROR: multiply_medmat: Mats dimension don't match: (%d x %d) , (%d x %d) ... \n", A.nrows, A.ncols, B.nrows, B.ncols);
@@ -145,8 +118,34 @@ int fast_multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C, f
 
 	C.resize(A.nrows, B.ncols);
 
-	Map<MatrixXf> x(A.data_ptr(), A.ncols, A.nrows);
-	Map<MatrixXf> y(B.data_ptr(), B.ncols, B.nrows);
+	Map<const MatrixXf> x(A.data_ptr(), A.ncols, A.nrows);
+	Map<const MatrixXf> y(B.data_ptr(), B.ncols, B.nrows);
+
+	Map<MatrixXf> z(C.data_ptr(), C.ncols, C.nrows);
+
+	z = y*x;
+
+	return 0;
+
+}
+
+
+//...........................................................................................
+// multiplying using the (really fast) Eigen library.
+int fast_multiply_medmat(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C, float s) // A:n x m B:m x k --> gets C=s*A*B C:n x k
+{
+	if (A.ncols != B.nrows) {
+		MERR("ERROR: multiply_medmat: Mats dimension don't match: (%d x %d) , (%d x %d) ... \n", A.nrows, A.ncols, B.nrows, B.ncols);
+		return -1;
+	}
+
+	//int ncores = std::thread::hardware_concurrency();
+	//Eigen::setNbThreads(3*ncores/4);
+
+	C.resize(A.nrows, B.ncols);
+
+	Map<const MatrixXf> x(A.data_ptr(), A.ncols, A.nrows);
+	Map<const MatrixXf> y(B.data_ptr(), B.ncols, B.nrows);
 
 	Map<MatrixXf> z(C.data_ptr(), C.ncols, C.nrows);
 
@@ -158,7 +157,7 @@ int fast_multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C, f
 
 //...........................................................................................
 // multiplying using the (really fast) Eigen library.
-int fast_multiply_medmat_transpose(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C, int transpose_flag) // A:n x m B:m x k --> gets C=A*B C:n x k , but allows transposing each mat
+int fast_multiply_medmat_transpose(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C, int transpose_flag) // A:n x m B:m x k --> gets C=A*B C:n x k , but allows transposing each mat
 {
 	if ((transpose_flag == 0x0 && A.ncols != B.nrows) ||
 		(transpose_flag == 0x1 && A.nrows != B.nrows) ||
@@ -172,8 +171,8 @@ int fast_multiply_medmat_transpose(MedMat<float> &A, MedMat<float> &B, MedMat<fl
 	//int ncores = std::thread::hardware_concurrency();
 	//Eigen::setNbThreads(3*ncores/4);
 
-	Map<MatrixXf> x(A.data_ptr(),A.ncols,A.nrows);
-	Map<MatrixXf> y(B.data_ptr(),B.ncols,B.nrows);
+	Map<const MatrixXf> x(A.data_ptr(),A.ncols,A.nrows);
+	Map<const MatrixXf> y(B.data_ptr(),B.ncols,B.nrows);
 
 	int nr=0, nc=0;
 	if (transpose_flag == 0x0) {nr=A.nrows; nc=B.ncols;}
@@ -227,7 +226,7 @@ int fast_sum_medmat_rows(MedMat<float> &A, MedMat<float> &Asum, float factor)
 	MedMat<float> Ones(1, A.nrows);
 	fill(Ones.m.begin(), Ones.m.end(), factor);
 
-	return (fast_multiply_medmat(Ones, A, Asum));
+	return (fast_multiply_medmat_(Ones, A, Asum));
 }
 
 //...........................................................................................
@@ -240,7 +239,7 @@ int fast_sum_medmat_cols(MedMat<float> &A, MedMat<float> &Asum, float factor)
 	MedMat<float> Ones(A.ncols, 1);
 	fill(Ones.m.begin(), Ones.m.end(), factor);
 
-	return (fast_multiply_medmat(A, Ones, Asum));
+	return (fast_multiply_medmat_(A, Ones, Asum));
 }
 
 //...........................................................................................
