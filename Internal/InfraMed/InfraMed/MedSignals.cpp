@@ -26,6 +26,35 @@ using namespace std;
 using namespace boost;
 
 //-----------------------------------------------------------------------------------------------
+string MedRep::get_type_generic_spec(SigType t)
+{
+	switch (t) {
+
+	case T_Value: return "V(f)";					//  0
+	case T_DateVal: return "T(i),V(f)";				//  1
+	case T_TimeVal: return "T(l),V(f),p,p,p,p";		//  2
+	case T_DateRangeVal: return "T(i,i),V(f)";		//  3
+	case T_TimeStamp: return "T(l)";				//  4
+	case T_TimeRangeVal: return "T(l,l),V(f),p,p,p,p"; //  5
+	case T_DateVal2: return "T(i),V(f,us),p,p";		//  6
+	case T_TimeLongVal: return "T(l),V(l)";			//  7
+	case T_DateShort2: return "T(i),V(s,s)";		//  8
+	case T_ValShort2: return "V(s,s)";				//  9
+	case T_ValShort4: return "V(s,s,s,s)";			// 10
+	case T_CompactDateVal: return "T(us),V(us)";	// 11
+	case T_DateRangeVal2: return "T(i,i),V(f,f)";	// 12
+	case T_DateFloat2: return "T(i),V(f,f)";		// 13
+	case T_TimeRange: return "T(l,l)";				// 14
+	case T_TimeShort4: return "T(i),p,p,p,p,V(s,s,s,s)"; //15
+
+	default:
+		MTHROW_AND_ERR("Cannot get generic spec of signal type %d\n", t);
+	}
+
+	return 0;
+}
+
+//-----------------------------------------------------------------------------------------------
 int MedRep::get_type_size(SigType t)
 {
 	switch (t) {
@@ -192,6 +221,7 @@ int MedSignals::read(const string &fname)
 	fnames.push_back(fname); // TBD : check that we didn't already load this file
 	string curr_line;
 	MLOG_D("Working on signals file %s\n", fname.c_str());
+	map<string, string> generic_signal_types;
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 			if (curr_line[curr_line.size() - 1] == '\r')
@@ -199,8 +229,16 @@ int MedSignals::read(const string &fname)
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
 			MLOG_D("MedSignals: read: file %s line %s\n", fname.c_str(), curr_line.c_str());
-			if (fields.size() >= 4 && fields[0].compare(0, 6, "SIGNAL") == 0) {
+			if (fields.size() >= 3 && fields[0].compare(0, 19, "GENERIC_SIGNAL_TYPE") == 0) {
+				// line format: GENERIC_SIGNAL_TYPE <name> <signal_spec>
+				string generic_type_name = fields[1];
+				string generic_type_spec = fields[2];
+				generic_signal_types[generic_type_name] = generic_type_spec;
+			}
+			else if (fields.size() >= 4 && fields[0].compare(0, 6, "SIGNAL") == 0) {
 				// line format: SIGNAL <name> <signal id> <signal type num> <description> <is_categorical_per_val_channel> <unit_per_val_channel separated by '|' char>
+				// or, for a generic signal type use:
+				// SIGNAL <name> <signal id> 16:<generic_signal_type> <description> <is_categorical_per_val_channel> <unit_per_val_channel separated by '|' char>
 
 				int sid = stoi(fields[2]);
 				if (Name2Sid.find(fields[1]) != Name2Sid.end() || Sid2Name.find(sid) != Sid2Name.end()) {
@@ -212,7 +250,9 @@ int MedSignals::read(const string &fname)
 					Sid2Name[sid] = fields[1];
 					signals_names.push_back(fields[1]);
 					signals_ids.push_back(sid);
-					int type = stoi(fields[3]);
+					vector<string> type_fields;
+					split(type_fields, fields[3], boost::is_any_of(":"));
+					int type = stoi(type_fields[0]);
 					if (type<0 || type>(int)T_Last) {
 						MERR("MedSignals: read: type %d not recognized in line %s\n", curr_line.c_str());
 						return -1;
@@ -221,7 +261,20 @@ int MedSignals::read(const string &fname)
 					info.sid = sid;
 					info.name = fields[1];
 					info.type = type;
-					info.bytes_len = MedRep::get_type_size((SigType)type);
+					if (type == T_Generic) {
+						if (type_fields.size() < 2) {
+							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
+							return -1;
+						}
+						info.generic_signal_spec = type_fields[1];
+						GenericSigVec gsv(info.generic_signal_spec);
+						info.bytes_len = gsv.size();
+					}
+					else
+					{
+						info.generic_signal_spec = MedRep::get_type_generic_spec((SigType)type);
+						info.bytes_len = MedRep::get_type_size((SigType)type);
+					}
 					if (fields.size() == 4)
 						info.description = "";
 					else
@@ -557,3 +610,142 @@ int MedSignalsPrintVecByType(ostream &os, int sig_type, void* vec, int len_bytes
 	}
 	return 0;
 }
+
+
+void GenericSigVec::init_from_spec(const string& signalSpec) {
+	struct_size = 0;
+	n_time_channels = 0;
+	n_val_channels = 0;
+	int i = 0;
+	char prev_char = '\0';
+	bool in_val_chan = false, in_time_chan = false;
+	bool chan_is_signed = true;
+	int* cur_chan_offset = nullptr;
+	unsigned char* cur_chan_type = nullptr;
+	int* cur_chan_top = nullptr;
+
+	//rtrim:
+	//signalSpec.erase(std::find_if(signalSpec.rbegin(), signalSpec.rend(), [](int ch) { return !std::isspace(ch); }).base(), signalSpec.end());
+
+	while (i < signalSpec.length())
+	{
+		char cur_char = signalSpec.at(i);
+		//cout << "parsing char '" << cur_char << "' at " << to_string(i) << endl;
+		switch (cur_char) {
+		case ')':
+			in_val_chan = false;
+			in_time_chan = false;
+			cur_chan_offset = nullptr;
+			cur_chan_type = nullptr;
+			cur_chan_top = nullptr;
+			break;
+		case '(':
+			if (prev_char != 'v' && prev_char != 'V' && prev_char != 't' && prev_char != 'T')
+				throw runtime_error(string("char ')' expected after T or V at ") + to_string(i) + " in '" + signalSpec + "'");
+			chan_is_signed = true;
+			break;
+		case 'u':
+			//case 'U':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			chan_is_signed = false;
+			break;
+		case ',':
+			chan_is_signed = true;
+			break;
+		case 't':
+		case 'T':
+			if (in_val_chan)
+				throw runtime_error(string("Expecting val chan at ") + to_string(i) + " in " + signalSpec);
+			in_time_chan = true;
+			cur_chan_offset = time_channel_offsets;
+			cur_chan_type = time_channel_types;
+			cur_chan_top = &n_time_channels;
+			break;
+		case 'v':
+		case 'V':
+			if (in_time_chan)
+				throw runtime_error(string("Expecting time chan at ") + to_string(i) + " in " + signalSpec);
+			in_time_chan = true;
+			cur_chan_offset = val_channel_offsets;
+			cur_chan_type = val_channel_types;
+			cur_chan_top = &n_val_channels;
+			break;
+
+		case 'c':
+			//case 'C':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(char);
+			break;
+
+		case 's':
+			//case 'S':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(short);
+			break;
+
+			//case 'I':
+		case 'i':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(int);
+			break;
+
+		case 'l':
+			//case 'L':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(long long);
+			break;
+
+			//case 'F':
+		case 'f':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(float);
+			break;
+
+		case 'D':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(long double);
+		case 'd':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(double);
+			break;
+
+		case 'p': /* add padding byte */
+			struct_size += sizeof(char);
+			break;
+		default:
+			throw runtime_error(string("Unrecognized channel type '") + signalSpec.at(i) + "'");// in '"+signalSpec+"' at char "+to_string(i));
+		}
+		prev_char = cur_char;
+		i++;
+	}
+}
+

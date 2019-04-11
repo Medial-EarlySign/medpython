@@ -33,11 +33,13 @@ enum SigType {
 	T_DateFloat2,	// 13 :: date + 2 float values
 	T_TimeRange,	// 14 :: time-time
 	T_TimeShort4,   // 15 :: time + 4 shorts
+	T_Generic,
 	T_Last
 };		//    :: next free slot for type id
 
 namespace MedRep {
 	int get_type_size(SigType t);
+	string get_type_generic_spec(SigType t);
 	int get_type_channels(SigType t, int &time_unit, int &n_time_chans, int &n_val_chans);
 	template <class T> int get_type_channels_info(int &time_unit, int &n_time_chans, int &n_val_chans) {
 		time_unit = T::time_unit();
@@ -644,6 +646,7 @@ public:
 	int type;
 	int bytes_len;
 	string description;
+	string generic_signal_spec;
 	int fno; // currently each signal is in a single data and index file. This helps make things faster and is doable.
 	int shift;
 	float factor;
@@ -839,6 +842,160 @@ template <class T> int MedSignalsPrintVec(ostream& os, T *vec, int n_elem)
 		os << vec[i] << " ";
 	return 0;
 }
+
+#define GENERIC_SIG_VEC_MAX_CHANNELS 10
+
+class GenericSigVec {
+public:
+	class type_enc
+	{
+	public:
+		static constexpr const unsigned char UNDEFINED = 0b00000000;
+		static constexpr const unsigned char SIGNED = 0b00000001;
+		static constexpr const unsigned char UINT8 = 0b00000010;  //unsigned char
+		static constexpr const unsigned char UINT16 = 0b00000100;  //unsigned short
+		static constexpr const unsigned char UINT32 = 0b00001000;  //unsigned int
+		static constexpr const unsigned char UINT64 = 0b00010000;  //unsigned long long
+		static constexpr const unsigned char INT8 = 0b00000011;  //char
+		static constexpr const unsigned char INT16 = 0b00000101;  //short
+		static constexpr const unsigned char INT32 = 0b00001001;  //int
+		static constexpr const unsigned char INT64 = 0b00010001;  //long long
+		static constexpr const unsigned char FLOAT32 = 0b00100000;  //float
+		static constexpr const unsigned char FLOAT64 = 0b01000000;  //double
+		static constexpr const unsigned char FLOAT80 = 0b10000000;  //long double
+		static unsigned char encode(char c, bool isSigned = false) {
+			unsigned char _is_signed = isSigned ? type_enc::SIGNED : 0;
+			switch (c) {
+			case 'c': return _is_signed | type_enc::INT8;
+			case 's': return _is_signed | type_enc::INT16;
+			case 'i': return _is_signed | type_enc::INT32;
+			case 'l': return _is_signed | type_enc::INT64;
+			case 'f': return type_enc::FLOAT32;
+			case 'd': return type_enc::FLOAT64;
+			case 'D': return type_enc::FLOAT80;
+			}
+			return type_enc::UNDEFINED;
+		}
+	};
+	char *data;
+	int len;		// type len (not bytes len)
+	int struct_size;
+
+	int n_time_channels;
+	int n_val_channels;
+
+	int time_channel_offsets[GENERIC_SIG_VEC_MAX_CHANNELS];
+	int val_channel_offsets[GENERIC_SIG_VEC_MAX_CHANNELS];
+	unsigned char time_channel_types[GENERIC_SIG_VEC_MAX_CHANNELS];
+	unsigned char val_channel_types[GENERIC_SIG_VEC_MAX_CHANNELS];	
+
+	int time_unit() const { return _time_unit; };
+
+	size_t size() const {
+		return struct_size;
+	}
+
+	void set_data(void* _data, int _len) {
+		data = (char*)_data;
+		len = _len;
+	}
+	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time_channels(0), n_val_channels(0) {}
+	GenericSigVec(const string& signalSpec) : GenericSigVec() { init_from_spec(signalSpec); }
+	GenericSigVec(const GenericSigVec& other) { *this = other; }
+	GenericSigVec& operator=(const GenericSigVec& other){
+		data = other.data;
+		len = other.len;
+		struct_size = other.struct_size;
+		n_time_channels = other.n_time_channels;
+		n_val_channels = other.n_val_channels;
+		for (int i = 0; i < n_time_channels; i++) {
+			time_channel_offsets[i] = other.time_channel_offsets[i];
+			time_channel_types[i] = other.time_channel_types[i];
+		}
+		for (int i = 0; i < n_val_channels; i++) {
+			val_channel_offsets[i] = other.val_channel_offsets[i];
+			val_channel_types[i] = other.val_channel_types[i];
+		}
+		return *this;
+	}
+	void init(const SignalInfo &info) { init_from_spec(info.generic_signal_spec); }
+	void init_from_spec(const string& signalSpec);
+
+	template<typename T = int>
+	T Time(int idx, int chan) const {
+		auto ret_ptr = data + idx * struct_size + time_channel_offsets[chan];
+		switch (time_channel_types[chan]) {
+		
+		case type_enc::INT64:   return (T)(*(long long*)(ret_ptr));
+		case type_enc::UINT16:  return (T)(*(unsigned short*)(ret_ptr));
+		case type_enc::UINT8:   return (T)(*(unsigned char*)(ret_ptr));
+		case type_enc::UINT32:  return (T)(*(unsigned int*)(ret_ptr));
+		case type_enc::UINT64:  return (T)(*(unsigned long long*)(ret_ptr));
+		case type_enc::INT8:    return (T)(*(char*)(ret_ptr));
+		case type_enc::INT16:   return (T)(*(short*)(ret_ptr));
+		case type_enc::FLOAT32: return (T)(*(float*)(ret_ptr));
+		case type_enc::FLOAT64: return (T)(*(double*)(ret_ptr));
+		case type_enc::FLOAT80: return (T)(*(long double*)(ret_ptr));
+		case type_enc::INT32:   return (T)(*(int*)(ret_ptr));
+		}
+		return 0;
+	}
+	template<typename T = float>
+	T Val(int idx, int chan) const {
+		auto ret_ptr = data + idx * struct_size + val_channel_offsets[chan];
+		switch (val_channel_types[chan]) {
+		
+		case type_enc::INT16:   return (T)(*(short*)(ret_ptr));
+		case type_enc::UINT16:  return (T)(*(unsigned short*)(ret_ptr));
+		case type_enc::UINT8:   return (T)(*(unsigned char*)(ret_ptr));
+		case type_enc::UINT32:  return (T)(*(unsigned int*)(ret_ptr));
+		case type_enc::UINT64:  return (T)(*(unsigned long long*)(ret_ptr));
+		case type_enc::INT8:    return (T)(*(char*)(ret_ptr));
+		case type_enc::INT32:   return (T)(*(int*)(ret_ptr));
+		case type_enc::INT64:   return (T)(*(long long*)(ret_ptr));
+		case type_enc::FLOAT64: return (T)(*(double*)(ret_ptr));
+		case type_enc::FLOAT80: return (T)(*(long double*)(ret_ptr));
+		case type_enc::FLOAT32: return (T)(*(float*)(ret_ptr));
+		}
+		return 0;
+	}
+	/*
+	inline int Time(int idx, int chan) const {
+		//if (time_channel_types[chan] == type_enc::INT32)
+		//	return *(int*)(data + idx * struct_size + time_channel_offsets[chan]);
+		return getTime<int>(idx, chan);
+	}
+	inline float Val(int idx, int chan) const {
+		//if (val_channel_types[chan] == type_enc::FLOAT32)
+		//	return *(float*)(data + idx * struct_size + val_channel_offsets[chan]);
+		return getVal<float>(idx, chan);
+	}
+	*/
+
+	// channel 0 easy API
+	inline int Time(int idx) const { return Time(idx, 0); }
+	inline float Val(int idx) const { return Val(idx, 0); }
+
+	inline int TimeU(int idx, int to_time_unit) const { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx)); }
+	inline int Date(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
+	inline int Years(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
+	inline int Months(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
+	inline int Days(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx)); }
+	inline int Hours(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx)); }
+	inline int Minutes(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
+
+	// general channel API
+	inline int TimeU(int idx, int chan, int to_time_unit) const { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx, chan)); }
+	inline int Date(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
+	inline int Years(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
+	inline int Months(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
+	inline int Days(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx, chan)); }
+	inline int Hours(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx, chan)); }
+	inline int Minutes(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx, chan)); }
+
+protected:
+	int _time_unit = MedTime::Undefined;
+};
 
 
 
