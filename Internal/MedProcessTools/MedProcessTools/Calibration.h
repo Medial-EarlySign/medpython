@@ -70,6 +70,7 @@ public:
 	vector<double> platt_params; ///< for "platt_scale"
 
 	string calibration_samples = ""; ///< calibration samples path to learn
+	bool use_preds_in_samples = false; ///< If true will use predictions in sample file
 
 	/// @snippet Calibration.cpp Calibrator::init
 	virtual int init(map<string, string>& mapper);
