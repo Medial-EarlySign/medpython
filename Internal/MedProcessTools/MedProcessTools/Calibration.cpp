@@ -41,6 +41,9 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "control_weight_down_sample") control_weight_down_sample = stof(entry.second);
 		else if (field == "censor_controls") censor_controls = stoi(entry.second);
 		else if (field == "verbose") verbose = stoi(entry.second) > 0;
+		else if (field == "calibration_samples") calibration_samples = entry.second;
+		else if (field == "use_preds_in_samples") use_preds_in_samples = stoi(entry.second) > 0;
+		else if (field == "pp_type") {} //ignore
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
 		//! [Calibrator::init]
 	}
@@ -308,6 +311,57 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 			samples.push_back(s);
 	Learn(samples, orig_samples.time_unit);
 	return 0;
+}
+
+void Calibrator::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix) {
+	MedPidRepository curr_rep;
+	unordered_set<string> req_names;
+	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	if (!calibration_samples.empty()) {
+		//load external calibration samples:
+		MLOG("Load calibration samples from %s\n", calibration_samples.c_str());
+		MedSamples external;
+		external.read_from_file(calibration_samples);
+		if (!use_preds_in_samples) {
+			//create Matrix and get predictions:
+			model.get_required_signal_names(req_names);
+			for (string s : req_names)
+				sigs.push_back(s);
+			sort(sigs.begin(), sigs.end());
+			auto it = unique(sigs.begin(), sigs.end());
+			sigs.resize(std::distance(sigs.begin(), it));
+			vector<int> pids;
+			external.get_ids(pids);
+			if (curr_rep.read_all(rep.config_fname, pids, sigs) < 0)
+				MTHROW_AND_ERR("ERROR could not read repository %s\n", rep.config_fname.c_str());
+			MedFeatures feats = move(model.features);
+			model.apply(curr_rep, external, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_LEARN_POST_PROCESS);
+			Learn(model.features.samples);
+			model.features = move(feats);
+		}
+		else 
+			Learn(external);
+		return;
+	}
+	else
+		MWARN("Warning - Calibrator::Learn - Learn on train samples. please provide \"calibration_samples\" param\n");
+
+	//for test calibrate on train:
+	if (matrix.samples.empty())
+		return;
+	//get preds
+	if (matrix.samples.front().prediction.empty()) {
+		MedFeatures cp_mat = matrix;
+		model.predictor->predict(cp_mat);
+		Learn(cp_mat.samples);
+		return;
+	}
+
+	Learn(matrix.samples);
+}
+
+void Calibrator::Apply(MedFeatures &matrix) const {
+	Apply(matrix.samples);
 }
 
 int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit) {

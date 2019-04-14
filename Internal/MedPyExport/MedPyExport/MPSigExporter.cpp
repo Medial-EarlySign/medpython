@@ -616,9 +616,9 @@ void MPSigExporter::get_all_data() {
 				pid_vec[cur_row] = pid;
 				time_vec[cur_row] = sdv[i].time;
 				val1_vec[cur_row] = sdv[i].val1;
-				val1_vec[cur_row] = sdv[i].val2;
-				val1_vec[cur_row] = sdv[i].val3;
-				val1_vec[cur_row] = sdv[i].val4;
+				val2_vec[cur_row] = sdv[i].val2;
+				val3_vec[cur_row] = sdv[i].val3;
+				val4_vec[cur_row] = sdv[i].val4;
 				cur_row++;
 			}
 		}

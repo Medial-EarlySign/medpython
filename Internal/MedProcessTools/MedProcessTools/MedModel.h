@@ -8,6 +8,7 @@
 #include "MedProcessTools/MedProcessTools/FeatureProcess.h"
 #include "MedProcessTools/MedProcessTools/DoCalcFeatProcessor.h"
 #include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
+#include "MedProcessTools/MedProcessTools/PostProcessor.h"
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 #include <SerializableObject/SerializableObject/SerializableObject.h>
@@ -26,9 +27,12 @@ typedef enum {
 	MED_MDL_LEARN_PREDICTOR, ///<We have the matrix - learn predcitor
 	MED_MDL_APPLY_PREDICTOR, ///<We have trained predcitor, do predict
 	MED_MDL_INSERT_PREDS, ///<We have did predict - save results
+	MED_MDL_LEARN_POST_PROCESS, ///<Start learning of post_processors
+	MED_MDL_APPLY_POST_PROCESS, ///<start apply of postProcessors
 	MED_MDL_END ///<All Done
 } MedModelStage;
 
+class PostProcessor;
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel final : public SerializableObject {
 public:
@@ -44,6 +48,9 @@ public:
 
 	/// Features-level cleaners; to be applied sequentially 
 	vector<FeatureProcessor *> feature_processors;
+
+	///Post Process level - calibrators, explainers...
+	vector<PostProcessor *> post_processors;
 
 	/// Predictor
 	MedPredictor *predictor = NULL;
@@ -116,6 +123,8 @@ public:
 	void add_imputers(vector<string>& features) { add_feature_processors_set(FTR_PROCESS_IMPUTER, features); }
 	void add_imputers(vector<string>& features, string init_string) { add_feature_processors_set(FTR_PROCESS_IMPUTER, features, init_string); }
 
+	//post procesors:
+	void add_post_processor(PostProcessor *processor) { post_processors.push_back(processor); };
 
 	// general adders for easier handling of config files/lines
 	// the idea is to add to a specific set and let the adder create a multi if needed
@@ -130,7 +139,7 @@ public:
 	void add_process_to_set(int i_set, int duplicate, const string &init_string); // will auto detect type by which type param is used (rp_type, fg_type OR fp_type)
 																				  // and will call the relavant function
 	void add_process_to_set(int i_set, const string &init_string) { add_process_to_set(i_set, 0, init_string); }
-
+	void add_post_processor_to_set(int i_set, const string &init_string);
 
 	// Add Predictor
 	void set_predictor(MedPredictor *_predictor) { predictor = _predictor; };
@@ -173,9 +182,9 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-	ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, serialize_learning_set, LearningSet)
+		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, serialize_learning_set, LearningSet)
 
-	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
+		int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
@@ -187,6 +196,9 @@ public:
 	int apply_feature_processors(MedFeatures &features, vector<unordered_set<string>>& req_features_vec);
 	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec);
 	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators);
+
+	void learn_post_processors(MedPidRepository &rep, MedSamples &post_samples);
+	void apply_post_processors(MedFeatures &matrix_after_pred);
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag);
@@ -224,7 +236,7 @@ namespace medial {
 			vector<int> &phisical_signal_read, vector<RepProcessor *> *rep_processors);
 		/// \brief removes uneeded rep_processors based on needed_sigs and prepares the repository
 		/// returns the signal id's neede to read in the repository. MedRepository must be init to read dicts
-		vector<string> prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs, 
+		vector<string> prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
 			vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors = NULL);
 	}
 }

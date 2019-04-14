@@ -177,6 +177,13 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		if (rc != 0)
 			return rc;
 	}
+	if (end_stage < MED_MDL_LEARN_POST_PROCESS)
+		return 0;
+	//get predictions and store them - in postProcessor learn resposibility - should act on different samples:
+	if (start_stage <= MED_MDL_LEARN_POST_PROCESS) {
+		for (size_t i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Learn(*this, rep, features);
+	}
 
 	return 0;
 }
@@ -236,7 +243,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		}
 		if (verbosity > 0) MLOG("MedModel apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
 	}
-	  
+
 	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
 		return 0;
 
@@ -265,8 +272,22 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (end_stage <= MED_MDL_INSERT_PREDS)
 		return 0;
 
+	if (end_stage <= MED_MDL_APPLY_POST_PROCESS) { //insert preds now only if has no post_processors
+		if (samples.insert_preds(features) != 0) {
+			MERR("Insertion of predictions to samples failed\n");
+			return -1;
+		}
+		return 0;
+	}
+
+	for (size_t i = 0; i < post_processors.size(); ++i)
+		post_processors[i]->Apply(features);
 	if (samples.insert_preds(features) != 0) {
 		MERR("Insertion of predictions to samples failed\n");
+		return -1;
+	}
+	if (samples.insert_post_process(features) != 0) {
+		MERR("Insertion of post_process to samples failed\n");
 		return -1;
 	}
 
@@ -295,8 +316,8 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	//omp_set_nested(true);
 
 //#pragma omp parallel for //num_threads(4) //schedule(dynamic)
-	for (int i = 0; i < generators.size(); i++) 
-		rc[i] = generators[i]->learn(rep, *learn_samples, rep_processors); 
+	for (int i = 0; i < generators.size(); i++)
+		rc[i] = generators[i]->learn(rep, *learn_samples, rep_processors);
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
@@ -867,12 +888,54 @@ void MedModel::add_feature_generator_to_set(int i_set, const string &init_string
 	generators.push_back(feat_gen);
 }
 
+void MedModel::add_post_processor_to_set(int i_set, const string &init_string)
+{
+	// check if i_set already initialized, and if not a multiprocessor change it into one
+	if (i_set < post_processors.size()) {
+		// exists 
+		if (post_processors[i_set] == NULL) {
+			// NULL ... in that case init an empty MultiProcessor in i_set
+			MLOG_D("Adding new rep_processor set [%d]\n", i_set);
+			MultiPostProcessor *processor = new MultiPostProcessor;
+			post_processors[i_set] = processor;
+		}
+		else if (post_processors[i_set]->processor_type != FTR_POSTPROCESS_MULTI) {
+			// the processor was not multi, and hence we create one switch it , and push the current into it
+			PostProcessor *curr_p = post_processors[i_set];
+			MultiPostProcessor *mprocessor = new MultiPostProcessor;
+			post_processors[i_set] = mprocessor;
+			mprocessor->post_processors.push_back(curr_p);
+		}
+	}
+	else {
+		// resize rep_processors
+		post_processors.resize(i_set + 1, NULL);
+		for (int i = 0; i < i_set + 1; i++)
+			// put a new empty multi in i_set
+			if (post_processors[i] == NULL) {
+				MLOG_D("Adding new post_processor set [%d]\n", i);
+				MultiPostProcessor *processor = new MultiPostProcessor;
+				post_processors[i] = processor;
+			}
+	}
+
+	// Now we are at a state in which we have a multi processor at i_set and need to create a new processor and push it in
+	string in = init_string;
+	string pp_type;
+	get_single_val_from_init_string(in, "pp_type", pp_type);
+	PostProcessor *post_proc = PostProcessor::make_processor(pp_type, init_string);
+
+	// push it in
+	((MultiPostProcessor *)post_processors[i_set])->post_processors.push_back(post_proc);
+}
+
 //.......................................................................................
 void MedModel::add_process_to_set(int i_set, int duplicate, const string &init_string)
 {
 	if (init_string.find("rp_type") != string::npos) return add_rep_processor_to_set(i_set, init_string);
 	if (init_string.find("fg_type") != string::npos) return add_feature_generator_to_set(i_set, init_string);
 	if (init_string.find("fp_type") != string::npos) return add_feature_processor_to_set(i_set, duplicate, init_string);
+	if (init_string.find("pp_type") != string::npos) return add_post_processor_to_set(i_set, init_string);
 
 	MTHROW_AND_ERR("add_process_to_set():: Can't process line %s\n", init_string.c_str());
 }
@@ -1002,9 +1065,9 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 // Get required names as a vector
 //.......................................................................................
 void MedModel::get_required_signal_names_for_processed_values(unordered_set<string>& targetSignalNames, vector<string>& signalNames) {
-	
+
 	unordered_set<string> sigs;
-	get_required_signal_names_for_processed_values(targetSignalNames,sigs);
+	get_required_signal_names_for_processed_values(targetSignalNames, sigs);
 
 	signalNames.clear();
 	for (auto &s : sigs)
@@ -1460,6 +1523,23 @@ void MedModel::get_generated_features_names(vector<string> &feat_names)
 	for (auto &e : ftr_names) sort_me[e] = 1;
 	feat_names.clear();
 	for (auto &e : sort_me) feat_names.push_back(e.first);
+}
+
+void MedModel::learn_post_processors(MedPidRepository &rep, MedSamples &post_samples) {
+
+	for (size_t i = 0; i < post_processors.size(); ++i)
+	{
+		if (apply(rep, post_samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_INSERT_PREDS) < 0)
+			MTHROW_AND_ERR("Failed generating matrix for samples for post_processor learn");
+		post_processors[i]->Learn(*this, rep, features);
+	}
+}
+
+void MedModel::apply_post_processors(MedFeatures &matrix_after_pred) {
+	for (size_t i = 0; i < post_processors.size(); ++i)
+	{
+		post_processors[i]->Apply(matrix_after_pred);
+	}
 }
 
 #endif
