@@ -71,6 +71,8 @@ public:
 
 	int verbosity = 1; ///< verbosity 0 -> much less printouts in predict
 
+	int generate_masks_for_features = 0;
+
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);
@@ -173,7 +175,7 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-	ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, serialize_learning_set, LearningSet)
+	ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, generate_masks_for_features, serialize_learning_set, LearningSet)
 
 	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);

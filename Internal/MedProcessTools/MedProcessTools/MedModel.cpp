@@ -153,6 +153,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	else if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		// Just apply feature processors
 		timer.start();
+		if (generate_masks_for_features) features.mark_imputed_in_masks();
 		if (apply_feature_processors(features) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_processors()\n");
 			return -1;
@@ -243,6 +244,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	// Process Features
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		if (verbosity > 0) MLOG("MedModel apply() : before applying feature processors\n", samples.idSamples.size());
+		if (generate_masks_for_features) features.mark_imputed_in_masks();
 		if (apply_feature_processors(features, req_features_vec) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 			return -1;
