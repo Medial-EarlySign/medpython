@@ -90,10 +90,15 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
-	const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8;
+	const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8; // , INTERACTION_SHAP = 16;
+	int flags = feat_contrib_flags;
+	if (flags == 0)
+		flags = APPROX_CONTRIBS;
+
+	flags |= PRED_CONTRIBS;
 	// using the old APPROX_CONTRIBS until this bug is resolved:
 	// https://github.com/dmlc/xgboost/issues/3333 NaN SHAP values from Booster.predict with pred_contribs=True
-	XGBoosterPredict(my_learner, h_test, PRED_CONTRIBS | APPROX_CONTRIBS, 0, &out_len, &out_preds);
+	XGBoosterPredict(my_learner, h_test, flags, 0, &out_len, &out_preds);
 	for (int i = 0; i < nsamples; i++) {
 		for (int j = 0; j < nftrs; j++) {
 			float v = out_preds[i*(nftrs + 1) + j];

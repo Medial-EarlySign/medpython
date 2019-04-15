@@ -109,6 +109,7 @@ public:
 	xgboost::DMatrix* dvalidate = NULL;
 	MedXGBParams params;
 	void init_defaults();
+	int feat_contrib_flags = 0;
 	virtual int init(void *classifier_params) { this->params = *((MedXGBParams*)classifier_params); return 0; };
 	/// The parsed fields from init command.
 	/// @snippet MedXGB.cpp MedXGB::init
