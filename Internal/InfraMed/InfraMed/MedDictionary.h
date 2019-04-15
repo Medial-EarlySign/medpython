@@ -49,6 +49,10 @@ public:
 
 	// next function calculates for each member ALL the sets it is contained in , applying all set transitivity
 	void get_members_to_all_sets(vector<int> &members, unordered_map<int, vector<int>> &Member2AllSets);
+	void get_members_to_all_sets(vector<int> &members, vector<int> &sets, unordered_map<int, vector<int>> &Member2AllSets);
+
+	void get_regex_ids(string regex_s, vector<int> &ids);
+	void get_regex_names(string regex_s, vector<string> &names);
 
 	int add_def(const string &fname, const string &name, int id);
 	int add_set(const string &fname, const string &member_name, const string &set_name);
