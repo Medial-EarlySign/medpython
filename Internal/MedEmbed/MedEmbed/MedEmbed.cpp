@@ -225,15 +225,7 @@ int EmbeddingSig::init_categorial_tables(MedDictionarySections &dict)
 	// regex option
 	if (categories_to_embed.size() == 0 && regex_filter != "") {
 		MLOG("Initializing using regex %s\n", regex_filter.c_str());
-		boost::regex regf(regex_filter);
-		for (auto &e : dict.dicts[section_id].Id2Names) {
-			for (auto &v : e.second) {
-				if (boost::regex_match(v, regf)) {
-					categories_to_embed.push_back(v);
-					break;
-				}
-			}
-		}
+		dict.dicts[section_id].get_regex_names(regex_filter, categories_to_embed);
 		MLOG("Got %d categories\n", categories_to_embed.size());
 	}
 
