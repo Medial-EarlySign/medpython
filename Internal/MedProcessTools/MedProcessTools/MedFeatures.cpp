@@ -1283,5 +1283,65 @@ int medial::process::nSplits(vector<MedSample>& samples) {
 }
 
 
+//-------------------------------------------------------------------------------------------------------
+// assumed data is already initialized
+int MedFeatures::init_masks()
+{
+	masks.clear();
+	if (data.empty()) return 0;
+
+	for (auto &e : data) {
+		masks[e.first] = vector<unsigned char>();
+		masks[e.first].resize(data[e.first].size(), 0);
+	}
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------
+int MedFeatures::get_masks_as_mat(MedMat<unsigned char> &masks_mat)
+{
+	masks_mat.clear();
+	if (masks.empty()) return 0;
+
+	int nrows = (int)masks.begin()->second.size();
+	int ncols = (int)masks.size();
+	masks_mat.resize(nrows, ncols);
+
+	vector<string> names;
+	get_feature_names(names);
+
+#pragma omp parallel for
+	for (int i = 0; i < names.size(); i++) {
+		unsigned char *p_mask = masks[names[i]].data();
+		for (int j = 0; j < nrows; j++)
+			masks_mat(i, j) = p_mask[j];
+	}
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------
+int MedFeatures::mark_imputed_in_masks(float _missing_val)
+{
+	if (masks.empty()) init_masks();
+	if (masks.empty()) return 0;
+
+	int nrows = (int)masks.begin()->second.size();
+	int ncols = (int)masks.size();
+	vector<string> names;
+	get_feature_names(names);
+
+	
+#pragma omp parallel for
+	for (int i = 0; i < names.size(); i++) {
+		unsigned char *p_mask = masks[names[i]].data();
+		float *p_data = data[names[i]].data();
+		for (int j = 0; j < nrows; j++)
+			if (p_data[j] == _missing_val)
+				p_mask[j] |= MedFeatures::imputed_mask;
+	}
+
+	return 0;
+}
 
 
