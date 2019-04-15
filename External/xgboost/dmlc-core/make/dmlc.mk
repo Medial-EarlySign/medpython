@@ -10,20 +10,30 @@ ifndef LIBJVM
 	LIBJVM=$(JAVA_HOME)/jre/lib/amd64/server
 endif
 
-ifneq ($(USE_OPENMP), 0)
-	DMLC_CFLAGS += -fopenmp
-	DMLC_LDFLAGS += -fopenmp
-endif
-
 # Mac OS X does not support "-lrt" flag
 ifeq ($(OS), Windows_NT)
 	UNAME=Windows
-else 
+	MACHINE=Windows
+else
 	UNAME=$(shell uname)
+	MACHINE=$(shell $(CC) -dumpmachine)
 endif
 
-ifeq ($(UNAME), Linux)
-    DMLC_LDFLAGS += -lrt
+ifneq ($(USE_OPENMP), 0)
+ifneq ($(UNAME), Darwin)
+	DMLC_CFLAGS += -fopenmp
+	DMLC_LDFLAGS += -fopenmp
+endif
+endif
+
+ifeq (-android, $(findstring -android,$(MACHINE)))
+#$(info $$MACHINE is [${MACHINE}])
+#$(info detected ANDROID)
+else
+ifeq (-linux, $(findstring -linux,$(MACHINE)))
+#$(info detected Linux)
+        DMLC_LDFLAGS += -lrt
+endif
 endif
 
 # handle fpic options
@@ -55,7 +65,13 @@ ifeq ($(USE_HDFS),1)
 	else
 		DMLC_LDFLAGS+= $(HDFS_LIB_PATH)/libhdfs.a
 	endif
-	DMLC_LDFLAGS += -L$(LIBJVM) -ljvm -Wl,-rpath=$(LIBJVM)
+
+	DMLC_LDFLAGS += -L$(LIBJVM) -ljvm
+	ifeq ($(UNAME), Darwin)
+		DMLC_LDFLAGS += -Wl,-rpath,$(LIBJVM)
+	else
+		DMLC_LDFLAGS += -Wl,-rpath=$(LIBJVM)
+	endif
 else
 	DMLC_CFLAGS+= -DDMLC_USE_HDFS=0
 endif

@@ -1010,8 +1010,9 @@ public:
 class eGFRCalculator : public SimpleCalculator {
 public:
 	float ethnicity = 0; ///< ethnicity, for now only support 0
+	bool mdrd = false; ///< If true will use MDRD calculation
 
-	eGFRCalculator() { calculator_name = "eGFR"; };
+	eGFRCalculator() { calculator_name = "eGFR_CKD_EPI"; };
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
@@ -1278,7 +1279,7 @@ public:
 	string ckd_proteinuria_sig = "Proteinuria_State";
 
 
-	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
+	/// @snippet RepProcess.cpp RepCreateRegistry::init
 	int init(map<string, string>& mapper);
 	void init_lists();
 

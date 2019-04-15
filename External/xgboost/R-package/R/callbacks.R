@@ -168,7 +168,7 @@ cb.evaluation.log <- function() {
 #' at the beginning of each iteration.
 #' 
 #' Note that when training is resumed from some previous model, and a function is used to 
-#' reset a parameter value, the \code{nround} argument in this function would be the 
+#' reset a parameter value, the \code{nrounds} argument in this function would be the 
 #' the number of boosting rounds in the current training.
 #'
 #' Callback function expects the following values to be set in its calling frame:
@@ -690,11 +690,6 @@ cb.gblinear.history <- function(sparse=FALSE) {
 #'
 #' For an \code{xgb.cv} result, a list of such matrices is returned with the elements
 #' corresponding to CV folds.
-#'
-#' @examples
-#' \dontrun{
-#' See \code{\link{cv.gblinear.history}}
-#' }
 #'
 #' @export
 xgb.gblinear.history <- function(model, class_index = NULL) {

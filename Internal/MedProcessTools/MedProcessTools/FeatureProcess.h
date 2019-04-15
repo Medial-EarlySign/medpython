@@ -33,6 +33,7 @@ typedef enum {
 	FTR_PROCESS_ITERATIVE_IMPUTER, ///<"iterative_imputer" to create IterativeImputer
 	FTR_PROCESS_ENCODER_PCA, ///<"pca" to create FeaturePCA
 	FTR_PROCESS_ONE_HOT, ///< make one-hot features from a given feature
+	FTR_PROCESS_GET_PROB, ///< replace categorical feature with probability of outcome in training set
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -995,6 +996,48 @@ private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
 };
+
+/**
+* GetProbProcessor:
+*
+* Replace category with probability of outcome in training set
+* To Use this processor specify <b>"get_prob"</b> in the fp_type
+*/
+
+class GetProbFeatProcessor : public FeatureProcessor {
+public:
+
+	float missing_value = MED_MAT_MISSING_VALUE; ///< Missing Value
+	int overall_count = 5; ///< weight of overall probability
+
+	map<float, float> probs; ///< actual probability per class
+	float overall_prob; ///< default prob for unknown classes
+
+	// Constructor
+	GetProbFeatProcessor() : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; }
+	GetProbFeatProcessor(const  string& feature_name) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; set_feature_name(feature_name); }
+	GetProbFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB;; init_from_string(init_string);  set_feature_name(feature_name); }
+
+	// Learn probabilities
+	int Learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Apply transformation
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
+
+	/// The parsed fields from init command.
+	/// @snippet FeatureProcess.cpp GetProbFeatProcessor::init
+	int init(map<string, string>& mapper);
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<GetProbFeatProcessor *>(processor)); }
+
+	// Serialization
+	ADD_CLASS_NAME(GetProbFeatProcessor)
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs, overall_prob);
+
+};
+
+
 
 
 //=======================================

@@ -26,6 +26,7 @@
 *.exe
 *.out
 *.app
+*~
 config.mk
 *.pyc
 
@@ -34,9 +35,14 @@ config.mk
 *.swo
 *.swn
 *.csv
+.vimrc
 
 # Emacs
 .clang_complete
 deps
 recommonmark
 build
+
+# CLion
+.idea
+cmake-build-*

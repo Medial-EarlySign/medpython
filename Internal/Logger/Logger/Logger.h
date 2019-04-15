@@ -99,7 +99,9 @@ class MedLogger {
 public:
 	vector<int> levels;
 	vector<vector<FILE *>> fds; //each section can write to multipal buffers
+	vector<vector<string>> file_names; // required to avoid multiple closing of same file
 	FILE *out_fd;
+	string out_file_name;
 	vector<string> format; ///< log format for each section - the message is %s, reset is variables with $: time,section,level
 
 	MedLogger();

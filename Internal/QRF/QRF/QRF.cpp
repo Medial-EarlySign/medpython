@@ -22,6 +22,9 @@
 //#define DEBUG_ALGO
 //#define DEBUG_ALGO_2
 
+#define LOCAL_SECTION LOG_MEDALGO
+#define LOCAL_LEVEL	LOG_DEF_LEVEL
+
 //======================================================================================================================================
 // QRF_Tree
 //======================================================================================================================================
@@ -915,11 +918,11 @@ int QuantizedRF::find_best_categories_entropy_split(QRF_Tree &tree, int node, in
 							if ((int)left_sum < log_table.size())
 								HL += log_table[(int)left_sum];
 							else
-								HL += left_sum*log(left_sum);
+								HL += left_sum * log(left_sum);
 							if ((int)right_sum < log_table.size())
 								HR += log_table[(int)right_sum];
-							else	
-								HR += right_sum*log(right_sum);
+							else
+								HR += right_sum * log(right_sum);
 
 
 							H = HL + HR;
@@ -1623,13 +1626,26 @@ int QRF_Forest::transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, in
 				}
 			}
 			else if (keep_all_values && qn.is_leaf) {
-				//				qn.values.resize(trees[i].nodes[j].to_sample + 1 - trees[i].nodes[j].from_sample);
-				//				for (unsigned int k = 0; k < qn.values.size(); k++)
-				//					qn.values[k] = qrf.yr[trees[i].sample_ids[k + trees[i].nodes[j].from_sample]];
-				qn.values.assign(sorted_values.size(), 0);
 				qn.tot_n_values = trees[i].nodes[j].to_sample + 1 - trees[i].nodes[j].from_sample;
+				qn.values.assign(sorted_values.size(), 0);
 				for (int k = 0; k < qn.tot_n_values; k++)
 					qn.values[all_values[qrf.yr[trees[i].sample_ids[k + trees[i].nodes[j].from_sample]]]]++;
+
+				// Rearrange for sparse-values mode
+				if (sparse_values) {
+					qn.value_counts.clear();
+					for (unsigned int iVal = 0; iVal < qn.values.size(); iVal++) {
+						if (qn.values[iVal] > 0) {
+							//							if (qn.values[iVal] > 0xffff)
+							//								MTHROW_AND_ERR("Cannot work in sparse-mode. Reached count > %d\n", 0xffff);
+							//							qn.value_counts.push_back({ iVal,  (unsigned short int) qn.values[iVal] });
+							qn.value_counts.push_back({ iVal,   qn.values[iVal] });
+						}
+					}
+					qn.values.clear();
+				}
+				else
+					qn.value_counts.clear();
 			}
 			else
 				qn.values.clear();
@@ -1942,29 +1958,8 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, const float *w, in
 }
 
 //---------------------------------------------------------------------------------------------
-struct qrf_scoring_thread_params {
-	float *x;
-	const vector<QRF_ResTree> *trees;
-	int from;
-	int to;
-	int nfeat;
-	int nsamples;
-	float *res;
-
-	int serial;
-	int state;
-
-	int mode;
-	int n_categ;
-	vector<float> *quantiles;
-	const vector<float> *sorted_values;
-
-	int get_counts; // for CATEGORICAL runs there's such an option, 0 - don't get, 1 - sum counts 2 - sum probs
-//	thread th_handle;
-};
-
 void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, const vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts,
-	vector<float> *quantiles, const vector<float> *sorted_values)
+	vector<float> *quantiles, const vector<float> *sorted_values, bool sparse_values)
 {
 	tp.clear();
 	tp.resize(nsplit);
@@ -1988,9 +1983,74 @@ void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, const vect
 		tp[i].get_counts = get_counts;
 		tp[i].quantiles = quantiles;
 		tp[i].sorted_values = sorted_values;
-
+		tp[i].sparse_values = sparse_values;
 	}
 	tp[nsplit - 1].to = nsamples - 1;
+}
+
+void QRF_ResNode::get_scores(int mode, int get_counts_flag, int n_categ, vector<float> &scores) const {
+	//scores is allocated
+	//int pred_size = (int)scores.size();
+
+	vector<float> cnts(n_categ);
+	float sum = 0;
+	float norm = 0;
+
+	fill(cnts.begin(), cnts.end(), (float)0);
+
+	if (mode == QRF_REGRESSION_TREE) {
+		if (get_counts_flag == PREDS_REGRESSION_AVG) { // Average on predictions
+			sum += pred;
+			norm++;
+		}
+		else if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_AVG) { // Weighted average on predictions
+			sum += pred * n_size;
+			norm += n_size;
+		}
+		else { // Quantile Regression or sampling
+			MTHROW_AND_ERR("Unsupported for single node\n");
+		}
+	}
+	else {
+		if (get_counts_flag == PROBS_CATEG_MAJORITY_AVG || get_counts_flag == PREDS_CATEG_MAJORITY_AVG) { // Majority
+			cnts[majority]++;
+			++norm;
+		}
+		else if (get_counts_flag == PROBS_CATEG_AVG_PROBS || get_counts_flag == PREDS_CATEG_AVG_PROBS) { // Average on probabilities
+			assert(n_size > 0);
+			for (int k = 0; k < n_categ; k++)
+				cnts[k] += ((float)counts[k]) / ((float)n_size);
+			norm++;
+		}
+		else { // Average on counts
+			for (int k = 0; k < n_categ; k++)
+				cnts[k] += (float)counts[k];
+			norm += n_size;
+		}
+	}
+
+
+	if (mode == QRF_REGRESSION_TREE) {
+		if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_AVG || get_counts_flag == PREDS_REGRESSION_AVG)
+			scores[0] = sum / norm;
+		else if (get_counts_flag == PREDS_REGRESSION_QUANTILE || get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE ||
+			get_counts_flag == PREDS_REGRESSION_SAMPLE) {
+			MTHROW_AND_ERR("Unsupported for single node\n");
+		}
+	}
+	else if (get_counts_flag == PREDS_CATEG_MAJORITY_AVG || get_counts_flag == PREDS_CATEG_AVG_COUNTS || get_counts_flag == PREDS_CATEG_AVG_PROBS) {
+
+		// collapse cnts/norm to a single prediction by expectation
+		scores[0] = 0;
+		for (int k = 0; k < n_categ; k++)
+			scores[0] += (cnts[k] / norm)*(float)k;
+
+	}
+	else {
+		for (int k = 0; k < n_categ; k++)
+			scores[k] = cnts[k] / norm;
+	}
+
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------
@@ -2000,7 +2060,7 @@ void get_score_thread(void *p)
 
 	//	fprintf(stderr,"Starting scoring thread %d :: from %d to %d mode %d n_categ %d\n",tp->serial, tp->from, tp->to, tp->mode, tp->n_categ); fflush(stderr);
 
-	float *xf = tp->x;
+	const float *xf = tp->x;
 
 	int node;
 	int nfeat = tp->nfeat;
@@ -2014,15 +2074,11 @@ void get_score_thread(void *p)
 	for (int i = tp->from; i <= tp->to; i++) {
 		float sum = 0;
 		float norm = 0;
-		//		vector<pair<float, float>> values(COLLECTED_VALUES_SIZE);
-		//		int values_size = 0;
+
 
 		vector<float> values((*(tp->sorted_values)).size());
 		vector<int> sizes((*(tp->trees)).size());
-		float totWeight = 0, totUnweighted = 0;;
-
-		//		if ((tp->mode == QRF_REGRESSION_TREE && tp->get_counts == PREDS_REGRESSION_AVG) || (tp->mode != QRF_REGRESSION_TREE && tp->get_counts < PREDS_CATEG_AVG_COUNTS))
-		//			norm = (float) (*(tp->trees)).size() ;
+		float totWeight = 0, totUnweighted = 0;
 
 		fill(cnts.begin(), cnts.end(), (float)0);
 
@@ -2049,8 +2105,14 @@ void get_score_thread(void *p)
 				}
 				else { // Quantile Regression or sampling
 					float w = (tp->get_counts == PREDS_REGRESSION_QUANTILE || tp->get_counts == PREDS_REGRESSION_SAMPLE) ? (1.0F) : (1.0F / (*trees)[j].qnodes[node].tot_n_values);
-					for (unsigned int iVal = 0; iVal < (*trees)[j].qnodes[node].values.size(); iVal++)
-						values[iVal] += w * (*trees)[j].qnodes[node].values[iVal];
+					if (tp->sparse_values) {
+						for (auto& rec : (*trees)[j].qnodes[node].value_counts)
+							values[rec.first] += w * rec.second;
+					}
+					else {
+						for (unsigned int iVal = 0; iVal < (*trees)[j].qnodes[node].values.size(); iVal++)
+							values[iVal] += w * (*trees)[j].qnodes[node].values[iVal];
+					}
 					sizes[j] = (*trees)[j].qnodes[node].tot_n_values;
 					totWeight += w * sizes[j];
 					totUnweighted += sizes[j];
@@ -2079,10 +2141,12 @@ void get_score_thread(void *p)
 			if (tp->get_counts == PREDS_REGRESSION_WEIGHTED_AVG || tp->get_counts == PREDS_REGRESSION_AVG)
 				tp->res[i] = sum / norm;
 			else if (tp->get_counts == PREDS_REGRESSION_QUANTILE || tp->get_counts == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+
 				int ptr = 0;
 				float sumWeight = 0.0F;
 				for (int k = 0; k < n_quantiles; k++) {
 					float q = (*quantiles)[k];
+
 					// -2 >=  q  > -(nTrees + 2) : size of relevant node in tree -(q+2)
 					if ((-q - 2) >= 0 && (-q - 2) < (*(tp->trees)).size())
 						tp->res[i*n_quantiles + k] = (float)sizes[(int)(-q - 2)];
@@ -2139,7 +2203,7 @@ void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *re
 	vector<pair<float, int>> indexd_quantiles(quantiles.size());
 	vector<float> sorted_quantiles(quantiles.size());
 
-	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE) {
+	if (get_counts_flag == PREDS_REGRESSION_WEIGHTED_QUANTILE || get_counts_flag == PREDS_REGRESSION_QUANTILE) {
 		for (unsigned int i = 0; i < quantiles.size(); i++) indexd_quantiles[i] = { quantiles[i],i };
 		sort(indexd_quantiles.begin(), indexd_quantiles.end(), [](const pair<float, int> &v1, const pair<float, int> &v2) {return v1.first < v2.first; });
 		for (unsigned int i = 0; i < quantiles.size(); i++) sorted_quantiles[i] = indexd_quantiles[i].first;
@@ -2148,8 +2212,8 @@ void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *re
 	// handle case where nthreads is larger than nsamples
 	int eff_nthreads = MIN(nthreads, nsamples);
 
-//	fprintf(stderr, "QRF: mode %d get_counts_flag %d n_categ %d\n", mode, get_counts_flag, n_categ);
-	get_scoring_thread_params(stp, &qtrees, res, nsamples, nfeat, x, eff_nthreads, mode, n_categ, get_counts_flag, &sorted_quantiles, &sorted_values);
+	//	fprintf(stderr, "QRF: mode %d get_counts_flag %d n_categ %d\n", mode, get_counts_flag, n_categ);
+	get_scoring_thread_params(stp, &qtrees, res, nsamples, nfeat, x, eff_nthreads, mode, n_categ, get_counts_flag, &sorted_quantiles, &sorted_values, sparse_values);
 	vector<thread> th_handle(eff_nthreads);
 	for (int i = 0; i < eff_nthreads; i++) {
 		th_handle[i] = thread(get_score_thread, (void *)&stp[i]);
@@ -2178,6 +2242,18 @@ void QRF_Forest::score_with_threads(float *x, int nfeat, int nsamples, float *re
 
 }
 
+void QRF_Forest::get_single_score_fast(qrf_scoring_thread_params &params, const vector<float> &x, vector<float> &preds) const {
+	int pred_size = n_categ;
+	if (get_only_this_categ >= 0)
+		pred_size = 1;
+	preds.resize(pred_size);
+
+	params.x = x.data();
+	params.res = preds.data();
+
+	get_score_thread(&params);
+}
+
 //-----------------------------------------------------------------------------------------------------------------------------------
 int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res) const
 {
@@ -2188,7 +2264,7 @@ int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res)
 //-----------------------------------------------------------------------------------------------------------------------------------
 int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res, int get_counts) const
 {
-	
+
 	//get_counts_flag = get_counts; //already set in learn
 	if (mode != QRF_BINARY_TREE && mode != QRF_REGRESSION_TREE && mode != QRF_CATEGORICAL_CHI2_TREE && mode != QRF_CATEGORICAL_ENTROPY_TREE) {
 		fprintf(stderr, "qrf: score_samples - mode %d not supported\n", mode); fflush(stderr);

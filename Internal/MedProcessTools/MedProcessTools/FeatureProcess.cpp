@@ -43,6 +43,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_ENCODER_PCA;
 	else if (processor_name == "one_hot")
 		return FTR_PROCESS_ONE_HOT;
+	else if (processor_name == "get_prob")
+		return FTR_PROCESS_GET_PROB;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -79,6 +81,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, ImportanceFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, IterativeFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
+	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
 	return NULL;
 }
 
@@ -115,6 +118,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new IterativeFeatureSelector;
 	else if (processor_type == FTR_PROCESS_ONE_HOT)
 		return new OneHotFeatProcessor;
+	else if (processor_type == FTR_PROCESS_GET_PROB)
+		return new GetProbFeatProcessor;
 	else
 		return NULL;
 
@@ -973,6 +978,88 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 
 	return 0;
 }
+
+//=======================================================================================
+// GetProbFeatProcessor
+//=======================================================================================
+//.......................................................................................
+int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
+
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
+
+	// Get all values
+	vector<float> values;
+	get_all_values(features, resolved_feature_name, ids, values, (int) features.samples.size());
+
+	// Learn Probs
+	map<float, int> nums;
+	map<float, int> pos_nums;
+	int overall_pos_num=0, overall_num=0;
+
+	for (unsigned int i = 0; i < values.size(); i++) {
+		if (values[i] != missing_value) {
+			nums[values[i]] ++;
+			overall_num++;
+			if (features.samples[i].outcome) {
+				pos_nums[values[i]] ++;
+				overall_pos_num++;
+			}
+		}
+	}
+
+	if (overall_num == 0)
+		MTHROW_AND_ERR("Cannot learn Get-Prob feature processor on an empty vector for %s\n", feature_name.c_str());
+
+	overall_prob = (overall_pos_num + 0.0) / overall_num;
+	for (auto& rec : nums)
+		probs[rec.first] = (pos_nums[rec.first] + overall_count * overall_prob) / (nums[rec.first] + overall_count);
+
+	return 0;
+}
+
+// Apply
+//.......................................................................................
+int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
+
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
+
+	// Transform
+	bool empty = ids.empty();
+	vector<float>& data = features.data[resolved_feature_name];
+	for (unsigned int i = 0; i < features.samples.size(); i++) {
+		if ((empty || ids.find(features.samples[i].id) != ids.end())) {
+			if (data[i] == missing_value || probs.find(data[i]) == probs.end())
+				data[i] = overall_prob;
+			else
+				data[i] = probs[data[i]];
+		}
+	}
+
+	return 0;
+}
+
+// Init
+//.......................................................................................
+int GetProbFeatProcessor::init(map<string, string>& mapper) {
+
+	init_defaults();
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [GetProbFeatProcessor::init]
+		if (field == "name") feature_name = entry.second;
+		else if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "overall_count") overall_count = (med_stoi(entry.second) != 0);
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for GetProbFeatProcessor\n", field.c_str());
+		//! [GetProbFeatProcessor::init]
+	}
+
+	return 0;
+}
+
 
 /// check if a set of features is affected by the current processor
 //.......................................................................................

@@ -4,6 +4,7 @@
 
 #include <MedProcessTools/MedProcessTools/RepProcess.h>
 #include <MedUtils/MedUtils/MedUtils.h>
+#include <MedUtils/MedUtils/MedMedical.h>
 #include <cmath>
 
 #define LOCAL_SECTION LOG_REPCLEANER
@@ -67,11 +68,15 @@ int eGFRCalculator::init(map<string, string>& mapper) {
 		//! [eGFRCalculator::init]
 		if (it->first == "ethnicity")
 			ethnicity = stoi(it->second);
+		else if (it->first == "mdrd")
+			mdrd = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in eGFRCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
 		//! [eGFRCalculator::init]
 	}
+	if (mdrd)
+		calculator_name = "eGFR_MDRD";
 	return 0;
 }
 
@@ -92,38 +97,14 @@ void eGFRCalculator::list_output_signals(const vector<string> &input_signals, ve
 		MTHROW_AND_ERR("ERROR in eGFRCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
-float calc_egfr_ckd_epi(float creatinine, int gender, float age, int ethnicity, float missing_value)
-{
-	double eGFR_CKD_EPI = pow(0.993, (double)age);
-
-	if (creatinine <= 0)
-		return missing_value;
-
-	if (ethnicity == 1)
-		eGFR_CKD_EPI *= 1.159;
-
-	if (gender == 1) {
-		// Male
-		eGFR_CKD_EPI *= 141.0;
-		if (creatinine <= 0.9)
-			eGFR_CKD_EPI *= pow(creatinine / 0.9, -0.441);
-		else
-			eGFR_CKD_EPI *= pow(creatinine / 0.9, -1.209);
-	}
-	else {
-		// Female
-		eGFR_CKD_EPI *= 144.0;
-		if (creatinine <= 0.7)
-			eGFR_CKD_EPI *= pow(creatinine / 0.7, -0.329);
-		else
-			eGFR_CKD_EPI *= pow(creatinine / 0.7, -1.209);
-	}
-
-	return (float)eGFR_CKD_EPI;
-}
-
 float eGFRCalculator::do_calc(const vector<float> &vals) const {
-	return calc_egfr_ckd_epi(vals[0], vals[1], vals[2], ethnicity, missing_value);
+	if (vals[0] <= 0)
+		return missing_value;
+	//age, creatinine,  gender, ethnicity
+	if (!mdrd)
+		return get_eGFR_CKD_EPI(vals[2], vals[0], vals[1], ethnicity);
+	else
+		return get_eGFR_MDRD(vals[2], vals[0], vals[1], ethnicity);
 }
 //.................................LOG CALCULATOR.......................................
 void logCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {

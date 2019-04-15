@@ -38,7 +38,7 @@ public:
 	/// For better handling of serializations it is highly recommended that each SerializableObject inheriting class will 
 	/// implement the next method. It is a must when one needs to support the new_polymorphic method.
 	/// One can simply add the macro ADD_CLASS_NAME(class) as a public member in the class.
-	virtual string my_class_name() { return "SerializableObject"; }
+	virtual string my_class_name() const { return "SerializableObject"; }
 
 	/// The names of the serialized fields. Can be helpful for example to print object fields that can be initialized.
 	/// can also print helpfull message for init if we keep initialization with the same names.
@@ -132,7 +132,7 @@ namespace MedSerialize {																							\
 	void  ClassName::serialized_fields_name(vector<string> &field_names) { MedSerialize::get_list_names(#__VA_ARGS__, field_names); }
 
 
-#define ADD_CLASS_NAME(Type)	string my_class_name() {return string(#Type);}
+#define ADD_CLASS_NAME(Type)	string my_class_name() const {return string(#Type);}
 
 #define CONDITIONAL_NEW_CLASS(s,c) \
 	if (s == string(#c)) return new c;

@@ -5,12 +5,13 @@
 #include <Logger/Logger/Logger.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedFeat/MedFeat/MedOutcome.h>
+#include "PostProcessor.h"
 
 using namespace std;
 
-class PostProcessor : public SerializableObject {
-};
+
 
 class calibration_entry : public SerializableObject {
 public:
@@ -24,7 +25,7 @@ public:
 	float kaplan_meier;
 
 	ADD_CLASS_NAME(calibration_entry)
-	ADD_SERIALIZATION_FUNCS(bin,min_pred, max_pred, cnt_cases, cnt_controls, mean_pred, mean_outcome, controls_per_time_slot,cases_per_time_slot,kaplan_meier)
+		ADD_SERIALIZATION_FUNCS(bin, min_pred, max_pred, cnt_cases, cnt_controls, mean_pred, mean_outcome, controls_per_time_slot, cases_per_time_slot, kaplan_meier)
 };
 
 MEDSERIALIZE_SUPPORT(calibration_entry)
@@ -40,6 +41,8 @@ static CalibrationTypes clibration_name_to_type(const string& calibration_name);
 
 class Calibrator : public PostProcessor {
 public:
+	Calibrator() { processor_type = PostProcessorTypes::FTR_POSTPROCESS_CALIBRATOR; }
+
 	CalibrationTypes calibration_type = probabilty_time_window;
 
 	int time_unit = MedTime::Days;
@@ -60,30 +63,38 @@ public:
 	bool fix_pred_order = false; ///< If true will not allow higher scores to have lower probabilites
 	int poly_rank = 1; ///< Only in platt_scale - the polynon rank for optimizing sigmoid of prob
 	double control_weight_down_sample = 0; ///< factor weight for controls when downsampling controls by this factor
+	bool verbose = true; ///< If true will print verbose information for calibration
 
 	vector<calibration_entry> cals; ///< for "time_window"
 	vector<float> min_range, max_range, map_prob; ///< for "binning"
 	vector<double> platt_params; ///< for "platt_scale"
+
+	string calibration_samples = ""; ///< calibration samples path to learn
+	bool use_preds_in_samples = false; ///< If true will use predictions in sample file
 
 	/// @snippet Calibration.cpp Calibrator::init
 	virtual int init(map<string, string>& mapper);
 	virtual int Learn(const MedSamples& samples);
 	virtual int Learn(const vector<MedSample>& samples) { return Learn(samples, global_default_time_unit); }
 	virtual int Learn(const vector <MedSample>& samples, const int samples_time_unit);
-	virtual int Apply(MedSamples& samples);
-	virtual int Apply(vector <MedSample>& samples);
+	virtual int Apply(MedSamples& samples) const;
+	virtual int Apply(vector <MedSample>& samples) const;
+
+	//PostProcessor functions:
+	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix);
+	void Apply(MedFeatures &matrix) const;
 
 	calibration_entry calibrate_pred(float pred);
-	float calibrate_pred(float pred, int type);
+	float calibrate_pred(float pred, int type) const;
 
 	void write_calibration_table(const string & calibration_table_file);
 	void read_calibration_table(const string& fname);
 
 	ADD_CLASS_NAME(Calibrator)
-	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
-		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
-		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank,
-		cals, min_range, max_range, map_prob, platt_params)
+		ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
+			km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
+			min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank, control_weight_down_sample,
+			cals, min_range, max_range, map_prob, platt_params)
 
 protected:
 	double calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor);
@@ -91,10 +102,12 @@ protected:
 
 private:
 	int learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit);
-	int apply_time_window(MedSamples& samples);
-	int apply_time_window(vector<MedSample>& samples);
+	int apply_time_window(MedSamples& samples) const;
+	int apply_time_window(vector<MedSample>& samples) const;
 	void write_calibration_time_window(const string & calibration_table_file);
 	void read_calibration_time_window(const string& fname);
 };
+
+MEDSERIALIZE_SUPPORT(Calibrator)
 
 #endif

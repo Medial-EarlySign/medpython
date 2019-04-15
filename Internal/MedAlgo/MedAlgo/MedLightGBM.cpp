@@ -185,6 +185,26 @@ namespace LightGBM {
 		Log::Info("Finished training");
 	}
 
+	void MemApp::fetch_boosting(LightGBM::Boosting *&res) {
+		res = boosting_.get();
+	}
+
+	void MemApp::fetch_early_stop(LightGBM::PredictionEarlyStopInstance &early_stop_) {
+		LightGBM::Boosting *_boosting = boosting_.get();
+
+		early_stop_ = CreatePredictionEarlyStopInstance("none", LightGBM::PredictionEarlyStopConfig());
+		if (config_.io_config.pred_early_stop && !_boosting->NeedAccuratePrediction()) {
+			LightGBM::PredictionEarlyStopConfig pred_early_stop_config;
+			pred_early_stop_config.margin_threshold = config_.io_config.pred_early_stop_margin;
+			pred_early_stop_config.round_period = config_.io_config.pred_early_stop_freq;
+			if (_boosting->NumberOfClasses() == 1) {
+				early_stop_ = CreatePredictionEarlyStopInstance("binary", pred_early_stop_config);
+			}
+			else {
+				early_stop_ = CreatePredictionEarlyStopInstance("multiclass", pred_early_stop_config);
+			}
+		}
+	}
 
 	//-------------------------------------------------------------------------------------------------
 	void MemApp::Predict(float *x, int nrows, int ncols, float *&preds) const
@@ -194,14 +214,14 @@ namespace LightGBM {
 		// create boosting
 		Predictor predictor(boosting_.get(), config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score, config_.io_config.is_predict_leaf_index,
 			config_.io_config.pred_early_stop, config_.io_config.pred_early_stop_freq, config_.io_config.pred_early_stop_margin);
-		int64_t num_preb_in_one_row = boosting_->NumPredictOneRow(config_.io_config.num_iteration_predict, config_.io_config.is_predict_leaf_index);
+		int64_t num_pred_in_one_row = boosting_->NumPredictOneRow(config_.io_config.num_iteration_predict, config_.io_config.is_predict_leaf_index);
 		auto pred_fun = predictor.GetPredictFunction();
-
+		
 		//string str;
 		//serialize_to_string(str);
 
-		int64_t len_res = nrows * num_preb_in_one_row;
-		//MLOG("[MedLightGBM] predict: nrows %d , num_pred %d , len_res %d\n", nrows, num_preb_in_one_row, len_res);
+		int64_t len_res = nrows * num_pred_in_one_row;
+		//MLOG("[MedLightGBM] predict: nrows %d , num_pred %d , len_res %d\n", nrows, num_pred_in_one_row, len_res);
 		//MLOG("[MedLightGBM] predict: num_iter %d , is_raw %d , is_leaf %d\n", 
 		//	config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score ? 1 : 0, config_.io_config.is_predict_leaf_index ? 1:0);
 		vector<double> out_result_vec(len_res);
@@ -213,13 +233,13 @@ namespace LightGBM {
 		for (int i = 0; i < nrows; ++i) {
 			OMP_LOOP_EX_BEGIN();
 			auto one_row = get_row_fun(i);
-			auto pred_wrt_ptr = out_result + static_cast<size_t>(num_preb_in_one_row) * i;
+			auto pred_wrt_ptr = out_result + static_cast<size_t>(num_pred_in_one_row) * i;
 			pred_fun(one_row, pred_wrt_ptr);
 			OMP_LOOP_EX_END();
 		}
 		OMP_THROW_EX();
-
-		for (int64_t i = 0; i < len_res; i++) preds[i] = (float)out_result[i];
+	
+		for (int64_t i = 0; i < len_res; i++) preds[i] = (float)out_result[i];   
 	}
 
 	//-----------------------------------------------------------------------------------------------------------
@@ -332,4 +352,31 @@ void MedLightGBM::calc_feature_importance(vector<float> &features_importance_sco
 		(model_features.empty() ? features_count : (int)model_features.size()));
 }
 
+void MedLightGBM::prepare_predict_single() {
+	if (!prepared_single) {
+		num_preds = n_preds_per_sample();
 
+		mem_app.fetch_boosting(_boosting);
+		mem_app.fetch_early_stop(early_stop_);
+		prepared_single = true;
+	}
+}
+
+void MedLightGBM::predict_single(const vector<float> &x, vector<float> &preds) const {
+	int n_ftrs = (int)x.size();
+	vector<double> one_row(n_ftrs);
+	for (int i = 0; i < n_ftrs; ++i)
+		one_row[i] = static_cast<double>(x[i]);
+
+	vector<double> out_result_vec(num_preds);
+	predict_single(one_row, out_result_vec);
+
+	preds.resize(num_preds);
+	for (int64_t i = 0; i < num_preds; i++) preds[i] = (float)out_result_vec[i];
+}
+
+void MedLightGBM::predict_single(const vector<double> &x, vector<double> &preds) const {
+	preds.resize(num_preds);
+	double *out_result = &preds[0];
+	_boosting->Predict(x.data(), out_result, &early_stop_);
+}

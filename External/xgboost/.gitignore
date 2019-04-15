@@ -2,7 +2,6 @@
 *.slo
 *.lo
 *.o
-*.d
 *.page
 # Compiled Dynamic libraries
 *.so
@@ -16,7 +15,6 @@
 *.Rcheck
 *.rds
 *.tar.gz
-#*txt*
 *conf
 *buffer
 *model
@@ -48,13 +46,12 @@ Debug
 *.cpage.col
 *.cpage
 *.Rproj
-./xgboost
 ./xgboost.mpi
 ./xgboost.mock
 #.Rbuildignore
 R-package.Rproj
 *.cache*
-#java
+# java
 java/xgboost4j/target
 java/xgboost4j/tmp
 java/xgboost4j-demo/target
@@ -67,6 +64,7 @@ nb-configuration*
 .cproject
 .pydevproject
 .settings/
+build
 config.mk
 /xgboost
 *.data
@@ -93,11 +91,3 @@ lib/
 metastore_db
 
 plugin/updater_gpu/test/cpp/data
-winBuild/*
-!winBuild/*.sln
-!winBuild/*.vcxproj*
-!./CMakeLists.txt
-!winBuild/dmlc-core
-winBuild/dmlc-core/*
-!winBuild/dmlc-core/*.vcxproj*
-

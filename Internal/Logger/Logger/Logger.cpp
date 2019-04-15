@@ -10,6 +10,7 @@
 #include <thread>
 #include <ctime>
 #include "Logger.h"
+#include <unordered_set>
 
 MedLogger global_logger;
 
@@ -22,12 +23,14 @@ vector<string> log_level_to_name = { "min_level", "", "", "DEBUG", "", "INFO", "
 void MedLogger::init_out()
 {
 	out_fd = stdout;
+	out_file_name = "stdout";
 }
 
 //-----------------------------------------------------------------------------------------------
 void MedLogger::init_out(FILE *of)
 {
 	out_fd = of;
+	out_file_name = "__UNKNOWN__";
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -39,6 +42,7 @@ void MedLogger::init_out(const string &fname)
 		out_fd = stdout;
 	}
 	out_fd = inf;
+	out_file_name = fname;
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -46,11 +50,13 @@ MedLogger::MedLogger()
 {
 	levels.resize(MAX_LOG_SECTION);
 	fds.resize(MAX_LOG_SECTION);
+	file_names.resize(MAX_LOG_SECTION);
 	format.resize(MAX_LOG_SECTION, "%s");
 
 	for (int i = 0; i < MAX_LOG_SECTION; i++) {
 		levels[i] = LOG_DEF_LEVEL;
 		fds[i].push_back(stderr);
+		file_names[i].push_back("stderr");
 	}
 	init_out();
 }
@@ -58,19 +64,25 @@ MedLogger::MedLogger()
 //-----------------------------------------------------------------------------------------------
 MedLogger::~MedLogger()
 {
+	unordered_set<string> closed_files;
+
 	for (int i = 0; i < MAX_LOG_SECTION; i++) {
 		for (size_t j = 0; j < fds[i].size(); ++j)
 		{
 			if (fds[i][j] != NULL)
 				fflush(fds[i][j]);
+
 			if (fds[i][j] != NULL && fds[i][j] != stderr && fds[i][j] != stdout) {
-				fclose(fds[i][j]);
+				if (closed_files.find(file_names[i][j]) == closed_files.end()) {
+					fclose(fds[i][j]);
+					closed_files.insert(file_names[i][j]);
+				}
 				fds[i][j] = NULL;
 			}
 		}
 
 	}
-	if (out_fd != NULL && out_fd != stderr && out_fd != stdout)
+	if (out_fd != NULL && out_fd != stderr && out_fd != stdout && closed_files.find(out_file_name) == closed_files.end())
 		fclose(out_fd);
 }
 
@@ -85,7 +97,8 @@ int MedLogger::init_all_files(const string &fname)
 	}
 
 	for (int i = 0; i < MAX_LOG_SECTION; i++) {
-		fds[i].push_back(inf);
+		fds[i].assign(1, inf);
+		file_names[i].assign(1, fname);
 	}
 
 	return 0;
@@ -112,6 +125,7 @@ void MedLogger::init_file(int section, FILE *of)
 		if (fds[section].empty())
 			fds[section].resize(1);
 		fds[section].back() = of;
+		file_names[section].back() = "__UNKNOWN__";
 	}
 }
 
@@ -132,6 +146,7 @@ int MedLogger::init_file(int section, const string &fname)
 	if (fds[section].empty())
 		fds[section].resize(1);
 	fds[section].back() = inf;
+	file_names[section].back() = fname;
 
 	return 0;
 }
@@ -148,6 +163,7 @@ int MedLogger::add_file(int section, const string &fname) {
 		return -1;
 	}
 	fds[section].push_back(inf);
+	file_names[section].push_back(fname);
 
 	return 0;
 }

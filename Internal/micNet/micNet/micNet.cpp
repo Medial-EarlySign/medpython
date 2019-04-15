@@ -27,11 +27,11 @@ extern MedLogger global_logger;
 //.................................................................................
 int micNode::init_wgts_rand(float min_range, float max_range)
 {
-	wgt.resize(n_in+1, k_out+1);
+	wgt.resize(n_in + 1, k_out + 1);
 
 	int i, j;
-	for (i=0; i<n_in+1; i++) {
-		for (j=0; j<k_out; j++)
+	for (i = 0; i < n_in + 1; i++) {
+		for (j = 0; j < k_out; j++)
 			wgt(i, j) = rand_range(min_range, max_range);
 		wgt(i, k_out) = 0;
 	}
@@ -44,21 +44,21 @@ int micNode::init_wgts_rand(float min_range, float max_range)
 //.................................................................................
 int micNode::init_wgts_rand_normal(float mean, float std)
 {
-	wgt.resize(n_in+1, k_out+1);
+	wgt.resize(n_in + 1, k_out + 1);
 
 	std::default_random_engine gen;
 	std::normal_distribution<float> dist(mean, std);
 
 	int i, j;
 	wgt.zero();
-	for (i=0; i<n_in; i++) {
-		for (j=0; j<k_out; j++) {
+	for (i = 0; i < n_in; i++) {
+		for (j = 0; j < k_out; j++) {
 			//if (rand_1()<0.25)
 			//	wgt(i, j) = 2;
 			wgt(i, j) = dist(gen);
 			//MLOG("wgt init (%d,%d) = %f %f\n", i, j, std, wgt(i, j));
 		}
-//		wgt(i, k_out) = 0;
+		//		wgt(i, k_out) = 0;
 	}
 
 	wgt(n_in, k_out) = 1; // last column is 0,0,...1 so that input 1's for bias are kept over to next layer
@@ -73,13 +73,13 @@ int micNode::fill_input_node(int *perm, int len, MedMat<float> &x_mat, int last_
 	int nfeat = x_mat.ncols;
 	if (last_is_bias_flag) nfeat--;
 
-	batch_out.resize(len, nfeat+1);
+	batch_out.resize(len, nfeat + 1);
 	float *b_out = batch_out.data_ptr();
 
 	// now going over our 'len' permutated lines and copying each line from x to the batch_out buffer.
-	for (int i=0; i<len; i++) {
+	for (int i = 0; i < len; i++) {
 		int ii = perm[i];
-		memcpy(b_out, &x_mat.m[ii*(x_mat.ncols)], nfeat*sizeof(float));
+		memcpy(b_out, &x_mat.m[ii*(x_mat.ncols)], nfeat * sizeof(float));
 		b_out[nfeat] = 1; // bias term
 		b_out += nfeat + 1;
 	}
@@ -92,21 +92,37 @@ int micNode::fill_input_node(int *perm, int len, MedMat<float> &x_mat, int last_
 int micNode::fill_output_node(int *perm, int len, MedMat<float> &y_mat, vector<float> &sample_weights)
 {
 	y.resize(len, y_mat.ncols);
-	for (int i=0; i<len; i++) {
+	for (int i = 0; i < len; i++) {
 		int ii = perm[i];
-		for (int j=0; j< y_mat.ncols; j++)
+		for (int j = 0; j < y_mat.ncols; j++)
 			y(i, j) = y_mat(ii, j);
 	}
 
 	if (sample_weights.size() > 0) {
 		sweights.resize(len);
-		for (int i=0; i<len; i++)
+		for (int i = 0; i < len; i++)
 			sweights[i] = sample_weights[perm[i]];
 	}
 	else
 		sweights.clear();
 
 	return 0;
+}
+
+void micNode::get_input_batch(const vector<MedMat<float>> &nodes_out, MedMat<float> &in) const {
+	// simpler code for just a single input node
+	if (ir.n_input_nodes == 1) {
+
+		// get the input node
+		int j = ir.in_node_id[0];
+
+		// copy batch from input and check it
+		//MLOG("Copying input to batch_in of node %d from batch_out of node %d\n", id, in_node.id);
+		if (ir.mode[0] == "all") {
+			//MLOG("Copying batch_out from node %d to batch_in in node %d : batch_out is: %d x %d\n", in_node.id, id, in_node.batch_out.nrows, in_node.batch_out.ncols);
+			in = nodes_out[j];
+		}
+	}
 }
 
 //.................................................................................
@@ -117,7 +133,7 @@ int micNode::fill_output_node(int *perm, int len, MedMat<float> &y_mat, vector<f
 int micNode::get_input_batch(int do_grad_flag)
 {
 	int n_in_dim = 0;
-	for (int i=0; i<ir.n_input_nodes; i++) {
+	for (int i = 0; i < ir.n_input_nodes; i++) {
 		n_in_dim += my_net->nodes[ir.in_node_id[i]].k_out;
 	}
 
@@ -148,7 +164,7 @@ int micNode::get_input_batch(int do_grad_flag)
 			dropout_in = in_node.dropout_out;
 		}
 
-		if (batch_in.ncols-1 != n_in_dim) {
+		if (batch_in.ncols - 1 != n_in_dim) {
 			MERR("%s :: get_input_batch() :: ERROR :: node %d :: non matching dimensions %d <-> %d\n", name.c_str(), id, batch_in.ncols, n_in_dim);
 			return -1;
 		}
@@ -156,7 +172,7 @@ int micNode::get_input_batch(int do_grad_flag)
 		// handle dropout: actually randomizing the dropout matrix to decide which weights will be used in this batch
 		if (do_grad_flag && dropout_prob_in < 1) {
 			if (dropout_in.size() == 0) {
-				for (int i=0; i<n_in; i++)
+				for (int i = 0; i < n_in; i++)
 					if (rand_1() <= dropout_prob_in)
 						dropout_in.push_back((float)1);
 					else
@@ -164,16 +180,16 @@ int micNode::get_input_batch(int do_grad_flag)
 				dropout_in.push_back(1); // bias always chosen
 			}
 
-			dropout_out.resize(k_out+1);
-			for (int i=0; i<k_out; i++)
+			dropout_out.resize(k_out + 1);
+			for (int i = 0; i < k_out; i++)
 				if (rand_1() <= dropout_prob_out)
 					dropout_out[i] = (float)1;
 				else
 					dropout_out[i] = (float)0;
 			dropout_out[k_out] = 1; //bias always chosen
 
-			for (int i=0; i<batch_in.nrows; i++)
-				for (int j=0; j<n_in; j++)
+			for (int i = 0; i < batch_in.nrows; i++)
+				for (int j = 0; j < n_in; j++)
 					batch_in(i, j) *= dropout_in[j]; // this zeros the columns we don't want to sum on. Probably an over kill and could have been 
 													 // computed faster when multiplying weights on batch
 		}
@@ -184,6 +200,135 @@ int micNode::get_input_batch(int do_grad_flag)
 
 	return 0;
 }
+
+void micNode::forward_batch_leaky_relu(const MedMat<float> &in, MedMat<float> &out) const
+{
+	// sanity checks
+	if (in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || lr_params.nrows != k_out || lr_params.ncols != 2 || lambda.nrows != k_out) {
+		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_leaky_relu : input: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
+			in.nrows, in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
+	}
+
+	// multiplying to get W * x
+	//	print("debug before mult mat", 1, 6);
+	if (dropout_prob_out >= 1) {
+		if (fast_multiply_medmat_(in, wgt, out) < 0)
+			MTHROW_AND_ERR("Failed\n");
+	}
+	else {
+		if (fast_multiply_medmat(in, wgt, out, dropout_prob_out) < 0)
+			MTHROW_AND_ERR("Failed\n");
+	}
+
+	// Reminder: the last col in weights is 0,0,....0,1 
+	// That with the last in each input row being 1 makes sure the output will also have 1's at the end.
+	int i = 0;
+	int n_b = out.nrows;
+
+	// applying leaky max func on out
+
+		// faster, without grad_s calculation
+//#pragma omp parallel for private(i) if (n_b>100 || k_out>100)
+	for (i = 0; i < n_b; i++)
+		for (int j = 0; j < k_out; j++)
+			if (out(i, j) >= 0)
+				out(i, j) *= lr_params(j, 0); // a
+			else
+				out(i, j) *= lr_params(j, 1); // b
+
+}
+
+void micNode::forward_batch_normalization(const MedMat<float> &in, MedMat<float> &out) const {
+	// sanity checks
+	if (in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || n_in != k_out) {
+		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_normalization : input: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
+			in.nrows, in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
+	}
+
+	// multiplying to get W * x - leaving this code, although it should be made faster by multiplying a diagonal matrix.
+	int n_b = in.nrows;
+	out.resize(n_b, n_in + 1);
+
+	for (int i = 0; i < n_b; i++) {
+		for (int j = 0; j < n_in; j++) {
+			int alpha_j = 1, beta_j = 0;
+			if (j < alpha.size())
+				alpha_j = alpha[j];
+			if (j < beta.size())
+				beta_j = beta[j];
+			out(i, j) = in(i, j) * alpha_j + beta_j;
+		}
+		out(i, n_in) = 1;
+	}
+
+}
+
+void micNode::forward_batch_softmax(const MedMat<float> &in, MedMat<float> &out) const {
+	int i, j;
+	int n_b = in.nrows;
+
+	// sanity
+	if (in.ncols != n_in + 1 || k_out != n_categ || n_in != n_categ * n_per_categ) {
+		MTHROW_AND_ERR("ERROR:: forward_batch_softmax() :: non matching sizes :: input %d x %d , n_in %d k_out %d\n", in.nrows, in.ncols, n_in, k_out);
+	}
+
+
+	out.resize(in.nrows, k_out + 1);
+	MedMat<float> &full_probs = out;
+	//full_probs.resize(in.nrows, n_in + 1);
+	//	print("softmax_forward before calcs:", 1, 6);
+	float max_exp = (float)34;
+	float min_exp = (float)-34;
+	// softmax calc
+	//#pragma omp parallel for if (n_b>100 || n_in>100)
+	for (i = 0; i < n_b; i++) {
+		double sum = 0;
+		float max_val = in(i, 0);
+		for (j = 1; j < n_in; j++)
+			if (max_val < in(i, j))
+				max_val = in(i, j);
+		for (j = 0; j < n_in; j++) {
+			full_probs(i, j) = min(max(in(i, j) - max_val, min_exp), max_exp);
+			full_probs(i, j) = (float)exp((double)full_probs(i, j));
+			sum += (double)full_probs(i, j);
+		}
+
+		for (j = 0; j < n_in; j++)
+			full_probs(i, j) = (float)(full_probs(i, j) / sum);
+		full_probs(i, n_in) = 1; // bias column
+	}
+
+	if (n_per_categ != 1) {
+		MedMat<float> copy_preds = out;
+		float epsilon = (float)1e-10;
+		//#pragma omp parallel for private(i) if (n_b>100 || n_in>100)
+		for (i = 0; i < n_b; i++) {
+			int m = 0;
+			for (j = 0; j < n_in; j += n_per_categ) {
+				float sum = 0;
+				for (int k = j; k < j + n_per_categ; k++)
+					sum += copy_preds(i, k);
+				out(i, m++) = min(sum, (float)1 - epsilon);
+			}
+			if (m != n_categ) {
+				MTHROW_AND_ERR("ERROR: m %d n_categ %d\n", m, n_categ);
+			}
+			out(i, k_out) = 1;
+		}
+
+	}
+}
+
+void micNode::forward_batch_regression(const MedMat<float> &in, MedMat<float> &out) const {
+	// sanity
+	if (in.ncols != n_in + 1 || n_in != k_out) {
+		MTHROW_AND_ERR("ERROR:: forward_batch_regression() :: non matching sizes :: input %d x %d , n_in %d k_out %d :: wgt size %d x %d\n",
+			in.nrows, in.ncols, n_in, k_out, wgt.ncols, wgt.nrows);
+	}
+
+	out = in;
+}
+
 //.................................................................................
 // we have input of size batch_size x (n_in + 1) :: +1 for the bias
 // weights of size (n_in + 1) x (k_out + 1) :: last col is 0,0,0...,0,1 to transfer bias "1" forward
@@ -193,7 +338,7 @@ int micNode::get_input_batch(int do_grad_flag)
 int micNode::forward_batch_leaky_relu(int do_grad_flag)
 {
 	// sanity checks
-	if (batch_in.ncols != n_in+1 || wgt.nrows != n_in+1 || wgt.ncols != k_out+1 || lr_params.nrows != k_out || lr_params.ncols != 2 || lambda.nrows != k_out) {
+	if (batch_in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || lr_params.nrows != k_out || lr_params.ncols != 2 || lambda.nrows != k_out) {
 		MERR("ERROR:: micNode::forward_batch_leaky_relu : batch_in: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
 			batch_in.nrows, batch_in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
 		return -1;
@@ -217,7 +362,7 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 	// multiplying to get W * x
 //	print("debug before mult mat", 1, 6);
 	if (do_grad_flag || dropout_prob_out >= 1) {
-		if (fast_multiply_medmat(batch_in, wgt, batch_out) < 0)
+		if (fast_multiply_medmat_(batch_in, wgt, batch_out) < 0)
 			return -1;
 	}
 	else {
@@ -227,12 +372,12 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 		//		wgt_test(i, j) *= dropout_prob_out;
 		//if (fast_multiply_medmat(batch_in, wgt_test, batch_out) < 0)
 		if (fast_multiply_medmat(batch_in, wgt, batch_out, dropout_prob_out) < 0)
-				return -1;
+			return -1;
 	}
-//	print("debug after mult mat", 1, 6);
+	//	print("debug after mult mat", 1, 6);
 
-	// Reminder: the last col in weights is 0,0,....0,1 
-	// That with the last in each input row being 1 makes sure the output will also have 1's at the end.
+		// Reminder: the last col in weights is 0,0,....0,1 
+		// That with the last in each input row being 1 makes sure the output will also have 1's at the end.
 	int i = 0;
 	int n_b = batch_out.nrows;
 
@@ -242,8 +387,8 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 		// faster, without grad_s calculation
 
 #pragma omp parallel for private(i) if (n_b>100 || k_out>100)
-		for (i=0; i<n_b; i++)
-			for (int j=0; j<k_out; j++)
+		for (i = 0; i < n_b; i++)
+			for (int j = 0; j < k_out; j++)
 				if (batch_out(i, j) >= 0)
 					batch_out(i, j) *= lr_params(j, 0); // a
 				else
@@ -251,11 +396,11 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 	}
 	else {
 
-		grad_s.resize(n_b, k_out+1);
+		grad_s.resize(n_b, k_out + 1);
 
 #pragma omp parallel for private(i) if (n_b>100 || k_out>100)
-		for (i=0; i<n_b; i++) {
-			for (int j=0; j<k_out; j++)
+		for (i = 0; i < n_b; i++) {
+			for (int j = 0; j < k_out; j++)
 				if (batch_out(i, j) >= 0) {
 					grad_s(i, j) = lr_params(j, 0);
 					batch_out(i, j) *= lr_params(j, 0); // a
@@ -264,10 +409,10 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 					grad_s(i, j) = lr_params(j, 1);
 					batch_out(i, j) *= lr_params(j, 1); // b
 				}
-			grad_s(i, k_out) = 0;
+				grad_s(i, k_out) = 0;
 		}
 
-//		print("debug forward after grad step:",1,6);
+		//		print("debug forward after grad step:",1,6);
 	}
 
 	return 0;
@@ -288,12 +433,12 @@ int micNode::forward_batch_softmax(int do_grad_flag)
 	int n_b = batch_in.nrows;
 
 	// sanity
-	if (batch_in.ncols != n_in+1 || k_out != n_categ || n_in != n_categ*n_per_categ) {
+	if (batch_in.ncols != n_in + 1 || k_out != n_categ || n_in != n_categ * n_per_categ) {
 		MERR("ERROR:: forward_batch_softmax() :: non matching sizes :: batch_in %d x %d , n_in %d k_out %d\n", batch_in.nrows, batch_in.ncols, n_in, k_out);
 		return -1;
 	}
 
-//	MLOG("forward_batch_softmax() ::  batch_in %d x %d , n_b %d n_in %d k_out %d\n", batch_in.nrows, batch_in.ncols, n_b, n_in, k_out);
+	//	MLOG("forward_batch_softmax() ::  batch_in %d x %d , n_b %d n_in %d k_out %d\n", batch_in.nrows, batch_in.ncols, n_b, n_in, k_out);
 
 	batch_out.resize(batch_in.nrows, k_out + 1);
 	full_probs.resize(batch_in.nrows, n_in + 1);
@@ -302,13 +447,13 @@ int micNode::forward_batch_softmax(int do_grad_flag)
 	float min_exp = (float)-34;
 	// softmax calc
 //#pragma omp parallel for if (n_b>100 || n_in>100)
-	for (i=0; i<n_b; i++) {
+	for (i = 0; i < n_b; i++) {
 		double sum = 0;
 		float max_val = batch_in(i, 0);
-		for (j=1; j<n_in; j++)
+		for (j = 1; j < n_in; j++)
 			if (max_val < batch_in(i, j))
 				max_val = batch_in(i, j);
-		for (j=0; j<n_in; j++) {
+		for (j = 0; j < n_in; j++) {
 			full_probs(i, j) = min(max(batch_in(i, j) - max_val, min_exp), max_exp);
 			full_probs(i, j) = (float)exp((double)full_probs(i, j));
 			sum += (double)full_probs(i, j);
@@ -319,8 +464,8 @@ int micNode::forward_batch_softmax(int do_grad_flag)
 		//	sum += batch_out(i, j);
 		//}
 		//MLOG("i %d %f n_b %d :: %f %f :: %f %f\n", i, sum, n_b, batch_in(i,0),batch_in(i,1),batch_out(i,0),batch_out(i,1));
-		for (j=0; j<n_in; j++)
-			full_probs(i, j) = (float)(full_probs(i,j)/sum);
+		for (j = 0; j < n_in; j++)
+			full_probs(i, j) = (float)(full_probs(i, j) / sum);
 		full_probs(i, n_in) = 1; // bias column
 	}
 
@@ -329,14 +474,14 @@ int micNode::forward_batch_softmax(int do_grad_flag)
 	else {
 
 		float epsilon = (float)1e-10;
-//#pragma omp parallel for private(i) if (n_b>100 || n_in>100)
-		for (i=0; i<n_b; i++) {
+		//#pragma omp parallel for private(i) if (n_b>100 || n_in>100)
+		for (i = 0; i < n_b; i++) {
 			int m = 0;
-			for (j=0; j<n_in; j+=n_per_categ) {
+			for (j = 0; j < n_in; j += n_per_categ) {
 				float sum = 0;
-				for (int k=j; k<j+n_per_categ; k++)
+				for (int k = j; k < j + n_per_categ; k++)
 					sum += full_probs(i, k);
-				batch_out(i, m++) = min(sum,(float)1-epsilon);
+				batch_out(i, m++) = min(sum, (float)1 - epsilon);
 			}
 			if (m != n_categ) {
 				MERR("ERROR: m %d n_categ %d\n", m, n_categ);
@@ -347,14 +492,14 @@ int micNode::forward_batch_softmax(int do_grad_flag)
 
 	}
 
-//	MLOG("forward_batch_softmax() ::  before grad()\n");
+	//	MLOG("forward_batch_softmax() ::  before grad()\n");
 	if (do_grad_flag && (!is_terminal)) { // next section is not very useful, and probably bugged...
 
 		if (loss == "") {
 			grad_s.resize(n_b, n_in);
 			grad_s.zero();
-			for (int k=0; k<n_b; k++)
-				for (i=0; i<n_in; i++)
+			for (int k = 0; k < n_b; k++)
+				for (i = 0; i < n_in; i++)
 					grad_s(k, i) = full_probs(k, i) - full_probs(k, i)*full_probs(k, i);
 		}
 
@@ -378,8 +523,8 @@ int micNode::forward_batch_regression(int do_grad_flag)
 	int n_b = batch_in.nrows;
 
 	// sanity
-	if (batch_in.ncols != n_in+1 || n_in != k_out) {
-		MERR("ERROR:: forward_batch_regression() :: non matching sizes :: batch_in %d x %d , n_in %d k_out %d :: wgt size %d x %d\n", 
+	if (batch_in.ncols != n_in + 1 || n_in != k_out) {
+		MERR("ERROR:: forward_batch_regression() :: non matching sizes :: batch_in %d x %d , n_in %d k_out %d :: wgt size %d x %d\n",
 			batch_in.nrows, batch_in.ncols, n_in, k_out, wgt.ncols, wgt.nrows);
 		return -1;
 	}
@@ -391,14 +536,14 @@ int micNode::forward_batch_regression(int do_grad_flag)
 
 
 	if (do_grad_flag) {
-		float fact = 1/(float)n_b; // normalizing for cases of different batch sizes
+		float fact = 1 / (float)n_b; // normalizing for cases of different batch sizes
 
 		if (n_in == 1) {
-		
+
 			// classical regression problem
 			delta.resize(n_in, 1);
-			for (i=0; i<n_b; i++)
-				delta(i, 0) = fact*(batch_in(i, 0) - y(i, 0));
+			for (i = 0; i < n_b; i++)
+				delta(i, 0) = fact * (batch_in(i, 0) - y(i, 0));
 
 		}
 		else if (n_in > 1) {
@@ -406,18 +551,18 @@ int micNode::forward_batch_regression(int do_grad_flag)
 			// multi-categ embedded regression problem
 			if (y.ncols == 1) {
 				// y is given as the value
-				for (i=0; i<n_b; i++) {
-					for (j=0; j<n_in; j++)
-						delta(i, j) = fact*batch_in(i, j);
+				for (i = 0; i < n_b; i++) {
+					for (j = 0; j < n_in; j++)
+						delta(i, j) = fact * batch_in(i, j);
 					delta(i, (int)y(i, 0)) -= fact;
 				}
 
 			}
 			else {
 				// y is given as a vector
-				for (i=0; i<n_b; i++) {
-					for (j=0; j<n_in; j++)
-						delta(i, j) = fact*(batch_in(i, j) - y(i, j));
+				for (i = 0; i < n_b; i++) {
+					for (j = 0; j < n_in; j++)
+						delta(i, j) = fact * (batch_in(i, j) - y(i, j));
 				}
 
 			}
@@ -445,7 +590,7 @@ int micNode::forward_batch_regression(int do_grad_flag)
 int micNode::forward_batch_normalization(int do_grad_flag)
 {
 	// sanity checks
-	if (batch_in.ncols != n_in+1 || wgt.nrows != n_in+1 || wgt.ncols != k_out+1 || n_in != k_out) {
+	if (batch_in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || n_in != k_out) {
 		MERR("ERROR:: micNode::forward_batch_normalization : batch_in: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
 			batch_in.nrows, batch_in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
 		return -1;
@@ -458,17 +603,17 @@ int micNode::forward_batch_normalization(int do_grad_flag)
 	// multiplying to get W * x - leaving this code, although it should be made faster by multiplying a diagonal matrix.
 	if (1) { //do_grad_flag || dropout_prob_out >= 1) {
 		int n_b = batch_in.nrows;
-		batch_out.resize(n_b, n_in+1);
+		batch_out.resize(n_b, n_in + 1);
 		if (alpha.size() < n_in) { // this init should move to initialization code.
 			alpha.resize(n_in, (float)1);
 			alpha.push_back(0);
-			beta.resize(n_in+1, 0);
+			beta.resize(n_in + 1, 0);
 		}
 
-//#pragma omp parallel for
-		//MLOG("## id %d [0] alpha %f beta %f\n", id, alpha[0], beta[0]);
-		for (int i=0; i<n_b; i++) {
-			for (int j=0; j<n_in; j++) {
+		//#pragma omp parallel for
+				//MLOG("## id %d [0] alpha %f beta %f\n", id, alpha[0], beta[0]);
+		for (int i = 0; i < n_b; i++) {
+			for (int j = 0; j < n_in; j++) {
 				batch_out(i, j) = batch_in(i, j) * alpha[j] + beta[j];
 			}
 			batch_out(i, n_in) = 1;
@@ -489,19 +634,58 @@ int micNode::forward_batch_normalization(int do_grad_flag)
 	// applying leaky max func on batch_out
 
 	if (do_grad_flag) {
-	
+
 		grad_s.clear();
 		if (grad_s.m.size() == 0) {
 			//grad_s.resize(n_b, k_out+1);
 			//fill(grad_s.m.begin(), grad_s.m.end(), (float)1);
 		}
-		
+
 	}
 
 	return 0;
 }
 
 
+void micNode::forward_batch(const vector<MedMat<float>> &nodes_outputs, MedMat<float> &out) const
+{
+
+	int j = 0;
+	if (ir.n_input_nodes == 1 && ir.mode[0] == "all") {
+		j = ir.in_node_id[0];
+	}
+	else
+		MWARN("warning n_input_nodes != 1");
+	const MedMat<float> &in = nodes_outputs[j];
+
+	//calculate current layer on in as input
+	if (type == "Input") {
+		out = move(in);
+		return;
+	}
+
+	if (type == "LeakyReLU") {
+		forward_batch_leaky_relu(in, out);
+		return;
+	}
+
+	if (type == "SoftMax") {
+		forward_batch_softmax(in, out);
+		return;
+	}
+
+	if (type == "Regression") {
+		forward_batch_regression(in, out);
+		return;
+	}
+
+	if (type == "Normalization") {
+		forward_batch_normalization(in, out);
+		return;
+	}
+
+	MTHROW_AND_ERR("ERROR:: micNode::forward_batch() :: no such node type : %s \n", type.c_str());
+}
 
 //.................................................................................
 // runs the node forward on the current batch_in
@@ -550,7 +734,7 @@ int micNode::get_backprop_delta()
 {
 	int i, j, k;
 	int n_b = batch_in.nrows;
-	float fact = (float)1/(float)n_b; // normalizing for cases of different batch sizes
+	float fact = (float)1 / (float)n_b; // normalizing for cases of different batch sizes
 
 	if (loss == "log") {
 
@@ -558,28 +742,28 @@ int micNode::get_backprop_delta()
 		delta.resize(n_b, n_in + 1);
 		delta.zero();
 
-//#pragma omp parallel for private(k) if (n_b>100 || n_in>100)
+		//#pragma omp parallel for private(k) if (n_b>100 || n_in>100)
 		if (n_per_categ == 1) {
-			for (k=0; k<n_b; k++) {
-				for (int j=0; j<n_in; j++)
-					delta(k, j) = fact*batch_out(k, j);
+			for (k = 0; k < n_b; k++) {
+				for (int j = 0; j < n_in; j++)
+					delta(k, j) = fact * batch_out(k, j);
 				delta(k, (int)y(k, 0)) -= fact;
 			}
 			if (sweights.size() != 0)
-				for (k=0; k<n_b; k++)
-					for (int j=0; j<n_in; j++)
+				for (k = 0; k < n_b; k++)
+					for (int j = 0; j < n_in; j++)
 						delta(k, j) *= sweights[k];
 		}
 		else {
 
-			for (i=0; i<n_b; i++) {
-				for (j=0; j<n_in; j++)
-					delta(i, j) = fact*full_probs(i, j);
+			for (i = 0; i < n_b; i++) {
+				for (j = 0; j < n_in; j++)
+					delta(i, j) = fact * full_probs(i, j);
 				int k = (int)y(i, 0);
 				float epsilon = (float)1e-5;
-				float p_J = fact/(batch_out(i, k) + epsilon);
-				for (j=k*n_per_categ; j<(k+1)*n_per_categ; j++) {
-					delta(i, j) -= p_J*(full_probs(i, j) + epsilon);
+				float p_J = fact / (batch_out(i, k) + epsilon);
+				for (j = k * n_per_categ; j < (k + 1)*n_per_categ; j++) {
+					delta(i, j) -= p_J * (full_probs(i, j) + epsilon);
 				}
 			}
 
@@ -597,10 +781,10 @@ int micNode::get_backprop_delta()
 		if (n_in == 1) {
 
 			// classical regression problem
-			for (i=0; i<n_b; i++)
-				delta(i, 0) = fact*(batch_in(i, 0) - y(i, 0));
+			for (i = 0; i < n_b; i++)
+				delta(i, 0) = fact * (batch_in(i, 0) - y(i, 0));
 			if (sweights.size() != 0)
-				for (i=0; i<n_b; i++)
+				for (i = 0; i < n_b; i++)
 					delta(i, 0) *= sweights[i];
 
 
@@ -611,18 +795,18 @@ int micNode::get_backprop_delta()
 			// multi-categ embedded regression problem
 			if (y.ncols == 1) {
 				// y is given as the value --> this turns out to be exactly like the log loss...
-				for (i=0; i<n_b; i++) {
-					for (j=0; j<n_in; j++)
-						delta(i, j) = fact*batch_in(i, j);
+				for (i = 0; i < n_b; i++) {
+					for (j = 0; j < n_in; j++)
+						delta(i, j) = fact * batch_in(i, j);
 					delta(i, (int)y(i, 0)) -= fact;
 				}
 
 			}
 			else {
 				// y is given as a vector
-				for (i=0; i<n_b; i++) {
-					for (j=0; j<n_in; j++)
-						delta(i, j) = fact*(batch_in(i, j) - y(i, j));
+				for (i = 0; i < n_b; i++) {
+					for (j = 0; j < n_in; j++)
+						delta(i, j) = fact * (batch_in(i, j) - y(i, j));
 				}
 
 			}
@@ -644,7 +828,7 @@ int micNode::back_propagete_from(micNode *next)
 
 	if (next == NULL || next->ir.n_input_nodes == 1) {
 
-//		print("debug back_propagate_from start", 1, 6);
+		//		print("debug back_propagate_from start", 1, 6);
 		int n_b = batch_out.nrows;
 
 		// single input case
@@ -658,7 +842,7 @@ int micNode::back_propagete_from(micNode *next)
 
 			if (next->loss != "") {
 
-				delta.resize(n_b, k_out+1);
+				delta.resize(n_b, k_out + 1);
 				if (grad_s.m.size() > 0) { // this condition saves computation when all grad_s are 1 (as in normalization layers).
 
 					fast_element_dot_vector_vector(next->delta.m, grad_s.m, delta.m);
@@ -669,8 +853,8 @@ int micNode::back_propagete_from(micNode *next)
 				}
 				else
 					delta = next->delta;
-//#pragma omp parallel for private(i)
-				for (i=0; i<n_b; i++)
+				//#pragma omp parallel for private(i)
+				for (i = 0; i < n_b; i++)
 					delta(i, k_out) = 0;
 
 			}
@@ -681,12 +865,12 @@ int micNode::back_propagete_from(micNode *next)
 
 				if (grad_s.m.size() > 0)
 					fast_element_dot_vector_vector(delta.m, grad_s.m);
-//#pragma omp parallel for private(i) if (n_b>100 || k_out>100)
-//					for (i=0; i<n_b; i++)
-//						for (int j=0; j<k_out; j++)
-//							delta(i, j) *= grad_s(i, j);
-//#pragma omp parallel for private(i)
-				for (i=0; i<n_b; i++)
+				//#pragma omp parallel for private(i) if (n_b>100 || k_out>100)
+				//					for (i=0; i<n_b; i++)
+				//						for (int j=0; j<k_out; j++)
+				//							delta(i, j) *= grad_s(i, j);
+				//#pragma omp parallel for private(i)
+				for (i = 0; i < n_b; i++)
 					delta(i, k_out) = 0;
 
 			}
@@ -697,18 +881,18 @@ int micNode::back_propagete_from(micNode *next)
 					return -1;
 
 				// grad_w = grad_w + lambda * wgt
-				fast_element_affine_scalar(grad_w.m, lambda(0, 0), wgt.m); 
-//#pragma omp parallel for private(i) if (n_in>100)
-//				for (i=0; i<n_in; i++)
-//					for (int j=0; j<k_out; j++)
-//						grad_w(i, j) = grad_w(i, j) + lambda(j, 0)*wgt(i, j);
+				fast_element_affine_scalar(grad_w.m, lambda(0, 0), wgt.m);
+				//#pragma omp parallel for private(i) if (n_in>100)
+				//				for (i=0; i<n_in; i++)
+				//					for (int j=0; j<k_out; j++)
+				//						grad_w(i, j) = grad_w(i, j) + lambda(j, 0)*wgt(i, j);
 
-				for (i=0; i<n_in+1; i++)
+				for (i = 0; i < n_in + 1; i++)
 					grad_w(i, k_out) = 0;  // last column in wgts is 0,0...0,1 to make it easy to forward bias. Hence we have grad 0 for it.
 			}
 
 		}
-//		print("debug back_propagate_from after propagation", 1, 6);
+		//		print("debug back_propagate_from after propagation", 1, 6);
 
 	}
 	else {
@@ -742,32 +926,32 @@ int micNode::weights_normalization_step()
 	}
 
 	// calculating current estimators
-	for (i=0; i<n_b; i++)
-		for (j=0; j<n_in; j++)
+	for (i = 0; i < n_b; i++)
+		for (j = 0; j < n_in; j++)
 			if (dropout_prob_in >= 1 || dropout_in[j]) {
 				curr_mean[j] += batch_out(i, j);
 				curr_var[j] += batch_out(i, j) * batch_out(i, j);
 			}
 
-	double fact = (double)1/(double)n_b;
+	double fact = (double)1 / (double)n_b;
 	double epsilon = 1e-2;
-	for (j=0; j<n_in; j++) {
+	for (j = 0; j < n_in; j++) {
 		curr_mean[j] *= fact;
 		curr_var[j] *= fact;
-		curr_var[j] -= curr_mean[j]*curr_mean[j];
+		curr_var[j] -= curr_mean[j] * curr_mean[j];
 		curr_var[j] += epsilon;
 	}
 
 	// updating prev estimates and actual alpha/beta
 	float one_minus_factor = (float)1 - normalization_update_factor;
 	float eps = (float)1e-2;
-	for (j=0; j<n_in; j++)
+	for (j = 0; j < n_in; j++)
 		if (dropout_prob_in >= 1 || dropout_in[j]) {
-			b_mean[j] = normalization_update_factor*b_mean[j] + one_minus_factor*(float)curr_mean[j];
-			b_var[j] = normalization_update_factor*b_var[j] + one_minus_factor*(float)curr_var[j];
-			float std = sqrt(b_var[j]+eps);
-			alpha[j] = wgt(j, j) = (float)1/std;
-			beta[j] = wgt(n_in, j) = -(float)b_mean[j]/std;
+			b_mean[j] = normalization_update_factor * b_mean[j] + one_minus_factor * (float)curr_mean[j];
+			b_var[j] = normalization_update_factor * b_var[j] + one_minus_factor * (float)curr_var[j];
+			float std = sqrt(b_var[j] + eps);
+			alpha[j] = wgt(j, j) = (float)1 / std;
+			beta[j] = wgt(n_in, j) = -(float)b_mean[j] / std;
 		}
 
 	//MLOG("Node id: %d [0] mean %f var %f alpha %f beta %f\n", id, b_mean[0], b_var[0], alpha[0], beta[0]);
@@ -782,15 +966,15 @@ int micNode::weights_gd_step()
 {
 	if (type == "Normalization")
 		return (weights_normalization_step());
-//	print("weights gd_step before", 1, 6);
-	// first update prev_grad_w
+	//	print("weights gd_step before", 1, 6);
+		// first update prev_grad_w
 
 	if (dropout_prob_in < 1 || dropout_prob_out < 1) {
 		// if that is the case we make sure the gradients are 0 for cases in which there was no input or no output
 #pragma omp parallel for if(n_in>100)
-		for (int i=0; i<n_in+1; i++)
-			for (int j=0; j<k_out; j++)
-				grad_w(i, j) *= dropout_in[i]*dropout_out[j];
+		for (int i = 0; i < n_in + 1; i++)
+			for (int j = 0; j < k_out; j++)
+				grad_w(i, j) *= dropout_in[i] * dropout_out[j];
 	}
 
 	if (prev_grad_w.m.size() != grad_w.m.size()) {
@@ -799,19 +983,19 @@ int micNode::weights_gd_step()
 	else {
 		float one_minus_momentum = (float)1 - momentum;
 		fast_element_affine_scalar(momentum, prev_grad_w.m, one_minus_momentum, grad_w.m);
-//#pragma omp parallel for private(i) if(n_in>100)
-//		for (i=0; i<n_in+1; i++) {
-//			for (int j=0; j<k_out; j++)
-//				prev_grad_w(i, j) = momentum*prev_grad_w(i, j) + one_minus_momentum*grad_w(i, j);
-//		}
+		//#pragma omp parallel for private(i) if(n_in>100)
+		//		for (i=0; i<n_in+1; i++) {
+		//			for (int j=0; j<k_out; j++)
+		//				prev_grad_w(i, j) = momentum*prev_grad_w(i, j) + one_minus_momentum*grad_w(i, j);
+		//		}
 
 	}
-//	print("weights gd_step middle", 1, 6);
+	//	print("weights gd_step middle", 1, 6);
 
-	// now do the gradient descent step
-//#pragma omp parallel for private(i) if(n_in>100)
-	// wgt = wgt - lr*prev_grad_w
-	fast_element_affine_scalar(wgt.m, -rate_factor*learn_rates(0, 0), prev_grad_w.m);
+		// now do the gradient descent step
+	//#pragma omp parallel for private(i) if(n_in>100)
+		// wgt = wgt - lr*prev_grad_w
+	fast_element_affine_scalar(wgt.m, -rate_factor * learn_rates(0, 0), prev_grad_w.m);
 	//for (i=0; i<n_in+1; i++) {
 	//	for (int j=0; j<k_out; j++)
 	//		wgt(i, j) = wgt(i, j) - rate_factor*learn_rates(j, 0)*prev_grad_w(i, j);
@@ -819,8 +1003,8 @@ int micNode::weights_gd_step()
 
 	if (sparse_zero_prob > 0) {
 #pragma omp parallel for if(n_in>100 || k_out>100)
-		for (int i=0; i<n_in; i++)
-			for (int j=0; j<k_out; j++)
+		for (int i = 0; i < n_in; i++)
+			for (int j = 0; j < k_out; j++)
 				if (sparse_bit(i, j) == 0)
 					wgt(i, j) = 0;
 	}
@@ -830,15 +1014,15 @@ int micNode::weights_gd_step()
 		float epsilon = (float)1e-3;
 		vector<float> sum_sq(k_out, 0);
 #pragma omp parallel for if(n_in>100 || k_out>100)
-		for (int i=0; i<=n_in; i++)
-			for (int j=0; j<k_out; j++)
+		for (int i = 0; i <= n_in; i++)
+			for (int j = 0; j < k_out; j++)
 				sum_sq[j] += wgt(i, j)*wgt(i, j);
 
 #pragma omp parallel for if(n_in>100 || k_out>100)
-		for (int j=0; j<k_out; j++) {
+		for (int j = 0; j < k_out; j++) {
 			if (max_wgt_norm > 0 && sum_sq[j] > max_wgt_norm*max_wgt_norm + epsilon) {
-				float fact_max = sqrt((float)max_wgt_norm/sum_sq[j]);
-				for (int i=0; i<=n_in; i++)
+				float fact_max = sqrt((float)max_wgt_norm / sum_sq[j]);
+				for (int i = 0; i <= n_in; i++)
 					wgt(i, j) *= fact_max;
 			}
 			//if (min_wgt_norm > 0 && sum_sq[j] < min_wgt_norm*min_wgt_norm - epsilon) {
@@ -849,55 +1033,55 @@ int micNode::weights_gd_step()
 		}
 	}
 
-//	print("weights gd_step after", 1, 6);
+	//	print("weights gd_step after", 1, 6);
 	return 0;
 }
 
 //.................................................................................................
 void micNode::print(const string &prefix, int i_state, int i_in)
 {
-//	if (!is_terminal)
-		return;
+	//	if (!is_terminal)
+	return;
 
 	int print_y = 1;
 
 	MLOG("%s node %d : %s : batch_in %d x %d : wgt %d x %d : batch_out %d x %d : y %d x %d : lr_params %d x %d : lambda %d x %d : learn_rates %d x %d : grad_w %d x %d : prev_grad_w %d x %d : delta %d x %d : momentum %f\n",
 		prefix.c_str(), id, type.c_str(),
 		batch_in.nrows, batch_in.ncols, wgt.nrows, wgt.ncols, batch_out.nrows, batch_out.ncols, y.nrows, y.ncols,
-		lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols, learn_rates.nrows, learn_rates.ncols, 
+		lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols, learn_rates.nrows, learn_rates.ncols,
 		grad_w.nrows, grad_w.ncols, prev_grad_w.nrows, prev_grad_w.ncols, delta.nrows, delta.ncols, momentum);
 
 	if (0) { //i_state >= 0 && i_state < wgt.ncols) {
 		MLOG("%s node %d : state %d : lr_params %f %f : lambda %f : learn_rate %f\n",
 			prefix.c_str(), id, i_state, lr_params(i_state, 0), lr_params(i_state, 1), lambda(i_state, 0), learn_rates(i_state, 0));
 		MLOG("%s node %d : wgts(:,%d) :", prefix.c_str(), id, i_state);
-		for (int i=0; i<wgt.nrows; i++)
-			for (int j=0; j<wgt.ncols; j++)
+		for (int i = 0; i < wgt.nrows; i++)
+			for (int j = 0; j < wgt.ncols; j++)
 				MLOG(" (%d,%d) %5.3f", i, j, wgt(i, j));
-//		MLOG(" (%d) %5.3f", i, wgt(i, i_state));
+		//		MLOG(" (%d) %5.3f", i, wgt(i, i_state));
 		MLOG("\n");
 	}
 
 	if (i_state >= 0 && i_state < grad_s.ncols) {
 		MLOG("%s node %d : grad_s(:,%d) :", prefix.c_str(), id, i_state);
-		for (int i=0; i<grad_s.nrows; i++)
+		for (int i = 0; i < grad_s.nrows; i++)
 			MLOG(" (%d) %5.3f", i, grad_s(i, i_state));
 		MLOG("\n");
 	}
 
 	if (i_state >= 0 && i_state < delta.ncols) {
 		MLOG("%s node %d : delta(:,%d) :", prefix.c_str(), id, i_state);
-		for (int i=0; i<delta.nrows; i++)
-			for (int j=0; j<delta.ncols; j++)
+		for (int i = 0; i < delta.nrows; i++)
+			for (int j = 0; j < delta.ncols; j++)
 				MLOG(" (%d,%d) %5.3f", i, j, delta(i, j));
-//		MLOG(" (%d) %5.3f", i, delta(i, i_state));
+		//		MLOG(" (%d) %5.3f", i, delta(i, i_state));
 		MLOG("\n");
 	}
 
 	if (0) { //i_state >= 0 && i_state < grad_w.ncols) {
 		MLOG("%s node %d : grad_w(:,%d) :", prefix.c_str(), id, i_state);
-		for (int i=0; i<grad_w.nrows; i++)
-			for (int j=0; j<grad_w.ncols; j++)
+		for (int i = 0; i < grad_w.nrows; i++)
+			for (int j = 0; j < grad_w.ncols; j++)
 				MLOG(" (%d,%d) %5.3f", i, j, grad_w(i, j));
 		//		MLOG(" (%d) %5.3f", i, grad_w(i, i_state));
 		MLOG("\n");
@@ -905,8 +1089,8 @@ void micNode::print(const string &prefix, int i_state, int i_in)
 
 	if (0) { //i_state >= 0 && i_state < prev_grad_w.ncols) {
 		MLOG("%s node %d : prev_grad_w(:,%d) :", prefix.c_str(), id, i_state);
-		for (int i=0; i<prev_grad_w.nrows; i++)
-			for (int j=0; j<prev_grad_w.ncols; j++)
+		for (int i = 0; i < prev_grad_w.nrows; i++)
+			for (int j = 0; j < prev_grad_w.ncols; j++)
 				MLOG(" (%d,%d) %5.3f", i, j, prev_grad_w(i, j));
 		//MLOG(" (%d) %5.3f", i, prev_grad_w(i, i_state));
 		MLOG("\n");
@@ -914,29 +1098,29 @@ void micNode::print(const string &prefix, int i_state, int i_in)
 
 	if (0) { //i_in >= 0 && i_in < batch_in.nrows) {
 		MLOG("%s node %d : batch_in(%d,:) :", prefix.c_str(), id, i_in);
-		for (int i=0; i<batch_in.ncols; i++)
-			MLOG(" (%d) %5.3f", i, batch_in(i_in,i));
+		for (int i = 0; i < batch_in.ncols; i++)
+			MLOG(" (%d) %5.3f", i, batch_in(i_in, i));
 		MLOG("\n");
 	}
 
 	if (i_in >= 0 && i_in < batch_out.nrows) {
-		for (int j=0; j<10; j++) {//batch_out.nrows; j++)
+		for (int j = 0; j < 10; j++) {//batch_out.nrows; j++)
 			MLOG("%s node %d : batch_out(%d,:) :", prefix.c_str(), id, i_in);
-			for (int i=0; i<batch_out.ncols; i++)
+			for (int i = 0; i < batch_out.ncols; i++)
 				MLOG(" (%d,%d) %5.3f", j, i, batch_out(j, i));
 			//		MLOG(" (%d) %5.3f", i, batch_out(i_in, i));
 			MLOG("\n");
 		}
 	}
 	if (i_in >= 0 && i_in < y.nrows) {
-		MLOG("%s node %d : y(%d) : %f\n", prefix.c_str(), id, i_state, y(i_in,0));
+		MLOG("%s node %d : y(%d) : %f\n", prefix.c_str(), id, i_state, y(i_in, 0));
 	}
 
 
 	if (i_in >= 0 && i_in < full_probs.nrows) {
-		for (int j=0; j<10; j++) { //full_probs.nrows; j++)
+		for (int j = 0; j < 10; j++) { //full_probs.nrows; j++)
 			MLOG("%s node %d : full_probs(%d,:) :", prefix.c_str(), id, i_in);
-			for (int i=0; i<full_probs.ncols; i++)
+			for (int i = 0; i < full_probs.ncols; i++)
 				MLOG(" (%d,%d) %5.3f", j, i, full_probs(j, i));
 			//		MLOG(" (%d) %5.3f", i, batch_out(i_in, i));
 			MLOG("\n");
@@ -944,10 +1128,10 @@ void micNode::print(const string &prefix, int i_state, int i_in)
 		}
 	}
 
-	if (print_y && y.m.size()>0) {
+	if (print_y && y.m.size() > 0) {
 		MLOG("%s node %d : y(:) :", prefix.c_str(), id);
-		for (int i=0; i<y.nrows; i++)
-			MLOG(" (%d) %3.1f", i, y(i,0));
+		for (int i = 0; i < y.nrows; i++)
+			MLOG(" (%d) %3.1f", i, y(i, 0));
 		MLOG("\n");
 	}
 }
@@ -972,7 +1156,7 @@ int micNetParams::init_from_string(const string &init_str)
 	dropout_in_probs.clear();
 	samp_ratio.clear();
 
-	for (int i=0; i<fields.size(); i++) {
+	for (int i = 0; i < fields.size(); i++) {
 
 		//cerr << "parsing i " << i << " f[i] " << fields[i] << " f[i+1] " << fields[i+1] << "\n";
 		//! [micNetParams::init_from_string]
@@ -1008,11 +1192,11 @@ int micNetParams::init_from_string(const string &init_str)
 			vector<string> f;
 			boost::split(f, s, boost::is_any_of("-/#"));
 			int k = 0;
-			for (int j=0; j<f.size(); j++)
+			for (int j = 0; j < f.size(); j++)
 				learning_rates[k++] = stof(f[j]);
 			if (k > 0) {
-				for (int j=k; j<learning_rates.size(); j++)
-					learning_rates[j] = learning_rates[k-1];
+				for (int j = k; j < learning_rates.size(); j++)
+					learning_rates[j] = learning_rates[k - 1];
 			}
 		}
 
@@ -1020,14 +1204,14 @@ int micNetParams::init_from_string(const string &init_str)
 			string s = fields[++i];
 			vector<string> f;
 			boost::split(f, s, boost::is_any_of("-/#"));
-			for (int j=0; j<f.size(); j++)
+			for (int j = 0; j < f.size(); j++)
 				n_hidden.push_back(stoi(f[j]));
 		}
 		if (fields[i] == "dropout") {
 			string s = fields[++i];
 			vector<string> f;
 			boost::split(f, s, boost::is_any_of("-/#"));
-			for (int j=0; j<f.size(); j++)
+			for (int j = 0; j < f.size(); j++)
 				dropout_in_probs.push_back(stof(f[j]));
 		}
 
@@ -1035,7 +1219,7 @@ int micNetParams::init_from_string(const string &init_str)
 			string s = fields[++i];
 			vector<string> f;
 			boost::split(f, s, boost::is_any_of("-/#"));
-			for (int j=0; j<f.size(); j++)
+			for (int j = 0; j < f.size(); j++)
 				samp_ratio.push_back(stof(f[j]));
 		}
 		//! [micNetParams::init_from_string]
@@ -1057,7 +1241,7 @@ int micNetParams::init_from_string(const string &init_str)
 		//}
 	}
 
-	if (n_hidden.size() == 0) {
+	if (1) { //n_hidden.size() == 0) {
 		n_hidden.push_back(n_categ*n_per_categ); // default is a very simple single layer
 	}
 
@@ -1066,11 +1250,13 @@ int micNetParams::init_from_string(const string &init_str)
 		if (dropout_in_probs.size() > n_hidden.size())
 			dropout_in_probs.resize(n_hidden.size());
 		else {
-			for (int j=(int)dropout_in_probs.size(); j<(int)n_hidden.size(); j++)
+			for (int j = (int)dropout_in_probs.size(); j < (int)n_hidden.size(); j++)
 				dropout_in_probs.push_back((float)1);
 		}
 
 	}
+	if (n_preds_per_sample < 0)
+		n_preds_per_sample = n_categ * n_per_categ;
 
 	return 0;
 }
@@ -1197,9 +1383,9 @@ int micNet::add_fc_leaky_relu_layer(int in_node, int n_hidden, float dropout_in_
 	node.ir.push(prev_node->id, "all");
 	float std = params.weights_init_std;
 	if (params.weights_init_std == 0)
-		std = sqrt((float)2/(float)node.n_in);
+		std = sqrt((float)2 / (float)node.n_in);
 	node.init_wgts_rand_normal(0, std);
-	node.forward_nodes.push_back(node.id+1);
+	node.forward_nodes.push_back(node.id + 1);
 	node.is_terminal = 0;
 	node.lr_params.resize(n_hidden, 2);
 	node.lambda.resize(n_hidden, 1);
@@ -1208,7 +1394,7 @@ int micNet::add_fc_leaky_relu_layer(int in_node, int n_hidden, float dropout_in_
 	node.lambda.set_val(params.def_lambda);
 	node.learn_rates.set_val(learn_rate);
 
-	for (int j=0; j<n_hidden; j++) {
+	for (int j = 0; j < n_hidden; j++) {
 		node.lr_params(j, 0) = params.def_A;
 		node.lr_params(j, 1) = params.def_B;
 		//node.lambda(j, 0) = params.def_lambda;
@@ -1225,16 +1411,16 @@ int micNet::add_fc_leaky_relu_layer(int in_node, int n_hidden, float dropout_in_
 	node.dropout_prob_in = dropout_in_p;
 	node.dropout_prob_out = 1;
 
-	node.dropout_out.resize(node.k_out+1, 1);
-	node.dropout_in.resize(node.n_in+1, 1);
+	node.dropout_out.resize(node.k_out + 1, 1);
+	node.dropout_in.resize(node.n_in + 1, 1);
 
 	node.sparse_zero_prob = sparse_prob;
 
 	if (node.sparse_zero_prob > 0) {
-		node.sparse_bit.resize(node.n_in+1, node.k_out+1);
-		
-		for (int i=0; i<node.n_in; i++) {
-			for (int j=0; j<node.k_out; j++) {
+		node.sparse_bit.resize(node.n_in + 1, node.k_out + 1);
+
+		for (int i = 0; i < node.n_in; i++) {
+			for (int j = 0; j < node.k_out; j++) {
 				if (rand_1() >= node.sparse_zero_prob)
 					node.sparse_bit(i, j) = 1;
 				else {
@@ -1243,7 +1429,7 @@ int micNet::add_fc_leaky_relu_layer(int in_node, int n_hidden, float dropout_in_
 				}
 				node.sparse_bit(i, node.k_out) = 1;
 			}
-			for (int j=0; j<=node.k_out; j++) {
+			for (int j = 0; j <= node.k_out; j++) {
 				node.sparse_bit(node.n_in, j) = 1;
 			}
 		}
@@ -1272,15 +1458,15 @@ int micNet::add_normalization_layer(int in_node)
 	node.type = "Normalization";
 	node.n_in = prev_node->k_out;
 	node.k_out = n_hidden;
-	node.ir.push(node.id-1, "all");
+	node.ir.push(node.id - 1, "all");
 
 	// initializing wgt matrix to be a unit matrix
-	node.wgt.resize(n_hidden+1, n_hidden+1);
+	node.wgt.resize(n_hidden + 1, n_hidden + 1);
 	node.wgt.zero();
-	for (int i=0; i<n_hidden+1; i++)
+	for (int i = 0; i < n_hidden + 1; i++)
 		node.wgt(i, i) = 1;
 
-	node.forward_nodes.push_back(node.id+1);
+	node.forward_nodes.push_back(node.id + 1);
 	node.is_terminal = 0;
 
 	node.normalization_update_factor = params.normalization_factor;
@@ -1288,8 +1474,8 @@ int micNet::add_normalization_layer(int in_node)
 	node.dropout_prob_in = prev_node->dropout_prob_out;
 	node.dropout_prob_out = prev_node->dropout_prob_out;
 
-	node.dropout_out.resize(node.k_out+1, 1);
-	node.dropout_in.resize(node.n_in+1, 1);
+	node.dropout_out.resize(node.k_out + 1, 1);
+	node.dropout_in.resize(node.n_in + 1, 1);
 
 	nodes.push_back(node);
 	return 0;
@@ -1326,8 +1512,8 @@ int micNet::add_softmax_output_layer(int in_node)
 	node.dropout_prob_in = 1;
 	node.dropout_prob_out = 1;
 
-	node.dropout_out.resize(node.k_out+1, 1);
-	node.dropout_in.resize(node.n_in+1, 1);
+	node.dropout_out.resize(node.k_out + 1, 1);
+	node.dropout_in.resize(node.n_in + 1, 1);
 
 	nodes.push_back(node);
 	return 0;
@@ -1371,8 +1557,8 @@ int micNet::add_regression_output_layer(int in_node)
 	node.dropout_prob_in = 1;
 	node.dropout_prob_out = 1;
 
-	node.dropout_out.resize(node.k_out+1, 1);
-	node.dropout_in.resize(node.n_in+1, 1);
+	node.dropout_out.resize(node.k_out + 1, 1);
+	node.dropout_in.resize(node.n_in + 1, 1);
 
 	nodes.push_back(node);
 	return 0;
@@ -1410,8 +1596,8 @@ int micNet::add_autoencoder_loss(int in_node, int data_node)
 	node.dropout_prob_in = 1;
 	node.dropout_prob_out = 1;
 
-	node.dropout_out.resize(node.k_out+1, 1);
-	node.dropout_in.resize(node.n_in+1, 1);
+	node.dropout_out.resize(node.k_out + 1, 1);
+	node.dropout_in.resize(node.n_in + 1, 1);
 
 	nodes.push_back(node);
 	return 0;
@@ -1442,7 +1628,7 @@ int micNet::init_fully_connected(micNetParams &in_params)
 	}
 	else if (params.net_type == "autoencoder") {
 		if (params.loss_type != "lsq") {
-			MERR("%s (type %s) ERROR: in autoencoder mode only lsq loss_type is supported, while %s was chosen\n", 
+			MERR("%s (type %s) ERROR: in autoencoder mode only lsq loss_type is supported, while %s was chosen\n",
 				prefix.c_str(), params.net_type.c_str(), params.loss_type.c_str());
 			return -1;
 		}
@@ -1456,19 +1642,19 @@ int micNet::init_fully_connected(micNetParams &in_params)
 	if (params.last_layer_to_keep < 0)
 		nodes.clear();
 	else
-		nodes.resize(params.last_layer_to_keep+1);
+		nodes.resize(params.last_layer_to_keep + 1);
 	nodes.reserve(500);
 
 	vector<float> d_in = params.dropout_in_probs;
-	d_in.insert(d_in.end(),100,(float)1);
+	d_in.insert(d_in.end(), 100, (float)1);
 
 	if (params.last_layer_to_keep < 0) {
 		if (add_input_layer() < 0) return -1;
 	}
 	else {
 		// need to reinit d_in, and learning rates
-		for (int i=1; i<=params.last_layer_to_keep; i++) {
-			nodes[i].learn_rates.set_val(params.learning_rates[i-1]);
+		for (int i = 1; i <= params.last_layer_to_keep; i++) {
+			nodes[i].learn_rates.set_val(params.learning_rates[i - 1]);
 			nodes[i].lambda.set_val(params.def_lambda);
 			nodes[i].rate_factor = 1.0;
 		}
@@ -1476,11 +1662,11 @@ int micNet::init_fully_connected(micNetParams &in_params)
 
 	int pnode = max(0, params.last_layer_to_keep);
 	int n_bef = params.last_layer_to_keep + 1;
-	for (int i=0; i<params.n_hidden.size(); i++) {
+	for (int i = 0; i < params.n_hidden.size(); i++) {
 		float sparsness = params.sparse_zero_prob;
-		if (i == params.n_hidden.size()-1) sparsness = 0;
-		MLOG("d_in %f i %d n_bef %d\n",d_in[i+n_bef],i,n_bef);
-		if (add_fc_leaky_relu_layer(pnode++,params.n_hidden[i], d_in[i+n_bef], sparsness, params.learning_rates[i+n_bef]) < 0)
+		if (i == params.n_hidden.size() - 1) sparsness = 0;
+		MLOG("d_in %f i %d n_bef %d\n", d_in[i + n_bef], i, n_bef);
+		if (add_fc_leaky_relu_layer(pnode++, params.n_hidden[i], d_in[i + n_bef], sparsness, params.learning_rates[i + n_bef]) < 0)
 			return -1;
 		if (i < params.n_norm_layers)
 			if (add_normalization_layer(pnode++) < 0)
@@ -1492,8 +1678,8 @@ int micNet::init_fully_connected(micNetParams &in_params)
 		if (add_regression_output_layer(pnode++) < 0) return -1;
 
 	MLOG("%s initialized micNet of %d nodes:\n", prefix.c_str(), nodes.size());
-	for (int i=0; i<nodes.size(); i++) {
-		if (nodes[i].learn_rates.size()>0)
+	for (int i = 0; i < nodes.size(); i++) {
+		if (nodes[i].learn_rates.size() > 0)
 			MLOG("%s node %d %d : %d --> %d , type %s , learn_rate %f , dropout %f ",
 				prefix.c_str(), i, nodes[i].id, nodes[i].n_in, nodes[i].k_out, nodes[i].type.c_str(), nodes[i].learn_rates(0, 0), nodes[i].dropout_prob_in);
 		else
@@ -1537,18 +1723,18 @@ int micNet::init_autoencoder(micNetParams &in_params)
 	float sparsness = params.sparse_zero_prob;
 	if (add_fc_leaky_relu_layer(pnode++, params.n_hidden[0], d_in[0], sparsness, params.def_learning_rate) < 0)
 		return -1;
-	nodes[pnode-1].subtype = "encoder";
+	nodes[pnode - 1].subtype = "encoder";
 
 	// decoding layer
 	if (add_fc_leaky_relu_layer(pnode++, params.nfeat, d_in[0], sparsness, params.def_learning_rate) < 0)
 		return -1;
-	nodes[pnode-1].subtype = "decoder";
+	nodes[pnode - 1].subtype = "decoder";
 
 	// loss layer
 	add_autoencoder_loss(pnode++, 0);
 
 	MLOG("%s initialized micNet of %d nodes:\n", prefix.c_str(), nodes.size());
-	for (int i=0; i<nodes.size(); i++) {
+	for (int i = 0; i < nodes.size(); i++) {
 		MLOG("%s node %d : %d --> %d , type %s , dropout %f , subtype %s",
 			prefix.c_str(), nodes[i].id, nodes[i].n_in, nodes[i].k_out, nodes[i].type.c_str(), nodes[i].dropout_prob_in, nodes[i].subtype.c_str());
 
@@ -1567,7 +1753,7 @@ int micNet::init_autoencoder(micNetParams &in_params)
 // assumed nodes are ordered in a DAG way...that is each node contains ALL the nodes needed BEFORE
 int micNet::forward_batch(int do_grad_flag)
 {
-	for (int i=0; i<nodes.size(); i++) {
+	for (int i = 0; i < nodes.size(); i++) {
 		if (nodes[i].type != "Input") {
 			if (nodes[i].forward_batch(do_grad_flag) < 0) {
 				MERR("micNet::forward_batch() error in node %d\n", i);
@@ -1586,10 +1772,10 @@ int micNet::forward_batch(int do_grad_flag)
 int micNet::back_prop_batch()
 {
 	nodes.back().back_propagete_from(NULL);
-	for (int i=(int)nodes.size()-1; i>=0; i--) {
+	for (int i = (int)nodes.size() - 1; i >= 0; i--) {
 		if (nodes[i].type != "Input") {
 
-			for (int j=0; j<nodes[i].ir.in_node_id.size(); j++) {
+			for (int j = 0; j < nodes[i].ir.in_node_id.size(); j++) {
 				micNode *prev = &nodes[nodes[i].ir.in_node_id[j]];
 
 				//MLOG("back_prop i=%d j=%d : node_id %d prev_id %d\n", i, j, nodes[i].id, prev->id);
@@ -1609,13 +1795,13 @@ int micNet::back_prop_batch()
 		}
 	}
 
-//	MLOG("Before Weights Step");
-//	test_grad_numerical(1, 50, 50, (float)1e-1);
+	//	MLOG("Before Weights Step");
+	//	test_grad_numerical(1, 50, 50, (float)1e-1);
 
-	for (int i=(int)nodes.size()-1; i>=0; i--) {
+	for (int i = (int)nodes.size() - 1; i >= 0; i--) {
 		if (nodes[i].type != "Input") {
 
-			for (int j=0; j<nodes[i].ir.in_node_id.size(); j++) {
+			for (int j = 0; j < nodes[i].ir.in_node_id.size(); j++) {
 				micNode *prev = &nodes[nodes[i].ir.in_node_id[j]];
 
 				if (prev->type != "Input") {
@@ -1640,27 +1826,27 @@ int micNet::get_batch_with_samp_ratio(MedMat<float> &y_train, int batch_len, vec
 
 		// initializing index_by_categ
 		index_by_categ.resize(params.n_categ);
-		for (int i=0; i<y_train.size(); i++) {
-			index_by_categ[(int)y_train(i,0)].push_back(i);
+		for (int i = 0; i < y_train.size(); i++) {
+			index_by_categ[(int)y_train(i, 0)].push_back(i);
 		}
-		for (int i=0; i<params.n_categ; i++)
+		for (int i = 0; i < params.n_categ; i++)
 			random_shuffle(index_by_categ[i].begin(), index_by_categ[i].end());
 
 
 		// making sure samp_ratio is given in probabilities
 		float sum = 0;
-		for (int i=0; i<params.samp_ratio.size(); i++)
+		for (int i = 0; i < params.samp_ratio.size(); i++)
 			sum += params.samp_ratio[i];
 		if (sum > 0)
-			for (int i=0; i<params.samp_ratio.size(); i++) {
-				params.samp_ratio[i] = params.samp_ratio[i]/sum;
+			for (int i = 0; i < params.samp_ratio.size(); i++) {
+				params.samp_ratio[i] = params.samp_ratio[i] / sum;
 			}
 	}
-	
+
 	chosen.clear();
-	for (int i=0; i<params.samp_ratio.size(); i++) {
+	for (int i = 0; i < params.samp_ratio.size(); i++) {
 		int n_take = (int)(params.samp_ratio[i] * (float)batch_len);
-		for (int j=0; j<n_take; j++)
+		for (int j = 0; j < n_take; j++)
 			chosen.push_back(index_by_categ[i][rand_N((int)index_by_categ[i].size())]);
 	}
 	while (chosen.size() < batch_len) {
@@ -1691,16 +1877,16 @@ int micNet::learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, v
 	int *taken_to_batch = NULL;
 	get_rand_vector_no_repetitions(perm, nsamples, nsamples);
 
-	int n_batches = nsamples/params.batch_size;
+	int n_batches = nsamples / params.batch_size;
 	if (nsamples % params.batch_size != 0) n_batches++;
 
 	MLOG("...................................................................................................................\n");
 	MLOG("%s start going over batches batch_size %d n_batches %d\n", prefix.c_str(), params.batch_size, n_batches);
 	// going over batches
-	for (int b=0; b<n_batches; b++) {
-		int from = b*params.batch_size;
-		int to = min(from+params.batch_size, nsamples);
-		int len = to-from;
+	for (int b = 0; b < n_batches; b++) {
+		int from = b * params.batch_size;
+		int to = min(from + params.batch_size, nsamples);
+		int len = to - from;
 
 		if (params.samp_ratio.size() == params.n_categ) {
 			get_batch_with_samp_ratio(y_train, len, chosen);
@@ -1710,13 +1896,13 @@ int micNet::learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, v
 			taken_to_batch = &perm[from];
 
 
-//		MLOG("%s b %d before fill input, from %d to %d len %d\n", prefix.c_str(), b,from,to,len);
+		//		MLOG("%s b %d before fill input, from %d to %d len %d\n", prefix.c_str(), b,from,to,len);
 		nodes[0].fill_input_node(taken_to_batch, len, x_train, last_is_bias_flag);
 
 		//nodes[0].print("debug input", 1, 6);
 		// copy y to output nodes
 //		MLOG("%s b %d before fill output\n", prefix.c_str(), b);
-		for (int i=0; i<nodes.size(); i++)
+		for (int i = 0; i < nodes.size(); i++)
 			if (nodes[i].is_terminal) {
 				nodes[i].fill_output_node(taken_to_batch, len, y_train, weights);
 				//nodes[i].print("debug output", 1, 6);
@@ -1736,10 +1922,10 @@ int micNet::learn_single_epoch(MedMat<float> &x_train, MedMat<float> &y_train, v
 }
 
 //..................................................................................................................................................
-int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights, 
+int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> &weights,
 	MedMat<float> &x_test, MedMat<float> &y_test, int n_epochs, int eval_freq, int last_is_bias_flag)
 {
-	
+
 	string prefix = "micNet::learn() ::";
 
 	vector<NetEval> on_train_evals;
@@ -1764,7 +1950,7 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> 
 
 		MLOG("....>>");
 
-		if (((i_epoch+1) % eval_freq) == 0) {
+		if (((i_epoch + 1) % eval_freq) == 0) {
 
 			NetEval ne;
 			et.take_curr_time();
@@ -1779,28 +1965,28 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> 
 			MLOG("%s epoch %d :: On-Train: err %f log-loss %f lsq %f :: Test err: err %f log-loss %f lsq %f :: dt %g :: dt+eval %g\n",
 				prefix.c_str(), i_epoch,
 				on_train_evals.back().acc_err, on_train_evals.back().log_loss, on_train_evals.back().lsq_loss,
-				on_test_evals.back().acc_err, on_test_evals.back().log_loss, on_test_evals.back().lsq_loss, 
+				on_test_evals.back().acc_err, on_test_evals.back().log_loss, on_test_evals.back().lsq_loss,
 				ne.dt, et.diff_sec());
 
 			if (on_train_evals.size() > 1) {
 
-				int s = (int)on_train_evals.size()-1;
-	
+				int s = (int)on_train_evals.size() - 1;
+
 				if (s > 5)
-					if (on_train_evals[s].log_loss >= (float)on_train_evals[s-1].log_loss)
-						for (int j=0; j<nodes.size(); j++)
+					if (on_train_evals[s].log_loss >= (float)on_train_evals[s - 1].log_loss)
+						for (int j = 0; j < nodes.size(); j++)
 							nodes[j].prev_grad_w.clear();
 
-				for (int j=0; j<nodes.size(); j++)
-					if (nodes[j].rate_factor >(float)1e-3)
+				for (int j = 0; j < nodes.size(); j++)
+					if (nodes[j].rate_factor > (float)1e-3)
 						nodes[j].rate_factor *= (float)params.rate_decay;
 
 				if (s > 5000) {
-					if (on_train_evals[s].log_loss < (float)on_train_evals[s-1].log_loss) {
+					if (on_train_evals[s].log_loss < (float)on_train_evals[s - 1].log_loss) {
 						nodes_last_best = nodes;
-						if (on_train_evals[s].log_loss >(float)0.995*on_train_evals[s-1].log_loss) {
-							MLOG("%f < %f ---> increasing rate rate = %f\n", on_train_evals[s].log_loss, on_train_evals[s-1].log_loss, nodes[1].rate_factor);
-							for (int j=0; j<nodes.size(); j++) nodes[j].rate_factor *= (float)1.05;
+						if (on_train_evals[s].log_loss > (float)0.995*on_train_evals[s - 1].log_loss) {
+							MLOG("%f < %f ---> increasing rate rate = %f\n", on_train_evals[s].log_loss, on_train_evals[s - 1].log_loss, nodes[1].rate_factor);
+							for (int j = 0; j < nodes.size(); j++) nodes[j].rate_factor *= (float)1.05;
 						}
 					}
 					else {
@@ -1811,18 +1997,18 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> 
 						on_test_evals.pop_back();
 						float orig_factor = nodes[1].rate_factor;
 						nodes = nodes_last_best;
-						for (int j=0; j<nodes.size(); j++)
+						for (int j = 0; j < nodes.size(); j++)
 							nodes[j].rate_factor = orig_factor;
-						MLOG("%f > %f ---> decreasing rate rate = %f\n", on_train_evals[s].log_loss, on_train_evals[s-1].log_loss, nodes[1].rate_factor);
-						for (int j=0; j<nodes.size(); j++)
+						MLOG("%f > %f ---> decreasing rate rate = %f\n", on_train_evals[s].log_loss, on_train_evals[s - 1].log_loss, nodes[1].rate_factor);
+						for (int j = 0; j < nodes.size(); j++)
 							if (nodes[j].rate_factor > (float)1e-2)
 								nodes[j].rate_factor *= (float)0.9;
 
 
 					}
 				}
-				
-				
+
+
 			}
 
 		}
@@ -1851,9 +2037,9 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 	//MERR("micNet predict() : n_in %d x: %d x %d , last_is_bias %d\n", nodes[0].n_in, x.nrows, x.ncols, last_is_bias_flag);
 	// first getting a shuffle
 	vector<int> unit(nsamples);
-	for (int i=0; i<nsamples; i++) { unit[i] = i; }
+	for (int i = 0; i < nsamples; i++) { unit[i] = i; }
 
-	int n_batches = nsamples/params.predict_batch_size;
+	int n_batches = nsamples / params.predict_batch_size;
 	if (nsamples % params.predict_batch_size != 0) n_batches++;
 
 	micNode *pred_node = &nodes.back();
@@ -1863,10 +2049,10 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 	for (auto &node : nodes) node.my_net = this;
 
 	// going over batches
-	for (int b=0; b<n_batches; b++) {
-		int from = b*params.predict_batch_size;
-		int to = min(from+params.predict_batch_size, nsamples);
-		int len = to-from;
+	for (int b = 0; b < n_batches; b++) {
+		int from = b * params.predict_batch_size;
+		int to = min(from + params.predict_batch_size, nsamples);
+		int len = to - from;
 
 		//MLOG("micNet predict: predict batch size %d , batch %d, from %d , to %d , len %d\n", params.predict_batch_size, b, from, to, len);
 		nodes[0].fill_input_node(&unit[from], len, x, last_is_bias_flag);
@@ -1878,14 +2064,47 @@ int micNet::predict(MedMat<float> &x, MedMat<float> &preds, int last_is_bias_fla
 		//MLOG("After forward batch %d\n", b);
 
 		// copy results to preds mat
-		for (int i=from; i<to; i++)
-			for (int j=0; j<n_categ; j++)
-				preds(i, j) = pred_node->batch_out(i-from, j);
+		for (int i = from; i < to; i++)
+			for (int j = 0; j < n_categ; j++)
+				preds(i, j) = pred_node->batch_out(i - from, j);
 
 	}
 
 	return 0;
 }
+
+void micNet::predict_single(const vector<float> &x, vector<float> &preds) const
+{
+	string prefix = "micNet::predict() ::";
+
+	int nfeat = (int)x.size();
+
+	if (nodes[0].n_in != nfeat)
+		MTHROW_AND_ERR("%s non matching Input node and mat size : n_in %d x: %d\n", prefix.c_str(), nodes[0].n_in, nfeat);
+
+	// going over batches
+	vector<MedMat<float>> nodes_out(nodes.size());
+	MedMat<float> &first_batch_out = nodes_out[0]; // = nodes[0].batch_out;
+	MedMat<float> &last_pred = nodes_out.back();
+	first_batch_out.resize(1, nfeat + 1);
+	float *b_out = first_batch_out.data_ptr();
+	memcpy(b_out, &x[0], nfeat * sizeof(float));
+	b_out[nfeat] = 1; // bias term
+
+	for (int i = 0; i < nodes.size(); i++) {
+		if (nodes[i].type != "Input") {
+			nodes[i].forward_batch(nodes_out, nodes_out[i]);
+		}
+	}
+
+	// copy results to preds mat
+	preds = move(last_pred.m);
+	if (preds.size() > 1) //has additional channel of 1 for bias - remove it
+		preds.resize(preds.size() - 1);
+	/*for (int j = 0; j < n_categ; j++)
+		preds[j] = last_pred(0, j);*/
+}
+
 
 //.................................................................................................
 void micNet::copy_nodes(vector<micNode> &in_nodes)
@@ -1922,10 +2141,10 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 			vector<float> max_pred(nsamples);
 
 			// get the prediction with maximal probability
-			for (int i=0; i<nsamples; i++) {
+			for (int i = 0; i < nsamples; i++) {
 				int max_j = 0;
 				float max_p = preds(i, 0);
-				for (int j=0; j<params.n_categ; j++) {
+				for (int j = 0; j < params.n_categ; j++) {
 					if (params.loss_type == "log" && ((preds(i, j) < 0) || preds(i, j) > 1)) {
 						MERR("ERROR: preds(%d,%d) = %f\n", i, j, preds(i, j));
 						exit(-1);
@@ -1937,29 +2156,29 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 				}
 				max_pred[i] = (float)max_j;
 				if (preds.ncols == 1) {
-					max_pred[i] = (float)((int)(preds(i, 0)+(float)0.5));
+					max_pred[i] = (float)((int)(preds(i, 0) + (float)0.5));
 				}
 			}
 
 			// get acc_err
 			if (1) { //params.loss_type == "log") {
 				int nneg = 0;
-				for (int i=0; i<nsamples; i++)
+				for (int i = 0; i < nsamples; i++)
 					if (max_pred[i] != y(i, 0))
 						nneg++;
-				eval.acc_err = (float)nneg/(float)nsamples;
+				eval.acc_err = (float)nneg / (float)nsamples;
 			}
 
 			if (1) {
 
 				eval.lsq_loss = 0;
 				if (preds.ncols == 1) {
-					for (int i=0; i<nsamples; i++)
+					for (int i = 0; i < nsamples; i++)
 						eval.lsq_loss += (float)0.5*(preds(i, 0) - y(i, 0))*(preds(i, 0) - y(i, 0));
 				}
 				else {
-					for (int i=0; i<nsamples; i++)
-						for (int j=0; j<preds.ncols; j++)
+					for (int i = 0; i < nsamples; i++)
+						for (int j = 0; j < preds.ncols; j++)
 							if ((int)y(i, 0) == j)
 								eval.lsq_loss += (float)0.5*(preds(i, j) - 1)*(preds(i, j) - 1);
 							else
@@ -1975,27 +2194,27 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 				// get log loss
 				float loss = 0;
 				float epsilon = (float)1e-5;
-				for (int i=0; i<nsamples; i++) {
-//					float p = max(epsilon, preds(i, (int)max_pred[i]));
-					float p = max(epsilon, preds(i, (int)y(i,0)));
+				for (int i = 0; i < nsamples; i++) {
+					//					float p = max(epsilon, preds(i, (int)max_pred[i]));
+					float p = max(epsilon, preds(i, (int)y(i, 0)));
 					loss += -log(p);
 				}
 				eval.log_loss = loss;
 				eval.log_loss /= (float)nsamples;
 			}
 #if 0
-			 // debug
-			for (int i=0; i<nsamples; i+=nsamples/20) {
+			// debug
+			for (int i = 0; i < nsamples; i += nsamples / 20) {
 				MLOG("x: ");
-				for (int j=0; j<x.ncols; j++)
+				for (int j = 0; j < x.ncols; j++)
 					MLOG(" %f", x(i, j));
 				MLOG("\n");
-				MLOG("preds(%d,*) (%d) ::", i, (int)y(i,0));
-				for (int j=0; j<preds.ncols; j++)
+				MLOG("preds(%d,*) (%d) ::", i, (int)y(i, 0));
+				for (int j = 0; j < preds.ncols; j++)
 					MLOG(" (%d) %f", j, preds(i, j));
 				MLOG("\n");
 			}
-			
+
 #endif
 			// TBD: more measures....auc,corr, etc....
 		}
@@ -2003,14 +2222,14 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 		if (params.net_type == "autoencoder") {
 			MLOG("Eval autoencoder: preds %d x %d , y %d x %d nsamples %d\n", preds.nrows, preds.ncols, y.nrows, y.ncols, nsamples);
 			eval.lsq_loss = 0;
-			float fact = (float)1/(float)nsamples;
-			for (int i=0; i<nsamples; i++)
-				for (int j=0; j<preds.ncols; j++) {
+			float fact = (float)1 / (float)nsamples;
+			for (int i = 0; i < nsamples; i++)
+				for (int j = 0; j < preds.ncols; j++) {
 					if (isnan(y(i, j)) || isnan(preds(i, j))) {
 						MLOG("i %d j %d preds %g y %g\n", i, j, preds(i, j), y(i, j));
 						exit(-1);
 					}
-					eval.lsq_loss += fact*(float)0.5*(preds(i, j)-y(i, j))*(preds(i, j) - y(i, j));
+					eval.lsq_loss += fact * (float)0.5*(preds(i, j) - y(i, j))*(preds(i, j) - y(i, j));
 				}
 		}
 	}
@@ -2038,13 +2257,13 @@ int micNet::test_grad_numerical(int i_node, int i_in, int i_out, float epsilon)
 	// results with +epsilon
 	testNet.nodes[i_node].wgt(i_in, i_out) = orig_wgt + epsilon;
 	testNet.forward_batch(0);
-	MedMat<float> out_plus = testNet.nodes[n_nodes-1].batch_out;
+	MedMat<float> out_plus = testNet.nodes[n_nodes - 1].batch_out;
 
 	// results with -epsilon
 	//testNet.nodes[i_node].init_wgts_rand_normal(0, 1);
 	testNet.nodes[i_node].wgt(i_in, i_out) = orig_wgt - epsilon;
 	testNet.forward_batch(0);
-	MedMat<float> out_minus = testNet.nodes[n_nodes-1].batch_out;
+	MedMat<float> out_minus = testNet.nodes[n_nodes - 1].batch_out;
 
 
 	//for (int i=0; i<testNet.nodes[2].batch_out.nrows; i++)
@@ -2056,39 +2275,39 @@ int micNet::test_grad_numerical(int i_node, int i_in, int i_out, float epsilon)
 
 
 	// store y
-	MedMat<float> y = testNet.nodes[n_nodes-1].y;
+	MedMat<float> y = testNet.nodes[n_nodes - 1].y;
 
 	// get losses - currently without regularization terms
 	vector<float> loss_plus, loss_minus;
 	int n_b = out_plus.nrows;
 	float eps = (float)1e-50;
 	float lambda = testNet.nodes[i_node].lambda(0, 0);
-	for (int i=0; i<n_b; i++) {
+	for (int i = 0; i < n_b; i++) {
 
 		float val_plus = max(out_plus(i, (int)y(i, 0)), eps);
-		loss_plus.push_back(-log(val_plus)+(float)0.5*lambda*(orig_wgt+epsilon)*(orig_wgt+epsilon));
+		loss_plus.push_back(-log(val_plus) + (float)0.5*lambda*(orig_wgt + epsilon)*(orig_wgt + epsilon));
 
 		float val_minus = max(out_minus(i, (int)y(i, 0)), eps);
-		loss_minus.push_back(-log(val_minus)+(float)0.5*lambda*(orig_wgt-epsilon)*(orig_wgt-epsilon));
+		loss_minus.push_back(-log(val_minus) + (float)0.5*lambda*(orig_wgt - epsilon)*(orig_wgt - epsilon));
 
 		//MLOG("i=%d y=%d val_plus %f val_minus %f loss_plus %f loss_minus %f\n",
 		//	i, (int)y(i, 0), val_plus, val_minus, loss_plus.back(), loss_minus.back());
 	}
 
 	// sum losses average and compare
-	float s_plus=0, s_minus=0;
+	float s_plus = 0, s_minus = 0;
 
-	for (int i=0; i<n_b; i++) {
+	for (int i = 0; i < n_b; i++) {
 		s_plus += loss_plus[i];
 		s_minus += loss_minus[i];
 	}
 
-	float dloss = (s_plus-s_minus)/((float)2*epsilon);
-	float avg_dloss = dloss/(float)n_b;
+	float dloss = (s_plus - s_minus) / ((float)2 * epsilon);
+	float avg_dloss = dloss / (float)n_b;
 
 	float grad = nodes[i_node].grad_w(i_in, i_out);
 	float d_grad = grad - avg_dloss;
-	float r_grad = d_grad/grad;
+	float r_grad = d_grad / grad;
 
 	MLOG("#### Gradient Test node %d , wgt(%d,%d) %f %f : grad_w %f : num grad %f :  %f %f\n",
 		i_node, i_in, i_out,
@@ -2106,13 +2325,13 @@ int micNet::init_from_string(string init_str)
 {
 	if (params.init_from_string(init_str) < 0) return -1;
 
-/*
-	if (params.net_type == "fc")
-		return init_fully_connected(params);
+	/*
+		if (params.net_type == "fc")
+			return init_fully_connected(params);
 
-	if (params.net_type == "autoencoder")
-		return init_fully_connected(params);
-*/
+		if (params.net_type == "autoencoder")
+			return init_fully_connected(params);
+	*/
 	return 0;
 }
 
@@ -2148,13 +2367,13 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> 
 		if (i_epoch > params.min_epochs && i_epoch > params.n_back) {
 			if (params.loss_type == "log") {
 				curr = on_train_evals[i_epoch].log_loss;
-				back = on_train_evals[i_epoch-params.n_back].log_loss;
-				err = (back - curr)/back;
+				back = on_train_evals[i_epoch - params.n_back].log_loss;
+				err = (back - curr) / back;
 			}
 			if (params.loss_type == "lsq") {
 				curr = on_train_evals[i_epoch].lsq_loss;
-				back = on_train_evals[i_epoch-params.n_back].lsq_loss;
-				err = (back - curr)/back;
+				back = on_train_evals[i_epoch - params.n_back].lsq_loss;
+				err = (back - curr) / back;
 			}
 		}
 
@@ -2167,7 +2386,7 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> 
 		// test for stop criteria
 		if (i_epoch > params.min_epochs && i_epoch > params.n_back) {
 			if (err < params.min_improve_n_back) {
-				MLOG("%s epoch %d :: Met Stopping Criteria: curr %f back %f err %f (bound %f)\n", 
+				MLOG("%s epoch %d :: Met Stopping Criteria: curr %f back %f err %f (bound %f)\n",
 					prefix.c_str(), i_epoch, curr, back, err, params.min_improve_n_back);
 				go_on = 0;
 			}
@@ -2183,13 +2402,13 @@ int micNet::learn(MedMat<float> &x_train, MedMat<float> &y_train, vector<float> 
 int micNet::predict(MedMat<float> &x, vector<float> &preds)
 {
 
-	MLOG("predict(Mat,vector) API\n");
+	MLOG_D("predict(Mat,vector) API\n");
 	MedMat<float> mpreds;
 
 	if (predict(x, mpreds) < 0) return -1;
 
 	if (params.n_categ == params.n_preds_per_sample && mpreds.ncols == params.n_categ)
-		preds = mpreds.m;
+		preds = move(mpreds.m);
 	else if (params.n_preds_per_sample == 1 && params.pred_class < params.n_categ && mpreds.ncols == params.n_categ)
 		mpreds.get_col(params.pred_class, preds);
 	else {

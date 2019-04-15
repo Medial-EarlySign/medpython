@@ -51,7 +51,7 @@ void NodeInfo::init_from_string(const string &in_str)
 int micNetNode::Forward()
 {
 	if (get_S_flag) {
-		fast_multiply_medmat(batch_in, wgt, S);
+		fast_multiply_medmat_(batch_in, wgt, S);
 	}
 
 	int rc = forward();

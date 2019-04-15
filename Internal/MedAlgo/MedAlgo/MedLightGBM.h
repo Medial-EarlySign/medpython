@@ -33,6 +33,7 @@ namespace LightGBM {
 	class Boosting;
 	class ObjectiveFunction;
 	class Metric;
+	class Predictor;
 
 	class MemApp : public Application {
 	public:
@@ -55,7 +56,7 @@ namespace LightGBM {
 		int InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols);
 
 		// string serializations
-		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0;}
+		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0; }
 		int deserialize_from_string(string &str) {
 			std::unique_ptr<Boosting> ret;
 			string type = config_.boosting_type;
@@ -67,6 +68,9 @@ namespace LightGBM {
 			boosting_.reset(ret.release());
 			return 0;
 		}
+
+		void fetch_boosting(LightGBM::Boosting *&res);
+		void fetch_early_stop(LightGBM::PredictionEarlyStopInstance &early_stop_);
 
 		// n_preds 
 		int n_preds_per_sample() const {
@@ -153,7 +157,7 @@ struct MedLightGBMParams : public SerializableObject {
 	string user_params = "";
 
 	ADD_CLASS_NAME(MedLightGBMParams)
-	ADD_SERIALIZATION_FUNCS(defaults, user_params);
+		ADD_SERIALIZATION_FUNCS(defaults, user_params);
 };
 
 class MedLightGBM : public MedPredictor {
@@ -186,6 +190,7 @@ public:
 		transpose_for_predict = false;
 		init_from_string("");
 		_mark_learn_done = false;
+		prepared_single = false;
 	};
 	~MedLightGBM() {};
 
@@ -213,10 +218,13 @@ public:
 
 	int n_preds_per_sample() const { return mem_app.n_preds_per_sample(); }
 
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+	void predict_single(const vector<double> &x, vector<double> &preds) const;
 
 	// serializations
-	void pre_serialization() { 
-		model_as_string = "";  
+	void pre_serialization() {
+		model_as_string = "";
 		if (mem_app.serialize_to_string(model_as_string) < 0)
 			global_logger.log(LOG_MEDALGO, MAX_LOG_LEVEL, "MedLightGBM::serialize() failed moving model to string\n");
 	}
@@ -229,13 +237,17 @@ public:
 	}
 
 	ADD_CLASS_NAME(MedLightGBM)
-	ADD_SERIALIZATION_FUNCS(classifier_type, params, model_as_string, model_features, features_count, _mark_learn_done)
+		ADD_SERIALIZATION_FUNCS(classifier_type, params, model_as_string, model_features, features_count, _mark_learn_done)
 
 private:
 	bool _mark_learn_done;
 	string model_as_string;
-};
+	bool prepared_single;
 
+	int num_preds;
+	LightGBM::Boosting *_boosting;
+	LightGBM::PredictionEarlyStopInstance early_stop_;
+};
 
 MEDSERIALIZE_SUPPORT(MedLightGBMParams);
 MEDSERIALIZE_SUPPORT(MedLightGBM);

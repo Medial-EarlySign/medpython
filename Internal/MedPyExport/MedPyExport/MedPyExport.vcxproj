@@ -29,6 +29,7 @@
     <ClInclude Include="MPModel.h" />
     <ClInclude Include="MPPandasAdaptor.h" />
     <ClInclude Include="MPPidRepository.h" />
+    <ClInclude Include="MPPredictor.h" />
     <ClInclude Include="MPSampleFilter.h" />
     <ClInclude Include="MPSamples.h" />
     <ClInclude Include="MPSerializableObject.h" />
@@ -47,6 +48,7 @@
     <ClCompile Include="MPModel.cpp" />
     <ClCompile Include="MPPandasAdaptor.cpp" />
     <ClCompile Include="MPPidRepository.cpp" />
+    <ClCompile Include="MPPredictor.cpp" />
     <ClCompile Include="MPSampleFilter.cpp" />
     <ClCompile Include="MPSamples.cpp" />
     <ClCompile Include="MPSerializableObject.cpp" />

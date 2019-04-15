@@ -81,5 +81,5 @@ except:
     
 # Perfomance
 if p.outPerformance != '':
-  med.CommonLib.print_auc_performance(samples.nSplits(), nsplits, p.outPerformance)
+  med.CommonLib.print_auc_performance(samples, range(samples.nSplits()), p.outPerformance)
     

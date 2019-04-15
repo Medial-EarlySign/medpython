@@ -241,6 +241,11 @@ public:
 	static MedPredictor *make_predictor(string model_type, string params);
 	static MedPredictor *make_predictor(MedPredictorTypes model_type, string params);
 
+	/// Prepartion function for fast prediction on single item each time
+	virtual void prepare_predict_single() {};
+	virtual void predict_single(const vector<float> &x, vector<float> &preds) const;
+	virtual void predict_single(const vector<double> &x, vector<double> &preds) const;
+
 	// (De)Serialize
 	ADD_CLASS_NAME(MedPredictor)
 		ADD_SERIALIZATION_FUNCS(classifier_type)
@@ -512,6 +517,7 @@ struct MedQRFParams : public SerializableObject {
 	// Regression
 	float spread;
 	bool keep_all_values; ///< For quantile regression
+	bool sparse_values; ///< For keeping all values as a value-index(int):count(char) vector
 
 	// categorical
 	int min_node;
@@ -525,7 +531,7 @@ struct MedQRFParams : public SerializableObject {
 
 	ADD_CLASS_NAME(MedQRFParams)
 		ADD_SERIALIZATION_FUNCS(ntrees, maxq, learn_nthreads, predict_nthreads, type, max_samp, samp_factor, samp_vec,
-			ntry, get_only_this_categ, max_depth, take_all_samples, spread, keep_all_values, min_node, n_categ, collect_oob, get_count, quantiles)
+			ntry, get_only_this_categ, max_depth, take_all_samples, spread, keep_all_values, sparse_values, min_node, n_categ, collect_oob, get_count, quantiles)
 		void post_deserialization() { if (samp_vec.size() == 0) sampsize = NULL;  else sampsize = &samp_vec[0]; }
 
 };
@@ -549,7 +555,7 @@ public:
 	virtual int set_params(map<string, string>& mapper);
 	//	int init(const string &init_str); // allows init of parameters from a string. Format is: param=val,... , for sampsize: 0 is NULL, a list of values is separated by ; (and not ,)
 	void init_defaults();
-	
+
 	/// @snippet MedQRF.cpp MedQRF_get_types
 	QRF_TreeType get_tree_type(string name);
 
@@ -571,9 +577,17 @@ public:
 	// Predictions per sample
 	int n_preds_per_sample() const;
 
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
+
 private:
 	void set_sampsize(float *y, int nsamples); // checking if there's a need to prep sampsize based on max_samp and samp_factor
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int get_count) const;
+
+	vector<pair<float, int>> _indexd_quantiles;
+	vector<float> _sorted_quantiles;
+	qrf_scoring_thread_params _single_pred_args;
+	bool prepared_single;
 };
 
 //======================================================================================
@@ -585,6 +599,9 @@ struct MedMicNetParams {
 };
 
 class MedMicNet : public MedPredictor {
+private:
+	vector<micNet> model_per_thread;
+	bool is_prepared = false;
 public:
 	// Model 
 	micNet mic;
@@ -640,6 +657,9 @@ public:
 	int learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgt) { return mic.learn(x, y, wgt); }
 	int learn(MedMat<float> &x, MedMat<float> &y) { return mic.learn(x, y); }
 	int predict(MedMat<float> &x, vector<float> &preds) const { micNet mutable_net = mic; return mutable_net.predict(x, preds); }
+
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
 
 	// (De)Serialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedMicNet)
@@ -1146,7 +1166,7 @@ namespace medial {
 		/// using the predictor parameters if given
 		void compare_populations(const MedFeatures &population1, const MedFeatures &population2,
 			const string &name1, const string &name2, const string &output_file,
-			const string &predictor_type = "", const string &predictor_init = "");
+			const string &predictor_type = "", const string &predictor_init = "", int nfolds = 5, int max_learn = 0);
 	}
 }
 

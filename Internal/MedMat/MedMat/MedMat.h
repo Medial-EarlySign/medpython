@@ -29,7 +29,7 @@ using namespace std;
 class RecordData : public SerializableObject {
 public:
 	RecordData() {};
-	RecordData(int id, int date, long outcomeTime, int split, float weight, float label, float pred){
+	RecordData(int id, int date, long outcomeTime, int split, float weight, float label, float pred) {
 		this->id = id;
 		this->date = date;
 		this->outcomeTime = outcomeTime;
@@ -48,7 +48,7 @@ public:
 	float weight;
 
 	ADD_CLASS_NAME(RecordData)
-	ADD_SERIALIZATION_FUNCS(id, date, outcomeTime, split, label, pred, weight)
+		ADD_SERIALIZATION_FUNCS(id, date, outcomeTime, split, label, pred, weight)
 };
 
 
@@ -60,126 +60,172 @@ public:
 // mat(i,j) can be used to access the (i,j) element in the matrix for read or write.
 template <class T>
 class MedMat : public SerializableObject {
-	public:
+public:
 
-		const static int Normalize_Cols = 1;
-		const static int Normalize_Rows = 2;
+	const static int Normalize_Cols = 1;
+	const static int Normalize_Rows = 2;
 
-		// data holders (major)
-		vector<T> m;
-		int nrows = 0;
-		int ncols = 0;
-		unsigned long long size() { return (unsigned long long)nrows*ncols; }
+	// data holders (major)
+	vector<T> m;
+	int nrows = 0;
+	int ncols = 0;
+	unsigned long long size() { return (unsigned long long)nrows*ncols; }
 
-		// metadata holders
-		vector<int> row_ids;
-		vector<RecordData> recordsMetadata;
-		vector<string> signals;
-		//int time_unit;
+	// metadata holders
+	vector<int> row_ids;
+	vector<RecordData> recordsMetadata;
+	vector<string> signals;
+	//int time_unit;
 
-		// Normalization/DeNormalization
-		vector<T> avg;
-		vector<T> std;
+	// Normalization/DeNormalization
+	vector<T> avg;
+	vector<T> std;
 
-		int normalized_flag = 0; // 0 - non normalized 1 - cols normalized, 2 - rows normalized
-		int transposed_flag = 0; // 0 - as was when matrix was created/loaded, 1 - transpose of it
+	int normalized_flag = 0; // 0 - non normalized 1 - cols normalized, 2 - rows normalized
+	int transposed_flag = 0; // 0 - as was when matrix was created/loaded, 1 - transpose of it
 
-		T missing_value ;
+	T missing_value;
 
-		// get/set
-		inline T operator ()(int i, int j) const {return m[((unsigned long long)i)*ncols+j];}
-		inline T &operator ()(int i, int j) {return m[((unsigned long long)i)*ncols+j];}
-		inline T get(int i, int j) const {return m[((unsigned long long)i)*ncols+j];}
-		inline T& set(int i, int j) {return m[i*ncols+j];}  // use var.set(i,j) = .... 
+	// get/set
+	inline T operator ()(int i, int j) const { return m[((unsigned long long)i)*ncols + j]; }
+	inline T &operator ()(int i, int j) { return m[((unsigned long long)i)*ncols + j]; }
+	inline T get(int i, int j) const { return m[((unsigned long long)i)*ncols + j]; }
+	inline T& set(int i, int j) { return m[i*ncols + j]; }  // use var.set(i,j) = .... 
+	inline MedMat<T>& operator=(MedMat<T> &&other) noexcept {
+		if (this != &other) {
+			m = move(other.m);
+			nrows = other.nrows;
+			ncols = other.ncols;
+			row_ids = move(other.row_ids);
+			signals = move(other.signals);
+			avg = move(other.avg);
+			std = move(other.std);
+			normalized_flag = other.normalized_flag;
+			transposed_flag = other.transposed_flag;
+			missing_value = other.missing_value;
+			recordsMetadata = move(other.recordsMetadata);
+		}
+		return *this;
+	}
+	inline MedMat<T>& operator=(const MedMat<T> &other) noexcept {
+		if (this != &other) {
+			m = other.m;
+			nrows = other.nrows;
+			ncols = other.ncols;
+			row_ids = other.row_ids;
+			signals = other.signals;
+			avg = other.avg;
+			std = other.std;
+			normalized_flag = other.normalized_flag;
+			transposed_flag = other.transposed_flag;
+			missing_value = other.missing_value;
+			recordsMetadata = other.recordsMetadata;
+		}
+		return *this;
+	}
 
-		// init
-		MedMat() {clear();}
-		MedMat(int n_rows, int n_cols) {clear(); nrows = n_rows; ncols = n_cols; m.resize(((unsigned long long)nrows)*ncols); zero();};
-		template <class S> MedMat(S *x, int n_rows, int n_cols) {clear(); load(x,n_rows,n_cols);}
-		template <class S> MedMat(vector<S> &x, int n_cols) {clear(); load(x,n_cols);}
-		template <class S> MedMat(MedMat<S> &x) {clear(); load(x);}
+	// init
+	MedMat() { clear(); }
+	MedMat(int n_rows, int n_cols) { clear(); nrows = n_rows; ncols = n_cols; m.resize(((unsigned long long)nrows)*ncols); zero(); };
+	MedMat(const MedMat<T> &other) {
+		m = other.m;
+		nrows = other.nrows;
+		ncols = other.ncols;
+		row_ids = other.row_ids;
+		signals = other.signals;
+		avg = other.avg;
+		std = other.std;
+		normalized_flag = other.normalized_flag;
+		transposed_flag = other.transposed_flag;
+		missing_value = other.missing_value;
+		recordsMetadata = other.recordsMetadata;
+	}
+	template <class S> MedMat(S *x, int n_rows, int n_cols) { clear(); load(x, n_rows, n_cols); }
+	template <class S> MedMat(vector<S> &x, int n_cols) { clear(); load(x, n_cols); }
+	template <class S> MedMat(MedMat<S> &x) { clear(); load(x); }
 
-		template <class S> void load(S *x, int n_rows, int n_cols);
-		template <class S> void load_transposed(S *x, int n_rows, int n_cols);
-		template <class S> void load(vector<S> &x, int n_cols);
-		template <class S> void load(MedMat<S> &x);
+	template <class S> void load(S *x, int n_rows, int n_cols);
+	template <class S> void load_transposed(S *x, int n_rows, int n_cols);
+	template <class S> void load(vector<S> &x, int n_cols);
+	template <class S> void load(MedMat<S> &x);
 
-		void zero() {fill(m.begin(),m.end(),(T)0);}
-		void set_val(T val) { fill(m.begin(), m.end(), val); } // set all matrix to a certain value.
+	void zero() { fill(m.begin(), m.end(), (T)0); }
+	void set_val(T val) { fill(m.begin(), m.end(), val); } // set all matrix to a certain value.
 
-		// basic 
+	// basic 
 		void clear() { m.clear(); row_ids.clear(); signals.clear(); nrows = 0; ncols = 0; normalized_flag = 0; transposed_flag = 0; missing_value = (T)MED_MAT_MISSING_VALUE; }
-		T *data_ptr() {if (m.size()>0) return &m[0]; else return NULL;}
-		T *data_ptr(int r,int c) {if (m.size()>r*ncols+c) return &m[(unsigned long long)r*ncols+c]; else return NULL;}
-		int get_nrows() {return nrows;}
-		int get_ncols() {return ncols;}
-		void resize(int n_rows, int n_cols) {nrows=n_rows; ncols=n_cols; m.resize((unsigned long long)n_rows*n_cols);}
+	T *data_ptr() { if (m.size() > 0) return &m[0]; else return NULL; }
+	const T *data_ptr() const { if (m.size() > 0) return &m[0]; else return NULL; }
+	T *data_ptr(int r, int c) { if (m.size() > r*ncols + c) return &m[(unsigned long long)r*ncols + c]; else return NULL; }
+	int get_nrows() { return nrows; }
+	int get_ncols() { return ncols; }
+	void resize(int n_rows, int n_cols) { nrows = n_rows; ncols = n_cols; m.resize((unsigned long long)n_rows*n_cols); }
 
-		// i/o from specific format files
-		int read_from_bin_file(const string &fname);
-		int write_to_bin_file(const string &fname);
-		int write_to_csv_file(const string &fname);
-		int read_from_csv_file(const string &fname, int titles_line_flag);
-		//int read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out);
+	// i/o from specific format files
+	int read_from_bin_file(const string &fname);
+	int write_to_bin_file(const string &fname);
+	int write_to_csv_file(const string &fname);
+	int read_from_csv_file(const string &fname, int titles_line_flag);
+	//int read_from_csv_file(const string &fname, int titles_line_flag, vector<string>& fields_out);
 
-		// serialize(), deserialize()
-		//size_t get_size();
-		//size_t serialize(unsigned char *buf);
-		//size_t deserialize(unsigned char *buf);
-		ADD_SERIALIZATION_FUNCS(m, nrows, ncols, row_ids, recordsMetadata, signals, avg, std, normalized_flag, transposed_flag, missing_value);
+	// serialize(), deserialize()
+	//size_t get_size();
+	//size_t serialize(unsigned char *buf);
+	//size_t deserialize(unsigned char *buf);
+	ADD_SERIALIZATION_FUNCS(m, nrows, ncols, row_ids, recordsMetadata, signals, avg, std, normalized_flag, transposed_flag, missing_value);
 
-		// simple handling options
-		void transpose();
-		void get_sub_mat(vector<int> &rows_to_take, vector<int> &cols_to_take); // empty list means - take them  all
-		void get_sub_mat_by_flags(vector<int> &rows_to_take_flag, vector<int> &cols_to_take_flag);
-		void reorder_by_row(vector<int> &row_order);
-		void reorder_by_col(vector<int> &col_order);
-		
-		template <class S> void add_rows(MedMat<S> &m_add);
-		template <class S> void add_rows(S *m_add, int nrows_to_add);
-		template <class S> void add_rows(vector<S> &m_add);
-		template <class S> void add_cols(MedMat<S> &m_add);
-		template <class S> void add_cols(S *m_add, int ncols_to_add); // packed as nrows x ncols_to_add 
-		template <class S> void add_cols(vector<S> &m_add);
+	// simple handling options
+	void transpose();
+	void get_sub_mat(vector<int> &rows_to_take, vector<int> &cols_to_take); // empty list means - take them  all
+	void get_sub_mat_by_flags(vector<int> &rows_to_take_flag, vector<int> &cols_to_take_flag);
+	void reorder_by_row(vector<int> &row_order);
+	void reorder_by_col(vector<int> &col_order);
 
-		// get a row or a column to a vector
-		void get_row(int i_row, vector<T> &rowv) const;
-		void get_col(int i_col, vector<T> &colv) const;
+	template <class S> void add_rows(MedMat<S> &m_add);
+	template <class S> void add_rows(S *m_add, int nrows_to_add);
+	template <class S> void add_rows(vector<S> &m_add);
+	template <class S> void add_cols(MedMat<S> &m_add);
+	template <class S> void add_cols(S *m_add, int ncols_to_add); // packed as nrows x ncols_to_add 
+	template <class S> void add_cols(vector<S> &m_add);
 
-		// normalization (norm_type = 1 for cols (default), 2 for rows)
-		void normalize(int norm_type, float *wgts);
-		void normalize(int norm_type, vector<float> &wgts) {return normalize(norm_type,&wgts[0]);}
-		void normalize(int norm_type = Normalize_Cols) {return normalize(norm_type,NULL);}
+	// get a row or a column to a vector
+	void get_row(int i_row, vector<T> &rowv) const;
+	void get_col(int i_col, vector<T> &colv) const;
 
-		template <class S> void normalize(vector<S>& external_avg, vector<S>& external_std, int norm_type = 1);
+	// normalization (norm_type = 1 for cols (default), 2 for rows)
+	void normalize(int norm_type, float *wgts);
+	void normalize(int norm_type, vector<float> &wgts) { return normalize(norm_type, &wgts[0]); }
+	void normalize(int norm_type = Normalize_Cols) { return normalize(norm_type, NULL); }
 
-		void get_cols_avg_std(vector<T>& _avg, vector<T>& _std);
+	template <class S> void normalize(vector<S>& external_avg, vector<S>& external_std, int norm_type = 1);
 
-		void print_row(FILE *fout, const string &prefix, const string &format, int i_row);
+	void get_cols_avg_std(vector<T>& _avg, vector<T>& _std);
 
-		void set_signals(vector<string> & sigs);
+	void print_row(FILE *fout, const string &prefix, const string &format, int i_row);
 
-		//return true iff the matrix contains only valid floating point vals (not nan/infinite)
-		//if the type of the matrix is not floating point, always returns true
-		//if output = true, output the first invalid entry encountered to cerr
-		bool is_valid(bool output = false) {
-			if (std::is_floating_point<T>::value == false)
-				return true;
+	void set_signals(vector<string> & sigs);
 
-			for (int i = 0; i < nrows; i++) {
-				for (int j = 0; j < ncols; j++) {
-					double x = (double)(m[i*ncols + j]);
-					if (!isfinite(x)) {
-						if (output)
-							cerr << "invalid element(" << i << ", " << j << ") = " << x << endl;
+	//return true iff the matrix contains only valid floating point vals (not nan/infinite)
+	//if the type of the matrix is not floating point, always returns true
+	//if output = true, output the first invalid entry encountered to cerr
+	bool is_valid(bool output = false) {
+		if (std::is_floating_point<T>::value == false)
+			return true;
 
-						return false;
-					}
+		for (int i = 0; i < nrows; i++) {
+			for (int j = 0; j < ncols; j++) {
+				double x = (double)(m[i*ncols + j]);
+				if (!isfinite(x)) {
+					if (output)
+						cerr << "invalid element(" << i << ", " << j << ") = " << x << endl;
+
+					return false;
 				}
 			}
+		}
 
-			return true;			
-		}		
+		return true;
+	}
 };
 
 // a few related util functions
@@ -187,14 +233,14 @@ void flags_to_indexes(vector<int> &flags, vector<int> &inds);
 
 #include "MedMat_imp.h"
 
-// a few basic tools for MedMat<float> mats
+// a few basic tools for MedMat<float> mats 
 int get_rand_medmat(MedMat<float> &A); // fills mat with uniform 0-1 numbers
 int multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C); // A:n x m B:m x k --> gets C=A*B C:n x k
-int fast_multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C); // A:n x m B:m x k --> gets C=A*B C:n x k :: Uses Eigen to get performance
-int fast_multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C, float s); // A:n x m B:m x k --> gets C=s*A*B C:n x k :: Uses Eigen to get performance
+int fast_multiply_medmat_(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C); // A:n x m B:m x k --> gets C=A*B C:n x k :: Uses Eigen to get performance
+int fast_multiply_medmat(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C, float s); // A:n x m B:m x k --> gets C=s*A*B C:n x k :: Uses Eigen to get performance
 int fast_sum_medmat_rows(MedMat<float> &A, MedMat<float> &Asum, float factor); // A: n x m , output: Asum: 1 x m , summing all rows, done with matrix mult with factor (more efficient this way)
 int fast_sum_medmat_cols(MedMat<float> &A, MedMat<float> &Asum, float factor); // A: n x m , output: Asum: n x 1 , summing all cols, done with matrix mult with factor (more efficient this way)
-int fast_multiply_medmat_transpose(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C, int transpose_flag); // A:n x m B:m x k --> gets C=A*B C:n x k , but allows transposing each mat
+int fast_multiply_medmat_transpose(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C, int transpose_flag); // A:n x m B:m x k --> gets C=A*B C:n x k , but allows transposing each mat
 
 int fast_multiply_scalar_vector(vector<float> &v, float s); //v = s * v; 
 int fast_multiply_scalar_vector(vector<float> &v, float s, vector<float> &w); //w = s * v; 

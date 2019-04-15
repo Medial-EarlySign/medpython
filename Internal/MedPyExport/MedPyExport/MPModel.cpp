@@ -17,9 +17,11 @@ const int MPModelStage::APPLY_FTR_PROCESSORS = MED_MDL_APPLY_FTR_PROCESSORS;
 const int MPModelStage::LEARN_PREDICTOR = MED_MDL_LEARN_PREDICTOR;
 const int MPModelStage::APPLY_PREDICTOR = MED_MDL_APPLY_PREDICTOR;
 const int MPModelStage::INSERT_PREDS = MED_MDL_INSERT_PREDS;
+const int MPModelStage::LEARN_POST_PROCESS = MED_MDL_LEARN_POST_PROCESS;
+const int MPModelStage::APPLY_POST_PROCESS = MED_MDL_APPLY_POST_PROCESS;
 const int MPModelStage::END = MED_MDL_END;
 
-static_assert(MPModelStage::END == 8, "med model was changed");
+static_assert(MPModelStage::END == 10, "med model was changed");
 
 MPModel::MPModel() { o = new MedModel(); };
 MPModel::~MPModel() { delete o; o = nullptr; };
@@ -66,7 +68,8 @@ void MPModel::add_feature_generator_to_set(int i_set, const string &init_string)
 void MPModel::add_feature_processor_to_set(int i_set, int duplicate, const string &init_string) { o->add_feature_processor_to_set(i_set, duplicate, init_string); };
 void MPModel::add_process_to_set(int i_set, int duplicate, const string &init_string) { o->add_process_to_set(i_set, duplicate, init_string); };
 void MPModel::add_process_to_set(int i_set, const string &init_string) { o->add_process_to_set(i_set, init_string); };
-void MPModel::set_predictor(string name) { o->set_predictor(name); };
+void MPModel::set_predictor(MPPredictor& _predictor) { o->set_predictor(_predictor.o); }
+void MPModel::make_predictor(string name) { o->set_predictor(name); };
 void MPModel::set_predictor(string name, string init_string) { o->set_predictor(name, init_string); };
 int MPModel::collect_and_add_virtual_signals(MPPidRepository &rep) { return o->collect_and_add_virtual_signals(*(rep.o)); };
 int MPModel::quick_learn_rep_processors(MPPidRepository& rep, MPSamples& samples) { return o->quick_learn_rep_processors(*(rep.o), *(samples.o)); };

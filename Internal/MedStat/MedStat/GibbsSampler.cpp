@@ -11,14 +11,13 @@
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
 Gibbs_Params::Gibbs_Params() {
-	burn_in_count = 1000;
-	jump_between_samples = 10;
-	samples_count = 1;
 	kmeans = 0;
 	max_iters = 500;
 	selection_ratio = (float)0.7;
-	find_real_value_bin = true;
+
 	select_with_repeats = false;
+	calibration_save_ratio = 0;
+	calibration_string = "";
 
 	predictor_type = "lightgbm";
 	predictor_args = "objective=multiclassova;metric=multi_logloss;verbose=0;num_threads=15;"
@@ -27,24 +26,24 @@ Gibbs_Params::Gibbs_Params() {
 	bin_settings.init_from_string("split_method=iterative_merge;binCnt=50");
 }
 
+GibbsSamplingParams::GibbsSamplingParams() {
+	burn_in_count = 1000;
+	jump_between_samples = 10;
+	samples_count = 1;
+	find_real_value_bin = true;
+	use_cache = false;
+}
+
 int Gibbs_Params::init(map<string, string>& map) {
 
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
-		if (it->first == "burn_in_count")
-			burn_in_count = med_stoi(it->second);
-		else if (it->first == "jump_between_samples")
-			jump_between_samples = med_stoi(it->second);
-		else if (it->first == "samples_count")
-			samples_count = med_stoi(it->second);
-		else if (it->first == "kmeans")
+		if (it->first == "kmeans")
 			kmeans = med_stoi(it->second);
 		else if (it->first == "max_iters")
 			max_iters = med_stoi(it->second);
 		else if (it->first == "selection_ratio")
 			selection_ratio = med_stof(it->second);
-		else if (it->first == "find_real_value_bin")
-			find_real_value_bin = med_stoi(it->second) > 0;
 		else if (it->first == "select_with_repeats")
 			select_with_repeats = med_stoi(it->second) > 0;
 		else if (it->first == "predictor_type")
@@ -55,6 +54,10 @@ int Gibbs_Params::init(map<string, string>& map) {
 			num_class_setup = it->second;
 		else if (it->first == "bin_settings")
 			bin_settings.init_from_string(it->second);
+		else if (it->first == "calibration_save_ratio")
+			calibration_save_ratio = med_stof(it->second);
+		else if (it->first == "calibration_string")
+			calibration_string = it->second;
 		else
 			MTHROW_AND_ERR("Error in Gibbs_Params::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -62,23 +65,41 @@ int Gibbs_Params::init(map<string, string>& map) {
 	return 0;
 }
 
-PredictorOrEmpty::PredictorOrEmpty() {
-	random_device rd;
-	gen = mt19937(rd());
-	predictor = NULL;
+int GibbsSamplingParams::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "burn_in_count")
+			burn_in_count = med_stoi(it->second);
+		else if (it->first == "jump_between_samples")
+			jump_between_samples = med_stoi(it->second);
+		else if (it->first == "samples_count")
+			samples_count = med_stoi(it->second);
+		else if (it->first == "find_real_value_bin")
+			find_real_value_bin = med_stoi(it->second) > 0;
+		else if (it->first == "use_cache")
+			use_cache = med_stoi(it->second) > 0;
+		else
+			MTHROW_AND_ERR("Error in GibbsSamplingParams::init - no parameter \"%s\"\n", it->first.c_str());
+	}
+	return 0;
 }
 
-PredictorOrEmpty::~PredictorOrEmpty() {
+template<typename T> PredictorOrEmpty<T>::PredictorOrEmpty() {
+	predictor = NULL;
+	use_cache = true;
+}
+
+template<typename T> PredictorOrEmpty<T>::~PredictorOrEmpty() {
 	if (predictor != NULL)
 		delete predictor;
 	predictor = NULL;
 }
 
-int GibbsSampler::init(map<string, string>& map) {
+template<typename T> int GibbsSampler<T>::init(map<string, string>& map) {
 	return params.init(map);
 }
 
-float PredictorOrEmpty::get_sample(vector<float> &x) {
+template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen) {
 	if (!sample_cohort.empty()) {
 		uniform_int_distribution<> rnd_gen(0, (int)sample_cohort.size() - 1);
 		int sel = rnd_gen(gen);
@@ -87,14 +108,14 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 	else if (!cluster_centers.empty()) {
 		//find closet cluster:
 		int close_idx = -1;
-		float min_diff = -1;
+		double min_diff = -1;
 		int k = (int)cluster_centers.size() / input_size;
 
 		for (size_t i = 0; i < k; ++i)
 		{
 			if (clusters_y[i].empty())
 				continue; // skip empty clusters
-			float curr_dif = 0;
+			double curr_dif = 0;
 			for (size_t j = 0; j < input_size; ++j)
 				curr_dif += pow(cluster_centers[i * input_size + j] - x[j], 2);
 			if (close_idx == -1 || min_diff > curr_dif) {
@@ -103,19 +124,50 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 			}
 		}
 		//the relevant cluster is close_idx - let's randomize y value from it:
-		vector<float> &sample_from = clusters_y[close_idx];
+		const vector<float> &sample_from = clusters_y[close_idx];
 		uniform_int_distribution<> rnd_gen(0, (int)sample_from.size() - 1);
 		int sel = rnd_gen(gen);
 		return sample_from[sel];
 	}
 	else if (predictor != NULL) {
-		vector<float> prd; //for each class:
-		predictor->predict(x, prd, 1, (int)x.size());
-		float tot_num = 0;
+		vector<T> prd; //for each class:
+		//predictor->predict(x, prd, 1, (int)x.size());
+		predictor->predict_single(x, prd);
+		if (!calibrators.empty()) {
+			//test cache:
+			if (use_cache && cache_calibrators.empty())
+				cache_calibrators.resize(calibrators.size());
+			//need to use calibrator for all predictions:
+			vector<MedSample> smps(1);
+			smps[0].id = 0;
+			smps[0].outcome = 0;
+			for (size_t i = 0; i < prd.size(); ++i)
+			{
+				if (use_cache) {
+					unordered_map<float, float> &m_cache = cache_calibrators[i];
+					if (m_cache.find(prd[i]) == m_cache.end()) {
+						smps[0].prediction = { (float)prd[i] };
+						calibrators[i].Apply(smps);
+
+						m_cache[prd[i]] = smps[0].prediction[0]; //update cache
+						prd[i] = smps[0].prediction[0]; //return calibrated value
+					}
+					else
+						prd[i] = m_cache.at(prd[i]);
+				}
+				else
+				{
+					smps[0].prediction = { (float)prd[i] };
+					calibrators[i].Apply(smps);
+					prd[i] = smps[0].prediction[0]; //return calibrated value
+				}
+			}
+		}
+		double tot_num = 0;
 		for (size_t i = 0; i < prd.size(); ++i)
 			tot_num += prd[i];
-		uniform_int_distribution<> real_dist(0, tot_num);
-		float sel = real_dist(gen);
+		uniform_real_distribution<> real_dist(0, tot_num);
+		double sel = real_dist(gen);
 
 		//now select correspond bin value:
 		tot_num = 0;
@@ -131,7 +183,13 @@ float PredictorOrEmpty::get_sample(vector<float> &x) {
 	MTHROW_AND_ERR("Error PredictorOrEmpty - not initialized");
 }
 
-void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
+template<typename T> GibbsSampler<T>::GibbsSampler() {
+	random_device rd;
+	_gen = mt19937(rd());
+	done_prepare = false;
+}
+
+template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<T>> &cohort_data) {
 	random_device rd;
 	mt19937 gen(rd());
 	if (params.selection_ratio > 1) {
@@ -166,39 +224,40 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 		int max_loop = (int)all_names.size();
 		int train_sz = int(cohort_size * params.selection_ratio);
 
+		if (params.kmeans > 0) {
 #pragma omp parallel for
-		for (int i = 0; i < all_names.size(); ++i)
-		{
-			unordered_set<float> uniq_vals;
-			for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
-				uniq_vals.insert(cohort_data.at(all_names[i])[k]);
-#pragma omp critical
+			for (int i = 0; i < all_names.size(); ++i)
 			{
-				uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
-				sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
-			}
+				unordered_set<float> uniq_vals;
+				for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
+					uniq_vals.insert(cohort_data.at(all_names[i])[k]);
+#pragma omp critical
+				{
+					uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
+					sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
+				}
 
-			vector<int> clusters;
-			vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
-			vector<bool> seen;
-			if (!params.select_with_repeats)
-				seen.resize(cohort_size);
-			vector<int> sel_ls(train_sz);
-			for (size_t ii = 0; ii < train_sz; ++ii) {
-				int random_idx = rnd_num(gen);
-				if (!params.select_with_repeats) { //if need to validate no repeats - do it
-					while (seen[random_idx])
-						random_idx = rnd_num(gen);
-					seen[random_idx] = true;
+				vector<int> clusters;
+				vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
+				vector<bool> seen;
+				if (!params.select_with_repeats)
+					seen.resize(cohort_size);
+				vector<int> sel_ls(train_sz);
+				for (size_t ii = 0; ii < train_sz; ++ii) {
+					int random_idx = rnd_num(gen);
+					if (!params.select_with_repeats) { //if need to validate no repeats - do it
+						while (seen[random_idx])
+							random_idx = rnd_num(gen);
+						seen[random_idx] = true;
+					}
+					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
+						int fixed_idx = (int)jj + int(jj >= i); //skip current
+						train_vec[ii* pred_num_feats + jj] = float(cohort_data.at(all_names[fixed_idx])[random_idx]);
+					}
+					label_vec[ii] = float(cohort_data.at(all_names[i])[random_idx]);
+					sel_ls[ii] = random_idx;
 				}
-				for (size_t jj = 0; jj < pred_num_feats; ++jj) {
-					int fixed_idx = (int)jj + int(jj >= i); //skip current
-					train_vec[ii* pred_num_feats + jj] = (cohort_data.at(all_names[fixed_idx])[random_idx]);
-				}
-				label_vec[ii] = cohort_data.at(all_names[i])[random_idx];
-				sel_ls[ii] = random_idx;
-			}
-			if (params.kmeans > 0) {
+
 				//seperate the X space to k clusters:
 				int k = params.kmeans;
 				if (INT_MAX / train_sz < k) {
@@ -220,9 +279,38 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 				//calc feats_predictors[i].clusters_y:
 #pragma omp critical 
 				for (size_t j = 0; j < train_sz; ++j)
-					feats_predictors[i].clusters_y[clusters[j]].push_back(cohort_data.at(all_names[i])[j]);
+					feats_predictors[i].clusters_y[clusters[j]].push_back(float(cohort_data.at(all_names[i])[j]));
+
 			}
-			else {
+		}
+		else {
+			for (int i = 0; i < all_names.size(); ++i)
+			{
+				unordered_set<float> uniq_vals;
+				for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
+					uniq_vals.insert(cohort_data.at(all_names[i])[k]);
+				uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
+				sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
+				vector<int> clusters;
+				vector<float> train_vec(train_sz * pred_num_feats), label_vec(train_sz);
+				vector<bool> seen;
+				if (!params.select_with_repeats)
+					seen.resize(cohort_size);
+				vector<int> sel_ls(train_sz);
+				for (size_t ii = 0; ii < train_sz; ++ii) {
+					int random_idx = rnd_num(gen);
+					if (!params.select_with_repeats) { //if need to validate no repeats - do it
+						while (seen[random_idx])
+							random_idx = rnd_num(gen);
+						seen[random_idx] = true;
+					}
+					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
+						int fixed_idx = (int)jj + int(jj >= i); //skip current
+						train_vec[ii* pred_num_feats + jj] = float(cohort_data.at(all_names[fixed_idx])[random_idx]);
+					}
+					label_vec[ii] = float(cohort_data.at(all_names[i])[random_idx]);
+					sel_ls[ii] = random_idx;
+				}
 
 				//use predictors to train on train_vec and predcit on label_vec:
 				//do binning for label_vec:
@@ -250,7 +338,6 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 				sort(sorted_vals.begin(), sorted_vals.end());
 				MLOG("Feature %s has %d categories\n", all_names[i].c_str(), class_num);
 
-#pragma omp critical
 				feats_predictors[i].bin_vals.insert(feats_predictors[i].bin_vals.end(), sorted_vals.begin(), sorted_vals.end());
 				//learn predictor
 				//change labels to be 0 to K-1:
@@ -262,33 +349,99 @@ void GibbsSampler::learn_gibbs(const map<string, vector<float>> &cohort_data) {
 				for (size_t ii = 0; ii < label_vec.size(); ++ii)
 					label_vec[ii] = (float)map_categ.at(label_vec[ii]);
 
-				train_pred->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
+				//split to train and train_calibration if needed:
+				if (params.calibration_save_ratio > 0) {
 #pragma omp critical
-				feats_predictors[i].predictor = train_pred;
-			}
+					feats_predictors[i].calibrators.resize(seen_val.size());
+					for (size_t kk = 0; kk < feats_predictors[i].calibrators.size(); ++kk)
+						feats_predictors[i].calibrators[kk].init_from_string(params.calibration_string);
 
-			++progress;
-			double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_prog).count()) / 1000000.0;
-			if (duration > 30) {
+					int calib_ratio = params.calibration_save_ratio * (int)label_vec.size();
+					int train_ratio = (int)label_vec.size() - calib_ratio;
+					uniform_int_distribution<> sel_rnd(0, (int)label_vec.size() - 1);
+					vector<bool> seen_sel(label_vec.size());
+					vector<float> pred_train_vec(train_ratio * pred_num_feats), pred_label_vec(train_ratio);
+					vector<vector<MedSample>> pred_calib_train(seen_val.size());
+					MedFeatures pred_calib_mat;
+					for (const string &name_feat : all_names)
+						pred_calib_mat.attributes[name_feat].denorm_mean = 0;
+					pred_calib_mat.samples.resize(calib_ratio);
+
+					for (size_t j = 0; j < calib_ratio; ++j)
+					{
+						int sel_idx = sel_rnd(gen);
+						while (seen_sel[sel_idx])
+							sel_idx = sel_rnd(gen);
+						seen_sel[sel_idx] = true;
+
+						int categ = label_vec[sel_idx];
+						MedSample smp; smp.id = (int)j;
+
+						for (size_t k = 0; k < pred_calib_train.size(); ++k)
+						{
+							smp.outcome = k == categ; // set outcome := 1 (as case) only for categ
+							pred_calib_train[k].push_back(smp);
+						}
+						pred_calib_mat.samples[j].id = (int)j;
+						pred_calib_mat.samples[j].outcome = 0; //doesn't matter for prediction only
+						for (size_t k = 0; k < pred_num_feats; ++k) {
+							int fixed_idx = (int)k + int(k >= i); //skip current
+							pred_calib_mat.data[all_names[fixed_idx]].push_back(train_vec[sel_idx * pred_num_feats + k]);
+						}
+					}
+
+					//build pred:
+					int idx_train = 0;
+					for (size_t j = 0; j < seen_sel.size(); ++j)
+					{
+						if (seen_sel[j])
+							continue;
+						for (size_t k = 0; k < pred_num_feats; ++k)
+							pred_train_vec[idx_train * pred_num_feats + k] = train_vec[j * pred_num_feats + k];
+						pred_label_vec[idx_train] = label_vec[j];
+						++idx_train;
+					}
+
+					train_pred->learn(pred_train_vec, pred_label_vec, train_ratio, pred_num_feats);
+					//get predictions for pred_calib_train to learn calibrator:
+					train_pred->predict(pred_calib_mat);
+					//get predictions into pred_calib_train:
+					for (size_t j = 0; j < feats_predictors[i].calibrators.size(); ++j)
+						for (size_t k = 0; k < pred_calib_train[j].size(); ++k)
+							pred_calib_train[j][k].prediction = { pred_calib_mat.samples[k].prediction[j] };
+
+					//Learn calibrators - for each pred bin:
+					for (size_t k = 0; k < feats_predictors[i].calibrators.size(); ++k)
+						feats_predictors[i].calibrators[k].Learn(pred_calib_train[k]);
+				}
+				else
+					train_pred->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
+				feats_predictors[i].predictor = train_pred;
+
+				++progress;
+				double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+					- tm_prog).count()) / 1000000.0;
+				if (duration > 30) {
 #pragma omp critical
-				tm_prog = chrono::high_resolution_clock::now();
-				double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-					- tm.t[0]).count()) / 1000000.0;
-				double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-				MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-					"estimate time to finish %2.1f Minutes\n",
-					progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-					estimate_time / 60.0);
+					tm_prog = chrono::high_resolution_clock::now();
+					double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+						- tm.t[0]).count()) / 1000000.0;
+					double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+					MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+						"estimate time to finish %2.1f Minutes\n",
+						progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+						estimate_time / 60.0);
+				}
 			}
 		}
 	}
 }
 
-void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector<bool> *mask, const vector<float> *mask_values) {
+template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params
+	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
 
 	vector<bool> mask_f(all_feat_names.size());
-	vector<float> mask_values_f(all_feat_names.size());
+	vector<T> mask_values_f(all_feat_names.size());
 	if (mask == NULL)
 		mask = &mask_f;
 	if (mask_values == NULL) //and with init values
@@ -296,11 +449,11 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 	if (all_feat_names.empty())
 		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
 	//fix mask values and sample gibbs for the rest by cohort_data as statistical cohort for univariate marginal dist
-	int sample_loop = params.burn_in_count + (params.samples_count - 1) * (params.jump_between_samples + 1) + 1;
+	int sample_loop = sampling_params.burn_in_count + (sampling_params.samples_count - 1) * sampling_params.jump_between_samples + 1;
 
 	vector<string> &all_names = all_feat_names;
 
-	vector<float> current_sample(all_feat_names.size());
+	vector<T> current_sample(all_feat_names.size());
 	for (size_t i = 0; i < mask->size(); ++i)
 	{
 		if (mask->at(i))
@@ -314,112 +467,143 @@ void GibbsSampler::get_samples(map<string, vector<float>> &results, const vector
 			idx_iter.push_back(i);
 	int pred_num_feats = (int)all_feat_names.size() - 1;
 
-	//can parallel for random init of initiale values (just burn in)
-	for (size_t i = 0; i < sample_loop; ++i)
+	//pass global arguments to predictor sampler - like use_cache
+	for (size_t i = 0; i < feats_predictors.size(); ++i)
 	{
-		//create sample - iterate over all variables not in mask:
-		for (int idx = 0; idx < idx_iter.size(); ++idx)
-		{
-			int f_idx = idx_iter[idx];
-			vector<float> curr_x(pred_num_feats);
-			for (size_t k = 0; k < curr_x.size(); ++k)
-			{
-				int fixxed_idx = (int)k + int(k >= i);
-				curr_x[k] = current_sample[fixxed_idx];
-			}
-			float val = feats_predictors[f_idx].get_sample(curr_x); //based on dist (or predictor - value bin dist)
-			//find best bin:
-			if (params.find_real_value_bin) {
-				int pos = medial::process::binary_search_position(uniqu_value_bins[f_idx].data(), uniqu_value_bins[f_idx].data() + uniqu_value_bins[f_idx].size() - 1, val);
-				if (pos == 0)
-					val = uniqu_value_bins[f_idx][0];
-				else {
-					float diff_next = abs(val - uniqu_value_bins[f_idx][pos]);
-					float diff_prev = abs(val - uniqu_value_bins[f_idx][pos - 1]);
-					if (diff_prev < diff_next)
-						val = uniqu_value_bins[f_idx][pos - 1];
-					else
-						val = uniqu_value_bins[f_idx][pos];
-				}
-			}
-#pragma omp critical
-			current_sample[idx_iter[idx]] = val; //update current pos variable
-		}
-
-		if (i >= params.burn_in_count && ((i - params.burn_in_count) % params.jump_between_samples) == 0) {
-			//collect sample to result:
-			for (size_t k = 0; k < all_names.size(); ++k)
-				results[all_names[k]].push_back(current_sample[k]);
-		}
+		feats_predictors[i].use_cache = sampling_params.use_cache;
 	}
 
-
-}
-
-void GibbsSampler::get_parallel_samples(map<string, vector<float>> &results, uniform_real_distribution<> &real_dist,
-	const vector<bool> *mask) {
-	random_device rd;
-	mt19937 gen;
-	vector<bool> mask_f(all_feat_names.size());
-
-	if (mask == NULL)
-		mask = &mask_f;
-	if (all_feat_names.empty())
-		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
-	int N_tot_threads = omp_get_max_threads();
-	vector<GibbsSampler> copy_gibbs(N_tot_threads);
-	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
-		copy_gibbs[i] = *this;
-		copy_gibbs[i].params.samples_count = 1;
-	}
-
+	//can parallel for random init of initiale values (just burn in)
 	MedTimer tm;
 	tm.start();
 	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
 	int progress = 0;
-	int max_loop = params.samples_count;
-#pragma omp parallel for
-	for (int i = 0; i < params.samples_count; ++i)
+	int max_loop = sample_loop;
+	for (size_t i = 0; i < sample_loop; ++i)
 	{
-		int n_th = omp_get_thread_num();
-		GibbsSampler &g = copy_gibbs[n_th];
+		//create sample - iterate over all variables not in mask:
+		for (int f_idx : idx_iter)
+		{
+			vector<T> curr_x(pred_num_feats);
+			for (size_t k = 0; k < curr_x.size(); ++k)
+			{
+				int fixxed_idx = (int)k + int(k >= f_idx);
+				curr_x[k] = current_sample[fixxed_idx];
+			}
+			T val = feats_predictors[f_idx].get_sample(curr_x, _gen); //based on dist (or predictor - value bin dist)
 
-		vector<float> mask_vals(all_feat_names.size());
-		for (size_t i = 0; i < mask_vals.size(); ++i)
-			mask_vals[i] = real_dist(gen);
-		map<string, vector<float>> res;
+			current_sample[f_idx] = val; //update current pos variable
+		}
 
-		g.get_samples(res, mask, &mask_vals);
-
-#pragma omp critical
-		for (auto it = res.begin(); it != res.end(); ++it)
-			results[it->first].push_back(it->second[0]);
+		if (i >= sampling_params.burn_in_count && ((i - sampling_params.burn_in_count) % sampling_params.jump_between_samples) == 0) {
+			//collect sample to result:
+			for (size_t k = 0; k < all_names.size(); ++k) {
+				T val = current_sample[k];
+				//find best bin if needed:
+				if (sampling_params.find_real_value_bin && !mask->at(k)) {
+					int pos = medial::process::binary_search_position(uniqu_value_bins[k].data(), uniqu_value_bins[k].data() + uniqu_value_bins[k].size() - 1, val);
+					if (pos == 0)
+						val = uniqu_value_bins[k][0];
+					else {
+						if (pos >= uniqu_value_bins[k].size())
+							val = uniqu_value_bins[k].back();
+						else {
+							T diff_next = abs(val - uniqu_value_bins[k][pos]);
+							T diff_prev = abs(val - uniqu_value_bins[k][pos - 1]);
+							if (diff_prev < diff_next)
+								val = uniqu_value_bins[k][pos - 1];
+							else
+								val = uniqu_value_bins[k][pos];
+						}
+					}
+				}
+				results[all_names[k]].push_back(val);
+			}
+		}
 
 #pragma omp atomic
 		++progress;
 		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
 			- tm_prog).count()) / 1000000.0;
-		if (duration > 30 && progress % 50 == 0) {
+		if (print_progress && duration > 30 && progress % 10 == 0) {
 #pragma omp critical
 			tm_prog = chrono::high_resolution_clock::now();
 			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
 				- tm.t[0]).count()) / 1000000.0;
 			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+			MLOG("GibbsSampler::get_samples Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
 				"estimate time to finish %2.1f Minutes\n",
 				progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
 				estimate_time / 60.0);
 		}
 	}
 
+
+}
+
+template<typename T> void GibbsSampler<T>::prepare_predictors() {
+	if (!done_prepare) {
+		for (size_t i = 0; i < feats_predictors.size(); ++i)
+		{
+			if (feats_predictors[i].predictor != NULL)
+#pragma omp critical
+				feats_predictors[i].predictor->prepare_predict_single();
+		}
+		done_prepare = true;
+	}
+}
+
+template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vector<T>> &results,
+	const GibbsSamplingParams &sampling_params, const vector<bool> *mask, const vector<T> *mask_values) {
+	random_device rd;
+	prepare_predictors();
+
+	vector<T> mask_values_f(all_feat_names.size());
+	vector<bool> mask_f(all_feat_names.size());
+	if (mask == NULL)
+		mask = &mask_f;
+	if (mask_values == NULL) //and with init values
+		mask_values = &mask_values_f;
+	if (all_feat_names.empty())
+		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
+	int N_tot_threads = omp_get_max_threads();
+	vector<GibbsSampler<T>> copy_gibbs(N_tot_threads);
+	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
+		copy_gibbs[i] = *this;
+		copy_gibbs[i]._gen = mt19937(rd());
+	}
+	GibbsSamplingParams per_thread_params = sampling_params;
+	per_thread_params.samples_count = (int)ceil(float(sampling_params.samples_count) / N_tot_threads);
+
+#pragma omp parallel for
+	for (int i = 0; i < N_tot_threads; ++i)
+	{
+		int n_th = omp_get_thread_num();
+		GibbsSampler<T> &g = copy_gibbs[n_th];
+
+		vector<T> mask_vals(all_feat_names.size());
+		for (size_t i = 0; i < mask_vals.size(); ++i)
+			if (!mask->at(i))
+				mask_vals[i] = mask_values->at(i);
+			else
+				mask_vals[i] = mask_values->at(i);
+		map<string, vector<T>> res;
+
+		g.get_samples(res, per_thread_params, mask, &mask_vals, n_th == 0);
+
+#pragma omp critical
+		for (auto it = res.begin(); it != res.end(); ++it)
+			results[it->first].insert(results[it->first].end(), it->second.begin(), it->second.end());
+	}
+
 	for (size_t i = 0; i < copy_gibbs.size(); ++i)
 		for (size_t j = 0; j < copy_gibbs[i].feats_predictors.size(); ++j)
 			copy_gibbs[i].feats_predictors[j].predictor = NULL; //that won't be cleaned from memory here - just a copy
-		
+
 }
 
-void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,
-	map<string, vector<float>> &results, const string &predictor_type, const string &predictor_args, float filter_sens) {
+template<typename T> void GibbsSampler<T>::filter_samples(const map<string, vector<float>> &cohort_data,
+	map<string, vector<T>> &results, const string &predictor_type, const string &predictor_args, float filter_sens) {
 	random_device rd;
 	mt19937 gen(rd());
 
@@ -441,8 +625,8 @@ void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,
 	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
 	{
 		new_data.data[it->first] = it->second;
-		new_data.data[it->first].insert(new_data.data[it->first].end(),
-			results.at(it->first).begin(), results.at(it->first).end());
+		for (size_t i = 0; i < results.at(it->first).size(); ++i)
+			new_data.data[it->first].push_back(float(results.at(it->first)[i]));
 	}
 
 	//lets get auc on this problem:
@@ -503,7 +687,7 @@ void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,
 	}
 
 	//commit selection:
-	map<string, vector<float>> filterd;
+	map<string, vector<T>> filterd;
 	for (auto it = results.begin(); it != results.end(); ++it) {
 		filterd[it->first].resize(filter_sel.size());
 		for (size_t i = 0; i < filter_sel.size(); ++i)
@@ -513,3 +697,9 @@ void GibbsSampler::filter_samples(const map<string, vector<float>> &cohort_data,
 	results.swap(filterd);
 
 }
+
+template class PredictorOrEmpty<float>;
+template class PredictorOrEmpty<double>;
+
+template class GibbsSampler<float>;
+template class GibbsSampler<double>;

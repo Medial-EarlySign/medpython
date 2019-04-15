@@ -45,7 +45,6 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 	else
 		get_feature_names(namesToTake);
 
-
 	int ncols = (int)namesToTake.size();
 	int nrows = (int)samples.size();
 

@@ -5,9 +5,11 @@
 #include "MedAlgo.h"
 #include "MedXGB.h"
 #include <boost/lexical_cast.hpp>
-#include <xgboost/learner.h>
+
+
 #include <dmlc/timer.h>
-#include <xgboost/c_api.h>
+
+#include <omp.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -15,6 +17,19 @@ extern MedLogger global_logger;
 
 using namespace xgboost;
 using namespace std;
+
+MedXGB::~MedXGB() {
+	if (my_learner != NULL) {
+		XGBoosterFree(my_learner);
+		my_learner = NULL;
+	}
+	for (size_t i = 0; i < learner_per_thread.size(); ++i) {
+		if (learner_per_thread[i] != NULL) {
+			XGBoosterFree(learner_per_thread[i]);
+			learner_per_thread[i] = NULL;
+		}
+	}
+}
 
 int MedXGB::n_preds_per_sample() const {
 	if (params.objective == "multi:softprob")
@@ -47,7 +62,7 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
 	XGBoosterPredict(my_learner, h_test, 0, 0, &out_len, &out_preds);
-	
+
 	int64_t len_res = nsamples * n_preds_per_sample();
 	if (preds == NULL) preds = new float[len_res];
 	for (int i = 0; i < out_len; i++)
@@ -75,10 +90,15 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
-	const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8;
+	const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8; // , INTERACTION_SHAP = 16;
+	int flags = feat_contrib_flags;
+	if (flags == 0)
+		flags = APPROX_CONTRIBS;
+
+	flags |= PRED_CONTRIBS;
 	// using the old APPROX_CONTRIBS until this bug is resolved:
 	// https://github.com/dmlc/xgboost/issues/3333 NaN SHAP values from Booster.predict with pred_contribs=True
-	XGBoosterPredict(my_learner, h_test, PRED_CONTRIBS | APPROX_CONTRIBS, 0, &out_len, &out_preds);
+	XGBoosterPredict(my_learner, h_test, flags, 0, &out_len, &out_preds);
 	for (int i = 0; i < nsamples; i++) {
 		for (int j = 0; j < nftrs; j++) {
 			float v = out_preds[i*(nftrs + 1) + j];
@@ -110,7 +130,7 @@ int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nft
 	dvalidate = out;
 
 	for (int i = 0; i < nsamples; i++)
-		dvalidate->info().labels.push_back(y[i]);
+		dvalidate->Info().labels_.HostVector().push_back(y[i]);
 
 	return 0;
 }
@@ -343,6 +363,7 @@ void MedXGB::init_defaults()
 	normalize_y_for_learn = false;
 
 	_mark_learn_done = false;
+	prepared_single = false;
 }
 
 int MedXGB::set_params(map<string, string>& mapper) {
@@ -378,6 +399,82 @@ int MedXGB::set_params(map<string, string>& mapper) {
 	}
 
 	return 0;
+}
+
+
+void MedXGB::prepare_predict_single() {
+	if (prepared_single)
+		return;
+	prepared_single = true;
+	int nftrs = features_count;
+	if (nftrs == 0)
+		nftrs = (int)model_features.size();
+	XGBBooster *xgb_mdl = static_cast<XGBBooster*>(my_learner);
+	xgb_mdl->LazyInit();
+	int N_tot_threads = omp_get_max_threads();
+
+	const char* out_dptr;
+	xgboost::bst_ulong len;
+	if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
+		throw runtime_error("failed XGBoosterGetModelRaw\n");
+
+	learner_per_thread.resize(N_tot_threads);
+	for (size_t i = 0; i < N_tot_threads; ++i)
+	{
+		BoosterHandle temp_handler;
+		DMatrixHandle h_train_empty[1];
+		if (XGBoosterCreate(h_train_empty, 0, &temp_handler) != 0)
+			throw runtime_error("failed XGBoosterCreate\n");
+		if (XGBoosterLoadModelFromBuffer(temp_handler, out_dptr, len) != 0)
+			throw runtime_error("failed XGBoosterLoadModelFromBuffer\n");
+		static_cast<XGBBooster*>(temp_handler)->LazyInit();
+		learner_per_thread[i] = temp_handler;
+		//learner_per_thread[i].LoadModel(dmlc::Stream(out_dptr));
+	}
+}
+
+
+
+void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const {
+	int n_ftrs = (int)x.size();
+	std::unique_ptr<data::SimpleCSRSource> p_mat(new data::SimpleCSRSource());
+	data::SimpleCSRSource &mat = *p_mat; //copy memory to alter values (const object)
+	auto &offset_vec = mat.page_.offset.HostVector();
+	vector<xgboost::Entry> &vals = mat.page_.data.HostVector();
+	offset_vec.resize(2);
+	mat.info.num_row_ = 1;
+	mat.info.num_col_ = n_ftrs;
+
+	// count elements for sizing data
+	xgboost::bst_ulong nelem = 0;
+	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j)
+		if (x[j] != params.missing_value)
+			++nelem;
+	offset_vec[1] = offset_vec[0] + nelem;
+	vals.resize(vals.size() + offset_vec.back());
+	xgboost::bst_ulong matj = 0;
+	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j) {
+		if (x[j] != params.missing_value) {
+			vals[offset_vec[0] + matj] = xgboost::Entry(j, x[j]);
+			++matj;
+		}
+	}
+	mat.info.num_nonzero_ = vals.size();
+
+	DMatrix *mat_gen = DMatrix::Create(move(p_mat));
+
+	//int len_res = n_preds_per_sample();
+	xgboost::HostDeviceVector<float> wrapper;
+	int n_th = omp_get_thread_num();
+	//xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(my_learner)->learner();
+	xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(learner_per_thread[n_th])->learner();
+
+	//for each thread learner
+	xgb_mdl->Predict(mat_gen, false, &wrapper, 0, false, false, false, false);
+
+	preds = move(wrapper.HostVector());
+
+	delete mat_gen;
 }
 
 #endif

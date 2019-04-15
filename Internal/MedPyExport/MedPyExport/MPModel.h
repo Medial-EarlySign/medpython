@@ -4,6 +4,7 @@
 #include "MedPyCommon.h"
 #include "MPPidRepository.h"
 #include "MPFeatures.h"
+#include "MPPredictor.h"
 
 class MedModel;
 class MPSamples;
@@ -20,6 +21,8 @@ public:
 	static const int LEARN_PREDICTOR;
 	static const int APPLY_PREDICTOR;
 	static const int INSERT_PREDS;
+	static const int LEARN_POST_PROCESS;
+	static const int APPLY_POST_PROCESS;
 	static const int END;
 };
 
@@ -69,7 +72,8 @@ public:
 	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);
 	void add_process_to_set(int i_set, int duplicate, const string &init_string);
 	void add_process_to_set(int i_set, const string &init_string);
-	void set_predictor(string name);
+	void set_predictor(MPPredictor& _predictor);
+	void make_predictor(string name);  //original name- set_predictor
 	void set_predictor(string name, string init_string);
 	int collect_and_add_virtual_signals(MPPidRepository &rep);
 	int quick_learn_rep_processors(MPPidRepository& rep, MPSamples& samples);

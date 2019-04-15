@@ -19,8 +19,8 @@
 #define DMLC_USE_CXX11 1
 #else
 #define DMLC_USE_CXX11 (__cplusplus >= 201103L)
-#endif
-#endif
+#endif  // defined(__GXX_EXPERIMENTAL_CXX0X__) || defined(_MSC_VER)
+#endif  // DMLC_USE_CXX11
 
 // optionally support of lambda functions in C++11, if available
 #if DMLC_USE_CXX11
@@ -79,14 +79,18 @@ inline void Init(int argc, char *argv[]);
  * \brief finalizes the rabit engine, call this function after you finished with all the jobs
  */
 inline void Finalize();
-/*! \brief gets rank of the current process */
+/*! \brief gets rank of the current process
+ * \return rank number of worker*/
 inline int GetRank();
-/*! \brief gets total number of processes */
+/*! \brief gets total number of processes
+ * \return total world size*/
 inline int GetWorldSize();
-/*! \brief whether rabit env is in distributed mode */
+/*! \brief whether rabit env is in distributed mode
+ * \return is distributed*/
 inline bool IsDistributed();
 
-/*! \brief gets processor's name */
+/*! \brief gets processor's name
+ * \return processor name*/
 inline std::string GetProcessorName();
 /*!
  * \brief prints the msg to the tracker,
@@ -104,7 +108,7 @@ inline void TrackerPrint(const std::string &msg);
  * \param fmt the format string
  */
 inline void TrackerPrintf(const char *fmt, ...);
-#endif
+#endif  // RABIT_STRICT_CXX98_
 /*!
  * \brief broadcasts a memory region to every node from the root
  *
@@ -293,7 +297,7 @@ class Reducer {
    */
   inline void Allreduce(DType *sendrecvbuf, size_t count,
                         std::function<void()> prepare_fun);
-#endif
+#endif  // DMLC_USE_CXX11
 
  private:
   /*! \brief function handle to do reduce */
@@ -341,7 +345,7 @@ class SerializeReducer {
   inline void Allreduce(DType *sendrecvobj,
                         size_t max_nbyte, size_t count,
                         std::function<void()> prepare_fun);
-#endif
+#endif  // DMLC_USE_CXX11
 
  private:
   /*! \brief function handle to do reduce */

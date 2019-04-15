@@ -84,7 +84,7 @@ void MPFeatures::get_samples(MPSamples& outSamples) const {
 
 int MPFeatures::get_max_serial_id_cnt() const { return o->get_max_serial_id_cnt();}
 
-int MPFeatures::write_as_csv_mat(const string &csv_fname) const { return val_or_exception(o->write_as_csv_mat(csv_fname), string("Cannot read features from csv file ") + csv_fname); };
+int MPFeatures::write_as_csv_mat(const string &csv_fname) const { return val_or_exception(o->write_as_csv_mat(csv_fname), string("Cannot write features to csv file ") + csv_fname); };
 int MPFeatures::read_from_csv_mat(const string &csv_fname) { return val_or_exception(o->read_from_csv_mat(csv_fname), string("Cannot read features from csv file ") + csv_fname); };
 int MPFeatures::filter(std::vector<std::string>& selectedFeatures) { 
 	unordered_set<string> selectedFeatures_set;
@@ -102,6 +102,29 @@ MPStringFeatureAttrMapAdaptor MPFeatures::MEDPY_GET_attributes() {
 MPStringUOSetStringMapAdaptor MPFeatures::MEDPY_GET_tags() {
 	return MPStringUOSetStringMapAdaptor(&(o->tags));
 }
+
+// Get learning/test matrix
+void MPFeatures::split_by_fold(MPFeatures& outMatrix, int iFold, bool isLearning) {
+	vector<string> feature_names;
+	o->get_feature_names(feature_names);
+	for (string& name : feature_names)
+		outMatrix.o->data[name].clear();
+	outMatrix.o->samples.clear();
+
+	for (auto& attr : o->attributes)
+		outMatrix.o->attributes[attr.first] = attr.second;
+
+	for (unsigned int i = 0; i<o->samples.size(); i++) {
+		auto& sample = o->samples[i];
+		if ((isLearning && sample.split != iFold) || ((!isLearning) && sample.split == iFold)) {
+			outMatrix.o->samples.push_back(sample);
+			for (string& name : feature_names)
+				outMatrix.o->data[name].push_back(o->data[name][i]);
+		}
+	}
+}
+
+
 
 /*******************  FEATURE ATTR **********************/
 
