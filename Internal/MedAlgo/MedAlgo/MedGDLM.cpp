@@ -236,6 +236,50 @@ int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int trans
 	return 0;
 }
 
+/*
+// keeping some research code here for now.... should be finalized or removed
+//..............................................................................
+int MedGDLM::predict_with_simple_but_why(float *x, float *&preds, int nsamples, int nftrs, vector<unsigned char> &is_imputed, unsigned char imputed_mask, 
+										 SimpleButWhyParams &bw_params, vector<SimpleButWhyRes> &bw_res) 
+{
+
+	if (preds == NULL)
+		preds = new float[nsamples];
+
+	memset(preds, 0, nsamples * sizeof(float));
+	bw_res.clear();
+	bw_res.resize(nsamples);
+
+	bool do_logistic = false;
+	if (params.method == "logistic_sgd" || params.method == "parallel_logistic_sgd") do_logistic = true;
+
+	for (int i = 0; i < nsamples; i++) {
+		float score_i = 0;
+		vector<float> contribs(nftrs);
+		float *x_i = &x[i*nftrs];
+		for (int j = 0; j < nftrs; j++) {
+			contribs[j] = -b[j] * x_i[j]; // - sign since contribs are always positive in the direction of a positive outcome
+			score_i -= contribs[j];
+		}
+
+		score_i += b0;
+
+		if (do_logistic)
+			score_i = 1.0f / (1.0f + exp(score_i));
+
+		preds[i] = score_i;
+
+		MLOG("i=%d score_i=%f\n", i, score_i);
+		if (score_i >= bw_params.do_above_score || score_i < bw_params.do_below_score) {
+			bw_res[i].get_from_contribs(bw_params, contribs);
+		}
+	}
+
+
+	return 0;
+}
+
+*/
 //..............................................................................
 int MedGDLM::denormalize_model(float *f_avg, float *f_std, float label_avg, float label_std)
 {
