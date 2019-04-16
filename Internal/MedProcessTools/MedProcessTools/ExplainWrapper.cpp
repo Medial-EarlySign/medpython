@@ -20,6 +20,10 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 
 }
 
+void ModelExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat) {
+	Learn(model.predictor, train_mat);
+}
+
 bool comp_score_str(const pair<string, float> &pr1, const pair<string, float> &pr2) {
 	return abs(pr1.second) > abs(pr2.second); //bigger is better in absolute
 }
@@ -174,8 +178,8 @@ void TreeExplainer::post_deserialization() {
 	}
 }
 
-void TreeExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat) {
-	original_predictor = model.predictor;
+void TreeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	this->original_predictor = original_pred;
 
 	if (original_predictor->classifier_type == MODEL_XGB) {
 		const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8, INTERACTION_SHAP = 16;
@@ -339,8 +343,8 @@ int SHAPExplainer::init(map<string, string> &mapper) {
 	return 0;
 }
 
-void SHAPExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat) {
-	original_predictor = model.predictor;
+void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	this->original_predictor = original_pred;
 	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 	random_device rd;
 	mt19937 gen(rd());
@@ -421,6 +425,13 @@ void SHAPExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
 
+	MedTimer tm;
+	tm.start();
+	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
+	int progress = 0;
+	int max_loop = matrix.samples.size();
+
+#pragma omp parallel for
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
@@ -434,6 +445,21 @@ void SHAPExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		}
 		//Add prior to score:
 		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+
+#pragma omp atomic
+		++progress;
+		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_prog).count()) / 1000000.0;
+		if (duration > 15 && progress % 50 == 0) {
+#pragma omp critical
+			tm_prog = chrono::high_resolution_clock::now();
+			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+				- tm.t[0]).count()) / 1000000.0;
+			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+				estimate_time / 60.0);
+		}
 	}
 }
 
@@ -505,8 +531,8 @@ void ShapleyExplainer::init_sampler() {
 	}
 }
 
-void ShapleyExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat) {
-	original_predictor = model.predictor;
+void ShapleyExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	this->original_predictor = original_pred;
 	_sampler->learn(train_mat.data);
 }
 
@@ -528,6 +554,13 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
 
+	MedTimer tm;
+	tm.start();
+	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
+	int progress = 0;
+	int max_loop = matrix.samples.size();
+
+#pragma omp parallel for
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
@@ -542,9 +575,41 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		}
 		//Add prior to score:
 		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+
+#pragma omp atomic
+		++progress;
+		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_prog).count()) / 1000000.0;
+		if (duration > 15 && progress % 50 == 0) {
+#pragma omp critical
+			tm_prog = chrono::high_resolution_clock::now();
+			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+				- tm.t[0]).count()) / 1000000.0;
+			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+				estimate_time / 60.0);
+		}
 	}
 }
 
 void ShapleyExplainer::post_deserialization() {
 	init_sampler();
+}
+
+void ShapleyExplainer::load_GIBBS(const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
+	_gibbs = gibbs;
+	_gibbs_sample_params = sampling_args;
+
+	sampler_sampling_args = &_gibbs_sample_params;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+}
+
+void ShapleyExplainer::load_GAN(const string &gan_path) {
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+}
+
+void ShapleyExplainer::load_MISSING() {
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 }

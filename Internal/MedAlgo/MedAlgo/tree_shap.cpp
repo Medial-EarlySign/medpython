@@ -246,13 +246,17 @@ inline void tree_saabas(tfloat *out, const TreeEnsemble &tree, const Explanation
 * This runs Tree SHAP with a per tree path conditional dependence assumption.
 */
 void dense_tree_saabas(tfloat *out_contribs, const TreeEnsemble& trees, const ExplanationDataset &data) {
-	tfloat *instance_out_contribs;
-	TreeEnsemble tree;
-	ExplanationDataset instance;
+	MedTimer tm;
+	tm.start();
+	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
+	int progress = 0;
+	int max_loop = data.num_X;
 
 	// build explanation for each sample
-	for (unsigned i = 0; i < data.num_X; ++i) {
-		instance_out_contribs = out_contribs + i * (data.M + 1) * trees.num_outputs;
+	for (int i = 0; i < data.num_X; ++i) {
+		TreeEnsemble tree;
+		ExplanationDataset instance;
+		tfloat *instance_out_contribs = out_contribs + i * (data.M + 1) * trees.num_outputs;
 		data.get_x_instance(instance, i);
 
 		// aggregate the effect of explaining each tree
@@ -265,6 +269,21 @@ void dense_tree_saabas(tfloat *out_contribs, const TreeEnsemble& trees, const Ex
 		// apply the base offset to the bias term
 		for (unsigned j = 0; j < trees.num_outputs; ++j) {
 			instance_out_contribs[data.M * trees.num_outputs + j] += trees.base_offset;
+		}
+
+#pragma omp atomic
+		++progress;
+		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_prog).count()) / 1000000.0;
+		if (duration > 15 && progress % 50 == 0) {
+#pragma omp critical
+			tm_prog = chrono::high_resolution_clock::now();
+			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+				- tm.t[0]).count()) / 1000000.0;
+			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+				estimate_time / 60.0);
 		}
 	}
 }

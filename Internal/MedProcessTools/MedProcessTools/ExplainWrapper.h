@@ -19,8 +19,11 @@ class ModelExplainer : public PostProcessor {
 public:
 	MedPredictor * original_predictor = NULL; //uses this if model has implementation of SHAP (like xgboost, lightGBM)
 
-											  ///Learns from predictor and train_matrix
-	virtual void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat) = 0;
+	/// overload function for ModelExplainer - easier API
+	virtual void Learn(MedPredictor *original_pred, const MedFeatures &train_mat) = 0; 
+
+	///Learns from predictor and train_matrix (PostProcessor API)
+	virtual void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
 	void Apply(MedFeatures &matrix) { explain(matrix); } //alias for explain
 
 														 ///Virtual - return explain results in sample_feature_contrib
@@ -61,7 +64,7 @@ public:
 
 	TreeExplainerMode get_mode() const;
 
-	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
@@ -95,7 +98,7 @@ public:
 
 	int init(map<string, string> &mapper);
 
-	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
@@ -127,7 +130,6 @@ private:
 	void *sampler_sampling_args = NULL;
 
 	GibbsSampler<float> _gibbs;
-	MaskedGAN<float> _gan;
 	GibbsSamplingParams _gibbs_sample_params;
 
 	void init_sampler();
@@ -140,11 +142,15 @@ public:
 
 	int init(map<string, string> &mapper);
 
-	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	void post_deserialization();
+
+	void load_GIBBS(const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
+	void load_GAN(const string &gan_path);
+	void load_MISSING();
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, max_test, missing_value, sampling_args)
