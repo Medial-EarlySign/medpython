@@ -438,13 +438,18 @@ void SHAPExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		float pred_shap = 0;
 		medial::shapley::explain_shapley(matrix, (int)i, max_test, retrain_predictor, missing_value, features_coeff,
 			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, false);
-		map<string, float> &curr_res = sample_explain_reasons[i];
-		for (size_t j = 0; j < names.size(); ++j) {
-			curr_res[names[j]] = features_coeff[j];
+
+		for (size_t j = 0; j < names.size(); ++j)
 			pred_shap += features_coeff[j];
+
+#pragma omp critical 
+		{
+			map<string, float> &curr_res = sample_explain_reasons[i];
+			for (size_t j = 0; j < names.size(); ++j)
+				curr_res[names[j]] = features_coeff[j];
+			//Add prior to score:
+			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 		}
-		//Add prior to score:
-		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 
 #pragma omp atomic
 		++progress;
@@ -568,13 +573,17 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		medial::shapley::explain_shapley(matrix, (int)i, max_test, original_predictor, missing_value, *_sampler.get(), 1,
 			sampler_sampling_args, features_coeff, false);
 
-		map<string, float> &curr_res = sample_explain_reasons[i];
-		for (size_t j = 0; j < names.size(); ++j) {
-			curr_res[names[j]] = features_coeff[j];
+		for (size_t j = 0; j < names.size(); ++j)
 			pred_shap += features_coeff[j];
+
+#pragma omp critical 
+		{
+			map<string, float> &curr_res = sample_explain_reasons[i];
+			for (size_t j = 0; j < names.size(); ++j)
+				curr_res[names[j]] = features_coeff[j];
+			//Add prior to score:
+			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 		}
-		//Add prior to score:
-		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 
 #pragma omp atomic
 		++progress;
@@ -597,19 +606,27 @@ void ShapleyExplainer::post_deserialization() {
 	init_sampler();
 }
 
-void ShapleyExplainer::load_GIBBS(const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
+void ShapleyExplainer::load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
+	this->original_predictor = original_pred;
 	_gibbs = gibbs;
 	_gibbs_sample_params = sampling_args;
 
 	sampler_sampling_args = &_gibbs_sample_params;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+
+	gen_type = GeneratorType::GIBBS;
 }
 
-void ShapleyExplainer::load_GAN(const string &gan_path) {
+void ShapleyExplainer::load_GAN(MedPredictor *original_pred, const string &gan_path) {
+	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+
+	gen_type = GeneratorType::GAN;
 }
 
-void ShapleyExplainer::load_MISSING() {
+void ShapleyExplainer::load_MISSING(MedPredictor *original_pred) {
+	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+	gen_type = GeneratorType::MISSING;
 }

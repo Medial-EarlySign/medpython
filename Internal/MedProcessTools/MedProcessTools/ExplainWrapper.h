@@ -148,9 +148,9 @@ public:
 
 	void post_deserialization();
 
-	void load_GIBBS(const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
-	void load_GAN(const string &gan_path);
-	void load_MISSING();
+	void load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
+	void load_GAN(MedPredictor *original_pred, const string &gan_path);
+	void load_MISSING(MedPredictor *original_pred);
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, max_test, missing_value, sampling_args)
