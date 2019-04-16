@@ -120,6 +120,8 @@ public:
 	int tot_n_values;
 	int majority;			// for categories cases
 
+	void get_scores(int mode, int get_counts_flag, int n_categ, vector<float> &scores) const;
+
 	ADD_CLASS_NAME(QRF_ResNode)
 		ADD_SERIALIZATION_FUNCS(n_size, mode, ifeat, split_val, is_leaf, left, right, pred, counts, values, value_counts, tot_n_values, majority)
 

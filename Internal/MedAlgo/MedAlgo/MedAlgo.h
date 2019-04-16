@@ -599,6 +599,9 @@ struct MedMicNetParams {
 };
 
 class MedMicNet : public MedPredictor {
+private:
+	vector<micNet> model_per_thread;
+	bool is_prepared = false;
 public:
 	// Model 
 	micNet mic;
@@ -654,6 +657,9 @@ public:
 	int learn(MedMat<float> &x, MedMat<float> &y, vector<float> &wgt) { return mic.learn(x, y, wgt); }
 	int learn(MedMat<float> &x, MedMat<float> &y) { return mic.learn(x, y); }
 	int predict(MedMat<float> &x, vector<float> &preds) const { micNet mutable_net = mic; return mutable_net.predict(x, preds); }
+
+	void prepare_predict_single();
+	void predict_single(const vector<float> &x, vector<float> &preds) const;
 
 	// (De)Serialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedMicNet)

@@ -436,6 +436,7 @@ public:
 	void print_vec_dict(void *data, int len, int pid, int sid);
 	void long_print_vec_dict(void *data, int len, int pid, int sid);
 	void long_print_vec_dict(void *data, int len, int pid, int sid, int from, int to);
+	void long_print_vec_dict(void *data, int len, int pid, int sid, int index);
 	void print_channel_helper(int sid, int channel, float val);
 	string get_channel_info(int sid, int channel, float val);
 	string convert_date(int d, int sid);

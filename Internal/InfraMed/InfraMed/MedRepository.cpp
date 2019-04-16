@@ -899,6 +899,76 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid, i
 }
 
 //-----------------------------------------------------------
+void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid, int i)
+{
+
+	string signal_name = sigs.name(sid);
+
+	string out = to_string(pid) + "\t" + to_string(sid) + "\t" + signal_name + "\t";
+	if (sigs.type(sid) == T_Value) {
+		SVal *v = (SVal *)data;
+		out += "0 " + get_channel_info(sid, 0, v[i].val);
+	}
+	else if (sigs.type(sid) == T_DateVal) {
+		SDateVal *v = (SDateVal *)data;
+		out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val);
+	}
+	else if (sigs.type(sid) == T_TimeVal) {
+		STimeVal *v = (STimeVal *)data;
+		out += to_string(v[i].time) + " " + get_channel_info(sid, 0, v[i].val);
+	}
+	else if (sigs.type(sid) == T_DateRangeVal) {
+		SDateRangeVal *v = (SDateRangeVal *)data;
+		out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + " " + get_channel_info(sid, 0, v[i].val);
+	}
+	else if (sigs.type(sid) == T_TimeStamp) {
+		STimeStamp *v = (STimeStamp*)data;
+		out += convert_date(v[i].time, sid);
+	}
+	else if (sigs.type(sid) == T_TimeRangeVal) {
+		STimeRangeVal *v = (STimeRangeVal *)data;
+		out += to_string(v[i].time_start) + " " + to_string(v[i].time_end) + " " + get_channel_info(sid, 0, v[i].val);
+	}
+	else if (sigs.type(sid) == T_DateVal2) {
+		SDateVal2 *v = (SDateVal2 *)data;
+		out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+	}
+	else if (sigs.type(sid) == T_DateShort2) {
+		SDateShort2 *v = (SDateShort2 *)data;
+		out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val1) + " " + get_channel_info(sid, 1, v[i].val2);
+	}
+	else if (sigs.type(sid) == T_ValShort2) {
+		SValShort2 *v = (SValShort2 *)data;
+		out += "0 " + get_channel_info(sid, 0, v[i].val1) + " " + get_channel_info(sid, 1, v[i].val2);
+	}
+
+	else if (sigs.type(sid) == T_CompactDateVal) {
+		SCompactDateVal *v = (SCompactDateVal *)data;
+		out += to_string(compact_date_to_date(v[i].compact_date)) + " " + get_channel_info(sid, 1, v[i].val);
+	}
+	else if (sigs.type(sid) == T_DateRangeVal2) {
+		SDateRangeVal2 *v = (SDateRangeVal2 *)data;
+		out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+	}
+	else if (sigs.type(sid) == T_DateFloat2) {
+		SDateFloat2 *v = (SDateFloat2 *)data;
+		out += convert_date(v[i].date, sid).c_str() + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+	}
+	else if (sigs.type(sid) == T_TimeShort4) {
+		STimeShort4 *v = (STimeShort4 *)data;
+		out += to_string(v[i].time) + " "
+			+ get_channel_info(sid, 0, v[i].val1) + " "
+			+ get_channel_info(sid, 1, v[i].val2) + " "
+			+ get_channel_info(sid, 2, v[i].val3) + " "
+			+ get_channel_info(sid, 3, v[i].val4);
+	}
+
+
+	MOUT("%s\n", out.c_str());
+
+}
+
+//-----------------------------------------------------------
 void MedRepository::print_data_vec_dict(int pid, int sid)
 {
 
