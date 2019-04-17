@@ -42,6 +42,7 @@ public:
 	int print_steps; ///< how many prints for learn to print
 	bool print_model; ///< If true will print model coeff in the end
 	int poly_degree; ///< add polynom degree
+	int min_cat; ///< control minimal samples per categ in categories
 
 	//MedPredictor Api:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);

@@ -459,6 +459,7 @@ MedLinearModel::MedLinearModel() :
 	print_steps = 10;
 	print_model = false;
 	poly_degree = 1;
+	min_cat = 1;
 }
 
 void MedLinearModel::print(const vector<string> &signalNames) const {
@@ -738,10 +739,8 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 	//learner.set_model_precision(1e-5);
 	learner.set_special_step_func(loss_function_step); //not in use if learner.subGradientI is not NULL
 
-	int minCat = 1;
-
 	mark_learn_finish = false;
-	_learnModel(learner, xData, yData, minCat, tot_steps, print_steps, learning_rate, sample_count);
+	_learnModel(learner, xData, yData, min_cat, tot_steps, print_steps, learning_rate, sample_count);
 	mark_learn_finish = true;
 
 	if (print_model) {
@@ -774,10 +773,13 @@ int MedLinearModel::set_params(map<string, string>& mapper) {
 			poly_degree = stoi(it->second);
 		else if (it->first == "print_model")
 			print_model = stoi(it->second) > 0;
+		else if (it->first == "min_cat")
+			min_cat = stoi(it->second);
 		else if (it->first == "loss_function") {
 			if (it->second == "rmse") {
 				loss_function = _linear_loss_target_rmse;
 				loss_function_step = _linear_loss_step_rmse;
+				min_cat = 0; //regression
 			}
 			else if (it->second == "auc") {
 				loss_function = _linear_loss_target_auc;
