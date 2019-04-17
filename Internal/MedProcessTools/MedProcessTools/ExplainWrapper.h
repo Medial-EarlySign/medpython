@@ -99,6 +99,7 @@ public:
 	bool uniform_rand; ///< it True will sample masks uniformlly
 	bool use_shuffle; ///< if not sampling uniformlly, If true will use shuffle (to speed up runtime)
 	string change_learn_args; ///< arguments to change in predictor - for example to change it into regression
+	bool verbose_learn; ///< If true will print more in learn
 
 	SHAPExplainer();
 

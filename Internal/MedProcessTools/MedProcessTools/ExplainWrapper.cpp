@@ -340,6 +340,7 @@ SHAPExplainer::SHAPExplainer() {
 	use_shuffle = false;
 	add_new_data = 0;
 	change_learn_args = "";
+	verbose_learn = true;
 }
 
 int SHAPExplainer::init(map<string, string> &mapper) {
@@ -361,6 +362,8 @@ int SHAPExplainer::init(map<string, string> &mapper) {
 			add_new_data = med_stoi(it->second);
 		else if (it->first == "change_learn_args")
 			change_learn_args = it->second;
+		else if (it->first == "verbose_learn")
+			verbose_learn = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -380,8 +383,14 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	vector<int> missing_hist(nftrs + 1);
 	bool verbose_learn = true;
 
+	if (!train_mat.samples.front().prediction.empty())
 	for (size_t i = 0; i < labels.size(); ++i)
-		labels[i] = train_mat.samples[i].outcome;
+		labels[i] = train_mat.samples[i].prediction[0];
+	else {
+		MedMat<float> tt;
+		train_mat.get_as_matrix(tt);
+		original_predictor->predict(tt, labels);
+	}
 	if (add_new_data > 0) {
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
@@ -418,7 +427,7 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 				else
 					curr_row[j] = missing_value;
 			}
-			labels.push_back(train_mat.samples[row_sel].outcome);
+			labels.push_back(labels[row_sel]);
 		}
 		x_mat.add_rows(rows_m);
 	}
@@ -441,6 +450,13 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	//reweight train_mat:
 	retrain_predictor->init_from_string(change_learn_args);
 	retrain_predictor->learn(x_mat, labels, weights);
+	//test pref:
+	if (verbose_learn) {
+		vector<float> train_p;
+		retrain_predictor->predict(x_mat, train_p);
+		float rmse = medial::performance::rmse_without_cleaning(train_p, labels, &weights);
+		MLOG("RMSE=%2.4f on train for model\n", rmse);
+	}
 }
 
 
