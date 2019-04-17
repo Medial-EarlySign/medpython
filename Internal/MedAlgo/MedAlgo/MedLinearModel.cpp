@@ -141,7 +141,7 @@ void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double>
 	}
 	if (preds.size() < inputs[0].size())
 		preds.resize(inputs[0].size());
-	if (poly_degree == 1) {
+	if (poly_degree == 1 || !mark_learn_finish) { //in learn it's just simple calc
 		for (size_t i = 0; i < preds.size(); ++i)
 		{
 			preds[i] = model_params[0];
