@@ -33,6 +33,8 @@ public:
 	virtual void explain(MedFeatures &matrix) const; //stores _explain results in MedFeatures
 
 	static void print_explain(MedSample &smp);
+
+	virtual ~ModelExplainer() {};
 };
 
 enum TreeExplainerMode {
@@ -59,6 +61,7 @@ public:
 	string proxy_model_init;
 	bool interaction_shap = false;
 	int approximate = false;
+	float missing_value = MED_MAT_MISSING_VALUE;
 
 	int init(map<string, string> &mapper);
 
@@ -69,6 +72,8 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	void post_deserialization();
+
+	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
 		ADD_SERIALIZATION_FUNCS(original_predictor, proxy_predictor, generic_tree_model, interaction_shap)
@@ -101,6 +106,8 @@ public:
 	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	~SHAPExplainer();
 
 	ADD_CLASS_NAME(SHAPExplainer)
 		ADD_SERIALIZATION_FUNCS(original_predictor, retrain_predictor, max_test, missing_value,

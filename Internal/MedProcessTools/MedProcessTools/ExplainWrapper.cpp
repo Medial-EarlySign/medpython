@@ -1,5 +1,6 @@
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
+#include <cmath>
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
 
@@ -162,6 +163,8 @@ int TreeExplainer::init(map<string, string> &mapper) {
 			interaction_shap = stoi(it->second) > 0;
 		else if (it->first == "approximate")
 			approximate = stoi(it->second) > 0;
+		else if (it->first == "missing_value")
+			missing_value = med_stof(it->second);
 		else
 			MTHROW_AND_ERR("Error in TreeExplainer::init - Unsupported parameter \"%s\"\n", it->first.c_str());
 	}
@@ -248,7 +251,8 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		for (size_t i = 0; i < x_mat.m.size(); ++i)
 		{
 			x[i] = (double)x_mat.m[i];
-			x_missing.get()[i] = x_mat.m[i] == MED_MAT_MISSING_VALUE;
+			//x_missing.get()[i] = x_mat.m[i] == missing_value;
+			x_missing.get()[i] = false; //In QRF no missing values
 		}
 		for (size_t i = 0; i < matrix.samples.size(); ++i)
 			y[i] = (double)matrix.samples[i].outcome;
@@ -303,6 +307,23 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	}
 }
 
+TreeExplainer::~TreeExplainer() {
+	//TODO: use uniqe_ptr and than can remove those destructors..
+	if (proxy_predictor != NULL) {
+		delete proxy_predictor;
+		proxy_predictor = NULL;
+	}
+}
+
+SHAPExplainer::~SHAPExplainer() {
+	//TODO: use uniqe_ptr and than can remove those destructors..
+	if (retrain_predictor != NULL) {
+		delete retrain_predictor;
+		retrain_predictor = NULL;
+	}
+}
+
+
 template<typename T> int msn_count(const T *vals, int sz, T val) {
 	int res = 0;
 	for (size_t i = 0; i < sz; ++i)
@@ -351,20 +372,29 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
-	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size(), 1);
-	vector<int> miss_cnts(train_mat.samples.size());
+	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
+	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
 	vector<int> missing_hist(nftrs + 1);
+	bool verbose_learn = true;
 
 	for (size_t i = 0; i < labels.size(); ++i)
 		labels[i] = train_mat.samples[i].outcome;
 	if (add_new_data > 0) {
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
+		uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
+		double log_max_opts = log(add_new_data) / log(2.0);
+		if (log_max_opts >= nftrs) {
+			if (!sample_masks_with_repeats)
+				MWARN("Warning: you have request to sample masks without repeats, but it can't be done. setting sample with repeats\n");
+			sample_masks_with_repeats = true;
+		}
+		if (verbose_learn)
+			MLOG("Adding %d Data points\n", add_new_data);
 		for (size_t i = 0; i < add_new_data; ++i)
 		{
 			float *curr_row = &rows_m[i *  nftrs];
 			//select row:
-			uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
 			int row_sel = rnd_row(gen);
 
 			vector<bool> curr_mask; curr_mask.reserve(nftrs);
@@ -372,7 +402,7 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 				curr_mask.push_back(x_mat(row_sel, j) != missing_value);
 
 			medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
-			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) == seen_mask.end())
+			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
 				medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
@@ -392,13 +422,16 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 
 	// Add data with missing values according to sample masks
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
-		labels[i] = train_mat.samples[i].outcome;
-		miss_cnts[i] = msn_count<float>(&x_mat.m[i*nftrs], nftrs, MED_MAT_MISSING_VALUE);
+		miss_cnts[i] = msn_count<float>(&x_mat.m[i*nftrs], nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
 	}
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
 		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
 		weights[i] = curr_mask_w;
+	}
+	if (verbose_learn) {
+		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
+		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
 		x_mat.transpose();
@@ -429,7 +462,7 @@ void SHAPExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	tm.start();
 	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
 	int progress = 0;
-	int max_loop = matrix.samples.size();
+	int max_loop = (int)matrix.samples.size();
 
 #pragma omp parallel for
 	for (int i = 0; i < matrix.samples.size(); ++i)
@@ -563,7 +596,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 	tm.start();
 	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
 	int progress = 0;
-	int max_loop = matrix.samples.size();
+	int max_loop = (int)matrix.samples.size();
 
 #pragma omp parallel for
 	for (int i = 0; i < matrix.samples.size(); ++i)
