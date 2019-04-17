@@ -98,6 +98,7 @@ public:
 	float select_from_all; ///< If max_test is beyond this percentage of all options than sample from all options (to speed up runtime)
 	bool uniform_rand; ///< it True will sample masks uniformlly
 	bool use_shuffle; ///< if not sampling uniformlly, If true will use shuffle (to speed up runtime)
+	string change_learn_args; ///< arguments to change in predictor - for example to change it into regression
 
 	SHAPExplainer();
 

@@ -339,6 +339,7 @@ SHAPExplainer::SHAPExplainer() {
 	uniform_rand = false;
 	use_shuffle = false;
 	add_new_data = 0;
+	change_learn_args = "";
 }
 
 int SHAPExplainer::init(map<string, string> &mapper) {
@@ -358,6 +359,8 @@ int SHAPExplainer::init(map<string, string> &mapper) {
 			select_from_all = med_stof(it->second);
 		else if (it->first == "add_new_data")
 			add_new_data = med_stoi(it->second);
+		else if (it->first == "change_learn_args")
+			change_learn_args = it->second;
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -436,6 +439,7 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
 		x_mat.transpose();
 	//reweight train_mat:
+	retrain_predictor->init_from_string(change_learn_args);
 	retrain_predictor->learn(x_mat, labels, weights);
 }
 

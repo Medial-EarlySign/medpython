@@ -7,19 +7,124 @@
 #include "SGD.h"
 #include "MedMat/MedMat/MedMatConstants.h"
 
+void generate_data_learn_rec(int poly_degree, const vector<const float *> &data, int samples_size,
+	vector<vector<float>> &gen_data, int &pos, const vector<int> &path, int max_l = -1) {
+	//skip empty path (all -1) for bias, no need to copy to gen_data
+	if (pos == 0) {
+		++pos;
+		return;
+	}
+	if (path.size() == poly_degree) {
+		//actual do work for all samples in curretn path
+		gen_data[pos - 1].resize(samples_size);
+		for (int idx = 0; idx < samples_size; ++idx)
+		{
+			double c = 1;
+			for (int p : path)
+				if (p >= 0) //If -1 than not selected, sub degree, skip
+					c *= data[p][idx]; //featre than dample
+			gen_data[pos - 1][idx] = c;
+		}
+		++pos; //counter for coeff order
+	}
+	int feat_num = (int)data.size();
+	for (int i = max_l; i < feat_num; ++i)
+	{
+		vector<int> new_p(path);
+		new_p.push_back(i);
+		generate_data_learn_rec(poly_degree, data, samples_size, gen_data, pos, new_p, i);
+	}
+}
+void generate_data_learn(int poly_degree, const vector<const float *> &data,
+	int samples_size, vector<vector<float>> &gen_data) {
+	//assume gen_data has the right size fo coeff of model
+	int pos = 0;
+	vector<int> path;
+	generate_data_learn_rec(poly_degree, data, samples_size, gen_data, pos, path);
+}
+
+void poly_get_score_rec(int poly_degree, const vector<double> &coeff, const vector<const float *> &data, vector<double> &scores,
+	int &pos, vector<int> &path, int max_l = -1) {
+
+	if (path.size() == poly_degree) {
+		for (int idx = 0; idx < scores.size(); ++idx)
+		{
+			//actual do work and exit - has all selected variables idx's in path
+			double c = coeff[pos];
+			for (int p : path)
+				if (p >= 0) //If -1 than not selected, sub degree
+					c *= data[p][idx]; //featre than dample
+
+#pragma omp critical
+			scores[idx] += c; //adds coeff, coeff to results
+		}
+		++pos;
+
+	}
+	int feat_num = (int)data.size();
+	for (int i = max_l; i < feat_num; ++i)
+	{
+		vector<int> new_p(path);
+		new_p.push_back(i);
+		poly_get_score_rec(poly_degree, coeff, data, scores, pos, new_p, i);
+	}
+}
+void poly_get_score(int poly_degree, const vector<double> &coeff, const vector<const float *> &data, vector<double> &scores) {
+	int pos = 0;
+	vector<int> path;
+	poly_get_score_rec(poly_degree, coeff, data, scores, pos, path);
+}
+double poly_get_score_rec(int poly_degree, const vector<double> &coeff, const vector<const float *> &data, int idx,
+	int &pos, vector<int> &path, int max_l = -1) {
+
+	if (path.size() == poly_degree) {
+
+		//actual do work and exit - has all selected variables idx's in path
+		double c = coeff[pos];
+		for (int p : path)
+			if (p >= 0) //If -1 than not selected, sub degree
+				c *= data[p][idx]; //featre than dample
+
+		++pos;
+		return c;
+	}
+	int feat_num = (int)data.size();
+	double res = 0;
+	for (int i = max_l; i < feat_num; ++i)
+	{
+		vector<int> new_p(path);
+		new_p.push_back(i);
+		res += poly_get_score_rec(poly_degree, coeff, data, idx, pos, new_p, i);
+	}
+	return res;
+}
+double poly_get_score(int poly_degree, const vector<double> &coeff, const vector<const float *> &data, int idx) {
+	int pos = 0;
+	vector<int> path;
+	return poly_get_score_rec(poly_degree, coeff, data, idx, pos, path);
+}
+
 //not in use
 double MedLinearModel::predict(const vector<float> &input) const {
-	if (input.size() != model_params.size() - 1) {
+	if (input.size() != model_params.size() - 1)
 		throw invalid_argument("input has wrong number of signals. expeced" + to_string(model_params.size() - 1) + " got "
 			+ to_string(input.size()));
+	if (poly_degree == 1) {
+		double res = model_params[0];
+		for (size_t i = 0; i < input.size(); ++i)
+			res += input[i] * model_params[i + 1];
+
+		//res += model_params[model_params.size() - 1];
+		return res;
 	}
-	double res = model_params[0];
-	for (size_t i = 0; i < input.size(); ++i)
-	{
-		res += input[i] * model_params[i + 1];
+	else {
+		vector<const float *> data(input.size());
+		for (size_t i = 0; i < data.size(); ++i)
+			data[i] = &input[i];
+		vector<double> prds(1);
+		poly_get_score(poly_degree, model_params, data, prds);
+		return prds[0];
 	}
-	//res += model_params[model_params.size() - 1];
-	return res;
 }
 
 void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double> &preds) const {
@@ -27,6 +132,7 @@ void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double>
 	const vector<float> *access_arr = inputs.data();
 	if (inputs.size() == 0)
 		throw invalid_argument("must have at least one signal");
+
 	if (mark_learn_finish && _meanShift.size() > 0) {
 		copy_inp = vector<vector<float>>(inputs);
 		apply_normalization(copy_inp);
@@ -34,12 +140,19 @@ void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double>
 	}
 	if (preds.size() < inputs[0].size())
 		preds.resize(inputs[0].size());
-
-	for (size_t i = 0; i < preds.size(); ++i)
-	{
-		preds[i] = model_params[0];
-		for (size_t k = 0; k < inputs.size(); ++k)
-			preds[i] += access_arr[k][i] * model_params[k + 1];
+	if (poly_degree == 1) {
+		for (size_t i = 0; i < preds.size(); ++i)
+		{
+			preds[i] = model_params[0];
+			for (size_t k = 0; k < inputs.size(); ++k)
+				preds[i] += access_arr[k][i] * model_params[k + 1];
+		}
+	}
+	else {
+		vector<const float *> data(inputs.size());
+		for (size_t i = 0; i < data.size(); ++i)
+			data[i] = access_arr[i].data();
+		poly_get_score(poly_degree, model_params, data, preds);
 	}
 }
 
@@ -343,6 +456,8 @@ MedLinearModel::MedLinearModel() :
 	block_num = 1.0;
 	norm_l1 = false;
 	print_steps = 10;
+	print_model = false;
+	poly_degree = 1;
 }
 
 void MedLinearModel::print(const vector<string> &signalNames) const {
@@ -410,22 +525,45 @@ PredictiveModel *MedLinearModel::clone() const {
 }
 
 int MedLinearModel::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
-
+	if (poly_degree == 1) {
 #pragma omp parallel for
-	for (int i = 0; i < nsamples; ++i)
-	{
-		double p = model_params[0];
-		for (size_t k = 0; k < nftrs; ++k) {
-			float val = x[i*nftrs + k];
-			// has normalization in MedMat - but want to use same from train. when calling this function, it's always need normalizations
-			if (val == MED_MAT_MISSING_VALUE)
-				val = 0;
-			else
-				val = (val - _meanShift[k]) / _factor[k];
-			p += val * model_params[k + 1];
-		}
+		for (int i = 0; i < nsamples; ++i)
+		{
+			double p = model_params[0];
+			for (size_t k = 0; k < nftrs; ++k) {
+				float val = x[i*nftrs + k];
+				// has normalization in MedMat - but want to use same from train. when calling this function, it's always need normalizations
+				if (val == MED_MAT_MISSING_VALUE)
+					val = 0;
+				else
+					val = (val - _meanShift[k]) / _factor[k];
+				p += val * model_params[k + 1];
+			}
 #pragma omp critical
-		preds[i] = (float)p;
+			preds[i] = (float)p;
+		}
+	}
+	else {
+		vector<vector<float>> xData_degree(nftrs); //transposed
+		for (size_t i = 0; i < xData_degree.size(); ++i)
+		{
+			xData_degree[i].resize(nsamples);
+			for (size_t j = 0; j < nsamples; ++j)
+				xData_degree[i][j] = x[j* nftrs + i];
+		}
+		vector<const float *> data(nftrs);
+		for (size_t i = 0; i < data.size(); ++i)
+			data[i] = xData_degree[i].data();
+
+		//vector<double> prds(nsamples);
+		//poly_get_score(poly_degree, model_params, data, prds);
+#pragma omp parallel for
+		for (int i = 0; i < nsamples; ++i)
+		{
+			double p = poly_get_score(poly_degree, model_params, data, i);
+#pragma omp critical
+			preds[i] = (float)p;
+		}
 	}
 	return 0;
 }
@@ -555,19 +693,40 @@ void _normalizeSignalToAvg(vector<vector<float>> &xData, vector<float> &meanShif
 }
 
 int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
-	model_params.resize(nftrs + 1); //1 for bias
+	int sz_vec = 1;
+	for (int i = 0; i < poly_degree; ++i)
+		sz_vec *= (nftrs + i + 1);
+	for (int i = 0; i < poly_degree; ++i)
+		sz_vec /= (i + 1);
+
+	model_params.resize(sz_vec); //first is for bias, the rest are polynom coef
 	if (sample_count == -1)
-		sample_count = 15 * nftrs;
-	this->model_name = "LinearModel(" + to_string(nftrs) + ")";
+		sample_count = 50 * nftrs;
+	this->model_name = "LinearModel(" + to_string(nftrs) + ")" + "Poly_Deg=" + to_string(poly_degree);
 
 	vector<float> avg_diff, factors;
 	vector<float> yData(y, y + nsamples);
-	vector<vector<float>> xData(nftrs);
-	for (size_t i = 0; i < nftrs; ++i)
-	{
-		xData[i].resize(nsamples);
-		for (size_t j = 0; j < nsamples; ++j)
-			xData[i][j] = x[j* nftrs + i];
+	vector<vector<float>> xData(sz_vec - 1);
+	vector<vector<float>> xData_degree(nftrs);
+	if (poly_degree == 1) {
+		for (size_t i = 0; i < xData.size(); ++i)
+		{
+			xData[i].resize(nsamples);
+			for (size_t j = 0; j < nsamples; ++j)
+				xData[i][j] = x[j* nftrs + i];
+		}
+	}
+	else {
+		for (size_t i = 0; i < xData_degree.size(); ++i)
+		{
+			xData_degree[i].resize(nsamples);
+			for (size_t j = 0; j < nsamples; ++j)
+				xData_degree[i][j] = x[j* nftrs + i];
+		}
+		vector<const float *> ddata(nftrs);
+		for (size_t i = 0; i < nftrs; ++i)
+			ddata[i] = xData_degree[i].data();
+		generate_data_learn(poly_degree, ddata, nsamples, xData);
 	}
 	_normalizeSignalToAvg(xData, avg_diff, factors);
 	set_normalization(avg_diff, factors);
@@ -583,6 +742,13 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 	mark_learn_finish = false;
 	_learnModel(learner, xData, yData, minCat, tot_steps, print_steps, learning_rate, sample_count);
 	mark_learn_finish = true;
+
+	if (print_model) {
+		vector<string> names = model_features;
+		if (names.empty())
+			names.resize(nftrs);
+		print(names);
+	}
 
 	return 0;
 }
@@ -603,6 +769,10 @@ int MedLinearModel::set_params(map<string, string>& mapper) {
 			norm_l1 = stoi(it->second) > 0;
 		else if (it->first == "print_steps")
 			print_steps = stoi(it->second);
+		else if (it->first == "poly_degree")
+			poly_degree = stoi(it->second);
+		else if (it->first == "print_model")
+			print_model = stoi(it->second) > 0;
 		else if (it->first == "loss_function") {
 			if (it->second == "rmse") {
 				loss_function = _linear_loss_target_rmse;
