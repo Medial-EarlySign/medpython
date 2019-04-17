@@ -10,11 +10,11 @@
 void generate_data_learn_rec(int poly_degree, const vector<const float *> &data, int samples_size,
 	vector<vector<float>> &gen_data, int &pos, const vector<int> &path, int max_l = -1) {
 	//skip empty path (all -1) for bias, no need to copy to gen_data
-	if (pos == 0) {
-		++pos;
-		return;
-	}
 	if (path.size() == poly_degree) {
+		if (pos == 0) {
+			++pos;
+			return;
+		}
 		//actual do work for all samples in curretn path
 		gen_data[pos - 1].resize(samples_size);
 		for (int idx = 0; idx < samples_size; ++idx)
@@ -26,6 +26,7 @@ void generate_data_learn_rec(int poly_degree, const vector<const float *> &data,
 			gen_data[pos - 1][idx] = c;
 		}
 		++pos; //counter for coeff order
+		return;
 	}
 	int feat_num = (int)data.size();
 	for (int i = max_l; i < feat_num; ++i)
@@ -59,7 +60,7 @@ void poly_get_score_rec(int poly_degree, const vector<double> &coeff, const vect
 			scores[idx] += c; //adds coeff, coeff to results
 		}
 		++pos;
-
+		return;
 	}
 	int feat_num = (int)data.size();
 	for (int i = max_l; i < feat_num; ++i)
