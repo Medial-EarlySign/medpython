@@ -92,8 +92,10 @@
     <ClInclude Include="MedVW.h" />
     <ClInclude Include="MedXGB.h" />
     <ClInclude Include="PredictiveModel.h" />
+    <ClInclude Include="SamplesGenerator.h" />
     <ClInclude Include="SGD.h" />
     <ClInclude Include="svm.h" />
+    <ClInclude Include="tree_shap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BART.cpp" />
@@ -119,8 +121,10 @@
     <ClCompile Include="MedXGB.cpp" />
     <ClCompile Include="MedLasso.cpp" />
     <ClCompile Include="PredictiveModel.cpp" />
+    <ClCompile Include="SamplesGenerator.cpp" />
     <ClCompile Include="SGD.cpp" />
     <ClCompile Include="svm.cpp" />
+    <ClCompile Include="tree_shap.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

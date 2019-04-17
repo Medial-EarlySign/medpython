@@ -794,7 +794,7 @@ void MedMicNet::predict_single(const vector<float> &x, vector<float> &preds) con
 
 	//int n_th = omp_get_thread_num();
 	//const micNet &threaded_net = model_per_thread[n_th];
-	
+
 	mic.predict_single(x, preds);
 }
 
@@ -881,7 +881,7 @@ string medial::models::getParamsInfraModel(void *model) {
 			gdlm->params.momentum, gdlm->params.stop_at_err, gdlm->params.max_iter);
 		break;
 	default:
-		throw invalid_argument("Unsupported Type init for model " + to_string(m->classifier_type));
+		MTHROW_AND_ERR("Unsupported Type init for model %s:%d (getParams)\n", m->my_class_name().c_str(), m->classifier_type);
 	}
 
 	return string(buff);
@@ -949,7 +949,7 @@ void *medial::models::copyInfraModel(void *model, bool delete_old) {
 			delete (MedGDLM *)model;
 		break;
 	default:
-		throw invalid_argument("Unsupported Type init for model " + to_string(m->classifier_type) + " (copy)");
+		MTHROW_AND_ERR("Unsupported Type init for model %s:%d (copy)\n", m->my_class_name().c_str(), m->classifier_type);
 	}
 
 	return newM;

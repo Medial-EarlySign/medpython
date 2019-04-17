@@ -83,6 +83,7 @@
     <ClCompile Include="DoCalcFeatProcessor.cpp" />
     <ClCompile Include="DrugIntakeGenerator.cpp" />
     <ClCompile Include="EmbeddingGenerator.cpp" />
+    <ClCompile Include="ExplainWrapper.cpp" />
     <ClCompile Include="FeatureEncoder.cpp" />
     <ClCompile Include="FeatureGenerator.cpp" />
     <ClCompile Include="FeatureProcess.cpp" />
@@ -112,6 +113,7 @@
     <ClInclude Include="DoCalcFeatProcessor.h" />
     <ClInclude Include="DrugIntakeGenerator.h" />
     <ClInclude Include="EmbeddingGenerator.h" />
+    <ClInclude Include="ExplainWrapper.h" />
     <ClInclude Include="FeatureGenerator.h" />
     <ClInclude Include="FeatureProcess.h" />
     <ClInclude Include="IterativeImputer.h" />
