@@ -1,13 +1,22 @@
 #include "PostProcessor.h"
 #include "Calibration.h"
+#include <boost/algorithm/string.hpp>
+#include "ExplainWrapper.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 
 PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
-	if (post_processor == "multi")
+	string lower_p = boost::to_lower_copy(post_processor);
+	if (lower_p == "multi")
 		return FTR_POSTPROCESS_MULTI;
-	else if (post_processor == "calibrator")
+	else if (lower_p == "calibrator")
 		return FTR_POSTPROCESS_CALIBRATOR;
+	else if (lower_p == "tree_shap")
+		return FTR_POSTPROCESS_TREE_SHAP;
+	else if (lower_p == "shapley")
+		return FTR_POSTPROCESS_SHAPLEY;
+	else if (lower_p == "missing_shap")
+		return FTR_POSTPROCESS_MISSING_SHAP;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %s\n", post_processor.c_str());
 }
@@ -22,7 +31,12 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new MultiPostProcessor;
 	else if (type == FTR_POSTPROCESS_CALIBRATOR)
 		prc = new Calibrator;
-
+	else if (type == FTR_POSTPROCESS_TREE_SHAP)
+		prc = new TreeExplainer;
+	else if (type == FTR_POSTPROCESS_SHAPLEY)
+		prc = new ShapleyExplainer;
+	else if (type == FTR_POSTPROCESS_MISSING_SHAP)
+		prc = new MissingShapExplainer;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %d\n", type);
 
@@ -42,6 +56,9 @@ void *PostProcessor::new_polymorphic(string dname)
 {
 	CONDITIONAL_NEW_CLASS(dname, MultiPostProcessor);
 	CONDITIONAL_NEW_CLASS(dname, Calibrator);
+	CONDITIONAL_NEW_CLASS(dname, TreeExplainer);
+	CONDITIONAL_NEW_CLASS(dname, ShapleyExplainer);
+	CONDITIONAL_NEW_CLASS(dname, MissingShapExplainer);
 	return NULL;
 }
 

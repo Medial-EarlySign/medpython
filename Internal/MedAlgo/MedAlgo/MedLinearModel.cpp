@@ -162,112 +162,186 @@ void MedLinearModel::predict(const vector<vector<float>> &inputs, vector<double>
 #define REGULARIZATION_GEOM 0.1
 subGradientFunction  MedLinearModel::getSubGradients() {
 	//This is subGradient in L2, for other loss function you need to change this function
-	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y) {
+	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y, const vector<float> *weights) {
 		double res = 0;
-		for (size_t i = 0; i < y.size(); ++i)
-		{
-			double productRes = params[0];
-			for (size_t k = 0; k < x.size(); ++k)
+		if (weights == NULL || weights->empty()) {
+			for (size_t i = 0; i < y.size(); ++i)
 			{
-				productRes += params[k + 1] * x[k][i];
+				double productRes = params[0];
+				for (size_t k = 0; k < x.size(); ++k)
+					productRes += params[k + 1] * x[k][i];
+				float x_val = 1;
+				if (ind > 0)
+					x_val = x[ind - 1][i];
+				res += 2 * (params[ind] * x_val * x_val + (productRes - params[ind] * x_val)*x_val - y[i] * x_val);
 			}
-			float x_val = 1;
-			if (ind > 0) {
-				x_val = x[ind - 1][i];
-			}
-			res += 2 * (params[ind] * x_val * x_val + (productRes - params[ind] * x_val)*x_val - y[i] * x_val);
-		}
-		//res /= y.size(); - constant, not needed
+			//res /= y.size(); - constant, not needed
 
-		return res;
+			return res;
+		}
+		else {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double productRes = params[0];
+				for (size_t k = 0; k < x.size(); ++k)
+					productRes += params[k + 1] * x[k][i];
+				float x_val = 1;
+				if (ind > 0)
+					x_val = x[ind - 1][i];
+				res += 2 * (params[ind] * x_val * x_val + (productRes - params[ind] * x_val)*x_val - y[i] * x_val) * weights->at(i);
+			}
+			return res;
+		}
 	};
 
 	return func;
 }
 subGradientFunction  MedLinearModel::getSubGradientsAUC() {
 	//This is subGradient in L2, for other loss function you need to change this function. (need fix for bias param, W{n+1})
-	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y) {
-		if (ind == 0) {
+	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y, const vector<float> *weights) {
+		if (ind == 0)
 			return (double)0;
-		}
 
 		double res = 0;
-		map<int, vector<int>> targetToInd;
-		for (size_t i = 0; i < y.size(); ++i)
-		{
-			targetToInd[(int)y[i]].push_back((int)i);
-		}
-		vector<int> posInds = targetToInd[1];
-		vector<int> negInds = targetToInd[0]; //change to -1 if y is given that way
-		for (size_t i = 0; i < posInds.size(); ++i)
-		{
-			int posIndex = posInds[i];
-			for (size_t j = 0; j < negInds.size(); ++j)
+		vector<vector<int>> targetToInd(2);
+		for (int i = 0; i < y.size(); ++i)
+			targetToInd[int(y[i] > 0)].push_back(i);
+
+		vector<int> &posInds = targetToInd[1];
+		vector<int> &negInds = targetToInd[0]; //change to -1 if y is given that way
+		if (weights == NULL || weights->empty()) {
+			for (size_t i = 0; i < posInds.size(); ++i)
 			{
-				int negIndex = negInds[j];
-				double sumDiff = 0;
-				for (size_t k = 1; k < params.size(); ++k) //param 0 should be zero
+				int posIndex = posInds[i];
+				for (size_t j = 0; j < negInds.size(); ++j)
 				{
-					sumDiff += params[k] * (x[k - 1][posIndex] - x[k - 1][negIndex]);
-				}
-				sumDiff *= 1;
-				if (sumDiff > 100) {
-					res += 0;
-					continue;
-				}
-				if (sumDiff < -100) {
-					res += (x[ind - 1][posIndex] - x[ind - 1][negIndex]);
-					continue;
-				}
-				double divider = 1 + exp(-sumDiff);
-				//avoid overflow:
-				if (divider < 1e10) {
-					divider = divider * divider;
-					res += (x[ind - 1][posIndex] - x[ind - 1][negIndex]) * exp(-sumDiff) / divider;
+					int negIndex = negInds[j];
+					double sumDiff = 0;
+					for (size_t k = 1; k < params.size(); ++k) //param 0 should be zero
+					{
+						sumDiff += params[k] * (x[k - 1][posIndex] - x[k - 1][negIndex]);
+					}
+					sumDiff *= 1;
+					if (sumDiff > 100) {
+						res += 0;
+						continue;
+					}
+					if (sumDiff < -100) {
+						res += (x[ind - 1][posIndex] - x[ind - 1][negIndex]);
+						continue;
+					}
+					double divider = 1 + exp(-sumDiff);
+					//avoid overflow:
+					if (divider < 1e10) {
+						divider = divider * divider;
+						res += (x[ind - 1][posIndex] - x[ind - 1][negIndex]) * exp(-sumDiff) / divider;
+					}
+
 				}
 
 			}
-
+			res /= (posInds.size() * negInds.size());
+			res = -res; //because we need to minimize and auc we need to maximize
+			res += REG_LAMBDA * 2 * params[ind];  //regularization
+			return res;
 		}
-		res /= (posInds.size() * negInds.size());
-		res = -res; //because we need to minimize and auc we need to maximize
-		res += REG_LAMBDA * 2 * params[ind];  //regularization
-		return res;
+		else {
+			//Not Supported Weights!!!
+			for (size_t i = 0; i < posInds.size(); ++i)
+			{
+				int posIndex = posInds[i];
+				for (size_t j = 0; j < negInds.size(); ++j)
+				{
+					int negIndex = negInds[j];
+					double sumDiff = 0;
+					for (size_t k = 1; k < params.size(); ++k) //param 0 should be zero
+						sumDiff += params[k] * (x[k - 1][posIndex] - x[k - 1][negIndex]);
+					sumDiff *= 1;
+					if (sumDiff > 100) {
+						res += 0;
+						continue;
+					}
+					if (sumDiff < -100) {
+						res += (x[ind - 1][posIndex] - x[ind - 1][negIndex]);
+						continue;
+					}
+					double divider = 1 + exp(-sumDiff);
+					//avoid overflow:
+					if (divider < 1e10) {
+						divider = divider * divider;
+						res += (x[ind - 1][posIndex] - x[ind - 1][negIndex]) * exp(-sumDiff) / divider;
+					}
+
+				}
+
+			}
+			res /= (posInds.size() * negInds.size());
+			res = -res; //because we need to minimize and auc we need to maximize
+			res += REG_LAMBDA * 2 * params[ind];  //regularization
+			return res;
+		}
 	};
 
 	return func;
 }
 subGradientFunction  MedLinearModel::getSubGradientsSvm() {
 	//This is subGradient in L2, for other loss function you need to change this function. (need fix for bias param, W{n+1})
-	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y) {
+	subGradientFunction func = [](int ind, const vector<double> &params, const vector<vector<float>> &x, const vector<float> &y, const vector<float> *weights) {
 		double res = 0;
-		for (size_t i = 0; i < y.size(); ++i)
-		{
-			double fx = 1; //first param (ind ==0) is bais like x vector has 1 vector;
-			if (ind > 0)
-				fx = x[ind - 1][i];
-			double diff = 1 - ((y[i] > 0) * 2 - 1) * params[ind] * fx;
-			if (diff > 0)
-				res += 1 - ((y[i] > 0) * 2 - 1) * fx;
-		}
+		if (weights == NULL || weights->empty()) {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double fx = 1; //first param (ind ==0) is bais like x vector has 1 vector;
+				if (ind > 0)
+					fx = x[ind - 1][i];
+				double diff = 1 - ((y[i] > 0) * 2 - 1) * params[ind] * fx;
+				if (diff > 0)
+					res += 1 - ((y[i] > 0) * 2 - 1) * fx;
+			}
 
-		res /= y.size();
-		//add regularization:
-		double reg = 0;
-		if (REG_LAMBDA > 0) {
-			double n_params = 0;
-			for (size_t i = 0; i < params.size(); ++i)
-				n_params += params[i] * params[i];
-			n_params = sqrt(n_params);
-			reg = -params[ind] / n_params;
-		}
+			res /= y.size();
+			//add regularization:
+			double reg = 0;
+			if (REG_LAMBDA > 0) {
+				double n_params = 0;
+				for (size_t i = 0; i < params.size(); ++i)
+					n_params += params[i] * params[i];
+				n_params = sqrt(n_params);
+				reg = -params[ind] / n_params;
+			}
 
-		return res + REG_LAMBDA * reg;
+			return res + REG_LAMBDA * reg;
+		}
+		else {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double fx = 1; //first param (ind ==0) is bais like x vector has 1 vector;
+				if (ind > 0)
+					fx = x[ind - 1][i];
+				double diff = 1 - ((y[i] > 0) * 2 - 1) * params[ind] * fx;
+				if (diff > 0)
+					res += (1 - ((y[i] > 0) * 2 - 1) * fx) * weights->at(i);
+			}
+
+			res /= y.size();
+			//add regularization:
+			double reg = 0;
+			if (REG_LAMBDA > 0) {
+				double n_params = 0;
+				for (size_t i = 0; i < params.size(); ++i)
+					n_params += params[i] * params[i];
+				n_params = sqrt(n_params);
+				reg = -params[ind] / n_params;
+			}
+
+			return res + REG_LAMBDA * reg;
+		}
 	};
 
 	return func;
 }
-double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y) {
+double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y, const vector<float> *weights) {
+	//WEIGHTS not Supported
 	vector<vector<int>> targetToInd(2);
 	for (size_t i = 0; i < y.size(); ++i)
 		targetToInd[int(y[i] > 0)].push_back((int)i);
@@ -294,8 +368,9 @@ double _linear_loss_target_auc(const vector<double> &preds, const vector<float> 
 	res = -res; //auc needs to be maximize
 	return res;
 }
-double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y, const vector<double> &params) {
-	double res = _linear_loss_target_auc(preds, y);
+double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y, const vector<double> &params, const vector<float> *weights) {
+	//WEIGHTS not Supported
+	double res = _linear_loss_target_auc(preds, y, weights);
 	double nrm = 0;
 	for (size_t i = 0; i < params.size(); ++i)
 		nrm += params[i] * params[i];
@@ -303,7 +378,8 @@ double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y
 	res += REG_LAMBDA * nrm; //not needed projecting to 1 after each iteration
 	return res;
 }
-double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y) {
+double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y, const vector<float> *weights) {
+	//WEIGHTS not supported
 	vector<vector<int>> targetToInd(2);
 	for (size_t i = 0; i < y.size(); ++i)
 		targetToInd[(int)y[i]].push_back((int)i);
@@ -330,7 +406,8 @@ double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<floa
 
 	return res;
 }
-double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y) {
+double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y, const vector<float> *weights) {
+	//WEIGHTS notr supported
 	double res = 0;
 	int totPos = 0;
 	float deired_sen = (float)0.75; //Take AUC @ deired_sen (smooth local AUC)
@@ -375,8 +452,8 @@ double _linear_loss_target_work_point(const vector<double> &preds, const vector<
 
 	return res;
 }
-double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
-	float loss_val = (float)_linear_loss_target_work_point(preds, y);
+double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params, const vector<float> *weights) {
+	float loss_val = (float)_linear_loss_target_work_point(preds, y, weights);
 	double nrm = 0;
 	if (REG_LAMBDA > 0) {
 		for (size_t i = 0; i < model_params.size(); ++i)
@@ -388,18 +465,24 @@ double _linear_loss_step_work_point(const vector<double> &preds, const vector<fl
 
 	return loss_val + REG_LAMBDA * nrm;
 }
-double _linear_loss_target_rmse(const vector<double> &preds, const vector<float> &y) {
+double _linear_loss_target_rmse(const vector<double> &preds, const vector<float> &y, const vector<float> *weights) {
 	double res = 0;
-	for (size_t i = 0; i < y.size(); ++i)
-	{
-		res += (y[i] - preds[i]) * (y[i] - preds[i]);
+	if (weights == NULL || weights->empty()) {
+		for (size_t i = 0; i < y.size(); ++i)
+			res += (y[i] - preds[i]) * (y[i] - preds[i]);
+		res /= y.size();
+		res = sqrt(res);
 	}
-	res /= y.size();
-	res = sqrt(res);
+	else {
+		for (size_t i = 0; i < y.size(); ++i)
+			res += (y[i] - preds[i]) * (y[i] - preds[i]) * weights->at(i);
+		res /= y.size();
+		res = sqrt(res);
+	}
 	return res;
 }
-double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
-	double res = _linear_loss_target_rmse(preds, y);
+double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params, const vector<float> *weights) {
+	double res = _linear_loss_target_rmse(preds, y, weights);
 
 	double reg = 0;
 	if (REG_LAMBDA > 0) {
@@ -410,20 +493,31 @@ double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &
 
 	return res + REG_LAMBDA * reg;
 }
-double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y) {
+double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y, const vector<float> *weights) {
 	double res = 0;
-	for (size_t i = 0; i < y.size(); ++i)
-	{
-		double diff = 1 - (2 * (y[i] > 0) - 1) * preds[i];
-		if (diff > 0)
-			res += diff;
+	if (weights == NULL || weights->empty()) {
+		for (size_t i = 0; i < y.size(); ++i)
+		{
+			double diff = 1 - (2 * (y[i] > 0) - 1) * preds[i];
+			if (diff > 0)
+				res += diff;
+		}
+		res /= y.size();
 	}
-	res /= y.size();
+	else {
+		for (size_t i = 0; i < y.size(); ++i)
+		{
+			double diff = 1 - (2 * (y[i] > 0) - 1) * preds[i];
+			if (diff > 0)
+				res += diff * weights->at(i);
+		}
+		res /= y.size();
+	}
 
 	return res; //no reg - maybe count only accourcy beyond 1 and beyond 0
 }
-double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params) {
-	double res = _linear_loss_target_svm(preds, y);
+double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params, const vector<float> *weights) {
+	double res = _linear_loss_target_svm(preds, y, weights);
 
 	double reg = 0;
 	if (REG_LAMBDA > 0) {

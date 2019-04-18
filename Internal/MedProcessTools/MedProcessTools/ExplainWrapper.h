@@ -37,6 +37,9 @@ public:
 	virtual ~ModelExplainer() {};
 };
 
+/** @enum
+* Tree Explainer modes - will be choosen by explainer
+*/
 enum TreeExplainerMode {
 	ORIGINAL_IMPL = 0,
 	CONVERTED_TREES_IMPL = 1,
@@ -86,7 +89,7 @@ public:
 * First we sample uniformally how many missing values should be - than randomally remove those value and set them as missing values.
 * This will cause the weight of each count of missing values to be equal in train - same as weights in SHAP values calculation
 */
-class SHAPExplainer : public ModelExplainer {
+class MissingShapExplainer : public ModelExplainer {
 private:
 	MedPredictor * retrain_predictor = NULL; //the retrain model
 public:
@@ -101,7 +104,7 @@ public:
 	string change_learn_args; ///< arguments to change in predictor - for example to change it into regression
 	bool verbose_learn; ///< If true will print more in learn
 
-	SHAPExplainer();
+	MissingShapExplainer();
 
 	int init(map<string, string> &mapper);
 
@@ -109,9 +112,9 @@ public:
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
-	~SHAPExplainer();
+	~MissingShapExplainer();
 
-	ADD_CLASS_NAME(SHAPExplainer)
+	ADD_CLASS_NAME(MissingShapExplainer)
 		ADD_SERIALIZATION_FUNCS(original_predictor, retrain_predictor, max_test, missing_value,
 			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle)
 };
@@ -166,7 +169,7 @@ public:
 };
 
 MEDSERIALIZE_SUPPORT(TreeExplainer)
-MEDSERIALIZE_SUPPORT(SHAPExplainer)
+MEDSERIALIZE_SUPPORT(MissingShapExplainer)
 MEDSERIALIZE_SUPPORT(ShapleyExplainer)
 
 #endif

@@ -1,3 +1,4 @@
+/// @file
 #ifndef __POST_PROCESSOR_H__
 #define __POST_PROCESSOR_H__
 
@@ -12,6 +13,9 @@
 typedef enum {
 	FTR_POSTPROCESS_MULTI, ///<"multi_processor" or "multi" to create MultiPostProcessor
 	FTR_POSTPROCESS_CALIBRATOR, ///<"calibrator" to create Calibrator
+	FTR_POSTPROCESS_TREE_SHAP, ///< "tree_shap" to create TreeExplainer to explain tree mode or mimic generic model with trees model
+	FTR_POSTPROCESS_SHAPLEY, ///< "shapley" to create ShapleyExplainer - model agnostic shapley explainer for model. sample masks using gibbs or GAN
+	FTR_POSTPROCESS_MISSING_SHAP, ///< "missing_shap" to create MissingShapExplainer - model agnostic shapley algorithm on trained model to handle prediciton with missing values(retrains new model). much faster impl, because gibbs/GAN is not needed
 	FTR_POSTPROCESS_LAST
 } PostProcessorTypes;
 

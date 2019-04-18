@@ -315,7 +315,7 @@ TreeExplainer::~TreeExplainer() {
 	}
 }
 
-SHAPExplainer::~SHAPExplainer() {
+MissingShapExplainer::~MissingShapExplainer() {
 	//TODO: use uniqe_ptr and than can remove those destructors..
 	if (retrain_predictor != NULL) {
 		delete retrain_predictor;
@@ -331,7 +331,7 @@ template<typename T> int msn_count(const T *vals, int sz, T val) {
 	return res;
 }
 
-SHAPExplainer::SHAPExplainer() {
+MissingShapExplainer::MissingShapExplainer() {
 	max_test = 500;
 	missing_value = MED_MAT_MISSING_VALUE;
 	sample_masks_with_repeats = false;
@@ -343,7 +343,7 @@ SHAPExplainer::SHAPExplainer() {
 	verbose_learn = true;
 }
 
-int SHAPExplainer::init(map<string, string> &mapper) {
+int MissingShapExplainer::init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "missing_value")
@@ -370,7 +370,7 @@ int SHAPExplainer::init(map<string, string> &mapper) {
 	return 0;
 }
 
-void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	this->original_predictor = original_pred;
 	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 	random_device rd;
@@ -460,7 +460,7 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 }
 
 
-void SHAPExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
 	sample_explain_reasons.resize(matrix.samples.size());
 	vector<string> names;
 	matrix.get_feature_names(names);
