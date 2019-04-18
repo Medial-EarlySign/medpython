@@ -1326,7 +1326,6 @@ int MedFeatures::mark_imputed_in_masks(float _missing_val)
 	if (masks.empty()) return 0;
 
 	int nrows = (int)masks.begin()->second.size();
-	int ncols = (int)masks.size();
 	vector<string> names;
 	get_feature_names(names);
 

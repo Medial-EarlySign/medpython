@@ -24,7 +24,7 @@ public:
 
 	///Learns from predictor and train_matrix (PostProcessor API)
 	virtual void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
-	void Apply(MedFeatures &matrix) { explain(matrix); } //alias for explain
+	void Apply(MedFeatures &matrix) const { explain(matrix); } ///< alias for explain
 
 														 ///Virtual - return explain results in sample_feature_contrib
 	virtual void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const = 0;
@@ -79,7 +79,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, proxy_predictor, generic_tree_model, interaction_shap)
+		ADD_SERIALIZATION_FUNCS(original_predictor, proxy_predictor, interaction_shap)
 };
 
 /**

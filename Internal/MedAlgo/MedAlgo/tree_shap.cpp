@@ -54,13 +54,22 @@ void TreeEnsemble::allocate(unsigned tree_limit_in, unsigned max_nodes_in, unsig
 }
 
 void TreeEnsemble::free() {
-	delete[] children_left;
-	delete[] children_right;
-	delete[] children_default;
-	delete[] features;
-	delete[] thresholds;
-	delete[] values;
-	delete[] node_sample_weights;
+	if (is_allocate) {
+		delete[] children_left;
+		delete[] children_right;
+		delete[] children_default;
+		delete[] features;
+		delete[] thresholds;
+		delete[] values;
+		delete[] node_sample_weights;
+		children_left = NULL;
+		children_right = NULL;
+		children_default = NULL;
+		features = NULL;
+		thresholds = NULL;
+		values = NULL;
+		node_sample_weights = NULL;
+	}
 	is_allocate = false;
 }
 

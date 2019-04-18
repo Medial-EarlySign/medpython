@@ -165,6 +165,7 @@ int TreeExplainer::init(map<string, string> &mapper) {
 			approximate = stoi(it->second) > 0;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
+		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in TreeExplainer::init - Unsupported parameter \"%s\"\n", it->first.c_str());
 	}
@@ -179,6 +180,7 @@ void TreeExplainer::post_deserialization() {
 		if (approximate)
 			static_cast<MedXGB *>(original_predictor)->feat_contrib_flags |= APPROX_CONTRIBS;
 	}
+	try_convert_trees();
 }
 
 void TreeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
@@ -313,6 +315,7 @@ TreeExplainer::~TreeExplainer() {
 		delete proxy_predictor;
 		proxy_predictor = NULL;
 	}
+	//generic_tree_model.free(); //points to existing memory in QRF, tree. not need to handle
 }
 
 MissingShapExplainer::~MissingShapExplainer() {
@@ -364,6 +367,7 @@ int MissingShapExplainer::init(map<string, string> &mapper) {
 			change_learn_args = it->second;
 		else if (it->first == "verbose_learn")
 			verbose_learn = stoi(it->second) > 0;
+		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -384,8 +388,8 @@ void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures 
 	bool verbose_learn = true;
 
 	if (!train_mat.samples.front().prediction.empty())
-	for (size_t i = 0; i < labels.size(); ++i)
-		labels[i] = train_mat.samples[i].prediction[0];
+		for (size_t i = 0; i < labels.size(); ++i)
+			labels[i] = train_mat.samples[i].prediction[0];
 	else {
 		MedMat<float> tt;
 		train_mat.get_as_matrix(tt);
@@ -559,6 +563,7 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			max_test = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
+		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in ShapleyExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
