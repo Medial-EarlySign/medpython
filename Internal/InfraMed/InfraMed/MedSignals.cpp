@@ -614,8 +614,8 @@ int MedSignalsPrintVecByType(ostream &os, int sig_type, void* vec, int len_bytes
 
 void GenericSigVec::init_from_spec(const string& signalSpec) {
 	struct_size = 0;
-	n_time_channels = 0;
-	n_val_channels = 0;
+	n_time = 0;
+	n_val = 0;
 	int i = 0;
 	char prev_char = '\0';
 	bool in_val_chan = false, in_time_chan = false;
@@ -660,7 +660,7 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 			in_time_chan = true;
 			cur_chan_offset = time_channel_offsets;
 			cur_chan_type = time_channel_types;
-			cur_chan_top = &n_time_channels;
+			cur_chan_top = &n_time;
 			break;
 		case 'v':
 		case 'V':
@@ -669,7 +669,7 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 			in_time_chan = true;
 			cur_chan_offset = val_channel_offsets;
 			cur_chan_type = val_channel_types;
-			cur_chan_top = &n_val_channels;
+			cur_chan_top = &n_val;
 			break;
 
 		case 'c':

@@ -880,16 +880,23 @@ public:
 	char *data;
 	int len;		// type len (not bytes len)
 	int struct_size;
+	
+	int n_time_channels() const { return n_time; };
+	int n_val_channels() const { return n_val; };
 
-	int n_time_channels;
-	int n_val_channels;
+	// time unit & unitless time
+	int time_unit() const { return _time_unit; };
+	int Time_ch_vec(int idx, int chan, void * data_) { return Time<int>(idx, chan, (char*)data); } // Time(idx,chan)
+
+	int n_time;
+	int n_val;
 
 	int time_channel_offsets[GENERIC_SIG_VEC_MAX_CHANNELS];
 	int val_channel_offsets[GENERIC_SIG_VEC_MAX_CHANNELS];
 	unsigned char time_channel_types[GENERIC_SIG_VEC_MAX_CHANNELS];
 	unsigned char val_channel_types[GENERIC_SIG_VEC_MAX_CHANNELS];
 
-	int time_unit() const { return _time_unit; };
+	
 
 	size_t size() const { return struct_size; }
 
@@ -897,21 +904,21 @@ public:
 		data = (char*)_data;
 		len = _len;
 	}
-	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time_channels(0), n_val_channels(0) {}
+	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time(0), n_val(0) {}
 	GenericSigVec(const string& signalSpec) : GenericSigVec() { init_from_spec(signalSpec); }
 	GenericSigVec(const GenericSigVec& other) { *this = other; }
 	GenericSigVec& operator=(const GenericSigVec& other) {
 		data = other.data;
 		len = other.len;
 		struct_size = other.struct_size;
-		n_time_channels = other.n_time_channels;
-		n_val_channels = other.n_val_channels;
+		n_time = other.n_time;
+		n_val = other.n_val;
 		_time_unit = other._time_unit;
-		for (int i = 0; i < n_time_channels; i++) {
+		for (int i = 0; i < n_time; i++) {
 			time_channel_offsets[i] = other.time_channel_offsets[i];
 			time_channel_types[i] = other.time_channel_types[i];
 		}
-		for (int i = 0; i < n_val_channels; i++) {
+		for (int i = 0; i < n_val; i++) {
 			val_channel_offsets[i] = other.val_channel_offsets[i];
 			val_channel_types[i] = other.val_channel_types[i];
 		}
@@ -921,8 +928,11 @@ public:
 	void init_from_spec(const string& signalSpec);
 
 	template<typename T = int>
-	T Time(int idx, int chan) const {
-		auto field_ptr = data + idx * struct_size + time_channel_offsets[chan];
+	T Time(int idx, int chan) const { return Time<int>(idx, chan, data); }
+
+	template<typename T = int>
+	T Time(int idx, int chan, char* data_) const {
+		auto field_ptr = data_ + idx * struct_size + time_channel_offsets[chan];
 		switch (time_channel_types[chan]) {
 		case type_enc::INT32:   return (T)(*(int*)(field_ptr));
 		case type_enc::INT64:   return (T)(*(long long*)(field_ptr));
@@ -956,10 +966,12 @@ public:
 		}
 	}
 
+	template<typename T = float>
+	T Val(int idx, int chan) const { return Val<int>(idx, chan, data); }
 
 	template<typename T = float>
-	T Val(int idx, int chan) const {
-		auto field_ptr = data + idx * struct_size + val_channel_offsets[chan];
+	T Val(int idx, int chan, char* data_) const {
+		auto field_ptr = data_ + idx * struct_size + val_channel_offsets[chan];
 		switch (val_channel_types[chan]) {
 		case type_enc::FLOAT32: return (T)(*(float*)(field_ptr));
 		case type_enc::INT16:   return (T)(*(short*)(field_ptr));
@@ -1022,10 +1034,10 @@ public:
 
 	inline void Set(int idx, int *times, float *vals)
 	{
-		for (int chan = 0; chan < n_time_channels; ++chan)
+		for (int chan = 0; chan < n_time; ++chan)
 			setTime(idx, chan, times[chan]);
 
-		for (int chan = 0; chan < n_val_channels; ++chan)
+		for (int chan = 0; chan < n_val; ++chan)
 			setVal(idx, chan, vals[chan]);
 	}
 
