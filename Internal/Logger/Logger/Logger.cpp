@@ -269,3 +269,42 @@ void MedLogger::out(char *fmt, ...)
 	va_end(args);
 	fflush(out_fd);
 }
+
+MedProgress::MedProgress(const string &title, int mprocess_cnt, int print_inter) {
+	progress = 0;
+	max_loop = mprocess_cnt;
+	print_interval = print_inter;
+	print_title = title;
+	print_section = LOG_APP;
+	print_level = LOG_DEF_LEVEL;
+	max_threads = 50;
+	tm_prog = chrono::high_resolution_clock::now();
+	tm_start = chrono::high_resolution_clock::now();
+}
+
+void MedProgress::update() {
+#pragma omp atomic
+	++progress;
+
+	if (progress == max_loop) {
+		double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_start).count()) / 1000000.0;
+		global_logger.log(print_section, print_level, "#%s# :: Done processed all %d. Took %2.1f Seconds in total\n",
+			print_title.c_str(), max_loop, time_elapsed);
+		return;
+	}
+
+	double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+		- tm_prog).count()) / 1000000.0;
+	if (duration > print_interval && progress % max_threads == 0) {
+#pragma omp critical
+		tm_prog = chrono::high_resolution_clock::now();
+		double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_start).count()) / 1000000.0;
+		double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
+		global_logger.log(print_section, print_level, "#%s# :: Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
+			"estimate time to finish %2.1f Minutes\n", print_title.c_str(),
+			progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
+			estimate_time / 60.0);
+	}
+}

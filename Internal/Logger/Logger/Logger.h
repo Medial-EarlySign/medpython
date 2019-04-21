@@ -185,5 +185,32 @@ public:
 
 };
 
+/**
+* class to print progress of long process - multithreaded or not by time interval
+*/
+class MedProgress {
+public:
+	chrono::high_resolution_clock::time_point tm_start;
+	chrono::high_resolution_clock::time_point tm_prog;
+	int progress;
+	int max_loop;
+	int print_interval;
+	string print_title;
+
+	int max_threads;
+	int print_section;
+	int print_level;
+
+	/// <summary>
+	/// @param title title to print in each time
+	/// @param mprocess_cnt number of actions to preform in total
+	/// @param print_inter number of seconds between each print
+	/// </summary>
+	MedProgress(const string &title, int mprocess_cnt, int print_inter = 30);
+
+	/// update when completed process 1 item
+	void update();
+};
+
 #endif
 
