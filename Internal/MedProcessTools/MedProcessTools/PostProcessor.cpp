@@ -4,6 +4,7 @@
 #include "ExplainWrapper.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
+#define LOCAL_LEVEL LOG_DEF_LEVEL
 
 PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 	string lower_p = boost::to_lower_copy(post_processor);
@@ -25,6 +26,10 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 
 PostProcessor *PostProcessor::make_processor(const string &processor_name, const string &params) {
 	return make_processor(post_processor_name_to_type(processor_name), params);
+}
+
+void PostProcessor::dprint(const string &pref) const {
+	MLOG("%s :: PP type %d(%s)\n", pref.c_str(), processor_type, my_class_name().c_str());
 }
 
 PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const string &params) {
@@ -63,6 +68,7 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, TreeExplainer);
 	CONDITIONAL_NEW_CLASS(dname, ShapleyExplainer);
 	CONDITIONAL_NEW_CLASS(dname, MissingShapExplainer);
+	CONDITIONAL_NEW_CLASS(dname, LimeExplainer);
 	return NULL;
 }
 
@@ -81,4 +87,10 @@ void MultiPostProcessor::Apply(MedFeatures &matrix) const {
 #pragma omp parallel for
 	for (int i = 0; i < post_processors.size(); ++i)
 		post_processors[i]->Apply(matrix);
+}
+
+void MultiPostProcessor::dprint(const string &pref) const {
+	MLOG("%s :: %s\n", pref.c_str(), my_class_name().c_str());
+	for (size_t i = 0; i < post_processors.size(); ++i)
+		post_processors[i]->dprint(pref);
 }

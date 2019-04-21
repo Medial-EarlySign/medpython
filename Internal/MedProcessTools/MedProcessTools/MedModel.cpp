@@ -1261,7 +1261,7 @@ void MedModel::clear()
 }
 
 //.......................................................................................
-void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag)
+void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, bool pp_flag, bool predictor_type)
 {
 	unordered_set<string> sigs;
 
@@ -1273,6 +1273,8 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
 	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
+	if (pp_flag) for (auto& pp : post_processors) pp->dprint(pref);
+	if (predictor_type && predictor != NULL) MLOG("Predictor %s\n", predictor->my_class_name().c_str());
 }
 
 //.......................................................................................
