@@ -1,6 +1,8 @@
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
 #include <cmath>
+#include <random>
+#include <omp.h>
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
 
@@ -59,6 +61,53 @@ int get_tree_max_depth(const vector<QRF_ResNode> &nodes) {
 		return 0;
 	int max_d = get_max_rec(nodes, 0) + 1;
 	return max_d;
+}
+
+void read_feature_grouping(const string &file_name, const MedFeatures& data, vector<vector<int>>& group2index, vector<string>& group_names) {
+	// Features
+	vector<string> features;
+	data.get_feature_names(features);
+	int nftrs = (int)features.size();
+
+	map<string, int> ftr2indx;
+	for (int i = 0; i < nftrs; i++)
+		ftr2indx[features[i]] = i;
+
+	// Read Grouping
+	ifstream inf(file_name);
+	if (!inf.is_open())
+		MTHROW_AND_ERR("Cannot open \'%s\' for reading\n", file_name.c_str());
+
+	string curr_line;
+	vector<string> fields;
+	map<string, vector<int>> groups;
+	unordered_set<string> grouped_ftrs;
+
+	while (getline(inf, curr_line)) {
+		boost::split(fields, curr_line, boost::is_any_of("\t"));
+		if (fields.size() != 2 || ftr2indx.find(fields[0]) == ftr2indx.end())
+			MTHROW_AND_ERR("Cannot parse line \'%s\' from %s\n", curr_line.c_str(), file_name.c_str());
+		if (grouped_ftrs.find(fields[0]) != grouped_ftrs.end())
+			MTHROW_AND_ERR("Features %s given twice\n", fields[0].c_str());
+
+		grouped_ftrs.insert(fields[0]);
+		groups[fields[1]].push_back(ftr2indx[fields[0]]);
+	}
+
+	// Arrange
+	for (auto& rec : groups) {
+		group_names.push_back(rec.first);
+		group2index.push_back(rec.second);
+	}
+
+	for (int i = 0; i < nftrs; i++) {
+		if (grouped_ftrs.find(features[i]) == grouped_ftrs.end()) {
+			group_names.push_back(features[i]);
+			group2index.push_back({ i });
+		}
+	}
+
+	MLOG("Grouping: %d features into %d groups\n", nftrs, (int)group_names.size());
 }
 
 //all conversion functions
@@ -335,6 +384,7 @@ template<typename T> int msn_count(const T *vals, int sz, T val) {
 }
 
 MissingShapExplainer::MissingShapExplainer() {
+	processor_type = FTR_POSTPROCESS_MISSING_SHAP;
 	max_test = 500;
 	missing_value = MED_MAT_MISSING_VALUE;
 	sample_masks_with_repeats = false;
@@ -563,6 +613,8 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			max_test = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
+		else if (it->first == "grouping")
+			grouping = it->second;
 		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in ShapleyExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
@@ -573,21 +625,26 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 	return 0;
 }
 
-void ShapleyExplainer::init_sampler() {
+void ShapleyExplainer::init_sampler(bool with_sampler) {
 	switch (gen_type)
 	{
 	case GIBBS:
-		_gibbs.init_from_string(generator_args);
-		_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		if (with_sampler) {
+			_gibbs.init_from_string(generator_args);
+			_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		}
 		_gibbs_sample_params.init_from_string(sampling_args);
 		sampler_sampling_args = &_gibbs_sample_params;
 		break;
 	case GAN:
-		_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
-		static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+		if (with_sampler) {
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+		}
 		break;
 	case MISSING:
-		_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 		break;
 	default:
 		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
@@ -597,6 +654,16 @@ void ShapleyExplainer::init_sampler() {
 void ShapleyExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	this->original_predictor = original_pred;
 	_sampler->learn(train_mat.data);
+
+	if (!grouping.empty())
+		read_feature_grouping(grouping, train_mat, group2Ind, groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			group2Ind.push_back({ icol++ });
+			groupNames.push_back(rec.first);
+		}
+	}
 }
 
 void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
@@ -617,12 +684,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = (int)matrix.samples.size();
-
+	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
 #pragma omp parallel for
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
@@ -643,25 +705,12 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 		}
 
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (duration > 15 && progress % 50 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
+		progress.update();
 	}
 }
 
 void ShapleyExplainer::post_deserialization() {
-	init_sampler();
+	init_sampler(false);
 }
 
 void ShapleyExplainer::load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
@@ -687,4 +736,116 @@ void ShapleyExplainer::load_MISSING(MedPredictor *original_pred) {
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 	gen_type = GeneratorType::MISSING;
+}
+
+
+int LimeExplainer::init(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "gen_type")
+			gen_type = GeneratorType_fromStr(it->second);
+		else if (it->first == "generator_args")
+			generator_args = it->second;
+		else if (it->first == "missing_value")
+			missing_value = med_stof(it->second);
+		else if (it->first == "max_test")
+			max_test = med_stoi(it->second);
+		else if (it->first == "sampling_args")
+			sampling_args = it->second;
+		else if (it->first == "p_mask")
+			p_mask = med_stof(it->second);
+		else if (it->first == "n_masks")
+			n_masks = med_stoi(it->second);
+		else if (it->first == "grouping")
+			grouping = it->second;
+		else if (it->first == "pp_type") {}
+		else
+			MTHROW_AND_ERR("Error in LimeExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
+	}
+	init_sampler(); //from args
+
+	return 0;
+}
+
+void LimeExplainer::init_sampler(bool with_sampler) {
+	switch (gen_type)
+	{
+	case GIBBS:
+		if (with_sampler) {
+			_gibbs.init_from_string(generator_args);
+			_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		}
+		_gibbs_sample_params.init_from_string(sampling_args);
+		sampler_sampling_args = &_gibbs_sample_params;
+		break;
+	case GAN:
+		if (with_sampler) {
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+		}
+		break;
+	case MISSING:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+		break;
+	default:
+		MTHROW_AND_ERR("Error in LimeExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
+	}
+}
+
+void LimeExplainer::load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
+	this->original_predictor = original_pred;
+	_gibbs = gibbs;
+	_gibbs_sample_params = sampling_args;
+
+	sampler_sampling_args = &_gibbs_sample_params;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+
+	gen_type = GeneratorType::GIBBS;
+}
+
+void LimeExplainer::load_GAN(MedPredictor *original_pred, const string &gan_path) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+
+	gen_type = GeneratorType::GAN;
+}
+
+void LimeExplainer::load_MISSING(MedPredictor *original_pred) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+	gen_type = GeneratorType::MISSING;
+}
+
+void LimeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	this->original_predictor = original_pred;
+	if (!grouping.empty())
+		read_feature_grouping(grouping, train_mat, group2Ind, groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			group2Ind.push_back({ icol++ });
+			groupNames.push_back(rec.first);
+		}
+	}
+
+	_sampler->learn(train_mat.data);
+}
+
+void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+	vector<vector<float>> alphas;
+
+	medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, missing_value,
+		sampler_sampling_args, group2Ind, groupNames, alphas);
+
+	sample_explain_reasons.resize(matrix.samples.size());
+
+	for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+	{
+		map<string, float> &curr = sample_explain_reasons[i];
+		const vector<float> &curr_res = alphas[i];
+		for (size_t k = 0; k < groupNames.size(); ++k)
+			curr[groupNames[k]] = curr_res[k];
+	}
 }

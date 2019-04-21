@@ -60,11 +60,13 @@ private:
 private:
 	bool try_convert_trees();
 public:
-	string proxy_model_type;
-	string proxy_model_init;
+	string proxy_model_type = "";
+	string proxy_model_init = "";
 	bool interaction_shap = false;
 	int approximate = false;
 	float missing_value = MED_MAT_MISSING_VALUE;
+
+	TreeExplainer() { processor_type = FTR_POSTPROCESS_TREE_SHAP; }
 
 	int init(map<string, string> &mapper);
 
@@ -144,13 +146,19 @@ private:
 	GibbsSampler<float> _gibbs;
 	GibbsSamplingParams _gibbs_sample_params;
 
-	void init_sampler();
+	vector<vector<int>> group2Ind; ///< group of features
+	vector<string> groupNames; ///< group of features 
+
+	void init_sampler(bool with_sampler = true);
 public:
 	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
 	string generator_args = ""; ///< for learn
 	string sampling_args = ""; ///< args for sampling
 	int max_test = 100; ///< how many test to conduct from shapley
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+	string grouping = ""; ///< grouping file - NOT supported yet...
+
+	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; }
 
 	int init(map<string, string> &mapper);
 
@@ -165,11 +173,56 @@ public:
 	void load_MISSING(MedPredictor *original_pred);
 
 	ADD_CLASS_NAME(ShapleyExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, max_test, missing_value, sampling_args)
+		ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, max_test, missing_value, sampling_args,
+			group2Ind, groupNames)
+};
+
+/**
+* shapley explainer with gibbs, GAN or other sampler generator
+*/
+class LimeExplainer : public ModelExplainer {
+private:
+	unique_ptr<SamplesGenerator<float>> _sampler = NULL;
+	void *sampler_sampling_args = NULL;
+
+	//just for gibbs memory hold when init & learn
+	GibbsSampler<float> _gibbs;
+	GibbsSamplingParams _gibbs_sample_params;
+
+	void init_sampler(bool with_sampler = true);
+
+	vector<vector<int>> group2Ind; ///< group of features
+	vector<string> groupNames; ///< group of features 
+public:
+	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
+	string generator_args = ""; ///< for learn
+	string sampling_args = ""; ///< args for sampling
+	int max_test = 100; ///< how many test to conduct from shapley
+	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+	float p_mask = 0.5; ///< prob for 1 in mask
+	int n_masks = 5000; ///< number of masks
+	string grouping = ""; ///< grouping file
+	
+	LimeExplainer() { processor_type = FTR_POSTPROCESS_LIME_SHAP; }
+
+	int init(map<string, string> &mapper);
+
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+
+	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	void load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
+	void load_GAN(MedPredictor *original_pred, const string &gan_path);
+	void load_MISSING(MedPredictor *original_pred);
+
+	ADD_CLASS_NAME(LimeExplainer)
+	ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, missing_value, sampling_args,
+			group2Ind, groupNames)
 };
 
 MEDSERIALIZE_SUPPORT(TreeExplainer)
 MEDSERIALIZE_SUPPORT(MissingShapExplainer)
 MEDSERIALIZE_SUPPORT(ShapleyExplainer)
+MEDSERIALIZE_SUPPORT(LimeExplainer)
 
 #endif

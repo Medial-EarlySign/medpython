@@ -194,6 +194,11 @@ namespace medial {
 			MedPredictor *predictor, float missing_value,
 			SamplesGenerator<T> &sampler_gen, int sample_per_row, void *sampling_params,
 			vector<float> &features_coeff, bool verbose = false);
+
+		/// \brief Shapley Lime with generator
+		void get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+			SamplesGenerator<float> *generator, float p, int n, float missing,
+			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas);
 	}
 }
 

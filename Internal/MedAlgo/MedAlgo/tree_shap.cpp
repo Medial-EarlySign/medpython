@@ -1,4 +1,5 @@
 #include "tree_shap.h"
+#include <omp.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -2043,3 +2044,180 @@ template void medial::shapley::explain_shapley<float>(const MedFeatures &matrix,
 	MedPredictor *predictor, float missing_value,
 	SamplesGenerator<float> &sampler_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose);
+
+// Generate sampled matrix
+void generate_samples(const MedFeatures& data, int isample, const vector<vector<bool>>& masks, SamplesGenerator<float> *generator,
+	void *params, MedFeatures *out_data) {
+
+	if (generator->use_vector_api) {
+		int ncols = (int)data.data.size();
+		vector<vector<float>> in(masks.size(), vector<float>(ncols)), out(masks.size(), vector<float>(ncols));
+
+		int icol = 0;
+		for (auto& rec : data.data) {
+#pragma omp parallel for
+			for (int irow = 0; irow < masks.size(); irow++)
+				in[irow][icol] = rec.second[isample];
+			icol++;
+		}
+
+		MLOG("Generate\n");
+		generator->get_samples(out, 1, params, masks, in);
+
+		icol = 0;
+		for (auto& rec : data.data) {
+			out_data->attributes[rec.first] = data.attributes.at(rec.first);
+			out_data->data[rec.first].resize(masks.size());
+#pragma omp parallel for
+			for (int irow = 0; irow < masks.size(); irow++)
+				(out_data->data)[rec.first][irow] = out[irow][icol];
+			icol++;
+		}
+	}
+	else {
+		vector<string> all_n;
+		data.get_feature_names(all_n);
+		vector<const vector<float>*> data_p(data.data.size());
+		for (size_t i = 0; i < data_p.size(); ++i)
+			data_p[i] = &data.data.at(all_n[i]);
+		vector<float> init_data(out_data->data.size());
+		for (unsigned int icol = 0; icol < init_data.size(); ++icol)
+			init_data[icol] = data_p[icol]->at(isample);
+
+		for (int i = 0; i < masks.size(); ++i)
+			generator->get_samples(out_data->data, params, masks[i], init_data);
+	}
+}
+
+// Learn a Shapely-Lime model
+void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+	SamplesGenerator<float> *generator, float p, int n, float missing,
+	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
+	random_device rd;
+	int N_TH = omp_get_max_threads();
+	vector<mt19937> gen(N_TH);
+	for (size_t i = 0; i < N_TH; ++i)
+		gen[i] = mt19937(rd());
+	uniform_real_distribution<> coin_dist(0, 1);
+	uniform_int_distribution<> smp_choose(0, (int)data.samples.size() - 1);
+
+	int nsamples = (int)data.samples.size();
+	if (nsamples == 0) return;
+
+	vector<string> features;
+	data.get_feature_names(features);
+	int nftrs = (int)features.size();
+	int ngrps = (int)group_names.size();
+
+	alphas.resize(nsamples);
+
+	MedFeatures p_features;
+	p_features.attributes = data.attributes;
+	p_features.samples = data.samples;
+
+
+
+	// for predictions - dummy Rep + samples + features
+	for (int i = 0; i < n; i++) {
+		//random select:
+		int sel = smp_choose(gen[0]);
+		p_features.samples.push_back(data.samples[sel]);
+		//Add DATA:
+		for (auto it = data.data.begin(); it != data.data.end(); ++it)
+			p_features.data[it->first].push_back(it->second[sel]);
+	}
+	p_features.init_pid_pos_len();
+
+	// Generate samples and predict
+	MedTimer tm;
+	for (int isample = 0; isample < nsamples; isample++) {
+		tm.start();
+		MLOG("Working on sample %d\n", isample);
+
+		// Generate random masks
+		MedMat<float> train(ngrps, n);
+		vector<float> wgts(n);
+		vector < vector<bool>> masks(n, vector<bool>(nftrs));
+
+		vector<bool> missing_v(nftrs, false);
+		int nMissing = 0;
+		for (int i = 0; i < nftrs; i++) {
+			if (data.data.at(features[i])[isample] == missing) {
+				missing_v[i] = true;
+				nMissing++;
+			}
+		}
+
+		if (nMissing == nftrs)
+			MTHROW_AND_ERR("All values are missing for entry %d , Cannot explain\n", isample);
+
+#pragma omp parallel for
+		for (int irow = 0; irow < n; irow++) {
+			int n_th = omp_get_thread_num();
+			// Mask
+			int S = 0;
+			while (S == 0 || S == ngrps) {
+				S = 0;
+				for (int igrp = 0; igrp < ngrps; igrp++) {
+					bool grp_mask = coin_dist(gen[n_th]) > p;
+					if (grp_mask) { // Keep, unless all are missing
+						size_t nMissing = 0;
+						for (int iftr : group2index[igrp]) {
+							if (missing_v[iftr]) {
+								nMissing++;
+								masks[irow][iftr] = false;
+							}
+							else
+								masks[irow][iftr] = true;
+						}
+
+						if (nMissing == group2index[igrp].size()) // All are missing ...
+							train(igrp, irow) = 0.0;
+						else {
+							train(igrp, irow) = 1.0;
+							S++;
+						}
+					}
+					else { // Mask
+						for (int iftr : group2index[igrp])
+							masks[irow][iftr] = false;
+						train(igrp, irow) = 0.0;
+					}
+				}
+			}
+
+			// Weights
+			wgts[irow] = (ngrps - 1.0) / (medial::shapley::nchoosek(ngrps, S)*S*(ngrps - S));
+		}
+		train.transposed_flag = 1;
+
+		// Generate sampled data
+		generate_samples(data, isample, masks, generator, params, &p_features);
+
+		// Get predictions for samples
+		model->predict(p_features);
+
+		vector<float> preds(n);
+		double sum = 0;
+		for (int irow = 0; irow < n; ++irow) {
+			preds[irow] = p_features.samples[irow].prediction[0];
+			sum += preds[irow];
+		}
+
+		cout << isample << " " << sum / n << "\n";
+
+		// Learn linear model
+		MedLM lm;
+		lm.params.rfactor = (float)0.98;
+		lm.learn(train, preds, wgts);
+
+		// Extract alphas
+		alphas[isample].resize(ngrps);
+		for (int igrp = 0; igrp < ngrps; igrp++)
+			alphas[isample][igrp] = lm.b[igrp];
+
+		tm.take_curr_time();
+		MLOG("Explaining sample took %f millisec\n", tm.diff_milisec());
+
+	}
+}
