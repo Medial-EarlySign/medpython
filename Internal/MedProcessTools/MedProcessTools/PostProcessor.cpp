@@ -83,10 +83,20 @@ void MultiPostProcessor::Learn(MedModel &model, MedPidRepository& rep, const Med
 			post_processors[i]->Learn(model, rep, matrix);
 }
 
-void MultiPostProcessor::Apply(MedFeatures &matrix) const {
-#pragma omp parallel for
+void MultiPostProcessor::init_model(MedModel *mdl) {
 	for (int i = 0; i < post_processors.size(); ++i)
-		post_processors[i]->Apply(matrix);
+		post_processors[i]->init_model(mdl);
+}
+
+void MultiPostProcessor::Apply(MedFeatures &matrix) const {
+	if (call_parallel_apply) {
+#pragma omp parallel for
+		for (int i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Apply(matrix);
+	}
+	else
+		for (int i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Apply(matrix);
 }
 
 void MultiPostProcessor::dprint(const string &pref) const {

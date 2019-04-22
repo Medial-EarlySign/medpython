@@ -72,6 +72,8 @@ template<typename T> void GibbsSamplesGenerator<T>::get_samples(vector<vector<T>
 	MTHROW_AND_ERR("Error no supported in Gibbs");
 }
 
+template class SamplesGenerator<float>;
+template class SamplesGenerator<double>;
 template class GibbsSamplesGenerator<float>;
 template class GibbsSamplesGenerator<double>;
 

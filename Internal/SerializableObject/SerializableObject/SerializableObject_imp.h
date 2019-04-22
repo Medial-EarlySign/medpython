@@ -48,6 +48,9 @@ namespace MedSerialize {
 	template <class T> size_t get_size(set<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, set<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, set<T> &v);
+	template <class T>  size_t get_size(unique_ptr<T> &v);
+	template <class T> size_t serialize(unsigned char *blob, unique_ptr<T> &v);
+	template <class T> size_t deserialize(unsigned char *blob, unique_ptr<T> &v);
 
 	//========================================================================================
 	// IMPLEMANTATIONS 
@@ -163,6 +166,82 @@ namespace MedSerialize {
 		return pos;
 	}
 
+	template <class T> size_t get_size(unique_ptr<T> &elem)
+	{
+		//cerr << "get size of T *\n";
+		size_t size = 0;
+
+		if (elem.get() == NULL) {
+			// account for "NULL" string when pointer is null
+			string s = "NULL";
+			size += MedSerialize::get_size(s);
+		}
+		else {
+			string s = elem->my_class_name(); // help compiler
+											  //cerr << "get size of T * (2) : class" << s << "\n";
+			size += MedSerialize::get_size(s);		// account for class name
+			size += MedSerialize::get_size((*elem)); // account for class serialization
+		}
+		//cerr << "get size of T * (3) : size" << size << "\n";
+		return size;
+	}
+
+	//.........................................................................................
+	template <class T> size_t serialize(unsigned char *blob, unique_ptr<T> &elem)
+	{
+		//cerr << "Serializing T * for " << (elem != NULL) ? elem->my_class_name().c_str() : string("NULL").c_str() << "\n";
+		size_t pos = 0;
+
+		// serializing name of class, for polymorphic support
+		// we will detect NULL pointers by simply writing "NULL" into the serialization
+		string s = "NULL";
+		if (elem.get() != NULL)
+			s = elem->my_class_name(); // help compiler
+		pos += MedSerialize::serialize<string>(blob + pos, s);
+
+		// serializing the actual class
+		//cerr << "Serializing T * (2) : class name is " << s << " pos " << pos << "\n";
+		if (elem.get() != NULL)
+			pos += MedSerialize::serialize(blob + pos, (*elem));
+
+		//cerr << "Serializing T * (4) : pos " << pos << "\n";
+		return pos;
+	}
+
+	//.........................................................................................
+	template <class T> size_t deserialize(unsigned char *blob, unique_ptr<T> &elem)
+	{
+		//cerr << "DeSerializing T * \n";
+
+		size_t pos = 0;
+
+		// deserialize name of class
+		string cname;
+		pos += MedSerialize::deserialize<string>(blob + pos, cname);
+
+		//cerr << "Deserializing T * (2) : Got class name " << cname << " pos " << pos << "\n";
+
+		if (cname == "NULL") {
+			elem = NULL;
+		}
+		else {
+			// heart of matters: doing the right new operation
+			T dummy; // we need access to the new_polymorphic method
+			elem = unique_ptr<T>((T *)dummy.new_polymorphic(cname));
+			//cerr << "Deserializing T * (3) : elem is " << elem << "\n";
+			if (elem.get() == NULL) {
+				elem = unique_ptr<T>(new T);
+			}
+
+			//cerr << "Deserializing T * (4) : elem is " << elem << "\n";
+
+			// now we are ready to deserialize T or its derived
+			pos += MedSerialize::deserialize(blob + pos, (*elem));
+		}
+
+		//cerr << "Deserializing T * (4) : pos " << pos << "\n";
+		return pos;
+	}
 
 	//.........................................................................................
 	// string is special

@@ -1651,16 +1651,19 @@ double medial::shapley::get_c(int p1, int p2, int end_l) {
 }
 
 void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value, vector<float> &features_coeff,
+	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index, vector<float> &features_coeff,
 	bool sample_masks_with_repeats, float select_from_all, bool uniform_rand, bool use_shuffle,
 	bool verbose) {
 	random_device rd;
 	mt19937 gen(rd());
 
+	//int ngrps = (int)group2index.size();
+
 	int tot_feat_cnt = (int)matrix.data.size();
+
 	vector<string> full_feat_ls;
 	matrix.get_feature_names(full_feat_ls);
-	vector<float> fast_access(tot_feat_cnt);
+	vector<float> fast_access(full_feat_ls.size());
 	for (size_t i = 0; i < full_feat_ls.size(); ++i)
 		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
 
@@ -1673,10 +1676,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 	MedTimer tm_taker;
 	tm_taker.start();
 	bool warn_shown = false;
-	MedTimer tm_full;
-	tm_full.start();
-	chrono::high_resolution_clock::time_point tm_prog_full = chrono::high_resolution_clock::now();
-
+	MedProgress progress_full("shapley", tot_feat_cnt, 15);
 	//bool sample_masks_with_repeats = false;
 	//float select_from_all = (float)0.8; //If 80% of all options than sample from all
 	//bool uniform_rand = false;
@@ -1786,19 +1786,8 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 			phi_i += c * f_diff;
 		}
 
-		double duration_full = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog_full).count()) / 1000000.0;
-		if (duration_full > 15 && verbose) {
-			tm_prog_full = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_full.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(tot_feat_cnt - (param_i + 1)) / double(param_i + 1) * double(time_elapsed));
-			MLOG("Processed Feature %zu out of %zu(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", param_i + 1, tot_feat_cnt,
-				100.0*((param_i + 1) / float(tot_feat_cnt)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
-
+		if (verbose)
+			progress_full.update();
 		features_coeff[param_i] = phi_i;
 	}
 
@@ -1852,7 +1841,7 @@ void collect_score_mask(const vector<float> &x, const vector<bool> &mask, Sample
 }
 
 template<typename T> void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value,
+	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index,
 	SamplesGenerator<T> &sampler_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose) {
 	random_device rd;
@@ -1874,6 +1863,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	MedTimer tm_taker;
 	tm_taker.start();
 	bool warn_shown = false;
+	float select_from_all = (float)0.8;
 	MedTimer tm_full;
 	tm_full.start();
 	chrono::high_resolution_clock::time_point tm_prog_full = chrono::high_resolution_clock::now();
@@ -1892,22 +1882,41 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 			candidates.push_back(full_feat_ls[i]);
 		}
 
-		vector<vector<bool>> all_opts;
-		list_all_options_binary((int)candidates.size(), all_opts);
-		vector<bool> empty_vec(candidates.size()), full_vec(candidates.size(), true);
-		all_opts.push_back(empty_vec);
-		all_opts.push_back(full_vec);
-
 		bool iter_all = true;
 		int max_loop = max_tests;
-		double nchoose = pow(2, (int)candidates.size());
-		if (nchoose < max_loop)
+		double nchoose = candidates.size() <= 20 ? pow(2, (int)candidates.size()) : 1E10;
+		if (candidates.size() <= 20 && nchoose < max_loop)
 			max_loop = nchoose;
 		else {
 			iter_all = false;
-			if (!warn_shown && verbose)
+			if (!warn_shown && verbose && candidates.size() <= 20)
 				MLOG("Warning have %d options, and max_test is %d\n", (int)nchoose, max_loop);
 		}
+
+		vector<vector<bool>> all_opts;
+		//list_all_options_binary((int)candidates.size(), all_opts);
+		if (candidates.size() <= 20 && (iter_all || float(nchoose) / max_tests >= select_from_all)) {
+			list_all_options_binary((int)candidates.size(), all_opts);
+			vector<bool> empty_vec(candidates.size()), full_vec(candidates.size(), true);
+			all_opts.push_back(empty_vec);
+			all_opts.push_back(full_vec);
+
+			//select random masks from all options when not iterating all options:
+			if (!iter_all) {
+				if (!warn_shown && verbose) {
+					MLOG("Warning: not iterating all in feature %zu has %zu candidates, has %d options, max_test=%d\n",
+						param_i, candidates.size(), (int)nchoose, max_loop);
+#pragma omp critical
+					warn_shown = true;
+				}
+				shuffle(all_opts.begin(), all_opts.end(), gen);
+				all_opts.resize(max_loop);
+			}
+		}
+		else
+			sample_options_SHAP((int)candidates.size(), all_opts, max_loop, gen, false, true, false);
+
+
 
 		//select random masks from all options when not iterating all options:
 		if (!iter_all) {
@@ -2041,7 +2050,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 }
 
 template void medial::shapley::explain_shapley<float>(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value,
+	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index,
 	SamplesGenerator<float> &sampler_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose);
 

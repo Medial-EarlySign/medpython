@@ -39,6 +39,8 @@ public:
 	static PostProcessor *make_processor(const string &processor_name, const string &params = "");
 	static PostProcessor *make_processor(PostProcessorTypes type, const string &params = "");
 
+	virtual void init_model(MedModel *mdl) {};
+
 	virtual void dprint(const string &pref) const;
 
 	ADD_CLASS_NAME(PostProcessor)
@@ -53,11 +55,14 @@ class MultiPostProcessor : public PostProcessor {
 public:
 	vector<PostProcessor *> post_processors;
 	bool call_parallel_learn = false;
+	bool call_parallel_apply = false;
 
 	MultiPostProcessor() { processor_type = PostProcessorTypes::FTR_POSTPROCESS_MULTI; }
 
 	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix);
 	void Apply(MedFeatures &matrix) const;
+
+	void init_model(MedModel *mdl);
 
 	void dprint(const string &pref) const;
 

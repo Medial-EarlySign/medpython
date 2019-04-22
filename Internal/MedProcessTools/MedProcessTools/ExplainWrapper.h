@@ -26,6 +26,7 @@ public:
 	virtual void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
 	void Apply(MedFeatures &matrix) const { explain(matrix); } ///< alias for explain
 
+	void init_model(MedModel *mdl);
 														 ///Virtual - return explain results in sample_feature_contrib
 	virtual void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const = 0;
 
@@ -33,6 +34,8 @@ public:
 	virtual void explain(MedFeatures &matrix) const; //stores _explain results in MedFeatures
 
 	static void print_explain(MedSample &smp);
+
+	void dprint(const string &pref) const;
 
 	virtual ~ModelExplainer() {};
 };
@@ -68,6 +71,8 @@ public:
 
 	TreeExplainer() { processor_type = FTR_POSTPROCESS_TREE_SHAP; }
 
+	void init_model(MedModel *mdl);
+
 	int init(map<string, string> &mapper);
 
 	TreeExplainerMode get_mode() const;
@@ -81,7 +86,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, proxy_predictor, interaction_shap)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap)
 };
 
 /**
@@ -94,8 +99,12 @@ public:
 class MissingShapExplainer : public ModelExplainer {
 private:
 	MedPredictor * retrain_predictor = NULL; //the retrain model
+
+	vector<vector<int>> group2Ind; ///< group of features
+	vector<string> groupNames; ///< group of features 
 public:
 	int add_new_data; ///< how many new data data points to add for train according to sample masks
+	bool no_relearn; ///< If true will use original model without relearn. assume original model is good enough for missing vals (for example LM model)
 
 	int max_test; ///< max number of samples in SHAP
 	float missing_value; ///< missing value 
@@ -105,6 +114,8 @@ public:
 	bool use_shuffle; ///< if not sampling uniformlly, If true will use shuffle (to speed up runtime)
 	string change_learn_args; ///< arguments to change in predictor - for example to change it into regression
 	bool verbose_learn; ///< If true will print more in learn
+
+	string grouping; ///< grouping file - NOT supported yet...
 
 	MissingShapExplainer();
 
@@ -117,8 +128,8 @@ public:
 	~MissingShapExplainer();
 
 	ADD_CLASS_NAME(MissingShapExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, retrain_predictor, max_test, missing_value,
-			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle)
+		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, group2Ind, groupNames,
+			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, no_relearn)
 };
 
 /// @enum
@@ -154,7 +165,7 @@ public:
 	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
 	string generator_args = ""; ///< for learn
 	string sampling_args = ""; ///< args for sampling
-	int max_test = 100; ///< how many test to conduct from shapley
+	int n_masks = 100; ///< how many test to conduct from shapley
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
 	string grouping = ""; ///< grouping file - NOT supported yet...
 
@@ -172,8 +183,10 @@ public:
 	void load_GAN(MedPredictor *original_pred, const string &gan_path);
 	void load_MISSING(MedPredictor *original_pred);
 
+	void dprint(const string &pref) const;
+
 	ADD_CLASS_NAME(ShapleyExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, max_test, missing_value, sampling_args,
+		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
 			group2Ind, groupNames)
 };
 
@@ -197,7 +210,6 @@ public:
 	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
 	string generator_args = ""; ///< for learn
 	string sampling_args = ""; ///< args for sampling
-	int max_test = 100; ///< how many test to conduct from shapley
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
 	float p_mask = 0.5; ///< prob for 1 in mask
 	int n_masks = 5000; ///< number of masks
@@ -215,8 +227,12 @@ public:
 	void load_GAN(MedPredictor *original_pred, const string &gan_path);
 	void load_MISSING(MedPredictor *original_pred);
 
+	void post_deserialization();
+
+	void dprint(const string &pref) const;
+
 	ADD_CLASS_NAME(LimeExplainer)
-	ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, missing_value, sampling_args,
+	ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks,
 			group2Ind, groupNames)
 };
 

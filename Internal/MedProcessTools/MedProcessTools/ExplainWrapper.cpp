@@ -27,6 +27,18 @@ void ModelExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeat
 	Learn(model.predictor, train_mat);
 }
 
+void ModelExplainer::init_model(MedModel *mdl) {
+	original_predictor = mdl->predictor;
+}
+
+void ModelExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
+		predictor_nm.c_str());
+}
+
 bool comp_score_str(const pair<string, float> &pr1, const pair<string, float> &pr2) {
 	return abs(pr1.second) > abs(pr2.second); //bigger is better in absolute
 }
@@ -222,14 +234,21 @@ int TreeExplainer::init(map<string, string> &mapper) {
 }
 
 void TreeExplainer::post_deserialization() {
-	if (original_predictor->classifier_type == MODEL_XGB) {
-		const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8, INTERACTION_SHAP = 16;
-		if (interaction_shap)
-			static_cast<MedXGB *>(original_predictor)->feat_contrib_flags = PRED_CONTRIBS | INTERACTION_SHAP;
-		if (approximate)
-			static_cast<MedXGB *>(original_predictor)->feat_contrib_flags |= APPROX_CONTRIBS;
+	if (original_predictor != NULL) {
+		if (original_predictor->classifier_type == MODEL_XGB) {
+			const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8, INTERACTION_SHAP = 16;
+			if (interaction_shap)
+				static_cast<MedXGB *>(original_predictor)->feat_contrib_flags = PRED_CONTRIBS | INTERACTION_SHAP;
+			if (approximate)
+				static_cast<MedXGB *>(original_predictor)->feat_contrib_flags |= APPROX_CONTRIBS;
+		}
+		try_convert_trees();
 	}
-	try_convert_trees();
+}
+
+void TreeExplainer::init_model(MedModel *mdl) {
+	ModelExplainer::init_model(mdl);
+	post_deserialization();
 }
 
 void TreeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
@@ -394,6 +413,8 @@ MissingShapExplainer::MissingShapExplainer() {
 	add_new_data = 0;
 	change_learn_args = "";
 	verbose_learn = true;
+	no_relearn = false;
+	grouping = "";
 }
 
 int MissingShapExplainer::init(map<string, string> &mapper) {
@@ -403,6 +424,8 @@ int MissingShapExplainer::init(map<string, string> &mapper) {
 			missing_value = med_stof(it->second);
 		else if (it->first == "max_test")
 			max_test = med_stoi(it->second);
+		else if (it->first == "no_relearn")
+			no_relearn = med_stoi(it->second) > 0;
 		else if (it->first == "sample_masks_with_repeats")
 			sample_masks_with_repeats = med_stoi(it->second) > 0;
 		else if (it->first == "uniform_rand")
@@ -417,6 +440,8 @@ int MissingShapExplainer::init(map<string, string> &mapper) {
 			change_learn_args = it->second;
 		else if (it->first == "verbose_learn")
 			verbose_learn = stoi(it->second) > 0;
+		else if (it->first == "grouping")
+			grouping = it->second;
 		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
@@ -426,6 +451,21 @@ int MissingShapExplainer::init(map<string, string> &mapper) {
 
 void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	this->original_predictor = original_pred;
+
+	if (!grouping.empty())
+		read_feature_grouping(grouping, train_mat, group2Ind, groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			group2Ind.push_back({ icol++ });
+			groupNames.push_back(rec.first);
+		}
+	}
+
+	if (no_relearn) {
+		retrain_predictor = original_predictor;
+		return;
+	}
 	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 	random_device rd;
 	mt19937 gen(rd());
@@ -435,7 +475,6 @@ void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures 
 	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
 	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
 	vector<int> missing_hist(nftrs + 1);
-	bool verbose_learn = true;
 
 	if (!train_mat.samples.front().prediction.empty())
 		for (size_t i = 0; i < labels.size(); ++i)
@@ -513,8 +552,11 @@ void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures 
 	}
 }
 
-
 void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+	MedPredictor *predictor = retrain_predictor;
+	if (no_relearn)
+		predictor = original_predictor;
+
 	sample_explain_reasons.resize(matrix.samples.size());
 	vector<string> names;
 	matrix.get_feature_names(names);
@@ -523,27 +565,22 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	if (matrix.samples.front().prediction.empty()) {
 		MedMat<float> mat_x;
 		matrix.get_as_matrix(mat_x);
-		if (retrain_predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
+		if (predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
 			mat_x.transpose();
-		retrain_predictor->predict(mat_x, preds_orig);
+		predictor->predict(mat_x, preds_orig);
 	}
 	else {
 		for (size_t i = 0; i < preds_orig.size(); ++i)
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = (int)matrix.samples.size();
-
+	MedProgress progress("MissingShapley", (int)matrix.samples.size(), 15);
 #pragma omp parallel for
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, retrain_predictor, missing_value, features_coeff,
+		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, group2Ind, features_coeff,
 			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, false);
 
 		for (size_t j = 0; j < names.size(); ++j)
@@ -558,20 +595,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 		}
 
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (duration > 15 && progress % 50 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
+		progress.update();
 	}
 }
 
@@ -609,8 +633,8 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			generator_args = it->second;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
-		else if (it->first == "max_test")
-			max_test = med_stoi(it->second);
+		else if (it->first == "n_masks")
+			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
 		else if (it->first == "grouping")
@@ -690,7 +714,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, original_predictor, missing_value, *_sampler.get(), 1,
+		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor, missing_value, group2Ind, *_sampler.get(), 1,
 			sampler_sampling_args, features_coeff, false);
 
 		for (size_t j = 0; j < names.size(); ++j)
@@ -738,6 +762,13 @@ void ShapleyExplainer::load_MISSING(MedPredictor *original_pred) {
 	gen_type = GeneratorType::MISSING;
 }
 
+void ShapleyExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
+		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
+}
 
 int LimeExplainer::init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
@@ -748,8 +779,6 @@ int LimeExplainer::init(map<string, string> &mapper) {
 			generator_args = it->second;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
-		else if (it->first == "max_test")
-			max_test = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
 		else if (it->first == "p_mask")
@@ -818,6 +847,10 @@ void LimeExplainer::load_MISSING(MedPredictor *original_pred) {
 	gen_type = GeneratorType::MISSING;
 }
 
+void LimeExplainer::post_deserialization() {
+	init_sampler(false);
+}
+
 void LimeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	this->original_predictor = original_pred;
 	if (!grouping.empty())
@@ -848,4 +881,12 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		for (size_t k = 0; k < groupNames.size(); ++k)
 			curr[groupNames[k]] = curr_res[k];
 	}
+}
+
+void LimeExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
+		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
 }
