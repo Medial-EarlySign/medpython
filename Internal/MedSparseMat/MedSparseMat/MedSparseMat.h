@@ -43,6 +43,10 @@ public:
 	static void convert_map_to_line(map<int, float> &_map, vector<pair<int, float>> &line);
 	static void convert_map_to_line(map<int, int> &_map, vector<pair<int, float>> &line);
 
+
+	void get_col_stat(int &nrows, int &ncols, vector<int> &nonz_counts);
+	int write_col_stat_file(string f_stat);
+
 	void insert_dict_item(int _val, string &_name) { dict[_val] = _name; }
 
 	int write_to_files(string mat_file, string meta_file, string dict_file);

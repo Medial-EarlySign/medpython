@@ -258,8 +258,8 @@ MedQRF::MedQRF(void *_in_params)
 //..............................................................................
 int MedQRF::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 
-	if (w != NULL && params.type != QRF_CATEGORICAL_ENTROPY_TREE)
-		MWARN("Weights are not implemented for QRF that is not CATEGORICAL_ENTROPY. Ignoring\n");
+	if (w != NULL && params.type != QRF_CATEGORICAL_ENTROPY_TREE && params.type != QRF_REGRESSION_TREE)
+		MWARN("Weights are not implemented for QRF that is not CATEGORICAL_ENTROPY or REGRESSION_TREE. Ignoring\n");
 
 	// Correct y according to forest type
 	map<float, int> y_values;

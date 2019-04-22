@@ -557,6 +557,8 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 	const GibbsSamplingParams &sampling_params, const vector<bool> *mask, const vector<T> *mask_values) {
 	random_device rd;
 	prepare_predictors();
+	int worker_num = 0; //0 means max number of threads
+	//int worker_num = sampling_params.samples_count; // 1 for each sample
 
 	vector<T> mask_values_f(all_feat_names.size());
 	vector<bool> mask_f(all_feat_names.size());
@@ -567,6 +569,8 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 	if (all_feat_names.empty())
 		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
 	int N_tot_threads = omp_get_max_threads();
+	if (worker_num > 0)
+		N_tot_threads = worker_num;
 	vector<GibbsSampler<T>> copy_gibbs(N_tot_threads);
 	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
 		copy_gibbs[i] = *this;

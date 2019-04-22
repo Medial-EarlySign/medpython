@@ -153,7 +153,7 @@ public:
 	void set_val(T val) { fill(m.begin(), m.end(), val); } // set all matrix to a certain value.
 
 	// basic 
-	void clear() { m.clear(); row_ids.clear(); signals.clear(); nrows = 0; ncols = 0; normalized_flag = 0; transposed_flag = 0; missing_value = MED_MAT_MISSING_VALUE; }
+		void clear() { m.clear(); row_ids.clear(); signals.clear(); nrows = 0; ncols = 0; normalized_flag = 0; transposed_flag = 0; missing_value = (T)MED_MAT_MISSING_VALUE; }
 	T *data_ptr() { if (m.size() > 0) return &m[0]; else return NULL; }
 	const T *data_ptr() const { if (m.size() > 0) return &m[0]; else return NULL; }
 	T *data_ptr(int r, int c) { if (m.size() > r*ncols + c) return &m[(unsigned long long)r*ncols + c]; else return NULL; }

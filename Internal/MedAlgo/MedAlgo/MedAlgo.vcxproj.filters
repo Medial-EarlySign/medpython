@@ -60,6 +60,12 @@
     <ClInclude Include="MedBART.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tree_shap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SamplesGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedAlgo.cpp">
@@ -135,6 +141,12 @@
       <Filter>Source Files\Models</Filter>
     </ClCompile>
     <ClCompile Include="MedBART.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SamplesGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tree_shap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

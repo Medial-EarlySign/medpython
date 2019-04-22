@@ -667,26 +667,44 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	//probs is the new Y - lets learn A, B:
 	MedLinearModel lm; //B is param[0], A is param[1]
 
-	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
+	lm.loss_function = [](const vector<double> &prds, const vector<float> &y, const vector<float> *weights) {
 		double res = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
-		for (size_t i = 0; i < y.size(); ++i)
-		{
-			double conv_prob = 1 / (1 + exp(prds[i]));
-			res += (conv_prob - y[i]) * (conv_prob - y[i]);
+		if (weights == NULL || weights->empty()) {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]);
+			}
+		}
+		else {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]) * weights->at(i);
+			}
 		}
 		res /= y.size();
 		res = sqrt(res);
 		return res;
 	};
-	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params) {
+	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params, const vector<float> *weights) {
 		double res = 0;
 		double reg_coef = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
-		for (size_t i = 0; i < y.size(); ++i)
-		{
-			double conv_prob = 1 / (1 + exp(prds[i]));
-			res += (conv_prob - y[i]) * (conv_prob - y[i]);
+		if (weights == NULL || weights->empty()) {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]);
+			}
+		}
+		else {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]) * weights->at(i);
+			}
 		}
 		res /= y.size();
 		res = sqrt(res);
@@ -725,8 +743,8 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	for (size_t i = 0; i < converted.size(); ++i)
 		prior_score[i] = double(tot_pos) / y.size();
 
-	double loss_model = _linear_loss_target_rmse(converted, probs);
-	double loss_prior = _linear_loss_target_rmse(prior_score, probs);
+	double loss_model = _linear_loss_target_rmse(converted, probs, NULL);
+	double loss_prior = _linear_loss_target_rmse(prior_score, probs, NULL);
 
 	MLOG("Platt Scale prior=%2.5f. loss_model=%2.5f, loss_prior=%2.5f\n",
 		double(tot_pos) / y.size(), loss_model, loss_prior);
@@ -794,7 +812,7 @@ void MedMicNet::predict_single(const vector<float> &x, vector<float> &preds) con
 
 	//int n_th = omp_get_thread_num();
 	//const micNet &threaded_net = model_per_thread[n_th];
-	
+
 	mic.predict_single(x, preds);
 }
 
@@ -881,7 +899,7 @@ string medial::models::getParamsInfraModel(void *model) {
 			gdlm->params.momentum, gdlm->params.stop_at_err, gdlm->params.max_iter);
 		break;
 	default:
-		throw invalid_argument("Unsupported Type init for model " + to_string(m->classifier_type));
+		MTHROW_AND_ERR("Unsupported Type init for model %s:%d (getParams)\n", m->my_class_name().c_str(), m->classifier_type);
 	}
 
 	return string(buff);
@@ -949,7 +967,7 @@ void *medial::models::copyInfraModel(void *model, bool delete_old) {
 			delete (MedGDLM *)model;
 		break;
 	default:
-		throw invalid_argument("Unsupported Type init for model " + to_string(m->classifier_type) + " (copy)");
+		MTHROW_AND_ERR("Unsupported Type init for model %s:%d (copy)\n", m->my_class_name().c_str(), m->classifier_type);
 	}
 
 	return newM;

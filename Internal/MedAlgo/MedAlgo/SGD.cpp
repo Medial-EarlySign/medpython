@@ -15,7 +15,7 @@
 
 #define IMPROVE_LINEAR_SPEED
 
-SGD::SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, const vector<float> &y)) {
+SGD::SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, const vector<float> &y, const vector<float> *weights)) {
 #if defined(__unix__)
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
@@ -54,7 +54,7 @@ void SGD::set_learing(float blockVals, float blockDerivate, int T_steps) {
 float SGD::get_learing_rate() {
 	return _learning_rate;
 }
-void SGD::set_special_step_func(double(*function)(const vector<double> &, const vector<float> &, const vector<double> &)) {
+void SGD::set_special_step_func(double(*function)(const vector<double> &, const vector<float> &, const vector<double> &, const vector<float> *)) {
 	step_loss_function = function;
 }
 
@@ -130,7 +130,7 @@ float SGD::get_blocking() {
 	return _blocking_val;
 }
 
-vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float> &yData) {
+vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float> &yData, const vector<float> *weights) {
 	if (!has_learing_rate) {
 		throw logic_error("please initialize learing rate using: set_learing or set_learing_rate directly");
 	}
@@ -148,7 +148,7 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 #pragma omp parallel for
 			for (int i = 0; i < _model->model_params.size(); ++i)
 			{
-				double res = subGradientI((int)i, _model->model_params, xData, yData);
+				double res = subGradientI((int)i, _model->model_params, xData, yData, weights);
 #pragma omp critical
 				currentGrad[i] = res;
 			}
@@ -169,6 +169,8 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 
 						float expectedVal = yData[randomIndex];
 						_sampleY[addedCnt] = expectedVal;
+						if (weights != NULL && !weights->empty())
+							_sampleW[addedCnt] = weights->at(randomIndex);
 						for (size_t k = 0; k < xData.size(); ++k)
 						{
 							_sampleX[k][addedCnt] = xData[k][randomIndex];
@@ -187,6 +189,8 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 				int num = restInds[k - addedCnt] - 1;
 				float expectedVal = yData[num];
 				_sampleY[k] = expectedVal;
+				if (weights != NULL && !weights->empty())
+					_sampleW[k] = weights->at(num);
 				for (size_t m = 0; m < xData.size(); ++m)
 				{
 					_sampleX[m][k] = xData[m][num];
@@ -197,7 +201,7 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 			for (int i = 0; i < _model->model_params.size(); ++i)
 			{
 				//clock_t start = clock();
-				double res = subGradientI((int)i, _model->model_params, _sampleX, _sampleY);
+				double res = subGradientI((int)i, _model->model_params, _sampleX, _sampleY, &_sampleW);
 #pragma omp critical
 				currentGrad[i] = res;
 				//float dur = (clock() - start) / (float)CLOCKS_PER_SEC;
@@ -234,6 +238,8 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 						int randomIndex = it->second[category_num(_gen)];
 						float expectedVal = yData[randomIndex];
 						_sampleY[addedCnt] = expectedVal;
+						if (weights != NULL && !weights->empty())
+							_sampleW[addedCnt] = weights->at(randomIndex);
 						for (size_t k = 0; k < xData.size(); ++k)
 							_sampleX[k][addedCnt] = xData[k][randomIndex];
 
@@ -247,6 +253,8 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 				int num = random_num(_gen) - 1;
 				float expectedVal = yData[num];
 				_sampleY[k] = expectedVal;
+				if (weights != NULL && !weights->empty())
+					_sampleW[k] = weights->at(num);
 				for (size_t m = 0; m < xData.size(); ++m)
 					_sampleX[m][k] = xData[m][num];
 			}
@@ -272,9 +280,9 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 				}
 
 			_model->model_params[i] = _model->model_params[i] + (_h / 2);
-			double lossVal_plus = step_loss_function(_preds_plus, _sampleY, _model->model_params); //can also improve speed by calcing only diff
+			double lossVal_plus = step_loss_function(_preds_plus, _sampleY, _model->model_params, &_sampleW); //can also improve speed by calcing only diff
 			_model->model_params[i] = _model->model_params[i] - _h;
-			double lossVal_minus = step_loss_function(_preds_minus, _sampleY, _model->model_params);
+			double lossVal_minus = step_loss_function(_preds_minus, _sampleY, _model->model_params, &_sampleW);
 			_model->model_params[i] = _model->model_params[i] + (_h / 2);
 
 			double subgradientSampleVal = (lossVal_plus - lossVal_minus) / _h;
@@ -289,10 +297,10 @@ vector<double> SGD::_step(const vector<vector<float>> &xData, const vector<float
 			//iterate on sample for this variable:
 			_model->model_params[i] = _model->model_params[i] + (_h / 2);
 			_model->predict(_sampleX, _preds_plus);
-			double lossVal_plus = step_loss_function(_preds_plus, _sampleY, _model->model_params);
+			double lossVal_plus = step_loss_function(_preds_plus, _sampleY, _model->model_params, &_sampleW);
 			_model->model_params[i] = _model->model_params[i] - _h;
 			_model->predict(_sampleX, _preds_minus);
-			double lossVal_minus = step_loss_function(_preds_minus, _sampleY, _model->model_params);
+			double lossVal_minus = step_loss_function(_preds_minus, _sampleY, _model->model_params, &_sampleW);
 			_model->model_params[i] = _model->model_params[i] + (_h / 2);
 
 			double subgradientSampleVal = (lossVal_plus - lossVal_minus) / _h;
@@ -377,7 +385,7 @@ vector<int> randomGroup(int grp_size, int max_ind) {
 	return res;
 }
 
-void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, int T_Steps) {
+void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, int T_Steps, const vector<float> *weights) {
 	vector<double> Wt;
 	vector<double> W_final(_model->model_params.size());
 	size_t ii = 0;
@@ -398,6 +406,8 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 	}
 	if (_sampleSize > 0) {
 		_sampleY.resize(_sampleSize); //take only random samples
+		if (weights != NULL && !weights->empty())
+			_sampleW.resize(_sampleSize, 1);
 		_sampleX.resize((int)xData.size());
 		for (size_t k = 0; k < xData.size(); ++k)
 			_sampleX[k] = vector<float>(_sampleSize);
@@ -411,6 +421,8 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 		//preformance imporvment with using pointers aren't supported for this option right now
 		_sampleY = yData;
 		_sampleX = xData;
+		if (weights != NULL && !weights->empty())
+			_sampleW = *weights;
 		_preds_plus.resize(yData.size());
 		_preds_minus.resize(yData.size());
 #if defined(IMPROVE_LINEAR_SPEED)
@@ -424,7 +436,7 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 	bool firstTime = true;
 	for (size_t i = 0; i < T_Steps; ++i)
 	{
-		Wt = _step(xData, yData);
+		Wt = _step(xData, yData, weights);
 		_projection_step(Wt);
 		_round_step(Wt);
 		add(W_final, Wt);
@@ -440,6 +452,9 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 				//commit selection:
 				vector<float> yf(max_sample_size);
 				vector<vector<float>> xf((int)xData.size());
+				vector<float> wf;
+				if (weights != NULL && !weights->empty())
+					wf.resize(max_sample_size, 1);
 				for (size_t kk = 0; kk < xData.size(); ++kk)
 					xf[kk].resize(max_sample_size);
 				for (size_t k = 0; k < inds_selected.size(); ++k)
@@ -447,12 +462,14 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 					yf[k] = yData[inds_selected[k]];
 					for (size_t kk = 0; kk < xData.size(); ++kk)
 						xf[kk][k] = xData[kk][inds_selected[k]];
+					if (weights != NULL && !weights->empty())
+						wf[k] = weights->at(inds_selected[k]);
 				}
 
 				_model->predict(xf, modelRes);
-				avgLoss = (float)loss_function(modelRes, yf);
+				avgLoss = (float)loss_function(modelRes, yf, &wf);
 				if (step_loss_function != NULL) {
-					float avg_loss_step = (float)step_loss_function(modelRes, yf, _model->model_params);
+					float avg_loss_step = (float)step_loss_function(modelRes, yf, _model->model_params, &wf);
 					cout << "Learned Model \"" << _model->model_name
 						<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << endl;
 				}
@@ -461,9 +478,9 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 			}
 			else {
 				_model->predict(xData, modelRes);
-				avgLoss = (float)loss_function(modelRes, yData);
+				avgLoss = (float)loss_function(modelRes, yData, weights);
 				if (step_loss_function != NULL) {
-					float avg_loss_step = (float)step_loss_function(modelRes, yData, _model->model_params);
+					float avg_loss_step = (float)step_loss_function(modelRes, yData, _model->model_params, weights);
 					cout << "Learned Model \"" << _model->model_name
 						<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << endl;
 				}

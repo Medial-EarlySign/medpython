@@ -78,6 +78,8 @@ public:
 
 	int verbosity = 1; ///< verbosity 0 -> much less printouts in predict
 
+	int generate_masks_for_features = 0;
+
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);
@@ -182,7 +184,7 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, serialize_learning_set, LearningSet)
+		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
 
 		int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
@@ -201,7 +203,7 @@ public:
 	void apply_post_processors(MedFeatures &matrix_after_pred);
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
-	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag);
+	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, bool pp_flag, bool predictor_type);
 
 	/// following is for debugging : writing the feature to a csv file as a matrix.
 	int write_feature_matrix(const string mat_fname);

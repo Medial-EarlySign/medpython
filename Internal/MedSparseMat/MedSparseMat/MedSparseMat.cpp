@@ -197,3 +197,44 @@ int MedSparseMat::write_to_bin_file(string bin_file)
 	MedSerialize::serialize(&data[0], rows, cols, vals);
 	return MedSerialize::write_binary_data(bin_file, &data[0], size);
 }
+
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+void MedSparseMat::get_col_stat(int &nrows, int &ncols, vector<int> &nonz_counts)
+{
+	ncols = 0;
+	nrows = (int)lines.size();
+	nonz_counts.resize(10000000, 0); // assuming always less than 10M columns
+
+	for (auto &line : lines) {
+		for (auto &e : line) {
+			if (e.second != 0)
+			nonz_counts[e.first]++;
+			if (e.first > ncols) ncols = e.first;
+		}
+	}
+	ncols++;
+	nonz_counts.resize(ncols);
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+int MedSparseMat::write_col_stat_file(string f_stat)
+{
+	ofstream stat_f;
+
+	stat_f.open(f_stat);
+
+	if (!stat_f.is_open()) {
+		MERR("Can't open file %s for writing\n", f_stat.c_str());
+		return -1;
+	}
+
+	int ncols, nrows;
+	vector<int> nz_counts;
+	get_col_stat(nrows, ncols, nz_counts);
+	stat_f << "col,count,n_lines,prob\n";
+	for (int i = 0; i < nz_counts.size(); i++)
+		stat_f << i << "," << nz_counts[i] << "," << nrows << "," << (double)nz_counts[i] / (double)nrows << "\n";
+	stat_f.close();
+	return 0;
+}

@@ -259,6 +259,10 @@ int MedDictionary::is_in_set(int member_id, int set_id)
 // next function calculates for each member ALL the sets it is contained in , applying all set transitivity
 void MedDictionary::get_members_to_all_sets(vector<int> &members, unordered_map<int, vector<int>> &Member2AllSets)
 {
+	vector <int> dummy;
+	return get_members_to_all_sets(members, dummy, Member2AllSets);
+
+/*
 	if (members.size() == 0) {
 		for (auto &i : Id2Name) members.push_back(i.first);
 	}
@@ -285,6 +289,80 @@ void MedDictionary::get_members_to_all_sets(vector<int> &members, unordered_map<
 		}
 #pragma omp critical
 		Member2AllSets[member] = v_sets;
+	}
+	*/
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// next function calculates for each member ALL the sets it is contained in , applying all set transitivity
+void MedDictionary::get_members_to_all_sets(vector<int> &members, vector<int> &sets, unordered_map<int, vector<int>> &Member2AllSets)
+{
+	if (members.size() == 0) {
+		for (auto &i : Id2Name) members.push_back(i.first);
+	}
+
+	set<int> use_sets(sets.begin(), sets.end());
+	MLOG("use_sets size %d\n", use_sets.size());
+
+
+	Member2AllSets.clear();
+#pragma omp parallel for
+	for (int i = 0; i<members.size(); i++) {
+		int member = members[i];
+		unordered_set<int> _used;
+		queue<int> q;
+		q.push(member);
+		while (q.size() > 0) {
+			int set_n = q.front();
+			q.pop();
+			if (_used.find(set_n) == _used.end()) {
+				_used.insert(set_n);
+				if (Member2Sets.find(set_n) != Member2Sets.end())
+					for (auto n : Member2Sets[set_n])
+						q.push(n);
+			}
+
+		}
+
+		if (!use_sets.empty()) {
+			vector<int> to_rm;
+			for (auto &v : _used) if (use_sets.find(v) == use_sets.end()) to_rm.push_back(v);
+			for (auto &v : to_rm) _used.erase(v);
+		}
+
+		vector<int> v_sets(_used.begin(), _used.end());
+
+#pragma omp critical
+		Member2AllSets[member] = v_sets;
+	}
+}
+
+
+//-----------------------------------------------------------------------------------------------
+void MedDictionary::get_regex_names(string regex_s, vector<string> &names)
+{
+	boost::regex regf(regex_s);
+	for (auto &e : Id2Names) {
+		for (auto &v : e.second) {
+			if (boost::regex_match(v, regf)) {
+				names.push_back(v);
+				break;
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------------------------
+void MedDictionary::get_regex_ids(string regex_s, vector<int> &ids)
+{
+	boost::regex regf(regex_s);
+	for (auto &e : Id2Names) {
+		for (auto &v : e.second) {
+			if (boost::regex_match(v, regf)) {
+				ids.push_back(e.first);
+				break;
+			}
+		}
 	}
 }
 

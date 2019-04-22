@@ -632,7 +632,7 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 	//probs is the new Y - lets learn A, B:
 	MedLinearModel lm; //B is param[0], A is param[1]
 
-	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
+	lm.loss_function = [](const vector<double> &prds, const vector<float> &y, const vector<float> *weights) {
 		double res = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
 		for (size_t i = 0; i < y.size(); ++i)
@@ -644,7 +644,7 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 		res = sqrt(res);
 		return res;
 	};
-	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params) {
+	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params, const vector<float> *weights) {
 		double res = 0;
 		double reg_coef = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
@@ -690,8 +690,8 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 	for (size_t i = 0; i < converted.size(); ++i)
 		prior_score[i] = double(tot_pos) / y.size();
 
-	double loss_model = _linear_loss_target_rmse(converted, probs);
-	double loss_prior = _linear_loss_target_rmse(prior_score, probs);
+	double loss_model = _linear_loss_target_rmse(converted, probs, NULL);
+	double loss_prior = _linear_loss_target_rmse(prior_score, probs, NULL);
 
 	if (verbose)
 		MLOG("Platt Scale prior=%2.5f. loss_model=%2.5f, loss_prior=%2.5f\n",

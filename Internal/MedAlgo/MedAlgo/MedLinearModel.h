@@ -31,15 +31,18 @@ public:
 	void get_normalization(vector<float> &meanShift, vector<float> &factors) const;
 	
 	//Set Loss Fucntions to learn:
-	double(*loss_function)(const vector<double> &got, const vector<float> &y);///<The custom loss_function
+	double(*loss_function)(const vector<double> &got, const vector<float> &y, const vector<float> *weights);///<The custom loss_function
 	///The custom loss_function step for sgd
-	double(*loss_function_step)(const vector<double> &, const vector<float> &, const vector<double> &);
+	double(*loss_function_step)(const vector<double> &, const vector<float> &, const vector<double> &, const vector<float> *);
 	int sample_count; ///<The sample count of sgd
 	int tot_steps; ///<The total iteration count of sgd
 	double learning_rate; ///<The learning rate  of sgd
 	float block_num; ///<The blocking norm for parameter search in sgd
 	bool norm_l1; ///<The blocking norm should be n1 or n2?
 	int print_steps; ///< how many prints for learn to print
+	bool print_model; ///< If true will print model coeff in the end
+	int poly_degree; ///< add polynom degree
+	int min_cat; ///< control minimal samples per categ in categories
 
 	//MedPredictor Api:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
@@ -55,15 +58,15 @@ private:
 };
 
 
-double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y);
-double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y, const vector<double> &params);
-double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y);
-double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y);
-double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
-double _linear_loss_target_rmse(const vector<double> &preds, const vector<float> &y);
-double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
-double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y);
-double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params);
+double _linear_loss_target_auc(const vector<double> &preds, const vector<float> &y, const vector<float> *weights);
+double _linear_loss_step_auc(const vector<double> &preds, const vector<float> &y, const vector<double> &params, const vector<float> *weights);
+double _linear_loss_step_auc_fast(const vector<double> &preds, const vector<float> &y, const vector<float> *weights);
+double _linear_loss_target_work_point(const vector<double> &preds, const vector<float> &y, const vector<float> *weights);
+double _linear_loss_step_work_point(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params, const vector<float> *weights);
+double _linear_loss_target_rmse(const vector<double> &preds, const vector<float> &y, const vector<float> *weights);
+double _linear_loss_step_rmse(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params, const vector<float> *weights);
+double _linear_loss_target_svm(const vector<double> &preds, const vector<float> &y, const vector<float> *weights);
+double _linear_loss_step_svm(const vector<double> &preds, const vector<float> &y, const vector<double> &model_params, const vector<float> *weights);
 
 MEDSERIALIZE_SUPPORT(MedLinearModel)
 
