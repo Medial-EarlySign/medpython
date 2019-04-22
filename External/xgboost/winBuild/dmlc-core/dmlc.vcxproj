@@ -29,14 +29,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\MR\Libs\External\xgboost\winBuild\dmlc-core\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">dmlc.dir\Release\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">dmlc</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\MR\Libs\External\xgboost\dmlc-core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\dmlc-core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Release/</AssemblerListingLocation>
       <CompileAs>CompileAsCpp</CompileAs>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -45,21 +45,21 @@
       <OpenMPSupport>true</OpenMPSupport>
       <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_XOPEN_SOURCE=700;_POSIX_SOURCE;_POSIX_C_SOURCE=200809L;_DARWIN_C_SOURCE;DMLC_USE_HDFS=0;DMLC_USE_S3=0;DMLC_USE_AZURE=0;__USE_XOPEN2K8;DMLC_USE_CXX11;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_XOPEN_SOURCE=700;_POSIX_SOURCE;_POSIX_C_SOURCE=200809L;_DARWIN_C_SOURCE;DMLC_USE_HDFS=0;DMLC_USE_S3=0;DMLC_USE_AZURE=0;__USE_XOPEN2K8;DMLC_USE_CXX11;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_XOPEN_SOURCE=700;_POSIX_SOURCE;_POSIX_C_SOURCE=200809L;_DARWIN_C_SOURCE;DMLC_USE_HDFS=0;DMLC_USE_S3=0;DMLC_USE_AZURE=0;__USE_XOPEN2K8;DMLC_USE_CXX11;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\MR\Libs\External\xgboost\dmlc-core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_XOPEN_SOURCE=700;_POSIX_SOURCE;_POSIX_C_SOURCE=200809L;_DARWIN_C_SOURCE;DMLC_USE_HDFS=0;DMLC_USE_S3=0;DMLC_USE_AZURE=0;__USE_XOPEN2K8;DMLC_USE_CXX11;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\dmlc-core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:\MR\Libs\External\xgboost\dmlc-core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\..\dmlc-core\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -71,10 +71,10 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\MR\Libs\External\xgboost\dmlc-core\CMakeLists.txt">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/MR/Libs/External/xgboost/dmlc-core/CMakeLists.txt</Message>
+    <CustomBuild Include="$(ProjectDir)\..\..\dmlc-core\CMakeLists.txt">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule $(ProjectDir)/../../dmlc-core/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/MR/Libs/External/xgboost -BC:/MR/Libs/External/xgboost/winBuild --check-stamp-file C:/MR/Libs/External/xgboost/winBuild/dmlc-core/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/MR/Libs/External/xgboost -B$(ProjectDir)/../../winBuild --check-stamp-file $(ProjectDir)/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -82,57 +82,57 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:/MR/Libs/External/xgboost/dmlc-core/CMakeLists.txt;C:\MR\Libs\External\xgboost\dmlc-core\CMakeLists.txt;C:\MR\Libs\External\xgboost\dmlc-core\cmake\Utils.cmake;C:\MR\Libs\External\xgboost\dmlc-core\cmake\build_config.h.in;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\CheckTypeSize\CMAKE_SIZEOF_UNSIGNED_SHORT.c;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeConfigurableFile.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckCXXSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckFunctionExists.c;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckIncludeFile.c.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckIncludeFile.cxx.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckIncludeFileCXX.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckLibraryExists.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckTypeSize.c.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckTypeSize.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPythonInterp.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\TestBigEndian.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\TestEndianess.c.in;C:\MR\Libs\External\xgboost\dmlc-core\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\MR\Libs\External\xgboost\winBuild\dmlc-core\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)/../../dmlc-core/CMakeLists.txt;$(ProjectDir)\..\..\dmlc-core\CMakeLists.txt;$(ProjectDir)\..\..\dmlc-core\cmake\Utils.cmake;$(ProjectDir)\..\..\dmlc-core\cmake\build_config.h.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckCXXSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckIncludeFileCXX.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckLibraryExists.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckTypeSize.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPythonInterp.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\TestBigEndian.cmake;$(ProjectDir)\..\..\dmlc-core\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\build_config.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\config.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\data.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\io.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\recordio.cc" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\any.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\array_view.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\base.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\blockingconcurrentqueue.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\build_config.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\common.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\concurrency.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\concurrentqueue.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\config.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\data.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\endian.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\filesystem.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\input_split_shuffle.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\io.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\json.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\logging.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\lua.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\memory.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\memory_io.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\omp.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\optional.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\parameter.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\recordio.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\registry.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\serializer.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\strtonum.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\thread_group.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\thread_local.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\threadediter.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\timer.h" />
-    <ClInclude Include="C:\MR\Libs\External\xgboost\dmlc-core\include\dmlc\type_traits.h" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\io\line_split.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\io\recordio_split.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\io\indexed_recordio_split.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\io\input_split_base.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\io\filesys.cc" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\dmlc-core\src\io\local_filesys.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\build_config.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\config.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\data.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\io.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\recordio.cc" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\any.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\array_view.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\base.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\blockingconcurrentqueue.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\build_config.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\common.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\concurrency.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\concurrentqueue.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\config.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\data.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\endian.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\filesystem.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\input_split_shuffle.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\io.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\json.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\logging.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\lua.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\memory.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\memory_io.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\omp.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\optional.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\parameter.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\recordio.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\registry.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\serializer.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\strtonum.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\thread_group.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\thread_local.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\threadediter.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\timer.h" />
+    <ClInclude Include="$(ProjectDir)\..\..\dmlc-core\include\dmlc\type_traits.h" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\io\line_split.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\io\recordio_split.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\io\indexed_recordio_split.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\io\input_split_base.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\io\filesys.cc" />
+    <ClCompile Include="$(ProjectDir)\..\..\dmlc-core\src\io\local_filesys.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="C:\MR\Libs\External\xgboost\winBuild\ZERO_CHECK.vcxproj">
+    <ProjectReference Include="$(ProjectDir)\..\ZERO_CHECK.vcxproj">
       <Project>{700581B6-6132-32A2-91C2-954D869CBD28}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

@@ -29,7 +29,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\MR\Libs\External\xgboost\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\..\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">runxgboost.dir\Release\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xgboost</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
@@ -38,7 +38,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\MR\Libs\External\xgboost\include;C:\MR\Libs\External\xgboost\dmlc-core\include;C:\MR\Libs\External\xgboost\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\include;$(ProjectDir)\..\dmlc-core\include;$(ProjectDir)\..\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Release/</AssemblerListingLocation>
       <CompileAs>CompileAsCpp</CompileAs>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -47,21 +47,21 @@
       <OpenMPSupport>true</OpenMPSupport>
       <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DMLC_LOG_CUSTOMIZE=1;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;DMLC_LOG_CUSTOMIZE=1;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\MR\Libs\External\xgboost\include;C:\MR\Libs\External\xgboost\dmlc-core\include;C:\MR\Libs\External\xgboost\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\include;$(ProjectDir)\..\dmlc-core\include;$(ProjectDir)\..\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:\MR\Libs\External\xgboost\include;C:\MR\Libs\External\xgboost\dmlc-core\include;C:\MR\Libs\External\xgboost\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\..\include;$(ProjectDir)\..\dmlc-core\include;$(ProjectDir)\..\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -74,8 +74,8 @@
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <ImportLibrary>C:/MR/Libs/External/xgboost/winBuild/Release/xgboost.lib</ImportLibrary>
-      <ProgramDataBaseFile>C:/MR/Libs/External/xgboost/xgboost.pdb</ProgramDataBaseFile>
+      <ImportLibrary>$(ProjectDir)/Release/xgboost.lib</ImportLibrary>
+      <ProgramDataBaseFile>$(ProjectDir)/../xgboost.pdb</ProgramDataBaseFile>
       <SubSystem>Console</SubSystem>
     </Link>
     <ProjectReference>
@@ -83,10 +83,10 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\MR\Libs\External\xgboost\CMakeLists.txt">
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/MR/Libs/External/xgboost/CMakeLists.txt</Message>
+    <CustomBuild Include="$(ProjectDir)\..\CMakeLists.txt">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule $(ProjectDir)/../CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/MR/Libs/External/xgboost -BC:/MR/Libs/External/xgboost/winBuild --check-stamp-file C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/MR/Libs/External/xgboost -B$(ProjectDir)/../winBuild --check-stamp-file $(ProjectDir)/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -94,75 +94,75 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:/MR/Libs/External/xgboost/CMakeLists.txt;C:\MR\Libs\External\xgboost\CMakeLists.txt;C:\MR\Libs\External\xgboost\cmake\Utils.cmake;C:\MR\Libs\External\xgboost\cmake\build_config.h.in;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\3.14.1\CMakeCCompiler.cmake;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\3.14.1\CMakeCXXCompiler.cmake;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\3.14.1\CMakeRCCompiler.cmake;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\3.14.1\CMakeSystem.cmake;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\FindOpenMP\OpenMPCheckVersion.c;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\FindOpenMP\OpenMPCheckVersion.cpp;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\FindOpenMP\OpenMPTryFlag.c;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\FindOpenMP\OpenMPTryFlag.cpp;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\feature_tests.c;C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\feature_tests.cxx;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCCompiler.cmake.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCCompilerABI.c;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCXXCompiler.cmake.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCXXCompilerABI.cpp;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCompilerIdDetection.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineCXXCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineCompileFeatures.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineCompilerABI.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineCompilerId.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineRCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeDetermineSystem.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeFindBinUtils.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeParseImplicitIncludeInfo.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeParseImplicitLinkInfo.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeRCCompiler.cmake.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeSystem.cmake.in;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeTestCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeTestCXXCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeTestCompilerCommon.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeTestRCCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CheckCXXSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\ADSP-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\ARMCC-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\AppleClang-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Borland-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Bruce-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Clang-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Clang-DetermineCompilerInternal.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Comeau-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Compaq-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Compaq-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Cray-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Embarcadero-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Fujitsu-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\GHS-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\GNU-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\GNU-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\HP-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\HP-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\IAR-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\IBMCPP-C-DetermineVersionInternal.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\IBMCPP-CXX-DetermineVersionInternal.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Intel-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MIPSpro-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MSVC-C-FeatureTests.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MSVC-CXX-FeatureTests.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MSVC-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\NVIDIA-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\OpenWatcom-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\PGI-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\PathScale-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\SCO-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\SDCC-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\SunPro-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\SunPro-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\TI-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\TinyCC-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\VisualAge-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\VisualAge-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\Watcom-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\XL-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\XL-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\zOS-C-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\zOS-CXX-DetermineCompiler.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CompilerId\VS-10.vcxproj.in;C:\Program Files\CMake\share\cmake-3.14\Modules\FindOpenMP.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Internal\FeatureTesting.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows-Determine-CXX.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\WindowsPaths.cmake;C:\MR\Libs\External\xgboost\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\MR\Libs\External\xgboost\winBuild\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)/../CMakeLists.txt;$(ProjectDir)\..\CMakeLists.txt;$(ProjectDir)\..\cmake\Utils.cmake;$(ProjectDir)\CMakeFiles\3.14.1\CMakeCCompiler.cmake;$(ProjectDir)\CMakeFiles\3.14.1\CMakeCXXCompiler.cmake;$(ProjectDir)\CMakeFiles\3.14.1\CMakeRCCompiler.cmake;$(ProjectDir)\CMakeFiles\3.14.1\CMakeSystem.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeParseImplicitLinkInfo.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindOpenMP.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-3.14\Modules\Platform\WindowsPaths.cmake;$(ProjectDir)\..\CMakeLists.txt;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\c_api.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\c_api_error.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\common.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\hist_util.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\host_device_vector.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\data.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\simple_csr_source.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\simple_dmatrix.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_dmatrix.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_raw_format.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_source.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\sparse_page_writer.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\gblinear.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\gbm.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\gbtree.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\learner.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\linear_updater.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_coordinate.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_shotgun.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\logging.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\elementwise_metric.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\metric.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\multiclass_metric.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\rank_metric.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\hinge.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\multiclass_obj.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\objective.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\rank_obj.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\regression_obj.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\cpu_predictor.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\predictor.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\split_evaluator.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\tree_model.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\tree_updater.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_colmaker.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_histmaker.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_prune.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_quantile_hist.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_refresh.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_skmaker.obj" />
-    <Object Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.dir\$(Configuration)\updater_sync.obj" />
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\cli_main.cc" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\c_api.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\c_api_error.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\common.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\hist_util.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\host_device_vector.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\data.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\simple_csr_source.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\simple_dmatrix.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\sparse_page_dmatrix.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\sparse_page_raw_format.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\sparse_page_source.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\sparse_page_writer.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\gblinear.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\gbm.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\gbtree.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\learner.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\linear_updater.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_coordinate.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_shotgun.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\logging.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\elementwise_metric.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\metric.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\multiclass_metric.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\rank_metric.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\hinge.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\multiclass_obj.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\objective.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\rank_obj.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\regression_obj.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\cpu_predictor.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\predictor.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\split_evaluator.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\tree_model.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\tree_updater.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_colmaker.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_histmaker.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_prune.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_quantile_hist.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_refresh.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_skmaker.obj" />
+    <Object Include="$(ProjectDir)\objxgboost.dir\$(Configuration)\updater_sync.obj" />
+    <ClCompile Include="$(ProjectDir)\..\src\cli_main.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="C:\MR\Libs\External\xgboost\winBuild\ZERO_CHECK.vcxproj">
+    <ProjectReference Include="$(ProjectDir)\ZERO_CHECK.vcxproj">
       <Project>{700581B6-6132-32A2-91C2-954D869CBD28}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="C:\MR\Libs\External\xgboost\winBuild\dmlc-core\dmlc.vcxproj">
+    <ProjectReference Include="$(ProjectDir)\dmlc-core\dmlc.vcxproj">
       <Project>{E5E0E541-C0D3-3319-971E-0D1CDEBDD136}</Project>
       <Name>dmlc</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="C:\MR\Libs\External\xgboost\winBuild\objxgboost.vcxproj">
+    <ProjectReference Include="$(ProjectDir)\objxgboost.vcxproj">
       <Project>{10032439-5EB7-3113-A881-68FA7E780F72}</Project>
       <Name>objxgboost</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="C:\MR\Libs\External\xgboost\winBuild\rabit.vcxproj">
+    <ProjectReference Include="$(ProjectDir)\rabit.vcxproj">
       <Project>{05BA46E3-5AC9-369E-B48D-78890FB794C4}</Project>
       <Name>rabit</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
