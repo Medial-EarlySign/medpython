@@ -69,6 +69,7 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, ShapleyExplainer);
 	CONDITIONAL_NEW_CLASS(dname, MissingShapExplainer);
 	CONDITIONAL_NEW_CLASS(dname, LimeExplainer);
+	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 

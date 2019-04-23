@@ -130,7 +130,7 @@ public:
 
 	int init(map<string, string>& map); ///< initialized params init function. reffer to that
 
-	ADD_CLASS_NAME(GibbsSampler)
+	ADD_CLASS_NAME(GibbsSampler<T>)
 		ADD_SERIALIZATION_FUNCS(params, feats_predictors, uniqu_value_bins, all_feat_names)
 };
 

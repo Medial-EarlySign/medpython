@@ -6,10 +6,10 @@
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
 template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
-	MTHROW_AND_ERR("Not Implemented\n");
+	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
 template<typename T> void SamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
-	MTHROW_AND_ERR("Not Implemented\n");
+	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
 
 template<typename T> SamplesGenerator<T>::SamplesGenerator() {
@@ -25,7 +25,7 @@ template<typename T> void MaskedGAN<T>::post_deserialization() {}
 template<typename T> void MissingsSamplesGenerator<T>::pre_serialization() {}
 template<typename T> void MissingsSamplesGenerator<T>::post_deserialization() {}
 
-template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator() {
+template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator() : SamplesGenerator<T>(false) {
 	_gibbs = NULL;
 	_do_parallel = true;
 }
@@ -57,6 +57,7 @@ template<typename T> void *SamplesGenerator<T>::new_polymorphic(string derived_n
 	CONDITIONAL_NEW_CLASS(derived_name, GibbsSamplesGenerator<T>);
 	CONDITIONAL_NEW_CLASS(derived_name, MaskedGAN<float>);
 	CONDITIONAL_NEW_CLASS(derived_name, MissingsSamplesGenerator<float>);
+	MTHROW_AND_ERR("SamplesGenerator<T>::new_polymorphic:: Unsupported object %s\n", derived_name.c_str());
 	return NULL;
 }
 

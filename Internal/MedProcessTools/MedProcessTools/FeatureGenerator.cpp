@@ -135,6 +135,7 @@ void *FeatureGenerator::new_polymorphic(string dname) {
 	CONDITIONAL_NEW_CLASS(dname, AttrFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, CategoryDependencyGenerator);
 	CONDITIONAL_NEW_CLASS(dname, EmbeddingGenerator);
+	MWARN("Warning in FeatureGenerator::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 

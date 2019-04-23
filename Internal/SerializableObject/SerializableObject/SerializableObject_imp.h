@@ -236,7 +236,7 @@ namespace MedSerialize {
 			//cerr << "Deserializing T * (4) : elem is " << elem << "\n";
 
 			// now we are ready to deserialize T or its derived
-			pos += MedSerialize::deserialize(blob + pos, (*elem));
+			pos += MedSerialize::deserialize(blob + pos, (*elem.get()));
 		}
 
 		//cerr << "Deserializing T * (4) : pos " << pos << "\n";

@@ -182,6 +182,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		return 0;
 	//get predictions and store them - in postProcessor learn resposibility - should act on different samples:
 	if (start_stage <= MED_MDL_LEARN_POST_PROCESS) {
+		MLOG("MedModel::learn() : learn post_processors\n");
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Learn(*this, rep, features);
 	}
