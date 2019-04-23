@@ -6,7 +6,7 @@
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
 
-#define LOCAL_SECTION LOG_MEDALGO
+#define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
 void ModelExplainer::explain(MedFeatures &matrix) const {
@@ -573,15 +573,16 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 		for (size_t i = 0; i < preds_orig.size(); ++i)
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
+	int N_TOTAL_TH = omp_get_max_threads();
 
 	MedProgress progress("MissingShapley", (int)matrix.samples.size(), 15);
-#pragma omp parallel for
+#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
 		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, group2Ind, features_coeff,
-			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, false);
+			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL);
 
 		for (size_t j = 0; j < names.size(); ++j)
 			pred_shap += features_coeff[j];
@@ -637,6 +638,8 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
+		else if (it->first == "skip_missing")
+			skip_missing = med_stoi(it->second) > 0;
 		else if (it->first == "grouping")
 			grouping = it->second;
 		else if (it->first == "pp_type") {}
@@ -708,14 +711,17 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
 
+	int N_TOTAL_TH = omp_get_max_threads();
+
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
-#pragma omp parallel for
+#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor, missing_value, group2Ind, *_sampler.get(), 1,
-			sampler_sampling_args, features_coeff, false);
+		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor, missing_value, skip_missing
+			, group2Ind, *_sampler.get(), 1, sampler_sampling_args, features_coeff,
+			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL);
 
 		for (size_t j = 0; j < names.size(); ++j)
 			pred_shap += features_coeff[j];

@@ -270,14 +270,15 @@ void MedLogger::out(char *fmt, ...)
 	fflush(out_fd);
 }
 
-MedProgress::MedProgress(const string &title, int mprocess_cnt, int print_inter) {
+MedProgress::MedProgress(const string &title, int mprocess_cnt, int print_inter, int max_th) {
 	progress = 0;
 	max_loop = mprocess_cnt;
 	print_interval = print_inter;
 	print_title = title;
+	max_threads = max_th;
+
 	print_section = LOG_APP;
 	print_level = LOG_DEF_LEVEL;
-	max_threads = 50;
 	tm_prog = chrono::high_resolution_clock::now();
 	tm_start = chrono::high_resolution_clock::now();
 }

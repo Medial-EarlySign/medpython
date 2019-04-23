@@ -167,6 +167,7 @@ public:
 	string sampling_args = ""; ///< args for sampling
 	int n_masks = 100; ///< how many test to conduct from shapley
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+	bool skip_missing = false; ///< If True will skip missing values and will treat as no inforamtion in missing vals
 	string grouping = ""; ///< grouping file - NOT supported yet...
 
 	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; }

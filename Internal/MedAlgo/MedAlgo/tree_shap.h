@@ -191,7 +191,7 @@ namespace medial {
 			bool verbose);
 		/// \brief Shapley calculation with generator
 		template<typename T> void explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index,
+			MedPredictor *predictor, float missing_value, bool skip_missing, const vector<vector<int>>& group2index,
 			SamplesGenerator<T> &sampler_gen, int sample_per_row, void *sampling_params,
 			vector<float> &features_coeff, bool verbose = false);
 

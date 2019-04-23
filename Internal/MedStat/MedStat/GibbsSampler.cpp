@@ -440,6 +440,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params
 	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
 
+	prepare_predictors();
 	vector<bool> mask_f(all_feat_names.size());
 	vector<T> mask_values_f(all_feat_names.size());
 	if (mask == NULL)
@@ -556,7 +557,6 @@ template<typename T> void GibbsSampler<T>::prepare_predictors() {
 template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vector<T>> &results,
 	const GibbsSamplingParams &sampling_params, const vector<bool> *mask, const vector<T> *mask_values) {
 	random_device rd;
-	prepare_predictors();
 	int worker_num = 0; //0 means max number of threads
 	//int worker_num = sampling_params.samples_count; // 1 for each sample
 

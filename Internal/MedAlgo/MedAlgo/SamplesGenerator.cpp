@@ -63,7 +63,7 @@ template<typename T> void *SamplesGenerator<T>::new_polymorphic(string derived_n
 
 template<typename T> void GibbsSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
 	GibbsSamplingParams *sampling_params = (GibbsSamplingParams *)params;
-	if (_do_parallel)
+	if (_do_parallel && sampling_params->samples_count >= 10)
 		_gibbs->get_parallel_samples(data, *sampling_params, &mask, &mask_values);
 	else
 		_gibbs->get_samples(data, *sampling_params, &mask, &mask_values);
