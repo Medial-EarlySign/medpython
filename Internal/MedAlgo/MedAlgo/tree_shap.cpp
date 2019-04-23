@@ -1651,7 +1651,8 @@ double medial::shapley::get_c(int p1, int p2, int end_l) {
 }
 
 void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index, vector<float> &features_coeff,
+	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index, const vector<string> &groupNames
+	, vector<float> &features_coeff,
 	bool sample_masks_with_repeats, float select_from_all, bool uniform_rand, bool use_shuffle,
 	bool verbose) {
 	random_device rd;
@@ -1668,7 +1669,6 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
 
 	features_coeff.resize(tot_feat_cnt);
-	global_logger.levels[LOG_MEDALGO] = MAX_LOG_LEVEL;
 
 	//calc shapley for each variable
 	if (verbose)
@@ -1794,7 +1794,6 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 	tm_taker.take_curr_time();
 	if (verbose)
 		MLOG("Done explain_shapely. took %2.1f seconds\n", tm_taker.diff_sec());
-	global_logger.levels[LOG_MEDALGO] = LOG_DEF_LEVEL;
 }
 
 void collect_score_mask(const vector<float> &x, const vector<bool> &mask, SamplesGenerator<float> &sampler_gen
@@ -1865,17 +1864,6 @@ int collect_mask(const vector<float> &x, const vector<bool> &mask, SamplesGenera
 		int size_before = (int)gen_matrix[feat_names.front()].size();
 		sampler_gen.get_samples(gen_matrix, sampling_params, mask, x);
 		return (int)gen_matrix[feat_names.front()].size() - size_before;
-
-
-		map<string, vector<float>> temp;
-		sampler_gen.get_samples(temp, sampling_params, mask, x);
-#pragma omp critical
-		for (size_t i = 0; i < feat_names.size(); ++i) {
-			//gen_matrix[feat_names[i]].resize(last_pos + temp.begin()->second.size());
-			gen_matrix[feat_names[i]].insert(gen_matrix[feat_names[i]].end(),
-				temp[feat_names[i]].begin(), temp[feat_names[i]].end());
-		}
-		return (int)temp.begin()->second.size();
 	}
 }
 
@@ -1892,7 +1880,7 @@ template<typename T> double mean_vec(const T *v, int len) {
 }
 
 template<typename T> void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value, bool skip_missing, const vector<vector<int>>& group2index,
+	MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 	SamplesGenerator<T> &sampler_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose) {
 	random_device rd;
@@ -1905,7 +1893,8 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	for (size_t i = 0; i < full_feat_ls.size(); ++i)
 		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
 
-	features_coeff.resize(tot_feat_cnt);
+	int ngrps = (int)group2index.size();
+	features_coeff.resize(ngrps);
 
 	//calc shapley for each variable
 	if (verbose)
@@ -1914,38 +1903,28 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	tm_taker.start();
 	bool warn_shown = false;
 	float select_from_all = (float)0.8;
-	MedProgress tm_full("", tot_feat_cnt, 15);
+	MedProgress tm_full("", ngrps, 15);
 
-	for (size_t param_i = 0; param_i < tot_feat_cnt; ++param_i)
+	for (size_t param_i = 0; param_i < ngrps; ++param_i)
 	{
 		double phi_i = 0;
-		if (fast_access[param_i] == missing_value && skip_missing)
-			continue;
+		int grps_opts = ngrps - 1;
 		//iterate on all other features  execpt param_i, and other features that are already missing in the given example
-		vector<string> candidates; //for sampling options from - skip missings
-		for (size_t i = 0; i < full_feat_ls.size(); ++i)
-		{
-			if (i == param_i || (fast_access[i] == missing_value && skip_missing))
-				continue;
-			candidates.push_back(full_feat_ls[i]);
-		}
-
 		bool iter_all = true;
 		int max_loop = max_tests;
-		double nchoose = candidates.size() <= 20 ? pow(2, (int)candidates.size()) : -1;
-		if (candidates.size() <= 20 && nchoose < max_loop)
+		double nchoose = grps_opts <= 20 ? pow(2, grps_opts) : -1;
+		if (grps_opts <= 20 && nchoose < max_loop)
 			max_loop = nchoose;
 		else {
 			iter_all = false;
-			if (!warn_shown && verbose && candidates.size() <= 20)
+			if (!warn_shown && verbose && grps_opts <= 20)
 				MLOG("Warning have %d options, and max_test is %d\n", (int)nchoose, max_loop);
 		}
 
 		vector<vector<bool>> all_opts;
-		//list_all_options_binary((int)candidates.size(), all_opts);
-		if (candidates.size() <= 20 && (iter_all || float(nchoose) / max_tests >= select_from_all)) {
-			list_all_options_binary((int)candidates.size(), all_opts);
-			vector<bool> empty_vec(candidates.size()), full_vec(candidates.size(), true);
+		if (grps_opts <= 20 && (iter_all || float(nchoose) / max_tests >= select_from_all)) {
+			list_all_options_binary(grps_opts, all_opts);
+			vector<bool> empty_vec(grps_opts), full_vec(grps_opts, true);
 			all_opts.push_back(empty_vec);
 			all_opts.push_back(full_vec);
 
@@ -1953,7 +1932,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 			if (!iter_all) {
 				if (!warn_shown && verbose) {
 					MLOG("Warning: not iterating all in feature %zu has %zu candidates, has %d options, max_test=%d\n",
-						param_i, candidates.size(), (int)nchoose, max_loop);
+						param_i, grps_opts, (int)nchoose, max_loop);
 #pragma omp critical
 					warn_shown = true;
 				}
@@ -1962,32 +1941,34 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 			}
 		}
 		else
-			sample_options_SHAP((int)candidates.size(), all_opts, max_loop, gen, false, true, false);
+			sample_options_SHAP(grps_opts, all_opts, max_loop, gen, false, true, false);
 
-		//complete all_opts to nfeats size:
+		//complete all_opts to nfeats size using groups:
 		bool deafult_not_selected = true; //mark all the rest(missing values that aren't tested) as fixed to missing value
 		for (size_t i = 0; i < all_opts.size(); ++i)
 		{
 			vector<bool> mask(full_feat_ls.size(), deafult_not_selected);
 			vector<bool> &truncated_mask = all_opts[i];
-			int cand_idx = 0;
-			for (size_t j = 0; j < full_feat_ls.size(); ++j)
+
+			for (int j = 0; j < grps_opts; ++j)
 			{
-				if (cand_idx < candidates.size() && full_feat_ls[j] == candidates[cand_idx]) {
-					mask[j] = truncated_mask[cand_idx];
-					++cand_idx;
-				}
+				bool mask_val = truncated_mask[j];
+				int cand_idx = j + int(j >= param_i);
+				for (int ind : group2index[cand_idx]) //set all group indexes as in mask
+					mask[ind] = mask_val;
 				//else keeps default (was missing value) - which means keep as missing value or iterate through
 			}
-			mask[param_i] = false; //mark always as false the selected feature to test
+			for (int ind : group2index[param_i])
+				mask[ind] = false; //mark always as false the selected feature to test
+
 			truncated_mask = move(mask);
 		}
 
 		//build test matrix from all_opts:
-		MedProgress progress("VV_Shapley(Feat " + to_string(param_i) +
-			" out of " + to_string(tot_feat_cnt) + ")", max_loop, 15, 1);
+		MedProgress progress("VV_Shapley(Feat " + to_string(param_i + 1) +
+			" out of " + to_string(ngrps) + ")", max_loop, 15, 1);
 		//collect score for each permutition of missing values:
-		int end_l = (int)candidates.size();
+		int end_l = grps_opts;
 
 		MedFeatures full_gen_samples;
 		full_gen_samples.attributes = matrix.attributes;
@@ -2001,7 +1982,8 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 			splits_without[i] = add_cnt;
 
 			vector<bool> with_mask = all_opts[i];
-			with_mask[param_i] = true;
+			for (int ind : group2index[param_i])
+				with_mask[ind] = true; //mark always as false the selected feature to test
 			int add_cnt_with = collect_mask(fast_access, with_mask, sampler_gen, sample_per_row, sampling_params,
 				full_feat_ls, full_gen_samples.data);
 			splits_with[i] = add_cnt_with;
@@ -2061,30 +2043,30 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 		MLOG("Done explain_shapely. took %2.1f seconds\n", tm_taker.diff_sec());
 
 	if (verbose) {
-		vector<pair<float, string>> feat_rank(tot_feat_cnt);
+		vector<pair<float, string>> feat_rank(ngrps);
 		for (size_t i = 0; i < feat_rank.size(); ++i)
 		{
 			feat_rank[i].first = features_coeff[i];
-			feat_rank[i].second = full_feat_ls[i];
+			feat_rank[i].second = groupNames[i];
 		}
 		sort(feat_rank.begin(), feat_rank.end(), comp_score_flt_str);
 
-		for (int i = 0; i < tot_feat_cnt; ++i)
+		for (int i = 0; i < ngrps; ++i)
 			MLOG("EXPLAIN #%d by %s : feat_score=%f\n",
 				i + 1, feat_rank[i].second.c_str(), feat_rank[i].first);
 
 		double sm = 0;
-		for (int i = 0; i < tot_feat_cnt - 1; ++i) {
+		for (int i = 0; i < ngrps - 1; ++i) {
 			MLOG("%f +", feat_rank[i].first);
 			sm += feat_rank[i].first;
 		}
-		sm += feat_rank[tot_feat_cnt - 1].first;
-		MLOG("%f=%f\n", feat_rank[tot_feat_cnt - 1].first, sm);
+		sm += feat_rank[ngrps - 1].first;
+		MLOG("%f=%f\n", feat_rank[ngrps - 1].first, sm);
 	}
 }
 
 template void medial::shapley::explain_shapley<float>(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value, bool skip_missing, const vector<vector<int>>& group2index,
+	MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 	SamplesGenerator<float> &sampler_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose);
 

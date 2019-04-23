@@ -581,7 +581,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, group2Ind, features_coeff,
+		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, group2Ind, groupNames, features_coeff,
 			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL);
 
 		for (size_t j = 0; j < names.size(); ++j)
@@ -638,8 +638,6 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
-		else if (it->first == "skip_missing")
-			skip_missing = med_stoi(it->second) > 0;
 		else if (it->first == "grouping")
 			grouping = it->second;
 		else if (it->first == "pp_type") {}
@@ -719,8 +717,8 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor, missing_value, skip_missing
-			, group2Ind, *_sampler.get(), 1, sampler_sampling_args, features_coeff,
+		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
+			, group2Ind, groupNames, *_sampler.get(), 1, sampler_sampling_args, features_coeff,
 			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL);
 
 		for (size_t j = 0; j < names.size(); ++j)
