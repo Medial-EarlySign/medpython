@@ -319,6 +319,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 			string attr_name = field_names[i].substr(9, field_names[i].length() - 9);
 			str_attr_pos[attr_name] = i;
 		}
+		else if (i == 0 && field_names[i] == "EVENT_FIELDS") {}
 		else unknown_fields.push_back(field_names[i]);
 	}
 	if (unknown_fields.size() > 0) {
