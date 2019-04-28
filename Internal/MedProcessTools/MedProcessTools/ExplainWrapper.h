@@ -42,7 +42,7 @@ public:
 	bool learn_cov_matrix; ///< If true will learn cov_matrix
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 
-	string grouping; ///< grouping file
+	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;
 

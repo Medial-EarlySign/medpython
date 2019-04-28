@@ -73,6 +73,7 @@ void ExplainFilters::filter(map<string, float> &explain_list) const {
 
 ExplainProcessings::ExplainProcessings() {
 	group_by_sum = false;
+	learn_cov_matrix = false;
 }
 
 int ExplainProcessings::init(map<string, string> &map) {
@@ -97,6 +98,7 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 	if (learn_cov_matrix) {
 		//int feat_cnt = (int)train_mat.data.size();
 		//cov_features.resize(feat_cnt, feat_cnt);
+		MLOG("Calc Covariance mat\n");
 		MedMat<float> x_mat;
 		train_mat.get_as_matrix(x_mat);
 		x_mat.normalize();
@@ -108,9 +110,11 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 	//first do covarinace if has:
 	if (!cov_features.m.empty()) {
-		if (cov_features.ncols != explain_list.size())
+		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%d, "
 				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
+		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+
 		int iftr = 0;
 		for (auto &it : explain_list)
 		{
@@ -118,6 +122,11 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 			float feat_contrib = 0;
 			for (int jftr = 0; jftr < cov_features.ncols; ++jftr)
 			{
+				if (skip_bias_names.find(expalin_it->first) != skip_bias_names.end())
+				{
+					++expalin_it;
+					continue;
+				}
 				feat_contrib += expalin_it->second * cov_features(iftr, jftr);
 				++expalin_it;
 			}
@@ -128,7 +137,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 	//sum features in groups
 	if (group_by_sum) {
-		if (grouping.empty())
+		if (group2Inds.empty())
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - asked for group_by_sum but haven't provide groups in grouping\n");
 		map<string, float> new_explain;
 		vector<float> random_access(explain_list.size());
@@ -234,32 +243,43 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 	vector<string> features;
 	data.get_feature_names(features);
 	int nftrs = (int)features.size();
-
-	map<string, int> ftr2indx;
-	for (int i = 0; i < nftrs; i++)
-		ftr2indx[features[i]] = i;
-
-	// Read Grouping
-	ifstream inf(file_name);
-	if (!inf.is_open())
-		MTHROW_AND_ERR("Cannot open \'%s\' for reading\n", file_name.c_str());
-
-	string curr_line;
-	vector<string> fields;
 	map<string, vector<int>> groups;
-	unordered_set<string> grouped_ftrs;
+	vector<bool> grouped_ftrs(nftrs);
 
-	while (getline(inf, curr_line)) {
-		boost::split(fields, curr_line, boost::is_any_of("\t"));
-		if (fields.size() != 2 || ftr2indx.find(fields[0]) == ftr2indx.end())
-			MTHROW_AND_ERR("Cannot parse line \'%s\' from %s\n", curr_line.c_str(), file_name.c_str());
-		if (grouped_ftrs.find(fields[0]) != grouped_ftrs.end())
-			MTHROW_AND_ERR("Features %s given twice\n", fields[0].c_str());
+	if (file_name == "BY_SIGNAL") {
+		for (int i = 0; i < nftrs; ++i)
+		{
+			vector<string> tokens;
+			boost::split(tokens, features[i], boost::is_any_of("."));
+			string word = tokens[0];
+			if (tokens.size() > 1 && boost::starts_with(tokens[0], "FTR_"))
+				word = tokens[1];
 
-		grouped_ftrs.insert(fields[0]);
-		groups[fields[1]].push_back(ftr2indx[fields[0]]);
+			groups[word].push_back(i);
+			grouped_ftrs[i] = true;
+		}
 	}
+	else {
+		// Read Grouping
+		ifstream inf(file_name);
+		if (!inf.is_open())
+			MTHROW_AND_ERR("Cannot open \'%s\' for reading\n", file_name.c_str());
 
+		string curr_line;
+		vector<string> fields;
+
+		while (getline(inf, curr_line)) {
+			boost::split(fields, curr_line, boost::is_any_of("\t"));
+			if (fields.size() != 2)
+				MTHROW_AND_ERR("Cannot parse line \'%s\' from %s\n", curr_line.c_str(), file_name.c_str());
+			int feat_pos = find_in_feature_names(features, fields[0]);
+			if (grouped_ftrs[feat_pos])
+				MTHROW_AND_ERR("Features %s given twice\n", fields[0].c_str());
+
+			grouped_ftrs[feat_pos] = true;
+			groups[fields[1]].push_back(feat_pos);
+		}
+	}
 	// Arrange
 	for (auto& rec : groups) {
 		group_names.push_back(rec.first);
@@ -267,7 +287,7 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 	}
 
 	for (int i = 0; i < nftrs; i++) {
-		if (grouped_ftrs.find(features[i]) == grouped_ftrs.end()) {
+		if (!grouped_ftrs[i]) {
 			group_names.push_back(features[i]);
 			group2index.push_back({ i });
 		}
@@ -423,7 +443,7 @@ void TreeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	processing.learn(train_mat);
 	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0) {
 		processing.group_by_sum = 1;
-		MWARN("Warning in TreeExplainer::Learn - no support for grouping in tree_shap not by sum. setting group_by_sum <= 1\n");
+		MWARN("Warning in TreeExplainer::Learn - no support for grouping in tree_shap not by sum. setting {group_by_sum:=1}\n");
 	}
 
 	if (original_predictor->classifier_type == MODEL_XGB) {
