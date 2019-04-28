@@ -241,6 +241,7 @@ int fast_multiply_medmat(const MedMat<float> &A, const MedMat<float> &B, MedMat<
 int fast_sum_medmat_rows(MedMat<float> &A, MedMat<float> &Asum, float factor); // A: n x m , output: Asum: 1 x m , summing all rows, done with matrix mult with factor (more efficient this way)
 int fast_sum_medmat_cols(MedMat<float> &A, MedMat<float> &Asum, float factor); // A: n x m , output: Asum: n x 1 , summing all cols, done with matrix mult with factor (more efficient this way)
 int fast_multiply_medmat_transpose(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C, int transpose_flag); // A:n x m B:m x k --> gets C=A*B C:n x k , but allows transposing each mat
+int fast_multiply_medmat_transpose(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C, int transpose_flag, float s); // A:n x m B:m x k --> gets C=s*A*B C:n x k , but allows transposing each mat
 
 int fast_multiply_scalar_vector(vector<float> &v, float s); //v = s * v; 
 int fast_multiply_scalar_vector(vector<float> &v, float s, vector<float> &w); //w = s * v; 
