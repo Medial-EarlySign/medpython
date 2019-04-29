@@ -335,7 +335,7 @@ void Calibrator::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures
 			if (curr_rep.read_all(rep.config_fname, pids, sigs) < 0)
 				MTHROW_AND_ERR("ERROR could not read repository %s\n", rep.config_fname.c_str());
 			MedFeatures feats = move(model.features);
-			model.apply(curr_rep, external, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_LEARN_POST_PROCESS);
+			model.apply(curr_rep, external, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_LEARN_POST_PROCESSORS);
 			Learn(model.features.samples);
 			model.features = move(feats);
 		}

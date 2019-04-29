@@ -19,6 +19,28 @@
 
 using namespace boost::property_tree;
 
+//=======================================================================================
+// MedModelStage
+//=======================================================================================
+
+map<string, MedModelStage> med_mdl_stage_name_to_stage = { 
+	{ "learn_rep_processors",MED_MDL_LEARN_REP_PROCESSORS },{ "learn_ftr_generators",MED_MDL_LEARN_FTR_GENERATORS },
+	{ "apply_ftr_generators",MED_MDL_APPLY_FTR_GENERATORS },{ "learn_ftr_processors",MED_MDL_LEARN_FTR_PROCESSORS },
+	{ "apply_ftr_processors",MED_MDL_APPLY_FTR_PROCESSORS },{ "learn_predictor",MED_MDL_LEARN_PREDICTOR },
+	{ "apply_predictor",MED_MDL_APPLY_PREDICTOR },{ "insert_preds",MED_MDL_INSERT_PREDS },
+	{ "learn_post_processors",MED_MDL_LEARN_POST_PROCESSORS },{ "apply_post_processors",MED_MDL_APPLY_POST_PROCESSORS },
+	{ "end",MED_MDL_END } };
+
+MedModelStage MedModel::get_med_model_stage(const string& stage) {
+
+	string _stage = stage;
+	boost::to_lower(_stage);
+
+	if (med_mdl_stage_name_to_stage.find(_stage) == med_mdl_stage_name_to_stage.end())
+		MTHROW_AND_ERR("unknown stage %s\n", stage.c_str())
+	else
+		return med_mdl_stage_name_to_stage[_stage];
+}
 
 //=======================================================================================
 // MedModel
@@ -178,10 +200,11 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		if (rc != 0)
 			return rc;
 	}
-	if (end_stage < MED_MDL_LEARN_POST_PROCESS)
+	if (end_stage < MED_MDL_LEARN_POST_PROCESSORS)
 		return 0;
+
 	//get predictions and store them - in postProcessor learn resposibility - should act on different samples:
-	if (start_stage <= MED_MDL_LEARN_POST_PROCESS) {
+	if (start_stage <= MED_MDL_LEARN_POST_PROCESSORS) {
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Learn(*this, rep, features);
 	}
@@ -271,10 +294,10 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		}
 	}
 
-	if (end_stage <= MED_MDL_INSERT_PREDS)
+	if (end_stage <= MED_MDL_APPLY_PREDICTOR)
 		return 0;
 
-	if (end_stage <= MED_MDL_APPLY_POST_PROCESS) { //insert preds now only if has no post_processors
+	if (start_stage <= MED_MDL_INSERT_PREDS && end_stage < MED_MDL_APPLY_POST_PROCESSORS) { //insert preds now only if has no post_processors
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
 			return -1;
@@ -282,15 +305,17 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 	}
 
-	for (size_t i = 0; i < post_processors.size(); ++i)
-		post_processors[i]->Apply(features);
-	if (samples.insert_preds(features) != 0) {
-		MERR("Insertion of predictions to samples failed\n");
-		return -1;
-	}
-	if (samples.insert_post_process(features) != 0) {
-		MERR("Insertion of post_process to samples failed\n");
-		return -1;
+	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
+		for (size_t i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Apply(features);
+		if (samples.insert_preds(features) != 0) {
+			MERR("Insertion of predictions to samples failed\n");
+			return -1;
+		}
+		if (samples.insert_post_process(features) != 0) {
+			MERR("Insertion of post_process to samples failed\n");
+			return -1;
+		}
 	}
 
 	return 0;
@@ -1261,7 +1286,7 @@ void MedModel::clear()
 }
 
 //.......................................................................................
-void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, bool pp_flag, bool predictor_type)
+void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int pp_flag, bool predictor_type)
 {
 	unordered_set<string> sigs;
 
@@ -1273,7 +1298,7 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
 	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
-	if (pp_flag) for (auto& pp : post_processors) pp->dprint(pref);
+	if (pp_flag > 0) for (auto& pp : post_processors) pp->dprint(pref);
 	if (predictor_type && predictor != NULL) MLOG("Predictor %s\n", predictor->my_class_name().c_str());
 }
 
