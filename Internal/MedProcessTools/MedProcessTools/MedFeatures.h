@@ -121,7 +121,7 @@ public:
 	int write_as_csv_mat(const string &csv_fname, bool write_attributes = false) const;
 	/// <summary> Read features (samples + weights + data) from a csv file with a header line </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
-	int read_from_csv_mat(const string &csv_fname);
+	int read_from_csv_mat(const string &csv_fname, bool read_time_raw = true);
 
 	/// <summary> Filter data (and attributes) to include only selected features </summary> 
 	/// <return> -1 if any of the selected features is not present. 0 upon success  </returns>
@@ -139,7 +139,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)
-	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes, tags)
+	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes, tags, time_unit)
 
 };
 

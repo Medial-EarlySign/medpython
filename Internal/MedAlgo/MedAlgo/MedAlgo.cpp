@@ -96,6 +96,7 @@ void *MedPredictor::new_polymorphic(string dname)
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
 #endif
+	MWARN("Warning in MedPredictor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 

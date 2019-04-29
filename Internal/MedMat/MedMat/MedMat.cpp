@@ -193,6 +193,42 @@ int fast_multiply_medmat_transpose(const MedMat<float> &A, const MedMat<float> &
 }
 
 
+int fast_multiply_medmat_transpose(const MedMat<float> &A, const MedMat<float> &B, MedMat<float> &C, int transpose_flag, float s) // A:n x m B:m x k --> gets C=A*B C:n x k , but allows transposing each mat
+{
+	if ((transpose_flag == 0x0 && A.ncols != B.nrows) ||
+		(transpose_flag == 0x1 && A.nrows != B.nrows) ||
+		(transpose_flag == 0x2 && A.ncols != B.ncols) ||
+		(transpose_flag == 0x3 && A.nrows != B.ncols))
+	{
+		MERR("ERROR: multiply_medmat: Mats dimension don't match: (%d x %d) , (%d x %d) transpose_flag %d ... \n", A.nrows, A.ncols, B.nrows, B.ncols, transpose_flag);
+		return -1;
+	}
+
+	//int ncores = std::thread::hardware_concurrency();
+	//Eigen::setNbThreads(3*ncores/4);
+
+	Map<const MatrixXf> x(A.data_ptr(), A.ncols, A.nrows);
+	Map<const MatrixXf> y(B.data_ptr(), B.ncols, B.nrows);
+
+	int nr = 0, nc = 0;
+	if (transpose_flag == 0x0) { nr = A.nrows; nc = B.ncols; }
+	else if (transpose_flag == 0x1) { nr = A.ncols; nc = B.ncols; }
+	else if (transpose_flag == 0x2) { nr = A.nrows; nc = B.nrows; }
+	else if (transpose_flag == 0x3) { nr = A.ncols; nc = B.nrows; }
+
+	C.resize(nr, nc);
+	Map<MatrixXf> z(C.data_ptr(), C.ncols, C.nrows);
+
+	if (transpose_flag == 0x0) { z = s * y * x; }
+	else if (transpose_flag == 0x1) { z = s * y * x.transpose(); }
+	else if (transpose_flag == 0x2) { z = s * y.transpose()*x; }
+	else if (transpose_flag == 0x3) { z = s * y.transpose()*x.transpose(); }
+
+	return 0;
+
+}
+
+
 //...........................................................................................
 int multiply_medmat(MedMat<float> &A, MedMat<float> &B, MedMat<float> &C) // A:n x m B:m x k --> gets C=A*B C:n x k
 {

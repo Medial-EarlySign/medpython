@@ -101,6 +101,7 @@ void MedTime::init_time_tables()
 //.....................................................................................................
 int MedTime::convert_days(int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_days - to_time_type is MedTime::Undefined");
 	if (to_type == MedTime::Days) return in_time;
 	if (to_type == MedTime::Hours) return in_time * 24;
 	if (to_type == MedTime::Minutes) return in_time * 24 * 60;
@@ -114,6 +115,7 @@ int MedTime::convert_days(int to_type, int in_time)
 }
 
 int MedTime::convert_datetime_safe(int to_type, string in_time, char handle_ilegal_date) {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_datetime_safe - to_time_type is MedTime::Undefined");
 	static int warning_count = 0;
 	string out_t = in_time;
 
@@ -147,6 +149,7 @@ int MedTime::convert_datetime_safe(int to_type, string in_time, char handle_ileg
 
 /// handles YYYYMMDD and YYYY-MM-DD HH:MI:SS formats
 int MedTime::convert_datetime(int to_type, string in_time) {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_datetime - to_time_type is MedTime::Undefined");
 	string out_t = in_time;
 	boost::replace_all(out_t, " ", "");
 	boost::replace_all(out_t, "-", "");
@@ -167,6 +170,7 @@ int MedTime::convert_datetime(int to_type, string in_time) {
 //.....................................................................................................
 int MedTime::convert_date(int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_date - to_time_type is MedTime::Undefined");
 	if (to_type == MedTime::Date) return in_time;
 	if (to_type == MedTime::Years) return in_time / 10000 - 1900;
 	if (to_type == MedTime::Months) return ((in_time / 10000) - 1900) * 12 + (in_time % 10000) / 100 - 1;
@@ -187,6 +191,7 @@ int MedTime::convert_date(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_years(int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_years - to_time_type is MedTime::Undefined");
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Date) return ((in_time + 1900) * 10000 + 101);
 	if (to_type == MedTime::Years) return in_time;
@@ -198,6 +203,7 @@ int MedTime::convert_years(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_months(int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_months - to_time_type is MedTime::Undefined");
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Months) return in_time;
 
@@ -216,6 +222,7 @@ int MedTime::convert_months(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_hours(int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_hours - to_time_type is MedTime::Undefined");
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Hours) return in_time;
 	if (to_type == MedTime::Minutes) return in_time * 60;
@@ -226,6 +233,7 @@ int MedTime::convert_hours(int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_minutes(int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_minutes - to_time_type is MedTime::Undefined");
 	if (in_time < 0) in_time = 0;
 	if (to_type == MedTime::Minutes) return in_time;
 	int hours = in_time / 60;
@@ -235,6 +243,7 @@ int MedTime::convert_minutes(int to_type, int in_time)
 //.....................................................................................................
 string MedTime::convert_times_S(int from_type, int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_times_S - to_time_type is MedTime::Undefined");
 	if (to_type == MedTime::DateTimeString) {
 		int d = convert_times(from_type, MedTime::Date, in_time);
 		if (from_type == MedTime::Minutes || from_type == MedTime::Hours) {
@@ -252,6 +261,7 @@ string MedTime::convert_times_S(int from_type, int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_times(int from_type, int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_times - to_time_type is MedTime::Undefined");
 	if (from_type == MedTime::Date) return convert_date(to_type, in_time);
 	if (from_type == MedTime::Days) return convert_days(to_type, in_time);
 	if (from_type == MedTime::Minutes) return convert_minutes(to_type, in_time);
@@ -266,6 +276,7 @@ int MedTime::convert_times(int from_type, int to_type, int in_time)
 //.....................................................................................................
 int MedTime::convert_times(int from_type, int to_type, double in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_times - to_time_type is MedTime::Undefined");
 	if (from_type == MedTime::Date) return convert_date(to_type, (int)in_time);
 
 	if (from_type == MedTime::Minutes) return convert_minutes(to_type, (int)in_time);
@@ -282,6 +293,7 @@ int MedTime::convert_times(int from_type, int to_type, double in_time)
 //.....................................................................................................
 double MedTime::convert_times_D(int from_type, int to_type, int in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_times_D - to_time_type is MedTime::Undefined");
 	if (to_type == MedTime::Date || (from_type != MedTime::Date && to_type >= from_type)) return (double)convert_times(from_type, to_type, in_time);
 	if (from_type == MedTime::Date && (to_type >= MedTime::Days)) return (double)convert_times(from_type, to_type, in_time);
 
@@ -305,6 +317,7 @@ double MedTime::convert_times_D(int from_type, int to_type, int in_time)
 //.....................................................................................................
 double MedTime::convert_times_D(int from_type, int to_type, double in_time)
 {
+	if (to_type == MedTime::Undefined) MTHROW_AND_ERR("Error in MedTime::convert_times_D - to_time_type is MedTime::Undefined");
 	if (from_type == MedTime::Date) return (double)convert_date(to_type, (int)in_time);
 	if (from_type == MedTime::Minutes) return (double)convert_minutes(to_type, (int)in_time);
 

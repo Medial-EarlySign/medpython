@@ -74,7 +74,7 @@ public:
 	void pre_serialization();
 	void post_deserialization();
 
-	ADD_CLASS_NAME(GibbsSampler<T>)
+	ADD_CLASS_NAME(GibbsSamplesGenerator<T>)
 		ADD_SERIALIZATION_FUNCS(_gibbs, _do_parallel)
 };
 
