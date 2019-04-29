@@ -56,8 +56,10 @@ public:
 		const map<string, int>& str_attr_pos, int time_unit, int raw_format, const string &delimeter);
 
 	/// <summary> Write to string in new format </summary>
-	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit, const string &delimeter = "\t") const;
-	void write_to_string(string &s, int time_unit, const string &delimeter = "\t") const;
+	void write_to_string(string &s, int time_unit, bool write_attrib = true, const string &delimeter = "\t") const;
+
+	/// <summary> Get sample attributes </summary>
+	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) const;
 
 	// Serialization
 	ADD_CLASS_NAME(MedSample)
@@ -203,7 +205,7 @@ public:
 	int get_predictions_size(int& nPreds);
 
 	/// <summary> Get all attributes. Return -1 if not-consistent </summary>
-	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes);
+	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) const;
 
 	/// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);

@@ -10,6 +10,121 @@
 #define LOCAL_SECTION MED_SAMPLES_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+void split_string_delimeter(vector<string> &res, const string &s, const string &delimiter) {
+	size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+	string token;
+
+	while ((pos_end = s.find(delimiter, pos_start)) != string::npos) {
+		token = s.substr(pos_start, pos_end - pos_start);
+		pos_start = pos_end + delim_len;
+		res.push_back(token);
+	}
+
+	res.push_back(s.substr(pos_start));
+}
+
+template<typename T> void get_attr_namespace(const map<string, T> &attr, unordered_map<string, vector<string>> &namespace_mapper) {
+	for (const auto& a : attr) {
+		string ns = a.first;
+		if (ns.find("::") != string::npos)
+			ns = ns.substr(0, ns.find("::"));
+		namespace_mapper[ns].push_back(a.first);
+	}
+}
+
+void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr, const string &ns,
+	const vector<string> &keys, const string &namespace_attr_delimeter,
+	const string &delimeter_keys, const string &delimeter_key_val) {
+	if (keys.empty())
+		return;
+	if (keys.size() == 1)
+		s_buff << attr.at(keys.front());
+	else {
+		s_buff << "{";
+		bool first = true;
+		for (const string &key : keys)
+		{
+			if (!first)
+				s_buff << delimeter_keys;
+			//strip ns from key in write:
+			string shorten_key = key;
+			boost::replace_first(shorten_key, ns + namespace_attr_delimeter, "");
+			//write key=value
+			s_buff << shorten_key << delimeter_key_val << attr.at(key);
+			first = false;
+		}
+		s_buff << "}";
+	}
+}
+
+void try_parse_attributes_keys(const string &s, map<string, string> &attr, const string &ns,
+	const string &namespace_attr_delimeter, const string &delimeter_keys, const string &delimeter_key_val) {
+	string ss = s;
+	if (s.at(0) == '{')
+		ss = s.substr(1);
+	if (ss.at(ss.length() - 1) == '}')
+		ss = ss.substr(0, ss.length() - 1);
+
+	vector<string> tokens;
+	split_string_delimeter(tokens, ss, delimeter_keys);
+
+	if (tokens.empty()) //empty attribute value - skip
+		return;
+	if (tokens.size() == 1)
+		attr[ns] = ss;
+	else {
+
+		map<string, string> before_attr;
+		for (const string &token : tokens)
+		{
+			vector<string> kv_tokens;
+			split_string_delimeter(kv_tokens, token, delimeter_key_val);
+			if (kv_tokens.size() != 2) {
+				MWARN("parse attribute \"%s\" - is not grouped - stores as raw string\n", s.c_str());
+				attr[ns] = s;
+				break;
+			}
+			//strip ns from key in write:
+			string full_key_name = ns + namespace_attr_delimeter + kv_tokens[0];
+
+			//stores key=value
+			before_attr[full_key_name] = kv_tokens[1];
+		}
+		//commit:
+		for (const auto &it : before_attr)
+			attr[it.first] = it.second;
+	}
+}
+
+void write_attributes(stringstream &s_buff, const string &delimeter, const map<string, string> &attr) {
+	string namespace_attr_delimeter = "::"; //when appears in name aggregate attributes in the same attribute
+	string delimeter_keys = "||";
+	string delimeter_key_val = "=";
+
+	unordered_map<string, vector<string>> namespace_mapper;
+	get_attr_namespace(attr, namespace_mapper);
+
+	for (const auto& kv : namespace_mapper) {
+		s_buff << delimeter;
+		write_attributes_keys(s_buff, attr, kv.first, kv.second, namespace_attr_delimeter, delimeter_keys, delimeter_key_val);
+		//write current map
+	}
+}
+
+void parse_attributes(const vector<string> &fields, const map<string, int>& pos, map<string, string> &out) {
+	string namespace_attr_delimeter = "::"; //when appears in name aggregate attributes in the same attribute
+	string delimeter_keys = "||";
+	string delimeter_key_val = "=";
+
+	for (auto& attr : pos)
+		if (attr.second != -1 && fields.size() > attr.second) {
+			try_parse_attributes_keys(fields[attr.second], out, attr.first,
+				namespace_attr_delimeter, delimeter_keys, delimeter_key_val);
+			//out[attr.first] = fields[attr.second];
+		}
+
+}
+
 int MedSample::parse_from_string(const vector<string> &fields, const map<string, int> & pos, const vector<int>& pred_pos, const map<string, int>& attr_pos,
 	const map<string, int>& str_attr_pos, int time_unit, int raw_format, const string &delimeter) {
 	if (pos.size() == 0)
@@ -59,15 +174,12 @@ int MedSample::parse_from_string(const vector<string> &fields, const map<string,
 				prediction.push_back(stof(fields[pos]));
 		}
 
-		for (auto& attr : attr_pos) {
-			if (attr.second != -1 && fields.size() > attr.second)
-				attributes[attr.first] = stof(fields[attr.second]);
-		}
+		map<string, string> before_float_convert;
+		parse_attributes(fields, attr_pos, before_float_convert);
+		for (auto& attr : before_float_convert)
+			attributes[attr.first] = stof(attr.second);
 
-		for (auto& attr : str_attr_pos) {
-			if (attr.second != -1 && fields.size() > attr.second)
-				str_attributes[attr.first] = fields[attr.second];
-		}
+		parse_attributes(fields, str_attr_pos, str_attributes);
 
 		return 0;
 	}
@@ -147,20 +259,9 @@ int MedSample::parse_from_string(string &s, int time_unit)
 
 }
 
-
-void MedSample::write_to_string(string &s, int time_unit, const string &delimeter) const
-{
-	vector<string> my_attributes, my_str_attributes;
-	for (auto& attr : attributes)
-		my_attributes.push_back(attr.first);
-	for (auto& attr : str_attributes)
-		my_str_attributes.push_back(attr.first);
-	write_to_string(s, my_attributes, my_str_attributes, time_unit, delimeter);
-}
-
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit, const string &delimeter) const
+void MedSample::write_to_string(string &s, int time_unit,bool write_attrib, const string &delimeter) const
 {
 	stringstream s_buff;
 	//s = "";
@@ -170,10 +271,13 @@ void MedSample::write_to_string(string &s, const vector<string>& attr, const vec
 	s_buff << delimeter << split;
 	for (auto p : prediction)
 		s_buff << delimeter << p;
-	for (const string& a : attr)
-		s_buff << delimeter << attributes.at(a);
-	for (const string& a : str_attr)
-		s_buff << delimeter << str_attributes.at(a);
+	map<string, string> str_map;
+	for (const auto &it : attributes)
+		str_map[it.first] = to_string(it.second);
+	if (write_attrib) {
+		write_attributes(s_buff, delimeter, str_map);
+		write_attributes(s_buff, delimeter, str_attributes);
+	}
 	s = s_buff.str();
 }
 
@@ -487,33 +591,40 @@ int MedSamples::get_predictions_size(int& nPreds) {
 
 }
 
+int MedSample::get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) const {
+	attributes.clear();
+	str_attributes.clear();
+
+	unordered_map<string, vector<string>> agg_map;
+	get_attr_namespace(this->attributes, agg_map);
+	for (auto& attr : agg_map)
+		attributes.push_back(attr.first);
+	agg_map.clear();
+	get_attr_namespace(this->str_attributes, agg_map);
+	for (auto& attr : agg_map)
+		str_attributes.push_back(attr.first);
+
+	return 0;
+}
 
 // Get all attributes 
 //-------------------------------------------------------------------------------------------
-int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) {
+int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) const {
 	attributes.clear();
 	str_attributes.clear();
 	bool first = true;
 	for (auto &s : idSamples) {
 		for (auto& ss : s.samples) {
 			if (first) {
-				for (auto& attr : ss.attributes)
-					attributes.push_back(attr.first);
-				for (auto& attr : ss.str_attributes)
-					str_attributes.push_back(attr.first);
+				ss.get_all_attributes(attributes, str_attributes);
 				first = false;
 			}
 			else {
-				vector<string> my_attributes;
-				for (auto& attr : ss.attributes)
-					my_attributes.push_back(attr.first);
+				vector<string> my_attributes, my_str_attributes;
+				ss.get_all_attributes(my_attributes, my_str_attributes);
 				if (attributes != my_attributes)
 					MTHROW_AND_ERR("attributes are not the same across all samples");
-
-				my_attributes.clear();
-				for (auto& attr : ss.str_attributes)
-					my_attributes.push_back(attr.first);
-				if (str_attributes != my_attributes)
+				if (str_attributes != my_str_attributes)
 					MTHROW_AND_ERR("str_attributes are not the same across all samples");
 			}
 		}
@@ -567,7 +678,7 @@ int MedSamples::write_to_file(const string &fname)
 		for (auto ss : s.samples) {
 			samples++;
 			string sout;
-			ss.write_to_string(sout, attributes, str_attributes, time_unit);
+			ss.write_to_string(sout, time_unit);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
 			if (buffer_write > 0 && line >= buffer_write) {
