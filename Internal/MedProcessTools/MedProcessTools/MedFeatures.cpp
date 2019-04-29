@@ -265,7 +265,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 
 	// Sanity - if write_attributes is true, all samples must have the same attributes
 	set<string> attr_names, str_attr_names;
-	if (write_attributes && samples.size()) {
+	if (write_attributes && !samples.empty()) {
 		int nAttr = (int)samples[0].attributes.size();
 		int nStrAttr = (int)samples[0].str_attributes.size();
 
@@ -338,26 +338,22 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	for (int i = 0; i < samples.size(); i++) {
 
 		out_f << to_string(i); // serial
-		if (weights.size()) out_f << "," + to_string(weights[i]); // Weights
+		if (weights.size()) out_f << "," << weights[i]; // Weights
 
-																  // sample
-		out_f << "," << samples[i].id;
-		out_f << "," << samples[i].time;
-		out_f << "," << samples[i].outcome;
-		out_f << "," << samples[i].outcomeTime;
-		out_f << "," << samples[i].split;
-
-		// predictions
-		for (int j = 0; j < n_preds; j++)
-			out_f << "," << samples[i].prediction[j];
-
-		// Attributes
+		// sample
+		string sample_str;
+		vector<string> my_attributes, my_str_attributes;
 		if (write_attributes) {
-			for (string name : attr_names)
-				out_f << "," << samples[i].attributes.at(name);
-			for (string name : str_attr_names)
-				out_f << "," << samples[i].str_attributes.at(name);
+			for (auto& attr : samples[i].attributes)
+				my_attributes.push_back(attr.first);
+			for (auto& attr : samples[i].str_attributes)
+				my_str_attributes.push_back(attr.first);
 		}
+
+		samples[i].write_to_string(sample_str, my_attributes, my_str_attributes, time_unit, ",");
+		boost::replace_all(sample_str, "SAMPLE,", "");
+
+		out_f << "," << sample_str;
 
 		// features
 		for (int j = 0; j < col_names.size(); j++)
@@ -369,68 +365,125 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	return 0;
 }
 
+void add_to_map(map<string, int> &m, const vector<string> &names) {
+	int curr_size = (int)m.size();
+	for (int i = 0; i < names.size(); ++i) {
+		m[names[i]] = curr_size;
+		++curr_size;
+	}
+}
+
+void op_map(const map<string, int> &m, vector<string> &names) {
+	names.resize(m.size() + 1);
+	for (auto it = m.begin(); it != m.end(); ++it) {
+		if (it->second >= names.size())
+			names.resize(it->second + 1);
+		names[it->second] = it->first;
+	}
+}
+
+int max_ind_map(const map<string, int> &m) {
+	int max = -1;
+	if (!m.empty())
+		max = m.begin()->second;
+	for (const auto &it : m)
+		if (max < it.second)
+			max = it.second;
+	return max;
+}
+
 // Read features (samples + weights + data) from a csv file with a header line
 // Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
-int MedFeatures::read_from_csv_mat(const string &csv_fname)
+int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 {
-	if (!file_exists(csv_fname)) {
-		fprintf(stderr, "File %s doesn't exist\n", csv_fname.c_str());
-		throw exception();
-	}
+	vector<string> pre_fields = { "serial" }; //fields that appears in all modes: without_weights, with_weights
+	vector<string> fields_order = { "id", "time", "outcome", "outcome_time", "split" }; //fields for MedSample
+	string weight_field_anme = "weight"; //weight field name if appear
+	string pred_prefix = "pred_";
+	string attr_prefix = "attr_";
+	string str_attr_prefix = "str_attr_";
 
-	fprintf(stderr, "reading data from %s\n", csv_fname.c_str());
+	if (!file_exists(csv_fname))
+		MTHROW_AND_ERR("File %s doesn't exist\n", csv_fname.c_str());
+
+	MLOG("reading data from %s\n", csv_fname.c_str());
 	ifstream inf;
 	inf.open(csv_fname, ios::in);
-	if (!inf) {
-		cerr << "can not open file\n";
-		return -1;
-	}
+	if (!inf.good())
+		MTHROW_AND_ERR("can not open file for reading %s\n", csv_fname.c_str());
 
 	int ncols = -1;
 	string curr_line;
 	vector<string> names;
-	int weighted = 0;
-	int nPreds = 0;
-	vector<string> attr_names, str_attr_names;
-	vector<int> field_ind_to_pred_index;
+
+	map<string, int> pos_fields_no_weight;
+	add_to_map(pos_fields_no_weight, pre_fields);
+	map<string, int> pos_fields_weight = pos_fields_no_weight;
+	int sz = (int)pos_fields_weight.size();
+	pos_fields_weight[weight_field_anme] = sz;
+	add_to_map(pos_fields_weight, fields_order);
+	add_to_map(pos_fields_no_weight, fields_order);
+	vector<string> fields_order_no_weight, fields_order_weight;
+	op_map(pos_fields_weight, fields_order_weight);
+	op_map(pos_fields_no_weight, fields_order_no_weight);
+	vector<string> *curr_fields_order = &fields_order_no_weight;
+	map<string, int> *curr_pos_fields = &pos_fields_no_weight;
+	map<string, int> pos_attr, pos_str_attr;
+	vector<int> pos_preds;
+
 	while (getline(inf, curr_line)) {
 		boost::trim(curr_line);
 		vector<string> fields;
 		boost::split(fields, curr_line, boost::is_any_of(","));
 		int idx = 0;
 		if (ncols == -1) { // Header line	
-			assert(fields[idx++].compare("serial") == 0);
-			if (fields[idx].compare("weight") == 0) {
-				weighted = 1; idx++;
+			string curr_f;
+			for (; idx < pre_fields.size(); ++idx) {
+				curr_f = pre_fields[idx];
+				if (fields[idx].compare(curr_f) != 0) {
+					MLOG("header_line=%s\nIn field %s, idx=(%d / %zu), got_field_header=%s\n",
+						curr_line.c_str(), curr_f.c_str(), idx, pre_fields.size(), fields[idx].c_str());
+					assert(fields[idx].compare(curr_f) == 0);
+				}
 			}
-			assert(fields[idx++].compare("id") == 0);
-			assert(fields[idx++].compare("time") == 0);
-			assert(fields[idx++].compare("outcome") == 0);
-			assert(fields[idx++].compare("outcome_time") == 0);
-			assert(fields[idx++].compare("split") == 0);
-
-			// Attributes
-			while (idx < fields.size() && boost::starts_with(fields[idx], "attr_")) {
-				string name = fields[idx].substr(5, fields[idx].length() - 5);
-				attr_names.push_back(name);
-				idx++;
+			if (fields[idx].compare(fields_order_weight[idx]) == 0) {
+				++idx;
+				curr_fields_order = &fields_order_weight;
+				curr_pos_fields = &pos_fields_weight;
 			}
 
-			// Str-Attributes
-			while (idx < fields.size() && boost::starts_with(fields[idx], "str_attr_")) {
-				string name = fields[idx].substr(9, fields[idx].length() - 9);
-				str_attr_names.push_back(name);
-				idx++;
+			for (; idx < curr_pos_fields->size(); ++idx)
+			{
+				curr_f = curr_fields_order->at(idx);
+				if (fields[idx].compare(curr_f) != 0) {
+					MLOG("header_line=%s\nIn field %s, idx=(%d / %zu), got_field_header=%s\n",
+						curr_line.c_str(), curr_f.c_str(), idx, curr_pos_fields->size(), fields[idx].c_str());
+					assert(fields[idx].compare(curr_f) == 0);
+				}
 			}
 
 			// Predictions
-			while (idx < fields.size() && boost::starts_with(fields[idx], "pred_")) {
-				nPreds++;
-				idx++;
+			while (idx < fields.size() && boost::starts_with(fields[idx], pred_prefix)) {
+				pos_preds.push_back(idx);
+				++idx;
 			}
 
-			// Features
+			// Attributes
+			while (idx < fields.size() && boost::starts_with(fields[idx], attr_prefix)) {
+				string name = fields[idx].substr(attr_prefix.size());
+				pos_attr[name] = idx;
+				++idx;
+			}
+
+			// Str-Attributes
+			while (idx < fields.size() && boost::starts_with(fields[idx], str_attr_prefix)) {
+				string name = fields[idx].substr(str_attr_prefix.size());
+				pos_str_attr[name] = idx;
+				++idx;
+			}
+
+			// Read Features
 			for (int i = idx; i < fields.size(); i++) {
 				data[fields[i]] = vector<float>();
 				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
@@ -443,29 +496,26 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname)
 			if (fields.size() != ncols)
 				MTHROW_AND_ERR("Expected %d fields, got %d fields in line: \'%s\'\n", ncols, (int)fields.size(), curr_line.c_str());
 
-			idx++;
+			//skip pre fields: serial
+			++idx;
 
-			if (weighted)
-				weights.push_back(stof(fields[idx++]));
+			if (curr_pos_fields->find(weight_field_anme) != curr_pos_fields->end()) {
+				weights.push_back(stof(fields[curr_pos_fields->at(weight_field_anme)]));
+				++idx;
+			}
 
 			MedSample newSample;
-			newSample.id = stoi(fields[idx++]);
-			newSample.time = stoi(fields[idx++]);
-			newSample.outcome = stof(fields[idx++]);
-			newSample.outcomeTime = stoi(fields[idx++]);
-			newSample.split = stoi(fields[idx++]);
-
-			for (unsigned int i = 0; i < attr_names.size(); i++)
-				newSample.attributes[attr_names[i]] = stof(fields[idx++]);
-
-			for (unsigned int i = 0; i < str_attr_names.size(); i++)
-				newSample.str_attributes[str_attr_names[i]] = fields[idx++];
-
-			newSample.prediction.resize(nPreds);
-			for (int i = 0; i < nPreds; i++)
-				newSample.prediction[i] = stof(fields[idx++]);
+			newSample.parse_from_string(fields, *curr_pos_fields, pos_preds, pos_attr, pos_str_attr, time_unit, (int)read_time_raw, ",");
 
 			samples.push_back(newSample);
+			//advance idx in fields to last pos:
+			idx = (int)curr_fields_order->size();
+			if (!pos_preds.empty() && idx < pos_preds.back() + 1)
+				idx = pos_preds.back() + 1;
+			if (!pos_attr.empty() && idx < max_ind_map(pos_attr) + 1)
+				idx = max_ind_map(pos_attr) + 1;
+			if (!pos_str_attr.empty() && idx < max_ind_map(pos_str_attr) + 1)
+				idx = max_ind_map(pos_str_attr) + 1;
 
 			for (int i = 0; i < names.size(); i++)
 				data[names[i]].push_back(stof(fields[idx++]));
@@ -1329,7 +1379,7 @@ int MedFeatures::mark_imputed_in_masks(float _missing_val)
 	vector<string> names;
 	get_feature_names(names);
 
-	
+
 #pragma omp parallel for
 	for (int i = 0; i < names.size(); i++) {
 		unsigned char *p_mask = masks[names[i]].data();

@@ -10,37 +10,49 @@
 #define LOCAL_SECTION MED_SAMPLES_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-//=======================================================================================
-// MedSample
-//=======================================================================================
-// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split) in addition to pred_pos vector and attr_pos map
-//.......................................................................................
-int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, map<string, int>& str_attr_pos, int time_unit, int raw_format) {
+int MedSample::parse_from_string(const vector<string> &fields, const map<string, int> & pos, const vector<int>& pred_pos, const map<string, int>& attr_pos,
+	const map<string, int>& str_attr_pos, int time_unit, int raw_format, const string &delimeter) {
 	if (pos.size() == 0)
-		return parse_from_string(s, time_unit);
-	vector<string> fields;
-	boost::split(fields, s, boost::is_any_of("\t\n\r"));
+		return -1;
+
 	if (fields.size() == 0)
 		return -1;
 	try {
-		if (pos["id"] != -1)
-			id = (int)stod(fields[pos["id"]]);
-		if (pos["date"] != -1) {
+		if (pos.find("id") != pos.end())
+			id = (int)stod(fields[pos.at("id")]);
+		else
+			MTHROW_AND_ERR("Couldn't find id in sample\n");
+		string time_name = "date";
+		if (pos.find("date") == pos.end())
+			time_name = "time"; //name in MedFeature
+
+		if (pos.find(time_name) != pos.end()) {
 			if (raw_format)
-				time = stoi(fields[pos["date"]]);
+				time = stoi(fields[pos.at(time_name)]);
 			else
-				time = med_time_converter.convert_datetime_safe(time_unit, fields[pos["date"]], 2);
+				time = med_time_converter.convert_datetime_safe(time_unit, fields[pos.at(time_name)], 2);
 		}
-		if (pos["outcome"] != -1)
-			outcome = stof(fields[pos["outcome"]]);
-		if (pos["outcome_date"] != -1) {
+		else
+			MTHROW_AND_ERR("Couldn't find time in sample\n");
+		if (pos.find("outcome") != pos.end())
+			outcome = stof(fields[pos.at("outcome")]);
+		else
+			MTHROW_AND_ERR("Couldn't find outcome in sample\n");
+
+		string outcomeTime_name = "outcome_date";
+		if (pos.find("outcome_date") == pos.end())
+			outcomeTime_name = "outcome_time";
+		if (pos.find(outcomeTime_name) != pos.end()) {
 			if (raw_format)
-				outcomeTime = stoi(fields[pos["outcome_date"]]);
+				outcomeTime = stoi(fields[pos.at(outcomeTime_name)]);
 			else
-				outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos["outcome_date"]], 1);
+				outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos.at(outcomeTime_name)], 1);
 		}
-		if (pos["split"] != -1 && fields.size() > pos["split"])
-			split = stoi(fields[pos["split"]]);
+		else
+			MTHROW_AND_ERR("Couldn't find outcome_date in sample\n");
+
+		if (pos.find("split") != pos.end() && fields.size() > pos.at("split"))
+			split = stoi(fields[pos.at("split")]);
 
 		for (int pos : pred_pos) {
 			if (pos != -1 && fields.size() > pos)
@@ -60,9 +72,24 @@ int MedSample::parse_from_string(string &s, map <string, int> & pos, vector<int>
 		return 0;
 	}
 	catch (std::invalid_argument e) {
+		string s = medial::io::get_list(fields, delimeter);
 		MLOG("could not parse [%s]\n", s.c_str());
 		return -1;
 	}
+}
+
+//=======================================================================================
+// MedSample
+//=======================================================================================
+// Get sample from tab-delimited string, where pos indicate the position of each field (fields are id,date,outcome,outcome_date,split) in addition to pred_pos vector and attr_pos map
+//.......................................................................................
+int MedSample::parse_from_string(string &s, const map <string, int> & pos, const vector<int>& pred_pos, const map<string, int>& attr_pos,
+	const map<string, int>& str_attr_pos, int time_unit, int raw_format, const string &delimeter) {
+	if (pos.size() == 0)
+		return parse_from_string(s, time_unit);
+	vector<string> fields;
+	boost::split(fields, s, boost::is_any_of(delimeter));
+	return parse_from_string(fields, pos, pred_pos, attr_pos, str_attr_pos, time_unit, raw_format, delimeter);
 }
 
 // Get sample from tab-delimited string, in old or new format (<split> and <prediction> optional, <predictions> can be several numbers (tab delimited))
@@ -121,31 +148,33 @@ int MedSample::parse_from_string(string &s, int time_unit)
 }
 
 
-void MedSample::write_to_string(string &s, int time_unit)
+void MedSample::write_to_string(string &s, int time_unit, const string &delimeter) const
 {
 	vector<string> my_attributes, my_str_attributes;
 	for (auto& attr : attributes)
 		my_attributes.push_back(attr.first);
 	for (auto& attr : str_attributes)
 		my_str_attributes.push_back(attr.first);
-	write_to_string(s, my_attributes, my_str_attributes, time_unit);
+	write_to_string(s, my_attributes, my_str_attributes, time_unit, delimeter);
 }
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit)
+void MedSample::write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit, const string &delimeter) const
 {
-	s = "";
-	s += "SAMPLE\t" + to_string(id) + "\t" + med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, time) + "\t" + to_string(outcome) + "\t"
-		+ med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, outcomeTime);
-	s += "\t" + to_string(split);
+	stringstream s_buff;
+	//s = "";
+	s_buff << "SAMPLE" << delimeter << id << delimeter << med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, time)
+		<< delimeter << outcome << delimeter << med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, outcomeTime);
+
+	s_buff << delimeter << split;
 	for (auto p : prediction)
-		s += "\t" + to_string(p);
+		s_buff << delimeter << p;
 	for (const string& a : attr)
-		s += "\t" + to_string(attributes[a]);
+		s_buff << delimeter << attributes.at(a);
 	for (const string& a : str_attr)
-		s += "\t" + str_attributes[a];
-	return;
+		s_buff << delimeter << str_attributes.at(a);
+	s = s_buff.str();
 }
 
 // printing all samples with prefix appearing in the begining of each line
