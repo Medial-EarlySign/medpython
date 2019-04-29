@@ -476,7 +476,7 @@ int MedQRF::n_preds_per_sample() const
 }
 
 void MedQRF::calc_feature_importance(vector<float> &features_importance_scores,
-	const string &general_params) {
+	const string &general_params, const MedFeatures *features) {
 	if (qf.qtrees.empty())
 		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 	vector<pair<short, double>> res;
