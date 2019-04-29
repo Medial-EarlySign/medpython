@@ -20,6 +20,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_MISSING_SHAP;
 	else if (lower_p == "lime_shap")
 		return FTR_POSTPROCESS_LIME_SHAP;
+	else if (lower_p == "linear")
+		return FTR_POSTPROCESS_LINEAR;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %s\n", post_processor.c_str());
 }
@@ -46,6 +48,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new MissingShapExplainer;
 	else if (type == FTR_POSTPROCESS_LIME_SHAP)
 		prc = new LimeExplainer;
+	else if (type == FTR_POSTPROCESS_LINEAR)
+		prc = new LinearExplainer;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %d\n", type);
 
@@ -69,6 +73,7 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, ShapleyExplainer);
 	CONDITIONAL_NEW_CLASS(dname, MissingShapExplainer);
 	CONDITIONAL_NEW_CLASS(dname, LimeExplainer);
+	CONDITIONAL_NEW_CLASS(dname, LinearExplainer);
 	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }

@@ -1658,7 +1658,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 	random_device rd;
 	mt19937 gen(rd());
 
-	//int ngrps = (int)group2index.size();
+	int ngrps = (int)group2index.size();
 
 	int tot_feat_cnt = (int)matrix.data.size();
 
@@ -1668,7 +1668,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 	for (size_t i = 0; i < full_feat_ls.size(); ++i)
 		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
 
-	features_coeff.resize(tot_feat_cnt);
+	features_coeff.resize(ngrps);
 
 	//calc shapley for each variable
 	if (verbose)
@@ -1676,41 +1676,36 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 	MedTimer tm_taker;
 	tm_taker.start();
 	bool warn_shown = false;
-	MedProgress progress_full("shapley", tot_feat_cnt, 15);
-	//bool sample_masks_with_repeats = false;
-	//float select_from_all = (float)0.8; //If 80% of all options than sample from all
-	//bool uniform_rand = false;
-	//bool use_shuffle = true;
+	MedProgress progress_full("shapley", ngrps, 15);
 
-	for (size_t param_i = 0; param_i < tot_feat_cnt; ++param_i)
+	for (size_t grp_i = 0; grp_i < ngrps; ++grp_i)
 	{
 		double phi_i = 0;
-		if (fast_access[param_i] == missing_value)
-			continue;
-		//iterate on all other features  execpt param_i, and other features that are already missing in the given example
-		vector<string> candidates; //for sampling options from - skip missings
-		for (size_t i = 0; i < full_feat_ls.size(); ++i)
-		{
-			if (i == param_i || fast_access[i] == missing_value)
-				continue;
-			candidates.push_back(full_feat_ls[i]);
+		bool has_miss = false;
+		int param_it = 0;
+		while (!has_miss && param_it < group2index[grp_i].size()) {
+			has_miss = fast_access[group2index[grp_i][param_it]] == missing_value;
+			++param_it;
 		}
+		if (has_miss)
+			continue;
 
+		int grps_opts = ngrps - 1;
 		vector<vector<bool>> all_opts;
 		bool iter_all = true;
 		int max_loop = max_tests;
-		double nchoose = pow(2, (int)candidates.size());
-		if (nchoose < max_loop)
+		double nchoose = grps_opts <= 20 ? pow(2, grps_opts) : -1;
+		if (grps_opts <= 20 && nchoose < max_loop)
 			max_loop = nchoose;
 		else {
 			iter_all = false;
-			if (!warn_shown && verbose)
+			if (!warn_shown && verbose && grps_opts <= 20)
 				MLOG("Warning have %d options, and max_test is %d\n", (int)nchoose, max_loop);
 		}
 
-		if (iter_all || float(nchoose) / max_tests >= select_from_all) {
-			list_all_options_binary((int)candidates.size(), all_opts);
-			vector<bool> empty_vec(candidates.size()), full_vec(candidates.size(), true);
+		if (grps_opts <= 20 && (iter_all || float(nchoose) / max_tests >= select_from_all)) {
+			list_all_options_binary(grps_opts, all_opts);
+			vector<bool> empty_vec(grps_opts), full_vec(grps_opts, true);
 			all_opts.push_back(empty_vec);
 			all_opts.push_back(full_vec);
 
@@ -1718,7 +1713,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 			if (!iter_all) {
 				if (!warn_shown && verbose) {
 					MLOG("Warning: not iterating all in feature %zu has %zu candidates, has %d options, max_test=%d\n",
-						param_i, candidates.size(), (int)nchoose, max_loop);
+						grp_i, grps_opts, (int)nchoose, max_loop);
 #pragma omp critical
 					warn_shown = true;
 				}
@@ -1727,7 +1722,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 			}
 		}
 		else
-			sample_options_SHAP((int)candidates.size(), all_opts, max_loop, gen, sample_masks_with_repeats, uniform_rand, use_shuffle);
+			sample_options_SHAP(grps_opts, all_opts, max_loop, gen, sample_masks_with_repeats, uniform_rand, use_shuffle);
 
 		//complete all_opts to nfeats size:
 		bool deafult_not_selected = true; //mark all the rest(missing values that aren't tested) as fixed to missing value
@@ -1735,16 +1730,17 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 		{
 			vector<bool> mask(full_feat_ls.size(), deafult_not_selected);
 			vector<bool> &truncated_mask = all_opts[i];
-			int cand_idx = 0;
-			for (size_t j = 0; j < full_feat_ls.size(); ++j)
+			for (int j = 0; j < grps_opts; ++j)
 			{
-				if (cand_idx < candidates.size() && full_feat_ls[j] == candidates[cand_idx]) {
-					mask[j] = truncated_mask[cand_idx];
-					++cand_idx;
-				}
+				bool mask_val = truncated_mask[j];
+				int cand_idx = j + int(j >= grp_i);
+				for (int ind : group2index[cand_idx]) //set all group indexes as in mask
+					mask[ind] = mask_val;
 				//else keeps default (was missing value) - which means keep as missing value or iterate through
 			}
-			mask[param_i] = false; //mark always as false the selected feature to test
+			for (int ind : group2index[grp_i])
+				mask[ind] = false; //mark always as false the selected feature to test
+
 			truncated_mask = move(mask);
 		}
 
@@ -1753,7 +1749,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 		tm.start();
 
 		//collect score for each permutition of missing values:
-		int end_l = (int)candidates.size();
+		int end_l = grps_opts;
 		vector<float> full_pred_all_masks_without(max_loop * tot_feat_cnt), full_pred_all_masks_with(max_loop* tot_feat_cnt);
 		for (int i = 0; i < max_loop; ++i) {
 			float *mat_without = &full_pred_all_masks_without[i * tot_feat_cnt];
@@ -1763,8 +1759,9 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 					mat_without[j] = missing_value;
 				else
 					mat_without[j] = fast_access[j];
+
 			for (size_t j = 0; j < tot_feat_cnt; ++j)
-				if (!all_opts[i][j] && j != param_i)
+				if (!all_opts[i][j] && j != grp_i)
 					mat_with[j] = missing_value;
 				else
 					mat_with[j] = fast_access[j];
@@ -1788,7 +1785,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 
 		if (verbose)
 			progress_full.update();
-		features_coeff[param_i] = phi_i;
+		features_coeff[grp_i] = phi_i;
 	}
 
 	tm_taker.take_curr_time();
