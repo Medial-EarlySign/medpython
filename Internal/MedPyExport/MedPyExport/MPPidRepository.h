@@ -7,7 +7,7 @@
 class MPSigVectorAdaptor;
 class MPSig;
 class MedPidRepository;
-class UniversalSigVec;
+//class UniversalSigVec;
 class MPSigExporter;
 
 
@@ -73,10 +73,10 @@ public:
 
 class MPSig {
 	int idx;
-	UniversalSigVec* o;
+	void* o;
 
 public:
-	MEDPY_IGNORE(MPSig(UniversalSigVec* _o, int index));
+	MEDPY_IGNORE(MPSig(void* _o, int index));
 	MPSig(const MPSig& other);
 
 	int time(int chan = 0);
@@ -92,7 +92,7 @@ public:
 
 class MPSigVectorAdaptor {
 public:
-	MEDPY_IGNORE(UniversalSigVec* o);
+	MEDPY_IGNORE(void* o);
 	MEDPY_IGNORE(MPSigVectorAdaptor());
 	MPSigVectorAdaptor(const MPSigVectorAdaptor& other);
 	~MPSigVectorAdaptor();

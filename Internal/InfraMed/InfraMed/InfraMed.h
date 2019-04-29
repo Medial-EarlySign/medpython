@@ -337,7 +337,7 @@ public:
 	inline void *uget(int pid, const string &sig_name, UniversalSigVec &usv);
 	//		inline void *get(int pid, int sid, int &len);					// use this variant inside big loops to avoid map from string to int. // default variant
 	inline void *get_all_modes(int pid, int sid, int &len);
-	inline void *uget(int pid, int sid, UniversalSigVec &usv);		// Universal vec API, use this inside loops to avoid string map
+	inline void *uget(int pid, int sid, UniversalSigVec_old &usv);		// Universal vec API, use this inside loops to avoid string map
 	inline void *uget(int pid, int sid, GenericSigVec &gsv);
 	void * (MedRepository::*get_ptr)(int, int, int&) = &MedRepository::get3;
 	inline void *get(int pid, int sid, int &len) { return (this->*get_ptr)(pid, sid, len); }
@@ -608,7 +608,7 @@ inline void *MedRepository::uget(int pid, const string &sig_name, UniversalSigVe
 	return(uget(pid, sid, usv));
 }
 
-inline void *MedRepository::uget(int pid, int sid, UniversalSigVec &usv)
+inline void *MedRepository::uget(int pid, int sid, UniversalSigVec_old &usv)
 {
 	usv.init(sigs.Sid2Info[sid]);
 

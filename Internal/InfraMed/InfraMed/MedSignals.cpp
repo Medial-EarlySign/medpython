@@ -261,6 +261,7 @@ int MedSignals::read(const string &fname)
 					info.sid = sid;
 					info.name = fields[1];
 					info.type = type;
+#ifdef NEW_USV
 					if (type == T_Generic) {
 						if (type_fields.size() < 2) {
 							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
@@ -271,8 +272,11 @@ int MedSignals::read(const string &fname)
 						info.bytes_len = gsv.size();
 					}
 					else
+#endif
 					{
+#ifdef NEW_USV
 						info.generic_signal_spec = MedRep::get_type_generic_spec((SigType)type);
+#endif
 						info.bytes_len = MedRep::get_type_size((SigType)type);
 					}
 					if (fields.size() == 4)
@@ -526,7 +530,7 @@ int MedSignals::get_sids(vector<string> &sigs, vector<int> &sids)
 //================================================================================================
 // UniversalSigVec
 //================================================================================================
-void UniversalSigVec::init(const SignalInfo &info)
+void UniversalSigVec_old::init(const SignalInfo &info)
 {
 	_time_unit = info.time_unit;
 	if (info.type == (int)type) return; // no need to init, same type as initiated

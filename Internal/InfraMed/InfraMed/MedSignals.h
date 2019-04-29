@@ -16,6 +16,22 @@ using namespace std;
 
 #define N_SignalTypes
 
+
+//#define NEW_USV
+
+#ifdef NEW_USV
+class GenericSigVec;
+class GenericSigVec_mem;
+typedef class GenericSigVec UniversalSigVec;
+typedef class GenericSigVec_mem UniversalSigVec_mem;
+#else // legacy USV
+class UniversalSigVec_old;
+class UniversalSigVec_mem_old;
+typedef class UniversalSigVec_old UniversalSigVec;
+typedef class UniversalSigVec_mem_old UniversalSigVec_mem;
+#endif
+
+
 enum SigType {
 	T_Value = 0,		// 0 :: single float Value
 	T_DateVal,		// 1 :: date (32 bit space yyyymmdd reccomended) , float value (MOST COMMON !)
@@ -702,7 +718,7 @@ public:
 };
 
 
-class UniversalSigVec {
+class UniversalSigVec_old {
 public:
 	void *data;
 	int len;		// type len (not bytes len)
@@ -782,14 +798,14 @@ protected:
 * Managed memory version of UniversalSigVec.
 * for example when allocating new virtual records
 */
-class UniversalSigVec_mem : public UniversalSigVec {
+class UniversalSigVec_mem_old : public UniversalSigVec_old {
 public:
 	bool manage;
-	UniversalSigVec_mem() {
+	UniversalSigVec_mem_old() {
 		manage = false;
 	}
 
-	~UniversalSigVec_mem() {
+	~UniversalSigVec_mem_old() {
 		if (len > 0 && data != NULL && manage) {
 			delete[](char *)data;
 			data = NULL;
@@ -797,7 +813,7 @@ public:
 		}
 	}
 
-	void set(const UniversalSigVec &s) {
+	void set(const UniversalSigVec_old &s) {
 		data = s.data;
 		len = s.len;
 		manage = false;
@@ -877,7 +893,7 @@ public:
 			return type_enc::UNDEFINED;
 		}
 	};
-	char *data;
+	void *data;
 	int len;		// type len (not bytes len)
 	
 	int n_time_channels() const { return n_time; };
@@ -885,10 +901,10 @@ public:
 
 	// time unit & unitless time
 	int time_unit() const { return _time_unit; };
-	int Time_ch_vec(int idx, int chan, void * data_) { return Time<int>(idx, chan, (char*)data); } // Time(idx,chan)
-	void SetVal_ch_vec(int idx, int chan, float _val, void *data_) { setVal(idx, chan, _val, (char*)data_); };
+	int Time_ch_vec(int idx, int chan, void * data_) { return Time<int>(idx, chan, data); } // Time(idx,chan)
+	void SetVal_ch_vec(int idx, int chan, float _val, void *data_) { setVal(idx, chan, _val, data_); };
 
-	inline void Set(int idx, int *times, float *vals) { Set(idx, times, vals, (void*)data); }
+	inline void Set(int idx, int *times, float *vals) { Set(idx, times, vals, data); }
 
 	inline void Set(int idx, int *times, float *vals, void* data_)
 	{
@@ -901,7 +917,7 @@ public:
 
 	size_t size() const { return struct_size; }
 
-	void init(const SignalInfo &info) { init_from_spec(info.generic_signal_spec); }
+	void init(const SignalInfo &info) { _time_unit = info.time_unit; init_from_spec(info.generic_signal_spec); }
 
 	int struct_size;
 	int n_time;
@@ -913,11 +929,11 @@ public:
 	unsigned char val_channel_types[GENERIC_SIG_VEC_MAX_CHANNELS];
 
 	void set_data(void* _data, int _len) {
-		data = (char*)_data;
+		data = _data;
 		len = _len;
 	}
 	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time(0), n_val(0) {}
-	GenericSigVec(const string& signalSpec) : GenericSigVec() { init_from_spec(signalSpec); }
+	GenericSigVec(const string& signalSpec, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_spec(signalSpec); }
 	GenericSigVec(const GenericSigVec& other) { *this = other; }
 	GenericSigVec& operator=(const GenericSigVec& other) {
 		data = other.data;
@@ -940,11 +956,11 @@ public:
 	void init_from_spec(const string& signalSpec);
 
 	template<typename T = int>
-	T Time(int idx, int chan) const { return Time<int>(idx, chan, data); }
+	T Time(int idx, int chan) const { return Time<T>(idx, chan, data); }
 
 	template<typename T = int>
-	T Time(int idx, int chan, char* data_) const {
-		auto field_ptr = data_ + idx * struct_size + time_channel_offsets[chan];
+	T Time(int idx, int chan, void* data_) const {
+		auto field_ptr = ((char*)data_) + idx * struct_size + time_channel_offsets[chan];
 		switch (time_channel_types[chan]) {
 		case type_enc::INT32:   return (T)(*(int*)(field_ptr));
 		case type_enc::INT64:   return (T)(*(long long*)(field_ptr));
@@ -963,8 +979,8 @@ public:
 
 	void setTime(int idx, int chan, int new_val) { setTime(idx, chan, new_val, data); }
 
-	void setTime(int idx, int chan, int new_val, char* data_) {
-		auto field_ptr = data_ + idx * struct_size + time_channel_offsets[chan];
+	void setTime(int idx, int chan, int new_val, void* data_) {
+		auto field_ptr = ((char*)data_) + idx * struct_size + time_channel_offsets[chan];
 		switch (time_channel_types[chan]) {
 		case type_enc::INT32:   (*(int*)(field_ptr)) = new_val; return;
 		case type_enc::INT64:   (*(long long*)(field_ptr)) = new_val; return;
@@ -981,11 +997,11 @@ public:
 	}
 
 	template<typename T = float>
-	T Val(int idx, int chan) const { return Val<int>(idx, chan, data); }
+	T Val(int idx, int chan) const { return Val<T>(idx, chan, data); }
 
 	template<typename T = float>
-	T Val(int idx, int chan, char* data_) const {
-		auto field_ptr = data_ + idx * struct_size + val_channel_offsets[chan];
+	T Val(int idx, int chan, void* data_) const {
+		auto field_ptr = ((char*)data_) + idx * struct_size + val_channel_offsets[chan];
 		switch (val_channel_types[chan]) {
 		case type_enc::FLOAT32: return (T)(*(float*)(field_ptr));
 		case type_enc::INT16:   return (T)(*(short*)(field_ptr));
@@ -1004,8 +1020,8 @@ public:
 
 	void setVal(int idx, int chan, float new_val) { setVal(idx, chan, new_val, data); }
 
-	void setVal(int idx, int chan, float new_val, char* data_) {
-		auto field_ptr = data_ + idx * struct_size + val_channel_offsets[chan];
+	void setVal(int idx, int chan, float new_val, void* data_) {
+		auto field_ptr = ((char*)data_) + idx * struct_size + val_channel_offsets[chan];
 		switch (val_channel_types[chan]) {
 		case type_enc::FLOAT32: (*(float*)(field_ptr)) = new_val; return;
 		case type_enc::INT16:   (*(short*)(field_ptr)) = new_val; return;
@@ -1076,6 +1092,5 @@ public:
 		GenericSigVec::operator=(s);
 	}
 };
-
 
 #endif
