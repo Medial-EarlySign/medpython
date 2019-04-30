@@ -617,7 +617,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 
 								case T_TimeShort4:
 									
-									cd.time = stoll(fields[2]);
+									cd.time = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
 									
 									if (sigs.is_categorical_channel(sid, 0))
 										cd.val1 = dict.get_id_or_throw(section, fields[3]);
