@@ -167,7 +167,9 @@ namespace medial {
 		/// <summary>get a vector of values, a vector of probabilities, and returning a matching vector of values such that Prob(x<=pvals[i])=p[i] </summary>
 		/// <summary>currently, there is no in-place version </summary>
 		template<class T> void get_percentiles(vector<T> &vals, vector<float> &p, vector<T> &out_pvals, int only_positive_flag=false);
-
+		/// <summary>get a vector of values and weights, a float 0<=q<=1, and returning the   element of the vector that the weights to its left(after sorting) sum to q of the total weights. 
+		/// <summary>All this done in average linear time
+		template<typename T> T get_quantile(vector<T> vals,vector<float> w, float q);
 		/// <summary> gets a vector of values, and checks the best way to round it at the 10^-3 to 10^3 (at 10x steps) range. </summary>
 		float get_best_rounding(vector<float>& vals, vector<float>& res, vector<int>& counts, float missing_value = -1);
 	}

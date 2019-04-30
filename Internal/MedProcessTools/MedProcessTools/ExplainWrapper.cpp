@@ -5,6 +5,7 @@
 #include <omp.h>
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
+#include <MedStat/MedStat/MedStat.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -848,4 +849,101 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		for (size_t k = 0; k < groupNames.size(); ++k)
 			curr[groupNames[k]] = curr_res[k];
 	}
+}
+void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	this->original_predictor = original_pred;
+	// get the features and normalize them
+	MedFeatures normalizedFeatures = train_mat;
+	MedMat<float> normalizedMatrix;
+	normalizedFeatures.get_as_matrix(normalizedMatrix);
+	normalizedMatrix.normalize();
+	normalizedFeatures.set_as_matrix(normalizedMatrix);
+	//represent features by limitted number of clusters
+	
+	vector<int>clusters;
+	MedMat<float>dists;
+	KMeans(normalizedMatrix, numClusters, centers, clusters, dists);
+	vector <float> weights(clusters.size());
+	double sum=0;
+	for (int i=0;i<clusters.size();i++){
+		weights[i] += clusters[i];
+		sum+=clusters[i];
+	}
+	for (auto i = weights.begin(); i < weights.end(); i++)(*i) /= sum;
+
+	// keep the normalization learnt params
+	centers.avg = normalizedMatrix.avg;
+	centers.std = normalizedMatrix.std;
+
+	//keep the features for the apply phase
+	trainingMap.set_as_matrix(centers);
+	trainingMap.weights = weights;
+	this->original_predictor->predict(trainingMap);
+
+
+	
+}
+void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const
+{
+	MedFeatures explainedFeatures = matrix;
+	MedMat<float> explainedMatrix;
+	//normalize the explained features
+	explainedFeatures.get_as_matrix(explainedMatrix);
+	vector<float>learnedAvg = centers.avg;
+	vector<float>learnedStd = centers.std;
+	explainedMatrix.normalize(learnedAvg,learnedStd,1);
+	//for each sample compute the explanation
+	vector <float> thisRow;
+	for (int row = 0; row < explainedMatrix.nrows; row++) {
+		explainedMatrix.get_row(row, thisRow);
+		computeExplanation(thisRow, sample_explain_reasons[row]);
+	}
+}
+void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons)const
+// do the calculation for a single sample after normalization
+{
+	MedMat<float> pDistance;
+	vector<float>totalDistance(centers.nrows,0);
+#define SQR(x)  ((x)*(x))
+	for (int row = 0; row < centers.nrows; row++) {
+		for (int col = 0; col < centers.ncols; col++) {
+			pDistance(row,col) = SQR(centers.get(row, col) - thisRow[col]);
+			totalDistance[row] += pDistance(row, col);
+		}
+		for (int col = 0; col < centers.ncols; col++) 
+			pDistance(row, col) = totalDistance[row] - pDistance(row, col);
+	}
+	vector<float> thresholds(centers.nrows, 0);
+	vector <float> colVector;
+	float totalThreshold = medial::stats::get_quantile(totalDistance, trainingMap.weights, fraction);
+	for (int col = 0; col < centers.ncols; col++) {
+		pDistance.get_col(col, colVector);
+		thresholds[col]= medial::stats::get_quantile(colVector, trainingMap.weights, fraction);
+	}
+	double sumWeights=0;
+	double pCol;
+	double pTotal=0;
+	for (int row = 0; row < pDistance.nrows; row++) {
+		if (totalDistance[row] < totalThreshold) {
+			pTotal += trainingMap.weights[row]*trainingMap.samples[row].prediction[0];
+			sumWeights += trainingMap.weights[row];
+		}
+		pTotal /= sumWeights;
+	}
+	vector <string> featureNames;
+	trainingMap.get_feature_names(featureNames);
+	for (int col = 0; col < centers.ncols; col++) {
+		pCol = 0;
+		sumWeights = 0;
+		for (int row = 0; row < pDistance.nrows; row++)
+			if (pDistance.get(row, col) < thresholds[col]) {
+				pCol += trainingMap.weights[row]*trainingMap.samples[row].prediction[0];
+				sumWeights += trainingMap.weights[row];
+			}
+		pCol /= sumWeights;
+		sample_explain_reasons[featureNames[col]] = pTotal / (pCol + 1e-10);
+	}
+
+
+
 }

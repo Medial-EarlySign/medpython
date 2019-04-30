@@ -19,6 +19,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_MISSING_SHAP;
 	else if (lower_p == "lime_shap")
 		return FTR_POSTPROCESS_LIME_SHAP;
+	else if (lower_p == "knn")
+		return FTR_POSTPROCESS_KNN_EXPLAIN;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %s\n", post_processor.c_str());
 }
@@ -41,6 +43,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new MissingShapExplainer;
 	else if (type == FTR_POSTPROCESS_LIME_SHAP)
 		prc = new LimeExplainer;
+	else if (type == FTR_POSTPROCESS_KNN_EXPLAIN)
+		prc = new KNN_Explainer;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %d\n", type);
 

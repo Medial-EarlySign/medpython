@@ -158,6 +158,8 @@ int KMeans(MedMat<float> &x, int K, int max_iter, MedMat<float> &centers, vector
 	clusters.resize(x.nrows);
 	dists.resize(x.nrows, K);
 
+	centers.signals = x.signals;
+
 	return KMeans(x.data_ptr(), x.nrows, x.ncols, K, max_iter, centers.data_ptr(), VEC_DATA(clusters), dists.data_ptr());
 }
 

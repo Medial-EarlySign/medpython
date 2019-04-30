@@ -220,6 +220,34 @@ public:
 			group2Ind, groupNames)
 };
 
+/**
+* shapley explainer with gibbs, GAN or other sampler generator
+*/
+class KNN_Explainer : public ModelExplainer {
+private:
+	int numClusters = 1000; // how many samples represent the training space
+	MedMat<float>centers;
+	MedFeatures trainingMap;
+	float fraction=0.05; //fraction of points that is considered neighborhood to a point
+
+	
+public:
+	
+	KNN_Explainer() { processor_type = FTR_POSTPROCESS_KNN_EXPLAIN; }
+
+	//int init(map<string, string> &mapper);
+
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+
+	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	void computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons)const;
+		// do the calculation for a single sample after normalization
+
+	ADD_CLASS_NAME(KNN_Explainer)
+		ADD_SERIALIZATION_FUNCS(original_predictor)
+};
+
 MEDSERIALIZE_SUPPORT(TreeExplainer)
 MEDSERIALIZE_SUPPORT(MissingShapExplainer)
 MEDSERIALIZE_SUPPORT(ShapleyExplainer)
