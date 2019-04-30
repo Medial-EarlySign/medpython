@@ -1011,9 +1011,9 @@ int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>&
 	MedPredictor *model = MedPredictor::make_predictor(predictor, predictor_params);
 	vector<float> feat_importance;
 	model->learn(features);
-
-	model->calc_feature_importance(feat_importance, importance_params);
-
+	
+	model->calc_feature_importance(feat_importance, importance_params, &features);
+	
 	vector<pair<string, float>> features_scores((int)feat_importance.size());
 	map<string, vector<float>>::iterator it = features.data.begin();
 	for (size_t i = 0; i < feat_importance.size(); ++i)

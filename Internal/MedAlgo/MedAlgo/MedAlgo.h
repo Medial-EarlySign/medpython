@@ -178,7 +178,14 @@ public:
 
 	///Feature Importance - assume called after learn
 	virtual void calc_feature_importance(vector<float> &features_importance_scores,
-		const string &general_params) {
+		const string &general_params)
+	{
+		const MedFeatures *features = NULL;
+		calc_feature_importance(features_importance_scores,
+			general_params, features);
+	}
+	virtual void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params, const MedFeatures *features)  {
 		string model_name = "model_id=" + to_string(classifier_type);
 		if (predictor_type_to_name.find(classifier_type) != predictor_type_to_name.end())
 			model_name = predictor_type_to_name[classifier_type];
@@ -245,6 +252,7 @@ public:
 	virtual void prepare_predict_single() {};
 	virtual void predict_single(const vector<float> &x, vector<float> &preds) const;
 	virtual void predict_single(const vector<double> &x, vector<double> &preds) const;
+	virtual void calc_feature_importance_shap(vector<float> &features_importance_scores, string &importance_type, const MedFeatures *features);
 
 	// (De)Serialize
 	ADD_CLASS_NAME(MedPredictor)
@@ -481,7 +489,7 @@ public:
 	int Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int nsamples, int nftrs);
 private:
 	void set_eigen_threads() const;
-	void calc_feature_importance(vector<float> &features_importance_scores, const string &general_params);
+	void calc_feature_importance(vector<float> &features_importance_scores, const string &general_params, const MedFeatures *features);
 };
 
 void init_default_lm_params(MedLMParams& _parmas);
@@ -572,7 +580,7 @@ public:
 		void print(FILE *fp, const string& prefix) const;
 	void printTrees(const vector<string> &modelSignalNames, const string &outputPath) const;
 	void calc_feature_importance(vector<float> &features_importance_scores,
-		const string &general_params);
+		const string &general_params, const MedFeatures *features);
 
 	// Predictions per sample
 	int n_preds_per_sample() const;

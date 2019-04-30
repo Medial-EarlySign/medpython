@@ -128,8 +128,9 @@ public:
 	virtual void print(FILE *fp, const string& prefix) const;
 
 	void calc_feature_importance(vector<float> &features_importance_scores,
-		const string &general_params);
-	virtual void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
+		const string &general_params, const MedFeatures *features);
+	
+	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
 	int n_preds_per_sample() const;
 
@@ -165,6 +166,7 @@ private:
 	vector<BoosterHandle> learner_per_thread;
 
 	void translate_split_penalties(string& split_penalties_s);
+	void calc_feature_importance_local(vector<float> &features_importance_scores, string &importance_type);
 	vector<char> serial_xgb;
 };
 
