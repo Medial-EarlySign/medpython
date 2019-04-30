@@ -1255,6 +1255,15 @@ void MedModel::clear()
 		feature_processors.clear();
 	}
 
+	if (post_processors.size() > 0) {
+		for (auto postprocc : post_processors)
+			if (postprocc != NULL) {
+				delete postprocc;
+				postprocc = NULL;
+			}
+		post_processors.clear();
+	}
+
 	if (predictor != NULL) {
 		delete predictor;
 		predictor = NULL;

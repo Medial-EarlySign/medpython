@@ -110,3 +110,12 @@ void MultiPostProcessor::dprint(const string &pref) const {
 	for (size_t i = 0; i < post_processors.size(); ++i)
 		post_processors[i]->dprint(pref);
 }
+
+MultiPostProcessor::~MultiPostProcessor() {
+	for (size_t i = 0; i < post_processors.size(); ++i)
+		if (post_processors[i] != NULL) {
+			delete post_processors[i];
+			post_processors[i] = NULL;
+		}
+	post_processors.clear();
+}

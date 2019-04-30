@@ -107,6 +107,7 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 		}
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
 	}
+	XGDMatrixFree(h_test);
 }
 
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
