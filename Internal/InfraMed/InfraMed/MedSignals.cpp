@@ -116,6 +116,17 @@ int MedRep::get_type_size(SigType t)
 }
 
 //-----------------------------------------------------------------------------------------------
+int MedRep::get_type_channels(const string& sigSpec, int &time_unit, int &n_time_chans, int &n_val_chans)
+{
+	GenericSigVec gsv;
+	gsv.init_from_spec(sigSpec);
+	n_time_chans = gsv.n_time_channels();
+	n_val_chans = gsv.n_val_channels();
+	time_unit = MedTime::Undefined;
+	return 0;
+}
+
+//-----------------------------------------------------------------------------------------------
 int MedRep::get_type_channels(SigType t, int &time_unit, int &n_time_chans, int &n_val_chans)
 {
 	switch (t) {
@@ -268,23 +279,25 @@ int MedSignals::read(const string &fname)
 							return -1;
 						}
 						info.generic_signal_spec = type_fields[1];
-						GenericSigVec gsv(info.generic_signal_spec);
-						info.bytes_len = gsv.size();
+						info.bytes_len = GenericSigVec(info.generic_signal_spec).size();
+						MedRep::get_type_channels(info.generic_signal_spec, info.time_unit, info.n_time_channels, info.n_val_channels);
 					}
 					else
-#endif
 					{
-#ifdef NEW_USV
 						info.generic_signal_spec = MedRep::get_type_generic_spec((SigType)type);
-#endif
 						info.bytes_len = MedRep::get_type_size((SigType)type);
+						MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
 					}
+#else
+					info.bytes_len = MedRep::get_type_size((SigType)type);					
+					// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
+					MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
+#endif
 					if (fields.size() == 4)
 						info.description = "";
 					else
 						info.description = fields[4];
-					// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
-					MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
+					
 					if (sid >= Sid2Info.size()) {
 						SignalInfo si;
 						si.sid = -1;
@@ -458,25 +471,20 @@ int MedSignals::fno(int sid)
 }
 
 
+
 //-----------------------------------------------------------------------------------------------
-int MedSignals::insert_virtual_signal(const string &sig_name, int type)
+int MedSignals::_allocate_new_signal(const string &sig_name)
 {
-	// lock to allow concurrency
-	lock_guard<mutex> guard(insert_signal_mutex);
-
+	int new_sid = -1;
 	if (Name2Sid.find(sig_name) != Name2Sid.end()) {
+		new_sid = -1;
 		MERR("MedSignals: ERROR: Can't insert %s as virtual , it already exists\n", sig_name.c_str());
-		return -1;
-	}
-
-	if (type<0 || type>(int)T_Last) {
-		MERR("MedSignals: ERROR: Can't insert virtual signal %s : type %d not recognized\n", sig_name.c_str(), type);
 		return -1;
 	}
 
 	// get_max_sid used currently, we will enter our sig_name as this + 1
 	int max_sid = Sid2Name.rbegin()->first;
-	int new_sid = max_sid + 1;
+	new_sid = max_sid + 1;
 
 	// take care of all basic tables: Name2Sid , Sid2Name, signal_names, signal_ids, Sid2Info
 	Name2Sid[sig_name] = new_sid;
@@ -484,6 +492,28 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	signals_names.push_back(sig_name);
 	signals_ids.push_back(new_sid);
 
+	// take care of sid2serial
+	sid2serial.resize(new_sid + 1, -1); // resize to include current new_sid
+	sid2serial[new_sid] = (int)signals_ids.size() - 1; // -1 since serials start at 0
+
+	return new_sid; // returning the new sid (always positive) as the rc
+}
+
+
+//-----------------------------------------------------------------------------------------------
+int MedSignals::insert_virtual_signal(const string &sig_name, int type)
+{
+	// lock to allow concurrency
+	lock_guard<mutex> guard(insert_signal_mutex);
+
+	if (type<0 || type>(int)T_Last) {
+		MERR("MedSignals: ERROR: Can't insert virtual signal %s : type %d not recognized\n", sig_name.c_str(), type);
+		return -1;
+	}
+
+	int new_sid = _allocate_new_signal(sig_name);
+	if(new_sid < 0)
+		return -1;
 
 	SignalInfo info;
 	info.sid = new_sid;
@@ -492,6 +522,7 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	info.bytes_len = MedRep::get_type_size((SigType)type);
 	info.description = "Virtual Signal";
 	info.virtual_sig = 1;
+	info.generic_signal_spec = MedRep::get_type_generic_spec((SigType)type);
 	if (my_repo != NULL)
 		info.time_unit = my_repo->time_unit;
 	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
@@ -503,13 +534,43 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	}
 	Sid2Info[new_sid] = info;
 
-	// take care of sid2serial
-	sid2serial.resize(new_sid + 1, -1); // resize to include current new_sid
-	sid2serial[new_sid] = (int)signals_ids.size() - 1; // -1 since serials start at 0
+	return new_sid; // returning the new sid (always positive) as the rc
+}
 
+//-----------------------------------------------------------------------------------------------
+int MedSignals::insert_virtual_signal(const string &sig_name, const string& signalSpec)
+{
+	// lock to allow concurrency
+	lock_guard<mutex> guard(insert_signal_mutex);
+
+	int new_sid = _allocate_new_signal(sig_name);
+	if (new_sid < 0)
+		return -1;
+
+	SignalInfo info;
+	info.sid = new_sid;
+	info.name = sig_name;
+	info.type = T_Generic;
+	info.generic_signal_spec = signalSpec;
+	
+	info.bytes_len = GenericSigVec(info.generic_signal_spec).size();
+
+	info.description = "Virtual Signal";
+	info.virtual_sig = 1;
+	if (my_repo != NULL)
+		info.time_unit = my_repo->time_unit;
+	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
+	MedRep::get_type_channels(signalSpec, info.time_unit, info.n_time_channels, info.n_val_channels);
+	if (new_sid >= Sid2Info.size()) {
+		SignalInfo si;
+		si.sid = -1;
+		Sid2Info.resize(new_sid + 1, si);
+	}
+	Sid2Info[new_sid] = info;
 
 	return new_sid; // returning the new sid (always positive) as the rc
 }
+
 
 //-----------------------------------------------------------------------------------------------
 int MedSignals::get_sids(vector<string> &sigs, vector<int> &sids)

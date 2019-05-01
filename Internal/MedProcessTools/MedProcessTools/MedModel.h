@@ -67,6 +67,7 @@ public:
 
 	/// all collected virtual signals (name to type)
 	map<string, int> virtual_signals;
+	map<string, string> virtual_signals_generic;
 
 	// Constructor/Destructor
 	MedModel() { safe_mode = 0; serialize_learning_set = 0; };

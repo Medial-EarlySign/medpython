@@ -17,7 +17,7 @@ using namespace std;
 #define N_SignalTypes
 
 
-//#define NEW_USV
+#define NEW_USV
 
 #ifdef NEW_USV
 class GenericSigVec;
@@ -57,6 +57,7 @@ namespace MedRep {
 	int get_type_size(SigType t);
 	string get_type_generic_spec(SigType t);
 	int get_type_channels(SigType t, int &time_unit, int &n_time_chans, int &n_val_chans);
+	int get_type_channels(const string& sigSpec, int &time_unit, int &n_time_chans, int &n_val_chans);
 	template <class T> int get_type_channels_info(int &time_unit, int &n_time_chans, int &n_val_chans) {
 		time_unit = T::time_unit();
 		n_time_chans = T::n_time_channels();
@@ -680,6 +681,7 @@ class MedRepository;
 // Signals file handler
 //===================================================================
 class MedSignals {
+	int _allocate_new_signal(const string &sig_name);
 public:
 	vector<string> fnames;
 	string signals_to_files;
@@ -714,6 +716,7 @@ public:
 	// this option allows adding new signals definitions to the class, that were not defined in the files.
 	// this is useful when using repositories to calculate new features, etc.
 	int insert_virtual_signal(const string &sig_name, int type);
+	int insert_virtual_signal(const string &sig_name, const string& signalSpec);
 	int get_sids(vector<string> &sigs, vector<int> &sids);
 };
 

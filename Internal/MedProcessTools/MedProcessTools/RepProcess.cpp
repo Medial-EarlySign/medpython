@@ -461,10 +461,10 @@ void RepMultiProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 
 // Virtual Signals names : Get the virtual signals map
 //.......................................................................................
-void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals)
+void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic)
 {
 	for (auto& processor : processors)
-		processor->add_virtual_signals(_virtual_signals);
+		processor->add_virtual_signals(_virtual_signals, _virtual_signals_generic);
 }
 
 // Add req_signals to set only if processor is required for any of preReqSignalNames

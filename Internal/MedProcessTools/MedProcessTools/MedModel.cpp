@@ -352,6 +352,11 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		req_signals.push_back(rep.sigs.sid(vsig.first));
 	}
 
+	for (auto &vsig : virtual_signals_generic) {
+		//		MLOG("GENERATE: vsig %s %d\n", vsig.first.c_str(), vsig.second);
+		req_signals.push_back(rep.sigs.sid(vsig.first));
+	}
+
 	// prepare for generation
 	for (auto& generator : _generators)
 		generator->prepare(features, rep, *samples);
@@ -1005,7 +1010,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG_D("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
-		processor->add_virtual_signals(virtual_signals);
+		processor->add_virtual_signals(virtual_signals, virtual_signals_generic);
 	}
 
 	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
@@ -1018,7 +1023,14 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 			signalNames.erase(vsig.first);
 	}
 
-	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size());
+	// Erasing virtual signals !
+	for (auto &vsig : virtual_signals_generic) {
+		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
+		if (signalNames.find(vsig.first) != signalNames.end())
+			signalNames.erase(vsig.first);
+	}
+
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size()+virtual_signals_generic.size());
 
 }
 
@@ -1045,11 +1057,10 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG_D("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
-		processor->add_virtual_signals(virtual_signals);
+		processor->add_virtual_signals(virtual_signals, virtual_signals_generic);
 	}
 
 	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
-
 
 	// Erasing virtual signals !
 	for (auto &vsig : virtual_signals) {
@@ -1057,8 +1068,14 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
+	
+	for (auto &vsig : virtual_signals_generic) {
+		if (verbosity) MLOG("check virtual %s\n", vsig.first.c_str());
+		if (signalNames.find(vsig.first) != signalNames.end())
+			signalNames.erase(vsig.first);
+	}
 
-	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size()+virtual_signals_generic.size());
 
 }
 
@@ -1076,44 +1093,70 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 
 //.......................................................................................
 void collect_and_add_virtual_signals_static(MedRepository &rep, vector<RepProcessor *> &rep_processors,
-	map<string, int> *virtual_signals = NULL, bool verbosity = true)
+	map<string, int> *virtual_signals = NULL, map<string, string> *virtual_signals_generic = NULL, bool verbosity = true)
 {
 	map<string, int> temp_m;
+	map<string, string> temp_mg;
 	if (virtual_signals == NULL)
 		virtual_signals = &temp_m;
+	if (virtual_signals_generic == NULL)
+		virtual_signals_generic = &temp_mg;
 	// collecting
 	for (RepProcessor *processor : rep_processors)
-		processor->add_virtual_signals(*virtual_signals);
+		processor->add_virtual_signals(*virtual_signals, *virtual_signals_generic);
 	//register section_name to section_id if needed in each rep_processor virtual signal
 	for (RepProcessor *processor : rep_processors)
 		processor->register_virtual_section_name_id(rep.dict);
+
+	vector<string> all_virtual_signals_names;
 
 	// adding to rep
 	for (auto &vsig : *virtual_signals) {
 		//MLOG("Attempting to add virtual signal %s type %d (%d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		if (rep.sigs.sid(vsig.first) < 0) {
 			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
+			all_virtual_signals_names.push_back(vsig.first);
 			if (verbosity > 0)
 				MLOG_D("Added Virtual Signal %s type %d : got id %d\n", vsig.first.c_str(), vsig.second, new_id);
-			int add_section = rep.dict.section_id(vsig.first);
-			rep.dict.dicts[add_section].Name2Id[vsig.first] = new_id;
-			rep.dict.dicts[0].Name2Id[vsig.first] = new_id;
-			rep.dict.dicts[add_section].Id2Name[new_id] = vsig.first;
-			rep.dict.dicts[add_section].Id2Names[new_id] = { vsig.first };
-			rep.sigs.Sid2Info[new_id].time_unit = rep.sigs.my_repo->time_unit;
-			//rep.dict.SectionName2Id[vsig.first] = 0;
-			MLOG_D("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig.first));
 		}
 		else {
 			if (rep.sigs.sid(vsig.first) < 100)
 				MTHROW_AND_ERR("Failed defining virtual signal %s (type %d)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second, rep.sigs.sid(vsig.first));
 		}
 	}
+
+	// adding generic virual signals to rep
+	for (auto &vsig : *virtual_signals_generic) {
+		if (rep.sigs.sid(vsig.first) < 0) {
+			int new_id = rep.sigs.insert_virtual_signal(vsig.first, vsig.second);
+			all_virtual_signals_names.push_back(vsig.first);
+			if (verbosity > 0)
+				MLOG_D("Added Generic Virtual Signal %s spec='%s' : got id %d\n", vsig.first.c_str(), vsig.second.c_str(), new_id);
+		}
+		else {
+			if (rep.sigs.sid(vsig.first) < 100)
+				MTHROW_AND_ERR("Failed defining virtual signal %s (spec=%s)...(curr sid for it is: %d)\n", vsig.first.c_str(), vsig.second.c_str(), rep.sigs.sid(vsig.first));
+		}
+	}
+
+	// update dict
+	for (const auto &vsig_name : all_virtual_signals_names) {
+		int vsig_id = rep.sigs.Name2Sid[vsig_name];
+		int add_section = rep.dict.section_id(vsig_name);
+		rep.dict.dicts[add_section].Name2Id[vsig_name] = vsig_id;
+		rep.dict.dicts[0].Name2Id[vsig_name] = vsig_id;
+		rep.dict.dicts[add_section].Id2Name[vsig_id] = vsig_name;
+		rep.dict.dicts[add_section].Id2Names[vsig_id] = { vsig_name };
+		rep.sigs.Sid2Info[vsig_id].time_unit = rep.sigs.my_repo->time_unit;
+		//rep.dict.SectionName2Id[vsig_name] = 0;
+		MLOG_D("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig_name));
+	}
+
 }
 
 int MedModel::collect_and_add_virtual_signals(MedRepository &rep)
 {
-	collect_and_add_virtual_signals_static(rep, rep_processors, &virtual_signals, verbosity);
+	collect_and_add_virtual_signals_static(rep, rep_processors, &virtual_signals, &virtual_signals_generic, verbosity);
 	return 0;
 }
 

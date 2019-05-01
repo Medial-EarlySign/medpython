@@ -69,6 +69,7 @@ public:
 	/// and use it by name as a regular signal.
 	/// </summary>
 	vector<pair<string, int>> virtual_signals; ///< list of all virtual signals CREATED by this rep processor
+	vector<pair<string, string>> virtual_signals_generic;
 
 	// create a new rep_processor
 	/// <summary> create a new repository processor from name </summary>
@@ -107,7 +108,10 @@ public:
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	/// <summary> rep processors CREATING virtual signals need to implement this: adding their signals to the pile </summary>
-	virtual void add_virtual_signals(map<string, int> &_virtual_signals) { for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second; };
+	virtual void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) { 
+		for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second; 
+		for (auto &v : virtual_signals_generic) _virtual_signals_generic[v.first] = v.second;
+	};
 
 	// Required Signals functions : get all signals that are required by the processor
 	/// <summary> Append required signal names to set : parent function just uses req_signals  </summary>
@@ -237,7 +241,7 @@ public:
 	/// <summary> Required Signals ids : Fill the member vector - req_signal_ids </summary>
 	void set_required_signal_ids(MedDictionarySections& dict);
 	/// <summary> Reporting back virtual signals if there are any </summary>
-	void add_virtual_signals(map<string, int> &_virtual_signals);
+	void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic);
 
 	/// <summary> Required Signals names : Fill the unordered set signalNames </summary>
 	void get_required_signal_names(unordered_set<string>& signalNames);
@@ -1155,7 +1159,7 @@ public:
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-			signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
+			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel)
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
@@ -1296,7 +1300,7 @@ public:
 
 	// serialization
 	ADD_CLASS_NAME(RepCreateRegistry)
-		ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals, registry_values,
+		ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals, virtual_signals_generic, registry_values,
 			ht_identifiers, chf_identifiers, mi_identifiers, af_identifiers, ht_identifiers_given, chf_identifiers_given, mi_identifiers_given, af_identifiers_given,
 			ht_drugs, ht_chf_drugs, ht_dm_drugs, ht_extra_drugs, ht_drugs_gap,
 			dm_drug_sig, dm_drug_sets, dm_diagnoses_sig, dm_diagnoses_sets, dm_glucose_sig, dm_hba1c_sig, dm_diagnoses_severity,
@@ -1404,7 +1408,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepCombineSignals)
-		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
@@ -1441,7 +1445,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
@@ -1490,7 +1494,7 @@ public:
 	void print();
 
 	ADD_CLASS_NAME(RepAggregationPeriod)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, sets, period, req_signals, aff_signals, virtual_signals, time_unit_win, time_unit_sig, in_sid, V_ids, lut)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, sets, period, req_signals, aff_signals, virtual_signals, virtual_signals_generic, time_unit_win, time_unit_sig, in_sid, V_ids, lut)
 
 };
 
@@ -1530,7 +1534,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
-		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type)
+		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, virtual_signals_generic, output_type)
 
 		/// <summary> Print processors information </summary>
 		void print();
@@ -1565,7 +1569,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSignalRate)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
@@ -1618,7 +1622,7 @@ public:
 	void print();
 	ADD_CLASS_NAME(RepAggregateSignal)
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, output_name, work_channel, factor, time_window, time_unit,
-			start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals)
+			start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
