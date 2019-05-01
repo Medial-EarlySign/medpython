@@ -702,6 +702,8 @@ template<typename T> void GibbsSampler<T>::filter_samples(const map<string, vect
 
 }
 
+template<typename T> GibbsSampler<T>::~GibbsSampler() {}
+
 template class PredictorOrEmpty<float>;
 template class PredictorOrEmpty<double>;
 
