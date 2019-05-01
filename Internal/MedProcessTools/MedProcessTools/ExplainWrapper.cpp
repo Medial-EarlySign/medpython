@@ -173,9 +173,12 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	for (size_t i = 0; i < explain_reasons.size(); ++i)
 		filters.filter(explain_reasons[i]);
 
+	//string group_name = "ModelExplainer";
+	string group_name = my_class_name();
+#pragma omp critical
 	for (size_t i = 0; i < explain_reasons.size(); ++i)
 		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
-			matrix.samples[i].attributes["ModelExplainer::" + it->first] = it->second;
+			matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
 
 }
 

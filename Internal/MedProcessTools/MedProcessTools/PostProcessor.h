@@ -44,6 +44,8 @@ public:
 
 	virtual void dprint(const string &pref) const;
 
+	virtual ~PostProcessor() {};
+
 	ADD_CLASS_NAME(PostProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type)
 };
@@ -66,6 +68,8 @@ public:
 	void init_model(MedModel *mdl);
 
 	void dprint(const string &pref) const;
+
+	~MultiPostProcessor();
 
 	ADD_CLASS_NAME(MultiPostProcessor)
 		ADD_SERIALIZATION_FUNCS(post_processors)

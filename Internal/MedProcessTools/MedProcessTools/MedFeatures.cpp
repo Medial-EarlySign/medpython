@@ -266,31 +266,36 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	// Sanity - if write_attributes is true, all samples must have the same attributes
 	set<string> attr_names, str_attr_names;
 	if (write_attributes && !samples.empty()) {
-		int nAttr = (int)samples[0].attributes.size();
-		int nStrAttr = (int)samples[0].str_attributes.size();
+		vector<string> attributes_nm, attributes_str_names;
+		samples[0].get_all_attributes(attributes_nm, attributes_str_names);
 
-		for (auto& attr : samples[0].attributes)
-			attr_names.insert(attr.first);
+		int nAttr = (int)attributes_nm.size();
+		int nStrAttr = (int)attributes_str_names.size();
 
-		for (auto& attr : samples[0].str_attributes)
-			str_attr_names.insert(attr.first);
+		for (const string& attr : attributes_nm)
+			attr_names.insert(attr);
+
+		for (const string& attr : attributes_str_names)
+			str_attr_names.insert(attr);
 
 		for (unsigned int i = 1; i < samples.size(); i++) {
-			if (samples[i].attributes.size() != nAttr || samples[i].str_attributes.size() != nStrAttr) {
+			vector<string> attributes_nm_2, attributes_str_names_2;
+			samples[i].get_all_attributes(attributes_nm_2, attributes_str_names_2);
+			if (attributes_nm_2.size() != nAttr || attributes_str_names_2.size() != nStrAttr) {
 				MERR("Attrributes # inconsistency betweens samples %d and 0\n", i);
 				return -1;
 			}
 
-			for (auto& attr : samples[i].attributes) {
-				if (attr_names.find(attr.first) == attr_names.end()) {
-					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.first.c_str());
+			for (const string& attr : attributes_nm_2) {
+				if (attr_names.find(attr) == attr_names.end()) {
+					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.c_str());
 					return -1;
 				}
 			}
 
-			for (auto& attr : samples[i].str_attributes) {
-				if (str_attr_names.find(attr.first) == str_attr_names.end()) {
-					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.first.c_str());
+			for (const string attr : attributes_str_names_2) {
+				if (str_attr_names.find(attr) == str_attr_names.end()) {
+					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.c_str());
 					return -1;
 				}
 			}
@@ -342,15 +347,8 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 
 		// sample
 		string sample_str;
-		vector<string> my_attributes, my_str_attributes;
-		if (write_attributes) {
-			for (auto& attr : samples[i].attributes)
-				my_attributes.push_back(attr.first);
-			for (auto& attr : samples[i].str_attributes)
-				my_str_attributes.push_back(attr.first);
-		}
-
-		samples[i].write_to_string(sample_str, my_attributes, my_str_attributes, time_unit, ",");
+		
+		samples[i].write_to_string(sample_str, time_unit, write_attributes, ",");
 		boost::replace_all(sample_str, "SAMPLE,", "");
 
 		out_f << "," << sample_str;
@@ -362,6 +360,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	}
 
 	out_f.close();
+	MLOG("Wrote [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
 	return 0;
 }
 
