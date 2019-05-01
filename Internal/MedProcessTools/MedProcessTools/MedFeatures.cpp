@@ -508,7 +508,8 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 
 			samples.push_back(newSample);
 			//advance idx in fields to last pos:
-			idx = (int)curr_fields_order->size();
+			idx = (int)curr_pos_fields->size();
+			
 			if (!pos_preds.empty() && idx < pos_preds.back() + 1)
 				idx = pos_preds.back() + 1;
 			if (!pos_attr.empty() && idx < max_ind_map(pos_attr) + 1)
@@ -517,7 +518,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 				idx = max_ind_map(pos_str_attr) + 1;
 
 			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[idx++]));
+				data[names[i]].push_back(stof(fields[idx++]));	
 		}
 	}
 
