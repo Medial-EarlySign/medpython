@@ -48,6 +48,8 @@ public:
 	void pre_serialization();
 	void post_deserialization();
 
+	virtual ~SamplesGenerator() {};
+
 	ADD_CLASS_NAME(SamplesGenerator<T>)
 		ADD_SERIALIZATION_FUNCS(use_vector_api)
 
@@ -60,6 +62,7 @@ template<typename T> class GibbsSamplesGenerator : public SamplesGenerator<T> {
 private:
 	GibbsSampler<T> * _gibbs;
 	bool _do_parallel;
+	bool no_need_to_clear_mem;
 public:
 	GibbsSamplesGenerator();
 
@@ -73,6 +76,8 @@ public:
 
 	void pre_serialization();
 	void post_deserialization();
+
+	~GibbsSamplesGenerator();
 
 	ADD_CLASS_NAME(GibbsSamplesGenerator<T>)
 		ADD_SERIALIZATION_FUNCS(_gibbs, _do_parallel)

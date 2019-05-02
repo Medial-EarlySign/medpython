@@ -31,9 +31,10 @@ public:
 MEDSERIALIZE_SUPPORT(calibration_entry)
 
 enum CalibrationTypes {
-	probabilty_time_window = 0, ///< "time_window" bining, but also doing time window\kaplan meir
-	probabilty_binning = 1, ///< "binning" - binning
-	probabilty_platt_scale = 2 ///< "platt_scale" - platt scale method - sigmoid on pred score and optimize factors
+	probability_time_window = 0, ///< "time_window" bining, but also doing time window\kaplan meir
+	probability_binning = 1, ///< "binning" - binning
+	probability_platt_scale = 2, ///< "platt_scale" - platt scale method - sigmoid on pred score and optimize factors
+	probability_isotonic = 3 ///< "isotonic_regression" - piece-wise constance isotonic function from score to probability
 };
 
 extern unordered_map<int, string> calibration_method_to_name;
@@ -43,7 +44,7 @@ class Calibrator : public PostProcessor {
 public:
 	Calibrator() { processor_type = PostProcessorTypes::FTR_POSTPROCESS_CALIBRATOR; }
 
-	CalibrationTypes calibration_type = probabilty_time_window;
+	CalibrationTypes calibration_type = probability_time_window;
 
 	int time_unit = MedTime::Days;
 
@@ -66,7 +67,7 @@ public:
 	bool verbose = true; ///< If true will print verbose information for calibration
 
 	vector<calibration_entry> cals; ///< for "time_window"
-	vector<float> min_range, max_range, map_prob; ///< for "binning"
+	vector<float> min_range, max_range, map_prob; ///< for "binning/isotonic-regression"
 	vector<double> platt_params; ///< for "platt_scale"
 
 	string calibration_samples = ""; ///< calibration samples path to learn
@@ -91,10 +92,10 @@ public:
 	void read_calibration_table(const string& fname);
 
 	ADD_CLASS_NAME(Calibrator)
-		ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
-			km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
-			min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank, control_weight_down_sample,
-			cals, min_range, max_range, map_prob, platt_params)
+	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
+		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
+		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank, control_weight_down_sample,
+		cals, min_range, max_range, map_prob, platt_params)
 
 protected:
 	double calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor);

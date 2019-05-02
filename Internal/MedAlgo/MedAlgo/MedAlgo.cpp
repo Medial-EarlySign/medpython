@@ -534,7 +534,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order) {
 	// > min and <= max
 
-	//add mapping from model score to probabilty based on big enough bins of score
+	//add mapping from model score to probability based on big enough bins of score
 	//get prediction for X:
 	vector<float> preds;
 	predict(x, preds);
@@ -645,7 +645,7 @@ template<class T, class L> int MedPredictor::convert_scores_to_prob(const vector
 		double val = params[0];
 		for (size_t k = 1; k < params.size(); ++k)
 			val += params[k] * pow(double(preds[i]), double(k));
-		val = 1 / (1 + exp(val));//Platt Scale technique for probabilty calibaration
+		val = 1 / (1 + exp(val));//Platt Scale technique for probability calibaration
 		converted[i] = (L)val;
 	}
 
@@ -794,6 +794,26 @@ void MedPredictor::predict_single(const vector<float> &x, vector<float> &preds) 
 
 void MedPredictor::predict_single(const vector<double> &x, vector<double> &preds) const {
 	MTHROW_AND_ERR("Error not implemented in %s\n", my_class_name().c_str());
+}
+
+void MedPredictor::calc_feature_importance_shap(vector<float> &features_importance_scores, string &importance_type, const MedFeatures *features)
+{
+	MedMat<float> feat_mat,contribs_mat; 
+	if (features == NULL)
+		MTHROW_AND_ERR("SHAP values feature importance requires features \n");
+	
+	features->get_as_matrix(feat_mat);
+	calc_feature_contribs(feat_mat, contribs_mat);
+	for (int j = 0; j < contribs_mat.ncols; ++j)
+	{
+		float col_sum = 0;
+		
+		for (int i = 0; i < contribs_mat.nrows; ++i)
+		{
+			col_sum += abs(contribs_mat.get(i, j));
+		}
+		features_importance_scores[j] = col_sum/(float)contribs_mat.nrows;
+	}
 }
 
 void MedMicNet::prepare_predict_single() {

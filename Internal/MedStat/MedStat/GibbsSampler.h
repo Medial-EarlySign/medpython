@@ -22,8 +22,8 @@ private:
 public:
 	int input_size;
 	vector<T> sample_cohort; ///< all data points of feature
-	MedPredictor * predictor; ///< predictors for each feature and probabilty to see Y (logloss function)
-	vector<Calibrator> calibrators; ///< calibrator for probabilty for each pred
+	MedPredictor * predictor; ///< predictors for each feature and probability to see Y (logloss function)
+	vector<Calibrator> calibrators; ///< calibrator for probability for each pred
 	vector<float> bin_vals; ///< the value of feature for each pred 
 
 	vector<float> cluster_centers; ///< for kMeans centers
@@ -129,6 +129,8 @@ public:
 		float filter_sens);
 
 	int init(map<string, string>& map); ///< initialized params init function. reffer to that
+
+	virtual ~GibbsSampler();
 
 	ADD_CLASS_NAME(GibbsSampler<T>)
 		ADD_SERIALIZATION_FUNCS(params, feats_predictors, uniqu_value_bins, all_feat_names)

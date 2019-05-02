@@ -1900,7 +1900,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	tm_taker.start();
 	bool warn_shown = false;
 	float select_from_all = (float)0.8;
-	MedProgress tm_full("", ngrps, 15);
+	MedProgress tm_full("Shapley_Feature", ngrps, 15, 1);
 
 	for (size_t param_i = 0; param_i < ngrps; ++param_i)
 	{
@@ -2053,12 +2053,16 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 				i + 1, feat_rank[i].second.c_str(), feat_rank[i].first);
 
 		double sm = 0;
+		stringstream str_buff;
 		for (int i = 0; i < ngrps - 1; ++i) {
-			MLOG("%f +", feat_rank[i].first);
+			str_buff << feat_rank[i].first << " +";
 			sm += feat_rank[i].first;
 		}
 		sm += feat_rank[ngrps - 1].first;
-		MLOG("%f=%f\n", feat_rank[ngrps - 1].first, sm);
+		str_buff << feat_rank[ngrps - 1].first << "=" << sm;
+		if (!matrix.samples[selected_sample].prediction.empty())
+			str_buff << " predictor_score=" << matrix.samples[selected_sample].prediction[0];
+		MLOG("%s\n", str_buff.str().c_str());
 	}
 }
 

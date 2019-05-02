@@ -1011,7 +1011,8 @@ public:
 	int overall_count = 5; ///< weight of overall probability
 	map<float,int> target_labels; ///< if given, create a new feature per target label
 	map<float, string> feature_names; ///< feature names if multiple target_labels are given
-	bool remove_origin = true; ///< determine weather to remove original if multiple target_labels are given
+	bool remove_origin = true; ///< determine whether to remove original if multiple target_labels are given
+	bool all_labels = false; ///< if given - take all labels as target-labels
 
 	vector<map<float, float>> probs; ///< actual probability per class
 	vector<float> overall_prob; ///< default prob for unknown classes
