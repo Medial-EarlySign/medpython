@@ -21,8 +21,8 @@ public:
 	static const int LEARN_PREDICTOR;
 	static const int APPLY_PREDICTOR;
 	static const int INSERT_PREDS;
-	static const int LEARN_POST_PROCESS;
-	static const int APPLY_POST_PROCESS;
+	static const int LEARN_POST_PROCESSORS;
+	static const int APPLY_POST_PROCESSORS;
 	static const int END;
 };
 
