@@ -1,4 +1,5 @@
 #include "tree_shap.h"
+#include <omp.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -54,13 +55,22 @@ void TreeEnsemble::allocate(unsigned tree_limit_in, unsigned max_nodes_in, unsig
 }
 
 void TreeEnsemble::free() {
-	delete[] children_left;
-	delete[] children_right;
-	delete[] children_default;
-	delete[] features;
-	delete[] thresholds;
-	delete[] values;
-	delete[] node_sample_weights;
+	if (is_allocate) {
+		delete[] children_left;
+		delete[] children_right;
+		delete[] children_default;
+		delete[] features;
+		delete[] thresholds;
+		delete[] values;
+		delete[] node_sample_weights;
+		children_left = NULL;
+		children_right = NULL;
+		children_default = NULL;
+		features = NULL;
+		thresholds = NULL;
+		values = NULL;
+		node_sample_weights = NULL;
+	}
 	is_allocate = false;
 }
 
@@ -1641,21 +1651,24 @@ double medial::shapley::get_c(int p1, int p2, int end_l) {
 }
 
 void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value, vector<float> &features_coeff,
+	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index, const vector<string> &groupNames
+	, vector<float> &features_coeff,
 	bool sample_masks_with_repeats, float select_from_all, bool uniform_rand, bool use_shuffle,
 	bool verbose) {
 	random_device rd;
 	mt19937 gen(rd());
 
+	int ngrps = (int)group2index.size();
+
 	int tot_feat_cnt = (int)matrix.data.size();
+
 	vector<string> full_feat_ls;
 	matrix.get_feature_names(full_feat_ls);
-	vector<float> fast_access(tot_feat_cnt);
+	vector<float> fast_access(full_feat_ls.size());
 	for (size_t i = 0; i < full_feat_ls.size(); ++i)
 		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
 
-	features_coeff.resize(tot_feat_cnt);
-	global_logger.levels[LOG_MEDALGO] = MAX_LOG_LEVEL;
+	features_coeff.resize(ngrps);
 
 	//calc shapley for each variable
 	if (verbose)
@@ -1663,44 +1676,36 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 	MedTimer tm_taker;
 	tm_taker.start();
 	bool warn_shown = false;
-	MedTimer tm_full;
-	tm_full.start();
-	chrono::high_resolution_clock::time_point tm_prog_full = chrono::high_resolution_clock::now();
+	MedProgress progress_full("shapley", ngrps, 15);
 
-	//bool sample_masks_with_repeats = false;
-	//float select_from_all = (float)0.8; //If 80% of all options than sample from all
-	//bool uniform_rand = false;
-	//bool use_shuffle = true;
-
-	for (size_t param_i = 0; param_i < tot_feat_cnt; ++param_i)
+	for (size_t grp_i = 0; grp_i < ngrps; ++grp_i)
 	{
 		double phi_i = 0;
-		if (fast_access[param_i] == missing_value)
-			continue;
-		//iterate on all other features  execpt param_i, and other features that are already missing in the given example
-		vector<string> candidates; //for sampling options from - skip missings
-		for (size_t i = 0; i < full_feat_ls.size(); ++i)
-		{
-			if (i == param_i || fast_access[i] == missing_value)
-				continue;
-			candidates.push_back(full_feat_ls[i]);
+		bool has_miss = false;
+		int param_it = 0;
+		while (!has_miss && param_it < group2index[grp_i].size()) {
+			has_miss = fast_access[group2index[grp_i][param_it]] == missing_value;
+			++param_it;
 		}
+		if (has_miss)
+			continue;
 
+		int grps_opts = ngrps - 1;
 		vector<vector<bool>> all_opts;
 		bool iter_all = true;
 		int max_loop = max_tests;
-		double nchoose = pow(2, (int)candidates.size());
-		if (nchoose < max_loop)
+		double nchoose = grps_opts <= 20 ? pow(2, grps_opts) : -1;
+		if (grps_opts <= 20 && nchoose < max_loop)
 			max_loop = nchoose;
 		else {
 			iter_all = false;
-			if (!warn_shown && verbose)
+			if (!warn_shown && verbose && grps_opts <= 20)
 				MLOG("Warning have %d options, and max_test is %d\n", (int)nchoose, max_loop);
 		}
 
-		if (iter_all || float(nchoose) / max_tests >= select_from_all) {
-			list_all_options_binary((int)candidates.size(), all_opts);
-			vector<bool> empty_vec(candidates.size()), full_vec(candidates.size(), true);
+		if (grps_opts <= 20 && (iter_all || float(nchoose) / max_tests >= select_from_all)) {
+			list_all_options_binary(grps_opts, all_opts);
+			vector<bool> empty_vec(grps_opts), full_vec(grps_opts, true);
 			all_opts.push_back(empty_vec);
 			all_opts.push_back(full_vec);
 
@@ -1708,7 +1713,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 			if (!iter_all) {
 				if (!warn_shown && verbose) {
 					MLOG("Warning: not iterating all in feature %zu has %zu candidates, has %d options, max_test=%d\n",
-						param_i, candidates.size(), (int)nchoose, max_loop);
+						grp_i, grps_opts, (int)nchoose, max_loop);
 #pragma omp critical
 					warn_shown = true;
 				}
@@ -1717,7 +1722,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 			}
 		}
 		else
-			sample_options_SHAP((int)candidates.size(), all_opts, max_loop, gen, sample_masks_with_repeats, uniform_rand, use_shuffle);
+			sample_options_SHAP(grps_opts, all_opts, max_loop, gen, sample_masks_with_repeats, uniform_rand, use_shuffle);
 
 		//complete all_opts to nfeats size:
 		bool deafult_not_selected = true; //mark all the rest(missing values that aren't tested) as fixed to missing value
@@ -1725,16 +1730,17 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 		{
 			vector<bool> mask(full_feat_ls.size(), deafult_not_selected);
 			vector<bool> &truncated_mask = all_opts[i];
-			int cand_idx = 0;
-			for (size_t j = 0; j < full_feat_ls.size(); ++j)
+			for (int j = 0; j < grps_opts; ++j)
 			{
-				if (cand_idx < candidates.size() && full_feat_ls[j] == candidates[cand_idx]) {
-					mask[j] = truncated_mask[cand_idx];
-					++cand_idx;
-				}
+				bool mask_val = truncated_mask[j];
+				int cand_idx = j + int(j >= grp_i);
+				for (int ind : group2index[cand_idx]) //set all group indexes as in mask
+					mask[ind] = mask_val;
 				//else keeps default (was missing value) - which means keep as missing value or iterate through
 			}
-			mask[param_i] = false; //mark always as false the selected feature to test
+			for (int ind : group2index[grp_i])
+				mask[ind] = false; //mark always as false the selected feature to test
+
 			truncated_mask = move(mask);
 		}
 
@@ -1743,7 +1749,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 		tm.start();
 
 		//collect score for each permutition of missing values:
-		int end_l = (int)candidates.size();
+		int end_l = grps_opts;
 		vector<float> full_pred_all_masks_without(max_loop * tot_feat_cnt), full_pred_all_masks_with(max_loop* tot_feat_cnt);
 		for (int i = 0; i < max_loop; ++i) {
 			float *mat_without = &full_pred_all_masks_without[i * tot_feat_cnt];
@@ -1753,8 +1759,9 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 					mat_without[j] = missing_value;
 				else
 					mat_without[j] = fast_access[j];
+
 			for (size_t j = 0; j < tot_feat_cnt; ++j)
-				if (!all_opts[i][j] && j != param_i)
+				if (!all_opts[i][j] && j != grp_i)
 					mat_with[j] = missing_value;
 				else
 					mat_with[j] = fast_access[j];
@@ -1776,26 +1783,14 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 			phi_i += c * f_diff;
 		}
 
-		double duration_full = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog_full).count()) / 1000000.0;
-		if (duration_full > 15 && verbose) {
-			tm_prog_full = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_full.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(tot_feat_cnt - (param_i + 1)) / double(param_i + 1) * double(time_elapsed));
-			MLOG("Processed Feature %zu out of %zu(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", param_i + 1, tot_feat_cnt,
-				100.0*((param_i + 1) / float(tot_feat_cnt)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
-
-		features_coeff[param_i] = phi_i;
+		if (verbose)
+			progress_full.update();
+		features_coeff[grp_i] = phi_i;
 	}
 
 	tm_taker.take_curr_time();
 	if (verbose)
 		MLOG("Done explain_shapely. took %2.1f seconds\n", tm_taker.diff_sec());
-	global_logger.levels[LOG_MEDALGO] = LOG_DEF_LEVEL;
 }
 
 void collect_score_mask(const vector<float> &x, const vector<bool> &mask, SamplesGenerator<float> &sampler_gen
@@ -1841,8 +1836,48 @@ void collect_score_mask(const vector<float> &x, const vector<bool> &mask, Sample
 
 }
 
+int collect_mask(const vector<float> &x, const vector<bool> &mask, SamplesGenerator<float> &sampler_gen
+	, int sample_per_row, void *sampling_params, const vector<string> &feat_names, map<string, vector<float>> &gen_matrix) {
+
+	if (sampler_gen.use_vector_api) {
+		int size_before = (int)gen_matrix[feat_names.front()].size();
+		vector<vector<float>> mat_inp = { x };
+		vector<vector<bool>> masks = { mask };
+		vector<vector<float>> res; //the result matrix
+		sampler_gen.get_samples(res, sample_per_row, sampling_params, masks, mat_inp);
+
+
+#pragma omp critical
+		for (size_t i = 0; i < feat_names.size(); ++i) {
+			gen_matrix[feat_names[i]].resize(size_before + res.size());
+			for (size_t k = 0; k < res.size(); ++k)
+				gen_matrix[feat_names[i]][size_before + k] = res[k][i];
+		}
+
+		return (int)res.size();
+	}
+	else {
+		//no parallel:
+		int size_before = (int)gen_matrix[feat_names.front()].size();
+		sampler_gen.get_samples(gen_matrix, sampling_params, mask, x);
+		return (int)gen_matrix[feat_names.front()].size() - size_before;
+	}
+}
+
+template<typename T> double mean_vec(const T *v, int len) {
+
+	double s = 0;
+	for (size_t i = 0; i < len; ++i)
+		s += v[i];
+
+	if (len == 0)
+		MTHROW_AND_ERR("No values given for mean_vec. Cannot return anything valid\n");
+
+	return s / len;
+}
+
 template<typename T> void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value,
+	MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 	SamplesGenerator<T> &sampler_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose) {
 	random_device rd;
@@ -1855,8 +1890,8 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	for (size_t i = 0; i < full_feat_ls.size(); ++i)
 		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
 
-	features_coeff.resize(tot_feat_cnt);
-	global_logger.levels[LOG_MEDALGO] = MAX_LOG_LEVEL;
+	int ngrps = (int)group2index.size();
+	features_coeff.resize(ngrps);
 
 	//calc shapley for each variable
 	if (verbose)
@@ -1864,140 +1899,139 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	MedTimer tm_taker;
 	tm_taker.start();
 	bool warn_shown = false;
-	MedTimer tm_full;
-	tm_full.start();
-	chrono::high_resolution_clock::time_point tm_prog_full = chrono::high_resolution_clock::now();
+	float select_from_all = (float)0.8;
+	MedProgress tm_full("", ngrps, 15);
 
-	for (size_t param_i = 0; param_i < tot_feat_cnt; ++param_i)
+	for (size_t param_i = 0; param_i < ngrps; ++param_i)
 	{
 		double phi_i = 0;
-		if (fast_access[param_i] == missing_value)
-			continue;
+		int grps_opts = ngrps - 1;
 		//iterate on all other features  execpt param_i, and other features that are already missing in the given example
-		vector<string> candidates; //for sampling options from - skip missings
-		for (size_t i = 0; i < full_feat_ls.size(); ++i)
-		{
-			if (i == param_i || fast_access[i] == missing_value)
-				continue;
-			candidates.push_back(full_feat_ls[i]);
-		}
-
-		vector<vector<bool>> all_opts;
-		list_all_options_binary((int)candidates.size(), all_opts);
-		vector<bool> empty_vec(candidates.size()), full_vec(candidates.size(), true);
-		all_opts.push_back(empty_vec);
-		all_opts.push_back(full_vec);
-
 		bool iter_all = true;
 		int max_loop = max_tests;
-		double nchoose = pow(2, (int)candidates.size());
-		if (nchoose < max_loop)
+		double nchoose = grps_opts <= 20 ? pow(2, grps_opts) : -1;
+		if (grps_opts <= 20 && nchoose < max_loop)
 			max_loop = nchoose;
 		else {
 			iter_all = false;
-			if (!warn_shown && verbose)
+			if (!warn_shown && verbose && grps_opts <= 20)
 				MLOG("Warning have %d options, and max_test is %d\n", (int)nchoose, max_loop);
 		}
 
-		//select random masks from all options when not iterating all options:
-		if (!iter_all) {
-			if (!warn_shown && verbose) {
-				MLOG("Warning: not iterating all in feature %zu has %zu candidates, has %d options, max_test=%d\n",
-					param_i, candidates.size(), (int)nchoose, max_loop);
+		vector<vector<bool>> all_opts;
+		if (grps_opts <= 20 && (iter_all || float(nchoose) / max_tests >= select_from_all)) {
+			list_all_options_binary(grps_opts, all_opts);
+			vector<bool> empty_vec(grps_opts), full_vec(grps_opts, true);
+			all_opts.push_back(empty_vec);
+			all_opts.push_back(full_vec);
+
+			//select random masks from all options when not iterating all options:
+			if (!iter_all) {
+				if (!warn_shown && verbose) {
+					MLOG("Warning: not iterating all in feature %zu has %zu candidates, has %d options, max_test=%d\n",
+						param_i, grps_opts, (int)nchoose, max_loop);
 #pragma omp critical
-				warn_shown = true;
+					warn_shown = true;
+				}
+				shuffle(all_opts.begin(), all_opts.end(), gen);
+				all_opts.resize(max_loop);
 			}
-			shuffle(all_opts.begin(), all_opts.end(), gen);
-			all_opts.resize(max_loop);
 		}
-		//complete all_opts to nfeats size:
+		else
+			sample_options_SHAP(grps_opts, all_opts, max_loop, gen, false, true, false);
+
+		//complete all_opts to nfeats size using groups:
 		bool deafult_not_selected = true; //mark all the rest(missing values that aren't tested) as fixed to missing value
 		for (size_t i = 0; i < all_opts.size(); ++i)
 		{
 			vector<bool> mask(full_feat_ls.size(), deafult_not_selected);
 			vector<bool> &truncated_mask = all_opts[i];
-			int cand_idx = 0;
-			for (size_t j = 0; j < full_feat_ls.size(); ++j)
+
+			for (int j = 0; j < grps_opts; ++j)
 			{
-				if (cand_idx < candidates.size() && full_feat_ls[j] == candidates[cand_idx]) {
-					mask[j] = truncated_mask[cand_idx];
-					++cand_idx;
-				}
+				bool mask_val = truncated_mask[j];
+				int cand_idx = j + int(j >= param_i);
+				for (int ind : group2index[cand_idx]) //set all group indexes as in mask
+					mask[ind] = mask_val;
 				//else keeps default (was missing value) - which means keep as missing value or iterate through
 			}
-			mask[param_i] = false; //mark always as false the selected feature to test
+			for (int ind : group2index[param_i])
+				mask[ind] = false; //mark always as false the selected feature to test
+
 			truncated_mask = move(mask);
 		}
 
 		//build test matrix from all_opts:
-		MedTimer tm;
-		tm.start();
-		chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-		int progress = 0;
-
+		MedProgress progress("VV_Shapley(Feat " + to_string(param_i + 1) +
+			" out of " + to_string(ngrps) + ")", max_loop, 15, 1);
 		//collect score for each permutition of missing values:
-		int end_l = (int)candidates.size();
-#pragma omp parallel for
+		int end_l = grps_opts;
+
+		MedFeatures full_gen_samples;
+		full_gen_samples.attributes = matrix.attributes;
+		vector<int> splits_without(max_loop), splits_with(max_loop);
+
+		for (int i = 0; i < max_loop; ++i) {
+
+			int add_cnt = collect_mask(fast_access, all_opts[i], sampler_gen, sample_per_row, sampling_params,
+				full_feat_ls, full_gen_samples.data);
+
+			splits_without[i] = add_cnt;
+
+			vector<bool> with_mask = all_opts[i];
+			for (int ind : group2index[param_i])
+				with_mask[ind] = true; //mark always as false the selected feature to test
+			int add_cnt_with = collect_mask(fast_access, with_mask, sampler_gen, sample_per_row, sampling_params,
+				full_feat_ls, full_gen_samples.data);
+			splits_with[i] = add_cnt_with;
+
+			if (verbose)
+				progress.update();
+		}
+		full_gen_samples.samples.resize(full_gen_samples.data.begin()->second.size());
+		full_gen_samples.init_pid_pos_len();
+
+		predictor->predict(full_gen_samples);
+		vector<float> preds_with, preds_without;
+		preds_with.reserve(full_gen_samples.samples.size() / 2);
+		preds_without.reserve(full_gen_samples.samples.size() / 2);
+		vector<int> cumsum_without(max_loop), cumsum_with(max_loop);
+		int curr_smp_pos = 0;
+		for (int i = 0; i < max_loop; ++i) {
+			int cnt_1 = splits_without[i];
+			int cnt_2 = splits_with[i];
+
+			int without_st = (int)preds_without.size();
+			int with_st = (int)preds_with.size();
+			cumsum_without[i] = without_st;
+			cumsum_with[i] = with_st;
+
+			for (size_t j = 0; j < cnt_1; ++j)
+				preds_without.push_back(full_gen_samples.samples[curr_smp_pos + j].prediction[0]);
+			for (size_t j = 0; j < cnt_2; ++j)
+				preds_with.push_back(full_gen_samples.samples[curr_smp_pos + cnt_1 + j].prediction[0]);
+			curr_smp_pos += cnt_1 + cnt_2;
+		}
+
 		for (int i = 0; i < max_loop; ++i) {
 			float score_without, score_with;
 			int f_cnt = 0;
 			for (size_t j = 0; j < all_opts[i].size(); ++j)
 				f_cnt += int(all_opts[i][j]);
 
-			vector<float> preds_with, preds_without; //TOOD: when using vector_api to go out from this loop and collect all results togehter
-			if (f_cnt > 0) {
-				collect_score_mask(fast_access, all_opts[i], sampler_gen, sample_per_row, sampling_params,
-					full_feat_ls, matrix.attributes, predictor, preds_without);
-				score_without = (float)medial::stats::mean_without_cleaning(preds_without);
-			}
-			else
-				score_without = 0;
-
-			vector<bool> with_mask = all_opts[i];
-			with_mask[param_i] = true;
-			collect_score_mask(fast_access, with_mask, sampler_gen, sample_per_row, sampling_params,
-				full_feat_ls, matrix.attributes, predictor, preds_with);
-			score_with = (float)medial::stats::mean_without_cleaning(preds_with);
+			score_without = mean_vec(preds_without.data() + cumsum_without[i], splits_without[i]);
+			score_with = mean_vec(preds_with.data() + cumsum_with[i], splits_with[i]);
 
 			float f_diff = score_with - score_without;
 
 			int p1 = f_cnt;
 			int p2 = end_l - p1;
 			double c = get_c(p1, p2, end_l + 1);
-#pragma omp atomic
 			phi_i += c * f_diff;
-
-			//print progress 15 seconds:
-#pragma omp atomic
-			++progress;
-			double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_prog).count()) / 1000000.0;
-			if (duration > 15 && progress % 50 == 0 && verbose) {
-#pragma omp critical
-				tm_prog = chrono::high_resolution_clock::now();
-				double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-					- tm.t[0]).count()) / 1000000.0;
-				double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-				MLOG("(Feat %zu out of %zu) Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-					"estimate time to finish %2.1f Minutes\n", param_i + 1, tot_feat_cnt,
-					progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-					estimate_time / 60.0);
-			}
 		}
 
-		double duration_full = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog_full).count()) / 1000000.0;
-		if (duration_full > 15 && verbose) {
-			tm_prog_full = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_full.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(tot_feat_cnt - (param_i + 1)) / double(param_i + 1) * double(time_elapsed));
-			MLOG("Processed Feature %zu out of %zu(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", param_i + 1, tot_feat_cnt,
-				100.0*((param_i + 1) / float(tot_feat_cnt)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
-
+		if (verbose)
+			tm_full.update();
 		features_coeff[param_i] = phi_i;
 	}
 
@@ -2005,32 +2039,207 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	if (verbose)
 		MLOG("Done explain_shapely. took %2.1f seconds\n", tm_taker.diff_sec());
 
-	global_logger.levels[LOG_MEDALGO] = LOG_DEF_LEVEL;
-
 	if (verbose) {
-		vector<pair<float, string>> feat_rank(tot_feat_cnt);
+		vector<pair<float, string>> feat_rank(ngrps);
 		for (size_t i = 0; i < feat_rank.size(); ++i)
 		{
 			feat_rank[i].first = features_coeff[i];
-			feat_rank[i].second = full_feat_ls[i];
+			feat_rank[i].second = groupNames[i];
 		}
 		sort(feat_rank.begin(), feat_rank.end(), comp_score_flt_str);
 
-		for (int i = 0; i < tot_feat_cnt; ++i)
+		for (int i = 0; i < ngrps; ++i)
 			MLOG("EXPLAIN #%d by %s : feat_score=%f\n",
 				i + 1, feat_rank[i].second.c_str(), feat_rank[i].first);
 
 		double sm = 0;
-		for (int i = 0; i < tot_feat_cnt - 1; ++i) {
+		for (int i = 0; i < ngrps - 1; ++i) {
 			MLOG("%f +", feat_rank[i].first);
 			sm += feat_rank[i].first;
 		}
-		sm += feat_rank[tot_feat_cnt - 1].first;
-		MLOG("%f=%f\n", feat_rank[tot_feat_cnt - 1].first, sm);
+		sm += feat_rank[ngrps - 1].first;
+		MLOG("%f=%f\n", feat_rank[ngrps - 1].first, sm);
 	}
 }
 
 template void medial::shapley::explain_shapley<float>(const MedFeatures &matrix, int selected_sample, int max_tests,
-	MedPredictor *predictor, float missing_value,
+	MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 	SamplesGenerator<float> &sampler_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose);
+
+// Generate sampled matrix
+void generate_samples(const MedFeatures& data, int isample, const vector<vector<bool>>& masks, SamplesGenerator<float> *generator,
+	void *params, MedFeatures *out_data) {
+
+	if (generator->use_vector_api) {
+		int ncols = (int)data.data.size();
+		vector<vector<float>> in(masks.size(), vector<float>(ncols)), out(masks.size(), vector<float>(ncols));
+
+		int icol = 0;
+		for (auto& rec : data.data) {
+#pragma omp parallel for
+			for (int irow = 0; irow < masks.size(); irow++)
+				in[irow][icol] = rec.second[isample];
+			icol++;
+		}
+
+		MLOG("Generate\n");
+		generator->get_samples(out, 1, params, masks, in);
+
+		icol = 0;
+		for (auto& rec : data.data) {
+			out_data->attributes[rec.first] = data.attributes.at(rec.first);
+			out_data->data[rec.first].resize(masks.size());
+#pragma omp parallel for
+			for (int irow = 0; irow < masks.size(); irow++)
+				(out_data->data)[rec.first][irow] = out[irow][icol];
+			icol++;
+		}
+	}
+	else {
+		vector<string> all_n;
+		data.get_feature_names(all_n);
+		vector<const vector<float>*> data_p(data.data.size());
+		for (size_t i = 0; i < data_p.size(); ++i)
+			data_p[i] = &data.data.at(all_n[i]);
+		vector<float> init_data(out_data->data.size());
+		for (unsigned int icol = 0; icol < init_data.size(); ++icol)
+			init_data[icol] = data_p[icol]->at(isample);
+
+		for (int i = 0; i < masks.size(); ++i)
+			generator->get_samples(out_data->data, params, masks[i], init_data);
+	}
+}
+
+// Learn a Shapely-Lime model
+void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+	SamplesGenerator<float> *generator, float p, int n, float missing,
+	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
+	random_device rd;
+	int N_TH = omp_get_max_threads();
+	vector<mt19937> gen(N_TH);
+	for (size_t i = 0; i < N_TH; ++i)
+		gen[i] = mt19937(rd());
+	uniform_real_distribution<> coin_dist(0, 1);
+	uniform_int_distribution<> smp_choose(0, (int)data.samples.size() - 1);
+
+	int nsamples = (int)data.samples.size();
+	if (nsamples == 0) return;
+
+	vector<string> features;
+	data.get_feature_names(features);
+	int nftrs = (int)features.size();
+	int ngrps = (int)group_names.size();
+
+	alphas.resize(nsamples);
+
+	MedFeatures p_features;
+	p_features.attributes = data.attributes;
+	p_features.samples = data.samples;
+
+
+
+	// for predictions - dummy Rep + samples + features
+	for (int i = 0; i < n; i++) {
+		//random select:
+		int sel = smp_choose(gen[0]);
+		p_features.samples.push_back(data.samples[sel]);
+		//Add DATA:
+		for (auto it = data.data.begin(); it != data.data.end(); ++it)
+			p_features.data[it->first].push_back(it->second[sel]);
+	}
+	p_features.init_pid_pos_len();
+
+	// Generate samples and predict
+	MedTimer tm;
+	for (int isample = 0; isample < nsamples; isample++) {
+		tm.start();
+		MLOG("Working on sample %d\n", isample);
+
+		// Generate random masks
+		MedMat<float> train(ngrps, n);
+		vector<float> wgts(n);
+		vector < vector<bool>> masks(n, vector<bool>(nftrs));
+
+		vector<bool> missing_v(nftrs, false);
+		int nMissing = 0;
+		for (int i = 0; i < nftrs; i++) {
+			if (data.data.at(features[i])[isample] == missing) {
+				missing_v[i] = true;
+				nMissing++;
+			}
+		}
+
+		if (nMissing == nftrs)
+			MTHROW_AND_ERR("All values are missing for entry %d , Cannot explain\n", isample);
+
+#pragma omp parallel for
+		for (int irow = 0; irow < n; irow++) {
+			int n_th = omp_get_thread_num();
+			// Mask
+			int S = 0;
+			while (S == 0 || S == ngrps) {
+				S = 0;
+				for (int igrp = 0; igrp < ngrps; igrp++) {
+					bool grp_mask = coin_dist(gen[n_th]) > p;
+					if (grp_mask) { // Keep, unless all are missing
+						size_t nMissing = 0;
+						for (int iftr : group2index[igrp]) {
+							if (missing_v[iftr]) {
+								nMissing++;
+								masks[irow][iftr] = false;
+							}
+							else
+								masks[irow][iftr] = true;
+						}
+
+						if (nMissing == group2index[igrp].size()) // All are missing ...
+							train(igrp, irow) = 0.0;
+						else {
+							train(igrp, irow) = 1.0;
+							S++;
+						}
+					}
+					else { // Mask
+						for (int iftr : group2index[igrp])
+							masks[irow][iftr] = false;
+						train(igrp, irow) = 0.0;
+					}
+				}
+			}
+
+			// Weights
+			wgts[irow] = (ngrps - 1.0) / (medial::shapley::nchoosek(ngrps, S)*S*(ngrps - S));
+		}
+		train.transposed_flag = 1;
+
+		// Generate sampled data
+		generate_samples(data, isample, masks, generator, params, &p_features);
+
+		// Get predictions for samples
+		model->predict(p_features);
+
+		vector<float> preds(n);
+		double sum = 0;
+		for (int irow = 0; irow < n; ++irow) {
+			preds[irow] = p_features.samples[irow].prediction[0];
+			sum += preds[irow];
+		}
+
+		MLOG("sample=%d, mean_pred=%f\n", isample, sum / n);
+
+		// Learn linear model
+		MedLM lm;
+		lm.params.rfactor = (float)0.98;
+		lm.learn(train, preds, wgts);
+
+		// Extract alphas
+		alphas[isample].resize(ngrps);
+		for (int igrp = 0; igrp < ngrps; igrp++)
+			alphas[isample][igrp] = lm.b[igrp];
+
+		tm.take_curr_time();
+		MLOG("Explaining sample took %2.1f sec\n", tm.diff_sec());
+
+	}
+}

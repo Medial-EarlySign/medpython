@@ -82,6 +82,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, IterativeFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
 	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
+	MWARN("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 
@@ -993,27 +994,54 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 	get_all_values(features, resolved_feature_name, ids, values, (int) features.samples.size());
 
 	// Learn Probs
+	int nlabels = target_labels.empty() ? 1 : (int)target_labels.size();
 	map<float, int> nums;
-	map<float, int> pos_nums;
-	int overall_pos_num=0, overall_num=0;
+	vector<map<float, int>> pos_nums(nlabels);
+	int overall_num=0;
+	vector<int> overall_pos_num(nlabels);
 
-	for (unsigned int i = 0; i < values.size(); i++) {
-		if (values[i] != missing_value) {
-			nums[values[i]] ++;
-			overall_num++;
-			if (features.samples[i].outcome) {
-				pos_nums[values[i]] ++;
-				overall_pos_num++;
+	if (target_labels.empty()) { // Binary outcome
+
+		for (unsigned int i = 0; i < values.size(); i++) {
+			if (values[i] != missing_value) {
+				nums[values[i]] ++;
+				overall_num++;
+
+				if (features.samples[i].outcome) {
+					pos_nums[0][values[i]] ++;
+					overall_pos_num[0]++;
+				}
 			}
 		}
+	}
+	else { // Multi-categorical
+		for (unsigned int i = 0; i < values.size(); i++) {
+			if (values[i] != missing_value) {
+				nums[values[i]] ++;
+				overall_num++;
+
+				float outcome = features.samples[i].outcome;
+				if (target_labels.find(outcome) != target_labels.end()) {
+					pos_nums[target_labels[outcome]][values[i]] ++;
+					overall_pos_num[target_labels[outcome]]++;
+				}
+			}
+		}
+
+		for (auto& rec : target_labels)
+			feature_names[rec.first] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + feature_name + "_" + to_string(rec.first);
 	}
 
 	if (overall_num == 0)
 		MTHROW_AND_ERR("Cannot learn Get-Prob feature processor on an empty vector for %s\n", feature_name.c_str());
 
-	overall_prob = (overall_pos_num + 0.0) / overall_num;
-	for (auto& rec : nums)
-		probs[rec.first] = (pos_nums[rec.first] + overall_count * overall_prob) / (nums[rec.first] + overall_count);
+	overall_prob.resize(nlabels);
+	probs.resize(nlabels);
+	for (int i = 0; i < nlabels; i++) {
+		overall_prob[i] = (overall_pos_num[i] + 0.0) / overall_num;
+		for (auto& rec : nums)
+			probs[i][rec.first] = (pos_nums[i][rec.first] + overall_count * overall_prob[i]) / (nums[rec.first] + overall_count);
+	}
 
 	return 0;
 }
@@ -1021,21 +1049,62 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 // Apply
 //.......................................................................................
 int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
-
+	
+	cerr << "Apply\n";
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	// Transform
 	bool empty = ids.empty();
 	vector<float>& data = features.data[resolved_feature_name];
-	for (unsigned int i = 0; i < features.samples.size(); i++) {
-		if ((empty || ids.find(features.samples[i].id) != ids.end())) {
-			if (data[i] == missing_value || probs.find(data[i]) == probs.end())
-				data[i] = overall_prob;
-			else
-				data[i] = probs[data[i]];
+
+	if (target_labels.empty()) { // Single outcome. inplace	
+		for (unsigned int i = 0; i < features.samples.size(); i++) {
+			if ((empty || ids.find(features.samples[i].id) != ids.end())) {
+				if (data[i] == missing_value || probs[0].find(data[i]) == probs[0].end())
+					data[i] = overall_prob[0];
+				else
+					data[i] = probs[0][data[i]];
+			}
+		}
+	} 
+	else { // Multiple outcomes. new features
+
+		// Prepare new Features
+		int samples_size = (int)features.samples.size();
+		for (auto& rec : feature_names) {
+			string feature_name = rec.second;
+#pragma omp critical
+			{
+				features.data[feature_name].clear();
+				features.data[feature_name].resize(samples_size, 0.0);
+				// Attributes
+				features.attributes[feature_name].normalized = false;
+				features.attributes[feature_name].imputed = true;
+			}
+		}
+
+		// Fill
+		for (unsigned int i = 0; i < features.samples.size(); i++) {
+			if ((empty || ids.find(features.samples[i].id) != ids.end())) {
+				if (data[i] == missing_value || probs[0].find(data[i]) == probs[0].end()) {
+					for (auto& rec : feature_names)
+						features.data[rec.second][i] = overall_prob[target_labels[rec.first]];
+				}
+				else {
+					for (auto& rec : feature_names)
+						features.data[rec.second][i] = probs[target_labels[rec.first]][data[i]];
+				}
+			}
+		}
+
+		// Remove original, if required
+		if (remove_origin) {
+			features.data.erase(resolved_feature_name);
+			features.attributes.erase(resolved_feature_name);
 		}
 	}
+
 
 	return 0;
 }
@@ -1051,7 +1120,14 @@ int GetProbFeatProcessor::init(map<string, string>& mapper) {
 		//! [GetProbFeatProcessor::init]
 		if (field == "name") feature_name = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
-		else if (field == "overall_count") overall_count = (med_stoi(entry.second) != 0);
+		else if (field == "overall_count") overall_count = med_stoi(entry.second);
+		else if (field == "remove_origin") remove_origin = (med_stoi(entry.second) != 0);
+		else if (field == "target_labels") {
+			vector<string> labels;
+			boost::split(labels, entry.second, boost::is_any_of(","));
+			for (int i = 0; i < (int)labels.size(); i++)
+				target_labels[stof(labels[i])]= i;
+		}
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for GetProbFeatProcessor\n", field.c_str());
 		//! [GetProbFeatProcessor::init]

@@ -1,0 +1,28 @@
+# CMake generation dependency list for this directory.
+C:/MR/Libs/External/xgboost/CMakeLists.txt
+C:/MR/Libs/External/xgboost/cmake/Utils.cmake
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/3.14.1/CMakeCCompiler.cmake
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/3.14.1/CMakeCXXCompiler.cmake
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/3.14.1/CMakeRCCompiler.cmake
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/3.14.1/CMakeSystem.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeCInformation.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeCXXInformation.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeGenericSystem.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeInitializeConfigs.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeLanguageInformation.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeParseImplicitLinkInfo.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeRCInformation.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeSystemSpecificInformation.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CMakeSystemSpecificInitialize.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Compiler/MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Compiler/MSVC-CXX.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/FindOpenMP.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/FindPackageMessage.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Platform/Windows-MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Platform/Windows-MSVC-CXX.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Platform/Windows-MSVC.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Platform/Windows.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/Platform/WindowsPaths.cmake

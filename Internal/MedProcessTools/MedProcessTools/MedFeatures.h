@@ -58,6 +58,12 @@ public:
 	map<string, FeatureAttr> attributes; ///< a FeatureAttr per feature
 	map<string, unordered_set<string> > tags; ///< a set of tags per feature
 
+	// masks for cleaning , imputing
+	const static unsigned char cleaned_mask = (unsigned char)0x01;
+	const static unsigned char imputed_mask = (unsigned char)0x02;
+	map<string, vector<unsigned char>> masks;
+	float medf_missing_value = (float)MED_MAT_MISSING_VALUE;
+
 	// time Unit
 	int time_unit; ///< the time unit of the samples 
 
@@ -115,7 +121,7 @@ public:
 	int write_as_csv_mat(const string &csv_fname, bool write_attributes = false) const;
 	/// <summary> Read features (samples + weights + data) from a csv file with a header line </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
-	int read_from_csv_mat(const string &csv_fname);
+	int read_from_csv_mat(const string &csv_fname, bool read_time_raw = true);
 
 	/// <summary> Filter data (and attributes) to include only selected features </summary> 
 	/// <return> -1 if any of the selected features is not present. 0 upon success  </returns>
@@ -124,9 +130,16 @@ public:
 	/// preparing a list all features that contain as a substring one of the given search strings, adds (that is not clearing selected on start)
 	int prep_selected_list(vector<string>& search_str, unordered_set<string> &selected);
 
+	// masks functions
+	int init_masks();
+	int get_masks_as_mat(MedMat<unsigned char> &masks_mat);
+	int mark_imputed_in_masks(float _missing_val);
+	int mark_imputed_in_masks() { return mark_imputed_in_masks(medf_missing_value); }
+
+
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)
-	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes, tags)
+	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes, tags, time_unit)
 
 };
 

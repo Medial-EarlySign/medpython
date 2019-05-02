@@ -1,0 +1,11 @@
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/rabit.dir
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/runxgboost.dir
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/objxgboost.dir
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/xgboost.dir
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/INSTALL.dir
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/ALL_BUILD.dir
+C:/MR/Libs/External/xgboost/winBuild/CMakeFiles/ZERO_CHECK.dir
+C:/MR/Libs/External/xgboost/winBuild/dmlc-core/CMakeFiles/dmlc.dir
+C:/MR/Libs/External/xgboost/winBuild/dmlc-core/CMakeFiles/dmlc_lint.dir
+C:/MR/Libs/External/xgboost/winBuild/dmlc-core/CMakeFiles/INSTALL.dir
+C:/MR/Libs/External/xgboost/winBuild/dmlc-core/CMakeFiles/ALL_BUILD.dir

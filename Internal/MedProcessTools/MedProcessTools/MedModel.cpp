@@ -153,6 +153,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	else if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		// Just apply feature processors
 		timer.start();
+		if (generate_masks_for_features) features.mark_imputed_in_masks();
 		if (apply_feature_processors(features) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_processors()\n");
 			return -1;
@@ -181,6 +182,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		return 0;
 	//get predictions and store them - in postProcessor learn resposibility - should act on different samples:
 	if (start_stage <= MED_MDL_LEARN_POST_PROCESS) {
+		MLOG("MedModel::learn() : learn post_processors\n");
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Learn(*this, rep, features);
 	}
@@ -250,6 +252,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	// Process Features
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		if (verbosity > 0) MLOG("MedModel apply() : before applying feature processors\n", samples.idSamples.size());
+		if (generate_masks_for_features) features.mark_imputed_in_masks();
 		if (apply_feature_processors(features, req_features_vec) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 			return -1;
@@ -279,6 +282,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		}
 		return 0;
 	}
+
+	if (verbosity > 0 && !post_processors.empty()) MLOG("before post_processors: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+
+	for (size_t i = 0; i < post_processors.size(); ++i)
+		post_processors[i]->init_model(this);
 
 	for (size_t i = 0; i < post_processors.size(); ++i)
 		post_processors[i]->Apply(features);
@@ -1302,7 +1310,7 @@ void MedModel::clear()
 }
 
 //.......................................................................................
-void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag)
+void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, bool pp_flag, bool predictor_type)
 {
 	unordered_set<string> sigs;
 
@@ -1314,6 +1322,8 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
 	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
+	if (pp_flag) for (auto& pp : post_processors) pp->dprint(pref);
+	if (predictor_type && predictor != NULL) MLOG("Predictor %s\n", predictor->my_class_name().c_str());
 }
 
 //.......................................................................................
@@ -1581,6 +1591,7 @@ void MedModel::learn_post_processors(MedPidRepository &rep, MedSamples &post_sam
 void MedModel::apply_post_processors(MedFeatures &matrix_after_pred) {
 	for (size_t i = 0; i < post_processors.size(); ++i)
 	{
+		post_processors[i]->init_model(this);
 		post_processors[i]->Apply(matrix_after_pred);
 	}
 }

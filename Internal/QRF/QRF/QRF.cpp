@@ -978,6 +978,7 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 	int i, j;
 	double left_sum, right_sum;
 	double left_num, right_num;
+	double left_w, right_w;
 	double left_avg, right_avg;
 
 	int node_size = tree.nodes[node].size();
@@ -999,6 +1000,9 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 		if (tree.feat_chosen[ifeat] != node && max_q[ifeat] > 1) {
 
 			tree.feat_chosen[ifeat] = node;
+			vector<float> hist_w;
+			if (!w.empty())
+				hist_w.resize(max_q[ifeat]);
 
 			if (node_size > (max_q[ifeat] >> 4) && node_size > 16) {
 
@@ -1011,12 +1015,16 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 				for (i = nd->from_sample; i <= nd->to_sample; i++) {
 					tree.histr_sum[q_data[ifeat][tree.sample_ids[i]]] += yr[tree.sample_ids[i]];
 					tree.histr_num[q_data[ifeat][tree.sample_ids[i]]]++;
+					if (!w.empty())
+						hist_w[q_data[ifeat][tree.sample_ids[i]]] += w[tree.sample_ids[i]];
 				}
 
 				// now we need to go over the hist and find the best split
 				// we are searching to maximize : L*(avg_L)^2 + R*(avg_R)^2
 				left_sum = 0.0;
 				left_num = 0.0;
+				left_w = 0.0;
+				right_w = 0.0;
 				right_sum = (float)node_size*(nd->pred);
 				right_num = (float)node_size;
 
@@ -1027,13 +1035,24 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 						left_num += tree.histr_num[i];
 						right_sum -= tree.histr_sum[i];
 						right_num -= tree.histr_num[i];
+						if (!w.empty()) {
+							left_w += hist_w[i];
+							right_w -= hist_w[i];
+						}
 
 						if (right_num == 0)
 							break;
 
-						left_avg = left_sum / left_num;
-						right_avg = right_sum / right_num;
-						score = left_num * left_avg*left_avg + right_num * right_avg*right_avg;
+						if (!w.empty()) {
+							left_avg = left_sum / left_w;
+							right_avg = right_sum / right_w;
+							score = left_w * left_avg*left_avg + right_w * right_avg*right_avg;
+						}
+						else {
+							left_avg = left_sum / left_num;
+							right_avg = right_sum / right_num;
+							score = left_num * left_avg*left_avg + right_num * right_avg*right_avg;
+						}
 
 						if (!(left_num >= min_split_node_size && right_num >= min_split_node_size))
 							score = max_score - 1; // don't split when getting to too small nodes
@@ -1057,16 +1076,21 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 			else {
 				// use sort, as hist it too slow for low number of elements
 				j = 0;
+				left_w = 0.0;
+				right_w = 0.0;
 				for (i = nd->from_sample; i <= nd->to_sample; i++) {
 					// note we swapped the idx and val roles here compared with the binary tree version
 					tree.qy[j].idx = q_data[ifeat][tree.sample_ids[i]];
 					tree.qy[j].val = yr[tree.sample_ids[i]];
+					if (!w.empty())
+						right_w += w[tree.sample_ids[i]];
 					j++;
 				}
 				sort(tree.qy.begin(), tree.qy.begin() + node_size, [](const ValInd &v1, const ValInd &v2) {return v1.idx < v2.idx; });
 
 				left_sum = 0.0;
 				left_num = 0.0;
+
 				right_sum = (float)node_size*(nd->pred);
 				right_num = (float)node_size;
 				max_i = -1;
@@ -1074,13 +1098,24 @@ int QuantizedRF::find_best_regression_split(QRF_Tree &tree, int node, int ntry)
 				for (i = 0; i < node_size - 1; i++) {
 					left_sum += tree.qy[i].val;
 					left_num++;
+					if (!w.empty())
+						left_w += w[tree.sample_ids[nd->from_sample + i]];
 					right_sum -= tree.qy[i].val;
 					right_num--;
-					if (tree.qy[i].idx < tree.qy[i + 1].idx) {
+					if (!w.empty())
+						right_w -= w[tree.sample_ids[nd->from_sample + i]];
 
-						left_avg = left_sum / left_num;
-						right_avg = right_sum / right_num;
-						score = left_num * left_avg*left_avg + right_num * right_avg*right_avg;
+					if (tree.qy[i].idx < tree.qy[i + 1].idx) {
+						if (w.empty()) {
+							left_avg = left_sum / left_num;
+							right_avg = right_sum / right_num;
+							score = left_num * left_avg*left_avg + right_num * right_avg*right_avg;
+						}
+						else {
+							left_avg = left_sum / left_w;
+							right_avg = right_sum / right_w;
+							score = left_w * left_avg*left_avg + right_w * right_avg*right_avg;
+						}
 
 						if (!(left_num >= min_split_node_size && right_num >= min_split_node_size))
 							score = max_score - 1; // don't split when getting to too small nodes
@@ -1254,7 +1289,7 @@ int QuantizedRF::split_regression_node(QRF_Tree &tree, int node)
 		fprintf(stderr, "split: node %d split feat is -1, hence a leaf\n", node); fflush(stderr);
 #endif
 		return 0;
-	}
+}
 
 
 	// we split by the chosen criteria
@@ -1910,7 +1945,7 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, const float *w, in
 		for (int i = 0; i < nthreads; i++)
 			th_handle[i].join();
 
-	}
+		}
 
 #ifdef DEBUG
 	fprintf(stderr, "built %d trees, transffering to internal\n", ntrees); fflush(stderr);
@@ -1955,7 +1990,7 @@ int QRF_Forest::get_forest_trees_all_modes(float *x, void *y, const float *w, in
 #endif
 
 	return 0;
-}
+	}
 
 //---------------------------------------------------------------------------------------------
 void get_scoring_thread_params(vector<qrf_scoring_thread_params> &tp, const vector<QRF_ResTree> *qtrees, float *res, int nsamples, int nfeat, float *x, int nsplit, int mode, int n_categ, int get_counts,
@@ -2269,7 +2304,7 @@ int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res,
 	if (mode != QRF_BINARY_TREE && mode != QRF_REGRESSION_TREE && mode != QRF_CATEGORICAL_CHI2_TREE && mode != QRF_CATEGORICAL_ENTROPY_TREE) {
 		fprintf(stderr, "qrf: score_samples - mode %d not supported\n", mode); fflush(stderr);
 		return -1;
-	}
+}
 
 #ifdef DEBUG
 	fprintf(stderr, "qrf: score_samples: scoring %d samples with %d features, get_only_this_categ=%d\n", nsamples, nfeat, get_only_this_categ); fflush(stderr);

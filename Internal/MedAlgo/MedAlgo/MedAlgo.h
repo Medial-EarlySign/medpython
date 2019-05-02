@@ -1009,11 +1009,22 @@ struct MedMultiClass : public MedPredictor {
 // Unsupervised
 //================================================================
 
-// K-Means
+/// K-Means: x is input matrix(each row is sample N*M). K- number of clusters, centers - output centroids of clusters(K*M)
+/// clusters - output for each sample the cluster number from 0 to K-1(N*1). 
+/// dists - output of distance for each sample form each cluster(N*K)
 int KMeans(MedMat<float> &x, int K, MedMat<float> &centers, vector<int> &clusters, MedMat<float> &dists);
+/// K-Means: x is input matrix(each row is sample N*M). K- number of clusters, centers - output centroids of clusters(K*M)
+/// clusters - output for each sample the cluster number from 0 to K-1(N*1). 
+/// dists - output of distance for each sample form each cluster(N*K)
 int KMeans(MedMat<float> &x, int K, int max_iter, MedMat<float> &centers, vector<int> &clusters, MedMat<float> &dists);
+/// K-Means: x is input matrix(each row is sample N*M). K- number of clusters, centers - output centroids of clusters(K*M)
+/// clusters - output for each sample the cluster number from 0 to K-1(N*1). 
+/// dists - output of distance for each sample form each cluster(N*K)
 int KMeans(float *x, int nrows, int ncols, int K, float *centers, int *clusters, float *dists);
 
+/// K-Means: x is input matrix(each row is sample N*M). K- number of clusters, centers - output centroids of clusters(K*M)
+/// clusters - output for each sample the cluster number from 0 to K-1(N*1). 
+/// dists - output of distance for each sample form each cluster(N*K)
 int KMeans(float *x, int nrows, int ncols, int K, int max_iter, float *centers, int *clusters, float *dists, bool verbose_print = true); // actual implemetation routine
 
 // PCA

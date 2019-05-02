@@ -1009,10 +1009,13 @@ public:
 
 	float missing_value = MED_MAT_MISSING_VALUE; ///< Missing Value
 	int overall_count = 5; ///< weight of overall probability
+	map<float,int> target_labels; ///< if given, create a new feature per target label
+	map<float, string> feature_names; ///< feature names if multiple target_labels are given
+	bool remove_origin = true; ///< determine weather to remove original if multiple target_labels are given
 
-	map<float, float> probs; ///< actual probability per class
-	float overall_prob; ///< default prob for unknown classes
-
+	vector<map<float, float>> probs; ///< actual probability per class
+	vector<float> overall_prob; ///< default prob for unknown classes
+	
 	// Constructor
 	GetProbFeatProcessor() : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; }
 	GetProbFeatProcessor(const  string& feature_name) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; set_feature_name(feature_name); }
@@ -1033,7 +1036,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(GetProbFeatProcessor)
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs, overall_prob);
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs, overall_prob, target_labels, remove_origin, feature_names);
 
 };
 

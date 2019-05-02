@@ -11,6 +11,7 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <string>
 #include "StripComments.h"
+#include <boost/optional/optional.hpp>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -126,6 +127,12 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 	MLOG_D("\nmodel_json_version [%d]\n", model_json_version);
 	if (model_json_version <= 1)
 		return 1;
+
+	boost::optional<int> v = pt.get_optional<int>("generate_masks_for_features");
+	if (v)
+		this->generate_masks_for_features = v.get();
+
+	//MLOG("debug=====> :: generate_masks_for_features %d\n", generate_masks_for_features);
 
 	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());	
 	this->serialize_learning_set = stoi(ser);

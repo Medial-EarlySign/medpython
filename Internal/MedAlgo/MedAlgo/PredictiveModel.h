@@ -5,7 +5,7 @@
 #include <string>
 
 using namespace std;
-typedef double(*subGradientFunction)(int, const vector<double> &, const vector<vector<float>> &, const vector<float> &);
+typedef double(*subGradientFunction)(int, const vector<double> &, const vector<vector<float>> &, const vector<float> &, const vector<float> *);
 
 /** Predictive Model is abstract class of predictor model which has parameters for GD or SGD uses
 * it also has function to retrieve direct sub-gradients for the loss function of the model

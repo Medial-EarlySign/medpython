@@ -1,10 +1,162 @@
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
+#include <cmath>
+#include <random>
+#include <omp.h>
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
 
-#define LOCAL_SECTION LOG_MEDALGO
+#define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
+
+ExplainFilters::ExplainFilters() {
+	max_count = 0;
+	sum_ratio = 1;
+	sort_mode = 0;
+}
+
+int ExplainFilters::init(map<string, string> &map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "max_count")
+			max_count = med_stoi(it->second);
+		else if (it->first == "sum_ratio")
+			sum_ratio = med_stof(it->second);
+		else if (it->first == "sort_mode")
+			sort_mode = med_stoi(it->second);
+		else
+			MTHROW_AND_ERR("Error in ExplainFilters::init - Unknown param \"%s\"\n", it->first.c_str());
+	}
+
+	if (sum_ratio < 0 || sum_ratio > 1)
+		MTHROW_AND_ERR("Error in ExplainFilters::init - sum_ratio should be in [0,1]\n");
+	return 0;
+}
+
+void ExplainFilters::filter(map<string, float> &explain_list) const {
+	vector<pair<string, float>> sorted;
+	sorted.reserve(explain_list.size());
+	for (const auto &it : explain_list)
+		if (sort_mode == 0 || (sort_mode > 0 && it.second > 0) || (sort_mode < 0 && it.second < 0))
+			sorted.push_back(pair<string, float>(it.first, it.second));
+	if (sort_mode == 0)
+		sort(sorted.begin(), sorted.end(), [](const pair<string, float>&pr1, const pair<string, float>&pr2)
+	{ return abs(pr1.second) > abs(pr2.second); });
+	else if (sort_mode > 0)
+		sort(sorted.begin(), sorted.end(), [](const pair<string, float>&pr1, const pair<string, float>&pr2)
+	{ return pr1.second > pr2.second; });
+	else if (sort_mode < 0)
+		sort(sorted.begin(), sorted.end(), [](const pair<string, float>&pr1, const pair<string, float>&pr2)
+	{ return pr1.second < pr2.second; });
+
+	//filter ratio:
+	if (sum_ratio < 1) {
+		float tot = 0, curr_sum = 0;
+		for (const auto &it : sorted)
+			tot += abs(it.second);
+		int stop_at = 0;
+		while (stop_at < sorted.size() && curr_sum / tot > sum_ratio) {
+			curr_sum += abs(sorted[stop_at].second);
+			++stop_at;
+		}
+		sorted.resize(stop_at);
+	}
+	//filter max_count:
+	if (max_count > 0 && sorted.size() > max_count)
+		sorted.resize(max_count);
+	//commit selections:
+	map<string, float> filterd;
+	for (const auto &it : sorted)
+		filterd[it.first] = it.second;
+	explain_list = move(filterd);
+}
+
+ExplainProcessings::ExplainProcessings() {
+	group_by_sum = false;
+	learn_cov_matrix = false;
+}
+
+int ExplainProcessings::init(map<string, string> &map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		if (it->first == "group_by_sum")
+			group_by_sum = med_stoi(it->second) > 0;
+		else if (it->first == "learn_cov_matrix")
+			learn_cov_matrix = med_stoi(it->second) > 0;
+		else if (it->first == "cov_features")
+			cov_features.read_from_csv_file(it->second, 1);
+		else if (it->first == "grouping")
+			grouping = it->second;
+		else
+			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
+	}
+
+	return 0;
+}
+
+void ExplainProcessings::learn(const MedFeatures &train_mat) {
+	if (learn_cov_matrix) {
+		//int feat_cnt = (int)train_mat.data.size();
+		//cov_features.resize(feat_cnt, feat_cnt);
+		MLOG("Calc Covariance mat\n");
+		MedMat<float> x_mat;
+		train_mat.get_as_matrix(x_mat);
+		x_mat.normalize();
+		//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
+		fast_multiply_medmat_transpose(x_mat, x_mat, cov_features, 1, 1.0 / x_mat.nrows);
+	}
+}
+
+void ExplainProcessings::process(map<string, float> &explain_list) const {
+	//first do covarinace if has:
+	if (!cov_features.m.empty()) {
+		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
+			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%d, "
+				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
+		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+
+		int iftr = 0;
+		for (auto &it : explain_list)
+		{
+			auto expalin_it = explain_list.begin();
+			float feat_contrib = 0;
+			for (int jftr = 0; jftr < cov_features.ncols; ++jftr)
+			{
+				if (skip_bias_names.find(expalin_it->first) != skip_bias_names.end())
+				{
+					++expalin_it;
+					continue;
+				}
+				feat_contrib += expalin_it->second * cov_features(iftr, jftr);
+				++expalin_it;
+			}
+			it.second = feat_contrib;
+			++iftr;
+		}
+	}
+
+	//sum features in groups
+	if (group_by_sum) {
+		if (group2Inds.empty())
+			MTHROW_AND_ERR("Error in ExplainProcessings::process - asked for group_by_sum but haven't provide groups in grouping\n");
+		map<string, float> new_explain;
+		vector<float> random_access(explain_list.size());
+		auto explain_it = explain_list.begin();
+		for (size_t i = 0; i < random_access.size(); ++i) {
+			random_access[i] = explain_it->second;
+			++explain_it;
+		}
+		for (size_t i = 0; i < group2Inds.size(); ++i)
+		{
+			const string &grp_name = groupNames[i];
+			new_explain[grp_name] = 0;
+			for (int ind : group2Inds[i])
+				new_explain[grp_name] += random_access[ind];
+		}
+
+		explain_list = move(new_explain);
+	}
+}
 
 void ModelExplainer::explain(MedFeatures &matrix) const {
 	vector<map<string, float>> explain_reasons; //for each sample, reasons and scores
@@ -13,6 +165,13 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	if (explain_reasons.size() != matrix.samples.size())
 		MTHROW_AND_ERR("Error in ModelExplainer::explain - explain returned musmatch number of samples %zu, and requested %zu\n",
 			explain_reasons.size(), matrix.samples.size());
+
+	//process:
+	for (size_t i = 0; i < explain_reasons.size(); ++i)
+		processing.process(explain_reasons[i]);
+	//filter:
+	for (size_t i = 0; i < explain_reasons.size(); ++i)
+		filters.filter(explain_reasons[i]);
 
 	for (size_t i = 0; i < explain_reasons.size(); ++i)
 		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
@@ -24,16 +183,33 @@ void ModelExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeat
 	Learn(model.predictor, train_mat);
 }
 
+void ModelExplainer::init_model(MedModel *mdl) {
+	original_predictor = mdl->predictor;
+}
+
+void ModelExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
+		predictor_nm.c_str());
+}
+
 bool comp_score_str(const pair<string, float> &pr1, const pair<string, float> &pr2) {
 	return abs(pr1.second) > abs(pr2.second); //bigger is better in absolute
 }
 
-void ModelExplainer::print_explain(MedSample &smp) {
+void ModelExplainer::print_explain(MedSample &smp, int sort_mode) {
 	vector<pair<string, float>> ranked;
 	for (auto it = smp.attributes.begin(); it != smp.attributes.end(); ++it)
 		if (boost::starts_with(it->first, "ModelExplainer::"))
 			ranked.push_back(pair<string, float>(it->first, it->second));
-	sort(ranked.begin(), ranked.end(), comp_score_str);
+	if (sort_mode == 0)
+		sort(ranked.begin(), ranked.end(), comp_score_str);
+	else if (sort_mode > 0)
+		sort(ranked.begin(), ranked.end(), [](const pair<string, float>&pr1, const pair<string, float>&pr2) { return pr1.second > pr2.second; });
+	else
+		sort(ranked.begin(), ranked.end(), [](const pair<string, float>&pr1, const pair<string, float>&pr2) { return pr1.second < pr2.second; });
 
 	for (size_t i = 0; i < ranked.size(); ++i)
 		MLOG("%s = %f\n", ranked[i].first.c_str(), ranked[i].second);
@@ -58,6 +234,66 @@ int get_tree_max_depth(const vector<QRF_ResNode> &nodes) {
 		return 0;
 	int max_d = get_max_rec(nodes, 0) + 1;
 	return max_d;
+}
+
+///format TAB delim, 2 tokens: [Feature_name [TAB] group_name]
+void read_feature_grouping(const string &file_name, const MedFeatures& data, vector<vector<int>>& group2index,
+	vector<string>& group_names) {
+	// Features
+	vector<string> features;
+	data.get_feature_names(features);
+	int nftrs = (int)features.size();
+	map<string, vector<int>> groups;
+	vector<bool> grouped_ftrs(nftrs);
+
+	if (file_name == "BY_SIGNAL") {
+		for (int i = 0; i < nftrs; ++i)
+		{
+			vector<string> tokens;
+			boost::split(tokens, features[i], boost::is_any_of("."));
+			string word = tokens[0];
+			if (tokens.size() > 1 && boost::starts_with(tokens[0], "FTR_"))
+				word = tokens[1];
+
+			groups[word].push_back(i);
+			grouped_ftrs[i] = true;
+		}
+	}
+	else {
+		// Read Grouping
+		ifstream inf(file_name);
+		if (!inf.is_open())
+			MTHROW_AND_ERR("Cannot open \'%s\' for reading\n", file_name.c_str());
+
+		string curr_line;
+		vector<string> fields;
+
+		while (getline(inf, curr_line)) {
+			boost::split(fields, curr_line, boost::is_any_of("\t"));
+			if (fields.size() != 2)
+				MTHROW_AND_ERR("Cannot parse line \'%s\' from %s\n", curr_line.c_str(), file_name.c_str());
+			int feat_pos = find_in_feature_names(features, fields[0]);
+			if (grouped_ftrs[feat_pos])
+				MTHROW_AND_ERR("Features %s given twice\n", fields[0].c_str());
+
+			grouped_ftrs[feat_pos] = true;
+			groups[fields[1]].push_back(feat_pos);
+		}
+	}
+	// Arrange
+	for (auto& rec : groups) {
+		group_names.push_back(rec.first);
+		group2index.push_back(rec.second);
+	}
+
+	for (int i = 0; i < nftrs; i++) {
+		if (!grouped_ftrs[i]) {
+			group_names.push_back(features[i]);
+			group2index.push_back({ i });
+		}
+	}
+
+	MLOG("Grouping: %d features into %d groups\n", nftrs, (int)group_names.size());
 }
 
 //all conversion functions
@@ -162,6 +398,13 @@ int TreeExplainer::init(map<string, string> &mapper) {
 			interaction_shap = stoi(it->second) > 0;
 		else if (it->first == "approximate")
 			approximate = stoi(it->second) > 0;
+		else if (it->first == "missing_value")
+			missing_value = med_stof(it->second);
+		else if (it->first == "processing")
+			processing.init_from_string(it->second);
+		else if (it->first == "filters")
+			filters.init_from_string(it->second);
+		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in TreeExplainer::init - Unsupported parameter \"%s\"\n", it->first.c_str());
 	}
@@ -169,17 +412,39 @@ int TreeExplainer::init(map<string, string> &mapper) {
 }
 
 void TreeExplainer::post_deserialization() {
-	if (original_predictor->classifier_type == MODEL_XGB) {
-		const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8, INTERACTION_SHAP = 16;
-		if (interaction_shap)
-			static_cast<MedXGB *>(original_predictor)->feat_contrib_flags = PRED_CONTRIBS | INTERACTION_SHAP;
-		if (approximate)
-			static_cast<MedXGB *>(original_predictor)->feat_contrib_flags |= APPROX_CONTRIBS;
+	if (original_predictor != NULL) {
+		if (original_predictor->classifier_type == MODEL_XGB) {
+			const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8, INTERACTION_SHAP = 16;
+			if (interaction_shap)
+				static_cast<MedXGB *>(original_predictor)->feat_contrib_flags = PRED_CONTRIBS | INTERACTION_SHAP;
+			if (approximate)
+				static_cast<MedXGB *>(original_predictor)->feat_contrib_flags |= APPROX_CONTRIBS;
+		}
+		try_convert_trees();
 	}
+}
+
+void TreeExplainer::init_model(MedModel *mdl) {
+	ModelExplainer::init_model(mdl);
+	post_deserialization();
 }
 
 void TreeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	this->original_predictor = original_pred;
+	if (!processing.grouping.empty())
+		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			processing.group2Inds.push_back({ icol++ });
+			processing.groupNames.push_back(rec.first);
+		}
+	}
+	processing.learn(train_mat);
+	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0) {
+		processing.group_by_sum = 1;
+		MWARN("Warning in TreeExplainer::Learn - no support for grouping in tree_shap not by sum. setting {group_by_sum:=1}\n");
+	}
 
 	if (original_predictor->classifier_type == MODEL_XGB) {
 		const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8, INTERACTION_SHAP = 16;
@@ -248,7 +513,8 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		for (size_t i = 0; i < x_mat.m.size(); ++i)
 		{
 			x[i] = (double)x_mat.m[i];
-			x_missing.get()[i] = x_mat.m[i] == MED_MAT_MISSING_VALUE;
+			//x_missing.get()[i] = x_mat.m[i] == missing_value;
+			x_missing.get()[i] = false; //In QRF no missing values
 		}
 		for (size_t i = 0; i < matrix.samples.size(); ++i)
 			y[i] = (double)matrix.samples[i].outcome;
@@ -303,6 +569,23 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	}
 }
 
+TreeExplainer::~TreeExplainer() {
+	//TODO: use uniqe_ptr and than can remove those destructors..
+	if (proxy_predictor != NULL) {
+		delete proxy_predictor;
+		proxy_predictor = NULL;
+	}
+	//generic_tree_model.free(); //points to existing memory in QRF, tree. not need to handle
+}
+
+MissingShapExplainer::~MissingShapExplainer() {
+	//TODO: use uniqe_ptr and than can remove those destructors..
+	if (retrain_predictor != NULL) {
+		delete retrain_predictor;
+		retrain_predictor = NULL;
+	}
+}
+
 template<typename T> int msn_count(const T *vals, int sz, T val) {
 	int res = 0;
 	for (size_t i = 0; i < sz; ++i)
@@ -310,7 +593,8 @@ template<typename T> int msn_count(const T *vals, int sz, T val) {
 	return res;
 }
 
-SHAPExplainer::SHAPExplainer() {
+MissingShapExplainer::MissingShapExplainer() {
+	processor_type = FTR_POSTPROCESS_MISSING_SHAP;
 	max_test = 500;
 	missing_value = MED_MAT_MISSING_VALUE;
 	sample_masks_with_repeats = false;
@@ -318,15 +602,20 @@ SHAPExplainer::SHAPExplainer() {
 	uniform_rand = false;
 	use_shuffle = false;
 	add_new_data = 0;
+	change_learn_args = "";
+	verbose_learn = true;
+	no_relearn = false;
 }
 
-int SHAPExplainer::init(map<string, string> &mapper) {
+int MissingShapExplainer::init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
 		else if (it->first == "max_test")
 			max_test = med_stoi(it->second);
+		else if (it->first == "no_relearn")
+			no_relearn = med_stoi(it->second) > 0;
 		else if (it->first == "sample_masks_with_repeats")
 			sample_masks_with_repeats = med_stoi(it->second) > 0;
 		else if (it->first == "uniform_rand")
@@ -337,34 +626,73 @@ int SHAPExplainer::init(map<string, string> &mapper) {
 			select_from_all = med_stof(it->second);
 		else if (it->first == "add_new_data")
 			add_new_data = med_stoi(it->second);
+		else if (it->first == "change_learn_args")
+			change_learn_args = it->second;
+		else if (it->first == "verbose_learn")
+			verbose_learn = stoi(it->second) > 0;
+		else if (it->first == "processing")
+			processing.init_from_string(it->second);
+		else if (it->first == "filters")
+			filters.init_from_string(it->second);
+		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
 	return 0;
 }
 
-void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	this->original_predictor = original_pred;
+
+	if (!processing.grouping.empty())
+		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			processing.group2Inds.push_back({ icol++ });
+			processing.groupNames.push_back(rec.first);
+		}
+	}
+	processing.learn(train_mat);
+
+	if (no_relearn) {
+		retrain_predictor = original_predictor;
+		return;
+	}
 	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 	random_device rd;
 	mt19937 gen(rd());
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
-	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size(), 1);
-	vector<int> miss_cnts(train_mat.samples.size());
+	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
+	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
 	vector<int> missing_hist(nftrs + 1);
 
-	for (size_t i = 0; i < labels.size(); ++i)
-		labels[i] = train_mat.samples[i].outcome;
+	if (!train_mat.samples.front().prediction.empty())
+		for (size_t i = 0; i < labels.size(); ++i)
+			labels[i] = train_mat.samples[i].prediction[0];
+	else {
+		MedMat<float> tt;
+		train_mat.get_as_matrix(tt);
+		original_predictor->predict(tt, labels);
+	}
 	if (add_new_data > 0) {
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
+		uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
+		double log_max_opts = log(add_new_data) / log(2.0);
+		if (log_max_opts >= nftrs) {
+			if (!sample_masks_with_repeats)
+				MWARN("Warning: you have request to sample masks without repeats, but it can't be done. setting sample with repeats\n");
+			sample_masks_with_repeats = true;
+		}
+		if (verbose_learn)
+			MLOG("Adding %d Data points\n", add_new_data);
 		for (size_t i = 0; i < add_new_data; ++i)
 		{
 			float *curr_row = &rows_m[i *  nftrs];
 			//select row:
-			uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
 			int row_sel = rnd_row(gen);
 
 			vector<bool> curr_mask; curr_mask.reserve(nftrs);
@@ -372,7 +700,7 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 				curr_mask.push_back(x_mat(row_sel, j) != missing_value);
 
 			medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
-			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) == seen_mask.end())
+			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
 				medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
@@ -385,86 +713,94 @@ void SHAPExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 				else
 					curr_row[j] = missing_value;
 			}
-			labels.push_back(train_mat.samples[row_sel].outcome);
+			labels.push_back(labels[row_sel]);
 		}
 		x_mat.add_rows(rows_m);
 	}
 
 	// Add data with missing values according to sample masks
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
-		labels[i] = train_mat.samples[i].outcome;
-		miss_cnts[i] = msn_count<float>(&x_mat.m[i*nftrs], nftrs, MED_MAT_MISSING_VALUE);
+		miss_cnts[i] = msn_count<float>(&x_mat.m[i*nftrs], nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
 	}
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
 		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
 		weights[i] = curr_mask_w;
 	}
+	if (verbose_learn) {
+		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
+		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
+	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
 		x_mat.transpose();
 	//reweight train_mat:
+	retrain_predictor->init_from_string(change_learn_args);
 	retrain_predictor->learn(x_mat, labels, weights);
+	//test pref:
+	if (verbose_learn) {
+		vector<float> train_p;
+		retrain_predictor->predict(x_mat, train_p);
+		float rmse = medial::performance::rmse_without_cleaning(train_p, labels, &weights);
+		MLOG("RMSE=%2.4f on train for model\n", rmse);
+	}
 }
 
+void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+	MedPredictor *predictor = retrain_predictor;
+	if (no_relearn)
+		predictor = original_predictor;
+	const vector<vector<int>> *group_inds = &processing.group2Inds;
+	const vector<string> *group_names = &processing.groupNames;
+	vector<vector<int>> group_inds_loc;
+	vector<string> group_names_loc;
+	if (processing.group_by_sum) {
+		int icol = 0;
+		for (auto& rec : matrix.data) {
+			group_inds_loc.push_back({ icol++ });
+			group_names_loc.push_back(rec.first);
+		}
+		group_inds = &group_inds_loc;
+		group_names = &group_names_loc;
+	}
 
-void SHAPExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
 	sample_explain_reasons.resize(matrix.samples.size());
-	vector<string> names;
-	matrix.get_feature_names(names);
 	string bias_name = "Prior_Score";
 	vector<float> preds_orig(matrix.samples.size());
 	if (matrix.samples.front().prediction.empty()) {
 		MedMat<float> mat_x;
 		matrix.get_as_matrix(mat_x);
-		if (retrain_predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
+		if (predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
 			mat_x.transpose();
-		retrain_predictor->predict(mat_x, preds_orig);
+		predictor->predict(mat_x, preds_orig);
 	}
 	else {
 		for (size_t i = 0; i < preds_orig.size(); ++i)
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
+	int N_TOTAL_TH = omp_get_max_threads();
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = matrix.samples.size();
-
-#pragma omp parallel for
+	MedProgress progress("MissingShapley", (int)matrix.samples.size(), 15);
+#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, retrain_predictor, missing_value, features_coeff,
-			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, false);
+		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, *group_inds, *group_names, features_coeff,
+			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL);
 
-		for (size_t j = 0; j < names.size(); ++j)
+		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
 
 #pragma omp critical 
 		{
 			map<string, float> &curr_res = sample_explain_reasons[i];
-			for (size_t j = 0; j < names.size(); ++j)
-				curr_res[names[j]] = features_coeff[j];
+			for (size_t j = 0; j < group_names->size(); ++j)
+				curr_res[group_names->at(j)] = features_coeff[j];
 			//Add prior to score:
 			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 		}
 
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (duration > 15 && progress % 50 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
+		progress.update();
 	}
 }
 
@@ -502,10 +838,15 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			generator_args = it->second;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
-		else if (it->first == "max_test")
-			max_test = med_stoi(it->second);
+		else if (it->first == "n_masks")
+			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
+		else if (it->first == "processing")
+			processing.init_from_string(it->second);
+		else if (it->first == "filters")
+			filters.init_from_string(it->second);
+		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in ShapleyExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
@@ -515,21 +856,26 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 	return 0;
 }
 
-void ShapleyExplainer::init_sampler() {
+void ShapleyExplainer::init_sampler(bool with_sampler) {
 	switch (gen_type)
 	{
 	case GIBBS:
-		_gibbs.init_from_string(generator_args);
-		_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		if (with_sampler) {
+			_gibbs.init_from_string(generator_args);
+			_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		}
 		_gibbs_sample_params.init_from_string(sampling_args);
 		sampler_sampling_args = &_gibbs_sample_params;
 		break;
 	case GAN:
-		_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
-		static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+		if (with_sampler) {
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+		}
 		break;
 	case MISSING:
-		_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 		break;
 	default:
 		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
@@ -539,12 +885,21 @@ void ShapleyExplainer::init_sampler() {
 void ShapleyExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	this->original_predictor = original_pred;
 	_sampler->learn(train_mat.data);
+
+	if (!processing.grouping.empty())
+		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			processing.group2Inds.push_back({ icol++ });
+			processing.groupNames.push_back(rec.first);
+		}
+	}
+	processing.learn(train_mat);
 }
 
 void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
 	sample_explain_reasons.resize(matrix.samples.size());
-	vector<string> names;
-	matrix.get_feature_names(names);
 	string bias_name = "Prior_Score";
 	vector<float> preds_orig(matrix.samples.size());
 	if (matrix.samples.front().prediction.empty()) {
@@ -559,51 +914,50 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 			preds_orig[i] = matrix.samples[i].prediction[0];
 	}
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = matrix.samples.size();
+	const vector<vector<int>> *group_inds = &processing.group2Inds;
+	const vector<string> *group_names = &processing.groupNames;
+	vector<vector<int>> group_inds_loc;
+	vector<string> group_names_loc;
+	if (processing.group_by_sum) {
+		int icol = 0;
+		for (auto& rec : matrix.data) {
+			group_inds_loc.push_back({ icol++ });
+			group_names_loc.push_back(rec.first);
+		}
+		group_inds = &group_inds_loc;
+		group_names = &group_names_loc;
+	}
 
-#pragma omp parallel for
+	int N_TOTAL_TH = omp_get_max_threads();
+
+	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
+#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, original_predictor, missing_value, *_sampler.get(), 1,
-			sampler_sampling_args, features_coeff, false);
+		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
+			, *group_inds, *group_names, *_sampler.get(), 1, sampler_sampling_args, features_coeff,
+			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL);
 
-		for (size_t j = 0; j < names.size(); ++j)
+		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
 
 #pragma omp critical 
 		{
 			map<string, float> &curr_res = sample_explain_reasons[i];
-			for (size_t j = 0; j < names.size(); ++j)
-				curr_res[names[j]] = features_coeff[j];
+			for (size_t j = 0; j < group_names->size(); ++j)
+				curr_res[group_names->at(j)] = features_coeff[j];
 			//Add prior to score:
 			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 		}
 
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (duration > 15 && progress % 50 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
+		progress.update();
 	}
 }
 
 void ShapleyExplainer::post_deserialization() {
-	init_sampler();
+	init_sampler(false);
 }
 
 void ShapleyExplainer::load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
@@ -629,4 +983,262 @@ void ShapleyExplainer::load_MISSING(MedPredictor *original_pred) {
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 	gen_type = GeneratorType::MISSING;
+}
+
+void ShapleyExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
+		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
+}
+
+int LimeExplainer::init(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "gen_type")
+			gen_type = GeneratorType_fromStr(it->second);
+		else if (it->first == "generator_args")
+			generator_args = it->second;
+		else if (it->first == "missing_value")
+			missing_value = med_stof(it->second);
+		else if (it->first == "sampling_args")
+			sampling_args = it->second;
+		else if (it->first == "p_mask")
+			p_mask = med_stof(it->second);
+		else if (it->first == "n_masks")
+			n_masks = med_stoi(it->second);
+		else if (it->first == "processing")
+			processing.init_from_string(it->second);
+		else if (it->first == "filters")
+			filters.init_from_string(it->second);
+		else if (it->first == "pp_type") {}
+		else
+			MTHROW_AND_ERR("Error in LimeExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
+	}
+	init_sampler(); //from args
+
+	return 0;
+}
+
+void LimeExplainer::init_sampler(bool with_sampler) {
+	switch (gen_type)
+	{
+	case GIBBS:
+		if (with_sampler) {
+			_gibbs.init_from_string(generator_args);
+			_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		}
+		_gibbs_sample_params.init_from_string(sampling_args);
+		sampler_sampling_args = &_gibbs_sample_params;
+		break;
+	case GAN:
+		if (with_sampler) {
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+		}
+		break;
+	case MISSING:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+		break;
+	default:
+		MTHROW_AND_ERR("Error in LimeExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
+	}
+}
+
+void LimeExplainer::load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
+	this->original_predictor = original_pred;
+	_gibbs = gibbs;
+	_gibbs_sample_params = sampling_args;
+
+	sampler_sampling_args = &_gibbs_sample_params;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+
+	gen_type = GeneratorType::GIBBS;
+}
+
+void LimeExplainer::load_GAN(MedPredictor *original_pred, const string &gan_path) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+
+	gen_type = GeneratorType::GAN;
+}
+
+void LimeExplainer::load_MISSING(MedPredictor *original_pred) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+	gen_type = GeneratorType::MISSING;
+}
+
+void LimeExplainer::post_deserialization() {
+	init_sampler(false);
+}
+
+void LimeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	this->original_predictor = original_pred;
+
+	if (!processing.grouping.empty())
+		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			processing.group2Inds.push_back({ icol++ });
+			processing.groupNames.push_back(rec.first);
+		}
+	}
+	processing.learn(train_mat);
+
+	_sampler->learn(train_mat.data);
+}
+
+void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+	vector<vector<float>> alphas;
+
+	const vector<vector<int>> *group_inds = &processing.group2Inds;
+	const vector<string> *group_names = &processing.groupNames;
+	vector<vector<int>> group_inds_loc;
+	vector<string> group_names_loc;
+	if (processing.group_by_sum) {
+		int icol = 0;
+		for (auto& rec : matrix.data) {
+			group_inds_loc.push_back({ icol++ });
+			group_names_loc.push_back(rec.first);
+		}
+		group_inds = &group_inds_loc;
+		group_names = &group_names_loc;
+	}
+
+	medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, missing_value,
+		sampler_sampling_args, *group_inds, *group_names, alphas);
+
+	sample_explain_reasons.resize(matrix.samples.size());
+
+	for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+	{
+		map<string, float> &curr = sample_explain_reasons[i];
+		const vector<float> &curr_res = alphas[i];
+		for (size_t k = 0; k < group_names->size(); ++k)
+			curr[group_names->at(k)] = curr_res[k];
+	}
+}
+
+void LimeExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
+		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
+}
+
+int LinearExplainer::init(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "processing")
+			processing.init_from_string(it->second);
+		else if (it->first == "filters")
+			filters.init_from_string(it->second);
+		else if (it->first == "pp_type") {}
+		else
+			MTHROW_AND_ERR("Error in LinearExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
+	}
+
+	return 0;
+}
+
+void LinearExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	this->original_predictor = original_pred;
+
+	if (!processing.grouping.empty())
+		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
+	else {
+		int icol = 0;
+		for (auto& rec : train_mat.data) {
+			processing.group2Inds.push_back({ icol++ });
+			processing.groupNames.push_back(rec.first);
+		}
+	}
+	processing.learn(train_mat);
+}
+
+void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+	sample_explain_reasons.resize(matrix.data.begin()->second.size());
+	string bias_name = "Prior_Score";
+	vector<float> preds_orig(matrix.samples.size());
+	if (matrix.samples.front().prediction.empty()) {
+		MedMat<float> mat_x;
+		matrix.get_as_matrix(mat_x);
+		if (original_predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
+			mat_x.transpose();
+		original_predictor->predict(mat_x, preds_orig);
+	}
+	else {
+		for (size_t i = 0; i < preds_orig.size(); ++i)
+			preds_orig[i] = matrix.samples[i].prediction[0];
+	}
+
+	const vector<vector<int>> *group_inds = &processing.group2Inds;
+	const vector<string> *group_names = &processing.groupNames;
+	vector<vector<int>> group_inds_loc;
+	vector<string> group_names_loc;
+	if (processing.group_by_sum) {
+		int icol = 0;
+		for (auto& rec : matrix.data) {
+			group_inds_loc.push_back({ icol++ });
+			group_names_loc.push_back(rec.first);
+		}
+		group_inds = &group_inds_loc;
+		group_names = &group_names_loc;
+	}
+
+	MedProgress progress("LinearExplainer", (int)matrix.samples.size(), 15);
+
+	vector<float> x(matrix.samples.size() * matrix.data.size());
+	for (int i = 0; i < matrix.samples.size(); ++i) {
+		int j = 0;
+		for (auto it = matrix.data.begin(); it != matrix.data.end(); ++it) {
+			x[i* matrix.data.size() + j] = it->second[i];
+			++j;
+		}
+	}
+
+
+	vector<vector<float>> all_features_coeff(group_names->size());
+	//no parallel - will happen in predict
+	for (int i = 0; i < group_names->size(); ++i)
+	{
+		//put zeros in mask i
+		vector<float> masked_x = x;
+		for (int ind : group_inds->at(i))
+			for (size_t j = 0; j < matrix.samples.size(); ++j)
+				masked_x[j * matrix.data.size() + ind] = 0;
+		vector<float> preds_masked;
+		original_predictor->predict(masked_x, preds_masked, (int)matrix.samples.size(), (int)matrix.data.size());
+
+		//commit:
+#pragma omp critical
+		{
+			all_features_coeff[i].resize(matrix.samples.size());
+			for (size_t j = 0; j < matrix.samples.size(); ++j)
+				all_features_coeff[i][j] = preds_orig[j] - preds_masked[j];
+		}
+
+		progress.update();
+	}
+
+	//commit to memory:
+	for (int i = 0; i < sample_explain_reasons.size(); ++i)
+	{
+		map<string, float> &curr_res = sample_explain_reasons[i];
+
+		float pred_shap = 0;
+		for (size_t j = 0; j < group_names->size(); ++j)
+			pred_shap += all_features_coeff[j][i];
+
+		for (size_t j = 0; j < group_names->size(); ++j)
+			curr_res[group_names->at(j)] = all_features_coeff[j][i];
+		//Add prior to score:
+		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+	}
 }

@@ -13,28 +13,86 @@
 using namespace std;
 
 /**
+* filter parameters
+*/
+class ExplainFilters : public SerializableObject {
+public:
+	int sort_mode; ///< 0 - both pos and negative (sorted by abs), -1 - only negatives, +1 - only positives
+	int max_count; ///< maximal limit to take as explain features. 0 - no limit
+	float sum_ratio; ///< percentage of sum of explain values to take from sort_mode. [0 - 1]
+
+	ExplainFilters();
+
+	int init(map<string, string> &map);
+
+	/// commit filterings
+	void filter(map<string, float> &explain_list) const;
+
+	ADD_CLASS_NAME(ExplainFilters)
+		ADD_SERIALIZATION_FUNCS(sort_mode, max_count, sum_ratio)
+
+};
+
+/**
+* Processings of explains - grouping, COV process for each feature..
+*/
+class ExplainProcessings : public SerializableObject {
+public:
+	bool group_by_sum; ///< If true will do grouping by sum of each feature, otherwise will use internal special implementation
+	bool learn_cov_matrix; ///< If true will learn cov_matrix
+	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
+
+	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal
+	vector<vector<int>> group2Inds;
+	vector<string> groupNames;
+
+	ExplainProcessings();
+
+	int init(map<string, string> &map);
+
+	/// Learns process - for example cov matrix
+	void learn(const MedFeatures &train_mat);
+
+	/// commit processings
+	void process(map<string, float> &explain_list) const;
+
+	ADD_CLASS_NAME(ExplainProcessings)
+	ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, groupNames, group2Inds)
+};
+
+/**
 * An abstract class API for explainer
 */
 class ModelExplainer : public PostProcessor {
 public:
-	MedPredictor * original_predictor = NULL; //uses this if model has implementation of SHAP (like xgboost, lightGBM)
+	MedPredictor * original_predictor = NULL; ///< use this if model has implementation of SHAP (like xgboost, lightGBM). model to learn to explain
+	ExplainFilters filters; ///< general filters of results
+	ExplainProcessings processing; ///< processing of results, like groupings, COV
 
 	/// overload function for ModelExplainer - easier API
-	virtual void Learn(MedPredictor *original_pred, const MedFeatures &train_mat) = 0; 
+	virtual void Learn(MedPredictor *original_pred, const MedFeatures &train_mat) = 0;
 
 	///Learns from predictor and train_matrix (PostProcessor API)
 	virtual void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
-	void Apply(MedFeatures &matrix) { explain(matrix); } //alias for explain
+	void Apply(MedFeatures &matrix) const { explain(matrix); } ///< alias for explain
 
-														 ///Virtual - return explain results in sample_feature_contrib
+	void init_model(MedModel *mdl);
+	///Virtual - return explain results in sample_feature_contrib
 	virtual void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const = 0;
 
 	/// Stores explain results in matrix
 	virtual void explain(MedFeatures &matrix) const; //stores _explain results in MedFeatures
 
-	static void print_explain(MedSample &smp);
+	static void print_explain(MedSample &smp, int sort_mode = 0);
+
+	void dprint(const string &pref) const;
+
+	virtual ~ModelExplainer() {};
 };
 
+/** @enum
+* Tree Explainer modes - will be choosen by explainer
+*/
 enum TreeExplainerMode {
 	ORIGINAL_IMPL = 0,
 	CONVERTED_TREES_IMPL = 1,
@@ -55,10 +113,15 @@ private:
 private:
 	bool try_convert_trees();
 public:
-	string proxy_model_type;
-	string proxy_model_init;
+	string proxy_model_type = "";
+	string proxy_model_init = "";
 	bool interaction_shap = false;
 	int approximate = false;
+	float missing_value = MED_MAT_MISSING_VALUE;
+
+	TreeExplainer() { processor_type = FTR_POSTPROCESS_TREE_SHAP; }
+
+	void init_model(MedModel *mdl);
 
 	int init(map<string, string> &mapper);
 
@@ -70,8 +133,10 @@ public:
 
 	void post_deserialization();
 
+	~TreeExplainer();
+
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, proxy_predictor, generic_tree_model, interaction_shap)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing)
 };
 
 /**
@@ -81,11 +146,13 @@ public:
 * First we sample uniformally how many missing values should be - than randomally remove those value and set them as missing values.
 * This will cause the weight of each count of missing values to be equal in train - same as weights in SHAP values calculation
 */
-class SHAPExplainer : public ModelExplainer {
+class MissingShapExplainer : public ModelExplainer {
 private:
 	MedPredictor * retrain_predictor = NULL; //the retrain model
+
 public:
 	int add_new_data; ///< how many new data data points to add for train according to sample masks
+	bool no_relearn; ///< If true will use original model without relearn. assume original model is good enough for missing vals (for example LM model)
 
 	int max_test; ///< max number of samples in SHAP
 	float missing_value; ///< missing value 
@@ -93,8 +160,10 @@ public:
 	float select_from_all; ///< If max_test is beyond this percentage of all options than sample from all options (to speed up runtime)
 	bool uniform_rand; ///< it True will sample masks uniformlly
 	bool use_shuffle; ///< if not sampling uniformlly, If true will use shuffle (to speed up runtime)
+	string change_learn_args; ///< arguments to change in predictor - for example to change it into regression
+	bool verbose_learn; ///< If true will print more in learn
 
-	SHAPExplainer();
+	MissingShapExplainer();
 
 	int init(map<string, string> &mapper);
 
@@ -102,9 +171,11 @@ public:
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
-	ADD_CLASS_NAME(SHAPExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, retrain_predictor, max_test, missing_value,
-			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle)
+	~MissingShapExplainer();
+
+	ADD_CLASS_NAME(MissingShapExplainer)
+		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats, 
+			select_from_all, uniform_rand, use_shuffle, no_relearn, filters, processing)
 };
 
 /// @enum
@@ -132,13 +203,15 @@ private:
 	GibbsSampler<float> _gibbs;
 	GibbsSamplingParams _gibbs_sample_params;
 
-	void init_sampler();
+	void init_sampler(bool with_sampler = true);
 public:
 	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
 	string generator_args = ""; ///< for learn
 	string sampling_args = ""; ///< args for sampling
-	int max_test = 100; ///< how many test to conduct from shapley
+	int n_masks = 100; ///< how many test to conduct from shapley
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+
+	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; }
 
 	int init(map<string, string> &mapper);
 
@@ -152,12 +225,79 @@ public:
 	void load_GAN(MedPredictor *original_pred, const string &gan_path);
 	void load_MISSING(MedPredictor *original_pred);
 
+	void dprint(const string &pref) const;
+
 	ADD_CLASS_NAME(ShapleyExplainer)
-		ADD_SERIALIZATION_FUNCS(original_predictor, _sampler, gen_type, generator_args, max_test, missing_value, sampling_args)
+		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
+			filters, processing)
 };
 
+/**
+* shapley explainer with gibbs, GAN or other sampler generator
+*/
+class LimeExplainer : public ModelExplainer {
+private:
+	unique_ptr<SamplesGenerator<float>> _sampler = NULL;
+	void *sampler_sampling_args = NULL;
+
+	//just for gibbs memory hold when init & learn
+	GibbsSampler<float> _gibbs;
+	GibbsSamplingParams _gibbs_sample_params;
+
+	void init_sampler(bool with_sampler = true);
+
+public:
+	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
+	string generator_args = ""; ///< for learn
+	string sampling_args = ""; ///< args for sampling
+	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+	float p_mask = 0.5; ///< prob for 1 in mask
+	int n_masks = 5000; ///< number of masks
+
+	LimeExplainer() { processor_type = FTR_POSTPROCESS_LIME_SHAP; }
+
+	int init(map<string, string> &mapper);
+
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+
+	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	void load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
+	void load_GAN(MedPredictor *original_pred, const string &gan_path);
+	void load_MISSING(MedPredictor *original_pred);
+
+	void post_deserialization();
+
+	void dprint(const string &pref) const;
+
+	ADD_CLASS_NAME(LimeExplainer)
+		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks,
+			filters, processing)
+};
+
+/**
+* Simple Linear Explainer - puts zeros for each feature and measures change in score
+*/
+class LinearExplainer : public ModelExplainer {
+public:
+	LinearExplainer() { processor_type = FTR_POSTPROCESS_LINEAR; }
+
+	int init(map<string, string> &mapper);
+
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+
+	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	ADD_CLASS_NAME(LinearExplainer)
+		ADD_SERIALIZATION_FUNCS(filters, processing)
+};
+
+MEDSERIALIZE_SUPPORT(ExplainFilters)
+MEDSERIALIZE_SUPPORT(ExplainProcessings)
 MEDSERIALIZE_SUPPORT(TreeExplainer)
-MEDSERIALIZE_SUPPORT(SHAPExplainer)
+MEDSERIALIZE_SUPPORT(MissingShapExplainer)
 MEDSERIALIZE_SUPPORT(ShapleyExplainer)
+MEDSERIALIZE_SUPPORT(LimeExplainer)
+MEDSERIALIZE_SUPPORT(LinearExplainer)
 
 #endif

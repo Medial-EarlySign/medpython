@@ -72,6 +72,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepAggregateSignal);
 	CONDITIONAL_NEW_CLASS(dname, RepHistoryLimit);
 	CONDITIONAL_NEW_CLASS(dname, RepCreateRegistry);
+	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 

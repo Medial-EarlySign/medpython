@@ -16,6 +16,7 @@ you can also use the search box to find your file/function
     * RepProcessor - processing repository. to see all options for json file please reffer to ::RepProcessorTypes
     * FeatureGenerator - generating features from repository. to see all options for json file please reffer to ::FeatureGeneratorTypes
     * FeatureProcessor - processing features from already generated/processed features. to see all options for json file please reffer to ::FeatureProcessorTypes
+	* PostProcessor - processing scores and attributes from samples. to see all options for json file please reffer to ::PostProcessorTypes
  * MedSamples - an object that stores our samples - with patient id, prediction time, label and more..
  * MedFeatures - an object that stores our matrix for all samples in MedSamples
 

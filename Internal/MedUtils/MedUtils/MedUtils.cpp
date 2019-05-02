@@ -141,6 +141,7 @@ template<class T> void medial::print::print_hist_vec(const vector<T> &vec, const
 }
 template void medial::print::print_hist_vec<double>(const vector<double> &vec, const string &title, const string &format, const vector<double> *prctile_samples);
 template void medial::print::print_hist_vec<float>(const vector<float> &vec, const string &title, const string &format, const vector<double> *prctile_samples);
+template void medial::print::print_hist_vec<int>(const vector<int> &vec, const string &title, const string &format, const vector<double> *prctile_samples);
 
 template<typename T> int medial::process::binary_search_index(const T *begin, const T *end, T val) {
 	int maxSize = (int)(end - begin) + 1;
