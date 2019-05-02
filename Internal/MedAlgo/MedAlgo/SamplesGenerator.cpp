@@ -28,6 +28,14 @@ template<typename T> void MissingsSamplesGenerator<T>::post_deserialization() {}
 template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator() : SamplesGenerator<T>(false) {
 	_gibbs = NULL;
 	_do_parallel = true;
+	no_need_to_clear_mem = false;
+}
+
+template<typename T> GibbsSamplesGenerator<T>::~GibbsSamplesGenerator() {
+	if (_gibbs != NULL && !no_need_to_clear_mem) {
+		delete _gibbs;
+		_gibbs = NULL;
+	}
 }
 
 // Parent Class : SamplesGenerator
@@ -47,6 +55,7 @@ template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator(GibbsSample
 	: SamplesGenerator<T>(false) {
 	_gibbs = &gibbs;
 	_do_parallel = do_parallel;
+	no_need_to_clear_mem = true;
 }
 
 template<typename T> void GibbsSamplesGenerator<T>::learn(const map<string, vector<T>> &data) {
