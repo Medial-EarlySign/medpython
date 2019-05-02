@@ -72,6 +72,7 @@ CMakeLists.txt
 External/LightGBM/LightGBM/windows/x64/DLL/LightGBM.tlog/CL.command.1.tlog
 External/LightGBM/LightGBM/windows/x64/
 *.so
+*.so.*
 External/LightGBM/LightGBM/lightgbm
 *.tlog
 Internal/MedProcessTools/MedProcessTools/x64/DLL-Release/
