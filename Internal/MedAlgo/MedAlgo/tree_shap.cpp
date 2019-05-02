@@ -1900,7 +1900,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	tm_taker.start();
 	bool warn_shown = false;
 	float select_from_all = (float)0.8;
-	MedProgress tm_full("", ngrps, 15);
+	MedProgress tm_full("Shapley_Feature", ngrps, 15, 1);
 
 	for (size_t param_i = 0; param_i < ngrps; ++param_i)
 	{
