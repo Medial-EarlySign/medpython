@@ -536,7 +536,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	}
 
 	int tree_dep = FEATURE_DEPENDENCE::tree_path_dependent; //global is not supported in python - so not completed yet. indepent is usefull for complex transform, but can't be run with interaction
-	int tranform = MODEL_TRANSFORM::identity; //this will explain raw score, the rest are use to explain loss/probabilty or some tranformation, based on model return function
+	int tranform = MODEL_TRANSFORM::identity; //this will explain raw score, the rest are use to explain loss/probability or some tranformation, based on model return function
 
 	switch (md)
 	{

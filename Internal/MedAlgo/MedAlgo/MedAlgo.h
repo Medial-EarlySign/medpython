@@ -206,7 +206,7 @@ public:
 	/// calibration for probability using training data
 	/// @param x The training matrix
 	/// @param y The Labels
-	/// @param min_bucket_size The minimal observations to create probabilty bin
+	/// @param min_bucket_size The minimal observations to create probability bin
 	/// @param min_score_jump The minimal diff in scores to create bin
 	/// @param min_prob_jump The minimal diff in probabilties to create bin
 	/// @param fix_prob_order If true will unite bins that are sorted in wrong way
@@ -214,7 +214,7 @@ public:
 	/// <returns>
 	/// @param min_range - writes a corresponding vector with minimal score range
 	/// @param max_range - writes a corresponding vector with maximal score range
-	/// @param map_prob - writes a corresponding vector with probabilty for score range
+	/// @param map_prob - writes a corresponding vector with probability for score range
 	/// </returns>
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000,
@@ -226,11 +226,11 @@ public:
 	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range,
 		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs) const;
 	/// <summary>
-	/// Will create probabilty bins using Platt scale method
+	/// Will create probability bins using Platt scale method
 	/// @param x The training matrix
 	/// @param y The Labels
 	/// @param poly_rank the polynom rank for the Platt scale fit
-	/// @param min_bucket_size The minimal observations to create probabilty bin
+	/// @param min_bucket_size The minimal observations to create probability bin
 	/// @param min_score_jump The minimal diff in scores to create bin
 	/// </summary>
 	/// <returns>
@@ -238,7 +238,7 @@ public:
 	/// </returns>
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y, int poly_rank, vector<double> &params, int min_bucket_size = 10000, float min_score_jump = 0.001);
 	/// <summary>
-	/// Converts probabilty from Platt scale model
+	/// Converts probability from Platt scale model
 	/// </summary>
 	template<class T, class L> int convert_scores_to_prob(const vector<T> &preds, const vector<double> &params, vector<L> &converted) const;
 
