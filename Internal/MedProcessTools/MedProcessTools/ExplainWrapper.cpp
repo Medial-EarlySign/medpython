@@ -948,8 +948,6 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		group_names = &group_names_loc;
 	}
 
-	int N_TOTAL_TH = omp_get_max_threads();
-
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
 #pragma omp parallel for if (matrix.samples.size() >= 2)
 	for (int i = 0; i < matrix.samples.size(); ++i)
