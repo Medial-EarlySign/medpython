@@ -1900,7 +1900,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	tm_taker.start();
 	bool warn_shown = false;
 	float select_from_all = (float)0.8;
-	MedProgress tm_full("", ngrps, 15);
+	MedProgress tm_full("Shapley_Feature", ngrps, 15, 1);
 
 	for (size_t param_i = 0; param_i < ngrps; ++param_i)
 	{
@@ -1991,6 +1991,8 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 		full_gen_samples.samples.resize(full_gen_samples.data.begin()->second.size());
 		full_gen_samples.init_pid_pos_len();
 
+		//predictor may be not thread safe:
+#pragma omp critical
 		predictor->predict(full_gen_samples);
 		vector<float> preds_with, preds_without;
 		preds_with.reserve(full_gen_samples.samples.size() / 2);
@@ -2155,10 +2157,9 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 	p_features.init_pid_pos_len();
 
 	// Generate samples and predict
-	MedTimer tm;
+	MedProgress tm("Lime", nsamples, 30, 1);
 	for (int isample = 0; isample < nsamples; isample++) {
-		tm.start();
-		MLOG("Working on sample %d\n", isample);
+		//MLOG("Working on sample %d\n", isample);
 
 		// Generate random masks
 		MedMat<float> train(ngrps, n);
@@ -2230,7 +2231,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			sum += preds[irow];
 		}
 
-		MLOG("sample=%d, mean_pred=%f\n", isample, sum / n);
+		//MLOG("sample=%d, mean_pred=%f\n", isample, sum / n);
 
 		// Learn linear model
 		MedLM lm;
@@ -2242,8 +2243,6 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		for (int igrp = 0; igrp < ngrps; igrp++)
 			alphas[isample][igrp] = lm.b[igrp];
 
-		tm.take_curr_time();
-		MLOG("Explaining sample took %2.1f sec\n", tm.diff_sec());
-
+		tm.update();
 	}
 }

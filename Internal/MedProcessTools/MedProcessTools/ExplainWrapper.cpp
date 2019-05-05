@@ -948,17 +948,16 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		group_names = &group_names_loc;
 	}
 
-	int N_TOTAL_TH = omp_get_max_threads();
-
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
-#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
+#pragma omp parallel for if (matrix.samples.size() >= 2)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
 		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
 			, *group_inds, *group_names, *_sampler.get(), 1, sampler_sampling_args, features_coeff,
-			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL);
+			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
+			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
