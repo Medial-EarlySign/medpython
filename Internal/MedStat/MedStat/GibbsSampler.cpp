@@ -31,7 +31,6 @@ GibbsSamplingParams::GibbsSamplingParams() {
 	jump_between_samples = 10;
 	samples_count = 1;
 	find_real_value_bin = true;
-	use_cache = false;
 }
 
 int Gibbs_Params::init(map<string, string>& map) {
@@ -76,8 +75,6 @@ int GibbsSamplingParams::init(map<string, string>& map) {
 			samples_count = med_stoi(it->second);
 		else if (it->first == "find_real_value_bin")
 			find_real_value_bin = med_stoi(it->second) > 0;
-		else if (it->first == "use_cache")
-			use_cache = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in GibbsSamplingParams::init - no parameter \"%s\"\n", it->first.c_str());
 	}
@@ -86,7 +83,6 @@ int GibbsSamplingParams::init(map<string, string>& map) {
 
 template<typename T> PredictorOrEmpty<T>::PredictorOrEmpty() {
 	predictor = NULL;
-	use_cache = true;
 }
 
 template<typename T> PredictorOrEmpty<T>::~PredictorOrEmpty() {
@@ -99,7 +95,7 @@ template<typename T> int GibbsSampler<T>::init(map<string, string>& map) {
 	return params.init(map);
 }
 
-template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen) {
+template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen) const {
 	if (!sample_cohort.empty()) {
 		uniform_int_distribution<> rnd_gen(0, (int)sample_cohort.size() - 1);
 		int sel = rnd_gen(gen);
@@ -134,33 +130,15 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 		//predictor->predict(x, prd, 1, (int)x.size());
 		predictor->predict_single(x, prd);
 		if (!calibrators.empty()) {
-			//test cache:
-			if (use_cache && cache_calibrators.empty())
-				cache_calibrators.resize(calibrators.size());
 			//need to use calibrator for all predictions:
 			vector<MedSample> smps(1);
 			smps[0].id = 0;
 			smps[0].outcome = 0;
 			for (size_t i = 0; i < prd.size(); ++i)
 			{
-				if (use_cache) {
-					unordered_map<float, float> &m_cache = cache_calibrators[i];
-					if (m_cache.find(prd[i]) == m_cache.end()) {
-						smps[0].prediction = { (float)prd[i] };
-						calibrators[i].Apply(smps);
-
-						m_cache[prd[i]] = smps[0].prediction[0]; //update cache
-						prd[i] = smps[0].prediction[0]; //return calibrated value
-					}
-					else
-						prd[i] = m_cache.at(prd[i]);
-				}
-				else
-				{
-					smps[0].prediction = { (float)prd[i] };
-					calibrators[i].Apply(smps);
-					prd[i] = smps[0].prediction[0]; //return calibrated value
-				}
+				smps[0].prediction = { (float)prd[i] };
+				calibrators[i].Apply(smps);
+				prd[i] = smps[0].prediction[0]; //return calibrated value
 			}
 		}
 		double tot_num = 0;
@@ -437,10 +415,9 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 	}
 }
 
-template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params
-	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
+template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params, mt19937 &rnd_gen
+	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) const {
 
-	prepare_predictors();
 	vector<bool> mask_f(all_feat_names.size());
 	vector<T> mask_values_f(all_feat_names.size());
 	if (mask == NULL)
@@ -448,11 +425,11 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 	if (mask_values == NULL) //and with init values
 		mask_values = &mask_values_f;
 	if (all_feat_names.empty())
-		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
+		MTHROW_AND_ERR("Error in GibbsSampler<T>::get_samples - all_feat_names can't be empty\n");
 	//fix mask values and sample gibbs for the rest by cohort_data as statistical cohort for univariate marginal dist
 	int sample_loop = sampling_params.burn_in_count + (sampling_params.samples_count - 1) * sampling_params.jump_between_samples + 1;
 
-	vector<string> &all_names = all_feat_names;
+	const vector<string> &all_names = all_feat_names;
 
 	vector<T> current_sample(all_feat_names.size());
 	for (size_t i = 0; i < mask->size(); ++i)
@@ -468,18 +445,8 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 			idx_iter.push_back(i);
 	int pred_num_feats = (int)all_feat_names.size() - 1;
 
-	//pass global arguments to predictor sampler - like use_cache
-	for (size_t i = 0; i < feats_predictors.size(); ++i)
-	{
-		feats_predictors[i].use_cache = sampling_params.use_cache;
-	}
-
 	//can parallel for random init of initiale values (just burn in)
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = sample_loop;
+	MedProgress progress("GibbsSampler::get_samples", sample_loop, 30, 10);
 	for (size_t i = 0; i < sample_loop; ++i)
 	{
 		//create sample - iterate over all variables not in mask:
@@ -491,7 +458,7 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 				int fixxed_idx = (int)k + int(k >= f_idx);
 				curr_x[k] = current_sample[fixxed_idx];
 			}
-			T val = feats_predictors[f_idx].get_sample(curr_x, _gen); //based on dist (or predictor - value bin dist)
+			T val = feats_predictors[f_idx].get_sample(curr_x, rnd_gen); //based on dist (or predictor - value bin dist)
 
 			current_sample[f_idx] = val; //update current pos variable
 		}
@@ -522,24 +489,17 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 			}
 		}
 
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (print_progress && duration > 30 && progress % 10 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("GibbsSampler::get_samples Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n",
-				progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
+		if (print_progress)
+			progress.update();
 	}
 
 
+}
+
+template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params,
+	const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
+	prepare_predictors();
+	get_samples(results, sampling_params, _gen, mask, mask_values, print_progress);
 }
 
 template<typename T> void GibbsSampler<T>::prepare_predictors() {
@@ -567,23 +527,23 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 	if (mask_values == NULL) //and with init values
 		mask_values = &mask_values_f;
 	if (all_feat_names.empty())
-		MTHROW_AND_ERR("Error in medial::stats::gibbs_sampling - cohort_data can't be empty\n");
+		MTHROW_AND_ERR("Error in GibbsSampler<T>::get_parallel_samples - all_feat_names can't be empty\n");
 	int N_tot_threads = omp_get_max_threads();
 	if (worker_num > 0)
 		N_tot_threads = worker_num;
-	vector<GibbsSampler<T>> copy_gibbs(N_tot_threads);
-	for (size_t i = 0; i < copy_gibbs.size(); ++i) {
-		copy_gibbs[i] = *this;
-		copy_gibbs[i]._gen = mt19937(rd());
-	}
+	vector<mt19937> rnd_gens(N_tot_threads);
+	for (size_t i = 0; i < rnd_gens.size(); ++i)
+		rnd_gens[i] = mt19937(rd());
+
 	GibbsSamplingParams per_thread_params = sampling_params;
 	per_thread_params.samples_count = (int)ceil(float(sampling_params.samples_count) / N_tot_threads);
+	prepare_predictors();
 
 #pragma omp parallel for
 	for (int i = 0; i < N_tot_threads; ++i)
 	{
 		int n_th = omp_get_thread_num();
-		GibbsSampler<T> &g = copy_gibbs[n_th];
+		mt19937 &gen = rnd_gens[n_th];
 
 		vector<T> mask_vals(all_feat_names.size());
 		for (size_t i = 0; i < mask_vals.size(); ++i)
@@ -593,17 +553,12 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 				mask_vals[i] = mask_values->at(i);
 		map<string, vector<T>> res;
 
-		g.get_samples(res, per_thread_params, mask, &mask_vals, n_th == 0);
+		get_samples(res, per_thread_params, gen, mask, &mask_vals, n_th == 0);
 
 #pragma omp critical
 		for (auto it = res.begin(); it != res.end(); ++it)
 			results[it->first].insert(results[it->first].end(), it->second.begin(), it->second.end());
 	}
-
-	for (size_t i = 0; i < copy_gibbs.size(); ++i)
-		for (size_t j = 0; j < copy_gibbs[i].feats_predictors.size(); ++j)
-			copy_gibbs[i].feats_predictors[j].predictor = NULL; //that won't be cleaned from memory here - just a copy
-
 }
 
 template<typename T> void GibbsSampler<T>::filter_samples(const map<string, vector<float>> &cohort_data,

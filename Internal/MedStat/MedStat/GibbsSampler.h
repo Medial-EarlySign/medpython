@@ -16,9 +16,6 @@ using namespace std;
 * A wrapper class to store same predictor trained on random selected samples to return prediction dist
 */
 template<typename T> class PredictorOrEmpty : public SerializableObject {
-private:
-	vector<unordered_map<float, float>> cache_calibrators;
-
 public:
 	int input_size;
 	vector<T> sample_cohort; ///< all data points of feature
@@ -29,13 +26,11 @@ public:
 	vector<float> cluster_centers; ///< for kMeans centers
 	vector<vector<float>> clusters_y; ///< for kMeans centers
 
-	bool use_cache; ///< If true will use cache for calibrators
-
 	PredictorOrEmpty();
 	~PredictorOrEmpty();
 
 	/// retrieves random sample for feature based on all other features
-	T get_sample(vector<T> &x, mt19937 &gen);
+	T get_sample(vector<T> &x, mt19937 &gen) const;
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
 		ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, calibrators, bin_vals)
@@ -79,7 +74,6 @@ public:
 	int jump_between_samples; ///< how many rounds to ignore between taking samples
 	int samples_count; ///< how many samples to output
 	bool find_real_value_bin; ///< If true will find closet real value to result - to be in same resolution, real value from train
-	bool use_cache; ///< If true will use cache for calibrators
 
 	GibbsSamplingParams();
 	int init(map<string, string>& map);
@@ -94,7 +88,6 @@ public:
 template<typename T> class GibbsSampler : public SerializableObject {
 private:
 	mt19937 _gen;
-	void prepare_predictors();
 	bool done_prepare;
 public:
 	Gibbs_Params params; ///< gibbs params
@@ -110,10 +103,21 @@ public:
 	void learn_gibbs(const map<string, vector<T>> &cohort_data);
 
 	/// <summary>
+	/// Should be called before first get_samples when used in parallel manner
+	/// </summary>
+	void prepare_predictors();
+
+	/// <summary>
 	/// generates samples based on gibbs sampling process
 	/// </summary>
 	void get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params,
 		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL, bool print_progress = false);
+
+	/// <summary>
+	/// generates samples based on gibbs sampling process. const and can be called parallel
+	/// </summary>
+	void get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params, mt19937 &rnd_gen,
+		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL, bool print_progress = false) const;
 
 	/// <summary>
 	/// generates samples based on gibbs sampling process - uses only burn rate and creates one sample and exits
