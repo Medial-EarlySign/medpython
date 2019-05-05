@@ -491,8 +491,9 @@ size_t MedPredictor::predictor_serialize(unsigned char *blob) {
 
 //.......................................................................................
 
-void MedPredictor::print(FILE *fp, const string& prefix) const { fprintf(fp, "%s : No Printing method defined\n", prefix.c_str()); }
-
+void MedPredictor::print(FILE *fp, const string& prefix, int level) const {
+	fprintf(fp, "%s: %s ()\n", prefix.c_str(),predictor_type_to_name[classifier_type].c_str());
+}
 
 int MedPredictor::learn(const MedFeatures& ftrs_data) {
 

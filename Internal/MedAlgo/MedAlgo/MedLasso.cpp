@@ -245,11 +245,15 @@ int MedLasso::denormalize_model(float *f_avg, float *f_std, float label_avg, flo
 }
 
 //..............................................................................
-void MedLasso::print(FILE *fp, const string& prefix) const {
+void MedLasso::print(FILE *fp, const string& prefix, int level) const {
 
-	fprintf(fp, "%s : Linear Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
-	fprintf(fp, "%s : Linear Model b0 = %f\n", prefix.c_str(), b0);
+	if (level == 0)
+		fprintf(fp, "%s: MedLasso ()\n", prefix.c_str());
+	else {
+		fprintf(fp, "%s : Lasso Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
+		fprintf(fp, "%s : Lasso Model b0 = %f\n", prefix.c_str(), b0);
 
-	for (int i = 0; i < n_ftrs; i++)
-		fprintf(fp, "%s : Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+		for (int i = 0; i < n_ftrs; i++)
+			fprintf(fp, "%s : Lasso Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+	}
 }

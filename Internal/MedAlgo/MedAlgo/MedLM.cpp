@@ -390,13 +390,17 @@ int learn_lm (float *x, float *_y, const float *w, int nsamples, int nftrs, int 
 
 
 //..............................................................................
-void MedLM::print(FILE *fp, const string& prefix) const {
+void MedLM::print(FILE *fp, const string& prefix, int level) const {
 
-	fprintf(fp,"%s : Linear Model : Nftrs = %d\n",prefix.c_str(),n_ftrs) ;
-	fprintf(fp,"%s : Linear Model b0 = %f\n",prefix.c_str(),b0) ;
-	
-	for (int i=0; i<n_ftrs; i++)
-		fprintf(fp,"%s : Linear Model b[%d] = %f\n",prefix.c_str(),i,b[i]) ;
+	if (level == 0) 
+		fprintf(fp, "%s: MedLM ()\n", prefix.c_str());
+	else {
+		fprintf(fp, "%s : Linear Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
+		fprintf(fp, "%s : Linear Model b0 = %f\n", prefix.c_str(), b0);
+
+		for (int i = 0; i < n_ftrs; i++)
+			fprintf(fp, "%s : Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+	}
 }
 
 //..............................................................................
