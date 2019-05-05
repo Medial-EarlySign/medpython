@@ -11,6 +11,12 @@ template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>
 template<typename T> void SamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
 	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
+template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
+	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
+}
+template<typename T> void SamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, mt19937 &rnd_gen) const {
+	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
+}
 
 template<typename T> SamplesGenerator<T>::SamplesGenerator() {
 	use_vector_api = true;
@@ -38,24 +44,16 @@ template<typename T> GibbsSamplesGenerator<T>::~GibbsSamplesGenerator() {
 	}
 }
 
-// Parent Class : SamplesGenerator
-template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params) {
-	vector<bool> mask(data.size(), false);
-	vector<T> mask_values(data.size(), 0);
-
-	get_samples(data, params, mask, mask_values);
-}
-
 template<typename T> SamplesGenerator<T>::SamplesGenerator(bool _use_vector_api) {
 	use_vector_api = _use_vector_api;
 }
 
 // Gibbs samples generator
-template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator(GibbsSampler<T> &gibbs, bool do_parallel)
+template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator(GibbsSampler<T> &gibbs, bool do_parallel, bool no_need_clear_mem)
 	: SamplesGenerator<T>(false) {
 	_gibbs = &gibbs;
 	_do_parallel = do_parallel;
-	no_need_to_clear_mem = true;
+	no_need_to_clear_mem = no_need_clear_mem;
 }
 
 template<typename T> void GibbsSamplesGenerator<T>::learn(const map<string, vector<T>> &data) {
@@ -70,6 +68,15 @@ template<typename T> void *SamplesGenerator<T>::new_polymorphic(string derived_n
 	return NULL;
 }
 
+template<typename T> void GibbsSamplesGenerator<T>::prepare(void *params) {
+	_gibbs->prepare_predictors();
+}
+
+template<typename T> void GibbsSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
+	GibbsSamplingParams *sampling_params = (GibbsSamplingParams *)params;
+	_gibbs->get_samples(data, *sampling_params, rnd_gen, &mask, &mask_values);
+}
+
 template<typename T> void GibbsSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
 	GibbsSamplingParams *sampling_params = (GibbsSamplingParams *)params;
 	if (_do_parallel && sampling_params->samples_count >= 10)
@@ -79,6 +86,9 @@ template<typename T> void GibbsSamplesGenerator<T>::get_samples(map<string, vect
 }
 
 template<typename T> void GibbsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
+	MTHROW_AND_ERR("Error no supported in Gibbs");
+}
+template<typename T> void GibbsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, mt19937 &rnd_gen) const {
 	MTHROW_AND_ERR("Error no supported in Gibbs");
 }
 
@@ -97,11 +107,15 @@ template<typename T> MaskedGAN<T>::MaskedGAN()
 template<typename T> void MaskedGAN<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
 	MTHROW_AND_ERR("Error: Mode not supported for MaskedGAN");
 }
+template<typename T> void MaskedGAN<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
+	MTHROW_AND_ERR("Error: Mode not supported for MaskedGAN");
+}
 
-template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &mask_values) {
-
+template<> void MaskedGAN<float>::prepare(void *params) {
 	set_params(params);
+}
 
+template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &mask_values, mt19937 &rnd_gen) const {
 	// Sanity
 	if (mask.size() != mask_values.size())
 		MTHROW_AND_ERR("size mismatch between mask (%d samples) and mask_values (%d samples)\n", (int)mask.size(), (int)mask_values.size());
@@ -126,7 +140,7 @@ template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int s
 					input[k + nFtrs] = 1.0;
 				}
 				else {
-					input[k] = (float)real_dist(_gen);
+					input[k] = (float)real_dist(rnd_gen);
 					input[k + nFtrs] = 0.0;
 				}
 			}
@@ -145,6 +159,11 @@ template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int s
 			index++;
 		}
 	}
+}
+
+template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &mask_values) {
+	set_params(params);
+	get_samples(data, sample_per_row, params, mask, mask_values, _gen);
 }
 
 template<> void MaskedGAN<float>::get_samples_from_Z(vector<vector<float>> &data, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &Z) {
@@ -209,7 +228,7 @@ template<> void MaskedGAN<float>::read_from_text_file(const string& file_name) {
 	}
 }
 
-template<typename T> T MaskedGAN<T>::round_to_allowed_values(T in_value, vector<T>& curr_allowed_values) {
+template<typename T> T MaskedGAN<T>::round_to_allowed_values(T in_value, const vector<T>& curr_allowed_values) const {
 
 	// Perform binary search
 	unsigned int start = 0;
@@ -240,8 +259,7 @@ template<typename T> void MaskedGAN<T>::set_params(void *params) {
 template class MaskedGAN<float>;
 
 template<typename T> void MissingsSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
-	const vector<bool> &mask, const vector<T> &mask_values) {
-
+	const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
 	for (size_t i = 0; i < names.size(); ++i)
 	{
 		if (mask[i])
@@ -250,9 +268,14 @@ template<typename T> void MissingsSamplesGenerator<T>::get_samples(map<string, v
 			data[names[i]].push_back(missing_value);
 	}
 }
+template<typename T> void MissingsSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
+	const vector<bool> &mask, const vector<T> &mask_values) {
+	mt19937 rnd_not_used;
+	get_samples(data, params, mask, mask_values, rnd_not_used);
+}
 
 template<typename T> void MissingsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params,
-	const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
+	const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, mt19937 &rnd_gen) const {
 
 	data.resize(mask.size());
 	for (size_t i = 0; i < mask.size(); ++i)
@@ -266,6 +289,12 @@ template<typename T> void MissingsSamplesGenerator<T>::get_samples(vector<vector
 				data[i][j] = missing_value;
 		}
 	}
+}
+
+template<typename T> void MissingsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params,
+	const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
+	mt19937 rnd_not_used;
+	get_samples(data, sample_per_row, params, mask, mask_values, rnd_not_used);
 }
 
 template<typename T> MissingsSamplesGenerator<T>::MissingsSamplesGenerator(float miss_valu)

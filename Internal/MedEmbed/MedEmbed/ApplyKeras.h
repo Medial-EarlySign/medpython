@@ -57,11 +57,11 @@ public:
 
 
 	// appliers for a single sample
-	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output);
-	int apply_sparse(map<int, float> &sline, vector<float> &output);
-	int apply(vector<float> &in, vector<float> &out);
-	int apply_bn(vector<float> &in, vector<float> &out);
-	int apply_activation(vector<float> &in, vector<float> &out); // for in place send same vector for in/out
+	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output) const;
+	int apply_sparse(map<int, float> &sline, vector<float> &output) const;
+	int apply(vector<float> &in, vector<float> &out) const;
+	int apply_bn(vector<float> &in, vector<float> &out) const;
+	int apply_activation(vector<float> &in, vector<float> &out) const; // for in place send same vector for in/out
 
 	// initialization from string
 	int init(map<string, string>& _map);
@@ -79,10 +79,10 @@ public:
 
 	int init_from_text_file(string layers_file);
 
-	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer);
-	int apply_sparse(map<int, float> &sline, vector<float> &output, int to_layer);
-	int apply(vector<float>& line, vector<float> &output, int to_layer);
-	int apply(vector<float>& line, vector<float> &output) { return apply(line, output, (int)(layers.size() - 1)); }
+	int apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer) const;
+	int apply_sparse(map<int, float> &sline, vector<float> &output, int to_layer) const;
+	int apply(vector<float>& line, vector<float> &output, int to_layer) const;
+	int apply(vector<float>& line, vector<float> &output) const { return apply(line, output, (int)(layers.size() - 1)); }
 	int get_all_embeddings(MedSparseMat &smat, int to_layer, MedMat<float> &emat);
 
 	ADD_CLASS_NAME(ApplyKeras)
