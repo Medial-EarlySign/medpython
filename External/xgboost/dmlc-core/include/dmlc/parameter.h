@@ -714,50 +714,13 @@ class FieldEntry :
                             FieldEntryBase<FieldEntry<DType>, DType> >::Type {
 };
 
-// specialize define for vector<float>
-template<>
-class FieldEntry<std::vector<float> >
-  : public FieldEntryBase<FieldEntry<std::vector<float>>, std::vector<float>> {
-public:
-  // parent class
-  typedef FieldEntryBase<FieldEntry<std::vector<float>>, std::vector<float>> Parent;
-  // override set
-  virtual void Set(void *head, const std::string &value) const {
-    // Comma separated
-    int start = 0;
-    for (size_t end = 1; end < value.length(); end++) {
-      if (value[end] == ',') {
-        float f = dmlc::stof(value.substr(start, end - start));
-        this->Get(head).push_back(f);
-        start = end + 1;
-      }
-    }
-    float f = dmlc::stof(value.substr(start, value.length() - start));
-    this->Get(head).push_back(f);
-  }
-
-protected:
-  // override print the value
-  virtual void PrintValue(std::ostream &os, std::vector<float>& value) const { // NOLINT(*)
-    for (float f : value)
-      os << '\'' << f << '\'';
-  }
-
-  // override print default
-  virtual void PrintDefaultValueString(std::ostream &os) const {  // NOLINT(*)
-    for (float f : default_value_)
-      os << '\'' << f << '\'';
-  }
-};
-
-
 // specialize define for int(enum)
 template<>
 class FieldEntry<int>
     : public FieldEntryNumeric<FieldEntry<int>, int> {
  public:
   // construct
-  FieldEntry<int>() : is_enum_(false) {}
+  FieldEntry() : is_enum_(false) {}
   // parent
   typedef FieldEntryNumeric<FieldEntry<int>, int> Parent;
   // override set
@@ -856,14 +819,13 @@ class FieldEntry<int>
   }
 };
 
-
 // specialize define for optional<int>(enum)
 template<>
 class FieldEntry<optional<int> >
     : public FieldEntryBase<FieldEntry<optional<int> >, optional<int> > {
  public:
   // construct
-  FieldEntry<optional<int> >() : is_enum_(false) {}
+  FieldEntry() : is_enum_(false) {}
   // parent
   typedef FieldEntryBase<FieldEntry<optional<int> >, optional<int> > Parent;
   // override set
@@ -1016,7 +978,6 @@ class FieldEntry<bool>
     os << static_cast<int>(value);
   }
 };
-
 
 // specialize define for float. Uses stof for platform independent handling of
 // INF, -INF, NAN, etc.
