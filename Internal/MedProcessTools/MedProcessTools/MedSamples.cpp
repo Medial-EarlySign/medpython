@@ -23,7 +23,7 @@ void split_string_delimeter(vector<string> &res, const string &s, const string &
 	res.push_back(s.substr(pos_start));
 }
 
-template<typename T> void get_attr_namespace(const map<string, T> &attr, unordered_map<string, vector<string>> &namespace_mapper) {
+template<typename T> void get_attr_namespace(const map<string, T> &attr, map<string, vector<string>> &namespace_mapper) {
 	for (const auto& a : attr) {
 		string ns = a.first;
 		if (ns.find("::") != string::npos)
@@ -106,7 +106,7 @@ void write_attributes(stringstream &s_buff, const string &delimeter, const map<s
 	string delimeter_keys = "||";
 	string delimeter_key_val = "=";
 
-	unordered_map<string, vector<string>> namespace_mapper;
+	map<string, vector<string>> namespace_mapper;
 	get_attr_namespace(attr, namespace_mapper);
 
 	for (const auto& kv : namespace_mapper) {
@@ -600,7 +600,7 @@ int MedSample::get_all_attributes(vector<string>& attributes, vector<string>& st
 	attributes.clear();
 	str_attributes.clear();
 
-	unordered_map<string, vector<string>> agg_map;
+	map<string, vector<string>> agg_map;
 	get_attr_namespace(this->attributes, agg_map);
 	for (auto& attr : agg_map)
 		attributes.push_back(attr.first);
