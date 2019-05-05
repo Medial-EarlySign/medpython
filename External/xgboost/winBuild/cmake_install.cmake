@@ -1,4 +1,4 @@
-# Install script for directory: C:/MR/Libs/External/xgboost
+# Install script for directory: H:/MR/Libs/External/xgboost
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

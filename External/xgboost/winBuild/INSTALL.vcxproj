@@ -7,7 +7,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{1927FE53-8881-3A3D-9A72-C2812A3E998E}</ProjectGuid>
+    <ProjectGuid>{473FE413-47E6-3F22-B4CA-6F569B8982E5}</ProjectGuid>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <Keyword>Win32Proj</Keyword>
     <Platform>x64</Platform>
@@ -33,7 +33,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
-      <AdditionalIncludeDirectories>$(ProjectDir)\..\include;$(ProjectDir)\..\dmlc-core\include;$(ProjectDir)\..\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>H:\MR\Libs\External\xgboost\include;H:\MR\Libs\External\xgboost\dmlc-core\include;H:\MR\Libs\External\xgboost\rabit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -54,7 +54,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="$(ProjectDir)\CMakeFiles\37ddceae80c434465a3a4c684bea4094\INSTALL_force.rule">
+    <CustomBuild Include="H:\MR\Libs\External\xgboost\winBuild\CMakeFiles\ef01a7f85251a3d0c645eb0a117d8278\INSTALL_force.rule">
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'"> </Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
 cd .
@@ -65,23 +65,19 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)/CMakeFiles/37ddceae80c434465a3a4c684bea4094/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\CMakeFiles\INSTALL_force</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">H:/MR/Libs/External/xgboost/winBuild/CMakeFiles/ef01a7f85251a3d0c645eb0a117d8278/INSTALL_force.rule;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">H:\MR\Libs\External\xgboost\winBuild\CMakeFiles\INSTALL_force</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(ProjectDir)\ZERO_CHECK.vcxproj">
-      <Project>{700581B6-6132-32A2-91C2-954D869CBD28}</Project>
+    <ProjectReference Include="H:\MR\Libs\External\xgboost\winBuild\ZERO_CHECK.vcxproj">
+      <Project>{7A2B73E4-267F-332E-9808-BA0FA257007C}</Project>
       <Name>ZERO_CHECK</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="$(ProjectDir)\ALL_BUILD.vcxproj">
-      <Project>{96ACDB2D-F4F6-3A0A-8BD9-FB909CACB9FF}</Project>
+    <ProjectReference Include="H:\MR\Libs\External\xgboost\winBuild\ALL_BUILD.vcxproj">
+      <Project>{7B64330B-7A17-3B46-943C-94926B0C1EDD}</Project>
       <Name>ALL_BUILD</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

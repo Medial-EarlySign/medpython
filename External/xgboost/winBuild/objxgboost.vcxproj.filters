@@ -1,278 +1,278 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\c_api\c_api.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\c_api\c_api.cc">
       <Filter>src\c_api</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\c_api\c_api_error.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\c_api\c_api_error.cc">
       <Filter>src\c_api</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\common\common.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\common\common.cc">
       <Filter>src\common</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\common\hist_util.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\common\hist_util.cc">
       <Filter>src\common</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\common\host_device_vector.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\common\host_device_vector.cc">
       <Filter>src\common</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\data\data.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\data\data.cc">
       <Filter>src\data</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\data\simple_csr_source.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\data\simple_csr_source.cc">
       <Filter>src\data</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\data\simple_dmatrix.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\data\simple_dmatrix.cc">
       <Filter>src\data</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\data\sparse_page_dmatrix.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\data\sparse_page_dmatrix.cc">
       <Filter>src\data</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\data\sparse_page_raw_format.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\data\sparse_page_raw_format.cc">
       <Filter>src\data</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\data\sparse_page_source.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\data\sparse_page_source.cc">
       <Filter>src\data</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\data\sparse_page_writer.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\data\sparse_page_writer.cc">
       <Filter>src\data</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\gbm\gblinear.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\gbm\gblinear.cc">
       <Filter>src\gbm</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\gbm\gbm.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\gbm\gbm.cc">
       <Filter>src\gbm</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\gbm\gbtree.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\gbm\gbtree.cc">
       <Filter>src\gbm</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\learner.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\learner.cc">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\linear\linear_updater.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\linear\linear_updater.cc">
       <Filter>src\linear</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\linear\updater_coordinate.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\linear\updater_coordinate.cc">
       <Filter>src\linear</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\linear\updater_shotgun.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\linear\updater_shotgun.cc">
       <Filter>src\linear</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\logging.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\logging.cc">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\metric\elementwise_metric.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\metric\elementwise_metric.cc">
       <Filter>src\metric</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\metric\metric.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\metric\metric.cc">
       <Filter>src\metric</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\metric\multiclass_metric.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\metric\multiclass_metric.cc">
       <Filter>src\metric</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\metric\rank_metric.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\metric\rank_metric.cc">
       <Filter>src\metric</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\objective\hinge.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\objective\hinge.cc">
       <Filter>src\objective</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\objective\multiclass_obj.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\objective\multiclass_obj.cc">
       <Filter>src\objective</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\objective\objective.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\objective\objective.cc">
       <Filter>src\objective</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\objective\rank_obj.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\objective\rank_obj.cc">
       <Filter>src\objective</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\objective\regression_obj.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\objective\regression_obj.cc">
       <Filter>src\objective</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\predictor\cpu_predictor.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\predictor\cpu_predictor.cc">
       <Filter>src\predictor</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\predictor\predictor.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\predictor\predictor.cc">
       <Filter>src\predictor</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\split_evaluator.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\split_evaluator.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\tree_model.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\tree_model.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\tree_updater.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\tree_updater.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\updater_colmaker.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\updater_colmaker.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\updater_histmaker.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\updater_histmaker.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\updater_prune.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\updater_prune.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\updater_quantile_hist.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\updater_quantile_hist.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\updater_refresh.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\updater_refresh.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\updater_skmaker.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\updater_skmaker.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
-    <ClCompile Include="C:\MR\Libs\External\xgboost\src\tree\updater_sync.cc">
+    <ClCompile Include="H:\MR\Libs\External\xgboost\src\tree\updater_sync.cc">
       <Filter>src\tree</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\base.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\build_config.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\c_api.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\data.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\feature_map.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\gbm.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\learner.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\linear_updater.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\logging.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\metric.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\objective.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\predictor.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\tree_model.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\include\xgboost\tree_updater.h">
-      <Filter>include\xgboost</Filter>
-    </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\c_api\c_api_error.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\c_api\c_api_error.h">
       <Filter>src\c_api</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\base64.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\base64.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\bitmap.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\bitmap.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\column_matrix.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\column_matrix.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\common.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\common.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\compressed_iterator.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\compressed_iterator.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\config.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\config.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\enum_class_param.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\enum_class_param.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\group_data.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\group_data.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\hist_util.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\hist_util.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\host_device_vector.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\host_device_vector.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\io.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\io.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\math.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\math.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\quantile.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\quantile.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\random.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\random.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\row_set.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\row_set.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\span.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\span.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\timer.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\timer.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\common\transform.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\common\transform.h">
       <Filter>src\common</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\data\simple_csr_source.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\data\simple_csr_source.h">
       <Filter>src\data</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\data\simple_dmatrix.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\data\simple_dmatrix.h">
       <Filter>src\data</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\data\sparse_page_dmatrix.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\data\sparse_page_dmatrix.h">
       <Filter>src\data</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\data\sparse_page_source.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\data\sparse_page_source.h">
       <Filter>src\data</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\data\sparse_page_writer.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\data\sparse_page_writer.h">
       <Filter>src\data</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\gbm\gblinear_model.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\gbm\gblinear_model.h">
       <Filter>src\gbm</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\gbm\gbtree_model.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\gbm\gbtree_model.h">
       <Filter>src\gbm</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\linear\coordinate_common.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\linear\coordinate_common.h">
       <Filter>src\linear</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\linear\param.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\linear\param.h">
       <Filter>src\linear</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\metric\metric_param.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\metric\metric_param.h">
       <Filter>src\metric</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\objective\regression_loss.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\objective\regression_loss.h">
       <Filter>src\objective</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\tree\param.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\tree\param.h">
       <Filter>src\tree</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\tree\split_evaluator.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\tree\split_evaluator.h">
       <Filter>src\tree</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\tree\updater_basemaker-inl.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\tree\updater_basemaker-inl.h">
       <Filter>src\tree</Filter>
     </ClInclude>
-    <ClInclude Include="C:\MR\Libs\External\xgboost\src\tree\updater_quantile_hist.h">
+    <ClInclude Include="H:\MR\Libs\External\xgboost\src\tree\updater_quantile_hist.h">
       <Filter>src\tree</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\base.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\build_config.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\c_api.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\data.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\feature_map.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\gbm.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\learner.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\linear_updater.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\logging.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\metric.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\objective.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\predictor.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\tree_model.h">
+      <Filter>include\xgboost</Filter>
+    </ClInclude>
+    <ClInclude Include="H:\MR\Libs\External\xgboost\include\xgboost\tree_updater.h">
+      <Filter>include\xgboost</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\MR\Libs\External\xgboost\CMakeLists.txt" />
+    <CustomBuild Include="H:\MR\Libs\External\xgboost\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
