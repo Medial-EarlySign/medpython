@@ -206,7 +206,7 @@ public:
 	void apply_post_processors(MedFeatures &matrix_after_pred);
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
-	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int pp_flag, bool predictor_type);
+	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag);
 
 	/// following is for debugging : writing the feature to a csv file as a matrix.
 	int write_feature_matrix(const string mat_fname);
