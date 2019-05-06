@@ -107,6 +107,8 @@ int MedRep::get_type_size(SigType t)
 	case T_TimeShort4:
 		return ((int) sizeof(STimeShort4));
 
+	case T_Generic:
+		MTHROW_AND_ERR("Cannot get size of generic signal, you have to instantiate a gsv and call size()\n");
 
 	default:
 		MTHROW_AND_ERR("Cannot get size of signal type %d\n", t);
@@ -178,7 +180,9 @@ int MedRep::get_type_channels(SigType t, int &time_unit, int &n_time_chans, int 
 
 	case T_TimeShort4:
 		return MedRep::get_type_channels_info<STimeShort4>(time_unit, n_time_chans, n_val_chans);
-
+	
+	case T_Generic:
+		MTHROW_AND_ERR("Cannot get channels for generic signal by SigType, please use the function get_type_channels(string sigSpec, int &time_unit, int &n_time_chans, int &n_val_chans)")
 
 	default:
 		MTHROW_AND_ERR("Cannot get channels for signal type %d\n", t);
@@ -614,6 +618,8 @@ void UniversalSigVec_old::init(const SignalInfo &info)
 		//case T_CompactDateVal: set_funcs<SCompactDateVal>(); return;
 	case T_TimeRange: set_funcs<STimeRange>(); return;
 	case T_TimeShort4: set_funcs<STimeShort4>(); return;
+	case T_Generic:
+		MTHROW_AND_ERR("UniversalSigVec::init - legacy implementation of USV cannot initialize generic signal types\n");
 	default:
 		MTHROW_AND_ERR("UniversalSigVec::init unknown type %d\n", info.type);
 	}
