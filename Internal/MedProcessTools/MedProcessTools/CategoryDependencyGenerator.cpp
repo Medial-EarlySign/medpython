@@ -168,7 +168,7 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 }
 
 void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat) {
-	
+
 	bool cached = false;
 #pragma omp critical
 	if (_member2Sets_flat_cache.find(codeGroup) != _member2Sets_flat_cache.end()) {
@@ -274,7 +274,7 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 				regScore += medial::contingency_tables::calc_mcnemar_square_dist(all_grps);
 			else if (stat_metric == category_stat_test::chi_square)
 				regScore += medial::contingency_tables::calc_chi_square_dist(all_grps, 0, chi_square_at_least, minimal_chi_cnt);
-			dof_val += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 1);
+			dof_val += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 0);
 		}
 		scores[index] = (float)regScore;
 		dof[index] = dof_val;
@@ -533,18 +533,14 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	unordered_map<int, double> code_cnts;
 	for (size_t i = 0; i < code_list.size(); ++i)
 		code_cnts[code_list[i]] = codeCnts[i];
-	
+
 	int before_cnt = (int)indexes.size();
 	apply_filter(indexes, codeCnts, min_code_cnt, INT_MAX);
 	if (verbose)
 		MLOG("CategoryDependencyGenerator on %s - count_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
-	apply_filter(indexes, pvalues, 0, fdr);
-	if (verbose)
-		MLOG("CategoryDependencyGenerator on %s - fdr_filter left %zu(out of %d)\n",
-			signalName.c_str(), indexes.size(), before_cnt);
-	before_cnt = (int)indexes.size();
+
 	vector<int> top_idx(indexes), bottom_idx(indexes);
 	apply_filter(top_idx, lift, lift_above, INT_MAX);
 	apply_filter(bottom_idx, lift, -1, lift_below);
@@ -555,22 +551,30 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
 	//filter hierarchy:
-	medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members ,indexes, code_list, pvalues, codeCnts, lift,
+	medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members, indexes, code_list, pvalues, codeCnts, lift,
 		code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio, filter_child_removed_ratio);
 	if (verbose)
 		MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
+	//Real FDR filtering:
+	vector<double> fixed_lift(lift); //for sorting
+	for (int index : indexes)
+		if (fixed_lift[index] < 1 && fixed_lift[index] > 0)
+			fixed_lift[index] = 1 / fixed_lift[index];
+		else if (fixed_lift[index] == 0)
+			fixed_lift[index] = 999999;
+
+	medial::contingency_tables::FilterFDR(indexes, scores, pvalues, fixed_lift, fdr);
+	if (verbose)
+		MLOG("CategoryDependencyGenerator on %s - fdr_filter left %zu(out of %d)\n",
+			signalName.c_str(), indexes.size(), before_cnt);
+
+	before_cnt = (int)indexes.size();
 	//join both results from up and down filters on the lift:
 	//sort before taking top:
 	//sort by p_value, lift, score:
-	vector<double> fixed_lift(lift); //for sorting
-	if (use_fixed_lift)
-		for (int index : indexes)
-			if (fixed_lift[index] < 1 && fixed_lift[index] > 0)
-				fixed_lift[index] = 1 / fixed_lift[index];
-			else if (fixed_lift[index] == 0)
-				fixed_lift[index] = 999999;
+
 	vector<int> indexes_order(indexes.size());
 	vector<pair<int, vector<double>>> sort_pars(indexes.size());
 	for (size_t i = 0; i < indexes.size(); ++i)
@@ -673,7 +677,7 @@ int CategoryDependencyGenerator::filter_features(unordered_set<string>& validFea
 	vector<int> selected;
 	for (int i = 0; i < names.size(); i++) {
 		if (validFeatures.find(names[i]) != validFeatures.end())
-			selected.push_back(i); 
+			selected.push_back(i);
 	}
 
 	for (int i = 0; i < selected.size(); i++)
