@@ -526,6 +526,10 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	vector<int> code_list, indexes, dof;
 	vector<double> codeCnts, posCnts, lift, scores, pvalues, pos_ratio;
 	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, dof, prior_per_bin);
+	if (verbose_full) {
+		for (unsigned int i = 0; i < code_list.size(); i++)
+			MLOG("Value=%d : Cnts = %f PosCnts = %f Lift = %f Score = %f P-value = %f\n", code_list[i], codeCnts[i], posCnts[i], lift[i], scores[i], pvalues[i]);
+	}
 	unordered_map<int, double> code_cnts;
 	for (size_t i = 0; i < code_list.size(); ++i)
 		code_cnts[code_list[i]] = codeCnts[i];
