@@ -1271,12 +1271,11 @@ void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, floa
 }
 
 int KNN_Explainer::init(map<string, string> &mapper) {
+	ModelExplainer::init(mapper);
+	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		if (it->first == "processing")
-			processing.init_from_string(it->second);
-		else if (it->first == "filters")
-			filters.init_from_string(it->second);
+		if (ignore_set.find(it->first) != ignore_set.end()) {}
 		else if (it->first == "fraction")
 			fraction = med_stof(it->second);
 		else if (it->first == "numClusters")
@@ -1293,13 +1292,13 @@ int KNN_Explainer::init(map<string, string> &mapper) {
 	return 0;
 }
 void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
-	if (numClusters == -1)numClusters = train_mat.samples.size();
+	if (numClusters == -1)numClusters = (int)train_mat.samples.size();
 	if (numClusters > train_mat.samples.size()) {
-		MWARN("Warning in KNN_Explainer::Learn - numClusters reduced to size of training \"%d\>\>%d\"\n", numClusters, train_mat.samples.size());
-		numClusters = train_mat.samples.size();
+		MWARN("Warning in KNN_Explainer::Learn - numClusters reduced to size of training \"%d>>%zu\"\n", numClusters, train_mat.samples.size());
+		numClusters = (int)train_mat.samples.size();
 	}
 
-	MedMat<float> centers(numClusters, train_mat.data.size());
+	MedMat<float> centers(numClusters, (int)train_mat.data.size());
 	this->original_predictor = original_pred;
 	// get the features and normalize them
 	MedFeatures normalizedFeatures = train_mat;
@@ -1440,7 +1439,7 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 			}
 		pCol /= sumWeights;
 	
-		sample_explain_reasons.insert(pair<string,float>(featureNames[col], log((pTotal+1e-10) / (pCol + 1e-10))));
+		sample_explain_reasons.insert(pair<string,float>(featureNames[col], float(log((pTotal+1e-10) / (pCol + 1e-10)))));
 	}
 
 

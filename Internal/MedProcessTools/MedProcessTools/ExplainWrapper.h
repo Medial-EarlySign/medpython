@@ -292,7 +292,7 @@ private:
 	int numClusters = -1; // how many samples represent the training space
 
 	MedFeatures trainingMap;
-	float fraction=0.02; //fraction of points that is considered neighborhood to a point
+	float fraction=(float)0.02; //fraction of points that is considered neighborhood to a point
 	float thresholdQ= MED_MAT_MISSING_VALUE;//  defines threshold by positive ratio  on training set  ( when chosenThreshold missing). If this one is missing too, no thresholding
 	float chosenThreshold= MED_MAT_MISSING_VALUE; // if missing use thresholdQ to define threshold
 	vector<float> average, std;
@@ -311,7 +311,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(KNN_Explainer)
-		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap,average,std, fraction, chosenThreshold, filters, processing)
+		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap,average,std, fraction, chosenThreshold, filters, processing, attr_name)
 };
 
 /**
