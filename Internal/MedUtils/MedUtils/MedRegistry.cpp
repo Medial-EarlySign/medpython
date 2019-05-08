@@ -1320,8 +1320,10 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 
 	double normAlpha = filter_pval / num_test_factor;
 	int stop_index = 0;
-	while (stop_index < keysSorted.size() && normAlpha * (stop_index + 1) >= keysSorted[stop_index].second[0])
-		++stop_index;
+	for (unsigned int i = 0; i < keysSorted.size(); i++) {
+		if (keysSorted[i].second[0] <= normAlpha * (i + 1))
+			stop_index = i+1;
+	}
 
 	//Keep only filtered indexes
 	indexes.resize(stop_index);
