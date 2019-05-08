@@ -5,6 +5,7 @@
 #include <omp.h>
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
+#include <MedStat/MedStat/MedStat.h>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -1267,4 +1268,181 @@ void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, floa
 		//Add prior to score:
 		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
 	}
+}
+
+int KNN_Explainer::init(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "processing")
+			processing.init_from_string(it->second);
+		else if (it->first == "filters")
+			filters.init_from_string(it->second);
+		else if (it->first == "fraction")
+			fraction = med_stof(it->second);
+		else if (it->first == "numClusters")
+			numClusters = med_stoi(it->second);
+		else if (it->first == "chosenThreshold")
+			chosenThreshold = med_stof(it->second);
+		else if (it->first == "thresholdQ")
+			thresholdQ = med_stof(it->second);
+		else if (it->first == "pp_type") {}
+		else
+			MTHROW_AND_ERR("Error in KNN_Explainer::init - Unsupported param \"%s\"\n", it->first.c_str());
+	}
+
+	return 0;
+}
+void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+	if (numClusters == -1)numClusters = train_mat.samples.size();
+	if (numClusters > train_mat.samples.size()) {
+		MWARN("Warning in KNN_Explainer::Learn - numClusters reduced to size of training \"%d\>\>%d\"\n", numClusters, train_mat.samples.size());
+		numClusters = train_mat.samples.size();
+	}
+
+	MedMat<float> centers(numClusters, train_mat.data.size());
+	this->original_predictor = original_pred;
+	// get the features and normalize them
+	MedFeatures normalizedFeatures = train_mat;
+	MedMat<float> normalizedMatrix;
+	normalizedFeatures.get_as_matrix(normalizedMatrix);
+	
+	normalizedMatrix.normalize();
+	normalizedFeatures.set_as_matrix(normalizedMatrix);
+	// keep normalization params for future use in apply
+	average = normalizedMatrix.avg;
+	std = normalizedMatrix.std;
+/* we will test on kmeans later because it is unstable
+	//represent features by limitted number of clusters	
+	vector<int>clusters;
+	MedMat<float>dists;
+	KMeans(normalizedMatrix, numClusters, centers, clusters, dists);
+	vector <float> weights(centers.nrows,0);
+	for (int i=0;i<clusters.size();i++){
+		weights[clusters[i]]+=1./clusters.size();
+	}
+	*/
+
+	// random sample of space
+	vector <int>krand;
+	for (int k = 0; k < normalizedMatrix.nrows; k++)
+		krand.push_back(k);
+	shuffle(krand.begin(),krand.end(), default_random_engine(5246245));
+
+
+	
+
+	for (int i = 0; i < numClusters; i++)
+		for (int col = 0; col < normalizedMatrix.ncols; col++)
+			centers(i, col) = normalizedMatrix(krand[i], col);
+	centers.signals = normalizedMatrix.signals;
+	vector<float> weights(centers.nrows, 1);
+	
+	
+	//keep the features for the apply phase
+	trainingMap.set_as_matrix(centers);
+	trainingMap.weights = weights;
+	trainingMap.samples.resize(numClusters);
+	trainingMap.init_pid_pos_len();
+	
+	
+	// compute the thershold according to quantile
+	MedFeatures myMat = train_mat;// train_mat is constant
+	this->original_predictor->predict(myMat);
+
+    //assign predictions to the sampled  features
+	for (int i = 0; i < numClusters; i++)
+		trainingMap.samples[i].prediction = vector <float>(1,myMat.samples[krand[i]].prediction[0]);
+
+	// compute the thershold according to quantile
+	if (chosenThreshold == MED_MAT_MISSING_VALUE) 
+		if(thresholdQ!= MED_MAT_MISSING_VALUE){
+			vector <float> predictions = {};
+			vector <float> w(train_mat.samples.size(), 1);
+			for (int k = 0; k < train_mat.samples.size(); k++)
+				predictions.push_back(myMat.samples[k].prediction[0]);
+
+
+
+			chosenThreshold = medial::stats::get_quantile(predictions, w, 1 - thresholdQ);
+	}
+	
+	
+}
+void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const
+{
+	MedFeatures explainedFeatures = matrix;
+	MedMat<float> explainedMatrix;
+	//normalize the explained features
+	explainedFeatures.get_as_matrix(explainedMatrix);
+	MedMat <float> trainingCentersMatrix;
+	trainingMap.get_as_matrix(trainingCentersMatrix);
+	sample_explain_reasons = {};
+	
+	explainedMatrix.normalize(average,std,1);
+
+	//for each sample compute the explanation
+	vector <float> thisRow;
+	for (int row = 0; row < explainedMatrix.nrows; row++) {
+		explainedMatrix.get_row(row, thisRow);
+		sample_explain_reasons.push_back({});
+		computeExplanation(thisRow, sample_explain_reasons[row]);
+	}
+}
+void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons)const
+// do the calculation for a single sample after normalization
+{
+	
+	MedMat<float> centers; //matrix taken from features anfd holds the centers of clusters
+	trainingMap.get_as_matrix(centers);
+	MedMat<float> pDistance(centers.nrows,centers.ncols);
+	vector<float>totalDistance(centers.nrows,0);
+#define SQR(x)  ((x)*(x))
+	for (int row = 0; row < centers.nrows; row++) {
+		for (int col = 0; col < centers.ncols; col++) {
+			pDistance(row,col) = SQR(centers.get(row, col) - thisRow[col]);
+			totalDistance[row] += pDistance(row, col);
+		}
+		for (int col = 0; col < centers.ncols; col++) 
+			pDistance(row, col) = totalDistance[row] - pDistance(row, col);
+	}
+	vector<float> thresholds(centers.nrows, 0);
+	vector <float> colVector;
+	float totalThreshold = medial::stats::get_quantile(totalDistance, trainingMap.weights, fraction);
+	for (int col = 0; col < centers.ncols; col++) {
+		pDistance.get_col(col, colVector);
+		thresholds[col]= medial::stats::get_quantile(colVector, trainingMap.weights, fraction);
+	}
+	double sumWeights=0;
+	double pCol;
+	double pTotal=0;
+	
+	for (int row = 0; row < pDistance.nrows; row++) 
+		if (totalDistance[row] < totalThreshold) {
+			float thisPred = trainingMap.samples[row].prediction[0];
+			sumWeights += trainingMap.weights[row];
+			if (chosenThreshold != MED_MAT_MISSING_VALUE)thisPred = thisPred > chosenThreshold;// threshold the predictions if needed
+			pTotal+= trainingMap.weights[row] * thisPred;
+			//cout <<row<<" "<< trainingMap.samples[row].prediction[0] << "\n";
+		}
+	pTotal /= sumWeights;
+
+	vector <string> featureNames;
+	trainingMap.get_feature_names(featureNames);
+	for (int col = 0; col < centers.ncols; col++) {
+		pCol = 0;
+		sumWeights = 0;
+		for (int row = 0; row < pDistance.nrows; row++)
+			if (pDistance.get(row, col) < thresholds[col]) {
+				float thisPred = trainingMap.samples[row].prediction[0];
+				if (chosenThreshold != MED_MAT_MISSING_VALUE)thisPred = thisPred > chosenThreshold;// threshold the predictions if needed
+				pCol += trainingMap.weights[row]*thisPred;
+				sumWeights += trainingMap.weights[row];
+			}
+		pCol /= sumWeights;
+	
+		sample_explain_reasons.insert(pair<string,float>(featureNames[col], log((pTotal+1e-10) / (pCol + 1e-10))));
+	}
+
+
+
 }

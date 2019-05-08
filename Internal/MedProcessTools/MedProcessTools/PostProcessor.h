@@ -17,6 +17,7 @@ typedef enum {
 	FTR_POSTPROCESS_SHAPLEY, ///< "shapley" to create ShapleyExplainer - model agnostic shapley explainer for model. sample masks using gibbs or GAN
 	FTR_POSTPROCESS_MISSING_SHAP, ///< "missing_shap" to create MissingShapExplainer - model agnostic shapley algorithm on trained model to handle prediciton with missing values(retrains new model). much faster impl, because gibbs/GAN is not needed
 	FTR_POSTPROCESS_LIME_SHAP, ///< "lime_shap" to create LimeExplainer - model agnostic shapley algorithm with lime on shap values sampling
+	FTR_POSTPROCESS_KNN_EXPLAIN,///< "knn" Explainer built on knn principles KNN_Explainer
 	FTR_POSTPROCESS_LINEAR, ///< "linear" to create LinearExplainer to explain linear model - importance is score change when putting zero in the feature/group of features
 	FTR_POSTPROCESS_LAST
 } PostProcessorTypes;

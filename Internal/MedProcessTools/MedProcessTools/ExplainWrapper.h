@@ -282,6 +282,39 @@ public:
 };
 
 /**
+* KNN explainer
+*/
+
+
+class KNN_Explainer : public ModelExplainer {
+	
+private:
+	int numClusters = -1; // how many samples represent the training space
+
+	MedFeatures trainingMap;
+	float fraction=0.02; //fraction of points that is considered neighborhood to a point
+	float thresholdQ= MED_MAT_MISSING_VALUE;//  defines threshold by positive ratio  on training set  ( when chosenThreshold missing). If this one is missing too, no thresholding
+	float chosenThreshold= MED_MAT_MISSING_VALUE; // if missing use thresholdQ to define threshold
+	vector<float> average, std;
+
+	// do the calculation for a single sample after normalization
+	void computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons)const;
+	
+public:
+	
+	KNN_Explainer() { processor_type = FTR_POSTPROCESS_KNN_EXPLAIN; }
+
+	int init(map<string, string> &mapper);
+
+	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+
+	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	ADD_CLASS_NAME(KNN_Explainer)
+		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap,average,std, fraction, chosenThreshold, filters, processing)
+};
+
+/**
 * Simple Linear Explainer - puts zeros for each feature and measures change in score
 */
 class LinearExplainer : public ModelExplainer {
@@ -305,5 +338,7 @@ MEDSERIALIZE_SUPPORT(MissingShapExplainer)
 MEDSERIALIZE_SUPPORT(ShapleyExplainer)
 MEDSERIALIZE_SUPPORT(LimeExplainer)
 MEDSERIALIZE_SUPPORT(LinearExplainer)
+MEDSERIALIZE_SUPPORT(KNN_Explainer)
+
 
 #endif
