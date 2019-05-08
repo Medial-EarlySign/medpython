@@ -153,7 +153,7 @@ namespace medial {
 			const vector<double> &valCnts, const vector<double> &lifts, const unordered_map<int, double> &code_unfiltered_cnts,
 			float pValue_diff, float lift_th, float count_similarity, float child_fitlered_ratio, const map<int, vector<string>> *categoryId_to_name = NULL);
 
-		/// \brief calc chi square probabilty from distance, DOF
+		/// \brief calc chi square probability from distance, DOF
 		double chisqr(int Dof, double Cv);
 		/// \brief serialize male,female stats
 		void write_stats(const string &file_path,

@@ -1838,13 +1838,13 @@ int AttrFeatGenerator::init(map<string, string>& mapper) {
 
 // Generate
 //.......................................................................................
-int AttrFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int AttrFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++) {
 		if (features.samples[index + i].attributes.find(attribute) != features.samples[index + i].attributes.end())
 			p_feat[i] = features.samples[index + i].attributes[attribute];
-		else
+		else 
 			p_feat[i] = missing_val;
 	}
 

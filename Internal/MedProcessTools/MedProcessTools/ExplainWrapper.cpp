@@ -159,6 +159,24 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	}
 }
 
+int ModelExplainer::init(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "processing")
+			processing.init_from_string(it->second);
+		else if (it->first == "filters")
+			filters.init_from_string(it->second);
+		else if (it->first == "attr_name")
+			attr_name = it->second;
+		else {} //ignore - parse general args only
+	}
+	return 0;
+}
+
+unordered_set<string> ModelExplainer::global_arg_param_set() {
+	return { "processing", "filters", "attr_name" };
+}
+
 void ModelExplainer::explain(MedFeatures &matrix) const {
 	vector<map<string, float>> explain_reasons; //for each sample, reasons and scores
 	explain(matrix, explain_reasons);
@@ -174,9 +192,13 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	for (size_t i = 0; i < explain_reasons.size(); ++i)
 		filters.filter(explain_reasons[i]);
 
+	string group_name = attr_name;
+	if (attr_name.empty()) //default name
+		group_name = my_class_name();
+#pragma omp critical
 	for (size_t i = 0; i < explain_reasons.size(); ++i)
 		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
-			matrix.samples[i].attributes["ModelExplainer::" + it->first] = it->second;
+			matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
 
 }
 
@@ -389,6 +411,8 @@ TreeExplainerMode TreeExplainer::get_mode() const {
 }
 
 int TreeExplainer::init(map<string, string> &mapper) {
+	ModelExplainer::init(mapper);
+	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "proxy_model_type")
@@ -401,14 +425,12 @@ int TreeExplainer::init(map<string, string> &mapper) {
 			approximate = stoi(it->second) > 0;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
-		else if (it->first == "processing")
-			processing.init_from_string(it->second);
-		else if (it->first == "filters")
-			filters.init_from_string(it->second);
 		else if (it->first == "pp_type") {}
+		else if (ignore_set.find(it->first) != ignore_set.end()) {}
 		else
 			MTHROW_AND_ERR("Error in TreeExplainer::init - Unsupported parameter \"%s\"\n", it->first.c_str());
 	}
+
 	return 0;
 }
 
@@ -534,7 +556,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	}
 
 	int tree_dep = FEATURE_DEPENDENCE::tree_path_dependent; //global is not supported in python - so not completed yet. indepent is usefull for complex transform, but can't be run with interaction
-	int tranform = MODEL_TRANSFORM::identity; //this will explain raw score, the rest are use to explain loss/probabilty or some tranformation, based on model return function
+	int tranform = MODEL_TRANSFORM::identity; //this will explain raw score, the rest are use to explain loss/probability or some tranformation, based on model return function
 
 	switch (md)
 	{
@@ -609,6 +631,8 @@ MissingShapExplainer::MissingShapExplainer() {
 }
 
 int MissingShapExplainer::init(map<string, string> &mapper) {
+	ModelExplainer::init(mapper);
+	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "missing_value")
@@ -631,10 +655,7 @@ int MissingShapExplainer::init(map<string, string> &mapper) {
 			change_learn_args = it->second;
 		else if (it->first == "verbose_learn")
 			verbose_learn = stoi(it->second) > 0;
-		else if (it->first == "processing")
-			processing.init_from_string(it->second);
-		else if (it->first == "filters")
-			filters.init_from_string(it->second);
+		else if (ignore_set.find(it->first) != ignore_set.end()) {}
 		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
@@ -831,6 +852,8 @@ GeneratorType GeneratorType_fromStr(const string &type) {
 }
 
 int ShapleyExplainer::init(map<string, string> &mapper) {
+	ModelExplainer::init(mapper);
+	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "gen_type")
@@ -843,10 +866,7 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
-		else if (it->first == "processing")
-			processing.init_from_string(it->second);
-		else if (it->first == "filters")
-			filters.init_from_string(it->second);
+		else if (ignore_set.find(it->first) != ignore_set.end()) {}
 		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in ShapleyExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
@@ -929,17 +949,25 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		group_names = &group_names_loc;
 	}
 
-	int N_TOTAL_TH = omp_get_max_threads();
+	int MAX_Threads = omp_get_max_threads();
+	//copy sample for each thread:
+	random_device rd;
+	vector<mt19937> gen_thread(MAX_Threads);
+	for (size_t i = 0; i < gen_thread.size(); ++i)
+		gen_thread[i] = mt19937(rd());
+	_sampler->prepare(sampler_sampling_args);
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
-#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
+#pragma omp parallel for if (matrix.samples.size() >= 2)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
+		int n_th = omp_get_thread_num();
 		vector<float> features_coeff;
 		float pred_shap = 0;
 		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
-			, *group_inds, *group_names, *_sampler.get(), 1, sampler_sampling_args, features_coeff,
-			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL);
+			, *group_inds, *group_names, *_sampler, gen_thread[n_th], 1, sampler_sampling_args, features_coeff,
+			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
+			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
@@ -995,6 +1023,8 @@ void ShapleyExplainer::dprint(const string &pref) const {
 }
 
 int LimeExplainer::init(map<string, string> &mapper) {
+	ModelExplainer::init(mapper);
+	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "gen_type")
@@ -1009,10 +1039,7 @@ int LimeExplainer::init(map<string, string> &mapper) {
 			p_mask = med_stof(it->second);
 		else if (it->first == "n_masks")
 			n_masks = med_stoi(it->second);
-		else if (it->first == "processing")
-			processing.init_from_string(it->second);
-		else if (it->first == "filters")
-			filters.init_from_string(it->second);
+		else if (ignore_set.find(it->first) != ignore_set.end()) {}
 		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in LimeExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
@@ -1134,12 +1161,11 @@ void LimeExplainer::dprint(const string &pref) const {
 }
 
 int LinearExplainer::init(map<string, string> &mapper) {
+	ModelExplainer::init(mapper);
+	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		if (it->first == "processing")
-			processing.init_from_string(it->second);
-		else if (it->first == "filters")
-			filters.init_from_string(it->second);
+		if (ignore_set.find(it->first) != ignore_set.end()) {}
 		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in LinearExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());

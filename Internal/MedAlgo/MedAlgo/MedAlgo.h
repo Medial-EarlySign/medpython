@@ -135,7 +135,7 @@ public:
 	virtual int Predict(float *x, float *&preds, int n_samples, int n_ftrs) const { return 0; }
 
 	// Print
-	virtual void print(FILE *fp, const string& prefix) const;
+	virtual void print(FILE *fp, const string& prefix, int level = 0) const;
 
 	/// Number of predictions per sample. typically 1 - but some models return several per sample (for example a probability vector)
 	virtual int n_preds_per_sample() const { return 1; };
@@ -206,7 +206,7 @@ public:
 	/// calibration for probability using training data
 	/// @param x The training matrix
 	/// @param y The Labels
-	/// @param min_bucket_size The minimal observations to create probabilty bin
+	/// @param min_bucket_size The minimal observations to create probability bin
 	/// @param min_score_jump The minimal diff in scores to create bin
 	/// @param min_prob_jump The minimal diff in probabilties to create bin
 	/// @param fix_prob_order If true will unite bins that are sorted in wrong way
@@ -214,7 +214,7 @@ public:
 	/// <returns>
 	/// @param min_range - writes a corresponding vector with minimal score range
 	/// @param max_range - writes a corresponding vector with maximal score range
-	/// @param map_prob - writes a corresponding vector with probabilty for score range
+	/// @param map_prob - writes a corresponding vector with probability for score range
 	/// </returns>
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 		vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int min_bucket_size = 10000,
@@ -226,11 +226,11 @@ public:
 	int convert_scores_to_prob(const vector<float> &preds, const vector<float> &min_range,
 		const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs) const;
 	/// <summary>
-	/// Will create probabilty bins using Platt scale method
+	/// Will create probability bins using Platt scale method
 	/// @param x The training matrix
 	/// @param y The Labels
 	/// @param poly_rank the polynom rank for the Platt scale fit
-	/// @param min_bucket_size The minimal observations to create probabilty bin
+	/// @param min_bucket_size The minimal observations to create probability bin
 	/// @param min_score_jump The minimal diff in scores to create bin
 	/// </summary>
 	/// <returns>
@@ -238,7 +238,7 @@ public:
 	/// </returns>
 	int learn_prob_calibration(MedMat<float> &x, vector<float> &y, int poly_rank, vector<double> &params, int min_bucket_size = 10000, float min_score_jump = 0.001);
 	/// <summary>
-	/// Converts probabilty from Platt scale model
+	/// Converts probability from Platt scale model
 	/// </summary>
 	template<class T, class L> int convert_scores_to_prob(const vector<T> &preds, const vector<double> &params, vector<L> &converted) const;
 
@@ -328,11 +328,10 @@ public:
 
 	void normalize_x_and_y(float *x, float *y, const float *w, int nsamples, int nftrs, vector<float>& x_avg, vector<float>& x_std, float& y_avg, float& y_std);
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
+	void print(FILE *fp, const string& prefix, int level = 0) const;
 
 	ADD_CLASS_NAME(MedLM)
-		ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b, err)
-
-		void print(FILE *fp, const string& prefix) const;
+	ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b, err)
 };
 
 // Ancillary function for string analysis
@@ -395,11 +394,10 @@ public:
 
 	void initialize_vars(float *x_in, float *y_in, const float *w, vector<float>& b, int nrow_train, int n_ftrs);
 	void lasso_regression(vector<float>& b, int nrow_train, int n_ftrs, double lambda, int num_iterations);
+	void print(FILE *fp, const string& prefix, int level=0) const;
 
 	ADD_CLASS_NAME(MedLasso)
-		ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b)
-
-		void print(FILE *fp, const string& prefix) const;
+	ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b)	
 };
 /// Least Square direct iterations solution
 int learn_lm(float *x, float *_y, const float *w, int nsamples, int nftrs, int niter, float eiter, float *rfactors, float *b, float *err, float *corrs);
@@ -442,7 +440,7 @@ struct MedGDLMParams : public SerializableObject {
 	}
 
 	ADD_CLASS_NAME(MedGDLMParams)
-		ADD_SERIALIZATION_FUNCS(method, last_is_bias, max_iter, stop_at_err, max_times_err_grows, batch_size, rate, rate_decay, l_ridge, l_lasso, ls_lasso, ls_ridge, nthreads, err_freq)
+	ADD_SERIALIZATION_FUNCS(method, last_is_bias, max_iter, stop_at_err, max_times_err_grows, batch_size, rate, rate_decay, l_ridge, l_lasso, ls_lasso, ls_ridge, nthreads, err_freq)
 };
 
 class MedGDLM : public MedPredictor {
@@ -474,12 +472,12 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) const;
 
+	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
+
+	void print(FILE *fp, const string& prefix, int level = 0) const;
+
 	ADD_CLASS_NAME(MedGDLM)
-		ADD_SERIALIZATION_FUNCS(classifier_type, params, n_ftrs, b, b0, model_features, features_count)
-
-		int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
-
-	void print(FILE *fp, const string& prefix) const;
+	ADD_SERIALIZATION_FUNCS(classifier_type, params, n_ftrs, b, b0, model_features, features_count)
 
 	// actual computation functions
 	int Learn_full(float *x, float *y, const float *w, int nsamples, int nftrs); // full non-iterative solution, not supporting lasso
@@ -576,11 +574,10 @@ public:
 	ADD_CLASS_NAME(MedQRF)
 		ADD_SERIALIZATION_FUNCS(classifier_type, qf, params, model_features, features_count)
 
-		// Print
-		void print(FILE *fp, const string& prefix) const;
+	// Print
+	void print(FILE *fp, const string& prefix, int level=0) const;
 	void printTrees(const vector<string> &modelSignalNames, const string &outputPath) const;
-	void calc_feature_importance(vector<float> &features_importance_scores,
-		const string &general_params, const MedFeatures *features);
+	void calc_feature_importance(vector<float> &features_importance_scores, const string &general_params, const MedFeatures *features);
 
 	// Predictions per sample
 	int n_preds_per_sample() const;
@@ -669,15 +666,13 @@ public:
 	void prepare_predict_single();
 	void predict_single(const vector<float> &x, vector<float> &preds) const;
 
+	// Predictions per sample
+	int n_preds_per_sample() const { return mic.n_preds_per_sample(); }
+
 	// (De)Serialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
 	ADD_CLASS_NAME(MedMicNet)
-		ADD_SERIALIZATION_FUNCS(classifier_type, mic_params.init_string, mic)
+	ADD_SERIALIZATION_FUNCS(classifier_type, mic_params.init_string, mic)
 
-		// Print
-		//void print(FILE *fp, const string& prefix);
-
-		// Predictions per sample
-		int n_preds_per_sample() const { return mic.n_preds_per_sample(); }
 
 };
 
@@ -753,7 +748,7 @@ public:
 	size_t deserialize(unsigned char *blob);
 
 	// Print
-	void print(FILE *fp, const string& prefix) const;
+	void print(FILE *fp, const string& prefix, int level = 0) const;
 
 	// Predictions per sample
 	int n_preds_per_sample() const;
@@ -815,7 +810,7 @@ public:
 	size_t deserialize(unsigned char *blob);
 
 	// Print
-	void print(FILE *fp, const string& prefix) const;
+	void print(FILE *fp, const string& prefix, int level = 0) const;
 };
 
 // Initialization of parameters
@@ -877,8 +872,6 @@ public:
 		size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-
-	//	void print(FILE *fp, const string& prefix) ;
 };
 
 
@@ -950,9 +943,8 @@ public:
 		size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-
-	//	void print(FILE *fp, const string& prefix) ;
-		// Parameters
+		
+	// Parameters
 private:
 	MedBPParams params;
 
@@ -1001,15 +993,15 @@ struct MedMultiClass : public MedPredictor {
 
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
-	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
-	ADD_CLASS_NAME(MedMultiClass)
-		ADD_SERIALIZATION_FUNCS(classifier_type, params.method, params.multi_class_type, internal_predictors)
-
-		// Print
-		void print(FILE *fp, const string& prefix) const;
+	// Print
+	void print(FILE *fp, const string& prefix, int level = 0) const;
 
 	// Predictions per sample
 	int n_preds_per_sample() const;
+
+	// (De)Desrialize - virtual class methods that do the actuale (De)Serializing. Should be created for each predictor
+	ADD_CLASS_NAME(MedMultiClass)
+		ADD_SERIALIZATION_FUNCS(classifier_type, params.method, params.multi_class_type, internal_predictors)
 };
 
 

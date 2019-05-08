@@ -39,6 +39,8 @@ html/
 *.pidb
 *.userprefs
 */.vs/*
+*/Release/*
+*/Debug/*
 
 #Tooling
 _ReSharper*/
@@ -82,11 +84,11 @@ documentation_creation_server.log
 documentation_creation_user.log
 Internal/MedUtils/MedUtils.VC.opendb
 !External/xgboost/CMakeLists.txt.orig
-!External/xgboost/CMakeLists.txt
 *.db-shm
 *.gch
 *.db-wal
 *.o
+*/xgboost/doc/_static/*
 
 External/LightGBM/LightGBM/CMakeLists.txt
 Internal/MedPyExport/generate_binding/MedPython/apply_directives.i

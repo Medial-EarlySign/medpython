@@ -23,7 +23,7 @@ void split_string_delimeter(vector<string> &res, const string &s, const string &
 	res.push_back(s.substr(pos_start));
 }
 
-template<typename T> void get_attr_namespace(const map<string, T> &attr, unordered_map<string, vector<string>> &namespace_mapper) {
+template<typename T> void get_attr_namespace(const map<string, T> &attr, map<string, vector<string>> &namespace_mapper) {
 	for (const auto& a : attr) {
 		string ns = a.first;
 		if (ns.find("::") != string::npos)
@@ -37,7 +37,7 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 	const string &delimeter_keys, const string &delimeter_key_val) {
 	if (keys.empty())
 		return;
-	if (keys.size() == 1)
+	if (keys.size() == 1 && keys.front().find(namespace_attr_delimeter) == string::npos) //one key without namespace!
 		s_buff << attr.at(keys.front());
 	else {
 		s_buff << "{";
@@ -60,17 +60,22 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 void try_parse_attributes_keys(const string &s, map<string, string> &attr, const string &ns,
 	const string &namespace_attr_delimeter, const string &delimeter_keys, const string &delimeter_key_val) {
 	string ss = s;
-	if (s.at(0) == '{')
+	bool is_object_ns = false;
+	if (s.at(0) == '{') {
+		is_object_ns = true;
 		ss = s.substr(1);
-	if (ss.at(ss.length() - 1) == '}')
+	}
+	if (ss.at(ss.length() - 1) == '}') {
 		ss = ss.substr(0, ss.length() - 1);
+		is_object_ns = true;
+	}
 
 	vector<string> tokens;
 	split_string_delimeter(tokens, ss, delimeter_keys);
 
 	if (tokens.empty()) //empty attribute value - skip
 		return;
-	if (tokens.size() == 1)
+	if (tokens.size() == 1 && !is_object_ns)
 		attr[ns] = ss;
 	else {
 
@@ -101,7 +106,7 @@ void write_attributes(stringstream &s_buff, const string &delimeter, const map<s
 	string delimeter_keys = "||";
 	string delimeter_key_val = "=";
 
-	unordered_map<string, vector<string>> namespace_mapper;
+	map<string, vector<string>> namespace_mapper;
 	get_attr_namespace(attr, namespace_mapper);
 
 	for (const auto& kv : namespace_mapper) {
@@ -261,7 +266,7 @@ int MedSample::parse_from_string(string &s, int time_unit)
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, int time_unit,bool write_attrib, const string &delimeter) const
+void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, const string &delimeter) const
 {
 	stringstream s_buff;
 	//s = "";
@@ -595,7 +600,7 @@ int MedSample::get_all_attributes(vector<string>& attributes, vector<string>& st
 	attributes.clear();
 	str_attributes.clear();
 
-	unordered_map<string, vector<string>> agg_map;
+	map<string, vector<string>> agg_map;
 	get_attr_namespace(this->attributes, agg_map);
 	for (auto& attr : agg_map)
 		attributes.push_back(attr.first);

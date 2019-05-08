@@ -68,6 +68,10 @@ public:
 	MedPredictor * original_predictor = NULL; ///< use this if model has implementation of SHAP (like xgboost, lightGBM). model to learn to explain
 	ExplainFilters filters; ///< general filters of results
 	ExplainProcessings processing; ///< processing of results, like groupings, COV
+	string attr_name = ""; ///< attribute name for explainer
+
+	/// Global init for general args in all explainers
+	int init(map<string, string> &mapper);
 
 	/// overload function for ModelExplainer - easier API
 	virtual void Learn(MedPredictor *original_pred, const MedFeatures &train_mat) = 0;
@@ -88,6 +92,8 @@ public:
 	void dprint(const string &pref) const;
 
 	virtual ~ModelExplainer() {};
+
+	static unordered_set<string> global_arg_param_set();
 };
 
 /** @enum
@@ -136,7 +142,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name)
 };
 
 /**
@@ -175,7 +181,7 @@ public:
 
 	ADD_CLASS_NAME(MissingShapExplainer)
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats, 
-			select_from_all, uniform_rand, use_shuffle, no_relearn, filters, processing)
+			select_from_all, uniform_rand, use_shuffle, no_relearn, filters, processing, attr_name)
 };
 
 /// @enum
@@ -229,7 +235,7 @@ public:
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			filters, processing)
+			filters, processing, attr_name)
 };
 
 /**
@@ -272,7 +278,7 @@ public:
 
 	ADD_CLASS_NAME(LimeExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks,
-			filters, processing)
+			filters, processing, attr_name)
 };
 
 /**
@@ -322,7 +328,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(LinearExplainer)
-		ADD_SERIALIZATION_FUNCS(filters, processing)
+		ADD_SERIALIZATION_FUNCS(filters, processing, attr_name)
 };
 
 MEDSERIALIZE_SUPPORT(ExplainFilters)

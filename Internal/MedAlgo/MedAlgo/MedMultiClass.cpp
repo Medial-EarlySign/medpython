@@ -197,12 +197,13 @@ int MedMultiClass::Predict(float *x, float *&preds, int nsamples, int nftrs) con
 
 // Print
 //..............................................................................
-void MedMultiClass::print(FILE *fp, const string& prefix) const {
+void MedMultiClass::print(FILE *fp, const string& prefix, int level) const {
 
 	fprintf(fp,"%s: MedMultiClass - Number of predictors  = %d\n",prefix.c_str(),(int)internal_predictors.size()) ;
-	
-	for (unsigned int i=0; i<internal_predictors.size(); i++) {
-		fprintf(fp,"%s: MedMultiClass Predictor %d\n",prefix.c_str(),i) ;
-		internal_predictors[i]->print(fp,prefix) ;
+	if (level > 0) {
+		for (unsigned int i = 0; i < internal_predictors.size(); i++) {
+			fprintf(fp, "%s: MedMultiClass Predictor %d\n", prefix.c_str(), i);
+			internal_predictors[i]->print(fp, prefix);
+		}
 	}
 }

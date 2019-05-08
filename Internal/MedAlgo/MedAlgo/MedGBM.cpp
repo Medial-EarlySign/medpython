@@ -204,8 +204,8 @@ size_t MedGBM::deserialize(unsigned char *blob) {
 }
 
 // Printing
-void MedGBM::print(FILE *fp, const string& prefix) const {
+void MedGBM::print(FILE *fp, const string& prefix, int level) const {
 	fprintf(fp, "%s: MedGBM (ntrees = %d)\n", prefix.c_str(), gbm_model.ntrees);
-	//write_full_gbm_info(prefix,&gbm_model,stdout) ;
+	// write_full_gbm_info(prefix,&gbm_model,stdout) ;
 		
 }

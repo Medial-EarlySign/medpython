@@ -720,7 +720,7 @@ class FieldEntry<int>
     : public FieldEntryNumeric<FieldEntry<int>, int> {
  public:
   // construct
-  FieldEntry<int>() : is_enum_(false) {}
+  FieldEntry() : is_enum_(false) {}
   // parent
   typedef FieldEntryNumeric<FieldEntry<int>, int> Parent;
   // override set
@@ -819,14 +819,13 @@ class FieldEntry<int>
   }
 };
 
-
 // specialize define for optional<int>(enum)
 template<>
 class FieldEntry<optional<int> >
     : public FieldEntryBase<FieldEntry<optional<int> >, optional<int> > {
  public:
   // construct
-  FieldEntry<optional<int> >() : is_enum_(false) {}
+  FieldEntry() : is_enum_(false) {}
   // parent
   typedef FieldEntryBase<FieldEntry<optional<int> >, optional<int> > Parent;
   // override set
@@ -979,7 +978,6 @@ class FieldEntry<bool>
     os << static_cast<int>(value);
   }
 };
-
 
 // specialize define for float. Uses stof for platform independent handling of
 // INF, -INF, NAN, etc.

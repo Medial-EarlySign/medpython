@@ -22,7 +22,7 @@ void MedSvm::init_defaults() {
 	params.gamma = 1; //kernel when POLY, RBF, SIGOID
 	params.shrinking = 1; //for optimizatio process
 	params.eps = 0.001; //for optimizatio process - termination crietria
-	params.probability = 0; //won't calc and use probabilty
+	params.probability = 0; //won't calc and use probability
 	params.nr_weight = 0;
 }
 

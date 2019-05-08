@@ -986,8 +986,25 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 //.......................................................................................
 int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
+	// Sanity
+	if (!target_labels.empty() && all_labels)
+		MTHROW_AND_ERR("GetProbFeatProcessor Error: both all_labels and target_labels given\n");
+
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
+
+	// Fill target labels
+	if (all_labels) {
+		unordered_set<float> all_labels_set;
+		for (auto& sample : features.samples)
+			all_labels_set.insert(sample.outcome);
+
+		int idx = 0;
+		for (float label : all_labels_set)
+			target_labels[label] = idx++;
+
+
+	}
 
 	// Get all values
 	vector<float> values;
@@ -1128,6 +1145,7 @@ int GetProbFeatProcessor::init(map<string, string>& mapper) {
 			for (int i = 0; i < (int)labels.size(); i++)
 				target_labels[stof(labels[i])]= i;
 		}
+		else if (field == "all_labels") all_labels = (med_stoi(entry.second) != 0);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for GetProbFeatProcessor\n", field.c_str());
 		//! [GetProbFeatProcessor::init]

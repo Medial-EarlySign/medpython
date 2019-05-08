@@ -107,6 +107,7 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 		}
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
 	}
+	XGDMatrixFree(h_test);
 }
 
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
@@ -248,8 +249,18 @@ void MedXGB::translate_split_penalties(string& split_penalties_s) {
 typedef rabit::utils::MemoryFixSizeBuffer MemoryFixSizeBuffer;
 typedef rabit::utils::MemoryBufferStream MemoryBufferStream;
 
-void MedXGB::print(FILE *fp, const string& prefix) const {
-	fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
+void MedXGB::print(FILE *fp, const string& prefix, int level) const {
+
+	if (level==0)
+		fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
+	else {
+		xgboost::bst_ulong num_trees;
+		const char **out_models;
+		XGBoosterDumpModel(my_learner, "", 0, &num_trees, &out_models);
+		for (int i = 0; i < num_trees; i++)
+			fprintf(fp, "%s xgboost tree %d : %s\n", prefix.c_str(), i, out_models[i]);
+	}
+
 }
 
 bool split_token(const string &str, const string &search, bool first

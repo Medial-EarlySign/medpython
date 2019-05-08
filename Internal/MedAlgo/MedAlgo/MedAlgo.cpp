@@ -491,8 +491,9 @@ size_t MedPredictor::predictor_serialize(unsigned char *blob) {
 
 //.......................................................................................
 
-void MedPredictor::print(FILE *fp, const string& prefix) const { fprintf(fp, "%s : No Printing method defined\n", prefix.c_str()); }
-
+void MedPredictor::print(FILE *fp, const string& prefix, int level) const {
+	fprintf(fp, "%s: %s ()\n", prefix.c_str(),predictor_type_to_name[classifier_type].c_str());
+}
 
 int MedPredictor::learn(const MedFeatures& ftrs_data) {
 
@@ -534,7 +535,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order) {
 	// > min and <= max
 
-	//add mapping from model score to probabilty based on big enough bins of score
+	//add mapping from model score to probability based on big enough bins of score
 	//get prediction for X:
 	vector<float> preds;
 	predict(x, preds);
@@ -645,7 +646,7 @@ template<class T, class L> int MedPredictor::convert_scores_to_prob(const vector
 		double val = params[0];
 		for (size_t k = 1; k < params.size(); ++k)
 			val += params[k] * pow(double(preds[i]), double(k));
-		val = 1 / (1 + exp(val));//Platt Scale technique for probabilty calibaration
+		val = 1 / (1 + exp(val));//Platt Scale technique for probability calibaration
 		converted[i] = (L)val;
 	}
 
