@@ -538,7 +538,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	before_cnt = (int)indexes.size();
 	apply_filter(indexes, pvalues, 0, fdr);
 	if (verbose)
-		MLOG("CategoryDependencyGenerator on %s - fdr_filter left %zu(out of %d)\n",
+		MLOG("CategoryDependencyGenerator on %s - pvalue_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
 	vector<int> top_idx(indexes), bottom_idx(indexes);
@@ -556,6 +556,13 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	if (verbose)
 		MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);
+	before_cnt = (int)indexes.size();
+	//Real FDR filtering:
+	medial::contingency_tables::FilterFDR(indexes, scores, pvalues, lift, fdr);
+	if (verbose)
+		MLOG("CategoryDependencyGenerator on %s - fdr_filter left %zu(out of %d)\n",
+			signalName.c_str(), indexes.size(), before_cnt);
+
 	before_cnt = (int)indexes.size();
 	//join both results from up and down filters on the lift:
 	//sort before taking top:
