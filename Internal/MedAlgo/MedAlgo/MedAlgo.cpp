@@ -96,6 +96,7 @@ void *MedPredictor::new_polymorphic(string dname)
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
 #endif
+	MWARN("Warning in MedPredictor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 
@@ -793,6 +794,26 @@ void MedPredictor::predict_single(const vector<float> &x, vector<float> &preds) 
 
 void MedPredictor::predict_single(const vector<double> &x, vector<double> &preds) const {
 	MTHROW_AND_ERR("Error not implemented in %s\n", my_class_name().c_str());
+}
+
+void MedPredictor::calc_feature_importance_shap(vector<float> &features_importance_scores, string &importance_type, const MedFeatures *features)
+{
+	MedMat<float> feat_mat,contribs_mat; 
+	if (features == NULL)
+		MTHROW_AND_ERR("SHAP values feature importance requires features \n");
+	
+	features->get_as_matrix(feat_mat);
+	calc_feature_contribs(feat_mat, contribs_mat);
+	for (int j = 0; j < contribs_mat.ncols; ++j)
+	{
+		float col_sum = 0;
+		
+		for (int i = 0; i < contribs_mat.nrows; ++i)
+		{
+			col_sum += abs(contribs_mat.get(i, j));
+		}
+		features_importance_scores[j] = col_sum/(float)contribs_mat.nrows;
+	}
 }
 
 void MedMicNet::prepare_predict_single() {

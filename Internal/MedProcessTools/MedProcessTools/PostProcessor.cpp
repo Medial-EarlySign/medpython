@@ -4,6 +4,7 @@
 #include "ExplainWrapper.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
+#define LOCAL_LEVEL LOG_DEF_LEVEL
 
 PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 	string lower_p = boost::to_lower_copy(post_processor);
@@ -19,6 +20,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_MISSING_SHAP;
 	else if (lower_p == "lime_shap")
 		return FTR_POSTPROCESS_LIME_SHAP;
+	else if (lower_p == "linear")
+		return FTR_POSTPROCESS_LINEAR;
 	else if (lower_p == "knn")
 		return FTR_POSTPROCESS_KNN_EXPLAIN;
 	else
@@ -27,6 +30,10 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 
 PostProcessor *PostProcessor::make_processor(const string &processor_name, const string &params) {
 	return make_processor(post_processor_name_to_type(processor_name), params);
+}
+
+void PostProcessor::dprint(const string &pref) const {
+	MLOG("%s :: PP type %d(%s)\n", pref.c_str(), processor_type, my_class_name().c_str());
 }
 
 PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const string &params) {
@@ -43,6 +50,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new MissingShapExplainer;
 	else if (type == FTR_POSTPROCESS_LIME_SHAP)
 		prc = new LimeExplainer;
+	else if (type == FTR_POSTPROCESS_LINEAR)
+		prc = new LinearExplainer;
 	else if (type == FTR_POSTPROCESS_KNN_EXPLAIN)
 		prc = new KNN_Explainer;
 	else
@@ -67,6 +76,10 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, TreeExplainer);
 	CONDITIONAL_NEW_CLASS(dname, ShapleyExplainer);
 	CONDITIONAL_NEW_CLASS(dname, MissingShapExplainer);
+	CONDITIONAL_NEW_CLASS(dname, LimeExplainer);
+	CONDITIONAL_NEW_CLASS(dname, LinearExplainer);
+	CONDITIONAL_NEW_CLASS(dname, KNN_Explainer);
+	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 
@@ -81,8 +94,24 @@ void MultiPostProcessor::Learn(MedModel &model, MedPidRepository& rep, const Med
 			post_processors[i]->Learn(model, rep, matrix);
 }
 
-void MultiPostProcessor::Apply(MedFeatures &matrix) const {
-#pragma omp parallel for
+void MultiPostProcessor::init_model(MedModel *mdl) {
 	for (int i = 0; i < post_processors.size(); ++i)
-		post_processors[i]->Apply(matrix);
+		post_processors[i]->init_model(mdl);
+}
+
+void MultiPostProcessor::Apply(MedFeatures &matrix) const {
+	if (call_parallel_apply) {
+#pragma omp parallel for
+		for (int i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Apply(matrix);
+	}
+	else
+		for (int i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Apply(matrix);
+}
+
+void MultiPostProcessor::dprint(const string &pref) const {
+	MLOG("%s :: %s\n", pref.c_str(), my_class_name().c_str());
+	for (size_t i = 0; i < post_processors.size(); ++i)
+		post_processors[i]->dprint(pref);
 }

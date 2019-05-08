@@ -1496,22 +1496,25 @@ T inPlaceQuantile(T *vals, float *w ,float wq,int length)
 	double weightToIndex = 0;
 	for (int i = 0; i < pIndex; i++) 
 		if (vals[i] > vals[pIndex]) {
+			
 
-			int dummy = vals[pIndex];
+			T dummy = vals[pIndex];
 			vals[pIndex] = vals[i];
 			vals[i] = vals[pIndex - 1];
 			vals[pIndex - 1] = dummy;
 
-			dummy = w[pIndex];
+			float dummy1 = w[pIndex];
 			w[pIndex] = w[i];
 			w[i] = w[pIndex - 1];
-			w[pIndex - 1] = dummy;
+			w[pIndex - 1] = dummy1;
 
 			pIndex--;
 			i--;
 		}
 		else weightToIndex += w[i];
-	if(weightToIndex<=wq && weightToIndex+w[pIndex]>=wq)return(vals[pIndex]);
+	
+	if(weightToIndex<=wq && weightToIndex+w[pIndex]>=wq)
+		return(vals[pIndex]);
 	if (wq<weightToIndex)return(inPlaceQuantile(vals,w, wq,pIndex));
 	return(inPlaceQuantile(vals + pIndex, w+pIndex,wq-weightToIndex,length-pIndex));
 	

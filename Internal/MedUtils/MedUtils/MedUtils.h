@@ -108,6 +108,7 @@ namespace medial {
 			ProgramArgs_base() { init_called = false; debug = false; }
 		public:
 			bool debug; ///< a debug flag for verbose printing. will be init from command args
+			po::variables_map vm;
 			string app_logo = "\
 ##     ## ######## ########  ####    ###    ## \n\
 ###   ### ##       ##     ##  ##    ## ##   ##    \n\

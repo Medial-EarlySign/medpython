@@ -196,8 +196,8 @@ public:
 	int max_loop;
 	int print_interval;
 	string print_title;
-
 	int max_threads;
+
 	int print_section;
 	int print_level;
 
@@ -206,7 +206,7 @@ public:
 	/// @param mprocess_cnt number of actions to preform in total
 	/// @param print_inter number of seconds between each print
 	/// </summary>
-	MedProgress(const string &title, int mprocess_cnt, int print_inter = 30);
+	MedProgress(const string &title, int mprocess_cnt, int print_inter = 30, int max_th = 50);
 
 	/// update when completed process 1 item
 	void update();

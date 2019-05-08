@@ -358,12 +358,13 @@ void medial::io::ProgramArgs_base::list_sections(const string &full_help, vector
 int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	if (!init_called)
 		MTHROW_AND_ERR("ProgramArgs_base::init function wasn't called\n");
-	po::variables_map vm;
+	
 	po::options_description desc_file(desc);
 	po::variables_map vm_config;
 
 	auto parsed_args = po::parse_command_line(argc, argv, desc,
 		po::command_line_style::style_t::default_style);
+	
 	po::store(parsed_args, vm);
 	if (vm.count("help_module")) {
 		string help_search = vm["help_module"].as<string>();

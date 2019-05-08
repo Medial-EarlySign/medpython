@@ -1,0 +1,14 @@
+# CMake generation dependency list for this directory.
+C:/MR/Libs/External/xgboost/dmlc-core/CMakeLists.txt
+C:/MR/Libs/External/xgboost/dmlc-core/cmake/Utils.cmake
+C:/MR/Libs/External/xgboost/dmlc-core/cmake/build_config.h.in
+C:/Program Files/CMake/share/cmake-3.14/Modules/CheckCXXSymbolExists.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CheckIncludeFile.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CheckIncludeFileCXX.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CheckLibraryExists.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CheckSymbolExists.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/CheckTypeSize.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/FindPackageMessage.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/FindPythonInterp.cmake
+C:/Program Files/CMake/share/cmake-3.14/Modules/TestBigEndian.cmake
