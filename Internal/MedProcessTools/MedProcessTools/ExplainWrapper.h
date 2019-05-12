@@ -303,8 +303,8 @@ public:
 
 	int numClusters = -1; ///< how many samples (randomly chosen) represent the training space  -1:all. If larger than size of matrix, size of matrix will be used and warning generated.
 	float fraction = (float)0.02; ///<fraction of points that is considered neighborhood to a point
-	float chosenThreshold = MED_MAT_MISSING_VALUE; ///< if missing use thresholdQ to define threshold
-	float thresholdQ = MED_MAT_MISSING_VALUE;///< defines threshold by positive ratio  on training set  ( when chosenThreshold missing). If this one is missing too, no thresholding
+	float chosenThreshold = MED_MAT_MISSING_VALUE; ///< Threshold to use on scores. If missing use thresholdQ to define threshold
+	float thresholdQ = MED_MAT_MISSING_VALUE;///< defines threshold by positive ratio  on training set  ( when chosenThreshold missing). If this one is missing too, no thresholding. Explain by raw scoes.
 	
 	KNN_Explainer() { processor_type = FTR_POSTPROCESS_KNN_EXPLAIN; }
 
