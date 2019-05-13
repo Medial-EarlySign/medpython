@@ -56,6 +56,10 @@ void get_prefix_suffix_from_tokens(const string& single_attr_value, string& smal
 			suffix = token.substr(7);
 		else if (boost::starts_with(token, "file:"))
 			small_file = tokens[0].substr(5);
+		else if (boost::starts_with(token, "file_rel:"))
+			small_file = tokens[0].substr(9);
+		else if (boost::starts_with(token, "path_rel:"))
+			small_file = tokens[0].substr(9);
 		else if (boost::starts_with(token, "ref:"))
 			ref_node = tokens[0].substr(4);
 		else MTHROW_AND_ERR("dont know how to handle token [%s]\n", token.c_str());
@@ -74,7 +78,7 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 				duplicate = 0;
 			else if (single_attr_value == "yes" || single_attr_value == "y" || single_attr_value == "1")
 				duplicate = 1;
-			else MTHROW_AND_ERR("unknown value for duplicate [%s]\n", single_attr_value.c_str());				
+			else MTHROW_AND_ERR("unknown value for duplicate [%s]\n", single_attr_value.c_str());
 		}
 		else {
 			vector<string> current_attr_values;
@@ -87,6 +91,21 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 					fill_list_from_file(make_absolute_path(fname, small_file), my_list);
 					for (string s : my_list)
 						current_attr_values.push_back(prefix + parse_key_val(attr_name, s) + suffix);
+				}
+				else if (boost::starts_with(single_attr_value, "file_rel:")) { //wih relative paths
+					//e.g. "signal": "file:my_list.txt;prefix:ppp;suffix:sss" - file can be relative					
+					get_prefix_suffix_from_tokens(single_attr_value, small_file, ref_node, prefix, suffix);
+					vector<string> my_list;
+					fill_list_from_file(make_absolute_path(fname, small_file, true), my_list);
+					for (string s : my_list)
+						current_attr_values.push_back(prefix + parse_key_val(attr_name, s) + suffix);
+				}
+				else if (boost::starts_with(single_attr_value, "path_rel:")) { //wih relative paths
+																			   //e.g. "signal": "file:my_list.txt;prefix:ppp;suffix:sss" - file can be relative					
+					get_prefix_suffix_from_tokens(single_attr_value, small_file, ref_node, prefix, suffix);
+
+					string abs_path = make_absolute_path(fname, small_file, true);
+					current_attr_values.push_back(prefix + parse_key_val(attr_name, abs_path) + suffix);
 				}
 				else if (boost::starts_with(single_attr_value, "ref:")) {
 					get_prefix_suffix_from_tokens(single_attr_value, small_file, ref_node, prefix, suffix);
@@ -111,10 +130,17 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 }
 
 void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
-	string json_contents = json_file_to_string(0, fname, alterations);
+	boost::filesystem::path curr_path = boost::filesystem::current_path();
+	//change to json path so relative paths will work:
+	boost::filesystem::path json_p(fname);
+	boost::filesystem::current_path() = json_p.parent_path();
 
-	if (init_from_json_string(json_contents,fname) == 1)
+	string json_contents = json_file_to_string(0, fname, alterations, "", true);
+
+	if (init_from_json_string(json_contents, fname) == 1)
 		init_from_json_file_with_alterations_version_1(fname, alterations);
+
+	boost::filesystem::current_path() = curr_path;
 }
 
 int MedModel::init_from_json_string(string& json_contents, const string& fname) {
@@ -134,17 +160,26 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 
 	//MLOG("debug=====> :: generate_masks_for_features %d\n", generate_masks_for_features);
 
-	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());	
+	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());
 	this->serialize_learning_set = stoi(ser);
 	int rp_set = 0, fp_set = 0, pp_set = 0;
 	for (auto &p : pt.get_child("model_actions")) {
-		vector<vector<string>> all_action_attrs;	
+		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
+
 		string action_type = action.get<string>("action_type").c_str();
-		if (action_type == "rp_set" || action_type == "fp_set") {
+		if (boost::starts_with(action_type, "change_path:")) {
+			//change json base_path fo relative paths to work:
+			string new_path = boost::replace_all_copy(action_type, "change_path:", "");
+			boost::filesystem::path json_p(new_path);
+			boost::filesystem::current_path() = json_p;
+			run_current_path = new_path;
+			MLOG_D("Changed base path to %s\n", new_path.c_str());
+		}
+		else if (action_type == "rp_set" || action_type == "fp_set") {
 			int process_set;
 			if (action_type == "rp_set") process_set = rp_set++;
-			else process_set = fp_set++;			
+			else process_set = fp_set++;
 			int num_members = (int)action.get_child("members").size();
 			int num_actions = 0;
 			string first_action_added = "";
@@ -163,10 +198,10 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 						action_type.c_str(), process_set, (int)all_combinations.size());
 				for (string c : all_combinations)
 					add_process_to_set(process_set, duplicate, c);
-				num_actions += (int)all_combinations.size();	
+				num_actions += (int)all_combinations.size();
 				if (first_action_added == "")
 					first_action_added = all_combinations[0];
-			}			
+			}
 			MLOG_D("added %d actions to [%s] set %d, first of which was [%s]\n", num_actions, action_type.c_str(), process_set, first_action_added.c_str());
 		}
 		else if (action_type == "rep_processor" || action_type == "feat_generator" || action_type == "feat_processor" || action_type == "post_processor") {
@@ -198,11 +233,12 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 				MTHROW_AND_ERR("set %d expanded to 0 combinations! did you put an empty list inside a []?!\n", process_set);
 			if (all_combinations.size() > 1 && (action_type == "rep_processor" || action_type == "feat_processor"))
 				MTHROW_AND_ERR("action_type [%s] expanded to %d combinations, which is possible only inside a set! first instance is [%s]\n",
-					action_type.c_str(), (int)all_combinations.size(), all_combinations[0].c_str());			
+					action_type.c_str(), (int)all_combinations.size(), all_combinations[0].c_str());
 			for (string c : all_combinations)
 				add_process_to_set(process_set, duplicate, c);
 			MLOG_D("added %d actions to [%s] set %d, first of which was [%s]\n", all_combinations.size(), set_name.c_str(), process_set, all_combinations[0].c_str());
-		} else MTHROW_AND_ERR("unknown action_type [%s]\n", action_type.c_str());
+		}
+		else MTHROW_AND_ERR("unknown action_type [%s]\n", action_type.c_str());
 	}
 	if (pt.count("predictor") > 0) {
 		auto my_pred = pt.get_child("predictor");

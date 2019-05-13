@@ -215,9 +215,9 @@ private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);
 	string parse_key_val(string key, string val);
 	void fill_list_from_file(const string& fname, vector<string>& list);
-	string make_absolute_path(const string& main_file, const string& small_file);
+	string make_absolute_path(const string& main_file, const string& small_file, bool use_cwd = false);
 	void alter_json(string &json_contents, vector<string>& alterations);
-	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "");
+	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "", bool add_change_path = false);
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
 };
 

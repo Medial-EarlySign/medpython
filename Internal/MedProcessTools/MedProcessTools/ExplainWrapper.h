@@ -64,6 +64,9 @@ public:
 * An abstract class API for explainer
 */
 class ModelExplainer : public PostProcessor {
+private:
+	/// init function for specific explainer
+	virtual void _init(map<string, string> &mapper) = 0;
 public:
 	MedPredictor * original_predictor = NULL; ///< use this if model has implementation of SHAP (like xgboost, lightGBM). model to learn to explain
 	ExplainFilters filters; ///< general filters of results
@@ -71,7 +74,7 @@ public:
 	string attr_name = ""; ///< attribute name for explainer
 
 	/// Global init for general args in all explainers
-	int init(map<string, string> &mapper);
+	virtual int init(map<string, string> &mapper);
 
 	/// overload function for ModelExplainer - easier API
 	virtual void Learn(MedPredictor *original_pred, const MedFeatures &train_mat) = 0;
@@ -92,8 +95,6 @@ public:
 	void dprint(const string &pref) const;
 
 	virtual ~ModelExplainer() {};
-
-	static unordered_set<string> global_arg_param_set();
 };
 
 /** @enum
@@ -118,18 +119,18 @@ private:
 	//Tree structure of generic ensamble trees
 private:
 	bool try_convert_trees();
+
+	void _init(map<string, string> &mapper);
 public:
-	string proxy_model_type = "";
-	string proxy_model_init = "";
-	bool interaction_shap = false;
-	int approximate = false;
-	float missing_value = MED_MAT_MISSING_VALUE;
+	string proxy_model_type = ""; ///< proxy predictor type to relearn original predictor output with tree models
+	string proxy_model_init = ""; ///< proxy predictor arguments
+	bool interaction_shap = false; ///< If true will calc interaction_shap values (slower)
+	int approximate = false; ///< if true will run SAABAS alg - which is faster
+	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
 
 	TreeExplainer() { processor_type = FTR_POSTPROCESS_TREE_SHAP; }
 
 	void init_model(MedModel *mdl);
-
-	int init(map<string, string> &mapper);
 
 	TreeExplainerMode get_mode() const;
 
@@ -156,6 +157,7 @@ class MissingShapExplainer : public ModelExplainer {
 private:
 	MedPredictor * retrain_predictor = NULL; //the retrain model
 
+	void _init(map<string, string> &mapper);
 public:
 	int add_new_data; ///< how many new data data points to add for train according to sample masks
 	bool no_relearn; ///< If true will use original model without relearn. assume original model is good enough for missing vals (for example LM model)
@@ -170,8 +172,6 @@ public:
 	bool verbose_learn; ///< If true will print more in learn
 
 	MissingShapExplainer();
-
-	int init(map<string, string> &mapper);
 
 	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
@@ -210,6 +210,8 @@ private:
 	GibbsSamplingParams _gibbs_sample_params;
 
 	void init_sampler(bool with_sampler = true);
+
+	void _init(map<string, string> &mapper);
 public:
 	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
 	string generator_args = ""; ///< for learn
@@ -218,8 +220,6 @@ public:
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
 
 	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; }
-
-	int init(map<string, string> &mapper);
 
 	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
@@ -251,7 +251,7 @@ private:
 	GibbsSamplingParams _gibbs_sample_params;
 
 	void init_sampler(bool with_sampler = true);
-
+	void _init(map<string, string> &mapper);
 public:
 	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
 	string generator_args = ""; ///< for learn
@@ -261,8 +261,6 @@ public:
 	int n_masks = 5000; ///< number of masks
 
 	LimeExplainer() { processor_type = FTR_POSTPROCESS_LIME_SHAP; }
-
-	int init(map<string, string> &mapper);
 
 	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
@@ -284,21 +282,15 @@ public:
 /**
 * KNN explainer
 */
-
-
 class KNN_Explainer : public ModelExplainer {
-	
 private:
-	
-
 	MedFeatures trainingMap;
-	
-	
 	vector<float> average, std;
 
 	// do the calculation for a single sample after normalization
 	void computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons)const;
 	
+	void _init(map<string, string> &mapper);
 public:
 
 	int numClusters = -1; ///< how many samples (randomly chosen) represent the training space  -1:all. If larger than size of matrix, size of matrix will be used and warning generated.
@@ -307,8 +299,6 @@ public:
 	float thresholdQ = MED_MAT_MISSING_VALUE;///< defines threshold by positive ratio  on training set  ( when chosenThreshold missing). If this one is missing too, no thresholding. Explain by raw scoes.
 	
 	KNN_Explainer() { processor_type = FTR_POSTPROCESS_KNN_EXPLAIN; }
-
-	int init(map<string, string> &mapper);
 
 	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 
@@ -322,10 +312,10 @@ public:
 * Simple Linear Explainer - puts zeros for each feature and measures change in score
 */
 class LinearExplainer : public ModelExplainer {
+private:
+	void _init(map<string, string> &mapper);
 public:
 	LinearExplainer() { processor_type = FTR_POSTPROCESS_LINEAR; }
-
-	int init(map<string, string> &mapper);
 
 	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
 

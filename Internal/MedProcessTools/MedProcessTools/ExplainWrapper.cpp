@@ -160,6 +160,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 }
 
 int ModelExplainer::init(map<string, string> &mapper) {
+	map<string, string> left_to_parse;
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "processing")
@@ -168,13 +169,13 @@ int ModelExplainer::init(map<string, string> &mapper) {
 			filters.init_from_string(it->second);
 		else if (it->first == "attr_name")
 			attr_name = it->second;
-		else {} //ignore - parse general args only
+		else if (it->first == "pp_type") {} //ignore
+		else {
+			left_to_parse[it->first] = it->second;
+		}
 	}
+	_init(left_to_parse);
 	return 0;
-}
-
-unordered_set<string> ModelExplainer::global_arg_param_set() {
-	return { "processing", "filters", "attr_name" };
 }
 
 void ModelExplainer::explain(MedFeatures &matrix) const {
@@ -410,9 +411,7 @@ TreeExplainerMode TreeExplainer::get_mode() const {
 		MTHROW_AND_ERR("Error TreeExplainer::get_mode() - unspecified mode. have you called init with predicotr first?");
 }
 
-int TreeExplainer::init(map<string, string> &mapper) {
-	ModelExplainer::init(mapper);
-	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
+void TreeExplainer::_init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "proxy_model_type")
@@ -425,13 +424,9 @@ int TreeExplainer::init(map<string, string> &mapper) {
 			approximate = stoi(it->second) > 0;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
-		else if (it->first == "pp_type") {}
-		else if (ignore_set.find(it->first) != ignore_set.end()) {}
 		else
 			MTHROW_AND_ERR("Error in TreeExplainer::init - Unsupported parameter \"%s\"\n", it->first.c_str());
 	}
-
-	return 0;
 }
 
 void TreeExplainer::post_deserialization() {
@@ -630,9 +625,7 @@ MissingShapExplainer::MissingShapExplainer() {
 	no_relearn = false;
 }
 
-int MissingShapExplainer::init(map<string, string> &mapper) {
-	ModelExplainer::init(mapper);
-	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
+void MissingShapExplainer::_init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "missing_value")
@@ -655,12 +648,9 @@ int MissingShapExplainer::init(map<string, string> &mapper) {
 			change_learn_args = it->second;
 		else if (it->first == "verbose_learn")
 			verbose_learn = stoi(it->second) > 0;
-		else if (ignore_set.find(it->first) != ignore_set.end()) {}
-		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
-	return 0;
 }
 
 void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
@@ -851,9 +841,7 @@ GeneratorType GeneratorType_fromStr(const string &type) {
 		MTHROW_AND_ERR("Unknown type %s\n", type.c_str());
 }
 
-int ShapleyExplainer::init(map<string, string> &mapper) {
-	ModelExplainer::init(mapper);
-	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
+void ShapleyExplainer::_init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "gen_type")
@@ -866,15 +854,10 @@ int ShapleyExplainer::init(map<string, string> &mapper) {
 			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
-		else if (ignore_set.find(it->first) != ignore_set.end()) {}
-		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in ShapleyExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
-
 	init_sampler(); //from args
-
-	return 0;
 }
 
 void ShapleyExplainer::init_sampler(bool with_sampler) {
@@ -1022,9 +1005,7 @@ void ShapleyExplainer::dprint(const string &pref) const {
 		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
 }
 
-int LimeExplainer::init(map<string, string> &mapper) {
-	ModelExplainer::init(mapper);
-	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
+void LimeExplainer::_init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "gen_type")
@@ -1039,14 +1020,10 @@ int LimeExplainer::init(map<string, string> &mapper) {
 			p_mask = med_stof(it->second);
 		else if (it->first == "n_masks")
 			n_masks = med_stoi(it->second);
-		else if (ignore_set.find(it->first) != ignore_set.end()) {}
-		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in LimeExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
 	init_sampler(); //from args
-
-	return 0;
 }
 
 void LimeExplainer::init_sampler(bool with_sampler) {
@@ -1160,18 +1137,12 @@ void LimeExplainer::dprint(const string &pref) const {
 		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
 }
 
-int LinearExplainer::init(map<string, string> &mapper) {
-	ModelExplainer::init(mapper);
-	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
+void LinearExplainer::_init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		if (ignore_set.find(it->first) != ignore_set.end()) {}
-		else if (it->first == "pp_type") {}
-		else
-			MTHROW_AND_ERR("Error in LinearExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
+		//no arguments so far
+		MTHROW_AND_ERR("Error in LinearExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
-
-	return 0;
 }
 
 void LinearExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
@@ -1270,13 +1241,10 @@ void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, floa
 	}
 }
 
-int KNN_Explainer::init(map<string, string> &mapper) {
-	ModelExplainer::init(mapper);
-	unordered_set<string> ignore_set = ModelExplainer::global_arg_param_set();
+void KNN_Explainer::_init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		if (ignore_set.find(it->first) != ignore_set.end()) {}
-		else if (it->first == "fraction")
+		if (it->first == "fraction")
 			fraction = med_stof(it->second);
 		else if (it->first == "numClusters")
 			numClusters = med_stoi(it->second);
@@ -1284,12 +1252,9 @@ int KNN_Explainer::init(map<string, string> &mapper) {
 			chosenThreshold = med_stof(it->second);
 		else if (it->first == "thresholdQ")
 			thresholdQ = med_stof(it->second);
-		else if (it->first == "pp_type") {}
 		else
 			MTHROW_AND_ERR("Error in KNN_Explainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
-
-	return 0;
 }
 void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
 	if (numClusters == -1)numClusters = (int)train_mat.samples.size();
@@ -1304,57 +1269,57 @@ void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	MedFeatures normalizedFeatures = train_mat;
 	MedMat<float> normalizedMatrix;
 	normalizedFeatures.get_as_matrix(normalizedMatrix);
-	
+
 	normalizedMatrix.normalize();
 	normalizedFeatures.set_as_matrix(normalizedMatrix);
 	// keep normalization params for future use in apply
 	average = normalizedMatrix.avg;
 	std = normalizedMatrix.std;
-/* we will test on kmeans later because it is unstable
-	//represent features by limitted number of clusters	
-	vector<int>clusters;
-	MedMat<float>dists;
-	KMeans(normalizedMatrix, numClusters, centers, clusters, dists);
-	vector <float> weights(centers.nrows,0);
-	for (int i=0;i<clusters.size();i++){
-		weights[clusters[i]]+=1./clusters.size();
-	}
-	*/
+	/* we will test on kmeans later because it is unstable
+		//represent features by limitted number of clusters
+		vector<int>clusters;
+		MedMat<float>dists;
+		KMeans(normalizedMatrix, numClusters, centers, clusters, dists);
+		vector <float> weights(centers.nrows,0);
+		for (int i=0;i<clusters.size();i++){
+			weights[clusters[i]]+=1./clusters.size();
+		}
+		*/
 
-	// random sample of space
+		// random sample of space
 	vector <int>krand;
 	for (int k = 0; k < normalizedMatrix.nrows; k++)
 		krand.push_back(k);
-	shuffle(krand.begin(),krand.end(), default_random_engine(5246245));
+	shuffle(krand.begin(), krand.end(), default_random_engine(5246245));
 
 
-	
+
 
 	for (int i = 0; i < numClusters; i++)
 		for (int col = 0; col < normalizedMatrix.ncols; col++)
 			centers(i, col) = normalizedMatrix(krand[i], col);
 	centers.signals = normalizedMatrix.signals;
 	vector<float> weights(centers.nrows, 1);
-	
-	
+
+
 	//keep the features for the apply phase
 	trainingMap.set_as_matrix(centers);
 	trainingMap.weights = weights;
 	trainingMap.samples.resize(numClusters);
 	trainingMap.init_pid_pos_len();
-	
-	
+
+
 	// compute the thershold according to quantile
 	MedFeatures myMat = train_mat;// train_mat is constant
 	this->original_predictor->predict(myMat);
 
-    //assign predictions to the sampled  features
+	//assign predictions to the sampled  features
 	for (int i = 0; i < numClusters; i++)
-		trainingMap.samples[i].prediction = vector <float>(1,myMat.samples[krand[i]].prediction[0]);
+		trainingMap.samples[i].prediction = vector <float>(1, myMat.samples[krand[i]].prediction[0]);
 
 	// compute the thershold according to quantile
-	if (chosenThreshold == MED_MAT_MISSING_VALUE) 
-		if(thresholdQ!= MED_MAT_MISSING_VALUE){
+	if (chosenThreshold == MED_MAT_MISSING_VALUE)
+		if (thresholdQ != MED_MAT_MISSING_VALUE) {
 			vector <float> predictions = {};
 			vector <float> w(train_mat.samples.size(), 1);
 			for (int k = 0; k < train_mat.samples.size(); k++)
@@ -1363,9 +1328,9 @@ void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 
 
 			chosenThreshold = medial::stats::get_quantile(predictions, w, 1 - thresholdQ);
-	}
-	
-	
+		}
+
+
 }
 void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const
 {
@@ -1376,8 +1341,8 @@ void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	MedMat <float> trainingCentersMatrix;
 	trainingMap.get_as_matrix(trainingCentersMatrix);
 	sample_explain_reasons = {};
-	
-	explainedMatrix.normalize(average,std,1);
+
+	explainedMatrix.normalize(average, std, 1);
 
 	//for each sample compute the explanation
 	vector <float> thisRow;
@@ -1390,18 +1355,18 @@ void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>
 void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons)const
 // do the calculation for a single sample after normalization
 {
-	
+
 	MedMat<float> centers; //matrix taken from features anfd holds the centers of clusters
 	trainingMap.get_as_matrix(centers);
-	MedMat<float> pDistance(centers.nrows,centers.ncols);
-	vector<float>totalDistance(centers.nrows,0);
+	MedMat<float> pDistance(centers.nrows, centers.ncols);
+	vector<float>totalDistance(centers.nrows, 0);
 #define SQR(x)  ((x)*(x))
 	for (int row = 0; row < centers.nrows; row++) {
 		for (int col = 0; col < centers.ncols; col++) {
-			pDistance(row,col) = SQR(centers.get(row, col) - thisRow[col]);
+			pDistance(row, col) = SQR(centers.get(row, col) - thisRow[col]);
 			totalDistance[row] += pDistance(row, col);
 		}
-		for (int col = 0; col < centers.ncols; col++) 
+		for (int col = 0; col < centers.ncols; col++)
 			pDistance(row, col) = totalDistance[row] - pDistance(row, col);
 	}
 	vector<float> thresholds(centers.nrows, 0);
@@ -1409,18 +1374,18 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 	float totalThreshold = medial::stats::get_quantile(totalDistance, trainingMap.weights, fraction);
 	for (int col = 0; col < centers.ncols; col++) {
 		pDistance.get_col(col, colVector);
-		thresholds[col]= medial::stats::get_quantile(colVector, trainingMap.weights, fraction);
+		thresholds[col] = medial::stats::get_quantile(colVector, trainingMap.weights, fraction);
 	}
-	double sumWeights=0;
+	double sumWeights = 0;
 	double pCol;
-	double pTotal=0;
-	
-	for (int row = 0; row < pDistance.nrows; row++) 
+	double pTotal = 0;
+
+	for (int row = 0; row < pDistance.nrows; row++)
 		if (totalDistance[row] < totalThreshold) {
 			float thisPred = trainingMap.samples[row].prediction[0];
 			sumWeights += trainingMap.weights[row];
 			if (chosenThreshold != MED_MAT_MISSING_VALUE)thisPred = thisPred > chosenThreshold;// threshold the predictions if needed
-			pTotal+= trainingMap.weights[row] * thisPred;
+			pTotal += trainingMap.weights[row] * thisPred;
 			//cout <<row<<" "<< trainingMap.samples[row].prediction[0] << "\n";
 		}
 	pTotal /= sumWeights;
@@ -1434,12 +1399,12 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 			if (pDistance.get(row, col) < thresholds[col]) {
 				float thisPred = trainingMap.samples[row].prediction[0];
 				if (chosenThreshold != MED_MAT_MISSING_VALUE)thisPred = thisPred > chosenThreshold;// threshold the predictions if needed
-				pCol += trainingMap.weights[row]*thisPred;
+				pCol += trainingMap.weights[row] * thisPred;
 				sumWeights += trainingMap.weights[row];
 			}
 		pCol /= sumWeights;
-	
-		sample_explain_reasons.insert(pair<string,float>(featureNames[col], float(log((pTotal+1e-10) / (pCol + 1e-10)))));
+
+		sample_explain_reasons.insert(pair<string, float>(featureNames[col], float(log((pTotal + 1e-10) / (pCol + 1e-10)))));
 	}
 
 

@@ -23,7 +23,7 @@ using namespace boost::property_tree;
 // MedModelStage
 //=======================================================================================
 
-map<string, MedModelStage> med_mdl_stage_name_to_stage = { 
+map<string, MedModelStage> med_mdl_stage_name_to_stage = {
 	{ "learn_rep_processors",MED_MDL_LEARN_REP_PROCESSORS },{ "learn_ftr_generators",MED_MDL_LEARN_FTR_GENERATORS },
 	{ "apply_ftr_generators",MED_MDL_APPLY_FTR_GENERATORS },{ "learn_ftr_processors",MED_MDL_LEARN_FTR_PROCESSORS },
 	{ "apply_ftr_processors",MED_MDL_APPLY_FTR_PROCESSORS },{ "learn_predictor",MED_MDL_LEARN_PREDICTOR },
@@ -608,16 +608,25 @@ void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 	inf.close();
 
 }
-string MedModel::make_absolute_path(const string& main_file, const string& small_file) {
+string MedModel::make_absolute_path(const string& main_file, const string& small_file, bool use_cwd) {
 	boost::filesystem::path p(main_file);
 	string main_file_path = p.parent_path().string();
+	if (use_cwd) {
+		//p = boost::filesystem::current_path();
+		//main_file_path = p.string();
+		main_file_path = run_current_path;
+	}
+
 	if (
 		(small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':')) ||
 		(main_file_path.size() == 0)
 		)
 		return small_file;
 	string abs = main_file_path + '/' + small_file;
-	MLOG_D("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
+	if (use_cwd)
+		MLOG_D("resolved relative path using cwd [%s] to [%s]\n", small_file.c_str(), abs.c_str());
+	else
+		MLOG_D("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
 void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
@@ -641,14 +650,19 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 	}
 	MLOG_D("\n");
 }
-string MedModel::json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
+string MedModel::json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations,
+	const string& small_file, bool add_change_path) {
 	if (recursion_level > 3)
 		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
 	string fname;
 	if (small_file == "")
 		fname = main_file;
-	else
-		fname = make_absolute_path(main_file, small_file);
+	else {
+		if (add_change_path)
+			fname = small_file;
+		else
+			fname = make_absolute_path(main_file, small_file, add_change_path);
+	}
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open json file [%s] for read\n", fname.c_str());
@@ -664,9 +678,15 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 	boost::sregex_iterator end;
 	int last_char = 0;
 	string out_string = "";
+	string add_path;
+	char buff[5000];
+	string current_pth = boost::filesystem::current_path().string();
 	for (; it != end; ++it) {
 		string json_ref = it->str(1);
-		MLOG_D("Json : found %s\n", json_ref.c_str());
+		if (!small_file.empty())
+			MLOG_D("Json : found %s, parent %s\n", json_ref.c_str(), small_file.c_str());
+		else
+			MLOG_D("Json : found %s\n", json_ref.c_str());
 		vector<string> tokens;
 		boost::split(tokens, json_ref, boost::is_any_of(";"));
 		if (tokens.empty())
@@ -694,7 +714,19 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 				my_alterations.push_back(alt);
 		}
 		out_string += orig.substr(last_char, it->position() - last_char);
-		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file);
+		if (add_change_path) {
+			boost::filesystem::path json_p(small_file);
+			string pth = json_p.parent_path().string();
+			snprintf(buff, sizeof(buff), "{\"action_type\":\"change_path:%s\"},\n", pth.c_str());
+			add_path = string(buff);
+			out_string += add_path;
+		}
+		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file, add_change_path);
+		if (add_change_path) {
+			snprintf(buff, sizeof(buff), "\n,{\"action_type\":\"change_path:%s\"}\n", current_pth.c_str());
+			add_path = string(buff);
+			out_string += add_path;
+		}
 		last_char = (int)it->position() + (int)it->str(0).size();
 	}
 	out_string += orig.substr(last_char);
