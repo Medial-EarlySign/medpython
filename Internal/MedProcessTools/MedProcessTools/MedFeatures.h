@@ -136,6 +136,8 @@ public:
 	int mark_imputed_in_masks(float _missing_val);
 	int mark_imputed_in_masks() { return mark_imputed_in_masks(medf_missing_value); }
 
+	void round_data(float r);
+	void noise_data(float r);
 
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)
