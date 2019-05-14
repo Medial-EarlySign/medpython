@@ -130,17 +130,11 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 }
 
 void MedModel::init_from_json_file_with_alterations(const string &fname, vector<string>& alterations) {
-	boost::filesystem::path curr_path = boost::filesystem::current_path();
-	//change to json path so relative paths will work:
-	boost::filesystem::path json_p(fname);
-	boost::filesystem::current_path() = json_p.parent_path();
-
+	run_current_path = boost::filesystem::path(fname).parent_path().string();
 	string json_contents = json_file_to_string(0, fname, alterations, "", true);
 
 	if (init_from_json_string(json_contents, fname) == 1)
 		init_from_json_file_with_alterations_version_1(fname, alterations);
-
-	boost::filesystem::current_path() = curr_path;
 }
 
 int MedModel::init_from_json_string(string& json_contents, const string& fname) {
@@ -171,8 +165,6 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 		if (boost::starts_with(action_type, "change_path:")) {
 			//change json base_path fo relative paths to work:
 			string new_path = boost::replace_all_copy(action_type, "change_path:", "");
-			boost::filesystem::path json_p(new_path);
-			boost::filesystem::current_path() = json_p;
 			run_current_path = new_path;
 			MLOG_D("Changed base path to %s\n", new_path.c_str());
 		}

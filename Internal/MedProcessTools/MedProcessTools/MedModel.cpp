@@ -611,11 +611,8 @@ void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 string MedModel::make_absolute_path(const string& main_file, const string& small_file, bool use_cwd) {
 	boost::filesystem::path p(main_file);
 	string main_file_path = p.parent_path().string();
-	if (use_cwd) {
-		//p = boost::filesystem::current_path();
-		//main_file_path = p.string();
+	if (use_cwd) 
 		main_file_path = run_current_path;
-	}
 
 	if (
 		(small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':')) ||
@@ -680,7 +677,6 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 	string out_string = "";
 	string add_path;
 	char buff[5000];
-	string current_pth = boost::filesystem::current_path().string();
 	for (; it != end; ++it) {
 		string json_ref = it->str(1);
 		if (!small_file.empty())
@@ -723,7 +719,7 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 		}
 		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file, add_change_path);
 		if (add_change_path) {
-			snprintf(buff, sizeof(buff), "\n,{\"action_type\":\"change_path:%s\"}\n", current_pth.c_str());
+			snprintf(buff, sizeof(buff), "\n,{\"action_type\":\"change_path:%s\"}\n", run_current_path.c_str());
 			add_path = string(buff);
 			out_string += add_path;
 		}
