@@ -186,14 +186,19 @@ namespace medial {
 		double get_c(int p1, int p2, int end_l);
 		/// \brief Shapley calculation without generator
 		void explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-			MedPredictor *predictor, float missing_value, vector<float> &features_coeff,
+			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index, const vector<string> &groupNames, vector<float> &features_coeff,
 			bool sample_masks_with_repeats, float select_from_all, bool uniform_rand, bool use_shuffle,
 			bool verbose);
 		/// \brief Shapley calculation with generator
 		template<typename T> void explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
-			MedPredictor *predictor, float missing_value,
-			SamplesGenerator<T> &sampler_gen, int sample_per_row, void *sampling_params,
+			MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
+			const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
 			vector<float> &features_coeff, bool verbose = false);
+
+		/// \brief Shapley Lime with generator
+		void get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+			SamplesGenerator<float> *generator, float p, int n, float missing,
+			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas);
 	}
 }
 

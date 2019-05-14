@@ -1,6 +1,13 @@
 #ifndef __SERIALIZABLE_OBJECT_IMP_LIB_H__
 #define __SERIALIZABLE_OBJECT_IMP_LIB_H__
 
+#include <type_traits>
+
+#if __GNUC__ 
+template< bool B, class T = void >
+using enable_if_t = typename enable_if<B, T>::type;
+#endif // !_
+
 namespace MedSerialize {
 
 	// Helper function to parse names and clean spaces, tabs, etc
@@ -41,6 +48,9 @@ namespace MedSerialize {
 	template <class T> size_t get_size(set<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, set<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, set<T> &v);
+	template <class T>  size_t get_size(unique_ptr<T> &v);
+	template <class T> size_t serialize(unsigned char *blob, unique_ptr<T> &v);
+	template <class T> size_t deserialize(unsigned char *blob, unique_ptr<T> &v);
 
 	//========================================================================================
 	// IMPLEMANTATIONS 
@@ -156,6 +166,82 @@ namespace MedSerialize {
 		return pos;
 	}
 
+	template <class T> size_t get_size(unique_ptr<T> &elem)
+	{
+		//cerr << "get size of T *\n";
+		size_t size = 0;
+
+		if (elem.get() == NULL) {
+			// account for "NULL" string when pointer is null
+			string s = "NULL";
+			size += MedSerialize::get_size(s);
+		}
+		else {
+			string s = elem->my_class_name(); // help compiler
+											  //cerr << "get size of T * (2) : class" << s << "\n";
+			size += MedSerialize::get_size(s);		// account for class name
+			size += MedSerialize::get_size((*elem)); // account for class serialization
+		}
+		//cerr << "get size of T * (3) : size" << size << "\n";
+		return size;
+	}
+
+	//.........................................................................................
+	template <class T> size_t serialize(unsigned char *blob, unique_ptr<T> &elem)
+	{
+		//cerr << "Serializing T * for " << (elem != NULL) ? elem->my_class_name().c_str() : string("NULL").c_str() << "\n";
+		size_t pos = 0;
+
+		// serializing name of class, for polymorphic support
+		// we will detect NULL pointers by simply writing "NULL" into the serialization
+		string s = "NULL";
+		if (elem.get() != NULL)
+			s = elem->my_class_name(); // help compiler
+		pos += MedSerialize::serialize<string>(blob + pos, s);
+
+		// serializing the actual class
+		//cerr << "Serializing T * (2) : class name is " << s << " pos " << pos << "\n";
+		if (elem.get() != NULL)
+			pos += MedSerialize::serialize(blob + pos, (*elem));
+
+		//cerr << "Serializing T * (4) : pos " << pos << "\n";
+		return pos;
+	}
+
+	//.........................................................................................
+	template <class T> size_t deserialize(unsigned char *blob, unique_ptr<T> &elem)
+	{
+		//cerr << "DeSerializing T * \n";
+
+		size_t pos = 0;
+
+		// deserialize name of class
+		string cname;
+		pos += MedSerialize::deserialize<string>(blob + pos, cname);
+
+		//cerr << "Deserializing T * (2) : Got class name " << cname << " pos " << pos << "\n";
+
+		if (cname == "NULL") {
+			elem = NULL;
+		}
+		else {
+			// heart of matters: doing the right new operation
+			T dummy; // we need access to the new_polymorphic method
+			elem = unique_ptr<T>((T *)dummy.new_polymorphic(cname));
+			//cerr << "Deserializing T * (3) : elem is " << elem << "\n";
+			if (elem.get() == NULL) {
+				elem = unique_ptr<T>(new T);
+			}
+
+			//cerr << "Deserializing T * (4) : elem is " << elem << "\n";
+
+			// now we are ready to deserialize T or its derived
+			pos += MedSerialize::deserialize(blob + pos, (*elem.get()));
+		}
+
+		//cerr << "Deserializing T * (4) : pos " << pos << "\n";
+		return pos;
+	}
 
 	//.........................................................................................
 	// string is special
@@ -409,7 +495,7 @@ namespace MedSerialize {
 		T t;
 		S s;
 		if (len > 0) {
-			for (int i = 0; i<len; i++) {
+			for (int i = 0; i < len; i++) {
 				pos += MedSerialize::deserialize(blob + pos, t);
 				pos += MedSerialize::deserialize(blob + pos, s);
 				v[t] = s;
@@ -458,7 +544,7 @@ namespace MedSerialize {
 		T t;
 		S s;
 		if (len > 0) {
-			for (int i = 0; i<len; i++) {
+			for (int i = 0; i < len; i++) {
 				pos += MedSerialize::deserialize(blob + pos, t);
 				pos += MedSerialize::deserialize(blob + pos, s);
 				v[t] = s;
@@ -556,6 +642,19 @@ namespace MedSerialize {
 		return pos;
 	}
 
+	template<typename T, enable_if_t<std::is_base_of<SerializableObject, T>::value, int> = 0> string get_name() {
+		T cl;
+		string cl_name = cl.my_class_name();
+
+		return cl_name;
+	}
+
+	template<typename T, enable_if_t<!std::is_base_of<SerializableObject, T>::value, int> = 0> string get_name() {
+		string cl_name = "primitive_type";
+
+		return cl_name;
+	}
+
 	// last stage serializer :  the last element : size, name, serialization
 	template<class T> size_t deserializer(unsigned char *blob, int counter, vector<string> &names, map <string, size_t> &name2pos, T &elem)
 	{
@@ -571,7 +670,8 @@ namespace MedSerialize {
 			//SRL_LOG("=====> size is %02x %02x %02x %02x\n", p[0], p[1], p[2], p[3]);
 		}
 		else {
-			cerr << "WARNING: element " << name << " not serialized... will be deserialized to its default\n";
+			string cl_name = get_name<T>();
+			cerr << "WARNING: In \"" << cl_name << "\" element " << name << " not serialized... will be deserialized to its default\n";
 		}
 
 		return pos;
@@ -806,12 +906,12 @@ namespace MedSerialize {
 		}
 
 		// treating nesting 
-		if (start_pos.size()>0 && end_pos.size()>0) {
+		if (start_pos.size() > 0 && end_pos.size() > 0) {
 
 			int i = 0, j = 0, stack = 0, stack_first = -1, stack_last = -1;
 
-			while (j<end_pos.size()) {
-				if (i<(int)start_pos.size() && start_pos[i] < end_pos[j]) {
+			while (j < end_pos.size()) {
+				if (i < (int)start_pos.size() && start_pos[i] < end_pos[j]) {
 					if (stack_first < 0) stack_first = (int)start_pos[i];
 					stack++;
 					i++;
@@ -846,13 +946,13 @@ namespace MedSerialize {
 		else {
 			new_text = text.substr(0, from_to[0].first + 1); // up to the first '='
 			int j;
-			for (j = 0; j<from_to.size(); j++) {
+			for (j = 0; j < from_to.size(); j++) {
 				string name = "REPLACE_ME_LATER_NUMBER_" + to_string(j);
 				string replacer = text.substr(from_to[j].first + 2, from_to[j].second - from_to[j].first - 2);
 				SRL_LOG_D("replacer %d : %s -> %s\n", j, name.c_str(), replacer.c_str());
 				new_text += name;
 				replacers[name] = replacer;
-				if (j<from_to.size() - 1)
+				if (j < from_to.size() - 1)
 					new_text += text.substr(from_to[j].second + 1, from_to[j + 1].first - from_to[j].second);
 			}
 			new_text += text.substr(from_to[j - 1].second + 1, text.length() - from_to[j - 1].second);
@@ -926,7 +1026,7 @@ namespace MedSerialize {
 			if ((curr_line.size() > 1) && (curr_line[0] != '#')) { // ignore empty lines, ignore comment lines
 
 				// get rid of leading spaces, trailing spaced, and shrink inner spaces to a single one, get rid of tabs and end of line (win or linux)
-				string fixed_spaces = boost::regex_replace(curr_line , boost::regex("^ +| +$|( ) +|\r|\n|\t+"), string("$1"));
+				string fixed_spaces = boost::regex_replace(curr_line, boost::regex("^ +| +$|( ) +|\r|\n|\t+"), string("$1"));
 				data += fixed_spaces;
 			}
 		}
@@ -951,7 +1051,7 @@ namespace MedSerialize {
 			if ((curr_line.size() > 1) && (curr_line[0] != '#')) { // ignore empty lines, ignore comment lines
 				// move all tabs to spaces
 				string fixed_spaces = boost::regex_replace(fixed_spaces, boost::regex("\t+"), " ");
-	
+
 				// get rid of leading spaced, ending spaces, \r
 				fixed_spaces = boost::regex_replace(curr_line, boost::regex("^ +| +$|\r|\n"), "");
 

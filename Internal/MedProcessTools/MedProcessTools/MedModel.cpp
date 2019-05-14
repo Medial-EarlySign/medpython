@@ -19,6 +19,28 @@
 
 using namespace boost::property_tree;
 
+//=======================================================================================
+// MedModelStage
+//=======================================================================================
+
+map<string, MedModelStage> med_mdl_stage_name_to_stage = {
+	{ "learn_rep_processors",MED_MDL_LEARN_REP_PROCESSORS },{ "learn_ftr_generators",MED_MDL_LEARN_FTR_GENERATORS },
+	{ "apply_ftr_generators",MED_MDL_APPLY_FTR_GENERATORS },{ "learn_ftr_processors",MED_MDL_LEARN_FTR_PROCESSORS },
+	{ "apply_ftr_processors",MED_MDL_APPLY_FTR_PROCESSORS },{ "learn_predictor",MED_MDL_LEARN_PREDICTOR },
+	{ "apply_predictor",MED_MDL_APPLY_PREDICTOR },{ "insert_preds",MED_MDL_INSERT_PREDS },
+	{ "learn_post_processors",MED_MDL_LEARN_POST_PROCESSORS },{ "apply_post_processors",MED_MDL_APPLY_POST_PROCESSORS },
+	{ "end",MED_MDL_END } };
+
+MedModelStage MedModel::get_med_model_stage(const string& stage) {
+
+	string _stage = stage;
+	boost::to_lower(_stage);
+
+	if (med_mdl_stage_name_to_stage.find(_stage) == med_mdl_stage_name_to_stage.end())
+		MTHROW_AND_ERR("unknown stage %s\n", stage.c_str())
+	else
+		return med_mdl_stage_name_to_stage[_stage];
+}
 
 //=======================================================================================
 // MedModel
@@ -178,10 +200,12 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		if (rc != 0)
 			return rc;
 	}
-	if (end_stage < MED_MDL_LEARN_POST_PROCESS)
+	if (end_stage < MED_MDL_LEARN_POST_PROCESSORS)
 		return 0;
+
 	//get predictions and store them - in postProcessor learn resposibility - should act on different samples:
-	if (start_stage <= MED_MDL_LEARN_POST_PROCESS) {
+	if (start_stage <= MED_MDL_LEARN_POST_PROCESSORS) {
+		MLOG("MedModel::learn() : learn post_processors\n");
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Learn(*this, rep, features);
 	}
@@ -271,10 +295,10 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		}
 	}
 
-	if (end_stage <= MED_MDL_INSERT_PREDS)
+	if (end_stage <= MED_MDL_APPLY_PREDICTOR)
 		return 0;
 
-	if (end_stage <= MED_MDL_APPLY_POST_PROCESS) { //insert preds now only if has no post_processors
+	if (start_stage <= MED_MDL_INSERT_PREDS && end_stage < MED_MDL_APPLY_POST_PROCESSORS) { //insert preds now only if has no post_processors
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
 			return -1;
@@ -282,15 +306,19 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 	}
 
-	for (size_t i = 0; i < post_processors.size(); ++i)
-		post_processors[i]->Apply(features);
-	if (samples.insert_preds(features) != 0) {
-		MERR("Insertion of predictions to samples failed\n");
-		return -1;
-	}
-	if (samples.insert_post_process(features) != 0) {
-		MERR("Insertion of post_process to samples failed\n");
-		return -1;
+	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
+		for (size_t i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->init_model(this);
+		for (size_t i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Apply(features);
+		if (samples.insert_preds(features) != 0) {
+			MERR("Insertion of predictions to samples failed\n");
+			return -1;
+		}
+		if (samples.insert_post_process(features) != 0) {
+			MERR("Insertion of post_process to samples failed\n");
+			return -1;
+		}
 	}
 
 	return 0;
@@ -580,16 +608,22 @@ void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 	inf.close();
 
 }
-string MedModel::make_absolute_path(const string& main_file, const string& small_file) {
+string MedModel::make_absolute_path(const string& main_file, const string& small_file, bool use_cwd) {
 	boost::filesystem::path p(main_file);
 	string main_file_path = p.parent_path().string();
+	if (use_cwd) 
+		main_file_path = run_current_path;
+
 	if (
 		(small_file.size() > 2 && (small_file[0] == '/' || small_file[1] == ':')) ||
 		(main_file_path.size() == 0)
 		)
 		return small_file;
 	string abs = main_file_path + '/' + small_file;
-	MLOG_D("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
+	if (use_cwd)
+		MLOG_D("resolved relative path using cwd [%s] to [%s]\n", small_file.c_str(), abs.c_str());
+	else
+		MLOG_D("resolved relative path [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	return abs;
 }
 void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
@@ -613,14 +647,19 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 	}
 	MLOG_D("\n");
 }
-string MedModel::json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file) {
+string MedModel::json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations,
+	const string& small_file, bool add_change_path) {
 	if (recursion_level > 3)
 		MTHROW_AND_ERR("main file [%s] referenced file [%s], recusion_level 3 reached", main_file.c_str(), small_file.c_str());
 	string fname;
 	if (small_file == "")
 		fname = main_file;
-	else
-		fname = make_absolute_path(main_file, small_file);
+	else {
+		if (add_change_path)
+			fname = small_file;
+		else
+			fname = make_absolute_path(main_file, small_file, add_change_path);
+	}
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open json file [%s] for read\n", fname.c_str());
@@ -636,9 +675,14 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 	boost::sregex_iterator end;
 	int last_char = 0;
 	string out_string = "";
+	string add_path;
+	char buff[5000];
 	for (; it != end; ++it) {
 		string json_ref = it->str(1);
-		MLOG_D("Json : found %s\n", json_ref.c_str());
+		if (!small_file.empty())
+			MLOG_D("Json : found %s, parent %s\n", json_ref.c_str(), small_file.c_str());
+		else
+			MLOG_D("Json : found %s\n", json_ref.c_str());
 		vector<string> tokens;
 		boost::split(tokens, json_ref, boost::is_any_of(";"));
 		if (tokens.empty())
@@ -666,7 +710,19 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 				my_alterations.push_back(alt);
 		}
 		out_string += orig.substr(last_char, it->position() - last_char);
-		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file);
+		if (add_change_path) {
+			boost::filesystem::path json_p(small_file);
+			string pth = json_p.parent_path().string();
+			snprintf(buff, sizeof(buff), "{\"action_type\":\"change_path:%s\"},\n", pth.c_str());
+			add_path = string(buff);
+			out_string += add_path;
+		}
+		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file, add_change_path);
+		if (add_change_path) {
+			snprintf(buff, sizeof(buff), "\n,{\"action_type\":\"change_path:%s\"}\n", run_current_path.c_str());
+			add_path = string(buff);
+			out_string += add_path;
+		}
 		last_char = (int)it->position() + (int)it->str(0).size();
 	}
 	out_string += orig.substr(last_char);
@@ -1249,6 +1305,15 @@ void MedModel::clear()
 		feature_processors.clear();
 	}
 
+	if (post_processors.size() > 0) {
+		for (auto postprocc : post_processors)
+			if (postprocc != NULL) {
+				delete postprocc;
+				postprocc = NULL;
+			}
+		post_processors.clear();
+	}
+
 	if (predictor != NULL) {
 		delete predictor;
 		predictor = NULL;
@@ -1261,7 +1326,7 @@ void MedModel::clear()
 }
 
 //.......................................................................................
-void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag)
+void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag)
 {
 	unordered_set<string> sigs;
 
@@ -1273,6 +1338,8 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (rp_flag > 0) for (auto& rp : rep_processors) rp->dprint(pref, rp_flag);
 	if (fg_flag > 0) for (auto& fg : generators) fg->dprint(pref, fg_flag);
 	if (fp_flag > 0) for (auto& fp : feature_processors) fp->dprint(pref, fp_flag);
+	if (predictor_flag > 0 && predictor != NULL) predictor->print(stderr, pref, predictor_flag);
+	if (pp_flag > 0) for (auto& pp : post_processors) pp->dprint(pref);
 }
 
 //.......................................................................................
@@ -1540,6 +1607,7 @@ void MedModel::learn_post_processors(MedPidRepository &rep, MedSamples &post_sam
 void MedModel::apply_post_processors(MedFeatures &matrix_after_pred) {
 	for (size_t i = 0; i < post_processors.size(); ++i)
 	{
+		post_processors[i]->init_model(this);
 		post_processors[i]->Apply(matrix_after_pred);
 	}
 }

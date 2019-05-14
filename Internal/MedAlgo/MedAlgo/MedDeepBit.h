@@ -54,12 +54,12 @@ public:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Learn(float *x, float *y, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
-	virtual void print(FILE *fp, const string& prefix) const;
+	virtual void print(FILE *fp, const string& prefix, int level=0) const;
 	ADD_CLASS_NAME(MedDeepBit)
 	size_t get_size();
 	size_t serialize(unsigned char *blob);
 	size_t deserialize(unsigned char *blob);
-	void print_model();	
+	void print_model(FILE *fp, const string& prefix) const;
 
 private:
 	vector<vector<double>> x, internal_test_x, internal_test_transposed_x;

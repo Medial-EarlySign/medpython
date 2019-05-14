@@ -115,7 +115,7 @@ int MedGDLM::set_params(map<string, string>& mapper) {
 
 //..............................................................................
 void MedGDLM::calc_feature_importance(vector<float> &features_importance_scores,
-	const string &general_params)
+	const string &general_params, const MedFeatures *features)
 {
 	for (auto coef : b) { features_importance_scores.push_back(-1.0 * coef); }
 	features_importance_scores.push_back(-1.0* b0);
@@ -304,13 +304,17 @@ int MedGDLM::denormalize_model(float *f_avg, float *f_std, float label_avg, floa
 
 
 //..............................................................................
-void MedGDLM::print(FILE *fp, const string& prefix) const {
+void MedGDLM::print(FILE *fp, const string& prefix, int level) const {
 
-	fprintf(fp, "%s : GD_Linear Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
-	fprintf(fp, "%s : GD_Linear Model b0 = %f\n", prefix.c_str(), b0);
+	if (level == 0)
+		fprintf(fp, "%s: MedGDLM ()\n", prefix.c_str());
+	else {
+		fprintf(fp, "%s : GD_Linear Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
+		fprintf(fp, "%s : GD_Linear Model b0 = %f\n", prefix.c_str(), b0);
 
-	for (int i = 0; i < n_ftrs; i++)
-		fprintf(fp, "%s : GD_Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+		for (int i = 0; i < n_ftrs; i++)
+			fprintf(fp, "%s : GD_Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+	}
 }
 
 void MedGDLM::set_eigen_threads() const

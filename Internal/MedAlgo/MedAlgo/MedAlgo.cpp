@@ -96,6 +96,7 @@ void *MedPredictor::new_polymorphic(string dname)
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
 #endif
+	MWARN("Warning in MedPredictor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 
@@ -490,8 +491,9 @@ size_t MedPredictor::predictor_serialize(unsigned char *blob) {
 
 //.......................................................................................
 
-void MedPredictor::print(FILE *fp, const string& prefix) const { fprintf(fp, "%s : No Printing method defined\n", prefix.c_str()); }
-
+void MedPredictor::print(FILE *fp, const string& prefix, int level) const {
+	fprintf(fp, "%s: %s ()\n", prefix.c_str(),predictor_type_to_name[classifier_type].c_str());
+}
 
 int MedPredictor::learn(const MedFeatures& ftrs_data) {
 
@@ -533,7 +535,7 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order) {
 	// > min and <= max
 
-	//add mapping from model score to probabilty based on big enough bins of score
+	//add mapping from model score to probability based on big enough bins of score
 	//get prediction for X:
 	vector<float> preds;
 	predict(x, preds);
@@ -644,7 +646,7 @@ template<class T, class L> int MedPredictor::convert_scores_to_prob(const vector
 		double val = params[0];
 		for (size_t k = 1; k < params.size(); ++k)
 			val += params[k] * pow(double(preds[i]), double(k));
-		val = 1 / (1 + exp(val));//Platt Scale technique for probabilty calibaration
+		val = 1 / (1 + exp(val));//Platt Scale technique for probability calibaration
 		converted[i] = (L)val;
 	}
 
@@ -667,26 +669,44 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	//probs is the new Y - lets learn A, B:
 	MedLinearModel lm; //B is param[0], A is param[1]
 
-	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
+	lm.loss_function = [](const vector<double> &prds, const vector<float> &y, const vector<float> *weights) {
 		double res = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
-		for (size_t i = 0; i < y.size(); ++i)
-		{
-			double conv_prob = 1 / (1 + exp(prds[i]));
-			res += (conv_prob - y[i]) * (conv_prob - y[i]);
+		if (weights == NULL || weights->empty()) {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]);
+			}
+		}
+		else {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]) * weights->at(i);
+			}
 		}
 		res /= y.size();
 		res = sqrt(res);
 		return res;
 	};
-	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params) {
+	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params, const vector<float> *weights) {
 		double res = 0;
 		double reg_coef = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
-		for (size_t i = 0; i < y.size(); ++i)
-		{
-			double conv_prob = 1 / (1 + exp(prds[i]));
-			res += (conv_prob - y[i]) * (conv_prob - y[i]);
+		if (weights == NULL || weights->empty()) {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]);
+			}
+		}
+		else {
+			for (size_t i = 0; i < y.size(); ++i)
+			{
+				double conv_prob = 1 / (1 + exp(prds[i]));
+				res += (conv_prob - y[i]) * (conv_prob - y[i]) * weights->at(i);
+			}
 		}
 		res /= y.size();
 		res = sqrt(res);
@@ -725,8 +745,8 @@ int MedPredictor::learn_prob_calibration(MedMat<float> &x, vector<float> &y,
 	for (size_t i = 0; i < converted.size(); ++i)
 		prior_score[i] = double(tot_pos) / y.size();
 
-	double loss_model = _linear_loss_target_rmse(converted, probs);
-	double loss_prior = _linear_loss_target_rmse(prior_score, probs);
+	double loss_model = _linear_loss_target_rmse(converted, probs, NULL);
+	double loss_prior = _linear_loss_target_rmse(prior_score, probs, NULL);
 
 	MLOG("Platt Scale prior=%2.5f. loss_model=%2.5f, loss_prior=%2.5f\n",
 		double(tot_pos) / y.size(), loss_model, loss_prior);
@@ -775,6 +795,26 @@ void MedPredictor::predict_single(const vector<float> &x, vector<float> &preds) 
 
 void MedPredictor::predict_single(const vector<double> &x, vector<double> &preds) const {
 	MTHROW_AND_ERR("Error not implemented in %s\n", my_class_name().c_str());
+}
+
+void MedPredictor::calc_feature_importance_shap(vector<float> &features_importance_scores, string &importance_type, const MedFeatures *features)
+{
+	MedMat<float> feat_mat,contribs_mat; 
+	if (features == NULL)
+		MTHROW_AND_ERR("SHAP values feature importance requires features \n");
+	
+	features->get_as_matrix(feat_mat);
+	calc_feature_contribs(feat_mat, contribs_mat);
+	for (int j = 0; j < contribs_mat.ncols; ++j)
+	{
+		float col_sum = 0;
+		
+		for (int i = 0; i < contribs_mat.nrows; ++i)
+		{
+			col_sum += abs(contribs_mat.get(i, j));
+		}
+		features_importance_scores[j] = col_sum/(float)contribs_mat.nrows;
+	}
 }
 
 void MedMicNet::prepare_predict_single() {

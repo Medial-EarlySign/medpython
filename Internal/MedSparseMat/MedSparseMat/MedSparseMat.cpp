@@ -203,7 +203,7 @@ int MedSparseMat::write_to_bin_file(string bin_file)
 void MedSparseMat::get_col_stat(int &nrows, int &ncols, vector<int> &nonz_counts)
 {
 	ncols = 0;
-	nrows = lines.size();
+	nrows = (int)lines.size();
 	nonz_counts.resize(10000000, 0); // assuming always less than 10M columns
 
 	for (auto &line : lines) {

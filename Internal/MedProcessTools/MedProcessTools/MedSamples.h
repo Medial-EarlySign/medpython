@@ -50,14 +50,20 @@ public:
 	/// if pos is empty, check old and new formats
 	/// </summary>
 	/// <returns> 0 upon success, -1 upon failure to parse </returns>
-	int parse_from_string(string &s, map <string, int> & pos, vector<int>& pred_pos, map<string, int>& attr_pos, map<string, int>& str_attr_pos, int time_unit, int raw_format);
+	int parse_from_string(string &s, const map <string, int> & pos, const vector<int>& pred_pos, const map<string, int>& attr_pos,
+		const map<string, int>& str_attr_pos, int time_unit, int raw_format, const string &delimeter = "\t");
+	int parse_from_string(const vector<string> &fields, const map<string, int> & pos, const vector<int>& pred_pos, const map<string, int>& attr_pos,
+		const map<string, int>& str_attr_pos, int time_unit, int raw_format, const string &delimeter);
+
 	/// <summary> Write to string in new format </summary>
-	void write_to_string(string &s, const vector<string>& attr, const vector<string>& str_attr, int time_unit);
-	void write_to_string(string &s, int time_unit);
+	void write_to_string(string &s, int time_unit, bool write_attrib = true, const string &delimeter = "\t") const;
+
+	/// <summary> Get sample attributes </summary>
+	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) const;
 
 	// Serialization
 	ADD_CLASS_NAME(MedSample)
-	ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes, str_attributes)
+		ADD_SERIALIZATION_FUNCS(id, split, time, outcome, outcomeTime, prediction, attributes, str_attributes)
 };
 
 /// <summary> Comparison functions for sorting by prediction value </summary>
@@ -102,7 +108,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MedIdSamples)
-	ADD_SERIALIZATION_FUNCS(id, split, samples)
+		ADD_SERIALIZATION_FUNCS(id, split, samples)
 
 };
 
@@ -178,7 +184,7 @@ public:
 	/// <summary> Get all MedSamples as a single vector </summary>
 	void export_to_sample_vec(vector<MedSample> &vec_samples);
 	/// <summary> Set MedSamples from a single vector </summary>
-	void import_from_sample_vec(vector<MedSample> &vec_samples, bool allow_split_inconsistency=false);	
+	void import_from_sample_vec(vector<MedSample> &vec_samples, bool allow_split_inconsistency = false);
 
 	/// <summary> Sort by id and then date </summary>
 	void sort_by_id_date();
@@ -199,7 +205,7 @@ public:
 	int get_predictions_size(int& nPreds);
 
 	/// <summary> Get all attributes. Return -1 if not-consistent </summary>
-	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes);
+	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) const;
 
 	/// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);
@@ -214,7 +220,7 @@ public:
 	//Serialization, version 1: Added version, model_features, features_count to serialization
 	//				 version 2: Added attributes
 	ADD_CLASS_NAME(MedSamples)
-	ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
+		ADD_SERIALIZATION_FUNCS(time_unit, idSamples)
 };
 
 /**

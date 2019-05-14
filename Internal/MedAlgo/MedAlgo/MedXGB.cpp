@@ -90,14 +90,13 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
-	const int PRED_CONTRIBS = 4, APPROX_CONTRIBS = 8; // , INTERACTION_SHAP = 16;
+	const int PRED_CONTRIBS = 4; //, APPROX_CONTRIBS = 8;  , INTERACTION_SHAP = 16;
 	int flags = feat_contrib_flags;
-	if (flags == 0)
-		flags = APPROX_CONTRIBS;
+	//if (flags == 0) // default value is now not APPROX_CONTRIBS since nan bug was solved.
+	//	flags = APPROX_CONTRIBS;
 
 	flags |= PRED_CONTRIBS;
-	// using the old APPROX_CONTRIBS until this bug is resolved:
-	// https://github.com/dmlc/xgboost/issues/3333 NaN SHAP values from Booster.predict with pred_contribs=True
+
 	XGBoosterPredict(my_learner, h_test, flags, 0, &out_len, &out_preds);
 	for (int i = 0; i < nsamples; i++) {
 		for (int j = 0; j < nftrs; j++) {
@@ -108,6 +107,7 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 		}
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
 	}
+	XGDMatrixFree(h_test);
 }
 
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
@@ -249,8 +249,18 @@ void MedXGB::translate_split_penalties(string& split_penalties_s) {
 typedef rabit::utils::MemoryFixSizeBuffer MemoryFixSizeBuffer;
 typedef rabit::utils::MemoryBufferStream MemoryBufferStream;
 
-void MedXGB::print(FILE *fp, const string& prefix) const {
-	fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
+void MedXGB::print(FILE *fp, const string& prefix, int level) const {
+
+	if (level==0)
+		fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
+	else {
+		xgboost::bst_ulong num_trees;
+		const char **out_models;
+		XGBoosterDumpModel(my_learner, "", 0, &num_trees, &out_models);
+		for (int i = 0; i < num_trees; i++)
+			fprintf(fp, "%s xgboost tree %d : %s\n", prefix.c_str(), i, out_models[i]);
+	}
+
 }
 
 bool split_token(const string &str, const string &search, bool first
@@ -267,14 +277,16 @@ Importance type can be defined as:
 'gain' - the average gain of the feature when it is used in trees
 'cover' - the average coverage of the feature when it is used in trees
 'gain_total' - sum of gain the of the feature when it is used in trees (not normalized by number)
+'shap' - mean absolute value of shap values
 */
 void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
-	const string &general_params) {
+	const string &general_params, const MedFeatures *features) {
 	if (!_mark_learn_done)
 		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 	map<string, string> params;
-	unordered_set<string> legal_types = { "weight", "gain","cover","gain_total" };
-	bool do_average = false;
+
+	unordered_set<string> local_types = { "weight", "gain","cover","gain_total" };
+	unordered_set<string> legal_types = { "weight", "gain","cover","gain_total", "shap" };
 
 	MedSerialize::initialization_text_to_map(general_params, params);
 	string importance_type = "gain";
@@ -284,25 +296,38 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 		else
 			MTHROW_AND_ERR("Unsupported calc_feature_importance param \"%s\"\n", it->first.c_str());
 
-	if ((importance_type == "gain") || (importance_type == "cover"))
-		do_average = true;
-
 	if (legal_types.find(importance_type) == legal_types.end())
 		MTHROW_AND_ERR("Ilegal importance_type value \"%s\" "
 			"- should by one of [weight, gain, cover, gain_total]\n", importance_type.c_str());
 
+	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
+
+	if (local_types.count(importance_type) > 0)
+		calc_feature_importance_local(features_importance_scores, importance_type);
+
+
+	if (importance_type == "shap")
+		calc_feature_importance_shap(features_importance_scores, importance_type, features);
+	
+}
+
+void MedXGB::calc_feature_importance_local(vector<float> &features_importance_scores, string &importance_type)
+{
+	bool do_average = false;
+	vector<float> fCnt;
+	const char** out_models;
 	int with_stats = importance_type != "weight"; //if weight than 0
 
 	xgboost::bst_ulong num_trees;
-	const char** out_models;
 	XGBoosterDumpModel(my_learner, "", with_stats, &num_trees, &out_models);
-
 	vector<string> arr;
 	string mid_token, fids;
 	int fid;
 	float g;
-	vector<float> fCnt;
-	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
+
+	if ((importance_type == "gain") || (importance_type == "cover"))
+		do_average = true;
+
 	if (importance_type != "weight")
 		fCnt.resize((int)features_importance_scores.size());
 
@@ -350,6 +375,25 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 			}
 }
 
+//void MedXGB::calc_feature_importance_shap(vector<float> &features_importance_scores, string &importance_type, const MedFeatures *features)
+//{
+//	MedMat<float> feat_mat,contribs_mat; 
+//	if (features == NULL)
+//		MTHROW_AND_ERR("SHAP values feature importance requires features \n");
+//	
+//	features->get_as_matrix(feat_mat);
+//	calc_feature_contribs(feat_mat, contribs_mat);
+//	for (int j = 0; j < contribs_mat.ncols; ++j)
+//	{
+//		float col_sum = 0;
+//		
+//		for (int i = 0; i < contribs_mat.nrows; ++i)
+//		{
+//			col_sum += abs(contribs_mat.get(i, j));
+//		}
+//		features_importance_scores[j] = col_sum/(float)contribs_mat.nrows;
+//	}
+//}
 
 void MedXGB::init_defaults()
 {

@@ -105,7 +105,7 @@ public:
 
 	// generate feature data from repository
 	// We assume the corresponding MedSamples have been inserted to MedFeatures : either at the end or at position index
-	int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features, index, num, p_data); }
+	int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) {return _generate(in_rep, features, index, num, p_data); }
 
 	// the following is the MAIN generation routine to implement.
 	// note that it is given a p_data of its own. This is in order to allow different records to write results to different places.
@@ -776,7 +776,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AttrFeatGenerator *>(generator)); }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Serialization
 	ADD_CLASS_NAME(AttrFeatGenerator);

@@ -22,6 +22,8 @@
 
 using namespace std;
 
+extern string run_current_path;
+
 enum MedBinningType {
 	BIN_EQUIDIST,
 	BIN_EQUISIZE,
@@ -108,6 +110,7 @@ namespace medial {
 			ProgramArgs_base() { init_called = false; debug = false; }
 		public:
 			bool debug; ///< a debug flag for verbose printing. will be init from command args
+			po::variables_map vm;
 			string app_logo = "\
 ##     ## ######## ########  ####    ###    ## \n\
 ###   ### ##       ##     ##  ##    ## ##   ##    \n\

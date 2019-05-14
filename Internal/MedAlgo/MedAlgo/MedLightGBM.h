@@ -210,10 +210,8 @@ public:
 		return 0;
 	}
 
-	//virtual void print(FILE *fp, const string& prefix);
-
 	void calc_feature_importance(vector<float> &features_importance_scores,
-		const string &general_params);
+		const string &general_params, const MedFeatures *features);
 
 
 	int n_preds_per_sample() const { return mem_app.n_preds_per_sample(); }

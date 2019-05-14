@@ -13,7 +13,7 @@ using namespace std;
 //===========================================================================================
 
 //-------------------------------------------------------------------------------------------
-int KerasLayer::apply_sparse(vector<pair<int, float>> &sline, vector<float> &output)
+int KerasLayer::apply_sparse(vector<pair<int, float>> &sline, vector<float> &output) const
 {
 	if (type == K_DENSE) {
 
@@ -52,7 +52,7 @@ int KerasLayer::apply_sparse(vector<pair<int, float>> &sline, vector<float> &out
 }
 
 //-------------------------------------------------------------------------------------------
-int KerasLayer::apply_sparse(map<int, float> &sline, vector<float> &output)
+int KerasLayer::apply_sparse(map<int, float> &sline, vector<float> &output) const
 {
 	if (type == K_DENSE) {
 
@@ -91,7 +91,7 @@ int KerasLayer::apply_sparse(map<int, float> &sline, vector<float> &output)
 }
 
 //-------------------------------------------------------------------------------------------
-int KerasLayer::apply_activation(vector<float> &in, vector<float> &out)
+int KerasLayer::apply_activation(vector<float> &in, vector<float> &out) const
 {
 	out.resize(in.size());
 	
@@ -123,7 +123,7 @@ int KerasLayer::apply_activation(vector<float> &in, vector<float> &out)
 
 
 //-------------------------------------------------------------------------------------------
-int KerasLayer::apply_bn(vector<float> &in, vector<float> &out)
+int KerasLayer::apply_bn(vector<float> &in, vector<float> &out) const
 {
 	out = in;
 #pragma omp parallel for
@@ -136,7 +136,7 @@ int KerasLayer::apply_bn(vector<float> &in, vector<float> &out)
 }
 
 //-------------------------------------------------------------------------------------------
-int KerasLayer::apply(vector<float> &in, vector<float> &out)
+int KerasLayer::apply(vector<float> &in, vector<float> &out) const
 {
 	if (type == K_DENSE) {
 		// first calculate the linear transformations
@@ -203,7 +203,7 @@ int KerasLayer::init(map<string, string>& _map)
 // ApplyKeras
 //===========================================================================================
 //-------------------------------------------------------------------------------------------
-int ApplyKeras::apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer)
+int ApplyKeras::apply_sparse(vector<pair<int, float>> &sline, vector<float> &output, int to_layer) const
 {
 	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
 
@@ -228,7 +228,7 @@ int ApplyKeras::apply_sparse(vector<pair<int, float>> &sline, vector<float> &out
 }
 
 //-------------------------------------------------------------------------------------------
-int ApplyKeras::apply_sparse(map<int, float> &sline, vector<float> &output, int to_layer)
+int ApplyKeras::apply_sparse(map<int, float> &sline, vector<float> &output, int to_layer) const
 {
 	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
 
@@ -253,7 +253,7 @@ int ApplyKeras::apply_sparse(map<int, float> &sline, vector<float> &output, int 
 }
 
 //-------------------------------------------------------------------------------------------
-int ApplyKeras::apply(vector<float>& line, vector<float> &output, int to_layer)
+int ApplyKeras::apply(vector<float>& line, vector<float> &output, int to_layer) const
 {
 	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
 

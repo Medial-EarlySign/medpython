@@ -6,9 +6,10 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 unordered_map<int, string> calibration_method_to_name = {
-	{probabilty_time_window, "time_window"},
-	{ probabilty_binning, "binning" },
-	{ probabilty_platt_scale, "platt_scale" }
+	{probability_time_window, "time_window"},
+	{ probability_binning, "binning" },
+	{ probability_platt_scale, "platt_scale" },
+	{ probability_isotonic, "isotonic_regression" }
 };
 
 CalibrationTypes clibration_name_to_type(const string& calibration_name) {
@@ -128,6 +129,10 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 
 void collect_preds_labels(const MedSamples &samples,
 	vector<float> &preds, vector<float> &labels) {
+
+	int nSamples = samples.nSamples();
+	preds.resize(nSamples);
+	labels.resize(nSamples);
 	for (size_t i = 0; i < samples.idSamples.size(); ++i)
 	{
 		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
@@ -174,7 +179,7 @@ template<class T, class L> void apply_platt_scale(const vector<T> &preds, const 
 		double val = params[0];
 		for (size_t k = 1; k < params.size(); ++k)
 			val += params[k] * pow(double(preds[i]), double(k));
-		val = 1 / (1 + exp(val));//Platt Scale technique for probabilty calibaration
+		val = 1 / (1 + exp(val));//Platt Scale technique for probability calibaration
 		converted[i] = (L)val;
 	}
 }
@@ -258,22 +263,22 @@ int Calibrator::Apply(MedSamples& samples) const {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
-	case CalibrationTypes::probabilty_time_window:
+	case CalibrationTypes::probability_time_window:
 		return apply_time_window(samples);
 		break;
-	case CalibrationTypes::probabilty_binning:
+	case CalibrationTypes::probability_binning:
+	case CalibrationTypes::probability_isotonic:
 		collect_preds_labels(samples, preds, labels);
 		apply_binned_prob(preds, min_range, max_range, map_prob, probs);
 		write_to_predicition(samples, probs);
-
 		break;
-	case CalibrationTypes::probabilty_platt_scale:
+	case CalibrationTypes::probability_platt_scale:
 		collect_preds_labels(samples, preds, labels);
 		apply_platt_scale(preds, platt_params, probs);
 		write_to_predicition(samples, probs);
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
+		MTHROW_AND_ERR("Unsupported implementation for applying calibration method %s\n",
 			calibration_method_to_name[calibration_type].c_str());
 	}
 	return 0;
@@ -283,22 +288,23 @@ int Calibrator::Apply(vector <MedSample>& samples) const {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
-	case CalibrationTypes::probabilty_time_window:
+	case CalibrationTypes::probability_time_window:
 		return apply_time_window(samples);
 		break;
-	case CalibrationTypes::probabilty_binning:
+	case CalibrationTypes::probability_binning:
+	case CalibrationTypes::probability_isotonic:
 		collect_preds_labels(samples, preds, labels);
 		apply_binned_prob(preds, min_range, max_range, map_prob, probs);
 		write_to_predicition(samples, probs);
 
 		break;
-	case CalibrationTypes::probabilty_platt_scale:
+	case CalibrationTypes::probability_platt_scale:
 		collect_preds_labels(samples, preds, labels);
 		apply_platt_scale(preds, platt_params, probs);
 		write_to_predicition(samples, probs);
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
+		MTHROW_AND_ERR("Unsupported implementation for applying calibration method %s\n",
 			calibration_method_to_name[calibration_type].c_str());
 	}
 	return 0;
@@ -335,7 +341,7 @@ void Calibrator::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures
 			if (curr_rep.read_all(rep.config_fname, pids, sigs) < 0)
 				MTHROW_AND_ERR("ERROR could not read repository %s\n", rep.config_fname.c_str());
 			MedFeatures feats = move(model.features);
-			model.apply(curr_rep, external, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_LEARN_POST_PROCESS);
+			model.apply(curr_rep, external, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_LEARN_POST_PROCESSORS);
 			Learn(model.features.samples);
 			model.features = move(feats);
 		}
@@ -619,6 +625,71 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 			100 * double(bin_cnts[i]) / y.size(), bin_cnts[i], (int)y.size());
 }
 
+void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, bool verbose) {
+	
+	int n = (int)x.size();
+
+	vector<pair<float, float>> x2y(n);
+	for (int i = 0; i < n; i++)
+		x2y[i] = { x[i],y[i] };
+	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first);});
+
+	// PAV
+	vector<int> nag(n);
+	vector<float> val(n);
+
+	unsigned int i, j;
+	nag[0] = 1;
+	val[0] = x2y[0].second;
+		
+	j = 0;
+	for (i = 1;i<n;i++) {
+		j += 1;
+		val[j] = x2y[i].second;
+		nag[j] = 1;
+		while ((j>0) && (val[j]<val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
+			val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
+			nag[j - 1] += nag[j];
+			j--;
+		}
+	}
+
+	// Further unite ...
+	int nbins = 1;
+	for (i = 1; i < j+1; i++) {
+		if (val[i] == val[nbins - 1])
+			nag[nbins - 1] += nag[i];
+		else {
+			val[nbins] = val[i];
+			nag[nbins] = nag[i];
+			nbins++;
+		}
+	}
+			
+	// Fill table
+	min_range.resize(nbins);
+	max_range.resize(nbins);
+	map_prob.resize(nbins);
+
+	int idx = 0;
+	min_range[nbins-1] = (float)INT32_MIN;
+	for (i = 0; i < nbins; i++) {
+		max_range[nbins - 1 - i] = x2y[idx + nag[i] - 1].first;
+		if (i < nbins - 1)
+			min_range[nbins - 2 - i] = max_range[nbins - 1 - i];
+		idx += nag[i];
+		map_prob[nbins - 1 - i] = val[i];
+	}
+	max_range[0] = (float)INT32_MAX;
+
+	if (verbose)
+		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
+	for (size_t i = 0; i < map_prob.size(); ++i)
+		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
+			min_range[i], max_range[i], map_prob[i],
+			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
+}
+
 void learn_platt_scale(vector<float> x, vector<float> &y,
 	int poly_rank, vector<double> &params, int min_bucket_size, float min_score_jump
 	, float min_prob_jump, bool fix_pred_order, double control_weight_down_sample, bool verbose) {
@@ -632,7 +703,7 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 	//probs is the new Y - lets learn A, B:
 	MedLinearModel lm; //B is param[0], A is param[1]
 
-	lm.loss_function = [](const vector<double> &prds, const vector<float> &y) {
+	lm.loss_function = [](const vector<double> &prds, const vector<float> &y, const vector<float> *weights) {
 		double res = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
 		for (size_t i = 0; i < y.size(); ++i)
@@ -644,7 +715,7 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 		res = sqrt(res);
 		return res;
 	};
-	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params) {
+	lm.loss_function_step = [](const vector<double> &prds, const vector<float> &y, const vector<double> &params, const vector<float> *weights) {
 		double res = 0;
 		double reg_coef = 0;
 		//L2 on 1 / (1 + exp(A*score + B)) vs Y. prds[i] = A*score+B: 1 / (1 + exp(prds))
@@ -690,8 +761,8 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 	for (size_t i = 0; i < converted.size(); ++i)
 		prior_score[i] = double(tot_pos) / y.size();
 
-	double loss_model = _linear_loss_target_rmse(converted, probs);
-	double loss_prior = _linear_loss_target_rmse(prior_score, probs);
+	double loss_model = _linear_loss_target_rmse(converted, probs, NULL);
+	double loss_prior = _linear_loss_target_rmse(prior_score, probs, NULL);
 
 	if (verbose)
 		MLOG("Platt Scale prior=%2.5f. loss_model=%2.5f, loss_prior=%2.5f\n",
@@ -702,18 +773,22 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 	vector<float> preds, labels;
 	switch (calibration_type)
 	{
-	case CalibrationTypes::probabilty_time_window:
+	case CalibrationTypes::probability_time_window:
 		learn_time_window(orig_samples, sample_time_unit);
 		break;
-	case CalibrationTypes::probabilty_binning:
+	case CalibrationTypes::probability_binning:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_binned_probs(preds, labels, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob, control_weight_down_sample, verbose);
 		break;
-	case CalibrationTypes::probabilty_platt_scale:
+	case CalibrationTypes::probability_platt_scale:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_platt_scale(preds, labels, poly_rank, platt_params, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, control_weight_down_sample, verbose);
+		break;
+	case CalibrationTypes::probability_isotonic:
+		collect_preds_labels(orig_samples, preds, labels);
+		learn_isotonic_regression(preds, labels, min_range, max_range, map_prob, verbose);
 		break;
 	default:
 		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
@@ -752,10 +827,11 @@ void Calibrator::write_calibration_table(const string & calibration_table_file) 
 	ofstream of;
 	switch (calibration_type)
 	{
-	case probabilty_time_window:
+	case probability_time_window:
 		write_calibration_time_window(calibration_table_file);
 		break;
-	case probabilty_binning:
+	case probability_binning:
+	case probability_isotonic:
 		of.open(calibration_table_file, ios::out);
 		if (!of)
 			MTHROW_AND_ERR("can't open file %s for write\n", calibration_table_file.c_str());
@@ -765,7 +841,7 @@ void Calibrator::write_calibration_table(const string & calibration_table_file) 
 		of.close();
 		MLOG("wrote [%d] bins into [%s]\n", (int)min_range.size(), calibration_table_file.c_str());
 		break;
-	case probabilty_platt_scale:
+	case probability_platt_scale:
 		of.open(calibration_table_file, ios::out);
 		if (!of)
 			MTHROW_AND_ERR("can't open file %s for write\n", calibration_table_file.c_str());
@@ -823,17 +899,18 @@ void Calibrator::read_calibration_table(const string& fname) {
 	vector<string> tokens;
 	switch (calibration_type)
 	{
-	case probabilty_time_window:
+	case probability_time_window:
 		read_calibration_time_window(fname);
 		break;
-	case probabilty_binning:
+	case probability_binning:
+	case probability_isotonic:
 		f.open(fname, ios::in);
 		if (!f)
 			MTHROW_AND_ERR("can't open file %s for write\n", fname.c_str());
 		while (getline(f, curr_line)) {
 			boost::split(tokens, curr_line, boost::is_any_of(","));
 			if (tokens.size() != 4)
-				MTHROW_AND_ERR("Bad format in line:\n%s\nexpected 4 tokens in probabilty bining\n",
+				MTHROW_AND_ERR("Bad format in line:\n%s\nexpected 4 tokens in probability bining\n",
 					curr_line.c_str());
 			if (tokens[0] == "bin")
 				continue; //skip header
@@ -844,14 +921,14 @@ void Calibrator::read_calibration_table(const string& fname) {
 		f.close();
 		MLOG("read [%d] bins into [%s]\n", (int)min_range.size(), fname.c_str());
 		break;
-	case probabilty_platt_scale:
+	case probability_platt_scale:
 		f.open(fname, ios::in);
 		if (!f)
 			MTHROW_AND_ERR("can't open file %s for write\n", fname.c_str());
 		while (getline(f, curr_line)) {
 			boost::split(tokens, curr_line, boost::is_any_of(","));
 			if (tokens.size() != 2)
-				MTHROW_AND_ERR("Bad format in line:\n%s\nexpected 2 tokens in probabilty platt scale\n",
+				MTHROW_AND_ERR("Bad format in line:\n%s\nexpected 2 tokens in probability platt scale\n",
 					curr_line.c_str());
 			if (tokens[0] == "bin")
 				continue; //skip header
@@ -883,7 +960,7 @@ float Calibrator::calibrate_pred(float pred, int type) const {
 }
 
 calibration_entry Calibrator::calibrate_pred(float pred) {
-	if (calibration_type == probabilty_time_window) {
+	if (calibration_type == probability_time_window) {
 		int start = 0;
 		for (int i = 0; i < cals.size(); i++) {
 			if (pred >= cals[i].min_pred)

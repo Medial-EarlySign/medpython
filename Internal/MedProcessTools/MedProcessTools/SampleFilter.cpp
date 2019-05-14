@@ -55,7 +55,7 @@ void *SampleFilter::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MatchingSampleFilter);
 	CONDITIONAL_NEW_CLASS(dname, RequiredSignalFilter);
 	CONDITIONAL_NEW_CLASS(dname, BasicSampleFilter);
-
+	MWARN("Warning in SampleFilter::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 

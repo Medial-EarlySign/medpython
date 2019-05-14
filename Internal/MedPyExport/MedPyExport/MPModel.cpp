@@ -17,8 +17,8 @@ const int MPModelStage::APPLY_FTR_PROCESSORS = MED_MDL_APPLY_FTR_PROCESSORS;
 const int MPModelStage::LEARN_PREDICTOR = MED_MDL_LEARN_PREDICTOR;
 const int MPModelStage::APPLY_PREDICTOR = MED_MDL_APPLY_PREDICTOR;
 const int MPModelStage::INSERT_PREDS = MED_MDL_INSERT_PREDS;
-const int MPModelStage::LEARN_POST_PROCESS = MED_MDL_LEARN_POST_PROCESS;
-const int MPModelStage::APPLY_POST_PROCESS = MED_MDL_APPLY_POST_PROCESS;
+const int MPModelStage::LEARN_POST_PROCESSORS = MED_MDL_LEARN_POST_PROCESSORS;
+const int MPModelStage::APPLY_POST_PROCESSORS = MED_MDL_APPLY_POST_PROCESSORS;
 const int MPModelStage::END = MED_MDL_END;
 
 static_assert(MPModelStage::END == 10, "med model was changed");
@@ -86,6 +86,6 @@ int MPModel::learn_and_apply_feature_processors(MPFeatures &features) { return o
 int MPModel::learn_feature_processors(MPFeatures &features) { return o->learn_feature_processors(*(features.o)); };
 int MPModel::apply_feature_processors(MPFeatures &features) { return o->apply_feature_processors(*(features.o)); };
 
-void MPModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag) { return o->dprint_process(pref, rp_flag, fg_flag, fp_flag); };
+void MPModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, bool pp_flag, bool predictor_type) { return o->dprint_process(pref, rp_flag, fg_flag, fp_flag, pp_flag, predictor_type); };
 int MPModel::write_feature_matrix(const string mat_fname) { return o->write_feature_matrix(mat_fname); };
 MPSerializableObject MPModel::asSerializable() { return MPSerializableObject(o); }

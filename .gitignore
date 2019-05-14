@@ -38,6 +38,9 @@ html/
 #MonoDevelop
 *.pidb
 *.userprefs
+*/.vs/*
+*/Release/*
+*/Debug/*
 
 #Tooling
 _ReSharper*/
@@ -65,7 +68,7 @@ cmake_build/MedAlgo/Makefile
 cmake_build/
 .project
 CMakeLists.txt
-External/xgboost/xgboost
+*/CMakeBuild/*
 External/LightGBM/LightGBM/windows/x64/DLL/LightGBM.tlog/CL.command.1.tlog
 External/LightGBM/LightGBM/windows/x64/
 *.so
@@ -80,14 +83,12 @@ Internal/AlgoMarker/samples.debug
 documentation_creation_server.log
 documentation_creation_user.log
 Internal/MedUtils/MedUtils.VC.opendb
-!External/LightGBM/LightGBM/CMakeLists.txt
 !External/xgboost/CMakeLists.txt.orig
-!External/xgboost/CMakeLists.txt
-External/xgboost/winBuild/
 *.db-shm
 *.gch
 *.db-wal
 *.o
+*/xgboost/doc/_static/*
 
 External/LightGBM/LightGBM/CMakeLists.txt
 Internal/MedPyExport/generate_binding/MedPython/apply_directives.i

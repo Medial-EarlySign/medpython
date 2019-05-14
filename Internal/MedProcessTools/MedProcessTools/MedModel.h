@@ -26,9 +26,9 @@ typedef enum {
 	MED_MDL_APPLY_FTR_PROCESSORS, ///<Start from apply feature processors (already learned)
 	MED_MDL_LEARN_PREDICTOR, ///<We have the matrix - learn predcitor
 	MED_MDL_APPLY_PREDICTOR, ///<We have trained predcitor, do predict
-	MED_MDL_INSERT_PREDS, ///<We have did predict - save results
-	MED_MDL_LEARN_POST_PROCESS, ///<Start learning of post_processors
-	MED_MDL_APPLY_POST_PROCESS, ///<start apply of postProcessors
+	MED_MDL_INSERT_PREDS, ///<We have done predict - save results
+	MED_MDL_LEARN_POST_PROCESSORS, ///<Start learning of post_processors
+	MED_MDL_APPLY_POST_PROCESSORS, ///<start apply of postProcessors
 	MED_MDL_END ///<All Done
 } MedModelStage;
 
@@ -83,6 +83,9 @@ public:
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);
+
+	// staging
+	static MedModelStage get_med_model_stage(const string& stage);
 
 	// Add Rep Processorsep
 	void add_rep_processor(RepProcessor *processor) { rep_processors.push_back(processor); };
@@ -168,7 +171,7 @@ public:
 	/// Initialization : signal ids and tables
 	void init_all(MedDictionarySections& dict, MedSignals& sigs);
 
-	// Apply
+	// Learn/Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
 	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
@@ -184,9 +187,9 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
+	ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
 
-		int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
+	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
@@ -203,7 +206,7 @@ public:
 	void apply_post_processors(MedFeatures &matrix_after_pred);
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
-	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag);
+	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag);
 
 	/// following is for debugging : writing the feature to a csv file as a matrix.
 	int write_feature_matrix(const string mat_fname);
@@ -212,9 +215,9 @@ private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);
 	string parse_key_val(string key, string val);
 	void fill_list_from_file(const string& fname, vector<string>& list);
-	string make_absolute_path(const string& main_file, const string& small_file);
+	string make_absolute_path(const string& main_file, const string& small_file, bool use_cwd = false);
 	void alter_json(string &json_contents, vector<string>& alterations);
-	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "");
+	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "", bool add_change_path = false);
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
 };
 

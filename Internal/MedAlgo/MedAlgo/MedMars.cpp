@@ -241,7 +241,7 @@ size_t MedMars::deserialize(unsigned char *blob) {
 }
 
 // Printing
-void MedMars::print(FILE *fp, const string& prefix) const {
+void MedMars::print(FILE *fp, const string& prefix, int level) const {
 	fprintf(fp, "%s: MedMars : nMaxTerms %d nTerms %d nPreds %d\n", prefix.c_str(), nMaxTerms, nTerms, nPreds);
 }
 
