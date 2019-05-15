@@ -1335,15 +1335,19 @@ void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const
 {
 	MedFeatures explainedFeatures = matrix;
-	MedMat<float> explainedMatrix;
+	MedMat<float> explainedMatrix,explainedMatrixCopy;
 	//normalize the explained features
 	explainedFeatures.get_as_matrix(explainedMatrix);
+	explainedFeatures.get_as_matrix(explainedMatrixCopy);// keep it to handle the missing
 	MedMat <float> trainingCentersMatrix;
 	trainingMap.get_as_matrix(trainingCentersMatrix);
 	sample_explain_reasons = {};
 
 	explainedMatrix.normalize(average, std, 1);
-
+	for (int row = 0; row < explainedMatrix.nrows; row++)
+		for (int col = 0; col < explainedMatrix.ncols; col++)
+			if (explainedMatrixCopy.get(row, col) == MED_MAT_MISSING_VALUE)
+				explainedMatrix.set(row, col) = MED_MAT_MISSING_VALUE;
 	//for each sample compute the explanation
 	vector <float> thisRow;
 	for (int row = 0; row < explainedMatrix.nrows; row++) {
@@ -1358,14 +1362,15 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 
 	MedMat<float> centers; //matrix taken from features anfd holds the centers of clusters
 	trainingMap.get_as_matrix(centers);
-	MedMat<float> pDistance(centers.nrows, centers.ncols);
+	MedMat<float> pDistance(centers.nrows, centers.ncols);//initialized to 0
 	vector<float>totalDistance(centers.nrows, 0);
 #define SQR(x)  ((x)*(x))
 	for (int row = 0; row < centers.nrows; row++) {
-		for (int col = 0; col < centers.ncols; col++) {
-			pDistance(row, col) = SQR(centers.get(row, col) - thisRow[col]);
-			totalDistance[row] += pDistance(row, col);
-		}
+		for (int col = 0; col < centers.ncols; col++)
+			if (thisRow[col] != MED_MAT_MISSING_VALUE) {
+				pDistance(row, col) = SQR(centers.get(row, col) - thisRow[col]);
+				totalDistance[row] += pDistance(row, col);
+			}
 		for (int col = 0; col < centers.ncols; col++)
 			pDistance(row, col) = totalDistance[row] - pDistance(row, col);
 	}
@@ -1394,17 +1399,21 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 	trainingMap.get_feature_names(featureNames);
 	for (int col = 0; col < centers.ncols; col++) {
 		pCol = 0;
-		sumWeights = 0;
-		for (int row = 0; row < pDistance.nrows; row++)
-			if (pDistance.get(row, col) < thresholds[col]) {
-				float thisPred = trainingMap.samples[row].prediction[0];
-				if (chosenThreshold != MED_MAT_MISSING_VALUE)thisPred = thisPred > chosenThreshold;// threshold the predictions if needed
-				pCol += trainingMap.weights[row] * thisPred;
-				sumWeights += trainingMap.weights[row];
-			}
-		pCol /= sumWeights;
+		if (thisRow[col] != MED_MAT_MISSING_VALUE) {
+			sumWeights = 0;
+			for (int row = 0; row < pDistance.nrows; row++)
+				if (pDistance.get(row, col) < thresholds[col]) {
+					float thisPred = trainingMap.samples[row].prediction[0];
+					if (chosenThreshold != MED_MAT_MISSING_VALUE)thisPred = thisPred > chosenThreshold;// threshold the predictions if needed
+					pCol += trainingMap.weights[row] * thisPred;
+					sumWeights += trainingMap.weights[row];
+				}
+			pCol /= sumWeights;
+			sample_explain_reasons.insert(pair<string, float>(featureNames[col], float(log((pTotal + 1e-10) / (pCol + 1e-10)))));
+		}
+		else 
+			sample_explain_reasons.insert(pair<string, float>(featureNames[col], 0));
 
-		sample_explain_reasons.insert(pair<string, float>(featureNames[col], float(log((pTotal + 1e-10) / (pCol + 1e-10)))));
 	}
 
 
