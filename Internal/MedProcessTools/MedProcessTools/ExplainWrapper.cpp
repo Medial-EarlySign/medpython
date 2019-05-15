@@ -1409,7 +1409,7 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 					sumWeights += trainingMap.weights[row];
 				}
 			pCol /= sumWeights;
-			sample_explain_reasons.insert(pair<string, float>(featureNames[col], float(log((pTotal + 1e-10) / (pCol + 1e-10)))));
+			sample_explain_reasons.insert(pair<string, float>(featureNames[col], float(log((pTotal + 1e-10) /(pCol + 1e-10)/(1-pTotal+1e-10)*(1-pCol+1e-10)))));
 		}
 		else 
 			sample_explain_reasons.insert(pair<string, float>(featureNames[col], 0));
