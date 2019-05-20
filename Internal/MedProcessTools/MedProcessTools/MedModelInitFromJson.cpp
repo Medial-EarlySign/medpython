@@ -319,7 +319,7 @@ void MedModel::add_post_processors_json_string_to_model(string in_json, string f
 		for (int idx = 0; idx < all_combinations.size(); idx++) {
 			string c = all_combinations[idx];
 			MLOG("Adding post_processor: %s\n", c.c_str());
-			PostProcessor *post_proc = PostProcessor::create_post_processor(init_string);
+			PostProcessor *post_proc = PostProcessor::make_processor(c);
 			post_processors.push_back(post_proc);
 		}
 		MLOG("added %d post processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());

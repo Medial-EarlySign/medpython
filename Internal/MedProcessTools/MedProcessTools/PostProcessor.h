@@ -41,6 +41,8 @@ public:
 	static PostProcessor *make_processor(const string &processor_name, const string &params = "");
 	static PostProcessor *make_processor(PostProcessorTypes type, const string &params = "");
 
+	static PostProcessor *create_processor(string &params);
+
 	virtual void init_model(MedModel *mdl) {};
 
 	virtual void dprint(const string &pref) const;

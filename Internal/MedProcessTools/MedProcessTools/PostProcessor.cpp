@@ -62,6 +62,16 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 	return prc;
 }
 
+// Create processor from params string (type must be given within string)
+//.......................................................................................
+PostProcessor *PostProcessor::create_processor(string &params)
+{
+	string pp_type;
+	get_single_val_from_init_string(params, "pp_type", pp_type);
+	return (make_processor(pp_type, params));
+}
+
+
 void PostProcessor::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix) {
 	MTHROW_AND_ERR("Learn Not implemented in class %s\n", my_class_name().c_str());
 }
