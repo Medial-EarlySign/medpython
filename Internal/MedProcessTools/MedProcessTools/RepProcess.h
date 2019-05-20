@@ -33,8 +33,8 @@ typedef enum {
 	REP_PROCESS_AGGREGATION_PERIOD, ///<"aggregation_period"
 	REP_PROCESS_BASIC_RANGE_CLEANER,///<"basic_range_cleaner" or "range_cln" to activate RepBasicRangeCleaner
 	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
-	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point
-	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values)
+	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
+	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -1279,7 +1279,7 @@ public:
 	string ckd_proteinuria_sig = "Proteinuria_State";
 
 
-	/// @snippet RepProcess.cpp RepCreateRegistry::init
+	/// @snippet RepCreateRegistry.cpp RepCreateRegistry::init
 	int init(map<string, string>& mapper);
 	void init_lists();
 
