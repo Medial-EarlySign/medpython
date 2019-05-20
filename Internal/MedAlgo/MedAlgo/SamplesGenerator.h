@@ -130,7 +130,7 @@ public:
 	void get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values);
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
 	void get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, mt19937 &rnd_gen) const;
-	void get_samples_from_Z(vector<vector<T>> &data, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &Z);
+	void get_samples_from_Z(vector<vector<T>> &data, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, const vector<vector<T>> &Z);
 
 	void read_from_text_file(const string& file_name);
 

@@ -2139,19 +2139,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 
 	MedFeatures p_features;
 	p_features.attributes = data.attributes;
-	p_features.samples = data.samples;
-
-
-	// for predictions - samples + features
-	for (int i = 0; i < n; i++) {
-		//random select:
-		int sel = smp_choose(gen[0]);
-		p_features.samples.push_back(data.samples[sel]);
-		//Add DATA:
-		for (auto it = data.data.begin(); it != data.data.end(); ++it)
-			p_features.data[it->first].push_back(it->second[sel]);
-	}
-	p_features.init_pid_pos_len();
+	p_features.samples.resize(n);
 
 	// Generate samples and predict
 	MedProgress tm("Lime", nsamples, 30, 1);
@@ -2182,6 +2170,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 
 #pragma omp parallel for
 		for (int irow = 0; irow < n; irow++) {
+
 			int n_th = omp_get_thread_num();
 			// Mask
 			int S = 0;
