@@ -518,7 +518,7 @@ void MedPatientPlotlyDate::add_bg_dataset_js(string &shtml, vector<int> &dates, 
 //----------------------------------------------------------------------------------------
 int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, PidRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times)
 {
-	int pid = rec.pid;
+	//int pid = rec.pid;
 	int def_time_chan = 0;
 	int pwidth = (pi.width < 0) ? params.width_default : pi.width;
 	int pheight = (pi.height < 0) ? params.height_default : pi.height;
@@ -658,8 +658,8 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 //-------------------------------------------------------------------------------------------------------------------------------
 void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const vector<ChartTimeSign> &times)
 {
-	int pid = rec.pid;
-	int time_chan = 0;
+	//int pid = rec.pid;
+	//int time_chan = 0;
 	int pwidth = 1200; //vm["pwidth"].as<int>();
 	int pheight = 600; //vm["pheight"].as<int>();
 	int block_mode = 0; //vm["block_mode"].as<int>();
@@ -691,7 +691,7 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 	if (usv.len == 0) return; // nothing to do - 0 RC records.
 
 	int curr_date = 0;
-	int curr_days = 0;
+	//int curr_days = 0;
 	int section_id = rec.my_base_rep->dict.section_id("RC");
 	for (int i=0; i<usv.len; i++) {
 		int i_date = usv.Time(i, 0);
@@ -818,8 +818,8 @@ int MedPatientPlotlyDate::add_drugs_heatmap(string &shtml, PidRec &rec)
 
 	//MLOG("##>> got only : "); for (auto d : sets_names) MLOG("%s ", d.c_str()); MLOG("\n");
 
-	int pid = rec.pid;
-	int time_chan = 0;
+	//int pid = rec.pid;
+	//int time_chan = 0;
 	int dwidth = params.dhm_params.width;
 	int dheight = params.dhm_params.height + 30*(int)sets_names.size();
 	int block_mode = 0;
