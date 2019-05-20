@@ -694,7 +694,7 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 	//int curr_days = 0;
 	int section_id = rec.my_base_rep->dict.section_id("RC");
 	for (int i=0; i<usv.len; i++) {
-		int i_date = usv.Time(i, 0);
+		int i_date = usv.Time(i, time_chan);
 		int i_val = (int)usv.Val(i, 0);
 		int d = med_time_converter.convert_date(MedTime::Days, i_date);
 		if (d != curr_date) {

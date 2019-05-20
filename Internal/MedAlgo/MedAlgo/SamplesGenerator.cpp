@@ -64,6 +64,9 @@ template<typename T> void *SamplesGenerator<T>::new_polymorphic(string derived_n
 	CONDITIONAL_NEW_CLASS(derived_name, GibbsSamplesGenerator<T>);
 	CONDITIONAL_NEW_CLASS(derived_name, MaskedGAN<float>);
 	CONDITIONAL_NEW_CLASS(derived_name, MissingsSamplesGenerator<float>);
+	if (boost::starts_with(derived_name, "GibbsSamplesGenerator")) return new GibbsSamplesGenerator<T>;
+	if (boost::starts_with(derived_name, "MaskedGAN")) return new MaskedGAN<float>;
+	if (boost::starts_with(derived_name, "MissingsSamplesGenerator")) return new MissingsSamplesGenerator<float>;
 	MTHROW_AND_ERR("SamplesGenerator<T>::new_polymorphic:: Unsupported object %s\n", derived_name.c_str());
 	return NULL;
 }

@@ -288,7 +288,7 @@ private:
 	vector<float> average, std;
 
 	// do the calculation for a single sample after normalization
-	void computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons)const;
+	void computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons, vector <vector<int>> knnGroups, vector<string> knnGroupNames)const;
 	
 	void _init(map<string, string> &mapper);
 public:
