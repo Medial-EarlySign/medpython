@@ -1376,6 +1376,7 @@ int MedFeatures::mark_imputed_in_masks(float _missing_val)
 	if (masks.empty()) return 0;
 
 	int nrows = (int)masks.begin()->second.size();
+	//int ncols = (int)masks.size();
 	vector<string> names;
 	get_feature_names(names);
 
@@ -1393,3 +1394,41 @@ int MedFeatures::mark_imputed_in_masks(float _missing_val)
 }
 
 
+//-------------------------------------------------------------------------------------------------------
+void MedFeatures::round_data(float r)
+{
+	if (r <= 0) return;
+	vector<string> names;
+	get_feature_names(names);
+	int n_feat = names.size();
+
+#pragma omp parallel for
+	for (int j = 0; j < n_feat; j++) {
+		float *p_data = data[names[j]].data();
+		int len = data[names[j]].size();
+		for (int i = 0; i < len; i++)
+			p_data[i] = roundf(p_data[i] / r)*r;
+	}
+
+}
+
+
+//-------------------------------------------------------------------------------------------------------
+void MedFeatures::noise_data(float r)
+{
+	if (r <= 0) return;
+	vector<string> names;
+	get_feature_names(names);
+	int n_feat = names.size();
+
+#pragma omp parallel for
+	for (int j = 0; j < n_feat; j++) {
+		float *p_data = data[names[j]].data();
+		int len = data[names[j]].size();
+		for (int i = 0; i < len; i++) {
+			float noise = r * (rand_1()*2.0f - 1.0f);
+			p_data[i] = p_data[i] + noise;
+		}
+	}
+
+}

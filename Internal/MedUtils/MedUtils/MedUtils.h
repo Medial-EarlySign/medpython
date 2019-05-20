@@ -22,6 +22,8 @@
 
 using namespace std;
 
+extern string run_current_path;
+
 enum MedBinningType {
 	BIN_EQUIDIST,
 	BIN_EQUISIZE,

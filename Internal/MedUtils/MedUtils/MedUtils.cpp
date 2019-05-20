@@ -7,6 +7,7 @@
 #define LOCAL_SECTION LOG_MED_UTILS
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+string run_current_path = "";
 
 template<class T> string medial::print::print_obj(T obj, const string &format) {
 	//return to_string((round(num * 1000) / 1000));

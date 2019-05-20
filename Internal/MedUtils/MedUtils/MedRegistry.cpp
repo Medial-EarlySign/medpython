@@ -831,13 +831,10 @@ int _count_legal_rows(const  map<float, vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
-void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
-	const map<float, map<float, vector<int>>> &female_stats,
-	vector<int> &all_signal_values, vector<int> &signal_indexes,
+void collect_stats(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats, vector<int> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
-	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
-	, float allowed_error, int minimal_balls) {
-
+	, vector<double> &pos_ratio) {
 	unordered_set<int> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
 		all_vals.insert((int)i->first);
@@ -850,16 +847,26 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 	posCnts.resize(all_signal_values.size());
 	valCnts.resize(all_signal_values.size());
 	lift.resize(all_signal_values.size());
-	scores.resize(all_signal_values.size());
-	p_values.resize(all_signal_values.size());
 	pos_ratio.resize(all_signal_values.size());
 
 	for (int index : signal_indexes)
 	{
 		float signalVal = all_signal_values[index];
 		//check chi-square for this value:
-		double totCnt = 0;
-		double weighted_lift = 0;
+		double totCnt = 0, weighted_lift = 0;
+		/*unordered_map<float, double> prior_lift_males, prior_lift_females; //for each age_bin - prior outcome
+
+		if (male_stats.find(signalVal) != male_stats.end())
+			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt)
+				if (jt->second[1] + jt->second[1 + 2] > 0)
+					prior_lift_males[jt->first] = (jt->second[1] + jt->second[1 + 2])
+					/ (jt->second[1] + jt->second[1 + 2] + jt->second[0] + jt->second[0 + 2]);
+		if (female_stats.find(signalVal) != female_stats.end())
+			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt)
+				if (jt->second[1] + jt->second[1 + 2] > 0)
+					prior_lift_females[jt->first] = (jt->second[1] + jt->second[1 + 2])
+					/ (jt->second[1] + jt->second[1 + 2] + jt->second[0] + jt->second[0 + 2]);*/
+
 
 		if (male_stats.find(signalVal) != male_stats.end())
 			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
@@ -867,6 +874,7 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 				posCnts[index] += jt->second[1 + 2];
 				if (jt->second[1 + 0] > 0)
 					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
+				//weighted_lift += jt->second[1 + 2] / prior_lift_males[jt->first];
 			}
 		if (female_stats.find(signalVal) != female_stats.end())
 			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
@@ -881,7 +889,24 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 		lift[index] = weighted_lift / totCnt;
 
 		pos_ratio[index] = posCnts[index] / totCnt;
+	}
+}
 
+void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats,
+	vector<int> &all_signal_values, vector<int> &signal_indexes,
+	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
+	, float allowed_error, int minimal_balls) {
+
+	collect_stats(male_stats, female_stats, all_signal_values, signal_indexes, valCnts, posCnts, lift, pos_ratio);
+	scores.resize(all_signal_values.size());
+	p_values.resize(all_signal_values.size());
+
+	for (int index : signal_indexes)
+	{
+		float signalVal = all_signal_values[index];
+		//check chi-square for this value:
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
 			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls, allowed_error, minimal_balls); //Males
@@ -906,49 +931,14 @@ void medial::contingency_tables::calc_cmh_scores(const map<float, map<float, vec
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
 
-	unordered_set<int> all_vals;
-	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
-	signal_indexes.resize(all_signal_values.size());
-	for (size_t i = 0; i < signal_indexes.size(); ++i)
-		signal_indexes[i] = (int)i;
-	posCnts.resize(all_signal_values.size());
-	valCnts.resize(all_signal_values.size());
-	lift.resize(all_signal_values.size());
+	collect_stats(male_stats, female_stats, all_signal_values, signal_indexes, valCnts, posCnts, lift, pos_ratio);
 	scores.resize(all_signal_values.size());
 	p_values.resize(all_signal_values.size());
-	pos_ratio.resize(all_signal_values.size());
 
 	for (int index : signal_indexes)
 	{
 		float signalVal = all_signal_values[index];
 		//check chi-square for this value:
-		double totCnt = 0;
-		double weighted_lift = 0;
-
-		if (male_stats.find(signalVal) != male_stats.end())
-			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (female_stats.find(signalVal) != female_stats.end())
-			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (totCnt == 0)
-			continue;
-		valCnts[index] = totCnt; //for signal apeareance
-		lift[index] = weighted_lift / totCnt;
-
-		pos_ratio[index] = posCnts[index] / totCnt;
 
 		double regScore = 0;
 		const map<float, vector<int>> *p1 = NULL, *p2 = NULL;
@@ -973,50 +963,14 @@ void medial::contingency_tables::calc_mcnemar_scores(const map<float, map<float,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
 
-	unordered_set<int> all_vals;
-	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
-	signal_indexes.resize(all_signal_values.size());
-	for (size_t i = 0; i < signal_indexes.size(); ++i)
-		signal_indexes[i] = (int)i;
-	posCnts.resize(all_signal_values.size());
-	valCnts.resize(all_signal_values.size());
-	lift.resize(all_signal_values.size());
+	collect_stats(male_stats, female_stats, all_signal_values, signal_indexes, valCnts, posCnts, lift, pos_ratio);
 	scores.resize(all_signal_values.size());
 	p_values.resize(all_signal_values.size());
-	pos_ratio.resize(all_signal_values.size());
 
 	for (int index : signal_indexes)
 	{
 		float signalVal = all_signal_values[index];
 		//check chi-square for this value:
-		double totCnt = 0;
-
-		double weighted_lift = 0;
-		if (male_stats.find(signalVal) != male_stats.end())
-			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (female_stats.find(signalVal) != female_stats.end())
-			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (totCnt == 0)
-			continue;
-		valCnts[index] = totCnt; //for signal apeareance
-		lift[index] = weighted_lift / totCnt;
-
-		pos_ratio[index] = posCnts[index] / totCnt;
-
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
 			regScore += calc_mcnemar_square_dist(male_stats.at(signalVal)); //Males
@@ -1322,7 +1276,7 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	int stop_index = 0;
 	for (unsigned int i = 0; i < keysSorted.size(); i++) {
 		if (keysSorted[i].second[0] <= normAlpha * (i + 1))
-			stop_index = i+1;
+			stop_index = i + 1;
 	}
 
 	//Keep only filtered indexes
