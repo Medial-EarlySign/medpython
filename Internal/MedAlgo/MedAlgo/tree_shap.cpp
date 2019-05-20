@@ -2142,8 +2142,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 	p_features.samples = data.samples;
 
 
-
-	// for predictions - dummy Rep + samples + features
+	// for predictions - samples + features
 	for (int i = 0; i < n; i++) {
 		//random select:
 		int sel = smp_choose(gen[0]);
@@ -2164,12 +2163,17 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		vector<float> wgts(n);
 		vector < vector<bool>> masks(n, vector<bool>(nftrs));
 
-		vector<bool> missing_v(nftrs, false);
+		vector<bool> missing_v(nftrs, false), missing_g(ngrps, true);
 		int nMissing = 0;
-		for (int i = 0; i < nftrs; i++) {
-			if (data.data.at(features[i])[isample] == missing) {
-				missing_v[i] = true;
-				nMissing++;
+
+		for (int igrp = 0; igrp < ngrps; igrp++) {
+			for (int iftr : group2index[igrp]) {
+				if (data.data.at(features[iftr])[isample] == missing) {
+					missing_v[iftr] = true;
+					nMissing++;
+				}
+				else
+					missing_g[igrp] = false;
 			}
 		}
 
@@ -2214,8 +2218,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			// Weights
 			wgts[irow] = (ngrps - 1.0) / (medial::shapley::nchoosek(ngrps, S)*S*(ngrps - S));
 		}
-		train.transposed_flag = 1;
-
+		
 		// Generate sampled data
 		generate_samples(data, isample, masks, generator, params, &p_features);
 
@@ -2232,14 +2235,46 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		//MLOG("sample=%d, mean_pred=%f\n", isample, sum / n);
 
 		// Learn linear model
+		int eff_ngrps = 0;
+		for (int igrp = 0; igrp < ngrps; igrp++) {
+			if (!missing_g[igrp])
+				eff_ngrps++;
+		}
+
 		MedLM lm;
 		lm.params.rfactor = (float)0.98;
-		lm.learn(train, preds, wgts);
+
+		if (eff_ngrps == ngrps) {
+			train.transposed_flag = 1;
+			lm.learn(train, preds, wgts);
+		}
+		else {
+			MedMat<float> eff_train(eff_ngrps, n);
+
+			int eff_igrp = 0;
+			for (int igrp = 0; igrp < ngrps; igrp++) {
+				if (!missing_g[igrp]) {
+					for (int irow = 0; irow < n; irow++)
+						eff_train(eff_igrp, irow) = train(igrp, irow);
+					eff_igrp++;
+				}
+			}
+
+			eff_train.transposed_flag = 1;
+			lm.learn(eff_train, preds, wgts);
+		}
 
 		// Extract alphas
 		alphas[isample].resize(ngrps);
-		for (int igrp = 0; igrp < ngrps; igrp++)
-			alphas[isample][igrp] = lm.b[igrp];
+		int eff_igrp = 0;
+		for (int igrp = 0; igrp < ngrps; igrp++) {
+			if (!missing_g[igrp]) {
+				alphas[isample][igrp] = lm.b[eff_igrp];
+				eff_igrp++;
+			}
+			else
+				alphas[isample][igrp] = 0;
+		}
 
 		tm.update();
 	}
