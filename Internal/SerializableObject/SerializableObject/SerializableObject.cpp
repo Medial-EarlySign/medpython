@@ -124,7 +124,7 @@ int SerializableObject::init_from_string(string init_string) {
 		if (val.compare(0, 5, "FILE:") == 0 || val.compare(0, 5, "LIST:") == 0 ||
 			val.compare(0, 9, "LIST_REL:") == 0) {
 			string param;
-			if (init_param_from_file(val, param) < 0) return -1;
+			if (init_param_from_file(e.second, param) < 0) return -1;
 			e.second = param;
 		}
 	}
@@ -146,19 +146,20 @@ int SerializableObject::init_params_from_file(string fname)
 // Init a specific param from a file
 int SerializableObject::init_param_from_file(string file_str, string &param)
 {
-	boost::to_upper(file_str);
+	string upper_cp = boost::to_upper_copy(file_str);
+
 	// prefix is FILE: as file: is reserved for medmodel json usages
-	if (file_str.compare(0, 5, "FILE:") == 0) {
+	if (upper_cp.compare(0, 5, "FILE:") == 0) {
 		string fname = file_str.substr(5);
 		if (MedSerialize::read_file_into_string(fname, param) < 0) return -1;
 	}
 
-	if (file_str.compare(0, 9, "LIST_REL:") == 0) {
+	if (upper_cp.compare(0, 9, "LIST_REL:") == 0) {
 		string fname = run_current_path + path_sep() + file_str.substr(9);
 		if (MedSerialize::read_list_into_string(fname, param) < 0) return -1;
 	}
 
-	if (file_str.compare(0, 5, "LIST:") == 0) {
+	if (upper_cp.compare(0, 5, "LIST:") == 0) {
 		string fname = file_str.substr(5);
 		if (MedSerialize::read_list_into_string(fname, param) < 0) return -1;
 	}
