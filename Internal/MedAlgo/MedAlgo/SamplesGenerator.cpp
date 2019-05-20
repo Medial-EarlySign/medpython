@@ -127,7 +127,7 @@ template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int s
 	int nFtrs = (int)mask[0].size();
 
 	data.resize(sample_per_row * mask.size());
-	vector<float> input(2 * nFtrs);
+	vector<float> input(3 * nFtrs);
 
 	uniform_real_distribution<> real_dist(-1.0, 1.0);
 	int index = 0;
@@ -137,11 +137,13 @@ template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int s
 			for (int k = 0; k < nFtrs; k++) {
 				if (mask[i][k]) {
 					input[k] = mask_values[i][k];
-					input[k + nFtrs] = 1.0;
+					input[k + nFtrs] = (float)real_dist(rnd_gen); 
+					input[k + 2*nFtrs] = 1.0;
 				}
 				else {
-					input[k] = (float)real_dist(rnd_gen);
-					input[k + nFtrs] = 0.0;
+					input[k] = 0.0;
+					input[k + nFtrs] = (float)real_dist(rnd_gen);
+					input[k + 2 * nFtrs] = 0.0;
 				}
 			}
 
@@ -166,7 +168,7 @@ template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int s
 	get_samples(data, sample_per_row, params, mask, mask_values, _gen);
 }
 
-template<> void MaskedGAN<float>::get_samples_from_Z(vector<vector<float>> &data, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &Z) {
+template<> void MaskedGAN<float>::get_samples_from_Z(vector<vector<float>> &data, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &mask_values, const vector<vector<float>> &Z) {
 
 	set_params(params);
 
@@ -187,10 +189,18 @@ template<> void MaskedGAN<float>::get_samples_from_Z(vector<vector<float>> &data
 		// Generate input Z
 		for (int k = 0; k < nFtrs; k++) {
 			input[k] = Z[i][k];
-			if (mask[i][k])
-				input[k + nFtrs] = 1.0;
-			else
-				input[k + nFtrs] = 0.0;
+
+			if (mask[i][k]) {
+				input[k] = mask_values[i][k];
+				input[k + nFtrs] = Z[i][k];
+				input[k + 2 * nFtrs] = 1.0;
+			}
+			else {
+				input[k] = 0.0;
+				input[k + nFtrs] = Z[i][k];
+				input[k + 2 * nFtrs] = 0.0;
+			}
+
 		}
 
 		// Apply generator
