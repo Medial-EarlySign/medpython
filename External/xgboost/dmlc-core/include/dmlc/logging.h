@@ -122,6 +122,9 @@ namespace dmlc {
 #pragma GCC diagnostic pop
 
     // Always-on checking
+#ifdef CHECK
+#undef CHECK
+#endif
 #define CHECK(x)                                           \
   if (!(x))                                                \
     dmlc::LogMessageFatal(__FILE__, __LINE__).stream()     \
