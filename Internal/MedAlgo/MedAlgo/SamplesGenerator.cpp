@@ -210,7 +210,7 @@ template<> void MaskedGAN<float>::get_samples_from_Z(vector<vector<float>> &data
 		// Mask + round to allowed values
 		for (int k = 0; k < nFtrs; k++) {
 			if (mask[i][k])
-				data[i][k] = Z[i][k];
+				data[i][k] = mask_values[i][k];
 			else if (!mg_params.keep_original_values)
 				data[i][k] = round_to_allowed_values(data[i][k], allowed_values[k]);
 		}

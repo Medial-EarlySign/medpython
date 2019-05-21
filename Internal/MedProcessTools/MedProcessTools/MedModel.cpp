@@ -299,6 +299,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 
 	if (start_stage <= MED_MDL_INSERT_PREDS && end_stage < MED_MDL_APPLY_POST_PROCESSORS) { //insert preds now only if has no post_processors
+		if (verbosity > 0) MLOG("Inserting predictions\n");
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
 			return -1;
@@ -307,14 +308,18 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	}
 
 	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
+		if (verbosity > 0) MLOG("Initializing %d postprocessors\n",(int) post_processors.size());
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->init_model(this);
+		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Apply(features);
+		if (verbosity > 0) MLOG("Inserting predictions\n");
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
 			return -1;
 		}
+		if (verbosity > 0) MLOG("Inserting post_prcess info\n");
 		if (samples.insert_post_process(features) != 0) {
 			MERR("Insertion of post_process to samples failed\n");
 			return -1;

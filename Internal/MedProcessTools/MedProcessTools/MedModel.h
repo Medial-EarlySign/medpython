@@ -138,7 +138,7 @@ public:
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
 	void add_pre_processors_json_string_to_model(string in_json, string fname);
-	void add_post_processors_json_string_to_model(string in_json, string fname);
+	int add_post_processors_json_string_to_model(string in_json, string fname);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
 	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);	// fp_type and feature name are must have parameters

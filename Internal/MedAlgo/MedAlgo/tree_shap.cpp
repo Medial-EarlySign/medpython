@@ -2087,7 +2087,6 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 			icol++;
 		}
 
-		MLOG("Generate\n");
 		generator->get_samples(out, 1, params, masks, in);
 
 		icol = 0;
