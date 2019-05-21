@@ -316,7 +316,8 @@ public:
 
 	bool operator<(const STimeRange& s) {
 		if (this->time_start < s.time_start) return true; if (this->time_start > s.time_start) return false;
-		if (this->time_end < s.time_end) return true; if (this->time_end > s.time_end) return false;
+		if (this->time_end < s.time_end) return true; 
+                return false;
 	}
 	bool operator==(const STimeRange& s) { return (this->time_start == s.time_start && this->time_end == s.time_end); }
 
