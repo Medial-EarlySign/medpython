@@ -327,5 +327,5 @@ int MedModel::add_post_processors_json_string_to_model(string in_json, string fn
 	}
 	MLOG("Succesfully added %d post_processors\n", n);
 
-	return n;
+	return (int)n;
 }
