@@ -203,9 +203,6 @@ public:
 	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec);
 	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators);
 
-	void learn_post_processors(MedPidRepository &rep, MedSamples &post_samples);
-	void apply_post_processors(MedFeatures &matrix_after_pred);
-
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag);
 
@@ -220,6 +217,9 @@ private:
 	void alter_json(string &json_contents, vector<string>& alterations);
 	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "", bool add_change_path = false);
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
+
+	// Handle learning sets for model/post-processors
+	void split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);

@@ -13,7 +13,7 @@
 using namespace std;
 
 /**
-* filter parameters
+* Parameters for filtering explanations
 */
 class ExplainFilters : public SerializableObject {
 public:
@@ -34,7 +34,7 @@ public:
 };
 
 /**
-* Processings of explains - grouping, COV process for each feature..
+* Processings of explanations - grouping, Using covariance matrix for taking feature correlations into account.
 */
 class ExplainProcessings : public SerializableObject {
 public:
@@ -68,7 +68,7 @@ private:
 	/// init function for specific explainer
 	virtual void _init(map<string, string> &mapper) = 0;
 public:
-	MedPredictor * original_predictor = NULL; ///< use this if model has implementation of SHAP (like xgboost, lightGBM). model to learn to explain
+	MedPredictor *original_predictor = NULL; ///< predictor we're trying to explain
 	ExplainFilters filters; ///< general filters of results
 	ExplainProcessings processing; ///< processing of results, like groupings, COV
 	string attr_name = ""; ///< attribute name for explainer
@@ -77,13 +77,15 @@ public:
 	virtual int init(map<string, string> &mapper);
 
 	/// overload function for ModelExplainer - easier API
-	virtual void Learn(MedPredictor *original_pred, const MedFeatures &train_mat) = 0;
+	virtual void _learn(const MedFeatures &train_mat) = 0;
 
 	///Learns from predictor and train_matrix (PostProcessor API)
-	virtual void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat);
+	virtual void Learn(const MedFeatures &train_mat);
 	void Apply(MedFeatures &matrix) const { explain(matrix); } ///< alias for explain
 
-	void init_model(MedModel *mdl);
+	
+	void init_post_processor(MedModel& model) { original_predictor = model.predictor; };
+
 	///Virtual - return explain results in sample_feature_contrib
 	virtual void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const = 0;
 
@@ -130,11 +132,11 @@ public:
 
 	TreeExplainer() { processor_type = FTR_POSTPROCESS_TREE_SHAP; }
 
-	void init_model(MedModel *mdl);
+	void init_post_processor(MedModel& model);
 
 	TreeExplainerMode get_mode() const;
 
-	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+	void _learn(const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
@@ -173,7 +175,7 @@ public:
 
 	MissingShapExplainer();
 
-	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+	void _learn(const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
@@ -185,7 +187,7 @@ public:
 };
 
 /// @enum
-/// Generator Types options
+/// Samples Generator Types options
 enum GeneratorType
 {
 	GIBBS = 0, ///< "GIBBS" - to use GibbsSampler
@@ -199,7 +201,7 @@ string GeneratorType_toStr(GeneratorType type);
 GeneratorType GeneratorType_fromStr(const string &type);
 
 /**
-* shapley explainer with gibbs, GAN or other sampler generator
+* shapley explainer with gibbs, GAN or other samples generator
 */
 class ShapleyExplainer : public ModelExplainer {
 private:
@@ -221,7 +223,7 @@ public:
 
 	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; }
 
-	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+	void _learn(const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
@@ -239,7 +241,7 @@ public:
 };
 
 /**
-* shapley explainer with gibbs, GAN or other sampler generator
+* shapley-Lime explainer with gibbs, GAN or other sampler generator
 */
 class LimeExplainer : public ModelExplainer {
 private:
@@ -262,7 +264,7 @@ public:
 
 	LimeExplainer() { processor_type = FTR_POSTPROCESS_LIME_SHAP; }
 
-	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+	void _learn(const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
@@ -300,7 +302,7 @@ public:
 	
 	KNN_Explainer() { processor_type = FTR_POSTPROCESS_KNN_EXPLAIN; }
 
-	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+	void _learn(const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
@@ -317,7 +319,7 @@ private:
 public:
 	LinearExplainer() { processor_type = FTR_POSTPROCESS_LINEAR; }
 
-	void Learn(MedPredictor *original_pred, const MedFeatures &train_mat);
+	void _learn(const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 

@@ -182,7 +182,7 @@ public:
 	/// <summary>  Get a list of all categories (different values) appearing in the outcome </summary>
 	void get_categs(vector<float> &categs);
 	/// <summary> Get all MedSamples as a single vector </summary>
-	void export_to_sample_vec(vector<MedSample> &vec_samples);
+	void export_to_sample_vec(vector<MedSample> &vec_samples) const;
 	/// <summary> Set MedSamples from a single vector </summary>
 	void import_from_sample_vec(vector<MedSample> &vec_samples, bool allow_split_inconsistency = false);
 

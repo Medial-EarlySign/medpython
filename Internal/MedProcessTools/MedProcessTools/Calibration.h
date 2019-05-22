@@ -11,8 +11,11 @@
 
 using namespace std;
 
+/**
+* Calibrator are post processocrs using for recalibration of a model
+*/
 
-
+// Calibration entry is used for transoforming a score into probabibilty
 class calibration_entry : public SerializableObject {
 public:
 	int bin;
@@ -27,7 +30,6 @@ public:
 	ADD_CLASS_NAME(calibration_entry)
 		ADD_SERIALIZATION_FUNCS(bin, min_pred, max_pred, cnt_cases, cnt_controls, mean_pred, mean_outcome, controls_per_time_slot, cases_per_time_slot, kaplan_meier)
 };
-
 MEDSERIALIZE_SUPPORT(calibration_entry)
 
 enum CalibrationTypes {
@@ -70,9 +72,6 @@ public:
 	vector<float> min_range, max_range, map_prob; ///< for "binning/isotonic-regression"
 	vector<double> platt_params; ///< for "platt_scale"
 
-	string calibration_samples = ""; ///< calibration samples path to learn
-	bool use_preds_in_samples = false; ///< If true will use predictions in sample file
-
 	/// @snippet Calibration.cpp Calibrator::init
 	virtual int init(map<string, string>& mapper);
 	virtual int Learn(const MedSamples& samples);
@@ -82,7 +81,7 @@ public:
 	virtual int Apply(vector <MedSample>& samples) const;
 
 	//PostProcessor functions:
-	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix);
+	void Learn(const MedFeatures &matrix) {Learn(matrix.samples); }
 	void Apply(MedFeatures &matrix) const;
 
 	calibration_entry calibrate_pred(float pred);
