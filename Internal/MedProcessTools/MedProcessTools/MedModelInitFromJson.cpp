@@ -161,7 +161,8 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
 
-		string action_type = action.get<string>("action_type").c_str();
+		string action_type = action.get<string>("action_type","").c_str();
+		if (action_type == "") action_type = "feat_generator"; // default action when none provided
 		if (boost::starts_with(action_type, "change_path:")) {
 			//change json base_path fo relative paths to work:
 			string new_path = boost::replace_all_copy(action_type, "change_path:", "");
