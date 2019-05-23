@@ -727,7 +727,7 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 
 int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_unit) {
 
-	MLOG("Learning calibration on %d ids\n", (int) orig_samples.size());
+	MLOG_D("Learning calibration on %d ids\n", (int) orig_samples.size());
 
 	vector<float> preds, labels;
 	switch (calibration_type)
