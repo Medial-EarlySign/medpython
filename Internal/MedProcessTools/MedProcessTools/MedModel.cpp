@@ -11,6 +11,7 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <string>
 #include "StripComments.h"
+#include "medial_utilities/medial_utilities/globalRNG.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -88,15 +89,16 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	LearningSet = _samples;
 
-	// Set of ids
-	vector<int> ids;
-	LearningSet->get_ids(ids);
+	// Set aside parts of the learning set required for post-processors training
+	vector<MedSamples> post_processors_learning_sets;
+	MedSamples model_learning_set;
+	split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
 
 	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
-		MLOG("MedModel() : starting learn rep processors on %d samples\n", _samples->nSamples(), start_stage, end_stage);
+		MLOG("MedModel() : starting learn rep processors on %d samples\n", model_learning_set.nSamples(), start_stage, end_stage);
 		timer.start();
 		if (learn_rep_processors(rep, *LearningSet) < 0) { //??? why are rep processors initialized for ALL time points in an id??
 			MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
@@ -120,7 +122,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	}
 
 	//dprint_process("==> In Learn (2) <==", 0, 2, 0);
-
 	if (end_stage <= MED_MDL_LEARN_FTR_GENERATORS)
 		return 0;
 
@@ -141,7 +142,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		else
 			MLOG("MedModel::learn() : generating learn matrix time %g ms\n", timer.diff_milisec());
 	}
-
 	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
 		return 0;
 
@@ -203,11 +203,27 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	if (end_stage < MED_MDL_LEARN_POST_PROCESSORS)
 		return 0;
 
-	//get predictions and store them - in postProcessor learn resposibility - should act on different samples:
+	// Learn post-processesors. Possibly on different subset of samples
+	// A VERY IMPORTANT NOTE: 
+	// Currently, post-processors are assumed to be independent of each other. Thus,
+	// we do not apply a post-processor after learning it and before learning the next
+	// one, and all post processor used the pre-processed scores (and matrix). This
+	// saves us a lot of cross-validation mess ...
 	if (start_stage <= MED_MDL_LEARN_POST_PROCESSORS) {
 		MLOG("MedModel::learn() : learn post_processors\n");
-		for (size_t i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->Learn(*this, rep, features);
+		for (size_t i = 0; i < post_processors.size(); ++i) {
+			post_processors[i]->init_post_processor(*this);
+
+			// Prepare learning matrix for post-processor and learn
+			if (post_processors_learning_sets[i].idSamples.empty()) 
+				post_processors[i]->Learn(features);
+			else {
+				MedFeatures origFeatures = move(features);
+				apply(rep, post_processors_learning_sets[i], MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_PREDICTOR);
+				post_processors[i]->Learn(features);
+				features = move(origFeatures);
+			}
+		}
 	}
 
 	return 0;
@@ -299,6 +315,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return 0;
 
 	if (start_stage <= MED_MDL_INSERT_PREDS && end_stage < MED_MDL_APPLY_POST_PROCESSORS) { //insert preds now only if has no post_processors
+		if (verbosity > 0) MLOG("Inserting predictions\n");
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
 			return -1;
@@ -307,14 +324,20 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	}
 
 	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
+		
+		if (verbosity > 0) MLOG("Initializing %d postprocessors\n",(int) post_processors.size());
 		for (size_t i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->init_model(this);
+			post_processors[i]->init_post_processor(*this);
+
+		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
 		for (size_t i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->Apply(features);
+			post_processors[i]->Apply(features);		
+		
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
 			return -1;
 		}
+
 		if (samples.insert_post_process(features) != 0) {
 			MERR("Insertion of post_process to samples failed\n");
 			return -1;
@@ -1594,22 +1617,73 @@ void MedModel::get_generated_features_names(vector<string> &feat_names)
 	for (auto &e : sort_me) feat_names.push_back(e.first);
 }
 
-void MedModel::learn_post_processors(MedPidRepository &rep, MedSamples &post_samples) {
+// Handle learning sets for model/post-processors
+//-----------------------------------------------------------------------------------------------------------------
+void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set) {
 
-	for (size_t i = 0; i < post_processors.size(); ++i)
-	{
-		if (apply(rep, post_samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_INSERT_PREDS) < 0)
-			MTHROW_AND_ERR("Failed generating matrix for samples for post_processor learn");
-		post_processors[i]->Learn(*this, rep, features);
+	int nIds = (int)inSamples.idSamples.size();
+	vector<int> assignments(nIds, 0);
+	post_processors_learning_sets.resize(post_processors.size());
+
+	// Assign to post-processors
+	int idx = 1;
+	int nFreeIds = nIds;
+	for (PostProcessor *processor : post_processors) {
+		float use_p = processor->get_use_p();
+		int use_split = processor->get_use_split();
+		if (use_p > 0 && use_split >= 0)
+			MTHROW_AND_ERR("Split_Learning_Set: At most one of use_p (%f) & use_split (%d) allowed for post-processor\n", use_p, use_split);
+		if (processor->get_use_p() > 0) {
+			// Adjust use_p according to free ids
+			float eff_use_p = (use_p * nIds) / nFreeIds;
+			if (eff_use_p > 1.0)
+				MTHROW_AND_ERR("Split_Learning_Set: Inconsistency at selection of subset for post-process learning : Not enough ids left for post-processor #%d\n", idx);
+
+			// Assign
+			int nAssigned = 0;
+			for (int iId = 0; iId < nIds; iId++) {
+				if (assignments[iId] == 0 && (globalRNG::rand() / (globalRNG::max() + 1.0)) < eff_use_p) {
+					assignments[iId] = idx;
+					nAssigned++;
+				}
+			}
+
+			if (nAssigned == 0)
+				MTHROW_AND_ERR("Split_Learning_Set:: Failed to assign any ids to post-processor #%d - use-p = %f , total ids = %d, before assignment, left with %d ids\n",
+					idx, processor->use_p, nIds, nFreeIds);
+
+			MLOG("Split_Learning_Set: Assigned %d ids out of %d to post-processor #%d with use-p = %f\n", nAssigned, nIds, idx, processor->use_p);
+			nFreeIds -= nAssigned;
+		}
+		else if (use_split >= 0) {
+			int nAssigned = 0;
+			for (int iId = 0; iId < nIds; iId++) {
+				if (assignments[iId] == 0 && inSamples.idSamples[iId].split == use_split) {
+					assignments[iId] = idx;
+					nAssigned++;
+				}
+			}
+
+			if (nAssigned == 0)
+				MTHROW_AND_ERR("Split_Learning_Set:: Failed to assign any ids to post-processor #%d - use-split = %d\n", idx, use_split);
+
+			MLOG("Split_Learning_Set: Assigned %d ids out of %d to post-processor #%d with use-split = %d\n", nAssigned, nIds, idx, use_split);
+			nFreeIds -= nAssigned;
+		}
+
+		if (nFreeIds == 0) 
+			MTHROW_AND_ERR("Split_Learning_Set: Left with no ids after processor #%d\n", idx);
+		idx++;
+	}
+
+	MLOG("Split_Learning_Set: Assigned %d ids out of %d to model learning set\n", nFreeIds, nIds);
+
+	// Create MedSamples
+	for (int i = 0; i < nIds; i++) {
+		if (assignments[i] == 0)
+			model_learning_set.idSamples.push_back(inSamples.idSamples[i]);
+		else
+			post_processors_learning_sets[assignments[i]-1].idSamples.push_back(inSamples.idSamples[i]);
 	}
 }
-
-void MedModel::apply_post_processors(MedFeatures &matrix_after_pred) {
-	for (size_t i = 0; i < post_processors.size(); ++i)
-	{
-		post_processors[i]->init_model(this);
-		post_processors[i]->Apply(matrix_after_pred);
-	}
-}
-
 #endif

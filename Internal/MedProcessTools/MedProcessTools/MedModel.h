@@ -138,7 +138,7 @@ public:
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
 	void add_pre_processors_json_string_to_model(string in_json, string fname);
-	void add_post_processors_json_string_to_model(string in_json, string fname);
+	int add_post_processors_json_string_to_model(string in_json, string fname);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
 	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);	// fp_type and feature name are must have parameters
@@ -203,9 +203,6 @@ public:
 	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec);
 	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators);
 
-	void learn_post_processors(MedPidRepository &rep, MedSamples &post_samples);
-	void apply_post_processors(MedFeatures &matrix_after_pred);
-
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag);
 
@@ -220,6 +217,9 @@ private:
 	void alter_json(string &json_contents, vector<string>& alterations);
 	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "", bool add_change_path = false);
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
+
+	// Handle learning sets for model/post-processors
+	void split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);

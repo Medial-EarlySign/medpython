@@ -822,7 +822,7 @@ void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, fl
 
 // Get all MedSamples as a single vector
 //.......................................................................................
-void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
+void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples) const
 {
 	vec_samples.clear();
 	for (auto &s : idSamples) {

@@ -128,7 +128,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 					++expalin_it;
 					continue;
 				}
-				feat_contrib += expalin_it->second * cov_features(iftr, jftr);
+				feat_contrib += expalin_it->second * abs(cov_features(iftr, jftr));
 				++expalin_it;
 			}
 			it.second = feat_contrib;
@@ -169,12 +169,17 @@ int ModelExplainer::init(map<string, string> &mapper) {
 			filters.init_from_string(it->second);
 		else if (it->first == "attr_name")
 			attr_name = it->second;
+		else if (it->first == "use_split")
+			use_split = stoi(it->second);
+		else if (it->first == "use_p")
+			use_p = stof(it->second);
 		else if (it->first == "pp_type") {} //ignore
 		else {
 			left_to_parse[it->first] = it->second;
 		}
 	}
 	_init(left_to_parse);
+
 	return 0;
 }
 
@@ -263,7 +268,9 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 	MLOG("Grouping: %d features into %d groups\n", nftrs, (int)group_names.size());
 }
 
-void ModelExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &train_mat) {
+void ModelExplainer::Learn(const MedFeatures &train_mat) {
+	if (original_predictor == NULL)
+		MTHROW_AND_ERR("Error ModelExplainer::Learn - please call init_post_processor before learn\n");
 	if (!processing.grouping.empty())
 		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
 	else {
@@ -274,12 +281,7 @@ void ModelExplainer::Learn(MedModel &model, MedPidRepository& rep, const MedFeat
 		}
 	}
 	processing.learn(train_mat);
-	this->original_predictor = model.predictor;
-	Learn(model.predictor, train_mat);
-}
-
-void ModelExplainer::init_model(MedModel *mdl) {
-	original_predictor = mdl->predictor;
+	_learn(train_mat);
 }
 
 void ModelExplainer::dprint(const string &pref) const {
@@ -453,12 +455,12 @@ void TreeExplainer::post_deserialization() {
 	}
 }
 
-void TreeExplainer::init_model(MedModel *mdl) {
-	ModelExplainer::init_model(mdl);
+void TreeExplainer::init_post_processor(MedModel& model) {
+	ModelExplainer::init_post_processor(model);
 	post_deserialization();
 }
 
-void TreeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void TreeExplainer::_learn(const MedFeatures &train_mat) {
 	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0) {
 		processing.group_by_sum = 1;
 		MWARN("Warning in TreeExplainer::Learn - no support for grouping in tree_shap not by sum. setting {group_by_sum:=1}\n");
@@ -653,7 +655,7 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 	}
 }
 
-void MissingShapExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	if (no_relearn) {
 		retrain_predictor = original_predictor;
 		return;
@@ -873,7 +875,7 @@ void ShapleyExplainer::init_sampler(bool with_sampler) {
 	}
 }
 
-void ShapleyExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void ShapleyExplainer::_learn(const MedFeatures &train_mat) {
 	_sampler->learn(train_mat.data);
 }
 
@@ -1056,7 +1058,7 @@ void LimeExplainer::post_deserialization() {
 	init_sampler(false);
 }
 
-void LimeExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void LimeExplainer::_learn(const MedFeatures &train_mat) {
 	_sampler->learn(train_mat.data);
 }
 
@@ -1107,7 +1109,7 @@ void LinearExplainer::_init(map<string, string> &mapper) {
 	}
 }
 
-void LinearExplainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void LinearExplainer::_learn(const MedFeatures &train_mat) {
 }
 
 void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
@@ -1206,7 +1208,7 @@ void KNN_Explainer::_init(map<string, string> &mapper) {
 			MTHROW_AND_ERR("Error in KNN_Explainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
 }
-void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_mat) {
+void KNN_Explainer::_learn(const MedFeatures &train_mat) {
 	if (numClusters == -1)numClusters = (int)train_mat.samples.size();
 	if (numClusters > train_mat.samples.size()) {
 		MWARN("Warning in KNN_Explainer::Learn - numClusters reduced to size of training \"%d>>%zu\"\n", numClusters, train_mat.samples.size());
@@ -1214,7 +1216,7 @@ void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	}
 
 	MedMat<float> centers(numClusters, (int)train_mat.data.size());
-	this->original_predictor = original_pred;
+
 	// get the features and normalize them
 	MedFeatures normalizedFeatures = train_mat;
 	MedMat<float> normalizedMatrix;
@@ -1242,9 +1244,6 @@ void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 		krand.push_back(k);
 	shuffle(krand.begin(), krand.end(), default_random_engine(5246245));
 
-
-
-
 	for (int i = 0; i < numClusters; i++)
 		for (int col = 0; col < normalizedMatrix.ncols; col++)
 			centers(i, col) = normalizedMatrix(krand[i], col);
@@ -1258,7 +1257,6 @@ void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 	trainingMap.samples.resize(numClusters);
 	trainingMap.init_pid_pos_len();
 
-
 	// compute the thershold according to quantile
 	MedFeatures myMat = train_mat;// train_mat is constant
 	this->original_predictor->predict(myMat);
@@ -1268,20 +1266,18 @@ void KNN_Explainer::Learn(MedPredictor *original_pred, const MedFeatures &train_
 		trainingMap.samples[i].prediction = vector <float>(1, myMat.samples[krand[i]].prediction[0]);
 
 	// compute the thershold according to quantile
-	if (chosenThreshold == MED_MAT_MISSING_VALUE)
+	if (chosenThreshold == MED_MAT_MISSING_VALUE) {
 		if (thresholdQ != MED_MAT_MISSING_VALUE) {
 			vector <float> predictions = {};
 			vector <float> w(train_mat.samples.size(), 1);
 			for (int k = 0; k < train_mat.samples.size(); k++)
 				predictions.push_back(myMat.samples[k].prediction[0]);
 
-
-
 			chosenThreshold = medial::stats::get_quantile(predictions, w, 1 - thresholdQ);
 		}
-
-
+	}
 }
+
 void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const
 {
 	MedFeatures explainedFeatures = matrix;

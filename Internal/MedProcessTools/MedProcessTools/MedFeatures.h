@@ -75,7 +75,7 @@ public:
 	/// <summary> Constructor Given time-unit </summary>
 	MedFeatures(int _time_unit) { time_unit = _time_unit; }
 	///<summary>  Constructor setting time-unit to undef </summary>
-	MedFeatures() { time_unit = MedTime::Undefined; global_serial_id_cnt = 0; }
+	MedFeatures() { time_unit = global_default_time_unit; global_serial_id_cnt = 0; }
 
 	// Initialization
 	/// <summary> Clear all vectors </summary>

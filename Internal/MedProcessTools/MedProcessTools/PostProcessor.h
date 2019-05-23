@@ -33,7 +33,14 @@ class PostProcessor : public SerializableObject {
 public:
 	PostProcessorTypes processor_type = PostProcessorTypes::FTR_POSTPROCESS_LAST;
 
-	virtual void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix);
+	// The following variables are used for enabling model to put aside a subset of the learning
+	// set for post-processor learning. Either use_split (put aside all ids within a given split)
+	// or use_p (put aside a proportion 0 < p < 1 of the ids) can be given. but not both
+	int use_split = -1;
+	float use_p = 0.0;
+
+	virtual void init_post_processor(MedModel& mdl) {};
+	virtual void Learn(const MedFeatures &matrix);
 	virtual void Apply(MedFeatures &matrix) const;
 
 	void *new_polymorphic(string dname);
@@ -43,11 +50,12 @@ public:
 
 	static PostProcessor *create_processor(string &params);
 
-	virtual void init_model(MedModel *mdl) {};
-
 	virtual void dprint(const string &pref) const;
 
 	virtual ~PostProcessor() {};
+
+	virtual float get_use_p() { return use_p; }
+	virtual int get_use_split() { return use_split; }
 
 	ADD_CLASS_NAME(PostProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type)
@@ -65,14 +73,17 @@ public:
 
 	MultiPostProcessor() { processor_type = PostProcessorTypes::FTR_POSTPROCESS_MULTI; }
 
-	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix);
+	void Learn(const MedFeatures &matrix);
 	void Apply(MedFeatures &matrix) const;
 
-	void init_model(MedModel *mdl);
+	void init_post_processor(MedModel& mdl);
 
 	void dprint(const string &pref) const;
 
 	~MultiPostProcessor();
+
+	float get_use_p();
+	int get_use_split();
 
 	ADD_CLASS_NAME(MultiPostProcessor)
 		ADD_SERIALIZATION_FUNCS(post_processors)
