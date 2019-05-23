@@ -128,7 +128,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 					++expalin_it;
 					continue;
 				}
-				feat_contrib += expalin_it->second * cov_features(iftr, jftr);
+				feat_contrib += expalin_it->second * abs(cov_features(iftr, jftr));
 				++expalin_it;
 			}
 			it.second = feat_contrib;
