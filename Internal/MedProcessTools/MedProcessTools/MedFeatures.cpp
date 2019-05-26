@@ -1400,12 +1400,12 @@ void MedFeatures::round_data(float r)
 	if (r <= 0) return;
 	vector<string> names;
 	get_feature_names(names);
-	int n_feat = names.size();
+	int n_feat = (int)names.size();
 
 #pragma omp parallel for
 	for (int j = 0; j < n_feat; j++) {
 		float *p_data = data[names[j]].data();
-		int len = data[names[j]].size();
+		int len = (int)data[names[j]].size();
 		for (int i = 0; i < len; i++)
 			p_data[i] = roundf(p_data[i] / r)*r;
 	}
@@ -1419,12 +1419,12 @@ void MedFeatures::noise_data(float r)
 	if (r <= 0) return;
 	vector<string> names;
 	get_feature_names(names);
-	int n_feat = names.size();
+	int n_feat = (int)names.size();
 
 #pragma omp parallel for
 	for (int j = 0; j < n_feat; j++) {
 		float *p_data = data[names[j]].data();
-		int len = data[names[j]].size();
+		int len = (int)data[names[j]].size();
 		for (int i = 0; i < len; i++) {
 			float noise = r * (rand_1()*2.0f - 1.0f);
 			p_data[i] = p_data[i] + noise;

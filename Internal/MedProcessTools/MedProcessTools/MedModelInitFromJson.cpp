@@ -161,7 +161,8 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
 
-		string action_type = action.get<string>("action_type").c_str();
+		string action_type = action.get<string>("action_type","").c_str();
+		if (action_type == "") action_type = "feat_generator"; // default action when none provided
 		if (boost::starts_with(action_type, "change_path:")) {
 			//change json base_path fo relative paths to work:
 			string new_path = boost::replace_all_copy(action_type, "change_path:", "");
@@ -292,12 +293,11 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 //-----------------------------------------------------------------------------------------------------
 // Same as above, for adding post-processors for the existing ones. Returing the number of PP's added
 //-----------------------------------------------------------------------------------------------------
-int MedModel::add_post_processors_json_string_to_model(string in_json, string fname)
+int MedModel::add_post_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations)
 {
 	string json_contents = in_json;
 	if (json_contents == "") {
-		vector<string> dummy_alts;
-		json_contents = json_file_to_string(0, fname, dummy_alts);
+		json_contents = json_file_to_string(0, fname, alterations);
 	}
 	ptree pt;
 	parse_my_json_to_pt(json_contents, pt);
@@ -327,5 +327,5 @@ int MedModel::add_post_processors_json_string_to_model(string in_json, string fn
 	}
 	MLOG("Succesfully added %d post_processors\n", n);
 
-	return n;
+	return (int)n;
 }

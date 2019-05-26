@@ -129,7 +129,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 					++expalin_it;
 					continue;
 				}
-				feat_contrib += expalin_it->second * cov_features(iftr, jftr);
+				feat_contrib += expalin_it->second * abs(cov_features(iftr, jftr));
 				++expalin_it;
 			}
 			it.second = feat_contrib;
@@ -270,6 +270,8 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 }
 
 void ModelExplainer::Learn(const MedFeatures &train_mat) {
+	if (original_predictor == NULL)
+		MTHROW_AND_ERR("Error ModelExplainer::Learn - please call init_post_processor before learn\n");
 	if (!processing.grouping.empty())
 		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
 	else {

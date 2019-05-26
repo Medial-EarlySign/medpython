@@ -2102,14 +2102,13 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 		}
 	}
 	else {
-		vector<string> all_n;
-		data.get_feature_names(all_n);
-		vector<const vector<float>*> data_p(data.data.size());
-		for (size_t i = 0; i < data_p.size(); ++i)
-			data_p[i] = &data.data.at(all_n[i]);
-		vector<float> init_data(out_data->data.size());
-		for (unsigned int icol = 0; icol < init_data.size(); ++icol)
-			init_data[icol] = data_p[icol]->at(isample);
+		vector<float> init_data(data.data.size());
+		int icol = 0;
+		for (auto it = data.data.begin(); it != data.data.end(); ++it)
+		{
+			init_data[icol] = it->second[isample];
+			++icol;
+		}
 
 		for (int i = 0; i < masks.size(); ++i)
 			generator->get_samples(out_data->data, params, masks[i], init_data);
@@ -2210,7 +2209,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			// Weights
 			wgts[irow] = (ngrps - 1.0) / (medial::shapley::nchoosek(ngrps, S)*S*(ngrps - S));
 		}
-		
+
 		// Generate sampled data
 		generate_samples(data, isample, masks, generator, params, &p_features);
 
