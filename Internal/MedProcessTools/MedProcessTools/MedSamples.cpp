@@ -1130,8 +1130,8 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio, bool w
 
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index(tot_samples);
-	random_device rd;
-	mt19937 gen(rd());
+
+	mt19937 gen(globalRNG::rand());
 	uniform_int_distribution<> dist_gen(0, tot_samples - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
@@ -1178,8 +1178,8 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index((int)id_to_pid.size());
-	random_device rd;
-	mt19937 gen(rd());
+	
+	mt19937 gen(globalRNG::rand());
 	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;

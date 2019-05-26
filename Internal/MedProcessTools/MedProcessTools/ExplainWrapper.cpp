@@ -6,6 +6,7 @@
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
 #include <MedStat/MedStat/MedStat.h>
+#include "medial_utilities/medial_utilities/globalRNG.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -659,8 +660,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		return;
 	}
 	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
-	random_device rd;
-	mt19937 gen(rd());
+	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
@@ -912,7 +912,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 	random_device rd;
 	vector<mt19937> gen_thread(MAX_Threads);
 	for (size_t i = 0; i < gen_thread.size(); ++i)
-		gen_thread[i] = mt19937(rd());
+		gen_thread[i] = mt19937(globalRNG::rand());
 	_sampler->prepare(sampler_sampling_args);
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);

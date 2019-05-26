@@ -1,4 +1,5 @@
 #include "SamplesGenerator.h"
+#include "medial_utilities/medial_utilities/globalRNG.h"
 
 #include <omp.h>
 
@@ -8,13 +9,13 @@
 template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
 	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
-template<typename T> void SamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
+template<typename T> void SamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values) {
 	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
 template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
 	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
-template<typename T> void SamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, mt19937 &rnd_gen) const {
+template<typename T> void SamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
 	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
 
@@ -88,10 +89,10 @@ template<typename T> void GibbsSamplesGenerator<T>::get_samples(map<string, vect
 		_gibbs->get_samples(data, *sampling_params, &mask, &mask_values);
 }
 
-template<typename T> void GibbsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
+template<typename T> void GibbsSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values) {
 	MTHROW_AND_ERR("Error no supported in Gibbs");
 }
-template<typename T> void GibbsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, mt19937 &rnd_gen) const {
+template<typename T> void GibbsSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
 	MTHROW_AND_ERR("Error no supported in Gibbs");
 }
 
@@ -103,8 +104,7 @@ template class GibbsSamplesGenerator<double>;
 // Masked GAN
 template<typename T> MaskedGAN<T>::MaskedGAN()
 	: SamplesGenerator<T>(true) {
-	random_device rd;
-	_gen = mt19937(rd());
+	_gen = mt19937(globalRNG::rand());
 }
 
 template<typename T> void MaskedGAN<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
@@ -118,103 +118,115 @@ template<> void MaskedGAN<float>::prepare(void *params) {
 	set_params(params);
 }
 
-template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &mask_values, mt19937 &rnd_gen) const {
-	// Sanity
-	if (mask.size() != mask_values.size())
-		MTHROW_AND_ERR("size mismatch between mask (%d samples) and mask_values (%d samples)\n", (int)mask.size(), (int)mask_values.size());
+template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_per_row, void *params, const vector<vector<bool>> &masks, const MedMat<float> &mask_values, mt19937 &rnd_gen) const {
 
-	if (mask.empty())
+	// Sanity
+	if ((int)masks.size() != mask_values.nrows)
+		MTHROW_AND_ERR("size mismatch between mask (%d samples) and mask_values (%d samples)\n", (int)masks.size(), mask_values.nrows);
+
+	if (mask_values.nrows == 0)
 		return;
 
 	// Sample
-	int nFtrs = (int)mask[0].size();
+	int nSamples = mask_values.nrows;
+	int nFtrs = mask_values.ncols;
 
-	data.resize(sample_per_row * mask.size());
-	vector<float> input(3 * nFtrs);
+	data.resize(sample_per_row * nSamples,nFtrs);
+	MedMat<float> input(sample_per_row * nSamples, 3 * nFtrs);
 
 	normal_distribution<> norm_dist;
 	int index = 0;
-	for (int i = 0; i < mask.size(); i++) {
+	for (int i = 0; i < nSamples; i++) {
 		for (int j = 0; j < sample_per_row; j++) {
 			// Generate input Z + ZX + I
 			for (int k = 0; k < nFtrs; k++) {
-				if (mask[i][k]) {
-					input[k] = (float)norm_dist(rnd_gen);
-					input[k+ nFtrs] = mask_values[i][k];
-					input[k + 2*nFtrs] = 1.0;
+				if (masks[i][k]) {
+					input(index, k) = (float)norm_dist(rnd_gen);
+					input(index, k + nFtrs) = mask_values(i,k);
+					input(index, k + 2 * nFtrs) = 1.0;
 				}
 				else {
-					input[k] = (float)norm_dist(rnd_gen);
-					input[k + nFtrs] = 0.0;
-					input[k + 2 * nFtrs] = 0.0;
+					input(index, k) = (float)norm_dist(rnd_gen);
+					input(index, k + nFtrs) = 0.0;
+					input(index, k + 2 * nFtrs) = 0.0;
 				}
-			}
-
-			// Apply generator
-			generator.apply(input, data[index]);
-
-			// Mask
-			for (int k = 0; k < nFtrs; k++) {
-				if (mask[i][k])
-					data[index][k] = mask_values[i][k];
-				else if (!mg_params.keep_original_values)
-					data[i][k] = round_to_allowed_values(data[i][k], allowed_values[k]);
 			}
 
 			index++;
 		}
 	}
+
+	// Apply generator
+	generator.apply(input, data);
+
+	// Mask
+	index = 0;
+	for (int i = 0; i < nSamples; i++) {
+		for (int j = 0; j < sample_per_row; j++) {
+			for (int k = 0; k < nFtrs; k++) {
+				if (masks[i][k])
+					data(index, k) = mask_values(i, k);
+				else if (!mg_params.keep_original_values)
+					data(index, k) = round_to_allowed_values(data(i, k), allowed_values[k]);
+			}
+			index++;
+		}
+	}
 }
 
-template<> void MaskedGAN<float>::get_samples(vector<vector<float>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &mask_values) {
+template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<float> &mask_values) {
 	set_params(params);
 	get_samples(data, sample_per_row, params, mask, mask_values, _gen);
 }
 
-template<> void MaskedGAN<float>::get_samples_from_Z(vector<vector<float>> &data, void *params, const vector<vector<bool>> &mask, const vector<vector<float>> &mask_values, const vector<vector<float>> &Z) {
+template<> void MaskedGAN<float>::get_samples_from_Z(MedMat<float> &data, void *params, const vector<vector<bool>> &masks, const MedMat<float> &mask_values, const MedMat<float> &Z) {
 
 	set_params(params);
 
 	// Sanity
-	if (mask.size() != Z.size())
-		MTHROW_AND_ERR("size mismatch between mask (%d samples) and Z (%d samples)\n", (int)mask.size(), (int)Z.size());
+	if ((int)masks.size() != Z.nrows || Z.nrows != mask_values.nrows)
+		MTHROW_AND_ERR("size mismatch between mask (%d samples), Z (%d samples) and mask_values (%d samples)\n", (int)masks.size(), Z.nrows, mask_values.nrows);
 
-	if (mask.empty())
+	if (mask_values.nrows == 0)
 		return;
 
 	// Sample
-	int nFtrs = (int)mask[0].size();
+	int nSamples = mask_values.nrows;
+	int nFtrs = mask_values.ncols;
 
-	data.resize(mask.size());
-	vector<float> input(3 * nFtrs);
+	data.resize(nSamples,nFtrs);
+	MedMat<float> input(nSamples, 3 * nFtrs);
 
-	for (int i = 0; i < mask.size(); i++) {
-		// Generate input Z
+	normal_distribution<> norm_dist;
+	for (int i = 0; i < nSamples; i++) {
+		// Generate input Z + ZX + I
 		for (int k = 0; k < nFtrs; k++) {
-			if (mask[i][k]) {
-				input[k] = Z[i][k];
-				input[k + nFtrs] = mask_values[i][k];
-				input[k + 2 * nFtrs] = 1.0;
+			if (masks[i][k]) {
+				input(i, k) = Z(i, k);
+				input(i, k + nFtrs) = mask_values(i,k);
+				input(i, k + 2 * nFtrs) = 1.0;
 			}
 			else {
-				input[k] = Z[i][k];
-				input[k + nFtrs] = 0.0;
-				input[k + 2 * nFtrs] = 0.0;
+				input(i, k) = Z(i, k);
+				input(i, k + nFtrs) = 0.0;
+				input(i, k + 2 * nFtrs) = 0.0;
 			}
-
-		}
-
-		// Apply generator
-		generator.apply(input, data[i]);
-
-		// Mask + round to allowed values
-		for (int k = 0; k < nFtrs; k++) {
-			if (mask[i][k])
-				data[i][k] = mask_values[i][k];
-			else if (!mg_params.keep_original_values)
-				data[i][k] = round_to_allowed_values(data[i][k], allowed_values[k]);
 		}
 	}
+
+	// Apply generator
+	generator.apply(input, data);
+
+	// Mask
+	for (int i = 0; i < nSamples; i++) {
+		for (int k = 0; k < nFtrs; k++) {
+			if (masks[i][k])
+				data(i, k) = mask_values(i, k);
+			else if (!mg_params.keep_original_values)
+				data(i, k) = round_to_allowed_values(data(i, k), allowed_values[k]);
+		}
+	}
+
 }
 
 template<> void MaskedGAN<float>::read_from_text_file(const string& file_name) {
@@ -285,25 +297,28 @@ template<typename T> void MissingsSamplesGenerator<T>::get_samples(map<string, v
 	get_samples(data, params, mask, mask_values, rnd_not_used);
 }
 
-template<typename T> void MissingsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params,
-	const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values, mt19937 &rnd_gen) const {
+template<typename T> void MissingsSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params,
+	const vector<vector<bool>> &masks, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
 
-	data.resize(mask.size());
-	for (size_t i = 0; i < mask.size(); ++i)
-	{
-		data[i].resize(mask[i].size());
-		for (size_t j = 0; j < names.size(); ++j)
+	if (!masks.empty()) {
+		data.resize(masks.size(), masks[0].size());
+		for (size_t i = 0; i < masks.size(); ++i)
 		{
-			if (mask[i][j])
-				data[i][j] = mask_values[i][j];
-			else
-				data[i][j] = missing_value;
+			for (size_t j = 0; j < names.size(); ++j)
+			{
+				if (masks[i][j])
+					data(i, j) = mask_values(i, j);
+				else
+					data(i, j) = missing_value;
+			}
 		}
 	}
+	else
+		data.clear();
 }
 
-template<typename T> void MissingsSamplesGenerator<T>::get_samples(vector<vector<T>> &data, int sample_per_row, void *params,
-	const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values) {
+template<typename T> void MissingsSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params,
+	const vector<vector<bool>> &mask, const MedMat<T> &mask_values) {
 	mt19937 rnd_not_used;
 	get_samples(data, sample_per_row, params, mask, mask_values, rnd_not_used);
 }

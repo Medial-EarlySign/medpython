@@ -35,7 +35,7 @@ template <class T> template <class S> void MedMat<T>::load_transposed(S *x, int 
 }
 
 //...........................................................................................
-template <class T> template <class S> void MedMat<T>::load(vector<S> &x, int n_cols)
+template <class T> template <class S> void MedMat<T>::load(const vector<S> &x, int n_cols)
 {
 	ncols = n_cols;
 	if (ncols == 0)
@@ -221,7 +221,7 @@ template <class T> void MedMat<T>::get_row(int i_row, vector<T> &rowv) const
 {
 	rowv.resize(ncols);
 	if (ncols > 0 && nrows > 0)
-		memcpy(&rowv[0],&m[i_row*ncols],ncols*sizeof(T));
+		memcpy(&(rowv[0]),&(m[i_row*ncols]),ncols*sizeof(T));
 }
 
 //...........................................................................................
