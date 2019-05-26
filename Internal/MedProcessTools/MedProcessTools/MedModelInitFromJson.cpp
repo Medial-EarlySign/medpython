@@ -293,12 +293,11 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 //-----------------------------------------------------------------------------------------------------
 // Same as above, for adding post-processors for the existing ones. Returing the number of PP's added
 //-----------------------------------------------------------------------------------------------------
-int MedModel::add_post_processors_json_string_to_model(string in_json, string fname)
+int MedModel::add_post_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations)
 {
 	string json_contents = in_json;
 	if (json_contents == "") {
-		vector<string> dummy_alts;
-		json_contents = json_file_to_string(0, fname, dummy_alts);
+		json_contents = json_file_to_string(0, fname, alterations);
 	}
 	ptree pt;
 	parse_my_json_to_pt(json_contents, pt);
