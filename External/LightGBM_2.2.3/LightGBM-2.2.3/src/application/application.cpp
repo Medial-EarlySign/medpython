@@ -28,13 +28,15 @@
 namespace LightGBM {
 
 Application::Application(int argc, char** argv) {
+	if (argc == 0 || argv == NULL) return; // Added by Medial to enable full control inheritance
+	LoadParameters(argc, argv);
   LoadParameters(argc, argv);
   // set number of threads for openmp
   if (config_.num_threads > 0) {
     omp_set_num_threads(config_.num_threads);
   }
   if (config_.data.size() == 0 && config_.task != TaskType::kConvertModel) {
-    Log::Fatal("No training/prediction data, application quit");
+    //Log::Fatal("No training/prediction data, application quit"); // Added by Medial :: bypassing app
   }
   omp_set_nested(0);
 }

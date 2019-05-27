@@ -273,11 +273,13 @@ public:
   * \param num_iterations Number of model that want to save, -1 means save all
   * \return Non-empty string if succeeded
   */
+  std::string SaveModelToString(int num_iterations) { return SaveModelToString(0, -1); } // ADDED by Medial to allow backward compatability with MedLightGBM wrapper
   virtual std::string SaveModelToString(int start_iteration, int num_iterations) const override;
 
   /*!
   * \brief Restore from a serialized buffer
   */
+  bool LoadModelFromString(std::string str) { return LoadModelFromString(str.c_str(), str.length()); } // ADDED by Medial for backward compatability
   bool LoadModelFromString(const char* buffer, size_t len) override;
 
   /*!
