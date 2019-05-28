@@ -57,7 +57,7 @@ public:
 	void process(map<string, float> &explain_list) const;
 
 	ADD_CLASS_NAME(ExplainProcessings)
-	ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, groupNames, group2Inds)
+		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, groupNames, group2Inds)
 };
 
 /**
@@ -68,7 +68,7 @@ private:
 	/// init function for specific explainer
 	virtual void _init(map<string, string> &mapper) = 0;
 public:
-	MedPredictor *original_predictor = NULL; ///< predictor we're trying to explain
+	MedPredictor * original_predictor = NULL; ///< predictor we're trying to explain
 	ExplainFilters filters; ///< general filters of results
 	ExplainProcessings processing; ///< processing of results, like groupings, COV
 	string attr_name = ""; ///< attribute name for explainer
@@ -83,7 +83,7 @@ public:
 	virtual void Learn(const MedFeatures &train_mat);
 	void Apply(MedFeatures &matrix) const { explain(matrix); } ///< alias for explain
 
-	
+
 	void init_post_processor(MedModel& model) { original_predictor = model.predictor; };
 
 	///Virtual - return explain results in sample_feature_contrib
@@ -160,6 +160,8 @@ private:
 	MedPredictor * retrain_predictor = NULL; //the retrain model
 
 	void _init(map<string, string> &mapper);
+
+	float avg_bias_score;
 public:
 	int add_new_data; ///< how many new data data points to add for train according to sample masks
 	bool no_relearn; ///< If true will use original model without relearn. assume original model is good enough for missing vals (for example LM model)
@@ -182,8 +184,8 @@ public:
 	~MissingShapExplainer();
 
 	ADD_CLASS_NAME(MissingShapExplainer)
-		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats, 
-			select_from_all, uniform_rand, use_shuffle, no_relearn, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
+			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name)
 };
 
 /// @enum
@@ -211,6 +213,8 @@ private:
 	GibbsSampler<float> _gibbs;
 	GibbsSamplingParams _gibbs_sample_params;
 
+	float avg_bias_score;
+
 	void init_sampler(bool with_sampler = true);
 
 	void _init(map<string, string> &mapper);
@@ -221,7 +225,7 @@ public:
 	int n_masks = 100; ///< how many test to conduct from shapley
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
 
-	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; }
+	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; avg_bias_score = 0; }
 
 	void _learn(const MedFeatures &train_mat);
 
@@ -237,7 +241,7 @@ public:
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			filters, processing, attr_name)
+			avg_bias_score, filters, processing, attr_name)
 };
 
 /**
@@ -291,7 +295,7 @@ private:
 
 	// do the calculation for a single sample after normalization
 	void computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons, vector <vector<int>> knnGroups, vector<string> knnGroupNames)const;
-	
+
 	void _init(map<string, string> &mapper);
 public:
 
@@ -299,7 +303,7 @@ public:
 	float fraction = (float)0.02; ///<fraction of points that is considered neighborhood to a point
 	float chosenThreshold = MED_MAT_MISSING_VALUE; ///< Threshold to use on scores. If missing use thresholdQ to define threshold
 	float thresholdQ = MED_MAT_MISSING_VALUE;///< defines threshold by positive ratio  on training set  ( when chosenThreshold missing). If this one is missing too, no thresholding. Explain by raw scoes.
-	
+
 	KNN_Explainer() { processor_type = FTR_POSTPROCESS_KNN_EXPLAIN; }
 
 	void _learn(const MedFeatures &train_mat);
@@ -307,7 +311,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(KNN_Explainer)
-		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap,average,std, fraction, chosenThreshold, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap, average, std, fraction, chosenThreshold, filters, processing, attr_name)
 };
 
 /**
@@ -316,15 +320,17 @@ public:
 class LinearExplainer : public ModelExplainer {
 private:
 	void _init(map<string, string> &mapper);
+
+	float avg_bias_score;
 public:
-	LinearExplainer() { processor_type = FTR_POSTPROCESS_LINEAR; }
+	LinearExplainer() { processor_type = FTR_POSTPROCESS_LINEAR; avg_bias_score = 0; }
 
 	void _learn(const MedFeatures &train_mat);
 
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(LinearExplainer)
-		ADD_SERIALIZATION_FUNCS(filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, attr_name)
 };
 
 MEDSERIALIZE_SUPPORT(ExplainFilters)

@@ -626,6 +626,7 @@ MissingShapExplainer::MissingShapExplainer() {
 	change_learn_args = "";
 	verbose_learn = true;
 	no_relearn = false;
+	avg_bias_score = 0;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -656,7 +657,30 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 	}
 }
 
+float get_avg_preds(const MedFeatures &train_mat, MedPredictor *original_predictor) {
+	if (train_mat.samples.empty())
+		MTHROW_AND_ERR("Error get_avg_preds learn matrix is empty\n");
+	vector<float> preds_orig(train_mat.samples.size());
+	float avg_bias_score = 0;
+	if (train_mat.samples.front().prediction.empty()) {
+		MedMat<float> mat_x;
+		train_mat.get_as_matrix(mat_x);
+		if (original_predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
+			mat_x.transpose();
+		original_predictor->predict(mat_x, preds_orig);
+	}
+	else {
+		for (size_t i = 0; i < preds_orig.size(); ++i)
+			preds_orig[i] = train_mat.samples[i].prediction[0];
+	}
+	for (size_t i = 0; i < preds_orig.size(); ++i)
+		avg_bias_score += preds_orig[i];
+	avg_bias_score /= preds_orig.size();
+	return avg_bias_score;
+}
+
 void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
 	if (no_relearn) {
 		retrain_predictor = original_predictor;
 		return;
@@ -798,7 +822,8 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			for (size_t j = 0; j < group_names->size(); ++j)
 				curr_res[group_names->at(j)] = features_coeff[j];
 			//Add prior to score:
-			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			curr_res[bias_name] = avg_bias_score; //that will sum to current score
 		}
 
 		progress.update();
@@ -877,6 +902,7 @@ void ShapleyExplainer::init_sampler(bool with_sampler) {
 
 void ShapleyExplainer::_learn(const MedFeatures &train_mat) {
 	_sampler->learn(train_mat.data);
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
 }
 
 void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
@@ -938,7 +964,8 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 			for (size_t j = 0; j < group_names->size(); ++j)
 				curr_res[group_names->at(j)] = features_coeff[j];
 			//Add prior to score:
-			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			curr_res[bias_name] = avg_bias_score;
 		}
 
 		progress.update();
@@ -1110,6 +1137,7 @@ void LinearExplainer::_init(map<string, string> &mapper) {
 }
 
 void LinearExplainer::_learn(const MedFeatures &train_mat) {
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
 }
 
 void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
@@ -1189,7 +1217,8 @@ void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, floa
 		for (size_t j = 0; j < group_names->size(); ++j)
 			curr_res[group_names->at(j)] = all_features_coeff[j][i];
 		//Add prior to score:
-		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+		//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+		curr_res[bias_name] = avg_bias_score; //that will sum to current score
 	}
 }
 
@@ -1281,8 +1310,8 @@ void KNN_Explainer::_learn(const MedFeatures &train_mat) {
 void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const
 {
 	MedFeatures explainedFeatures = matrix;
-	MedMat<float> explainedMatrix,explainedMatrixCopy;
-	
+	MedMat<float> explainedMatrix, explainedMatrixCopy;
+
 	vector <string> featureNames;
 	trainingMap.get_feature_names(featureNames);
 
@@ -1293,7 +1322,7 @@ void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		knnGroups = processing.group2Inds;
 		knnGroupNames = processing.groupNames;
 	}
-	else 
+	else
 		for (int col = 0; col < trainingMap.data.size(); col++) {
 			knnGroups.push_back(vector<int>{col});
 			knnGroupNames.push_back(featureNames[col]);
@@ -1315,17 +1344,17 @@ void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	for (int row = 0; row < explainedMatrix.nrows; row++) {
 		explainedMatrix.get_row(row, thisRow);
 		sample_explain_reasons.push_back({});
-		computeExplanation(thisRow, sample_explain_reasons[row],knnGroups,knnGroupNames);
+		computeExplanation(thisRow, sample_explain_reasons[row], knnGroups, knnGroupNames);
 	}
 }
-void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons, vector <vector<int>> knnGroups,vector<string> knnGroupNames) const
+void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons, vector <vector<int>> knnGroups, vector<string> knnGroupNames) const
 // do the calculation for a single sample after normalization
 {
 
 	MedMat<float> centers; //matrix taken from features and holds the centers of clusters
 	trainingMap.get_as_matrix(centers);
 	MedMat<float> pDistance(centers.nrows, centers.ncols);//initialized to 0
-	MedMat<float> gDistance(centers.nrows,(int) knnGroups.size());
+	MedMat<float> gDistance(centers.nrows, (int)knnGroups.size());
 	vector<float>totalDistance(centers.nrows, 0);
 #define SQR(x)  ((x)*(x))
 	for (int row = 0; row < centers.nrows; row++) {
