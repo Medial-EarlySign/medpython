@@ -237,6 +237,7 @@ public:
 	void load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
 	void load_GAN(MedPredictor *original_pred, const string &gan_path);
 	void load_MISSING(MedPredictor *original_pred);
+	void load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator);
 
 	void dprint(const string &pref) const;
 
@@ -276,6 +277,7 @@ public:
 	void load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
 	void load_GAN(MedPredictor *original_pred, const string &gan_path);
 	void load_MISSING(MedPredictor *original_pred);
+	void load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator);
 
 	void post_deserialization();
 

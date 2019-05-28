@@ -1010,6 +1010,11 @@ void ShapleyExplainer::load_MISSING(MedPredictor *original_pred) {
 	gen_type = GeneratorType::MISSING;
 }
 
+void ShapleyExplainer::load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator) {
+	this->original_predictor = original_pred;
+	_sampler = move(generator);
+}
+
 void ShapleyExplainer::dprint(const string &pref) const {
 	string predictor_nm = "";
 	if (original_predictor != NULL)
@@ -1088,6 +1093,11 @@ void LimeExplainer::load_MISSING(MedPredictor *original_pred) {
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 	gen_type = GeneratorType::MISSING;
+}
+
+void LimeExplainer::load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator) {
+	this->original_predictor = original_pred;
+	_sampler = move(generator);
 }
 
 void LimeExplainer::post_deserialization() {
