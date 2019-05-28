@@ -839,6 +839,8 @@ string GeneratorType_toStr(GeneratorType type) {
 		return "GAN";
 	case MISSING:
 		return "MISSING";
+	case RANDOM_DIST:
+		return "RANDOM_DIST";
 	default:
 		MTHROW_AND_ERR("Unknown type %d\n", type);
 	}
@@ -851,6 +853,8 @@ GeneratorType GeneratorType_fromStr(const string &type) {
 		return GeneratorType::GIBBS;
 	else if (tp == "MISSING")
 		return GeneratorType::MISSING;
+	else if (tp == "RANDOM_DIST")
+		return GeneratorType::RANDOM_DIST;
 	else
 		MTHROW_AND_ERR("Unknown type %s\n", type.c_str());
 }
@@ -894,6 +898,11 @@ void ShapleyExplainer::init_sampler(bool with_sampler) {
 	case MISSING:
 		if (with_sampler)
 			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+		break;
+	case RANDOM_DIST:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new RandomSamplesGenerator<float>(0, 5));
+		sampler_sampling_args = &n_masks;
 		break;
 	default:
 		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);

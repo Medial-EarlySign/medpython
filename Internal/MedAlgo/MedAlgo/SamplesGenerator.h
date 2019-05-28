@@ -168,6 +168,31 @@ public:
 		ADD_SERIALIZATION_FUNCS(missing_value, names)
 };
 
+template<typename T> class RandomSamplesGenerator : public SamplesGenerator<T> {
+public:
+	T mean_value;
+	T std_value;
+	vector<string> names;
+
+	RandomSamplesGenerator();
+
+	RandomSamplesGenerator(T mean_val, T std_val);
+
+	void learn(const map<string, vector<T>> &data);
+
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const;
+
+	void pre_serialization();
+	void post_deserialization();
+
+	ADD_CLASS_NAME(RandomSamplesGenerator<T>)
+		ADD_SERIALIZATION_FUNCS(mean_value, std_value, names)
+};
+
+
 MEDSERIALIZE_SUPPORT(MaskedGANParams)
 MEDSERIALIZE_SUPPORT(SamplesGenerator<float>)
 MEDSERIALIZE_SUPPORT(SamplesGenerator<double>)
@@ -175,5 +200,6 @@ MEDSERIALIZE_SUPPORT(MaskedGAN<float>)
 MEDSERIALIZE_SUPPORT(GibbsSamplesGenerator<float>)
 MEDSERIALIZE_SUPPORT(GibbsSamplesGenerator<double>)
 MEDSERIALIZE_SUPPORT(MissingsSamplesGenerator<float>)
+MEDSERIALIZE_SUPPORT(RandomSamplesGenerator<float>)
 
 #endif

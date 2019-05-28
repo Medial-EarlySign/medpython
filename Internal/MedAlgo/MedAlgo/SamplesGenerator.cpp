@@ -1,5 +1,6 @@
 #include "SamplesGenerator.h"
 #include "medial_utilities/medial_utilities/globalRNG.h"
+#include <random>
 
 #include <omp.h>
 
@@ -31,6 +32,8 @@ template<typename T> void MaskedGAN<T>::pre_serialization() {}
 template<typename T> void MaskedGAN<T>::post_deserialization() {}
 template<typename T> void MissingsSamplesGenerator<T>::pre_serialization() {}
 template<typename T> void MissingsSamplesGenerator<T>::post_deserialization() {}
+template<typename T> void RandomSamplesGenerator<T>::pre_serialization() {}
+template<typename T> void RandomSamplesGenerator<T>::post_deserialization() {}
 
 template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator() : SamplesGenerator<T>(false) {
 	_gibbs = NULL;
@@ -65,9 +68,11 @@ template<typename T> void *SamplesGenerator<T>::new_polymorphic(string derived_n
 	CONDITIONAL_NEW_CLASS(derived_name, GibbsSamplesGenerator<T>);
 	CONDITIONAL_NEW_CLASS(derived_name, MaskedGAN<float>);
 	CONDITIONAL_NEW_CLASS(derived_name, MissingsSamplesGenerator<float>);
+	CONDITIONAL_NEW_CLASS(derived_name, RandomSamplesGenerator<float>);
 	if (boost::starts_with(derived_name, "GibbsSamplesGenerator")) return new GibbsSamplesGenerator<T>;
 	if (boost::starts_with(derived_name, "MaskedGAN")) return new MaskedGAN<float>;
 	if (boost::starts_with(derived_name, "MissingsSamplesGenerator")) return new MissingsSamplesGenerator<float>;
+	if (boost::starts_with(derived_name, "RandomSamplesGenerator")) return new RandomSamplesGenerator<float>;
 	MTHROW_AND_ERR("SamplesGenerator<T>::new_polymorphic:: Unsupported object %s\n", derived_name.c_str());
 	return NULL;
 }
@@ -131,7 +136,7 @@ template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_pe
 	int nSamples = mask_values.nrows;
 	int nFtrs = mask_values.ncols;
 
-	data.resize(sample_per_row * nSamples,nFtrs);
+	data.resize(sample_per_row * nSamples, nFtrs);
 	MedMat<float> input(sample_per_row * nSamples, 3 * nFtrs);
 
 	normal_distribution<> norm_dist;
@@ -142,7 +147,7 @@ template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_pe
 			for (int k = 0; k < nFtrs; k++) {
 				if (masks[i][k]) {
 					input(index, k) = (float)norm_dist(rnd_gen);
-					input(index, k + nFtrs) = mask_values(i,k);
+					input(index, k + nFtrs) = mask_values(i, k);
 					input(index, k + 2 * nFtrs) = 1.0;
 				}
 				else {
@@ -194,7 +199,7 @@ template<> void MaskedGAN<float>::get_samples_from_Z(MedMat<float> &data, void *
 	int nSamples = mask_values.nrows;
 	int nFtrs = mask_values.ncols;
 
-	data.resize(nSamples,nFtrs);
+	data.resize(nSamples, nFtrs);
 	MedMat<float> input(nSamples, 3 * nFtrs);
 
 	normal_distribution<> norm_dist;
@@ -203,7 +208,7 @@ template<> void MaskedGAN<float>::get_samples_from_Z(MedMat<float> &data, void *
 		for (int k = 0; k < nFtrs; k++) {
 			if (masks[i][k]) {
 				input(i, k) = Z(i, k);
-				input(i, k + nFtrs) = mask_values(i,k);
+				input(i, k + nFtrs) = mask_values(i, k);
 				input(i, k + 2 * nFtrs) = 1.0;
 			}
 			else {
@@ -335,5 +340,72 @@ template<typename T> void MissingsSamplesGenerator<T>::learn(const map<string, v
 	for (auto it = data.begin(); it != data.end(); ++it)
 		names.push_back(it->first);
 }
+
+template<typename T> RandomSamplesGenerator<T>::RandomSamplesGenerator() : SamplesGenerator<T>(false) {
+	mean_value = (T)0;
+	std_value = (T)5;
+}
+
+template<typename T> RandomSamplesGenerator<T>::RandomSamplesGenerator(T mean_val, T std_val) : SamplesGenerator<T>(false) {
+	mean_value = mean_val;
+	std_value = std_val;
+}
+
+template<typename T> void RandomSamplesGenerator<T>::learn(const map<string, vector<T>> &data) {
+	names.reserve(data.size());
+	for (auto it = data.begin(); it != data.end(); ++it)
+		names.push_back(it->first);
+}
+
+template<typename T> void RandomSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
+	const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
+	normal_distribution<> norm_gen(mean_value, std_value);
+	int smp_count = *(int *)params;
+	for (size_t s = 0; s < smp_count; ++s)
+	{
+		for (size_t i = 0; i < names.size(); ++i)
+		{
+			if (mask[i])
+				data[names[i]].push_back(mask_values[i]);
+			else
+				data[names[i]].push_back(norm_gen(rnd_gen));
+		}
+	}
+}
+template<typename T> void RandomSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
+	const vector<bool> &mask, const vector<T> &mask_values) {
+	random_device rd;
+	mt19937 rnd_gen(rd());
+	get_samples(data, params, mask, mask_values, rnd_gen);
+}
+
+template<typename T> void RandomSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params,
+	const vector<vector<bool>> &masks, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
+	normal_distribution<> norm_gen(mean_value, std_value);
+	if (!masks.empty()) {
+		data.resize((int)masks.size(), (int)masks[0].size());
+		for (int i = 0; i < masks.size(); ++i)
+		{
+			for (int j = 0; j < names.size(); ++j)
+			{
+				if (masks[i][j])
+					data(i, j) = mask_values(i, j);
+				else
+					data(i, j) = norm_gen(rnd_gen);
+			}
+		}
+	}
+	else
+		data.clear();
+}
+
+template<typename T> void RandomSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params,
+	const vector<vector<bool>> &mask, const MedMat<T> &mask_values) {
+	random_device rd;
+	mt19937 rnd_gen(rd());
+	get_samples(data, sample_per_row, params, mask, mask_values, rnd_gen);
+}
+
+template class RandomSamplesGenerator<float>;
 
 template class MissingsSamplesGenerator<float>;
