@@ -601,7 +601,7 @@ TreeExplainer::~TreeExplainer() {
 
 MissingShapExplainer::~MissingShapExplainer() {
 	//TODO: use uniqe_ptr and than can remove those destructors..
-	if (retrain_predictor != NULL) {
+	if (retrain_predictor != NULL && !no_relearn) {
 		delete retrain_predictor;
 		retrain_predictor = NULL;
 	}

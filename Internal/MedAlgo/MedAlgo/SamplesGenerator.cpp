@@ -301,10 +301,10 @@ template<typename T> void MissingsSamplesGenerator<T>::get_samples(MedMat<T> &da
 	const vector<vector<bool>> &masks, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
 
 	if (!masks.empty()) {
-		data.resize(masks.size(), masks[0].size());
-		for (size_t i = 0; i < masks.size(); ++i)
+		data.resize((int)masks.size(), (int)masks[0].size());
+		for (int i = 0; i < masks.size(); ++i)
 		{
-			for (size_t j = 0; j < names.size(); ++j)
+			for (int j = 0; j < names.size(); ++j)
 			{
 				if (masks[i][j])
 					data(i, j) = mask_values(i, j);

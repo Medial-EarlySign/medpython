@@ -1807,7 +1807,7 @@ void collect_score_mask(const vector<float> &x, const vector<bool> &mask, Sample
 		MedFeatures gen_matrix;
 		gen_matrix.samples.resize(res.nrows);
 		preds.resize(res.nrows);
-		for (size_t i = 0; i < feat_names.size(); ++i)
+		for (int i = 0; i < feat_names.size(); ++i)
 		{
 			gen_matrix.data[feat_names[i]].resize(res.size());
 			for (int k = 0; k < res.nrows; ++k)
@@ -1849,7 +1849,7 @@ int collect_mask(const vector<float> &x, const vector<bool> &mask, const Samples
 
 
 #pragma omp critical
-		for (size_t i = 0; i < feat_names.size(); ++i) {
+		for (int i = 0; i < feat_names.size(); ++i) {
 			gen_matrix[feat_names[i]].resize(size_before + res.nrows);
 			for (int k = 0; k < res.nrows; ++k)
 				gen_matrix[feat_names[i]][size_before + k] = res(k, i);
@@ -2078,12 +2078,12 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 
 	if (generator->use_vector_api) {
 		int ncols = (int)data.data.size();
-		MedMat<float> in(masks.size(), ncols), out(masks.size(), ncols);
+		MedMat<float> in((int)masks.size(), ncols), out((int)masks.size(), ncols);
 
 		int icol = 0;
 		for (auto& rec : data.data) {
 #pragma omp parallel for
-			for (size_t irow = 0; irow < masks.size(); irow++)
+			for (int irow = 0; irow < masks.size(); irow++)
 				in(irow,icol) = rec.second[isample];
 			icol++;
 		}
@@ -2096,7 +2096,7 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 			out_data->data[rec.first].resize(masks.size());
 
 #pragma omp parallel for
-			for (size_t irow = 0; irow < masks.size(); irow++)
+			for (int irow = 0; irow < masks.size(); irow++)
 				(out_data->data)[rec.first][irow] = out(irow,icol);
 			icol++;
 		}
