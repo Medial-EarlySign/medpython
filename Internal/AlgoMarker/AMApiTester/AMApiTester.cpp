@@ -22,6 +22,7 @@
 #include <MedIO/MedIO/MedIO.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #ifdef __linux__ 
 #include <wordexp.h>
@@ -82,8 +83,16 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("print_msgs", "Print algomarker messages when testing batches or single (direct test always prints them)")
 			("egfr_test", "Test simple egfr algomarker")
 			("signalsum_test", "Test signalsum algomarker")
+			("generate_data", "Generate a unified repository data file for all the signals a model needs (required options: rep,samples,model)")
+			("generate_data_outfile", po::value<string>()->default_value(""), "file to output the Generated unified signal file")
+			("generate_data_cat_prefix", po::value<string>()->default_value(""), "If provided, prefer to convert a catogorial channel to a name/setname with given prefix")
+			("generate_data_force_cat_prefix", "Ignore signals categories which do not conform to generate_data_cat_prefix")
+			("apply", "Apply a model using Medial API, given --model, --rep, --apply_repdata, --samples, --apply_outfile, will write scores to output file")
+			("apply_repdata", po::value<string>()->default_value(""), "Unified signal data to be used by apply action")
+			("apply_dates_to_score", po::value<string>()->default_value(""), "File containing a list of tab seperated pid and date to score to beused instead of scores for performing apply")
+			("apply_amconfig", po::value<string>()->default_value(""), "Same as --apply but will use the AlgoMarker API and given amconfig")
+			("apply_outfile", po::value<string>()->default_value(""), "Output file to save scores from apply")
 			;
-
 
 		po::store(po::parse_command_line(argc, argv, desc), vm);
 		po::notify(vm);
@@ -118,7 +127,7 @@ public:
 	vector<string> sigs;
     map<int, MedIdSamples* > pid2samples;
 
-    void load(const string& rep_fname, const string& model_fname, const string& samples_fname) {
+    void load(const string& rep_fname, const string& model_fname, const string& samples_fname="",bool read_signals=true) {
 	    // read model file
 	    if (model.read_from_file(model_fname) < 0) {
 		    MERR("FAILED reading model file %s\n", model_fname.c_str());
@@ -133,21 +142,220 @@ public:
 		    MLOG(" %s", sig.c_str());
 		    sigs.push_back(sig);
 	    }
-	    if (samples.read_from_file(samples_fname)) {
-		    MERR("FAILED reading samples file %s\n", samples_fname.c_str());
-		    throw runtime_error(string("FAILED reading samples file ") +samples_fname);
-	    }
-    
-	    MLOG("\n");
-	    samples.get_ids(pids);
-    
-	    if (rep.read_all(rep_fname, pids, sigs) < 0) {
-		    MERR("FAILED loading pids and signals from repository %s\n", rep_fname.c_str());
-		    throw runtime_error(string("FAILED loading pids and signals from repository"));
-        }
-        for (auto &id : samples.idSamples)
-            pid2samples[id.id] = &id;
+		MLOG("\n");
+		if (samples_fname != "") {
+			if (samples.read_from_file(samples_fname)) {
+				MERR("FAILED reading samples file %s\n", samples_fname.c_str());
+				throw runtime_error(string("FAILED reading samples file ") + samples_fname);
+			}
+
+			MLOG("\n");
+			samples.get_ids(pids);
+			if (read_signals) {
+				if (rep.read_all(rep_fname, pids, sigs) < 0) {
+					MERR("FAILED loading pids and signals from repository %s\n", rep_fname.c_str());
+					throw runtime_error(string("FAILED loading pids and signals from repository"));
+				}
+			}
+			else {
+				if (rep.MedRepository::init(rep_fname) < 0) {
+					MERR("Could not read repository definitions from %s\n", rep_fname.c_str());
+					throw runtime_error(string("FAILED MedRepository::init(")+rep_fname+"\")");
+				}
+			}
+			for (auto &id : samples.idSamples)
+				pid2samples[id.id] = &id;
+		}
     }
+
+	void export_required_data(const string& fname, const string& cat_prefix, bool force_cat_prefix) {
+		ofstream outfile(fname, ios::binary | ios::out);
+		
+		MLOG("(II) Preparing dictinaries to export\n", fname.c_str());
+
+		map<string, vector<map<int, string> > > sig_dict;
+		for (auto& sig : sigs) {
+			vector<map<int, string > > chan_dict;
+			int section_id = rep.dict.section_id(sig);
+			int sid = rep.sigs.Name2Sid[sig];
+			int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
+			for (int vchan = 0; vchan < n_vchan; ++vchan) {
+				if (rep.sigs.is_categorical_channel(sig, vchan)) {
+					map<int, string> new_dict;
+					const auto& Id2Name = rep.dict.dict(section_id)->Id2Name;
+					const auto& Member2Sets = rep.dict.dict(section_id)->Member2Sets;
+					for (const auto& entry : Id2Name) {
+						if (boost::starts_with(entry.second, cat_prefix)) {
+							new_dict[entry.first] = entry.second;
+							continue;
+						}
+						string new_ent = entry.second;
+						if(Member2Sets.count(entry.first) != 0)
+						for (const auto& setid : Member2Sets.at(entry.first)) {
+							if (Id2Name.count(setid) != 0 && boost::starts_with(Id2Name.at(setid), cat_prefix)) {
+								if(!boost::starts_with(new_ent, cat_prefix) || new_ent.length() > Id2Name.at(setid).length())
+								new_ent = Id2Name.at(setid);
+							}
+						}
+						if(!force_cat_prefix || boost::starts_with(new_ent, cat_prefix))
+							new_dict[entry.first] = new_ent;
+					}
+					
+					chan_dict.push_back(new_dict);
+					auto& dict = new_dict; //rep.dict.dict(section_id)->Id2Name;
+					ofstream f;
+					f.open("/nas1/Work/Users/Shlomi/apply-program/generated/dict.orig.tsv");
+					for (const auto& entry : dict) {
+						f << entry.first << '\t' << entry.second << '\n';
+					}
+					f.close();
+				}
+				else chan_dict.push_back(map<int, string>());
+			}
+			sig_dict[sig] = chan_dict;
+		}
+		
+		MLOG("(II) Exporting required data to %s\n", fname.c_str());
+
+		UniversalSigVec usv;
+		
+		for (int pid : pids) {
+			for (auto &sig : sigs) {
+				rep.uget(pid, sig, usv);
+				for (int i = 0; i < usv.len; ++i) {
+					stringstream outss;
+					outss << pid << '\t';
+					outss << sig;
+					for (int tchan = 0, n_tchan = usv.n_time_channels(); tchan < n_tchan; ++tchan) {
+						outss << '\t' << usv.Time(i, tchan);
+					}
+					bool ignore_line = false;
+					for (int vchan = 0, n_vchan = usv.n_val_channels(); vchan < n_vchan; ++vchan) {
+						if(sig_dict.at(sig)[vchan].size() == 0)
+							outss << '\t' << setprecision(10) << usv.Val(i, vchan);
+						else {
+							if (sig_dict.at(sig)[vchan].count((int)(usv.Val(i, vchan))) != 0) {
+								outss << '\t' << sig_dict.at(sig)[vchan].at((int)(usv.Val(i, vchan)));
+							}
+							else{
+								ignore_line = true;
+							}
+						}
+					}
+					if(!ignore_line)
+						outfile << outss.str() << '\n';
+				}
+			}
+		}
+		outfile.close();
+	}
+
+	void import_required_data(const string& fname) {
+		ifstream infile(fname, ios::binary | ios::in);
+
+		MLOG("(II)   Preparing signal dictionaries\n");
+
+		map<string, vector<map<string, int >* > > sig_dict;
+		for (auto& sig : sigs) {
+			vector<map<string, int >* > chan_dict;
+			int section_id = rep.dict.section_id(sig);
+			int sid = rep.sigs.Name2Sid[sig];
+			int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
+			for (int vchan = 0; vchan < n_vchan; ++vchan) {
+				if (rep.sigs.is_categorical_channel(sig, vchan))
+				{
+					chan_dict.push_back(&(rep.dict.dict(section_id)->Name2Id));
+				}
+				else {
+					chan_dict.push_back(nullptr);
+				}
+			}
+			sig_dict[sig] = chan_dict;
+		}
+		
+		string curr_line;
+		rep.switch_to_in_mem_mode();
+
+		vector<int> tchan_vec;
+		vector<float> vchan_vec;
+		tchan_vec.reserve(10);
+		vchan_vec.reserve(10);
+
+		MLOG("(II)   reading data in to in-mem repository\n");
+
+		while (getline(infile, curr_line)) {
+			if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
+				if (curr_line[curr_line.size() - 1] == '\r')
+					curr_line.erase(curr_line.size() - 1);
+				vector<string> fields;
+				split(fields, curr_line, boost::is_any_of("\t"));
+				int fields_i = 0;
+				int pid = stoi(fields[fields_i++]);
+				string sig = fields[fields_i++];
+				int sid = rep.sigs.Name2Sid[sig];
+				int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
+				int n_tchan = rep.sigs.Sid2Info[sid].n_time_channels;
+				tchan_vec.clear();
+				vchan_vec.clear();
+				for (int tchan = 0; tchan < n_tchan; ++tchan) {
+					tchan_vec.push_back(stoi(fields[fields_i++]));
+				}
+				for (int vchan = 0 ; vchan < n_vchan; ++vchan) {
+					if (sig_dict[sig][vchan] == nullptr)
+						vchan_vec.push_back(stof(fields[fields_i++]));
+					else
+					{
+						try {
+							vchan_vec.push_back((*(sig_dict.at(sig)[vchan])).at(fields[fields_i++]));
+						}
+						catch(...){
+							MERR("Error converting sig %s, chan %d, '%s' back to code\n",sig.c_str(), vchan, fields[fields_i-1].c_str());
+							/*
+							auto& dict = *(sig_dict.at(sig)[vchan]);
+							ofstream f;
+							f.open("/nas1/Work/Users/Shlomi/apply-program/generated/dict.tsv");
+							for (const auto& entry : dict) {
+								f << entry.first << '\t' << entry.second << '\n';
+							}
+							f.close();
+							*/
+							exit(-1);
+						}
+					}
+				}
+				rep.in_mem_rep.insertData(pid, sid, tchan_vec.data(), vchan_vec.data(), n_tchan, n_vchan);
+			}
+		}
+
+		rep.in_mem_rep.sortData();
+
+		infile.close();
+
+		////REMOVE THIS
+		//export_required_data("/nas1/Work/Users/Shlomi/apply-program/generated/repdata-re-export-after-import.txt", "ATC_", true);
+
+	}
+
+	int load_samples_from_dates_to_score(const string& fname)
+	{
+		// read scores file
+		vector<vector<string>> raw_scores;
+		if (read_text_file_cols(fname, " \t", raw_scores) < 0) {
+			MERR("Could not read scores file %s\n", fname.c_str());
+			return -1;
+		}
+		MLOG("Read %d lines from scores file %s\n", raw_scores.size(), fname.c_str());
+
+		// prepare MedSamples
+		for (auto &v : raw_scores)
+			if (v.size() >= 2) {
+				samples.insertRec(stoi(v[0]), stoi(v[1]));
+			}
+		samples.normalize();
+		MLOG("Prepared MedSamples\n");
+		return 0;
+	}
+
     void am_add_data(AlgoMarker *am, int pid, int max_date=INT_MAX){
         UniversalSigVec usv;
 
@@ -222,7 +430,6 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 		_timestamps.push_back((long long)s.time);
 		//MLOG("pid %d time %lld\n", _pids.back(), _timestamps.back());
 	}
-
 
 
 	//MLOG("Before CreateRequest\n");
@@ -460,10 +667,6 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 		}
    }
 
-
-
-
-
 	MLOG("Finished getting preds from algomarker in a single manner\n");
 	return 0;
 }
@@ -665,10 +868,12 @@ int signalsum_test()
 	return 0;
 }
 
-
-//========================================================================================
-// MAIN
-//========================================================================================
+int generate_data(const string& rep_file, const string& samples_file, const string& model_file, const string& output_file, const string& cat_prefix, bool force_cat_prefix) {
+	DataLoader l;
+	l.load(rep_file, model_file, samples_file);
+	l.export_required_data(output_file, cat_prefix, force_cat_prefix);
+	return 0;
+}
 
 vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print_msgs, bool single){
 	vector<MedSample> res2;
@@ -693,10 +898,12 @@ vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print
     return res2;
 }
 
-
 vector<MedSample> apply_med_api(MedPidRepository& rep, MedModel& model, MedSamples& samples){
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
+
+    /////// REMOVE THIS
+	//model.write_feature_matrix("/nas1/Work/Users/Shlomi/apply-program/generated/fmat-apply-program.csv");
 
 	// printing
 	vector<MedSample> ret;
@@ -741,6 +948,47 @@ void save_sample_vec(vector<MedSample> sample_vec, const string& fname){
     s.write_to_file(fname);
 }
 
+int apply_data(const string& repdata_file, const string& mock_rep_file, const string& scores_file, bool score_format_is_samples, const string& model_file, const string& scores_output_file, const string& amconfig_file) {
+	
+	DataLoader l;
+	MLOG("(II) Starting apply with:\n(II)   repdata_file='%s'\n(II)   mock_rep_file='%s'\n(II)   scores_file='%s' %s\n(II)   model_file='%s'\n(II)   scores_output_file='%s'\n(II)   amconfig_file='%s'\n"
+		, repdata_file.c_str(), mock_rep_file.c_str(), scores_file.c_str(), score_format_is_samples ? "(samples format)" : "", model_file.c_str(), scores_output_file.c_str(), amconfig_file.c_str());
+	MLOG("(II) Loading mock repo, model and date for scoring\n");
+
+	if (!score_format_is_samples) {
+		l.load(mock_rep_file, model_file,"",false);
+		MLOG("\n(II) Loading tab seperated pid+dates for scoring from %s\n", scores_file.c_str());
+		l.load_samples_from_dates_to_score(scores_file);
+	}
+	else { 
+		MLOG("\n(II) Loading dates for scoring from samples file %s\n", scores_file.c_str());
+		l.load(mock_rep_file, model_file, scores_file,false); 
+	}
+	
+	//l.rep.switch_to_in_mem_mode();
+	MLOG("(II) Importing data from '%s'\n", repdata_file.c_str());
+	l.import_required_data(repdata_file);
+
+	if (amconfig_file == "") {
+		MLOG("(II) Starting apply using Medial API\n");
+		auto ret = apply_med_api(l.rep, l.model, l.samples);
+		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
+		save_sample_vec(ret, scores_output_file);
+	}
+	else {
+		MLOG("(II) Starting apply using Algomarker API\n");
+		auto ret = apply_am_api(amconfig_file, l, false, false);
+		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
+		save_sample_vec(ret, scores_output_file);
+	}
+
+	return 0;
+}
+
+//========================================================================================
+// MAIN
+//========================================================================================
+
 int main(int argc, char *argv[])
 {
 	int rc = 0;
@@ -754,6 +1002,39 @@ int main(int argc, char *argv[])
 	if (vm.count("help")) {
 	    return 0;
 	}
+
+	if (vm.count("generate_data")) {
+		if (vm["rep"].as<string>() == "" || vm["samples"].as<string>() == "" || vm["model"].as<string>() == "" || vm["generate_data_outfile"].as<string>() == "")
+		{
+			std::cerr << "Missing argument, Please specify --rep, --samples, --model, --generate_data_outfile.\n";
+			return -1;
+		}
+		return generate_data(
+			vm["rep"].as<string>(), 
+			vm["samples"].as<string>(), 
+			vm["model"].as<string>(), 
+			vm["generate_data_outfile"].as<string>(), 
+			vm["generate_data_cat_prefix"].as<string>(), 
+			vm.count("generate_data_force_cat_prefix")!=0);
+	}
+	if (vm.count("apply") || vm.count("apply_amconfig")) {
+		if (vm["rep"].as<string>() == "" || 
+			(vm["samples"].as<string>() == "" && vm["apply_dates_to_score"].as<string>() =="" ) ||
+			vm["model"].as<string>() == "" || 
+			vm["apply_outfile"].as<string>() == "" ||
+			vm["apply_repdata"].as<string>() == "" ) 
+		{
+			MERR("Missing arguments, Please specify --rep, --model, --apply_outfile, --apply_repdata, --samples (or --apply_dates_to_score).\n");
+			return -1;
+		}
+		string scores_file = vm["samples"].as<string>();
+		bool score_to_date_format_is_samples = true;
+		if (vm["apply_dates_to_score"].as<string>() != "") {
+			scores_file = vm["apply_dates_to_score"].as<string>();
+			score_to_date_format_is_samples = false;
+		}
+		return apply_data(vm["apply_repdata"].as<string>(), vm["rep"].as<string>(), scores_file, score_to_date_format_is_samples, vm["model"].as<string>(), vm["apply_outfile"].as<string>(), vm["apply_amconfig"].as<string>());
+	}
     
     load_am(vm["amfile"].as<string>().c_str());
 
@@ -762,7 +1043,6 @@ int main(int argc, char *argv[])
 
 	if (vm.count("signalsum_test"))
 		return signalsum_test();
-
 
     DataLoader d;
 	vector<MedSample> res1;
@@ -815,3 +1095,6 @@ int main(int argc, char *argv[])
 //
 // old typical test:
 // Linux/Release/DllAPITester --model /nas1/Work/Users/Avi/Diabetes/order/pre2d/runs/partial/pre2d_partial_S6.model --samples test_100k.samples --amconfig /nas1/Work/Users/Avi/AlgoMarkers/pre2d/pre2d.amconfig
+//
+// ./Linux/Release/AMApiTester --generate_data --generate_data_outfile /tmp/out2.txt --rep /home/Repositories/THIN/thin_final/thin.repository --model /nas1/Products/Pre2D/FrozenVersions/1.0.0.9/pre2d.model --samples /nas1/Work/Users/Avi/GAN/prep_pre2d_mat/pre2d_check_bw.samples
+//
