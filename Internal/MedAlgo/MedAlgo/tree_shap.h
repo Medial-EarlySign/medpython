@@ -172,7 +172,7 @@ namespace medial {
 	namespace shapley {
 
 		/// \brief nchoosek calc
-		long nchoosek(long n, long k);
+		double nchoosek(long n, long k);
 		/// \brief lists all binary options for mask
 		void list_all_options_binary(int nfeats, vector<vector<bool>> &all_opts);
 		/// \brief generate random mask
