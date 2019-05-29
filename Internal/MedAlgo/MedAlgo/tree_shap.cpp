@@ -2116,6 +2116,33 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 }
 
 // Learn a Shapely-Lime model
+// Helper - 
+// Calculate:
+//			(n - 1.0) / (n choose k)*k*(n - k));
+//			------------------------------------
+//			(n - 1.0) / (n choose k0)*k0*(n - k0));
+// where k0 = n*p
+
+double get_normalized_weight(int n, int k, int k0) {
+
+	double logFactor = 0;
+	for (int i = k0; i < k; i++) {
+		logFactor += log(i - 1);
+		logFactor -= log(n - i - 1);
+	}
+	return exp(logFactor);
+}
+
+double get_normalized_weight(int n, int k, float p) {
+
+	int k0 = n * p + 0.5;
+	if (k > k0)
+		return get_normalized_weight(n, k, k0);
+	else
+		return 1.0 / get_normalized_weight(n, k0, k);
+}
+
+// Main function
 void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 	SamplesGenerator<float> *generator, float p, int n, float missing,
 	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
@@ -2207,8 +2234,10 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			}
 
 			// Weights
-			wgts[irow] = (ngrps - 1.0) / (medial::shapley::nchoosek(ngrps, S)*S*(ngrps - S));
+			wgts[irow] = get_normalized_weight(ngrps, S, p);
 		}
+
+		// Normalize 
 
 		// Generate sampled data
 		generate_samples(data, isample, masks, generator, params, &p_features);
