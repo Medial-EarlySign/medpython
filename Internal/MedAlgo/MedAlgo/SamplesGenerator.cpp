@@ -139,7 +139,7 @@ template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_pe
 	data.resize(sample_per_row * nSamples, nFtrs);
 	MedMat<float> input(sample_per_row * nSamples, 3 * nFtrs);
 
-	normal_distribution<> norm_dist;
+	normal_distribution<> norm_dist(0, 1);
 	int index = 0;
 	for (int i = 0; i < nSamples; i++) {
 		for (int j = 0; j < sample_per_row; j++) {

@@ -1029,7 +1029,7 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& sampl
 
 			vector<float> values, filteredValues;
 
-			float borderHi, borderLo, logBorderHi, logBorderLo;
+			float borderHi = numeric_limits<float>::max(), borderLo = -99999, logBorderHi= 9999, logBorderLo = -99999;
 			get_values(rep, samples, signalId, time_channel, val_channel, removeMin, removeMax, values, prev_cleaners);
 			for (auto& el : values)if (el != 0)filteredValues.push_back(el);
 			sort(filteredValues.begin(), filteredValues.end());
