@@ -242,6 +242,38 @@ namespace LightGBM {
 		for (int64_t i = 0; i < len_res; i++) preds[i] = (float)out_result[i];   
 	}
 
+	//-------------------------------------------------------------------------------------------------
+	void MemApp::PredictShap(float *x, int nrows, int ncols, float *&shap_vals) const
+	{
+		auto get_row_fun = RowPairFunctionFromDenseMatric(x, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
+
+		// create boosting
+		Predictor predictor(boosting_.get(), config_.num_iteration_predict, config_.predict_raw_score, config_.predict_leaf_index, true,
+			config_.pred_early_stop, config_.pred_early_stop_freq, config_.pred_early_stop_margin);
+		int64_t num_pred_in_one_row = boosting_->NumPredictOneRow(config_.num_iteration_predict, config_.predict_leaf_index, true);
+		auto pred_fun = predictor.GetPredictFunction();
+
+		int64_t len_res = nrows * num_pred_in_one_row;
+
+		vector<double> out_result_vec(len_res);
+		double *out_result = &out_result_vec[0];
+		if (shap_vals == NULL) shap_vals = new float[nrows*num_pred_in_one_row];
+
+		OMP_INIT_EX();
+#pragma omp parallel for schedule(static)
+		for (int i = 0; i < nrows; ++i) {
+			OMP_LOOP_EX_BEGIN();
+			auto one_row = get_row_fun(i);
+			auto pred_wrt_ptr = out_result + static_cast<size_t>(num_pred_in_one_row) * i;
+			pred_fun(one_row, pred_wrt_ptr);
+			for (int j = 0; j < num_pred_in_one_row; j++)
+				shap_vals[i*num_pred_in_one_row + j] = (float)pred_wrt_ptr[j];
+			OMP_LOOP_EX_END();
+		}
+		OMP_THROW_EX();
+
+	}
+
 	//-----------------------------------------------------------------------------------------------------------
 	//----- start of some help functions
 	//-----------------------------------------------------------------------------------------------------------
@@ -345,11 +377,70 @@ namespace LightGBM {
 
 void MedLightGBM::calc_feature_importance(vector<float> &features_importance_scores,
 	const string &general_params, const MedFeatures *features) {
-	//if (!_mark_learn_done)
-	//	MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
+	if (!_mark_learn_done)
+		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 
-	mem_app.calc_feature_importance(features_importance_scores, general_params,
-		(model_features.empty() ? features_count : (int)model_features.size()));
+	map<string, string> params;
+
+	unordered_set<string> local_types = { "gain", "split" };
+	unordered_set<string> legal_types = { "gain", "split", "shap" };
+
+	MedSerialize::initialization_text_to_map(general_params, params);
+	string importance_type = "gain"; // default
+	for (auto it = params.begin(); it != params.end(); ++it)
+		if (it->first == "importance_type")
+			importance_type = it->second;
+		else
+			MTHROW_AND_ERR("Unsupported calc_feature_importance param \"%s\"\n", it->first.c_str());
+
+	if (legal_types.find(importance_type) == legal_types.end())
+		MTHROW_AND_ERR("Ilegal importance_type value \"%s\" "
+			"- should by one of [weight, gain, cover, gain_total]\n", importance_type.c_str());
+
+	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
+
+	if (local_types.count(importance_type) > 0) {
+		mem_app.calc_feature_importance(features_importance_scores, importance_type,
+			(model_features.empty() ? features_count : (int)model_features.size()));
+		return;
+	}
+
+	// shap option
+	MedMat<float> feat_mat, contribs_mat;
+	if (features == NULL)
+		MTHROW_AND_ERR("SHAP values feature importance requires features \n");
+
+	features->get_as_matrix(feat_mat);
+	calc_feature_contribs(feat_mat, contribs_mat);
+#pragma omp parallel for
+	for (int j = 0; j < contribs_mat.ncols; ++j)
+	{
+		float col_sum = 0;
+
+		for (int i = 0; i < contribs_mat.nrows; ++i)
+		{
+			col_sum += abs(contribs_mat.get(i, j));
+		}
+		features_importance_scores[j] = col_sum / (float)contribs_mat.nrows;
+	}
+
+}
+
+void MedLightGBM::calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs)
+{
+	int nrows = x.nrows;
+	int ncols = x.ncols;
+	int n_preds = n_preds_per_sample();
+
+	contribs.resize(nrows, ncols + 1);
+	// copy metadata
+	contribs.signals.insert(contribs.signals.end(), x.signals.begin(), x.signals.end());
+	contribs.signals.push_back("b0");
+	contribs.recordsMetadata.insert(contribs.recordsMetadata.end(), x.recordsMetadata.begin(), x.recordsMetadata.end());
+
+	float *contribs_ptr = &contribs.m[0];
+	float *x_ptr = &x.m[0];
+	mem_app.PredictShap(x_ptr, nrows, ncols, contribs_ptr);
 }
 
 void MedLightGBM::prepare_predict_single() {

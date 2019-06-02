@@ -51,6 +51,7 @@ namespace LightGBM {
 
 		// predict
 		void Predict(float *x, int nrows, int ncols, float *&preds) const;
+		void PredictShap(float *x, int nrows, int ncols, float *&shap_vals) const;
 
 		// initializing the train_data_ object from a float c matrix
 		int InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols);
@@ -103,7 +104,7 @@ namespace LightGBM {
 			LoadModelFromString(mdl);
 		}
 
-		vector<float> FeatureImportanceTrick(const string &method = "frequency") {
+		vector<float> FeatureImportanceTrick(const string &method = "gain") {
 			/*
 			vector<pair<size_t, string>> res = FeatureImportance(method);
 
@@ -116,7 +117,10 @@ namespace LightGBM {
 				final_res[index] = (float)res[i].first;
 			}
 			*/
-			vector<float> final_res;
+
+			vector<double> imps = FeatureImportance(-1, method == "gain" ? 1 : 0);
+
+			vector<float> final_res(imps.begin(), imps.end());
 			return final_res;
 		}
 	};
@@ -216,6 +220,8 @@ public:
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params, const MedFeatures *features);
 
+
+	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
 	int n_preds_per_sample() const { return mem_app.n_preds_per_sample(); }
 

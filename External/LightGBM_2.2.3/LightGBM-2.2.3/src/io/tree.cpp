@@ -497,10 +497,12 @@ Tree::Tree(const char* str, size_t* used_len) {
   Common::Atoi(key_vals["num_leaves"].c_str(), &num_leaves_);
 
   if (key_vals.count("num_cat") <= 0) {
-    Log::Fatal("Tree model should contain num_cat field");
-  }
+	  Log::Warning("Tree model should contain num_cat field ... probably using older models... assuming num_cat=0 ...\n"); // Medial Change
+	  num_cat_ = 0;
+		//Log::Fatal("Tree model should contain num_cat field"); // Medial Change
+  } else
 
-  Common::Atoi(key_vals["num_cat"].c_str(), &num_cat_);
+	Common::Atoi(key_vals["num_cat"].c_str(), &num_cat_);
 
   if (key_vals.count("leaf_value")) {
     leaf_value_ = Common::StringToArray<double>(key_vals["leaf_value"], num_leaves_);
