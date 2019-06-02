@@ -1686,4 +1686,44 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 			post_processors_learning_sets[assignments[i]-1].idSamples.push_back(inSamples.idSamples[i]);
 	}
 }
+
+
+//========================================================================================================
+// medial::medmodel:: functions
+//========================================================================================================
+
+//--------------------------------------------------------------------------------------------------------
+void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples, MedSamples &samples, MedModelStage to_stage)
+{
+	unordered_set<string> req_sigs;
+	vector<string> rsigs;
+
+	model.get_required_signal_names(req_sigs);
+	for (auto &s : req_sigs) rsigs.push_back(s);
+
+	if (samples.read_from_file(f_samples) < 0)
+		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not read samples file %s\n", f_samples.c_str());
+
+	vector<int> pids;
+
+	samples.get_ids(pids);
+
+	MedPidRepository rep;
+	if (rep.read_all(rep_fname, pids, rsigs) < 0)
+		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not read repository %s\n", rep_fname.c_str());
+
+	if (model.apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, to_stage) < 0)
+		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not apply model\n");
+
+}
+
+
+//--------------------------------------------------------------------------------------------------------
+void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples, MedModelStage to_stage)
+{ 
+	// returns just the model : model.features is updated
+	MedSamples samples;
+	medial::medmodel::apply(model, rep_fname, f_samples, samples, to_stage);
+}
+
 #endif
