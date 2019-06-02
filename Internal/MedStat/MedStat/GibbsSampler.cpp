@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <regex>
+#include "medial_utilities/medial_utilities/globalRNG.h"
 
 #define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -162,14 +163,12 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 }
 
 template<typename T> GibbsSampler<T>::GibbsSampler() {
-	random_device rd;
-	_gen = mt19937(rd());
+	_gen = mt19937(globalRNG::rand());
 	done_prepare = false;
 }
 
 template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<T>> &cohort_data) {
-	random_device rd;
-	mt19937 gen(rd());
+	mt19937 gen(globalRNG::rand());
 	if (params.selection_ratio > 1) {
 		MWARN("Warning - GibbsSampler::learn_gibbs - params.selection_ratio is bigger than 1 - setting to 1");
 		params.selection_ratio = 1;
@@ -533,7 +532,7 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 		N_tot_threads = worker_num;
 	vector<mt19937> rnd_gens(N_tot_threads);
 	for (size_t i = 0; i < rnd_gens.size(); ++i)
-		rnd_gens[i] = mt19937(rd());
+		rnd_gens[i] = mt19937(globalRNG::rand());
 
 	GibbsSamplingParams per_thread_params = sampling_params;
 	per_thread_params.samples_count = (int)ceil(float(sampling_params.samples_count) / N_tot_threads);
@@ -563,8 +562,7 @@ template<typename T> void GibbsSampler<T>::get_parallel_samples(map<string, vect
 
 template<typename T> void GibbsSampler<T>::filter_samples(const map<string, vector<float>> &cohort_data,
 	map<string, vector<T>> &results, const string &predictor_type, const string &predictor_args, float filter_sens) {
-	random_device rd;
-	mt19937 gen(rd());
+	mt19937 gen(globalRNG::rand());
 
 	MedFeatures new_data;
 	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)

@@ -141,12 +141,12 @@ public:
 		recordsMetadata = other.recordsMetadata;
 	}
 	template <class S> MedMat(S *x, int n_rows, int n_cols) { clear(); load(x, n_rows, n_cols); }
-	template <class S> MedMat(vector<S> &x, int n_cols) { clear(); load(x, n_cols); }
+	template <class S> MedMat(const vector<S> &x, int n_cols) { clear(); load(x, n_cols); }
 	template <class S> MedMat(MedMat<S> &x) { clear(); load(x); }
 
 	template <class S> void load(S *x, int n_rows, int n_cols);
 	template <class S> void load_transposed(S *x, int n_rows, int n_cols);
-	template <class S> void load(vector<S> &x, int n_cols);
+	template <class S> void load(const vector<S> &x, int n_cols);
 	template <class S> void load(MedMat<S> &x);
 
 	void zero() { fill(m.begin(), m.end(), (T)0); }

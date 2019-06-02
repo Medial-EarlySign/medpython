@@ -95,8 +95,9 @@ void *PostProcessor::new_polymorphic(string dname)
 
 void MultiPostProcessor::init_post_processor(MedModel& model) {
 #pragma omp parallel for if (call_parallel_learn)
-		for (int i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->init_post_processor(model);
+	for (int i = 0; i < post_processors.size(); ++i)
+		post_processors[i]->init_post_processor(model);
+
 }
 
 void MultiPostProcessor::Learn(const MedFeatures &matrix) {

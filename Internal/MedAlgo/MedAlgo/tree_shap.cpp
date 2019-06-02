@@ -1,5 +1,6 @@
 #include "tree_shap.h"
 #include <omp.h>
+#include "medial_utilities/medial_utilities/globalRNG.h"
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -1457,10 +1458,26 @@ void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, 
 	}
 }
 
-long medial::shapley::nchoosek(long n, long k) {
+long int_calc_nchoose_k(long n, long k) {
+	long num = 1;
+	for (int i = k + 1; i <= n; ++i)
+		num *= i;
+	for (int i = 2; i <= n - k; ++i)
+		num /= i;
+	return num;
+}
+
+double medial::shapley::nchoosek(long n, long k) {
 	if (k == 0)
 		return 1;
-	return (n * nchoosek(n - 1, k - 1)) / k;
+	if (k <= 20)
+		return int_calc_nchoose_k(n, k);
+	double ex = 0;
+	for (int i = k + 1; i <= n; ++i)
+		ex += log(i);
+	for (int i = 2; i <= n - k; ++i)
+		ex -= log(i);
+	return exp(ex);
 }
 
 void medial::shapley::list_all_options_binary(int nfeats, vector<vector<bool>> &all_opts) {
@@ -1631,23 +1648,23 @@ void medial::shapley::sample_options_SHAP(int nfeats, vector<vector<bool>> &all_
 double medial::shapley::get_c(int p1, int p2, int end_l) {
 	//c := (end_l)! / ( p1! * p2! )
 	//returns 1/c 
-	double c = 1, d = 1;
+	double c = 0, d = 0;
 	if (p1 > p2) {
 		for (int i = p1 + 1; i <= end_l; ++i)
-			c *= i;
+			c += log(i);
 		for (int i = 2; i <= p2; ++i)
-			d *= i;
-		c /= d;
+			d += log(i);
+		c -= d;
 	}
 	else {
 		for (int i = p2 + 1; i <= end_l; ++i)
-			c *= i;
+			c += log(i);
 		for (int i = 2; i <= p1; ++i)
-			d *= i;
-		c /= d;
+			d += log(i);
+		c -= d;
 	}
 
-	return 1 / c;
+	return 1 / exp(c);
 }
 
 void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
@@ -1655,8 +1672,8 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 	, vector<float> &features_coeff,
 	bool sample_masks_with_repeats, float select_from_all, bool uniform_rand, bool use_shuffle,
 	bool verbose) {
-	random_device rd;
-	mt19937 gen(rd());
+
+	mt19937 gen(globalRNG::rand());
 
 	int ngrps = (int)group2index.size();
 
@@ -1793,68 +1810,25 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 		MLOG("Done explain_shapely. took %2.1f seconds\n", tm_taker.diff_sec());
 }
 
-void collect_score_mask(const vector<float> &x, const vector<bool> &mask, SamplesGenerator<float> &sampler_gen
-	, int sample_per_row, void *sampling_params, const vector<string> &feat_names, const map<string, FeatureAttr> &attr,
-	const MedPredictor *predictor, vector<float> &preds) {
-
-	if (sampler_gen.use_vector_api) {
-		vector<vector<float>> mat_inp = { x };
-		vector<vector<bool>> masks = { mask };
-		vector<vector<float>> res; //the result matrix
-		sampler_gen.get_samples(res, sample_per_row, sampling_params, masks, mat_inp);
-
-		MedFeatures gen_matrix;
-		gen_matrix.samples.resize(res.size());
-		preds.resize(res.size());
-		for (size_t i = 0; i < feat_names.size(); ++i)
-		{
-			gen_matrix.data[feat_names[i]].resize(res.size());
-			for (size_t k = 0; k < res.size(); ++k)
-				gen_matrix.data[feat_names[i]][k] = res[k][i];
-		}
-		gen_matrix.attributes = attr;
-		gen_matrix.init_pid_pos_len();
-		predictor->predict(gen_matrix); //todo: use vector api
-
-		for (size_t i = 0; i < preds.size(); ++i)
-			preds[i] = gen_matrix.samples[i].prediction[0];
-	}
-	else {
-		MedFeatures gen_matrix;
-
-		sampler_gen.get_samples(gen_matrix.data, sampling_params, mask, x);
-		gen_matrix.samples.resize(gen_matrix.data.begin()->second.size());
-		preds.resize(gen_matrix.samples.size());
-
-		gen_matrix.attributes = attr;
-		gen_matrix.init_pid_pos_len();
-		predictor->predict(gen_matrix); //todo: use vector api
-
-		for (size_t i = 0; i < preds.size(); ++i)
-			preds[i] = gen_matrix.samples[i].prediction[0];
-	}
-
-}
-
 int collect_mask(const vector<float> &x, const vector<bool> &mask, const SamplesGenerator<float> &sampler_gen, mt19937 &rnd_gen
 	, int sample_per_row, void *sampling_params, const vector<string> &feat_names, map<string, vector<float>> &gen_matrix) {
 
 	if (sampler_gen.use_vector_api) {
 		int size_before = (int)gen_matrix[feat_names.front()].size();
-		vector<vector<float>> mat_inp = { x };
+		MedMat<float> mat_inp(x, (int)x.size());
 		vector<vector<bool>> masks = { mask };
-		vector<vector<float>> res; //the result matrix
+		MedMat<float> res; //the result matrix
 		sampler_gen.get_samples(res, sample_per_row, sampling_params, masks, mat_inp, rnd_gen);
 
 
 #pragma omp critical
-		for (size_t i = 0; i < feat_names.size(); ++i) {
-			gen_matrix[feat_names[i]].resize(size_before + res.size());
-			for (size_t k = 0; k < res.size(); ++k)
-				gen_matrix[feat_names[i]][size_before + k] = res[k][i];
+		for (int i = 0; i < feat_names.size(); ++i) {
+			gen_matrix[feat_names[i]].resize(size_before + res.nrows);
+			for (int k = 0; k < res.nrows; ++k)
+				gen_matrix[feat_names[i]][size_before + k] = res(k, i);
 		}
 
-		return (int)res.size();
+		return res.nrows;
 	}
 	else {
 		//no parallel:
@@ -1880,8 +1854,8 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 	MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 	const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
 	vector<float> &features_coeff, bool verbose) {
-	random_device rd;
-	mt19937 gen(rd());
+
+	mt19937 gen(globalRNG::rand());
 
 	int tot_feat_cnt = (int)matrix.data.size();
 	vector<string> full_feat_ls;
@@ -2077,13 +2051,13 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 
 	if (generator->use_vector_api) {
 		int ncols = (int)data.data.size();
-		vector<vector<float>> in(masks.size(), vector<float>(ncols)), out(masks.size(), vector<float>(ncols));
+		MedMat<float> in((int)masks.size(), ncols), out((int)masks.size(), ncols);
 
 		int icol = 0;
 		for (auto& rec : data.data) {
 #pragma omp parallel for
 			for (int irow = 0; irow < masks.size(); irow++)
-				in[irow][icol] = rec.second[isample];
+				in(irow, icol) = rec.second[isample];
 			icol++;
 		}
 
@@ -2093,9 +2067,10 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 		for (auto& rec : data.data) {
 			out_data->attributes[rec.first] = data.attributes.at(rec.first);
 			out_data->data[rec.first].resize(masks.size());
+
 #pragma omp parallel for
 			for (int irow = 0; irow < masks.size(); irow++)
-				(out_data->data)[rec.first][irow] = out[irow][icol];
+				(out_data->data)[rec.first][irow] = out(irow, icol);
 			icol++;
 		}
 	}
@@ -2114,14 +2089,43 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 }
 
 // Learn a Shapely-Lime model
+// Helper - 
+// Calculate:
+//			(n - 1.0) / (n choose k)*k*(n - k));
+//			------------------------------------
+//			(n - 1.0) / (n choose k0)*k0*(n - k0));
+// where k0 = n*p
+
+double get_normalized_weight(int n, int k, int k0) {
+
+	double logFactor = 0;
+	for (int i = k0; i < k; i++) {
+		logFactor += log(i - 1);
+		logFactor -= log(n - i - 1);
+	}
+	return exp(logFactor);
+}
+
+double get_normalized_weight(int n, int k, float p) {
+
+	int k0 = n * p + 0.5;
+	if (k > k0)
+		return get_normalized_weight(n, k, k0);
+	else
+		return 1.0 / get_normalized_weight(n, k0, k);
+}
+
+// Main function
 void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 	SamplesGenerator<float> *generator, float p, int n, float missing,
 	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
-	random_device rd;
+
 	int N_TH = omp_get_max_threads();
 	vector<mt19937> gen(N_TH);
+
 	for (size_t i = 0; i < N_TH; ++i)
-		gen[i] = mt19937(rd());
+		gen[i] = mt19937(globalRNG::rand());
+
 	uniform_real_distribution<> coin_dist(0, 1);
 	uniform_int_distribution<> smp_choose(0, (int)data.samples.size() - 1);
 
@@ -2147,7 +2151,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		// Generate random masks
 		MedMat<float> train(ngrps, n);
 		vector<float> wgts(n);
-		vector < vector<bool>> masks(n, vector<bool>(nftrs));
+		vector<vector<bool>> masks(n, vector<bool>(nftrs));
 
 		vector<bool> missing_v(nftrs, false), missing_g(ngrps, true);
 		int nMissing = 0;
@@ -2203,9 +2207,11 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			}
 
 			// Weights
-			wgts[irow] = (ngrps - 1.0) / (medial::shapley::nchoosek(ngrps, S)*S*(ngrps - S));
+			wgts[irow] = get_normalized_weight(ngrps, S, p);
 		}
 
+		// Normalize 
+		
 		// Generate sampled data
 		generate_samples(data, isample, masks, generator, params, &p_features);
 
@@ -2219,7 +2225,20 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			sum += preds[irow];
 		}
 
-		//MLOG("sample=%d, mean_pred=%f\n", isample, sum / n);
+		/* Some debugging
+		MLOG("sample=%d, mean_pred=%f\n", isample, sum / n);
+		MedFeatures s_features;
+		s_features.samples.push_back(p_features.samples[0]);
+		for (auto& rec :data.data) {
+		string feature = rec.first;
+		s_features.attributes[feature] = data.attributes.at(feature);
+		s_features.data[feature].push_back(data.data.at(feature)[isample]);
+		cerr << data.data.at(feature)[isample] << ",";
+		}
+
+		model->predict(s_features);
+		cerr << s_features.samples[0].prediction[0] << "\n";
+		*/
 
 		// Learn linear model
 		int eff_ngrps = 0;

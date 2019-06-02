@@ -2,6 +2,7 @@
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>                                                                                                                                                
+#include <thread>
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -29,7 +30,7 @@ int KerasLayer::apply_sparse(vector<pair<int, float>> &sline, vector<float> &out
 		for (int d=0; d<out_dim; d++) {
 			output[d] = bias[d];
 			for (auto &p : sline)
-				output[d] += wgts[d][p.first] * p.second;
+				output[d] += wgts(d,p.first) * p.second;
 		}
 
 		if (activation != A_UNKNOWN && activation != A_LINEAR)
@@ -68,7 +69,7 @@ int KerasLayer::apply_sparse(map<int, float> &sline, vector<float> &output) cons
 		for (int d = 0; d<out_dim; d++) {
 			output[d] = bias[d];
 			for (auto &p : sline)
-				output[d] += wgts[d][p.first] * p.second;
+				output[d] += wgts(d,p.first) * p.second;
 		}
 
 		if (activation != A_UNKNOWN && activation != A_LINEAR)
@@ -121,16 +122,15 @@ int KerasLayer::apply_activation(vector<float> &in, vector<float> &out) const
 	return 0;
 }
 
-
 //-------------------------------------------------------------------------------------------
 int KerasLayer::apply_bn(vector<float> &in, vector<float> &out) const
 {
 	out = in;
 #pragma omp parallel for
 	for (int d=0; d<dim; d++) {
-		out[d] = (out[d] - wgts[2][d])/wgts[3][d];
-		out[d] = wgts[0][d] * out[d] + wgts[1][d];
-		//MLOG("BN: d=%d : in %f wgts %f %f %f %f out %f\n", d, in[d], wgts[0][d], wgts[1][d], wgts[2][d], wgts[3][d], out[d]);
+		out[d] = (out[d] - wgts(2,d))/wgts(3,d);
+		out[d] = wgts(0,d) * out[d] + wgts(1,d);
+		//MLOG("BN: d=%d : in %f wgts %f %f %f %f out %f\n", d, in[d], wgts(0,d), wgts(1,d), wgts(2,d), wgts(3,d), out[d]);
 	}
 	return 0;
 }
@@ -148,7 +148,7 @@ int KerasLayer::apply(vector<float> &in, vector<float> &out) const
 #pragma omp parallel for
 		for (int d=0; d<out_dim; d++) {
 			for (int j=0; j<in_dim; j++)
-				out[d] += wgts[d][j] * in[j];
+				out[d] += wgts(d,j) * in[j];
 		}
 
 		if (activation != A_UNKNOWN && activation != A_LINEAR)
@@ -167,6 +167,88 @@ int KerasLayer::apply(vector<float> &in, vector<float> &out) const
 			out[d] *= factor;
 	}
 
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------
+// Work on batches
+//-------------------------------------------------------------------------------------------
+int KerasLayer::apply(MedMat<float> &in, MedMat<float> &out) const
+{
+
+	if (type == K_DENSE) {
+		out.resize(in.nrows, twgts.ncols);
+
+		Eigen::Map<const Eigen::MatrixXf> eigen_in(in.data_ptr(), in.ncols, in.nrows);
+		Eigen::Map<const Eigen::MatrixXf> eigen_w(twgts.data_ptr(), twgts.ncols, twgts.nrows);
+		Eigen::Map<const Eigen::VectorXf> eigen_b(bias.data(), bias.size());
+		Eigen::Map<Eigen::MatrixXf> eigen_out(out.data_ptr(), out.ncols, out.nrows);
+
+		eigen_out = eigen_w * eigen_in ;
+		eigen_out.colwise() += eigen_b;
+
+		if (activation != A_UNKNOWN && activation != A_LINEAR)
+			return apply_activation(out, out);
+	}
+	else if (type == K_LEAKY) {
+		return apply_activation(in, out);
+	}
+	else if (type == K_BN) {
+		apply_bn(in, out);
+	}
+	else if (type == K_DROPOUT) {
+		out = in;
+	}
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------
+int KerasLayer::apply_activation(MedMat<float> &in, MedMat<float> &out) const
+{
+	out.resize(in.nrows,in.ncols);
+
+	// if needed apply sigmoid
+	if (activation == A_SIGMOID) {
+		for (int irow=0; irow<in.nrows; irow++)
+			for (int icol=0; icol<in.ncols; icol++)
+				out(irow,icol)= 1.0f / (1.0f + exp(-in(irow,icol)));
+	}
+
+	// if needed apply ReLU
+	else if (activation == A_RELU) {
+		for (int irow = 0; irow<in.nrows; irow++)
+			for (int icol = 0; icol < in.ncols; icol++) {
+				if (in(irow, icol) < 0)
+					out(irow, icol) = 0;
+				else
+					out(irow, icol) = in(irow, icol);
+			}
+	}
+
+	else if (activation == A_LEAKY) {
+		for (int irow = 0; irow<in.nrows; irow++)
+			for (int icol = 0; icol < in.ncols; icol++) {
+				out(irow, icol) = in(irow, icol);
+				if (in(irow, icol) < 0)
+					out(irow, icol) *= leaky_alpha;
+		}
+	}
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------
+int KerasLayer::apply_bn(MedMat<float> &in, MedMat<float> &out) const
+{
+	out = in;
+#pragma omp parallel for
+	for (int irow = 0; irow<in.nrows; irow++) {
+		for (int d = 0; d < in.ncols; d++) {
+			out(irow,d) = (out(irow, d) - wgts(2,d)) / wgts(3,d);
+			out(irow, d) = wgts(0,d) * out(irow, d) + wgts(1,d);
+		}
+	}
 	return 0;
 }
 
@@ -261,7 +343,7 @@ int ApplyKeras::apply(vector<float>& line, vector<float> &output, int to_layer) 
 	layers[0].apply(line, outs[0]);
 	
 	for (int i = 1; i <= to_layer; i++) {
-		//MLOG("apply_sparse layer %d (passed %d) to_layer=%d (name %s type %d activation %d)\n", i, passed_first_dense, to_layer, layers[i].name.c_str(), layers[i].type, layers[i].activation);
+		//MLOG("apply layer %d (passed %d) to_layer=%d (name %s type %d activation %d)\n", i, passed_first_dense, to_layer, layers[i].name.c_str(), layers[i].type, layers[i].activation);
 		layers[i].apply(outs[i - 1], outs[i]);
 		//MLOG("out[i] size %d\n", outs[i].size());
 	}
@@ -270,6 +352,26 @@ int ApplyKeras::apply(vector<float>& line, vector<float> &output, int to_layer) 
 	return 0;
 
 }
+
+//-------------------------------------------------------------------------------------------
+int ApplyKeras::apply(MedMat<float>& line, MedMat<float> &output, int to_layer) const
+{
+	if (to_layer < 0) to_layer = (int)layers.size() - 1 + to_layer;
+
+	vector<MedMat<float>> outs(to_layer + 1, MedMat<float>());
+	layers[0].apply(line, outs[0]);
+
+	for (int i = 1; i <= to_layer; i++) {
+		//MLOG("apply layer %d (passed %d) to_layer=%d (name %s type %d activation %d)\n", i, passed_first_dense, to_layer, layers[i].name.c_str(), layers[i].type, layers[i].activation);
+		layers[i].apply(outs[i - 1], outs[i]);
+		//MLOG("out[i] size %d\n", outs[i].size());
+	}
+
+	output = outs[to_layer];
+	return 0;
+
+}
+
 //-------------------------------------------------------------------------------------------
 int ApplyKeras::init_from_text_file(string layers_file)
 {
@@ -303,38 +405,42 @@ int ApplyKeras::init_from_text_file(string layers_file)
 
 				// read matrices if needed
 				if (kl.type == K_DENSE) {
-					kl.wgts.resize(kl.out_dim, vector<float>(kl.in_dim));
+					kl.wgts.resize(kl.out_dim, kl.in_dim);
+					kl.twgts.resize(kl.in_dim, kl.out_dim);
 					for (int j=0; j<kl.in_dim; j++) {
 						getline(inf, curr_line);
 						boost::split(f, curr_line, boost::is_any_of(","));
 						if (f.size() != kl.out_dim)
 							MTHROW_AND_ERR("ApplyKeras: ERROR: non matching sizes for wgts line: %d expected , got %d\n", kl.out_dim, (int)f.size());
-						for (int d=0; d<f.size(); d++)
-							kl.wgts[d][j] = stof(f[d]); // keras prints the matrices transposed.
+						for (int d = 0; d < f.size(); d++) {
+							kl.wgts(d, j) = stof(f[d]); // keras prints the matrices transposed.
+							kl.twgts(j, d) = stof(f[d]);
+						}
 					}
+
 					// read bias
 					kl.bias.resize(kl.out_dim);
 					getline(inf, curr_line);
 					boost::split(f, curr_line, boost::is_any_of(","));
 					if (f.size() != kl.bias.size())
 						MTHROW_AND_ERR("ApplyKeras: ERROR: non matching sizes for bias wgts line: %d expected , got %d\n", (int)kl.bias.size(), (int)f.size());
-					for (int j=0; j<f.size(); j++)
+					for (int j = 0; j < f.size(); j++)
 						kl.bias[j] = stof(f[j]);
 				}
 
 				if (kl.type == K_BN) {
-					kl.wgts.resize(4, vector<float>(kl.dim));
+					kl.wgts.resize(4,kl.dim);
 					for (int d=0; d<4; d++) {
 						getline(inf, curr_line);
 						boost::split(f, curr_line, boost::is_any_of(","));
-						if (f.size() != kl.wgts[d].size())
-							MTHROW_AND_ERR("ApplyKeras: ERROR: non matching sizes for batch normalization wgts line: %d expected , got %d\n", (int)kl.wgts[d].size(), (int)f.size());
+						if (f.size() != kl.dim)
+							MTHROW_AND_ERR("ApplyKeras: ERROR: non matching sizes for batch normalization wgts line: %d expected , got %d\n", kl.dim, (int)f.size());
 						for (int j=0; j<f.size(); j++)
-							kl.wgts[d][j] = stof(f[j]);
+							kl.wgts(d,j) = stof(f[j]);
 					}
 					float epsilon = (float)0.001;
-					for (int j=0; j<kl.wgts[3].size(); j++)
-						kl.wgts[3][j] = sqrt(kl.wgts[3][j] + epsilon);
+					for (int j=0; j<kl.dim; j++)
+						kl.wgts(3, j) = sqrt(kl.wgts(3,j) + epsilon);
 					kl.out_dim = kl.dim;
 				}
 

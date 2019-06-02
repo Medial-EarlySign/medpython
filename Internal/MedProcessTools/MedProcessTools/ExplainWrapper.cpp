@@ -6,6 +6,7 @@
 #include "ExplainWrapper.h"
 #include <MedAlgo/MedAlgo/MedXGB.h>
 #include <MedStat/MedStat/MedStat.h>
+#include "medial_utilities/medial_utilities/globalRNG.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -655,7 +656,7 @@ TreeExplainer::~TreeExplainer() {
 
 MissingShapExplainer::~MissingShapExplainer() {
 	//TODO: use uniqe_ptr and than can remove those destructors..
-	if (retrain_predictor != NULL) {
+	if (retrain_predictor != NULL && !no_relearn) {
 		delete retrain_predictor;
 		retrain_predictor = NULL;
 	}
@@ -680,6 +681,7 @@ MissingShapExplainer::MissingShapExplainer() {
 	change_learn_args = "";
 	verbose_learn = true;
 	no_relearn = false;
+	avg_bias_score = 0;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -710,14 +712,36 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 	}
 }
 
+float get_avg_preds(const MedFeatures &train_mat, MedPredictor *original_predictor) {
+	if (train_mat.samples.empty())
+		MTHROW_AND_ERR("Error get_avg_preds learn matrix is empty\n");
+	vector<float> preds_orig(train_mat.samples.size());
+	float avg_bias_score = 0;
+	if (train_mat.samples.front().prediction.empty()) {
+		MedMat<float> mat_x;
+		train_mat.get_as_matrix(mat_x);
+		if (original_predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
+			mat_x.transpose();
+		original_predictor->predict(mat_x, preds_orig);
+	}
+	else {
+		for (size_t i = 0; i < preds_orig.size(); ++i)
+			preds_orig[i] = train_mat.samples[i].prediction[0];
+	}
+	for (size_t i = 0; i < preds_orig.size(); ++i)
+		avg_bias_score += preds_orig[i];
+	avg_bias_score /= preds_orig.size();
+	return avg_bias_score;
+}
+
 void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
 	if (no_relearn) {
 		retrain_predictor = original_predictor;
 		return;
 	}
 	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
-	random_device rd;
-	mt19937 gen(rd());
+	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
@@ -853,7 +877,8 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			for (size_t j = 0; j < group_names->size(); ++j)
 				curr_res[group_names->at(j)] = features_coeff[j];
 			//Add prior to score:
-			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			curr_res[bias_name] = avg_bias_score; //that will sum to current score
 		}
 
 		progress.update();
@@ -869,6 +894,8 @@ string GeneratorType_toStr(GeneratorType type) {
 		return "GAN";
 	case MISSING:
 		return "MISSING";
+	case RANDOM_DIST:
+		return "RANDOM_DIST";
 	default:
 		MTHROW_AND_ERR("Unknown type %d\n", type);
 	}
@@ -881,6 +908,8 @@ GeneratorType GeneratorType_fromStr(const string &type) {
 		return GeneratorType::GIBBS;
 	else if (tp == "MISSING")
 		return GeneratorType::MISSING;
+	else if (tp == "RANDOM_DIST")
+		return GeneratorType::RANDOM_DIST;
 	else
 		MTHROW_AND_ERR("Unknown type %s\n", type.c_str());
 }
@@ -925,6 +954,11 @@ void ShapleyExplainer::init_sampler(bool with_sampler) {
 		if (with_sampler)
 			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 		break;
+	case RANDOM_DIST:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new RandomSamplesGenerator<float>(0, 5));
+		sampler_sampling_args = &n_masks;
+		break;
 	default:
 		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
 	}
@@ -932,6 +966,7 @@ void ShapleyExplainer::init_sampler(bool with_sampler) {
 
 void ShapleyExplainer::_learn(const MedFeatures &train_mat) {
 	_sampler->learn(train_mat.data);
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
 }
 
 void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
@@ -969,7 +1004,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 	random_device rd;
 	vector<mt19937> gen_thread(MAX_Threads);
 	for (size_t i = 0; i < gen_thread.size(); ++i)
-		gen_thread[i] = mt19937(rd());
+		gen_thread[i] = mt19937(globalRNG::rand());
 	_sampler->prepare(sampler_sampling_args);
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
@@ -993,7 +1028,8 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 			for (size_t j = 0; j < group_names->size(); ++j)
 				curr_res[group_names->at(j)] = features_coeff[j];
 			//Add prior to score:
-			curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			curr_res[bias_name] = avg_bias_score;
 		}
 
 		progress.update();
@@ -1027,6 +1063,11 @@ void ShapleyExplainer::load_MISSING(MedPredictor *original_pred) {
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
 	gen_type = GeneratorType::MISSING;
+}
+
+void ShapleyExplainer::load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator) {
+	this->original_predictor = original_pred;
+	_sampler = move(generator);
 }
 
 void ShapleyExplainer::dprint(const string &pref) const {
@@ -1109,6 +1150,11 @@ void LimeExplainer::load_MISSING(MedPredictor *original_pred) {
 	gen_type = GeneratorType::MISSING;
 }
 
+void LimeExplainer::load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator) {
+	this->original_predictor = original_pred;
+	_sampler = move(generator);
+}
+
 void LimeExplainer::post_deserialization() {
 	init_sampler(false);
 }
@@ -1165,6 +1211,7 @@ void LinearExplainer::_init(map<string, string> &mapper) {
 }
 
 void LinearExplainer::_learn(const MedFeatures &train_mat) {
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
 }
 
 void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
@@ -1244,7 +1291,8 @@ void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, floa
 		for (size_t j = 0; j < group_names->size(); ++j)
 			curr_res[group_names->at(j)] = all_features_coeff[j][i];
 		//Add prior to score:
-		curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+		//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+		curr_res[bias_name] = avg_bias_score; //that will sum to current score
 	}
 }
 
@@ -1336,8 +1384,8 @@ void KNN_Explainer::_learn(const MedFeatures &train_mat) {
 void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const
 {
 	MedFeatures explainedFeatures = matrix;
-	MedMat<float> explainedMatrix,explainedMatrixCopy;
-	
+	MedMat<float> explainedMatrix, explainedMatrixCopy;
+
 	vector <string> featureNames;
 	trainingMap.get_feature_names(featureNames);
 
@@ -1348,7 +1396,7 @@ void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		knnGroups = processing.group2Inds;
 		knnGroupNames = processing.groupNames;
 	}
-	else 
+	else
 		for (int col = 0; col < trainingMap.data.size(); col++) {
 			knnGroups.push_back(vector<int>{col});
 			knnGroupNames.push_back(featureNames[col]);
@@ -1370,17 +1418,17 @@ void KNN_Explainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	for (int row = 0; row < explainedMatrix.nrows; row++) {
 		explainedMatrix.get_row(row, thisRow);
 		sample_explain_reasons.push_back({});
-		computeExplanation(thisRow, sample_explain_reasons[row],knnGroups,knnGroupNames);
+		computeExplanation(thisRow, sample_explain_reasons[row], knnGroups, knnGroupNames);
 	}
 }
-void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons, vector <vector<int>> knnGroups,vector<string> knnGroupNames) const
+void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float> &sample_explain_reasons, vector <vector<int>> knnGroups, vector<string> knnGroupNames) const
 // do the calculation for a single sample after normalization
 {
 
 	MedMat<float> centers; //matrix taken from features and holds the centers of clusters
 	trainingMap.get_as_matrix(centers);
 	MedMat<float> pDistance(centers.nrows, centers.ncols);//initialized to 0
-	MedMat<float> gDistance(centers.nrows,(int) knnGroups.size());
+	MedMat<float> gDistance(centers.nrows, (int)knnGroups.size());
 	vector<float>totalDistance(centers.nrows, 0);
 #define SQR(x)  ((x)*(x))
 	for (int row = 0; row < centers.nrows; row++) {
