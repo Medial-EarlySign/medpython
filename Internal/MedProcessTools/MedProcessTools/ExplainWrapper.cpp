@@ -88,6 +88,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			cov_features.read_from_csv_file(it->second, 1);
 		else if (it->first == "grouping")
 			grouping = it->second;
+		else if (it->first == "normalize_vals")
+			normalize_vals = stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -105,57 +107,110 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 		x_mat.normalize();
 		//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
 		fast_multiply_medmat_transpose(x_mat, x_mat, cov_features, 1, 1.0 / x_mat.nrows);
+
+		abs_cov_features = cov_features;
+		for (auto &x : abs_cov_features.m) x = abs(x);
+
+		//// debug
+		//vector<string> f_names;
+		//train_mat.get_feature_names(f_names);
+		//for (int i = 0; i < cov_features.nrows; i++)
+		//	for (int j = 0; j < cov_features.ncols; j++)
+		//		MLOG("COV_DEBUG: (%d) %s (%d) %s :: %f\n", i, f_names[i].c_str(), j, f_names[j].c_str(), cov_features(i, j));
 	}
 }
 
+float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const
+{
+	float group_normalization_factor = (float)1e-8;
+
+	for (auto i : group_inds) group_normalization_factor += abs(contribs[i]);
+
+	vector<int> group_mask(contribs.size(), 0);
+	for (auto i : group_inds) group_mask[i] = 1;
+		
+	vector<float> alphas(contribs.size());
+
+	for (int i = 0; i < group_mask.size(); i++) {
+		if (group_mask[i])
+			alphas[i] = 1.0f;
+		else {
+			alphas[i] = 0.0f;
+			for (int j : group_inds)
+				alphas[i] += abs_cov_features(j, i) * abs(contribs[j]);
+			alphas[i] /= group_normalization_factor;
+		}
+	}
+
+	float group_contrib = 0.0f;
+	for (int i = 0; i < contribs.size(); i++)
+		group_contrib += alphas[i] * contribs[i];
+
+	group_contrib /= total_normalization_factor;
+	return group_contrib;
+}
+
 void ExplainProcessings::process(map<string, float> &explain_list) const {
+
+	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+	map<string, float> new_explain = explain_list;
+	for (auto &s : skip_bias_names) new_explain.erase(s);
+	MedMat<float> orig_explain(new_explain.size(), 1);
+	int k = 0;
+	for (auto &e : new_explain) orig_explain(k++, 0) = e.second;
+
+
+	float normalization_factor = 1.0;
+	if (normalize_vals > 0) {
+
+		normalization_factor = (float)1e-8; // starting with a small epsilon so that we never divide by 0 later
+		for (auto &e : new_explain) normalization_factor += abs(e.second);
+		//MLOG("====> DEBUG normalization_factor %f\n", normalization_factor);
+	}
+
 	//first do covarinace if has:
 	if (!cov_features.m.empty()) {
 		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%d, "
 				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
-		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+		
 
-		int iftr = 0;
-		for (auto &it : explain_list)
-		{
-			auto expalin_it = explain_list.begin();
-			float feat_contrib = 0;
-			for (int jftr = 0; jftr < cov_features.ncols; ++jftr)
-			{
-				if (skip_bias_names.find(expalin_it->first) != skip_bias_names.end())
-				{
-					++expalin_it;
-					continue;
-				}
-				feat_contrib += expalin_it->second * abs(cov_features(iftr, jftr));
-				++expalin_it;
+
+		if (group_by_sum) {
+			map<string, float> group_explain;
+			for (int i = 0; i < group2Inds.size(); i++) {
+				group_explain[groupNames[i]] = get_group_normalized_contrib(group2Inds[i], orig_explain.m, normalization_factor);
 			}
-			it.second = feat_contrib;
-			++iftr;
+			explain_list = move(group_explain);
 		}
+		else {
+			MedMat<float> fixed_with_cov(cov_features.ncols, 1);
+
+			fast_multiply_medmat(abs_cov_features, orig_explain, fixed_with_cov, (float)1.0 / normalization_factor);
+			int k = 0;
+			for (auto &e : new_explain) explain_list[e.first] = fixed_with_cov(k++, 0);
+		}
+
+		return; // ! -> since we treat group_by_sum differently in this case
+		
 	}
 
 	//sum features in groups
 	if (group_by_sum) {
 		if (group2Inds.empty())
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - asked for group_by_sum but haven't provide groups in grouping\n");
-		map<string, float> new_explain;
-		vector<float> random_access(explain_list.size());
-		auto explain_it = explain_list.begin();
-		for (size_t i = 0; i < random_access.size(); ++i) {
-			random_access[i] = explain_it->second;
-			++explain_it;
-		}
+		map<string, float> group_explain;
 		for (size_t i = 0; i < group2Inds.size(); ++i)
 		{
 			const string &grp_name = groupNames[i];
-			new_explain[grp_name] = 0;
+			float contrib = 0.0f;
 			for (int ind : group2Inds[i])
-				new_explain[grp_name] += random_access[ind];
+				contrib += orig_explain.m[ind];
+			group_explain[grp_name] = contrib;
+
 		}
 
-		explain_list = move(new_explain);
+		explain_list = move(group_explain);
 	}
 }
 
