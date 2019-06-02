@@ -120,7 +120,9 @@ namespace LightGBM {
 
 			vector<double> imps = FeatureImportance(-1, method == "gain" ? 1 : 0);
 
-			vector<float> final_res(imps.begin(), imps.end());
+			vector<float> final_res;
+			for (auto d : imps)
+				final_res.push_back((float)d);
 			return final_res;
 		}
 	};
