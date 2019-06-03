@@ -276,6 +276,7 @@ MedProgress::MedProgress(const string &title, int mprocess_cnt, int print_inter,
 	print_interval = print_inter;
 	print_title = title;
 	max_threads = max_th;
+	alway_print_total = false;
 
 	print_section = LOG_APP;
 	print_level = LOG_DEF_LEVEL;
@@ -290,8 +291,9 @@ void MedProgress::update() {
 	if (progress == max_loop) {
 		double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
 			- tm_start).count()) / 1000000.0;
-		global_logger.log(print_section, print_level, "#%s# :: Done processed all %d. Took %2.1f Seconds in total\n",
-			print_title.c_str(), max_loop, time_elapsed);
+		if (alway_print_total || time_elapsed > print_interval)
+			global_logger.log(print_section, print_level, "#%s# :: Done processed all %d. Took %2.1f Seconds in total\n",
+				print_title.c_str(), max_loop, time_elapsed);
 		return;
 	}
 
