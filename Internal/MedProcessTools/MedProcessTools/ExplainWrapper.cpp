@@ -138,8 +138,10 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 		else {
 			alphas[i] = 0.0f;
 			for (int j : group_inds)
-				alphas[i] += abs_cov_features(j, i) * abs(contribs[j]);
-			alphas[i] /= group_normalization_factor;
+				if (abs_cov_features(j, i) > alphas[i])
+					alphas[i] = abs_cov_features(j, i);
+				//alphas[i] += abs_cov_features(j, i) * abs(contribs[j]);
+			//alphas[i] /= group_normalization_factor;
 		}
 	}
 
@@ -156,7 +158,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
 	map<string, float> new_explain = explain_list;
 	for (auto &s : skip_bias_names) new_explain.erase(s);
-	MedMat<float> orig_explain(new_explain.size(), 1);
+	MedMat<float> orig_explain((int)new_explain.size(), 1);
 	int k = 0;
 	for (auto &e : new_explain) orig_explain(k++, 0) = e.second;
 
@@ -258,9 +260,11 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	if (attr_name.empty()) //default name
 		group_name = my_class_name();
 #pragma omp critical
-	for (size_t i = 0; i < explain_reasons.size(); ++i)
-		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
-			matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+	{
+		for (size_t i = 0; i < explain_reasons.size(); ++i)
+			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
+				matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+	}
 
 }
 
