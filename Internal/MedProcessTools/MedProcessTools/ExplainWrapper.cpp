@@ -156,7 +156,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
 	map<string, float> new_explain = explain_list;
 	for (auto &s : skip_bias_names) new_explain.erase(s);
-	MedMat<float> orig_explain(new_explain.size(), 1);
+	MedMat<float> orig_explain((int)new_explain.size(), 1);
 	int k = 0;
 	for (auto &e : new_explain) orig_explain(k++, 0) = e.second;
 
