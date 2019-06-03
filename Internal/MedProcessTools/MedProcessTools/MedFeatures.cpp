@@ -1363,7 +1363,7 @@ int MedFeatures::get_masks_as_mat(MedMat<unsigned char> &masks_mat)
 	for (int i = 0; i < names.size(); i++) {
 		unsigned char *p_mask = masks[names[i]].data();
 		for (int j = 0; j < nrows; j++)
-			masks_mat(i, j) = p_mask[j];
+			masks_mat(j, i) = p_mask[j];
 	}
 
 	return 0;

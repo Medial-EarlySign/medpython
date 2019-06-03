@@ -41,12 +41,15 @@ public:
 	bool group_by_sum = false; ///< If true will do grouping by sum of each feature, otherwise will use internal special implementation
 	bool learn_cov_matrix = false; ///< If true will learn cov_matrix
 	int normalize_vals = 0; ///< If != 0 will normalize contributions. 1: normalize by sum of (non b0) abs of all contributions 2: same, but also corrects for groups
+	int zero_missing = 0; ///<  if != 0 will throw bias terms and zero all contributions of missing values and groups of missing values
+
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
 
 	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;
+	map<string, vector<int>> groupName2Inds;
 
 	ExplainProcessings();
 
@@ -57,12 +60,16 @@ public:
 
 	/// commit processings
 	void process(map<string, float> &explain_list) const;
+	// same as process but zero-ing all contributions of missing values features and groups with all the participants inside missing
+	void process(map<string, float> &explain_list, unsigned char *missing_value_mask) const;
 
 	/// helper func: returns the normalized contribution for a specific group given original contributions
 	float get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const;
 
+	void post_deserialization();
+
 	ADD_CLASS_NAME(ExplainProcessings)
-	ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, abs_cov_features, groupNames, group2Inds)
+	ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds)
 };
 
 /**

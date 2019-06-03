@@ -290,7 +290,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 
 	// Process Features
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
-		if (verbosity > 0) MLOG("MedModel apply() : before applying feature processors\n", samples.idSamples.size());
+		if (verbosity > 0) MLOG("MedModel apply() on %d samples : before applying feature processors : generate_masks = %d\n", samples.idSamples.size(), generate_masks_for_features);
 		if (generate_masks_for_features) features.mark_imputed_in_masks();
 		if (apply_feature_processors(features, req_features_vec) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");

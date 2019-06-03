@@ -89,6 +89,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			cov_features.read_from_csv_file(it->second, 1);
 		else if (it->first == "grouping")
 			grouping = it->second;
+		else if (it->first == "zero_missing")
+			zero_missing = stoi(it->second);
 		else if (it->first == "normalize_vals")
 			normalize_vals = stoi(it->second);
 		else
@@ -96,6 +98,21 @@ int ExplainProcessings::init(map<string, string> &map) {
 	}
 
 	return 0;
+}
+
+
+void ExplainProcessings::post_deserialization()
+{
+	abs_cov_features.clear();
+	if (cov_features.m.size() > 0) {
+		abs_cov_features.resize(cov_features.nrows, cov_features.ncols);
+		for (int i = 0; i < cov_features.m.size(); i++)
+			abs_cov_features.m[i] = abs(cov_features.m[i]);
+	}
+
+	groupName2Inds.clear();
+	for (int i = 0; i < groupNames.size(); i++)
+		groupName2Inds[groupNames[i]] = group2Inds[i];
 }
 
 void ExplainProcessings::learn(const MedFeatures &train_mat) {
@@ -155,19 +172,21 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 
+	if (cov_features.m.empty() && !group_by_sum)
+		return;
+
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
-	map<string, float> new_explain = explain_list;
-	for (auto &s : skip_bias_names) new_explain.erase(s);
-	MedMat<float> orig_explain((int)new_explain.size(), 1);
+	for (auto &s : skip_bias_names) explain_list.erase(s);
+	MedMat<float> orig_explain((int)explain_list.size(), 1);
 	int k = 0;
-	for (auto &e : new_explain) orig_explain(k++, 0) = e.second;
+	for (auto &e : explain_list) orig_explain(k++, 0) = e.second;
 
 
 	float normalization_factor = 1.0;
 	if (normalize_vals > 0) {
 
 		normalization_factor = (float)1e-8; // starting with a small epsilon so that we never divide by 0 later
-		for (auto &e : new_explain) normalization_factor += abs(e.second);
+		for (auto &e : explain_list) normalization_factor += abs(e.second);
 		//MLOG("====> DEBUG normalization_factor %f\n", normalization_factor);
 	}
 
@@ -191,7 +210,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 			fast_multiply_medmat(abs_cov_features, orig_explain, fixed_with_cov, (float)1.0 / normalization_factor);
 			int k = 0;
-			for (auto &e : new_explain) explain_list[e.first] = fixed_with_cov(k++, 0);
+			for (auto &e : explain_list) explain_list[e.first] = fixed_with_cov(k++, 0);
 		}
 
 		return; // ! -> since we treat group_by_sum differently in this case
@@ -215,6 +234,47 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 		explain_list = move(group_explain);
 	}
+}
+
+
+void ExplainProcessings::process(map<string, float> &explain_list, unsigned char *missing_value_mask) const
+{
+	process(explain_list);
+	if (zero_missing == 0 || missing_value_mask==NULL) 	return;
+
+
+	if (!group_by_sum) {
+		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+		for (auto &s : skip_bias_names) explain_list.erase(s);
+
+		// now zero all missing
+		int k = 0;
+		for (auto &e : explain_list) {
+			//MLOG("feat[%d] : %s : %6.4f : mask = %x\n", k, e.first.c_str(), e.second, missing_value_mask[k]);
+			if (missing_value_mask[k++] & MedFeatures::imputed_mask)
+				e.second = 0;
+		}
+
+	}
+	else {
+
+		for (auto &g : groupName2Inds) {
+
+			int is_empty = 1;
+			for (auto v : g.second)
+				if (!(missing_value_mask[v] & MedFeatures::imputed_mask)) {
+					is_empty = 0;
+					break;
+				}
+
+			if (is_empty)
+				explain_list[g.first] = 0;
+		}
+
+	}
+
+
+	
 }
 
 int ModelExplainer::init(map<string, string> &mapper) {
@@ -249,9 +309,16 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 		MTHROW_AND_ERR("Error in ModelExplainer::explain - explain returned musmatch number of samples %zu, and requested %zu\n",
 			explain_reasons.size(), matrix.samples.size());
 
+	MedMat<unsigned char> masks_mat;
+	if (processing.zero_missing)
+		matrix.get_masks_as_mat(masks_mat);
 	//process:
-	for (size_t i = 0; i < explain_reasons.size(); ++i)
-		processing.process(explain_reasons[i]);
+	for (size_t i = 0; i < explain_reasons.size(); ++i) {
+		if (processing.zero_missing)
+			processing.process(explain_reasons[i], &masks_mat.m[i*masks_mat.ncols]);
+		else
+			processing.process(explain_reasons[i]);
+	}
 	//filter:
 	for (size_t i = 0; i < explain_reasons.size(); ++i)
 		filters.filter(explain_reasons[i]);
