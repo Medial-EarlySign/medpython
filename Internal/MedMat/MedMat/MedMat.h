@@ -226,6 +226,8 @@ public:
 
 		return true;
 	}
+
+	string my_class_name() const { return "MedMat"; }
 };
 
 // a few related util functions

@@ -129,7 +129,7 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 	vector<int> group_mask(contribs.size(), 0);
 	for (auto i : group_inds) group_mask[i] = 1;
-		
+
 	vector<float> alphas(contribs.size());
 
 	for (int i = 0; i < group_mask.size(); i++) {
@@ -174,7 +174,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%d, "
 				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
-		
+
 
 
 		if (group_by_sum) {
@@ -193,7 +193,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 		}
 
 		return; // ! -> since we treat group_by_sum differently in this case
-		
+
 	}
 
 	//sum features in groups
@@ -927,6 +927,8 @@ void ShapleyExplainer::_init(map<string, string> &mapper) {
 			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
+		else if (it->first == "use_random_sampling")
+			use_random_sampling = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ShapleyExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
@@ -1016,7 +1018,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		float pred_shap = 0;
 		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
 			, *group_inds, *group_names, *_sampler, gen_thread[n_th], 1, sampler_sampling_args, features_coeff,
-			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
+			use_random_sampling, global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
 			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)

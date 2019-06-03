@@ -193,7 +193,7 @@ namespace medial {
 		template<typename T> void explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
 			MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 			const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
-			vector<float> &features_coeff, bool verbose = false);
+			vector<float> &features_coeff, bool use_random_sample, bool verbose = false);
 
 		/// \brief Shapley Lime with generator
 		void get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,

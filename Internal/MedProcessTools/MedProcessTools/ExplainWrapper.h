@@ -229,6 +229,7 @@ public:
 	string generator_args = ""; ///< for learn
 	string sampling_args = ""; ///< args for sampling
 	int n_masks = 100; ///< how many test to conduct from shapley
+	bool use_random_sampling = true; ///< If True will use random sampling - otherwise will sample mask size and than create it
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
 
 	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; avg_bias_score = 0; }
@@ -248,7 +249,7 @@ public:
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			avg_bias_score, filters, processing, attr_name)
+			use_random_sampling, avg_bias_score, filters, processing, attr_name)
 };
 
 /**
