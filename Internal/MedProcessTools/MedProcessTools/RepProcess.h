@@ -554,6 +554,8 @@ public:
 
 	~RepRuleBasedOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
 
+	void set_affected_signal_ids(MedDictionarySections& dict);
+
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
 	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix, verbose_file)
@@ -565,6 +567,8 @@ private:
 		const vector<int> &val_channels, const vector<int> &sPointer);
 	unordered_map<int, string> affected_ids_to_name;
 	ofstream log_file;
+
+	void change_rules();
 
 };
 
