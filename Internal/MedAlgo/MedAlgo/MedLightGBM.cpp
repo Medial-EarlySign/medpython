@@ -430,7 +430,6 @@ void MedLightGBM::calc_feature_contribs(MedMat<float> &x, MedMat<float> &contrib
 {
 	int nrows = x.nrows;
 	int ncols = x.ncols;
-	int n_preds = n_preds_per_sample();
 
 	contribs.resize(nrows, ncols + 1);
 	// copy metadata
