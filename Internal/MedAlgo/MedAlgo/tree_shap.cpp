@@ -1853,7 +1853,7 @@ template<typename T> double mean_vec(const T *v, int len) {
 template<typename T> void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
 	MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 	const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
-	vector<float> &features_coeff, bool verbose) {
+	vector<float> &features_coeff, bool use_random_sample, bool verbose) {
 
 	mt19937 gen(globalRNG::rand());
 
@@ -1912,7 +1912,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 			}
 		}
 		else
-			sample_options_SHAP(grps_opts, all_opts, max_loop, gen, false, true, false);
+			sample_options_SHAP(grps_opts, all_opts, max_loop, gen, false, use_random_sample, false);
 
 		//complete all_opts to nfeats size using groups:
 		bool deafult_not_selected = true; //mark all the rest(missing values that aren't tested) as fixed to missing value
@@ -1987,11 +1987,23 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 			curr_smp_pos += cnt_1 + cnt_2;
 		}
 
+		vector<int> opt_s_sizes(max_loop);
+		vector<int> sizes_hist(ngrps); //can't pass ngrps - feature_i is excluded
 		for (int i = 0; i < max_loop; ++i) {
-			float score_without, score_with;
 			int f_cnt = 0;
 			for (size_t j = 0; j < all_opts[i].size(); ++j)
 				f_cnt += int(all_opts[i][j]);
+			opt_s_sizes[i] = f_cnt;
+			++sizes_hist[f_cnt];
+		}
+		int non_zero_grp_sampled = 0;
+		for (size_t i = 0; i < ngrps; ++i)
+			if (sizes_hist[i] > 0)
+				++non_zero_grp_sampled;
+		
+		for (int i = 0; i < max_loop; ++i) {
+			float score_without, score_with;
+			int f_cnt = opt_s_sizes[i];
 
 			score_without = mean_vec(preds_without.data() + cumsum_without[i], splits_without[i]);
 			score_with = mean_vec(preds_with.data() + cumsum_with[i], splits_with[i]);
@@ -2000,7 +2012,11 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 
 			int p1 = f_cnt;
 			int p2 = end_l - p1;
-			double c = get_c(p1, p2, end_l + 1);
+			double c;
+			if (iter_all)
+				c = get_c(p1, p2, end_l + 1);
+			else
+				c = 1.0 / (non_zero_grp_sampled*sizes_hist[f_cnt]);
 			phi_i += c * f_diff;
 		}
 
@@ -2043,7 +2059,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 template void medial::shapley::explain_shapley<float>(const MedFeatures &matrix, int selected_sample, int max_tests,
 	MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 	const SamplesGenerator<float> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
-	vector<float> &features_coeff, bool verbose);
+	vector<float> &features_coeff, bool use_random_sample, bool verbose);
 
 // Generate sampled matrix
 void generate_samples(const MedFeatures& data, int isample, const vector<vector<bool>>& masks, SamplesGenerator<float> *generator,
@@ -2211,7 +2227,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		}
 
 		// Normalize 
-		
+
 		// Generate sampled data
 		generate_samples(data, isample, masks, generator, params, &p_features);
 

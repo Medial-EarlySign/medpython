@@ -23,13 +23,6 @@ void SimpleButWhyRes::get_from_contribs(SimpleButWhyParams &bw_params, vector<fl
 	if (abs(neg_sum) < epsilon) neg_sum = -1.0f;
 	vector<pair<int, float>> relative_contrib;
 
-	float a_pos = 1, a_neg = 1;
-	if (pos_sum > -neg_sum) {
-		a_neg = -neg_sum / pos_sum;
-	}
-	else
-		a_pos = pos_sum / -neg_sum;
-
 	float s_all = pos_sum - neg_sum;
 	for (int j = 0; j<contribs.size(); j++) {
 		pair<int, float> p;

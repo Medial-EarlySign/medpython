@@ -643,8 +643,8 @@ namespace MedSerialize {
 	}
 
 	template<typename T, enable_if_t<std::is_base_of<SerializableObject, T>::value, int> = 0> string get_name() {
-		T cl;
-		string cl_name = cl.my_class_name();
+		unique_ptr<T> cl = unique_ptr<T>(new T); //Not using object
+		string cl_name = cl->my_class_name();
 
 		return cl_name;
 	}
