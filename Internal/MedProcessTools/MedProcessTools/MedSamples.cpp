@@ -40,10 +40,25 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 	if (keys.size() == 1 && keys.front().find(namespace_attr_delimeter) == string::npos) //one key without namespace!
 		s_buff << attr.at(keys.front());
 	else {
+		vector<float> vals;
+		for (auto &e : attr) {
+			float f;
+			try {
+				f = stof(e.second);
+			}
+			catch (...) {
+				f = 0;
+			}
+			vals.push_back(f);
+		}
+		vector<int> indexes;
+		medial::sort_ops::get_sort_indexes(vals, true, true, indexes);
+
 		s_buff << "{";
 		bool first = true;
-		for (const string &key : keys)
+		for (auto j : indexes)
 		{
+			string key = keys[j];
 			if (!first)
 				s_buff << delimeter_keys;
 			//strip ns from key in write:

@@ -9,6 +9,41 @@
 
 string run_current_path = "";
 
+template<typename T> void medial::sort_ops::get_sort_indexes(const vector<T> &x, const bool descending_order, bool const abs_val, vector<int> &indexes)
+{
+	vector<pair<T, int>> v(x.size());
+
+	if (abs_val) {
+		for (int i = 0; i < x.size(); i++) {
+			v[i].first = abs(x[i]);
+			v[i].second = i;
+		}
+	}
+	else {
+		for (int i = 0; i < x.size(); i++) {
+			v[i].first = x[i];
+			v[i].second = i;
+		}
+	}
+
+	if (descending_order) {
+		sort(v.begin(), v.end(), [](const pair<T,int> &v1, const pair<T,int> &v2) {return (v1.first > v2.first); });
+	}
+	else {
+		sort(v.begin(), v.end(), [](const pair<T,int> &v1, const pair<T,int> &v2) {return (v1.first < v2.first); });
+	}
+
+	indexes.resize(x.size());
+	for (int i = 0; i < x.size(); i++)
+		indexes[i] = v[i].second;
+
+}
+
+template void medial::sort_ops::get_sort_indexes<double>(const vector <double> &x, const bool descending_order, bool const abs_val, vector<int> &indexes);
+template void medial::sort_ops::get_sort_indexes<float>(const vector<float> &x, const bool descending_order, bool const abs_val, vector<int> &indexes);
+template void medial::sort_ops::get_sort_indexes<int>(const vector<int> &x, const bool descending_order, bool const abs_val, vector<int> &indexes);
+template void medial::sort_ops::get_sort_indexes<short>(const vector<short> &x, const bool descending_order, bool const abs_val, vector<int> &indexes);
+
 template<class T> string medial::print::print_obj(T obj, const string &format) {
 	//return to_string((round(num * 1000) / 1000));
 	char res[50];
