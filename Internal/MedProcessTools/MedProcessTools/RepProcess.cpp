@@ -651,6 +651,11 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 	}
 }
 
+void RepMultiProcessor::make_summary() const {
+	for (auto& proc : processors) 
+		proc->make_summary();
+}
+
 void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& dict) {
 	for (size_t i = 0; i < processors.size(); ++i)
 		processors[i]->register_virtual_section_name_id(dict);
@@ -695,6 +700,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepBasicOutlierCleaner::init]
 	}
 
+	_stats.signal_name = signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
 	if (!verbose_file.empty())
 	{
 		verbose_file += "." + signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
@@ -841,6 +847,15 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 			}
 		}
 
+		//collect stats for summary:
+#pragma omp critical 
+		{
+			++_stats.total_pids;
+			_stats.total_records += len;
+			_stats.total_removed += nRemove;
+			_stats.total_pids_touched += nRemove > 0;
+		}
+
 		// Apply removals + changes
 		change.resize(nChange);
 		remove.resize(nRemove);
@@ -895,6 +910,33 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 	return 0;
 
+}
+
+void remove_stats::print_summary(int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const {
+	float rmv_ratio = float(total_removed) / total_records;
+	bool is_critical = total_pids > minimal_pid_cnt && rmv_ratio > print_summary_critical_cleaned;
+	//build msg:
+	string msg;
+	if (is_critical || prnt_flg) {
+		char buffer[5000];
+		snprintf(buffer, sizeof(buffer), "Removed Records: (%d / %d) %2.1f%%, Touched Patients: (%d / %d) %2.1f%%",
+			total_removed, total_records, 100 * rmv_ratio,
+			total_pids_touched, total_pids, 100 * float(total_pids_touched) / total_pids);
+		msg = string(buffer);
+	}
+
+	if (is_critical) {
+		MWARN("Warning: %s(%s): %s\n", cleaner_info.c_str(), signal_name.c_str(), msg.c_str());
+	}
+	else {
+		if (prnt_flg)
+			MLOG("Info: %s(%s): %s\n", cleaner_info.c_str(), signal_name.c_str(), msg.c_str());
+	}
+
+}
+
+void RepBasicOutlierCleaner::make_summary() const {
+	_stats.print_summary(100, print_summary_critical_cleaned, print_summary);
 }
 
 //.......................................................................................
@@ -968,6 +1010,8 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else if (field == "verbose_file")verbose_file = entry.second;
+		else if (field == "print_summary") print_summary = stoi(entry.second) > 0;
+		else if (field == "print_summary_critical_cleaned") print_summary_critical_cleaned = stof(entry.second);
 		//! [RepConfiguredOutlierCleaner::init]
 	}
 
@@ -1259,6 +1303,8 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "calc_res") calc_res = med_stof(entry.second);
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
+		else if (field == "print_summary") print_summary = stoi(entry.second) > 0;
+		else if (field == "print_summary_critical_cleaned") print_summary_critical_cleaned = stof(entry.second);
 		else if (field == "consideredRules") {
 			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
 			for (auto& rule : rulesStrings) {
@@ -1352,7 +1398,6 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 	aff_signals.swap(new_aff);
 	affSignalIds.swap(new_aff_id);
 }
-
 
 int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
@@ -1487,16 +1532,34 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		// Apply removals
 		size_t nRemove = 0;
 		int idx = 0;
+
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
+			string sig_name = affected_ids_to_name[sig];
 			if (!verbose_file.empty() && !toRemove.empty()) {
-				string sig_name = affected_ids_to_name[sig];
 				string time_points = removePoints_Time[sig].empty() ? "" : to_string(removePoints_Time[sig].front());
 				for (size_t i = 1; i < removePoints_Time[sig].size(); ++i)
 					time_points += "," + to_string(removePoints_Time[sig][i]);
 				log_file << "signal " << sig_name << " pid " << rec.pid << " removed "
 					<< toRemove.size() << " int_times " << time_points << "\n";
 			}
+
+#pragma omp critical 
+			{
+				++_rmv_stats[sig_name].total_pids;
+				_rmv_stats[sig_name].total_pids_touched += int(!removePoints[sig].empty());
+				_rmv_stats[sig_name].total_records += usvs[sig].len;
+				_rmv_stats[sig_name].total_removed += (int)removePoints[sig].size();
+				if (_rmv_stats[sig_name].cleaner_info.empty()) {
+					string rules_list = to_string(rulesToApply.front());
+					for (size_t ii = 1; ii < rulesToApply.size(); ++ii)
+						rules_list += ", " + to_string(rulesToApply[ii]);
+					_rmv_stats[sig_name].cleaner_info = my_class_name() + "_Rules:[" + rules_list + "]";
+				}
+				if (_rmv_stats[sig_name].signal_name.empty())
+					_rmv_stats[sig_name].signal_name = sig_name;
+			}
+
 			vector <pair<int, float>>noChange;
 			pair<int, int> sig_channels(0, 0);
 			if (signal_id_channels.find(sig) != signal_id_channels.end())
@@ -1521,6 +1584,11 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 	return 0;
 
 
+}
+
+void RepRuleBasedOutlierCleaner::make_summary() const {
+	for (auto it = _rmv_stats.begin(); it != _rmv_stats.end(); ++it)
+		it->second.print_summary(100, print_summary_critical_cleaned, print_summary);
 }
 
 bool test_diff(float origianl, float calculated, float tolerance, float resulotion) {
