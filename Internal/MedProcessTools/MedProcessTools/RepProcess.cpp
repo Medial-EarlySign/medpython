@@ -1167,7 +1167,7 @@ void RepRuleBasedOutlierCleaner::set_affected_signal_ids(MedDictionarySections& 
 			if (dict.curr_dict()->id(all_sigs[i]) < 0)
 				miss_sig = all_sigs[i];
 		if (!miss_sig.empty())
-			MWARN("RepRuleBasedOutlierCleaner: Signal %s not exists - remove rule %d", miss_sig.empty(), rule.first);
+			MWARN("RepRuleBasedOutlierCleaner: Signal %s not exists - remove rule %d\n", miss_sig.c_str(), rule.first);
 		else
 			sel_rules.push_back(rule.first);
 	}
@@ -1189,6 +1189,8 @@ void RepRuleBasedOutlierCleaner::change_rules() {
 				it = rules2Signals.erase(it);// rule removed
 		}
 
+	aff_signals.clear();
+	req_signals.clear();
 	//mark affected and requested:
 	for (auto& rule : rules2Signals)
 		aff_signals.insert(rule.second.begin(), rule.second.end());
@@ -1196,6 +1198,7 @@ void RepRuleBasedOutlierCleaner::change_rules() {
 		req_signals.insert(sig);
 
 	// add required signals according to rules that apply to affected signals
+	rulesToApply.clear();
 	unordered_set<int> seen_rule;
 	for (auto& rule : rules2Signals) {
 		for (auto& sig : aff_signals) {
@@ -1356,7 +1359,8 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
 	//map <int, vector <int>> removePoints; // from signal id to its remove points
-
+	if (rulesToApply.empty())
+		return 0; //removed rule
 
 	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
@@ -1381,6 +1385,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 		for (int iRule = 0; iRule < rulesToApply.size(); iRule++) {
 			int rule = rulesToApply[iRule];
+			//MLOG("Apply Rule %d\n", rule);
 			vector <UniversalSigVec>ruleUsvs;
 			vector<int>& mySids = rules_sids[rule];
 			const vector<string> &rule_signals = rules2Signals[rule];

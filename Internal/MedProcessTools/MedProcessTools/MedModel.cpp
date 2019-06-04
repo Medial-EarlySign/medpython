@@ -1399,8 +1399,8 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 		collect_and_add_virtual_signals_static(rep, *rep_processors);
 		filter_rep_processors(needed_sigs, rep_processors);
 		for (RepProcessor *processor : *rep_processors) {
-			processor->set_signal_ids(rep.sigs);
 			processor->set_affected_signal_ids(rep.dict);
+			processor->set_signal_ids(rep.sigs);
 			processor->set_required_signal_ids(rep.dict);
 			processor->init_tables(rep.dict, rep.sigs);
 			processor->init_attributes();
