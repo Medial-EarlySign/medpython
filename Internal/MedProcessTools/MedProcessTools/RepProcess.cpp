@@ -676,6 +676,8 @@ void RepBasicOutlierCleaner::init_lists() {
 		if (!log_file.good())
 			MWARN("Warnning in RepRuleBasedOutlierCleaner - verbose_file %s can't be opened\n", verbose_file.c_str());
 	}
+
+	_stats.signal_name = signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
 }
 
 // Init from map
@@ -696,6 +698,8 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		else if (field == "verbose_file")verbose_file = entry.second;
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "print_summary") print_summary = stoi(entry.second) > 0;
+		else if (field == "print_summary_critical_cleaned") print_summary_critical_cleaned = stof(entry.second);
 		else if (field == "rp_type") {}
 		//! [RepBasicOutlierCleaner::init]
 	}
@@ -711,10 +715,11 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 	init_lists();
 	map<string, string>& mapper_p = mapper;
 	vector<string> remove_fl = { "verbose_file" ,"fp_type", "rp_type", "unconditional", "signal", "time_channel", "val_channel", "nrem_attr", "ntrim_attr", "nrem_suff",
-		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals", "addRequiredSignals", "consideredRules" };
+		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals",
+		"addRequiredSignals", "consideredRules", "print_summary", "print_summary_critical_cleaned" };
 
 	for (const string &fl : remove_fl)
-		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
+		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl); 
 	return MedValueCleaner::init(mapper_p);
 }
 
@@ -1022,7 +1027,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 	if (outlierParams_dict.find(sig_search) != outlierParams_dict.end())
 		outlierParam = outlierParams_dict.at(sig_search);
 	else
-		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", sig_search.c_str());
+		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unknown signal %s in configure rules\n", sig_search.c_str());
 
 	if (!verbose_file.empty())
 	{
@@ -1034,7 +1039,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 	init_lists();
 	map<string, string>& mapper_p = mapper;
 	vector<string> remove_fl = { "verbose_file" , "clean_method", "conf_file", "rp_type", "unconditional",
-		"signal", "time_channel", "val_channel" };
+		"signal", "time_channel", "val_channel", "print_summary", "print_summary_critical_cleaned" }; 
 	for (const string &fl : remove_fl)
 		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
