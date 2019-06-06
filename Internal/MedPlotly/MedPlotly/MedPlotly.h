@@ -190,6 +190,9 @@ private:
 	// THIN_RC report
 	void add_thin_rc_chart(string &shtml, PidRec &rec, const vector<ChartTimeSign> &times);
 
+	// categorical signal , add as table
+	void add_categorical_table(string sig, string &shtml, PidRec &rec, const vector<ChartTimeSign> &times);
+
 	// heatmap creation
 	void get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs);
 

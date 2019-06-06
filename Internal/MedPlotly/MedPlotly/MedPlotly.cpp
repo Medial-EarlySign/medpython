@@ -5,6 +5,8 @@
 #include "MedPlotly.h"
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <MedUtils/MedUtils/MedGlobalRNG.h>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 //------------------------------------------------------------------------------------------------
 int SignalParams::init(map<string, string>& _map)
@@ -804,6 +806,90 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 
 }
 
+
+//-------------------------------------------------------------------------------------------------------------------------------
+void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidRec &rec, const vector<ChartTimeSign> &times)
+{
+	//int pid = rec.pid;
+	//int time_chan = 0;
+	int pwidth = 1200; //vm["pwidth"].as<int>();
+	int pheight = 600; //vm["pheight"].as<int>();
+	int block_mode = 0; //vm["block_mode"].as<int>();
+
+	if (rec.my_base_rep->sigs.sid(sig) <= 0)
+		return; // NO  signal, nothing to do, maybe wrong repository??
+
+
+	vector<string> dates;
+	vector<string> texts;
+
+	UniversalSigVec usv;
+	rec.uget(sig, usv);
+
+	if (usv.len == 0) return; // nothing to do - 0 RC records.
+
+	int section_id = rec.my_base_rep->dict.section_id(sig);
+
+	int bypass = 0;
+	if (sig == "Drug") bypass = 1;
+	boost::regex regf_1("^dc\\d{8}");
+	for (int i = 0; i < usv.len; i++) {
+		int i_date = usv.Time(i, 0); 
+		int i_val = (int)usv.Val(i, 0);
+		dates.push_back(date_to_string(i_date));
+		string curr_text = "";
+		if (rec.my_base_rep->dict.dict(section_id)->Id2Names.find(i_val) != rec.my_base_rep->dict.dict(section_id)->Id2Names.end())
+			for (int j = 0; j < rec.my_base_rep->dict.dict(section_id)->Id2Names[i_val].size(); j++) {
+				string sname = rec.my_base_rep->dict.dict(section_id)->Id2Names[i_val][j];
+				if (bypass == 1 && (boost::regex_match(sname, regf_1))) continue;
+				curr_text += " | " + sname;
+			}
+		replace(curr_text.begin(), curr_text.end(), '\"', '@');
+		replace(curr_text.begin(), curr_text.end(), '\'', '@');
+		curr_text = "'" + curr_text + "'";
+
+		texts.push_back(curr_text);
+	}
+
+	// write RC div
+	// div_name
+	string div_name = "div_" + sig + "_";
+	div_name += to_string(rand_N(10000));
+
+	//<div id="chart" style="width:1200px;height:500px;"></div>
+	shtml += "\t<div id=\"" + div_name + "\" style=\"width:" + to_string(pwidth) + "px;height:" + to_string(pheight) + "px;";
+	if (block_mode) shtml += "display: inline-block;";
+	shtml += "\"></div>\n";
+	shtml += "\t<script>\n";
+
+	shtml += "\t\tvar table_values =[\n";
+	shtml += "\t\t[";
+	for (int i = 0; i < dates.size()-1; i++)
+		shtml += dates[i] + ",";
+	shtml += dates.back() + "],\n";
+	shtml += "\t\t[";
+	for (int i = 0; i < texts.size() - 1; i++)
+		shtml += texts[i] + ",";
+	shtml += texts.back() + "]]\n";
+
+	int date_width = 100;
+	int text_width = pwidth - date_width;
+	shtml += "\t\tvar table_data = [{\n";
+	shtml += "\t\t\ttype: 'table', columnorder: [1,2], columnwidth: [" + to_string(date_width) + "," + to_string(text_width)+"], \n";
+	shtml += "\t\t\theader: {\n";
+	shtml += "\t\t\t\tvalues: [[\"<b>DATE</b>\"], [\"<b>"+sig+"</b>\"]],\n";
+	shtml += "\t\t\talign: \"left\", line: {width: 1, color : 'black'}, fill : {color: \"blue\"}, font : {family: \"Arial\", size : 12, color : \"white\"}},\n";	
+
+	shtml += "\t\t\t cells: { values: table_values, align : \"left\", line : {color: \"black\", width : 1},	font : {family: \"Arial\", size : 11, color : [\"black\"]}}\n";
+	shtml += "\t\t\t}]\n";
+
+
+	shtml += "\t\tPlotly.plot('" + div_name + "', table_data);\n";
+
+	shtml += "\t</script>\n";
+
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------
 int MedPatientPlotlyDate::add_drugs_heatmap(string &shtml, PidRec &rec)
 {
@@ -893,17 +979,17 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 	MLOG("After demographics\n");
 	for (auto v : view) {
 		MLOG("Working on view %s\n", v.c_str());
+		bool is_categorial = (rec.my_base_rep->sigs.is_categorical_channel(v, 0) > 0);
 		if (v == "demographic") {
 			add_basic_demographics(shtml, rec, local_sign_times);
 		}
 		else if (params.panels.find(v) != params.panels.end()) {
 			// add a panel
 			add_panel_chart(shtml, lvp, rec, params.panels[v], local_sign_times);
-		}
-		else if (v == "RC") {
+		} else if (v == "RC") {
 			add_thin_rc_chart(shtml, rec, local_sign_times);
 		}
-		else if (rec.my_base_rep->sigs.sid(v) > 0) {
+		else if (rec.my_base_rep->sigs.sid(v) > 0 && is_categorial==0) {
 			// add a signal (as a simple panel)
 			int null_zeros = -1;
 			int log_scale = -1;
@@ -919,6 +1005,10 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 			add_drugs_heatmap(shtml, rec);
 		}
 
+
+		if (is_categorial) {
+			add_categorical_table(v, shtml, rec, local_sign_times);
+		}
 	}
 	
 	// add_RCs_to_js(rep, vm, shtml);
