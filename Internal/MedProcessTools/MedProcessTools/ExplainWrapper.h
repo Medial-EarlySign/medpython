@@ -38,13 +38,18 @@ public:
 */
 class ExplainProcessings : public SerializableObject {
 public:
-	bool group_by_sum; ///< If true will do grouping by sum of each feature, otherwise will use internal special implementation
-	bool learn_cov_matrix; ///< If true will learn cov_matrix
+	bool group_by_sum = false; ///< If true will do grouping by sum of each feature, otherwise will use internal special implementation
+	bool learn_cov_matrix = false; ///< If true will learn cov_matrix
+	int normalize_vals = 0; ///< If != 0 will normalize contributions. 1: normalize by sum of (non b0) abs of all contributions 2: same, but also corrects for groups
+	int zero_missing = 0; ///<  if != 0 will throw bias terms and zero all contributions of missing values and groups of missing values
+
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
+	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
 
 	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;
+	map<string, vector<int>> groupName2Inds;
 
 	ExplainProcessings();
 
@@ -55,9 +60,16 @@ public:
 
 	/// commit processings
 	void process(map<string, float> &explain_list) const;
+	// same as process but zero-ing all contributions of missing values features and groups with all the participants inside missing
+	void process(map<string, float> &explain_list, unsigned char *missing_value_mask) const;
+
+	/// helper func: returns the normalized contribution for a specific group given original contributions
+	float get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const;
+
+	void post_deserialization();
 
 	ADD_CLASS_NAME(ExplainProcessings)
-		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, groupNames, group2Inds)
+	ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds)
 };
 
 /**
@@ -224,6 +236,7 @@ public:
 	string generator_args = ""; ///< for learn
 	string sampling_args = ""; ///< args for sampling
 	int n_masks = 100; ///< how many test to conduct from shapley
+	bool use_random_sampling = true; ///< If True will use random sampling - otherwise will sample mask size and than create it
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
 
 	ShapleyExplainer() { processor_type = FTR_POSTPROCESS_SHAPLEY; avg_bias_score = 0; }
@@ -243,7 +256,7 @@ public:
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			avg_bias_score, filters, processing, attr_name)
+			use_random_sampling, avg_bias_score, filters, processing, attr_name)
 };
 
 /**

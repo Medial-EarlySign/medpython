@@ -89,11 +89,30 @@ int ExplainProcessings::init(map<string, string> &map) {
 			cov_features.read_from_csv_file(it->second, 1);
 		else if (it->first == "grouping")
 			grouping = it->second;
+		else if (it->first == "zero_missing")
+			zero_missing = stoi(it->second);
+		else if (it->first == "normalize_vals")
+			normalize_vals = stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
 
 	return 0;
+}
+
+
+void ExplainProcessings::post_deserialization()
+{
+	abs_cov_features.clear();
+	if (cov_features.m.size() > 0) {
+		abs_cov_features.resize(cov_features.nrows, cov_features.ncols);
+		for (int i = 0; i < cov_features.m.size(); i++)
+			abs_cov_features.m[i] = abs(cov_features.m[i]);
+	}
+
+	groupName2Inds.clear();
+	for (int i = 0; i < groupNames.size(); i++)
+		groupName2Inds[groupNames[i]] = group2Inds[i];
 }
 
 void ExplainProcessings::learn(const MedFeatures &train_mat) {
@@ -106,58 +125,156 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 		x_mat.normalize();
 		//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
 		fast_multiply_medmat_transpose(x_mat, x_mat, cov_features, 1, 1.0 / x_mat.nrows);
+
+		abs_cov_features = cov_features;
+		for (auto &x : abs_cov_features.m) x = abs(x);
+
+		//// debug
+		//vector<string> f_names;
+		//train_mat.get_feature_names(f_names);
+		//for (int i = 0; i < cov_features.nrows; i++)
+		//	for (int j = 0; j < cov_features.ncols; j++)
+		//		MLOG("COV_DEBUG: (%d) %s (%d) %s :: %f\n", i, f_names[i].c_str(), j, f_names[j].c_str(), cov_features(i, j));
 	}
 }
 
+float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const
+{
+	float group_normalization_factor = (float)1e-8;
+
+	for (auto i : group_inds) group_normalization_factor += abs(contribs[i]);
+
+	vector<int> group_mask(contribs.size(), 0);
+	for (auto i : group_inds) group_mask[i] = 1;
+
+	vector<float> alphas(contribs.size());
+
+	for (int i = 0; i < group_mask.size(); i++) {
+		if (group_mask[i])
+			alphas[i] = 1.0f;
+		else {
+			alphas[i] = 0.0f;
+			for (int j : group_inds)
+				if (abs_cov_features(j, i) > alphas[i])
+					alphas[i] = abs_cov_features(j, i);
+				//alphas[i] += abs_cov_features(j, i) * abs(contribs[j]);
+			//alphas[i] /= group_normalization_factor;
+		}
+	}
+
+	float group_contrib = 0.0f;
+	for (int i = 0; i < contribs.size(); i++)
+		group_contrib += alphas[i] * contribs[i];
+
+	group_contrib /= total_normalization_factor;
+	return group_contrib;
+}
+
 void ExplainProcessings::process(map<string, float> &explain_list) const {
+
+	if (cov_features.m.empty() && !group_by_sum)
+		return;
+
+	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+	for (auto &s : skip_bias_names) explain_list.erase(s);
+	MedMat<float> orig_explain((int)explain_list.size(), 1);
+	int k = 0;
+	for (auto &e : explain_list) orig_explain(k++, 0) = e.second;
+
+
+	float normalization_factor = 1.0;
+	if (normalize_vals > 0) {
+
+		normalization_factor = (float)1e-8; // starting with a small epsilon so that we never divide by 0 later
+		for (auto &e : explain_list) normalization_factor += abs(e.second);
+		//MLOG("====> DEBUG normalization_factor %f\n", normalization_factor);
+	}
+
 	//first do covarinace if has:
 	if (!cov_features.m.empty()) {
 		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%d, "
 				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
-		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
 
-		int iftr = 0;
-		for (auto &it : explain_list)
-		{
-			auto expalin_it = explain_list.begin();
-			float feat_contrib = 0;
-			for (int jftr = 0; jftr < cov_features.ncols; ++jftr)
-			{
-				if (skip_bias_names.find(expalin_it->first) != skip_bias_names.end())
-				{
-					++expalin_it;
-					continue;
-				}
-				feat_contrib += expalin_it->second * abs(cov_features(iftr, jftr));
-				++expalin_it;
+
+
+		if (group_by_sum) {
+			map<string, float> group_explain;
+			for (int i = 0; i < group2Inds.size(); i++) {
+				group_explain[groupNames[i]] = get_group_normalized_contrib(group2Inds[i], orig_explain.m, normalization_factor);
 			}
-			it.second = feat_contrib;
-			++iftr;
+			explain_list = move(group_explain);
 		}
+		else {
+			MedMat<float> fixed_with_cov(cov_features.ncols, 1);
+
+			fast_multiply_medmat(abs_cov_features, orig_explain, fixed_with_cov, (float)1.0 / normalization_factor);
+			int k = 0;
+			for (auto &e : explain_list) explain_list[e.first] = fixed_with_cov(k++, 0);
+		}
+
+		return; // ! -> since we treat group_by_sum differently in this case
+
 	}
 
 	//sum features in groups
 	if (group_by_sum) {
 		if (group2Inds.empty())
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - asked for group_by_sum but haven't provide groups in grouping\n");
-		map<string, float> new_explain;
-		vector<float> random_access(explain_list.size());
-		auto explain_it = explain_list.begin();
-		for (size_t i = 0; i < random_access.size(); ++i) {
-			random_access[i] = explain_it->second;
-			++explain_it;
-		}
+		map<string, float> group_explain;
 		for (size_t i = 0; i < group2Inds.size(); ++i)
 		{
 			const string &grp_name = groupNames[i];
-			new_explain[grp_name] = 0;
+			float contrib = 0.0f;
 			for (int ind : group2Inds[i])
-				new_explain[grp_name] += random_access[ind];
+				contrib += orig_explain.m[ind];
+			group_explain[grp_name] = contrib;
+
 		}
 
-		explain_list = move(new_explain);
+		explain_list = move(group_explain);
 	}
+}
+
+
+void ExplainProcessings::process(map<string, float> &explain_list, unsigned char *missing_value_mask) const
+{
+	process(explain_list);
+	if (zero_missing == 0 || missing_value_mask==NULL) 	return;
+
+
+	if (!group_by_sum) {
+		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+		for (auto &s : skip_bias_names) explain_list.erase(s);
+
+		// now zero all missing
+		int k = 0;
+		for (auto &e : explain_list) {
+			//MLOG("feat[%d] : %s : %6.4f : mask = %x\n", k, e.first.c_str(), e.second, missing_value_mask[k]);
+			if (missing_value_mask[k++] & MedFeatures::imputed_mask)
+				e.second = 0;
+		}
+
+	}
+	else {
+
+		for (auto &g : groupName2Inds) {
+
+			int is_empty = 1;
+			for (auto v : g.second)
+				if (!(missing_value_mask[v] & MedFeatures::imputed_mask)) {
+					is_empty = 0;
+					break;
+				}
+
+			if (is_empty)
+				explain_list[g.first] = 0;
+		}
+
+	}
+
+
+	
 }
 
 int ModelExplainer::init(map<string, string> &mapper) {
@@ -192,9 +309,16 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 		MTHROW_AND_ERR("Error in ModelExplainer::explain - explain returned musmatch number of samples %zu, and requested %zu\n",
 			explain_reasons.size(), matrix.samples.size());
 
+	MedMat<unsigned char> masks_mat;
+	if (processing.zero_missing)
+		matrix.get_masks_as_mat(masks_mat);
 	//process:
-	for (size_t i = 0; i < explain_reasons.size(); ++i)
-		processing.process(explain_reasons[i]);
+	for (size_t i = 0; i < explain_reasons.size(); ++i) {
+		if (processing.zero_missing)
+			processing.process(explain_reasons[i], &masks_mat.m[i*masks_mat.ncols]);
+		else
+			processing.process(explain_reasons[i]);
+	}
 	//filter:
 	for (size_t i = 0; i < explain_reasons.size(); ++i)
 		filters.filter(explain_reasons[i]);
@@ -203,9 +327,11 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	if (attr_name.empty()) //default name
 		group_name = my_class_name();
 #pragma omp critical
-	for (size_t i = 0; i < explain_reasons.size(); ++i)
-		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
-			matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+	{
+		for (size_t i = 0; i < explain_reasons.size(); ++i)
+			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
+				matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+	}
 
 }
 
@@ -872,6 +998,8 @@ void ShapleyExplainer::_init(map<string, string> &mapper) {
 			n_masks = med_stoi(it->second);
 		else if (it->first == "sampling_args")
 			sampling_args = it->second;
+		else if (it->first == "use_random_sampling")
+			use_random_sampling = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ShapleyExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
@@ -961,7 +1089,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		float pred_shap = 0;
 		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
 			, *group_inds, *group_names, *_sampler, gen_thread[n_th], 1, sampler_sampling_args, features_coeff,
-			global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
+			use_random_sampling, global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
 			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)

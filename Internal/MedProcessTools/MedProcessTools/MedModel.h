@@ -245,6 +245,18 @@ namespace medial {
 		/// returns the signal id's neede to read in the repository. MedRepository must be init to read dicts
 		vector<string> prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
 			vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors = NULL);
+
+		/// \brief removes uneeded rep_processors based on model
+		void prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+			MedModel &mod, MedPidRepository &rep);
+	}
+
+	namespace medmodel {
+
+		/// \brief given a medmodel object, a rep and samples, do the apply , throws upon a problem
+		void apply(MedModel &model, string rep_fname, string f_samples, MedSamples &samples, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns also a MedSamples object
+		void apply(MedModel &model, string rep_fname, string f_samples, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns just the model : model.features is updated
+
 	}
 }
 

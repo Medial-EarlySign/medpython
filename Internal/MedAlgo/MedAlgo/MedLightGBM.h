@@ -18,9 +18,9 @@
 #include <LightGBM/objective_function.h>
 #include <LightGBM/metric.h>
 #include <LightGBM/config.h>
-#include <LightGBM/LightGBM/src/boosting/gbdt.h>
-#include <LightGBM/LightGBM/src/boosting/dart.hpp>
-#include <LightGBM/LightGBM/src/boosting/goss.hpp>
+#include <LightGBM/../../src/boosting/gbdt.h>
+#include <LightGBM/../../src/boosting/dart.hpp>
+#include <LightGBM/../../src/boosting/goss.hpp>
 
 
 //==================================================================
@@ -51,6 +51,7 @@ namespace LightGBM {
 
 		// predict
 		void Predict(float *x, int nrows, int ncols, float *&preds) const;
+		void PredictShap(float *x, int nrows, int ncols, float *&shap_vals) const;
 
 		// initializing the train_data_ object from a float c matrix
 		int InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols);
@@ -59,7 +60,7 @@ namespace LightGBM {
 		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0; }
 		int deserialize_from_string(string &str) {
 			std::unique_ptr<Boosting> ret;
-			string type = config_.boosting_type;
+			string type = config_.boosting; // use boosting_type for older lightgbm version
 			if (type == std::string("gbdt")) ret.reset(new GBDT());
 			else if (type == std::string("dart")) ret.reset(new DART());
 			else if (type == std::string("goss")) ret.reset(new GOSS());
@@ -75,9 +76,10 @@ namespace LightGBM {
 		// n_preds 
 		int n_preds_per_sample() const {
 
-			int num_preb_in_one_row = config_.boosting_config.num_class;
-			int is_pred_leaf = config_.io_config.is_predict_leaf_index ? 1 : 0;
-			int num_iteration = config_.boosting_config.num_iterations;
+			int num_preb_in_one_row = config_.num_class; // In older lightgbm: config_.boosting_config.num_class;
+			//int is_pred_leaf = config_.io_config.is_predict_leaf_index ? 1 : 0; // In older lightgbm
+			int is_pred_leaf = config_.predict_leaf_index ? 1 : 0; // new lightgbm
+			int num_iteration = config_.num_iterations; // Older lightgbm : config_.boosting_config.num_iterations;
 			if (is_pred_leaf) {
 				int max_iteration = num_iteration;
 				if (num_iteration > 0) {
@@ -102,7 +104,8 @@ namespace LightGBM {
 			LoadModelFromString(mdl);
 		}
 
-		vector<float> FeatureImportanceTrick(const string &method = "frequency") {
+		vector<float> FeatureImportanceTrick(const string &method = "gain") {
+			/*
 			vector<pair<size_t, string>> res = FeatureImportance(method);
 
 			vector<float> final_res(MaxFeatureIdx() + 1);
@@ -113,7 +116,13 @@ namespace LightGBM {
 						to_string(final_res.size()));
 				final_res[index] = (float)res[i].first;
 			}
+			*/
 
+			vector<double> imps = FeatureImportance(-1, method == "gain" ? 1 : 0);
+
+			vector<float> final_res;
+			for (auto d : imps)
+				final_res.push_back((float)d);
 			return final_res;
 		}
 	};
@@ -213,6 +222,8 @@ public:
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params, const MedFeatures *features);
 
+
+	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
 	int n_preds_per_sample() const { return mem_app.n_preds_per_sample(); }
 

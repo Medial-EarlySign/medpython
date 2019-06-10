@@ -17,7 +17,7 @@
 //#include "predictor.hpp"
 
 #include <LightGBM/utils/openmp_wrapper.h>
-#include <LightGBM/LightGBM/src/application/predictor.hpp>
+#include <LightGBM/../../src/application/predictor.hpp>
 
 #include <cstdio>
 #include <ctime>
@@ -77,8 +77,8 @@ namespace LightGBM {
 		auto get_row_fun = RowFunctionFromDenseMatric(xdata, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
 
 		// sample data first
-		Random rand(config_.io_config.data_random_seed);
-		int sample_cnt = static_cast<int>(nrows < config_.io_config.bin_construct_sample_cnt ? nrows : config_.io_config.bin_construct_sample_cnt);
+		Random rand(config_.seed);
+		int sample_cnt = static_cast<int>(nrows < config_.bin_construct_sample_cnt ? nrows : config_.bin_construct_sample_cnt);
 		auto sample_indices = rand.Sample(nrows, sample_cnt);
 		sample_cnt = static_cast<int>(sample_indices.size());
 		std::vector<std::vector<double>> sample_values(ncols);
@@ -93,7 +93,7 @@ namespace LightGBM {
 				}
 			}
 		}
-		DatasetLoader loader(config_.io_config, nullptr, 1, nullptr);
+		DatasetLoader loader(config_, nullptr, 1, nullptr);
 		train_data_.reset(loader.CostructFromSampleData(Common::Vector2Ptr<double>(sample_values).data(),
 			Common::Vector2Ptr<int>(sample_idx).data(),
 			static_cast<int>(sample_values.size()),
@@ -120,11 +120,11 @@ namespace LightGBM {
 			train_data_->SetFloatField("weight", weight, nrows);
 
 		// create training metric
-		Log::Info("training eval bit %d\n", config_.boosting_config.is_provide_training_metric);
-		if (config_.boosting_config.is_provide_training_metric) {
-			Log::Info("Creating training metrics: types %d\n", config_.metric_types.size());
-			for (auto metric_type : config_.metric_types) {
-				auto metric = std::unique_ptr<Metric>(Metric::CreateMetric(metric_type, config_.metric_config));
+		Log::Info("training eval bit %d\n", config_.is_provide_training_metric);
+		if (config_.is_provide_training_metric) {
+			Log::Info("Creating training metrics: types %d\n", config_.metric.size());
+			for (auto metric_type : config_.metric) {
+				auto metric = std::unique_ptr<Metric>(Metric::CreateMetric(metric_type, config_));
 				if (metric == nullptr) { continue; }
 				metric->Init(train_data_->metadata(), train_data_->num_data());
 				train_metric_.push_back(std::move(metric));
@@ -143,10 +143,10 @@ namespace LightGBM {
 		if (config_.is_parallel) { Log::Info("parallel mode not supported yet for MedLightGBM !!"); return -1; }
 
 		// create boosting
-		boosting_.reset(Boosting::CreateBoosting(config_.boosting_type, config_.io_config.input_model.c_str()));
+		boosting_.reset(Boosting::CreateBoosting(config_.boosting, config_.input_model.c_str()));
 
 		// create objective function
-		objective_fun_.reset(ObjectiveFunction::CreateObjectiveFunction(config_.objective_type, config_.objective_config));
+		objective_fun_.reset(ObjectiveFunction::CreateObjectiveFunction(config_.objective, config_));
 
 		// load training data
 		InitTrainData(xdata, ydata, weight, nrows, ncols);
@@ -155,7 +155,7 @@ namespace LightGBM {
 		objective_fun_->Init(train_data_->metadata(), train_data_->num_data());
 
 		// initialize the boosting
-		boosting_->Init(&config_.boosting_config, train_data_.get(), objective_fun_.get(), Common::ConstPtrInVectorWrapper<Metric>(train_metric_));
+		boosting_->Init(&config_, train_data_.get(), objective_fun_.get(), Common::ConstPtrInVectorWrapper<Metric>(train_metric_));
 
 		// add validation data into boosting ==> Currently not used, as we do not allow loading validation data at this stage in MedLightGBM
 		//for (size_t i = 0; i < valid_datas_.size(); ++i)
@@ -170,16 +170,16 @@ namespace LightGBM {
 		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
 			Log::ResetLogLevel(LogLevel::Warning);
 		Log::Info("Started training...");
-		int total_iter = config_.boosting_config.num_iterations;
+		int total_iter = config_.num_iterations;
 		bool is_finished = false;
 		bool need_eval = true;
 		auto start_time = std::chrono::steady_clock::now();
 		Log::Info("total_iter %d is_finished %d need_eval %d\n", total_iter, (int)is_finished, (int)need_eval);
 		for (int iter = 0; iter < total_iter && !is_finished; ++iter) {
-			is_finished = boosting_->TrainOneIter(nullptr, nullptr, need_eval);
+			is_finished = boosting_->TrainOneIter(nullptr, nullptr);
 			auto end_time = std::chrono::steady_clock::now();
 			// output used time per iteration
-			if ((((iter + 1) % config_.boosting_config.output_freq) == 0) || (iter == total_iter - 1))
+			if ((((iter + 1) % config_.metric_freq) == 0) || (iter == total_iter - 1))
 				Log::Info("%f seconds elapsed, finished iteration %d", std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1);
 		}
 		Log::Info("Finished training");
@@ -193,10 +193,10 @@ namespace LightGBM {
 		LightGBM::Boosting *_boosting = boosting_.get();
 
 		early_stop_ = CreatePredictionEarlyStopInstance("none", LightGBM::PredictionEarlyStopConfig());
-		if (config_.io_config.pred_early_stop && !_boosting->NeedAccuratePrediction()) {
+		if (config_.pred_early_stop && !_boosting->NeedAccuratePrediction()) {
 			LightGBM::PredictionEarlyStopConfig pred_early_stop_config;
-			pred_early_stop_config.margin_threshold = config_.io_config.pred_early_stop_margin;
-			pred_early_stop_config.round_period = config_.io_config.pred_early_stop_freq;
+			pred_early_stop_config.margin_threshold = config_.pred_early_stop_margin;
+			pred_early_stop_config.round_period = config_.pred_early_stop_freq;
 			if (_boosting->NumberOfClasses() == 1) {
 				early_stop_ = CreatePredictionEarlyStopInstance("binary", pred_early_stop_config);
 			}
@@ -212,9 +212,9 @@ namespace LightGBM {
 		auto get_row_fun = RowPairFunctionFromDenseMatric(x, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
 
 		// create boosting
-		Predictor predictor(boosting_.get(), config_.io_config.num_iteration_predict, config_.io_config.is_predict_raw_score, config_.io_config.is_predict_leaf_index,
-			config_.io_config.pred_early_stop, config_.io_config.pred_early_stop_freq, config_.io_config.pred_early_stop_margin);
-		int64_t num_pred_in_one_row = boosting_->NumPredictOneRow(config_.io_config.num_iteration_predict, config_.io_config.is_predict_leaf_index);
+		Predictor predictor(boosting_.get(), config_.num_iteration_predict, config_.predict_raw_score, config_.predict_leaf_index, config_.predict_contrib,
+			config_.pred_early_stop, config_.pred_early_stop_freq, config_.pred_early_stop_margin);
+		int64_t num_pred_in_one_row = boosting_->NumPredictOneRow(config_.num_iteration_predict, config_.predict_leaf_index, config_.predict_contrib);
 		auto pred_fun = predictor.GetPredictFunction();
 		
 		//string str;
@@ -240,6 +240,38 @@ namespace LightGBM {
 		OMP_THROW_EX();
 	
 		for (int64_t i = 0; i < len_res; i++) preds[i] = (float)out_result[i];   
+	}
+
+	//-------------------------------------------------------------------------------------------------
+	void MemApp::PredictShap(float *x, int nrows, int ncols, float *&shap_vals) const
+	{
+		auto get_row_fun = RowPairFunctionFromDenseMatric(x, nrows, ncols, C_API_DTYPE_FLOAT32, 1);
+
+		// create boosting
+		Predictor predictor(boosting_.get(), config_.num_iteration_predict, config_.predict_raw_score, config_.predict_leaf_index, true,
+			config_.pred_early_stop, config_.pred_early_stop_freq, config_.pred_early_stop_margin);
+		int64_t num_pred_in_one_row = boosting_->NumPredictOneRow(config_.num_iteration_predict, config_.predict_leaf_index, true);
+		auto pred_fun = predictor.GetPredictFunction();
+
+		int64_t len_res = nrows * num_pred_in_one_row;
+
+		vector<double> out_result_vec(len_res);
+		double *out_result = &out_result_vec[0];
+		if (shap_vals == NULL) shap_vals = new float[nrows*num_pred_in_one_row];
+
+		OMP_INIT_EX();
+#pragma omp parallel for schedule(static)
+		for (int i = 0; i < nrows; ++i) {
+			OMP_LOOP_EX_BEGIN();
+			auto one_row = get_row_fun(i);
+			auto pred_wrt_ptr = out_result + static_cast<size_t>(num_pred_in_one_row) * i;
+			pred_fun(one_row, pred_wrt_ptr);
+			for (int j = 0; j < num_pred_in_one_row; j++)
+				shap_vals[i*num_pred_in_one_row + j] = (float)pred_wrt_ptr[j];
+			OMP_LOOP_EX_END();
+		}
+		OMP_THROW_EX();
+
 	}
 
 	//-----------------------------------------------------------------------------------------------------------
@@ -345,11 +377,69 @@ namespace LightGBM {
 
 void MedLightGBM::calc_feature_importance(vector<float> &features_importance_scores,
 	const string &general_params, const MedFeatures *features) {
-	//if (!_mark_learn_done)
-	//	MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
+	if (!_mark_learn_done)
+		MTHROW_AND_ERR("ERROR:: Requested calc_feature_importance before running learn\n");
 
-	mem_app.calc_feature_importance(features_importance_scores, general_params,
-		(model_features.empty() ? features_count : (int)model_features.size()));
+	map<string, string> params;
+
+	unordered_set<string> local_types = { "gain", "split" };
+	unordered_set<string> legal_types = { "gain", "split", "shap" };
+
+	MedSerialize::initialization_text_to_map(general_params, params);
+	string importance_type = "gain"; // default
+	for (auto it = params.begin(); it != params.end(); ++it)
+		if (it->first == "importance_type")
+			importance_type = it->second;
+		else
+			MTHROW_AND_ERR("Unsupported calc_feature_importance param \"%s\"\n", it->first.c_str());
+
+	if (legal_types.find(importance_type) == legal_types.end())
+		MTHROW_AND_ERR("Ilegal importance_type value \"%s\" "
+			"- should by one of [weight, gain, cover, gain_total]\n", importance_type.c_str());
+
+	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
+
+	if (local_types.count(importance_type) > 0) {
+		mem_app.calc_feature_importance(features_importance_scores, importance_type,
+			(model_features.empty() ? features_count : (int)model_features.size()));
+		return;
+	}
+
+	// shap option
+	MedMat<float> feat_mat, contribs_mat;
+	if (features == NULL)
+		MTHROW_AND_ERR("SHAP values feature importance requires features \n");
+
+	features->get_as_matrix(feat_mat);
+	calc_feature_contribs(feat_mat, contribs_mat);
+#pragma omp parallel for
+	for (int j = 0; j < contribs_mat.ncols; ++j)
+	{
+		float col_sum = 0;
+
+		for (int i = 0; i < contribs_mat.nrows; ++i)
+		{
+			col_sum += abs(contribs_mat.get(i, j));
+		}
+		features_importance_scores[j] = col_sum / (float)contribs_mat.nrows;
+	}
+
+}
+
+void MedLightGBM::calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs)
+{
+	int nrows = x.nrows;
+	int ncols = x.ncols;
+
+	contribs.resize(nrows, ncols + 1);
+	// copy metadata
+	contribs.signals.insert(contribs.signals.end(), x.signals.begin(), x.signals.end());
+	contribs.signals.push_back("b0");
+	contribs.recordsMetadata.insert(contribs.recordsMetadata.end(), x.recordsMetadata.begin(), x.recordsMetadata.end());
+
+	float *contribs_ptr = &contribs.m[0];
+	float *x_ptr = &x.m[0];
+	mem_app.PredictShap(x_ptr, nrows, ncols, contribs_ptr);
 }
 
 void MedLightGBM::prepare_predict_single() {

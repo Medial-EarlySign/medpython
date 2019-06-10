@@ -160,14 +160,18 @@ void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
 		mdl.add_gender();
 
 	unordered_set<string> req_names;
-	for (FeatureGenerator *generator : mdl.generators)
-		generator->get_required_signal_names(req_names);
+	mdl.get_required_signal_names(req_names);
 	vector<string> sigs = { "BYEAR", "GENDER" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
 	auto it = unique(sigs.begin(), sigs.end());
 	sigs.resize(std::distance(sigs.begin(), it));
+	//read only dicts of rep:
+	if (rep.read_config(rep_path) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_path.c_str());
+	for (RepProcessor *processor : mdl.rep_processors)
+		processor->set_affected_signal_ids(rep.dict);
 	mdl.filter_rep_processors();
 
 	int curr_level = global_logger.levels.front();

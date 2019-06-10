@@ -23,7 +23,8 @@ include_directories($ENV{MR_ROOT}/Libs/External/xgboost/src)
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/include)
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/rabit/include)
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/dmlc-core/include)
-include_directories($ENV{MR_ROOT}/Libs/External/LightGBM/LightGBM/include)
+#include_directories($ENV{MR_ROOT}/Libs/External/LightGBM/LightGBM/include)
+include_directories($ENV{MR_ROOT}/Libs/External/LightGBM_2.2.3/LightGBM-2.2.3/include)
 
 link_directories(/server/Work/Libs/Boost/latest/stage/lib)
 

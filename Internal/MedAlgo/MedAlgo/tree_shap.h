@@ -172,7 +172,7 @@ namespace medial {
 	namespace shapley {
 
 		/// \brief nchoosek calc
-		long nchoosek(long n, long k);
+		double nchoosek(long n, long k);
 		/// \brief lists all binary options for mask
 		void list_all_options_binary(int nfeats, vector<vector<bool>> &all_opts);
 		/// \brief generate random mask
@@ -193,7 +193,7 @@ namespace medial {
 		template<typename T> void explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
 			MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 			const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
-			vector<float> &features_coeff, bool verbose = false);
+			vector<float> &features_coeff, bool use_random_sample, bool verbose = false);
 
 		///< sample weights = lime (distance from orig), uniform (1), shap (shapely weights) or sum (ensuring sum of weights per # of 1's ~ 1/(k*(n-k)) 
 		typedef enum {

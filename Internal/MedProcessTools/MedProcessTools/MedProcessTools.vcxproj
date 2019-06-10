@@ -95,6 +95,7 @@
     <ClCompile Include="MedModel.cpp" />
     <ClCompile Include="MedModelInitFromJson.cpp" />
     <ClCompile Include="MedProcessUtils.cpp" />
+    <ClCompile Include="MedProcessWrappers.cpp" />
     <ClCompile Include="MedSamples.cpp" />
     <ClCompile Include="MedValueCleaner.cpp" />
     <ClCompile Include="PanelCompleter.cpp" />
@@ -122,6 +123,7 @@
     <ClInclude Include="MedModel.h" />
     <ClInclude Include="MedModelExceptions.h" />
     <ClInclude Include="MedProcessUtils.h" />
+    <ClInclude Include="MedProcessWrappers.h" />
     <ClInclude Include="MedSamples.h" />
     <ClInclude Include="MedValueCleaner.h" />
     <ClInclude Include="PostProcessor.h" />
