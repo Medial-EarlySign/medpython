@@ -260,13 +260,15 @@ private:
 
 	void init_sampler(bool with_sampler = true);
 	void _init(map<string, string> &mapper);
+	medial::shapley::LimeWeightMethod get_weight_method(string method_s);
 public:
 	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
 	string generator_args = ""; ///< for learn
 	string sampling_args = ""; ///< args for sampling
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
-	float p_mask = 0.5; ///< prob for 1 in mask
-	int n_masks = 5000; ///< number of masks
+	float p_mask = 0; ///< prob for 1 in mask, if 0 - mask generation done by first selecting # of 1's in mask (uniformly) and then selecting the 1's
+	medial::shapley::LimeWeightMethod weighting = medial::shapley::LimeWeightSum;
+	int n_masks = 1250; ///< number of masks
 
 	LimeExplainer() { processor_type = FTR_POSTPROCESS_LIME_SHAP; }
 
@@ -284,7 +286,7 @@ public:
 	void dprint(const string &pref) const;
 
 	ADD_CLASS_NAME(LimeExplainer)
-		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks,
+		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks, weighting,
 			filters, processing, attr_name)
 };
 

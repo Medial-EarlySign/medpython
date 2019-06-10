@@ -2126,10 +2126,11 @@ void generate_samples(const MedFeatures& data, int isample, const vector<vector<
 double get_normalized_weight(int n, int k, int k0) {
 
 	double logFactor = 0;
-	for (int i = k0; i < k; i++) {
-		logFactor += log(i - 1);
-		logFactor -= log(n - i - 1);
-	}
+	for (int i = k0 + 1; i <= k; i++)
+		logFactor += log((float)i);
+	for (int i = (n - k) + 1; i <= (n - k0); i++)
+		logFactor -= log((float)i);
+
 	return exp(logFactor);
 }
 
@@ -2142,9 +2143,45 @@ double get_normalized_weight(int n, int k, float p) {
 		return 1.0 / get_normalized_weight(n, k0, k);
 }
 
+// Get weights according to the original LIME paper = exp(-d(X)/n)
+void get_lime_weights(const MedFeatures& data, int isample, MedFeatures& p_features, vector<float>& wgts) {
+
+	int n = (int)p_features.samples.size();
+	wgts.resize(n, 0.0);
+
+	for (auto& rec : data.data) {
+		vector<float>& vec = p_features.data[rec.first];
+		for (int i = 0; i < n; i++)
+			wgts[i] += (rec.second[isample] - vec[i]) * (rec.second[isample] - vec[i]);
+	}
+
+	for (int i = 0; i < n; i++)
+		wgts[i] = exp(-wgts[i]/data.data.size());
+}
+
+// Get shapley weights -
+// Sum of weights per k = (n-1)/(k*(n-k))
+// # of samples with k = Nk
+// => Weight per samples with k = (n-1)/((Nk*k*(n-k))
+void get_shapley_weights(int n, int ngrps, vector<int>&ks, vector<float>& wgts) {
+
+	wgts.resize(n, 0.0);
+
+	vector<int> nk(ngrps, 0);
+	for (int k : ks)
+		nk[k]++;
+
+//	for (int i = 1; i < ngrps; i++)
+//		cerr << i << " " << nk[i] << " " << (ngrps - 1.0) / ((nk[i] * i * (ngrps - i))) << "\n";
+
+	for (int i = 0; i < n; i++)
+		wgts[i] = (ngrps - 1.0) / ((nk[ks[i]] * ks[i] * (ngrps - ks[i])));
+
+}
+
 // Main function
 void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
-	SamplesGenerator<float> *generator, float p, int n, float missing,
+	SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
 	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
 	
 	int N_TH = omp_get_max_threads();
@@ -2154,7 +2191,6 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		gen[i] = mt19937(globalRNG::rand());
 
 	uniform_real_distribution<> coin_dist(0, 1);
-	uniform_int_distribution<> smp_choose(0, (int)data.samples.size() - 1);
 
 	int nsamples = (int)data.samples.size();
 	if (nsamples == 0) return;
@@ -2172,6 +2208,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 
 	// Generate samples and predict
 	MedProgress tm("Lime", nsamples, 30, 1);
+	double sample_size_sum = 0.0;
 	for (int isample = 0; isample < nsamples; isample++) {
 		//MLOG("Working on sample %d\n", isample);
 
@@ -2197,50 +2234,105 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		if (nMissing == nftrs)
 			MTHROW_AND_ERR("All values are missing for entry %d , Cannot explain\n", isample);
 
+		vector<int> ks(n);
+		vector<int> sample_size(n);
 #pragma omp parallel for
 		for (int irow = 0; irow < n; irow++) {
 
 			int n_th = omp_get_thread_num();
 			// Mask
 			int S = 0;
-			while (S == 0 || S == ngrps) {
-				S = 0;
+			if (p == 0) {
+				// number of grps that are not all missing
+				vector<int> valid_grps;
 				for (int igrp = 0; igrp < ngrps; igrp++) {
-					bool grp_mask = coin_dist(gen[n_th]) > p;
-					if (grp_mask) { // Keep, unless all are missing
-						size_t nMissing = 0;
-						for (int iftr : group2index[igrp]) {
-							if (missing_v[iftr]) {
-								nMissing++;
-								masks[irow][iftr] = false;
-							}
-							else
-								masks[irow][iftr] = true;
-						}
-
-						if (nMissing == group2index[igrp].size()) // All are missing ...
-							train(igrp, irow) = 0.0;
-						else {
-							train(igrp, irow) = 1.0;
-							S++;
+					for (int iftr : group2index[igrp]) {
+						if (!missing_v[iftr]) {
+							valid_grps.push_back(igrp);
+							break;
 						}
 					}
-					else { // Mask
-						for (int iftr : group2index[igrp])
+				}
+
+				// randomly select S from 1 to nValid and choose S groups to keep
+				S = 1 + (int)(coin_dist(gen[n_th])*(valid_grps.size() - 1));
+				for (int idx = 0; idx < S; idx++) {
+					int grp_idx = (int)(coin_dist(gen[n_th])*(valid_grps.size()));
+					int igrp = valid_grps[grp_idx];
+					for (int iftr : group2index[igrp]) {
+						if (missing_v[iftr])
 							masks[irow][iftr] = false;
-						train(igrp, irow) = 0.0;
+						else
+							masks[irow][iftr] = true;
+					}
+					train(igrp, irow) = 1.0;
+					valid_grps[grp_idx] = valid_grps.back();
+					valid_grps.pop_back();
+				}
+			}
+			else {
+				while (S == 0 || S == ngrps) {
+					S = 0;
+					for (int igrp = 0; igrp < ngrps; igrp++) {
+						bool grp_mask = coin_dist(gen[n_th]) < p;
+						if (grp_mask) { // Keep, unless all are missing
+							size_t nMissing = 0;
+							for (int iftr : group2index[igrp]) {
+								if (missing_v[iftr]) {
+									nMissing++;
+									masks[irow][iftr] = false;
+								}
+								else
+									masks[irow][iftr] = true;
+							}
+
+							if (nMissing == group2index[igrp].size()) // All are missing ...
+								train(igrp, irow) = 0.0;
+							else {
+								train(igrp, irow) = 1.0;
+								S++;
+							}
+						}
+						else { // Mask
+							for (int iftr : group2index[igrp])
+								masks[irow][iftr] = false;
+							train(igrp, irow) = 0.0;
+						}
 					}
 				}
 			}
 
-			// Weights
-			wgts[irow] = get_normalized_weight(ngrps, S, p);
-		}
+			ks[irow] = S;
 
-		// Normalize 
+			// Weights
+			if (weighting == LimeWeightShap)
+				wgts[irow] = get_normalized_weight(ngrps, S, p);
+			else if (weighting == LimeWeightUniform)
+				wgts[irow] = 1.0;
+		}
 
 		// Generate sampled data
 		generate_samples(data, isample, masks, generator, params, &p_features);
+
+		// effective ngrps
+		int eff_ngrps = 0;
+		for (int igrp = 0; igrp < ngrps; igrp++) {
+			if (!missing_g[igrp])
+				eff_ngrps++;
+		}
+
+		// Get weights
+		if (weighting == LimeWeightLime)
+			get_lime_weights(data, isample, p_features, wgts);
+		else if (weighting == LimeWeightSum)
+			get_shapley_weights(n, eff_ngrps, ks, wgts);
+
+		double s1 = 0.0, s2 = 0.0;
+		for (int i = 0;i < n; i++) {
+			s1 += fabs(wgts[i]);
+			s2 += wgts[i] * wgts[i];
+		}
+		sample_size_sum +=  s1 * s1 / s2;
 
 		// Get predictions for samples
 		model->predict(p_features);
@@ -2252,33 +2344,20 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			sum += preds[irow];
 		}
 
-		/* Some debugging
-		MLOG("sample=%d, mean_pred=%f\n", isample, sum / n);
-		MedFeatures s_features;
-		s_features.samples.push_back(p_features.samples[0]);
-		for (auto& rec :data.data) {
-			string feature = rec.first;
-			s_features.attributes[feature] = data.attributes.at(feature);
-			s_features.data[feature].push_back(data.data.at(feature)[isample]);
-			cerr << data.data.at(feature)[isample] << ",";
-		}
-		
-		model->predict(s_features);
-		cerr << s_features.samples[0].prediction[0] << "\n";
-		*/
-
 		// Learn linear model
-		int eff_ngrps = 0;
-		for (int igrp = 0; igrp < ngrps; igrp++) {
-			if (!missing_g[igrp])
-				eff_ngrps++;
-		}
-
 		MedLM lm;
 		lm.params.rfactor = (float)0.98;
+		float mean, std;
 
 		if (eff_ngrps == ngrps) {
 			train.transposed_flag = 1;
+			
+			train.normalize(train.Normalize_Rows);
+			medial::stats::get_mean_and_std_without_cleaning(preds, mean, std);
+			for (unsigned int i = 0; i < preds.size(); i++)
+				preds[i] -= mean;
+			train.normalized_flag = 1;
+
 			lm.learn(train, preds, wgts);
 		}
 		else {
@@ -2294,6 +2373,13 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			}
 
 			eff_train.transposed_flag = 1;
+
+			eff_train.normalize(eff_train.Normalize_Rows);
+			medial::stats::get_mean_and_std_without_cleaning(preds, mean, std);
+			for (unsigned int i = 0; i < preds.size(); i++)
+				preds[i] -= mean;
+			eff_train.normalized_flag = 1;
+
 			lm.learn(eff_train, preds, wgts);
 		}
 
@@ -2311,4 +2397,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 
 		tm.update();
 	}
+
+	MLOG("LimeExplainer: mean effective sample size for %d and % f = %f\n", n, p,sample_size_sum/nsamples);
+
 }

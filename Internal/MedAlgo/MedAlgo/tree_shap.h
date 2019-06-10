@@ -195,9 +195,18 @@ namespace medial {
 			const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
 			vector<float> &features_coeff, bool verbose = false);
 
+		///< sample weights = lime (distance from orig), uniform (1), shap (shapely weights) or sum (ensuring sum of weights per # of 1's ~ 1/(k*(n-k)) 
+		typedef enum {
+			LimeWeightLime = 0,
+			LimeWeightUniform = 1,
+			LimeWeightShap = 2,
+			LimeWeightSum = 3,
+			LimeWeightLast
+		} LimeWeightMethod;
+
 		/// \brief Shapley Lime with generator
 		void get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
-			SamplesGenerator<float> *generator, float p, int n, float missing,
+			SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
 			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas);
 	}
 }

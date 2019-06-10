@@ -1036,12 +1036,26 @@ void LimeExplainer::_init(map<string, string> &mapper) {
 			sampling_args = it->second;
 		else if (it->first == "p_mask")
 			p_mask = med_stof(it->second);
+		else if (it->first == "weight")
+			weighting = get_weight_method(it->second);
 		else if (it->first == "n_masks")
 			n_masks = med_stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in LimeExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
 	}
 	init_sampler(); //from args
+}
+
+medial::shapley::LimeWeightMethod LimeExplainer::get_weight_method(string method_s) {
+
+	boost::to_lower(method_s);
+	if (method_s == "lime") return medial::shapley::LimeWeightLime;
+	if (method_s == "unif" || method_s == "uniform") return medial::shapley::LimeWeightUniform;
+	if (method_s == "shap" || method_s == "shapley") return medial::shapley::LimeWeightShap;
+	if (method_s == "sum" || method_s == "shap_sum" || method_s == "shapley_sum") return medial::shapley::LimeWeightSum;
+
+	MTHROW_AND_ERR("Unknown weighting method %s for LIME explainer\n", method_s.c_str());
+	return medial::shapley::LimeWeightLast;
 }
 
 void LimeExplainer::init_sampler(bool with_sampler) {
@@ -1125,7 +1139,7 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		group_names = &group_names_loc;
 	}
 
-	medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, missing_value,
+	medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
 		sampler_sampling_args, *group_inds, *group_names, alphas);
 
 	sample_explain_reasons.resize(matrix.samples.size());
