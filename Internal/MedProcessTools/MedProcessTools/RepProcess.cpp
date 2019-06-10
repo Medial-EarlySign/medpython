@@ -651,8 +651,8 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 	}
 }
 
-void RepMultiProcessor::make_summary() const {
-	for (auto& proc : processors) 
+void RepMultiProcessor::make_summary() {
+	for (auto& proc : processors)
 		proc->make_summary();
 }
 
@@ -676,8 +676,6 @@ void RepBasicOutlierCleaner::init_lists() {
 		if (!log_file.good())
 			MWARN("Warnning in RepRuleBasedOutlierCleaner - verbose_file %s can't be opened\n", verbose_file.c_str());
 	}
-
-	_stats.signal_name = signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
 }
 
 // Init from map
@@ -704,7 +702,6 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		//! [RepBasicOutlierCleaner::init]
 	}
 
-	_stats.signal_name = signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
 	if (!verbose_file.empty())
 	{
 		verbose_file += "." + signalName + (val_channel == 0 ? "" : "_ch_" + to_string(val_channel));
@@ -719,7 +716,7 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		"addRequiredSignals", "consideredRules", "print_summary", "print_summary_critical_cleaned" };
 
 	for (const string &fl : remove_fl)
-		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl); 
+		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
 }
 
@@ -917,7 +914,14 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 }
 
-void remove_stats::print_summary(int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const {
+void remove_stats::restart() {
+	total_removed = 0;
+	total_pids_touched = 0;
+	total_records = 0;
+	total_pids = 0;
+}
+
+void remove_stats::print_summary(const string &cleaner_info, const string &signal_name, int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const {
 	float rmv_ratio = float(total_removed) / total_records;
 	bool is_critical = total_pids > minimal_pid_cnt && rmv_ratio > print_summary_critical_cleaned;
 	//build msg:
@@ -940,8 +944,9 @@ void remove_stats::print_summary(int minimal_pid_cnt, float print_summary_critic
 
 }
 
-void RepBasicOutlierCleaner::make_summary() const {
-	_stats.print_summary(100, print_summary_critical_cleaned, print_summary);
+void RepBasicOutlierCleaner::make_summary() {
+	_stats.print_summary(my_class_name(), signalName, 100, print_summary_critical_cleaned, print_summary);
+	_stats.restart();
 }
 
 //.......................................................................................
@@ -950,7 +955,6 @@ void RepBasicOutlierCleaner::print()
 	MLOG("BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
 		signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
-
 
 //=======================================================================================
 // ConfiguredOutlierCleaner  
@@ -1039,7 +1043,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 	init_lists();
 	map<string, string>& mapper_p = mapper;
 	vector<string> remove_fl = { "verbose_file" , "clean_method", "conf_file", "rp_type", "unconditional",
-		"signal", "time_channel", "val_channel", "print_summary", "print_summary_critical_cleaned" }; 
+		"signal", "time_channel", "val_channel", "print_summary", "print_summary_critical_cleaned" };
 	for (const string &fl : remove_fl)
 		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
@@ -1555,14 +1559,6 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 				_rmv_stats[sig_name].total_pids_touched += int(!removePoints[sig].empty());
 				_rmv_stats[sig_name].total_records += usvs[sig].len;
 				_rmv_stats[sig_name].total_removed += (int)removePoints[sig].size();
-				if (_rmv_stats[sig_name].cleaner_info.empty()) {
-					string rules_list = to_string(rulesToApply.front());
-					for (size_t ii = 1; ii < rulesToApply.size(); ++ii)
-						rules_list += ", " + to_string(rulesToApply[ii]);
-					_rmv_stats[sig_name].cleaner_info = my_class_name() + "_Rules:[" + rules_list + "]";
-				}
-				if (_rmv_stats[sig_name].signal_name.empty())
-					_rmv_stats[sig_name].signal_name = sig_name;
 			}
 
 			vector <pair<int, float>>noChange;
@@ -1591,9 +1587,12 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 }
 
-void RepRuleBasedOutlierCleaner::make_summary() const {
+void RepRuleBasedOutlierCleaner::make_summary() {
 	for (auto it = _rmv_stats.begin(); it != _rmv_stats.end(); ++it)
-		it->second.print_summary(100, print_summary_critical_cleaned, print_summary);
+		it->second.print_summary(my_class_name(), it->first.c_str()
+			, 100, print_summary_critical_cleaned, print_summary);
+
+	_rmv_stats.clear(); //prepare for next apply
 }
 
 bool test_diff(float origianl, float calculated, float tolerance, float resulotion) {

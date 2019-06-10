@@ -197,7 +197,7 @@ public:
 	/// prints summary of rep_processor job. optional, called after apply.
 	/// for example - prints how many values were cleaned
 	///</summary>
-	virtual void make_summary() const {};
+	virtual void make_summary() {};
 
 	// Serialization (including type)
 	ADD_CLASS_NAME(RepProcessor)
@@ -286,7 +286,7 @@ public:
 	/// debug prints
 	void dprint(const string &pref, int rp_flag);
 
-	void make_summary() const;
+	void make_summary();
 
 	/// serialization
 	ADD_CLASS_NAME(RepMultiProcessor)
@@ -303,9 +303,13 @@ class remove_stats {
 public:
 	int total_removed = 0, total_pids_touched = 0;
 	int total_records = 0, total_pids = 0;
-	string signal_name = "", cleaner_info = "";
 
-	void print_summary(int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const;
+	/// restarts stats for new apply
+	void restart();
+
+	/// prints stats to screen for cleaner
+	void print_summary(const string &cleaner_info, const string &signal_name,
+		int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const;
 };
 
 //.......................................................................................
@@ -335,13 +339,13 @@ public:
 	float print_summary_critical_cleaned = (float)0.05; ///< beyond this value will print summary
 
 	/// <summary> default constructor </summary>
-	RepBasicOutlierCleaner() { init_defaults(); _stats.cleaner_info = my_class_name(); }
+	RepBasicOutlierCleaner() { init_defaults(); }
 	/// <summary> default constructor + setting signal name </summary>
-	RepBasicOutlierCleaner(const string& _signalName) { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); _stats.signal_name = _signalName; }
+	RepBasicOutlierCleaner(const string& _signalName) { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); }
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
-	RepBasicOutlierCleaner(const string& _signalName, string init_string) { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); _stats.signal_name = _signalName; }
+	RepBasicOutlierCleaner(const string& _signalName, string init_string) { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); }
 	/// <summary> default constructor + setting signal name + initialize from parameters </summary>
-	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); _stats.signal_name = _signalName; }
+	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
 
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
@@ -356,7 +360,7 @@ public:
 	};
 
 	/// <summary> Set signal name and fill affected and required signals sets </summary> 
-	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); _stats.signal_name = _signalName; }
+	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
 	virtual void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
@@ -384,7 +388,7 @@ public:
 
 	virtual ~RepBasicOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
 
-	void make_summary() const;
+	void make_summary();
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicOutlierCleaner)
@@ -583,7 +587,7 @@ public:
 
 	void set_affected_signal_ids(MedDictionarySections& dict);
 
-	void make_summary() const;
+	void make_summary();
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
