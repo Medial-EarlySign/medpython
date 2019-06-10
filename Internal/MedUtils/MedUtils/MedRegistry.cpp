@@ -1363,6 +1363,8 @@ RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepo
 		return new RegistrySignalDrug(rep);
 	else if (type == "and")
 		return new RegistrySignalAnd(rep);
+	else if (type == "any")
+		return new RegistrySignalAny;
 	else
 		MTHROW_AND_ERR("Error: Unsupported type \"%s\" for RegistrySignal::make_registry_signal\n", type.c_str());
 	//! [RegistrySignal::make_registry_signal]
