@@ -398,7 +398,7 @@ int MedSamples::insert_post_process(MedFeatures& features) {
 
 // Get all patient ids
 //.......................................................................................
-void MedSamples::get_ids(vector<int>& ids) {
+void MedSamples::get_ids(vector<int>& ids) const {
 
 	ids.resize(idSamples.size());
 	for (unsigned int i = 0; i < idSamples.size(); i++)
@@ -408,7 +408,7 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 // Extract a single vector of concatanated (vectors of) predictions
 //.......................................................................................
-void MedSamples::get_preds(vector<float>& preds) {
+void MedSamples::get_preds(vector<float>& preds) const {
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
 			for (int i = 0; i < sample.prediction.size(); i++)
@@ -417,7 +417,7 @@ void MedSamples::get_preds(vector<float>& preds) {
 
 // Extract a vector of all outcomes
 //.......................................................................................
-void MedSamples::get_y(vector<float>& y) {
+void MedSamples::get_y(vector<float>& y) const {
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
 			y.push_back(sample.outcome);
@@ -425,7 +425,7 @@ void MedSamples::get_y(vector<float>& y) {
 
 // gets a list of all categories (different values) appearing in the outcome
 //.......................................................................................
-void MedSamples::get_categs(vector<float>& categs)
+void MedSamples::get_categs(vector<float>& categs) const
 {
 	map<float, int> categ_inside;
 	categs.clear();

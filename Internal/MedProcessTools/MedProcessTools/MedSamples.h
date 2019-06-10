@@ -151,7 +151,7 @@ public:
 	int insert_post_process(MedFeatures& features);
 
 	/// <summary> Get all patient ids </summary>
-	void get_ids(vector<int>& ids);
+	void get_ids(vector<int>& ids) const;
 
 	/// <summary> Append new MedIdSamples at the end of current ones </summary>
 	void append(MedSamples& newSamples) { idSamples.insert(idSamples.end(), newSamples.idSamples.begin(), newSamples.idSamples.end()); }
@@ -176,11 +176,11 @@ public:
 	int write_to_file(const string &fname);
 
 	/// <summary> Extract a single vector of concatanated predictions </summary>
-	void get_preds(vector<float>& preds);
+	void get_preds(vector<float>& preds) const;
 	/// <summary> Extract a vector of all outcomes  </summary>
-	void get_y(vector<float>& y);
+	void get_y(vector<float>& y) const;
 	/// <summary>  Get a list of all categories (different values) appearing in the outcome </summary>
-	void get_categs(vector<float> &categs);
+	void get_categs(vector<float> &categs) const;
 	/// <summary> Get all MedSamples as a single vector </summary>
 	void export_to_sample_vec(vector<MedSample> &vec_samples) const;
 	/// <summary> Set MedSamples from a single vector </summary>
