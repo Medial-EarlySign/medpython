@@ -281,12 +281,12 @@ bool RegistrySignalSet::get_outcome(const UniversalSigVec &s, int current_i, flo
 	return is_active;
 }
 
-int RegistrySignalSet::init(map<string, string>& map) {
-
+int RegistrySignal::init(map<string, string>& mapper) {
 	string sets_path = "";
-	for (auto it = map.begin(); it != map.end(); ++it)
+	map<string, string> rest_arguments;
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalSet::init]
+		//! [RegistrySignal::init]
 		if (it->first == "signalName")
 			signalName = it->second;
 		else if (it->first == "duration_flag")
@@ -299,12 +299,27 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			outcome_value = stof(it->second);
 		else if (it->first == "channel")
 			channel = stoi(it->second);
-		else if (it->first == "sets_path") //should contain "sets_path=" which points to file with list of codes
+		else
+			rest_arguments[it->first] = it->second;
+		//! [RegistrySignal::init]
+	}
+	
+	_init(rest_arguments);
+	return 0;
+}
+
+void RegistrySignalSet::_init(const map<string, string>& mapper) {
+
+	string sets_path = "";
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [RegistrySignalSet::_init]
+		if (it->first == "sets_path") //should contain "sets_path=" which points to file with list of codes
 			sets_path = it->second;
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalSet::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalSet::init]
+		//! [RegistrySignalSet::_init]
 	}
 	int sid = repo->sigs.sid(signalName);
 	if (sid < 0)
@@ -332,7 +347,6 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			}
 		}
 	}
-	return 0;
 }
 
 RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val) {
@@ -394,32 +408,19 @@ bool RegistrySignalRange::get_outcome(const UniversalSigVec &s, int current_i, f
 	return is_active;
 }
 
-int RegistrySignalRange::init(map<string, string>& map) {
-	for (auto it = map.begin(); it != map.end(); ++it)
+void RegistrySignalRange::_init(const map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalRange::init]
-		if (it->first == "signalName")
-			signalName = it->second;
-		else if (it->first == "duration_flag")
-			duration_flag = stoi(it->second);
-		else if (it->first == "buffer_duration")
-			buffer_duration = stoi(it->second);
-		else if (it->first == "take_only_first")
-			take_only_first = stoi(it->second) > 0;
-		else if (it->first == "min_value")
+		//! [RegistrySignalRange::_init]
+		if (it->first == "min_value")
 			min_value = stof(it->second);
 		else if (it->first == "max_value")
 			max_value = stof(it->second);
-		else if (it->first == "outcome_value")
-			outcome_value = stof(it->second);
-		else if (it->first == "channel")
-			channel = stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalRange::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalRange::init]
+		//! [RegistrySignalRange::_init]
 	}
-	return 0;
 }
 
 RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
@@ -431,28 +432,18 @@ RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
 	outcome_value = 1;
 }
 
-int RegistrySignalDrug::init(map<string, string>& map) {
+void RegistrySignalDrug::_init(const map<string, string>& mapper) {
 
 	string sets_path = "";
-	for (auto it = map.begin(); it != map.end(); ++it)
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalDrug::init]
-		if (it->first == "signalName")
-			signalName = it->second;
-		else if (it->first == "duration_flag")
-			duration_flag = stoi(it->second);
-		else if (it->first == "buffer_duration")
-			buffer_duration = stoi(it->second);
-		else if (it->first == "take_only_first")
-			take_only_first = stoi(it->second) > 0;
-		else if (it->first == "outcome_value")
-			outcome_value = stof(it->second);
-		else if (it->first == "sets_path") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
+		//! [RegistrySignalDrug::_init]
+		if (it->first == "sets_path") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
 			sets_path = it->second;
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalDrug::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalDrug::init]
+		//! [RegistrySignalDrug::_init]
 	}
 	//save to end
 	if (!sets_path.empty()) {
@@ -510,7 +501,6 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 		}
 		file.close();
 	}
-	return 0;
 }
 
 bool RegistrySignalDrug::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
@@ -547,27 +537,34 @@ RegistrySignalAnd::RegistrySignalAnd(MedRepository &rep) {
 	channel = 0;
 }
 
-int RegistrySignalAnd::init(map<string, string>& map) {
-	for (auto it = map.begin(); it != map.end(); ++it)
+void RegistrySignalAnd::_init(const map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalAnd::init]
-		if (it->first == "signalName")
-			MWARN("Warning in RegistrySignalAnd::init - ignoring signalName argument. this is wrapper operation\n");
-		else if (it->first == "conditions")  //not checking for infinite loop
+		//! [RegistrySignalAnd::_init]
+		if (it->first == "conditions")  //not checking for infinite loop
 			RegistrySignal::parse_registry_rules(it->second, *repo, conditions);
 		else
 			MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - Unsupported Argument %s\n", it->first.c_str());
-		//! [RegistrySignalAnd::init]
+		//! [RegistrySignalAnd::_init]
 	}
 	if (conditions.empty())
 		MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - conditions is empty. please use conditions to reffer to file with and conditions of signals\n");
-	return 0;
+	//given signalName argument
+	if (!signalName.empty())
+		MWARN("Warning in RegistrySignalAnd::init - ignoring signalName argument. this is wrapper operation\n");
 }
 
 RegistrySignalAnd::~RegistrySignalAnd() {
 	for (size_t i = 0; i < conditions.size(); ++i)
 		delete conditions[i];
 	conditions.clear();
+}
+
+bool RegistrySignalAny::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
+	bool is_active = current_i < s.len;
+	if (is_active)
+		result = outcome_value;
+	return is_active;
 }
 
 inline int Date_wrapper(const UniversalSigVec &signal, int i) {
