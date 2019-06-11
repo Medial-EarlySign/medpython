@@ -91,8 +91,8 @@ int MedValueCleaner::get_iterative_min_max(vector<float>& values) {
 		medial::stats::get_mean_and_std(values, params.missing_value, num_samples_after_cleaning, mean, sd);
 		if (num_samples_after_cleaning == 0) {
 			MWARN("EMPTY_VECTOR:: learning cleaning parameters from an empty vector\n");
-			trimMax = 0; 
-			trimMin = 0; 
+			trimMax = 0;
+			trimMin = 0;
 			removeMax = 0;
 			removeMin = 0;
 			nbrsMax = 0;
@@ -165,7 +165,8 @@ int MedValueCleaner::init(void *_in_params)
 int MedValueCleaner::init(map<string, string>& mapper) {
 
 	unordered_set<string> remove_me = { "verbose_file" ,"fp_type", "rp_type", "unconditional", "signal", "time_channel", "val_channel", "nrem_attr", "ntrim_attr", "nrem_suff",
-		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals", "addRequiredSignals", "consideredRules"};
+		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals", "addRequiredSignals",
+		"consideredRules", "print_summary", "print_summary_critical_cleaned" };
 
 
 	for (auto entry : mapper) {
@@ -188,7 +189,7 @@ int MedValueCleaner::init(map<string, string>& mapper) {
 		else if (field == "trim_range_min") params.trim_range_min = med_stof(entry.second);
 		else if (field == "trim_range_max") params.trim_range_max = med_stof(entry.second);
 		else if (field == "max_samples") params.max_samples = med_stoi(entry.second);
-		else if (!remove_me.count(field)) MWARN("MedValueCleaner:: Warn Unknown param \"%s\"\n", field.c_str());
+		else if (remove_me.find(field) == remove_me.end()) MWARN("MedValueCleaner:: Warn Unknown param \"%s\"\n", field.c_str());
 		//! [MedValueCleaner::init]
 
 	}
