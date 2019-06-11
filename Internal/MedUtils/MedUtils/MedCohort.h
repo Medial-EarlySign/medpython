@@ -41,6 +41,7 @@ struct CohortRec : SerializableObject {
 	int to = 0;				///< Followup end
 	int outcome_date = 0;	///< Date(Time) at which outcome is given
 	float outcome = -1;		///< Outcome
+	string comments = "";	///< additional option for comments
 
 	/// <summary> empty constructor </summary>
 	CohortRec() {};

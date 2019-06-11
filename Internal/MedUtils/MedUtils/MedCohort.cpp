@@ -48,6 +48,7 @@ int CohortRec::init(map<string, string>& map)
 void CohortRec::get_string(string &to_str)
 {
 	to_str = to_string(pid) + "\t" + to_string(from) + "\t" + to_string(to) + "\t" + to_string(outcome_date) + "\t" + to_string(outcome);
+	if (comments != "") to_str += "\t" + comments;
 }
 
 // Get a cohort from a tab-delimited string. Return -1 if wrong number of fields, 0 upon success
@@ -64,7 +65,9 @@ int CohortRec::from_string(string &from_str)
 		outcome_date = stoi(fields[3]);
 		outcome = stof(fields[4]);
 	}
-	else
+	else if (fields.size() >= 6) {
+		comments = fields[5];
+	} else
 		return -1;
 
 	return 0;
