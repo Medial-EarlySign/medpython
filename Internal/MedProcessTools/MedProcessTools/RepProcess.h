@@ -887,6 +887,9 @@ public:
 	// initialize signal ids
 	void set_signal_ids(MedSignals& sigs);
 
+	// checks if need to create virual signal
+	void set_affected_signal_ids(MedDictionarySections& dict);
+
 	// dictionary based initializations
 	void init_tables(MedDictionarySections &dict, MedSignals& sigs);
 
