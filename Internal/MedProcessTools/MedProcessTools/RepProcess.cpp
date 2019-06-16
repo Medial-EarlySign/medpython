@@ -661,6 +661,13 @@ void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& 
 		processors[i]->register_virtual_section_name_id(dict);
 }
 
+void RepBasicOutlierCleaner::set_signal_ids(MedSignals& sigs) {
+	signalId = sigs.sid(signalName);
+	is_categ = sigs.is_categorical_channel(signalId, val_channel);
+	if (is_categ)
+		MWARN("Warning Signal %s is categorical - no cleaning\n", signalName.c_str());
+}
+
 //=======================================================================================
 // BasicOutlierCleaner
 //=======================================================================================
@@ -811,6 +818,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		return -1;
 	}
 
+	if (is_categ) 
+		return 0;
 	int len;
 
 	differentVersionsIterator vit(rec, signalId);
