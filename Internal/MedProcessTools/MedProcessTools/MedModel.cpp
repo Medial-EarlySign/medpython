@@ -241,6 +241,8 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
+	//init to check we have remove all we can (or if need to create virtual signals?):
+	set_affected_signal_ids(rep.dict);
 	// init virtual signals
 	if (collect_and_add_virtual_signals(rep) < 0) {
 		MERR("FAILED collect_and_add_virtual_signals\n");
