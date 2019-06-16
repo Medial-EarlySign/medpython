@@ -818,7 +818,7 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		return -1;
 	}
 
-	if (is_categ) 
+	if (is_categ)
 		return 0;
 	int len;
 
@@ -2193,7 +2193,8 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 // Get time-channels (if empty)
 //.......................................................................................
 void RepSimValHandler::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
-
+	if (signalId < 0)
+		return;
 	if (time_channels.empty()) {
 		int n = sigs.Sid2Info[signalId].n_time_channels;
 		time_channels.resize(n);

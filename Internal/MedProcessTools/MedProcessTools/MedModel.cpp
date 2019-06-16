@@ -1428,10 +1428,10 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 
 	vector<unordered_set<string>> current_req_signal_names;
 	if (rep_processors != NULL && !rep_processors->empty()) {
-		collect_and_add_virtual_signals_static(rep, *rep_processors);
-		//init to check if need to remove (may seem it can remove after init)
 		for (RepProcessor *processor : *rep_processors)
 			processor->set_affected_signal_ids(rep.dict);
+		collect_and_add_virtual_signals_static(rep, *rep_processors);
+		//init to check if need to remove (may seem it can remove after init)
 		filter_rep_processors(needed_sigs, rep_processors);
 		for (RepProcessor *processor : *rep_processors) {
 			processor->set_affected_signal_ids(rep.dict);
