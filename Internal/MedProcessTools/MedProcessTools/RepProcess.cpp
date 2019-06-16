@@ -931,6 +931,8 @@ void remove_stats::restart() {
 }
 
 void remove_stats::print_summary(const string &cleaner_info, const string &signal_name, int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const {
+	if (total_records == 0)
+		return; //nothing happend
 	float rmv_ratio = float(total_removed) / total_records;
 	bool is_critical = total_pids > minimal_pid_cnt && rmv_ratio > print_summary_critical_cleaned;
 	//build msg:
