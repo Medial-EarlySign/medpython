@@ -642,6 +642,7 @@ int CategoryDependencyGenerator::nfeatures() {
 		return (int)names.size();
 	if (take_top > 0)
 		return take_top;
+	return 0;
 }
 
 int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
