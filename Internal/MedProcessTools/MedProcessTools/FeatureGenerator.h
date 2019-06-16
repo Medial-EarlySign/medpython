@@ -858,6 +858,8 @@ public:
 	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
+	int nfeatures();
+
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
 		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win)
 };

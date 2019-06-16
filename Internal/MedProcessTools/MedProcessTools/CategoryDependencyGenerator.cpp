@@ -637,6 +637,13 @@ void CategoryDependencyGenerator::set_names() {
 	}
 }
 
+int CategoryDependencyGenerator::nfeatures() {
+	if (!names.empty())
+		return (int)names.size();
+	if (take_top > 0)
+		return take_top;
+}
+
 int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 	int time_unit_sig = rec.my_base_rep->sigs.Sid2Info[signalId].time_unit;
 
