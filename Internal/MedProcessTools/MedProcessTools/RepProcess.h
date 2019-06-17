@@ -320,8 +320,8 @@ public:
 class RepBasicOutlierCleaner : public RepProcessor, public MedValueCleaner {
 private:
 	ofstream log_file;
-
 	remove_stats _stats;
+	bool is_categ = false;
 public:
 
 	string signalName; 	///< name of signal to clean
@@ -363,7 +363,7 @@ public:
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
-	virtual void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
+	virtual void set_signal_ids(MedSignals& sigs);
 
 	/// <summary> Fill required- and affected-signals sets </summary>
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
@@ -886,6 +886,9 @@ public:
 
 	// initialize signal ids
 	void set_signal_ids(MedSignals& sigs);
+
+	// checks if need to create virual signal
+	void set_affected_signal_ids(MedDictionarySections& dict);
 
 	// dictionary based initializations
 	void init_tables(MedDictionarySections &dict, MedSignals& sigs);

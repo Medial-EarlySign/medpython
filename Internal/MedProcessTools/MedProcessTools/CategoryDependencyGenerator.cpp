@@ -310,11 +310,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			total_stats[i][j].resize(2);
 	}
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-
+	MedProgress progress("CategoryDependencyGenerator:" + signalName, (int)samples.idSamples.size(), 15,100);
 	//unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
 	//bool nested_state = omp_get_nested();
 	//omp_set_nested(true);
@@ -450,26 +446,10 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 			// Some timing printing
 			//#pragma omp atomic
-			++progress;
-			double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_prog).count()) / 1000000.0;
-			if (progress % 100 == 0 && duration > 15) {
-				//#pragma omp critical
-				tm_prog = chrono::high_resolution_clock::now();
-				double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-					- tm.t[0]).count()) / 1000000.0;
-				double estimate_time = int(double(samples.idSamples.size() - progress) / double(progress) * double(time_elapsed));
-				char buffer[1000];
-				snprintf(buffer, sizeof(buffer), "CategoryDependencyGenerator:%s Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-					"estimate time to finish %2.1f Minutes",
-					signalName.c_str(), progress, (int)samples.idSamples.size(), 100.0*(progress / float(samples.idSamples.size())), time_elapsed / 60,
-					estimate_time / 60.0);
-				MLOG("%s\n", buffer);
-			}
+			progress.update();
+			
 		}
 	}
-	tm.take_curr_time();
-	MLOG("Took %2.2f seconds to complete\n", tm.diff_sec());
 	//omp_set_nested(nested_state);
 
 	//complete stats in rows:
@@ -635,6 +615,14 @@ void CategoryDependencyGenerator::set_names() {
 			signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
 		names[i] = string(buff);
 	}
+}
+
+int CategoryDependencyGenerator::nfeatures() {
+	if (!names.empty())
+		return (int)names.size();
+	if (take_top > 0)
+		return take_top;
+	return 0;
 }
 
 int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {

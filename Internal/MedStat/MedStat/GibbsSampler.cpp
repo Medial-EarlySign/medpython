@@ -193,12 +193,8 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 		}
 	}
 	else {
-		MedTimer tm;
-		tm.start();
-		chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-		int progress = 0;
+		MedProgress progress("Learn_Gibbs", (int)all_names.size(), 30, 1);
 
-		int max_loop = (int)all_names.size();
 		int train_sz = int(cohort_size * params.selection_ratio);
 
 		if (params.kmeans > 0) {
@@ -395,20 +391,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 					train_pred->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
 				feats_predictors[i].predictor = train_pred;
 
-				++progress;
-				double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-					- tm_prog).count()) / 1000000.0;
-				if (duration > 30) {
-#pragma omp critical
-					tm_prog = chrono::high_resolution_clock::now();
-					double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-						- tm.t[0]).count()) / 1000000.0;
-					double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-					MLOG("Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-						"estimate time to finish %2.1f Minutes\n",
-						progress, (int)max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-						estimate_time / 60.0);
-				}
+				progress.update();
 			}
 		}
 	}
